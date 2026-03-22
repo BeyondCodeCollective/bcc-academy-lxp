@@ -107,12 +107,13 @@ export default async function DashboardPage() {
       {/* Welcome Video */}
       <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white">
         <div className="relative aspect-video w-full bg-neutral-900">
-          <iframe
-            src="https://www.youtube.com/embed/VIDEO_ID_PLACEHOLDER"
-            title="Welcome to After The Game"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            className="absolute inset-0 h-full w-full"
+          <video
+            src="/atg-intro.mp4"
+            controls
+            playsInline
+            preload="metadata"
+            poster=""
+            className="absolute inset-0 h-full w-full object-cover"
           />
         </div>
         <div className="px-5 py-4">
