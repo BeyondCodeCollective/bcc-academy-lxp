@@ -104,6 +104,27 @@ export default async function DashboardPage() {
         </div>
       </div>
 
+      {/* Welcome Video */}
+      <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white">
+        <div className="relative aspect-video w-full bg-neutral-900">
+          <iframe
+            src="https://www.youtube.com/embed/VIDEO_ID_PLACEHOLDER"
+            title="Welcome to After The Game"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            className="absolute inset-0 h-full w-full"
+          />
+        </div>
+        <div className="px-5 py-4">
+          <p className="text-sm font-semibold text-neutral-900">
+            Welcome to After The Game
+          </p>
+          <p className="mt-0.5 text-xs text-neutral-400">
+            A message from Ramon Clemente
+          </p>
+        </div>
+      </div>
+
       {/* Getting Started */}
       <div>
         <h2 className="text-lg font-semibold text-neutral-900 mb-4">

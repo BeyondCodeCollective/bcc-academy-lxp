@@ -36,9 +36,9 @@ const ADMINS: DemoUser[] = [
 // Students — update these emails as needed
 const STUDENTS: DemoUser[] = [
   {
-    email: "student1@example.com",
-    first_name: "Kevin",
-    last_name: "Williams",
+    email: "youngfonz@gmail.com",
+    first_name: "Fonz",
+    last_name: "Test",
     role: "student",
   },
   {
