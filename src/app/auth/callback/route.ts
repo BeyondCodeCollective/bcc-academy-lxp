@@ -5,8 +5,10 @@ import { cookies } from "next/headers";
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
+  const token_hash = searchParams.get("token_hash");
+  const type = searchParams.get("type") as "email" | "magiclink" | null;
 
-  if (code) {
+  if (code || token_hash) {
     const cookieStore = await cookies();
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -25,8 +27,59 @@ export async function GET(request: Request) {
       }
     );
 
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) {
+    let authError = null;
+    if (code) {
+      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      authError = error;
+    } else if (token_hash && type) {
+      const { error } = await supabase.auth.verifyOtp({
+        token_hash,
+        type,
+      });
+      authError = error;
+    }
+
+    if (!authError) {
+      // Auto-create student record on first login
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user) {
+        const { data: existing } = await supabase
+          .from("students")
+          .select("id")
+          .eq("id", user.id)
+          .single();
+
+        if (!existing) {
+          // Derive name from email (e.g. "fonz.morris@gmail.com" → "Fonz", "Morris")
+          const emailPrefix = (user.email || "").split("@")[0];
+          const parts = emailPrefix
+            .split(/[._-]/)
+            .map((s) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase());
+          const firstName = parts[0] || "New";
+          const lastName = parts.slice(1).join(" ") || "Student";
+
+          // Get the default cohort
+          const { data: cohort } = await supabase
+            .from("cohorts")
+            .select("id")
+            .order("created_at", { ascending: true })
+            .limit(1)
+            .single();
+
+          await supabase.from("students").insert({
+            id: user.id,
+            email: user.email,
+            first_name: firstName,
+            last_name: lastName,
+            role: "student",
+            cohort_id: cohort?.id || null,
+          });
+        }
+      }
+
       return NextResponse.redirect(`${origin}/dashboard`);
     }
   }
