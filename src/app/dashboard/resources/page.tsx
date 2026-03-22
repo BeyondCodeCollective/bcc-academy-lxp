@@ -79,12 +79,32 @@ export default async function ResourcesPage() {
       .eq("id", user.id)
       .single<Pick<Student, "cohort_id">>();
 
-    if (!student?.cohort_id) redirect("/dashboard");
+    let cohortId = student?.cohort_id;
+
+    // Auto-assign to first cohort if not yet assigned
+    if (!cohortId) {
+      const { data: defaultCohort } = await supabase
+        .from("cohorts")
+        .select("id")
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .single();
+
+      if (defaultCohort) {
+        await supabase
+          .from("students")
+          .update({ cohort_id: defaultCohort.id })
+          .eq("id", user.id);
+        cohortId = defaultCohort.id;
+      }
+    }
+
+    if (!cohortId) redirect("/dashboard");
 
     const { data: dbResources } = await supabase
       .from("resources")
       .select("*")
-      .eq("cohort_id", student.cohort_id)
+      .eq("cohort_id", cohortId)
       .order("created_at", { ascending: false })
       .returns<Resource[]>();
 

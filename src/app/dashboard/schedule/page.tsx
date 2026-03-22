@@ -63,12 +63,32 @@ export default async function SchedulePage() {
       .eq("id", user.id)
       .single<Pick<Student, "cohort_id">>();
 
-    if (!student?.cohort_id) redirect("/dashboard");
+    let cohortId = student?.cohort_id;
+
+    // Auto-assign to first cohort if not yet assigned
+    if (!cohortId) {
+      const { data: defaultCohort } = await supabase
+        .from("cohorts")
+        .select("id")
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .single();
+
+      if (defaultCohort) {
+        await supabase
+          .from("students")
+          .update({ cohort_id: defaultCohort.id })
+          .eq("id", user.id);
+        cohortId = defaultCohort.id;
+      }
+    }
+
+    if (!cohortId) redirect("/dashboard");
 
     const { data: cohort } = await supabase
       .from("cohorts")
       .select("*")
-      .eq("id", student.cohort_id)
+      .eq("id", cohortId)
       .single<Cohort>();
 
     if (!cohort) redirect("/dashboard");
@@ -79,7 +99,7 @@ export default async function SchedulePage() {
     const { data: dbSessions } = await supabase
       .from("sessions")
       .select("*")
-      .eq("cohort_id", student.cohort_id)
+      .eq("cohort_id", cohortId)
       .order("week_number", { ascending: true })
       .order("session_number", { ascending: true })
       .returns<Session[]>();
