@@ -36,23 +36,37 @@ export default async function DashboardPage() {
       .eq("id", user.id)
       .single<Pick<Student, "first_name" | "cohort_id">>();
 
-    if (!student?.cohort_id) {
-      return (
-        <div className="py-12 text-center text-neutral-500">
-          <p>You are not assigned to a cohort yet.</p>
-        </div>
-      );
+    let cohortId = student?.cohort_id;
+
+    // Auto-assign to first cohort if not yet assigned
+    if (!cohortId) {
+      const { data: defaultCohort } = await supabase
+        .from("cohorts")
+        .select("id")
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .single();
+
+      if (defaultCohort) {
+        await supabase
+          .from("students")
+          .update({ cohort_id: defaultCohort.id })
+          .eq("id", user.id);
+        cohortId = defaultCohort.id;
+      }
     }
+
+    if (!cohortId) redirect("/");
 
     const { data: cohort } = await supabase
       .from("cohorts")
       .select("*")
-      .eq("id", student.cohort_id)
+      .eq("id", cohortId)
       .single<Cohort>();
 
     if (!cohort) redirect("/");
 
-    firstName = student.first_name;
+    firstName = student?.first_name || "there";
     cohortName = cohort.display_name || cohort.name;
     currentWeek = computeCurrentWeek(cohort.start_date, cohort.total_weeks);
     totalWeeks = cohort.total_weeks;
