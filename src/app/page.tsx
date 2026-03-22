@@ -70,7 +70,7 @@ export default function LoginPage() {
               className="h-5"
             />
             <div className="h-px w-10 bg-white/20" />
-            <p className="text-[11px] font-medium tracking-[0.2em] text-[#39FF14] uppercase">
+            <p className="text-[11px] font-medium tracking-[0.2em] text-[#E4F800] uppercase">
               From Sports to Tech
             </p>
           </div>
