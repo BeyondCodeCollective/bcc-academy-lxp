@@ -8,15 +8,27 @@ export type DemoUser = {
 // Admin / instructors
 const ADMINS: DemoUser[] = [
   {
-    email: "kkjoyner@gmail.com",
-    first_name: "Kobie",
-    last_name: "Joyner",
+    email: "fonz.morris@wearebgc.org",
+    first_name: "Fonz",
+    last_name: "Morris",
     role: "admin",
   },
   {
-    email: "ramon@wearebcc.org",
+    email: "ramon.clemente@wearebgc.org",
     first_name: "Ramon",
     last_name: "Clemente",
+    role: "admin",
+  },
+  {
+    email: "mancini@wearebgc.org",
+    first_name: "Cristina",
+    last_name: "Mancini",
+    role: "admin",
+  },
+  {
+    email: "kkjoyner@gmail.com",
+    first_name: "Kobie",
+    last_name: "Joyner",
     role: "admin",
   },
 ];

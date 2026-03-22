@@ -2,6 +2,14 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
+// Emails that get admin role on first login
+const ADMIN_EMAILS = [
+  "fonz.morris@wearebgc.org",
+  "ramon.clemente@wearebgc.org",
+  "mancini@wearebgc.org",
+  "kkjoyner@gmail.com",
+];
+
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
@@ -74,7 +82,9 @@ export async function GET(request: Request) {
             email: user.email,
             first_name: firstName,
             last_name: lastName,
-            role: "student",
+            role: ADMIN_EMAILS.includes((user.email || "").toLowerCase())
+              ? "admin"
+              : "student",
             cohort_id: cohort?.id || null,
           });
         }
