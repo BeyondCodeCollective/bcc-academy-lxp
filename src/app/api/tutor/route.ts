@@ -1,34 +1,52 @@
 import { NextResponse } from "next/server";
+import Anthropic from "@anthropic-ai/sdk";
 
-const DEMO_REPLIES: Record<string, string> = {
-  default:
-    "Great question! In the CompTIA Tech+ curriculum, that falls under core IT concepts. Let me break it down for you — what specific part are you most curious about?",
-  network:
-    "Networking is all about how devices communicate. The basics: IP addresses identify devices, DNS translates domain names to IPs, and routers direct traffic between networks. Think of it like a postal system — every device needs an address, and routers are the mail carriers.",
-  security:
-    "Cybersecurity is one of the hottest areas in tech right now. The fundamentals start with the CIA triad: Confidentiality (keeping data private), Integrity (keeping data accurate), and Availability (keeping systems running). Which of these do you want to explore?",
-  cloud:
-    "Cloud computing means using someone else's computers over the internet instead of your own hardware. The three main models are IaaS (infrastructure), PaaS (platform), and SaaS (software). AWS, Azure, and Google Cloud are the big three providers.",
-};
+const SYSTEM_PROMPT = `You are the AI Tutor for "After The Game" (ATG), a program by Beyond Code Collective that helps former athletes transition into tech careers. Your students are adults in their 40s and 50s who are new to technology.
+
+You are helping them study for the CompTIA Tech+ certification (FC0-U71). The 7-week curriculum covers:
+- Week 1: IT Fundamentals (computing stages, hardware, binary, units of measure)
+- Week 2: Devices & OS (peripherals, connectors, Windows/macOS/Linux, file systems)
+- Week 3: Networking (LAN/WAN, IP/MAC addresses, TCP/IP, DNS, ports)
+- Week 4: Cybersecurity (CIA triad, authentication, malware, social engineering, firewalls)
+- Week 5: Software & Data (programming concepts, SDLC, databases, SQL basics)
+- Week 6: Cloud & Support (IaaS/PaaS/SaaS, AWS/Azure/GCP, troubleshooting, help desk)
+- Week 7: Certification Review (exam prep, practice questions, test strategies)
+
+Guidelines:
+- Be encouraging, patient, and supportive. These are career changers making a big leap.
+- Use sports analogies when helpful — your students are former athletes and it helps concepts click.
+- Keep explanations clear and jargon-free. Define technical terms when you first use them.
+- When answering questions, give concise but thorough answers. Use bullet points for clarity.
+- If asked about topics outside CompTIA Tech+, gently redirect to the curriculum.
+- Offer practice questions when appropriate to reinforce learning.
+- Keep responses focused — 2-3 short paragraphs max unless they ask for more detail.`;
 
 export async function POST(request: Request) {
   const { messages } = await request.json();
-  const lastMessage = messages?.[messages.length - 1]?.content?.toLowerCase() || "";
 
-  // TODO: Replace with actual Claude API call
-  // const anthropic = new Anthropic();
-  // const response = await anthropic.messages.create({ ... });
-
-  await new Promise((r) => setTimeout(r, 800));
-
-  let reply = DEMO_REPLIES.default;
-  if (lastMessage.includes("network") || lastMessage.includes("ip") || lastMessage.includes("dns")) {
-    reply = DEMO_REPLIES.network;
-  } else if (lastMessage.includes("security") || lastMessage.includes("cyber") || lastMessage.includes("hack")) {
-    reply = DEMO_REPLIES.security;
-  } else if (lastMessage.includes("cloud") || lastMessage.includes("aws") || lastMessage.includes("azure")) {
-    reply = DEMO_REPLIES.cloud;
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return NextResponse.json({
+      reply:
+        "The AI Tutor is being set up — check back soon! In the meantime, feel free to explore the course materials in the Resources section.",
+    });
   }
+
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+  const response = await client.messages.create({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 1024,
+    system: SYSTEM_PROMPT,
+    messages: messages.map((m: { role: string; content: string }) => ({
+      role: m.role as "user" | "assistant",
+      content: m.content,
+    })),
+  });
+
+  const reply =
+    response.content[0].type === "text"
+      ? response.content[0].text
+      : "I had trouble generating a response. Could you try rephrasing your question?";
 
   return NextResponse.json({ reply });
 }
