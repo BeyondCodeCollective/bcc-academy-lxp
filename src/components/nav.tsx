@@ -70,8 +70,11 @@ export function Nav({ isAdmin }: { isAdmin: boolean }) {
           )}
 
           <button
-            onClick={() => {
+            onClick={async () => {
               document.cookie = "atg-demo-user=; path=/; max-age=0";
+              const { createClient } = await import("@/lib/supabase/client");
+              const supabase = createClient();
+              await supabase.auth.signOut();
               window.location.href = "/";
             }}
             className="flex items-center gap-1.5 rounded-lg px-2.5 sm:px-3 py-2.5 sm:py-2 text-sm font-medium text-neutral-500 hover:bg-white/10 hover:text-white transition-colors ml-1"
