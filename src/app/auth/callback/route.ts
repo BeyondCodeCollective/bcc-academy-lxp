@@ -5,10 +5,20 @@ import { cookies } from "next/headers";
 // Emails that get admin role on first login
 const ADMIN_EMAILS = [
   "fonz.morris@wearebgc.org",
+  "fonzmorris@gmail.com",
+  "youngfonz@gmail.com",
   "ramon.clemente@wearebgc.org",
   "mancini@wearebgc.org",
   "kkjoyner@gmail.com",
 ];
+
+// Default cohort — auto-created if no cohorts exist
+const DEFAULT_COHORT = {
+  name: "cohort-1-techplus",
+  display_name: "Cohort 1 — CompTIA Tech+ Foundations",
+  start_date: "2026-03-24",
+  total_weeks: 7,
+};
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -48,12 +58,29 @@ export async function GET(request: Request) {
     }
 
     if (!authError) {
-      // Auto-create student record on first login
       const {
         data: { user },
       } = await supabase.auth.getUser();
 
       if (user) {
+        // Ensure at least one cohort exists
+        let { data: cohort } = await supabase
+          .from("cohorts")
+          .select("id")
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .single();
+
+        if (!cohort) {
+          const { data: newCohort } = await supabase
+            .from("cohorts")
+            .insert(DEFAULT_COHORT)
+            .select("id")
+            .single();
+          cohort = newCohort;
+        }
+
+        // Auto-create student record on first login
         const { data: existing } = await supabase
           .from("students")
           .select("id")
@@ -61,21 +88,12 @@ export async function GET(request: Request) {
           .single();
 
         if (!existing) {
-          // Derive name from email (e.g. "fonz.morris@gmail.com" → "Fonz", "Morris")
           const emailPrefix = (user.email || "").split("@")[0];
           const parts = emailPrefix
             .split(/[._-]/)
             .map((s) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase());
           const firstName = parts[0] || "New";
           const lastName = parts.slice(1).join(" ") || "Student";
-
-          // Get the default cohort
-          const { data: cohort } = await supabase
-            .from("cohorts")
-            .select("id")
-            .order("created_at", { ascending: true })
-            .limit(1)
-            .single();
 
           await supabase.from("students").insert({
             id: user.id,
@@ -87,6 +105,13 @@ export async function GET(request: Request) {
               : "student",
             cohort_id: cohort?.id || null,
           });
+        } else {
+          // Student exists but may have no cohort — assign them
+          await supabase
+            .from("students")
+            .update({ cohort_id: cohort?.id })
+            .eq("id", user.id)
+            .is("cohort_id", null);
         }
       }
 
@@ -94,6 +119,5 @@ export async function GET(request: Request) {
     }
   }
 
-  // Something went wrong — redirect to login
   return NextResponse.redirect(`${origin}/?error=auth`);
 }
