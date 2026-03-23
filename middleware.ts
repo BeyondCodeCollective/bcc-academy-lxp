@@ -49,4 +49,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: ["/dashboard/:path*"],
+  // Never run middleware on auth callback or static assets
+  // matcher already excludes non-matching routes, but this is explicit
 };
