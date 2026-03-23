@@ -21,6 +21,7 @@ export default async function DashboardPage() {
   let cohortName = "Cohort 1 — CompTIA Tech+ Foundations";
   let currentWeek = 1;
   let totalWeeks = 7;
+  let noCohort = false;
 
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
@@ -56,20 +57,25 @@ export default async function DashboardPage() {
       }
     }
 
-    if (!cohortId) redirect("/");
+    if (cohortId) {
+      const { data: cohort } = await supabase
+        .from("cohorts")
+        .select("*")
+        .eq("id", cohortId)
+        .single<Cohort>();
 
-    const { data: cohort } = await supabase
-      .from("cohorts")
-      .select("*")
-      .eq("id", cohortId)
-      .single<Cohort>();
-
-    if (!cohort) redirect("/");
+      if (cohort) {
+        cohortName = cohort.display_name || cohort.name;
+        currentWeek = computeCurrentWeek(cohort.start_date, cohort.total_weeks);
+        totalWeeks = cohort.total_weeks;
+      } else {
+        noCohort = true;
+      }
+    } else {
+      noCohort = true;
+    }
 
     firstName = student?.first_name || "there";
-    cohortName = cohort.display_name || cohort.name;
-    currentWeek = computeCurrentWeek(cohort.start_date, cohort.total_weeks);
-    totalWeeks = cohort.total_weeks;
   } else {
     const cookieStore = await cookies();
     const demoEmail = cookieStore.get(DEMO_COOKIE)?.value;
@@ -86,6 +92,32 @@ export default async function DashboardPage() {
 
   const completedWeeks = currentWeek - 1;
   const pct = Math.round((completedWeeks / totalWeeks) * 100);
+
+  if (noCohort) {
+    return (
+      <div className="mx-auto w-full max-w-2xl space-y-6 px-5 py-8">
+        <div>
+          <h1 className="text-2xl font-bold text-neutral-900">
+            Welcome, {firstName}
+          </h1>
+          <p className="mt-1 text-sm text-neutral-500">
+            You&apos;re signed in — your cohort hasn&apos;t started yet.
+          </p>
+        </div>
+        <div className="rounded-xl border border-neutral-200 bg-white p-8 text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-neutral-100 text-2xl">
+            🏈
+          </div>
+          <h2 className="mt-4 text-lg font-semibold text-neutral-900">
+            Hang tight!
+          </h2>
+          <p className="mt-2 text-sm text-neutral-500 max-w-sm mx-auto">
+            Your program cohort is being set up. You&apos;ll see your full dashboard here once it&apos;s ready.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto w-full max-w-2xl space-y-10 px-5 py-8">
