@@ -179,8 +179,8 @@ export default async function DashboardPage() {
         </h2>
         <div className="grid grid-cols-2 gap-3">
           {[
-            { title: "Program Kickoff", subtitle: "with Angel Aviles", icon: "🚀", sessionId: "demo-w1-s1" },
-            { title: "ATG 101", subtitle: "with Angel Aviles", icon: "🎯", sessionId: "demo-w1-s2" },
+            { title: "MASS Kickoff", subtitle: "with Angel Aviles", icon: "🚀", sessionId: "demo-w1-s1" },
+            { title: "MASS Overview", subtitle: "Clarity · Courage · Confidence", icon: "🎯", sessionId: "demo-w1-s2" },
           ].map((item) => (
             <Link
               key={item.title}

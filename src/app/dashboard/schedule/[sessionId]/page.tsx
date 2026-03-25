@@ -37,27 +37,27 @@ function makeDemoDetail(
 }
 
 const DEMO_SESSION_DETAILS: SessionDetail[] = [
-  makeDemoDetail(1, 1, "Course Introduction", {
+  makeDemoDetail(1, 1, "MASS Kickoff — Meet Your Coaches", {
     notes:
-      "**Welcome to CompTIA Tech+**\n\nThis session covers program expectations, introductions, and a walkthrough of what to expect over the next 7 weeks.\n\n**What You'll Learn**\n• How the program is structured\n• Meet your instructor and cohort\n• Overview of the CompTIA Tech+ certification\n• How to use the student portal and AI tutor\n• Setting your goals for the program\n\n**Homework**\n• Complete your student profile\n• Explore the portal and try the AI Tutor\n• Review the Program Handbook in Resources",
+      "**Welcome to MASS (Mindset & Soft Skills)**\n\nA lot of people have talent. Not everyone knows how to communicate it, apply it, and keep going when things feel uncertain. That is what we are here to build.\n\nTechnical skills matter. This is the part that helps you speak up, trust yourself, build real confidence, and show people what you bring to the table.\n\n**Why MASS Exists**\n• To help you move different\n• To turn potential into momentum\n• To give you what most programs miss\n\nResumes matter. Certifications matter. But clarity, courage, communication, and self-advocacy are what help you stand out, get remembered, and keep growing.\n\n**Meet Your Coaches**\n\n**Angel Aviles** — Award-winning coach, author, and workforce development leader. Since 2011, she has coached hundreds in career and workforce development. She brings a practice-based approach that helps emerging professionals turn potential into clarity, courage, and career momentum.\n\n**Yvette Ross** — Career strategist, tech leader, mentor & speaker. Passionate about empowering individuals to define purpose, accelerate growth, and unlock opportunities across tech, leadership, and careers.",
     materials: [
       {
-        title: "Welcome Slides",
-        description: "Program overview and introductions",
+        title: "MASS Program Overview",
+        description: "8-week hybrid coaching initiative",
         content:
-          "**After The Game — Program Kickoff**\n\nSlide content will be available after the live session.\n\nTopics covered:\n• Welcome & introductions\n• Program goals and outcomes\n• Weekly schedule overview\n• Portal walkthrough\n• Q&A",
+          "**MASS — Mindset & Soft Skills Program**\n\n**The Framework: Clarity, Courage, Confidence**\n\n**Clarity** — Remove confusion and name what matters most right now.\n• Identify your current reality: strengths, gaps, constraints, opportunities\n• Define a north star (role direction + why it fits)\n• Build a clear personal narrative: who I am, what I've done, where I'm going\n\n**Courage** — Practice the uncomfortable actions that unlock opportunities.\n• Run reps on scary tasks: mock interviews, outreach, portfolio updates\n• Learn the exposure ladder: small to medium to big moves\n• Most career blocks aren't knowledge gaps — they're action avoidance\n\n**Confidence** — Confidence that comes from receipts, not hype.\n• Convert reps into evidence: feedback, wins, metrics, testimonials\n• Build a Brag Book (portfolio of proof) to fight imposter syndrome with data\n• Learn how to recover: reflect, adjust, repeat",
       },
     ],
   }),
-  makeDemoDetail(1, 2, "IT Fundamentals Overview", {
+  makeDemoDetail(1, 2, "MASS Overview — Clarity, Courage, Confidence", {
     notes:
-      "**IT Fundamentals — The Big Picture**\n\nThis session introduces the core concepts of Information Technology that form the foundation for everything else in the program.\n\n**Key Concepts**\n• What is Information Technology?\n• Hardware vs. Software\n• Input → Process → Output → Storage\n• Binary, bits, and bytes\n• Types of computers and their uses\n\n**Key Terms**\n• **CPU** — Central Processing Unit, the \"brain\" of the computer\n• **RAM** — Random Access Memory, temporary working memory\n• **Storage** — Hard drives and SSDs for permanent data\n• **Operating System** — Software that manages hardware (Windows, macOS, Linux)\n• **Binary** — Base-2 number system (0s and 1s)\n\n**Practice Questions**\n• What are the four stages of computing?\n• What is the difference between RAM and storage?\n• How many bits are in a byte?",
+      "**MASS 8-Week Program Timeline**\n\n**Week 1: Storytelling**\nCrafting your personal narrative to highlight experiences and values.\n\n**Week 2: Networking**\nBuild meaningful connections and expand your professional network for future opportunities.\n\n**Week 3: The Art of the Brag**\nDeveloping self-confidence and learning to own your worth in any setting.\n\n**Week 4: Guest Speaker**\nTBA\n\n**Week 5: Planning**\nCreate actionable plans to strategize your future career path effectively.\n\n**Week 6: Guest Speaker**\nTBA\n\n**Week 7: Money**\nGain essential financial knowledge to secure your economic future and independence.\n\n**Week 8: Career Expo**\nMini career fair — put everything into practice.",
     materials: [
       {
-        title: "IT Fundamentals Cheat Sheet",
-        description: "Quick reference for Week 1 key terms",
+        title: "What You Will Build",
+        description: "Your MASS toolkit over 8 weeks",
         content:
-          "**IT Fundamentals Quick Reference**\n\n**Computing Stages**\n• Input → Process → Output → Storage\n\n**Units of Measure**\n• 1 Bit = 0 or 1\n• 1 Byte = 8 Bits\n• 1 KB = 1,024 Bytes\n• 1 MB = 1,024 KB\n• 1 GB = 1,024 MB\n• 1 TB = 1,024 GB\n\n**Hardware Components**\n• CPU — processes instructions\n• RAM — temporary memory (volatile)\n• ROM — permanent memory (non-volatile)\n• HDD/SSD — long-term storage\n• Motherboard — connects all components\n• PSU — power supply unit",
+          "**Your MASS Toolkit**\n\n**Clarity**\n• A clear personal narrative\n• Defined career direction and next steps\n• Strategic focus instead of scattered effort\n\n**Courage**\n• Mock interview experience (recorded)\n• Outreach to mentors and strangers\n• Published portfolio or story\n• Negotiation practice\n\n**Confidence**\n• A Brag Book — portfolio of proof to fight imposter syndrome\n• Documented wins, feedback, and metrics\n• Recovery framework: reflect, adjust, repeat\n\n**Format**\n• Weekly sessions (hybrid — in-person and virtual)\n• One-on-one coaching available\n• Group activities and online resources",
       },
     ],
   }),
