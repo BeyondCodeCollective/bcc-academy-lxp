@@ -7,14 +7,25 @@ import Link from "next/link";
 import type { Student, Cohort } from "@/lib/types";
 import { WelcomeVideo } from "@/components/welcome-video";
 
-const WEEKS: { week: number; topic: string; icon: string }[] = [
-  { week: 1, topic: "Storytelling + IT Fundamentals", icon: "💻" },
-  { week: 2, topic: "Networking + Devices & OS", icon: "🖥️" },
-  { week: 3, topic: "Self-Advocacy + Networking", icon: "🌐" },
-  { week: 4, topic: "Guest Speaker + Cybersecurity", icon: "🔒" },
-  { week: 5, topic: "Planning + Software & Data", icon: "🗄️" },
-  { week: 6, topic: "Guest Speaker + Cloud & Support", icon: "☁️" },
-  { week: 7, topic: "Financial Confidence + Cert Review", icon: "🏆" },
+const MASS_WEEKS: { week: number; topic: string; icon: string }[] = [
+  { week: 1, topic: "Storytelling", icon: "🎙️" },
+  { week: 2, topic: "Networking", icon: "🤝" },
+  { week: 3, topic: "The Art of the Brag", icon: "💪" },
+  { week: 4, topic: "Guest Speaker", icon: "🎤" },
+  { week: 5, topic: "Planning", icon: "📋" },
+  { week: 6, topic: "Guest Speaker", icon: "🎤" },
+  { week: 7, topic: "Money", icon: "💰" },
+  { week: 8, topic: "Career Expo", icon: "🎯" },
+];
+
+const TECH_WEEKS: { week: number; topic: string; icon: string }[] = [
+  { week: 1, topic: "IT Fundamentals", icon: "💻" },
+  { week: 2, topic: "Devices & OS", icon: "🖥️" },
+  { week: 3, topic: "Networking", icon: "🌐" },
+  { week: 4, topic: "Cybersecurity", icon: "🔒" },
+  { week: 5, topic: "Software & Data", icon: "🗄️" },
+  { week: 6, topic: "Cloud & Support", icon: "☁️" },
+  { week: 7, topic: "Cert Review", icon: "🏆" },
 ];
 
 export default async function DashboardPage() {
@@ -154,32 +165,88 @@ export default async function DashboardPage() {
       {/* Welcome Video */}
       <WelcomeVideo />
 
-      {/* Getting Started */}
+
+      {/* MASS Wraparound — Soft Skills */}
       <div>
-        <h2 className="text-lg font-semibold text-neutral-900 mb-4">
-          Getting Started
-        </h2>
-        <div className="grid grid-cols-2 gap-3">
-          {[
-            { title: "MASS Kickoff", subtitle: "with Angel Aviles", icon: "🚀", sessionId: "demo-w1-s1" },
-            { title: "MASS Overview", subtitle: "Clarity · Courage · Confidence", icon: "🎯", sessionId: "demo-w1-s2" },
-          ].map((item) => (
-            <Link
-              key={item.title}
-              href={`/dashboard/schedule/${item.sessionId}`}
-              className="flex flex-col items-center rounded-xl border border-neutral-200 bg-white p-5 text-center transition-all hover:border-neutral-300 hover:shadow-sm"
-            >
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-neutral-100 text-2xl">
-                {item.icon}
-              </div>
-              <p className="mt-3 text-xs font-medium text-neutral-700">
-                {item.title}
-              </p>
-              <p className="mt-0.5 text-[10px] text-neutral-400">
-                {item.subtitle}
-              </p>
-            </Link>
-          ))}
+        <div className="flex items-center justify-between mb-1">
+          <h2 className="text-lg font-semibold text-neutral-900">
+            MASS Wraparound
+          </h2>
+          <span className="inline-flex items-center gap-1 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-semibold text-white">
+            <span className="h-1 w-1 rounded-full bg-white animate-pulse" />
+            Active
+          </span>
+        </div>
+        <p className="text-xs text-neutral-400 mb-4">
+          8-week coaching · Mindset & Soft Skills · with Angel Aviles
+        </p>
+
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {MASS_WEEKS.map(({ week, topic, icon }) => {
+            const isCompleted = week < currentWeek;
+            const isCurrent = week === currentWeek;
+            const isFuture = week > currentWeek;
+
+            return (
+              <Link
+                key={week}
+                href={`/dashboard/schedule?week=${week}`}
+                className={`group relative flex flex-col items-center rounded-xl border p-5 text-center transition-all ${
+                  isCurrent
+                    ? "border-neutral-900 bg-white shadow-sm"
+                    : isCompleted
+                      ? "border-neutral-200 bg-white hover:border-neutral-300"
+                      : "border-neutral-100 bg-neutral-50 hover:border-neutral-200"
+                }`}
+              >
+                <div
+                  className={`relative flex h-14 w-14 items-center justify-center rounded-full text-2xl ${
+                    isCompleted
+                      ? "bg-green-50"
+                      : isCurrent
+                        ? "bg-neutral-900"
+                        : "bg-neutral-100"
+                  }`}
+                >
+                  {isFuture ? (
+                    <span className="text-lg grayscale opacity-40">{icon}</span>
+                  ) : (
+                    <span className={isCurrent ? "text-lg" : ""}>{icon}</span>
+                  )}
+
+                  {isCompleted && (
+                    <div className="absolute -top-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-green-500">
+                      <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
+
+                {isCurrent && (
+                  <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-semibold text-white">
+                    <span className="h-1 w-1 rounded-full bg-white animate-pulse" />
+                    This Week
+                  </span>
+                )}
+
+                <p
+                  className={`mt-2 text-xs font-medium leading-tight ${
+                    isFuture ? "text-neutral-300" : "text-neutral-700"
+                  }`}
+                >
+                  {topic}
+                </p>
+                <p
+                  className={`mt-0.5 text-[10px] ${
+                    isFuture ? "text-neutral-200" : "text-neutral-400"
+                  }`}
+                >
+                  Week {week}
+                </p>
+              </Link>
+            );
+          })}
         </div>
       </div>
 
@@ -199,7 +266,7 @@ export default async function DashboardPage() {
         </p>
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {WEEKS.map(({ week, topic, icon }) => {
+          {TECH_WEEKS.map(({ week, topic, icon }) => {
             const isCompleted = week < currentWeek;
             const isCurrent = week === currentWeek;
             const isFuture = week > currentWeek;
