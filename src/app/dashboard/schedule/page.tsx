@@ -28,34 +28,25 @@ function makeDemoSession(
 }
 
 const DEMO_SESSIONS: Session[] = [
-  // Week 1
-  makeDemoSession(1, 1, "MASS: Storytelling for Career Success", "upcoming"),
-  makeDemoSession(1, 2, "Tech+: IT Fundamentals", "upcoming"),
-  // Week 2
-  makeDemoSession(2, 1, "MASS: Networking", "upcoming"),
-  makeDemoSession(2, 2, "Tech+: Devices & OS", "upcoming"),
-  // Week 3
-  makeDemoSession(3, 1, "MASS: The Art of the Brag", "upcoming"),
-  makeDemoSession(3, 2, "Tech+: Networking Basics", "upcoming"),
-  // Week 4
-  makeDemoSession(4, 1, "MASS: Guest Speaker", "upcoming"),
-  makeDemoSession(4, 2, "Tech+: Cybersecurity", "upcoming"),
-  // Week 5
-  makeDemoSession(5, 1, "MASS: Planning", "upcoming"),
-  makeDemoSession(5, 2, "Tech+: Software & Data", "upcoming"),
-  // Week 6
-  makeDemoSession(6, 1, "MASS: Guest Speaker", "upcoming"),
-  makeDemoSession(6, 2, "Tech+: Cloud & Support", "upcoming"),
-  // Week 7
-  makeDemoSession(7, 1, "MASS: Money & Financial Confidence", "upcoming"),
-  makeDemoSession(7, 2, "Tech+: Cert Review & Final Assessment", "upcoming"),
-  // Week 8
-  makeDemoSession(8, 1, "MASS: Career Expo", "upcoming"),
+  makeDemoSession(1, 1, "Course Introduction", "upcoming"),
+  makeDemoSession(1, 2, "IT Fundamentals Overview", "upcoming"),
+  makeDemoSession(2, 1, "Device Configuration", "upcoming"),
+  makeDemoSession(2, 2, "Operating Systems", "upcoming"),
+  makeDemoSession(3, 1, "Networking Basics", "upcoming"),
+  makeDemoSession(3, 2, "TCP/IP & DNS", "upcoming"),
+  makeDemoSession(4, 1, "Security Principles", "upcoming"),
+  makeDemoSession(4, 2, "Threat Landscape", "upcoming"),
+  makeDemoSession(5, 1, "Software Dev Basics", "upcoming"),
+  makeDemoSession(5, 2, "Database Fundamentals", "upcoming"),
+  makeDemoSession(6, 1, "Cloud Concepts", "upcoming"),
+  makeDemoSession(6, 2, "IT Support Workflows", "upcoming"),
+  makeDemoSession(7, 1, "Certification Review", "upcoming"),
+  makeDemoSession(7, 2, "Final Assessment", "upcoming"),
 ];
 
 export default async function SchedulePage() {
   let currentWeek = 1;
-  let totalWeeks = 8;
+  let totalWeeks = 7;
   let sessions: Session[] = DEMO_SESSIONS;
 
   if (isSupabaseConfigured()) {
