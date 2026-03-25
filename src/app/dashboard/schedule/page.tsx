@@ -87,10 +87,10 @@ export default async function SchedulePage() {
 
     if (!cohortId) redirect("/dashboard");
 
-    if (cohort) {
-      currentWeek = computeCurrentWeek(cohort.start_date, cohort.total_weeks);
-      totalWeeks = cohort.total_weeks;
-    }
+    // Schedule is Tech+ only — starts April 1
+    const TECH_PLUS_START = "2026-04-01";
+    currentWeek = computeCurrentWeek(TECH_PLUS_START, 7);
+    totalWeeks = 7;
 
     // Fetch sessions in parallel — no dependency on cohort query
     const { data: dbSessions } = await supabase
@@ -111,21 +111,24 @@ export default async function SchedulePage() {
     sessionsByWeek[s.week_number].push(s);
   });
 
-  const completedWeeks = currentWeek - 1;
+  const techStarted = new Date() >= new Date("2026-04-01");
+  const completedWeeks = techStarted ? currentWeek - 1 : 0;
 
   return (
     <div className="mx-auto w-full max-w-2xl px-5 py-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-neutral-900">Schedule</h1>
         <p className="mt-1 text-sm text-neutral-400">
-          {completedWeeks} of {totalWeeks} weeks completed
+          {techStarted
+            ? `${completedWeeks} of ${totalWeeks} weeks completed`
+            : "CompTIA Tech+ starts April 1"}
         </p>
       </div>
 
       <Suspense>
         <ScheduleList
           sessionsByWeek={sessionsByWeek}
-          currentWeek={currentWeek}
+          currentWeek={techStarted ? currentWeek : 0}
           totalWeeks={totalWeeks}
         />
       </Suspense>
