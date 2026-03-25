@@ -157,6 +157,9 @@ export default async function SessionDetailPage({
 
     if (dbSession) {
       session = dbSession;
+    } else {
+      // Fall back to built-in demo content (e.g. MASS kickoff cards)
+      session = DEMO_SESSION_DETAILS.find((s) => s.id === sessionId) ?? null;
     }
   } else {
     session =
@@ -166,13 +169,13 @@ export default async function SessionDetailPage({
   if (!session) notFound();
 
   const WEEK_TOPICS: Record<number, string> = {
-    1: "IT Fundamentals",
-    2: "Devices & OS",
-    3: "Networking",
-    4: "Cybersecurity",
-    5: "Software & Data",
-    6: "Cloud & Support",
-    7: "Cert Review",
+    1: "Storytelling + IT Fundamentals",
+    2: "Networking + Devices & OS",
+    3: "Self-Advocacy + Networking",
+    4: "Guest Speaker + Cybersecurity",
+    5: "Planning + Software & Data",
+    6: "Guest Speaker + Cloud & Support",
+    7: "Financial Confidence + Cert Review",
   };
 
   return (
