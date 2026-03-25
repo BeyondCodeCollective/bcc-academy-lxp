@@ -94,8 +94,15 @@ export default async function DashboardPage() {
     }
   }
 
-  const completedWeeks = currentWeek - 1;
-  const pct = Math.round((completedWeeks / totalWeeks) * 100);
+  // MASS starts with cohort (March 24), Tech+ starts April 1
+  const TECH_PLUS_START = "2026-04-01";
+  const massWeek = currentWeek;
+  const techWeek = computeCurrentWeek(TECH_PLUS_START, 7);
+  const techStarted = new Date() >= new Date(TECH_PLUS_START);
+
+  const completedWeeks = massWeek - 1;
+  const totalProgramWeeks = 8; // MASS is the longer track
+  const pct = Math.round((completedWeeks / totalProgramWeeks) * 100);
 
   if (noCohort) {
     return (
@@ -141,7 +148,7 @@ export default async function DashboardPage() {
               Your Progress
             </p>
             <p className="text-xs text-neutral-400">
-              {completedWeeks} of {totalWeeks} weeks completed
+              Week {massWeek} of {totalProgramWeeks}
             </p>
           </div>
           <span className="text-2xl font-bold text-neutral-900">{pct}%</span>
@@ -175,9 +182,9 @@ export default async function DashboardPage() {
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {MASS_WEEKS.map(({ week, topic, icon }) => {
-            const isCompleted = week < currentWeek;
-            const isCurrent = week === currentWeek;
-            const isFuture = week > currentWeek;
+            const isCompleted = week < massWeek;
+            const isCurrent = week === massWeek;
+            const isFuture = week > massWeek;
 
             return (
               <Link
@@ -248,20 +255,26 @@ export default async function DashboardPage() {
           <h2 className="text-lg font-semibold text-neutral-900">
             CompTIA Tech+ Foundations
           </h2>
-          <span className="inline-flex items-center gap-1 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-semibold text-white">
-            <span className="h-1 w-1 rounded-full bg-white animate-pulse" />
-            Active
-          </span>
+          {techStarted ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-semibold text-white">
+              <span className="h-1 w-1 rounded-full bg-white animate-pulse" />
+              Active
+            </span>
+          ) : (
+            <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+              Starts April 1
+            </span>
+          )}
         </div>
         <p className="text-xs text-neutral-400 mb-4">
-          7-week certification course · {completedWeeks} / {totalWeeks} complete
+          7-week certification course{techStarted ? ` · Week ${techWeek} of 7` : " · with Kobie Joyner"}
         </p>
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {TECH_WEEKS.map(({ week, topic, icon }) => {
-            const isCompleted = week < currentWeek;
-            const isCurrent = week === currentWeek;
-            const isFuture = week > currentWeek;
+            const isCompleted = techStarted && week < techWeek;
+            const isCurrent = techStarted && week === techWeek;
+            const isFuture = !techStarted || week > techWeek;
 
             return (
               <Link
