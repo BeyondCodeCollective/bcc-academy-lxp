@@ -10,19 +10,13 @@ import {
   X,
 } from "lucide-react";
 import type { Resource } from "@/lib/types";
+import { CATEGORY_LABELS } from "@/lib/utils";
 
 const CATEGORY_ICONS: Record<string, typeof FileText> = {
   course_materials: BookOpen,
   recordings: Video,
   career_prep: Briefcase,
   program_info: FileText,
-};
-
-const CATEGORY_LABELS: Record<string, string> = {
-  course_materials: "Course Materials",
-  recordings: "Recordings",
-  career_prep: "Career Prep",
-  program_info: "Program Info",
 };
 
 const CATEGORY_ORDER = [
