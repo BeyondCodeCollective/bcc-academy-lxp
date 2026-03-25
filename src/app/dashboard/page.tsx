@@ -334,48 +334,6 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* What's Next */}
-      <div>
-        <h2 className="text-lg font-semibold text-neutral-900 mb-1">
-          What&apos;s Next
-        </h2>
-        <p className="text-xs text-neutral-400 mb-4">
-          Your journey continues after Tech+
-        </p>
-        <div className="grid grid-cols-2 gap-3">
-          {[
-            {
-              title: "Business Fundamentals",
-              subtitle: "Entrepreneurship & Strategy",
-              icon: "📊",
-            },
-            {
-              title: "CompTIA Network+",
-              subtitle: "Next Certification",
-              icon: "🌐",
-            },
-          ].map((item) => (
-            <div
-              key={item.title}
-              className="flex flex-col items-center rounded-xl border border-dashed border-neutral-200 bg-neutral-50 p-5 text-center"
-            >
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-neutral-100 text-2xl grayscale opacity-50">
-                {item.icon}
-              </div>
-              <p className="mt-3 text-xs font-medium text-neutral-400">
-                {item.title}
-              </p>
-              <p className="mt-0.5 text-[10px] text-neutral-300">
-                {item.subtitle}
-              </p>
-              <span className="mt-2 text-[9px] font-medium text-neutral-300 uppercase tracking-wide">
-                Coming Soon
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-
     </div>
   );
 }

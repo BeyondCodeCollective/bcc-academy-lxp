@@ -7,14 +7,15 @@ import { Video, Check, ChevronDown, ChevronRight } from "lucide-react";
 import { formatDate, formatTime } from "@/lib/utils";
 import type { Session } from "@/lib/types";
 
-const WEEKS: { week: number; topic: string; icon: string }[] = [
-  { week: 1, topic: "IT Fundamentals", icon: "💻" },
-  { week: 2, topic: "Devices & OS", icon: "🖥️" },
-  { week: 3, topic: "Networking", icon: "🌐" },
-  { week: 4, topic: "Cybersecurity", icon: "🔒" },
-  { week: 5, topic: "Software & Data", icon: "🗄️" },
-  { week: 6, topic: "Cloud & Support", icon: "☁️" },
-  { week: 7, topic: "Cert Review", icon: "🏆" },
+const WEEKS: { week: number; topic: string; mass: string; tech: string; icon: string }[] = [
+  { week: 1, topic: "Storytelling + IT Fundamentals", mass: "Storytelling", tech: "IT Fundamentals", icon: "📚" },
+  { week: 2, topic: "Networking + Devices & OS", mass: "Networking", tech: "Devices & OS", icon: "📚" },
+  { week: 3, topic: "Art of the Brag + Networking", mass: "The Art of the Brag", tech: "Networking", icon: "📚" },
+  { week: 4, topic: "Guest Speaker + Cybersecurity", mass: "Guest Speaker", tech: "Cybersecurity", icon: "📚" },
+  { week: 5, topic: "Planning + Software & Data", mass: "Planning", tech: "Software & Data", icon: "📚" },
+  { week: 6, topic: "Guest Speaker + Cloud & Support", mass: "Guest Speaker", tech: "Cloud & Support", icon: "📚" },
+  { week: 7, topic: "Money + Cert Review", mass: "Money & Financial Confidence", tech: "Cert Review", icon: "📚" },
+  { week: 8, topic: "Career Expo", mass: "Career Expo", tech: "", icon: "🎯" },
 ];
 
 export function ScheduleList({
@@ -66,7 +67,7 @@ export function ScheduleList({
 
   return (
     <div className="space-y-3">
-      {WEEKS.map(({ week, topic, icon }) => {
+      {WEEKS.map(({ week, topic, mass, tech, icon }) => {
         const weekSessions = sessionsByWeek[week] || [];
         const isCurrent = week === currentWeek;
         const isCompleted = week < currentWeek;
@@ -148,6 +149,18 @@ export function ScheduleList({
                   {completedSessions > 0 &&
                     ` · ${completedSessions}/${weekSessions.length} done`}
                 </p>
+                <div className={`mt-1 flex flex-wrap gap-1.5 ${isFuture ? "opacity-40" : ""}`}>
+                  {mass && (
+                    <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+                      MASS: {mass}
+                    </span>
+                  )}
+                  {tech && (
+                    <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700">
+                      Tech+: {tech}
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Chevron */}

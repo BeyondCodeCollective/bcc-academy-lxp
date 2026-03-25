@@ -49,11 +49,13 @@ const DEMO_SESSIONS: Session[] = [
   // Week 7
   makeDemoSession(7, 1, "MASS: Money & Financial Confidence", "upcoming"),
   makeDemoSession(7, 2, "Tech+: Cert Review & Final Assessment", "upcoming"),
+  // Week 8
+  makeDemoSession(8, 1, "MASS: Career Expo", "upcoming"),
 ];
 
 export default async function SchedulePage() {
   let currentWeek = 1;
-  let totalWeeks = 7;
+  let totalWeeks = 8;
   let sessions: Session[] = DEMO_SESSIONS;
 
   if (isSupabaseConfigured()) {
