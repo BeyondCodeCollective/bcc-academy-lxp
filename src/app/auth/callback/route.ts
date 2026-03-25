@@ -64,28 +64,43 @@ export async function GET(request: Request) {
 
       if (user) {
         // Ensure at least one cohort exists
-        let { data: cohort } = await supabase
+        const { data: cohort, error: cohortQueryErr } = await supabase
           .from("cohorts")
           .select("id")
           .order("created_at", { ascending: true })
           .limit(1)
           .single();
 
-        if (!cohort) {
-          const { data: newCohort } = await supabase
+        if (cohortQueryErr) {
+          console.error("[auth/callback] cohort query error:", cohortQueryErr.message);
+        }
+
+        let cohortId = cohort?.id;
+
+        if (!cohortId) {
+          const { data: newCohort, error: cohortInsertErr } = await supabase
             .from("cohorts")
             .insert(DEFAULT_COHORT)
             .select("id")
             .single();
-          cohort = newCohort;
+
+          if (cohortInsertErr) {
+            console.error("[auth/callback] cohort insert error:", cohortInsertErr.message);
+          }
+          cohortId = newCohort?.id;
         }
 
         // Auto-create student record on first login
-        const { data: existing } = await supabase
+        const { data: existing, error: studentQueryErr } = await supabase
           .from("students")
           .select("id")
           .eq("id", user.id)
           .single();
+
+        if (studentQueryErr && studentQueryErr.code !== "PGRST116") {
+          // PGRST116 = "no rows returned" which is expected for new users
+          console.error("[auth/callback] student query error:", studentQueryErr.message);
+        }
 
         if (!existing) {
           const emailPrefix = (user.email || "").split("@")[0];
@@ -95,7 +110,7 @@ export async function GET(request: Request) {
           const firstName = parts[0] || "New";
           const lastName = parts.slice(1).join(" ") || "Student";
 
-          await supabase.from("students").insert({
+          const { error: insertErr } = await supabase.from("students").insert({
             id: user.id,
             email: user.email,
             first_name: firstName,
@@ -103,19 +118,29 @@ export async function GET(request: Request) {
             role: ADMIN_EMAILS.includes((user.email || "").toLowerCase())
               ? "admin"
               : "student",
-            cohort_id: cohort?.id || null,
+            cohort_id: cohortId || null,
           });
+
+          if (insertErr) {
+            console.error("[auth/callback] student insert error:", insertErr.message);
+          }
         } else {
           // Student exists but may have no cohort — assign them
-          await supabase
+          const { error: updateErr } = await supabase
             .from("students")
-            .update({ cohort_id: cohort?.id })
+            .update({ cohort_id: cohortId })
             .eq("id", user.id)
             .is("cohort_id", null);
+
+          if (updateErr) {
+            console.error("[auth/callback] student update error:", updateErr.message);
+          }
         }
       }
 
       return NextResponse.redirect(`${origin}/dashboard`);
+    } else {
+      console.error("[auth/callback] auth error:", authError.message);
     }
   }
 
