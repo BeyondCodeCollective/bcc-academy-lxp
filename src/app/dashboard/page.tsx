@@ -5,6 +5,7 @@ import { getDemoUser, DEMO_COOKIE } from "@/lib/demo-users";
 import { computeCurrentWeek } from "@/lib/utils";
 import Link from "next/link";
 import type { Student, Cohort } from "@/lib/types";
+import { WelcomeVideo } from "@/components/welcome-video";
 
 const WEEKS: { week: number; topic: string; icon: string }[] = [
   { week: 1, topic: "Storytelling + IT Fundamentals", icon: "💻" },
@@ -151,26 +152,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Welcome Video */}
-      <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white">
-        <div className="flex justify-center w-full bg-neutral-900">
-          <video
-            src="/atg-intro.mp4"
-            controls
-            playsInline
-            preload="metadata"
-            poster=""
-            className="w-full max-h-[480px] object-contain"
-          />
-        </div>
-        <div className="px-5 py-4">
-          <p className="text-sm font-semibold text-neutral-900">
-            Welcome to After The Game
-          </p>
-          <p className="mt-0.5 text-xs text-neutral-400">
-            A message from Ramon Clemente
-          </p>
-        </div>
-      </div>
+      <WelcomeVideo />
 
       {/* Getting Started */}
       <div>
