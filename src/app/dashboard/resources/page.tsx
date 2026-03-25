@@ -60,19 +60,18 @@ export default async function ResourcesPage() {
     const supabase = await createClient();
 
     const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) redirect("/");
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session?.user) redirect("/");
 
     const { data: student } = await supabase
       .from("students")
       .select("cohort_id")
-      .eq("id", user.id)
+      .eq("id", session.user.id)
       .single<Pick<Student, "cohort_id">>();
 
     let cohortId = student?.cohort_id;
 
-    // Auto-assign to first cohort if not yet assigned
     if (!cohortId) {
       const { data: defaultCohort } = await supabase
         .from("cohorts")
@@ -85,7 +84,7 @@ export default async function ResourcesPage() {
         await supabase
           .from("students")
           .update({ cohort_id: defaultCohort.id })
-          .eq("id", user.id);
+          .eq("id", session.user.id);
         cohortId = defaultCohort.id;
       }
     }

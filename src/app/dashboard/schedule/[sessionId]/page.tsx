@@ -126,24 +126,20 @@ export default async function SessionDetailPage({
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
     const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) redirect("/");
+      data: { session: authSession },
+    } = await supabase.auth.getSession();
+    if (!authSession?.user) redirect("/");
 
+    // Single query: student + cohort joined
     const { data: student } = await supabase
       .from("students")
-      .select("cohort_id")
-      .eq("id", user.id)
-      .single<Pick<Student, "cohort_id">>();
+      .select("cohort_id, cohorts(id, start_date, total_weeks)")
+      .eq("id", authSession.user.id)
+      .single();
 
     if (!student?.cohort_id) redirect("/dashboard");
 
-    const { data: cohort } = await supabase
-      .from("cohorts")
-      .select("*")
-      .eq("id", student.cohort_id)
-      .single<Cohort>();
-
+    const cohort = (student as Record<string, unknown>)?.cohorts as Cohort | null;
     if (cohort) {
       currentWeek = computeCurrentWeek(cohort.start_date, cohort.total_weeks);
     }

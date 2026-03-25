@@ -11,14 +11,14 @@ export default async function AdminPage() {
     const supabase = await createClient();
 
     const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) redirect("/");
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session?.user) redirect("/");
 
     const { data: student } = await supabase
       .from("students")
       .select("role, cohort_id")
-      .eq("id", user.id)
+      .eq("id", session.user.id)
       .single<Pick<Student, "role" | "cohort_id">>();
 
     if (student?.role !== "admin") redirect("/dashboard");

@@ -16,9 +16,10 @@ export default async function DashboardLayout({
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
     const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) redirect("/");
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session?.user) redirect("/");
+    const user = session.user;
 
     const { data: student } = await supabase
       .from("students")

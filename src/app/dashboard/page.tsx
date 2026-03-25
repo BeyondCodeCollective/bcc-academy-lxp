@@ -39,17 +39,19 @@ export default async function DashboardPage() {
     const supabase = await createClient();
 
     const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) redirect("/");
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session?.user) redirect("/");
 
+    // Single query: student + cohort joined
     const { data: student } = await supabase
       .from("students")
-      .select("first_name, cohort_id")
-      .eq("id", user.id)
-      .single<Pick<Student, "first_name" | "cohort_id">>();
+      .select("first_name, cohort_id, cohorts(id, name, display_name, start_date, total_weeks)")
+      .eq("id", session.user.id)
+      .single();
 
     let cohortId = student?.cohort_id;
+    const cohort = (student as Record<string, unknown>)?.cohorts as Cohort | null;
 
     // Auto-assign to first cohort if not yet assigned
     if (!cohortId) {
@@ -64,26 +66,16 @@ export default async function DashboardPage() {
         await supabase
           .from("students")
           .update({ cohort_id: defaultCohort.id })
-          .eq("id", user.id);
+          .eq("id", session.user.id);
         cohortId = defaultCohort.id;
       }
     }
 
-    if (cohortId) {
-      const { data: cohort } = await supabase
-        .from("cohorts")
-        .select("*")
-        .eq("id", cohortId)
-        .single<Cohort>();
-
-      if (cohort) {
-        cohortName = cohort.display_name || cohort.name;
-        currentWeek = computeCurrentWeek(cohort.start_date, cohort.total_weeks);
-        totalWeeks = cohort.total_weeks;
-      } else {
-        noCohort = true;
-      }
-    } else {
+    if (cohort) {
+      cohortName = cohort.display_name || cohort.name;
+      currentWeek = computeCurrentWeek(cohort.start_date, cohort.total_weeks);
+      totalWeeks = cohort.total_weeks;
+    } else if (!cohortId) {
       noCohort = true;
     }
 

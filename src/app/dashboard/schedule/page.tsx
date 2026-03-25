@@ -53,17 +53,19 @@ export default async function SchedulePage() {
     const supabase = await createClient();
 
     const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) redirect("/");
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session?.user) redirect("/");
 
+    // Single query: student + cohort joined
     const { data: student } = await supabase
       .from("students")
-      .select("cohort_id")
-      .eq("id", user.id)
-      .single<Pick<Student, "cohort_id">>();
+      .select("cohort_id, cohorts(id, start_date, total_weeks)")
+      .eq("id", session.user.id)
+      .single();
 
     let cohortId = student?.cohort_id;
+    const cohort = (student as Record<string, unknown>)?.cohorts as Cohort | null;
 
     // Auto-assign to first cohort if not yet assigned
     if (!cohortId) {
@@ -78,24 +80,19 @@ export default async function SchedulePage() {
         await supabase
           .from("students")
           .update({ cohort_id: defaultCohort.id })
-          .eq("id", user.id);
+          .eq("id", session.user.id);
         cohortId = defaultCohort.id;
       }
     }
 
     if (!cohortId) redirect("/dashboard");
 
-    const { data: cohort } = await supabase
-      .from("cohorts")
-      .select("*")
-      .eq("id", cohortId)
-      .single<Cohort>();
+    if (cohort) {
+      currentWeek = computeCurrentWeek(cohort.start_date, cohort.total_weeks);
+      totalWeeks = cohort.total_weeks;
+    }
 
-    if (!cohort) redirect("/dashboard");
-
-    currentWeek = computeCurrentWeek(cohort.start_date, cohort.total_weeks);
-    totalWeeks = cohort.total_weeks;
-
+    // Fetch sessions in parallel — no dependency on cohort query
     const { data: dbSessions } = await supabase
       .from("sessions")
       .select("*")
