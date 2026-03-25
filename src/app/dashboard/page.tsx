@@ -190,7 +190,7 @@ export default async function DashboardPage() {
             return (
               <Link
                 key={week}
-                href={`/dashboard/schedule?week=${week}`}
+                href={`/dashboard/mass/${week}`}
                 className={`group relative flex flex-col items-center rounded-xl border p-5 text-center transition-all ${
                   isCurrent
                     ? "border-neutral-900 bg-white shadow-sm"
