@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { ResourceList } from "@/components/resource-list";
-import { BookOpen, Mail } from "lucide-react";
+import { BookOpen, Mail, Calendar } from "lucide-react";
+import Image from "next/image";
 import type { Student, Resource } from "@/lib/types";
 
 const DEMO_RESOURCES: (Resource & { content?: string })[] = [
@@ -124,7 +125,10 @@ export default async function ResourcesPage() {
       role: "Program Lead",
       track: "After The Game",
       email: "ramon.clemente@wearebgc.org",
+      photo: "/instructors/ramon.jpg",
+      calUrl: "https://cal.com/ramon-clemente",
       bio: "Oversees the After The Game program and student success.",
+      initials: "RC",
       color: "bg-neutral-900 text-white",
       badge: "bg-neutral-700 text-neutral-200",
     },
@@ -133,7 +137,10 @@ export default async function ResourcesPage() {
       role: "Instructor",
       track: "CompTIA Tech+",
       email: "kkjoyner@gmail.com",
+      photo: "/instructors/kobie.jpg",
+      calUrl: "https://cal.com/kobie-joyner",
       bio: "Leads all live CompTIA Tech+ certification sessions.",
+      initials: "KJ",
       color: "bg-blue-600 text-white",
       badge: "bg-blue-500 text-blue-100",
     },
@@ -142,7 +149,10 @@ export default async function ResourcesPage() {
       role: "Instructor",
       track: "MASS Wraparound",
       email: null,
+      photo: "/instructors/angel.jpg",
+      calUrl: "https://cal.com/angel-aviles",
       bio: "Leads the 8-week MASS coaching on mindset, networking, and soft skills.",
+      initials: "AA",
       color: "bg-amber-500 text-white",
       badge: "bg-amber-400 text-amber-900",
     },
@@ -168,10 +178,20 @@ export default async function ResourcesPage() {
               key={inst.name}
               className="flex items-start gap-4 rounded-xl border border-neutral-200 bg-white p-4"
             >
-              <div
-                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold ${inst.color}`}
-              >
-                {inst.name.split(" ").map(n => n[0]).join("")}
+              <div className="relative h-12 w-12 shrink-0">
+                <div
+                  className={`flex h-12 w-12 items-center justify-center rounded-full text-sm font-bold ${inst.color}`}
+                >
+                  {inst.initials}
+                </div>
+                <Image
+                  src={inst.photo}
+                  alt={inst.name}
+                  width={48}
+                  height={48}
+                  className="absolute inset-0 h-12 w-12 rounded-full object-cover"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -188,15 +208,26 @@ export default async function ResourcesPage() {
                 <p className="mt-1 text-xs text-neutral-400 leading-relaxed">
                   {inst.bio}
                 </p>
-                {inst.email && (
+                <div className="mt-2 flex flex-wrap items-center gap-3">
+                  {inst.email && (
+                    <a
+                      href={`mailto:${inst.email}`}
+                      className="inline-flex items-center gap-1 text-xs font-medium text-neutral-500 hover:text-neutral-900 transition-colors"
+                    >
+                      <Mail size={12} />
+                      {inst.email}
+                    </a>
+                  )}
                   <a
-                    href={`mailto:${inst.email}`}
-                    className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-neutral-500 hover:text-neutral-900 transition-colors"
+                    href={inst.calUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 rounded-full border border-neutral-200 bg-neutral-50 px-2.5 py-1 text-xs font-medium text-neutral-600 hover:border-neutral-400 hover:text-neutral-900 transition-colors"
                   >
-                    <Mail size={12} />
-                    {inst.email}
+                    <Calendar size={12} />
+                    Schedule Office Hours
                   </a>
-                )}
+                </div>
               </div>
             </div>
           ))}
