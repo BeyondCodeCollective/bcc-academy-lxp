@@ -3,6 +3,7 @@ import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { AddResourceForm } from "./add-resource-form";
 import { SessionToggles } from "./session-toggles";
 import { StudentManager } from "./student-manager";
+import { CohortEditor } from "./cohort-editor";
 import type { Student, Session, Cohort } from "@/lib/types";
 
 const DEMO_SESSIONS: Session[] = [
@@ -16,7 +17,7 @@ export default async function AdminPage() {
   let cohortId = "demo";
   let sessions: Session[] = DEMO_SESSIONS;
   let allStudents: Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id">[] = [];
-  let allCohorts: { id: string; name: string }[] = [];
+  let allCohorts: { id: string; name: string; display_name: string | null; start_date: string; total_weeks: number }[] = [];
 
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
@@ -46,7 +47,6 @@ export default async function AdminPage() {
 
     sessions = dbSessions || [];
 
-    // Fetch all students and cohorts for management
     const { data: students } = await supabase
       .from("students")
       .select("id, first_name, last_name, email, role, cohort_id")
@@ -56,7 +56,7 @@ export default async function AdminPage() {
 
     const { data: cohorts } = await supabase
       .from("cohorts")
-      .select("id, name")
+      .select("id, name, display_name, start_date, total_weeks")
       .order("created_at", { ascending: true });
 
     allCohorts = cohorts || [];
@@ -66,13 +66,22 @@ export default async function AdminPage() {
     <div className="mx-auto w-full max-w-2xl space-y-8 px-5 py-8">
       <h1 className="text-2xl font-bold text-neutral-900">Admin Panel</h1>
 
+      {/* Cohort Management */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-neutral-900">Cohorts</h2>
+          <span className="text-xs text-neutral-400">{allCohorts.length} total</span>
+        </div>
+        <CohortEditor cohorts={allCohorts} />
+      </section>
+
       {/* Student Management */}
       <section>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-neutral-900">Students</h2>
           <span className="text-xs text-neutral-400">{allStudents.length} total</span>
         </div>
-        <StudentManager students={allStudents} cohorts={allCohorts} />
+        <StudentManager students={allStudents} cohorts={allCohorts.map(c => ({ id: c.id, name: c.name }))} />
       </section>
 
       {/* Session Management */}
