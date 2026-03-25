@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { ResourceList } from "@/components/resource-list";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Mail } from "lucide-react";
 import type { Student, Resource } from "@/lib/types";
 
 const DEMO_RESOURCES: (Resource & { content?: string })[] = [
@@ -38,17 +38,7 @@ const DEMO_RESOURCES: (Resource & { content?: string })[] = [
     content:
       "**Week 1: IT Fundamentals**\n\nSession notes will be posted here after the first live session.\n\nTopics to be covered:\n• What is IT? The big picture\n• Hardware vs. Software\n• How computers process information (input → process → output → storage)\n• Binary, bits, and bytes\n• Types of computers and their uses\n• Introduction to troubleshooting methodology",
   },
-  {
-    id: "demo-5",
-    cohort_id: "demo",
-    title: "Your Team",
-    description: "Meet your instructors and program leads",
-    category: "program_info",
-    url: null,
-    created_at: "2026-03-13T00:00:00Z",
-    content:
-      "**Your Team**\n\n**Kobie Joyner** — Instructor\n• Email: kkjoyner@gmail.com\n• Leads all live CompTIA Tech+ sessions\n\n**Ramon Clemente** — Program Lead\n• Oversees the After The Game program\n\n**Angel Aviles** — Program Kickoff & ATG 101\n• Leads the orientation and onboarding sessions\n\nReach out anytime — we're here to support you.",
-  },
+
   {
     id: "demo-4",
     cohort_id: "demo",
@@ -128,13 +118,89 @@ export default async function ResourcesPage() {
     );
   }
 
+  const instructors = [
+    {
+      name: "Ramon Clemente",
+      role: "Program Lead",
+      track: "After The Game",
+      email: "ramon.clemente@wearebgc.org",
+      bio: "Oversees the After The Game program and student success.",
+      color: "bg-neutral-900 text-white",
+      badge: "bg-neutral-700 text-neutral-200",
+    },
+    {
+      name: "Kobie Joyner",
+      role: "Instructor",
+      track: "CompTIA Tech+",
+      email: "kkjoyner@gmail.com",
+      bio: "Leads all live CompTIA Tech+ certification sessions.",
+      color: "bg-blue-600 text-white",
+      badge: "bg-blue-500 text-blue-100",
+    },
+    {
+      name: "Angel Aviles",
+      role: "Instructor",
+      track: "MASS Wraparound",
+      email: null,
+      bio: "Leads the 8-week MASS coaching on mindset, networking, and soft skills.",
+      color: "bg-amber-500 text-white",
+      badge: "bg-amber-400 text-amber-900",
+    },
+  ];
+
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-6 px-5 py-8">
+    <div className="mx-auto w-full max-w-2xl space-y-8 px-5 py-8">
       <div>
         <h1 className="text-2xl font-bold text-neutral-900">Resources</h1>
         <p className="mt-1 text-sm text-neutral-400">
-          Course materials, notes, and career prep
+          Your instructors, course materials, and career prep
         </p>
+      </div>
+
+      {/* Instructors */}
+      <div>
+        <h2 className="text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-3">
+          Your Instructors
+        </h2>
+        <div className="grid gap-3">
+          {instructors.map((inst) => (
+            <div
+              key={inst.name}
+              className="flex items-start gap-4 rounded-xl border border-neutral-200 bg-white p-4"
+            >
+              <div
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold ${inst.color}`}
+              >
+                {inst.name.split(" ").map(n => n[0]).join("")}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-sm font-semibold text-neutral-900">
+                    {inst.name}
+                  </p>
+                  <span
+                    className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${inst.badge}`}
+                  >
+                    {inst.track}
+                  </span>
+                </div>
+                <p className="mt-0.5 text-xs text-neutral-500">{inst.role}</p>
+                <p className="mt-1 text-xs text-neutral-400 leading-relaxed">
+                  {inst.bio}
+                </p>
+                {inst.email && (
+                  <a
+                    href={`mailto:${inst.email}`}
+                    className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-neutral-500 hover:text-neutral-900 transition-colors"
+                  >
+                    <Mail size={12} />
+                    {inst.email}
+                  </a>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       <ResourceList resources={resources} />
