@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { createServiceClient } from "@/lib/supabase/server";
 
 // Emails that get admin role on first login
 const ADMIN_EMAILS = [
@@ -28,6 +29,8 @@ export async function GET(request: Request) {
 
   if (code || token_hash) {
     const cookieStore = await cookies();
+
+    // Auth client — handles session exchange and cookie management
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -44,6 +47,9 @@ export async function GET(request: Request) {
         },
       }
     );
+
+    // Service client — bypasses RLS for database writes
+    const admin = createServiceClient();
 
     let authError = null;
     if (code) {
@@ -64,7 +70,7 @@ export async function GET(request: Request) {
 
       if (user) {
         // Ensure at least one cohort exists
-        const { data: cohort, error: cohortQueryErr } = await supabase
+        const { data: cohort, error: cohortQueryErr } = await admin
           .from("cohorts")
           .select("id")
           .order("created_at", { ascending: true })
@@ -72,34 +78,33 @@ export async function GET(request: Request) {
           .single();
 
         if (cohortQueryErr) {
-          console.error("[auth/callback] cohort query error:", cohortQueryErr.message);
+          console.error("[auth/callback] cohort query:", cohortQueryErr.message);
         }
 
         let cohortId = cohort?.id;
 
         if (!cohortId) {
-          const { data: newCohort, error: cohortInsertErr } = await supabase
+          const { data: newCohort, error: cohortInsertErr } = await admin
             .from("cohorts")
             .insert(DEFAULT_COHORT)
             .select("id")
             .single();
 
           if (cohortInsertErr) {
-            console.error("[auth/callback] cohort insert error:", cohortInsertErr.message);
+            console.error("[auth/callback] cohort insert:", cohortInsertErr.message);
           }
           cohortId = newCohort?.id;
         }
 
         // Auto-create student record on first login
-        const { data: existing, error: studentQueryErr } = await supabase
+        const { data: existing, error: studentQueryErr } = await admin
           .from("students")
           .select("id")
           .eq("id", user.id)
           .single();
 
         if (studentQueryErr && studentQueryErr.code !== "PGRST116") {
-          // PGRST116 = "no rows returned" which is expected for new users
-          console.error("[auth/callback] student query error:", studentQueryErr.message);
+          console.error("[auth/callback] student query:", studentQueryErr.message);
         }
 
         if (!existing) {
@@ -110,7 +115,7 @@ export async function GET(request: Request) {
           const firstName = parts[0] || "New";
           const lastName = parts.slice(1).join(" ") || "Student";
 
-          const { error: insertErr } = await supabase.from("students").insert({
+          const { error: insertErr } = await admin.from("students").insert({
             id: user.id,
             email: user.email,
             first_name: firstName,
@@ -122,18 +127,18 @@ export async function GET(request: Request) {
           });
 
           if (insertErr) {
-            console.error("[auth/callback] student insert error:", insertErr.message);
+            console.error("[auth/callback] student insert:", insertErr.message);
           }
         } else {
           // Student exists but may have no cohort — assign them
-          const { error: updateErr } = await supabase
+          const { error: updateErr } = await admin
             .from("students")
             .update({ cohort_id: cohortId })
             .eq("id", user.id)
             .is("cohort_id", null);
 
           if (updateErr) {
-            console.error("[auth/callback] student update error:", updateErr.message);
+            console.error("[auth/callback] student update:", updateErr.message);
           }
         }
       }
