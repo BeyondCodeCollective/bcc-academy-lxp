@@ -7,13 +7,13 @@ import Link from "next/link";
 import type { Student, Cohort } from "@/lib/types";
 
 const WEEKS: { week: number; topic: string; icon: string }[] = [
-  { week: 1, topic: "IT Fundamentals", icon: "💻" },
-  { week: 2, topic: "Devices & OS", icon: "🖥️" },
-  { week: 3, topic: "Networking", icon: "🌐" },
-  { week: 4, topic: "Cybersecurity", icon: "🔒" },
-  { week: 5, topic: "Software & Data", icon: "🗄️" },
-  { week: 6, topic: "Cloud & Support", icon: "☁️" },
-  { week: 7, topic: "Cert Review", icon: "🏆" },
+  { week: 1, topic: "Storytelling + IT Fundamentals", icon: "💻" },
+  { week: 2, topic: "Networking + Devices & OS", icon: "🖥️" },
+  { week: 3, topic: "Self-Advocacy + Networking", icon: "🌐" },
+  { week: 4, topic: "Guest Speaker + Cybersecurity", icon: "🔒" },
+  { week: 5, topic: "Planning + Software & Data", icon: "🗄️" },
+  { week: 6, topic: "Guest Speaker + Cloud & Support", icon: "☁️" },
+  { week: 7, topic: "Financial Confidence + Cert Review", icon: "🏆" },
 ];
 
 export default async function DashboardPage() {
