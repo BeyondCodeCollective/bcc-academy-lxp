@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X } from "lucide-react";
+import { X, Terminal } from "lucide-react";
 
 const STORAGE_KEY = "atg-welcome-seen";
 
@@ -39,8 +39,8 @@ export function WelcomeOverlay({ firstName }: Props) {
 
         {/* Header */}
         <div className="text-center mb-6">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-neutral-900 text-2xl mb-4">
-            🏈
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-neutral-900 mb-4">
+            <Terminal size={28} className="text-white" />
           </div>
           <h2 className="text-xl font-bold text-neutral-900">
             Welcome to After The Game, {firstName}!
