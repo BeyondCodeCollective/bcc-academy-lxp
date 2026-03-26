@@ -190,11 +190,24 @@ export default async function MassWeekPage({
   const weekContent = MASS_CONTENT.find((w) => w.week === weekNum);
   if (!weekContent) redirect("/dashboard");
 
-  const massStarted = new Date() >= new Date(MASS_START);
+  const now = new Date();
+  const massStarted = now >= new Date(MASS_START);
   const currentWeek = massStarted ? computeCurrentWeek(MASS_START, 8) : 0;
 
-  const isCompleted = massStarted && weekNum < currentWeek;
-  const isCurrent = massStarted && weekNum === currentWeek;
+  // MASS sessions are Wednesdays 10:00–11:00 AM ET
+  // Compute the exact session date for this week
+  // MASS_START (March 24) is a Tuesday, first Wed is +1 day
+  const sessionDate = new Date(MASS_START + "T10:00:00-04:00"); // 10am ET
+  sessionDate.setDate(sessionDate.getDate() + 1 + (weekNum - 1) * 7);
+  const sessionEnd = new Date(sessionDate);
+  sessionEnd.setHours(sessionEnd.getHours() + 1); // 11am ET
+
+  const sessionPassed = now > sessionEnd;
+  const sessionLive = now >= new Date(sessionDate.getTime() - 15 * 60000) && now <= sessionEnd; // 15min early join
+
+  const isCompleted = massStarted && (weekNum < currentWeek || (weekNum === currentWeek && sessionPassed));
+  const isCurrent = massStarted && weekNum === currentWeek && !sessionPassed;
+  const isUpcoming = !massStarted || weekNum > currentWeek;
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8">
@@ -227,7 +240,7 @@ export default async function MassWeekPage({
                       : "bg-neutral-100 text-neutral-400"
                 }`}
               >
-                {isCompleted ? "Completed" : isCurrent ? "This Week" : "Upcoming"}
+                {isCompleted ? "Session Ended" : isCurrent ? "This Week" : "Upcoming"}
               </span>
             </div>
             <h1 className="text-2xl font-bold text-neutral-900 leading-tight">
@@ -263,12 +276,7 @@ export default async function MassWeekPage({
             </div>
           </div>
           <div className="shrink-0 ml-11 sm:ml-0">
-            {isCompleted ? (
-              <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
-                <CheckCircle size={14} />
-                Completed
-              </span>
-            ) : isCurrent ? (
+            {sessionLive ? (
               <a
                 href="#"
                 className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2.5 min-h-[44px] transition-colors w-full sm:w-auto"
@@ -276,6 +284,11 @@ export default async function MassWeekPage({
                 <Video size={14} />
                 Join Session
               </a>
+            ) : isCompleted ? (
+              <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
+                <CheckCircle size={14} />
+                Session Ended
+              </span>
             ) : (
               <span className="inline-flex items-center gap-1 text-xs font-medium text-neutral-400">
                 <Clock size={14} />

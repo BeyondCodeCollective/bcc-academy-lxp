@@ -168,11 +168,31 @@ export default async function TechPlusWeekPage({
   const weekContent = TECH_PLUS_CONTENT.find((w) => w.week === weekNum);
   if (!weekContent) redirect("/dashboard");
 
-  const techStarted = new Date() >= new Date(TECH_PLUS_START);
+  const now = new Date();
+  const techStarted = now >= new Date(TECH_PLUS_START);
   const currentWeek = techStarted ? computeCurrentWeek(TECH_PLUS_START, 7) : 0;
 
-  const isCompleted = techStarted && weekNum < currentWeek;
-  const isCurrent = techStarted && weekNum === currentWeek;
+  // Tech+ sessions: Wed 10am-12pm ET (session 1) & Fri 10am-12pm ET (session 2)
+  // TECH_PLUS_START (April 1) is a Wednesday
+  const weekStartDate = new Date(TECH_PLUS_START + "T00:00:00-04:00");
+  weekStartDate.setDate(weekStartDate.getDate() + (weekNum - 1) * 7);
+
+  // Session 1 = Wednesday (offset 0), Session 2 = Friday (offset +2)
+  const s1Start = new Date(weekStartDate); s1Start.setHours(10, 0, 0, 0);
+  const s1End = new Date(weekStartDate); s1End.setHours(12, 0, 0, 0);
+  const s2Start = new Date(weekStartDate); s2Start.setDate(s2Start.getDate() + 2); s2Start.setHours(10, 0, 0, 0);
+  const s2End = new Date(weekStartDate); s2End.setDate(s2End.getDate() + 2); s2End.setHours(12, 0, 0, 0);
+
+  const sessionEnds = [s1End, s2End];
+  const sessionLive = [
+    now >= new Date(s1Start.getTime() - 15 * 60000) && now <= s1End,
+    now >= new Date(s2Start.getTime() - 15 * 60000) && now <= s2End,
+  ];
+  const sessionPassed = [now > s1End, now > s2End];
+
+  const allSessionsPassed = sessionPassed[0] && sessionPassed[1];
+  const isCompleted = techStarted && (weekNum < currentWeek || (weekNum === currentWeek && allSessionsPassed));
+  const isCurrent = techStarted && weekNum === currentWeek && !allSessionsPassed;
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8">
@@ -208,7 +228,7 @@ export default async function TechPlusWeekPage({
                 }`}
               >
                 {isCompleted
-                  ? "Completed"
+                  ? "Sessions Ended"
                   : isCurrent
                     ? "This Week"
                     : !techStarted
@@ -254,12 +274,7 @@ export default async function TechPlusWeekPage({
                 </div>
               </div>
               <div className="shrink-0 ml-11 sm:ml-0">
-                {isCompleted ? (
-                  <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
-                    <CheckCircle size={14} />
-                    Completed
-                  </span>
-                ) : isCurrent ? (
+                {sessionLive[i] ? (
                   <a
                     href="#"
                     className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2.5 min-h-[44px] transition-colors w-full sm:w-auto"
@@ -267,6 +282,11 @@ export default async function TechPlusWeekPage({
                     <Video size={14} />
                     Join Session
                   </a>
+                ) : sessionPassed[i] ? (
+                  <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
+                    <CheckCircle size={14} />
+                    Session Ended
+                  </span>
                 ) : (
                   <span className="inline-flex items-center gap-1 text-xs font-medium text-neutral-400">
                     <Clock size={14} />
