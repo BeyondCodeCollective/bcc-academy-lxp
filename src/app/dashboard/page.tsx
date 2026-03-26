@@ -4,7 +4,7 @@ import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { getDemoUser, DEMO_COOKIE } from "@/lib/demo-users";
 import { computeCurrentWeek } from "@/lib/utils";
 import Link from "next/link";
-import type { Student, Cohort } from "@/lib/types";
+import type { Cohort } from "@/lib/types";
 import { WelcomeVideo } from "@/components/welcome-video";
 
 const MASS_WEEKS: { week: number; topic: string; icon: string }[] = [
@@ -32,7 +32,6 @@ export default async function DashboardPage() {
   let firstName = "there";
   let cohortName = "Cohort 1 — CompTIA Tech+ Foundations";
   let currentWeek = 1;
-  let totalWeeks = 7;
   let noCohort = false;
 
   if (isSupabaseConfigured()) {
@@ -74,7 +73,6 @@ export default async function DashboardPage() {
     if (cohort) {
       cohortName = cohort.display_name || cohort.name;
       currentWeek = computeCurrentWeek(cohort.start_date, cohort.total_weeks);
-      totalWeeks = cohort.total_weeks;
     } else if (!cohortId) {
       noCohort = true;
     }

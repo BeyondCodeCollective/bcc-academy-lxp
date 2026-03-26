@@ -12,7 +12,6 @@ import {
   Shield,
   ExternalLink,
   Check,
-  Trash2,
 } from "lucide-react";
 import type { Student } from "@/lib/types";
 
