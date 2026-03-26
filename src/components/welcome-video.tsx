@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ChevronDown, Play } from "lucide-react";
 
 export function WelcomeVideo() {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
 
   return (
     <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white">
