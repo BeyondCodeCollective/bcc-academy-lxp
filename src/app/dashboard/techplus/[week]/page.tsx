@@ -35,8 +35,8 @@ const TECH_PLUS_CONTENT: TechPlusWeekContent[] = [
       "IT support landscape: roles, career paths, and where Tech+ fits",
     ],
     sessions: [
-      { title: "Core IT Concepts", time: "Wednesday · 6:00 – 8:00 PM" },
-      { title: "Hardware Deep Dive", time: "Wednesday · 8:00 – 9:30 PM" },
+      { title: "Core IT Concepts", time: "Wednesday · 10:00 AM – 12:00 PM" },
+      { title: "Hardware Deep Dive", time: "Friday · 10:00 AM – 12:00 PM" },
     ],
   },
   {
@@ -54,8 +54,8 @@ const TECH_PLUS_CONTENT: TechPlusWeekContent[] = [
       "Troubleshoot boot issues, update failures, and performance problems",
     ],
     sessions: [
-      { title: "Operating System Fundamentals", time: "Wednesday · 6:00 – 8:00 PM" },
-      { title: "Configuration & Troubleshooting", time: "Wednesday · 8:00 – 9:30 PM" },
+      { title: "Operating System Fundamentals", time: "Wednesday · 10:00 AM – 12:00 PM" },
+      { title: "Configuration & Troubleshooting", time: "Friday · 10:00 AM – 12:00 PM" },
     ],
   },
   {
@@ -73,8 +73,8 @@ const TECH_PLUS_CONTENT: TechPlusWeekContent[] = [
       "Diagnose connectivity with ping, traceroute, ipconfig, nslookup",
     ],
     sessions: [
-      { title: "Network Foundations", time: "Wednesday · 6:00 – 8:00 PM" },
-      { title: "Protocols & Diagnostics", time: "Wednesday · 8:00 – 9:30 PM" },
+      { title: "Network Foundations", time: "Wednesday · 10:00 AM – 12:00 PM" },
+      { title: "Protocols & Diagnostics", time: "Friday · 10:00 AM – 12:00 PM" },
     ],
   },
   {
@@ -92,8 +92,8 @@ const TECH_PLUS_CONTENT: TechPlusWeekContent[] = [
       "Best practices: least privilege, patch management, encryption",
     ],
     sessions: [
-      { title: "Security Principles", time: "Wednesday · 6:00 – 8:00 PM" },
-      { title: "Threats & Defense", time: "Wednesday · 8:00 – 9:30 PM" },
+      { title: "Security Principles", time: "Wednesday · 10:00 AM – 12:00 PM" },
+      { title: "Threats & Defense", time: "Friday · 10:00 AM – 12:00 PM" },
     ],
   },
   {
@@ -111,8 +111,8 @@ const TECH_PLUS_CONTENT: TechPlusWeekContent[] = [
       "Version control concepts and why they matter",
     ],
     sessions: [
-      { title: "Software Development Basics", time: "Wednesday · 6:00 – 8:00 PM" },
-      { title: "Data & Databases", time: "Wednesday · 8:00 – 9:30 PM" },
+      { title: "Software Development Basics", time: "Wednesday · 10:00 AM – 12:00 PM" },
+      { title: "Data & Databases", time: "Friday · 10:00 AM – 12:00 PM" },
     ],
   },
   {
@@ -130,8 +130,8 @@ const TECH_PLUS_CONTENT: TechPlusWeekContent[] = [
       "Professional communication for help desk interactions",
     ],
     sessions: [
-      { title: "Cloud Fundamentals", time: "Wednesday · 6:00 – 8:00 PM" },
-      { title: "IT Support Workflows", time: "Wednesday · 8:00 – 9:30 PM" },
+      { title: "Cloud Fundamentals", time: "Wednesday · 10:00 AM – 12:00 PM" },
+      { title: "IT Support Workflows", time: "Friday · 10:00 AM – 12:00 PM" },
     ],
   },
   {
@@ -149,8 +149,8 @@ const TECH_PLUS_CONTENT: TechPlusWeekContent[] = [
       "Build a personalized study plan for your exam date",
     ],
     sessions: [
-      { title: "Domain Review", time: "Wednesday · 6:00 – 8:00 PM" },
-      { title: "Practice Exam & Study Plan", time: "Wednesday · 8:00 – 9:30 PM" },
+      { title: "Domain Review", time: "Wednesday · 10:00 AM – 12:00 PM" },
+      { title: "Practice Exam & Study Plan", time: "Friday · 10:00 AM – 12:00 PM" },
     ],
   },
 ];
