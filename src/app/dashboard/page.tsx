@@ -6,6 +6,7 @@ import { computeCurrentWeek } from "@/lib/utils";
 import Link from "next/link";
 import type { Cohort } from "@/lib/types";
 import { WelcomeVideo } from "@/components/welcome-video";
+import { WelcomeOverlay } from "@/components/welcome-overlay";
 
 const MASS_WEEKS: { week: number; topic: string; icon: string }[] = [
   { week: 1, topic: "Storytelling", icon: "🎙️" },
@@ -130,6 +131,8 @@ export default async function DashboardPage() {
 
   return (
     <div className="mx-auto w-full max-w-2xl space-y-8 sm:space-y-10 px-4 sm:px-5 py-8">
+      <WelcomeOverlay firstName={firstName} />
+
       {/* Welcome header */}
       <div>
         <h1 className="text-2xl font-bold text-neutral-900">
