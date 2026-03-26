@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { ResourceList } from "@/components/resource-list";
-import { BookOpen, Mail, Calendar } from "lucide-react";
+import { Books, VideoCamera, CalendarBlank, Envelope, Link as LinkIcon } from "@phosphor-icons/react/dist/ssr";
 import Image from "next/image";
 import type { Student, Resource } from "@/lib/types";
 
@@ -15,7 +15,7 @@ const DEMO_RESOURCES: (Resource & { content?: string })[] = [
     url: null,
     created_at: "2026-03-14T00:00:00Z",
     content:
-      "Welcome to After The Game — a 7-week program by Beyond Code Collective designed to help former athletes transition into technology careers.\n\n**Program Structure**\n• 7 weeks of live instruction (2 sessions per week)\n• Sessions: Tuesdays & Thursdays, 6:00–8:00 PM ET\n• Certification: CompTIA Tech+ Foundations\n\n**Expectations**\n• Attend all live sessions (recordings available if you miss one)\n• Complete weekly practice quizzes\n• Participate in the group chat\n• Ask questions — there are no dumb ones\n\n**Support**\n• Instructor: Kobie Joyner (kkjoyner@gmail.com)\n• Program Lead: Ramon Clemente\n• AI Tutor available 24/7 in the portal",
+      "Welcome to After The Game — a 7-week program by Beyond Code Collective designed to help former athletes transition into technology careers.\n\n**Program Structure**\n• 7 weeks of live instruction (2 sessions per week)\n• MASS Wraparound: Tuesdays, 10:00 AM – 12:00 PM ET (starts March 24)\n• CompTIA Tech+: Wednesdays & Fridays, 10:00 AM – 12:00 PM ET (starts April 1)\n• Certification: CompTIA Tech+ Foundations (FC0-U71)\n\n**Expectations**\n• Attend all live sessions (recordings available if you miss one)\n• Complete weekly practice quizzes\n• Participate in the group chat\n• Ask questions — there are no dumb ones\n\n**Support**\n• MASS Instructor: Angel Aviles\n• CompTIA Instructor: Kobe\n• Program Lead: Ramon Clemente (ramon.clemente@wearebgc.org)\n• AI Tutor available 24/7 in the portal",
   },
   {
     id: "demo-2",
@@ -39,7 +39,6 @@ const DEMO_RESOURCES: (Resource & { content?: string })[] = [
     content:
       "**Week 1: IT Fundamentals**\n\nSession notes will be posted here after the first live session.\n\nTopics to be covered:\n• What is IT? The big picture\n• Hardware vs. Software\n• How computers process information (input → process → output → storage)\n• Binary, bits, and bytes\n• Types of computers and their uses\n• Introduction to troubleshooting methodology",
   },
-
   {
     id: "demo-4",
     cohort_id: "demo",
@@ -50,6 +49,80 @@ const DEMO_RESOURCES: (Resource & { content?: string })[] = [
     created_at: "2026-03-18T00:00:00Z",
     content:
       "**Resume Template for Tech Career Changers**\n\nA resume template will be shared during Week 6 (Cloud & Support).\n\nIn the meantime, start collecting:\n• Your top 5 transferable skills from your sports/previous career\n• Any tech tools or platforms you've used\n• Volunteer or project experience\n• Your CompTIA Tech+ certification (once earned!)\n\n**Tips**\n• Lead with skills, not job titles\n• Highlight teamwork, discipline, and problem-solving from your athletic career\n• Keep it to one page\n• Use action verbs: built, managed, led, analyzed",
+  },
+];
+
+const instructors = [
+  {
+    name: "Ramon Clemente",
+    role: "Head of ATG",
+    track: "Program Lead",
+    email: "ramon.clemente@wearebgc.org",
+    photo: "/instructors/ramon.jpg",
+    calUrl: "https://cal.com/ramon-clemente",
+    bio: "Oversees the After The Game program and guides students through their transition into tech.",
+    initials: "RC",
+    color: "bg-neutral-900 text-white",
+    badge: "bg-neutral-100 text-neutral-700",
+  },
+  {
+    name: "Kobe",
+    role: "Instructor",
+    track: "CompTIA Tech+",
+    email: null,
+    photo: "/instructors/kobie.jpg",
+    calUrl: "https://cal.com/kobie-joyner",
+    bio: "Leads all live CompTIA Tech+ Foundations sessions — Wed & Fri, 10am–12pm ET.",
+    initials: "KJ",
+    color: "bg-blue-600 text-white",
+    badge: "bg-blue-50 text-blue-700",
+  },
+  {
+    name: "Angel Aviles",
+    role: "Instructor",
+    track: "MASS Wraparound",
+    email: null,
+    photo: "/instructors/angel.jpg",
+    calUrl: "https://cal.com/angel-aviles",
+    bio: "Leads the 8-week MASS coaching series on mindset, accountability, soft skills, and networking.",
+    initials: "AA",
+    color: "bg-amber-500 text-white",
+    badge: "bg-amber-50 text-amber-700",
+  },
+];
+
+const quickLinks = [
+  {
+    label: "MASS Live Session",
+    description: "Tuesdays 10am–12pm ET",
+    url: "https://meet.google.com",
+    icon: VideoCamera,
+    color: "text-amber-600",
+    bg: "bg-amber-50",
+  },
+  {
+    label: "CompTIA Live Session",
+    description: "Wed & Fri 10am–12pm ET",
+    url: "https://meet.google.com",
+    icon: VideoCamera,
+    color: "text-blue-600",
+    bg: "bg-blue-50",
+  },
+  {
+    label: "CompTIA CertMaster",
+    description: "Official study platform",
+    url: "https://www.comptia.org/training/certmaster",
+    icon: LinkIcon,
+    color: "text-red-600",
+    bg: "bg-red-50",
+  },
+  {
+    label: "Professor Messer (Free)",
+    description: "Tech+ video lessons",
+    url: "https://www.professormesser.com/free-a-plus-training/fc0-u71/",
+    icon: LinkIcon,
+    color: "text-green-600",
+    bg: "bg-green-50",
   },
 ];
 
@@ -101,74 +174,52 @@ export default async function ResourcesPage() {
     resources = dbResources || [];
   }
 
-  if (resources.length === 0) {
-    return (
-      <div className="mx-auto w-full max-w-2xl space-y-6 px-5 py-8">
-        <h1 className="text-2xl font-bold text-neutral-900">Resources</h1>
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <BookOpen size={48} className="mb-4 text-neutral-200" />
-          <p className="text-lg font-medium text-neutral-900">
-            No resources yet
-          </p>
-          <p className="mt-1 max-w-sm text-sm text-neutral-400">
-            Resources will be added as the program progresses.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  const instructors = [
-    {
-      name: "Ramon Clemente",
-      role: "Program Lead",
-      track: "After The Game",
-      email: "ramon.clemente@wearebgc.org",
-      photo: "/instructors/ramon.jpg",
-      calUrl: "https://cal.com/ramon-clemente",
-      bio: "Oversees the After The Game program and student success.",
-      initials: "RC",
-      color: "bg-neutral-900 text-white",
-      badge: "bg-neutral-700 text-neutral-200",
-    },
-    {
-      name: "Kobie Joyner",
-      role: "Instructor",
-      track: "CompTIA Tech+",
-      email: "kkjoyner@gmail.com",
-      photo: "/instructors/kobie.jpg",
-      calUrl: "https://cal.com/kobie-joyner",
-      bio: "Leads all live CompTIA Tech+ certification sessions.",
-      initials: "KJ",
-      color: "bg-blue-600 text-white",
-      badge: "bg-blue-500 text-blue-100",
-    },
-    {
-      name: "Angel Aviles",
-      role: "Instructor",
-      track: "MASS Wraparound",
-      email: null,
-      photo: "/instructors/angel.jpg",
-      calUrl: "https://cal.com/angel-aviles",
-      bio: "Leads the 8-week MASS coaching on mindset, networking, and soft skills.",
-      initials: "AA",
-      color: "bg-amber-500 text-white",
-      badge: "bg-amber-400 text-amber-900",
-    },
-  ];
-
   return (
     <div className="mx-auto w-full max-w-2xl space-y-8 px-5 py-8">
+      {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-neutral-900">Resources</h1>
         <p className="mt-1 text-sm text-neutral-400">
-          Your instructors, course materials, and career prep
+          Your instructors, course materials, and program links
         </p>
+      </div>
+
+      {/* Quick Links */}
+      <div>
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-neutral-400">
+          Quick Links
+        </h2>
+        <div className="grid grid-cols-2 gap-3">
+          {quickLinks.map((link) => {
+            const Icon = link.icon;
+            return (
+              <a
+                key={link.label}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-start gap-3 rounded-xl border border-neutral-200 bg-white p-4 transition-colors hover:border-neutral-300 hover:bg-neutral-50"
+              >
+                <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${link.bg}`}>
+                  <Icon size={16} weight="bold" className={link.color} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-neutral-900 leading-tight">
+                    {link.label}
+                  </p>
+                  <p className="mt-0.5 text-xs text-neutral-400">
+                    {link.description}
+                  </p>
+                </div>
+              </a>
+            );
+          })}
+        </div>
       </div>
 
       {/* Instructors */}
       <div>
-        <h2 className="text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-3">
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-neutral-400">
           Your Instructors
         </h2>
         <div className="grid gap-3">
@@ -189,7 +240,9 @@ export default async function ResourcesPage() {
                   width={48}
                   height={48}
                   className="absolute inset-0 h-12 w-12 rounded-full object-cover"
-                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = "none";
+                  }}
                 />
               </div>
               <div className="flex-1 min-w-0">
@@ -213,7 +266,7 @@ export default async function ResourcesPage() {
                       href={`mailto:${inst.email}`}
                       className="inline-flex items-center gap-1 text-xs font-medium text-neutral-500 hover:text-neutral-900 transition-colors"
                     >
-                      <Mail size={12} />
+                      <Envelope size={12} weight="bold" />
                       {inst.email}
                     </a>
                   )}
@@ -223,7 +276,7 @@ export default async function ResourcesPage() {
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 rounded-full border border-neutral-200 bg-neutral-50 px-2.5 py-1 text-xs font-medium text-neutral-600 hover:border-neutral-400 hover:text-neutral-900 transition-colors"
                   >
-                    <Calendar size={12} />
+                    <CalendarBlank size={12} weight="bold" />
                     Schedule Office Hours
                   </a>
                 </div>
@@ -233,7 +286,25 @@ export default async function ResourcesPage() {
         </div>
       </div>
 
-      <ResourceList resources={resources} />
+      {/* Course Materials */}
+      {resources.length > 0 ? (
+        <ResourceList resources={resources} />
+      ) : (
+        <div>
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-neutral-400">
+            Course Materials
+          </h2>
+          <div className="flex flex-col items-center justify-center rounded-xl border border-neutral-200 bg-white py-12 text-center">
+            <Books size={40} weight="bold" className="mb-3 text-neutral-200" />
+            <p className="text-sm font-medium text-neutral-900">
+              Materials coming soon
+            </p>
+            <p className="mt-1 max-w-xs text-xs text-neutral-400">
+              Course materials will be posted here as the program progresses.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -3,17 +3,17 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard,
-  BookOpen,
-  Shield,
-  MessageCircle,
-  LogOut,
-} from "lucide-react";
+  House,
+  Books,
+  ShieldCheck,
+  ChatsCircle,
+  SignOut,
+} from "@phosphor-icons/react";
 
 const navItems = [
-  { href: "/dashboard", label: "Home", icon: LayoutDashboard },
-  { href: "/dashboard/resources", label: "Resources", icon: BookOpen },
-  { href: "/dashboard/tutor", label: "AI Tutor", icon: MessageCircle },
+  { href: "/dashboard", label: "Home", icon: House },
+  { href: "/dashboard/resources", label: "Resources", icon: Books },
+  { href: "/dashboard/tutor", label: "AI Tutor", icon: ChatsCircle },
 ];
 
 export function Nav({ isAdmin }: { isAdmin: boolean }) {
@@ -21,7 +21,7 @@ export function Nav({ isAdmin }: { isAdmin: boolean }) {
 
   return (
     <nav className="bg-neutral-900">
-      <div className="mx-auto flex max-w-4xl items-center justify-between px-3 sm:px-4 py-2 sm:py-3">
+      <div className="mx-auto flex max-w-4xl items-center justify-between px-4 sm:px-6 py-2 sm:py-3">
         <Link href="/dashboard" className="flex items-center shrink-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -31,7 +31,7 @@ export function Nav({ isAdmin }: { isAdmin: boolean }) {
           />
         </Link>
 
-        <div className="flex items-center">
+        <div className="flex items-center gap-1 sm:gap-2">
           {navItems.map(({ href, label, icon: Icon }) => {
             const isActive =
               href === "/dashboard"
@@ -41,13 +41,13 @@ export function Nav({ isAdmin }: { isAdmin: boolean }) {
               <Link
                 key={href}
                 href={href}
-                className={`flex items-center gap-1.5 rounded-lg px-2.5 sm:px-3 py-2.5 sm:py-2 text-sm font-medium transition-colors ${
+                className={`flex min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 rounded-lg px-3 sm:px-4 py-2 text-sm font-medium transition-colors ${
                   isActive
                     ? "bg-white/15 text-white"
                     : "text-neutral-400 hover:bg-white/10 hover:text-white"
                 }`}
               >
-                <Icon size={18} className="sm:h-4 sm:w-4" />
+                <Icon size={20} weight="bold" />
                 <span className="hidden sm:inline">{label}</span>
               </Link>
             );
@@ -56,13 +56,13 @@ export function Nav({ isAdmin }: { isAdmin: boolean }) {
           {isAdmin && (
             <Link
               href="/dashboard/admin"
-              className={`flex items-center gap-1.5 rounded-lg px-2.5 sm:px-3 py-2.5 sm:py-2 text-sm font-medium transition-colors ${
+              className={`flex min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 rounded-lg px-3 sm:px-4 py-2 text-sm font-medium transition-colors ${
                 pathname.startsWith("/dashboard/admin")
                   ? "bg-white/15 text-white"
                   : "text-neutral-400 hover:bg-white/10 hover:text-white"
               }`}
             >
-              <Shield size={18} className="sm:h-4 sm:w-4" />
+              <ShieldCheck size={20} weight="bold" />
               <span className="hidden sm:inline">Admin</span>
             </Link>
           )}
@@ -75,10 +75,10 @@ export function Nav({ isAdmin }: { isAdmin: boolean }) {
               await supabase.auth.signOut();
               window.location.href = "/";
             }}
-            className="flex items-center gap-1.5 rounded-lg px-2.5 sm:px-3 py-2.5 sm:py-2 text-sm font-medium text-neutral-500 hover:bg-white/10 hover:text-white transition-colors ml-1"
+            className="flex min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 rounded-lg px-3 sm:px-4 py-2 text-sm font-medium text-neutral-500 hover:bg-white/10 hover:text-white transition-colors"
             aria-label="Sign out"
           >
-            <LogOut size={18} className="sm:h-4 sm:w-4" />
+            <SignOut size={20} weight="bold" />
             <span className="hidden sm:inline">Sign Out</span>
           </button>
         </div>
