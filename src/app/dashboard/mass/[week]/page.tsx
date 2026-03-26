@@ -203,7 +203,7 @@ export default async function MassWeekPage({
   sessionEnd.setHours(sessionEnd.getHours() + 1); // 11am ET
 
   const sessionPassed = now > sessionEnd;
-  const sessionLive = now >= new Date(sessionDate.getTime() - 15 * 60000) && now <= sessionEnd; // 15min early join
+  const sessionLive = now >= new Date(sessionDate.getTime() - 10 * 60000) && now <= sessionEnd; // 15min early join
 
   const isCompleted = massStarted && (weekNum < currentWeek || (weekNum === currentWeek && sessionPassed));
   const isCurrent = massStarted && weekNum === currentWeek && !sessionPassed;
@@ -290,9 +290,9 @@ export default async function MassWeekPage({
                 Session Ended
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 text-xs font-medium text-neutral-400">
-                <Clock size={14} />
-                Upcoming
+              <span className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-neutral-200 text-neutral-400 text-xs font-semibold px-3.5 py-2.5 min-h-[44px] cursor-not-allowed w-full sm:w-auto">
+                <Video size={14} />
+                Join Session
               </span>
             )}
           </div>

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { computeCurrentWeek } from "@/lib/utils";
-import { ArrowLeft, BookOpen, Users, Video, CheckCircle, Clock } from "lucide-react";
+import { ArrowLeft, BookOpen, Users, Video, CheckCircle } from "lucide-react";
 
 type SessionInfo = {
   title: string;
@@ -185,8 +185,8 @@ export default async function TechPlusWeekPage({
 
   const sessionEnds = [s1End, s2End];
   const sessionLive = [
-    now >= new Date(s1Start.getTime() - 15 * 60000) && now <= s1End,
-    now >= new Date(s2Start.getTime() - 15 * 60000) && now <= s2End,
+    now >= new Date(s1Start.getTime() - 10 * 60000) && now <= s1End,
+    now >= new Date(s2Start.getTime() - 10 * 60000) && now <= s2End,
   ];
   const sessionPassed = [now > s1End, now > s2End];
 
@@ -288,9 +288,9 @@ export default async function TechPlusWeekPage({
                     Session Ended
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 text-xs font-medium text-neutral-400">
-                    <Clock size={14} />
-                    Upcoming
+                  <span className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-neutral-200 text-neutral-400 text-xs font-semibold px-3.5 py-2.5 min-h-[44px] cursor-not-allowed w-full sm:w-auto">
+                    <Video size={14} />
+                    Join Session
                   </span>
                 )}
               </div>
