@@ -1,7 +1,12 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { computeCurrentWeek } from "@/lib/utils";
-import { ArrowLeft, BookOpen, Users, Video } from "lucide-react";
+import { ArrowLeft, BookOpen, Users, Video, CheckCircle, Clock } from "lucide-react";
+
+type SessionInfo = {
+  title: string;
+  time: string;
+};
 
 type TechPlusWeekContent = {
   week: number;
@@ -11,8 +16,7 @@ type TechPlusWeekContent = {
   instructor: string;
   description: string;
   objectives: string[];
-  activities: string[];
-  takeaway: string;
+  sessions: [SessionInfo, SessionInfo];
 };
 
 const TECH_PLUS_CONTENT: TechPlusWeekContent[] = [
@@ -23,20 +27,17 @@ const TECH_PLUS_CONTENT: TechPlusWeekContent[] = [
     subtitle: "Core Concepts & Hardware Basics",
     instructor: "Kobie Joyner",
     description:
-      "Before you can fix it, you need to understand what you're looking at. This week lays the foundation — how computers actually work, what's inside them, and the vocabulary every IT professional uses daily. You'll go from 'it's broken' to 'I know exactly which component failed.'",
+      "This week lays the foundation — how computers work, what's inside them, and the vocabulary every IT professional uses daily.",
     objectives: [
-      "Understand the core components of a computer system: CPU, RAM, storage, motherboard, and power supply",
-      "Identify different types of hardware and their roles in processing, memory, and input/output",
-      "Learn binary basics and how data is represented, stored, and transferred",
-      "Explore the IT support landscape: roles, career paths, and where Tech+ fits in",
+      "Core computer components: CPU, RAM, storage, motherboard, power supply",
+      "Hardware types and their roles in processing, memory, and I/O",
+      "Binary basics — how data is represented and transferred",
+      "IT support landscape: roles, career paths, and where Tech+ fits",
     ],
-    activities: [
-      "Hardware identification lab — match components to their function using reference diagrams",
-      "Binary conversion exercise — translate between decimal, binary, and hexadecimal",
-      "Build a system spec sheet for a given use case (office workstation vs. gaming PC vs. server)",
+    sessions: [
+      { title: "Core IT Concepts", time: "Wednesday · 6:00 – 8:00 PM" },
+      { title: "Hardware Deep Dive", time: "Wednesday · 8:00 – 9:30 PM" },
     ],
-    takeaway:
-      "A completed hardware reference sheet you can use to identify and describe any computer's core components and specifications.",
   },
   {
     week: 2,
@@ -45,20 +46,17 @@ const TECH_PLUS_CONTENT: TechPlusWeekContent[] = [
     subtitle: "Configuration & System Management",
     instructor: "Kobie Joyner",
     description:
-      "Every device you'll support runs an operating system, and every OS has its own way of doing things. This week you'll get hands-on with Windows, macOS, and Linux — learning how to navigate, configure, and troubleshoot the systems people actually use at work.",
+      "Get hands-on with Windows, macOS, and Linux. Learn to navigate, configure, and troubleshoot the systems people actually use at work.",
     objectives: [
-      "Compare and contrast Windows, macOS, Linux, and mobile operating systems",
-      "Navigate file systems, manage user accounts, and configure system settings",
-      "Understand device drivers, firmware, and how the OS communicates with hardware",
-      "Practice basic troubleshooting: boot issues, update failures, and performance problems",
+      "Compare Windows, macOS, Linux, and mobile operating systems",
+      "Navigate file systems, manage users, and configure settings",
+      "Device drivers, firmware, and OS-to-hardware communication",
+      "Troubleshoot boot issues, update failures, and performance problems",
     ],
-    activities: [
-      "OS scavenger hunt — complete a series of configuration tasks across Windows and macOS",
-      "User account management exercise — create accounts, set permissions, configure password policies",
-      "Troubleshooting walkthrough — diagnose and resolve three common OS issues from real support tickets",
+    sessions: [
+      { title: "Operating System Fundamentals", time: "Wednesday · 6:00 – 8:00 PM" },
+      { title: "Configuration & Troubleshooting", time: "Wednesday · 8:00 – 9:30 PM" },
     ],
-    takeaway:
-      "A troubleshooting decision tree for the 10 most common operating system issues you'll encounter in IT support.",
   },
   {
     week: 3,
@@ -67,20 +65,17 @@ const TECH_PLUS_CONTENT: TechPlusWeekContent[] = [
     subtitle: "How Devices Communicate",
     instructor: "Kobie Joyner",
     description:
-      "Nothing works in isolation anymore. Every device, app, and service depends on a network. This week demystifies how data moves from one machine to another — from your home Wi-Fi to enterprise infrastructure. You'll learn the protocols, addressing, and architecture that make the internet possible.",
+      "How data moves from one machine to another — from your home Wi-Fi to enterprise infrastructure. Protocols, addressing, and architecture.",
     objectives: [
-      "Understand the OSI and TCP/IP models and how data flows through network layers",
-      "Learn IP addressing, subnetting basics, DNS, and DHCP — how devices find each other",
-      "Identify common network devices: routers, switches, access points, and firewalls",
-      "Diagnose basic connectivity issues using ping, traceroute, ipconfig, and nslookup",
+      "OSI and TCP/IP models — how data flows through network layers",
+      "IP addressing, subnetting basics, DNS, and DHCP",
+      "Network devices: routers, switches, access points, firewalls",
+      "Diagnose connectivity with ping, traceroute, ipconfig, nslookup",
     ],
-    activities: [
-      "IP addressing workshop — calculate subnet ranges and assign addresses for a small office network",
-      "Network mapping exercise — diagram a home or office network identifying every device and connection",
-      "Command-line diagnostics lab — use ping, traceroute, and ipconfig to troubleshoot connectivity scenarios",
+    sessions: [
+      { title: "Network Foundations", time: "Wednesday · 6:00 – 8:00 PM" },
+      { title: "Protocols & Diagnostics", time: "Wednesday · 8:00 – 9:30 PM" },
     ],
-    takeaway:
-      "A network diagnostic cheat sheet with the exact commands and steps to troubleshoot any connectivity problem.",
   },
   {
     week: 4,
@@ -89,20 +84,17 @@ const TECH_PLUS_CONTENT: TechPlusWeekContent[] = [
     subtitle: "Security Principles & Threat Awareness",
     instructor: "Kobie Joyner",
     description:
-      "Every IT role is a security role. Whether you're resetting passwords or managing servers, you need to understand threats, defenses, and best practices. This week covers the security fundamentals that protect organizations — and the mistakes that expose them.",
+      "Every IT role is a security role. This week covers threats, defenses, and best practices that protect organizations — and the mistakes that expose them.",
     objectives: [
-      "Identify common threat types: malware, phishing, social engineering, ransomware, and insider threats",
-      "Understand the CIA triad (Confidentiality, Integrity, Availability) as the foundation of security",
-      "Learn authentication methods: passwords, MFA, biometrics, and single sign-on",
-      "Apply security best practices: least privilege, patch management, encryption, and incident response basics",
+      "Common threats: malware, phishing, social engineering, ransomware",
+      "CIA triad — Confidentiality, Integrity, Availability",
+      "Authentication: passwords, MFA, biometrics, single sign-on",
+      "Best practices: least privilege, patch management, encryption",
     ],
-    activities: [
-      "Phishing detection exercise — analyze real email samples and identify red flags",
-      "Security audit walkthrough — evaluate a mock company's practices against a security checklist",
-      "Password and MFA configuration lab — set up multi-factor authentication across multiple platforms",
+    sessions: [
+      { title: "Security Principles", time: "Wednesday · 6:00 – 8:00 PM" },
+      { title: "Threats & Defense", time: "Wednesday · 8:00 – 9:30 PM" },
     ],
-    takeaway:
-      "A personal security checklist covering your devices, accounts, and online presence — plus a framework for evaluating organizational security.",
   },
   {
     week: 5,
@@ -111,20 +103,17 @@ const TECH_PLUS_CONTENT: TechPlusWeekContent[] = [
     subtitle: "Development Basics & Database Fundamentals",
     instructor: "Kobie Joyner",
     description:
-      "You don't need to be a developer, but you need to speak the language. This week bridges the gap between IT support and software — how applications are built, how data is structured, and why understanding both makes you more effective in any tech role.",
+      "Bridge the gap between IT support and software — how apps are built, how data is structured, and why understanding both makes you more effective.",
     objectives: [
-      "Understand the software development lifecycle: planning, development, testing, deployment, maintenance",
-      "Learn database fundamentals: tables, records, queries, and the difference between SQL and NoSQL",
-      "Explore APIs and how applications communicate with each other",
-      "Grasp version control concepts and why they matter beyond development teams",
+      "Software development lifecycle: planning through deployment",
+      "Database fundamentals: tables, records, SQL vs. NoSQL",
+      "APIs and how applications communicate",
+      "Version control concepts and why they matter",
     ],
-    activities: [
-      "SQL basics lab — write simple queries to retrieve, filter, and sort data from a sample database",
-      "API exploration exercise — use a public API to request and interpret real data",
-      "Software lifecycle mapping — trace a familiar app from idea to deployment identifying each SDLC phase",
+    sessions: [
+      { title: "Software Development Basics", time: "Wednesday · 6:00 – 8:00 PM" },
+      { title: "Data & Databases", time: "Wednesday · 8:00 – 9:30 PM" },
     ],
-    takeaway:
-      "A working knowledge of SQL basics and API concepts, with a reference guide of common queries and data operations.",
   },
   {
     week: 6,
@@ -133,20 +122,17 @@ const TECH_PLUS_CONTENT: TechPlusWeekContent[] = [
     subtitle: "Cloud Computing & Support Workflows",
     instructor: "Kobie Joyner",
     description:
-      "The cloud isn't the future — it's the present. Most businesses run on cloud services, and IT support means knowing how to navigate them. This week covers cloud fundamentals alongside the support workflows and ticketing systems you'll use every day on the job.",
+      "Most businesses run on cloud services. This week covers cloud fundamentals alongside the support workflows and ticketing systems you'll use daily.",
     objectives: [
-      "Understand cloud service models: IaaS, PaaS, SaaS — and when each is used",
-      "Compare major cloud providers (AWS, Azure, Google Cloud) and their core services",
-      "Learn IT support workflows: ticketing systems, SLAs, escalation procedures, and documentation",
-      "Practice professional communication for help desk and support interactions",
+      "Cloud service models: IaaS, PaaS, SaaS — and when each is used",
+      "Compare AWS, Azure, and Google Cloud core services",
+      "IT support workflows: ticketing, SLAs, escalation, documentation",
+      "Professional communication for help desk interactions",
     ],
-    activities: [
-      "Cloud services matching exercise — categorize 20 real products into IaaS, PaaS, or SaaS",
-      "Mock ticket resolution — work through three support tickets from intake to resolution using proper documentation",
-      "Support communication drill — rewrite poorly written support responses into professional, clear messages",
+    sessions: [
+      { title: "Cloud Fundamentals", time: "Wednesday · 6:00 – 8:00 PM" },
+      { title: "IT Support Workflows", time: "Wednesday · 8:00 – 9:30 PM" },
     ],
-    takeaway:
-      "A support workflow template you can use in any IT role, plus a cloud services reference card mapping common tools to their cloud categories.",
   },
   {
     week: 7,
@@ -155,20 +141,17 @@ const TECH_PLUS_CONTENT: TechPlusWeekContent[] = [
     subtitle: "Exam Prep & Final Assessment",
     instructor: "Kobie Joyner",
     description:
-      "Everything comes together this week. You've built the knowledge — now it's time to sharpen it for the CompTIA Tech+ exam. This session focuses on exam strategy, targeted review of high-weight domains, and a practice assessment to identify any remaining gaps.",
+      "Everything comes together. Sharpen your knowledge for the CompTIA Tech+ exam with targeted review, exam strategy, and a practice assessment.",
     objectives: [
-      "Review all six Tech+ exam domains with emphasis on high-weight areas",
-      "Learn exam strategy: time management, elimination techniques, and question interpretation",
-      "Identify personal weak areas through a diagnostic practice exam",
-      "Build a final study plan for the days between this session and your exam date",
+      "Review all six Tech+ exam domains, focusing on high-weight areas",
+      "Exam strategy: time management and elimination techniques",
+      "Diagnostic practice exam to identify remaining gaps",
+      "Build a personalized study plan for your exam date",
     ],
-    activities: [
-      "Domain-by-domain rapid review — key concepts and common exam questions for each area",
-      "Full-length practice exam under timed conditions",
-      "Gap analysis — review missed questions, identify patterns, and prioritize study areas",
+    sessions: [
+      { title: "Domain Review", time: "Wednesday · 6:00 – 8:00 PM" },
+      { title: "Practice Exam & Study Plan", time: "Wednesday · 8:00 – 9:30 PM" },
     ],
-    takeaway:
-      "A personalized final study plan based on your practice exam results, plus confidence that you're ready to earn your CompTIA Tech+ certification.",
   },
 ];
 
@@ -196,114 +179,128 @@ export default async function TechPlusWeekPage({
       {/* Back link */}
       <Link
         href="/dashboard"
-        className="inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-neutral-900 transition-colors mb-6"
+        className="inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-neutral-900 transition-colors mb-5"
       >
         <ArrowLeft size={16} />
         Back to Dashboard
       </Link>
 
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
+      {/* Compact header */}
+      <div className="mb-6">
+        <div className="flex items-center gap-3">
           <span className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-xl">
             {weekContent.icon}
           </span>
-          <div>
-            <p className="text-[10px] font-semibold text-neutral-400 uppercase tracking-wide">
-              CompTIA Tech+ · Week {weekContent.week}
-            </p>
-            <h1 className="text-2xl font-bold text-neutral-900">
+          <div className="flex-1">
+            <div className="flex items-center gap-2.5">
+              <p className="text-[10px] font-semibold text-neutral-400 uppercase tracking-wide">
+                CompTIA Tech+ · Week {weekContent.week}
+              </p>
+              <span
+                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                  isCompleted
+                    ? "bg-green-50 text-green-600"
+                    : isCurrent
+                      ? "bg-red-50 text-red-600"
+                      : !techStarted
+                        ? "bg-blue-50 text-blue-600"
+                        : "bg-neutral-100 text-neutral-400"
+                }`}
+              >
+                {isCompleted
+                  ? "Completed"
+                  : isCurrent
+                    ? "This Week"
+                    : !techStarted
+                      ? "Starts April 1"
+                      : "Upcoming"}
+              </span>
+            </div>
+            <h1 className="text-2xl font-bold text-neutral-900 leading-tight">
               {weekContent.title}
             </h1>
           </div>
         </div>
-        <p className="mt-2 text-sm text-neutral-500">
-          {weekContent.subtitle}
-        </p>
-
-        <div className="flex items-center gap-3 mt-3">
-          <span className="flex items-center gap-1.5 text-xs text-neutral-400">
-            <Users size={14} />
-            {weekContent.instructor}
-          </span>
-          <span
-            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-              isCompleted
-                ? "bg-green-50 text-green-600"
-                : isCurrent
-                  ? "bg-red-50 text-red-600"
-                  : !techStarted
-                    ? "bg-blue-50 text-blue-600"
-                    : "bg-neutral-100 text-neutral-400"
-            }`}
-          >
-            {isCompleted
-              ? "Completed"
-              : isCurrent
-                ? "This Week"
-                : !techStarted
-                  ? "Starts April 1"
-                  : "Upcoming"}
-          </span>
+        <div className="flex items-center gap-1.5 mt-2 ml-[52px]">
+          <Users size={13} className="text-neutral-400" />
+          <span className="text-xs text-neutral-400">{weekContent.instructor}</span>
+          <span className="text-neutral-300 mx-1">·</span>
+          <span className="text-xs text-neutral-400">{weekContent.subtitle}</span>
         </div>
       </div>
 
-      {/* Description */}
-      <div className="mb-6 rounded-xl border border-neutral-200 bg-white p-5 sm:p-6">
-        <p className="text-sm text-neutral-600 leading-relaxed">
-          {weekContent.description}
-        </p>
-      </div>
-
-      {/* Objectives */}
-      <div className="mb-6 rounded-xl border border-neutral-200 bg-white p-5 sm:p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <BookOpen size={14} className="text-neutral-400" />
-          <h2 className="text-xs font-semibold text-neutral-400 uppercase tracking-wide">
-            Learning Objectives
-          </h2>
-        </div>
-        <ul className="space-y-2">
-          {weekContent.objectives.map((obj, i) => (
-            <li key={i} className="flex gap-2.5 text-sm text-neutral-600">
-              <span className="mt-1 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-[9px] font-bold text-neutral-400">
+      {/* Sessions card — the main focus */}
+      <div className="mb-6 rounded-xl border-2 border-neutral-200 bg-white p-5 sm:p-6 shadow-sm">
+        <h2 className="text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-4">
+          Sessions
+        </h2>
+        <div className="space-y-4">
+          {weekContent.sessions.map((session, i) => (
+            <div
+              key={i}
+              className="flex items-center gap-3.5"
+            >
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-xs font-bold text-neutral-500">
                 {i + 1}
               </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-neutral-900">
+                  Session {i + 1}: {session.title}
+                </p>
+                <p className="text-xs text-neutral-400 mt-0.5">
+                  {session.time}
+                </p>
+              </div>
+              <div className="shrink-0">
+                {isCompleted ? (
+                  <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
+                    <CheckCircle size={14} />
+                    Completed
+                  </span>
+                ) : isCurrent ? (
+                  <a
+                    href="#"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2 transition-colors"
+                  >
+                    <Video size={14} />
+                    Join Session
+                  </a>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-xs font-medium text-neutral-400">
+                    <Clock size={14} />
+                    Upcoming
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Brief description — no card, just text */}
+      <p className="mb-6 text-sm text-neutral-500 leading-relaxed px-1">
+        {weekContent.description}
+      </p>
+
+      {/* What You'll Cover */}
+      <div className="mb-6 rounded-xl border border-neutral-200 bg-white p-5 sm:p-6">
+        <div className="flex items-center gap-2 mb-3">
+          <BookOpen size={14} className="text-neutral-400" />
+          <h2 className="text-xs font-semibold text-neutral-400 uppercase tracking-wide">
+            What You&apos;ll Cover
+          </h2>
+        </div>
+        <ul className="space-y-1.5">
+          {weekContent.objectives.map((obj, i) => (
+            <li key={i} className="flex gap-2 text-sm text-neutral-600">
+              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-neutral-300" />
               {obj}
             </li>
           ))}
         </ul>
       </div>
 
-      {/* Activities */}
-      <div className="mb-6 rounded-xl border border-neutral-200 bg-white p-5 sm:p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Users size={14} className="text-neutral-400" />
-          <h2 className="text-xs font-semibold text-neutral-400 uppercase tracking-wide">
-            Activities
-          </h2>
-        </div>
-        <ul className="space-y-2">
-          {weekContent.activities.map((act, i) => (
-            <li key={i} className="flex gap-2.5 text-sm text-neutral-600">
-              <span className="mt-0.5 text-neutral-300">•</span>
-              {act}
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {/* Takeaway */}
-      <div className="mb-6 rounded-xl border border-neutral-200 bg-neutral-50 p-5 sm:p-6">
-        <h2 className="text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-2">
-          What You Walk Away With
-        </h2>
-        <p className="text-sm font-medium text-neutral-700">
-          {weekContent.takeaway}
-        </p>
-      </div>
-
-      {/* Replay placeholder */}
+      {/* Session Recording placeholder */}
       <div className="rounded-xl border border-neutral-200 bg-white p-5">
         <div className="flex items-center gap-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-neutral-100">
