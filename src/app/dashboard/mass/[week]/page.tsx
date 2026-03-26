@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { computeCurrentWeek } from "@/lib/utils";
 import { ArrowLeft, BookOpen, Users, Video, CheckCircle, Clock } from "lucide-react";
 
@@ -146,6 +145,8 @@ const MASS_CONTENT: MassWeekContent[] = [
   },
 ];
 
+const MASS_START = "2026-03-24";
+
 export default async function MassWeekPage({
   params,
 }: {
@@ -157,36 +158,11 @@ export default async function MassWeekPage({
   const weekContent = MASS_CONTENT.find((w) => w.week === weekNum);
   if (!weekContent) redirect("/dashboard");
 
-  let currentWeek = 1;
+  const massStarted = new Date() >= new Date(MASS_START);
+  const currentWeek = massStarted ? computeCurrentWeek(MASS_START, 8) : 0;
 
-  if (isSupabaseConfigured()) {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) redirect("/");
-
-    const { data: student } = await supabase
-      .from("students")
-      .select("cohort_id")
-      .eq("id", user.id)
-      .single<{ cohort_id: string | null }>();
-
-    if (student?.cohort_id) {
-      const { data: cohort } = await supabase
-        .from("cohorts")
-        .select("start_date, total_weeks")
-        .eq("id", student.cohort_id)
-        .single<{ start_date: string; total_weeks: number }>();
-
-      if (cohort) {
-        currentWeek = computeCurrentWeek(cohort.start_date, cohort.total_weeks);
-      }
-    }
-  }
-
-  const isCompleted = weekNum < currentWeek;
-  const isCurrent = weekNum === currentWeek;
+  const isCompleted = massStarted && weekNum < currentWeek;
+  const isCurrent = massStarted && weekNum === currentWeek;
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8">
