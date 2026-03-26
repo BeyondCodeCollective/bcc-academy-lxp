@@ -104,16 +104,16 @@ export default async function DashboardPage() {
 
   if (noCohort) {
     return (
-      <div className="mx-auto w-full max-w-2xl space-y-6 px-5 py-8">
+      <div className="mx-auto w-full max-w-2xl space-y-6 px-4 sm:px-5 py-8">
         <div>
           <h1 className="text-2xl font-bold text-neutral-900">
             Welcome, {firstName}
           </h1>
           <p className="mt-1 text-sm text-neutral-500">
-            You&apos;re signed in — your cohort hasn&apos;t started yet.
+            You&apos;re signed in &mdash; your cohort hasn&apos;t started yet.
           </p>
         </div>
-        <div className="rounded-xl border border-neutral-200 bg-white p-8 text-center">
+        <div className="rounded-xl border border-neutral-200 bg-white p-6 sm:p-8 text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-neutral-100 text-2xl">
             🏈
           </div>
@@ -129,7 +129,7 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-10 px-5 py-8">
+    <div className="mx-auto w-full max-w-2xl space-y-8 sm:space-y-10 px-4 sm:px-5 py-8">
       {/* Welcome header */}
       <div>
         <h1 className="text-2xl font-bold text-neutral-900">
@@ -139,7 +139,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Progress summary */}
-      <div className="rounded-xl border border-neutral-200 bg-white p-5">
+      <div className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
         <div className="flex items-center justify-between mb-3">
           <div>
             <p className="text-sm font-semibold text-neutral-900">
@@ -188,7 +188,7 @@ export default async function DashboardPage() {
               <Link
                 key={week}
                 href={`/dashboard/mass/${week}`}
-                className={`group relative flex flex-col items-center rounded-xl border p-5 text-center transition-all ${
+                className={`group relative flex flex-col items-center rounded-xl border p-3 sm:p-5 text-center transition-all ${
                   isCurrent
                     ? "border-neutral-900 bg-white shadow-sm"
                     : isCompleted
@@ -197,7 +197,7 @@ export default async function DashboardPage() {
                 }`}
               >
                 <div
-                  className={`relative flex h-14 w-14 items-center justify-center rounded-full text-2xl ${
+                  className={`relative flex h-11 w-11 sm:h-14 sm:w-14 items-center justify-center rounded-full text-2xl ${
                     isCompleted
                       ? "bg-green-50"
                       : isCurrent
@@ -278,7 +278,7 @@ export default async function DashboardPage() {
               <Link
                 key={week}
                 href={`/dashboard/techplus/${week}`}
-                className={`group relative flex flex-col items-center rounded-xl border p-5 text-center transition-all ${
+                className={`group relative flex flex-col items-center rounded-xl border p-3 sm:p-5 text-center transition-all ${
                   isCurrent
                     ? "border-neutral-900 bg-white shadow-sm"
                     : isCompleted
@@ -287,7 +287,7 @@ export default async function DashboardPage() {
                 }`}
               >
                 <div
-                  className={`relative flex h-14 w-14 items-center justify-center rounded-full text-2xl ${
+                  className={`relative flex h-11 w-11 sm:h-14 sm:w-14 items-center justify-center rounded-full text-2xl ${
                     isCompleted
                       ? "bg-green-50"
                       : isCurrent

@@ -175,11 +175,11 @@ export default async function TechPlusWeekPage({
   const isCurrent = techStarted && weekNum === currentWeek;
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-5 py-8">
+    <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8">
       {/* Back link */}
       <Link
         href="/dashboard"
-        className="inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-neutral-900 transition-colors mb-5"
+        className="inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-neutral-900 transition-colors mb-5 py-2"
       >
         <ArrowLeft size={16} />
         Back to Dashboard
@@ -188,7 +188,7 @@ export default async function TechPlusWeekPage({
       {/* Compact header */}
       <div className="mb-6">
         <div className="flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-xl">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xl">
             {weekContent.icon}
           </span>
           <div className="flex-1">
@@ -221,7 +221,7 @@ export default async function TechPlusWeekPage({
             </h1>
           </div>
         </div>
-        <div className="flex items-center gap-1.5 mt-2 ml-[52px]">
+        <div className="flex items-center gap-1.5 mt-2 pl-[52px]">
           <Users size={13} className="text-neutral-400" />
           <span className="text-xs text-neutral-400">{weekContent.instructor}</span>
           <span className="text-neutral-300 mx-1">·</span>
@@ -230,7 +230,7 @@ export default async function TechPlusWeekPage({
       </div>
 
       {/* Sessions card — the main focus */}
-      <div className="mb-6 rounded-xl border-2 border-neutral-200 bg-white p-5 sm:p-6 shadow-sm">
+      <div className="mb-6 rounded-xl border-2 border-neutral-200 bg-white p-4 sm:p-6 shadow-sm">
         <h2 className="text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-4">
           Sessions
         </h2>
@@ -238,20 +238,22 @@ export default async function TechPlusWeekPage({
           {weekContent.sessions.map((session, i) => (
             <div
               key={i}
-              className="flex items-center gap-3.5"
+              className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-3.5"
             >
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-xs font-bold text-neutral-500">
-                {i + 1}
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-neutral-900">
-                  Session {i + 1}: {session.title}
-                </p>
-                <p className="text-xs text-neutral-400 mt-0.5">
-                  {session.time}
-                </p>
+              <div className="flex items-center gap-3.5 flex-1 min-w-0">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-xs font-bold text-neutral-500">
+                  {i + 1}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-neutral-900">
+                    Session {i + 1}: {session.title}
+                  </p>
+                  <p className="text-xs text-neutral-400 mt-0.5">
+                    {session.time}
+                  </p>
+                </div>
               </div>
-              <div className="shrink-0">
+              <div className="shrink-0 ml-11 sm:ml-0">
                 {isCompleted ? (
                   <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
                     <CheckCircle size={14} />
@@ -260,7 +262,7 @@ export default async function TechPlusWeekPage({
                 ) : isCurrent ? (
                   <a
                     href="#"
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2 transition-colors"
+                    className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2.5 min-h-[44px] transition-colors w-full sm:w-auto"
                   >
                     <Video size={14} />
                     Join Session
@@ -283,7 +285,7 @@ export default async function TechPlusWeekPage({
       </p>
 
       {/* What You'll Cover */}
-      <div className="mb-6 rounded-xl border border-neutral-200 bg-white p-5 sm:p-6">
+      <div className="mb-6 rounded-xl border border-neutral-200 bg-white p-4 sm:p-6">
         <div className="flex items-center gap-2 mb-3">
           <BookOpen size={14} className="text-neutral-400" />
           <h2 className="text-xs font-semibold text-neutral-400 uppercase tracking-wide">
@@ -301,7 +303,7 @@ export default async function TechPlusWeekPage({
       </div>
 
       {/* Session Recording placeholder */}
-      <div className="rounded-xl border border-neutral-200 bg-white p-5">
+      <div className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
         <div className="flex items-center gap-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-neutral-100">
             <Video size={20} className="text-neutral-300" />

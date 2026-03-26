@@ -10,7 +10,7 @@ export function WelcomeVideo() {
     <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white">
       <button
         onClick={() => setOpen(!open)}
-        className="flex w-full items-center justify-between px-5 py-4 transition-colors hover:bg-neutral-50"
+        className="flex w-full items-center justify-between px-4 sm:px-5 py-3 sm:py-4 min-h-[44px] transition-colors hover:bg-neutral-50"
       >
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-neutral-900">
