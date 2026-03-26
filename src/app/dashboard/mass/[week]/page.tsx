@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { computeCurrentWeek } from "@/lib/utils";
-import { ArrowLeft, BookOpen, Users, Video, CheckCircle, Clock } from "lucide-react";
+import { ArrowLeft, BookOpen, Users, Video, CheckCircle, Clock, Download } from "lucide-react";
 
 type MassWeekContent = {
   week: number;
@@ -9,10 +9,18 @@ type MassWeekContent = {
   icon: string;
   subtitle: string;
   coach: string;
-  sessionDay: string;
   description: string;
   objectives: string[];
+  /** URL to session recording (null if not yet available) */
+  recordingUrl: string | null;
+  /** Optional downloadable file instead of / in addition to recording */
+  downloadUrl: string | null;
+  downloadLabel: string | null;
+  /** Why no recording, if applicable */
+  recordingNote: string | null;
 };
+
+const SESSION_TIME = "Wednesday · 10:00 – 11:00 AM ET";
 
 const MASS_CONTENT: MassWeekContent[] = [
   {
@@ -21,7 +29,6 @@ const MASS_CONTENT: MassWeekContent[] = [
     icon: "🎙️",
     subtitle: "Crafting Your Personal Narrative",
     coach: "Angel Aviles",
-    sessionDay: "Tuesday · 6:00 – 8:00 PM",
     description:
       "A lot of people have talent. Not everyone knows how to communicate it. This week you'll build the foundation of your professional story — who you are, what you've done, and where you're going.",
     objectives: [
@@ -30,6 +37,10 @@ const MASS_CONTENT: MassWeekContent[] = [
       "Translate 'I want a better job' into specific outcomes",
       "Build a clear personal narrative for interviews and networking",
     ],
+    recordingUrl: null,
+    downloadUrl: null,
+    downloadLabel: "Week 1 Session Materials",
+    recordingNote: "This session was not recorded to create a safe space for open discussion.",
   },
   {
     week: 2,
@@ -37,7 +48,6 @@ const MASS_CONTENT: MassWeekContent[] = [
     icon: "🤝",
     subtitle: "Building Meaningful Professional Connections",
     coach: "Angel Aviles",
-    sessionDay: "Tuesday · 6:00 – 8:00 PM",
     description:
       "Networking isn't about collecting business cards — it's about building real relationships that open doors. This week you'll learn how to connect with intention.",
     objectives: [
@@ -46,6 +56,10 @@ const MASS_CONTENT: MassWeekContent[] = [
       "Craft outreach messages that get responses",
       "Practice the art of the follow-up",
     ],
+    recordingUrl: null,
+    downloadUrl: null,
+    downloadLabel: null,
+    recordingNote: null,
   },
   {
     week: 3,
@@ -53,7 +67,6 @@ const MASS_CONTENT: MassWeekContent[] = [
     icon: "💪",
     subtitle: "Self-Advocacy & Owning Your Worth",
     coach: "Angel Aviles",
-    sessionDay: "Tuesday · 6:00 – 8:00 PM",
     description:
       "Most career blocks aren't knowledge gaps — they're action avoidance. This week is about developing the courage to own your accomplishments and communicate your value.",
     objectives: [
@@ -62,6 +75,10 @@ const MASS_CONTENT: MassWeekContent[] = [
       "Practice self-advocacy in professional settings",
       "Build your Brag Book — a portfolio of proof",
     ],
+    recordingUrl: null,
+    downloadUrl: null,
+    downloadLabel: null,
+    recordingNote: null,
   },
   {
     week: 4,
@@ -69,7 +86,6 @@ const MASS_CONTENT: MassWeekContent[] = [
     icon: "🎤",
     subtitle: "Industry Perspectives",
     coach: "Guest Speaker TBA",
-    sessionDay: "Tuesday · 6:00 – 8:00 PM",
     description:
       "Hear from a professional who has navigated the transition from non-traditional background to tech career. Real stories, real advice, real questions.",
     objectives: [
@@ -78,6 +94,10 @@ const MASS_CONTENT: MassWeekContent[] = [
       "Ask questions and build your professional network",
       "Connect classroom learning to real-world application",
     ],
+    recordingUrl: null,
+    downloadUrl: null,
+    downloadLabel: null,
+    recordingNote: null,
   },
   {
     week: 5,
@@ -85,7 +105,6 @@ const MASS_CONTENT: MassWeekContent[] = [
     icon: "📋",
     subtitle: "Strategizing Your Career Path",
     coach: "Angel Aviles",
-    sessionDay: "Tuesday · 6:00 – 8:00 PM",
     description:
       "Clarity reduces busy work and makes effort strategic. This week you'll create an actionable career plan with timelines, milestones, and accountability.",
     objectives: [
@@ -94,6 +113,10 @@ const MASS_CONTENT: MassWeekContent[] = [
       "Set SMART goals for your job search or career pivot",
       "Build accountability structures that stick",
     ],
+    recordingUrl: null,
+    downloadUrl: null,
+    downloadLabel: null,
+    recordingNote: null,
   },
   {
     week: 6,
@@ -101,7 +124,6 @@ const MASS_CONTENT: MassWeekContent[] = [
     icon: "🎤",
     subtitle: "Industry Perspectives",
     coach: "Guest Speaker TBA",
-    sessionDay: "Tuesday · 6:00 – 8:00 PM",
     description:
       "Another industry professional shares their journey, challenges, and advice for emerging tech professionals.",
     objectives: [
@@ -110,6 +132,10 @@ const MASS_CONTENT: MassWeekContent[] = [
       "Practice professional networking in a live setting",
       "Add to your growing professional network",
     ],
+    recordingUrl: null,
+    downloadUrl: null,
+    downloadLabel: null,
+    recordingNote: null,
   },
   {
     week: 7,
@@ -117,7 +143,6 @@ const MASS_CONTENT: MassWeekContent[] = [
     icon: "💰",
     subtitle: "Securing Your Economic Future",
     coach: "Angel Aviles",
-    sessionDay: "Tuesday · 6:00 – 8:00 PM",
     description:
       "Gain essential financial knowledge to negotiate salaries, understand compensation packages, and build long-term financial independence.",
     objectives: [
@@ -126,6 +151,10 @@ const MASS_CONTENT: MassWeekContent[] = [
       "Decode benefits packages: health, 401k, equity, PTO",
       "Build a personal budget tied to your career goals",
     ],
+    recordingUrl: null,
+    downloadUrl: null,
+    downloadLabel: null,
+    recordingNote: null,
   },
   {
     week: 8,
@@ -133,7 +162,6 @@ const MASS_CONTENT: MassWeekContent[] = [
     icon: "🎯",
     subtitle: "Put Everything Into Practice",
     coach: "Angel Aviles & Yvette Ross",
-    sessionDay: "Tuesday · 6:00 – 8:00 PM",
     description:
       "The culmination of MASS — a mini career fair where you'll put your storytelling, networking, self-advocacy, and planning skills to work in front of real employers and professionals.",
     objectives: [
@@ -142,6 +170,10 @@ const MASS_CONTENT: MassWeekContent[] = [
       "Get feedback on your pitch, resume, and presence",
       "Make real connections that could lead to opportunities",
     ],
+    recordingUrl: null,
+    downloadUrl: null,
+    downloadLabel: null,
+    recordingNote: null,
   },
 ];
 
@@ -211,7 +243,7 @@ export default async function MassWeekPage({
         </div>
       </div>
 
-      {/* Session card — main focus (MASS has 1 session per week) */}
+      {/* Session card */}
       <div className="mb-6 rounded-xl border-2 border-neutral-200 bg-white p-4 sm:p-6 shadow-sm">
         <h2 className="text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-4">
           Session
@@ -226,7 +258,7 @@ export default async function MassWeekPage({
                 {weekContent.title}
               </p>
               <p className="text-xs text-neutral-400 mt-0.5">
-                {weekContent.sessionDay}
+                {SESSION_TIME}
               </p>
             </div>
           </div>
@@ -254,7 +286,7 @@ export default async function MassWeekPage({
         </div>
       </div>
 
-      {/* Brief description — no card, just text */}
+      {/* Brief description */}
       <p className="mb-6 text-sm text-neutral-500 leading-relaxed px-1">
         {weekContent.description}
       </p>
@@ -277,9 +309,77 @@ export default async function MassWeekPage({
         </ul>
       </div>
 
-      {/* Session Recording placeholder */}
-      <div className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
-        <div className="flex items-center gap-4">
+      {/* Downloadable file (if available) */}
+      {weekContent.downloadUrl ? (
+        <a
+          href={weekContent.downloadUrl}
+          download
+          className="mb-4 flex items-center gap-4 rounded-xl border border-neutral-200 bg-white p-4 sm:p-5 transition-colors hover:border-neutral-300 hover:bg-neutral-50"
+        >
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-50">
+            <Download size={20} className="text-blue-600" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-neutral-900">
+              {weekContent.downloadLabel || "Session Materials"}
+            </p>
+            <p className="text-xs text-neutral-400">
+              Tap to download
+            </p>
+          </div>
+        </a>
+      ) : weekContent.downloadLabel && isCompleted ? (
+        <div className="mb-4 flex items-center gap-4 rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-neutral-100">
+            <Download size={20} className="text-neutral-300" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-neutral-400">
+              {weekContent.downloadLabel}
+            </p>
+            <p className="text-xs text-neutral-300">
+              File will be uploaded soon
+            </p>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Session Recording or note */}
+      {weekContent.recordingUrl ? (
+        <a
+          href={weekContent.recordingUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-4 rounded-xl border border-neutral-200 bg-white p-4 sm:p-5 transition-colors hover:border-neutral-300 hover:bg-neutral-50"
+        >
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-50">
+            <Video size={20} className="text-emerald-600" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-neutral-900">
+              Session Recording
+            </p>
+            <p className="text-xs text-neutral-400">
+              Watch the replay
+            </p>
+          </div>
+        </a>
+      ) : weekContent.recordingNote ? (
+        <div className="flex items-center gap-4 rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-neutral-100">
+            <Video size={20} className="text-neutral-300" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-neutral-400">
+              No Recording
+            </p>
+            <p className="text-xs text-neutral-300">
+              {weekContent.recordingNote}
+            </p>
+          </div>
+        </div>
+      ) : (isCompleted || isCurrent) ? (
+        <div className="flex items-center gap-4 rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-neutral-100">
             <Video size={20} className="text-neutral-300" />
           </div>
@@ -292,7 +392,7 @@ export default async function MassWeekPage({
             </p>
           </div>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }
