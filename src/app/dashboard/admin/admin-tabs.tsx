@@ -137,7 +137,7 @@ export function AdminTabs({
           <button
             key={id}
             onClick={() => { setTab(id); setExpandedWeek(1); }}
-            className={`flex-1 flex items-center justify-center gap-1.5 rounded-md px-3 py-2.5 text-xs font-medium transition-all ${
+            className={`flex-1 flex items-center justify-center gap-1.5 rounded-md px-3 py-2.5 min-h-[44px] text-xs font-medium transition-all ${
               tab === id
                 ? "bg-white text-neutral-900 shadow-sm"
                 : "text-neutral-400 hover:text-neutral-600"
@@ -154,7 +154,7 @@ export function AdminTabs({
         <div className="space-y-6">
           <div>
             <h2 className="text-lg font-semibold text-neutral-900 mb-4">Cohort Settings</h2>
-            <div className="rounded-xl border border-neutral-200 bg-white p-5 space-y-4">
+            <div className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5 space-y-4">
               <div>
                 <label className="text-xs font-medium text-neutral-500">Display Name</label>
                 <input
@@ -165,7 +165,7 @@ export function AdminTabs({
                   placeholder="e.g. Cohort 1 — CompTIA Tech+ Foundations, MASS Training & AI Fundamentals"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
                   <label className="text-xs font-medium text-neutral-500">Start Date</label>
                   <input
@@ -196,7 +196,7 @@ export function AdminTabs({
             </div>
           </div>
 
-          <div className="rounded-xl border border-neutral-200 bg-white p-5">
+          <div className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
             <h3 className="text-sm font-semibold text-neutral-900 mb-3">Quick Stats</h3>
             <div className="grid grid-cols-3 gap-4">
               <div className="text-center">
@@ -227,7 +227,7 @@ export function AdminTabs({
             <div key={mw.week} className="rounded-xl border border-neutral-200 bg-white overflow-hidden">
               <button
                 onClick={() => setExpandedWeek(expandedWeek === mw.week ? null : mw.week)}
-                className="flex w-full items-center justify-between px-5 py-4 hover:bg-neutral-50 transition-colors"
+                className="flex w-full items-center justify-between px-4 sm:px-5 py-3.5 sm:py-4 hover:bg-neutral-50 transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <span className="text-xl">{mw.icon}</span>
@@ -241,13 +241,13 @@ export function AdminTabs({
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                   <span className={`h-2 w-2 rounded-full ${mw.status === "completed" ? "bg-green-500" : "bg-neutral-300"}`} />
                   <ChevronDown size={16} className={`text-neutral-400 transition-transform ${expandedWeek === mw.week ? "rotate-180" : ""}`} />
                 </div>
               </button>
               {expandedWeek === mw.week && (
-                <div className="border-t border-neutral-100 px-5 py-4 space-y-3">
+                <div className="border-t border-neutral-100 px-4 sm:px-5 py-3.5 sm:py-4 space-y-3">
                   <div>
                     <label className="text-xs font-medium text-neutral-500">Google Meet Link</label>
                     <input
@@ -302,7 +302,7 @@ export function AdminTabs({
             <div key={tw.week} className="rounded-xl border border-neutral-200 bg-white overflow-hidden">
               <button
                 onClick={() => setExpandedWeek(expandedWeek === tw.week ? null : tw.week)}
-                className="flex w-full items-center justify-between px-5 py-4 hover:bg-neutral-50 transition-colors"
+                className="flex w-full items-center justify-between px-4 sm:px-5 py-3.5 sm:py-4 hover:bg-neutral-50 transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <span className="text-xl">{tw.icon}</span>
@@ -320,7 +320,7 @@ export function AdminTabs({
               {expandedWeek === tw.week && (
                 <div className="border-t border-neutral-100 divide-y divide-neutral-100">
                   {tw.sessions.map((s) => (
-                    <div key={s.num} className="px-5 py-4 space-y-3">
+                    <div key={s.num} className="px-4 sm:px-5 py-3.5 sm:py-4 space-y-3">
                       <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wide">
                         Session {s.num}: {s.title}
                       </p>
@@ -398,7 +398,7 @@ export function AdminTabs({
               }`}
             >
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                   <p className="text-sm font-medium text-neutral-900 truncate">
                     {student.first_name} {student.last_name}
                   </p>
@@ -408,12 +408,12 @@ export function AdminTabs({
                 </div>
                 <p className="text-xs text-neutral-400 truncate">{student.email}</p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 <div className="relative">
                   <select
                     value={student.role}
                     onChange={(e) => updateStudent(student.id, "role", e.target.value)}
-                    className="appearance-none rounded-lg border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-2 text-xs font-medium text-neutral-700 focus:border-neutral-400 focus:outline-none"
+                    className="w-full sm:w-auto appearance-none rounded-lg border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-2 text-xs font-medium text-neutral-700 focus:border-neutral-400 focus:outline-none"
                   >
                     <option value="student">Student</option>
                     <option value="admin">Admin</option>
@@ -424,7 +424,7 @@ export function AdminTabs({
                   <select
                     value={student.cohort_id || ""}
                     onChange={(e) => updateStudent(student.id, "cohort_id", e.target.value)}
-                    className="appearance-none rounded-lg border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-2 text-xs font-medium text-neutral-700 focus:border-neutral-400 focus:outline-none"
+                    className="w-full sm:w-auto appearance-none rounded-lg border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-2 text-xs font-medium text-neutral-700 focus:border-neutral-400 focus:outline-none"
                   >
                     <option value="">No cohort</option>
                     {cohorts.map((c) => (
