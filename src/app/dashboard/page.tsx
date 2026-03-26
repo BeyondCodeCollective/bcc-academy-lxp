@@ -145,7 +145,7 @@ export default async function DashboardPage() {
             <p className="text-sm font-semibold text-neutral-900">
               Your Progress
             </p>
-            <p className="text-xs text-neutral-400">
+            <p className="text-xs text-neutral-500">
               Week {massWeek} of {totalProgramWeeks}
             </p>
           </div>

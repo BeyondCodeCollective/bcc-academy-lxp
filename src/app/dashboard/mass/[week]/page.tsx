@@ -236,10 +236,10 @@ export default async function MassWeekPage({
           </div>
         </div>
         <div className="flex items-center gap-1.5 mt-2 pl-[52px]">
-          <Users size={13} className="text-neutral-400" />
-          <span className="text-xs text-neutral-400">{weekContent.coach}</span>
-          <span className="text-neutral-300 mx-1">·</span>
-          <span className="text-xs text-neutral-400">{weekContent.subtitle}</span>
+          <Users size={13} className="text-neutral-500" />
+          <span className="text-xs text-neutral-500">{weekContent.coach}</span>
+          <span className="text-neutral-400 mx-1">·</span>
+          <span className="text-xs text-neutral-500">{weekContent.subtitle}</span>
         </div>
       </div>
 
@@ -257,7 +257,7 @@ export default async function MassWeekPage({
               <p className="text-sm font-semibold text-neutral-900">
                 {weekContent.title}
               </p>
-              <p className="text-xs text-neutral-400 mt-0.5">
+              <p className="text-xs text-neutral-500 mt-0.5">
                 {SESSION_TIME}
               </p>
             </div>
@@ -287,7 +287,7 @@ export default async function MassWeekPage({
       </div>
 
       {/* Brief description */}
-      <p className="mb-6 text-sm text-neutral-500 leading-relaxed px-1">
+      <p className="mb-6 text-sm text-neutral-700 leading-relaxed px-1">
         {weekContent.description}
       </p>
 
@@ -301,7 +301,7 @@ export default async function MassWeekPage({
         </div>
         <ul className="space-y-1.5">
           {weekContent.objectives.map((obj, i) => (
-            <li key={i} className="flex gap-2 text-sm text-neutral-600">
+            <li key={i} className="flex gap-2 text-sm text-neutral-700">
               <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-neutral-300" />
               {obj}
             </li>
@@ -323,7 +323,7 @@ export default async function MassWeekPage({
             <p className="text-sm font-medium text-neutral-900">
               {weekContent.downloadLabel || "Session Materials"}
             </p>
-            <p className="text-xs text-neutral-400">
+            <p className="text-xs text-neutral-500">
               Tap to download
             </p>
           </div>
@@ -334,10 +334,10 @@ export default async function MassWeekPage({
             <Download size={20} className="text-neutral-300" />
           </div>
           <div>
-            <p className="text-sm font-medium text-neutral-400">
+            <p className="text-sm font-medium text-neutral-600">
               {weekContent.downloadLabel}
             </p>
-            <p className="text-xs text-neutral-300">
+            <p className="text-xs text-neutral-500">
               File will be uploaded soon
             </p>
           </div>
@@ -359,7 +359,7 @@ export default async function MassWeekPage({
             <p className="text-sm font-medium text-neutral-900">
               Session Recording
             </p>
-            <p className="text-xs text-neutral-400">
+            <p className="text-xs text-neutral-500">
               Watch the replay
             </p>
           </div>
@@ -370,10 +370,10 @@ export default async function MassWeekPage({
             <Video size={20} className="text-neutral-300" />
           </div>
           <div>
-            <p className="text-sm font-medium text-neutral-400">
+            <p className="text-sm font-medium text-neutral-600">
               No Recording
             </p>
-            <p className="text-xs text-neutral-300">
+            <p className="text-xs text-neutral-500">
               {weekContent.recordingNote}
             </p>
           </div>
@@ -384,10 +384,10 @@ export default async function MassWeekPage({
             <Video size={20} className="text-neutral-300" />
           </div>
           <div>
-            <p className="text-sm font-medium text-neutral-400">
+            <p className="text-sm font-medium text-neutral-600">
               Session Recording
             </p>
-            <p className="text-xs text-neutral-300">
+            <p className="text-xs text-neutral-500">
               Available after the session
             </p>
           </div>

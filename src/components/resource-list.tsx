@@ -79,7 +79,7 @@ export function ResourceList({
                         {resource.title}
                       </p>
                       {resource.description && (
-                        <p className="mt-0.5 text-xs text-neutral-400 truncate">
+                        <p className="mt-0.5 text-xs text-neutral-500 truncate">
                           {resource.description}
                         </p>
                       )}
@@ -108,7 +108,7 @@ export function ResourceList({
                 {openResource.title}
               </p>
               {openResource.description && (
-                <p className="mt-0.5 text-sm text-neutral-400">
+                <p className="mt-0.5 text-sm text-neutral-500">
                   {openResource.description}
                 </p>
               )}

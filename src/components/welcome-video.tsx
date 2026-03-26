@@ -20,7 +20,7 @@ export function WelcomeVideo() {
             <p className="text-sm font-semibold text-neutral-900">
               Welcome to After The Game
             </p>
-            <p className="text-xs text-neutral-400">
+            <p className="text-xs text-neutral-500">
               A message from Ramon Clemente
             </p>
           </div>

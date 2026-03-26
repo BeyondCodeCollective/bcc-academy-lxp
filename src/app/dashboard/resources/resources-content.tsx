@@ -115,7 +115,7 @@ export function ResourcesContent() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-neutral-900">Resources</h1>
-        <p className="mt-1 text-sm text-neutral-400">
+        <p className="mt-1 text-sm text-neutral-500">
           Instructors, live sessions, and study materials
         </p>
       </div>
@@ -186,7 +186,7 @@ export function ResourcesContent() {
                   <p className="text-sm font-semibold text-neutral-900 leading-tight">
                     {link.label}
                   </p>
-                  <p className="mt-0.5 text-xs text-neutral-400">
+                  <p className="mt-0.5 text-xs text-neutral-500">
                     {link.description}
                   </p>
                 </div>
@@ -219,7 +219,7 @@ export function ResourcesContent() {
                   <p className="text-sm font-semibold text-neutral-900 leading-tight">
                     {res.label}
                   </p>
-                  <p className="mt-0.5 text-xs text-neutral-400 truncate">
+                  <p className="mt-0.5 text-xs text-neutral-500 truncate">
                     {res.description}
                   </p>
                 </div>

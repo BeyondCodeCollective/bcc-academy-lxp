@@ -223,9 +223,9 @@ export default async function TechPlusWeekPage({
         </div>
         <div className="flex items-center gap-1.5 mt-2 pl-[52px]">
           <Users size={13} className="text-neutral-400" />
-          <span className="text-xs text-neutral-400">{weekContent.instructor}</span>
+          <span className="text-xs text-neutral-500">{weekContent.instructor}</span>
           <span className="text-neutral-300 mx-1">·</span>
-          <span className="text-xs text-neutral-400">{weekContent.subtitle}</span>
+          <span className="text-xs text-neutral-500">{weekContent.subtitle}</span>
         </div>
       </div>
 
@@ -312,7 +312,7 @@ export default async function TechPlusWeekPage({
             <p className="text-sm font-medium text-neutral-400">
               Session Recording
             </p>
-            <p className="text-xs text-neutral-300">
+            <p className="text-xs text-neutral-500">
               Available after the session
             </p>
           </div>

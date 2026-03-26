@@ -42,7 +42,7 @@ export default async function DashboardLayout({
   return (
     <>
       <Nav isAdmin={isAdmin} />
-      <div className="flex-1">{children}</div>
+      <div className="flex-1 bg-stone-50">{children}</div>
       <TutorFab />
     </>
   );
