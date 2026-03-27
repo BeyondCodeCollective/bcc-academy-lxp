@@ -228,11 +228,11 @@ export function AdminTabs({
                 <p className="text-xs text-neutral-400">Students</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-bold text-neutral-900">{INITIAL_MASS.length}</p>
+                <p className="text-2xl font-bold text-neutral-900">{massWeeks.length}</p>
                 <p className="text-xs text-neutral-400">MASS Weeks</p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-bold text-neutral-900">{INITIAL_TECH.length}</p>
+                <p className="text-2xl font-bold text-neutral-900">{techWeeks.length}</p>
                 <p className="text-xs text-neutral-400">Tech+ Weeks</p>
               </div>
             </div>

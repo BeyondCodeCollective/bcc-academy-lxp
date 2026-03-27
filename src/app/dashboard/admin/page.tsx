@@ -15,27 +15,27 @@ export default async function AdminPage() {
     } = await supabase.auth.getSession();
     if (!session?.user) redirect("/");
 
-    const { data: student } = await supabase
-      .from("students")
-      .select("role, cohort_id")
-      .eq("id", session.user.id)
-      .single<Pick<Student, "role" | "cohort_id">>();
+    // Run all queries in parallel
+    const [studentCheck, studentsResult, cohortsResult] = await Promise.all([
+      supabase
+        .from("students")
+        .select("role")
+        .eq("id", session.user.id)
+        .single<Pick<Student, "role">>(),
+      supabase
+        .from("students")
+        .select("id, first_name, last_name, email, role, cohort_id")
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("cohorts")
+        .select("id, name, display_name, start_date, total_weeks")
+        .order("created_at", { ascending: true }),
+    ]);
 
-    if (student?.role !== "admin") redirect("/dashboard");
+    if (studentCheck.data?.role !== "admin") redirect("/dashboard");
 
-    const { data: students } = await supabase
-      .from("students")
-      .select("id, first_name, last_name, email, role, cohort_id")
-      .order("created_at", { ascending: true });
-
-    allStudents = students || [];
-
-    const { data: cohorts } = await supabase
-      .from("cohorts")
-      .select("id, name, display_name, start_date, total_weeks")
-      .order("created_at", { ascending: true });
-
-    allCohorts = cohorts || [];
+    allStudents = studentsResult.data || [];
+    allCohorts = cohortsResult.data || [];
   }
 
   return (
