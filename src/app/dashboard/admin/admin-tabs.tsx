@@ -13,6 +13,7 @@ import {
   ExternalLink,
   Check,
   UserCheck,
+  Trash2,
 } from "lucide-react";
 import { AttendanceTab } from "./attendance-tab";
 import type { Student } from "@/lib/types";
@@ -124,12 +125,24 @@ export function AdminTabs({
     setTimeout(() => setSaved(false), 2000);
   }
 
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+
   async function updateStudent(id: string, field: "role" | "cohort_id", value: string) {
     setStudentSaving(id);
     const supabase = createClient();
     await supabase.from("students").update({ [field]: value }).eq("id", id);
     setStudents((prev) => prev.map((s) => (s.id === id ? { ...s, [field]: value } : s)));
     setStudentSaving(null);
+  }
+
+  async function deleteStudent(id: string) {
+    setStudentSaving(id);
+    const supabase = createClient();
+    await supabase.from("attendance").delete().eq("student_id", id);
+    await supabase.from("students").delete().eq("id", id);
+    setStudents((prev) => prev.filter((s) => s.id !== id));
+    setStudentSaving(null);
+    setConfirmDelete(null);
   }
 
   return (
@@ -436,6 +449,30 @@ export function AdminTabs({
                   </select>
                   <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
                 </div>
+                {confirmDelete === student.id ? (
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => deleteStudent(student.id)}
+                      className="rounded-lg bg-red-600 px-3 py-2 text-xs font-medium text-white hover:bg-red-700 transition-colors"
+                    >
+                      Confirm
+                    </button>
+                    <button
+                      onClick={() => setConfirmDelete(null)}
+                      className="rounded-lg border border-neutral-200 px-3 py-2 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setConfirmDelete(student.id)}
+                    className="rounded-lg border border-neutral-200 p-2 text-neutral-400 hover:text-red-500 hover:border-red-200 transition-colors"
+                    title="Delete student"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
               </div>
             </div>
           ))}
