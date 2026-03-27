@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { computeCurrentWeek } from "@/lib/utils";
 import { ArrowLeft, BookOpen, Users, Video, CheckCircle } from "lucide-react";
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { TechPlusCheckInButton } from "../check-in-button";
 
 type SessionInfo = {
   title: string;
@@ -194,6 +196,27 @@ export default async function TechPlusWeekPage({
   const isCompleted = techStarted && (weekNum < currentWeek || (weekNum === currentWeek && allSessionsPassed));
   const isCurrent = techStarted && weekNum === currentWeek && !allSessionsPassed;
 
+  // Fetch this student's attendance for both sessions this week
+  const checkedInSessions: boolean[] = [false, false];
+  if (isSupabaseConfigured()) {
+    const supabase = await createClient();
+    const { data: { session: authSession } } = await supabase.auth.getSession();
+    if (authSession?.user) {
+      const { data } = await supabase
+        .from("attendance")
+        .select("session_number")
+        .eq("student_id", authSession.user.id)
+        .eq("track", "techplus")
+        .eq("week_number", weekNum);
+      if (data) {
+        for (const row of data) {
+          if (row.session_number === 1) checkedInSessions[0] = true;
+          if (row.session_number === 2) checkedInSessions[1] = true;
+        }
+      }
+    }
+  }
+
   return (
     <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8">
       {/* Back link */}
@@ -275,13 +298,20 @@ export default async function TechPlusWeekPage({
               </div>
               <div className="shrink-0 ml-11 sm:ml-0">
                 {sessionLive[i] ? (
-                  <a
-                    href="#"
-                    className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2.5 min-h-[44px] transition-colors w-full sm:w-auto"
-                  >
-                    <Video size={14} />
-                    Join Session
-                  </a>
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                    <a
+                      href="#"
+                      className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2.5 min-h-[44px] transition-colors w-full sm:w-auto"
+                    >
+                      <Video size={14} />
+                      Join Session
+                    </a>
+                    <TechPlusCheckInButton
+                      weekNumber={weekNum}
+                      sessionNumber={i + 1}
+                      initialCheckedIn={checkedInSessions[i]}
+                    />
+                  </div>
                 ) : sessionPassed[i] ? (
                   <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
                     <CheckCircle size={14} />

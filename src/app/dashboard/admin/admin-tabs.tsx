@@ -12,7 +12,9 @@ import {
   Shield,
   ExternalLink,
   Check,
+  UserCheck,
 } from "lucide-react";
+import { AttendanceTab } from "./attendance-tab";
 import type { Student } from "@/lib/types";
 
 type CohortRow = {
@@ -46,6 +48,7 @@ const TABS = [
   { id: "mass", label: "MASS", icon: GraduationCap },
   { id: "techplus", label: "Tech+", icon: BookOpen },
   { id: "students", label: "Students", icon: Users },
+  { id: "attendance", label: "Attendance", icon: UserCheck },
 ] as const;
 
 const INITIAL_MASS: MassWeek[] = [
@@ -437,6 +440,11 @@ export function AdminTabs({
             </div>
           ))}
         </div>
+      )}
+
+      {/* Attendance Tab */}
+      {tab === "attendance" && (
+        <AttendanceTab students={students} />
       )}
     </div>
   );

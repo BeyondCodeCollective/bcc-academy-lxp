@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { computeCurrentWeek } from "@/lib/utils";
 import { ArrowLeft, BookOpen, Users, Video, CheckCircle, Clock, Download } from "lucide-react";
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { MassCheckInButton } from "../check-in-button";
 
 type MassWeekContent = {
   week: number;
@@ -209,6 +211,24 @@ export default async function MassWeekPage({
   const isCurrent = massStarted && weekNum === currentWeek && !sessionPassed;
   const isUpcoming = !massStarted || weekNum > currentWeek;
 
+  // Fetch this student's attendance for this week
+  let alreadyCheckedIn = false;
+  if (isSupabaseConfigured()) {
+    const supabase = await createClient();
+    const { data: { session: authSession } } = await supabase.auth.getSession();
+    if (authSession?.user) {
+      const { data } = await supabase
+        .from("attendance")
+        .select("id")
+        .eq("student_id", authSession.user.id)
+        .eq("track", "mass")
+        .eq("week_number", weekNum)
+        .eq("session_number", 1)
+        .maybeSingle();
+      alreadyCheckedIn = !!data;
+    }
+  }
+
   return (
     <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8">
       {/* Back link */}
@@ -277,13 +297,16 @@ export default async function MassWeekPage({
           </div>
           <div className="shrink-0 ml-11 sm:ml-0">
             {sessionLive ? (
-              <a
-                href="#"
-                className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2.5 min-h-[44px] transition-colors w-full sm:w-auto"
-              >
-                <Video size={14} />
-                Join Session
-              </a>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <a
+                  href="#"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2.5 min-h-[44px] transition-colors w-full sm:w-auto"
+                >
+                  <Video size={14} />
+                  Join Session
+                </a>
+                <MassCheckInButton weekNumber={weekNum} initialCheckedIn={alreadyCheckedIn} />
+              </div>
             ) : isCompleted ? (
               <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
                 <CheckCircle size={14} />
