@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { deleteStudentAction, updateStudentAction, updateCohortAction } from "./actions";
 import {
   Users,
   BookOpen,
@@ -114,33 +114,41 @@ export function AdminTabs({
   async function saveCohort() {
     if (!cohort) return;
     setSaving(true);
-    const supabase = createClient();
-    await supabase.from("cohorts").update({
-      display_name: cohort.display_name,
-      start_date: cohort.start_date,
-      total_weeks: cohort.total_weeks,
-    }).eq("id", cohort.id);
+    try {
+      await updateCohortAction(cohort.id, {
+        display_name: cohort.display_name ?? undefined,
+        start_date: cohort.start_date,
+        total_weeks: cohort.total_weeks,
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (e) {
+      console.error("Failed to save cohort:", e);
+    }
     setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
   }
 
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   async function updateStudent(id: string, field: "role" | "cohort_id", value: string) {
     setStudentSaving(id);
-    const supabase = createClient();
-    await supabase.from("students").update({ [field]: value }).eq("id", id);
-    setStudents((prev) => prev.map((s) => (s.id === id ? { ...s, [field]: value } : s)));
+    try {
+      await updateStudentAction(id, field, value);
+      setStudents((prev) => prev.map((s) => (s.id === id ? { ...s, [field]: value } : s)));
+    } catch (e) {
+      console.error("Failed to update student:", e);
+    }
     setStudentSaving(null);
   }
 
   async function deleteStudent(id: string) {
     setStudentSaving(id);
-    const supabase = createClient();
-    await supabase.from("attendance").delete().eq("student_id", id);
-    await supabase.from("students").delete().eq("id", id);
-    setStudents((prev) => prev.filter((s) => s.id !== id));
+    try {
+      await deleteStudentAction(id);
+      setStudents((prev) => prev.filter((s) => s.id !== id));
+    } catch (e) {
+      console.error("Failed to delete student:", e);
+    }
     setStudentSaving(null);
     setConfirmDelete(null);
   }
