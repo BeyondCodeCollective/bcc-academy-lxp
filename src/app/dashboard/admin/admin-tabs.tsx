@@ -409,38 +409,66 @@ export function AdminTabs({
           {students.map((student) => (
             <div
               key={student.id}
-              className={`flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl border border-neutral-200 bg-white p-4 transition-opacity ${
+              className={`rounded-xl border border-neutral-200 bg-white p-4 transition-opacity ${
                 studentSaving === student.id ? "opacity-50" : ""
               }`}
             >
-              <div className="flex-1 min-w-0">
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                  <p className="text-sm font-medium text-neutral-900 truncate">
-                    {student.first_name} {student.last_name}
-                  </p>
-                  {student.role === "admin" && (
-                    <Shield size={12} className="shrink-0 text-amber-500" />
-                  )}
+              {/* Name row — always fully visible */}
+              <div className="flex items-center justify-between mb-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-semibold text-neutral-900">
+                      {student.first_name} {student.last_name}
+                    </p>
+                    {student.role === "admin" && (
+                      <Shield size={12} className="shrink-0 text-amber-500" />
+                    )}
+                  </div>
+                  <p className="text-xs text-neutral-500 mt-0.5">{student.email}</p>
                 </div>
-                <p className="text-xs text-neutral-400 truncate">{student.email}</p>
+                {confirmDelete === student.id ? (
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      onClick={() => deleteStudent(student.id)}
+                      className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 transition-colors"
+                    >
+                      Delete
+                    </button>
+                    <button
+                      onClick={() => setConfirmDelete(null)}
+                      className="rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setConfirmDelete(student.id)}
+                    className="shrink-0 rounded-lg border border-neutral-200 p-2 text-neutral-400 hover:text-red-500 hover:border-red-200 transition-colors"
+                    title="Delete student"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
               </div>
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                <div className="relative">
+              {/* Controls row */}
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
                   <select
                     value={student.role}
                     onChange={(e) => updateStudent(student.id, "role", e.target.value)}
-                    className="w-full sm:w-auto appearance-none rounded-lg border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-2 text-xs font-medium text-neutral-700 focus:border-neutral-400 focus:outline-none"
+                    className="w-full appearance-none rounded-lg border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-2 text-xs font-medium text-neutral-700 focus:border-neutral-400 focus:outline-none"
                   >
                     <option value="student">Student</option>
                     <option value="admin">Admin</option>
                   </select>
                   <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
                 </div>
-                <div className="relative">
+                <div className="relative flex-[2]">
                   <select
                     value={student.cohort_id || ""}
                     onChange={(e) => updateStudent(student.id, "cohort_id", e.target.value)}
-                    className="w-full sm:w-auto appearance-none rounded-lg border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-2 text-xs font-medium text-neutral-700 focus:border-neutral-400 focus:outline-none"
+                    className="w-full appearance-none rounded-lg border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-2 text-xs font-medium text-neutral-700 focus:border-neutral-400 focus:outline-none truncate"
                   >
                     <option value="">No cohort</option>
                     {cohorts.map((c) => (
@@ -449,30 +477,6 @@ export function AdminTabs({
                   </select>
                   <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
                 </div>
-                {confirmDelete === student.id ? (
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      onClick={() => deleteStudent(student.id)}
-                      className="rounded-lg bg-red-600 px-3 py-2 text-xs font-medium text-white hover:bg-red-700 transition-colors"
-                    >
-                      Confirm
-                    </button>
-                    <button
-                      onClick={() => setConfirmDelete(null)}
-                      className="rounded-lg border border-neutral-200 px-3 py-2 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setConfirmDelete(student.id)}
-                    className="rounded-lg border border-neutral-200 p-2 text-neutral-400 hover:text-red-500 hover:border-red-200 transition-colors"
-                    title="Delete student"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                )}
               </div>
             </div>
           ))}
