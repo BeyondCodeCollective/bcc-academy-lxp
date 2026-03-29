@@ -4,7 +4,7 @@
  */
 export function computeCurrentWeek(
   startDate: string,
-  totalWeeks: number = 7
+  totalWeeks: number = 8
 ): number {
   const start = new Date(startDate);
   const now = new Date();

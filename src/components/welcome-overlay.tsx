@@ -73,7 +73,7 @@ export function WelcomeOverlay({ firstName }: Props) {
             <div className="min-w-0">
               <p className="text-sm font-semibold text-neutral-900">CompTIA Tech+ Foundations</p>
               <p className="text-xs text-neutral-500 mt-0.5">
-                7 weeks &middot; Wed &amp; Fri 10am–12pm ET &middot; Kobie Joyner
+                8 weeks &middot; Wed &amp; Fri 10am–12pm ET &middot; Kobie Joyner
               </p>
             </div>
           </div>

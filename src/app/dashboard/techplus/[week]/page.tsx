@@ -172,7 +172,7 @@ export default async function TechPlusWeekPage({
 
   const now = new Date();
   const techStarted = now >= new Date(TECH_PLUS_START);
-  const currentWeek = techStarted ? computeCurrentWeek(TECH_PLUS_START, 7) : 0;
+  const currentWeek = techStarted ? computeCurrentWeek(TECH_PLUS_START, 8) : 0;
 
   // Tech+ sessions: Wed 10am-12pm ET (session 1) & Fri 10am-12pm ET (session 2)
   // TECH_PLUS_START (April 1) is a Wednesday

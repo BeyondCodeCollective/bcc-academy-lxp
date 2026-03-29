@@ -18,7 +18,7 @@ const DEFAULT_COHORT = {
   name: "cohort-1-techplus",
   display_name: "Cohort 1 — CompTIA Tech+ Foundations",
   start_date: "2026-03-24",
-  total_weeks: 7,
+  total_weeks: 8,
 };
 
 export async function GET(request: Request) {

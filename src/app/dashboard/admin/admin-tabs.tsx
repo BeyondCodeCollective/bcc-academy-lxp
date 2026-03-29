@@ -320,7 +320,7 @@ export function AdminTabs({
         <div className="space-y-3">
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-lg font-semibold text-neutral-900">CompTIA Tech+ Foundations</h2>
-            <p className="text-xs text-neutral-400">7 weeks · Wed & Fri</p>
+            <p className="text-xs text-neutral-400">8 weeks · Wed & Fri</p>
           </div>
           {techWeeks.map((tw) => (
             <div key={tw.week} className="rounded-xl border border-neutral-200 bg-white overflow-hidden">

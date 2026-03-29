@@ -96,7 +96,7 @@ export default async function DashboardPage() {
   // MASS starts with cohort (March 24), Tech+ starts April 1
   const TECH_PLUS_START = "2026-04-01";
   const massWeek = currentWeek;
-  const techWeek = computeCurrentWeek(TECH_PLUS_START, 7);
+  const techWeek = computeCurrentWeek(TECH_PLUS_START, 8);
   const techStarted = new Date() >= new Date(TECH_PLUS_START);
 
   const completedWeeks = massWeek - 1;
@@ -268,7 +268,7 @@ export default async function DashboardPage() {
           )}
         </div>
         <p className="text-xs text-neutral-400 mb-4">
-          7-week certification course{techStarted ? ` · Week ${techWeek} of 7` : " · with Kobie Joyner"}
+          8-week certification course{techStarted ? ` · Week ${techWeek} of 8` : " · with Kobie Joyner"}
         </p>
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">

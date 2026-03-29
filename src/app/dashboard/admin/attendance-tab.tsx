@@ -32,7 +32,7 @@ type AttendanceTabProps = {
 };
 
 const MASS_WEEKS = 8;
-const TECH_WEEKS = 7;
+const TECH_WEEKS = 8;
 const TECH_SESSIONS_PER_WEEK = 2;
 
 function buildWeekKey(track: string, week: number, session: number) {
