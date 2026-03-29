@@ -38,7 +38,7 @@ const instructors = [
 const quickLinks = [
   {
     label: "MASS Live Session",
-    description: "Wednesdays 10–11am ET",
+    description: "Tuesdays 10–11am ET",
     url: "https://meet.google.com",
     icon: VideoCamera,
     color: "text-amber-600",

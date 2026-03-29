@@ -60,7 +60,7 @@ export function WelcomeOverlay({ firstName }: Props) {
             <div className="min-w-0">
               <p className="text-sm font-semibold text-neutral-900">MASS Wraparound</p>
               <p className="text-xs text-neutral-500 mt-0.5">
-                8 weeks &middot; Wednesdays 10–11am ET &middot; Angel Aviles
+                8 weeks &middot; Tuesdays 10–11am ET &middot; Angel Aviles
               </p>
             </div>
           </div>
