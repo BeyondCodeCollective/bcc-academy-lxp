@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { computeCurrentWeek } from "@/lib/utils";
-import { ArrowLeft, BookOpen, Users, Video, CheckCircle, Clock, Download, ExternalLink, Link as LinkIcon } from "lucide-react";
+import { ArrowLeft, BookOpen, Users, Video, CheckCircle, Download, ExternalLink, Link as LinkIcon, FileText } from "lucide-react";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { getSessionContent } from "@/app/dashboard/admin/actions";
 import type { SessionResource } from "@/app/dashboard/admin/actions";
+import { isStorageUrl, isUploadedVideo, isUploadedRecording } from "@/lib/storage-utils";
 import { MassCheckInButton } from "../check-in-button";
 
 type MassWeekContent = {
@@ -29,11 +30,11 @@ const MASS_CONTENT: MassWeekContent[] = [
     subtitle: "Crafting Your Personal Narrative",
     coach: "Angel Aviles",
     description:
-      "A lot of people have talent. Not everyone knows how to communicate it. This week you'll build the foundation of your professional story — who you are, what you've done, and where you're going.",
+      "A lot of people have talent. Not everyone knows how to communicate it. This week you\'ll build the foundation of your professional story — who you are, what you\'ve done, and where you\'re going.",
     objectives: [
       "Identify your current reality: strengths, gaps, constraints, opportunities",
       "Define your north star — role direction + why it fits",
-      "Translate 'I want a better job' into specific outcomes",
+      "Translate \'I want a better job\' into specific outcomes",
       "Build a clear personal narrative for interviews and networking",
     ],
     recordingNote: "This session was not recorded to create a safe space for open discussion.",
@@ -45,7 +46,7 @@ const MASS_CONTENT: MassWeekContent[] = [
     subtitle: "Building Meaningful Professional Connections",
     coach: "Angel Aviles",
     description:
-      "Networking isn't about collecting business cards — it's about building real relationships that open doors. This week you'll learn how to connect with intention.",
+      "Networking isn\'t about collecting business cards — it\'s about building real relationships that open doors. This week you\'ll learn how to connect with intention.",
     objectives: [
       "Understand the difference between transactional and relational networking",
       "Build a target list of people to connect with",
@@ -61,7 +62,7 @@ const MASS_CONTENT: MassWeekContent[] = [
     subtitle: "Self-Advocacy & Owning Your Worth",
     coach: "Angel Aviles",
     description:
-      "Most career blocks aren't knowledge gaps — they're action avoidance. This week is about developing the courage to own your accomplishments and communicate your value.",
+      "Most career blocks aren\'t knowledge gaps — they\'re action avoidance. This week is about developing the courage to own your accomplishments and communicate your value.",
     objectives: [
       "Overcome imposter syndrome with evidence-based confidence",
       "Learn to quantify and articulate your achievements",
@@ -93,7 +94,7 @@ const MASS_CONTENT: MassWeekContent[] = [
     subtitle: "Strategizing Your Career Path",
     coach: "Angel Aviles",
     description:
-      "Clarity reduces busy work and makes effort strategic. This week you'll create an actionable career plan with timelines, milestones, and accountability.",
+      "Clarity reduces busy work and makes effort strategic. This week you\'ll create an actionable career plan with timelines, milestones, and accountability.",
     objectives: [
       "Map your 30-60-90 day career plan",
       "Identify skill gaps and create a learning roadmap",
@@ -141,7 +142,7 @@ const MASS_CONTENT: MassWeekContent[] = [
     subtitle: "Put Everything Into Practice",
     coach: "Angel Aviles & Yvette Ross",
     description:
-      "The culmination of MASS — a mini career fair where you'll put your storytelling, networking, self-advocacy, and planning skills to work in front of real employers and professionals.",
+      "The culmination of MASS — a mini career fair where you\'ll put your storytelling, networking, self-advocacy, and planning skills to work in front of real employers and professionals.",
     objectives: [
       "Present your professional story to real employers",
       "Practice networking in a live professional setting",
@@ -164,7 +165,6 @@ function getYouTubeEmbedUrl(url: string): string | null {
     if (u.hostname === "www.youtube.com" || u.hostname === "youtube.com") {
       const v = u.searchParams.get("v");
       if (v) return `https://www.youtube.com/embed/${v}`;
-      // Handle /live/ID or /embed/ID paths
       const parts = u.pathname.split("/").filter(Boolean);
       if (parts[0] === "embed" && parts[1]) return `https://www.youtube.com/embed/${parts[1]}`;
       if (parts[0] === "live" && parts[1]) return `https://www.youtube.com/embed/${parts[1]}`;
@@ -201,7 +201,7 @@ export default async function MassWeekPage({
   const isCompleted = massStarted && (weekNum < currentWeek || (weekNum === currentWeek && sessionPassed));
   const isCurrent = massStarted && weekNum === currentWeek && !sessionPassed;
 
-  // Fetch this student's attendance
+  // Fetch this student\'s attendance
   let alreadyCheckedIn = false;
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
@@ -229,6 +229,7 @@ export default async function MassWeekPage({
   const resources: SessionResource[] = sessionContent?.resources ?? [];
 
   const youtubeEmbedUrl = recordingUrl ? getYouTubeEmbedUrl(recordingUrl) : null;
+  const isVideoUpload = recordingUrl ? isUploadedRecording(recordingUrl) : false;
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8">
@@ -330,7 +331,7 @@ export default async function MassWeekPage({
         {weekContent.description}
       </p>
 
-      {/* What You'll Cover */}
+      {/* What You\'ll Cover */}
       <div className="mb-6 rounded-xl border border-neutral-200 bg-white p-4 sm:p-6">
         <div className="flex items-center gap-2 mb-3">
           <BookOpen size={14} className="text-neutral-400" />
@@ -369,6 +370,20 @@ export default async function MassWeekPage({
               allowFullScreen
             />
           </div>
+        </div>
+      ) : recordingUrl && isVideoUpload ? (
+        <div className="mb-4 rounded-xl border border-neutral-200 bg-white overflow-hidden">
+          <div className="px-4 sm:px-5 pt-4 pb-3 flex items-center gap-2">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-50">
+              <Video size={15} className="text-emerald-600" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-neutral-900">Session Recording</p>
+              <p className="text-xs text-neutral-500">Week {weekNum} replay</p>
+            </div>
+          </div>
+          {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+          <video src={recordingUrl} controls className="w-full" preload="metadata" />
         </div>
       ) : recordingUrl ? (
         <a
@@ -418,20 +433,35 @@ export default async function MassWeekPage({
             </h2>
           </div>
           <ul className="space-y-2">
-            {resources.map((r, i) => (
-              <li key={i}>
-                <a
-                  href={r.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-3 rounded-lg border border-neutral-100 bg-neutral-50 px-3 py-2.5 text-sm font-medium text-neutral-800 hover:border-neutral-300 hover:bg-white transition-colors group"
-                >
-                  <Download size={14} className="text-neutral-400 group-hover:text-neutral-600 shrink-0" />
-                  <span className="flex-1 truncate">{r.name || r.url}</span>
-                  <ExternalLink size={12} className="text-neutral-300 group-hover:text-neutral-500 shrink-0" />
-                </a>
-              </li>
-            ))}
+            {resources.map((r, i) => {
+              const isFile = r.type === "file" || isStorageUrl(r.url);
+              const isVideo = isUploadedVideo(r);
+              return (
+                <li key={i}>
+                  <a
+                    href={r.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    download={isFile ? (r.name || true) : undefined}
+                    className="flex items-center gap-3 rounded-lg border border-neutral-100 bg-neutral-50 px-3 py-2.5 text-sm font-medium text-neutral-800 hover:border-neutral-300 hover:bg-white transition-colors group min-h-[44px]"
+                  >
+                    {isVideo ? (
+                      <Video size={14} className="text-neutral-400 group-hover:text-neutral-600 shrink-0" />
+                    ) : isFile ? (
+                      <FileText size={14} className="text-neutral-400 group-hover:text-neutral-600 shrink-0" />
+                    ) : (
+                      <LinkIcon size={14} className="text-neutral-400 group-hover:text-neutral-600 shrink-0" />
+                    )}
+                    <span className="flex-1 truncate">{r.name || r.url}</span>
+                    {isFile ? (
+                      <Download size={12} className="text-neutral-300 group-hover:text-neutral-500 shrink-0" />
+                    ) : (
+                      <ExternalLink size={12} className="text-neutral-300 group-hover:text-neutral-500 shrink-0" />
+                    )}
+                  </a>
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}

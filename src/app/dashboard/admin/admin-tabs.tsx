@@ -18,6 +18,11 @@ import {
   Plus,
   X,
   Link as LinkIcon,
+  Upload,
+  Download,
+  Loader2,
+  Video,
+  FileText,
 } from "lucide-react";
 import { AttendanceTab } from "./attendance-tab";
 import type { Student } from "@/lib/types";
@@ -110,16 +115,186 @@ const INITIAL_TECH: TechWeek[] = [
   ] },
 ];
 
+// ─── Resource type helpers ─────────────────────────────────────────────────
+
+/** Returns true if the URL points to Supabase Storage (an uploaded file). */
+function isStorageUrl(url: string): boolean {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+  return supabaseUrl.length > 0 && url.startsWith(supabaseUrl);
+}
+
+/** Returns true if this is an uploaded video file stored in Supabase. */
+function isUploadedVideo(resource: SessionResource): boolean {
+  if (resource.type !== "file") return false;
+  const videoExts = [".mp4", ".mov", ".webm", ".avi", ".mkv"];
+  return videoExts.some((ext) => resource.url.toLowerCase().endsWith(ext));
+}
+
+// ─── File Upload Button ────────────────────────────────────────────────────
+
+type UploadState = "idle" | "uploading" | "error";
+
+function FileUploadButton({
+  track,
+  week,
+  onUploaded,
+}: {
+  track: "mass" | "techplus";
+  week: number;
+  onUploaded: (resource: SessionResource) => void;
+}) {
+  const [uploadState, setUploadState] = useState<UploadState>("idle");
+  const [errorMsg, setErrorMsg] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadState("uploading");
+    setErrorMsg("");
+
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("track", track);
+      fd.append("week", String(week));
+
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      const json = await res.json() as { url?: string; name?: string; error?: string };
+
+      if (!res.ok || !json.url) {
+        throw new Error(json.error ?? "Upload failed");
+      }
+
+      onUploaded({ name: json.name ?? file.name, url: json.url, type: "file" });
+      setUploadState("idle");
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Upload failed");
+      setUploadState("error");
+    } finally {
+      // Reset input so the same file can be re-selected if needed
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-1">
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx,.txt,.mp4,.mov,.webm,.zip"
+        className="hidden"
+        onChange={handleFileChange}
+        disabled={uploadState === "uploading"}
+      />
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        disabled={uploadState === "uploading"}
+        className="inline-flex items-center gap-1.5 rounded-md border border-neutral-200 bg-white px-2.5 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors disabled:opacity-50 min-h-[36px]"
+      >
+        {uploadState === "uploading" ? (
+          <><Loader2 size={11} className="animate-spin" /> Uploading...</>
+        ) : (
+          <><Upload size={11} /> Upload File</>
+        )}
+      </button>
+      {uploadState === "error" && (
+        <p className="text-[10px] text-red-500">{errorMsg}</p>
+      )}
+    </div>
+  );
+}
+
+// ─── Recording Upload Button ───────────────────────────────────────────────
+
+function RecordingUploadButton({
+  track,
+  week,
+  onUploaded,
+}: {
+  track: "mass" | "techplus";
+  week: number;
+  onUploaded: (url: string) => void;
+}) {
+  const [uploadState, setUploadState] = useState<UploadState>("idle");
+  const [errorMsg, setErrorMsg] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadState("uploading");
+    setErrorMsg("");
+
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("track", track);
+      fd.append("week", String(week));
+
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      const json = await res.json() as { url?: string; error?: string };
+
+      if (!res.ok || !json.url) {
+        throw new Error(json.error ?? "Upload failed");
+      }
+
+      onUploaded(json.url);
+      setUploadState("idle");
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Upload failed");
+      setUploadState("error");
+    } finally {
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-1">
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".mp4,.mov,.webm,.avi,.mkv"
+        className="hidden"
+        onChange={handleFileChange}
+        disabled={uploadState === "uploading"}
+      />
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        disabled={uploadState === "uploading"}
+        className="inline-flex items-center gap-1.5 rounded-md border border-neutral-200 bg-white px-2.5 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors disabled:opacity-50 min-h-[36px]"
+      >
+        {uploadState === "uploading" ? (
+          <><Loader2 size={11} className="animate-spin" /> Uploading...</>
+        ) : (
+          <><Video size={11} /> Upload Recording</>
+        )}
+      </button>
+      {uploadState === "error" && (
+        <p className="text-[10px] text-red-500">{errorMsg}</p>
+      )}
+    </div>
+  );
+}
+
 // ─── Resource Editor ──────────────────────────────────────────────────────────
 
 function ResourceEditor({
   resources,
+  track,
+  week,
   onChange,
 }: {
   resources: SessionResource[];
+  track: "mass" | "techplus";
+  week: number;
   onChange: (updated: SessionResource[]) => void;
 }) {
-  function addResource() {
+  function addLink() {
     onChange([...resources, { name: "", url: "", type: "link" }]);
   }
 
@@ -131,44 +306,70 @@ function ResourceEditor({
     onChange(resources.filter((_, i) => i !== index));
   }
 
+  function handleFileUploaded(resource: SessionResource) {
+    onChange([...resources, resource]);
+  }
+
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <label className="text-xs font-medium text-neutral-500">Resources</label>
-        <button
-          type="button"
-          onClick={addResource}
-          className="inline-flex items-center gap-1 rounded-md border border-neutral-200 bg-white px-2 py-1 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
-        >
-          <Plus size={11} />
-          Add Resource
-        </button>
+        <div className="flex items-center gap-1.5">
+          <FileUploadButton track={track} week={week} onUploaded={handleFileUploaded} />
+          <button
+            type="button"
+            onClick={addLink}
+            className="inline-flex items-center gap-1 rounded-md border border-neutral-200 bg-white px-2.5 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors min-h-[36px]"
+          >
+            <Plus size={11} />
+            Add Link
+          </button>
+        </div>
       </div>
+
       {resources.length === 0 && (
         <p className="text-[11px] text-neutral-400 pl-0.5">No resources yet</p>
       )}
+
       {resources.map((r, i) => (
         <div key={i} className="flex gap-2 items-start">
+          {/* Icon indicating resource type */}
+          <div className="mt-2 shrink-0">
+            {r.type === "file" || isStorageUrl(r.url) ? (
+              <FileText size={12} className="text-neutral-400" />
+            ) : (
+              <LinkIcon size={12} className="text-neutral-400" />
+            )}
+          </div>
+
           <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
             <input
               type="text"
               value={r.name}
               onChange={(e) => updateResource(i, "name", e.target.value)}
-              placeholder="Resource name"
+              placeholder="Display name"
               className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-900 focus:border-neutral-900 focus:outline-none"
             />
-            <input
-              type="url"
-              value={r.url}
-              onChange={(e) => updateResource(i, "url", e.target.value)}
-              placeholder="https://..."
-              className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-900 focus:border-neutral-900 focus:outline-none"
-            />
+            {r.type === "file" || isStorageUrl(r.url) ? (
+              // Uploaded files: show read-only URL truncated
+              <div className="rounded-lg border border-neutral-100 bg-neutral-100 px-3 py-2 text-xs text-neutral-400 truncate">
+                {r.url.split("/").pop() ?? r.url}
+              </div>
+            ) : (
+              <input
+                type="url"
+                value={r.url}
+                onChange={(e) => updateResource(i, "url", e.target.value)}
+                placeholder="https://..."
+                className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-900 focus:border-neutral-900 focus:outline-none"
+              />
+            )}
           </div>
+
           <button
             type="button"
             onClick={() => removeResource(i)}
-            className="mt-2 text-neutral-300 hover:text-red-400 transition-colors"
+            className="mt-2 text-neutral-300 hover:text-red-400 transition-colors shrink-0"
             title="Remove resource"
           >
             <X size={14} />
@@ -514,8 +715,10 @@ export function AdminTabs({
                   <ChevronDown size={16} className={`text-neutral-400 transition-transform ${expandedWeek === mw.week ? "rotate-180" : ""}`} />
                 </div>
               </button>
+
               {expandedWeek === mw.week && (
                 <div className="border-t border-neutral-100 px-4 sm:px-5 py-3.5 sm:py-4 space-y-4">
+                  {/* Meeting link */}
                   <div>
                     <label className="text-xs font-medium text-neutral-500">Google Meet Link</label>
                     <input
@@ -526,21 +729,37 @@ export function AdminTabs({
                       className="mt-1 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
                     />
                   </div>
+
+                  {/* Recording — URL paste + file upload */}
                   <div>
-                    <label className="text-xs font-medium text-neutral-500">Recording URL (after session)</label>
-                    <input
-                      type="url"
-                      value={mw.recordingUrl}
-                      onChange={(e) => updateMassWeek(mw.week, { recordingUrl: e.target.value })}
-                      placeholder="https://youtube.com/... or https://drive.google.com/..."
-                      className="mt-1 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
-                    />
+                    <label className="text-xs font-medium text-neutral-500">Recording (after session)</label>
+                    <div className="mt-1 flex gap-2 items-start">
+                      <input
+                        type="url"
+                        value={mw.recordingUrl}
+                        onChange={(e) => updateMassWeek(mw.week, { recordingUrl: e.target.value })}
+                        placeholder="https://youtube.com/... or https://drive.google.com/..."
+                        className="flex-1 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
+                      />
+                      <RecordingUploadButton
+                        track="mass"
+                        week={mw.week}
+                        onUploaded={(url) => updateMassWeek(mw.week, { recordingUrl: url })}
+                      />
+                    </div>
+                    {mw.recordingUrl && isStorageUrl(mw.recordingUrl) && (
+                      <p className="mt-1 text-[10px] text-neutral-400">
+                        Uploaded file · <a href={mw.recordingUrl} target="_blank" rel="noopener noreferrer" className="underline hover:text-neutral-700">Preview</a>
+                      </p>
+                    )}
                   </div>
 
                   {/* Resources section */}
                   <div className="rounded-lg border border-neutral-100 bg-neutral-50 p-3 space-y-3">
                     <ResourceEditor
                       resources={mw.resources}
+                      track="mass"
+                      week={mw.week}
                       onChange={(updated) => updateMassWeek(mw.week, { resources: updated })}
                     />
                   </div>
@@ -573,7 +792,7 @@ export function AdminTabs({
         <div className="space-y-3">
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-lg font-semibold text-neutral-900">CompTIA Tech+ Foundations</h2>
-            <p className="text-xs text-neutral-400">8 weeks · Wed & Fri</p>
+            <p className="text-xs text-neutral-400">8 weeks · Wed &amp; Fri</p>
           </div>
           {techWeeks.map((tw) => (
             <div key={tw.week} className="rounded-xl border border-neutral-200 bg-white overflow-hidden">
@@ -599,6 +818,7 @@ export function AdminTabs({
                   <ChevronDown size={16} className={`text-neutral-400 transition-transform ${expandedWeek === tw.week ? "rotate-180" : ""}`} />
                 </div>
               </button>
+
               {expandedWeek === tw.week && (
                 <div className="border-t border-neutral-100 divide-y divide-neutral-100">
                   {tw.sessions.map((s) => (
@@ -606,6 +826,8 @@ export function AdminTabs({
                       <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wide">
                         Session {s.num}: {s.title}
                       </p>
+
+                      {/* Meeting link */}
                       <div>
                         <label className="text-xs font-medium text-neutral-500">Google Meet Link</label>
                         <input
@@ -616,21 +838,37 @@ export function AdminTabs({
                           className="mt-1 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
                         />
                       </div>
+
+                      {/* Recording — URL paste + file upload */}
                       <div>
-                        <label className="text-xs font-medium text-neutral-500">Recording URL</label>
-                        <input
-                          type="url"
-                          value={s.recordingUrl}
-                          onChange={(e) => updateTechSession(tw.week, s.num, { recordingUrl: e.target.value })}
-                          placeholder="https://youtube.com/... or https://drive.google.com/..."
-                          className="mt-1 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
-                        />
+                        <label className="text-xs font-medium text-neutral-500">Recording</label>
+                        <div className="mt-1 flex gap-2 items-start">
+                          <input
+                            type="url"
+                            value={s.recordingUrl}
+                            onChange={(e) => updateTechSession(tw.week, s.num, { recordingUrl: e.target.value })}
+                            placeholder="https://youtube.com/... or https://drive.google.com/..."
+                            className="flex-1 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
+                          />
+                          <RecordingUploadButton
+                            track="techplus"
+                            week={tw.week}
+                            onUploaded={(url) => updateTechSession(tw.week, s.num, { recordingUrl: url })}
+                          />
+                        </div>
+                        {s.recordingUrl && isStorageUrl(s.recordingUrl) && (
+                          <p className="mt-1 text-[10px] text-neutral-400">
+                            Uploaded file · <a href={s.recordingUrl} target="_blank" rel="noopener noreferrer" className="underline hover:text-neutral-700">Preview</a>
+                          </p>
+                        )}
                       </div>
 
                       {/* Resources per session */}
                       <div className="rounded-lg border border-neutral-100 bg-neutral-50 p-3">
                         <ResourceEditor
                           resources={s.resources}
+                          track="techplus"
+                          week={tw.week}
                           onChange={(updated) => updateTechSession(tw.week, s.num, { resources: updated })}
                         />
                       </div>
@@ -747,3 +985,7 @@ export function AdminTabs({
     </div>
   );
 }
+
+// Re-export the helper so student-facing pages can use it without importing
+// from this file (avoids "use client" leaking into server components).
+export { isStorageUrl, isUploadedVideo };

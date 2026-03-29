@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { computeCurrentWeek } from "@/lib/utils";
-import { ArrowLeft, BookOpen, Users, Video, CheckCircle, ExternalLink, Link as LinkIcon, Download } from "lucide-react";
+import { ArrowLeft, BookOpen, Users, Video, CheckCircle, ExternalLink, Link as LinkIcon, Download, FileText } from "lucide-react";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { getSessionContent } from "@/app/dashboard/admin/actions";
 import type { SessionResource } from "@/app/dashboard/admin/actions";
+import { isStorageUrl, isUploadedVideo, isUploadedRecording } from "@/lib/storage-utils";
 import { TechPlusCheckInButton } from "../check-in-button";
 
 type SessionInfo = {
@@ -31,7 +32,7 @@ const TECH_PLUS_CONTENT: TechPlusWeekContent[] = [
     subtitle: "Foundations",
     instructor: "Kobie Joyner",
     description:
-      "This week lays the foundation — core computing concepts, IT terminology, career pathways, and an introduction to the devices you'll work with every day.",
+      "This week lays the foundation — core computing concepts, IT terminology, career pathways, and an introduction to the devices you\'ll work with every day.",
     objectives: [
       "Explain basic computing concepts and IT terminology",
       "Understand IT career pathways and where certifications fit",
@@ -50,7 +51,7 @@ const TECH_PLUS_CONTENT: TechPlusWeekContent[] = [
     subtitle: "Hardware Basics",
     instructor: "Kobie Joyner",
     description:
-      "Get hands-on with what's inside a computer. Learn to identify hardware components, understand how peripherals connect, and troubleshoot basic hardware issues.",
+      "Get hands-on with what\'s inside a computer. Learn to identify hardware components, understand how peripherals connect, and troubleshoot basic hardware issues.",
     objectives: [
       "Identify internal hardware: CPU, RAM, storage, motherboard, power supply",
       "Understand peripheral devices and connection types (USB, HDMI, etc.)",
@@ -233,7 +234,7 @@ export default async function TechPlusWeekPage({
   const isCompleted = techStarted && (weekNum < currentWeek || (weekNum === currentWeek && allSessionsPassed));
   const isCurrent = techStarted && weekNum === currentWeek && !allSessionsPassed;
 
-  // Fetch this student's attendance for both sessions
+  // Fetch this student\'s attendance for both sessions
   const checkedInSessions: boolean[] = [false, false];
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
@@ -264,6 +265,7 @@ export default async function TechPlusWeekPage({
   const resources: SessionResource[] = sessionContent?.resources ?? [];
 
   const youtubeEmbedUrl = recordingUrl ? getYouTubeEmbedUrl(recordingUrl) : null;
+  const isVideoUpload = recordingUrl ? isUploadedRecording(recordingUrl) : false;
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8">
@@ -384,7 +386,7 @@ export default async function TechPlusWeekPage({
         {weekContent.description}
       </p>
 
-      {/* What You'll Cover */}
+      {/* What You\'ll Cover */}
       <div className="mb-6 rounded-xl border border-neutral-200 bg-white p-4 sm:p-6">
         <div className="flex items-center gap-2 mb-3">
           <BookOpen size={14} className="text-neutral-400" />
@@ -423,6 +425,20 @@ export default async function TechPlusWeekPage({
               allowFullScreen
             />
           </div>
+        </div>
+      ) : recordingUrl && isVideoUpload ? (
+        <div className="mb-4 rounded-xl border border-neutral-200 bg-white overflow-hidden">
+          <div className="px-4 sm:px-5 pt-4 pb-3 flex items-center gap-2">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-50">
+              <Video size={15} className="text-emerald-600" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-neutral-900">Session Recording</p>
+              <p className="text-xs text-neutral-500">Week {weekNum} replay</p>
+            </div>
+          </div>
+          {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+          <video src={recordingUrl} controls className="w-full" preload="metadata" />
         </div>
       ) : recordingUrl ? (
         <a
@@ -464,20 +480,35 @@ export default async function TechPlusWeekPage({
             </h2>
           </div>
           <ul className="space-y-2">
-            {resources.map((r, i) => (
-              <li key={i}>
-                <a
-                  href={r.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-3 rounded-lg border border-neutral-100 bg-neutral-50 px-3 py-2.5 text-sm font-medium text-neutral-800 hover:border-neutral-300 hover:bg-white transition-colors group"
-                >
-                  <Download size={14} className="text-neutral-400 group-hover:text-neutral-600 shrink-0" />
-                  <span className="flex-1 truncate">{r.name || r.url}</span>
-                  <ExternalLink size={12} className="text-neutral-300 group-hover:text-neutral-500 shrink-0" />
-                </a>
-              </li>
-            ))}
+            {resources.map((r, i) => {
+              const isFile = r.type === "file" || isStorageUrl(r.url);
+              const isVideo = isUploadedVideo(r);
+              return (
+                <li key={i}>
+                  <a
+                    href={r.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    download={isFile ? (r.name || true) : undefined}
+                    className="flex items-center gap-3 rounded-lg border border-neutral-100 bg-neutral-50 px-3 py-2.5 text-sm font-medium text-neutral-800 hover:border-neutral-300 hover:bg-white transition-colors group min-h-[44px]"
+                  >
+                    {isVideo ? (
+                      <Video size={14} className="text-neutral-400 group-hover:text-neutral-600 shrink-0" />
+                    ) : isFile ? (
+                      <FileText size={14} className="text-neutral-400 group-hover:text-neutral-600 shrink-0" />
+                    ) : (
+                      <LinkIcon size={14} className="text-neutral-400 group-hover:text-neutral-600 shrink-0" />
+                    )}
+                    <span className="flex-1 truncate">{r.name || r.url}</span>
+                    {isFile ? (
+                      <Download size={12} className="text-neutral-300 group-hover:text-neutral-500 shrink-0" />
+                    ) : (
+                      <ExternalLink size={12} className="text-neutral-300 group-hover:text-neutral-500 shrink-0" />
+                    )}
+                  </a>
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}
