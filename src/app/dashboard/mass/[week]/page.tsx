@@ -22,7 +22,7 @@ type MassWeekContent = {
   recordingNote: string | null;
 };
 
-const SESSION_TIME = "Wednesday · 10:00 – 11:00 AM ET";
+const SESSION_TIME = "Tuesday · 10:00 – 11:00 AM ET";
 
 const MASS_CONTENT: MassWeekContent[] = [
   {
@@ -196,11 +196,11 @@ export default async function MassWeekPage({
   const massStarted = now >= new Date(MASS_START);
   const currentWeek = massStarted ? computeCurrentWeek(MASS_START, 8) : 0;
 
-  // MASS sessions are Wednesdays 10:00–11:00 AM ET
+  // MASS sessions are Tuesdays 10:00–11:00 AM ET
   // Compute the exact session date for this week
-  // MASS_START (March 24) is a Tuesday, first Wed is +1 day
+  // MASS_START (March 24) is a Tuesday, sessions are on Tuesdays
   const sessionDate = new Date(MASS_START + "T10:00:00-04:00"); // 10am ET
-  sessionDate.setDate(sessionDate.getDate() + 1 + (weekNum - 1) * 7);
+  sessionDate.setDate(sessionDate.getDate() + (weekNum - 1) * 7);
   const sessionEnd = new Date(sessionDate);
   sessionEnd.setHours(sessionEnd.getHours() + 1); // 11am ET
 
