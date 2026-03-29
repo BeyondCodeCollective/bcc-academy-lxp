@@ -64,34 +64,38 @@ const INITIAL_MASS: MassWeek[] = [
 ];
 
 const INITIAL_TECH: TechWeek[] = [
-  { week: 1, title: "IT Fundamentals", icon: "💻", sessions: [
-    { num: 1, title: "Course Introduction", meetingLink: "", recordingUrl: "", status: "upcoming" },
-    { num: 2, title: "IT Fundamentals Overview", meetingLink: "", recordingUrl: "", status: "upcoming" },
-  ]},
-  { week: 2, title: "Devices & OS", icon: "🖥️", sessions: [
-    { num: 1, title: "Device Configuration", meetingLink: "", recordingUrl: "", status: "upcoming" },
-    { num: 2, title: "Operating Systems", meetingLink: "", recordingUrl: "", status: "upcoming" },
-  ]},
-  { week: 3, title: "Networking", icon: "🌐", sessions: [
-    { num: 1, title: "Networking Basics", meetingLink: "", recordingUrl: "", status: "upcoming" },
-    { num: 2, title: "TCP/IP & DNS", meetingLink: "", recordingUrl: "", status: "upcoming" },
-  ]},
-  { week: 4, title: "Cybersecurity", icon: "🔒", sessions: [
+  { week: 1, title: "IT Concepts & Careers", icon: "💻", sessions: [
+    { num: 1, title: "IT Concepts & Career Pathways", meetingLink: "", recordingUrl: "", status: "upcoming" },
+    { num: 2, title: "Devices & Getting Started", meetingLink: "", recordingUrl: "", status: "upcoming" },
+  ] },
+  { week: 2, title: "Hardware Components", icon: "🔧", sessions: [
+    { num: 1, title: "Internal Hardware Components", meetingLink: "", recordingUrl: "", status: "upcoming" },
+    { num: 2, title: "Peripherals & Connections", meetingLink: "", recordingUrl: "", status: "upcoming" },
+  ] },
+  { week: 3, title: "Setup & Troubleshooting", icon: "🛠️", sessions: [
+    { num: 1, title: "Device Setup & Ports", meetingLink: "", recordingUrl: "", status: "upcoming" },
+    { num: 2, title: "Troubleshooting Lab", meetingLink: "", recordingUrl: "", status: "upcoming" },
+  ] },
+  { week: 4, title: "Operating Systems", icon: "📀", sessions: [
+    { num: 1, title: "Operating Systems Overview", meetingLink: "", recordingUrl: "", status: "upcoming" },
+    { num: 2, title: "Software Management", meetingLink: "", recordingUrl: "", status: "upcoming" },
+  ] },
+  { week: 5, title: "Networking Basics", icon: "🌐", sessions: [
+    { num: 1, title: "Network Foundations", meetingLink: "", recordingUrl: "", status: "upcoming" },
+    { num: 2, title: "IP Concepts & Diagnostics", meetingLink: "", recordingUrl: "", status: "upcoming" },
+  ] },
+  { week: 6, title: "Security & Threats", icon: "🔒", sessions: [
     { num: 1, title: "Security Principles", meetingLink: "", recordingUrl: "", status: "upcoming" },
-    { num: 2, title: "Threat Landscape", meetingLink: "", recordingUrl: "", status: "upcoming" },
-  ]},
-  { week: 5, title: "Software & Data", icon: "🗄️", sessions: [
-    { num: 1, title: "Software Dev Basics", meetingLink: "", recordingUrl: "", status: "upcoming" },
-    { num: 2, title: "Database Fundamentals", meetingLink: "", recordingUrl: "", status: "upcoming" },
-  ]},
-  { week: 6, title: "Cloud & Support", icon: "☁️", sessions: [
-    { num: 1, title: "Cloud Concepts", meetingLink: "", recordingUrl: "", status: "upcoming" },
-    { num: 2, title: "IT Support Workflows", meetingLink: "", recordingUrl: "", status: "upcoming" },
-  ]},
-  { week: 7, title: "Cert Review", icon: "🏆", sessions: [
-    { num: 1, title: "Certification Review", meetingLink: "", recordingUrl: "", status: "upcoming" },
-    { num: 2, title: "Final Assessment", meetingLink: "", recordingUrl: "", status: "upcoming" },
-  ]},
+    { num: 2, title: "Threats & Defense", meetingLink: "", recordingUrl: "", status: "upcoming" },
+  ] },
+  { week: 7, title: "Data & Databases", icon: "📊", sessions: [
+    { num: 1, title: "Database Fundamentals", meetingLink: "", recordingUrl: "", status: "upcoming" },
+    { num: 2, title: "Data Management Lab", meetingLink: "", recordingUrl: "", status: "upcoming" },
+  ] },
+  { week: 8, title: "Review & Exam Prep", icon: "🎯", sessions: [
+    { num: 1, title: "Comprehensive Review", meetingLink: "", recordingUrl: "", status: "upcoming" },
+    { num: 2, title: "Practice Exam & Study Plan", meetingLink: "", recordingUrl: "", status: "upcoming" },
+  ] },
 ];
 
 export function AdminTabs({

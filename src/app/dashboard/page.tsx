@@ -20,13 +20,14 @@ const MASS_WEEKS: { week: number; topic: string; icon: string }[] = [
 ];
 
 const TECH_WEEKS: { week: number; topic: string; icon: string }[] = [
-  { week: 1, topic: "IT Fundamentals", icon: "💻" },
-  { week: 2, topic: "Devices & OS", icon: "🖥️" },
-  { week: 3, topic: "Networking", icon: "🌐" },
-  { week: 4, topic: "Cybersecurity", icon: "🔒" },
-  { week: 5, topic: "Software & Data", icon: "🗄️" },
-  { week: 6, topic: "Cloud & Support", icon: "☁️" },
-  { week: 7, topic: "Cert Review", icon: "🏆" },
+  { week: 1, topic: "IT Concepts & Careers", icon: "💻" },
+  { week: 2, topic: "Hardware Components", icon: "🔧" },
+  { week: 3, topic: "Setup & Troubleshooting", icon: "🛠️" },
+  { week: 4, topic: "Operating Systems", icon: "📀" },
+  { week: 5, topic: "Networking Basics", icon: "🌐" },
+  { week: 6, topic: "Cybersecurity", icon: "🔒" },
+  { week: 7, topic: "Data & Databases", icon: "📊" },
+  { week: 8, topic: "Review & Exam Prep", icon: "🎯" },
 ];
 
 export default async function DashboardPage() {
