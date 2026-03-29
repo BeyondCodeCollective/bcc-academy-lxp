@@ -5,10 +5,6 @@ import {
   CalendarBlank,
   Envelope,
   Link as LinkIcon,
-  YoutubeLogo,
-  BookOpen,
-  GraduationCap,
-  Brain,
   Certificate,
 } from "@phosphor-icons/react";
 
@@ -60,52 +56,12 @@ const quickLinks = [
 
 const studyResources = [
   {
-    label: "Professor Messer — Tech+",
-    description: "Free video course covering all Tech+ objectives",
-    url: "https://www.professormesser.com/free-a-plus-training/fc0-u71/",
-    icon: YoutubeLogo,
-    color: "text-red-600",
-    bg: "bg-red-50",
-  },
-  {
-    label: "CompTIA CertMaster Learn",
-    description: "Official interactive learning platform",
-    url: "https://www.comptia.org/training/certmaster-learn/tech-plus",
-    icon: GraduationCap,
+    label: "CompTIA Tech+ Certification",
+    description: "Official certification overview, exam details, and career paths",
+    url: "https://www.comptia.org/en-us/certifications/tech/",
+    icon: Certificate,
     color: "text-blue-600",
     bg: "bg-blue-50",
-  },
-  {
-    label: "CompTIA Tech+ Exam Objectives",
-    description: "FC0-U71 — what's on the test",
-    url: "https://www.comptia.org/certifications/tech",
-    icon: Certificate,
-    color: "text-green-600",
-    bg: "bg-green-50",
-  },
-  {
-    label: "Exam Compass — Practice Tests",
-    description: "Free Tech+ practice quizzes by domain",
-    url: "https://www.examcompass.com/comptia-tech-plus-certification-exam-free-practice-test",
-    icon: Brain,
-    color: "text-purple-600",
-    bg: "bg-purple-50",
-  },
-  {
-    label: "CompTIA Tech+ Study Guide",
-    description: "Official Sybex study guide (Amazon)",
-    url: "https://www.amazon.com/CompTIA-Tech-Study-Guide-FC0-U71/dp/1394225563",
-    icon: BookOpen,
-    color: "text-orange-600",
-    bg: "bg-orange-50",
-  },
-  {
-    label: "LinkedIn Learning — Tech+",
-    description: "Video training with practice exams",
-    url: "https://www.linkedin.com/learning/topics/comptia-tech-plus",
-    icon: YoutubeLogo,
-    color: "text-sky-600",
-    bg: "bg-sky-50",
   },
 ];
 
