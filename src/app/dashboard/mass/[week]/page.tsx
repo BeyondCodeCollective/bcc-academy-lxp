@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { computeCurrentWeek } from "@/lib/utils";
-import { ArrowLeft, BookOpen, Users, Video, CheckCircle, Clock, Download } from "lucide-react";
+import { ArrowLeft, BookOpen, Users, Video, CheckCircle, Clock, Download, ExternalLink, Link as LinkIcon } from "lucide-react";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { getSessionContent } from "@/app/dashboard/admin/actions";
+import type { SessionResource } from "@/app/dashboard/admin/actions";
 import { MassCheckInButton } from "../check-in-button";
 
 type MassWeekContent = {
@@ -13,12 +15,7 @@ type MassWeekContent = {
   coach: string;
   description: string;
   objectives: string[];
-  /** URL to session recording (null if not yet available) */
-  recordingUrl: string | null;
-  /** Optional downloadable file instead of / in addition to recording */
-  downloadUrl: string | null;
-  downloadLabel: string | null;
-  /** Why no recording, if applicable */
+  /** Static recording note for sessions that were deliberately not recorded */
   recordingNote: string | null;
 };
 
@@ -39,9 +36,6 @@ const MASS_CONTENT: MassWeekContent[] = [
       "Translate 'I want a better job' into specific outcomes",
       "Build a clear personal narrative for interviews and networking",
     ],
-    recordingUrl: null,
-    downloadUrl: null,
-    downloadLabel: "Week 1 Session Materials",
     recordingNote: "This session was not recorded to create a safe space for open discussion.",
   },
   {
@@ -58,9 +52,6 @@ const MASS_CONTENT: MassWeekContent[] = [
       "Craft outreach messages that get responses",
       "Practice the art of the follow-up",
     ],
-    recordingUrl: null,
-    downloadUrl: null,
-    downloadLabel: null,
     recordingNote: null,
   },
   {
@@ -77,9 +68,6 @@ const MASS_CONTENT: MassWeekContent[] = [
       "Practice self-advocacy in professional settings",
       "Build your Brag Book — a portfolio of proof",
     ],
-    recordingUrl: null,
-    downloadUrl: null,
-    downloadLabel: null,
     recordingNote: null,
   },
   {
@@ -96,9 +84,6 @@ const MASS_CONTENT: MassWeekContent[] = [
       "Ask questions and build your professional network",
       "Connect classroom learning to real-world application",
     ],
-    recordingUrl: null,
-    downloadUrl: null,
-    downloadLabel: null,
     recordingNote: null,
   },
   {
@@ -115,9 +100,6 @@ const MASS_CONTENT: MassWeekContent[] = [
       "Set SMART goals for your job search or career pivot",
       "Build accountability structures that stick",
     ],
-    recordingUrl: null,
-    downloadUrl: null,
-    downloadLabel: null,
     recordingNote: null,
   },
   {
@@ -134,9 +116,6 @@ const MASS_CONTENT: MassWeekContent[] = [
       "Practice professional networking in a live setting",
       "Add to your growing professional network",
     ],
-    recordingUrl: null,
-    downloadUrl: null,
-    downloadLabel: null,
     recordingNote: null,
   },
   {
@@ -153,9 +132,6 @@ const MASS_CONTENT: MassWeekContent[] = [
       "Decode benefits packages: health, 401k, equity, PTO",
       "Build a personal budget tied to your career goals",
     ],
-    recordingUrl: null,
-    downloadUrl: null,
-    downloadLabel: null,
     recordingNote: null,
   },
   {
@@ -172,14 +148,32 @@ const MASS_CONTENT: MassWeekContent[] = [
       "Get feedback on your pitch, resume, and presence",
       "Make real connections that could lead to opportunities",
     ],
-    recordingUrl: null,
-    downloadUrl: null,
-    downloadLabel: null,
     recordingNote: null,
   },
 ];
 
 const MASS_START = "2026-03-24";
+
+/** Detect YouTube URLs (youtube.com/watch, youtu.be, youtube.com/live, etc.) */
+function getYouTubeEmbedUrl(url: string): string | null {
+  try {
+    const u = new URL(url);
+    if (u.hostname === "youtu.be") {
+      return `https://www.youtube.com/embed/${u.pathname.slice(1)}`;
+    }
+    if (u.hostname === "www.youtube.com" || u.hostname === "youtube.com") {
+      const v = u.searchParams.get("v");
+      if (v) return `https://www.youtube.com/embed/${v}`;
+      // Handle /live/ID or /embed/ID paths
+      const parts = u.pathname.split("/").filter(Boolean);
+      if (parts[0] === "embed" && parts[1]) return `https://www.youtube.com/embed/${parts[1]}`;
+      if (parts[0] === "live" && parts[1]) return `https://www.youtube.com/embed/${parts[1]}`;
+    }
+  } catch {
+    // Invalid URL
+  }
+  return null;
+}
 
 export default async function MassWeekPage({
   params,
@@ -196,22 +190,18 @@ export default async function MassWeekPage({
   const massStarted = now >= new Date(MASS_START);
   const currentWeek = massStarted ? computeCurrentWeek(MASS_START, 8) : 0;
 
-  // MASS sessions are Tuesdays 10:00–11:00 AM ET
-  // Compute the exact session date for this week
-  // MASS_START (March 24) is a Tuesday, sessions are on Tuesdays
-  const sessionDate = new Date(MASS_START + "T10:00:00-04:00"); // 10am ET
+  const sessionDate = new Date(MASS_START + "T10:00:00-04:00");
   sessionDate.setDate(sessionDate.getDate() + (weekNum - 1) * 7);
   const sessionEnd = new Date(sessionDate);
-  sessionEnd.setHours(sessionEnd.getHours() + 1); // 11am ET
+  sessionEnd.setHours(sessionEnd.getHours() + 1);
 
   const sessionPassed = now > sessionEnd;
-  const sessionLive = now >= new Date(sessionDate.getTime() - 10 * 60000) && now <= sessionEnd; // 15min early join
+  const sessionLive = now >= new Date(sessionDate.getTime() - 10 * 60000) && now <= sessionEnd;
 
   const isCompleted = massStarted && (weekNum < currentWeek || (weekNum === currentWeek && sessionPassed));
   const isCurrent = massStarted && weekNum === currentWeek && !sessionPassed;
-  const isUpcoming = !massStarted || weekNum > currentWeek;
 
-  // Fetch this student's attendance for this week
+  // Fetch this student's attendance
   let alreadyCheckedIn = false;
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
@@ -228,6 +218,17 @@ export default async function MassWeekPage({
       alreadyCheckedIn = !!data;
     }
   }
+
+  // Fetch session content (recording URL + resources) from Supabase
+  const sessionContent = isSupabaseConfigured()
+    ? await getSessionContent("mass", weekNum)
+    : null;
+
+  const recordingUrl = sessionContent?.recording_url ?? null;
+  const meetingLink = sessionContent?.meeting_link ?? null;
+  const resources: SessionResource[] = sessionContent?.resources ?? [];
+
+  const youtubeEmbedUrl = recordingUrl ? getYouTubeEmbedUrl(recordingUrl) : null;
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8">
@@ -299,7 +300,9 @@ export default async function MassWeekPage({
             {sessionLive ? (
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 <a
-                  href="#"
+                  href={meetingLink ?? "#"}
+                  target={meetingLink ? "_blank" : undefined}
+                  rel="noopener noreferrer"
                   className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2.5 min-h-[44px] transition-colors w-full sm:w-auto"
                 >
                   <Video size={14} />
@@ -345,90 +348,93 @@ export default async function MassWeekPage({
         </ul>
       </div>
 
-      {/* Downloadable file (if available) */}
-      {weekContent.downloadUrl ? (
-        <a
-          href={weekContent.downloadUrl}
-          download
-          className="mb-4 flex items-center gap-4 rounded-xl border border-neutral-200 bg-white p-4 sm:p-5 transition-colors hover:border-neutral-300 hover:bg-neutral-50"
-        >
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-50">
-            <Download size={20} className="text-blue-600" />
+      {/* Session Recording */}
+      {youtubeEmbedUrl ? (
+        <div className="mb-4 rounded-xl border border-neutral-200 bg-white overflow-hidden">
+          <div className="px-4 sm:px-5 pt-4 pb-3 flex items-center gap-2">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-50">
+              <Video size={15} className="text-emerald-600" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-neutral-900">Session Recording</p>
+              <p className="text-xs text-neutral-500">Week {weekNum} replay</p>
+            </div>
           </div>
-          <div>
-            <p className="text-sm font-medium text-neutral-900">
-              {weekContent.downloadLabel || "Session Materials"}
-            </p>
-            <p className="text-xs text-neutral-500">
-              Tap to download
-            </p>
-          </div>
-        </a>
-      ) : weekContent.downloadLabel && isCompleted ? (
-        <div className="mb-4 flex items-center gap-4 rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-neutral-100">
-            <Download size={20} className="text-neutral-300" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-neutral-600">
-              {weekContent.downloadLabel}
-            </p>
-            <p className="text-xs text-neutral-500">
-              File will be uploaded soon
-            </p>
+          <div className="relative w-full aspect-video">
+            <iframe
+              src={youtubeEmbedUrl}
+              title={`Week ${weekNum} session recording`}
+              className="absolute inset-0 w-full h-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
           </div>
         </div>
-      ) : null}
-
-      {/* Session Recording or note */}
-      {weekContent.recordingUrl ? (
+      ) : recordingUrl ? (
         <a
-          href={weekContent.recordingUrl}
+          href={recordingUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-4 rounded-xl border border-neutral-200 bg-white p-4 sm:p-5 transition-colors hover:border-neutral-300 hover:bg-neutral-50"
+          className="mb-4 flex items-center gap-4 rounded-xl border border-neutral-200 bg-white p-4 sm:p-5 transition-colors hover:border-neutral-300 hover:bg-neutral-50"
         >
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-50">
             <Video size={20} className="text-emerald-600" />
           </div>
-          <div>
-            <p className="text-sm font-medium text-neutral-900">
-              Session Recording
-            </p>
-            <p className="text-xs text-neutral-500">
-              Watch the replay
-            </p>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-neutral-900">Session Recording</p>
+            <p className="text-xs text-neutral-500">Watch the replay</p>
           </div>
+          <ExternalLink size={14} className="text-neutral-400 shrink-0" />
         </a>
       ) : weekContent.recordingNote ? (
-        <div className="flex items-center gap-4 rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
+        <div className="mb-4 flex items-center gap-4 rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-neutral-100">
             <Video size={20} className="text-neutral-300" />
           </div>
           <div>
-            <p className="text-sm font-medium text-neutral-600">
-              No Recording
-            </p>
-            <p className="text-xs text-neutral-500">
-              {weekContent.recordingNote}
-            </p>
+            <p className="text-sm font-medium text-neutral-600">No Recording</p>
+            <p className="text-xs text-neutral-500">{weekContent.recordingNote}</p>
           </div>
         </div>
       ) : (isCompleted || isCurrent) ? (
-        <div className="flex items-center gap-4 rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
+        <div className="mb-4 flex items-center gap-4 rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-neutral-100">
             <Video size={20} className="text-neutral-300" />
           </div>
           <div>
-            <p className="text-sm font-medium text-neutral-600">
-              Session Recording
-            </p>
-            <p className="text-xs text-neutral-500">
-              Available after the session
-            </p>
+            <p className="text-sm font-medium text-neutral-600">Session Recording</p>
+            <p className="text-xs text-neutral-500">Available after the session</p>
           </div>
         </div>
       ) : null}
+
+      {/* Resources */}
+      {resources.length > 0 && (
+        <div className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <LinkIcon size={14} className="text-neutral-400" />
+            <h2 className="text-xs font-semibold text-neutral-400 uppercase tracking-wide">
+              Resources
+            </h2>
+          </div>
+          <ul className="space-y-2">
+            {resources.map((r, i) => (
+              <li key={i}>
+                <a
+                  href={r.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 rounded-lg border border-neutral-100 bg-neutral-50 px-3 py-2.5 text-sm font-medium text-neutral-800 hover:border-neutral-300 hover:bg-white transition-colors group"
+                >
+                  <Download size={14} className="text-neutral-400 group-hover:text-neutral-600 shrink-0" />
+                  <span className="flex-1 truncate">{r.name || r.url}</span>
+                  <ExternalLink size={12} className="text-neutral-300 group-hover:text-neutral-500 shrink-0" />
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

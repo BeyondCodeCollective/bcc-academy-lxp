@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { computeCurrentWeek } from "@/lib/utils";
-import { ArrowLeft, BookOpen, Users, Video, CheckCircle } from "lucide-react";
+import { ArrowLeft, BookOpen, Users, Video, CheckCircle, ExternalLink, Link as LinkIcon, Download } from "lucide-react";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { getSessionContent } from "@/app/dashboard/admin/actions";
+import type { SessionResource } from "@/app/dashboard/admin/actions";
 import { TechPlusCheckInButton } from "../check-in-button";
 
 type SessionInfo = {
@@ -178,6 +180,26 @@ const TECH_PLUS_CONTENT: TechPlusWeekContent[] = [
 
 const TECH_PLUS_START = "2026-04-01";
 
+/** Detect YouTube URLs and return an embed URL, or null for non-YouTube links. */
+function getYouTubeEmbedUrl(url: string): string | null {
+  try {
+    const u = new URL(url);
+    if (u.hostname === "youtu.be") {
+      return `https://www.youtube.com/embed/${u.pathname.slice(1)}`;
+    }
+    if (u.hostname === "www.youtube.com" || u.hostname === "youtube.com") {
+      const v = u.searchParams.get("v");
+      if (v) return `https://www.youtube.com/embed/${v}`;
+      const parts = u.pathname.split("/").filter(Boolean);
+      if (parts[0] === "embed" && parts[1]) return `https://www.youtube.com/embed/${parts[1]}`;
+      if (parts[0] === "live" && parts[1]) return `https://www.youtube.com/embed/${parts[1]}`;
+    }
+  } catch {
+    // Invalid URL
+  }
+  return null;
+}
+
 export default async function TechPlusWeekPage({
   params,
 }: {
@@ -193,18 +215,14 @@ export default async function TechPlusWeekPage({
   const techStarted = now >= new Date(TECH_PLUS_START);
   const currentWeek = techStarted ? computeCurrentWeek(TECH_PLUS_START, 8) : 0;
 
-  // Tech+ sessions: Wed 10am-12pm ET (session 1) & Fri 10am-12pm ET (session 2)
-  // TECH_PLUS_START (April 1) is a Wednesday
   const weekStartDate = new Date(TECH_PLUS_START + "T00:00:00-04:00");
   weekStartDate.setDate(weekStartDate.getDate() + (weekNum - 1) * 7);
 
-  // Session 1 = Wednesday (offset 0), Session 2 = Friday (offset +2)
   const s1Start = new Date(weekStartDate); s1Start.setHours(10, 0, 0, 0);
   const s1End = new Date(weekStartDate); s1End.setHours(12, 0, 0, 0);
   const s2Start = new Date(weekStartDate); s2Start.setDate(s2Start.getDate() + 2); s2Start.setHours(10, 0, 0, 0);
   const s2End = new Date(weekStartDate); s2End.setDate(s2End.getDate() + 2); s2End.setHours(12, 0, 0, 0);
 
-  const sessionEnds = [s1End, s2End];
   const sessionLive = [
     now >= new Date(s1Start.getTime() - 10 * 60000) && now <= s1End,
     now >= new Date(s2Start.getTime() - 10 * 60000) && now <= s2End,
@@ -215,7 +233,7 @@ export default async function TechPlusWeekPage({
   const isCompleted = techStarted && (weekNum < currentWeek || (weekNum === currentWeek && allSessionsPassed));
   const isCurrent = techStarted && weekNum === currentWeek && !allSessionsPassed;
 
-  // Fetch this student's attendance for both sessions this week
+  // Fetch this student's attendance for both sessions
   const checkedInSessions: boolean[] = [false, false];
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
@@ -235,6 +253,17 @@ export default async function TechPlusWeekPage({
       }
     }
   }
+
+  // Fetch session content (recording, resources) from Supabase
+  const sessionContent = isSupabaseConfigured()
+    ? await getSessionContent("techplus", weekNum)
+    : null;
+
+  const recordingUrl = sessionContent?.recording_url ?? null;
+  const meetingLink = sessionContent?.meeting_link ?? null;
+  const resources: SessionResource[] = sessionContent?.resources ?? [];
+
+  const youtubeEmbedUrl = recordingUrl ? getYouTubeEmbedUrl(recordingUrl) : null;
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8">
@@ -291,7 +320,7 @@ export default async function TechPlusWeekPage({
         </div>
       </div>
 
-      {/* Sessions card — the main focus */}
+      {/* Sessions card */}
       <div className="mb-6 rounded-xl border-2 border-neutral-200 bg-white p-4 sm:p-6 shadow-sm">
         <h2 className="text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-4">
           Sessions
@@ -319,7 +348,9 @@ export default async function TechPlusWeekPage({
                 {sessionLive[i] ? (
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                     <a
-                      href="#"
+                      href={meetingLink ?? "#"}
+                      target={meetingLink ? "_blank" : undefined}
+                      rel="noopener noreferrer"
                       className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2.5 min-h-[44px] transition-colors w-full sm:w-auto"
                     >
                       <Video size={14} />
@@ -348,7 +379,7 @@ export default async function TechPlusWeekPage({
         </div>
       </div>
 
-      {/* Brief description — no card, just text */}
+      {/* Brief description */}
       <p className="mb-6 text-sm text-neutral-500 leading-relaxed px-1">
         {weekContent.description}
       </p>
@@ -371,22 +402,85 @@ export default async function TechPlusWeekPage({
         </ul>
       </div>
 
-      {/* Session Recording placeholder */}
-      <div className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
-        <div className="flex items-center gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-neutral-100">
-            <Video size={20} className="text-neutral-300" />
+      {/* Session Recording */}
+      {youtubeEmbedUrl ? (
+        <div className="mb-4 rounded-xl border border-neutral-200 bg-white overflow-hidden">
+          <div className="px-4 sm:px-5 pt-4 pb-3 flex items-center gap-2">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-50">
+              <Video size={15} className="text-emerald-600" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-neutral-900">Session Recording</p>
+              <p className="text-xs text-neutral-500">Week {weekNum} replay</p>
+            </div>
           </div>
-          <div>
-            <p className="text-sm font-medium text-neutral-400">
-              Session Recording
-            </p>
-            <p className="text-xs text-neutral-500">
-              Available after the session
-            </p>
+          <div className="relative w-full aspect-video">
+            <iframe
+              src={youtubeEmbedUrl}
+              title={`Week ${weekNum} session recording`}
+              className="absolute inset-0 w-full h-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
           </div>
         </div>
-      </div>
+      ) : recordingUrl ? (
+        <a
+          href={recordingUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mb-4 flex items-center gap-4 rounded-xl border border-neutral-200 bg-white p-4 sm:p-5 transition-colors hover:border-neutral-300 hover:bg-neutral-50"
+        >
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-50">
+            <Video size={20} className="text-emerald-600" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-neutral-900">Session Recording</p>
+            <p className="text-xs text-neutral-500">Watch the replay</p>
+          </div>
+          <ExternalLink size={14} className="text-neutral-400 shrink-0" />
+        </a>
+      ) : (isCompleted || isCurrent) ? (
+        <div className="mb-4 rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-neutral-100">
+              <Video size={20} className="text-neutral-300" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-neutral-400">Session Recording</p>
+              <p className="text-xs text-neutral-500">Available after the session</p>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Resources */}
+      {resources.length > 0 && (
+        <div className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <LinkIcon size={14} className="text-neutral-400" />
+            <h2 className="text-xs font-semibold text-neutral-400 uppercase tracking-wide">
+              Resources
+            </h2>
+          </div>
+          <ul className="space-y-2">
+            {resources.map((r, i) => (
+              <li key={i}>
+                <a
+                  href={r.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 rounded-lg border border-neutral-100 bg-neutral-50 px-3 py-2.5 text-sm font-medium text-neutral-800 hover:border-neutral-300 hover:bg-white transition-colors group"
+                >
+                  <Download size={14} className="text-neutral-400 group-hover:text-neutral-600 shrink-0" />
+                  <span className="flex-1 truncate">{r.name || r.url}</span>
+                  <ExternalLink size={12} className="text-neutral-300 group-hover:text-neutral-500 shrink-0" />
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
