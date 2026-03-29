@@ -6,6 +6,7 @@ import {
   Envelope,
   Link as LinkIcon,
   Certificate,
+  YoutubeLogo,
 } from "@phosphor-icons/react";
 
 const instructors = [
@@ -62,6 +63,14 @@ const studyResources = [
     icon: Certificate,
     color: "text-blue-600",
     bg: "bg-blue-50",
+  },
+  {
+    label: "What Career Is Right for Me?",
+    description: "Explore different tech career paths and find your fit",
+    url: "https://www.youtube.com/watch?v=P2YIwlkUW58",
+    icon: YoutubeLogo,
+    color: "text-red-600",
+    bg: "bg-red-50",
   },
 ];
 
