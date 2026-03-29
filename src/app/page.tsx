@@ -55,7 +55,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-[#fafafa] px-5 py-8">
+    <main className="flex min-h-dvh items-center justify-center bg-[#fafafa] px-5 py-8">
       {/* Subtle grid background */}
       <div
         className="pointer-events-none fixed inset-0 opacity-[0.4]"
@@ -75,7 +75,9 @@ export default function LoginPage() {
             <img
               src="/atg-logo.svg"
               alt="After The Game"
-              className="h-5"
+              width={120}
+              height={20}
+              className="h-5 w-auto"
             />
             <div className="h-px w-10 bg-white/20" />
             <p className="text-[11px] font-medium tracking-[0.2em] text-[#E4F800] uppercase">
@@ -128,7 +130,7 @@ export default function LoginPage() {
                 <h1 className="text-center text-xl font-semibold text-neutral-900">
                   Welcome back
                 </h1>
-                <p className="mt-1 text-center text-sm text-neutral-400">
+                <p className="mt-1 text-center text-sm text-neutral-600">
                   Sign in to your student portal
                 </p>
 
@@ -136,7 +138,7 @@ export default function LoginPage() {
                   <div>
                     <label
                       htmlFor="email"
-                      className="mb-1.5 block text-xs font-medium text-neutral-500"
+                      className="mb-1.5 block text-xs font-medium text-neutral-600"
                     >
                       Email address
                     </label>
@@ -189,7 +191,7 @@ export default function LoginPage() {
                     )}
                   </button>
 
-                  <p className="text-center text-xs text-neutral-400">
+                  <p className="text-center text-xs text-neutral-500">
                     We&apos;ll email you a magic link to sign in
                   </p>
                 </form>
@@ -198,10 +200,10 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <p className="mt-6 text-center text-xs text-neutral-300">
+        <p className="mt-6 text-center text-xs text-neutral-400">
           &copy; {new Date().getFullYear()} Beyond Code Collective
         </p>
       </div>
-    </div>
+    </main>
   );
 }
