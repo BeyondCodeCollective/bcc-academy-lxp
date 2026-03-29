@@ -27,6 +27,7 @@ import {
 import { AttendanceTab } from "./attendance-tab";
 import type { Student } from "@/lib/types";
 import { isStorageUrl, isUploadedVideo } from "@/lib/storage-utils";
+import { createClient as createBrowserClient } from "@/lib/supabase/client";
 
 type CohortRow = {
   id: string;
@@ -149,19 +150,26 @@ function UploadButton({
     setErrorMsg("");
 
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("track", track);
-      fd.append("week", String(week));
+      // Upload directly to Supabase Storage from the browser (bypasses Vercel's 4.5MB limit)
+      const supabase = createBrowserClient();
+      const safeName = file.name.replace(/[^a-zA-Z0-9._\-]/g, "_");
+      const storagePath = `${track}/${week}/${Date.now()}_${safeName}`;
 
-      const res = await fetch("/api/upload", { method: "POST", body: fd });
-      const json = await res.json() as { url?: string; name?: string; error?: string };
+      const { error: uploadError } = await supabase.storage
+        .from("session-files")
+        .upload(storagePath, file, {
+          contentType: file.type || "application/octet-stream",
+          upsert: false,
+        });
 
-      if (!res.ok || !json.url) {
-        throw new Error(json.error ?? "Upload failed");
+      if (uploadError) {
+        throw new Error(uploadError.message);
       }
 
-      onUploaded({ url: json.url, name: json.name ?? file.name });
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+      const publicUrl = `${supabaseUrl}/storage/v1/object/public/session-files/${storagePath}`;
+
+      onUploaded({ url: publicUrl, name: file.name });
       setUploadState("idle");
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "Upload failed");
