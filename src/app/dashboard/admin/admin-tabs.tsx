@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { deleteStudentAction, updateStudentAction, updateCohortAction, saveSessionContent } from "./actions";
+import { addStudentAction, deleteStudentAction, updateStudentAction, updateCohortAction, saveSessionContent } from "./actions";
 import type { SessionResource } from "./actions";
 import {
   Users,
@@ -15,6 +15,7 @@ import {
   Check,
   UserCheck,
   Trash2,
+  UserPlus,
   Plus,
   X,
   Link as LinkIcon,
@@ -511,6 +512,9 @@ export function AdminTabs({
   }
 
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addingStudent, setAddingStudent] = useState(false);
+  const [addError, setAddError] = useState("");
 
   async function updateStudent(id: string, field: "role" | "cohort_id", value: string) {
     setStudentSaving(id);
@@ -836,8 +840,98 @@ export function AdminTabs({
         <div className="space-y-3">
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-lg font-semibold text-neutral-900">Students</h2>
-            <p className="text-xs text-neutral-400">{students.length} total</p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-neutral-400">{students.length} total</p>
+              <button
+                onClick={() => { setShowAddForm(!showAddForm); setAddError(""); }}
+                className="inline-flex items-center gap-1 rounded-lg bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-800 transition-colors"
+              >
+                <UserPlus size={12} />
+                Add
+              </button>
+            </div>
           </div>
+
+          {showAddForm && (
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setAddingStudent(true);
+                setAddError("");
+                const form = e.currentTarget;
+                const formData = new FormData(form);
+                try {
+                  const result = await addStudentAction({
+                    email: String(formData.get("email")),
+                    first_name: String(formData.get("first_name")),
+                    last_name: String(formData.get("last_name")),
+                    role: String(formData.get("role")) as "student" | "admin",
+                    cohort_id: String(formData.get("cohort_id")) || null,
+                  });
+                  if (result.student) {
+                    setStudents((prev) => [...prev, result.student]);
+                    form.reset();
+                    setShowAddForm(false);
+                  }
+                } catch (err) {
+                  setAddError(err instanceof Error ? err.message : "Failed to add student");
+                } finally {
+                  setAddingStudent(false);
+                }
+              }}
+              className="rounded-xl border border-neutral-200 bg-white p-4 space-y-3"
+            >
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-neutral-500">First Name</label>
+                  <input name="first_name" required className="mt-1 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-neutral-500">Last Name</label>
+                  <input name="last_name" required className="mt-1 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none" />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-neutral-500">Email</label>
+                <input name="email" type="email" required className="mt-1 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-neutral-500">Role</label>
+                  <select name="role" defaultValue="student" className="mt-1 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none">
+                    <option value="student">Student</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-neutral-500">Cohort</label>
+                  <select name="cohort_id" defaultValue={cohorts[0]?.id ?? ""} className="mt-1 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none">
+                    <option value="">No cohort</option>
+                    {cohorts.map((co) => (
+                      <option key={co.id} value={co.id}>{co.display_name || co.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              {addError && <p className="text-xs text-red-500">{addError}</p>}
+              <div className="flex items-center gap-2">
+                <button
+                  type="submit"
+                  disabled={addingStudent}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
+                >
+                  {addingStudent ? "Adding..." : <><Plus size={14} /> Add Student</>}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowAddForm(false)}
+                  className="rounded-lg border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          )}
           {students.length === 0 && (
             <p className="text-sm text-neutral-400 py-8 text-center">No students yet</p>
           )}

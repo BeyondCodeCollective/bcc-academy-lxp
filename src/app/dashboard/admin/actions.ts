@@ -46,6 +46,50 @@ export async function updateStudentAction(
   return { success: true };
 }
 
+
+export async function addStudentAction(data: {
+  email: string;
+  first_name: string;
+  last_name: string;
+  role: "student" | "admin";
+  cohort_id: string | null;
+}) {
+  const { svc } = await requireAdmin();
+
+  // Create auth user (sends magic link invite)
+  const { data: authUser, error: authError } = await svc.auth.admin.createUser({
+    email: data.email,
+    email_confirm: true,
+  });
+
+  if (authError) throw new Error(authError.message);
+  if (!authUser.user) throw new Error("Failed to create user");
+
+  // Insert student record
+  const { error: studentError } = await svc.from("students").insert({
+    id: authUser.user.id,
+    email: data.email,
+    first_name: data.first_name,
+    last_name: data.last_name,
+    role: data.role,
+    cohort_id: data.cohort_id || null,
+  });
+
+  if (studentError) throw new Error(studentError.message);
+
+  return {
+    success: true,
+    student: {
+      id: authUser.user.id,
+      email: data.email,
+      first_name: data.first_name,
+      last_name: data.last_name,
+      role: data.role,
+      cohort_id: data.cohort_id || null,
+    },
+  };
+}
+
 export async function updateCohortAction(
   cohortId: string,
   data: { display_name?: string; start_date?: string; total_weeks?: number }
