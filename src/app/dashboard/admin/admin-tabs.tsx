@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { AttendanceTab } from "./attendance-tab";
 import type { Student } from "@/lib/types";
+import { isStorageUrl, isUploadedVideo } from "@/lib/storage-utils";
 
 type CohortRow = {
   id: string;
@@ -117,31 +118,24 @@ const INITIAL_TECH: TechWeek[] = [
 
 // ─── Resource type helpers ─────────────────────────────────────────────────
 
-/** Returns true if the URL points to Supabase Storage (an uploaded file). */
-function isStorageUrl(url: string): boolean {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-  return supabaseUrl.length > 0 && url.startsWith(supabaseUrl);
-}
-
-/** Returns true if this is an uploaded video file stored in Supabase. */
-function isUploadedVideo(resource: SessionResource): boolean {
-  if (resource.type !== "file") return false;
-  const videoExts = [".mp4", ".mov", ".webm", ".avi", ".mkv"];
-  return videoExts.some((ext) => resource.url.toLowerCase().endsWith(ext));
-}
-
-// ─── File Upload Button ────────────────────────────────────────────────────
+// ─── Upload Button (generic) ────────────────────────────────────────────────
 
 type UploadState = "idle" | "uploading" | "error";
 
-function FileUploadButton({
+function UploadButton({
   track,
   week,
+  accept,
+  label,
+  icon: Icon,
   onUploaded,
 }: {
   track: "mass" | "techplus";
   week: number;
-  onUploaded: (resource: SessionResource) => void;
+  accept: string;
+  label: string;
+  icon: typeof Upload;
+  onUploaded: (result: { url: string; name: string }) => void;
 }) {
   const [uploadState, setUploadState] = useState<UploadState>("idle");
   const [errorMsg, setErrorMsg] = useState("");
@@ -167,82 +161,7 @@ function FileUploadButton({
         throw new Error(json.error ?? "Upload failed");
       }
 
-      onUploaded({ name: json.name ?? file.name, url: json.url, type: "file" });
-      setUploadState("idle");
-    } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "Upload failed");
-      setUploadState("error");
-    } finally {
-      // Reset input so the same file can be re-selected if needed
-      if (inputRef.current) inputRef.current.value = "";
-    }
-  }
-
-  return (
-    <div className="flex flex-col gap-1">
-      <input
-        ref={inputRef}
-        type="file"
-        accept=".pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx,.txt,.mp4,.mov,.webm,.zip"
-        className="hidden"
-        onChange={handleFileChange}
-        disabled={uploadState === "uploading"}
-      />
-      <button
-        type="button"
-        onClick={() => inputRef.current?.click()}
-        disabled={uploadState === "uploading"}
-        className="inline-flex items-center gap-1.5 rounded-md border border-neutral-200 bg-white px-2.5 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors disabled:opacity-50 min-h-[36px]"
-      >
-        {uploadState === "uploading" ? (
-          <><Loader2 size={11} className="animate-spin" /> Uploading...</>
-        ) : (
-          <><Upload size={11} /> Upload File</>
-        )}
-      </button>
-      {uploadState === "error" && (
-        <p className="text-[10px] text-red-500">{errorMsg}</p>
-      )}
-    </div>
-  );
-}
-
-// ─── Recording Upload Button ───────────────────────────────────────────────
-
-function RecordingUploadButton({
-  track,
-  week,
-  onUploaded,
-}: {
-  track: "mass" | "techplus";
-  week: number;
-  onUploaded: (url: string) => void;
-}) {
-  const [uploadState, setUploadState] = useState<UploadState>("idle");
-  const [errorMsg, setErrorMsg] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploadState("uploading");
-    setErrorMsg("");
-
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("track", track);
-      fd.append("week", String(week));
-
-      const res = await fetch("/api/upload", { method: "POST", body: fd });
-      const json = await res.json() as { url?: string; error?: string };
-
-      if (!res.ok || !json.url) {
-        throw new Error(json.error ?? "Upload failed");
-      }
-
-      onUploaded(json.url);
+      onUploaded({ url: json.url, name: json.name ?? file.name });
       setUploadState("idle");
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "Upload failed");
@@ -257,7 +176,7 @@ function RecordingUploadButton({
       <input
         ref={inputRef}
         type="file"
-        accept=".mp4,.mov,.webm,.avi,.mkv"
+        accept={accept}
         className="hidden"
         onChange={handleFileChange}
         disabled={uploadState === "uploading"}
@@ -271,7 +190,7 @@ function RecordingUploadButton({
         {uploadState === "uploading" ? (
           <><Loader2 size={11} className="animate-spin" /> Uploading...</>
         ) : (
-          <><Video size={11} /> Upload Recording</>
+          <><Icon size={11} /> {label}</>
         )}
       </button>
       {uploadState === "error" && (
@@ -280,6 +199,9 @@ function RecordingUploadButton({
     </div>
   );
 }
+
+const FILE_ACCEPT = ".pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx,.txt,.mp4,.mov,.webm,.zip";
+const VIDEO_ACCEPT = ".mp4,.mov,.webm,.avi,.mkv";
 
 // ─── Resource Editor ──────────────────────────────────────────────────────────
 
@@ -306,8 +228,8 @@ function ResourceEditor({
     onChange(resources.filter((_, i) => i !== index));
   }
 
-  function handleFileUploaded(resource: SessionResource) {
-    onChange([...resources, resource]);
+  function handleFileUploaded({ url, name }: { url: string; name: string }) {
+    onChange([...resources, { name, url, type: "file" as const }]);
   }
 
   return (
@@ -315,7 +237,7 @@ function ResourceEditor({
       <div className="flex items-center justify-between flex-wrap gap-2">
         <label className="text-xs font-medium text-neutral-500">Resources</label>
         <div className="flex items-center gap-1.5">
-          <FileUploadButton track={track} week={week} onUploaded={handleFileUploaded} />
+          <UploadButton accept={FILE_ACCEPT} label="Upload File" icon={Upload} track={track} week={week} onUploaded={handleFileUploaded} />
           <button
             type="button"
             onClick={addLink}
@@ -421,6 +343,16 @@ export function AdminTabs({
   // Debounce refs so we can cancel pending saves
   const massSaveTimers = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
   const techSaveTimers = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
+
+  // Clean up pending save timers on unmount
+  useEffect(() => {
+    const massTimers = massSaveTimers;
+    const techTimers = techSaveTimers;
+    return () => {
+      Object.values(massTimers.current).forEach(clearTimeout);
+      Object.values(techTimers.current).forEach(clearTimeout);
+    };
+  }, []);
 
   // Load initial session content from the API
   useEffect(() => {
@@ -741,10 +673,10 @@ export function AdminTabs({
                         placeholder="https://youtube.com/... or https://drive.google.com/..."
                         className="flex-1 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
                       />
-                      <RecordingUploadButton
+                      <UploadButton accept={VIDEO_ACCEPT} label="Upload Recording" icon={Video}
                         track="mass"
                         week={mw.week}
-                        onUploaded={(url) => updateMassWeek(mw.week, { recordingUrl: url })}
+                        onUploaded={({ url }) => updateMassWeek(mw.week, { recordingUrl: url })}
                       />
                     </div>
                     {mw.recordingUrl && isStorageUrl(mw.recordingUrl) && (
@@ -850,10 +782,10 @@ export function AdminTabs({
                             placeholder="https://youtube.com/... or https://drive.google.com/..."
                             className="flex-1 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
                           />
-                          <RecordingUploadButton
+                          <UploadButton accept={VIDEO_ACCEPT} label="Upload Recording" icon={Video}
                             track="techplus"
                             week={tw.week}
-                            onUploaded={(url) => updateTechSession(tw.week, s.num, { recordingUrl: url })}
+                            onUploaded={({ url }) => updateTechSession(tw.week, s.num, { recordingUrl: url })}
                           />
                         </div>
                         {s.recordingUrl && isStorageUrl(s.recordingUrl) && (

@@ -5,7 +5,7 @@ import { ArrowLeft, BookOpen, Users, Video, CheckCircle, Download, ExternalLink,
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { getSessionContent } from "@/app/dashboard/admin/actions";
 import type { SessionResource } from "@/app/dashboard/admin/actions";
-import { isStorageUrl, isUploadedVideo, isUploadedRecording } from "@/lib/storage-utils";
+import { isStorageUrl, isUploadedVideo, isUploadedRecording, getYouTubeEmbedUrl } from "@/lib/storage-utils";
 import { MassCheckInButton } from "../check-in-button";
 
 type MassWeekContent = {
@@ -155,25 +155,6 @@ const MASS_CONTENT: MassWeekContent[] = [
 
 const MASS_START = "2026-03-24";
 
-/** Detect YouTube URLs (youtube.com/watch, youtu.be, youtube.com/live, etc.) */
-function getYouTubeEmbedUrl(url: string): string | null {
-  try {
-    const u = new URL(url);
-    if (u.hostname === "youtu.be") {
-      return `https://www.youtube.com/embed/${u.pathname.slice(1)}`;
-    }
-    if (u.hostname === "www.youtube.com" || u.hostname === "youtube.com") {
-      const v = u.searchParams.get("v");
-      if (v) return `https://www.youtube.com/embed/${v}`;
-      const parts = u.pathname.split("/").filter(Boolean);
-      if (parts[0] === "embed" && parts[1]) return `https://www.youtube.com/embed/${parts[1]}`;
-      if (parts[0] === "live" && parts[1]) return `https://www.youtube.com/embed/${parts[1]}`;
-    }
-  } catch {
-    // Invalid URL
-  }
-  return null;
-}
 
 export default async function MassWeekPage({
   params,
