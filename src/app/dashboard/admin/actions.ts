@@ -3,6 +3,7 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 
 async function requireAdmin() {
   const supabase = await createClient();
@@ -150,6 +151,13 @@ export async function saveSessionContent(
   );
 
   if (error) throw new Error(error.message);
+
+  // Bust cached pages so students see the new meeting link / recording immediately
+  revalidatePath(`/dashboard/mass`, "page");
+  revalidatePath(`/dashboard/techplus`, "page");
+  revalidatePath(`/dashboard/${track}/${weekNumber}`, "page");
+  revalidatePath("/dashboard", "page");
+
   return { success: true };
 }
 
