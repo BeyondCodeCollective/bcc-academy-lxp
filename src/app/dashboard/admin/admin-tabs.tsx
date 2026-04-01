@@ -69,7 +69,7 @@ const TABS = [
   { id: "mass", label: "MASS", icon: GraduationCap },
   { id: "techplus", label: "Tech+", icon: BookOpen },
   { id: "students", label: "Students", icon: Users },
-  { id: "attendance", label: "Attendance", icon: UserCheck },
+  { id: "attendance", label: "Analytics", icon: UserCheck },
 ] as const;
 
 const INITIAL_MASS: MassWeek[] = [

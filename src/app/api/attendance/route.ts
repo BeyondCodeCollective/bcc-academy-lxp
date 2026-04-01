@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 
-// POST: student checks in (or admin marks attendance)
+// POST: admin marks attendance for a student
 export async function POST(request: NextRequest) {
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: "Supabase not configured" }, { status: 503 });
@@ -13,43 +13,36 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await request.json();
-  const { track, week_number, session_number = 1, student_id } = body;
-
-  // Validate track
-  if (!track || !["mass", "techplus"].includes(track)) {
-    return NextResponse.json({ error: "Invalid track" }, { status: 400 });
-  }
-  if (!week_number || typeof week_number !== "number") {
-    return NextResponse.json({ error: "Invalid week_number" }, { status: 400 });
-  }
-
-  // Determine who we're checking in
   const { data: currentStudent } = await supabase
     .from("students")
     .select("id, role")
     .eq("id", session.user.id)
     .single<{ id: string; role: string }>();
 
-  if (!currentStudent) {
-    return NextResponse.json({ error: "Student record not found" }, { status: 404 });
+  if (!currentStudent || currentStudent.role !== "admin") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // Admins can mark attendance for any student; students can only check themselves in
-  const targetStudentId =
-    currentStudent.role === "admin" && student_id ? student_id : session.user.id;
+  const body = await request.json();
+  const { track, week_number, session_number = 1, student_id } = body;
 
-  const markedBy =
-    currentStudent.role === "admin" && student_id ? session.user.id : null;
+  if (!track || !["mass", "techplus"].includes(track)) {
+    return NextResponse.json({ error: "Invalid track" }, { status: 400 });
+  }
+  if (!week_number || typeof week_number !== "number") {
+    return NextResponse.json({ error: "Invalid week_number" }, { status: 400 });
+  }
+  if (!student_id) {
+    return NextResponse.json({ error: "student_id is required" }, { status: 400 });
+  }
 
-  // Upsert — ignore if already checked in
   const { error } = await supabase.from("attendance").upsert(
     {
-      student_id: targetStudentId,
+      student_id,
       track,
       week_number,
       session_number,
-      marked_by: markedBy,
+      marked_by: session.user.id,
     },
     { onConflict: "student_id,track,week_number,session_number", ignoreDuplicates: true }
   );
