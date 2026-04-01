@@ -197,13 +197,18 @@ export default async function TechPlusWeekPage({
   const techStarted = now >= new Date(TECH_PLUS_START);
   const currentWeek = techStarted ? computeCurrentWeek(TECH_PLUS_START, 8) : 0;
 
-  const weekStartDate = new Date(TECH_PLUS_START + "T00:00:00-04:00");
-  weekStartDate.setDate(weekStartDate.getDate() + (weekNum - 1) * 7);
+  // Build session times with explicit ET offset so they're correct regardless of server timezone
+  const weekOffset = (weekNum - 1) * 7;
+  const baseDate = new Date(TECH_PLUS_START + "T00:00:00-04:00");
+  baseDate.setDate(baseDate.getDate() + weekOffset);
+  const wed = baseDate.toISOString().slice(0, 10); // YYYY-MM-DD of Wednesday
+  const fri = new Date(baseDate); fri.setDate(fri.getDate() + 2);
+  const friStr = fri.toISOString().slice(0, 10);
 
-  const s1Start = new Date(weekStartDate); s1Start.setHours(10, 0, 0, 0);
-  const s1End = new Date(weekStartDate); s1End.setHours(12, 0, 0, 0);
-  const s2Start = new Date(weekStartDate); s2Start.setDate(s2Start.getDate() + 2); s2Start.setHours(10, 0, 0, 0);
-  const s2End = new Date(weekStartDate); s2End.setDate(s2End.getDate() + 2); s2End.setHours(12, 0, 0, 0);
+  const s1Start = new Date(`${wed}T10:00:00-04:00`);
+  const s1End = new Date(`${wed}T12:00:00-04:00`);
+  const s2Start = new Date(`${friStr}T10:00:00-04:00`);
+  const s2End = new Date(`${friStr}T12:00:00-04:00`);
 
   const sessionLive = [
     now >= new Date(s1Start.getTime() - 10 * 60000) && now <= s1End,
