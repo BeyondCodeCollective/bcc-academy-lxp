@@ -176,8 +176,9 @@ export default async function MassWeekPage({
   const sessionEnd = new Date(sessionDate);
   sessionEnd.setHours(sessionEnd.getHours() + 1);
 
+  const EARLY_WINDOW = 30 * 60000; // 30 minutes before session
   const sessionPassed = now > sessionEnd;
-  const sessionLive = now >= new Date(sessionDate.getTime() - 10 * 60000) && now <= sessionEnd;
+  const sessionLive = now >= new Date(sessionDate.getTime() - EARLY_WINDOW) && now <= sessionEnd;
 
   const isCompleted = massStarted && (weekNum < currentWeek || (weekNum === currentWeek && sessionPassed));
   const isCurrent = massStarted && weekNum === currentWeek && !sessionPassed;
@@ -279,7 +280,7 @@ export default async function MassWeekPage({
             </div>
           </div>
           <div className="shrink-0 ml-11 sm:ml-0">
-            {meetingLink && !isCompleted ? (
+            {meetingLink && sessionLive ? (
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 <a
                   href={meetingLink}
@@ -290,9 +291,7 @@ export default async function MassWeekPage({
                   <Video size={14} />
                   Join Session
                 </a>
-                {sessionLive && (
-                  <MassCheckInButton weekNumber={weekNum} initialCheckedIn={alreadyCheckedIn} />
-                )}
+                <MassCheckInButton weekNumber={weekNum} initialCheckedIn={alreadyCheckedIn} />
               </div>
             ) : isCompleted ? (
               <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
