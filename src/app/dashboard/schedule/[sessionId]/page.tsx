@@ -227,7 +227,7 @@ export default async function SessionDetailPage({
         </div>
 
         {/* Join button */}
-        {session.status === "upcoming" && session.meeting_link && (
+        {session.status === "upcoming" && session.meeting_link && session.meeting_link !== "#" && (
           session.week_number <= currentWeek ? (
             <a
               href={session.meeting_link}

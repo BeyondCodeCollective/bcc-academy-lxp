@@ -25,7 +25,7 @@ export function SessionCard({
             <span>Session {session.session_number}</span>
           </div>
         </div>
-        {showJoinButton && session.meeting_link && (
+        {showJoinButton && session.meeting_link && session.meeting_link !== "#" && (
           <a
             href={session.meeting_link}
             target="_blank"

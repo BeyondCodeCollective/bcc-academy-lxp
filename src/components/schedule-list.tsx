@@ -218,7 +218,7 @@ export function ScheduleList({
                       </div>
 
                       {/* Action */}
-                      {showJoin && session.meeting_link && (
+                      {showJoin && session.meeting_link && session.meeting_link !== "#" && (
                         <span
                           onClick={(e) => {
                             e.preventDefault();
