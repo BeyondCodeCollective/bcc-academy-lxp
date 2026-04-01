@@ -3,15 +3,11 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { createServiceClient } from "@/lib/supabase/server";
 
-// Emails that get admin role on first login
-const ADMIN_EMAILS = [
-  "fonz.morris@wearebgc.org",
-  "fonzmorris@gmail.com",
-  "youngfonz@gmail.com",
-  "ramon.clemente@wearebgc.org",
-  "mancini@wearebgc.org",
-  "kkjoyner@gmail.com",
-];
+// Emails that get admin role on first login (comma-separated env var)
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "")
+  .split(",")
+  .map((e) => e.trim().toLowerCase())
+  .filter(Boolean);
 
 // Default cohort — auto-created if no cohorts exist
 const DEFAULT_COHORT = {
