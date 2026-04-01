@@ -328,29 +328,24 @@ export default async function TechPlusWeekPage({
                 </div>
               </div>
               <div className="shrink-0 ml-11 sm:ml-0">
-                {sessionLive[i] ? (
+                {meetingLink && !sessionPassed[i] ? (
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                    {meetingLink ? (
-                      <a
-                        href={meetingLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2.5 min-h-[44px] transition-colors w-full sm:w-auto"
-                      >
-                        <Video size={14} />
-                        Join Session
-                      </a>
-                    ) : (
-                      <span className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-neutral-200 text-neutral-400 text-xs font-semibold px-3.5 py-2.5 min-h-[44px] cursor-not-allowed w-full sm:w-auto">
-                        <Video size={14} />
-                        Link Coming Soon
-                      </span>
+                    <a
+                      href={meetingLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2.5 min-h-[44px] transition-colors w-full sm:w-auto"
+                    >
+                      <Video size={14} />
+                      Join Session
+                    </a>
+                    {sessionLive[i] && (
+                      <TechPlusCheckInButton
+                        weekNumber={weekNum}
+                        sessionNumber={i + 1}
+                        initialCheckedIn={checkedInSessions[i]}
+                      />
                     )}
-                    <TechPlusCheckInButton
-                      weekNumber={weekNum}
-                      sessionNumber={i + 1}
-                      initialCheckedIn={checkedInSessions[i]}
-                    />
                   </div>
                 ) : sessionPassed[i] ? (
                   <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
@@ -360,7 +355,7 @@ export default async function TechPlusWeekPage({
                 ) : (
                   <span className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-neutral-200 text-neutral-400 text-xs font-semibold px-3.5 py-2.5 min-h-[44px] cursor-not-allowed w-full sm:w-auto">
                     <Video size={14} />
-                    Join Session
+                    Link Coming Soon
                   </span>
                 )}
               </div>
