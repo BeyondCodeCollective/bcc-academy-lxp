@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { createClient } from "@/lib/supabase/server";
 
 const SYSTEM_PROMPT = `You are the AI Tutor for "After The Game" (ATG), a program by Beyond Code Collective that helps former athletes transition into tech careers. Your students are adults in their 40s and 50s who are new to technology.
 
@@ -23,6 +24,13 @@ Guidelines:
 - Keep responses focused — 2-3 short paragraphs max unless they ask for more detail.`;
 
 export async function POST(request: Request) {
+  // Require authenticated user
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { messages } = await request.json();
 
   if (!process.env.ANTHROPIC_API_KEY) {
