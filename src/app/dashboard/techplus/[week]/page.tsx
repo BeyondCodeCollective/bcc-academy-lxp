@@ -210,9 +210,10 @@ export default async function TechPlusWeekPage({
   const s2Start = new Date(`${friStr}T10:00:00-04:00`);
   const s2End = new Date(`${friStr}T12:00:00-04:00`);
 
+  const EARLY_WINDOW = 30 * 60000; // 30 minutes before session
   const sessionLive = [
-    now >= new Date(s1Start.getTime() - 10 * 60000) && now <= s1End,
-    now >= new Date(s2Start.getTime() - 10 * 60000) && now <= s2End,
+    now >= new Date(s1Start.getTime() - EARLY_WINDOW) && now <= s1End,
+    now >= new Date(s2Start.getTime() - EARLY_WINDOW) && now <= s2End,
   ];
   const sessionPassed = [now > s1End, now > s2End];
 
@@ -333,7 +334,7 @@ export default async function TechPlusWeekPage({
                 </div>
               </div>
               <div className="shrink-0 ml-11 sm:ml-0">
-                {meetingLink && !sessionPassed[i] ? (
+                {meetingLink && sessionLive[i] ? (
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                     <a
                       href={meetingLink}
@@ -344,13 +345,11 @@ export default async function TechPlusWeekPage({
                       <Video size={14} />
                       Join Session
                     </a>
-                    {sessionLive[i] && (
-                      <TechPlusCheckInButton
-                        weekNumber={weekNum}
-                        sessionNumber={i + 1}
-                        initialCheckedIn={checkedInSessions[i]}
-                      />
-                    )}
+                    <TechPlusCheckInButton
+                      weekNumber={weekNum}
+                      sessionNumber={i + 1}
+                      initialCheckedIn={checkedInSessions[i]}
+                    />
                   </div>
                 ) : sessionPassed[i] ? (
                   <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
