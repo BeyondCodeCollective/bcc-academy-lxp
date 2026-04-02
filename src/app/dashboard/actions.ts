@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
 export async function completeOnboarding(data: {
@@ -10,13 +10,16 @@ export async function completeOnboarding(data: {
   date_of_birth: string;
   education_level: string;
 }) {
+  // Verify the user is authenticated
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
 
-  const { error } = await supabase
+  // Use service client to bypass RLS for the update
+  const svc = createServiceClient();
+  const { error } = await svc
     .from("students")
     .update({
       first_name: data.first_name,
