@@ -7,6 +7,7 @@ import Link from "next/link";
 import type { Cohort } from "@/lib/types";
 import { WelcomeVideo } from "@/components/welcome-video";
 import { WelcomeOverlay } from "@/components/welcome-overlay";
+import { OnboardingForm } from "@/components/onboarding-form";
 
 const MASS_WEEKS: { week: number; topic: string; icon: string }[] = [
   { week: 1, topic: "Storytelling", icon: "🎙️" },
@@ -32,9 +33,11 @@ const TECH_WEEKS: { week: number; topic: string; icon: string }[] = [
 
 export default async function DashboardPage() {
   let firstName = "there";
+  let lastName = "";
   let cohortName = "Cohort 1 — CompTIA Tech+ Foundations";
   let currentWeek = 1;
   let noCohort = false;
+  let needsOnboarding = false;
 
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
@@ -47,7 +50,7 @@ export default async function DashboardPage() {
     // Single query: student + cohort joined
     const { data: student } = await supabase
       .from("students")
-      .select("first_name, cohort_id, cohorts(id, name, display_name, start_date, total_weeks)")
+      .select("first_name, last_name, onboarding_completed, cohort_id, cohorts(id, name, display_name, start_date, total_weeks)")
       .eq("id", session.user.id)
       .single();
 
@@ -80,6 +83,8 @@ export default async function DashboardPage() {
     }
 
     firstName = student?.first_name || "there";
+    lastName = student?.last_name || "";
+    needsOnboarding = !student?.onboarding_completed;
   } else {
     const cookieStore = await cookies();
     const demoEmail = cookieStore.get(DEMO_COOKIE)?.value;
@@ -132,7 +137,11 @@ export default async function DashboardPage() {
 
   return (
     <div className="mx-auto w-full max-w-2xl space-y-8 sm:space-y-10 px-4 sm:px-5 py-8">
-      <WelcomeOverlay firstName={firstName} />
+      {needsOnboarding ? (
+        <OnboardingForm defaultFirstName={firstName} defaultLastName={lastName} />
+      ) : (
+        <WelcomeOverlay firstName={firstName} />
+      )}
 
       {/* Welcome header */}
       <div>
