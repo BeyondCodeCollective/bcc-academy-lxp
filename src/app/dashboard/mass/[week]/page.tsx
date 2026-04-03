@@ -262,7 +262,7 @@ export default async function MassWeekPage({
             </div>
           </div>
           <div className="shrink-0 ml-11 sm:ml-0">
-            {meetingLink && sessionLive ? (
+            {meetingLink ? (
               <a
                 href={meetingLink}
                 target="_blank"
