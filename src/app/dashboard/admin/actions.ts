@@ -112,6 +112,8 @@ export type SessionResource = {
 export type SessionContentData = {
   meeting_link?: string;
   recording_url?: string;
+  meeting_link_2?: string;
+  recording_url_2?: string;
   resources?: SessionResource[];
 };
 
@@ -121,6 +123,8 @@ export type SessionContentRow = {
   week_number: number;
   meeting_link: string | null;
   recording_url: string | null;
+  meeting_link_2: string | null;
+  recording_url_2: string | null;
   resources: SessionResource[];
   updated_at: string;
   updated_by: string | null;
@@ -143,6 +147,8 @@ export async function saveSessionContent(
       week_number: weekNumber,
       meeting_link: data.meeting_link ?? null,
       recording_url: data.recording_url ?? null,
+      meeting_link_2: data.meeting_link_2 ?? null,
+      recording_url_2: data.recording_url_2 ?? null,
       resources: data.resources ?? [],
       updated_at: new Date().toISOString(),
       updated_by: userId,
