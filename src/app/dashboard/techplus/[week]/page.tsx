@@ -313,7 +313,7 @@ export default async function TechPlusWeekPage({
                 </div>
               </div>
               <div className="shrink-0 ml-11 sm:ml-0">
-                {meetingLink && sessionLive[i] ? (
+                {meetingLink ? (
                   <a
                     href={meetingLink}
                     target="_blank"
