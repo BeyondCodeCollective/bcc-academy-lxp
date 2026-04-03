@@ -226,8 +226,11 @@ export default async function TechPlusWeekPage({
     ? await getSessionContent("techplus", weekNum)
     : null;
 
+  const meetingLinks = [
+    sessionContent?.meeting_link ?? null,
+    sessionContent?.meeting_link_2 ?? null,
+  ];
   const recordingUrl = sessionContent?.recording_url ?? null;
-  const meetingLink = sessionContent?.meeting_link ?? null;
   const resources: SessionResource[] = sessionContent?.resources ?? [];
 
   const youtubeEmbedUrl = recordingUrl ? getYouTubeEmbedUrl(recordingUrl) : null;
@@ -318,9 +321,9 @@ export default async function TechPlusWeekPage({
                     <CheckCircle size={14} />
                     Session Ended
                   </span>
-                ) : meetingLink ? (
+                ) : meetingLinks[i] ? (
                   <a
-                    href={meetingLink}
+                    href={meetingLinks[i]!}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2.5 min-h-[44px] transition-colors w-full sm:w-auto"

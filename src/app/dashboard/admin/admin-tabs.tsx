@@ -44,6 +44,8 @@ type StudentRow = Pick<Student, "id" | "first_name" | "last_name" | "email" | "r
 type SessionContentMap = Record<number, {
   meeting_link: string;
   recording_url: string;
+  meeting_link_2: string;
+  recording_url_2: string;
   resources: SessionResource[];
 }>;
 
@@ -373,6 +375,8 @@ export function AdminTabs({
           week_number: number;
           meeting_link: string | null;
           recording_url: string | null;
+          meeting_link_2: string | null;
+          recording_url_2: string | null;
           resources: SessionResource[];
         }> };
         const map: SessionContentMap = {};
@@ -380,6 +384,8 @@ export function AdminTabs({
           map[row.week_number] = {
             meeting_link: row.meeting_link ?? "",
             recording_url: row.recording_url ?? "",
+            meeting_link_2: row.meeting_link_2 ?? "",
+            recording_url_2: row.recording_url_2 ?? "",
             resources: row.resources ?? [],
           };
         }
@@ -404,8 +410,8 @@ export function AdminTabs({
                     ...tw,
                     sessions: tw.sessions.map((s, i) => ({
                       ...s,
-                      meetingLink: i === 0 ? map[tw.week].meeting_link : s.meetingLink,
-                      recordingUrl: i === 0 ? map[tw.week].recording_url : s.recordingUrl,
+                      meetingLink: i === 0 ? map[tw.week].meeting_link : map[tw.week].meeting_link_2,
+                      recordingUrl: i === 0 ? map[tw.week].recording_url : map[tw.week].recording_url_2,
                       resources: i === 0 ? map[tw.week].resources : s.resources,
                     })),
                   }
@@ -464,6 +470,8 @@ export function AdminTabs({
         await saveSessionContent("techplus", weekNum, {
           meeting_link: data.sessions[0]?.meetingLink ?? "",
           recording_url: data.sessions[0]?.recordingUrl ?? "",
+          meeting_link_2: data.sessions[1]?.meetingLink ?? "",
+          recording_url_2: data.sessions[1]?.recordingUrl ?? "",
           resources: allResources,
         });
         setTechSaveState((s) => ({ ...s, [weekNum]: "saved" }));
