@@ -46,6 +46,8 @@ type SessionContentMap = Record<number, {
   recording_url: string;
   meeting_link_2: string;
   recording_url_2: string;
+  status: string;
+  status_2: string;
   resources: SessionResource[];
 }>;
 
@@ -377,6 +379,8 @@ export function AdminTabs({
           recording_url: string | null;
           meeting_link_2: string | null;
           recording_url_2: string | null;
+          status: string | null;
+          status_2: string | null;
           resources: SessionResource[];
         }> };
         const map: SessionContentMap = {};
@@ -386,6 +390,8 @@ export function AdminTabs({
             recording_url: row.recording_url ?? "",
             meeting_link_2: row.meeting_link_2 ?? "",
             recording_url_2: row.recording_url_2 ?? "",
+            status: row.status ?? "upcoming",
+            status_2: row.status_2 ?? "upcoming",
             resources: row.resources ?? [],
           };
         }
@@ -397,6 +403,7 @@ export function AdminTabs({
                     ...w,
                     meetingLink: map[w.week].meeting_link,
                     recordingUrl: map[w.week].recording_url,
+                    status: map[w.week].status as "upcoming" | "completed",
                     resources: map[w.week].resources,
                   }
                 : w
@@ -412,6 +419,7 @@ export function AdminTabs({
                       ...s,
                       meetingLink: i === 0 ? map[tw.week].meeting_link : map[tw.week].meeting_link_2,
                       recordingUrl: i === 0 ? map[tw.week].recording_url : map[tw.week].recording_url_2,
+                      status: (i === 0 ? map[tw.week].status : map[tw.week].status_2) as "upcoming" | "completed",
                       resources: i === 0 ? map[tw.week].resources : s.resources,
                     })),
                   }
@@ -437,6 +445,7 @@ export function AdminTabs({
         await saveSessionContent("mass", weekNum, {
           meeting_link: data.meetingLink,
           recording_url: data.recordingUrl,
+          status: data.status,
           resources: data.resources,
         });
         setMassSaveState((s) => ({ ...s, [weekNum]: "saved" }));
@@ -472,6 +481,8 @@ export function AdminTabs({
           recording_url: data.sessions[0]?.recordingUrl ?? "",
           meeting_link_2: data.sessions[1]?.meetingLink ?? "",
           recording_url_2: data.sessions[1]?.recordingUrl ?? "",
+          status: data.sessions[0]?.status ?? "upcoming",
+          status_2: data.sessions[1]?.status ?? "upcoming",
           resources: allResources,
         });
         setTechSaveState((s) => ({ ...s, [weekNum]: "saved" }));
