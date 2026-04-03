@@ -313,7 +313,12 @@ export default async function TechPlusWeekPage({
                 </div>
               </div>
               <div className="shrink-0 ml-11 sm:ml-0">
-                {meetingLink ? (
+                {sessionPassed[i] ? (
+                  <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
+                    <CheckCircle size={14} />
+                    Session Ended
+                  </span>
+                ) : meetingLink ? (
                   <a
                     href={meetingLink}
                     target="_blank"
@@ -323,11 +328,6 @@ export default async function TechPlusWeekPage({
                     <Video size={14} />
                     Join Session
                   </a>
-                ) : sessionPassed[i] ? (
-                  <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
-                    <CheckCircle size={14} />
-                    Session Ended
-                  </span>
                 ) : (
                   <span className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-neutral-200 text-neutral-400 text-xs font-semibold px-3.5 py-2.5 min-h-[44px] cursor-not-allowed w-full sm:w-auto">
                     <Video size={14} />
