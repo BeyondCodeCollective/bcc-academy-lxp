@@ -195,7 +195,7 @@ export default async function TechPlusWeekPage({
 
   const now = new Date();
   const techStarted = now >= new Date(TECH_PLUS_START);
-  const currentWeek = techStarted ? computeCurrentWeek(TECH_PLUS_START, 8) : 0;
+  const currentWeek = techStarted ? computeCurrentWeek(TECH_PLUS_START, 8, 2) : 0;
 
   // Build session times with explicit ET offset so they're correct regardless of server timezone
   const weekOffset = (weekNum - 1) * 7;
