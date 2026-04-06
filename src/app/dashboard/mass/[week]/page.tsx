@@ -180,9 +180,6 @@ export default async function MassWeekPage({
   const sessionPassed = now > sessionEnd;
   const sessionLive = now >= new Date(sessionDate.getTime() - EARLY_WINDOW) && now <= sessionEnd;
 
-  const isCompleted = massStarted && (weekNum < currentWeek || (weekNum === currentWeek && sessionPassed));
-  const isCurrent = massStarted && weekNum === currentWeek && !sessionPassed;
-
   // Fetch session content (recording URL + resources) from Supabase
   const sessionContent = isSupabaseConfigured()
     ? await getSessionContent("mass", weekNum)
@@ -191,6 +188,11 @@ export default async function MassWeekPage({
   const recordingUrl = sessionContent?.recording_url ?? null;
   const meetingLink = sessionContent?.meeting_link ?? null;
   const resources: SessionResource[] = sessionContent?.resources ?? [];
+  const adminMarkedComplete = sessionContent?.status === "completed";
+
+  // Use admin status to determine completed/current — not time-based
+  const isCompleted = adminMarkedComplete;
+  const isCurrent = massStarted && weekNum === currentWeek && !adminMarkedComplete;
 
   const youtubeEmbedUrl = recordingUrl ? getYouTubeEmbedUrl(recordingUrl) : null;
   const isVideoUpload = recordingUrl ? isUploadedRecording(recordingUrl) : false;

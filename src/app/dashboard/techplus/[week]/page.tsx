@@ -217,9 +217,8 @@ export default async function TechPlusWeekPage({
   ];
   const sessionPassed = [now > s1End, now > s2End];
 
-  const allSessionsPassed = sessionPassed[0] && sessionPassed[1];
-  const isCompleted = techStarted && (weekNum < currentWeek || (weekNum === currentWeek && allSessionsPassed));
-  const isCurrent = techStarted && weekNum === currentWeek && !allSessionsPassed;
+  // Note: isCompleted/isCurrent are set after fetching session content (below)
+  // so we can use admin-set status instead of pure time checks
 
   // Fetch session content (recording, resources) from Supabase
   const sessionContent = isSupabaseConfigured()
@@ -230,6 +229,16 @@ export default async function TechPlusWeekPage({
     sessionContent?.meeting_link ?? null,
     sessionContent?.meeting_link_2 ?? null,
   ];
+  const sessionStatuses = [
+    sessionContent?.status ?? "upcoming",
+    sessionContent?.status_2 ?? "upcoming",
+  ];
+  const adminMarkedComplete = sessionStatuses[0] === "completed" && sessionStatuses[1] === "completed";
+
+  // Use admin status to determine completed/current — not time-based
+  const isCompleted = adminMarkedComplete;
+  const isCurrent = techStarted && weekNum === currentWeek && !adminMarkedComplete;
+
   const recordingUrl = sessionContent?.recording_url ?? null;
   const resources: SessionResource[] = sessionContent?.resources ?? [];
 
@@ -316,7 +325,7 @@ export default async function TechPlusWeekPage({
                 </div>
               </div>
               <div className="shrink-0 ml-11 sm:ml-0">
-                {sessionPassed[i] ? (
+                {sessionStatuses[i] === "completed" ? (
                   <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
                     <CheckCircle size={14} />
                     Session Ended
