@@ -239,11 +239,11 @@ export default async function TechPlusWeekPage({
   const isCompleted = adminMarkedComplete;
   const isCurrent = techStarted && weekNum === currentWeek && !adminMarkedComplete;
 
-  const recordingUrl = sessionContent?.recording_url ?? null;
+  const recordingUrls = [
+    sessionContent?.recording_url ?? null,
+    sessionContent?.recording_url_2 ?? null,
+  ];
   const resources: SessionResource[] = sessionContent?.resources ?? [];
-
-  const youtubeEmbedUrl = recordingUrl ? getYouTubeEmbedUrl(recordingUrl) : null;
-  const isVideoUpload = recordingUrl ? isUploadedRecording(recordingUrl) : false;
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8">
@@ -375,71 +375,81 @@ export default async function TechPlusWeekPage({
         </ul>
       </div>
 
-      {/* Session Recording */}
-      {youtubeEmbedUrl ? (
-        <div className="mb-4 rounded-xl border border-neutral-200 bg-white overflow-hidden">
-          <div className="px-4 sm:px-5 pt-4 pb-3 flex items-center gap-2">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-50">
-              <Video size={15} className="text-emerald-600" />
+      {/* Session Recordings */}
+      {weekContent.sessions.map((session, i) => {
+        const url = recordingUrls[i];
+        const ytEmbed = url ? getYouTubeEmbedUrl(url) : null;
+        const isVideo = url ? isUploadedRecording(url) : false;
+        const showPlaceholder = !url && (isCompleted || isCurrent || weekNum < currentWeek);
+
+        if (!url && !showPlaceholder) return null;
+
+        return ytEmbed ? (
+          <div key={i} className="mb-4 rounded-xl border border-neutral-200 bg-white overflow-hidden">
+            <div className="px-4 sm:px-5 pt-4 pb-3 flex items-center gap-2">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-50">
+                <Video size={15} className="text-emerald-600" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-neutral-900">Session {i + 1} Recording</p>
+                <p className="text-xs text-neutral-500">{session.title}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-medium text-neutral-900">Session Recording</p>
-              <p className="text-xs text-neutral-500">Week {weekNum} replay</p>
-            </div>
-          </div>
-          <div className="relative w-full aspect-video">
-            <iframe
-              src={youtubeEmbedUrl}
-              title={`Week ${weekNum} session recording`}
-              className="absolute inset-0 w-full h-full"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
-          </div>
-        </div>
-      ) : recordingUrl && isVideoUpload ? (
-        <div className="mb-4 rounded-xl border border-neutral-200 bg-white overflow-hidden">
-          <div className="px-4 sm:px-5 pt-4 pb-3 flex items-center gap-2">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-50">
-              <Video size={15} className="text-emerald-600" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-neutral-900">Session Recording</p>
-              <p className="text-xs text-neutral-500">Week {weekNum} replay</p>
+            <div className="relative w-full aspect-video">
+              <iframe
+                src={ytEmbed}
+                title={`Session ${i + 1} recording`}
+                className="absolute inset-0 w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
             </div>
           </div>
-          {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-          <video src={recordingUrl} controls className="w-full" preload="metadata" />
-        </div>
-      ) : recordingUrl ? (
-        <a
-          href={recordingUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mb-4 flex items-center gap-4 rounded-xl border border-neutral-200 bg-white p-4 sm:p-5 transition-colors hover:border-neutral-300 hover:bg-neutral-50"
-        >
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-50">
-            <Video size={20} className="text-emerald-600" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-neutral-900">Session Recording</p>
-            <p className="text-xs text-neutral-500">Watch the replay</p>
-          </div>
-          <ExternalLink size={14} className="text-neutral-400 shrink-0" />
-        </a>
-      ) : (isCompleted || isCurrent || weekNum < currentWeek) ? (
-        <div className="mb-4 rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-neutral-100">
-              <Video size={20} className="text-neutral-300" />
+        ) : url && isVideo ? (
+          <div key={i} className="mb-4 rounded-xl border border-neutral-200 bg-white overflow-hidden">
+            <div className="px-4 sm:px-5 pt-4 pb-3 flex items-center gap-2">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-50">
+                <Video size={15} className="text-emerald-600" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-neutral-900">Session {i + 1} Recording</p>
+                <p className="text-xs text-neutral-500">{session.title}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-medium text-neutral-400">Session Recording</p>
-              <p className="text-xs text-neutral-500">Available after the session</p>
+            {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+            <video src={url} controls className="w-full" preload="metadata" />
+          </div>
+        ) : url ? (
+          <a
+            key={i}
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mb-4 flex items-center gap-4 rounded-xl border border-neutral-200 bg-white p-4 sm:p-5 transition-colors hover:border-neutral-300 hover:bg-neutral-50"
+          >
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-50">
+              <Video size={20} className="text-emerald-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-neutral-900">Session {i + 1} Recording</p>
+              <p className="text-xs text-neutral-500">{session.title}</p>
+            </div>
+            <ExternalLink size={14} className="text-neutral-400 shrink-0" />
+          </a>
+        ) : (
+          <div key={i} className="mb-4 rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-neutral-100">
+                <Video size={20} className="text-neutral-300" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-neutral-400">Session {i + 1} Recording</p>
+                <p className="text-xs text-neutral-500">Available after the session</p>
+              </div>
             </div>
           </div>
-        </div>
-      ) : null}
+        );
+      })}
 
       {/* Resources */}
       {resources.length > 0 && (
