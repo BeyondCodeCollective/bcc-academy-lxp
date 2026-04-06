@@ -102,7 +102,7 @@ export default async function DashboardPage() {
   // MASS starts with cohort (March 24), Tech+ starts April 1
   const TECH_PLUS_START = "2026-04-01";
   const massWeek = currentWeek;
-  const techWeek = computeCurrentWeek(TECH_PLUS_START, 8);
+  const techWeek = computeCurrentWeek(TECH_PLUS_START, 8, 2);
   const techStarted = new Date() >= new Date(TECH_PLUS_START);
 
   const completedWeeks = massWeek - 1;
