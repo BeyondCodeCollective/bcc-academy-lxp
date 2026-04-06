@@ -145,24 +145,32 @@ export async function saveSessionContent(
 ) {
   const { svc, userId } = await requireAdmin();
 
+  const row: Record<string, unknown> = {
+    track,
+    week_number: weekNumber,
+    meeting_link: data.meeting_link ?? null,
+    recording_url: data.recording_url ?? null,
+    resources: data.resources ?? [],
+    updated_at: new Date().toISOString(),
+    updated_by: userId,
+  };
+
+  // Only include session-2 and status fields if provided — avoids errors
+  // if the DB migration for those columns hasn't been run yet
+  if (data.meeting_link_2 !== undefined) row.meeting_link_2 = data.meeting_link_2 || null;
+  if (data.recording_url_2 !== undefined) row.recording_url_2 = data.recording_url_2 || null;
+  if (data.status !== undefined) row.status = data.status;
+  if (data.status_2 !== undefined) row.status_2 = data.status_2;
+
   const { error } = await svc.from("session_content").upsert(
-    {
-      track,
-      week_number: weekNumber,
-      meeting_link: data.meeting_link ?? null,
-      recording_url: data.recording_url ?? null,
-      meeting_link_2: data.meeting_link_2 ?? null,
-      recording_url_2: data.recording_url_2 ?? null,
-      status: data.status ?? "upcoming",
-      status_2: data.status_2 ?? "upcoming",
-      resources: data.resources ?? [],
-      updated_at: new Date().toISOString(),
-      updated_by: userId,
-    },
+    row,
     { onConflict: "track,week_number" }
   );
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error(`[saveSessionContent] ${track} week ${weekNumber}:`, error.message);
+    throw new Error(error.message);
+  }
 
   // Bust cached pages so students see the new meeting link / recording immediately
   revalidatePath(`/dashboard/mass`, "page");
