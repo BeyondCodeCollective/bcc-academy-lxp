@@ -374,7 +374,7 @@ export default async function MassWeekPage({
             <p className="text-xs text-neutral-500">{weekContent.recordingNote}</p>
           </div>
         </div>
-      ) : (isCompleted || isCurrent) ? (
+      ) : (isCompleted || isCurrent || weekNum < currentWeek) ? (
         <div className="mb-4 flex items-center gap-4 rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-neutral-100">
             <Video size={20} className="text-neutral-300" />

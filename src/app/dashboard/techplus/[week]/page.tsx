@@ -427,7 +427,7 @@ export default async function TechPlusWeekPage({
           </div>
           <ExternalLink size={14} className="text-neutral-400 shrink-0" />
         </a>
-      ) : (isCompleted || isCurrent) ? (
+      ) : (isCompleted || isCurrent || weekNum < currentWeek) ? (
         <div className="mb-4 rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-neutral-100">
