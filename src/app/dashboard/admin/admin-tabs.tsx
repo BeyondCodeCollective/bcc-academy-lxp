@@ -450,7 +450,8 @@ export function AdminTabs({
         });
         setMassSaveState((s) => ({ ...s, [weekNum]: "saved" }));
         setTimeout(() => setMassSaveState((s) => ({ ...s, [weekNum]: "idle" })), 2000);
-      } catch {
+      } catch (err) {
+        console.error(`[admin] MASS week ${weekNum} save failed:`, err);
         setMassSaveState((s) => ({ ...s, [weekNum]: "error" }));
       }
     }, 800);
@@ -487,7 +488,8 @@ export function AdminTabs({
         });
         setTechSaveState((s) => ({ ...s, [weekNum]: "saved" }));
         setTimeout(() => setTechSaveState((s) => ({ ...s, [weekNum]: "idle" })), 2000);
-      } catch {
+      } catch (err) {
+        console.error(`[admin] Tech+ week ${weekNum} save failed:`, err);
         setTechSaveState((s) => ({ ...s, [weekNum]: "error" }));
       }
     }, 800);
