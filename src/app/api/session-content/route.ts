@@ -38,10 +38,10 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const track = searchParams.get("track");
 
-  if (!track || !["mass", "techplus"].includes(track)) {
-    return NextResponse.json({ error: "Invalid track" }, { status: 400 });
+  if (!track) {
+    return NextResponse.json({ error: "Missing track parameter" }, { status: 400 });
   }
 
-  const rows = await getAllSessionContent(track as "mass" | "techplus");
+  const rows = await getAllSessionContent(track);
   return NextResponse.json({ rows });
 }
