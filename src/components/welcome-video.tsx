@@ -3,7 +3,13 @@
 import { useState } from "react";
 import { ChevronDown, Play } from "lucide-react";
 
-export function WelcomeVideo() {
+interface Props {
+  videoSrc: string;
+  title: string;
+  presenter?: string;
+}
+
+export function WelcomeVideo({ videoSrc, title, presenter }: Props) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -18,11 +24,13 @@ export function WelcomeVideo() {
           </div>
           <div className="text-left">
             <p className="text-sm font-semibold text-neutral-900">
-              Welcome to After The Game
+              {title}
             </p>
-            <p className="text-xs text-neutral-500">
-              A message from Ramon Clemente
-            </p>
+            {presenter && (
+              <p className="text-xs text-neutral-500">
+                A message from {presenter}
+              </p>
+            )}
           </div>
         </div>
         <ChevronDown
@@ -42,7 +50,7 @@ export function WelcomeVideo() {
           <div className="border-t border-neutral-100">
             <div className="flex justify-center w-full bg-neutral-900">
               <video
-                src="/atg-intro.mp4"
+                src={videoSrc}
                 controls
                 playsInline
                 preload="metadata"

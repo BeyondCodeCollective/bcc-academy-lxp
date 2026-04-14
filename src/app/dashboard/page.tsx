@@ -8,34 +8,16 @@ import type { Cohort } from "@/lib/types";
 import { WelcomeVideo } from "@/components/welcome-video";
 import { WelcomeOverlay } from "@/components/welcome-overlay";
 import { OnboardingForm } from "@/components/onboarding-form";
-
-const MASS_WEEKS: { week: number; topic: string; icon: string }[] = [
-  { week: 1, topic: "Storytelling", icon: "🎙️" },
-  { week: 2, topic: "Networking", icon: "🤝" },
-  { week: 3, topic: "The Art of the Brag", icon: "💪" },
-  { week: 4, topic: "Guest Speaker", icon: "🎤" },
-  { week: 5, topic: "Planning", icon: "📋" },
-  { week: 6, topic: "Guest Speaker", icon: "🎤" },
-  { week: 7, topic: "Money", icon: "💰" },
-  { week: 8, topic: "Career Expo", icon: "🎯" },
-];
-
-const TECH_WEEKS: { week: number; topic: string; icon: string }[] = [
-  { week: 1, topic: "IT Concepts & Careers", icon: "💻" },
-  { week: 2, topic: "Hardware Components", icon: "🔧" },
-  { week: 3, topic: "Setup & Troubleshooting", icon: "🛠️" },
-  { week: 4, topic: "Operating Systems", icon: "📀" },
-  { week: 5, topic: "Networking Basics", icon: "🌐" },
-  { week: 6, topic: "Cybersecurity", icon: "🔒" },
-  { week: 7, topic: "Data & Databases", icon: "📊" },
-  { week: 8, topic: "Review & Exam Prep", icon: "🎯" },
-];
+import { getProgram } from "@/lib/programs/server";
+import type { TrackConfig } from "@/lib/programs/types";
 
 export default async function DashboardPage() {
+  const program = await getProgram();
+
   let firstName = "there";
   let lastName = "";
-  let cohortName = "Cohort 1 — CompTIA Tech+ Foundations";
-  let currentWeek = 1;
+  let cohortName = program.defaultCohort.displayName;
+  let cohortStartDate = program.defaultCohort.startDate;
   let noCohort = false;
   let needsOnboarding = false;
 
@@ -47,7 +29,6 @@ export default async function DashboardPage() {
     } = await supabase.auth.getSession();
     if (!session?.user) redirect("/");
 
-    // Single query: student + cohort joined
     const { data: student } = await supabase
       .from("students")
       .select("first_name, last_name, onboarding_completed, cohort_id, cohorts(id, name, display_name, start_date, total_weeks)")
@@ -57,7 +38,6 @@ export default async function DashboardPage() {
     let cohortId = student?.cohort_id;
     const cohort = (student as Record<string, unknown>)?.cohorts as Cohort | null;
 
-    // Auto-assign to first cohort if not yet assigned
     if (!cohortId) {
       const { data: defaultCohort } = await supabase
         .from("cohorts")
@@ -77,7 +57,7 @@ export default async function DashboardPage() {
 
     if (cohort) {
       cohortName = cohort.display_name || cohort.name;
-      currentWeek = computeCurrentWeek(cohort.start_date, cohort.total_weeks);
+      cohortStartDate = cohort.start_date;
     } else if (!cohortId) {
       noCohort = true;
     }
@@ -93,21 +73,31 @@ export default async function DashboardPage() {
       if (demoUser) {
         firstName = demoUser.first_name;
       } else {
-        // Unknown email — use the part before @ as a name
         firstName = demoEmail.split("@")[0].replace(/[._-]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
       }
     }
   }
 
-  // MASS starts with cohort (March 24), Tech+ starts April 1
-  const TECH_PLUS_START = "2026-04-01";
-  const massWeek = currentWeek;
-  const techWeek = computeCurrentWeek(TECH_PLUS_START, 8, 2);
-  const techStarted = new Date() >= new Date(TECH_PLUS_START);
+  // Compute current week per track
+  const now = new Date();
+  const trackStates = program.tracks.map((track) => {
+    const started = now >= new Date(track.startDate);
+    const currentWeek = started
+      ? computeCurrentWeek(track.startDate, track.totalWeeks, track.lastSessionDayOffset)
+      : 0;
+    return { track, started, currentWeek };
+  });
 
-  const completedWeeks = massWeek - 1;
-  const totalProgramWeeks = 8; // MASS is the longer track
+  // Progress: based on the longest weekly track
+  const weeklyTracks = trackStates.filter((t) => t.track.type === "weekly");
+  const longestTrack = weeklyTracks.reduce<typeof trackStates[0] | null>(
+    (best, t) => (!best || t.track.totalWeeks > best.track.totalWeeks ? t : best),
+    null
+  );
+  const completedWeeks = longestTrack ? Math.max(0, longestTrack.currentWeek - 1) : 0;
+  const totalProgramWeeks = longestTrack?.track.totalWeeks ?? 8;
   const pct = Math.round((completedWeeks / totalProgramWeeks) * 100);
+  const progressWeek = longestTrack?.currentWeek ?? 1;
 
   if (noCohort) {
     return (
@@ -122,7 +112,7 @@ export default async function DashboardPage() {
         </div>
         <div className="rounded-xl border border-neutral-200 bg-white p-6 sm:p-8 text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-neutral-100 text-2xl">
-            🏈
+            {program.tracks[0]?.weekSummaries[0]?.icon ?? "📚"}
           </div>
           <h2 className="mt-4 text-lg font-semibold text-neutral-900">
             Hang tight!
@@ -140,7 +130,7 @@ export default async function DashboardPage() {
       {needsOnboarding ? (
         <OnboardingForm defaultFirstName={firstName} defaultLastName={lastName} />
       ) : (
-        <WelcomeOverlay firstName={firstName} />
+        <WelcomeOverlay firstName={firstName} program={program} />
       )}
 
       {/* Welcome header */}
@@ -159,7 +149,7 @@ export default async function DashboardPage() {
               Your Progress
             </p>
             <p className="text-xs text-neutral-500">
-              Week {massWeek} of {totalProgramWeeks}
+              Week {progressWeek} of {totalProgramWeeks}
             </p>
           </div>
           <span className="text-2xl font-bold text-neutral-900">{pct}%</span>
@@ -173,183 +163,172 @@ export default async function DashboardPage() {
       </div>
 
       {/* Welcome Video */}
-      <WelcomeVideo />
+      {program.welcomeVideo && (
+        <WelcomeVideo
+          videoSrc={program.welcomeVideo}
+          title={`Welcome to ${program.name}`}
+          presenter={program.welcomeVideoPresenter}
+        />
+      )}
 
+      {/* Track sections */}
+      {trackStates.map(({ track, started, currentWeek }) =>
+        track.type === "single-event" ? (
+          <SingleEventCard key={track.slug} track={track} />
+        ) : (
+          <WeeklyTrackGrid
+            key={track.slug}
+            track={track}
+            started={started}
+            currentWeek={currentWeek}
+          />
+        )
+      )}
+    </div>
+  );
+}
 
-      {/* MASS Wraparound — Soft Skills */}
-      <div>
-        <div className="flex items-center justify-between mb-1">
-          <h2 className="text-lg font-semibold text-neutral-900">
-            MASS Wraparound
-          </h2>
+function WeeklyTrackGrid({
+  track,
+  started,
+  currentWeek,
+}: {
+  track: TrackConfig;
+  started: boolean;
+  currentWeek: number;
+}) {
+  const startDate = new Date(track.startDate);
+  const startLabel = startDate.toLocaleDateString("en-US", { month: "long", day: "numeric" });
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <h2 className="text-lg font-semibold text-neutral-900">
+          {track.name}
+        </h2>
+        {started ? (
           <span className="inline-flex items-center gap-1 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-semibold text-white">
             <span className="h-1 w-1 rounded-full bg-white animate-pulse" />
             Active
           </span>
-        </div>
-        <p className="text-xs text-neutral-400 mb-4">
-          8-week coaching · Mindset & Soft Skills · with Angel Aviles
-        </p>
+        ) : (
+          <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+            Starts {startLabel}
+          </span>
+        )}
+      </div>
+      <p className="text-xs text-neutral-400 mb-4">
+        {track.totalWeeks}-week {track.sessionsPerWeek > 1 ? "course" : "coaching"}
+        {started ? ` · Week ${currentWeek} of ${track.totalWeeks}` : ` · with ${track.instructor}`}
+      </p>
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {MASS_WEEKS.map(({ week, topic, icon }) => {
-            const isCompleted = week < massWeek;
-            const isCurrent = week === massWeek;
-            const isFuture = week > massWeek;
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        {track.weekSummaries.map(({ week, topic, icon }) => {
+          const isCompleted = started && week < currentWeek;
+          const isCurrent = started && week === currentWeek;
+          const isFuture = !started || week > currentWeek;
 
-            return (
-              <Link
-                key={week}
-                href={`/dashboard/mass/${week}`}
-                className={`group relative flex flex-col items-center rounded-xl border p-3 sm:p-5 text-center transition-all ${
-                  isCurrent
-                    ? "border-neutral-900 bg-white shadow-sm"
-                    : isCompleted
-                      ? "border-neutral-200 bg-white hover:border-neutral-300"
-                      : "border-neutral-100 bg-neutral-50 hover:border-neutral-200"
+          return (
+            <Link
+              key={week}
+              href={`/dashboard/track/${track.slug}/${week}`}
+              className={`group relative flex flex-col items-center rounded-xl border p-3 sm:p-5 text-center transition-all ${
+                isCurrent
+                  ? "border-neutral-900 bg-white shadow-sm"
+                  : isCompleted
+                    ? "border-neutral-200 bg-white hover:border-neutral-300"
+                    : "border-neutral-100 bg-neutral-50 hover:border-neutral-200"
+              }`}
+            >
+              <div
+                className={`relative flex h-11 w-11 sm:h-14 sm:w-14 items-center justify-center rounded-full text-2xl ${
+                  isCompleted
+                    ? "bg-green-50"
+                    : isCurrent
+                      ? "bg-neutral-900"
+                      : "bg-neutral-100"
                 }`}
               >
-                <div
-                  className={`relative flex h-11 w-11 sm:h-14 sm:w-14 items-center justify-center rounded-full text-2xl ${
-                    isCompleted
-                      ? "bg-green-50"
-                      : isCurrent
-                        ? "bg-neutral-900"
-                        : "bg-neutral-100"
-                  }`}
-                >
-                  {isFuture ? (
-                    <span className="text-lg grayscale opacity-40">{icon}</span>
-                  ) : (
-                    <span className={isCurrent ? "text-lg" : ""}>{icon}</span>
-                  )}
-
-                  {isCompleted && (
-                    <div className="absolute -top-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-green-500">
-                      <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                      </svg>
-                    </div>
-                  )}
-                </div>
-
-                {isCurrent && (
-                  <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-semibold text-white">
-                    <span className="h-1 w-1 rounded-full bg-white animate-pulse" />
-                    This Week
-                  </span>
+                {isFuture ? (
+                  <span className="text-lg grayscale opacity-40">{icon}</span>
+                ) : (
+                  <span className={isCurrent ? "text-lg" : ""}>{icon}</span>
                 )}
 
-                <p
-                  className={`mt-2 text-xs font-medium leading-tight ${
-                    isFuture ? "text-neutral-300" : "text-neutral-700"
-                  }`}
-                >
-                  {topic}
-                </p>
-                <p
-                  className={`mt-0.5 text-[10px] ${
-                    isFuture ? "text-neutral-200" : "text-neutral-400"
-                  }`}
-                >
-                  Week {week}
-                </p>
-              </Link>
-            );
-          })}
-        </div>
-      </div>
+                {isCompleted && (
+                  <div className="absolute -top-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-green-500">
+                    <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                  </div>
+                )}
+              </div>
 
-      {/* CompTIA Tech+ — Current course */}
-      <div>
-        <div className="flex items-center justify-between mb-1">
-          <h2 className="text-lg font-semibold text-neutral-900">
-            CompTIA Tech+ Foundations
-          </h2>
-          {techStarted ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-semibold text-white">
-              <span className="h-1 w-1 rounded-full bg-white animate-pulse" />
-              Active
-            </span>
-          ) : (
-            <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
-              Starts April 1
-            </span>
-          )}
-        </div>
-        <p className="text-xs text-neutral-400 mb-4">
-          8-week certification course{techStarted ? ` · Week ${techWeek} of 8` : " · with Kobie Joyner"}
-        </p>
+              {isCurrent && (
+                <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-semibold text-white">
+                  <span className="h-1 w-1 rounded-full bg-white animate-pulse" />
+                  This Week
+                </span>
+              )}
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {TECH_WEEKS.map(({ week, topic, icon }) => {
-            const isCompleted = techStarted && week < techWeek;
-            const isCurrent = techStarted && week === techWeek;
-            const isFuture = !techStarted || week > techWeek;
-
-            return (
-              <Link
-                key={week}
-                href={`/dashboard/techplus/${week}`}
-                className={`group relative flex flex-col items-center rounded-xl border p-3 sm:p-5 text-center transition-all ${
-                  isCurrent
-                    ? "border-neutral-900 bg-white shadow-sm"
-                    : isCompleted
-                      ? "border-neutral-200 bg-white hover:border-neutral-300"
-                      : "border-neutral-100 bg-neutral-50 hover:border-neutral-200"
+              <p
+                className={`mt-2 text-xs font-medium leading-tight ${
+                  isFuture ? "text-neutral-300" : "text-neutral-700"
                 }`}
               >
-                <div
-                  className={`relative flex h-11 w-11 sm:h-14 sm:w-14 items-center justify-center rounded-full text-2xl ${
-                    isCompleted
-                      ? "bg-green-50"
-                      : isCurrent
-                        ? "bg-neutral-900"
-                        : "bg-neutral-100"
-                  }`}
-                >
-                  {isFuture ? (
-                    <span className="text-lg grayscale opacity-40">{icon}</span>
-                  ) : (
-                    <span className={isCurrent ? "text-lg" : ""}>{icon}</span>
-                  )}
-
-                  {isCompleted && (
-                    <div className="absolute -top-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-green-500">
-                      <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                      </svg>
-                    </div>
-                  )}
-                </div>
-
-                {isCurrent && (
-                  <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-semibold text-white">
-                    <span className="h-1 w-1 rounded-full bg-white animate-pulse" />
-                    This Week
-                  </span>
-                )}
-
-                <p
-                  className={`mt-2 text-xs font-medium leading-tight ${
-                    isFuture ? "text-neutral-300" : "text-neutral-700"
-                  }`}
-                >
-                  {topic}
-                </p>
-                <p
-                  className={`mt-0.5 text-[10px] ${
-                    isFuture ? "text-neutral-200" : "text-neutral-400"
-                  }`}
-                >
-                  Week {week}
-                </p>
-              </Link>
-            );
-          })}
-        </div>
+                {topic}
+              </p>
+              <p
+                className={`mt-0.5 text-[10px] ${
+                  isFuture ? "text-neutral-200" : "text-neutral-400"
+                }`}
+              >
+                Week {week}
+              </p>
+            </Link>
+          );
+        })}
       </div>
+    </div>
+  );
+}
 
+function SingleEventCard({ track }: { track: TrackConfig }) {
+  const eventDate = new Date(track.startDate);
+  const dateStr = eventDate.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+  const session = track.weeks[0]?.sessions[0];
+  const isPast = new Date() > eventDate;
+
+  return (
+    <div className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="text-lg font-semibold text-neutral-900">{track.name}</h2>
+        {isPast ? (
+          <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-semibold text-green-600">
+            Completed
+          </span>
+        ) : (
+          <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+            Upcoming
+          </span>
+        )}
+      </div>
+      <p className="text-xs text-neutral-400 mb-3">
+        {dateStr} · with {track.instructor}
+      </p>
+      {session && (
+        <p className="text-sm text-neutral-600 mb-3">{session.time}</p>
+      )}
+      <Link
+        href={`/dashboard/track/${track.slug}/1`}
+        className="inline-flex items-center gap-1.5 rounded-lg bg-neutral-900 text-white text-xs font-semibold px-4 py-2.5 transition-colors hover:bg-neutral-800"
+      >
+        View Details
+      </Link>
     </div>
   );
 }

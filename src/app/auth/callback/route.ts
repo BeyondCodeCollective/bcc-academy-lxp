@@ -2,20 +2,13 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { createServiceClient } from "@/lib/supabase/server";
+import { getProgram } from "@/lib/programs/server";
 
 // Emails that get admin role on first login (comma-separated env var)
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "")
   .split(",")
   .map((e) => e.trim().toLowerCase())
   .filter(Boolean);
-
-// Default cohort — auto-created if no cohorts exist
-const DEFAULT_COHORT = {
-  name: "cohort-1-techplus",
-  display_name: "Cohort 1 — CompTIA Tech+ Foundations",
-  start_date: "2026-03-24",
-  total_weeks: 8,
-};
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -25,6 +18,7 @@ export async function GET(request: Request) {
 
   if (code || token_hash) {
     const cookieStore = await cookies();
+    const program = await getProgram();
 
     // Auth client — handles session exchange and cookie management
     const supabase = createServerClient(
@@ -65,6 +59,14 @@ export async function GET(request: Request) {
       } = await supabase.auth.getUser();
 
       if (user) {
+        // Use program-specific default cohort
+        const defaultCohort = {
+          name: program.defaultCohort.name,
+          display_name: program.defaultCohort.displayName,
+          start_date: program.defaultCohort.startDate,
+          total_weeks: program.defaultCohort.totalWeeks,
+        };
+
         // Ensure at least one cohort exists
         const { data: cohort, error: cohortQueryErr } = await admin
           .from("cohorts")
@@ -82,7 +84,7 @@ export async function GET(request: Request) {
         if (!cohortId) {
           const { data: newCohort, error: cohortInsertErr } = await admin
             .from("cohorts")
-            .insert(DEFAULT_COHORT)
+            .insert(defaultCohort)
             .select("id")
             .single();
 

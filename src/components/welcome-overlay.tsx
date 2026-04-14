@@ -2,24 +2,25 @@
 
 import { useState, useEffect } from "react";
 import { X, Monitor } from "lucide-react";
-
-const STORAGE_KEY = "atg-welcome-seen";
+import type { ProgramConfig } from "@/lib/programs/types";
 
 interface Props {
   firstName: string;
+  program: ProgramConfig;
 }
 
-export function WelcomeOverlay({ firstName }: Props) {
+export function WelcomeOverlay({ firstName, program }: Props) {
+  const storageKey = `${program.slug}-welcome-seen`;
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    if (!localStorage.getItem(STORAGE_KEY)) {
+    if (!localStorage.getItem(storageKey)) {
       setVisible(true);
     }
-  }, []);
+  }, [storageKey]);
 
   function dismiss() {
-    localStorage.setItem(STORAGE_KEY, "1");
+    localStorage.setItem(storageKey, "1");
     setVisible(false);
   }
 
@@ -43,40 +44,30 @@ export function WelcomeOverlay({ firstName }: Props) {
             <Monitor size={28} className="text-white" />
           </div>
           <h2 className="text-xl font-bold text-neutral-900">
-            Welcome to After The Game, {firstName}!
+            Welcome to {program.name}, {firstName}!
           </h2>
           <p className="mt-2 text-sm text-neutral-500">
-            Your portal for Cohort 1. Here&apos;s what you&apos;re signed up for.
+            Here&apos;s what you&apos;re signed up for.
           </p>
         </div>
 
-        {/* Two tracks */}
+        {/* Tracks */}
         <div className="space-y-3 mb-6">
-          {/* MASS */}
-          <div className="flex gap-3 rounded-xl border border-neutral-200 bg-neutral-50 p-3.5">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-neutral-900 text-lg">
-              🎙️
+          {program.tracks.map((track) => (
+            <div key={track.slug} className="flex gap-3 rounded-xl border border-neutral-200 bg-neutral-50 p-3.5">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-neutral-900 text-lg">
+                {track.weekSummaries[0]?.icon ?? "📚"}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-neutral-900">{track.name}</p>
+                <p className="text-xs text-neutral-500 mt-0.5">
+                  {track.type === "single-event"
+                    ? `Single event · ${track.sessionTimes[0] ?? ""} · ${track.instructor}`
+                    : `${track.totalWeeks} weeks · ${track.sessionTimes.join(" & ")} · ${track.instructor}`}
+                </p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-neutral-900">MASS Wraparound</p>
-              <p className="text-xs text-neutral-500 mt-0.5">
-                8 weeks &middot; Tuesdays 10–11am ET &middot; Angel Aviles
-              </p>
-            </div>
-          </div>
-
-          {/* Tech+ */}
-          <div className="flex gap-3 rounded-xl border border-neutral-200 bg-neutral-50 p-3.5">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-lg">
-              💻
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-neutral-900">CompTIA Tech+ Foundations</p>
-              <p className="text-xs text-neutral-500 mt-0.5">
-                8 weeks &middot; Wed &amp; Fri 10am–12pm ET &middot; Kobie Joyner
-              </p>
-            </div>
-          </div>
+          ))}
         </div>
 
         {/* Quick tips */}

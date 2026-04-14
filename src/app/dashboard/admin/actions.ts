@@ -139,7 +139,7 @@ export type SessionContentRow = {
  * Uses the service role client so it bypasses RLS.
  */
 export async function saveSessionContent(
-  track: "mass" | "techplus",
+  track: string,
   weekNumber: number,
   data: SessionContentData
 ) {
@@ -173,9 +173,7 @@ export async function saveSessionContent(
   }
 
   // Bust cached pages so students see the new meeting link / recording immediately
-  revalidatePath(`/dashboard/mass`, "page");
-  revalidatePath(`/dashboard/techplus`, "page");
-  revalidatePath(`/dashboard/${track}/${weekNumber}`, "page");
+  revalidatePath(`/dashboard/track/${track}/${weekNumber}`, "page");
   revalidatePath("/dashboard", "page");
 
   return { success: true };
@@ -186,7 +184,7 @@ export async function saveSessionContent(
  * server components regardless of the viewer's auth state.
  */
 export async function getSessionContent(
-  track: "mass" | "techplus",
+  track: string,
   weekNumber: number
 ): Promise<SessionContentRow | null> {
   const svc = createServiceClient();
@@ -209,7 +207,7 @@ export async function getSessionContent(
  * Used by the admin panel and the API route that feeds the client component.
  */
 export async function getAllSessionContent(
-  track: "mass" | "techplus"
+  track: string
 ): Promise<SessionContentRow[]> {
   const svc = createServiceClient();
   const { data, error } = await svc
