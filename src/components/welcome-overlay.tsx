@@ -2,14 +2,16 @@
 
 import { useState, useEffect } from "react";
 import { X, Monitor } from "lucide-react";
-import type { ProgramConfig } from "@/lib/programs/types";
+import type { ProgramConfig, TrackConfig } from "@/lib/programs/types";
 
 interface Props {
   firstName: string;
   program: ProgramConfig;
+  visibleTracks?: TrackConfig[];
 }
 
-export function WelcomeOverlay({ firstName, program }: Props) {
+export function WelcomeOverlay({ firstName, program, visibleTracks }: Props) {
+  const tracks = visibleTracks ?? program.tracks;
   const storageKey = `${program.slug}-welcome-seen`;
   const [visible, setVisible] = useState(false);
 
@@ -53,7 +55,7 @@ export function WelcomeOverlay({ firstName, program }: Props) {
 
         {/* Tracks */}
         <div className="space-y-3 mb-6">
-          {program.tracks.map((track) => (
+          {tracks.map((track) => (
             <div key={track.slug} className="flex gap-3 rounded-xl border border-neutral-200 bg-neutral-50 p-3.5">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-neutral-900 text-lg">
                 {track.weekSummaries[0]?.icon ?? "📚"}

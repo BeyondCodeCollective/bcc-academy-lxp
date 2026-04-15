@@ -287,12 +287,12 @@ Guidelines:
   },
   coppa: { required: false },
   seo: {
-    title: "The Forge — AI Skills Training by Beyond Code Collective",
+    title: "The Forge — Where Innovation Meets Community",
     description:
-      "The Forge teaches AI fundamentals, prompt engineering, and automation skills. From beginners to builders — powered by Beyond Code Collective.",
-    ogTitle: "The Forge — AI Skills Training",
+      "The Forge by Beyond Code Collective — where innovation meets community. AI fundamentals, prompt engineering, and automation skills training.",
+    ogTitle: "The Forge — Where Innovation Meets Community",
     ogDescription:
-      "Learn AI fundamentals, prompt engineering, and automation with hands-on training.",
+      "The Forge by Beyond Code Collective — where innovation meets community.",
   },
   organization: "Beyond Code Collective",
 };

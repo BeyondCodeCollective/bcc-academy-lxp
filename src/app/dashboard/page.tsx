@@ -146,7 +146,7 @@ export default async function DashboardPage() {
       {needsOnboarding ? (
         <OnboardingForm defaultFirstName={firstName} defaultLastName={lastName} />
       ) : (
-        <WelcomeOverlay firstName={firstName} program={program} />
+        <WelcomeOverlay firstName={firstName} program={program} visibleTracks={visibleTracks} />
       )}
 
       {/* Welcome header */}
