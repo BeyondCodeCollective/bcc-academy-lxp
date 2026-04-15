@@ -4,25 +4,19 @@ import { useState } from "react";
 import {
   FileText,
   BookOpen,
-  Video,
+  VideoCamera,
   Briefcase,
-  ChevronDown,
+  CaretDown,
   X,
-} from "lucide-react";
+} from "@phosphor-icons/react";
 import type { Resource } from "@/lib/types";
+import { CATEGORY_LABELS } from "@/lib/utils";
 
 const CATEGORY_ICONS: Record<string, typeof FileText> = {
   course_materials: BookOpen,
-  recordings: Video,
+  recordings: VideoCamera,
   career_prep: Briefcase,
   program_info: FileText,
-};
-
-const CATEGORY_LABELS: Record<string, string> = {
-  course_materials: "Course Materials",
-  recordings: "Recordings",
-  career_prep: "Career Prep",
-  program_info: "Program Info",
 };
 
 const CATEGORY_ORDER = [
@@ -62,7 +56,7 @@ export function ResourceList({
           return (
             <div key={cat}>
               <div className="flex items-center gap-2 mb-3">
-                <Icon size={14} className="text-neutral-400" />
+                <Icon size={14} weight="bold" className="text-neutral-400" />
                 <h2 className="text-xs font-semibold text-neutral-400 uppercase tracking-wide">
                   {CATEGORY_LABELS[cat] || cat}
                 </h2>
@@ -85,13 +79,14 @@ export function ResourceList({
                         {resource.title}
                       </p>
                       {resource.description && (
-                        <p className="mt-0.5 text-xs text-neutral-400 truncate">
+                        <p className="mt-0.5 text-xs text-neutral-500 truncate">
                           {resource.description}
                         </p>
                       )}
                     </div>
-                    <ChevronDown
+                    <CaretDown
                       size={16}
+                      weight="bold"
                       className={`shrink-0 text-neutral-400 transition-transform ${
                         openId === resource.id ? "rotate-180" : ""
                       }`}
@@ -113,7 +108,7 @@ export function ResourceList({
                 {openResource.title}
               </p>
               {openResource.description && (
-                <p className="mt-0.5 text-sm text-neutral-400">
+                <p className="mt-0.5 text-sm text-neutral-500">
                   {openResource.description}
                 </p>
               )}
@@ -122,7 +117,7 @@ export function ResourceList({
               onClick={() => setOpenId(null)}
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-neutral-400 hover:bg-neutral-200 hover:text-neutral-700 transition-colors"
             >
-              <X size={16} />
+              <X size={16} weight="bold" />
             </button>
           </div>
           <div className="prose prose-sm prose-neutral max-w-none">

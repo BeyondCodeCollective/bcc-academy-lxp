@@ -5,20 +5,24 @@ import { getDemoUser, DEMO_COOKIE } from "@/lib/demo-users";
 import { Nav } from "@/components/nav";
 import { TutorFab } from "@/components/tutor-fab";
 import type { Student } from "@/lib/types";
+import { getProgram } from "@/lib/programs/server";
+import { ProgramProvider } from "@/lib/programs/context";
 
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const program = await getProgram();
   let isAdmin = false;
 
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
     const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) redirect("/");
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session?.user) redirect("/");
+    const user = session.user;
 
     const { data: student } = await supabase
       .from("students")
@@ -28,7 +32,6 @@ export default async function DashboardLayout({
 
     isAdmin = student?.role === "admin";
   } else {
-    // Demo mode — check cookie
     const cookieStore = await cookies();
     const demoEmail = cookieStore.get(DEMO_COOKIE)?.value;
 
@@ -38,11 +41,13 @@ export default async function DashboardLayout({
     isAdmin = user?.role === "admin" || false;
   }
 
+  const showTutor = program.tutorConfig?.enabled !== false;
+
   return (
-    <>
-      <Nav isAdmin={isAdmin} />
-      <div className="flex-1">{children}</div>
-      <TutorFab />
-    </>
+    <ProgramProvider program={program}>
+      <Nav isAdmin={isAdmin} logo={program.logo} programName={program.name} showTutor={showTutor} />
+      <main className="flex-1 bg-stone-50">{children}</main>
+      {showTutor && <TutorFab />}
+    </ProgramProvider>
   );
 }

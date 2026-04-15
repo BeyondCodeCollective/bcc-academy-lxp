@@ -8,6 +8,10 @@ export type Student = {
   avatar_url: string | null;
   role: "student" | "admin";
   cohort_id: string | null;
+  location: string | null;
+  date_of_birth: string | null;
+  education_level: string | null;
+  onboarding_completed: boolean;
   created_at: string;
 };
 

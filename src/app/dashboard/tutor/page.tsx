@@ -93,7 +93,7 @@ export default function TutorPage() {
       <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-4">
         <div>
           <h1 className="text-lg font-semibold text-neutral-900">AI Tutor</h1>
-          <p className="text-xs text-neutral-400">
+          <p className="text-xs text-neutral-500">
             Your CompTIA Tech+ study companion
           </p>
         </div>

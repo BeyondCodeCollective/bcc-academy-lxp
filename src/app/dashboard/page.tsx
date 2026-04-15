@@ -4,42 +4,40 @@ import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { getDemoUser, DEMO_COOKIE } from "@/lib/demo-users";
 import { computeCurrentWeek } from "@/lib/utils";
 import Link from "next/link";
-import type { Student, Cohort } from "@/lib/types";
-
-const WEEKS: { week: number; topic: string; icon: string }[] = [
-  { week: 1, topic: "Storytelling + IT Fundamentals", icon: "💻" },
-  { week: 2, topic: "Networking + Devices & OS", icon: "🖥️" },
-  { week: 3, topic: "Self-Advocacy + Networking", icon: "🌐" },
-  { week: 4, topic: "Guest Speaker + Cybersecurity", icon: "🔒" },
-  { week: 5, topic: "Planning + Software & Data", icon: "🗄️" },
-  { week: 6, topic: "Guest Speaker + Cloud & Support", icon: "☁️" },
-  { week: 7, topic: "Financial Confidence + Cert Review", icon: "🏆" },
-];
+import type { Cohort } from "@/lib/types";
+import { WelcomeVideo } from "@/components/welcome-video";
+import { WelcomeOverlay } from "@/components/welcome-overlay";
+import { OnboardingForm } from "@/components/onboarding-form";
+import { getProgram } from "@/lib/programs/server";
+import type { TrackConfig } from "@/lib/programs/types";
 
 export default async function DashboardPage() {
+  const program = await getProgram();
+
   let firstName = "there";
-  let cohortName = "Cohort 1 — CompTIA Tech+ Foundations";
-  let currentWeek = 1;
-  let totalWeeks = 7;
+  let lastName = "";
+  let cohortName = program.defaultCohort.displayName;
+  let cohortStartDate = program.defaultCohort.startDate;
   let noCohort = false;
+  let needsOnboarding = false;
 
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
 
     const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) redirect("/");
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session?.user) redirect("/");
 
     const { data: student } = await supabase
       .from("students")
-      .select("first_name, cohort_id")
-      .eq("id", user.id)
-      .single<Pick<Student, "first_name" | "cohort_id">>();
+      .select("first_name, last_name, onboarding_completed, cohort_id, cohorts(id, name, display_name, start_date, total_weeks)")
+      .eq("id", session.user.id)
+      .single();
 
     let cohortId = student?.cohort_id;
+    const cohort = (student as Record<string, unknown>)?.cohorts as Cohort | null;
 
-    // Auto-assign to first cohort if not yet assigned
     if (!cohortId) {
       const { data: defaultCohort } = await supabase
         .from("cohorts")
@@ -52,30 +50,21 @@ export default async function DashboardPage() {
         await supabase
           .from("students")
           .update({ cohort_id: defaultCohort.id })
-          .eq("id", user.id);
+          .eq("id", session.user.id);
         cohortId = defaultCohort.id;
       }
     }
 
-    if (cohortId) {
-      const { data: cohort } = await supabase
-        .from("cohorts")
-        .select("*")
-        .eq("id", cohortId)
-        .single<Cohort>();
-
-      if (cohort) {
-        cohortName = cohort.display_name || cohort.name;
-        currentWeek = computeCurrentWeek(cohort.start_date, cohort.total_weeks);
-        totalWeeks = cohort.total_weeks;
-      } else {
-        noCohort = true;
-      }
-    } else {
+    if (cohort) {
+      cohortName = cohort.display_name || cohort.name;
+      cohortStartDate = cohort.start_date;
+    } else if (!cohortId) {
       noCohort = true;
     }
 
     firstName = student?.first_name || "there";
+    lastName = student?.last_name || "";
+    needsOnboarding = !student?.onboarding_completed;
   } else {
     const cookieStore = await cookies();
     const demoEmail = cookieStore.get(DEMO_COOKIE)?.value;
@@ -84,29 +73,46 @@ export default async function DashboardPage() {
       if (demoUser) {
         firstName = demoUser.first_name;
       } else {
-        // Unknown email — use the part before @ as a name
         firstName = demoEmail.split("@")[0].replace(/[._-]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
       }
     }
   }
 
-  const completedWeeks = currentWeek - 1;
-  const pct = Math.round((completedWeeks / totalWeeks) * 100);
+  // Compute current week per track
+  const now = new Date();
+  const trackStates = program.tracks.map((track) => {
+    const started = now >= new Date(track.startDate);
+    const currentWeek = started
+      ? computeCurrentWeek(track.startDate, track.totalWeeks, track.lastSessionDayOffset)
+      : 0;
+    return { track, started, currentWeek };
+  });
+
+  // Progress: based on the longest weekly track
+  const weeklyTracks = trackStates.filter((t) => t.track.type === "weekly");
+  const longestTrack = weeklyTracks.reduce<typeof trackStates[0] | null>(
+    (best, t) => (!best || t.track.totalWeeks > best.track.totalWeeks ? t : best),
+    null
+  );
+  const completedWeeks = longestTrack ? Math.max(0, longestTrack.currentWeek - 1) : 0;
+  const totalProgramWeeks = longestTrack?.track.totalWeeks ?? 8;
+  const pct = Math.round((completedWeeks / totalProgramWeeks) * 100);
+  const progressWeek = longestTrack?.currentWeek ?? 1;
 
   if (noCohort) {
     return (
-      <div className="mx-auto w-full max-w-2xl space-y-6 px-5 py-8">
+      <div className="mx-auto w-full max-w-2xl space-y-6 px-4 sm:px-5 py-8">
         <div>
           <h1 className="text-2xl font-bold text-neutral-900">
             Welcome, {firstName}
           </h1>
           <p className="mt-1 text-sm text-neutral-500">
-            You&apos;re signed in — your cohort hasn&apos;t started yet.
+            You&apos;re signed in &mdash; your cohort hasn&apos;t started yet.
           </p>
         </div>
-        <div className="rounded-xl border border-neutral-200 bg-white p-8 text-center">
+        <div className="rounded-xl border border-neutral-200 bg-white p-6 sm:p-8 text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-neutral-100 text-2xl">
-            🏈
+            {program.tracks[0]?.weekSummaries[0]?.icon ?? "📚"}
           </div>
           <h2 className="mt-4 text-lg font-semibold text-neutral-900">
             Hang tight!
@@ -120,7 +126,13 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-10 px-5 py-8">
+    <div className="mx-auto w-full max-w-2xl space-y-8 sm:space-y-10 px-4 sm:px-5 py-8">
+      {needsOnboarding ? (
+        <OnboardingForm defaultFirstName={firstName} defaultLastName={lastName} />
+      ) : (
+        <WelcomeOverlay firstName={firstName} program={program} />
+      )}
+
       {/* Welcome header */}
       <div>
         <h1 className="text-2xl font-bold text-neutral-900">
@@ -130,14 +142,14 @@ export default async function DashboardPage() {
       </div>
 
       {/* Progress summary */}
-      <div className="rounded-xl border border-neutral-200 bg-white p-5">
+      <div className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
         <div className="flex items-center justify-between mb-3">
           <div>
             <p className="text-sm font-semibold text-neutral-900">
               Your Progress
             </p>
-            <p className="text-xs text-neutral-400">
-              {completedWeeks} of {totalWeeks} weeks completed
+            <p className="text-xs text-neutral-500">
+              Week {progressWeek} of {totalProgramWeeks}
             </p>
           </div>
           <span className="text-2xl font-bold text-neutral-900">{pct}%</span>
@@ -151,182 +163,172 @@ export default async function DashboardPage() {
       </div>
 
       {/* Welcome Video */}
-      <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white">
-        <div className="flex justify-center w-full bg-neutral-900">
-          <video
-            src="/atg-intro.mp4"
-            controls
-            playsInline
-            preload="metadata"
-            poster=""
-            className="w-full max-h-[480px] object-contain"
+      {program.welcomeVideo && (
+        <WelcomeVideo
+          videoSrc={program.welcomeVideo}
+          title={`Welcome to ${program.name}`}
+          presenter={program.welcomeVideoPresenter}
+        />
+      )}
+
+      {/* Track sections */}
+      {trackStates.map(({ track, started, currentWeek }) =>
+        track.type === "single-event" ? (
+          <SingleEventCard key={track.slug} track={track} />
+        ) : (
+          <WeeklyTrackGrid
+            key={track.slug}
+            track={track}
+            started={started}
+            currentWeek={currentWeek}
           />
-        </div>
-        <div className="px-5 py-4">
-          <p className="text-sm font-semibold text-neutral-900">
-            Welcome to After The Game
-          </p>
-          <p className="mt-0.5 text-xs text-neutral-400">
-            A message from Ramon Clemente
-          </p>
-        </div>
-      </div>
+        )
+      )}
+    </div>
+  );
+}
 
-      {/* Getting Started */}
-      <div>
-        <h2 className="text-lg font-semibold text-neutral-900 mb-4">
-          Getting Started
+function WeeklyTrackGrid({
+  track,
+  started,
+  currentWeek,
+}: {
+  track: TrackConfig;
+  started: boolean;
+  currentWeek: number;
+}) {
+  const startDate = new Date(track.startDate);
+  const startLabel = startDate.toLocaleDateString("en-US", { month: "long", day: "numeric" });
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <h2 className="text-lg font-semibold text-neutral-900">
+          {track.name}
         </h2>
-        <div className="grid grid-cols-2 gap-3">
-          {[
-            { title: "MASS Kickoff", subtitle: "with Angel Aviles", icon: "🚀", sessionId: "demo-w1-s1" },
-            { title: "MASS Overview", subtitle: "Clarity · Courage · Confidence", icon: "🎯", sessionId: "demo-w1-s2" },
-          ].map((item) => (
-            <Link
-              key={item.title}
-              href={`/dashboard/schedule/${item.sessionId}`}
-              className="flex flex-col items-center rounded-xl border border-neutral-200 bg-white p-5 text-center transition-all hover:border-neutral-300 hover:shadow-sm"
-            >
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-neutral-100 text-2xl">
-                {item.icon}
-              </div>
-              <p className="mt-3 text-xs font-medium text-neutral-700">
-                {item.title}
-              </p>
-              <p className="mt-0.5 text-[10px] text-neutral-400">
-                {item.subtitle}
-              </p>
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      {/* CompTIA Tech+ — Current course */}
-      <div>
-        <div className="flex items-center justify-between mb-1">
-          <h2 className="text-lg font-semibold text-neutral-900">
-            CompTIA Tech+ Foundations
-          </h2>
+        {started ? (
           <span className="inline-flex items-center gap-1 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-semibold text-white">
             <span className="h-1 w-1 rounded-full bg-white animate-pulse" />
             Active
           </span>
-        </div>
-        <p className="text-xs text-neutral-400 mb-4">
-          7-week certification course · {completedWeeks} / {totalWeeks} complete
-        </p>
+        ) : (
+          <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+            Starts {startLabel}
+          </span>
+        )}
+      </div>
+      <p className="text-xs text-neutral-400 mb-4">
+        {track.totalWeeks}-week {track.sessionsPerWeek > 1 ? "course" : "coaching"}
+        {started ? ` · Week ${currentWeek} of ${track.totalWeeks}` : ` · with ${track.instructor}`}
+      </p>
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {WEEKS.map(({ week, topic, icon }) => {
-            const isCompleted = week < currentWeek;
-            const isCurrent = week === currentWeek;
-            const isFuture = week > currentWeek;
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        {track.weekSummaries.map(({ week, topic, icon }) => {
+          const isCompleted = started && week < currentWeek;
+          const isCurrent = started && week === currentWeek;
+          const isFuture = !started || week > currentWeek;
 
-            return (
-              <Link
-                key={week}
-                href={`/dashboard/schedule?week=${week}`}
-                className={`group relative flex flex-col items-center rounded-xl border p-5 text-center transition-all ${
-                  isCurrent
-                    ? "border-neutral-900 bg-white shadow-sm"
-                    : isCompleted
-                      ? "border-neutral-200 bg-white hover:border-neutral-300"
-                      : "border-neutral-100 bg-neutral-50 hover:border-neutral-200"
+          return (
+            <Link
+              key={week}
+              href={`/dashboard/track/${track.slug}/${week}`}
+              className={`group relative flex flex-col items-center rounded-xl border p-3 sm:p-5 text-center transition-all ${
+                isCurrent
+                  ? "border-neutral-900 bg-white shadow-sm"
+                  : isCompleted
+                    ? "border-neutral-200 bg-white hover:border-neutral-300"
+                    : "border-neutral-100 bg-neutral-50 hover:border-neutral-200"
+              }`}
+            >
+              <div
+                className={`relative flex h-11 w-11 sm:h-14 sm:w-14 items-center justify-center rounded-full text-2xl ${
+                  isCompleted
+                    ? "bg-green-50"
+                    : isCurrent
+                      ? "bg-neutral-900"
+                      : "bg-neutral-100"
                 }`}
               >
-                <div
-                  className={`relative flex h-14 w-14 items-center justify-center rounded-full text-2xl ${
-                    isCompleted
-                      ? "bg-green-50"
-                      : isCurrent
-                        ? "bg-neutral-900"
-                        : "bg-neutral-100"
-                  }`}
-                >
-                  {isFuture ? (
-                    <span className="text-lg grayscale opacity-40">{icon}</span>
-                  ) : (
-                    <span className={isCurrent ? "text-lg" : ""}>{icon}</span>
-                  )}
-
-                  {isCompleted && (
-                    <div className="absolute -top-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-green-500">
-                      <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                      </svg>
-                    </div>
-                  )}
-                </div>
-
-                {isCurrent && (
-                  <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-semibold text-white">
-                    <span className="h-1 w-1 rounded-full bg-white animate-pulse" />
-                    This Week
-                  </span>
+                {isFuture ? (
+                  <span className="text-lg grayscale opacity-40">{icon}</span>
+                ) : (
+                  <span className={isCurrent ? "text-lg" : ""}>{icon}</span>
                 )}
 
-                <p
-                  className={`mt-2 text-xs font-medium leading-tight ${
-                    isFuture ? "text-neutral-300" : "text-neutral-700"
-                  }`}
-                >
-                  {topic}
-                </p>
-                <p
-                  className={`mt-0.5 text-[10px] ${
-                    isFuture ? "text-neutral-200" : "text-neutral-400"
-                  }`}
-                >
-                  Week {week}
-                </p>
-              </Link>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* What's Next */}
-      <div>
-        <h2 className="text-lg font-semibold text-neutral-900 mb-1">
-          What&apos;s Next
-        </h2>
-        <p className="text-xs text-neutral-400 mb-4">
-          Your journey continues after Tech+
-        </p>
-        <div className="grid grid-cols-2 gap-3">
-          {[
-            {
-              title: "Business Fundamentals",
-              subtitle: "Entrepreneurship & Strategy",
-              icon: "📊",
-            },
-            {
-              title: "CompTIA Network+",
-              subtitle: "Next Certification",
-              icon: "🌐",
-            },
-          ].map((item) => (
-            <div
-              key={item.title}
-              className="flex flex-col items-center rounded-xl border border-dashed border-neutral-200 bg-neutral-50 p-5 text-center"
-            >
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-neutral-100 text-2xl grayscale opacity-50">
-                {item.icon}
+                {isCompleted && (
+                  <div className="absolute -top-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-green-500">
+                    <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                  </div>
+                )}
               </div>
-              <p className="mt-3 text-xs font-medium text-neutral-400">
-                {item.title}
-              </p>
-              <p className="mt-0.5 text-[10px] text-neutral-300">
-                {item.subtitle}
-              </p>
-              <span className="mt-2 text-[9px] font-medium text-neutral-300 uppercase tracking-wide">
-                Coming Soon
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
 
+              {isCurrent && (
+                <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-semibold text-white">
+                  <span className="h-1 w-1 rounded-full bg-white animate-pulse" />
+                  This Week
+                </span>
+              )}
+
+              <p
+                className={`mt-2 text-xs font-medium leading-tight ${
+                  isFuture ? "text-neutral-300" : "text-neutral-700"
+                }`}
+              >
+                {topic}
+              </p>
+              <p
+                className={`mt-0.5 text-[10px] ${
+                  isFuture ? "text-neutral-200" : "text-neutral-400"
+                }`}
+              >
+                Week {week}
+              </p>
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function SingleEventCard({ track }: { track: TrackConfig }) {
+  const eventDate = new Date(track.startDate);
+  const dateStr = eventDate.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+  const session = track.weeks[0]?.sessions[0];
+  const isPast = new Date() > eventDate;
+
+  return (
+    <div className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="text-lg font-semibold text-neutral-900">{track.name}</h2>
+        {isPast ? (
+          <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-semibold text-green-600">
+            Completed
+          </span>
+        ) : (
+          <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+            Upcoming
+          </span>
+        )}
+      </div>
+      <p className="text-xs text-neutral-400 mb-3">
+        {dateStr} · with {track.instructor}
+      </p>
+      {session && (
+        <p className="text-sm text-neutral-600 mb-3">{session.time}</p>
+      )}
+      <Link
+        href={`/dashboard/track/${track.slug}/1`}
+        className="inline-flex items-center gap-1.5 rounded-lg bg-neutral-900 text-white text-xs font-semibold px-4 py-2.5 transition-colors hover:bg-neutral-800"
+      >
+        View Details
+      </Link>
     </div>
   );
 }
