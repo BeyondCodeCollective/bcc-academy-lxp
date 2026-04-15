@@ -10,14 +10,26 @@ import {
   SignOut,
 } from "@phosphor-icons/react";
 
-const navItems = [
-  { href: "/dashboard", label: "Home", icon: House },
-  { href: "/dashboard/resources", label: "Resources", icon: Books },
-  { href: "/dashboard/tutor", label: "AI Tutor", icon: ChatsCircle },
-];
-
-export function Nav({ isAdmin }: { isAdmin: boolean }) {
+export function Nav({
+  isAdmin,
+  logo,
+  programName,
+  showTutor = true,
+}: {
+  isAdmin: boolean;
+  logo: string;
+  programName: string;
+  showTutor?: boolean;
+}) {
   const pathname = usePathname();
+
+  const navItems = [
+    { href: "/dashboard", label: "Home", icon: House },
+    { href: "/dashboard/resources", label: "Resources", icon: Books },
+    ...(showTutor
+      ? [{ href: "/dashboard/tutor", label: "AI Tutor", icon: ChatsCircle }]
+      : []),
+  ];
 
   return (
     <nav className="bg-neutral-900">
@@ -25,8 +37,8 @@ export function Nav({ isAdmin }: { isAdmin: boolean }) {
         <Link href="/dashboard" className="flex items-center shrink-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/atg-logo.svg"
-            alt="After The Game"
+            src={logo}
+            alt={programName}
             className="h-3.5 sm:h-4"
           />
         </Link>

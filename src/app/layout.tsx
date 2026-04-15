@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Space_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/react";
 import { GoogleAnalytics } from "@next/third-parties/google";
+import { getProgram } from "@/lib/programs/server";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -15,41 +16,47 @@ const spaceMono = Space_Mono({
   weight: ["400", "700"],
 });
 
+export const dynamic = "force-dynamic";
+
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
 };
 
-export const metadata: Metadata = {
-  title: "After The Game — IT Career Training by Beyond Code Collective",
-  description:
-    "After The Game helps former athletes break into tech with CompTIA Tech+ certification prep, MASS wraparound coaching, and hands-on career support. Powered by Beyond Code Collective.",
-  metadataBase: new URL("https://atg.bccacademy.io"),
-  openGraph: {
-    title: "After The Game — IT Career Training",
-    description:
-      "CompTIA Tech+ certification prep and career coaching for former athletes.",
-    url: "https://atg.bccacademy.io",
-    siteName: "After The Game",
-    type: "website",
-  },
-  twitter: {
-    card: "summary",
-    title: "After The Game — IT Career Training",
-    description:
-      "CompTIA Tech+ certification prep and career coaching for former athletes.",
-  },
-  alternates: {
-    canonical: "https://atg.bccacademy.io",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const program = await getProgram();
+  const url = `https://${program.domain}`;
 
-export default function RootLayout({
+  return {
+    title: program.seo.title,
+    description: program.seo.description,
+    metadataBase: new URL(url),
+    openGraph: {
+      title: program.seo.ogTitle,
+      description: program.seo.ogDescription,
+      url,
+      siteName: program.name,
+      type: "website",
+    },
+    twitter: {
+      card: "summary",
+      title: program.seo.ogTitle,
+      description: program.seo.ogDescription,
+    },
+    alternates: {
+      canonical: url,
+    },
+  };
+}
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const program = await getProgram();
+
   return (
     <html
       lang="en"
@@ -58,7 +65,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col font-sans">
         {children}
         <Analytics />
-        <GoogleAnalytics gaId="G-KJF6CKFSTP" />
+        {program.gaId && <GoogleAnalytics gaId={program.gaId} />}
       </body>
     </html>
   );

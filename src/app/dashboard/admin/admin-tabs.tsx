@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { addStudentAction, deleteStudentAction, updateStudentAction, updateCohortAction, saveSessionContent } from "./actions";
-import type { SessionResource } from "./actions";
+import { addStudentAction, deleteStudentAction, updateStudentAction, updateCohortAction, saveSessionContent, assignStudentTrack, removeStudentTrack, bulkAssignTrack } from "./actions";
+import type { SessionResource, StudentTrackRow } from "./actions";
 import {
   Users,
   BookOpen,
@@ -40,7 +40,43 @@ type CohortRow = {
 
 type StudentRow = Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id">;
 
-// Loaded from the API — maps week_number to content
+// Track config passed from server (subset of TrackConfig)
+type AdminTrackConfig = {
+  slug: string;
+  name: string;
+  shortName: string;
+  totalWeeks: number;
+  sessionsPerWeek: number;
+  instructor: string;
+  sessionTimes: string[];
+  weekSummaries: { week: number; topic: string; icon: string }[];
+  weeks: {
+    week: number;
+    title: string;
+    icon: string;
+    sessions: { title: string }[];
+  }[];
+};
+
+// Unified per-session state for admin editing
+type AdminSession = {
+  num: number;
+  title: string;
+  meetingLink: string;
+  recordingUrl: string;
+  resources: SessionResource[];
+  status: "upcoming" | "completed";
+};
+
+// Unified per-week state
+type AdminWeek = {
+  week: number;
+  title: string;
+  icon: string;
+  sessions: AdminSession[];
+};
+
+// DB content map
 type SessionContentMap = Record<number, {
   meeting_link: string;
   recording_url: string;
@@ -51,78 +87,38 @@ type SessionContentMap = Record<number, {
   resources: SessionResource[];
 }>;
 
-type MassWeek = {
-  week: number;
-  title: string;
-  icon: string;
-  meetingLink: string;
-  recordingUrl: string;
-  resources: SessionResource[];
-  status: "upcoming" | "completed";
-};
+function buildInitialWeeks(track: AdminTrackConfig): AdminWeek[] {
+  return track.weeks.map((w) => ({
+    week: w.week,
+    title: w.title,
+    icon: w.icon,
+    sessions: w.sessions.map((s, i) => ({
+      num: i + 1,
+      title: s.title,
+      meetingLink: "",
+      recordingUrl: "",
+      resources: [],
+      status: "upcoming" as const,
+    })),
+  }));
+}
 
-type TechWeek = {
-  week: number;
-  title: string;
-  icon: string;
-  sessions: { num: number; title: string; meetingLink: string; recordingUrl: string; resources: SessionResource[]; status: "upcoming" | "completed" }[];
-};
-
-const TABS = [
-  { id: "program", label: "Program", icon: Settings },
-  { id: "mass", label: "MASS", icon: GraduationCap },
-  { id: "techplus", label: "Tech+", icon: BookOpen },
-  { id: "students", label: "Students", icon: Users },
-  { id: "attendance", label: "Analytics", icon: UserCheck },
-] as const;
-
-const INITIAL_MASS: MassWeek[] = [
-  { week: 1, title: "Storytelling for Career Success", icon: "🎙️", meetingLink: "", recordingUrl: "", resources: [], status: "upcoming" },
-  { week: 2, title: "Networking", icon: "🤝", meetingLink: "", recordingUrl: "", resources: [], status: "upcoming" },
-  { week: 3, title: "The Art of the Brag", icon: "💪", meetingLink: "", recordingUrl: "", resources: [], status: "upcoming" },
-  { week: 4, title: "Guest Speaker", icon: "🎤", meetingLink: "", recordingUrl: "", resources: [], status: "upcoming" },
-  { week: 5, title: "Planning", icon: "📋", meetingLink: "", recordingUrl: "", resources: [], status: "upcoming" },
-  { week: 6, title: "Guest Speaker", icon: "🎤", meetingLink: "", recordingUrl: "", resources: [], status: "upcoming" },
-  { week: 7, title: "Money & Financial Confidence", icon: "💰", meetingLink: "", recordingUrl: "", resources: [], status: "upcoming" },
-  { week: 8, title: "Career Expo", icon: "🎯", meetingLink: "", recordingUrl: "", resources: [], status: "upcoming" },
-];
-
-const INITIAL_TECH: TechWeek[] = [
-  { week: 1, title: "IT Concepts & Careers", icon: "💻", sessions: [
-    { num: 1, title: "IT Concepts & Career Pathways", meetingLink: "", recordingUrl: "", resources: [], status: "upcoming" },
-    { num: 2, title: "Devices & Getting Started", meetingLink: "", recordingUrl: "", resources: [], status: "upcoming" },
-  ] },
-  { week: 2, title: "Hardware Components", icon: "🔧", sessions: [
-    { num: 1, title: "Internal Hardware Components", meetingLink: "", recordingUrl: "", resources: [], status: "upcoming" },
-    { num: 2, title: "Peripherals & Connections", meetingLink: "", recordingUrl: "", resources: [], status: "upcoming" },
-  ] },
-  { week: 3, title: "Setup & Troubleshooting", icon: "🛠️", sessions: [
-    { num: 1, title: "Device Setup & Ports", meetingLink: "", recordingUrl: "", resources: [], status: "upcoming" },
-    { num: 2, title: "Troubleshooting Lab", meetingLink: "", recordingUrl: "", resources: [], status: "upcoming" },
-  ] },
-  { week: 4, title: "Operating Systems", icon: "📀", sessions: [
-    { num: 1, title: "Operating Systems Overview", meetingLink: "", recordingUrl: "", resources: [], status: "upcoming" },
-    { num: 2, title: "Software Management", meetingLink: "", recordingUrl: "", resources: [], status: "upcoming" },
-  ] },
-  { week: 5, title: "Networking Basics", icon: "🌐", sessions: [
-    { num: 1, title: "Network Foundations", meetingLink: "", recordingUrl: "", resources: [], status: "upcoming" },
-    { num: 2, title: "IP Concepts & Diagnostics", meetingLink: "", recordingUrl: "", resources: [], status: "upcoming" },
-  ] },
-  { week: 6, title: "Security & Threats", icon: "🔒", sessions: [
-    { num: 1, title: "Security Principles", meetingLink: "", recordingUrl: "", resources: [], status: "upcoming" },
-    { num: 2, title: "Threats & Defense", meetingLink: "", recordingUrl: "", resources: [], status: "upcoming" },
-  ] },
-  { week: 7, title: "Data & Databases", icon: "📊", sessions: [
-    { num: 1, title: "Database Fundamentals", meetingLink: "", recordingUrl: "", resources: [], status: "upcoming" },
-    { num: 2, title: "Data Management Lab", meetingLink: "", recordingUrl: "", resources: [], status: "upcoming" },
-  ] },
-  { week: 8, title: "Review & Exam Prep", icon: "🎯", sessions: [
-    { num: 1, title: "Comprehensive Review", meetingLink: "", recordingUrl: "", resources: [], status: "upcoming" },
-    { num: 2, title: "Practice Exam & Study Plan", meetingLink: "", recordingUrl: "", resources: [], status: "upcoming" },
-  ] },
-];
-
-// ─── Resource type helpers ─────────────────────────────────────────────────
+function applyContentMap(weeks: AdminWeek[], map: SessionContentMap): AdminWeek[] {
+  return weeks.map((w) => {
+    const content = map[w.week];
+    if (!content) return w;
+    return {
+      ...w,
+      sessions: w.sessions.map((s, i) => ({
+        ...s,
+        meetingLink: i === 0 ? content.meeting_link : i === 1 ? content.meeting_link_2 : s.meetingLink,
+        recordingUrl: i === 0 ? content.recording_url : i === 1 ? content.recording_url_2 : s.recordingUrl,
+        status: (i === 0 ? content.status : i === 1 ? content.status_2 : s.status) as "upcoming" | "completed",
+        resources: i === 0 ? content.resources : s.resources,
+      })),
+    };
+  });
+}
 
 // ─── Upload Button (generic) ────────────────────────────────────────────────
 
@@ -136,7 +132,7 @@ function UploadButton({
   icon: Icon,
   onUploaded,
 }: {
-  track: "mass" | "techplus";
+  track: string;
   week: number;
   accept: string;
   label: string;
@@ -155,7 +151,6 @@ function UploadButton({
     setErrorMsg("");
 
     try {
-      // Upload directly to Supabase Storage from the browser (bypasses Vercel's 4.5MB limit)
       const supabase = createBrowserClient();
       const safeName = file.name.replace(/[^a-zA-Z0-9._\-]/g, "_");
       const storagePath = `${track}/${week}/${Date.now()}_${safeName}`;
@@ -225,7 +220,7 @@ function ResourceEditor({
   onChange,
 }: {
   resources: SessionResource[];
-  track: "mass" | "techplus";
+  track: string;
   week: number;
   onChange: (updated: SessionResource[]) => void;
 }) {
@@ -268,7 +263,6 @@ function ResourceEditor({
 
       {resources.map((r, i) => (
         <div key={i} className="flex gap-2 items-start">
-          {/* Icon indicating resource type */}
           <div className="mt-2 shrink-0">
             {r.type === "file" || isStorageUrl(r.url) ? (
               <FileText size={12} className="text-neutral-400" />
@@ -286,7 +280,6 @@ function ResourceEditor({
               className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-900 focus:border-neutral-900 focus:outline-none"
             />
             {r.type === "file" || isStorageUrl(r.url) ? (
-              // Uploaded files: show read-only URL truncated
               <div className="rounded-lg border border-neutral-100 bg-neutral-100 px-3 py-2 text-xs text-neutral-400 truncate">
                 {r.url.split("/").pop() ?? r.url}
               </div>
@@ -330,48 +323,78 @@ function SaveIndicator({ state }: { state: SaveState }) {
   return <span className="text-[11px] text-red-500">Save failed</span>;
 }
 
+// ─── Tab icon helper ─────────────────────────────────────────────────────────
+
+const TAB_ICONS: Record<string, typeof Settings> = {
+  program: Settings,
+  students: Users,
+  attendance: UserCheck,
+};
+
+function getTrackIcon(index: number) {
+  const icons = [GraduationCap, BookOpen, Video, FileText];
+  return icons[index % icons.length];
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function AdminTabs({
   cohorts,
   students: initialStudents,
+  tracks,
+  studentTracks: initialStudentTracks,
+  programSlug,
 }: {
   cohorts: CohortRow[];
   students: StudentRow[];
+  tracks: AdminTrackConfig[];
+  studentTracks: StudentTrackRow[];
+  programSlug: string;
 }) {
+  // Build tab list dynamically
+  const tabs = [
+    { id: "program", label: "Program", icon: Settings },
+    ...tracks.map((t, i) => ({ id: t.slug, label: t.shortName, icon: getTrackIcon(i) })),
+    { id: "students", label: "Students", icon: Users },
+    { id: "enrollments", label: "Enrollments", icon: BookOpen },
+    { id: "attendance", label: "Analytics", icon: UserCheck },
+  ];
+
   const [tab, setTab] = useState<string>("program");
   const [cohort, setCohort] = useState(cohorts[0] || null);
   const [students, setStudents] = useState(initialStudents);
-  const [massWeeks, setMassWeeks] = useState(INITIAL_MASS);
-  const [techWeeks, setTechWeeks] = useState(INITIAL_TECH);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [expandedWeek, setExpandedWeek] = useState<number | null>(1);
   const [studentSaving, setStudentSaving] = useState<string | null>(null);
 
-  // Per-week save state maps: key is week number
-  const [massSaveState, setMassSaveState] = useState<Record<number, SaveState>>({});
-  const [techSaveState, setTechSaveState] = useState<Record<number, SaveState>>({});
+  // Track data: keyed by track slug
+  const [trackData, setTrackData] = useState<Record<string, AdminWeek[]>>(() => {
+    const initial: Record<string, AdminWeek[]> = {};
+    for (const t of tracks) {
+      initial[t.slug] = buildInitialWeeks(t);
+    }
+    return initial;
+  });
 
-  // Debounce refs so we can cancel pending saves
-  const massSaveTimers = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
-  const techSaveTimers = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
+  // Per-track, per-week save state
+  const [saveStates, setSaveStates] = useState<Record<string, Record<number, SaveState>>>({});
+  const saveTimers = useRef<Record<string, Record<number, ReturnType<typeof setTimeout>>>>({});
 
-  // Clean up pending save timers on unmount
   useEffect(() => {
-    const massTimers = massSaveTimers;
-    const techTimers = techSaveTimers;
+    const timers = saveTimers;
     return () => {
-      Object.values(massTimers.current).forEach(clearTimeout);
-      Object.values(techTimers.current).forEach(clearTimeout);
+      for (const trackTimers of Object.values(timers.current)) {
+        Object.values(trackTimers).forEach(clearTimeout);
+      }
     };
   }, []);
 
-  // Load initial session content from the API
+  // Load initial session content from the API for all tracks
   useEffect(() => {
-    async function loadContent(track: "mass" | "techplus") {
+    async function loadContent(trackSlug: string) {
       try {
-        const res = await fetch(`/api/session-content?track=${track}`);
+        const res = await fetch(`/api/session-content?track=${trackSlug}`);
         if (!res.ok) return;
         const json = await res.json() as { rows: Array<{
           week_number: number;
@@ -395,109 +418,51 @@ export function AdminTabs({
             resources: row.resources ?? [],
           };
         }
-        if (track === "mass") {
-          setMassWeeks((prev) =>
-            prev.map((w) =>
-              map[w.week]
-                ? {
-                    ...w,
-                    meetingLink: map[w.week].meeting_link,
-                    recordingUrl: map[w.week].recording_url,
-                    status: map[w.week].status as "upcoming" | "completed",
-                    resources: map[w.week].resources,
-                  }
-                : w
-            )
-          );
-        } else {
-          setTechWeeks((prev) =>
-            prev.map((tw) =>
-              map[tw.week]
-                ? {
-                    ...tw,
-                    sessions: tw.sessions.map((s, i) => ({
-                      ...s,
-                      meetingLink: i === 0 ? map[tw.week].meeting_link : map[tw.week].meeting_link_2,
-                      recordingUrl: i === 0 ? map[tw.week].recording_url : map[tw.week].recording_url_2,
-                      status: (i === 0 ? map[tw.week].status : map[tw.week].status_2) as "upcoming" | "completed",
-                      resources: i === 0 ? map[tw.week].resources : s.resources,
-                    })),
-                  }
-                : tw
-            )
-          );
-        }
+        setTrackData((prev) => ({
+          ...prev,
+          [trackSlug]: applyContentMap(prev[trackSlug] ?? [], map),
+        }));
       } catch {
-        // API unavailable (e.g., Supabase not configured) — silently no-op
+        // API unavailable — silently no-op
       }
     }
-    loadContent("mass");
-    loadContent("techplus");
-  }, []);
+    for (const t of tracks) {
+      loadContent(t.slug);
+    }
+  }, [tracks]);
 
-  // ── Debounced MASS save ──────────────────────────────────────────────────
+  // ── Debounced save for any track ──────────────────────────────────────────
 
-  const scheduleMassSave = useCallback((weekNum: number, data: MassWeek) => {
-    clearTimeout(massSaveTimers.current[weekNum]);
-    setMassSaveState((s) => ({ ...s, [weekNum]: "saving" }));
-    massSaveTimers.current[weekNum] = setTimeout(async () => {
+  const scheduleSave = useCallback((trackSlug: string, weekNum: number, weekData: AdminWeek) => {
+    if (!saveTimers.current[trackSlug]) saveTimers.current[trackSlug] = {};
+    clearTimeout(saveTimers.current[trackSlug][weekNum]);
+    setSaveStates((s) => ({ ...s, [trackSlug]: { ...s[trackSlug], [weekNum]: "saving" } }));
+
+    saveTimers.current[trackSlug][weekNum] = setTimeout(async () => {
       try {
-        await saveSessionContent("mass", weekNum, {
-          meeting_link: data.meetingLink,
-          recording_url: data.recordingUrl,
-          status: data.status,
-          resources: data.resources,
-        });
-        setMassSaveState((s) => ({ ...s, [weekNum]: "saved" }));
-        setTimeout(() => setMassSaveState((s) => ({ ...s, [weekNum]: "idle" })), 2000);
-      } catch (err) {
-        console.error(`[admin] MASS week ${weekNum} save failed:`, err);
-        setMassSaveState((s) => ({ ...s, [weekNum]: "error" }));
-      }
-    }, 800);
-  }, []);
-
-  function updateMassWeek(weekNum: number, patch: Partial<MassWeek>) {
-    setMassWeeks((prev) => {
-      const updated = prev.map((w) => (w.week === weekNum ? { ...w, ...patch } : w));
-      const week = updated.find((w) => w.week === weekNum)!;
-      scheduleMassSave(weekNum, week);
-      return updated;
-    });
-  }
-
-  // ── Debounced Tech+ save ─────────────────────────────────────────────────
-  // For Tech+, we store per-week (not per-session) in session_content.
-  // Session 1 fields are the canonical record; session 2 resources are merged.
-
-  const scheduleTechSave = useCallback((weekNum: number, data: TechWeek) => {
-    clearTimeout(techSaveTimers.current[weekNum]);
-    setTechSaveState((s) => ({ ...s, [weekNum]: "saving" }));
-    techSaveTimers.current[weekNum] = setTimeout(async () => {
-      try {
-        // Merge all session resources together for the week record
-        const allResources = data.sessions.flatMap((s) => s.resources);
-        await saveSessionContent("techplus", weekNum, {
-          meeting_link: data.sessions[0]?.meetingLink ?? "",
-          recording_url: data.sessions[0]?.recordingUrl ?? "",
-          meeting_link_2: data.sessions[1]?.meetingLink ?? "",
-          recording_url_2: data.sessions[1]?.recordingUrl ?? "",
-          status: data.sessions[0]?.status ?? "upcoming",
-          status_2: data.sessions[1]?.status ?? "upcoming",
+        const allResources = weekData.sessions.flatMap((s) => s.resources);
+        await saveSessionContent(trackSlug, weekNum, {
+          meeting_link: weekData.sessions[0]?.meetingLink ?? "",
+          recording_url: weekData.sessions[0]?.recordingUrl ?? "",
+          meeting_link_2: weekData.sessions[1]?.meetingLink ?? "",
+          recording_url_2: weekData.sessions[1]?.recordingUrl ?? "",
+          status: weekData.sessions[0]?.status ?? "upcoming",
+          status_2: weekData.sessions[1]?.status ?? "upcoming",
           resources: allResources,
         });
-        setTechSaveState((s) => ({ ...s, [weekNum]: "saved" }));
-        setTimeout(() => setTechSaveState((s) => ({ ...s, [weekNum]: "idle" })), 2000);
+        setSaveStates((s) => ({ ...s, [trackSlug]: { ...s[trackSlug], [weekNum]: "saved" } }));
+        setTimeout(() => setSaveStates((s) => ({ ...s, [trackSlug]: { ...s[trackSlug], [weekNum]: "idle" } })), 2000);
       } catch (err) {
-        console.error(`[admin] Tech+ week ${weekNum} save failed:`, err);
-        setTechSaveState((s) => ({ ...s, [weekNum]: "error" }));
+        console.error(`[admin] ${trackSlug} week ${weekNum} save failed:`, err);
+        setSaveStates((s) => ({ ...s, [trackSlug]: { ...s[trackSlug], [weekNum]: "error" } }));
       }
     }, 800);
   }, []);
 
-  function updateTechSession(weekNum: number, sessionNum: number, patch: Partial<TechWeek["sessions"][0]>) {
-    setTechWeeks((prev) => {
-      const updated = prev.map((w) =>
+  function updateSession(trackSlug: string, weekNum: number, sessionNum: number, patch: Partial<AdminSession>) {
+    setTrackData((prev) => {
+      const weeks = prev[trackSlug] ?? [];
+      const updated = weeks.map((w) =>
         w.week === weekNum
           ? {
               ...w,
@@ -508,8 +473,8 @@ export function AdminTabs({
           : w
       );
       const week = updated.find((w) => w.week === weekNum)!;
-      scheduleTechSave(weekNum, week);
-      return updated;
+      scheduleSave(trackSlug, weekNum, week);
+      return { ...prev, [trackSlug]: updated };
     });
   }
 
@@ -537,6 +502,14 @@ export function AdminTabs({
   const [addingStudent, setAddingStudent] = useState(false);
   const [addError, setAddError] = useState("");
 
+  // Track enrollment state
+  const [enrollments, setEnrollments] = useState<StudentTrackRow[]>(initialStudentTracks);
+  const [enrollmentSaving, setEnrollmentSaving] = useState<string | null>(null);
+  const [enrollmentFilter, setEnrollmentFilter] = useState<string>("all");
+  const [bulkTrack, setBulkTrack] = useState<string>(tracks[0]?.slug ?? "");
+  const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
+  const [bulkSaving, setBulkSaving] = useState(false);
+
   async function updateStudent(id: string, field: "role" | "cohort_id", value: string) {
     setStudentSaving(id);
     try {
@@ -560,15 +533,73 @@ export function AdminTabs({
     setConfirmDelete(null);
   }
 
+  // Track enrollment helpers
+  function getStudentEnrollments(studentId: string): string[] {
+    return enrollments
+      .filter((e) => e.student_id === studentId)
+      .map((e) => e.track_slug);
+  }
+
+  async function toggleTrackEnrollment(studentId: string, trackSlug: string) {
+    setEnrollmentSaving(`${studentId}-${trackSlug}`);
+    try {
+      const isEnrolled = enrollments.some(
+        (e) => e.student_id === studentId && e.track_slug === trackSlug
+      );
+      if (isEnrolled) {
+        await removeStudentTrack(studentId, trackSlug, programSlug);
+        setEnrollments((prev) =>
+          prev.filter((e) => !(e.student_id === studentId && e.track_slug === trackSlug))
+        );
+      } else {
+        await assignStudentTrack(studentId, trackSlug, programSlug);
+        setEnrollments((prev) => [
+          ...prev,
+          { id: crypto.randomUUID(), student_id: studentId, track_slug: trackSlug, program_id: "", created_at: new Date().toISOString() },
+        ]);
+      }
+    } catch (e) {
+      console.error("Failed to toggle enrollment:", e);
+    }
+    setEnrollmentSaving(null);
+  }
+
+  async function handleBulkAssign() {
+    if (bulkSelected.size === 0 || !bulkTrack) return;
+    setBulkSaving(true);
+    try {
+      await bulkAssignTrack(Array.from(bulkSelected), bulkTrack, programSlug);
+      // Add to local state
+      const newRows: StudentTrackRow[] = Array.from(bulkSelected)
+        .filter((sid) => !enrollments.some((e) => e.student_id === sid && e.track_slug === bulkTrack))
+        .map((sid) => ({
+          id: crypto.randomUUID(),
+          student_id: sid,
+          track_slug: bulkTrack,
+          program_id: "",
+          created_at: new Date().toISOString(),
+        }));
+      setEnrollments((prev) => [...prev, ...newRows]);
+      setBulkSelected(new Set());
+    } catch (e) {
+      console.error("Failed to bulk assign:", e);
+    }
+    setBulkSaving(false);
+  }
+
+  // ── Find the currently selected track config ────────────────────────────
+  const activeTrack = tracks.find((t) => t.slug === tab);
+  const activeWeeks = trackData[tab] ?? [];
+
   return (
     <div>
       {/* Tab bar */}
-      <div className="flex gap-1 rounded-lg bg-neutral-100 p-1 mb-6">
-        {TABS.map(({ id, label, icon: Icon }) => (
+      <div className="flex gap-1 rounded-lg bg-neutral-100 p-1 mb-6 overflow-x-auto">
+        {tabs.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             onClick={() => { setTab(id); setExpandedWeek(1); }}
-            className={`flex-1 flex items-center justify-center gap-1.5 rounded-md px-3 py-2.5 min-h-[44px] text-xs font-medium transition-all ${
+            className={`flex-1 flex items-center justify-center gap-1.5 rounded-md px-3 py-2.5 min-h-[44px] text-xs font-medium transition-all whitespace-nowrap ${
               tab === id
                 ? "bg-white text-neutral-900 shadow-sm"
                 : "text-neutral-400 hover:text-neutral-600"
@@ -593,7 +624,6 @@ export function AdminTabs({
                   value={cohort.display_name || ""}
                   onChange={(e) => setCohort({ ...cohort, display_name: e.target.value })}
                   className="mt-1 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
-                  placeholder="e.g. Cohort 1 — CompTIA Tech+ Foundations, MASS Training & AI Fundamentals"
                 />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
@@ -629,230 +659,138 @@ export function AdminTabs({
 
           <div className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
             <h3 className="text-sm font-semibold text-neutral-900 mb-3">Quick Stats</h3>
-            <div className="grid grid-cols-3 gap-4">
+            <div className={`grid grid-cols-${Math.min(tracks.length + 1, 4)} gap-4`}>
               <div className="text-center">
                 <p className="text-2xl font-bold text-neutral-900">{students.length}</p>
                 <p className="text-xs text-neutral-400">Students</p>
               </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-neutral-900">{massWeeks.length}</p>
-                <p className="text-xs text-neutral-400">MASS Weeks</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-neutral-900">{techWeeks.length}</p>
-                <p className="text-xs text-neutral-400">Tech+ Weeks</p>
-              </div>
+              {tracks.map((t) => (
+                <div key={t.slug} className="text-center">
+                  <p className="text-2xl font-bold text-neutral-900">{t.totalWeeks}</p>
+                  <p className="text-xs text-neutral-400">{t.shortName} Weeks</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>
       )}
 
-      {/* MASS Tab */}
-      {tab === "mass" && (
+      {/* Dynamic Track Tabs */}
+      {activeTrack && (
         <div className="space-y-3">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-semibold text-neutral-900">MASS Wraparound</h2>
-            <p className="text-xs text-neutral-400">8 weeks · with Angel Aviles</p>
+            <h2 className="text-lg font-semibold text-neutral-900">{activeTrack.name}</h2>
+            <p className="text-xs text-neutral-400">
+              {activeTrack.totalWeeks} week{activeTrack.totalWeeks !== 1 ? "s" : ""} · {activeTrack.sessionTimes.join(" & ")}
+            </p>
           </div>
-          {massWeeks.map((mw) => (
-            <div key={mw.week} className="rounded-xl border border-neutral-200 bg-white overflow-hidden">
-              <button
-                onClick={() => setExpandedWeek(expandedWeek === mw.week ? null : mw.week)}
-                className="flex w-full items-center justify-between px-4 sm:px-5 py-3.5 sm:py-4 hover:bg-neutral-50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-xl">{mw.icon}</span>
-                  <div className="text-left">
-                    <p className="text-sm font-semibold text-neutral-900">
-                      Week {mw.week}: {mw.title}
-                    </p>
-                    <p className="text-[10px] text-neutral-400">
-                      {mw.status === "completed" ? "Completed" : "Upcoming"}
-                      {mw.meetingLink && " · Meet link set"}
-                      {mw.recordingUrl && " · Recording set"}
-                      {mw.resources.length > 0 && ` · ${mw.resources.length} resource${mw.resources.length !== 1 ? "s" : ""}`}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <SaveIndicator state={massSaveState[mw.week] ?? "idle"} />
-                  <span className={`h-2 w-2 rounded-full ${mw.status === "completed" ? "bg-green-500" : "bg-neutral-300"}`} />
-                  <ChevronDown size={16} className={`text-neutral-400 transition-transform ${expandedWeek === mw.week ? "rotate-180" : ""}`} />
-                </div>
-              </button>
-
-              {expandedWeek === mw.week && (
-                <div className="border-t border-neutral-100 px-4 sm:px-5 py-3.5 sm:py-4 space-y-4">
-                  {/* Meeting link */}
-                  <div>
-                    <label className="text-xs font-medium text-neutral-500">Google Meet Link</label>
-                    <input
-                      type="url"
-                      value={mw.meetingLink}
-                      onChange={(e) => updateMassWeek(mw.week, { meetingLink: e.target.value })}
-                      placeholder="https://meet.google.com/..."
-                      className="mt-1 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
-                    />
-                  </div>
-
-                  {/* Recording — URL paste + file upload */}
-                  <div>
-                    <label className="text-xs font-medium text-neutral-500">Recording (after session)</label>
-                    <div className="mt-1 flex gap-2 items-start">
-                      <input
-                        type="url"
-                        value={mw.recordingUrl}
-                        onChange={(e) => updateMassWeek(mw.week, { recordingUrl: e.target.value })}
-                        placeholder="https://youtube.com/... or https://drive.google.com/..."
-                        className="flex-1 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
-                      />
-                      <UploadButton accept={VIDEO_ACCEPT} label="Upload Recording" icon={Video}
-                        track="mass"
-                        week={mw.week}
-                        onUploaded={({ url }) => updateMassWeek(mw.week, { recordingUrl: url })}
-                      />
+          {activeWeeks.map((aw) => {
+            const hasMultipleSessions = aw.sessions.length > 1;
+            return (
+              <div key={aw.week} className="rounded-xl border border-neutral-200 bg-white overflow-hidden">
+                <button
+                  onClick={() => setExpandedWeek(expandedWeek === aw.week ? null : aw.week)}
+                  className="flex w-full items-center justify-between px-4 sm:px-5 py-3.5 sm:py-4 hover:bg-neutral-50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">{aw.icon}</span>
+                    <div className="text-left">
+                      <p className="text-sm font-semibold text-neutral-900">
+                        Week {aw.week}: {aw.title}
+                      </p>
+                      <p className="text-[10px] text-neutral-400">
+                        {aw.sessions.length} session{aw.sessions.length !== 1 ? "s" : ""}
+                        {aw.sessions.some((s) => s.recordingUrl) && " · Recording set"}
+                        {aw.sessions.some((s) => s.resources.length > 0) && " · Has resources"}
+                      </p>
                     </div>
-                    {mw.recordingUrl && isStorageUrl(mw.recordingUrl) && (
-                      <p className="mt-1 text-[10px] text-neutral-400">
-                        Uploaded file · <a href={mw.recordingUrl} target="_blank" rel="noopener noreferrer" className="underline hover:text-neutral-700">Preview</a>
-                      </p>
-                    )}
                   </div>
-
-                  {/* Resources section */}
-                  <div className="rounded-lg border border-neutral-100 bg-neutral-50 p-3 space-y-3">
-                    <ResourceEditor
-                      resources={mw.resources}
-                      track="mass"
-                      week={mw.week}
-                      onChange={(updated) => updateMassWeek(mw.week, { resources: updated })}
-                    />
+                  <div className="flex items-center gap-2">
+                    <SaveIndicator state={saveStates[activeTrack.slug]?.[aw.week] ?? "idle"} />
+                    <span className={`h-2 w-2 rounded-full ${aw.sessions.every((s) => s.status === "completed") ? "bg-green-500" : "bg-neutral-300"}`} />
+                    <ChevronDown size={16} className={`text-neutral-400 transition-transform ${expandedWeek === aw.week ? "rotate-180" : ""}`} />
                   </div>
+                </button>
 
-                  <div className="flex items-center justify-between pt-1">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={mw.status === "completed"}
-                        onChange={(e) => updateMassWeek(mw.week, { status: e.target.checked ? "completed" : "upcoming" })}
-                        className="h-4 w-4 rounded border-neutral-300 accent-neutral-900"
-                      />
-                      <span className="text-sm text-neutral-700">Mark as completed</span>
-                    </label>
-                    {mw.meetingLink && (
-                      <a href={mw.meetingLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-neutral-400 hover:text-neutral-900">
-                        Open Meet <ExternalLink size={12} />
-                      </a>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Tech+ Tab */}
-      {tab === "techplus" && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-semibold text-neutral-900">CompTIA Tech+ Foundations</h2>
-            <p className="text-xs text-neutral-400">8 weeks · Wed &amp; Fri</p>
-          </div>
-          {techWeeks.map((tw) => (
-            <div key={tw.week} className="rounded-xl border border-neutral-200 bg-white overflow-hidden">
-              <button
-                onClick={() => setExpandedWeek(expandedWeek === tw.week ? null : tw.week)}
-                className="flex w-full items-center justify-between px-4 sm:px-5 py-3.5 sm:py-4 hover:bg-neutral-50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-xl">{tw.icon}</span>
-                  <div className="text-left">
-                    <p className="text-sm font-semibold text-neutral-900">
-                      Week {tw.week}: {tw.title}
-                    </p>
-                    <p className="text-[10px] text-neutral-400">
-                      {tw.sessions.length} sessions
-                      {tw.sessions.some((s) => s.recordingUrl) && " · Recording set"}
-                      {tw.sessions.some((s) => s.resources.length > 0) && " · Has resources"}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <SaveIndicator state={techSaveState[tw.week] ?? "idle"} />
-                  <ChevronDown size={16} className={`text-neutral-400 transition-transform ${expandedWeek === tw.week ? "rotate-180" : ""}`} />
-                </div>
-              </button>
-
-              {expandedWeek === tw.week && (
-                <div className="border-t border-neutral-100 divide-y divide-neutral-100">
-                  {tw.sessions.map((s) => (
-                    <div key={s.num} className="px-4 sm:px-5 py-3.5 sm:py-4 space-y-3">
-                      <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wide">
-                        Session {s.num}: {s.title}
-                      </p>
-
-                      {/* Meeting link */}
-                      <div>
-                        <label className="text-xs font-medium text-neutral-500">Google Meet Link</label>
-                        <input
-                          type="url"
-                          value={s.meetingLink}
-                          onChange={(e) => updateTechSession(tw.week, s.num, { meetingLink: e.target.value })}
-                          placeholder="https://meet.google.com/..."
-                          className="mt-1 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
-                        />
-                      </div>
-
-                      {/* Recording — URL paste + file upload */}
-                      <div>
-                        <label className="text-xs font-medium text-neutral-500">Recording</label>
-                        <div className="mt-1 flex gap-2 items-start">
-                          <input
-                            type="url"
-                            value={s.recordingUrl}
-                            onChange={(e) => updateTechSession(tw.week, s.num, { recordingUrl: e.target.value })}
-                            placeholder="https://youtube.com/... or https://drive.google.com/..."
-                            className="flex-1 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
-                          />
-                          <UploadButton accept={VIDEO_ACCEPT} label="Upload Recording" icon={Video}
-                            track="techplus"
-                            week={tw.week}
-                            onUploaded={({ url }) => updateTechSession(tw.week, s.num, { recordingUrl: url })}
-                          />
-                        </div>
-                        {s.recordingUrl && isStorageUrl(s.recordingUrl) && (
-                          <p className="mt-1 text-[10px] text-neutral-400">
-                            Uploaded file · <a href={s.recordingUrl} target="_blank" rel="noopener noreferrer" className="underline hover:text-neutral-700">Preview</a>
+                {expandedWeek === aw.week && (
+                  <div className={`border-t border-neutral-100 ${hasMultipleSessions ? "divide-y divide-neutral-100" : ""}`}>
+                    {aw.sessions.map((s) => (
+                      <div key={s.num} className="px-4 sm:px-5 py-3.5 sm:py-4 space-y-3">
+                        {hasMultipleSessions && (
+                          <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wide">
+                            Session {s.num}: {s.title}
                           </p>
                         )}
-                      </div>
 
-                      {/* Resources per session */}
-                      <div className="rounded-lg border border-neutral-100 bg-neutral-50 p-3">
-                        <ResourceEditor
-                          resources={s.resources}
-                          track="techplus"
-                          week={tw.week}
-                          onChange={(updated) => updateTechSession(tw.week, s.num, { resources: updated })}
-                        />
-                      </div>
+                        {/* Meeting link */}
+                        <div>
+                          <label className="text-xs font-medium text-neutral-500">Google Meet Link</label>
+                          <input
+                            type="url"
+                            value={s.meetingLink}
+                            onChange={(e) => updateSession(activeTrack.slug, aw.week, s.num, { meetingLink: e.target.value })}
+                            placeholder="https://meet.google.com/..."
+                            className="mt-1 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
+                          />
+                        </div>
 
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={s.status === "completed"}
-                          onChange={(e) => updateTechSession(tw.week, s.num, { status: e.target.checked ? "completed" : "upcoming" })}
-                          className="h-4 w-4 rounded border-neutral-300 accent-neutral-900"
-                        />
-                        <span className="text-sm text-neutral-700">Mark as completed</span>
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
+                        {/* Recording — URL paste + file upload */}
+                        <div>
+                          <label className="text-xs font-medium text-neutral-500">Recording</label>
+                          <div className="mt-1 flex gap-2 items-start">
+                            <input
+                              type="url"
+                              value={s.recordingUrl}
+                              onChange={(e) => updateSession(activeTrack.slug, aw.week, s.num, { recordingUrl: e.target.value })}
+                              placeholder="https://youtube.com/... or https://drive.google.com/..."
+                              className="flex-1 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
+                            />
+                            <UploadButton accept={VIDEO_ACCEPT} label="Upload Recording" icon={Video}
+                              track={activeTrack.slug}
+                              week={aw.week}
+                              onUploaded={({ url }) => updateSession(activeTrack.slug, aw.week, s.num, { recordingUrl: url })}
+                            />
+                          </div>
+                          {s.recordingUrl && isStorageUrl(s.recordingUrl) && (
+                            <p className="mt-1 text-[10px] text-neutral-400">
+                              Uploaded file · <a href={s.recordingUrl} target="_blank" rel="noopener noreferrer" className="underline hover:text-neutral-700">Preview</a>
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Resources */}
+                        <div className="rounded-lg border border-neutral-100 bg-neutral-50 p-3">
+                          <ResourceEditor
+                            resources={s.resources}
+                            track={activeTrack.slug}
+                            week={aw.week}
+                            onChange={(updated) => updateSession(activeTrack.slug, aw.week, s.num, { resources: updated })}
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between pt-1">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={s.status === "completed"}
+                              onChange={(e) => updateSession(activeTrack.slug, aw.week, s.num, { status: e.target.checked ? "completed" : "upcoming" })}
+                              className="h-4 w-4 rounded border-neutral-300 accent-neutral-900"
+                            />
+                            <span className="text-sm text-neutral-700">Mark as completed</span>
+                          </label>
+                          {s.meetingLink && (
+                            <a href={s.meetingLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-neutral-400 hover:text-neutral-900">
+                              Open Meet <ExternalLink size={12} />
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -1030,6 +968,219 @@ export function AdminTabs({
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Enrollments Tab */}
+      {tab === "enrollments" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-neutral-900">Track Enrollments</h2>
+            <p className="text-xs text-neutral-400">
+              {enrollments.length} assignment{enrollments.length !== 1 ? "s" : ""}
+            </p>
+          </div>
+
+          <p className="text-xs text-neutral-500">
+            Students with no track assignments see all tracks. Assign a track to restrict their dashboard to only that track.
+          </p>
+
+          {/* Bulk assign */}
+          <div className="rounded-xl border border-neutral-200 bg-white p-4 space-y-3">
+            <p className="text-xs font-semibold text-neutral-700">Bulk Assign</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="relative">
+                <select
+                  value={bulkTrack}
+                  onChange={(e) => setBulkTrack(e.target.value)}
+                  className="appearance-none rounded-lg border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-2 text-xs font-medium text-neutral-700 focus:border-neutral-400 focus:outline-none"
+                >
+                  {tracks.map((t) => (
+                    <option key={t.slug} value={t.slug}>{t.shortName}</option>
+                  ))}
+                </select>
+                <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
+              </div>
+              <button
+                onClick={handleBulkAssign}
+                disabled={bulkSaving || bulkSelected.size === 0}
+                className="inline-flex items-center gap-1 rounded-lg bg-neutral-900 px-3 py-2 text-xs font-medium text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
+              >
+                {bulkSaving ? "Assigning..." : `Assign ${bulkSelected.size} selected`}
+              </button>
+              {bulkSelected.size > 0 && (
+                <button
+                  onClick={() => setBulkSelected(new Set())}
+                  className="text-xs text-neutral-400 hover:text-neutral-600"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+
+            {/* Checkboxes */}
+            <div className="max-h-48 overflow-y-auto space-y-1 border-t border-neutral-100 pt-2">
+              {students.filter((s) => s.role !== "admin").map((student) => {
+                const alreadyEnrolled = enrollments.some(
+                  (e) => e.student_id === student.id && e.track_slug === bulkTrack
+                );
+                return (
+                  <label
+                    key={student.id}
+                    className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs cursor-pointer hover:bg-neutral-50 ${
+                      alreadyEnrolled ? "opacity-50" : ""
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      disabled={alreadyEnrolled}
+                      checked={bulkSelected.has(student.id)}
+                      onChange={(e) => {
+                        const next = new Set(bulkSelected);
+                        if (e.target.checked) next.add(student.id);
+                        else next.delete(student.id);
+                        setBulkSelected(next);
+                      }}
+                      className="rounded border-neutral-300"
+                    />
+                    <span className="text-neutral-700">
+                      {student.first_name} {student.last_name}
+                    </span>
+                    {alreadyEnrolled && (
+                      <span className="text-[10px] text-neutral-400 ml-auto">Already enrolled</span>
+                    )}
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Filter by track */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-neutral-500">Filter:</span>
+            <button
+              onClick={() => setEnrollmentFilter("all")}
+              className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                enrollmentFilter === "all"
+                  ? "bg-neutral-900 text-white"
+                  : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+              }`}
+            >
+              All
+            </button>
+            {tracks.map((t) => (
+              <button
+                key={t.slug}
+                onClick={() => setEnrollmentFilter(t.slug)}
+                className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                  enrollmentFilter === t.slug
+                    ? "bg-neutral-900 text-white"
+                    : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                }`}
+              >
+                {t.shortName}
+              </button>
+            ))}
+            <button
+              onClick={() => setEnrollmentFilter("none")}
+              className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                enrollmentFilter === "none"
+                  ? "bg-neutral-900 text-white"
+                  : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+              }`}
+            >
+              Unassigned
+            </button>
+          </div>
+
+          {/* Per-student enrollment cards */}
+          <div className="space-y-2">
+            {students
+              .filter((s) => s.role !== "admin")
+              .filter((s) => {
+                if (enrollmentFilter === "all") return true;
+                if (enrollmentFilter === "none") return getStudentEnrollments(s.id).length === 0;
+                return getStudentEnrollments(s.id).includes(enrollmentFilter);
+              })
+              .map((student) => {
+                const studentEnrollments = getStudentEnrollments(student.id);
+                return (
+                  <div
+                    key={student.id}
+                    className="rounded-xl border border-neutral-200 bg-white p-3"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-neutral-900">
+                          {student.first_name} {student.last_name}
+                        </p>
+                        <p className="text-[11px] text-neutral-400">{student.email}</p>
+                      </div>
+                      {studentEnrollments.length === 0 && (
+                        <span className="text-[10px] text-neutral-400 bg-neutral-100 rounded-full px-2 py-0.5">
+                          Sees all tracks
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {tracks.map((t) => {
+                        const isEnrolled = studentEnrollments.includes(t.slug);
+                        const isSaving = enrollmentSaving === `${student.id}-${t.slug}`;
+                        return (
+                          <button
+                            key={t.slug}
+                            onClick={() => toggleTrackEnrollment(student.id, t.slug)}
+                            disabled={isSaving}
+                            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition-all ${
+                              isEnrolled
+                                ? "bg-neutral-900 text-white hover:bg-red-600"
+                                : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200"
+                            } ${isSaving ? "opacity-50" : ""}`}
+                            title={isEnrolled ? `Remove from ${t.shortName}` : `Add to ${t.shortName}`}
+                          >
+                            {isSaving ? (
+                              <Loader2 size={10} className="animate-spin" />
+                            ) : isEnrolled ? (
+                              <Check size={10} />
+                            ) : (
+                              <Plus size={10} />
+                            )}
+                            {t.shortName}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+
+          {/* Enrollment links */}
+          <div className="rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-4 space-y-2">
+            <p className="text-xs font-semibold text-neutral-700">Enrollment Links</p>
+            <p className="text-[11px] text-neutral-500">
+              Share these links with students. When they sign in through a link, they&apos;ll be automatically enrolled in that track.
+            </p>
+            {tracks.map((t) => {
+              const domain = typeof window !== "undefined" ? window.location.origin : "";
+              const link = `${domain}/?track=${t.slug}`;
+              return (
+                <div key={t.slug} className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-neutral-600 w-28 shrink-0">{t.shortName}:</span>
+                  <code className="flex-1 text-[11px] text-neutral-500 bg-white rounded px-2 py-1 border border-neutral-200 truncate">
+                    {link}
+                  </code>
+                  <button
+                    onClick={() => navigator.clipboard.writeText(link)}
+                    className="shrink-0 rounded-md border border-neutral-200 p-1.5 text-neutral-400 hover:text-neutral-600 hover:bg-white transition-colors"
+                    title="Copy link"
+                  >
+                    <LinkIcon size={12} />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
