@@ -12,9 +12,6 @@ export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request: { headers: requestHeaders },
   });
-  // Debug headers — remove after verifying domain detection works
-  supabaseResponse.headers.set("x-debug-host", host);
-  supabaseResponse.headers.set("x-debug-program", program.slug);
   supabaseResponse.cookies.set("program-slug", program.slug, {
     path: "/",
     httpOnly: false,
@@ -49,8 +46,6 @@ export async function middleware(request: NextRequest) {
           httpOnly: false,
           sameSite: "lax",
         });
-        supabaseResponse.headers.set("x-debug-host", host);
-        supabaseResponse.headers.set("x-debug-program", program.slug);
       },
     },
   });
