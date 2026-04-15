@@ -15,6 +15,12 @@ export function LoginForm({ logo, programName, tagline, taglineColor, organizati
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [trackParam] = useState(() => {
+    if (typeof window !== "undefined") {
+      return new URLSearchParams(window.location.search).get("track") ?? "";
+    }
+    return "";
+  });
   const [error, setError] = useState(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
@@ -44,10 +50,13 @@ export function LoginForm({ logo, programName, tagline, taglineColor, organizati
     }
 
     const supabase = createClient();
+    const callbackUrl = new URL("/auth/callback", window.location.origin);
+    if (trackParam) callbackUrl.searchParams.set("track", trackParam);
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: callbackUrl.toString(),
+        data: { program_name: programName },
       },
     });
 

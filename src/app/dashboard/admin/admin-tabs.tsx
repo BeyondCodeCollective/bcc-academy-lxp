@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { addStudentAction, deleteStudentAction, updateStudentAction, updateCohortAction, saveSessionContent } from "./actions";
-import type { SessionResource } from "./actions";
+import { addStudentAction, deleteStudentAction, updateStudentAction, updateCohortAction, saveSessionContent, assignStudentTrack, removeStudentTrack, bulkAssignTrack } from "./actions";
+import type { SessionResource, StudentTrackRow } from "./actions";
 import {
   Users,
   BookOpen,
@@ -342,16 +342,21 @@ export function AdminTabs({
   cohorts,
   students: initialStudents,
   tracks,
+  studentTracks: initialStudentTracks,
+  programSlug,
 }: {
   cohorts: CohortRow[];
   students: StudentRow[];
   tracks: AdminTrackConfig[];
+  studentTracks: StudentTrackRow[];
+  programSlug: string;
 }) {
   // Build tab list dynamically
   const tabs = [
     { id: "program", label: "Program", icon: Settings },
     ...tracks.map((t, i) => ({ id: t.slug, label: t.shortName, icon: getTrackIcon(i) })),
     { id: "students", label: "Students", icon: Users },
+    { id: "enrollments", label: "Enrollments", icon: BookOpen },
     { id: "attendance", label: "Analytics", icon: UserCheck },
   ];
 
@@ -497,6 +502,14 @@ export function AdminTabs({
   const [addingStudent, setAddingStudent] = useState(false);
   const [addError, setAddError] = useState("");
 
+  // Track enrollment state
+  const [enrollments, setEnrollments] = useState<StudentTrackRow[]>(initialStudentTracks);
+  const [enrollmentSaving, setEnrollmentSaving] = useState<string | null>(null);
+  const [enrollmentFilter, setEnrollmentFilter] = useState<string>("all");
+  const [bulkTrack, setBulkTrack] = useState<string>(tracks[0]?.slug ?? "");
+  const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
+  const [bulkSaving, setBulkSaving] = useState(false);
+
   async function updateStudent(id: string, field: "role" | "cohort_id", value: string) {
     setStudentSaving(id);
     try {
@@ -518,6 +531,60 @@ export function AdminTabs({
     }
     setStudentSaving(null);
     setConfirmDelete(null);
+  }
+
+  // Track enrollment helpers
+  function getStudentEnrollments(studentId: string): string[] {
+    return enrollments
+      .filter((e) => e.student_id === studentId)
+      .map((e) => e.track_slug);
+  }
+
+  async function toggleTrackEnrollment(studentId: string, trackSlug: string) {
+    setEnrollmentSaving(`${studentId}-${trackSlug}`);
+    try {
+      const isEnrolled = enrollments.some(
+        (e) => e.student_id === studentId && e.track_slug === trackSlug
+      );
+      if (isEnrolled) {
+        await removeStudentTrack(studentId, trackSlug, programSlug);
+        setEnrollments((prev) =>
+          prev.filter((e) => !(e.student_id === studentId && e.track_slug === trackSlug))
+        );
+      } else {
+        await assignStudentTrack(studentId, trackSlug, programSlug);
+        setEnrollments((prev) => [
+          ...prev,
+          { id: crypto.randomUUID(), student_id: studentId, track_slug: trackSlug, program_id: "", created_at: new Date().toISOString() },
+        ]);
+      }
+    } catch (e) {
+      console.error("Failed to toggle enrollment:", e);
+    }
+    setEnrollmentSaving(null);
+  }
+
+  async function handleBulkAssign() {
+    if (bulkSelected.size === 0 || !bulkTrack) return;
+    setBulkSaving(true);
+    try {
+      await bulkAssignTrack(Array.from(bulkSelected), bulkTrack, programSlug);
+      // Add to local state
+      const newRows: StudentTrackRow[] = Array.from(bulkSelected)
+        .filter((sid) => !enrollments.some((e) => e.student_id === sid && e.track_slug === bulkTrack))
+        .map((sid) => ({
+          id: crypto.randomUUID(),
+          student_id: sid,
+          track_slug: bulkTrack,
+          program_id: "",
+          created_at: new Date().toISOString(),
+        }));
+      setEnrollments((prev) => [...prev, ...newRows]);
+      setBulkSelected(new Set());
+    } catch (e) {
+      console.error("Failed to bulk assign:", e);
+    }
+    setBulkSaving(false);
   }
 
   // ── Find the currently selected track config ────────────────────────────
@@ -901,6 +968,219 @@ export function AdminTabs({
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Enrollments Tab */}
+      {tab === "enrollments" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-neutral-900">Track Enrollments</h2>
+            <p className="text-xs text-neutral-400">
+              {enrollments.length} assignment{enrollments.length !== 1 ? "s" : ""}
+            </p>
+          </div>
+
+          <p className="text-xs text-neutral-500">
+            Students with no track assignments see all tracks. Assign a track to restrict their dashboard to only that track.
+          </p>
+
+          {/* Bulk assign */}
+          <div className="rounded-xl border border-neutral-200 bg-white p-4 space-y-3">
+            <p className="text-xs font-semibold text-neutral-700">Bulk Assign</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="relative">
+                <select
+                  value={bulkTrack}
+                  onChange={(e) => setBulkTrack(e.target.value)}
+                  className="appearance-none rounded-lg border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-2 text-xs font-medium text-neutral-700 focus:border-neutral-400 focus:outline-none"
+                >
+                  {tracks.map((t) => (
+                    <option key={t.slug} value={t.slug}>{t.shortName}</option>
+                  ))}
+                </select>
+                <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
+              </div>
+              <button
+                onClick={handleBulkAssign}
+                disabled={bulkSaving || bulkSelected.size === 0}
+                className="inline-flex items-center gap-1 rounded-lg bg-neutral-900 px-3 py-2 text-xs font-medium text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
+              >
+                {bulkSaving ? "Assigning..." : `Assign ${bulkSelected.size} selected`}
+              </button>
+              {bulkSelected.size > 0 && (
+                <button
+                  onClick={() => setBulkSelected(new Set())}
+                  className="text-xs text-neutral-400 hover:text-neutral-600"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+
+            {/* Checkboxes */}
+            <div className="max-h-48 overflow-y-auto space-y-1 border-t border-neutral-100 pt-2">
+              {students.filter((s) => s.role !== "admin").map((student) => {
+                const alreadyEnrolled = enrollments.some(
+                  (e) => e.student_id === student.id && e.track_slug === bulkTrack
+                );
+                return (
+                  <label
+                    key={student.id}
+                    className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs cursor-pointer hover:bg-neutral-50 ${
+                      alreadyEnrolled ? "opacity-50" : ""
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      disabled={alreadyEnrolled}
+                      checked={bulkSelected.has(student.id)}
+                      onChange={(e) => {
+                        const next = new Set(bulkSelected);
+                        if (e.target.checked) next.add(student.id);
+                        else next.delete(student.id);
+                        setBulkSelected(next);
+                      }}
+                      className="rounded border-neutral-300"
+                    />
+                    <span className="text-neutral-700">
+                      {student.first_name} {student.last_name}
+                    </span>
+                    {alreadyEnrolled && (
+                      <span className="text-[10px] text-neutral-400 ml-auto">Already enrolled</span>
+                    )}
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Filter by track */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-neutral-500">Filter:</span>
+            <button
+              onClick={() => setEnrollmentFilter("all")}
+              className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                enrollmentFilter === "all"
+                  ? "bg-neutral-900 text-white"
+                  : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+              }`}
+            >
+              All
+            </button>
+            {tracks.map((t) => (
+              <button
+                key={t.slug}
+                onClick={() => setEnrollmentFilter(t.slug)}
+                className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                  enrollmentFilter === t.slug
+                    ? "bg-neutral-900 text-white"
+                    : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                }`}
+              >
+                {t.shortName}
+              </button>
+            ))}
+            <button
+              onClick={() => setEnrollmentFilter("none")}
+              className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                enrollmentFilter === "none"
+                  ? "bg-neutral-900 text-white"
+                  : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+              }`}
+            >
+              Unassigned
+            </button>
+          </div>
+
+          {/* Per-student enrollment cards */}
+          <div className="space-y-2">
+            {students
+              .filter((s) => s.role !== "admin")
+              .filter((s) => {
+                if (enrollmentFilter === "all") return true;
+                if (enrollmentFilter === "none") return getStudentEnrollments(s.id).length === 0;
+                return getStudentEnrollments(s.id).includes(enrollmentFilter);
+              })
+              .map((student) => {
+                const studentEnrollments = getStudentEnrollments(student.id);
+                return (
+                  <div
+                    key={student.id}
+                    className="rounded-xl border border-neutral-200 bg-white p-3"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-neutral-900">
+                          {student.first_name} {student.last_name}
+                        </p>
+                        <p className="text-[11px] text-neutral-400">{student.email}</p>
+                      </div>
+                      {studentEnrollments.length === 0 && (
+                        <span className="text-[10px] text-neutral-400 bg-neutral-100 rounded-full px-2 py-0.5">
+                          Sees all tracks
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {tracks.map((t) => {
+                        const isEnrolled = studentEnrollments.includes(t.slug);
+                        const isSaving = enrollmentSaving === `${student.id}-${t.slug}`;
+                        return (
+                          <button
+                            key={t.slug}
+                            onClick={() => toggleTrackEnrollment(student.id, t.slug)}
+                            disabled={isSaving}
+                            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition-all ${
+                              isEnrolled
+                                ? "bg-neutral-900 text-white hover:bg-red-600"
+                                : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200"
+                            } ${isSaving ? "opacity-50" : ""}`}
+                            title={isEnrolled ? `Remove from ${t.shortName}` : `Add to ${t.shortName}`}
+                          >
+                            {isSaving ? (
+                              <Loader2 size={10} className="animate-spin" />
+                            ) : isEnrolled ? (
+                              <Check size={10} />
+                            ) : (
+                              <Plus size={10} />
+                            )}
+                            {t.shortName}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+
+          {/* Enrollment links */}
+          <div className="rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-4 space-y-2">
+            <p className="text-xs font-semibold text-neutral-700">Enrollment Links</p>
+            <p className="text-[11px] text-neutral-500">
+              Share these links with students. When they sign in through a link, they&apos;ll be automatically enrolled in that track.
+            </p>
+            {tracks.map((t) => {
+              const domain = typeof window !== "undefined" ? window.location.origin : "";
+              const link = `${domain}/?track=${t.slug}`;
+              return (
+                <div key={t.slug} className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-neutral-600 w-28 shrink-0">{t.shortName}:</span>
+                  <code className="flex-1 text-[11px] text-neutral-500 bg-white rounded px-2 py-1 border border-neutral-200 truncate">
+                    {link}
+                  </code>
+                  <button
+                    onClick={() => navigator.clipboard.writeText(link)}
+                    className="shrink-0 rounded-md border border-neutral-200 p-1.5 text-neutral-400 hover:text-neutral-600 hover:bg-white transition-colors"
+                    title="Copy link"
+                  >
+                    <LinkIcon size={12} />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
