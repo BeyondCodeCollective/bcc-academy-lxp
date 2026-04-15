@@ -15,6 +15,7 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   const token_hash = searchParams.get("token_hash");
   const type = searchParams.get("type") as "email" | "magiclink" | null;
+  const trackParam = searchParams.get("track");
 
   if (code || token_hash) {
     const cookieStore = await cookies();
@@ -137,6 +138,37 @@ export async function GET(request: Request) {
 
           if (updateErr) {
             console.error("[auth/callback] student update:", updateErr.message);
+          }
+        }
+
+        // Assign track enrollment if ?track= param was provided
+        if (trackParam) {
+          // Validate the track slug exists in the program config
+          const validTrack = program.tracks.find((t) => t.slug === trackParam);
+          if (validTrack) {
+            // Look up program DB ID
+            const { data: programRow } = await admin
+              .from("programs")
+              .select("id")
+              .eq("slug", program.slug)
+              .single();
+
+            if (programRow) {
+              const { error: trackErr } = await admin
+                .from("student_tracks")
+                .upsert(
+                  {
+                    student_id: user.id,
+                    track_slug: trackParam,
+                    program_id: programRow.id,
+                  },
+                  { onConflict: "student_id,track_slug,program_id" }
+                );
+
+              if (trackErr) {
+                console.error("[auth/callback] track assignment:", trackErr.message);
+              }
+            }
           }
         }
       }

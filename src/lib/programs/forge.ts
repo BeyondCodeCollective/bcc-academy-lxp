@@ -3,7 +3,7 @@ import type { ProgramConfig } from "./types";
 export const forgeConfig: ProgramConfig = {
   slug: "forge",
   name: "The Forge",
-  tagline: "AI Skills for the Next Generation",
+  tagline: "Where Innovation Meets Community",
   domain: "forge.bccacademy.io",
   logo: "/forge/logo.svg",
   colors: {

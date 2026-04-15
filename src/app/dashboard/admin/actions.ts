@@ -101,6 +101,125 @@ export async function updateCohortAction(
   return { success: true };
 }
 
+// ─── Track Enrollment ─────────────────────────────────────────────────────────
+
+export type StudentTrackRow = {
+  id: string;
+  student_id: string;
+  track_slug: string;
+  program_id: string;
+  created_at: string;
+};
+
+export async function getStudentTracks(programSlug: string): Promise<StudentTrackRow[]> {
+  const svc = createServiceClient();
+  const { data: programRow } = await svc
+    .from("programs")
+    .select("id")
+    .eq("slug", programSlug)
+    .single();
+
+  if (!programRow) return [];
+
+  const { data, error } = await svc
+    .from("student_tracks")
+    .select("*")
+    .eq("program_id", programRow.id)
+    .order("created_at");
+
+  if (error) {
+    console.error("getStudentTracks error:", error.message);
+    return [];
+  }
+  return (data ?? []) as StudentTrackRow[];
+}
+
+export async function assignStudentTrack(
+  studentId: string,
+  trackSlug: string,
+  programSlug: string
+) {
+  const { svc } = await requireAdmin();
+
+  const { data: programRow } = await svc
+    .from("programs")
+    .select("id")
+    .eq("slug", programSlug)
+    .single();
+
+  if (!programRow) throw new Error("Program not found");
+
+  const { error } = await svc.from("student_tracks").upsert(
+    {
+      student_id: studentId,
+      track_slug: trackSlug,
+      program_id: programRow.id,
+    },
+    { onConflict: "student_id,track_slug,program_id" }
+  );
+
+  if (error) throw new Error(error.message);
+  revalidatePath("/dashboard", "page");
+  return { success: true };
+}
+
+export async function removeStudentTrack(
+  studentId: string,
+  trackSlug: string,
+  programSlug: string
+) {
+  const { svc } = await requireAdmin();
+
+  const { data: programRow } = await svc
+    .from("programs")
+    .select("id")
+    .eq("slug", programSlug)
+    .single();
+
+  if (!programRow) throw new Error("Program not found");
+
+  const { error } = await svc
+    .from("student_tracks")
+    .delete()
+    .eq("student_id", studentId)
+    .eq("track_slug", trackSlug)
+    .eq("program_id", programRow.id);
+
+  if (error) throw new Error(error.message);
+  revalidatePath("/dashboard", "page");
+  return { success: true };
+}
+
+export async function bulkAssignTrack(
+  studentIds: string[],
+  trackSlug: string,
+  programSlug: string
+) {
+  const { svc } = await requireAdmin();
+
+  const { data: programRow } = await svc
+    .from("programs")
+    .select("id")
+    .eq("slug", programSlug)
+    .single();
+
+  if (!programRow) throw new Error("Program not found");
+
+  const rows = studentIds.map((sid) => ({
+    student_id: sid,
+    track_slug: trackSlug,
+    program_id: programRow.id,
+  }));
+
+  const { error } = await svc
+    .from("student_tracks")
+    .upsert(rows, { onConflict: "student_id,track_slug,program_id" });
+
+  if (error) throw new Error(error.message);
+  revalidatePath("/dashboard", "page");
+  return { success: true };
+}
+
 // ─── Session Content ──────────────────────────────────────────────────────────
 
 export type SessionResource = {

@@ -20,6 +20,7 @@ export default async function DashboardPage() {
   let cohortStartDate = program.defaultCohort.startDate;
   let noCohort = false;
   let needsOnboarding = false;
+  let enrolledTrackSlugs: string[] | null = null; // null = show all (backward compat)
 
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
@@ -65,6 +66,16 @@ export default async function DashboardPage() {
     firstName = student?.first_name || "there";
     lastName = student?.last_name || "";
     needsOnboarding = !student?.onboarding_completed;
+
+    // Query track enrollments — if student has assignments, only show those tracks
+    const { data: trackRows } = await supabase
+      .from("student_tracks")
+      .select("track_slug")
+      .eq("student_id", session.user.id);
+
+    if (trackRows && trackRows.length > 0) {
+      enrolledTrackSlugs = trackRows.map((r) => r.track_slug);
+    }
   } else {
     const cookieStore = await cookies();
     const demoEmail = cookieStore.get(DEMO_COOKIE)?.value;
@@ -78,9 +89,14 @@ export default async function DashboardPage() {
     }
   }
 
+  // Filter tracks by enrollment (null = show all for backward compat)
+  const visibleTracks = enrolledTrackSlugs
+    ? program.tracks.filter((t) => enrolledTrackSlugs.includes(t.slug))
+    : program.tracks;
+
   // Compute current week per track
   const now = new Date();
-  const trackStates = program.tracks.map((track) => {
+  const trackStates = visibleTracks.map((track) => {
     const started = now >= new Date(track.startDate);
     const currentWeek = started
       ? computeCurrentWeek(track.startDate, track.totalWeeks, track.lastSessionDayOffset)

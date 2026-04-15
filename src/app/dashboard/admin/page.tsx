@@ -3,11 +3,14 @@ import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { AdminTabs } from "./admin-tabs";
 import type { Student } from "@/lib/types";
 import { getProgram } from "@/lib/programs/server";
+import { getStudentTracks } from "./actions";
+import type { StudentTrackRow } from "./actions";
 
 export default async function AdminPage() {
   const program = await getProgram();
   let allStudents: Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id">[] = [];
   let allCohorts: { id: string; name: string; display_name: string | null; start_date: string; total_weeks: number }[] = [];
+  let studentTracks: StudentTrackRow[] = [];
 
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
@@ -38,6 +41,7 @@ export default async function AdminPage() {
 
     allStudents = studentsResult.data || [];
     allCohorts = cohortsResult.data || [];
+    studentTracks = await getStudentTracks(program.slug);
   }
 
   // Serialize track configs for the client component
@@ -61,7 +65,7 @@ export default async function AdminPage() {
   return (
     <div className="mx-auto w-full max-w-2xl space-y-6 px-5 py-8">
       <h1 className="text-2xl font-bold text-neutral-900">Admin Panel</h1>
-      <AdminTabs cohorts={allCohorts} students={allStudents} tracks={tracks} />
+      <AdminTabs cohorts={allCohorts} students={allStudents} tracks={tracks} studentTracks={studentTracks} programSlug={program.slug} />
     </div>
   );
 }
