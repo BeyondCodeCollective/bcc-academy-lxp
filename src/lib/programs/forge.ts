@@ -7,10 +7,10 @@ export const forgeConfig: ProgramConfig = {
   domain: "forge.bccacademy.io",
   logo: "/forge/logo.svg",
   colors: {
-    primary: "#E54D2E",
-    primaryHover: "#C4391A",
-    accent: "#F0613E",
-    tagline: "#F0613E",
+    primary: "#0047AB",
+    primaryHover: "#003A8C",
+    accent: "#2563EB",
+    tagline: "#60A5FA",
   },
   defaultCohort: {
     name: "forge-cohort-1",
