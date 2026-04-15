@@ -8,6 +8,11 @@ import type { SessionResource } from "@/app/dashboard/admin/actions";
 import { isStorageUrl, isUploadedVideo, isUploadedRecording, getYouTubeEmbedUrl } from "@/lib/storage-utils";
 import { getProgram } from "@/lib/programs/server";
 import { getTrackBySlug } from "@/lib/programs";
+import { getSubmission, getReflection, getFeedback } from "@/app/dashboard/track/actions";
+import { SubmissionForm } from "@/components/submission-form";
+import { ReflectionForm } from "@/components/reflection-form";
+import { IntakeForm } from "@/components/intake-form";
+import { getSurveyStatus } from "@/app/dashboard/actions";
 
 export default async function TrackWeekPage({
   params,
@@ -24,6 +29,30 @@ export default async function TrackWeekPage({
   const weekContent = track.weeks.find((w) => w.week === weekNum);
   if (!weekContent) redirect("/dashboard");
 
+  // Gate single-event tracks behind intake form
+  if (track.intakeRequired && track.intakeQuestions?.length && isSupabaseConfigured()) {
+    const intakeStatus = await getSurveyStatus(`intake-${trackSlug}`);
+    if (!intakeStatus.completed) {
+      return (
+        <div className="mx-auto w-full max-w-2xl py-4">
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-neutral-900 transition-colors mb-2 py-2 px-4 sm:px-5"
+          >
+            <ArrowLeft size={16} />
+            Back to Dashboard
+          </Link>
+          <IntakeForm
+            trackSlug={trackSlug}
+            trackName={track.name}
+            programSlug={program.slug}
+            questions={track.intakeQuestions}
+          />
+        </div>
+      );
+    }
+  }
+
   const now = new Date();
   const trackStarted = now >= new Date(track.startDate);
   const currentWeek = trackStarted
@@ -34,6 +63,14 @@ export default async function TrackWeekPage({
   const sessionContent = isSupabaseConfigured()
     ? await getSessionContent(trackSlug, weekNum)
     : null;
+
+  // Apply instructor overrides (DB values override config defaults)
+  const displayTitle = sessionContent?.title || weekContent.title;
+  const displaySubtitle = sessionContent?.subtitle || weekContent.subtitle;
+  const displayDescription = sessionContent?.description || weekContent.description;
+  const displayObjectives = (sessionContent?.objectives as string[] | null)?.length
+    ? (sessionContent!.objectives as string[])
+    : weekContent.objectives;
 
   // Build meeting links array (supports up to 2 sessions via DB columns)
   const meetingLinks: (string | null)[] = [];
@@ -107,7 +144,7 @@ export default async function TrackWeekPage({
               </span>
             </div>
             <h1 className="text-2xl font-bold text-neutral-900 leading-tight">
-              {weekContent.title}
+              {displayTitle}
             </h1>
           </div>
         </div>
@@ -115,7 +152,7 @@ export default async function TrackWeekPage({
           <Users size={13} className="text-neutral-400" />
           <span className="text-xs text-neutral-500">{track.instructor}</span>
           <span className="text-neutral-300 mx-1">·</span>
-          <span className="text-xs text-neutral-500">{weekContent.subtitle}</span>
+          <span className="text-xs text-neutral-500">{displaySubtitle}</span>
         </div>
       </div>
 
@@ -173,7 +210,7 @@ export default async function TrackWeekPage({
 
       {/* Brief description */}
       <p className="mb-6 text-sm text-neutral-500 leading-relaxed px-1">
-        {weekContent.description}
+        {displayDescription}
       </p>
 
       {/* What You'll Cover */}
@@ -185,7 +222,7 @@ export default async function TrackWeekPage({
           </h2>
         </div>
         <ul className="space-y-1.5">
-          {weekContent.objectives.map((obj, i) => (
+          {displayObjectives.map((obj, i) => (
             <li key={i} className="flex gap-2 text-sm text-neutral-600">
               <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-neutral-300" />
               {obj}
@@ -335,6 +372,52 @@ export default async function TrackWeekPage({
           </ul>
         </div>
       )}
+
+      {/* Submissions & Reflections — only for current or past weeks */}
+      {(isCurrent || isCompleted || weekNum < currentWeek) && await (async () => {
+        const showSubmissions = track.submissionsEnabled !== false;
+        const showReflections = track.reflectionsEnabled !== false;
+
+        if (!showSubmissions && !showReflections) return null;
+        if (!isSupabaseConfigured()) return null;
+
+        const [existingSubmission, existingReflection] = await Promise.all([
+          showSubmissions ? getSubmission(trackSlug, weekNum).catch(() => null) : null,
+          showReflections ? getReflection(trackSlug, weekNum).catch(() => null) : null,
+        ]);
+
+        const [submissionFeedback, reflectionFeedback] = await Promise.all([
+          existingSubmission?.id ? getFeedback(existingSubmission.id, undefined).catch(() => []) : [],
+          existingReflection?.id ? getFeedback(undefined, existingReflection.id).catch(() => []) : [],
+        ]);
+
+        const reflectionPrompts =
+          weekContent.reflectionPrompts ??
+          track.defaultReflectionPrompts ??
+          [];
+
+        return (
+          <div className="mt-6 space-y-4">
+            {showSubmissions && (
+              <SubmissionForm
+                trackSlug={trackSlug}
+                weekNumber={weekNum}
+                existing={existingSubmission}
+                feedback={submissionFeedback}
+              />
+            )}
+            {showReflections && (
+              <ReflectionForm
+                trackSlug={trackSlug}
+                weekNumber={weekNum}
+                prompts={reflectionPrompts}
+                existing={existingReflection}
+                feedback={reflectionFeedback}
+              />
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 }

@@ -33,6 +33,13 @@ export const atgConfig: ProgramConfig = {
       instructor: "Angel Aviles",
       sessionTimes: ["Tuesdays 10–11am ET"],
       lastSessionDayOffset: 6,
+      defaultReflectionPrompts: [
+        "What did you learn this week?",
+        "What was challenging?",
+        "How will you apply this going forward?",
+      ],
+      submissionsEnabled: false,
+      reflectionsEnabled: true,
       weekSummaries: [
         { week: 1, topic: "Storytelling", icon: "🎙️" },
         { week: 2, topic: "Networking", icon: "🤝" },
@@ -178,6 +185,13 @@ export const atgConfig: ProgramConfig = {
       instructor: "Kobie Joyner",
       sessionTimes: ["Wed & Fri 10am–12pm ET"],
       lastSessionDayOffset: 2,
+      defaultReflectionPrompts: [
+        "What did you learn this week?",
+        "What was challenging?",
+        "How will you apply this going forward?",
+      ],
+      submissionsEnabled: true,
+      reflectionsEnabled: true,
       weekSummaries: [
         { week: 1, topic: "IT Concepts & Careers", icon: "💻" },
         { week: 2, topic: "Hardware Components", icon: "🔧" },
@@ -359,6 +373,14 @@ Guidelines:
 - Offer practice questions when appropriate to reinforce learning.
 - Keep responses focused — 2-3 short paragraphs max unless they ask for more detail.`,
   },
+  surveys: [
+    {
+      id: "pre-survey-spring-2026",
+      title: "Pre-Survey",
+      description: "Help us understand your background and experience so we can better support you.",
+      required: true,
+    },
+  ],
   coppa: { required: false },
   seo: {
     title: "After The Game — IT Career Training by Beyond Code Collective",

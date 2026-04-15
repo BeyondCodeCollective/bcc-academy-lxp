@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { addStudentAction, deleteStudentAction, updateStudentAction, updateCohortAction, saveSessionContent, assignStudentTrack, removeStudentTrack, bulkAssignTrack } from "./actions";
-import type { SessionResource, StudentTrackRow } from "./actions";
+import { addStudentAction, deleteStudentAction, updateStudentAction, updateCohortAction, saveSessionContent, assignStudentTrack, removeStudentTrack, bulkAssignTrack, exportSurveyResponses, getAllSubmissions, getAllReflections, addFeedback, assignInstructorTrack, removeInstructorTrack } from "./actions";
+import type { SessionResource, StudentTrackRow, SurveyStatsRow, AdminSubmissionRow, AdminReflectionRow, InstructorTrackRow } from "./actions";
+import { canManageStudents, canSwitchPrograms } from "@/lib/roles";
 import {
   Users,
   BookOpen,
@@ -24,6 +25,9 @@ import {
   Loader2,
   Video,
   FileText,
+  ClipboardList,
+  Send,
+  MessageSquare,
 } from "lucide-react";
 import { AttendanceTab } from "./attendance-tab";
 import type { Student } from "@/lib/types";
@@ -74,6 +78,11 @@ type AdminWeek = {
   title: string;
   icon: string;
   sessions: AdminSession[];
+  /** Instructor overrides (empty string = use config default) */
+  overrideTitle: string;
+  overrideSubtitle: string;
+  overrideDescription: string;
+  overrideObjectives: string; // newline-separated for editing
 };
 
 // DB content map
@@ -85,6 +94,10 @@ type SessionContentMap = Record<number, {
   status: string;
   status_2: string;
   resources: SessionResource[];
+  title: string | null;
+  subtitle: string | null;
+  description: string | null;
+  objectives: string[] | null;
 }>;
 
 function buildInitialWeeks(track: AdminTrackConfig): AdminWeek[] {
@@ -92,6 +105,10 @@ function buildInitialWeeks(track: AdminTrackConfig): AdminWeek[] {
     week: w.week,
     title: w.title,
     icon: w.icon,
+    overrideTitle: "",
+    overrideSubtitle: "",
+    overrideDescription: "",
+    overrideObjectives: "",
     sessions: w.sessions.map((s, i) => ({
       num: i + 1,
       title: s.title,
@@ -109,6 +126,10 @@ function applyContentMap(weeks: AdminWeek[], map: SessionContentMap): AdminWeek[
     if (!content) return w;
     return {
       ...w,
+      overrideTitle: content.title ?? "",
+      overrideSubtitle: content.subtitle ?? "",
+      overrideDescription: content.description ?? "",
+      overrideObjectives: content.objectives?.join("\n") ?? "",
       sessions: w.sessions.map((s, i) => ({
         ...s,
         meetingLink: i === 0 ? content.meeting_link : i === 1 ? content.meeting_link_2 : s.meetingLink,
@@ -343,24 +364,38 @@ export function AdminTabs({
   students: initialStudents,
   tracks,
   studentTracks: initialStudentTracks,
-  programSlug,
+  instructorTracks: initialInstructorTracks = [],
+  programSlug: initialProgramSlug,
+  surveyStats,
+  surveyConfigs,
+  userRole = "admin",
+  allPrograms = [],
 }: {
   cohorts: CohortRow[];
   students: StudentRow[];
   tracks: AdminTrackConfig[];
   studentTracks: StudentTrackRow[];
+  instructorTracks?: InstructorTrackRow[];
   programSlug: string;
+  surveyStats: Record<string, SurveyStatsRow[]>;
+  surveyConfigs: { id: string; title: string }[];
+  userRole?: string;
+  allPrograms?: { slug: string; name: string }[];
 }) {
+  const programSlug = initialProgramSlug;
+  const isManager = canManageStudents(userRole);
+  const showProgramSwitcher = canSwitchPrograms(userRole) && allPrograms.length > 1;
   // Build tab list dynamically
   const tabs = [
-    { id: "program", label: "Program", icon: Settings },
+    ...(isManager ? [{ id: "program", label: "Program", icon: Settings }] : []),
     ...tracks.map((t, i) => ({ id: t.slug, label: t.shortName, icon: getTrackIcon(i) })),
-    { id: "students", label: "Students", icon: Users },
-    { id: "enrollments", label: "Enrollments", icon: BookOpen },
+    ...(isManager ? [{ id: "students", label: "Students", icon: Users }] : []),
+    ...(isManager ? [{ id: "enrollments", label: "Enrollments", icon: BookOpen }] : []),
+    { id: "student-work", label: "Student Work", icon: ClipboardList },
     { id: "attendance", label: "Analytics", icon: UserCheck },
   ];
 
-  const [tab, setTab] = useState<string>("program");
+  const [tab, setTab] = useState<string>(isManager ? "program" : tracks[0]?.slug ?? "student-work");
   const [cohort, setCohort] = useState(cohorts[0] || null);
   const [students, setStudents] = useState(initialStudents);
   const [saving, setSaving] = useState(false);
@@ -405,6 +440,10 @@ export function AdminTabs({
           status: string | null;
           status_2: string | null;
           resources: SessionResource[];
+          title: string | null;
+          subtitle: string | null;
+          description: string | null;
+          objectives: string[] | null;
         }> };
         const map: SessionContentMap = {};
         for (const row of json.rows) {
@@ -416,6 +455,10 @@ export function AdminTabs({
             status: row.status ?? "upcoming",
             status_2: row.status_2 ?? "upcoming",
             resources: row.resources ?? [],
+            title: row.title ?? null,
+            subtitle: row.subtitle ?? null,
+            description: row.description ?? null,
+            objectives: row.objectives ?? null,
           };
         }
         setTrackData((prev) => ({
@@ -441,6 +484,9 @@ export function AdminTabs({
     saveTimers.current[trackSlug][weekNum] = setTimeout(async () => {
       try {
         const allResources = weekData.sessions.flatMap((s) => s.resources);
+        const objectivesArr = weekData.overrideObjectives.trim()
+          ? weekData.overrideObjectives.split("\n").map((s) => s.trim()).filter(Boolean)
+          : null;
         await saveSessionContent(trackSlug, weekNum, {
           meeting_link: weekData.sessions[0]?.meetingLink ?? "",
           recording_url: weekData.sessions[0]?.recordingUrl ?? "",
@@ -448,6 +494,10 @@ export function AdminTabs({
           recording_url_2: weekData.sessions[1]?.recordingUrl ?? "",
           status: weekData.sessions[0]?.status ?? "upcoming",
           status_2: weekData.sessions[1]?.status ?? "upcoming",
+          title: weekData.overrideTitle || null,
+          subtitle: weekData.overrideSubtitle || null,
+          description: weekData.overrideDescription || null,
+          objectives: objectivesArr,
           resources: allResources,
         });
         setSaveStates((s) => ({ ...s, [trackSlug]: { ...s[trackSlug], [weekNum]: "saved" } }));
@@ -471,6 +521,18 @@ export function AdminTabs({
               ),
             }
           : w
+      );
+      const week = updated.find((w) => w.week === weekNum)!;
+      scheduleSave(trackSlug, weekNum, week);
+      return { ...prev, [trackSlug]: updated };
+    });
+  }
+
+  function updateWeekOverride(trackSlug: string, weekNum: number, patch: Partial<Pick<AdminWeek, "overrideTitle" | "overrideSubtitle" | "overrideDescription" | "overrideObjectives">>) {
+    setTrackData((prev) => {
+      const weeks = prev[trackSlug] ?? [];
+      const updated = weeks.map((w) =>
+        w.week === weekNum ? { ...w, ...patch } : w
       );
       const week = updated.find((w) => w.week === weekNum)!;
       scheduleSave(trackSlug, weekNum, week);
@@ -504,6 +566,8 @@ export function AdminTabs({
 
   // Track enrollment state
   const [enrollments, setEnrollments] = useState<StudentTrackRow[]>(initialStudentTracks);
+  const [instrTracks, setInstrTracks] = useState<InstructorTrackRow[]>(initialInstructorTracks);
+  const [instrTrackSaving, setInstrTrackSaving] = useState<string | null>(null);
   const [enrollmentSaving, setEnrollmentSaving] = useState<string | null>(null);
   const [enrollmentFilter, setEnrollmentFilter] = useState<string>("all");
   const [bulkTrack, setBulkTrack] = useState<string>(tracks[0]?.slug ?? "");
@@ -587,12 +651,66 @@ export function AdminTabs({
     setBulkSaving(false);
   }
 
+  // Instructor track helpers
+  function getInstructorAssignments(instructorId: string): string[] {
+    return instrTracks
+      .filter((e) => e.student_id === instructorId)
+      .map((e) => e.track_slug);
+  }
+
+  async function toggleInstructorTrack(instructorId: string, trackSlug: string) {
+    setInstrTrackSaving(`${instructorId}-${trackSlug}`);
+    try {
+      const isAssigned = instrTracks.some(
+        (e) => e.student_id === instructorId && e.track_slug === trackSlug
+      );
+      if (isAssigned) {
+        await removeInstructorTrack(instructorId, trackSlug, programSlug);
+        setInstrTracks((prev) =>
+          prev.filter((e) => !(e.student_id === instructorId && e.track_slug === trackSlug))
+        );
+      } else {
+        await assignInstructorTrack(instructorId, trackSlug, programSlug);
+        setInstrTracks((prev) => [
+          ...prev,
+          { id: crypto.randomUUID(), student_id: instructorId, track_slug: trackSlug, program_id: "", created_at: new Date().toISOString() },
+        ]);
+      }
+    } catch (e) {
+      console.error("Failed to toggle instructor track:", e);
+    }
+    setInstrTrackSaving(null);
+  }
+
   // ── Find the currently selected track config ────────────────────────────
   const activeTrack = tracks.find((t) => t.slug === tab);
   const activeWeeks = trackData[tab] ?? [];
 
   return (
     <div>
+      {/* Program switcher — super_admin only */}
+      {showProgramSwitcher && (
+        <div className="flex items-center gap-2 mb-4">
+          <span className="text-xs font-medium text-neutral-500">Program:</span>
+          <div className="relative">
+            <select
+              value={programSlug}
+              onChange={(e) => {
+                // Navigate to the other program's admin page by switching the cookie
+                document.cookie = `program-slug=${e.target.value}; path=/; max-age=86400`;
+                window.location.reload();
+              }}
+              className="appearance-none rounded-lg border border-neutral-200 bg-white pl-3 pr-7 py-1.5 text-sm font-medium text-neutral-900 focus:border-neutral-400 focus:outline-none"
+            >
+              {allPrograms.map((p) => (
+                <option key={p.slug} value={p.slug}>{p.name}</option>
+              ))}
+            </select>
+            <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
+          </div>
+        </div>
+      )}
+
       {/* Tab bar */}
       <div className="flex gap-1 rounded-lg bg-neutral-100 p-1 mb-6 overflow-x-auto">
         {tabs.map(({ id, label, icon: Icon }) => (
@@ -672,6 +790,80 @@ export function AdminTabs({
               ))}
             </div>
           </div>
+
+          {/* Survey Stats */}
+          {surveyConfigs.length > 0 && (
+            <div>
+              <h2 className="text-lg font-semibold text-neutral-900 mb-4">Surveys</h2>
+              <div className="space-y-3">
+                {surveyConfigs.map((survey) => {
+                  const stats = surveyStats[survey.id] ?? [];
+                  const completed = stats.filter((s) => s.completed_at).length;
+                  const totalStudents = students.filter((s) => s.role !== "admin").length;
+                  const pct = totalStudents > 0 ? Math.round((completed / totalStudents) * 100) : 0;
+
+                  return (
+                    <div key={survey.id} className="rounded-xl border border-neutral-200 bg-white p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-sm font-semibold text-neutral-900">{survey.title}</p>
+                        <span className="text-xs text-neutral-400">
+                          {completed} of {totalStudents} completed
+                        </span>
+                      </div>
+                      <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-100 mb-3">
+                        <div
+                          className="h-full rounded-full bg-neutral-900 transition-all"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            const data = await exportSurveyResponses(programSlug, survey.id);
+                            if (data.length === 0) return;
+                            // Build CSV
+                            const allKeys = new Set<string>();
+                            data.forEach((row) => {
+                              Object.keys(row.responses).forEach((k) => allKeys.add(k));
+                            });
+                            const headers = ["Name", "Email", "Completed At", ...Array.from(allKeys)];
+                            const rows = data.map((row) => [
+                              row.student_name,
+                              row.email,
+                              row.completed_at ?? "",
+                              ...Array.from(allKeys).map((k) => {
+                                const val = row.responses[k];
+                                if (Array.isArray(val)) return val.join("; ");
+                                if (typeof val === "object" && val !== null) {
+                                  return Object.entries(val).map(([stmt, ans]) => `${stmt}: ${ans}`).join("; ");
+                                }
+                                return String(val ?? "");
+                              }),
+                            ]);
+                            const csv = [headers, ...rows].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+                            const blob = new Blob([csv], { type: "text/csv" });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement("a");
+                            a.href = url;
+                            a.download = `${survey.id}-responses.csv`;
+                            a.click();
+                            URL.revokeObjectURL(url);
+                          } catch (e) {
+                            console.error("Export failed:", e);
+                          }
+                        }}
+                        className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+                      >
+                        <Download size={12} />
+                        Export CSV
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -713,7 +905,60 @@ export function AdminTabs({
                 </button>
 
                 {expandedWeek === aw.week && (
-                  <div className={`border-t border-neutral-100 ${hasMultipleSessions ? "divide-y divide-neutral-100" : ""}`}>
+                  <div className="border-t border-neutral-100">
+                    {/* Content overrides */}
+                    <div className="px-4 sm:px-5 py-3.5 sm:py-4 space-y-3 border-b border-neutral-100">
+                      <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wide">
+                        Session Content
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs font-medium text-neutral-500">Title</label>
+                          <input
+                            type="text"
+                            value={aw.overrideTitle}
+                            onChange={(e) => updateWeekOverride(activeTrack.slug, aw.week, { overrideTitle: e.target.value })}
+                            placeholder={aw.title}
+                            className="mt-1 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-300 focus:border-neutral-900 focus:outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-neutral-500">Subtitle</label>
+                          <input
+                            type="text"
+                            value={aw.overrideSubtitle}
+                            onChange={(e) => updateWeekOverride(activeTrack.slug, aw.week, { overrideSubtitle: e.target.value })}
+                            placeholder="e.g. Industry Perspectives"
+                            className="mt-1 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-300 focus:border-neutral-900 focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-neutral-500">Description</label>
+                        <textarea
+                          value={aw.overrideDescription}
+                          onChange={(e) => updateWeekOverride(activeTrack.slug, aw.week, { overrideDescription: e.target.value })}
+                          placeholder="Leave blank to use the default description"
+                          rows={2}
+                          className="mt-1 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-300 focus:border-neutral-900 focus:outline-none resize-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-neutral-500">
+                          What You&apos;ll Cover <span className="font-normal text-neutral-300">(one per line)</span>
+                        </label>
+                        <textarea
+                          value={aw.overrideObjectives}
+                          onChange={(e) => updateWeekOverride(activeTrack.slug, aw.week, { overrideObjectives: e.target.value })}
+                          placeholder="Leave blank to use defaults"
+                          rows={4}
+                          className="mt-1 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-300 focus:border-neutral-900 focus:outline-none resize-none"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Sessions */}
+                    <div className={hasMultipleSessions ? "divide-y divide-neutral-100" : ""}>
                     {aw.sessions.map((s) => (
                       <div key={s.num} className="px-4 sm:px-5 py-3.5 sm:py-4 space-y-3">
                         {hasMultipleSessions && (
@@ -786,6 +1031,7 @@ export function AdminTabs({
                         </div>
                       </div>
                     ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -859,6 +1105,7 @@ export function AdminTabs({
                   <label className="text-xs font-medium text-neutral-500">Role</label>
                   <select name="role" defaultValue="student" className="mt-1 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none">
                     <option value="student">Student</option>
+                    <option value="instructor">Instructor</option>
                     <option value="admin">Admin</option>
                   </select>
                 </div>
@@ -908,8 +1155,14 @@ export function AdminTabs({
                     <p className="text-sm font-semibold text-neutral-900">
                       {student.first_name} {student.last_name}
                     </p>
+                    {student.role === "super_admin" && (
+                      <Shield size={12} className="shrink-0 text-red-500" />
+                    )}
                     {student.role === "admin" && (
                       <Shield size={12} className="shrink-0 text-amber-500" />
+                    )}
+                    {student.role === "instructor" && (
+                      <GraduationCap size={12} className="shrink-0 text-blue-500" />
                     )}
                   </div>
                   <p className="text-xs text-neutral-500 mt-0.5">{student.email}</p>
@@ -948,6 +1201,7 @@ export function AdminTabs({
                     className="w-full appearance-none rounded-lg border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-2 text-xs font-medium text-neutral-700 focus:border-neutral-400 focus:outline-none"
                   >
                     <option value="student">Student</option>
+                    <option value="instructor">Instructor</option>
                     <option value="admin">Admin</option>
                   </select>
                   <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
@@ -1155,6 +1409,64 @@ export function AdminTabs({
               })}
           </div>
 
+          {/* Instructor Track Assignments */}
+          {(() => {
+            const instructors = students.filter((s) => s.role === "instructor");
+            if (instructors.length === 0) return null;
+            return (
+              <div className="rounded-xl border border-neutral-200 bg-white p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <GraduationCap size={14} className="text-blue-500" />
+                  <p className="text-xs font-semibold text-neutral-700">Instructor Track Assignments</p>
+                </div>
+                <p className="text-[11px] text-neutral-500">
+                  Assign instructors to the tracks they teach. Instructors only see their assigned tracks in the admin panel.
+                </p>
+                <div className="space-y-2">
+                  {instructors.map((instructor) => {
+                    const assigned = getInstructorAssignments(instructor.id);
+                    return (
+                      <div key={instructor.id} className="rounded-lg border border-neutral-100 p-3">
+                        <p className="text-sm font-medium text-neutral-900 mb-2">
+                          {instructor.first_name} {instructor.last_name}
+                          <span className="text-[11px] text-neutral-400 ml-1.5">{instructor.email}</span>
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {tracks.map((t) => {
+                            const isAssigned = assigned.includes(t.slug);
+                            const isSaving = instrTrackSaving === `${instructor.id}-${t.slug}`;
+                            return (
+                              <button
+                                key={t.slug}
+                                onClick={() => toggleInstructorTrack(instructor.id, t.slug)}
+                                disabled={isSaving}
+                                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition-all ${
+                                  isAssigned
+                                    ? "bg-blue-600 text-white hover:bg-red-600"
+                                    : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200"
+                                } ${isSaving ? "opacity-50" : ""}`}
+                                title={isAssigned ? `Remove from ${t.shortName}` : `Assign to ${t.shortName}`}
+                              >
+                                {isSaving ? (
+                                  <Loader2 size={10} className="animate-spin" />
+                                ) : isAssigned ? (
+                                  <Check size={10} />
+                                ) : (
+                                  <Plus size={10} />
+                                )}
+                                {t.shortName}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Enrollment links */}
           <div className="rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-4 space-y-2">
             <p className="text-xs font-semibold text-neutral-700">Enrollment Links</p>
@@ -1184,9 +1496,330 @@ export function AdminTabs({
         </div>
       )}
 
+      {/* Student Work Tab */}
+      {tab === "student-work" && (
+        <StudentWorkTab tracks={tracks} programSlug={programSlug} />
+      )}
+
       {/* Attendance Tab */}
       {tab === "attendance" && (
         <AttendanceTab students={students} />
+      )}
+    </div>
+  );
+}
+
+// ─── Student Work Tab ──────────────────────────────────────────────────────
+
+function StudentWorkTab({
+  tracks,
+  programSlug,
+}: {
+  tracks: AdminTrackConfig[];
+  programSlug: string;
+}) {
+  const [view, setView] = useState<"submissions" | "reflections">("submissions");
+  const [trackFilter, setTrackFilter] = useState<string>("all");
+  const [weekFilter, setWeekFilter] = useState<number | "all">("all");
+  const [submissions, setSubmissions] = useState<AdminSubmissionRow[]>([]);
+  const [reflections, setReflections] = useState<AdminReflectionRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [feedbackText, setFeedbackText] = useState<Record<string, string>>({});
+  const [sendingFeedback, setSendingFeedback] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function load() {
+      setLoading(true);
+      try {
+        const [subs, refs] = await Promise.all([
+          getAllSubmissions(programSlug, trackFilter !== "all" ? trackFilter : undefined),
+          getAllReflections(programSlug, trackFilter !== "all" ? trackFilter : undefined),
+        ]);
+        setSubmissions(subs);
+        setReflections(refs);
+      } catch (err) {
+        console.error("Failed to load student work:", err);
+      }
+      setLoading(false);
+    }
+    load();
+  }, [programSlug, trackFilter]);
+
+  async function handleSendFeedback(itemId: string, type: "submission" | "reflection") {
+    const text = feedbackText[itemId]?.trim();
+    if (!text) return;
+    setSendingFeedback(itemId);
+    try {
+      await addFeedback({
+        submissionId: type === "submission" ? itemId : undefined,
+        reflectionId: type === "reflection" ? itemId : undefined,
+        comment: text,
+      });
+      setFeedbackText((prev) => ({ ...prev, [itemId]: "" }));
+      // Update feedback count locally
+      if (type === "submission") {
+        setSubmissions((prev) =>
+          prev.map((s) => (s.id === itemId ? { ...s, feedback_count: s.feedback_count + 1 } : s))
+        );
+      } else {
+        setReflections((prev) =>
+          prev.map((r) => (r.id === itemId ? { ...r, feedback_count: r.feedback_count + 1 } : r))
+        );
+      }
+    } catch (err) {
+      console.error("Failed to send feedback:", err);
+    }
+    setSendingFeedback(null);
+  }
+
+  const filteredSubmissions = submissions.filter((s) =>
+    weekFilter === "all" ? true : s.week_number === weekFilter
+  );
+  const filteredReflections = reflections.filter((r) =>
+    weekFilter === "all" ? true : r.week_number === weekFilter
+  );
+
+  const maxWeeks = Math.max(...tracks.map((t) => t.totalWeeks), 0);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-neutral-900">Student Work</h2>
+      </div>
+
+      {/* View toggle + filters */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex rounded-lg bg-neutral-100 p-0.5">
+          <button
+            onClick={() => setView("submissions")}
+            className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+              view === "submissions" ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-500"
+            }`}
+          >
+            Submissions
+          </button>
+          <button
+            onClick={() => setView("reflections")}
+            className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+              view === "reflections" ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-500"
+            }`}
+          >
+            Reflections
+          </button>
+        </div>
+
+        <div className="relative">
+          <select
+            value={trackFilter}
+            onChange={(e) => setTrackFilter(e.target.value)}
+            className="appearance-none rounded-lg border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-1.5 text-xs font-medium text-neutral-700 focus:border-neutral-400 focus:outline-none"
+          >
+            <option value="all">All Tracks</option>
+            {tracks.map((t) => (
+              <option key={t.slug} value={t.slug}>{t.shortName}</option>
+            ))}
+          </select>
+          <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
+        </div>
+
+        <div className="relative">
+          <select
+            value={weekFilter}
+            onChange={(e) => setWeekFilter(e.target.value === "all" ? "all" : parseInt(e.target.value))}
+            className="appearance-none rounded-lg border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-1.5 text-xs font-medium text-neutral-700 focus:border-neutral-400 focus:outline-none"
+          >
+            <option value="all">All Weeks</option>
+            {Array.from({ length: maxWeeks }, (_, i) => (
+              <option key={i + 1} value={i + 1}>Week {i + 1}</option>
+            ))}
+          </select>
+          <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
+        </div>
+
+        <span className="text-xs text-neutral-400 ml-auto">
+          {view === "submissions" ? filteredSubmissions.length : filteredReflections.length} result{(view === "submissions" ? filteredSubmissions.length : filteredReflections.length) !== 1 ? "s" : ""}
+        </span>
+      </div>
+
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 size={20} className="animate-spin text-neutral-400" />
+        </div>
+      )}
+
+      {!loading && view === "submissions" && (
+        <div className="space-y-2">
+          {filteredSubmissions.length === 0 && (
+            <p className="text-sm text-neutral-400 py-8 text-center">No submissions yet</p>
+          )}
+          {filteredSubmissions.map((sub) => (
+            <div key={sub.id} className="rounded-xl border border-neutral-200 bg-white overflow-hidden">
+              <button
+                onClick={() => setExpandedId(expandedId === sub.id ? null : sub.id)}
+                className="flex w-full items-center justify-between px-4 py-3 hover:bg-neutral-50 transition-colors"
+              >
+                <div className="flex items-center gap-3 text-left min-w-0">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-neutral-900">{sub.student_name}</p>
+                    <p className="text-[11px] text-neutral-400">
+                      {tracks.find((t) => t.slug === sub.track_slug)?.shortName ?? sub.track_slug} &middot; Week {sub.week_number}
+                      {sub.submitted_at && ` &middot; ${new Date(sub.submitted_at).toLocaleDateString()}`}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {sub.feedback_count > 0 && (
+                    <span className="inline-flex items-center gap-0.5 text-[10px] text-green-600 bg-green-50 rounded-full px-1.5 py-0.5">
+                      <MessageSquare size={10} /> {sub.feedback_count}
+                    </span>
+                  )}
+                  <ChevronDown size={14} className={`text-neutral-400 transition-transform ${expandedId === sub.id ? "rotate-180" : ""}`} />
+                </div>
+              </button>
+
+              {expandedId === sub.id && (
+                <div className="border-t border-neutral-100 px-4 py-3 space-y-3">
+                  {sub.description && (
+                    <div>
+                      <p className="text-[11px] font-medium text-neutral-400 uppercase tracking-wide mb-1">Description</p>
+                      <p className="text-sm text-neutral-700">{sub.description}</p>
+                    </div>
+                  )}
+                  {sub.links.length > 0 && (
+                    <div>
+                      <p className="text-[11px] font-medium text-neutral-400 uppercase tracking-wide mb-1">Links</p>
+                      <div className="space-y-1">
+                        {sub.links.map((link, i) => (
+                          <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-neutral-700 hover:text-neutral-900">
+                            <ExternalLink size={12} className="shrink-0" />
+                            {link.label || link.url}
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {sub.files.length > 0 && (
+                    <div>
+                      <p className="text-[11px] font-medium text-neutral-400 uppercase tracking-wide mb-1">Files</p>
+                      <div className="space-y-1">
+                        {sub.files.map((file, i) => (
+                          <a key={i} href={file.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-neutral-700 hover:text-neutral-900">
+                            <FileText size={12} className="shrink-0" />
+                            {file.name}
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {/* Feedback input */}
+                  <div className="pt-2 border-t border-neutral-100">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={feedbackText[sub.id] ?? ""}
+                        onChange={(e) => setFeedbackText((prev) => ({ ...prev, [sub.id]: e.target.value }))}
+                        placeholder="Leave feedback..."
+                        className="flex-1 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSendFeedback(sub.id, "submission");
+                          }
+                        }}
+                      />
+                      <button
+                        onClick={() => handleSendFeedback(sub.id, "submission")}
+                        disabled={!feedbackText[sub.id]?.trim() || sendingFeedback === sub.id}
+                        className="inline-flex items-center gap-1 rounded-lg bg-neutral-900 px-3 py-2 text-xs font-medium text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
+                      >
+                        {sendingFeedback === sub.id ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!loading && view === "reflections" && (
+        <div className="space-y-2">
+          {filteredReflections.length === 0 && (
+            <p className="text-sm text-neutral-400 py-8 text-center">No reflections yet</p>
+          )}
+          {filteredReflections.map((ref) => (
+            <div key={ref.id} className="rounded-xl border border-neutral-200 bg-white overflow-hidden">
+              <button
+                onClick={() => setExpandedId(expandedId === ref.id ? null : ref.id)}
+                className="flex w-full items-center justify-between px-4 py-3 hover:bg-neutral-50 transition-colors"
+              >
+                <div className="flex items-center gap-3 text-left min-w-0">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-neutral-900">{ref.student_name}</p>
+                    <p className="text-[11px] text-neutral-400">
+                      {tracks.find((t) => t.slug === ref.track_slug)?.shortName ?? ref.track_slug} &middot; Week {ref.week_number}
+                      {ref.submitted_at && ` &middot; ${new Date(ref.submitted_at).toLocaleDateString()}`}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {ref.feedback_count > 0 && (
+                    <span className="inline-flex items-center gap-0.5 text-[10px] text-green-600 bg-green-50 rounded-full px-1.5 py-0.5">
+                      <MessageSquare size={10} /> {ref.feedback_count}
+                    </span>
+                  )}
+                  <ChevronDown size={14} className={`text-neutral-400 transition-transform ${expandedId === ref.id ? "rotate-180" : ""}`} />
+                </div>
+              </button>
+
+              {expandedId === ref.id && (
+                <div className="border-t border-neutral-100 px-4 py-3 space-y-3">
+                  {Object.entries(ref.responses)
+                    .filter(([key]) => key !== "_additional")
+                    .map(([prompt, answer]) => (
+                      <div key={prompt}>
+                        <p className="text-[11px] font-medium text-neutral-400 mb-0.5">{prompt}</p>
+                        <p className="text-sm text-neutral-700">{answer}</p>
+                      </div>
+                    ))}
+                  {ref.responses["_additional"] && (
+                    <div>
+                      <p className="text-[11px] font-medium text-neutral-400 mb-0.5">Additional thoughts</p>
+                      <p className="text-sm text-neutral-700">{ref.responses["_additional"]}</p>
+                    </div>
+                  )}
+                  {/* Feedback input */}
+                  <div className="pt-2 border-t border-neutral-100">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={feedbackText[ref.id] ?? ""}
+                        onChange={(e) => setFeedbackText((prev) => ({ ...prev, [ref.id]: e.target.value }))}
+                        placeholder="Leave feedback..."
+                        className="flex-1 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSendFeedback(ref.id, "reflection");
+                          }
+                        }}
+                      />
+                      <button
+                        onClick={() => handleSendFeedback(ref.id, "reflection")}
+                        disabled={!feedbackText[ref.id]?.trim() || sendingFeedback === ref.id}
+                        className="inline-flex items-center gap-1 rounded-lg bg-neutral-900 px-3 py-2 text-xs font-medium text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
+                      >
+                        {sendingFeedback === ref.id ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

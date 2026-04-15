@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { getAllSessionContent } from "@/app/dashboard/admin/actions";
+import { canAccessAdminPanel } from "@/lib/roles";
 
 /**
  * GET /api/session-content?track=mass|techplus
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest) {
     .eq("id", user.id)
     .single<{ role: string }>();
 
-  if (student?.role !== "admin") {
+  if (!canAccessAdminPanel(student?.role ?? "")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

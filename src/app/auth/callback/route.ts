@@ -4,7 +4,17 @@ import { cookies } from "next/headers";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getProgram } from "@/lib/programs/server";
 
-// Emails that get admin role on first login (comma-separated env var)
+// Emails that always get super_admin role (hardcoded + env var)
+const SUPER_ADMIN_EMAILS = [
+  "fonz.morris@wearebgc.org",
+  "admin@wearebgc.org",
+  ...(process.env.SUPER_ADMIN_EMAILS || "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean),
+];
+
+// Emails that get admin role (env var)
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "")
   .split(",")
   .map((e) => e.trim().toLowerCase())
@@ -68,10 +78,17 @@ export async function GET(request: Request) {
           total_weeks: program.defaultCohort.totalWeeks,
         };
 
-        // Ensure at least one cohort exists
+        // Ensure at least one cohort exists for this program
+        const { data: programForCohort } = await admin
+          .from("programs")
+          .select("id")
+          .eq("slug", program.slug)
+          .single();
+
         const { data: cohort, error: cohortQueryErr } = await admin
           .from("cohorts")
           .select("id")
+          .eq("program_id", programForCohort?.id ?? "")
           .order("created_at", { ascending: true })
           .limit(1)
           .single();
@@ -85,7 +102,7 @@ export async function GET(request: Request) {
         if (!cohortId) {
           const { data: newCohort, error: cohortInsertErr } = await admin
             .from("cohorts")
-            .insert(defaultCohort)
+            .insert({ ...defaultCohort, program_id: programForCohort?.id })
             .select("id")
             .single();
 
@@ -119,55 +136,74 @@ export async function GET(request: Request) {
             email: user.email,
             first_name: firstName,
             last_name: lastName,
-            role: ADMIN_EMAILS.includes((user.email || "").toLowerCase())
-              ? "admin"
-              : "student",
+            role: SUPER_ADMIN_EMAILS.includes((user.email || "").toLowerCase())
+              ? "super_admin"
+              : ADMIN_EMAILS.includes((user.email || "").toLowerCase())
+                ? "admin"
+                : "student",
             cohort_id: cohortId || null,
+            program_id: programForCohort?.id,
           });
 
           if (insertErr) {
             console.error("[auth/callback] student insert:", insertErr.message);
           }
         } else {
-          // Student exists but may have no cohort — assign them
-          const { error: updateErr } = await admin
-            .from("students")
-            .update({ cohort_id: cohortId })
-            .eq("id", user.id)
-            .is("cohort_id", null);
+          // Student exists — ensure cohort is set and role stays correct
+          const email = (user.email || "").toLowerCase();
+          const correctRole = SUPER_ADMIN_EMAILS.includes(email)
+            ? "super_admin"
+            : ADMIN_EMAILS.includes(email)
+              ? "admin"
+              : null; // null = don't change role
 
-          if (updateErr) {
-            console.error("[auth/callback] student update:", updateErr.message);
+          const updates: Record<string, unknown> = {};
+
+          // Assign cohort if missing
+          const { data: currentStudent } = await admin
+            .from("students")
+            .select("cohort_id, role")
+            .eq("id", user.id)
+            .single();
+
+          if (!currentStudent?.cohort_id && cohortId) {
+            updates.cohort_id = cohortId;
+          }
+
+          // Enforce super_admin/admin role for configured emails
+          if (correctRole && currentStudent?.role !== correctRole) {
+            updates.role = correctRole;
+          }
+
+          if (Object.keys(updates).length > 0) {
+            const { error: updateErr } = await admin
+              .from("students")
+              .update(updates)
+              .eq("id", user.id);
+
+            if (updateErr) {
+              console.error("[auth/callback] student update:", updateErr.message);
+            }
           }
         }
 
         // Assign track enrollment if ?track= param was provided
-        if (trackParam) {
-          // Validate the track slug exists in the program config
+        if (trackParam && programForCohort) {
           const validTrack = program.tracks.find((t) => t.slug === trackParam);
           if (validTrack) {
-            // Look up program DB ID
-            const { data: programRow } = await admin
-              .from("programs")
-              .select("id")
-              .eq("slug", program.slug)
-              .single();
+            const { error: trackErr } = await admin
+              .from("student_tracks")
+              .upsert(
+                {
+                  student_id: user.id,
+                  track_slug: trackParam,
+                  program_id: programForCohort.id,
+                },
+                { onConflict: "student_id,track_slug,program_id" }
+              );
 
-            if (programRow) {
-              const { error: trackErr } = await admin
-                .from("student_tracks")
-                .upsert(
-                  {
-                    student_id: user.id,
-                    track_slug: trackParam,
-                    program_id: programRow.id,
-                  },
-                  { onConflict: "student_id,track_slug,program_id" }
-                );
-
-              if (trackErr) {
-                console.error("[auth/callback] track assignment:", trackErr.message);
-              }
+            if (trackErr) {
+              console.error("[auth/callback] track assignment:", trackErr.message);
             }
           }
         }

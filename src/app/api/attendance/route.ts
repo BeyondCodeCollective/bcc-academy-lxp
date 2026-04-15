@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { canAccessAdminPanel } from "@/lib/roles";
 
 // POST: admin marks attendance for a student
 export async function POST(request: NextRequest) {
@@ -19,7 +20,7 @@ export async function POST(request: NextRequest) {
     .eq("id", session.user.id)
     .single<{ id: string; role: string }>();
 
-  if (!currentStudent || currentStudent.role !== "admin") {
+  if (!currentStudent || !canAccessAdminPanel(currentStudent.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -80,7 +81,7 @@ export async function DELETE(request: NextRequest) {
     .eq("id", session.user.id)
     .single<{ role: string }>();
 
-  if (currentStudent?.role !== "admin") {
+  if (!canAccessAdminPanel(currentStudent?.role ?? "")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -128,7 +129,7 @@ export async function GET(request: NextRequest) {
     .from("attendance")
     .select("id, student_id, track, week_number, session_number, checked_in_at, marked_by");
 
-  if (currentStudent?.role === "admin") {
+  if (canAccessAdminPanel(currentStudent?.role ?? "")) {
     if (track) query = query.eq("track", track);
     if (studentId) query = query.eq("student_id", studentId);
   } else {
