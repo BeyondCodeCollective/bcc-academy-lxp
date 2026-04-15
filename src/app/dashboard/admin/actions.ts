@@ -280,9 +280,19 @@ export async function saveSessionContent(
 ) {
   const { svc, userId } = await requireAdmin();
 
+  // Look up current program ID
+  const { getProgram } = await import("@/lib/programs/server");
+  const program = await getProgram();
+  const { data: programRow } = await svc
+    .from("programs")
+    .select("id")
+    .eq("slug", program.slug)
+    .single();
+
   const row: Record<string, unknown> = {
     track,
     week_number: weekNumber,
+    program_id: programRow?.id,
     meeting_link: data.meeting_link ?? null,
     recording_url: data.recording_url ?? null,
     resources: data.resources ?? [],
@@ -307,7 +317,7 @@ export async function saveSessionContent(
 
   const { error } = await svc.from("session_content").upsert(
     row,
-    { onConflict: "track,week_number" }
+    { onConflict: "program_id,track,week_number" }
   );
 
   if (error) {
@@ -330,10 +340,21 @@ export async function getSessionContent(
   track: string,
   weekNumber: number
 ): Promise<SessionContentRow | null> {
+  const { getProgram } = await import("@/lib/programs/server");
+  const program = await getProgram();
   const svc = createServiceClient();
+
+  // Look up program ID to scope the query
+  const { data: programRow } = await svc
+    .from("programs")
+    .select("id")
+    .eq("slug", program.slug)
+    .single();
+
   const { data, error } = await svc
     .from("session_content")
     .select("*")
+    .eq("program_id", programRow?.id ?? "")
     .eq("track", track)
     .eq("week_number", weekNumber)
     .maybeSingle();
@@ -352,10 +373,20 @@ export async function getSessionContent(
 export async function getAllSessionContent(
   track: string
 ): Promise<SessionContentRow[]> {
+  const { getProgram } = await import("@/lib/programs/server");
+  const program = await getProgram();
   const svc = createServiceClient();
+
+  const { data: programRow } = await svc
+    .from("programs")
+    .select("id")
+    .eq("slug", program.slug)
+    .single();
+
   const { data, error } = await svc
     .from("session_content")
     .select("*")
+    .eq("program_id", programRow?.id ?? "")
     .eq("track", track)
     .order("week_number");
 

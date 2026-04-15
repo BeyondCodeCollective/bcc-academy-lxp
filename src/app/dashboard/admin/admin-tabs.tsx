@@ -696,9 +696,22 @@ export function AdminTabs({
             <select
               value={programSlug}
               onChange={(e) => {
-                // Set override cookie that takes priority over domain-based detection
-                document.cookie = `program-override=${e.target.value}; path=/; max-age=86400`;
-                window.location.reload();
+                const slug = e.target.value;
+                const domains: Record<string, string> = {
+                  atg: "atg.bccacademy.io",
+                  forge: "forge.bccacademy.io",
+                };
+                const targetDomain = domains[slug];
+                const isProduction = window.location.hostname.endsWith("bccacademy.io");
+
+                if (isProduction && targetDomain) {
+                  // Redirect to the other program's subdomain
+                  window.location.href = `https://${targetDomain}/dashboard/admin`;
+                } else {
+                  // Local dev: use override cookie
+                  document.cookie = `program-override=${slug}; path=/; max-age=86400`;
+                  window.location.reload();
+                }
               }}
               className="appearance-none rounded-lg border border-neutral-200 bg-white pl-3 pr-7 py-1.5 text-sm font-medium text-neutral-900 focus:border-neutral-400 focus:outline-none"
             >
