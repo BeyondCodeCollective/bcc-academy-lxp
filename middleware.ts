@@ -43,12 +43,14 @@ export async function middleware(request: NextRequest) {
         cookiesToSet.forEach(({ name, value, options }) =>
           supabaseResponse.cookies.set(name, value, options)
         );
-        // Re-set program cookie after response recreation
+        // Re-set program cookie and debug headers after response recreation
         supabaseResponse.cookies.set("program-slug", program.slug, {
           path: "/",
           httpOnly: false,
           sameSite: "lax",
         });
+        supabaseResponse.headers.set("x-debug-host", host);
+        supabaseResponse.headers.set("x-debug-program", program.slug);
       },
     },
   });
