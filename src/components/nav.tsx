@@ -82,6 +82,7 @@ export function Nav({
           <button
             onClick={async () => {
               document.cookie = "atg-demo-user=; path=/; max-age=0";
+              document.cookie = "program-override=; path=/; max-age=0";
               const { createClient } = await import("@/lib/supabase/client");
               const supabase = createClient();
               await supabase.auth.signOut();

@@ -696,8 +696,8 @@ export function AdminTabs({
             <select
               value={programSlug}
               onChange={(e) => {
-                // Navigate to the other program's admin page by switching the cookie
-                document.cookie = `program-slug=${e.target.value}; path=/; max-age=86400`;
+                // Set override cookie that takes priority over domain-based detection
+                document.cookie = `program-override=${e.target.value}; path=/; max-age=86400`;
                 window.location.reload();
               }}
               className="appearance-none rounded-lg border border-neutral-200 bg-white pl-3 pr-7 py-1.5 text-sm font-medium text-neutral-900 focus:border-neutral-400 focus:outline-none"
@@ -777,7 +777,7 @@ export function AdminTabs({
 
           <div className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
             <h3 className="text-sm font-semibold text-neutral-900 mb-3">Quick Stats</h3>
-            <div className={`grid grid-cols-${Math.min(tracks.length + 1, 4)} gap-4`}>
+            <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${Math.min(tracks.length + 1, 4)}, minmax(0, 1fr))` }}>
               <div className="text-center">
                 <p className="text-2xl font-bold text-neutral-900">{students.length}</p>
                 <p className="text-xs text-neutral-400">Students</p>
