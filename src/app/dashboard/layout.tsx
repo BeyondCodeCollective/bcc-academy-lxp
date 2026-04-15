@@ -1,12 +1,18 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
-import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { createClient, createServiceClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { getDemoUser, DEMO_COOKIE } from "@/lib/demo-users";
 import { Nav } from "@/components/nav";
 import { TutorFab } from "@/components/tutor-fab";
 import type { Student } from "@/lib/types";
 import { getProgram } from "@/lib/programs/server";
 import { ProgramProvider } from "@/lib/programs/context";
+import { canAccessAdminPanel } from "@/lib/roles";
+
+const SUPER_ADMIN_EMAILS = [
+  "fonz.morris@wearebgc.org",
+  "admin@wearebgc.org",
+];
 
 export default async function DashboardLayout({
   children,
@@ -24,13 +30,22 @@ export default async function DashboardLayout({
     if (!session?.user) redirect("/");
     const user = session.user;
 
-    const { data: student } = await supabase
+    // Use service client to bypass RLS for role check
+    const svc = createServiceClient();
+    const { data: student } = await svc
       .from("students")
-      .select("role")
+      .select("role, email")
       .eq("id", user.id)
-      .single<Pick<Student, "role">>();
+      .single();
 
-    isAdmin = student?.role === "admin";
+    // Auto-fix: enforce super_admin for hardcoded emails on every page load
+    const email = (student?.email || user.email || "").toLowerCase();
+    if (SUPER_ADMIN_EMAILS.includes(email) && student?.role !== "super_admin") {
+      await svc.from("students").update({ role: "super_admin" }).eq("id", user.id);
+      isAdmin = true;
+    } else {
+      isAdmin = canAccessAdminPanel(student?.role ?? "");
+    }
   } else {
     const cookieStore = await cookies();
     const demoEmail = cookieStore.get(DEMO_COOKIE)?.value;
@@ -38,7 +53,7 @@ export default async function DashboardLayout({
     if (!demoEmail) redirect("/");
 
     const user = getDemoUser(demoEmail);
-    isAdmin = user?.role === "admin" || false;
+    isAdmin = canAccessAdminPanel(user?.role ?? "");
   }
 
   const showTutor = program.tutorConfig?.enabled !== false;

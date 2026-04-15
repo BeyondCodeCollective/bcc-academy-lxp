@@ -10,6 +10,7 @@ import { WelcomeOverlay } from "@/components/welcome-overlay";
 import { OnboardingForm } from "@/components/onboarding-form";
 import { getProgram } from "@/lib/programs/server";
 import type { TrackConfig } from "@/lib/programs/types";
+import { canAccessAdminPanel } from "@/lib/roles";
 
 export default async function DashboardPage() {
   const program = await getProgram();
@@ -21,6 +22,8 @@ export default async function DashboardPage() {
   let noCohort = false;
   let needsOnboarding = false;
   let enrolledTrackSlugs: string[] | null = null; // null = show all (backward compat)
+  let pendingSurveys: { id: string; title: string; description: string }[] = [];
+  let userRole = "student";
 
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
@@ -32,9 +35,11 @@ export default async function DashboardPage() {
 
     const { data: student } = await supabase
       .from("students")
-      .select("first_name, last_name, onboarding_completed, cohort_id, cohorts(id, name, display_name, start_date, total_weeks)")
+      .select("first_name, last_name, onboarding_completed, cohort_id, role, cohorts(id, name, display_name, start_date, total_weeks)")
       .eq("id", session.user.id)
       .single();
+
+    userRole = student?.role ?? "student";
 
     let cohortId = student?.cohort_id;
     const cohort = (student as Record<string, unknown>)?.cohorts as Cohort | null;
@@ -67,14 +72,33 @@ export default async function DashboardPage() {
     lastName = student?.last_name || "";
     needsOnboarding = !student?.onboarding_completed;
 
-    // Query track enrollments — if student has assignments, only show those tracks
-    const { data: trackRows } = await supabase
-      .from("student_tracks")
-      .select("track_slug")
-      .eq("student_id", session.user.id);
+    // Admins and super_admins see ALL tracks — no enrollment filter
+    if (!canAccessAdminPanel(userRole)) {
+      // Query track enrollments — if student has assignments, only show those tracks
+      const { data: trackRows } = await supabase
+        .from("student_tracks")
+        .select("track_slug")
+        .eq("student_id", session.user.id);
 
-    if (trackRows && trackRows.length > 0) {
-      enrolledTrackSlugs = trackRows.map((r) => r.track_slug);
+      if (trackRows && trackRows.length > 0) {
+        enrolledTrackSlugs = trackRows.map((r) => r.track_slug);
+      }
+    }
+
+    // Check for pending surveys
+    if (program.surveys?.length) {
+      const { data: completedSurveys } = await supabase
+        .from("survey_responses")
+        .select("survey_type")
+        .eq("student_id", session.user.id)
+        .not("completed_at", "is", null);
+
+      const completedTypes = new Set(
+        (completedSurveys ?? []).map((r) => r.survey_type)
+      );
+      pendingSurveys = program.surveys
+        .filter((s) => s.required && !completedTypes.has(s.id))
+        .map((s) => ({ id: s.id, title: s.title, description: s.description }));
     }
   } else {
     const cookieStore = await cookies();
@@ -156,6 +180,11 @@ export default async function DashboardPage() {
         </h1>
         <p className="mt-1 text-sm text-neutral-500">{cohortName}</p>
       </div>
+
+      {/* Pending surveys */}
+      {pendingSurveys.map((survey) => (
+        <SurveyCard key={survey.id} survey={survey} />
+      ))}
 
       {/* Progress summary */}
       <div className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
@@ -306,6 +335,43 @@ function WeeklyTrackGrid({
         })}
       </div>
     </div>
+  );
+}
+
+function SurveyCard({
+  survey,
+}: {
+  survey: { id: string; title: string; description: string };
+}) {
+  return (
+    <Link
+      href={`/dashboard/survey/${survey.id}`}
+      className="block rounded-xl border border-amber-200 bg-amber-50 p-4 sm:p-5 transition-colors hover:border-amber-300 hover:bg-amber-100/60"
+    >
+      <div className="flex items-start gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-lg">
+          <svg className="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15a2.25 2.25 0 012.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+          </svg>
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-amber-900">
+              {survey.title}
+            </p>
+            <span className="inline-flex items-center rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
+              Required
+            </span>
+          </div>
+          <p className="mt-0.5 text-xs text-amber-700">
+            {survey.description}
+          </p>
+          <p className="mt-2 text-xs font-medium text-amber-800">
+            Take survey &rarr;
+          </p>
+        </div>
+      </div>
+    </Link>
   );
 }
 

@@ -5,6 +5,37 @@ export type SessionInfo = {
   time: string;
 };
 
+// ─── Intake Form (gates single-event session content) ────────────────────────
+
+export type IntakeRadioQuestion = {
+  type: "radio";
+  id: string;
+  label: string;
+  options: string[];
+  required?: boolean;
+};
+
+export type IntakeMultiSelectQuestion = {
+  type: "multi-select";
+  id: string;
+  label: string;
+  options: string[];
+  required?: boolean;
+};
+
+export type IntakeTextQuestion = {
+  type: "text";
+  id: string;
+  label: string;
+  placeholder?: string;
+  required?: boolean;
+};
+
+export type IntakeQuestion =
+  | IntakeRadioQuestion
+  | IntakeMultiSelectQuestion
+  | IntakeTextQuestion;
+
 export type WeekConfig = {
   week: number;
   title: string;
@@ -15,6 +46,8 @@ export type WeekConfig = {
   sessions: SessionInfo[];
   /** Optional note shown instead of recording (e.g. "This session was not recorded") */
   recordingNote?: string | null;
+  /** Custom reflection prompts for this specific week (overrides track defaults) */
+  reflectionPrompts?: string[];
 };
 
 export type TrackConfig = {
@@ -37,6 +70,16 @@ export type TrackConfig = {
   weekSummaries: { week: number; topic: string; icon: string }[];
   /** Full week content for the track detail pages */
   weeks: WeekConfig[];
+  /** Default reflection prompts used when a week doesn't specify custom ones */
+  defaultReflectionPrompts?: string[];
+  /** Whether project submissions are enabled for this track (defaults to true) */
+  submissionsEnabled?: boolean;
+  /** Whether weekly reflections are enabled for this track (defaults to true) */
+  reflectionsEnabled?: boolean;
+  /** If true, session content is gated behind a required intake form */
+  intakeRequired?: boolean;
+  /** Questions shown on the intake form (used when intakeRequired is true) */
+  intakeQuestions?: IntakeQuestion[];
 };
 
 export type ProgramColors = {
@@ -44,6 +87,17 @@ export type ProgramColors = {
   primaryHover: string;
   accent: string;
   tagline: string;
+};
+
+export type SurveyConfig = {
+  /** Unique ID for this survey, e.g. "pre-survey-spring-2026" */
+  id: string;
+  /** Display title shown on dashboard card */
+  title: string;
+  /** Short description shown on dashboard card */
+  description: string;
+  /** If true, card keeps reappearing until completed */
+  required: boolean;
 };
 
 export type ProgramConfig = {
@@ -75,6 +129,7 @@ export type ProgramConfig = {
     enabled: boolean;
     systemPrompt: string;
   };
+  surveys?: SurveyConfig[];
   coppa: {
     required: boolean;
   };

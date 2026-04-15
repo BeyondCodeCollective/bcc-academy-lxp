@@ -6,7 +6,7 @@ export type Student = {
   sport: string | null;
   bio: string | null;
   avatar_url: string | null;
-  role: "student" | "admin";
+  role: "student" | "instructor" | "admin" | "super_admin";
   cohort_id: string | null;
   location: string | null;
   date_of_birth: string | null;

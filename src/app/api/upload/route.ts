@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createServiceClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { canAccessAdminPanel } from "@/lib/roles";
 
 /**
  * POST /api/upload
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
     .eq("id", user.id)
     .single<{ role: string }>();
 
-  if (student?.role !== "admin") {
+  if (!canAccessAdminPanel(student?.role ?? "")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

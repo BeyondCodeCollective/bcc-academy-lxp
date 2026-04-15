@@ -1,4 +1,98 @@
-import type { ProgramConfig } from "./types";
+import type { ProgramConfig, IntakeQuestion } from "./types";
+
+// ─── Intake questions for single-event tracks ──────────────────────────────
+
+const AUTOMATION_BOOTCAMP_INTAKE: IntakeQuestion[] = [
+  {
+    type: "radio",
+    id: "gender",
+    label: "What is your gender?",
+    options: [
+      "Man",
+      "Woman",
+      "Non-binary",
+      "Genderqueer / Gender non-conforming",
+      "Transgender",
+      "Prefer not to say",
+      "Other",
+    ],
+    required: true,
+  },
+  {
+    type: "multi-select",
+    id: "race_ethnicity",
+    label: "What is your race and/or ethnicity? Select all that apply.",
+    options: [
+      "American Indian or Alaska Native",
+      "Asian",
+      "Black or African American",
+      "Hispanic or Latino",
+      "Middle Eastern or North African",
+      "Native Hawaiian or Pacific Islander",
+      "White",
+      "Other",
+    ],
+    required: true,
+  },
+  {
+    type: "multi-select",
+    id: "employment_status",
+    label: "What is your current employment status? Check all that apply.",
+    options: [
+      "Employed full-time",
+      "Employed part-time",
+      "Self-employed",
+      "Unemployed — looking for work",
+      "Unemployed — not looking for work",
+      "Student",
+      "Other",
+    ],
+    required: true,
+  },
+  {
+    type: "radio",
+    id: "education_level",
+    label: "What is your highest level of education?",
+    options: [
+      "Some high school",
+      "High school diploma / GED",
+      "Some college",
+      "Associate degree",
+      "Bachelor's degree",
+      "Master's degree or higher",
+      "Trade / vocational training",
+      "Prefer not to say",
+    ],
+    required: true,
+  },
+  {
+    type: "radio",
+    id: "how_heard",
+    label: "How did you hear about this event?",
+    options: [
+      "Social media",
+      "Friend or family",
+      "Community organization",
+      "Flyer or poster",
+      "Email or newsletter",
+      "School or employer",
+      "Other",
+    ],
+    required: true,
+  },
+  {
+    type: "radio",
+    id: "ai_experience",
+    label: "How would you describe your experience with AI tools?",
+    options: [
+      "No experience — this is brand new to me",
+      "Beginner — I've tried a tool once or twice",
+      "Intermediate — I use AI tools occasionally",
+      "Advanced — I use AI tools regularly",
+    ],
+    required: true,
+  },
+];
 
 export const forgeConfig: ProgramConfig = {
   slug: "forge",
@@ -30,6 +124,13 @@ export const forgeConfig: ProgramConfig = {
       instructor: "TBA",
       sessionTimes: ["Fridays · TBD"],
       lastSessionDayOffset: 6,
+      defaultReflectionPrompts: [
+        "What did you learn this week?",
+        "What was challenging?",
+        "How will you apply this going forward?",
+      ],
+      submissionsEnabled: true,
+      reflectionsEnabled: true,
       weekSummaries: [
         { week: 1, topic: "What is AI?", icon: "🤖" },
         { week: 2, topic: "How AI Learns", icon: "🧠" },
@@ -110,6 +211,13 @@ export const forgeConfig: ProgramConfig = {
       instructor: "TBA",
       sessionTimes: ["Day & time TBD"],
       lastSessionDayOffset: 6,
+      defaultReflectionPrompts: [
+        "What did you learn this week?",
+        "What was challenging?",
+        "How will you apply this going forward?",
+      ],
+      submissionsEnabled: true,
+      reflectionsEnabled: true,
       weekSummaries: [
         { week: 1, topic: "AI Landscape", icon: "🗺️" },
         { week: 2, topic: "Prompt Engineering", icon: "✍️" },
@@ -246,6 +354,10 @@ export const forgeConfig: ProgramConfig = {
       instructor: "TBA",
       sessionTimes: ["Friday April 24 · 2 hours"],
       lastSessionDayOffset: 0,
+      submissionsEnabled: false,
+      reflectionsEnabled: false,
+      intakeRequired: true,
+      intakeQuestions: AUTOMATION_BOOTCAMP_INTAKE,
       weekSummaries: [
         { week: 1, topic: "AI Automation", icon: "⚡" },
       ],
@@ -285,6 +397,14 @@ Guidelines:
 - Encourage experimentation and creative use of AI tools.
 - Keep responses focused — 2-3 short paragraphs max unless they ask for more detail.`,
   },
+  surveys: [
+    {
+      id: "pre-survey-spring-2026",
+      title: "Pre-Survey",
+      description: "Help us understand your background and experience so we can better support you.",
+      required: true,
+    },
+  ],
   coppa: { required: false },
   seo: {
     title: "The Forge — Where Innovation Meets Community",
