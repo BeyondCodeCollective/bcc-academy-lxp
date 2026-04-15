@@ -697,21 +697,9 @@ export function AdminTabs({
               value={programSlug}
               onChange={(e) => {
                 const slug = e.target.value;
-                const domains: Record<string, string> = {
-                  atg: "atg.bccacademy.io",
-                  forge: "forge.bccacademy.io",
-                };
-                const targetDomain = domains[slug];
-                const isProduction = window.location.hostname.endsWith("bccacademy.io");
-
-                if (isProduction && targetDomain) {
-                  // Redirect to the other program's subdomain
-                  window.location.href = `https://${targetDomain}/dashboard/admin`;
-                } else {
-                  // Local dev: use override cookie
-                  document.cookie = `program-override=${slug}; path=/; max-age=86400`;
-                  window.location.reload();
-                }
+                // Set override cookie and reload — getProgram() checks this first
+                document.cookie = `program-override=${slug}; path=/; max-age=86400`;
+                window.location.reload();
               }}
               className="appearance-none rounded-lg border border-neutral-200 bg-white pl-3 pr-7 py-1.5 text-sm font-medium text-neutral-900 focus:border-neutral-400 focus:outline-none"
             >
@@ -724,8 +712,8 @@ export function AdminTabs({
         </div>
       )}
 
-      {/* Tab bar */}
-      <div className="flex gap-1 rounded-lg bg-neutral-100 p-1 mb-6 overflow-x-auto">
+      {/* Mobile tab bar - hidden on desktop */}
+      <div className="flex gap-1 rounded-lg bg-neutral-100 p-1 mb-6 overflow-x-auto md:hidden">
         {tabs.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
@@ -742,6 +730,26 @@ export function AdminTabs({
         ))}
       </div>
 
+      <div className="flex flex-col md:flex-row md:gap-6">
+      {/* Desktop sidebar - hidden on mobile */}
+      <nav className="hidden md:flex md:w-52 md:shrink-0 md:flex-col md:gap-1 md:sticky md:top-4 md:self-start">
+        {tabs.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            onClick={() => { setTab(id); setExpandedWeek(1); }}
+            className={`flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium w-full text-left transition-colors ${
+              tab === id
+                ? "bg-white text-neutral-900 shadow-sm"
+                : "text-neutral-500 hover:text-neutral-900 hover:bg-neutral-50"
+            }`}
+          >
+            <Icon size={16} />
+            {label}
+          </button>
+        ))}
+      </nav>
+
+      <div className="min-w-0 flex-1">
       {/* Program Tab */}
       {tab === "program" && cohort && (
         <div className="space-y-6">
@@ -1518,6 +1526,8 @@ export function AdminTabs({
       {tab === "attendance" && (
         <AttendanceTab students={students} />
       )}
+      </div>
+      </div>
     </div>
   );
 }
