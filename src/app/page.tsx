@@ -1,6 +1,8 @@
 import { getProgram } from "@/lib/programs/server";
 import { LoginForm } from "@/components/login-form";
 
+export const dynamic = "force-dynamic";
+
 export default async function LoginPage() {
   const program = await getProgram();
 
