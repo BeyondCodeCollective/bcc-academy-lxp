@@ -17,6 +17,15 @@ const DOMAIN_MAP: Record<string, string> = {
 };
 
 /**
+ * Returns true when the host is a recognized program subdomain.
+ * Used to decide whether the override cookie should win or the URL.
+ */
+export function isKnownProgramHost(host: string): boolean {
+  const bare = host.replace(/:\d+$/, "");
+  return bare in DOMAIN_MAP || host in DOMAIN_MAP;
+}
+
+/**
  * Resolve a hostname to a program config.
  * Falls back to ATG if the domain isn't recognized.
  */

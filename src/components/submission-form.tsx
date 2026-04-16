@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { submitProject } from "@/app/dashboard/track/actions";
 import type { SubmissionRow, SubmissionLink, SubmissionFile, FeedbackRow } from "@/app/dashboard/track/actions";
-import { Plus, X, Link as LinkIcon, Upload, CheckCircle, Loader2, ExternalLink, FileText, MessageSquare } from "lucide-react";
+import { Plus, X, Link as LinkIcon, Upload, CheckCircle, Loader2, ExternalLink, FileText, MessageSquare, ChevronDown } from "lucide-react";
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
 
 export function SubmissionForm({
@@ -24,6 +24,7 @@ export function SubmissionForm({
   const [saved, setSaved] = useState(!!existing?.submitted_at);
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [open, setOpen] = useState(false);
 
   function addLink() {
     setLinks([...links, { url: "", label: "" }]);
@@ -97,22 +98,34 @@ export function SubmissionForm({
   const hasContent = description.trim() || links.some((l) => l.url.trim()) || files.length > 0;
 
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-6">
-      <div className="flex items-center justify-between mb-4">
+    <div className="rounded-xl border border-neutral-200 bg-white">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between p-4 sm:p-6 text-left hover:bg-neutral-50 transition-colors rounded-xl"
+      >
         <div className="flex items-center gap-2">
           <Upload size={14} className="text-neutral-400" />
           <h2 className="text-xs font-semibold text-neutral-400 uppercase tracking-wide">
             Submit Your Work
           </h2>
         </div>
-        {saved && (
-          <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
-            <CheckCircle size={14} />
-            Submitted
-          </span>
-        )}
-      </div>
+        <div className="flex items-center gap-3">
+          {saved && (
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
+              <CheckCircle size={14} />
+              Submitted
+            </span>
+          )}
+          <ChevronDown
+            size={16}
+            className={`text-neutral-400 transition-transform ${open ? "rotate-180" : ""}`}
+          />
+        </div>
+      </button>
 
+      {!open ? null : (
+      <div className="px-4 sm:px-6 pb-4 sm:pb-6">
       {/* Description */}
       <div className="mb-4">
         <label className="text-xs font-medium text-neutral-500 mb-1 block">
@@ -188,7 +201,7 @@ export function SubmissionForm({
               className="hidden"
               onChange={handleFileUpload}
               disabled={uploading}
-              accept=".pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx,.txt,.zip,.png,.jpg,.jpeg,.mp4,.mov"
+              accept="*/*"
             />
           </label>
         </div>
@@ -262,6 +275,8 @@ export function SubmissionForm({
             </div>
           ))}
         </div>
+      )}
+      </div>
       )}
     </div>
   );
