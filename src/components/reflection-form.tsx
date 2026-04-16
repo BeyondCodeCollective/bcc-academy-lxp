@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { submitReflection } from "@/app/dashboard/track/actions";
 import type { ReflectionRow, FeedbackRow } from "@/app/dashboard/track/actions";
-import { PenLine, CheckCircle, Loader2, MessageSquare } from "lucide-react";
+import { PenLine, CheckCircle, Loader2, MessageSquare, ChevronDown } from "lucide-react";
 
 const DEFAULT_PROMPTS = [
   "What did you learn this week?",
@@ -39,6 +39,7 @@ export function ReflectionForm({
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(!!existing?.submitted_at);
   const [error, setError] = useState("");
+  const [open, setOpen] = useState(false);
 
   function updateResponse(key: string, value: string) {
     setResponses((prev) => ({ ...prev, [key]: value }));
@@ -65,22 +66,34 @@ export function ReflectionForm({
   const hasContent = Object.values(responses).some((v) => v.trim());
 
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-6">
-      <div className="flex items-center justify-between mb-4">
+    <div className="rounded-xl border border-neutral-200 bg-white">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between p-4 sm:p-6 text-left hover:bg-neutral-50 transition-colors rounded-xl"
+      >
         <div className="flex items-center gap-2">
           <PenLine size={14} className="text-neutral-400" />
           <h2 className="text-xs font-semibold text-neutral-400 uppercase tracking-wide">
             Weekly Reflection
           </h2>
         </div>
-        {saved && (
-          <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
-            <CheckCircle size={14} />
-            Submitted
-          </span>
-        )}
-      </div>
+        <div className="flex items-center gap-3">
+          {saved && (
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
+              <CheckCircle size={14} />
+              Submitted
+            </span>
+          )}
+          <ChevronDown
+            size={16}
+            className={`text-neutral-400 transition-transform ${open ? "rotate-180" : ""}`}
+          />
+        </div>
+      </button>
 
+      {!open ? null : (
+      <div className="px-4 sm:px-6 pb-4 sm:pb-6">
       {/* Structured prompts */}
       <div className="space-y-4 mb-4">
         {activePrompts.map((prompt) => (
@@ -152,6 +165,8 @@ export function ReflectionForm({
             </div>
           ))}
         </div>
+      )}
+      </div>
       )}
     </div>
   );
