@@ -389,7 +389,7 @@ export function AdminTabs({
   const tabs = [
     ...(isManager ? [{ id: "program", label: "Program", icon: Settings }] : []),
     ...tracks.map((t, i) => ({ id: t.slug, label: t.shortName, icon: getTrackIcon(i) })),
-    ...(isManager ? [{ id: "students", label: "Students", icon: Users }] : []),
+    ...(isManager ? [{ id: "students", label: "People", icon: Users }] : []),
     ...(isManager ? [{ id: "enrollments", label: "Enrollments", icon: BookOpen }] : []),
     { id: "student-work", label: "Student Work", icon: ClipboardList },
     { id: "attendance", label: "Analytics", icon: UserCheck },
@@ -1061,11 +1061,11 @@ export function AdminTabs({
         </div>
       )}
 
-      {/* Students Tab */}
+      {/* People Tab */}
       {tab === "students" && (
         <div className="space-y-3">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-semibold text-neutral-900">Students</h2>
+            <h2 className="text-lg font-semibold text-neutral-900">People</h2>
             <div className="flex items-center gap-2">
               <p className="text-xs text-neutral-400">{students.length} total</p>
               <button
@@ -1147,7 +1147,7 @@ export function AdminTabs({
                   disabled={addingStudent}
                   className="inline-flex items-center gap-1.5 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
                 >
-                  {addingStudent ? "Adding..." : <><Plus size={14} /> Add Student</>}
+                  {addingStudent ? "Adding..." : <><Plus size={14} /> Add</>}
                 </button>
                 <button
                   type="button"
@@ -1160,7 +1160,7 @@ export function AdminTabs({
             </form>
           )}
           {students.length === 0 && (
-            <p className="text-sm text-neutral-400 py-8 text-center">No students yet</p>
+            <p className="text-sm text-neutral-400 py-8 text-center">No people yet</p>
           )}
           {students.map((student) => (
             <div
@@ -1219,11 +1219,13 @@ export function AdminTabs({
                   <select
                     value={student.role}
                     onChange={(e) => updateStudent(student.id, "role", e.target.value)}
-                    className="w-full appearance-none rounded-lg border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-2 text-xs font-medium text-neutral-700 focus:border-neutral-400 focus:outline-none"
+                    disabled={student.role === "super_admin"}
+                    className="w-full appearance-none rounded-lg border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-2 text-xs font-medium text-neutral-700 focus:border-neutral-400 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <option value="student">Student</option>
                     <option value="instructor">Instructor</option>
                     <option value="admin">Admin</option>
+                    <option value="super_admin">Super Admin</option>
                   </select>
                   <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
                 </div>
