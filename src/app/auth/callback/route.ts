@@ -124,6 +124,17 @@ export async function GET(request: Request) {
         }
 
         if (!existing) {
+          // Block new signups that didn't come through a track invite link.
+          // Super admins and env-configured admins are exempt so they can
+          // always bootstrap access.
+          const email = (user.email || "").toLowerCase();
+          const isPrivileged =
+            SUPER_ADMIN_EMAILS.includes(email) || ADMIN_EMAILS.includes(email);
+          if (!trackParam && !isPrivileged) {
+            await supabase.auth.signOut();
+            return NextResponse.redirect(`${origin}/?error=invite`);
+          }
+
           const emailPrefix = (user.email || "").split("@")[0];
           const parts = emailPrefix
             .split(/[._-]/)
@@ -136,9 +147,9 @@ export async function GET(request: Request) {
             email: user.email,
             first_name: firstName,
             last_name: lastName,
-            role: SUPER_ADMIN_EMAILS.includes((user.email || "").toLowerCase())
+            role: SUPER_ADMIN_EMAILS.includes(email)
               ? "super_admin"
-              : ADMIN_EMAILS.includes((user.email || "").toLowerCase())
+              : ADMIN_EMAILS.includes(email)
                 ? "admin"
                 : "student",
             cohort_id: cohortId || null,
@@ -187,8 +198,10 @@ export async function GET(request: Request) {
           }
         }
 
-        // Assign track enrollment if ?track= param was provided
-        if (trackParam && programForCohort) {
+        // Assign track enrollment on first signup only.
+        // Returning users don't get re-enrolled by clicking another track's
+        // link, so students can't leak tracks to each other by sharing URLs.
+        if (!existing && trackParam && programForCohort) {
           const validTrack = program.tracks.find((t) => t.slug === trackParam);
           if (validTrack) {
             const { error: trackErr } = await admin

@@ -1,7 +1,7 @@
 -- Student track enrollment junction table
 -- Links students to specific tracks within a program.
--- Students who have no rows here see ALL tracks (backward compat for ATG).
--- Students with rows only see the tracks they're enrolled in.
+-- Students see only the tracks they're explicitly enrolled in.
+-- Admins bypass this filter in application code.
 
 create table if not exists student_tracks (
   id uuid default gen_random_uuid() primary key,

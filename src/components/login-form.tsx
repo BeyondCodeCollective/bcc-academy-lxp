@@ -24,9 +24,9 @@ export function LoginForm({ logo, programName, tagline, taglineColor, organizati
   const [error, setError] = useState(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
-      if (params.get("error") === "auth") {
-        return "Sign-in failed — please try again.";
-      }
+      const err = params.get("error");
+      if (err === "auth") return "Sign-in failed — please try again.";
+      if (err === "invite") return "Please use your invite link to sign in.";
     }
     return "";
   });
