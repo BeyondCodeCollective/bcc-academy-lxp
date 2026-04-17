@@ -62,7 +62,7 @@ export default async function DashboardLayout({
     <ProgramProvider program={program}>
       <Nav isAdmin={isAdmin} logo={program.logo} programName={program.name} showTutor={showTutor} />
       <main className="flex-1 bg-stone-50">{children}</main>
-      {showTutor && <TutorFab />}
+      {showTutor && isAdmin && <TutorFab />}
     </ProgramProvider>
   );
 }

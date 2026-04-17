@@ -121,7 +121,7 @@ export const forgeConfig: ProgramConfig = {
       totalWeeks: 4,
       sessionsPerWeek: 1,
       startDate: "2026-04-17",
-      instructor: "TBA",
+      instructor: "Ashley Morgan",
       sessionTimes: ["Fridays · TBD"],
       lastSessionDayOffset: 6,
       defaultReflectionPrompts: [
@@ -208,7 +208,7 @@ export const forgeConfig: ProgramConfig = {
       totalWeeks: 8,
       sessionsPerWeek: 1,
       startDate: "2026-04-20",
-      instructor: "TBA",
+      instructor: "Ashley Morgan",
       sessionTimes: ["Day & time TBD"],
       lastSessionDayOffset: 6,
       defaultReflectionPrompts: [
@@ -351,7 +351,7 @@ export const forgeConfig: ProgramConfig = {
       totalWeeks: 1,
       sessionsPerWeek: 1,
       startDate: "2026-04-24",
-      instructor: "TBA",
+      instructor: "Ashley Morgan",
       sessionTimes: ["Friday April 24 · 2 hours"],
       lastSessionDayOffset: 0,
       submissionsEnabled: false,
