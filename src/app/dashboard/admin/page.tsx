@@ -71,11 +71,16 @@ export default async function AdminPage() {
     }
   }
 
-  // Fetch survey stats for each configured survey
+  // Fetch survey stats for each configured survey in parallel instead of
+  // serially — one DB round-trip per survey added up on the admin tab.
   const surveyStats: Record<string, SurveyStatsRow[]> = {};
-  for (const survey of program.surveys ?? []) {
-    surveyStats[survey.id] = await getSurveyStats(program.slug, survey.id);
-  }
+  const surveyList = program.surveys ?? [];
+  const surveyStatsResults = await Promise.all(
+    surveyList.map((s) => getSurveyStats(program.slug, s.id))
+  );
+  surveyList.forEach((s, i) => {
+    surveyStats[s.id] = surveyStatsResults[i];
+  });
   const surveyConfigs = (program.surveys ?? []).map((s) => ({
     id: s.id,
     title: s.title,
