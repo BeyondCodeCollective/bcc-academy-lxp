@@ -25,8 +25,10 @@ export function Nav({
 
   const navItems = [
     { href: "/dashboard", label: "Home", icon: House },
-    { href: "/dashboard/resources", label: "Resources", icon: Books },
-    ...(showTutor
+    ...(isAdmin
+      ? [{ href: "/dashboard/resources", label: "Resources", icon: Books }]
+      : []),
+    ...(showTutor && isAdmin
       ? [{ href: "/dashboard/tutor", label: "AI Tutor", icon: ChatsCircle }]
       : []),
   ];
