@@ -78,12 +78,23 @@ export async function GET(request: Request) {
           total_weeks: program.defaultCohort.totalWeeks,
         };
 
-        // Ensure at least one cohort exists for this program
-        const { data: programForCohort } = await admin
-          .from("programs")
-          .select("id")
-          .eq("slug", program.slug)
-          .single();
+        // Fetch program row and existing student row in parallel — they're
+        // independent queries but both needed before we can decide what to do.
+        const [programRes, studentRes] = await Promise.all([
+          admin.from("programs").select("id").eq("slug", program.slug).maybeSingle(),
+          admin
+            .from("students")
+            .select("id, cohort_id, role")
+            .eq("id", user.id)
+            .maybeSingle(),
+        ]);
+
+        const programForCohort = programRes.data;
+        const existing = studentRes.data;
+
+        if (studentRes.error) {
+          console.error("[auth/callback] student query:", studentRes.error.message);
+        }
 
         const { data: cohort, error: cohortQueryErr } = await admin
           .from("cohorts")
@@ -91,7 +102,7 @@ export async function GET(request: Request) {
           .eq("program_id", programForCohort?.id ?? "")
           .order("created_at", { ascending: true })
           .limit(1)
-          .single();
+          .maybeSingle();
 
         if (cohortQueryErr) {
           console.error("[auth/callback] cohort query:", cohortQueryErr.message);
@@ -110,17 +121,6 @@ export async function GET(request: Request) {
             console.error("[auth/callback] cohort insert:", cohortInsertErr.message);
           }
           cohortId = newCohort?.id;
-        }
-
-        // Auto-create student record on first login
-        const { data: existing, error: studentQueryErr } = await admin
-          .from("students")
-          .select("id")
-          .eq("id", user.id)
-          .single();
-
-        if (studentQueryErr && studentQueryErr.code !== "PGRST116") {
-          console.error("[auth/callback] student query:", studentQueryErr.message);
         }
 
         if (!existing) {
@@ -160,7 +160,9 @@ export async function GET(request: Request) {
             console.error("[auth/callback] student insert:", insertErr.message);
           }
         } else {
-          // Student exists — ensure cohort is set and role stays correct
+          // Student exists — ensure cohort is set and role stays correct.
+          // `existing` was fetched in parallel above with cohort_id + role, so
+          // no extra query is needed here.
           const email = (user.email || "").toLowerCase();
           const correctRole = SUPER_ADMIN_EMAILS.includes(email)
             ? "super_admin"
@@ -170,19 +172,11 @@ export async function GET(request: Request) {
 
           const updates: Record<string, unknown> = {};
 
-          // Assign cohort if missing
-          const { data: currentStudent } = await admin
-            .from("students")
-            .select("cohort_id, role")
-            .eq("id", user.id)
-            .single();
-
-          if (!currentStudent?.cohort_id && cohortId) {
+          if (!existing.cohort_id && cohortId) {
             updates.cohort_id = cohortId;
           }
 
-          // Enforce super_admin/admin role for configured emails
-          if (correctRole && currentStudent?.role !== correctRole) {
+          if (correctRole && existing.role !== correctRole) {
             updates.role = correctRole;
           }
 

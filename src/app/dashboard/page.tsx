@@ -4,13 +4,13 @@ import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { getDemoUser, DEMO_COOKIE } from "@/lib/demo-users";
 import { computeCurrentWeek } from "@/lib/utils";
 import Link from "next/link";
-import type { Cohort } from "@/lib/types";
 import { WelcomeVideo } from "@/components/welcome-video";
 import { WelcomeOverlay } from "@/components/welcome-overlay";
 import { OnboardingForm } from "@/components/onboarding-form";
 import { getProgram } from "@/lib/programs/server";
 import type { TrackConfig } from "@/lib/programs/types";
 import { canAccessAdminPanel } from "@/lib/roles";
+import { getSessionContext } from "@/lib/auth/session";
 
 export default async function DashboardPage() {
   const program = await getProgram();
@@ -26,23 +26,15 @@ export default async function DashboardPage() {
   let userRole = "student";
 
   if (isSupabaseConfigured()) {
+    const ctx = await getSessionContext();
+    if (!ctx) redirect("/");
+
+    const { userId, student } = ctx;
     const supabase = await createClient();
 
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (!session?.user) redirect("/");
-
-    const { data: student } = await supabase
-      .from("students")
-      .select("first_name, last_name, onboarding_completed, cohort_id, role, cohorts(id, name, display_name, start_date, total_weeks)")
-      .eq("id", session.user.id)
-      .single();
-
     userRole = student?.role ?? "student";
-
-    let cohortId = student?.cohort_id;
-    const cohort = (student as Record<string, unknown>)?.cohorts as Cohort | null;
+    const cohort = student?.cohorts ?? null;
+    let cohortId = student?.cohort_id ?? null;
 
     if (!cohortId) {
       const { data: defaultCohort } = await supabase
@@ -56,7 +48,7 @@ export default async function DashboardPage() {
         await supabase
           .from("students")
           .update({ cohort_id: defaultCohort.id })
-          .eq("id", session.user.id);
+          .eq("id", userId);
         cohortId = defaultCohort.id;
       }
     }
@@ -72,28 +64,31 @@ export default async function DashboardPage() {
     lastName = student?.last_name || "";
     needsOnboarding = !student?.onboarding_completed;
 
-    // Admins and super_admins see ALL tracks — no enrollment filter
-    if (!canAccessAdminPanel(userRole)) {
-      const { data: trackRows } = await supabase
-        .from("student_tracks")
-        .select("track_slug")
-        .eq("student_id", session.user.id);
+    const isAdminUser = canAccessAdminPanel(userRole);
+    const needsSurveys = !!program.surveys?.length;
 
-      enrolledTrackSlugs = (trackRows ?? []).map((r) => r.track_slug);
+    const [trackRowsRes, completedSurveysRes] = await Promise.all([
+      isAdminUser
+        ? Promise.resolve({ data: null })
+        : supabase.from("student_tracks").select("track_slug").eq("student_id", userId),
+      needsSurveys
+        ? supabase
+            .from("survey_responses")
+            .select("survey_type")
+            .eq("student_id", userId)
+            .not("completed_at", "is", null)
+        : Promise.resolve({ data: null }),
+    ]);
+
+    if (!isAdminUser) {
+      enrolledTrackSlugs = (trackRowsRes.data ?? []).map((r) => r.track_slug);
     }
 
-    // Check for pending surveys
-    if (program.surveys?.length) {
-      const { data: completedSurveys } = await supabase
-        .from("survey_responses")
-        .select("survey_type")
-        .eq("student_id", session.user.id)
-        .not("completed_at", "is", null);
-
+    if (needsSurveys) {
       const completedTypes = new Set(
-        (completedSurveys ?? []).map((r) => r.survey_type)
+        (completedSurveysRes.data ?? []).map((r) => r.survey_type)
       );
-      pendingSurveys = program.surveys
+      pendingSurveys = program.surveys!
         .filter((s) => s.required && !completedTypes.has(s.id))
         .map((s) => ({ id: s.id, title: s.title, description: s.description }));
     }
