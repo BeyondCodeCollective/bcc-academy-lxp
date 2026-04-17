@@ -407,6 +407,7 @@ Guidelines:
       required: true,
     },
   ],
+  resourcesEnabled: true,
   coppa: { required: false },
   seo: {
     title: "The Forge — Where Innovation Meets Community",
