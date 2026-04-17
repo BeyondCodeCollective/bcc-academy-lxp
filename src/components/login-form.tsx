@@ -49,6 +49,27 @@ export function LoginForm({ logo, programName, tagline, taglineColor, organizati
       return;
     }
 
+    // Gate: new signups must come through a ?track= invite link.
+    // Returning users and admins skip this check server-side.
+    try {
+      const checkRes = await fetch("/api/auth/check-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, track: trackParam }),
+      });
+      const check = (await checkRes.json()) as { allowed?: boolean };
+      if (!check.allowed) {
+        setError(
+          "Sign-ups are invitation-only. Please use the link shared by your instructor."
+        );
+        setLoading(false);
+        return;
+      }
+    } catch {
+      // If the check endpoint fails, fall through to normal sign-in —
+      // the auth/callback backstop will still block disallowed signups.
+    }
+
     const supabase = createClient();
     const callbackUrl = new URL("/auth/callback", window.location.origin);
     if (trackParam) callbackUrl.searchParams.set("track", trackParam);
