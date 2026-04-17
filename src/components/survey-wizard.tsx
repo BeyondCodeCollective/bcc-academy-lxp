@@ -62,8 +62,12 @@ type SurveyPage = {
 };
 
 // ─── Survey Pages ─────────────────────────────────────────────────────────────
+//
+// Pages 1–4 are shared across every program (demographics, background, digital
+// access, digital experience). The final page is program-specific — ATG is
+// oriented around breaking into IT careers, Forge is oriented around AI skills.
 
-const SURVEY_PAGES: SurveyPage[] = [
+const SHARED_PAGES: SurveyPage[] = [
   {
     title: "Consent + About You",
     subtitle: "Your responses are confidential and help us improve our program.",
@@ -225,50 +229,101 @@ const SURVEY_PAGES: SurveyPage[] = [
       },
     ],
   },
-  {
-    title: "AI Experience",
-    subtitle:
-      "These questions help us understand your current understanding of AI. You don't need any prior experience — just answer based on where you are right now.",
-    questions: [
-      {
-        type: "likert",
-        id: "ai_experience",
-        label: "AI Tools",
-        scale: [
-          "Strongly Agree",
-          "Agree",
-          "Neutral",
-          "Disagree",
-          "Strongly Disagree",
-        ],
-        statements: [
-          "I'm familiar with everyday AI tools (e.g. ChatGPT, Google Gemini, Snapchat AI).",
-          "I'm familiar with coding AI tools (e.g. Codex, Replit, Loveable).",
-          "I know what AI tools are and have a basic idea of how they work.",
-          "I see learning AI tools as a skill worth developing seriously.",
-          "I feel confident I could learn to use AI tools well.",
-          "AI feels relevant to my future goals.",
-        ],
-        required: true,
-      },
-      {
-        type: "text",
-        id: "ai_perspective",
-        label:
-          "What is your perspective and experience with AI? Tell us more in a few sentences.",
-        placeholder: "Share your thoughts on AI...",
-        required: true,
-      },
-      {
-        type: "text",
-        id: "anything_else",
-        label: "Is there anything else important for us to know?",
-        placeholder: "Optional — share anything else you'd like us to know.",
-        required: false,
-      },
-    ],
-  },
 ];
+
+const FORGE_FINAL_PAGE: SurveyPage = {
+  title: "AI Experience",
+  subtitle:
+    "These questions help us understand your current understanding of AI. You don't need any prior experience — just answer based on where you are right now.",
+  questions: [
+    {
+      type: "likert",
+      id: "ai_experience",
+      label: "AI Tools",
+      scale: [
+        "Strongly Agree",
+        "Agree",
+        "Neutral",
+        "Disagree",
+        "Strongly Disagree",
+      ],
+      statements: [
+        "I'm familiar with everyday AI tools (e.g. ChatGPT, Google Gemini, Snapchat AI).",
+        "I'm familiar with coding AI tools (e.g. Codex, Replit, Loveable).",
+        "I know what AI tools are and have a basic idea of how they work.",
+        "I see learning AI tools as a skill worth developing seriously.",
+        "I feel confident I could learn to use AI tools well.",
+        "AI feels relevant to my future goals.",
+      ],
+      required: true,
+    },
+    {
+      type: "text",
+      id: "ai_perspective",
+      label:
+        "What is your perspective and experience with AI? Tell us more in a few sentences.",
+      placeholder: "Share your thoughts on AI...",
+      required: true,
+    },
+    {
+      type: "text",
+      id: "anything_else",
+      label: "Is there anything else important for us to know?",
+      placeholder: "Optional — share anything else you'd like us to know.",
+      required: false,
+    },
+  ],
+};
+
+const ATG_FINAL_PAGE: SurveyPage = {
+  title: "Tech Career Path",
+  subtitle:
+    "These questions help us understand your interest and readiness for a career in tech. There are no right or wrong answers.",
+  questions: [
+    {
+      type: "likert",
+      id: "tech_career_readiness",
+      label: "Tech Career Readiness",
+      scale: [
+        "Strongly Agree",
+        "Agree",
+        "Neutral",
+        "Disagree",
+        "Strongly Disagree",
+      ],
+      statements: [
+        "I'm familiar with what IT professionals do day-to-day.",
+        "I know what the CompTIA Tech+ certification is and why it matters.",
+        "I see learning IT skills as a realistic path for me.",
+        "I feel confident I could pass a tech certification exam with the right prep.",
+        "I've researched what tech jobs are available and what they pay.",
+        "I know at least one person who works in IT or tech.",
+        "Transitioning from athletics into a tech career feels achievable for me.",
+      ],
+      required: true,
+    },
+    {
+      type: "text",
+      id: "tech_motivation",
+      label:
+        "What draws you to a career in tech? Tell us more in a few sentences.",
+      placeholder: "Share what's motivating you to pursue tech...",
+      required: true,
+    },
+    {
+      type: "text",
+      id: "anything_else",
+      label: "Is there anything else important for us to know?",
+      placeholder: "Optional — share anything else you'd like us to know.",
+      required: false,
+    },
+  ],
+};
+
+function getSurveyPages(programSlug: string): SurveyPage[] {
+  const finalPage = programSlug === "atg" ? ATG_FINAL_PAGE : FORGE_FINAL_PAGE;
+  return [...SHARED_PAGES, finalPage];
+}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -281,6 +336,7 @@ interface Props {
 export function SurveyWizard({ surveyId, programSlug, existingResponses }: Props) {
   const router = useRouter();
   const storageKey = `survey-${surveyId}-progress`;
+  const SURVEY_PAGES = getSurveyPages(programSlug);
 
   const [page, setPage] = useState(() => {
     if (typeof window !== "undefined") {
