@@ -15,17 +15,19 @@ export function Nav({
   logo,
   programName,
   showTutor = true,
+  showResources = false,
 }: {
   isAdmin: boolean;
   logo: string;
   programName: string;
   showTutor?: boolean;
+  showResources?: boolean;
 }) {
   const pathname = usePathname();
 
   const navItems = [
     { href: "/dashboard", label: "Home", icon: House },
-    ...(isAdmin
+    ...(isAdmin || showResources
       ? [{ href: "/dashboard/resources", label: "Resources", icon: Books }]
       : []),
     ...(showTutor && isAdmin

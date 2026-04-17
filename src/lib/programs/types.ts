@@ -130,6 +130,8 @@ export type ProgramConfig = {
     systemPrompt: string;
   };
   surveys?: SurveyConfig[];
+  /** If true, the Resources nav link is visible to students (not just admins). */
+  resourcesEnabled?: boolean;
   coppa: {
     required: boolean;
   };

@@ -32,10 +32,17 @@ export default async function DashboardLayout({
   }
 
   const showTutor = program.tutorConfig?.enabled !== false;
+  const showResources = program.resourcesEnabled === true;
 
   return (
     <ProgramProvider program={program}>
-      <Nav isAdmin={isAdmin} logo={program.logo} programName={program.name} showTutor={showTutor} />
+      <Nav
+        isAdmin={isAdmin}
+        logo={program.logo}
+        programName={program.name}
+        showTutor={showTutor}
+        showResources={showResources}
+      />
       <main className="flex-1 bg-stone-50">{children}</main>
       {showTutor && isAdmin && <TutorFab />}
     </ProgramProvider>
