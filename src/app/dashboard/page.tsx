@@ -21,7 +21,7 @@ export default async function DashboardPage() {
   let cohortStartDate = program.defaultCohort.startDate;
   let noCohort = false;
   let needsOnboarding = false;
-  let enrolledTrackSlugs: string[] | null = null; // null = show all (backward compat)
+  let enrolledTrackSlugs: string[] = [];
   let pendingSurveys: { id: string; title: string; description: string }[] = [];
   let userRole = "student";
 
@@ -74,15 +74,12 @@ export default async function DashboardPage() {
 
     // Admins and super_admins see ALL tracks — no enrollment filter
     if (!canAccessAdminPanel(userRole)) {
-      // Query track enrollments — if student has assignments, only show those tracks
       const { data: trackRows } = await supabase
         .from("student_tracks")
         .select("track_slug")
         .eq("student_id", session.user.id);
 
-      if (trackRows && trackRows.length > 0) {
-        enrolledTrackSlugs = trackRows.map((r) => r.track_slug);
-      }
+      enrolledTrackSlugs = (trackRows ?? []).map((r) => r.track_slug);
     }
 
     // Check for pending surveys
@@ -113,10 +110,12 @@ export default async function DashboardPage() {
     }
   }
 
-  // Filter tracks by enrollment (null = show all for backward compat)
-  const visibleTracks = enrolledTrackSlugs
-    ? program.tracks.filter((t) => enrolledTrackSlugs.includes(t.slug))
-    : program.tracks;
+  // Admins see all tracks; students see only tracks they're enrolled in
+  const isAdmin = canAccessAdminPanel(userRole);
+  const visibleTracks = isAdmin
+    ? program.tracks
+    : program.tracks.filter((t) => enrolledTrackSlugs.includes(t.slug));
+  const notEnrolled = !isAdmin && visibleTracks.length === 0;
 
   // Compute current week per track
   const now = new Date();
@@ -161,6 +160,17 @@ export default async function DashboardPage() {
             Your program cohort is being set up. You&apos;ll see your full dashboard here once it&apos;s ready.
           </p>
         </div>
+      </div>
+    );
+  }
+
+  if (notEnrolled) {
+    return (
+      <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8">
+        <h1 className="text-2xl font-bold text-neutral-900">
+          Welcome, {firstName}
+        </h1>
+        <p className="mt-1 text-sm text-neutral-500">You&apos;re signed in.</p>
       </div>
     );
   }
