@@ -48,32 +48,74 @@ export async function saveSurveyResponse(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
+  if (!user) {
+    console.error("[saveSurveyResponse] no authenticated user", { programSlug, surveyType });
+    throw new Error("Not authenticated — please sign in again and retry.");
+  }
 
-  const svc = createServiceClient();
+  // Pull program_id from the student row (guaranteed non-null by schema)
+  // instead of doing an extra lookup against `programs` by slug.
+  const { data: studentRow, error: studentErr } = await supabase
+    .from("students")
+    .select("program_id")
+    .eq("id", user.id)
+    .maybeSingle();
 
-  // Look up program ID
-  const { data: programRow } = await svc
-    .from("programs")
-    .select("id")
-    .eq("slug", programSlug)
-    .single();
+  if (studentErr) {
+    console.error("[saveSurveyResponse] student lookup failed", {
+      userId: user.id,
+      programSlug,
+      surveyType,
+      error: studentErr,
+    });
+    throw new Error(`Couldn't load your profile: ${studentErr.message}`);
+  }
 
-  if (!programRow) throw new Error("Program not found");
+  // Fall back to a programs-by-slug lookup if the student row is somehow
+  // missing a program_id (shouldn't happen on a healthy DB, but be safe).
+  let programId = studentRow?.program_id ?? null;
+  if (!programId) {
+    const { data: programRow, error: programErr } = await supabase
+      .from("programs")
+      .select("id")
+      .eq("slug", programSlug)
+      .maybeSingle();
+    if (programErr || !programRow) {
+      console.error("[saveSurveyResponse] program fallback lookup failed", {
+        userId: user.id,
+        programSlug,
+        surveyType,
+        error: programErr,
+      });
+      throw new Error("Couldn't find your program. Refresh and try again.");
+    }
+    programId = programRow.id;
+  }
 
-  const { error } = await svc.from("survey_responses").upsert(
+  // RLS allows a student to upsert their own survey_responses row, so the
+  // regular auth client works here — no service role key required.
+  const { error } = await supabase.from("survey_responses").upsert(
     {
       student_id: user.id,
       survey_type: surveyType,
       responses,
       completed_at: new Date().toISOString(),
-      program_id: programRow.id,
+      program_id: programId,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "student_id,survey_type" }
   );
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("[saveSurveyResponse] upsert failed", {
+      userId: user.id,
+      programSlug,
+      surveyType,
+      programId,
+      error,
+    });
+    throw new Error(`Save failed: ${error.message}`);
+  }
 
   revalidatePath("/dashboard");
   return { success: true };
