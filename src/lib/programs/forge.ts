@@ -132,71 +132,73 @@ export const forgeConfig: ProgramConfig = {
       submissionsEnabled: true,
       reflectionsEnabled: true,
       weekSummaries: [
-        { week: 1, topic: "What is AI?", icon: "🤖" },
-        { week: 2, topic: "How AI Learns", icon: "🧠" },
-        { week: 3, topic: "AI Tools & Prompting", icon: "💬" },
-        { week: 4, topic: "AI in the Real World", icon: "🌍" },
+        { week: 1, topic: "Demystifying AI", icon: "💡" },
+        { week: 2, topic: "AI Power User", icon: "⚡" },
+        { week: 3, topic: "AI in Our Community", icon: "⚖️" },
+        { week: 4, topic: "Wisdom Meets Innovation", icon: "🎨" },
       ],
       weeks: [
         {
           week: 1,
-          title: "What is AI?",
-          icon: "🤖",
-          subtitle: "Introduction to Artificial Intelligence",
+          title: "Demystifying AI",
+          icon: "💡",
+          subtitle: "Foundations & Mindset",
           description:
-            "Understand what artificial intelligence actually is, how it works at a high level, and why it matters for your future career.",
+            "Build a plain-language understanding of what AI is, how it learns from data, and where it already shows up in your daily life. No prior tech background required — you belong in this conversation.",
           objectives: [
-            "Define AI, machine learning, and deep learning",
-            "Understand the difference between narrow AI and general AI",
-            "Identify AI in everyday life (recommendations, assistants, search)",
-            "Discuss the history and trajectory of AI development",
+            "Define AI in your own words and explain how it learns from data",
+            "Identify five or more AI tools you already use day to day",
+            "Name Black women researchers shaping the field of AI ethics",
+            "Articulate one concern about AI that matters for your community",
           ],
-          sessions: [{ title: "What is AI?", time: "Friday · Time TBD" }],
+          sessions: [{ title: "Demystifying AI", time: "Friday · Time TBD" }],
         },
         {
           week: 2,
-          title: "How AI Learns",
-          icon: "🧠",
-          subtitle: "Machine Learning Basics",
+          title: "AI Power User",
+          icon: "⚡",
+          subtitle: "Hands-On Tool Use",
           description:
-            "Explore how machines learn from data — training, patterns, and predictions explained in plain language.",
+            "Get hands-on with ChatGPT and Claude to accomplish a real personal or professional task. Learn a simple prompting framework and understand what AI tools can — and can't — be trusted with.",
           objectives: [
-            "Understand training data, models, and predictions",
-            "Learn the difference between supervised and unsupervised learning",
-            "See real examples of AI training in action",
-            "Discuss bias in AI and why it matters",
+            "Navigate ChatGPT and Claude with confidence",
+            "Write stronger prompts using the ROLE + TASK + CONTEXT + FORMAT framework",
+            "Recognize three types of AI hallucination and what to verify",
+            "Identify information you should never share with an AI tool",
+            "Complete at least one real task using an AI tool",
           ],
-          sessions: [{ title: "How AI Learns", time: "Friday · Time TBD" }],
+          sessions: [{ title: "AI Power User", time: "Friday · Time TBD" }],
         },
         {
           week: 3,
-          title: "AI Tools & Prompting",
-          icon: "💬",
-          subtitle: "Hands-On with AI",
+          title: "AI in Our Community",
+          icon: "⚖️",
+          subtitle: "Equity & Advocacy",
           description:
-            "Get hands-on with AI tools. Learn to write effective prompts and use AI assistants for real tasks.",
+            "Examine how algorithmic bias shows up in hiring, criminal justice, and healthcare — and identify concrete advocacy actions to protect your community.",
           objectives: [
-            "Use ChatGPT, Claude, and other AI assistants effectively",
-            "Write clear, specific prompts that get better results",
-            "Understand context windows, tokens, and model limitations",
-            "Practice using AI for writing, research, and problem-solving",
+            "Define algorithmic bias and explain its three main causes",
+            "Walk through real-world cases of AI bias in hiring, justice, and healthcare",
+            "Explain the significance of Joy Buolamwini and Timnit Gebru's research",
+            "Conduct a basic equity audit using four key questions",
+            "Name one concrete advocacy action you can take",
           ],
-          sessions: [{ title: "AI Tools & Prompting", time: "Friday · Time TBD" }],
+          sessions: [{ title: "AI in Our Community", time: "Friday · Time TBD" }],
         },
         {
           week: 4,
-          title: "AI in the Real World",
-          icon: "🌍",
-          subtitle: "Applications & Ethics",
+          title: "Wisdom Meets Innovation",
+          icon: "🎨",
+          subtitle: "Building & Celebrating",
           description:
-            "Explore how AI is being used across industries and the ethical questions that come with it.",
+            "Experience vibe coding with Replit, pair across generations to design a solution rooted in lived community knowledge, and leave with a clear next step in your AI journey.",
           objectives: [
-            "Identify AI applications in healthcare, education, business, and creative fields",
-            "Discuss ethical concerns: privacy, job displacement, deepfakes",
-            "Understand responsible AI use and digital citizenship",
-            "Plan your next steps for learning more about AI",
+            "Define vibe coding and navigate the Replit interface",
+            "Articulate your community knowledge as a product design asset",
+            "Complete a two-sentence app pitch with an intergenerational partner",
+            "Identify one concrete next step in your AI learning journey",
           ],
-          sessions: [{ title: "AI in the Real World", time: "Friday · Time TBD" }],
+          sessions: [{ title: "Wisdom Meets Innovation", time: "Friday · Time TBD" }],
         },
       ],
     },
@@ -385,7 +387,7 @@ export const forgeConfig: ProgramConfig = {
     systemPrompt: `You are the AI Tutor for "The Forge", a program by Beyond Code Collective that teaches AI skills to the next generation of digital creators and professionals.
 
 You are helping students learn AI fundamentals, tools, and applications. The program includes:
-- Basic AI Fundamentals (4 weeks): What is AI, how it learns, tools & prompting, real-world applications
+- Basic AI Fundamentals (4 weeks): Demystifying AI, AI Power User, AI in Our Community, Wisdom Meets Innovation
 - AI for Digital Natives (8 weeks): AI landscape, prompt engineering, AI for content/code/data, APIs, ethics
 - AI Automation Bootcamp: Hands-on workflow automation with AI
 
