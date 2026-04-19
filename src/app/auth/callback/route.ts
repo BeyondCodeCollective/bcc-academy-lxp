@@ -124,13 +124,14 @@ export async function GET(request: Request) {
         }
 
         if (!existing) {
-          // Block new signups that didn't come through a track invite link.
-          // Super admins and env-configured admins are exempt so they can
-          // always bootstrap access.
+          // Programs that require invite links (Forge) block new signups that
+          // didn't come through a `?track=<slug>` invite link. Programs that
+          // don't (ATG — every student gets the same tracks) skip this gate.
+          // Super admins and env-configured admins are always exempt.
           const email = (user.email || "").toLowerCase();
           const isPrivileged =
             SUPER_ADMIN_EMAILS.includes(email) || ADMIN_EMAILS.includes(email);
-          if (!trackParam && !isPrivileged) {
+          if (program.requireInviteLink === true && !trackParam && !isPrivileged) {
             await supabase.auth.signOut();
             return NextResponse.redirect(`${origin}/?error=invite`);
           }
@@ -195,17 +196,24 @@ export async function GET(request: Request) {
         // Assign track enrollment on first signup only.
         // Returning users don't get re-enrolled by clicking another track's
         // link, so students can't leak tracks to each other by sharing URLs.
-        if (!existing && trackParam && programForCohort) {
-          const validTrack = program.tracks.find((t) => t.slug === trackParam);
-          if (validTrack) {
+        if (!existing && programForCohort) {
+          // Programs without invite gating (ATG) auto-enroll new signups in
+          // every track. Programs with invite gating (Forge) only enroll in
+          // the specific track from `?track=<slug>`.
+          const tracksToEnroll =
+            program.requireInviteLink === true
+              ? program.tracks.filter((t) => t.slug === trackParam)
+              : program.tracks;
+
+          if (tracksToEnroll.length > 0) {
             const { error: trackErr } = await admin
               .from("student_tracks")
               .upsert(
-                {
+                tracksToEnroll.map((t) => ({
                   student_id: user.id,
-                  track_slug: trackParam,
+                  track_slug: t.slug,
                   program_id: programForCohort.id,
-                },
+                })),
                 { onConflict: "student_id,track_slug,program_id" }
               );
 
