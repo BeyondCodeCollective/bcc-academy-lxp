@@ -132,6 +132,13 @@ export type ProgramConfig = {
   surveys?: SurveyConfig[];
   /** If true, the Resources nav link is visible to students (not just admins). */
   resourcesEnabled?: boolean;
+  /**
+   * If true, new signups must arrive with a `?track=<slug>` param or they're
+   * rejected. Programs where students pick one of several tracks (Forge) set
+   * this true. Programs where every student gets the same set of tracks
+   * (ATG — MASS + Tech+) leave this false so new signups are auto-enrolled.
+   */
+  requireInviteLink?: boolean;
   coppa: {
     required: boolean;
   };
