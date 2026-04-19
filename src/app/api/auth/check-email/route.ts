@@ -35,9 +35,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ allowed: true });
   }
 
+  const program = await getProgram();
+
+  // Programs that don't require invite links (ATG) auto-enroll new signups
+  // in every track, so anyone with a valid email is allowed.
+  if (program.requireInviteLink !== true) {
+    return NextResponse.json({ allowed: true });
+  }
+
   // Valid track invite → new signup allowed
   if (track) {
-    const program = await getProgram();
     if (program.tracks.some((t) => t.slug === track)) {
       return NextResponse.json({ allowed: true });
     }
