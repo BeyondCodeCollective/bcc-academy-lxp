@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Space_Mono } from "next/font/google";
+import { Geist, Space_Mono, Fraunces } from "next/font/google";
 import { Analytics } from "@vercel/analytics/react";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import { getProgram } from "@/lib/programs/server";
@@ -14,6 +14,12 @@ const spaceMono = Space_Mono({
   variable: "--font-space-mono",
   subsets: ["latin"],
   weight: ["400", "700"],
+});
+
+const fraunces = Fraunces({
+  variable: "--font-display",
+  subsets: ["latin"],
+  axes: ["SOFT", "opsz"],
 });
 
 export const dynamic = "force-dynamic";
@@ -60,7 +66,7 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${spaceMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${spaceMono.variable} ${fraunces.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-sans">
         {children}

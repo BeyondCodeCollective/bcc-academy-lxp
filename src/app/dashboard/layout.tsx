@@ -43,7 +43,7 @@ export default async function DashboardLayout({
         showTutor={showTutor}
         showResources={showResources}
       />
-      <main className="flex-1 bg-stone-50">{children}</main>
+      <main className="flex-1 bg-paper">{children}</main>
       {showTutor && isAdmin && <TutorFab />}
     </ProgramProvider>
   );

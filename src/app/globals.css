@@ -10,6 +10,16 @@
   --muted: #6b7280;
   --muted-bg: #f3f4f6;
   --border: #e5e7eb;
+
+  /* ── Editorial paper palette (dashboard prototype) ──────────────────── */
+  --paper: #F7F4EE;           /* warm cream background */
+  --paper-deep: #EFEAE0;      /* slightly deeper cream for insets */
+  --surface: #FFFFFF;         /* card surface */
+  --ink: #1C1917;             /* near-black warm text */
+  --ink-muted: #78716C;       /* warm gray secondary text */
+  --rule: #E7E5E0;            /* warm border */
+  --rust: #C96442;            /* muted rust accent (used sparingly) */
+  --rust-soft: #F5E6DF;       /* tinted rust background for pills */
 }
 
 @theme inline {
@@ -22,8 +32,19 @@
   --color-muted: var(--muted);
   --color-muted-bg: var(--muted-bg);
   --color-border: var(--border);
+
+  --color-paper: var(--paper);
+  --color-paper-deep: var(--paper-deep);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-rule: var(--rule);
+  --color-rust: var(--rust);
+  --color-rust-soft: var(--rust-soft);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-space-mono);
+  --font-display: var(--font-display);
 }
 
 body {

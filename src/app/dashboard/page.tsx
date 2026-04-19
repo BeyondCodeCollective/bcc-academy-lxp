@@ -135,23 +135,23 @@ export default async function DashboardPage() {
 
   if (noCohort) {
     return (
-      <div className="mx-auto w-full max-w-2xl space-y-6 px-4 sm:px-5 py-8">
+      <div className="mx-auto w-full max-w-2xl space-y-6 px-4 sm:px-5 py-12">
         <div>
-          <h1 className="text-2xl font-bold text-neutral-900">
-            Welcome, {firstName}
+          <h1 className="font-display text-4xl sm:text-5xl font-normal tracking-tight text-ink">
+            Welcome, {firstName}.
           </h1>
-          <p className="mt-1 text-sm text-neutral-500">
+          <p className="mt-2 text-base text-ink-muted">
             You&apos;re signed in &mdash; your cohort hasn&apos;t started yet.
           </p>
         </div>
-        <div className="rounded-xl border border-neutral-200 bg-white p-6 sm:p-8 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-neutral-100 text-2xl">
+        <div className="rounded-2xl border border-rule bg-surface p-8 text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-paper-deep text-2xl">
             {program.tracks[0]?.weekSummaries[0]?.icon ?? "📚"}
           </div>
-          <h2 className="mt-4 text-lg font-semibold text-neutral-900">
-            Hang tight!
+          <h2 className="mt-4 font-display text-xl font-normal text-ink">
+            Hang tight.
           </h2>
-          <p className="mt-2 text-sm text-neutral-500 max-w-sm mx-auto">
+          <p className="mt-2 text-sm text-ink-muted max-w-sm mx-auto">
             Your program cohort is being set up. You&apos;ll see your full dashboard here once it&apos;s ready.
           </p>
         </div>
@@ -161,29 +161,33 @@ export default async function DashboardPage() {
 
   if (notEnrolled) {
     return (
-      <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8">
-        <h1 className="text-2xl font-bold text-neutral-900">
-          Welcome, {firstName}
+      <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-12">
+        <h1 className="font-display text-4xl sm:text-5xl font-normal tracking-tight text-ink">
+          Welcome, {firstName}.
         </h1>
-        <p className="mt-1 text-sm text-neutral-500">You&apos;re signed in.</p>
+        <p className="mt-2 text-base text-ink-muted">You&apos;re signed in.</p>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-8 sm:space-y-10 px-4 sm:px-5 py-8">
+    <div className="mx-auto w-full max-w-2xl space-y-10 sm:space-y-12 px-4 sm:px-5 py-12">
       {needsOnboarding ? (
         <OnboardingForm defaultFirstName={firstName} defaultLastName={lastName} />
       ) : (
         <WelcomeOverlay firstName={firstName} program={program} visibleTracks={visibleTracks} />
       )}
 
-      {/* Welcome header */}
-      <div>
-        <h1 className="text-2xl font-bold text-neutral-900">
-          Welcome back, {firstName}
+      {/* Welcome header — editorial hero */}
+      <div className="pt-2">
+        <p className="text-xs uppercase tracking-[0.18em] text-ink-muted mb-3">
+          {cohortName}
+        </p>
+        <h1 className="font-display text-5xl sm:text-6xl font-normal tracking-tight text-ink leading-[1.02]">
+          Welcome back,
+          <br />
+          <span className="text-rust">{firstName}.</span>
         </h1>
-        <p className="mt-1 text-sm text-neutral-500">{cohortName}</p>
       </div>
 
       {/* Pending surveys */}
@@ -191,22 +195,24 @@ export default async function DashboardPage() {
         <SurveyCard key={survey.id} survey={survey} />
       ))}
 
-      {/* Progress summary */}
-      <div className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
-        <div className="flex items-center justify-between mb-3">
+      {/* Progress summary — editorial */}
+      <div className="rounded-2xl bg-surface p-6 sm:p-7 ring-1 ring-rule">
+        <div className="flex items-end justify-between mb-4">
           <div>
-            <p className="text-sm font-semibold text-neutral-900">
-              Your Progress
+            <p className="text-xs uppercase tracking-[0.15em] text-ink-muted">
+              Your progress
             </p>
-            <p className="text-xs text-neutral-500">
+            <p className="mt-1 font-display text-lg text-ink">
               Week {progressWeek} of {totalProgramWeeks}
             </p>
           </div>
-          <span className="text-2xl font-bold text-neutral-900">{pct}%</span>
+          <span className="font-display text-4xl font-normal text-ink tabular-nums">
+            {pct}%
+          </span>
         </div>
-        <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-100">
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-paper-deep">
           <div
-            className="h-full rounded-full bg-neutral-900 transition-all"
+            className="h-full rounded-full bg-rust transition-all"
             style={{ width: `${pct}%` }}
           />
         </div>
@@ -252,22 +258,22 @@ function WeeklyTrackGrid({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-1">
-        <h2 className="text-lg font-semibold text-neutral-900">
+      <div className="flex items-baseline justify-between mb-2">
+        <h2 className="font-display text-2xl sm:text-3xl font-normal tracking-tight text-ink">
           {track.name}
         </h2>
         {started ? (
-          <span className="inline-flex items-center gap-1 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-semibold text-white">
-            <span className="h-1 w-1 rounded-full bg-white animate-pulse" />
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-rust">
+            <span className="h-1.5 w-1.5 rounded-full bg-rust animate-pulse" />
             Active
           </span>
         ) : (
-          <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+          <span className="text-[11px] text-ink-muted">
             Starts {startLabel}
           </span>
         )}
       </div>
-      <p className="text-xs text-neutral-400 mb-4">
+      <p className="text-sm text-ink-muted mb-6">
         {track.totalWeeks}-week {track.sessionsPerWeek > 1 ? "course" : "coaching"}
         {started ? ` · Week ${currentWeek} of ${track.totalWeeks}` : ` · with ${track.instructor}`}
       </p>
@@ -282,32 +288,32 @@ function WeeklyTrackGrid({
             <Link
               key={week}
               href={`/dashboard/track/${track.slug}/${week}`}
-              className={`group relative flex flex-col items-center rounded-xl border p-3 sm:p-5 text-center transition-all ${
+              className={`group relative flex flex-col items-center rounded-2xl p-4 sm:p-5 text-center transition-all ${
                 isCurrent
-                  ? "border-neutral-900 bg-white shadow-sm"
+                  ? "bg-surface ring-1 ring-rust shadow-[0_1px_2px_rgba(28,25,23,0.04),0_8px_24px_-12px_rgba(201,100,66,0.3)]"
                   : isCompleted
-                    ? "border-neutral-200 bg-white hover:border-neutral-300"
-                    : "border-neutral-100 bg-neutral-50 hover:border-neutral-200"
+                    ? "bg-surface ring-1 ring-rule hover:ring-ink/20"
+                    : "bg-paper-deep/60 hover:bg-paper-deep"
               }`}
             >
               <div
-                className={`relative flex h-11 w-11 sm:h-14 sm:w-14 items-center justify-center rounded-full text-2xl ${
+                className={`relative flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-full text-2xl ${
                   isCompleted
-                    ? "bg-green-50"
+                    ? "bg-paper-deep"
                     : isCurrent
-                      ? "bg-neutral-900"
-                      : "bg-neutral-100"
+                      ? "bg-rust-soft"
+                      : "bg-transparent"
                 }`}
               >
                 {isFuture ? (
-                  <span className="text-lg grayscale opacity-40">{icon}</span>
+                  <span className="text-lg grayscale opacity-30">{icon}</span>
                 ) : (
-                  <span className={isCurrent ? "text-lg" : ""}>{icon}</span>
+                  <span>{icon}</span>
                 )}
 
                 {isCompleted && (
-                  <div className="absolute -top-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-green-500">
-                    <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
+                  <div className="absolute -top-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-ink">
+                    <svg className="h-3 w-3 text-paper" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                     </svg>
                   </div>
@@ -315,22 +321,21 @@ function WeeklyTrackGrid({
               </div>
 
               {isCurrent && (
-                <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-semibold text-white">
-                  <span className="h-1 w-1 rounded-full bg-white animate-pulse" />
+                <span className="mt-2 text-[10px] font-medium uppercase tracking-wider text-rust">
                   This Week
                 </span>
               )}
 
               <p
-                className={`mt-2 text-xs font-medium leading-tight ${
-                  isFuture ? "text-neutral-300" : "text-neutral-700"
+                className={`mt-2 text-sm font-medium leading-tight ${
+                  isFuture ? "text-ink-muted/50" : "text-ink"
                 }`}
               >
                 {topic}
               </p>
               <p
-                className={`mt-0.5 text-[10px] ${
-                  isFuture ? "text-neutral-200" : "text-neutral-400"
+                className={`mt-1 text-[10px] uppercase tracking-wider ${
+                  isFuture ? "text-ink-muted/40" : "text-ink-muted"
                 }`}
               >
                 Week {week}
@@ -351,31 +356,22 @@ function SurveyCard({
   return (
     <Link
       href={`/dashboard/survey/${survey.id}`}
-      className="block rounded-xl border border-amber-200 bg-amber-50 p-4 sm:p-5 transition-colors hover:border-amber-300 hover:bg-amber-100/60"
+      className="block rounded-2xl bg-rust-soft/70 p-6 ring-1 ring-rust/20 transition-all hover:bg-rust-soft hover:ring-rust/40"
     >
-      <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-lg">
-          <svg className="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15a2.25 2.25 0 012.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
-          </svg>
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold text-amber-900">
-              {survey.title}
-            </p>
-            <span className="inline-flex items-center rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
-              Required
-            </span>
-          </div>
-          <p className="mt-0.5 text-xs text-amber-700">
-            {survey.description}
-          </p>
-          <p className="mt-2 text-xs font-medium text-amber-800">
-            Take survey &rarr;
-          </p>
-        </div>
+      <div className="flex items-baseline justify-between">
+        <p className="font-display text-xl font-normal text-ink">
+          {survey.title}
+        </p>
+        <span className="text-[10px] uppercase tracking-[0.15em] text-rust font-medium">
+          Required
+        </span>
       </div>
+      <p className="mt-2 text-sm text-ink-muted leading-relaxed">
+        {survey.description}
+      </p>
+      <p className="mt-4 text-sm font-medium text-rust">
+        Take survey &rarr;
+      </p>
     </Link>
   );
 }
@@ -391,28 +387,30 @@ function SingleEventCard({ track }: { track: TrackConfig }) {
   const isPast = new Date() > eventDate;
 
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
-      <div className="flex items-center justify-between mb-2">
-        <h2 className="text-lg font-semibold text-neutral-900">{track.name}</h2>
+    <div className="rounded-2xl bg-surface p-6 sm:p-7 ring-1 ring-rule">
+      <div className="flex items-baseline justify-between mb-2">
+        <h2 className="font-display text-2xl sm:text-3xl font-normal tracking-tight text-ink">
+          {track.name}
+        </h2>
         {isPast ? (
-          <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-semibold text-green-600">
+          <span className="text-[11px] uppercase tracking-wider text-ink-muted">
             Completed
           </span>
         ) : (
-          <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+          <span className="text-[11px] uppercase tracking-wider text-rust">
             Upcoming
           </span>
         )}
       </div>
-      <p className="text-xs text-neutral-400 mb-3">
+      <p className="text-sm text-ink-muted mb-1">
         {dateStr} · with {track.instructor}
       </p>
       {session && (
-        <p className="text-sm text-neutral-600 mb-3">{session.time}</p>
+        <p className="text-sm text-ink mb-5">{session.time}</p>
       )}
       <Link
         href={`/dashboard/track/${track.slug}/1`}
-        className="inline-flex items-center gap-1.5 rounded-lg bg-neutral-900 text-white text-xs font-semibold px-4 py-2.5 transition-colors hover:bg-neutral-800"
+        className="inline-flex items-center gap-1.5 rounded-full bg-ink text-paper text-sm font-medium px-5 py-2.5 transition-colors hover:bg-ink/90"
       >
         View Details
       </Link>
