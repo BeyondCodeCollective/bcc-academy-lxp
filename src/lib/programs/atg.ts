@@ -373,14 +373,7 @@ Guidelines:
 - Offer practice questions when appropriate to reinforce learning.
 - Keep responses focused — 2-3 short paragraphs max unless they ask for more detail.`,
   },
-  surveys: [
-    {
-      id: "pre-survey-spring-2026",
-      title: "Pre-Survey",
-      description: "Help us understand your background and experience so we can better support you.",
-      required: true,
-    },
-  ],
+  surveys: [],
   coppa: { required: false },
   seo: {
     title: "After The Game — IT Career Training by Beyond Code Collective",
