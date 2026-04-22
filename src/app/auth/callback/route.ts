@@ -96,31 +96,37 @@ export async function GET(request: Request) {
           console.error("[auth/callback] student query:", studentRes.error.message);
         }
 
-        const { data: cohort, error: cohortQueryErr } = await admin
-          .from("cohorts")
-          .select("id")
-          .eq("program_id", programForCohort?.id ?? "")
-          .order("created_at", { ascending: true })
-          .limit(1)
-          .maybeSingle();
-
-        if (cohortQueryErr) {
-          console.error("[auth/callback] cohort query:", cohortQueryErr.message);
-        }
-
-        let cohortId = cohort?.id;
+        // Returning users with a cohort already set skip the cohort round-trip
+        // entirely — it's only needed for brand-new signups or stale rows.
+        let cohortId: string | undefined = existing?.cohort_id ?? undefined;
 
         if (!cohortId) {
-          const { data: newCohort, error: cohortInsertErr } = await admin
+          const { data: cohort, error: cohortQueryErr } = await admin
             .from("cohorts")
-            .insert({ ...defaultCohort, program_id: programForCohort?.id })
             .select("id")
-            .single();
+            .eq("program_id", programForCohort?.id ?? "")
+            .order("created_at", { ascending: true })
+            .limit(1)
+            .maybeSingle();
 
-          if (cohortInsertErr) {
-            console.error("[auth/callback] cohort insert:", cohortInsertErr.message);
+          if (cohortQueryErr) {
+            console.error("[auth/callback] cohort query:", cohortQueryErr.message);
           }
-          cohortId = newCohort?.id;
+
+          cohortId = cohort?.id;
+
+          if (!cohortId) {
+            const { data: newCohort, error: cohortInsertErr } = await admin
+              .from("cohorts")
+              .insert({ ...defaultCohort, program_id: programForCohort?.id })
+              .select("id")
+              .single();
+
+            if (cohortInsertErr) {
+              console.error("[auth/callback] cohort insert:", cohortInsertErr.message);
+            }
+            cohortId = newCohort?.id;
+          }
         }
 
         if (!existing) {

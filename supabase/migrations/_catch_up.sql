@@ -217,6 +217,10 @@ create index if not exists idx_submissions_program_id on submissions(program_id)
 create index if not exists idx_reflections_program_id on reflections(program_id);
 create index if not exists idx_cohorts_program_id     on cohorts(program_id);
 
+-- perf_indexes_students.sql
+create index if not exists idx_students_program_id on students(program_id);
+create index if not exists idx_programs_slug      on programs(slug);
+
 -- ════════════════════════════════════════════════════════════════════════
 -- SECTION 5 — Storage bucket
 -- ════════════════════════════════════════════════════════════════════════
