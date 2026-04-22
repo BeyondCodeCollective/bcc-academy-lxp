@@ -3,9 +3,8 @@ import { createClient, createServiceClient, isSupabaseConfigured } from "@/lib/s
 import { AdminTabs } from "./admin-tabs";
 import type { Student } from "@/lib/types";
 import { getProgram } from "@/lib/programs/server";
-import { getStudentTracks, getSurveyStats, getInstructorTracks, getMyInstructorTracks } from "./actions";
 import type { StudentTrackRow, SurveyStatsRow, InstructorTrackRow } from "./actions";
-import { canAccessAdminPanel, canSwitchPrograms, canManageStudents } from "@/lib/roles";
+import { canAccessAdminPanel, canSwitchPrograms } from "@/lib/roles";
 import { getAllPrograms } from "@/lib/programs";
 
 export default async function AdminPage() {
@@ -16,6 +15,8 @@ export default async function AdminPage() {
   let instructorTracks: InstructorTrackRow[] = [];
   let userRole = "student";
   let myInstructorTracks: string[] = [];
+  const surveyStats: Record<string, SurveyStatsRow[]> = {};
+  const surveyList = program.surveys ?? [];
 
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
@@ -25,62 +26,83 @@ export default async function AdminPage() {
     } = await supabase.auth.getSession();
     if (!session?.user) redirect("/");
 
-    // Look up program ID for filtering
     const svc = createServiceClient();
-    const { data: programRow } = await svc
-      .from("programs")
-      .select("id")
-      .eq("slug", program.slug)
-      .single();
 
-    const programId = programRow?.id;
+    // Batch 1: program lookup + current user's role. Needed to authorize the
+    // page and to scope every subsequent query to this program.
+    const [programRowRes, studentCheckRes] = await Promise.all([
+      svc.from("programs").select("id").eq("slug", program.slug).single(),
+      svc.from("students").select("role").eq("id", session.user.id).single(),
+    ]);
 
-    // Get current user's role
-    const { data: studentCheck } = await svc
-      .from("students")
-      .select("role")
-      .eq("id", session.user.id)
-      .single();
-
-    userRole = studentCheck?.role ?? "student";
+    const programId = programRowRes.data?.id;
+    userRole = studentCheckRes.data?.role ?? "student";
 
     if (!canAccessAdminPanel(userRole)) redirect("/dashboard");
 
-    // Run all queries in parallel — scoped to this program
-    const [studentsResult, cohortsResult] = await Promise.all([
-      svc
-        .from("students")
-        .select("id, first_name, last_name, email, role, cohort_id")
-        .eq("program_id", programId!)
-        .order("created_at", { ascending: true }),
-      svc
-        .from("cohorts")
-        .select("id, name, display_name, start_date, total_weeks")
-        .eq("program_id", programId!)
-        .order("created_at", { ascending: true }),
+    // Batch 2: every data query the admin page needs, fired in one round trip.
+    // Previously each helper re-looked-up the program row and they ran serially,
+    // stacking ~8 round-trips. This collapses them to one concurrent batch.
+    const [coreRes, surveyStatsResults] = await Promise.all([
+      Promise.all([
+        svc
+          .from("students")
+          .select("id, first_name, last_name, email, role, cohort_id")
+          .eq("program_id", programId!)
+          .order("created_at", { ascending: true }),
+        svc
+          .from("cohorts")
+          .select("id, name, display_name, start_date, total_weeks")
+          .eq("program_id", programId!)
+          .order("created_at", { ascending: true }),
+        svc
+          .from("student_tracks")
+          .select("*")
+          .eq("program_id", programId!)
+          .order("created_at"),
+        svc
+          .from("instructor_tracks")
+          .select("*")
+          .eq("program_id", programId!)
+          .order("created_at"),
+        userRole === "instructor"
+          ? svc
+              .from("instructor_tracks")
+              .select("track_slug")
+              .eq("student_id", session.user.id)
+          : Promise.resolve({ data: null as { track_slug: string }[] | null }),
+      ]),
+      Promise.all(
+        surveyList.map((s) =>
+          svc
+            .from("survey_responses")
+            .select("student_id, survey_type, completed_at")
+            .eq("program_id", programId!)
+            .eq("survey_type", s.id)
+        )
+      ),
     ]);
+
+    const [
+      studentsResult,
+      cohortsResult,
+      studentTracksRes,
+      instructorTracksRes,
+      myInstrTracksRes,
+    ] = coreRes;
 
     allStudents = studentsResult.data || [];
     allCohorts = cohortsResult.data || [];
-    studentTracks = await getStudentTracks(program.slug);
-    instructorTracks = await getInstructorTracks(program.slug);
-
-    // If instructor, get their assigned tracks
-    if (userRole === "instructor") {
-      myInstructorTracks = await getMyInstructorTracks();
-    }
+    studentTracks = (studentTracksRes.data ?? []) as StudentTrackRow[];
+    instructorTracks = (instructorTracksRes.data ?? []) as InstructorTrackRow[];
+    myInstructorTracks = ((myInstrTracksRes.data ?? []) as { track_slug: string }[]).map(
+      (r) => r.track_slug
+    );
+    surveyList.forEach((s, i) => {
+      surveyStats[s.id] = (surveyStatsResults[i].data ?? []) as SurveyStatsRow[];
+    });
   }
 
-  // Fetch survey stats for each configured survey in parallel instead of
-  // serially — one DB round-trip per survey added up on the admin tab.
-  const surveyStats: Record<string, SurveyStatsRow[]> = {};
-  const surveyList = program.surveys ?? [];
-  const surveyStatsResults = await Promise.all(
-    surveyList.map((s) => getSurveyStats(program.slug, s.id))
-  );
-  surveyList.forEach((s, i) => {
-    surveyStats[s.id] = surveyStatsResults[i];
-  });
   const surveyConfigs = (program.surveys ?? []).map((s) => ({
     id: s.id,
     title: s.title,
