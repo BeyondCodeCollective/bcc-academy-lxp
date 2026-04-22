@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
@@ -7,14 +8,23 @@ import Link from "next/link";
 import { WelcomeVideo } from "@/components/welcome-video";
 import { WelcomeOverlay } from "@/components/welcome-overlay";
 import { OnboardingForm } from "@/components/onboarding-form";
+import { DashboardBodySkeleton } from "@/components/dashboard-skeleton";
 import { getProgram } from "@/lib/programs/server";
-import type { TrackConfig } from "@/lib/programs/types";
+import type { ProgramConfig, TrackConfig } from "@/lib/programs/types";
 import { canAccessAdminPanel } from "@/lib/roles";
 import { getSessionContext } from "@/lib/auth/session";
 
 export default async function DashboardPage() {
   const program = await getProgram();
 
+  return (
+    <Suspense fallback={<DashboardBodySkeleton />}>
+      <DashboardContent program={program} />
+    </Suspense>
+  );
+}
+
+async function DashboardContent({ program }: { program: ProgramConfig }) {
   let firstName = "there";
   let lastName = "";
   let cohortName = program.defaultCohort.displayName;
@@ -34,31 +44,7 @@ export default async function DashboardPage() {
 
     userRole = student?.role ?? "student";
     const cohort = student?.cohorts ?? null;
-    let cohortId = student?.cohort_id ?? null;
-
-    if (!cohortId) {
-      const { data: defaultCohort } = await supabase
-        .from("cohorts")
-        .select("id")
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .single();
-
-      if (defaultCohort) {
-        await supabase
-          .from("students")
-          .update({ cohort_id: defaultCohort.id })
-          .eq("id", userId);
-        cohortId = defaultCohort.id;
-      }
-    }
-
-    if (cohort) {
-      cohortName = cohort.display_name || cohort.name;
-      cohortStartDate = cohort.start_date;
-    } else if (!cohortId) {
-      noCohort = true;
-    }
+    const hasCohortId = !!student?.cohort_id;
 
     firstName = student?.first_name || "there";
     lastName = student?.last_name || "";
@@ -67,7 +53,15 @@ export default async function DashboardPage() {
     const isAdminUser = canAccessAdminPanel(userRole);
     const needsSurveys = !!program.surveys?.length;
 
-    const [trackRowsRes, completedSurveysRes] = await Promise.all([
+    const [defaultCohortRes, trackRowsRes, completedSurveysRes] = await Promise.all([
+      hasCohortId
+        ? Promise.resolve({ data: null })
+        : supabase
+            .from("cohorts")
+            .select("id")
+            .order("created_at", { ascending: true })
+            .limit(1)
+            .maybeSingle(),
       isAdminUser
         ? Promise.resolve({ data: null })
         : supabase.from("student_tracks").select("track_slug").eq("student_id", userId),
@@ -79,6 +73,22 @@ export default async function DashboardPage() {
             .not("completed_at", "is", null)
         : Promise.resolve({ data: null }),
     ]);
+
+    if (!hasCohortId && defaultCohortRes.data) {
+      // Fire-and-forget: catch up the student's cohort_id. Not awaited because
+      // no downstream render depends on it.
+      void supabase
+        .from("students")
+        .update({ cohort_id: defaultCohortRes.data.id })
+        .eq("id", userId);
+    }
+
+    if (cohort) {
+      cohortName = cohort.display_name || cohort.name;
+      cohortStartDate = cohort.start_date;
+    } else if (!hasCohortId && !defaultCohortRes.data) {
+      noCohort = true;
+    }
 
     if (!isAdminUser) {
       enrolledTrackSlugs = (trackRowsRes.data ?? []).map((r) => r.track_slug);
@@ -105,14 +115,14 @@ export default async function DashboardPage() {
     }
   }
 
-  // Admins see all tracks; students see only tracks they're enrolled in
+  void cohortStartDate;
+
   const isAdmin = canAccessAdminPanel(userRole);
   const visibleTracks = isAdmin
     ? program.tracks
     : program.tracks.filter((t) => enrolledTrackSlugs.includes(t.slug));
   const notEnrolled = !isAdmin && visibleTracks.length === 0;
 
-  // Compute current week per track
   const now = new Date();
   const trackStates = visibleTracks.map((track) => {
     const started = now >= new Date(track.startDate);
@@ -122,7 +132,6 @@ export default async function DashboardPage() {
     return { track, started, currentWeek };
   });
 
-  // Progress: based on the longest weekly track
   const weeklyTracks = trackStates.filter((t) => t.track.type === "weekly");
   const longestTrack = weeklyTracks.reduce<typeof trackStates[0] | null>(
     (best, t) => (!best || t.track.totalWeeks > best.track.totalWeeks ? t : best),
@@ -178,7 +187,6 @@ export default async function DashboardPage() {
         <WelcomeOverlay firstName={firstName} program={program} visibleTracks={visibleTracks} />
       )}
 
-      {/* Welcome header */}
       <div>
         <h1 className="text-2xl font-bold text-neutral-900">
           Welcome back, {firstName}
@@ -186,12 +194,10 @@ export default async function DashboardPage() {
         <p className="mt-1 text-sm text-neutral-500">{cohortName}</p>
       </div>
 
-      {/* Pending surveys */}
       {pendingSurveys.map((survey) => (
         <SurveyCard key={survey.id} survey={survey} />
       ))}
 
-      {/* Progress summary */}
       <div className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
         <div className="flex items-center justify-between mb-3">
           <div>
@@ -212,7 +218,6 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* Welcome Video */}
       {program.welcomeVideo && (
         <WelcomeVideo
           videoSrc={program.welcomeVideo}
@@ -221,7 +226,6 @@ export default async function DashboardPage() {
         />
       )}
 
-      {/* Track sections */}
       {trackStates.map(({ track, started, currentWeek }) =>
         track.type === "single-event" ? (
           <SingleEventCard key={track.slug} track={track} />
