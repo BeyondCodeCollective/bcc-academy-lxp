@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
@@ -8,6 +9,7 @@ import { getProgram } from "@/lib/programs/server";
 import { ProgramProvider } from "@/lib/programs/context";
 import { canAccessAdminPanel } from "@/lib/roles";
 import { getSessionContext } from "@/lib/auth/session";
+import type { ProgramConfig } from "@/lib/programs/types";
 
 export default async function DashboardLayout({
   children,
@@ -15,6 +17,18 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const program = await getProgram();
+
+  return (
+    <ProgramProvider program={program}>
+      <Suspense fallback={<NavShell program={program} />}>
+        <NavWithAuth program={program} />
+      </Suspense>
+      <main className="flex-1 bg-stone-50">{children}</main>
+    </ProgramProvider>
+  );
+}
+
+async function NavWithAuth({ program }: { program: ProgramConfig }) {
   let isAdmin = false;
 
   if (isSupabaseConfigured()) {
@@ -24,9 +38,7 @@ export default async function DashboardLayout({
   } else {
     const cookieStore = await cookies();
     const demoEmail = cookieStore.get(DEMO_COOKIE)?.value;
-
     if (!demoEmail) redirect("/");
-
     const user = getDemoUser(demoEmail);
     isAdmin = canAccessAdminPanel(user?.role ?? "");
   }
@@ -35,7 +47,7 @@ export default async function DashboardLayout({
   const showResources = program.resourcesEnabled === true;
 
   return (
-    <ProgramProvider program={program}>
+    <>
       <Nav
         isAdmin={isAdmin}
         logo={program.logo}
@@ -43,8 +55,20 @@ export default async function DashboardLayout({
         showTutor={showTutor}
         showResources={showResources}
       />
-      <main className="flex-1 bg-stone-50">{children}</main>
       {showTutor && isAdmin && <TutorFab />}
-    </ProgramProvider>
+    </>
+  );
+}
+
+function NavShell({ program }: { program: ProgramConfig }) {
+  const showResources = program.resourcesEnabled === true;
+  return (
+    <Nav
+      isAdmin={false}
+      logo={program.logo}
+      programName={program.name}
+      showTutor={false}
+      showResources={showResources}
+    />
   );
 }
