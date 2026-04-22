@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { createServiceClient } from "@/lib/supabase/server";
+import { authCookieDomain } from "@/lib/supabase/cookie-domain";
 import { getProgram } from "@/lib/programs/server";
 
 // Emails that always get super_admin role (hardcoded + env var)
@@ -30,6 +31,7 @@ export async function GET(request: Request) {
   if (code || token_hash) {
     const cookieStore = await cookies();
     const program = await getProgram();
+    const domain = authCookieDomain(request.headers.get("host"));
 
     // Auth client — handles session exchange and cookie management
     const supabase = createServerClient(
@@ -42,7 +44,7 @@ export async function GET(request: Request) {
           },
           setAll(cookiesToSet) {
             cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
+              cookieStore.set(name, value, domain ? { ...options, domain } : options)
             );
           },
         },
