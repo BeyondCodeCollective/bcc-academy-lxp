@@ -29,6 +29,7 @@ export default async function DashboardLayout({
 }
 
 async function NavWithAuth({ program }: { program: ProgramConfig }) {
+  const t0 = performance.now();
   let isAdmin = false;
 
   if (isSupabaseConfigured()) {
@@ -42,6 +43,8 @@ async function NavWithAuth({ program }: { program: ProgramConfig }) {
     const user = getDemoUser(demoEmail);
     isAdmin = canAccessAdminPanel(user?.role ?? "");
   }
+
+  console.log(`[layout] dashboard nav ${Math.round(performance.now() - t0)}ms`);
 
   const showTutor = program.tutorConfig?.enabled !== false;
   const showResources = program.resourcesEnabled === true;
