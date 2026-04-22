@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { addStudentAction, deleteStudentAction, updateStudentAction, updateCohortAction, saveSessionContent, assignStudentTrack, removeStudentTrack, bulkAssignTrack, exportSurveyResponses, getAllSubmissions, getAllReflections, addFeedback, assignInstructorTrack, removeInstructorTrack } from "./actions";
+import { addStudentAction, deleteStudentAction, updateStudentAction, updateCohortAction, saveSessionContent, assignStudentTrack, removeStudentTrack, bulkAssignTrack, exportSurveyResponses, getAllSubmissions, getAllReflections, addFeedback, assignInstructorTrack, removeInstructorTrack, getStudentTracks, getInstructorTracks } from "./actions";
 import type { SessionResource, StudentTrackRow, SurveyStatsRow, AdminSubmissionRow, AdminReflectionRow, InstructorTrackRow } from "./actions";
 import { canManageStudents, canSwitchPrograms } from "@/lib/roles";
 import {
@@ -363,8 +363,6 @@ export function AdminTabs({
   cohorts,
   students: initialStudents,
   tracks,
-  studentTracks: initialStudentTracks,
-  instructorTracks: initialInstructorTracks = [],
   programSlug: initialProgramSlug,
   surveyStats,
   surveyConfigs,
@@ -374,8 +372,6 @@ export function AdminTabs({
   cohorts: CohortRow[];
   students: StudentRow[];
   tracks: AdminTrackConfig[];
-  studentTracks: StudentTrackRow[];
-  instructorTracks?: InstructorTrackRow[];
   programSlug: string;
   surveyStats: Record<string, SurveyStatsRow[]>;
   surveyConfigs: { id: string; title: string }[];
@@ -564,15 +560,45 @@ export function AdminTabs({
   const [addingStudent, setAddingStudent] = useState(false);
   const [addError, setAddError] = useState("");
 
-  // Track enrollment state
-  const [enrollments, setEnrollments] = useState<StudentTrackRow[]>(initialStudentTracks);
-  const [instrTracks, setInstrTracks] = useState<InstructorTrackRow[]>(initialInstructorTracks);
+  // Track enrollment state — lazy-loaded on Enrollments tab activation
+  // (two DB round-trips that most admin visits never need).
+  const [enrollments, setEnrollments] = useState<StudentTrackRow[]>([]);
+  const [instrTracks, setInstrTracks] = useState<InstructorTrackRow[]>([]);
+  const [enrollmentsLoaded, setEnrollmentsLoaded] = useState(false);
+  const [enrollmentsLoading, setEnrollmentsLoading] = useState(false);
   const [instrTrackSaving, setInstrTrackSaving] = useState<string | null>(null);
   const [enrollmentSaving, setEnrollmentSaving] = useState<string | null>(null);
   const [enrollmentFilter, setEnrollmentFilter] = useState<string>("all");
   const [bulkTrack, setBulkTrack] = useState<string>(tracks[0]?.slug ?? "");
   const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
   const [bulkSaving, setBulkSaving] = useState(false);
+
+  useEffect(() => {
+    if (tab !== "enrollments" || enrollmentsLoaded || enrollmentsLoading) return;
+    let cancelled = false;
+    setEnrollmentsLoading(true);
+    Promise.all([
+      getStudentTracks(programSlug),
+      getInstructorTracks(programSlug),
+    ])
+      .then(([studentRows, instructorRows]) => {
+        if (cancelled) return;
+        setEnrollments(studentRows);
+        setInstrTracks(instructorRows);
+        setEnrollmentsLoaded(true);
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        console.error("Failed to load enrollment data:", e);
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setEnrollmentsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tab, enrollmentsLoaded, enrollmentsLoading, programSlug]);
 
   async function updateStudent(id: string, field: "role" | "cohort_id", value: string) {
     setStudentSaving(id);
@@ -1261,7 +1287,28 @@ export function AdminTabs({
       )}
 
       {/* Enrollments Tab */}
-      {tab === "enrollments" && (
+      {tab === "enrollments" && !enrollmentsLoaded && (
+        <div className="space-y-4 animate-pulse">
+          <div className="h-5 w-40 rounded bg-neutral-200" />
+          <div className="h-3 w-80 rounded bg-neutral-100" />
+          <div className="rounded-xl border border-neutral-200 bg-white p-4 space-y-3">
+            <div className="h-3 w-24 rounded bg-neutral-200" />
+            <div className="h-8 w-56 rounded bg-neutral-100" />
+          </div>
+          <div className="rounded-xl border border-neutral-200 bg-white p-4 space-y-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-full bg-neutral-100" />
+                <div className="flex-1 space-y-1.5">
+                  <div className="h-3 w-40 rounded bg-neutral-200" />
+                  <div className="h-3 w-56 rounded bg-neutral-100" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {tab === "enrollments" && enrollmentsLoaded && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-neutral-900">Track Enrollments</h2>

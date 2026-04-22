@@ -3,7 +3,7 @@ import { createClient, createServiceClient, isSupabaseConfigured } from "@/lib/s
 import { AdminTabs } from "./admin-tabs";
 import type { Student } from "@/lib/types";
 import { getProgram } from "@/lib/programs/server";
-import type { StudentTrackRow, SurveyStatsRow, InstructorTrackRow } from "./actions";
+import type { SurveyStatsRow } from "./actions";
 import { canAccessAdminPanel, canSwitchPrograms } from "@/lib/roles";
 import { getAllPrograms } from "@/lib/programs";
 
@@ -11,8 +11,6 @@ export default async function AdminPage() {
   const program = await getProgram();
   let allStudents: Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id">[] = [];
   let allCohorts: { id: string; name: string; display_name: string | null; start_date: string; total_weeks: number }[] = [];
-  let studentTracks: StudentTrackRow[] = [];
-  let instructorTracks: InstructorTrackRow[] = [];
   let userRole = "student";
   let myInstructorTracks: string[] = [];
   const surveyStats: Record<string, SurveyStatsRow[]> = {};
@@ -40,9 +38,9 @@ export default async function AdminPage() {
 
     if (!canAccessAdminPanel(userRole)) redirect("/dashboard");
 
-    // Batch 2: every data query the admin page needs, fired in one round trip.
-    // Previously each helper re-looked-up the program row and they ran serially,
-    // stacking ~8 round-trips. This collapses them to one concurrent batch.
+    // Batch 2: only the data the default (program) tab needs. The Enrollments
+    // tab lazy-loads its own student_tracks + instructor_tracks client-side on
+    // activation — most admin visits never click it, so we skip two queries.
     const [coreRes, surveyStatsResults] = await Promise.all([
       Promise.all([
         svc
@@ -55,16 +53,6 @@ export default async function AdminPage() {
           .select("id, name, display_name, start_date, total_weeks")
           .eq("program_id", programId!)
           .order("created_at", { ascending: true }),
-        svc
-          .from("student_tracks")
-          .select("*")
-          .eq("program_id", programId!)
-          .order("created_at"),
-        svc
-          .from("instructor_tracks")
-          .select("*")
-          .eq("program_id", programId!)
-          .order("created_at"),
         userRole === "instructor"
           ? svc
               .from("instructor_tracks")
@@ -83,18 +71,10 @@ export default async function AdminPage() {
       ),
     ]);
 
-    const [
-      studentsResult,
-      cohortsResult,
-      studentTracksRes,
-      instructorTracksRes,
-      myInstrTracksRes,
-    ] = coreRes;
+    const [studentsResult, cohortsResult, myInstrTracksRes] = coreRes;
 
     allStudents = studentsResult.data || [];
     allCohorts = cohortsResult.data || [];
-    studentTracks = (studentTracksRes.data ?? []) as StudentTrackRow[];
-    instructorTracks = (instructorTracksRes.data ?? []) as InstructorTrackRow[];
     myInstructorTracks = ((myInstrTracksRes.data ?? []) as { track_slug: string }[]).map(
       (r) => r.track_slug
     );
@@ -143,8 +123,6 @@ export default async function AdminPage() {
         cohorts={allCohorts}
         students={allStudents}
         tracks={tracks}
-        studentTracks={studentTracks}
-        instructorTracks={instructorTracks}
         programSlug={program.slug}
         surveyStats={surveyStats}
         surveyConfigs={surveyConfigs}
