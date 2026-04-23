@@ -4,7 +4,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { canAccessAdminPanel, canManageStudents } from "@/lib/roles";
+import { canAccessAdminPanel, canManageStudents, canSwitchPrograms } from "@/lib/roles";
 
 async function requireAdmin() {
   const supabase = await createClient();
@@ -574,6 +574,98 @@ export async function exportSurveyResponses(
       completed_at: row.completed_at as string | null,
     };
   });
+}
+
+// ─── Public (anonymous) survey responses — super_admin only ─────────────────
+
+async function requireSuperAdmin() {
+  const result = await requireAdmin();
+  if (!canSwitchPrograms(result.role)) throw new Error("Not authorized");
+  return result;
+}
+
+export type PublicSurveyStatsRow = {
+  program_slug: string;
+  program_name: string;
+  survey_type: string;
+  response_count: number;
+};
+
+export async function getPublicSurveyStats(): Promise<PublicSurveyStatsRow[]> {
+  const { svc } = await requireSuperAdmin();
+
+  const { data, error } = await svc
+    .from("public_survey_responses")
+    .select("program_id, survey_type, programs(slug, name)");
+
+  if (error) {
+    console.error("getPublicSurveyStats error:", error.message);
+    return [];
+  }
+
+  const counts = new Map<string, PublicSurveyStatsRow>();
+  for (const row of data ?? []) {
+    const programsField = (row as { programs: { slug: string; name: string } | { slug: string; name: string }[] | null }).programs;
+    const program = Array.isArray(programsField) ? programsField[0] : programsField;
+    if (!program) continue;
+    const surveyType = (row as { survey_type: string }).survey_type;
+    const key = `${program.slug}::${surveyType}`;
+    const existing = counts.get(key);
+    if (existing) {
+      existing.response_count += 1;
+    } else {
+      counts.set(key, {
+        program_slug: program.slug,
+        program_name: program.name,
+        survey_type: surveyType,
+        response_count: 1,
+      });
+    }
+  }
+  return Array.from(counts.values()).sort((a, b) =>
+    a.program_name.localeCompare(b.program_name)
+  );
+}
+
+export async function exportPublicSurveyResponses(
+  programSlug: string,
+  surveyType: string
+): Promise<
+  {
+    email: string;
+    full_name: string;
+    responses: Record<string, unknown>;
+    completed_at: string | null;
+  }[]
+> {
+  const { svc } = await requireSuperAdmin();
+
+  const { data: programRow } = await svc
+    .from("programs")
+    .select("id")
+    .eq("slug", programSlug)
+    .single();
+
+  if (!programRow) return [];
+
+  const { data, error } = await svc
+    .from("public_survey_responses")
+    .select("email, full_name, responses, completed_at")
+    .eq("program_id", programRow.id)
+    .eq("survey_type", surveyType)
+    .order("completed_at", { ascending: false });
+
+  if (error) {
+    console.error("exportPublicSurveyResponses error:", error.message);
+    return [];
+  }
+
+  return (data ?? []) as {
+    email: string;
+    full_name: string;
+    responses: Record<string, unknown>;
+    completed_at: string | null;
+  }[];
 }
 
 // ─── Submissions & Reflections (Admin) ──────────────────────────────────────
