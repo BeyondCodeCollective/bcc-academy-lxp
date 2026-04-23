@@ -55,6 +55,17 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Catalyst has no dashboard yet — send anyone hitting /dashboard
+  // (typically cross-subdomain signed-in users) straight to the survey.
+  if (
+    program.slug === "catalyst" &&
+    request.nextUrl.pathname.startsWith("/dashboard")
+  ) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/survey/network-plus-post";
+    return NextResponse.redirect(url);
+  }
+
   // Only enforce auth on dashboard routes, not the login page
   if (request.nextUrl.pathname.startsWith("/dashboard")) {
     if (!user) {
