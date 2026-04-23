@@ -387,15 +387,21 @@ export function AdminTabs({
   const programSlug = initialProgramSlug;
   const isManager = canManageStudents(userRole);
   const showProgramSwitcher = canSwitchPrograms(userRole) && allPrograms.length > 1;
+  // Programs like Catalyst don't have a learner dashboard yet — no tracks,
+  // no cohorts, no enrolled students. Show only the Program tab (with
+  // Public Surveys) rather than a wall of empty tabs.
+  const isDashboardless = tracks.length === 0 && cohorts.length === 0;
   // Build tab list dynamically
-  const tabs = [
-    ...(isManager ? [{ id: "program", label: "Program", icon: Settings }] : []),
-    ...tracks.map((t, i) => ({ id: t.slug, label: t.shortName, icon: getTrackIcon(i) })),
-    ...(isManager ? [{ id: "students", label: "People", icon: Users }] : []),
-    ...(isManager ? [{ id: "enrollments", label: "Enrollments", icon: BookOpen }] : []),
-    { id: "student-work", label: "Student Work", icon: ClipboardList },
-    { id: "attendance", label: "Analytics", icon: UserCheck },
-  ];
+  const tabs = isDashboardless
+    ? [{ id: "program", label: "Program", icon: Settings }]
+    : [
+        ...(isManager ? [{ id: "program", label: "Program", icon: Settings }] : []),
+        ...tracks.map((t, i) => ({ id: t.slug, label: t.shortName, icon: getTrackIcon(i) })),
+        ...(isManager ? [{ id: "students", label: "People", icon: Users }] : []),
+        ...(isManager ? [{ id: "enrollments", label: "Enrollments", icon: BookOpen }] : []),
+        { id: "student-work", label: "Student Work", icon: ClipboardList },
+        { id: "attendance", label: "Analytics", icon: UserCheck },
+      ];
 
   const [tab, setTab] = useState<string>(isManager ? "program" : tracks[0]?.slug ?? "student-work");
   const [cohort, setCohort] = useState(cohorts[0] || null);
@@ -702,6 +708,7 @@ export function AdminTabs({
                 const domains: Record<string, string> = {
                   atg: "atg.bccacademy.io",
                   forge: "forge.bccacademy.io",
+                  catalyst: "catalyst.bccacademy.io",
                 };
                 const targetDomain = domains[slug];
                 const onKnownDomain = targetDomain && Object.values(domains).includes(window.location.hostname);
@@ -764,8 +771,91 @@ export function AdminTabs({
       </nav>
 
       <div className="min-w-0 flex-1">
+      {/* Dashboardless Program tab — Catalyst etc. — only Public Surveys matter */}
+      {tab === "program" && isDashboardless && (
+        <div className="space-y-6">
+          <div className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
+            <p className="text-sm text-neutral-600">
+              This program doesn't have a full learner dashboard yet — no
+              tracks, cohorts, or enrolled students. Only public survey
+              responses are available here.
+            </p>
+          </div>
+
+          {canSwitchPrograms(userRole) && publicSurveyStats.length > 0 && (
+            <div>
+              <h2 className="text-lg font-semibold text-neutral-900 mb-4">Public Surveys</h2>
+              <div className="space-y-3">
+                {publicSurveyStats
+                  .filter((row) => row.program_slug === programSlug)
+                  .map((row) => (
+                    <div
+                      key={`${row.program_slug}-${row.survey_type}`}
+                      className="rounded-xl border border-neutral-200 bg-white p-4"
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <p className="text-sm font-semibold text-neutral-900">
+                            {row.survey_type}
+                          </p>
+                          <p className="text-xs text-neutral-400 mt-0.5">
+                            {row.response_count} response{row.response_count === 1 ? "" : "s"}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            const data = await exportPublicSurveyResponses(row.program_slug, row.survey_type);
+                            if (data.length === 0) return;
+                            const allKeys = new Set<string>();
+                            data.forEach((r) => {
+                              Object.keys(r.responses).forEach((k) => allKeys.add(k));
+                            });
+                            const headers = ["Full Name", "Email", "Completed At", ...Array.from(allKeys)];
+                            const rows = data.map((r) => [
+                              r.full_name,
+                              r.email,
+                              r.completed_at ?? "",
+                              ...Array.from(allKeys).map((k) => {
+                                const val = r.responses[k];
+                                if (Array.isArray(val)) return val.join("; ");
+                                if (typeof val === "object" && val !== null) {
+                                  return Object.entries(val).map(([stmt, ans]) => `${stmt}: ${ans}`).join("; ");
+                                }
+                                return String(val ?? "");
+                              }),
+                            ]);
+                            const csv = [headers, ...rows]
+                              .map((rr) => rr.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
+                              .join("\n");
+                            const blob = new Blob([csv], { type: "text/csv" });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement("a");
+                            a.href = url;
+                            a.download = `${row.program_slug}-${row.survey_type}-responses.csv`;
+                            a.click();
+                            URL.revokeObjectURL(url);
+                          } catch (e) {
+                            console.error("Public export failed:", e);
+                          }
+                        }}
+                        className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+                      >
+                        <Download size={12} />
+                        Export CSV
+                      </button>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Program Tab */}
-      {tab === "program" && cohort && (
+      {tab === "program" && !isDashboardless && cohort && (
         <div className="space-y-6">
           <div>
             <h2 className="text-lg font-semibold text-neutral-900 mb-4">Cohort Settings</h2>
