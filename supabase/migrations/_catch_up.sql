@@ -76,7 +76,8 @@ create table if not exists programs (
 
 insert into programs (slug, name) values
   ('atg', 'After The Game'),
-  ('forge', 'The Forge')
+  ('forge', 'The Forge'),
+  ('catalyst', 'Catalyst')
 on conflict (slug) do nothing;
 
 alter table students        add column if not exists program_id uuid references programs(id);
@@ -381,3 +382,24 @@ cross join forge
 where lower(s.email) = 'youngfonz@gmail.com'
   and s.program_id = forge.id
 on conflict (student_id, track_slug, program_id) do nothing;
+
+-- ════════════════════════════════════════════════════════════════════════
+-- SECTION 8 — Public (unauthenticated) survey responses
+-- ════════════════════════════════════════════════════════════════════════
+
+-- public_survey_responses.sql: anonymous submissions from public subdomains
+-- (currently catalyst.bccacademy.io → CompTIA Network+ post-survey).
+create table if not exists public_survey_responses (
+  id uuid default gen_random_uuid() primary key,
+  program_id uuid not null references programs(id) on delete cascade,
+  survey_type text not null,
+  email text not null,
+  full_name text not null,
+  responses jsonb not null,
+  completed_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (program_id, survey_type, email)
+);
+
+create index if not exists idx_public_survey_responses_program
+  on public_survey_responses(program_id, survey_type);

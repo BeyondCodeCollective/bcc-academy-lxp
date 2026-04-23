@@ -1,10 +1,12 @@
 import { atgConfig } from "./atg";
 import { forgeConfig } from "./forge";
+import { catalystConfig } from "./catalyst";
 import type { ProgramConfig, TrackConfig } from "./types";
 
 const PROGRAMS: Record<string, ProgramConfig> = {
   atg: atgConfig,
   forge: forgeConfig,
+  catalyst: catalystConfig,
 };
 
 /**
@@ -14,6 +16,7 @@ const PROGRAMS: Record<string, ProgramConfig> = {
 const DOMAIN_MAP: Record<string, string> = {
   "atg.bccacademy.io": "atg",
   "forge.bccacademy.io": "forge",
+  "catalyst.bccacademy.io": "catalyst",
 };
 
 /**
