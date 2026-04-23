@@ -3,7 +3,8 @@ import { createClient, createServiceClient, isSupabaseConfigured } from "@/lib/s
 import { AdminTabs } from "./admin-tabs";
 import type { Student } from "@/lib/types";
 import { getProgram } from "@/lib/programs/server";
-import type { StudentTrackRow, SurveyStatsRow, InstructorTrackRow } from "./actions";
+import type { StudentTrackRow, SurveyStatsRow, InstructorTrackRow, PublicSurveyStatsRow } from "./actions";
+import { getPublicSurveyStats } from "./actions";
 import { canAccessAdminPanel, canSwitchPrograms } from "@/lib/roles";
 import { getAllPrograms } from "@/lib/programs";
 
@@ -15,6 +16,7 @@ export default async function AdminPage() {
   let instructorTracks: InstructorTrackRow[] = [];
   let userRole = "student";
   let myInstructorTracks: string[] = [];
+  let publicSurveyStats: PublicSurveyStatsRow[] = [];
   const surveyStats: Record<string, SurveyStatsRow[]> = {};
   const surveyList = program.surveys ?? [];
 
@@ -101,6 +103,14 @@ export default async function AdminPage() {
     surveyList.forEach((s, i) => {
       surveyStats[s.id] = (surveyStatsResults[i].data ?? []) as SurveyStatsRow[];
     });
+
+    if (canSwitchPrograms(userRole)) {
+      try {
+        publicSurveyStats = await getPublicSurveyStats();
+      } catch (e) {
+        console.error("getPublicSurveyStats failed:", e);
+      }
+    }
   }
 
   const surveyConfigs = (program.surveys ?? []).map((s) => ({
@@ -148,6 +158,7 @@ export default async function AdminPage() {
         programSlug={program.slug}
         surveyStats={surveyStats}
         surveyConfigs={surveyConfigs}
+        publicSurveyStats={publicSurveyStats}
         userRole={userRole}
         allPrograms={allProgramsList}
       />
