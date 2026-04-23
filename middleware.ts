@@ -55,11 +55,14 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Catalyst has no dashboard yet — send anyone hitting /dashboard
+  // Catalyst has no learner dashboard yet — send anyone hitting /dashboard
   // (typically cross-subdomain signed-in users) straight to the survey.
+  // Exception: super-admins need to reach /dashboard/admin on catalyst to
+  // view public survey responses.
   if (
     program.slug === "catalyst" &&
-    request.nextUrl.pathname.startsWith("/dashboard")
+    request.nextUrl.pathname.startsWith("/dashboard") &&
+    !request.nextUrl.pathname.startsWith("/dashboard/admin")
   ) {
     const url = request.nextUrl.clone();
     url.pathname = "/survey/network-plus-post";
