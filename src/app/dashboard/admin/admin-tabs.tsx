@@ -788,7 +788,11 @@ export function AdminTabs({
               <div className="space-y-3">
                 {publicSurveyStats
                   .filter((row) => row.program_slug === programSlug)
-                  .map((row) => (
+                  .map((row) => {
+                    const title =
+                      surveyConfigs.find((s) => s.id === row.survey_type)?.title ??
+                      row.survey_type;
+                    return (
                     <div
                       key={`${row.program_slug}-${row.survey_type}`}
                       className="rounded-xl border border-neutral-200 bg-white p-4"
@@ -796,7 +800,7 @@ export function AdminTabs({
                       <div className="flex items-center justify-between mb-3">
                         <div>
                           <p className="text-sm font-semibold text-neutral-900">
-                            {row.survey_type}
+                            {title}
                           </p>
                           <p className="text-xs text-neutral-400 mt-0.5">
                             {row.response_count} response{row.response_count === 1 ? "" : "s"}
@@ -847,7 +851,8 @@ export function AdminTabs({
                         Export CSV
                       </button>
                     </div>
-                  ))}
+                    );
+                  })}
               </div>
             </div>
           )}
@@ -990,74 +995,6 @@ export function AdminTabs({
             </div>
           )}
 
-          {/* Public (cross-program) Surveys — super_admin only */}
-          {canSwitchPrograms(userRole) && publicSurveyStats.length > 0 && (
-            <div>
-              <h2 className="text-lg font-semibold text-neutral-900 mb-4">Public Surveys</h2>
-              <div className="space-y-3">
-                {publicSurveyStats.map((row) => (
-                  <div
-                    key={`${row.program_slug}-${row.survey_type}`}
-                    className="rounded-xl border border-neutral-200 bg-white p-4"
-                  >
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <p className="text-sm font-semibold text-neutral-900">
-                          {row.program_name} — {row.survey_type}
-                        </p>
-                        <p className="text-xs text-neutral-400 mt-0.5">
-                          {row.response_count} response{row.response_count === 1 ? "" : "s"}
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        try {
-                          const data = await exportPublicSurveyResponses(row.program_slug, row.survey_type);
-                          if (data.length === 0) return;
-                          const allKeys = new Set<string>();
-                          data.forEach((r) => {
-                            Object.keys(r.responses).forEach((k) => allKeys.add(k));
-                          });
-                          const headers = ["Full Name", "Email", "Completed At", ...Array.from(allKeys)];
-                          const rows = data.map((r) => [
-                            r.full_name,
-                            r.email,
-                            r.completed_at ?? "",
-                            ...Array.from(allKeys).map((k) => {
-                              const val = r.responses[k];
-                              if (Array.isArray(val)) return val.join("; ");
-                              if (typeof val === "object" && val !== null) {
-                                return Object.entries(val).map(([stmt, ans]) => `${stmt}: ${ans}`).join("; ");
-                              }
-                              return String(val ?? "");
-                            }),
-                          ]);
-                          const csv = [headers, ...rows]
-                            .map((rr) => rr.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
-                            .join("\n");
-                          const blob = new Blob([csv], { type: "text/csv" });
-                          const url = URL.createObjectURL(blob);
-                          const a = document.createElement("a");
-                          a.href = url;
-                          a.download = `${row.program_slug}-${row.survey_type}-responses.csv`;
-                          a.click();
-                          URL.revokeObjectURL(url);
-                        } catch (e) {
-                          console.error("Public export failed:", e);
-                        }
-                      }}
-                      className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
-                    >
-                      <Download size={12} />
-                      Export CSV
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       )}
 
