@@ -1,8 +1,14 @@
 import type { Metadata, Viewport } from "next";
+import { cookies } from "next/headers";
 import { Geist, Space_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/react";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import { getProgram } from "@/lib/programs/server";
+import {
+  TEXT_SCALE_COOKIE,
+  parseTextScale,
+  rootFontSizeFor,
+} from "@/lib/accessibility/scale";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -55,12 +61,14 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const program = await getProgram();
+  const [program, cookieStore] = await Promise.all([getProgram(), cookies()]);
+  const textScale = parseTextScale(cookieStore.get(TEXT_SCALE_COOKIE)?.value);
 
   return (
     <html
       lang="en"
       className={`${geistSans.variable} ${spaceMono.variable} h-full antialiased`}
+      style={{ fontSize: rootFontSizeFor(textScale) }}
     >
       <body className="min-h-full flex flex-col font-sans">
         {children}

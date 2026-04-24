@@ -41,3 +41,33 @@ body {
     transform: translateY(0);
   }
 }
+
+/* Honor OS-level reduced motion. Users who've set this in system prefs
+   get near-zero animations site-wide (screenreaders, vestibular disorders,
+   and anyone who finds motion distracting). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Honor OS-level high-contrast mode. We can't re-theme every Tailwind
+   class here, but we can darken common muted greys so body copy is
+   never marginal against a light background. */
+@media (prefers-contrast: more) {
+  body {
+    color: #0a0a0a;
+  }
+  .text-neutral-400,
+  .text-neutral-500 {
+    color: #262626 !important;
+  }
+  .text-neutral-600 {
+    color: #171717 !important;
+  }
+}
