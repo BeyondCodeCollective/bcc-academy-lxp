@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { TextScaleToggle } from "@/components/text-scale-toggle";
+import { ReadAloudButton } from "@/components/read-aloud-button";
 import { WithdrawForm } from "./withdraw-form";
 
 export const dynamic = "force-dynamic";
@@ -7,7 +8,8 @@ export const dynamic = "force-dynamic";
 export default function WithdrawPage() {
   return (
     <main className="min-h-screen bg-neutral-50">
-      <div className="mx-auto flex w-full max-w-lg justify-end px-5 pt-4">
+      <div className="mx-auto flex w-full max-w-lg items-center justify-end gap-2 px-5 pt-4">
+        <ReadAloudButton label="Read aloud" />
         <TextScaleToggle />
       </div>
       <div className="mx-auto w-full max-w-lg px-5 pt-6 pb-12">

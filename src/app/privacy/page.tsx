@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getProgram } from "@/lib/programs/server";
 import { TextScaleToggle } from "@/components/text-scale-toggle";
+import { ReadAloudButton } from "@/components/read-aloud-button";
 
 // Public privacy notice. Draft copy — finalize with legal/funder review
 // before announcing at scale. Everything below is designed to be edited
@@ -15,7 +16,8 @@ export default async function PrivacyPage() {
 
   return (
     <main className="min-h-screen bg-neutral-50">
-      <div className="mx-auto flex w-full max-w-2xl justify-end px-5 pt-4">
+      <div className="mx-auto flex w-full max-w-2xl items-center justify-end gap-2 px-5 pt-4">
+        <ReadAloudButton label="Read aloud" />
         <TextScaleToggle />
       </div>
       <div className="mx-auto w-full max-w-2xl px-5 pt-6 pb-12">
