@@ -483,3 +483,12 @@ create index if not exists idx_tutor_messages_program_created
 
 alter table tutor_messages enable row level security;
 
+-- ════════════════════════════════════════════════════════════════════════
+-- SECTION 11 — Raise public_survey_responses retention from 3 → 5 years
+-- ════════════════════════════════════════════════════════════════════════
+
+alter table public_survey_responses
+  alter column scheduled_deletion_at
+    set default (now() + interval '5 years');
+
+
