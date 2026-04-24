@@ -5,9 +5,8 @@ export const catalystConfig: ProgramConfig = {
   name: "Catalyst",
   tagline: "Beyond Code Collective",
   domain: "catalyst.bccacademy.io",
-  // TODO: replace with Catalyst-specific brand assets when available.
-  logo: "/atg-logo.svg",
-  logoPng: "/atg-logo.png",
+  // Plain wordmark until Catalyst gets dedicated brand assets from design.
+  logo: "/catalyst/logo.svg",
   colors: {
     primary: "#1a1a1a",
     primaryHover: "#2a2a2a",
