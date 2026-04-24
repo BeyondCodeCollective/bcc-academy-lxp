@@ -151,8 +151,8 @@ const PAGES: Page[] = [
       {
         type: "text",
         id: "zip_code",
-        label: "First 3 digits of your ZIP code",
-        placeholder: "e.g. 402",
+        label: "ZIP code",
+        placeholder: "e.g. 40202",
         required: true,
       },
       {
