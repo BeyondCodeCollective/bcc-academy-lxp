@@ -399,7 +399,7 @@ const PAGES: Page[] = [
 export const CONSENT_VERSION = "v1";
 
 const CONSENT_TEXT =
-  "Beyond Code Collective (BCC) collects your name, email, and the answers below to improve this program and report aggregated outcomes to our funders. Your responses are stored securely and retained for up to 3 years. We do not sell your data or share individual responses outside BCC staff and program evaluators. You can request removal of your response at any time by visiting /privacy/withdraw or emailing privacy@bccacademy.io. Full details at /privacy.";
+  "Beyond Code Collective (BCC) collects your name, email, and the answers below to improve this program and report aggregated outcomes to our funders. Your responses are stored securely and retained for up to 3 years. We do not sell your data or share individual responses outside BCC staff and program evaluators. You can request removal of your response at any time at /privacy/withdraw or by emailing privacy@bccacademy.io. Your use of this platform is also governed by the BCC Terms of Use and the BCC Privacy Policy at wearebcc.org. Full platform-specific details at /privacy.";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -563,6 +563,7 @@ export function PublicNetworkPlusSurvey({ surveyId, programSlug }: Props) {
             .
           </p>
         </div>
+        <FooterLinks />
       </div>
     );
   }
@@ -650,6 +651,30 @@ export function PublicNetworkPlusSurvey({ surveyId, programSlug }: Props) {
           )}
         </button>
       </div>
+      <FooterLinks />
+    </div>
+  );
+}
+
+function FooterLinks() {
+  return (
+    <div className="mt-8 flex items-center justify-center gap-3 text-xs text-neutral-400">
+      <a
+        href="https://www.wearebcc.org/en/terms"
+        className="hover:text-neutral-600"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Terms
+      </a>
+      <span aria-hidden>·</span>
+      <a href="/privacy" className="hover:text-neutral-600">
+        Privacy
+      </a>
+      <span aria-hidden>·</span>
+      <a href="/privacy/withdraw" className="hover:text-neutral-600">
+        Remove my response
+      </a>
     </div>
   );
 }

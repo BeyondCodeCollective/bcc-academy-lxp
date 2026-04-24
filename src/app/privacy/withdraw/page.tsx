@@ -30,16 +30,23 @@ export default function WithdrawPage() {
             className="font-medium text-neutral-700 underline hover:text-neutral-900"
           >
             privacy@bccacademy.io
-          </a>{" "}
-          · See the full{" "}
-          <Link
-            href="/privacy"
-            className="font-medium text-neutral-700 underline hover:text-neutral-900"
-          >
-            privacy notice
-          </Link>
-          .
+          </a>
         </p>
+
+        <div className="mt-4 flex items-center gap-3 text-xs text-neutral-400">
+          <a
+            href="https://www.wearebcc.org/en/terms"
+            className="hover:text-neutral-600"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Terms
+          </a>
+          <span aria-hidden>·</span>
+          <Link href="/privacy" className="hover:text-neutral-600">
+            Privacy
+          </Link>
+        </div>
       </div>
     </main>
   );

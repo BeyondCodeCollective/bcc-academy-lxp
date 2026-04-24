@@ -26,6 +26,33 @@ export default async function PrivacyPage() {
           reflect how the system is built today.
         </p>
 
+        <div className="mt-6 rounded-xl border border-neutral-200 bg-white p-4 text-sm text-neutral-700">
+          <p>
+            Your use of this platform is also governed by the{" "}
+            <a
+              href="https://www.wearebcc.org/en/terms"
+              className="font-medium text-[#E54D2E] underline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              BCC Terms of Use
+            </a>{" "}
+            and the{" "}
+            <a
+              href="https://www.wearebcc.org/en/privacy"
+              className="font-medium text-[#E54D2E] underline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              BCC Privacy Policy
+            </a>
+            . This notice covers how data is handled on the BCC Learning
+            Platform specifically (surveys, program enrollment, and related
+            program activity). Where the two differ, the more protective
+            terms apply.
+          </p>
+        </div>
+
         <Section title="What we collect">
           <p>
             When you fill out a {orgName} survey, we collect the answers you
