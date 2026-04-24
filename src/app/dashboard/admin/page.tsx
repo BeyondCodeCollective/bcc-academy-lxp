@@ -42,10 +42,18 @@ export default async function AdminPage() {
 
     if (!canAccessAdminPanel(userRole)) redirect("/dashboard");
 
+    // Public-survey stats are only shown on dashboardless programs (e.g.
+    // Catalyst). On Forge/ATG the widget is hidden entirely, so fetching
+    // across the whole public_survey_responses table is pure waste.
+    const needsPublicSurveyStats =
+      canSwitchPrograms(userRole) && program.tracks.length === 0;
+
     // Batch 2: every data query the admin page needs, fired in one round trip.
-    // Previously each helper re-looked-up the program row and they ran serially,
-    // stacking ~8 round-trips. This collapses them to one concurrent batch.
-    const [coreRes, surveyStatsResults] = await Promise.all([
+    // Previously each helper re-looked-up the program row and they ran
+    // serially, stacking ~8 round-trips. This collapses them to one concurrent
+    // batch. publicSurveyStats now lives inside the parallel batch too, so
+    // super-admins on Catalyst don't pay a serial round-trip for it.
+    const [coreRes, surveyStatsResults, publicStatsRes] = await Promise.all([
       Promise.all([
         svc
           .from("students")
@@ -83,6 +91,12 @@ export default async function AdminPage() {
             .eq("survey_type", s.id)
         )
       ),
+      needsPublicSurveyStats
+        ? getPublicSurveyStats().catch((e) => {
+            console.error("getPublicSurveyStats failed:", e);
+            return [] as PublicSurveyStatsRow[];
+          })
+        : Promise.resolve([] as PublicSurveyStatsRow[]),
     ]);
 
     const [
@@ -103,14 +117,7 @@ export default async function AdminPage() {
     surveyList.forEach((s, i) => {
       surveyStats[s.id] = (surveyStatsResults[i].data ?? []) as SurveyStatsRow[];
     });
-
-    if (canSwitchPrograms(userRole)) {
-      try {
-        publicSurveyStats = await getPublicSurveyStats();
-      } catch (e) {
-        console.error("getPublicSurveyStats failed:", e);
-      }
-    }
+    publicSurveyStats = publicStatsRes;
   }
 
   const surveyConfigs = (program.surveys ?? []).map((s) => ({

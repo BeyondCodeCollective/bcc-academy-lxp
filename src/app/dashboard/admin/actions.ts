@@ -585,9 +585,10 @@ async function requireSuperAdmin() {
 }
 
 // Records a super-admin view/export/delete against identifiable respondent
-// data. Failures log but never block — we'd rather let the admin see their
-// data than hard-fail on an audit insert.
-async function logAdminAccess(
+// data. Fire-and-forget — we'd rather let the admin see their data than
+// make them wait on an audit insert or hard-fail on its failure. Errors
+// log asynchronously.
+function logAdminAccess(
   svc: ReturnType<typeof createServiceClient>,
   args: {
     actorUserId: string;
@@ -597,21 +598,25 @@ async function logAdminAccess(
     rowCount?: number;
     metadata?: Record<string, unknown>;
   },
-) {
-  const { error } = await svc.from("admin_access_log").insert({
-    actor_user_id: args.actorUserId,
-    program_id: args.programId,
-    action: args.action,
-    resource: args.resource,
-    row_count: args.rowCount ?? null,
-    metadata: args.metadata ?? null,
-  });
-  if (error) {
-    console.error("admin_access_log insert failed:", {
-      code: error.code,
-      message: error.message,
+): void {
+  void svc
+    .from("admin_access_log")
+    .insert({
+      actor_user_id: args.actorUserId,
+      program_id: args.programId,
+      action: args.action,
+      resource: args.resource,
+      row_count: args.rowCount ?? null,
+      metadata: args.metadata ?? null,
+    })
+    .then(({ error }) => {
+      if (error) {
+        console.error("admin_access_log insert failed:", {
+          code: error.code,
+          message: error.message,
+        });
+      }
     });
-  }
 }
 
 export type PublicSurveyStatsRow = {
@@ -633,7 +638,7 @@ export async function getPublicSurveyStats(): Promise<PublicSurveyStatsRow[]> {
     return [];
   }
 
-  await logAdminAccess(svc, {
+  logAdminAccess(svc, {
     actorUserId: userId,
     programId: null,
     action: "view",
@@ -698,7 +703,7 @@ export async function exportPublicSurveyResponses(
     return [];
   }
 
-  await logAdminAccess(svc, {
+  logAdminAccess(svc, {
     actorUserId: userId,
     programId: programRow.id as string,
     action: "export",
