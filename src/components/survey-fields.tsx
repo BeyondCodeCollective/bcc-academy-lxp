@@ -55,7 +55,12 @@ export type ConsentQuestion = {
   type: "consent";
   id: string;
   label: string;
+  /** Lead paragraph rendered above any bullets + footer. */
   text: string;
+  /** Optional bulleted key points. Renders as a <ul> below `text`. */
+  bullets?: string[];
+  /** Optional trailing paragraph rendered below the bullets. */
+  footer?: string;
   confirmLabel?: string;
   required?: boolean;
 };
@@ -136,11 +141,22 @@ function ConsentField({
   onChange: (val: boolean) => void;
 }) {
   const checkboxId = `consent-${question.id}`;
+  const descId = `${checkboxId}-text`;
   return (
     <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
-      <p id={`${checkboxId}-text`} className="text-sm text-neutral-700 mb-3">
-        {question.text}
-      </p>
+      <div id={descId} className="text-sm text-neutral-700 space-y-2 mb-4">
+        <p>{question.text}</p>
+        {question.bullets && question.bullets.length > 0 && (
+          <ul className="list-disc space-y-1.5 pl-5 marker:text-neutral-400">
+            {question.bullets.map((b) => (
+              <li key={b}>{b}</li>
+            ))}
+          </ul>
+        )}
+        {question.footer && (
+          <p className="pt-1 text-xs text-neutral-600">{question.footer}</p>
+        )}
+      </div>
       <label htmlFor={checkboxId} className="flex items-center gap-2 cursor-pointer">
         <input
           id={checkboxId}
@@ -148,7 +164,7 @@ function ConsentField({
           checked={!!value}
           onChange={(e) => onChange(e.target.checked)}
           aria-required={question.required || undefined}
-          aria-describedby={`${checkboxId}-text`}
+          aria-describedby={descId}
           className="rounded border-neutral-300 h-4 w-4"
         />
         <span className="text-sm font-medium text-neutral-900">
