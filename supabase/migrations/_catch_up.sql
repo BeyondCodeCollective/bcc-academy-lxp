@@ -459,3 +459,27 @@ create index if not exists idx_admin_access_log_resource
   on admin_access_log(resource, created_at desc);
 
 alter table admin_access_log enable row level security;
+
+-- ════════════════════════════════════════════════════════════════════════
+-- SECTION 10 — Tutor message log (usage + rate limiting)
+-- ════════════════════════════════════════════════════════════════════════
+
+create table if not exists tutor_messages (
+  id uuid default gen_random_uuid() primary key,
+  student_id uuid not null references students(id) on delete cascade,
+  program_id uuid not null references programs(id) on delete cascade,
+  track_slug text,
+  week_number integer,
+  input_tokens integer,
+  output_tokens integer,
+  model text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_tutor_messages_student_created
+  on tutor_messages(student_id, created_at desc);
+create index if not exists idx_tutor_messages_program_created
+  on tutor_messages(program_id, created_at desc);
+
+alter table tutor_messages enable row level security;
+
