@@ -39,6 +39,13 @@ export function DashboardSkeleton() {
 export function DashboardBodySkeleton() {
   return (
     <div className="animate-pulse space-y-8 sm:space-y-10">
+      {/* Title placeholder — matches the "Welcome back, {name}" + cohort name
+          row so vertical space is reserved before content streams in. */}
+      <div>
+        <div className="h-7 w-56 rounded bg-neutral-200" />
+        <div className="mt-2 h-4 w-40 rounded bg-neutral-100" />
+      </div>
+
       <div className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
         <div className="flex items-center justify-between mb-3">
           <div>
