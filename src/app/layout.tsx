@@ -71,7 +71,15 @@ export default async function RootLayout({
       style={{ fontSize: rootFontSizeFor(textScale) }}
     >
       <body className="min-h-full flex flex-col font-sans">
-        {children}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-neutral-900 focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#E54D2E]"
+        >
+          Skip to main content
+        </a>
+        <div id="main-content" className="flex flex-1 flex-col">
+          {children}
+        </div>
         <Analytics />
         {program.gaId && <GoogleAnalytics gaId={program.gaId} />}
       </body>

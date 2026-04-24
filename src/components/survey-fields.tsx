@@ -135,20 +135,30 @@ function ConsentField({
   value: boolean | undefined;
   onChange: (val: boolean) => void;
 }) {
+  const checkboxId = `consent-${question.id}`;
   return (
     <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
-      <p className="text-sm text-neutral-600 mb-3">{question.text}</p>
-      <label className="flex items-center gap-2 cursor-pointer">
+      <p id={`${checkboxId}-text`} className="text-sm text-neutral-700 mb-3">
+        {question.text}
+      </p>
+      <label htmlFor={checkboxId} className="flex items-center gap-2 cursor-pointer">
         <input
+          id={checkboxId}
           type="checkbox"
           checked={!!value}
           onChange={(e) => onChange(e.target.checked)}
+          aria-required={question.required || undefined}
+          aria-describedby={`${checkboxId}-text`}
           className="rounded border-neutral-300 h-4 w-4"
         />
         <span className="text-sm font-medium text-neutral-900">
           {question.confirmLabel ?? "I understand and agree to participate."}
         </span>
-        {question.required && <span className="text-red-500 text-xs">*</span>}
+        {question.required && (
+          <span aria-hidden="true" className="text-red-500 text-xs">
+            *
+          </span>
+        )}
       </label>
     </div>
   );
@@ -167,7 +177,11 @@ function RadioField({
     <fieldset>
       <legend className="text-sm font-medium text-neutral-900 mb-2">
         {question.label}
-        {question.required && <span className="text-red-500 ml-0.5">*</span>}
+        {question.required && (
+          <span aria-hidden="true" className="text-red-500 ml-0.5">
+            *
+          </span>
+        )}
       </legend>
       <div className="space-y-1.5">
         {question.options.map((opt) => (
@@ -218,7 +232,11 @@ function MultiSelectField({
     <fieldset>
       <legend className="text-sm font-medium text-neutral-900 mb-2">
         {question.label}
-        {question.required && <span className="text-red-500 ml-0.5">*</span>}
+        {question.required && (
+          <span aria-hidden="true" className="text-red-500 ml-0.5">
+            *
+          </span>
+        )}
       </legend>
       <div className="space-y-1.5">
         {question.options.map((opt) => (
@@ -253,18 +271,25 @@ function TextField({
   value: string | undefined;
   onChange: (val: string) => void;
 }) {
+  const inputId = `text-${question.id}`;
   return (
     <div>
-      <label className="text-sm font-medium text-neutral-900 mb-2 block">
+      <label htmlFor={inputId} className="text-sm font-medium text-neutral-900 mb-2 block">
         {question.label}
-        {question.required && <span className="text-red-500 ml-0.5">*</span>}
+        {question.required && (
+          <span aria-hidden="true" className="text-red-500 ml-0.5">
+            *
+          </span>
+        )}
       </label>
       <textarea
+        id={inputId}
         value={value ?? ""}
         onChange={(e) => onChange(e.target.value)}
         placeholder={question.placeholder}
         rows={3}
-        className="w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-3 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 focus:outline-none transition-all resize-none"
+        aria-required={question.required || undefined}
+        className="w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-3 text-sm text-neutral-900 placeholder:text-neutral-500 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 focus:outline-none transition-all resize-none"
       />
     </div>
   );
@@ -285,46 +310,78 @@ function LikertField({
     onChange({ ...responses, [statement]: scaleValue });
   }
 
+  const { scaleAnchors } = question;
+  const scaleHint = scaleAnchors
+    ? `Scale: ${scaleAnchors.low} to ${scaleAnchors.high}.`
+    : "";
+
   return (
-    <div>
-      <p className="text-sm font-medium text-neutral-900 mb-3">
+    <fieldset>
+      <legend className="text-sm font-medium text-neutral-900 mb-3">
         {question.label}
-        {question.required && <span className="text-red-500 ml-0.5">*</span>}
-      </p>
+        {question.required && (
+          <span aria-hidden="true" className="text-red-500 ml-0.5">
+            *
+          </span>
+        )}
+      </legend>
 
       <div className="space-y-3">
-        {question.statements.map((stmt) => (
-          <div
-            key={stmt}
-            className="rounded-xl border border-neutral-200 bg-white p-3.5"
-          >
-            <p className="text-sm text-neutral-700 mb-2.5">{stmt}</p>
-            {question.scaleAnchors && (
-              <div className="mb-1.5 flex justify-between text-[11px] font-medium uppercase tracking-wide text-neutral-600">
-                <span>{question.scaleAnchors.low}</span>
-                <span>{question.scaleAnchors.high}</span>
-              </div>
-            )}
-            <div className="flex flex-wrap gap-1.5">
-              {question.scale.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => setResponse(stmt, s)}
-                  className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                    responses[stmt] === s
-                      ? "bg-neutral-900 text-white"
-                      : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
-                  }`}
+        {question.statements.map((stmt, idx) => {
+          const groupId = `${question.id}-stmt-${idx}`;
+          const selected = responses[stmt];
+          return (
+            <fieldset
+              key={stmt}
+              className="rounded-xl border border-neutral-200 bg-white p-3.5"
+            >
+              <legend
+                id={groupId}
+                className="text-sm text-neutral-700 mb-2.5 float-none"
+              >
+                {stmt}
+              </legend>
+              {scaleAnchors && (
+                <div
+                  aria-hidden="true"
+                  className="mb-1.5 flex justify-between text-[11px] font-medium uppercase tracking-wide text-neutral-600"
                 >
-                  {s}
-                </button>
-              ))}
-            </div>
-          </div>
-        ))}
+                  <span>{scaleAnchors.low}</span>
+                  <span>{scaleAnchors.high}</span>
+                </div>
+              )}
+              <div
+                role="radiogroup"
+                aria-labelledby={groupId}
+                aria-required={question.required || undefined}
+                className="flex flex-wrap gap-1.5"
+              >
+                {question.scale.map((s) => {
+                  const isSelected = selected === s;
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      role="radio"
+                      aria-checked={isSelected}
+                      aria-label={`${s} of ${question.scale.length}${scaleHint ? `. ${scaleHint}` : ""}`}
+                      onClick={() => setResponse(stmt, s)}
+                      className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                        isSelected
+                          ? "bg-neutral-900 text-white"
+                          : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
+                      }`}
+                    >
+                      {s}
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
+          );
+        })}
       </div>
-    </div>
+    </fieldset>
   );
 }
 
