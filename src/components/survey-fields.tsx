@@ -35,6 +35,19 @@ export type LikertQuestion = {
   label: string;
   statements: string[];
   scale: string[];
+  /** Anchor labels shown inline above each statement's scale row so
+   *  respondents don't have to remember which end is high/low. */
+  scaleAnchors?: { low: string; high: string };
+  required?: boolean;
+};
+
+export type MonthYearQuestion = {
+  type: "month-year";
+  id: string;
+  label: string;
+  /** Inclusive range for the year dropdown. Defaults to current year -100 .. current year. */
+  minYear?: number;
+  maxYear?: number;
   required?: boolean;
 };
 
@@ -52,6 +65,7 @@ export type SurveyQuestion =
   | MultiSelectQuestion
   | TextQuestion
   | LikertQuestion
+  | MonthYearQuestion
   | ConsentQuestion;
 
 export function isPageValid(
@@ -71,6 +85,9 @@ export function isPageValid(
       for (const stmt of q.statements) {
         if (!likertVal[stmt]) return false;
       }
+    } else if (q.type === "month-year") {
+      const my = val as { month: string; year: string } | undefined;
+      if (!my || !my.month || !my.year) return false;
     } else {
       if (!val || (typeof val === "string" && !val.trim())) return false;
     }
@@ -98,6 +115,14 @@ export function QuestionRenderer({
       return <TextField question={question} value={value as string} onChange={onChange} />;
     case "likert":
       return <LikertField question={question} value={value as Record<string, string>} onChange={onChange} />;
+    case "month-year":
+      return (
+        <MonthYearField
+          question={question}
+          value={value as { month: string; year: string } | undefined}
+          onChange={onChange}
+        />
+      );
   }
 }
 
@@ -274,6 +299,12 @@ function LikertField({
             className="rounded-xl border border-neutral-200 bg-white p-3.5"
           >
             <p className="text-sm text-neutral-700 mb-2.5">{stmt}</p>
+            {question.scaleAnchors && (
+              <div className="mb-1.5 flex justify-between text-[10px] font-medium uppercase tracking-wide text-neutral-400">
+                <span>{question.scaleAnchors.low}</span>
+                <span>{question.scaleAnchors.high}</span>
+              </div>
+            )}
             <div className="flex flex-wrap gap-1.5">
               {question.scale.map((s) => (
                 <button
@@ -292,6 +323,78 @@ function LikertField({
             </div>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+const MONTHS = [
+  { value: "01", label: "January" },
+  { value: "02", label: "February" },
+  { value: "03", label: "March" },
+  { value: "04", label: "April" },
+  { value: "05", label: "May" },
+  { value: "06", label: "June" },
+  { value: "07", label: "July" },
+  { value: "08", label: "August" },
+  { value: "09", label: "September" },
+  { value: "10", label: "October" },
+  { value: "11", label: "November" },
+  { value: "12", label: "December" },
+];
+
+function MonthYearField({
+  question,
+  value,
+  onChange,
+}: {
+  question: MonthYearQuestion;
+  value: { month: string; year: string } | undefined;
+  onChange: (val: { month: string; year: string }) => void;
+}) {
+  const current = value ?? { month: "", year: "" };
+  const now = new Date().getFullYear();
+  const maxYear = question.maxYear ?? now;
+  const minYear = question.minYear ?? now - 100;
+  const years: number[] = [];
+  for (let y = maxYear; y >= minYear; y--) years.push(y);
+
+  const selectClass =
+    "w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-3 text-sm text-neutral-900 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 focus:outline-none transition-all";
+
+  return (
+    <div>
+      <label className="text-sm font-medium text-neutral-900 mb-2 block">
+        {question.label}
+        {question.required && <span className="text-red-500 ml-0.5">*</span>}
+      </label>
+      <div className="grid grid-cols-2 gap-2">
+        <select
+          value={current.month}
+          onChange={(e) => onChange({ month: e.target.value, year: current.year })}
+          className={selectClass}
+          aria-label="Month"
+        >
+          <option value="">Month</option>
+          {MONTHS.map((m) => (
+            <option key={m.value} value={m.value}>
+              {m.label}
+            </option>
+          ))}
+        </select>
+        <select
+          value={current.year}
+          onChange={(e) => onChange({ month: current.month, year: e.target.value })}
+          className={selectClass}
+          aria-label="Year"
+        >
+          <option value="">Year</option>
+          {years.map((y) => (
+            <option key={y} value={String(y)}>
+              {y}
+            </option>
+          ))}
+        </select>
       </div>
     </div>
   );

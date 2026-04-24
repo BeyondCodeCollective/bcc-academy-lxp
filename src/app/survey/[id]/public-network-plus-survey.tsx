@@ -37,10 +37,9 @@ const PAGES: Page[] = [
       "These questions help us understand who we're reaching. All responses are confidential.",
     questions: [
       {
-        type: "text",
+        type: "month-year",
         id: "date_of_birth",
-        label: "Date of birth (MM/DD/YYYY)",
-        placeholder: "MM/DD/YYYY",
+        label: "Month and year of birth",
         required: true,
       },
       {
@@ -205,9 +204,9 @@ const PAGES: Page[] = [
       {
         type: "likert",
         id: "motivation_factors",
-        label:
-          "Rate how much each factor motivated your participation (1 = Not at all motivated, 5 = Extremely motivated)",
+        label: "Rate how much each factor motivated your participation.",
         scale: LIKERT_1_5,
+        scaleAnchors: { low: "1 — Not at all motivated", high: "5 — Extremely motivated" },
         statements: [
           "Job placement / career opportunity",
           "Financial stability / increased earning potential",
@@ -230,6 +229,7 @@ const PAGES: Page[] = [
         id: "experience_ratings",
         label: "Please rate each statement about your experience in this program to date.",
         scale: LIKERT_1_5,
+        scaleAnchors: { low: "1 — Strongly disagree", high: "5 — Strongly agree" },
         statements: [
           "I feel more confident in my technical knowledge since starting this program.",
           "The Tech+ content gave me a strong foundation for Network+.",
@@ -350,9 +350,9 @@ const PAGES: Page[] = [
       {
         type: "likert",
         id: "securityplus_career_impact",
-        label:
-          "Rate your agreement (1 = Strongly disagree, 5 = Strongly agree).",
+        label: "Rate your agreement.",
         scale: LIKERT_1_5,
+        scaleAnchors: { low: "1 — Strongly disagree", high: "5 — Strongly agree" },
         statements: [
           "I feel earning a Security+ certification would meaningfully advance my career goals.",
         ],
@@ -377,8 +377,9 @@ const PAGES: Page[] = [
         type: "likert",
         id: "recommend_bcc",
         label:
-          "How likely are you to recommend Beyond Code Collective to someone you know? (1 = Not at all likely, 5 = Extremely likely)",
+          "How likely are you to recommend Beyond Code Collective to someone you know?",
         scale: LIKERT_1_5,
+        scaleAnchors: { low: "1 — Not at all likely", high: "5 — Extremely likely" },
         statements: ["Likelihood to recommend"],
         required: true,
       },

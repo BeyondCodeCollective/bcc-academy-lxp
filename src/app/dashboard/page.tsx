@@ -14,8 +14,19 @@ import type { ProgramConfig, TrackConfig } from "@/lib/programs/types";
 import { canAccessAdminPanel } from "@/lib/roles";
 import { getSessionContext } from "@/lib/auth/session";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardPage() {
   const program = await getProgram();
+
+  // Defense-in-depth: programs with no tracks (e.g. Catalyst) don't have a
+  // learner dashboard. Middleware normally redirects these off /dashboard,
+  // but a cached response or misrouted request could still land here with a
+  // student record from another program — which would render the wrong UI.
+  if (program.tracks.length === 0) {
+    const survey = program.surveys?.[0];
+    redirect(survey ? `/survey/${survey.id}` : "/");
+  }
 
   return (
     <Suspense fallback={<DashboardBodySkeleton />}>
