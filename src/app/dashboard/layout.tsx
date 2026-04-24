@@ -55,7 +55,7 @@ async function NavWithAuth({ program }: { program: ProgramConfig }) {
         showTutor={showTutor}
         showResources={showResources}
       />
-      {showTutor && isAdmin && <TutorFab />}
+      {showTutor && <TutorFab />}
     </>
   );
 }

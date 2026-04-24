@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Send } from "lucide-react";
+import { useProgram } from "@/lib/programs/context";
 
 type Message = {
   id: string;
@@ -9,12 +10,15 @@ type Message = {
   content: string;
 };
 
-const WELCOME_MESSAGE =
-  "Hey! I'm your AI study buddy for the CompTIA Tech+ course. Ask me anything — whether it's about networking, cybersecurity, operating systems, or just something from class you want to go deeper on.";
+function welcomeMessageFor(programName: string): string {
+  return `Hey! I'm your AI study buddy for ${programName}. Ask me anything about this week's material — or anything from class you want to go deeper on.`;
+}
 
 export default function TutorPage() {
+  const program = useProgram();
+  const welcome = welcomeMessageFor(program.name);
   const [messages, setMessages] = useState<Message[]>([
-    { id: "welcome", role: "assistant", content: WELCOME_MESSAGE },
+    { id: "welcome", role: "assistant", content: welcome },
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -81,7 +85,7 @@ export default function TutorPage() {
 
   function handleNewTopic() {
     setMessages([
-      { id: "welcome", role: "assistant", content: WELCOME_MESSAGE },
+      { id: "welcome", role: "assistant", content: welcome },
     ]);
     setInput("");
     inputRef.current?.focus();
@@ -93,8 +97,8 @@ export default function TutorPage() {
       <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-4">
         <div>
           <h1 className="text-lg font-semibold text-neutral-900">AI Tutor</h1>
-          <p className="text-xs text-neutral-500">
-            Your CompTIA Tech+ study companion
+          <p className="text-xs text-neutral-600">
+            Your {program.name} study companion
           </p>
         </div>
         <button
@@ -160,8 +164,8 @@ export default function TutorPage() {
             <Send size={18} />
           </button>
         </form>
-        <p className="mx-auto mt-2 max-w-xl text-center text-[10px] text-neutral-300">
-          AI can make mistakes. Consider checking important information.
+        <p className="mx-auto mt-2 max-w-xl text-center text-[11px] text-neutral-500">
+          AI can make mistakes. Double-check anything important.
         </p>
       </div>
     </div>

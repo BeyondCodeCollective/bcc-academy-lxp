@@ -31,7 +31,7 @@ export function Nav({
     ...(isAdmin || showResources
       ? [{ href: "/dashboard/resources", label: "Resources", icon: Books }]
       : []),
-    ...(showTutor && isAdmin
+    ...(showTutor
       ? [{ href: "/dashboard/tutor", label: "AI Tutor", icon: ChatsCircle }]
       : []),
   ];
