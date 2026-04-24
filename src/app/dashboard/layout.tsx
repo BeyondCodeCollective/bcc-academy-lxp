@@ -5,6 +5,8 @@ import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { getDemoUser, DEMO_COOKIE } from "@/lib/demo-users";
 import { Nav } from "@/components/nav";
 import { TutorFab } from "@/components/tutor-fab";
+import { TextScaleToggle } from "@/components/text-scale-toggle";
+import { ReadAloudButton } from "@/components/read-aloud-button";
 import { getProgram } from "@/lib/programs/server";
 import { ProgramProvider } from "@/lib/programs/context";
 import { canAccessAdminPanel } from "@/lib/roles";
@@ -23,7 +25,20 @@ export default async function DashboardLayout({
       <Suspense fallback={<NavShell program={program} />}>
         <NavWithAuth program={program} />
       </Suspense>
-      <main className="flex-1 bg-stone-50">{children}</main>
+      <main
+        id="dashboard-main"
+        className="flex-1 bg-stone-50"
+      >
+        {/* Accessibility controls — text size + read-aloud. Sits once at
+            the top of every dashboard page so students never have to hunt
+            for them. Read-aloud reads everything inside #dashboard-main
+            (nav chrome is skipped by the button's own tree walker). */}
+        <div className="mx-auto flex w-full max-w-2xl md:max-w-5xl items-center justify-end gap-2 px-4 sm:px-5 pt-3">
+          <ReadAloudButton selector="#dashboard-main" label="Read aloud" />
+          <TextScaleToggle compact />
+        </div>
+        {children}
+      </main>
     </ProgramProvider>
   );
 }
