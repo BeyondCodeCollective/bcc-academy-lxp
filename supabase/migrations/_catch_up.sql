@@ -403,3 +403,59 @@ create table if not exists public_survey_responses (
 
 create index if not exists idx_public_survey_responses_program
   on public_survey_responses(program_id, survey_type);
+
+-- ════════════════════════════════════════════════════════════════════════
+-- SECTION 9 — Survey privacy hardening
+-- ════════════════════════════════════════════════════════════════════════
+
+-- survey_privacy_hardening.sql: consent tracking + retention horizon +
+-- withdrawal marker on public_survey_responses; RLS; admin_access_log.
+
+alter table public_survey_responses
+  add column if not exists consent_version text;
+alter table public_survey_responses
+  add column if not exists consent_at timestamptz;
+alter table public_survey_responses
+  add column if not exists scheduled_deletion_at timestamptz;
+alter table public_survey_responses
+  add column if not exists withdrawn_at timestamptz;
+
+update public_survey_responses
+set consent_version = coalesce(consent_version, 'v0'),
+    consent_at = coalesce(consent_at, completed_at),
+    scheduled_deletion_at = coalesce(
+      scheduled_deletion_at,
+      completed_at + interval '3 years'
+    );
+
+alter table public_survey_responses
+  alter column consent_version set not null,
+  alter column consent_version set default 'v1',
+  alter column consent_at set not null,
+  alter column consent_at set default now(),
+  alter column scheduled_deletion_at set not null,
+  alter column scheduled_deletion_at set default (now() + interval '3 years');
+
+create index if not exists idx_public_survey_responses_deletion
+  on public_survey_responses(scheduled_deletion_at)
+  where withdrawn_at is null;
+
+alter table public_survey_responses enable row level security;
+
+create table if not exists admin_access_log (
+  id uuid default gen_random_uuid() primary key,
+  actor_user_id uuid references auth.users(id) on delete set null,
+  program_id uuid references programs(id) on delete set null,
+  action text not null,
+  resource text not null,
+  row_count integer,
+  metadata jsonb,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_admin_access_log_actor
+  on admin_access_log(actor_user_id, created_at desc);
+create index if not exists idx_admin_access_log_resource
+  on admin_access_log(resource, created_at desc);
+
+alter table admin_access_log enable row level security;

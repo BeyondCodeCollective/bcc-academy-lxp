@@ -84,8 +84,8 @@ const PAGES: Page[] = [
       {
         type: "text",
         id: "zip_code",
-        label: "What is your zip code?",
-        placeholder: "e.g. 40202",
+        label: "First 3 digits of your ZIP code",
+        placeholder: "e.g. 402",
         required: true,
       },
       {
@@ -394,8 +394,12 @@ const PAGES: Page[] = [
   },
 ];
 
+// Bump this whenever the consent text below changes. The version is stored
+// with each response so we can tell which notice a respondent agreed to.
+export const CONSENT_VERSION = "v1";
+
 const CONSENT_TEXT =
-  "Your responses are confidential. We use this information only to improve our program. By completing this survey, you agree to allow Beyond Code Collective to use your anonymous responses for program reporting and improvement.";
+  "Beyond Code Collective (BCC) collects your name, email, and the answers below to improve this program and report aggregated outcomes to our funders. Your responses are stored securely and retained for up to 3 years. We do not sell your data or share individual responses outside BCC staff and program evaluators. You can request removal of your response at any time by visiting /privacy/withdraw or emailing privacy@bccacademy.io. Full details at /privacy.";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -518,6 +522,7 @@ export function PublicNetworkPlusSurvey({ surveyId, programSlug }: Props) {
         surveyType: surveyId,
         email: email.trim(),
         fullName: fullName.trim(),
+        consentVersion: CONSENT_VERSION,
         responses: { ...answers, consent },
       });
       if (!result.ok) {
@@ -546,6 +551,16 @@ export function PublicNetworkPlusSurvey({ surveyId, programSlug }: Props) {
           <p className="mt-2 text-sm text-neutral-600">
             Your responses go directly into how we build and improve this
             program — for you, and for every cohort that comes after you.
+          </p>
+          <p className="mt-4 text-xs text-neutral-500">
+            Change your mind?{" "}
+            <a
+              href="/privacy/withdraw"
+              className="font-medium text-neutral-700 underline hover:text-neutral-900"
+            >
+              Remove my response
+            </a>
+            .
           </p>
         </div>
       </div>
