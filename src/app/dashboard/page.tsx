@@ -28,10 +28,16 @@ export default async function DashboardPage() {
     redirect(survey ? `/survey/${survey.id}` : "/");
   }
 
+  // Container lives at the page level so the skeleton and the loaded
+  // content share the exact same width + padding. Without this, the
+  // skeleton renders full-body-width and the real content snaps inward
+  // to max-w-2xl when it finishes streaming.
   return (
-    <Suspense fallback={<DashboardBodySkeleton />}>
-      <DashboardContent program={program} />
-    </Suspense>
+    <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8">
+      <Suspense fallback={<DashboardBodySkeleton />}>
+        <DashboardContent program={program} />
+      </Suspense>
+    </div>
   );
 }
 
@@ -155,12 +161,12 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
 
   if (noCohort) {
     return (
-      <div className="mx-auto w-full max-w-2xl space-y-6 px-4 sm:px-5 py-8">
+      <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-neutral-900">
             Welcome, {firstName}
           </h1>
-          <p className="mt-1 text-sm text-neutral-500">
+          <p className="mt-1 text-sm text-neutral-700">
             You&apos;re signed in &mdash; your cohort hasn&apos;t started yet.
           </p>
         </div>
@@ -181,17 +187,17 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
 
   if (notEnrolled) {
     return (
-      <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8">
+      <div>
         <h1 className="text-2xl font-bold text-neutral-900">
           Welcome, {firstName}
         </h1>
-        <p className="mt-1 text-sm text-neutral-500">You&apos;re signed in.</p>
+        <p className="mt-1 text-sm text-neutral-700">You&apos;re signed in.</p>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-8 sm:space-y-10 px-4 sm:px-5 py-8">
+    <div className="space-y-8 sm:space-y-10">
       {needsOnboarding ? (
         <OnboardingForm defaultFirstName={firstName} defaultLastName={lastName} />
       ) : (
