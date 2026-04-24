@@ -58,13 +58,15 @@ export function Nav({
               <Link
                 key={href}
                 href={href}
+                aria-label={label}
+                aria-current={isActive ? "page" : undefined}
                 className={`flex min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 rounded-lg px-3 sm:px-4 py-2 text-sm font-medium transition-colors ${
                   isActive
                     ? "bg-white/15 text-white"
-                    : "text-neutral-400 hover:bg-white/10 hover:text-white"
+                    : "text-neutral-300 hover:bg-white/10 hover:text-white"
                 }`}
               >
-                <Icon size={20} weight="bold" />
+                <Icon size={20} weight="bold" aria-hidden="true" />
                 <span className="hidden sm:inline">{label}</span>
               </Link>
             );
@@ -73,13 +75,15 @@ export function Nav({
           {isAdmin && (
             <Link
               href="/dashboard/admin"
+              aria-label="Admin"
+              aria-current={pathname.startsWith("/dashboard/admin") ? "page" : undefined}
               className={`flex min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 rounded-lg px-3 sm:px-4 py-2 text-sm font-medium transition-colors ${
                 pathname.startsWith("/dashboard/admin")
                   ? "bg-white/15 text-white"
-                  : "text-neutral-400 hover:bg-white/10 hover:text-white"
+                  : "text-neutral-300 hover:bg-white/10 hover:text-white"
               }`}
             >
-              <ShieldCheck size={20} weight="bold" />
+              <ShieldCheck size={20} weight="bold" aria-hidden="true" />
               <span className="hidden sm:inline">Admin</span>
             </Link>
           )}

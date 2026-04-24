@@ -59,7 +59,13 @@ export function WithdrawForm() {
         />
       </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      <p
+        role="alert"
+        aria-live="assertive"
+        className={`text-sm text-red-600 ${error ? "" : "sr-only"}`}
+      >
+        {error}
+      </p>
 
       <button
         type="submit"

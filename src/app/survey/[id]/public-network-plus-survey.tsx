@@ -580,7 +580,15 @@ export function PublicNetworkPlusSurvey({ surveyId, programSlug }: Props) {
             {Math.round(((page + 1) / visiblePages.length) * 100)}%
           </p>
         </div>
-        <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-100">
+        <div
+          role="progressbar"
+          aria-label="Survey progress"
+          aria-valuenow={page + 1}
+          aria-valuemin={1}
+          aria-valuemax={visiblePages.length}
+          aria-valuetext={`Page ${page + 1} of ${visiblePages.length}`}
+          className="h-2 w-full overflow-hidden rounded-full bg-neutral-100"
+        >
           <div
             className="h-full rounded-full bg-[#1a1a1a] transition-all duration-300"
             style={{
@@ -616,9 +624,13 @@ export function PublicNetworkPlusSurvey({ surveyId, programSlug }: Props) {
         />
       ) : null}
 
-      {error && (
-        <p className="mt-4 text-sm text-red-600">{error}</p>
-      )}
+      <p
+        role="alert"
+        aria-live="assertive"
+        className={`mt-4 text-sm text-red-600 ${error ? "" : "sr-only"}`}
+      >
+        {error}
+      </p>
 
       <div className="flex items-center justify-between mt-8 pt-6 border-t border-neutral-200">
         <button
@@ -708,46 +720,61 @@ function ContactPage({
         <div>
           <label htmlFor="contact-email" className="text-sm font-medium text-neutral-900 mb-2 block">
             Email address
-            <span className="text-red-500 ml-0.5">*</span>
+            <span aria-hidden="true" className="text-red-500 ml-0.5">
+              *
+            </span>
           </label>
           <input
             id="contact-email"
             type="email"
             autoComplete="email"
+            required
+            aria-required="true"
             value={email}
             onChange={(e) => onEmailChange(e.target.value)}
             placeholder="you@example.com"
-            className="w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-3 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 focus:outline-none transition-all"
+            className="w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-3 text-sm text-neutral-900 placeholder:text-neutral-500 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 focus:outline-none transition-all"
           />
         </div>
         <div>
           <label htmlFor="contact-name" className="text-sm font-medium text-neutral-900 mb-2 block">
             Full name
-            <span className="text-red-500 ml-0.5">*</span>
+            <span aria-hidden="true" className="text-red-500 ml-0.5">
+              *
+            </span>
           </label>
           <input
             id="contact-name"
             type="text"
             autoComplete="name"
+            required
+            aria-required="true"
             value={fullName}
             onChange={(e) => onFullNameChange(e.target.value)}
             placeholder="First and last name"
-            className="w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-3 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 focus:outline-none transition-all"
+            className="w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-3 text-sm text-neutral-900 placeholder:text-neutral-500 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 focus:outline-none transition-all"
           />
         </div>
         <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
-          <p className="text-sm text-neutral-600 mb-3">{CONSENT_TEXT}</p>
-          <label className="flex items-center gap-2 cursor-pointer">
+          <p id="contact-consent-text" className="text-sm text-neutral-700 mb-3">
+            {CONSENT_TEXT}
+          </p>
+          <label htmlFor="contact-consent" className="flex items-center gap-2 cursor-pointer">
             <input
+              id="contact-consent"
               type="checkbox"
               checked={consent}
               onChange={(e) => onConsentChange(e.target.checked)}
+              aria-required="true"
+              aria-describedby="contact-consent-text"
               className="rounded border-neutral-300 h-4 w-4"
             />
             <span className="text-sm font-medium text-neutral-900">
               I understand and agree to participate.
             </span>
-            <span className="text-red-500 text-xs">*</span>
+            <span aria-hidden="true" className="text-red-500 text-xs">
+              *
+            </span>
           </label>
         </div>
       </div>
