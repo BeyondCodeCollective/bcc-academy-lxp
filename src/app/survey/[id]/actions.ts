@@ -7,7 +7,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 // email) means a second submission from the same email replaces the first.
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const ZIP3_RE = /^\d{3}$/;
+const ZIP5_RE = /^\d{5}$/;
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -28,14 +28,14 @@ export async function savePublicSurveyResponse(input: {
   if (!input.programSlug) return { ok: false, error: "Missing program." };
   if (!input.consentVersion) return { ok: false, error: "Missing consent version." };
 
-  // Defense in depth: enforce that we never store more than 3 digits of ZIP
-  // even if a client somehow sends a full one.
+  // Normalize ZIP to exactly 5 digits. Strip anything non-numeric a user
+  // might paste, take the first 5, and reject if what's left isn't 5 digits.
   const scrubbedResponses = { ...input.responses };
   const rawZip = scrubbedResponses.zip_code;
   if (typeof rawZip === "string") {
-    const digits = rawZip.replace(/\D/g, "").slice(0, 3);
-    if (!ZIP3_RE.test(digits)) {
-      return { ok: false, error: "ZIP must be 3 digits." };
+    const digits = rawZip.replace(/\D/g, "").slice(0, 5);
+    if (!ZIP5_RE.test(digits)) {
+      return { ok: false, error: "ZIP must be 5 digits." };
     }
     scrubbedResponses.zip_code = digits;
   }
