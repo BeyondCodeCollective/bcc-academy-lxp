@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { computeCurrentWeek } from "@/lib/utils";
@@ -13,6 +14,7 @@ import { SubmissionForm } from "@/components/submission-form";
 import { ReflectionForm } from "@/components/reflection-form";
 import { IntakeForm } from "@/components/intake-form";
 import { getSurveyStatus } from "@/app/dashboard/actions";
+import type { WeekConfig } from "@/lib/programs/types";
 
 export default async function TrackWeekPage({
   params,
@@ -373,51 +375,100 @@ export default async function TrackWeekPage({
         </div>
       )}
 
-      {/* Submissions & Reflections — only for current or past weeks */}
-      {(isCurrent || isCompleted || weekNum < currentWeek) && await (async () => {
-        const showSubmissions = track.submissionsEnabled !== false;
-        const showReflections = track.reflectionsEnabled !== false;
+      {/* Submissions & Reflections — only for current or past weeks.
+          Streamed via Suspense so the rest of the page renders immediately
+          and these forms pop in after their DB round-trips finish. */}
+      {(isCurrent || isCompleted || weekNum < currentWeek) &&
+        isSupabaseConfigured() &&
+        (track.submissionsEnabled !== false ||
+          track.reflectionsEnabled !== false) && (
+          <Suspense fallback={<SubmissionsReflectionsSkeleton />}>
+            <SubmissionsReflectionsSection
+              trackSlug={trackSlug}
+              weekNum={weekNum}
+              weekContent={weekContent}
+              showSubmissions={track.submissionsEnabled !== false}
+              showReflections={track.reflectionsEnabled !== false}
+              defaultReflectionPrompts={track.defaultReflectionPrompts}
+            />
+          </Suspense>
+        )}
+    </div>
+  );
+}
 
-        if (!showSubmissions && !showReflections) return null;
-        if (!isSupabaseConfigured()) return null;
+async function SubmissionsReflectionsSection({
+  trackSlug,
+  weekNum,
+  weekContent,
+  showSubmissions,
+  showReflections,
+  defaultReflectionPrompts,
+}: {
+  trackSlug: string;
+  weekNum: number;
+  weekContent: WeekConfig;
+  showSubmissions: boolean;
+  showReflections: boolean;
+  defaultReflectionPrompts?: string[];
+}) {
+  const [existingSubmission, existingReflection] = await Promise.all([
+    showSubmissions
+      ? getSubmission(trackSlug, weekNum).catch(() => null)
+      : null,
+    showReflections
+      ? getReflection(trackSlug, weekNum).catch(() => null)
+      : null,
+  ]);
 
-        const [existingSubmission, existingReflection] = await Promise.all([
-          showSubmissions ? getSubmission(trackSlug, weekNum).catch(() => null) : null,
-          showReflections ? getReflection(trackSlug, weekNum).catch(() => null) : null,
-        ]);
+  // Feedback lookups depend on submission/reflection IDs from above, so
+  // they're necessarily serial-to-those — but each side is parallel.
+  const [submissionFeedback, reflectionFeedback] = await Promise.all([
+    existingSubmission?.id
+      ? getFeedback(existingSubmission.id, undefined).catch(() => [])
+      : [],
+    existingReflection?.id
+      ? getFeedback(undefined, existingReflection.id).catch(() => [])
+      : [],
+  ]);
 
-        const [submissionFeedback, reflectionFeedback] = await Promise.all([
-          existingSubmission?.id ? getFeedback(existingSubmission.id, undefined).catch(() => []) : [],
-          existingReflection?.id ? getFeedback(undefined, existingReflection.id).catch(() => []) : [],
-        ]);
+  const reflectionPrompts =
+    weekContent.reflectionPrompts ?? defaultReflectionPrompts ?? [];
 
-        const reflectionPrompts =
-          weekContent.reflectionPrompts ??
-          track.defaultReflectionPrompts ??
-          [];
+  return (
+    <div className="mt-6 space-y-4">
+      {showSubmissions && (
+        <SubmissionForm
+          trackSlug={trackSlug}
+          weekNumber={weekNum}
+          existing={existingSubmission}
+          feedback={submissionFeedback}
+        />
+      )}
+      {showReflections && (
+        <ReflectionForm
+          trackSlug={trackSlug}
+          weekNumber={weekNum}
+          prompts={reflectionPrompts}
+          existing={existingReflection}
+          feedback={reflectionFeedback}
+        />
+      )}
+    </div>
+  );
+}
 
-        return (
-          <div className="mt-6 space-y-4">
-            {showSubmissions && (
-              <SubmissionForm
-                trackSlug={trackSlug}
-                weekNumber={weekNum}
-                existing={existingSubmission}
-                feedback={submissionFeedback}
-              />
-            )}
-            {showReflections && (
-              <ReflectionForm
-                trackSlug={trackSlug}
-                weekNumber={weekNum}
-                prompts={reflectionPrompts}
-                existing={existingReflection}
-                feedback={reflectionFeedback}
-              />
-            )}
-          </div>
-        );
-      })()}
+function SubmissionsReflectionsSkeleton() {
+  return (
+    <div className="mt-6 space-y-4 animate-pulse">
+      <div className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
+        <div className="h-4 w-32 rounded bg-neutral-200" />
+        <div className="mt-3 h-24 w-full rounded bg-neutral-100" />
+      </div>
+      <div className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
+        <div className="h-4 w-40 rounded bg-neutral-200" />
+        <div className="mt-3 h-24 w-full rounded bg-neutral-100" />
+      </div>
     </div>
   );
 }
