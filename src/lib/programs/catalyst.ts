@@ -25,9 +25,9 @@ export const catalystConfig: ProgramConfig = {
   surveys: [
     {
       id: "network-plus-post",
-      title: "CompTIA Network+ Post-Survey",
+      title: "CompTIA Network+ End-of-Cohort Survey",
       description:
-        "Share how the program worked for you so we can shape future cohorts, resources, and offerings.",
+        "15–18 min. You made it — before you wrap up this cohort, tell us how the program landed, what worked, and where you're headed next.",
       required: false,
     },
   ],

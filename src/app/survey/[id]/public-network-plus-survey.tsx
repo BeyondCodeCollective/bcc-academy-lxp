@@ -9,11 +9,15 @@ import {
 } from "@/components/survey-fields";
 import { savePublicSurveyResponse } from "./actions";
 
-// Structured questions for the CompTIA Network+ Post-Survey. Mirrors the
-// content spec in .context/attachments/CompTIA Network+ Post Survey.pdf.
-// Page 0 is the "Contact" step (email + name + consent); every other page is
-// rendered by QuestionRenderer. The Security+ page has a showIf predicate
-// that hides it when Q23 == "Not interested".
+// Structured questions for the CompTIA Network+ End-of-Cohort Survey.
+// Mirrors the content spec in
+// .context/attachments/pasted_text_2026-04-24_10-16-58.txt
+//
+// Page 0: consent (Q1 required + Q2 optional follow-up preference)
+// Page 1: contact (name + email)
+// Subsequent pages: standard QuestionsPage rendered via QuestionRenderer.
+// Security+ detail page (Q25) hides when Q24 is "Probably not right now" or
+// "Not interested".
 
 type QuestionsPage = {
   kind: "questions";
@@ -27,14 +31,67 @@ type Page = { kind: "contact" } | QuestionsPage;
 
 const LIKERT_1_5: string[] = ["1", "2", "3", "4", "5"];
 
+// Bump this whenever the consent text below changes. The version is stored
+// with each response so we can tell which notice a respondent agreed to.
+export const CONSENT_VERSION = "v2";
+
+const CONSENT_TEXT =
+  "Your answers help us make this program better and show our impact. " +
+  "Your name stays private — only the BCC team sees your name with your answers, and when we share results with others, your name is removed. " +
+  "You can mark \"Prefer not to say\" on any sensitive question. " +
+  "You can email info@beyondcodecollective.org anytime to see, change, or delete your answers. " +
+  "We keep your answers for up to 5 years so we can measure long-term impact, then we remove your name from the data. " +
+  "Your use of this platform is also governed by the BCC Terms of Use and Privacy Policy at wearebcc.org. Full platform-specific details at /privacy.";
+
+const RETROSPECTIVE_CONFIDENCE_STATEMENTS = [
+  "I understand core networking concepts (IP addresses, subnets, protocols).",
+  "I can explain how networks work to someone who isn't technical.",
+  "I feel confident troubleshooting a basic networking problem.",
+  "I see myself succeeding in a tech career.",
+  "I belong in this industry.",
+  "I know how to keep learning new tech skills on my own.",
+  "I can talk about my technical skills in a job interview.",
+];
+
 const PAGES: Page[] = [
+  // Page 0 — Consent
+  {
+    kind: "questions",
+    title: "Before you start",
+    subtitle:
+      "A quick note on how we use what you share — take a moment before you start.",
+    questions: [
+      {
+        type: "consent",
+        id: "consent_to_participate",
+        label: "Consent",
+        text: CONSENT_TEXT,
+        confirmLabel: "Yes, I want to take this survey.",
+        required: true,
+      },
+      {
+        type: "radio",
+        id: "contact_follow_up",
+        label:
+          "Is it okay if BCC contacts you in the next 1–2 years to see how you're doing? (Optional)",
+        options: [
+          "Yes, you can contact me",
+          "No, please don't contact me for follow-up",
+        ],
+        required: false,
+      },
+    ],
+  },
+
+  // Page 1 — Contact (custom component handles email + name)
   { kind: "contact" },
 
+  // Page 2 — About You
   {
     kind: "questions",
     title: "About You",
     subtitle:
-      "These questions help us understand who we're reaching. All responses are confidential.",
+      "We collect this to share the impact of our learner community with funders. You can mark \"Prefer not to say\" on any item — your choice never affects your participation.",
     questions: [
       {
         type: "month-year",
@@ -60,7 +117,8 @@ const PAGES: Page[] = [
       {
         type: "multi-select",
         id: "race_ethnicity",
-        label: "What is your race and/or ethnicity? Select all that apply.",
+        label:
+          "What is your race and/or ethnicity? Select all that apply.",
         options: [
           "American Indian or Alaska Native",
           "Asian",
@@ -69,6 +127,7 @@ const PAGES: Page[] = [
           "Middle Eastern or North African",
           "Native Hawaiian or Pacific Islander",
           "White",
+          "Prefer not to say",
           "Other",
         ],
         required: true,
@@ -76,8 +135,9 @@ const PAGES: Page[] = [
       {
         type: "multi-select",
         id: "languages",
-        label: "What languages do you speak at home? Select all that apply.",
-        options: ["English", "Spanish", "Other"],
+        label:
+          "What languages do you speak at home? Select all that apply.",
+        options: ["English", "Spanish", "Prefer not to say", "Other"],
         required: true,
       },
       {
@@ -90,7 +150,8 @@ const PAGES: Page[] = [
       {
         type: "radio",
         id: "education_level",
-        label: "What is the highest level of education you have completed?",
+        label:
+          "What is the highest level of education you have completed?",
         options: [
           "Some high school (no diploma)",
           "High school diploma or GED",
@@ -98,37 +159,31 @@ const PAGES: Page[] = [
           "Associate degree",
           "Bachelor's degree",
           "Graduate or professional degree",
+          "Prefer not to say",
         ],
         required: true,
       },
-    ],
-  },
-
-  {
-    kind: "questions",
-    title: "Background",
-    subtitle: "Tell us a bit about your situation today.",
-    questions: [
       {
         type: "radio",
         id: "first_gen_college",
         label:
           "If you started college today, would you be the first in your immediate family to attend or complete college?",
-        options: ["Yes", "No", "Not applicable"],
+        options: ["Yes", "No", "Not applicable", "Prefer not to say"],
         required: true,
       },
       {
         type: "multi-select",
         id: "employment_status",
-        label: "What is your current employment status? Select all that apply.",
+        label:
+          "What is your current employment status? Select all that apply.",
         options: [
-          "Employed",
+          "Employed full-time",
+          "Employed part-time",
           "Unemployed",
-          "Student",
-          "Full-time",
-          "Part-time",
           "Looking for work",
           "Not currently looking for work",
+          "Student",
+          "Prefer not to say",
           "Other",
         ],
         required: true,
@@ -150,175 +205,163 @@ const PAGES: Page[] = [
       {
         type: "radio",
         id: "disability",
-        label: "Do you identify as a person with a disability?",
+        label:
+          "Do you identify as a person with a disability? (Self-reported and voluntary — helps us keep the program accessible.)",
         options: ["Yes", "No", "Prefer not to say"],
         required: true,
       },
     ],
   },
 
+  // Page 3 — Driving Reason
   {
     kind: "questions",
-    title: "How You Found Us",
+    title: "Driving Reason",
     questions: [
-      {
-        type: "text",
-        id: "how_heard",
-        label: "How did you first hear about Beyond Code Collective?",
-        placeholder: "Tell us how you found out about us...",
-        required: true,
-      },
       {
         type: "text",
         id: "why_enroll",
-        label:
-          "Is there anything specific that made you decide to enroll — a conversation, a moment, a person? Feel free to share.",
-        placeholder: "Optional — share anything that stood out.",
-        required: false,
-      },
-    ],
-  },
-
-  {
-    kind: "questions",
-    title: "Why You're Here",
-    subtitle:
-      "We want to understand what brought you here and how this program is fitting into your life.",
-    questions: [
-      {
-        type: "multi-select",
-        id: "primary_reasons",
-        label: "What are your primary reasons for completing this program?",
-        options: [
-          "To get a new job in IT or tech",
-          "To advance in my current role",
-          "To earn a credential or certification",
-          "To increase my income",
-          "Personal interest or curiosity",
-          "To support a career change",
-          "Community or family encouragement",
-          "To be a better resource at my current job",
-        ],
-        required: true,
-      },
-      {
-        type: "likert",
-        id: "motivation_factors",
-        label: "Rate how much each factor motivated your participation.",
-        scale: LIKERT_1_5,
-        scaleAnchors: { low: "1 — Not at all motivated", high: "5 — Extremely motivated" },
-        statements: [
-          "Job placement / career opportunity",
-          "Financial stability / increased earning potential",
-          "Building skills for personal growth",
-          "Gaining a recognized credential",
-        ],
+        label: "What drove you to enroll in this program?",
+        placeholder: "Share what motivated you to start…",
         required: true,
       },
     ],
   },
 
+  // Page 4 — Looking Back (retrospective, BEFORE)
   {
     kind: "questions",
-    title: "Your Experience So Far",
+    title: "Looking back: where you started",
     subtitle:
-      "For each statement, tell us where you stand on a scale of 1 (Strongly disagree) to 5 (Strongly agree).",
+      "Thinking back to BEFORE the program started, how would you have rated yourself? (1 = Not at all confident · 5 = Very confident)",
     questions: [
       {
         type: "likert",
-        id: "experience_ratings",
-        label: "Please rate each statement about your experience in this program to date.",
+        id: "confidence_before",
+        label: "Rate your confidence BEFORE the program.",
         scale: LIKERT_1_5,
-        scaleAnchors: { low: "1 — Strongly disagree", high: "5 — Strongly agree" },
+        scaleAnchors: {
+          low: "1 — Not at all confident",
+          high: "5 — Very confident",
+        },
+        statements: RETROSPECTIVE_CONFIDENCE_STATEMENTS,
+        required: true,
+      },
+    ],
+  },
+
+  // Page 5 — Right Now (retrospective, NOW)
+  {
+    kind: "questions",
+    title: "Right now: where you are today",
+    subtitle:
+      "Now rate yourself on the same items as you feel RIGHT NOW. (1 = Not at all confident · 5 = Very confident)",
+    questions: [
+      {
+        type: "likert",
+        id: "confidence_now",
+        label: "Rate your confidence RIGHT NOW.",
+        scale: LIKERT_1_5,
+        scaleAnchors: {
+          low: "1 — Not at all confident",
+          high: "5 — Very confident",
+        },
+        statements: RETROSPECTIVE_CONFIDENCE_STATEMENTS,
+        required: true,
+      },
+    ],
+  },
+
+  // Page 6 — Your Experience
+  {
+    kind: "questions",
+    title: "Your experience in this program",
+    subtitle:
+      "Please be honest — this is how we improve. (1 = Strongly disagree · 5 = Strongly agree)",
+    questions: [
+      {
+        type: "likert",
+        id: "experience_agreement",
+        label: "How much do you agree with each statement?",
+        scale: LIKERT_1_5,
+        scaleAnchors: {
+          low: "1 — Strongly disagree",
+          high: "5 — Strongly agree",
+        },
         statements: [
-          "I feel more confident in my technical knowledge since starting this program.",
+          "The pace of the program worked for my schedule and learning style.",
+          "I felt supported by the instructors and program team.",
+          "The material felt relevant to real-world work.",
+          "I felt a sense of belonging in this cohort.",
           "The Tech+ content gave me a strong foundation for Network+.",
-          "The pace of this program works for my schedule and learning style.",
-          "I feel supported by the instructors and program team.",
-          "The material I'm learning feels relevant to real-world work.",
-          "I feel a sense of belonging within this cohort.",
         ],
         required: true,
       },
+    ],
+  },
+
+  // Page 7 — Open text: what worked, what could be better
+  {
+    kind: "questions",
+    title: "What worked, what could be better",
+    questions: [
       {
         type: "text",
         id: "most_valuable",
-        label: "What has been the most valuable part of this program for you so far?",
-        placeholder: "Tell us what's been working...",
+        label: "What was the most valuable part of this program for you?",
+        placeholder: "Tell us what stood out…",
         required: true,
       },
       {
         type: "text",
-        id: "improvement",
+        id: "most_challenging",
         label:
-          "Is there anything in the program that has felt challenging, unclear, or could be improved?",
-        placeholder: "Be candid — this helps us make the program better.",
-        required: false,
+          "What was the most challenging part — or what could have been better?",
+        placeholder: "Be candid — this is how we improve.",
+        required: true,
       },
     ],
   },
 
+  // Page 8 — Next step
   {
     kind: "questions",
-    title: "How We Can Support You",
+    title: "What's next",
     questions: [
       {
         type: "multi-select",
-        id: "support_types",
-        label: "What types of support would be most helpful to you right now?",
+        id: "next_step_support",
+        label:
+          "What would help you most as a next step? Select all that apply.",
         options: [
-          "One-on-one mentorship or coaching",
-          "Job placement assistance or employer connections",
-          "Study groups or peer accountability partners",
-          "Exam prep resources and practice tests",
-          "Resume and interview preparation",
-          "More flexible scheduling or asynchronous content",
-          "Mental health or wellness resources",
-          "Financial assistance information (grants, stipends, etc.)",
+          "Job placement help / employer connections",
+          "Resume and interview prep",
+          "Continued mentorship or coaching",
+          "Continued learning (e.g., Security+, Cloud, etc.)",
           "Networking events or community connections",
+          "Help with exam prep",
+          "Financial support information",
+          "Other",
         ],
         required: true,
-      },
-      {
-        type: "radio",
-        id: "time_available",
-        label:
-          "How often are you able to dedicate time to studying outside of scheduled sessions?",
-        options: [
-          "Daily",
-          "A few times a week",
-          "Once a week",
-          "Rarely — my schedule makes it difficult",
-          "I haven't been able to study outside of sessions",
-        ],
-        required: true,
-      },
-      {
-        type: "text",
-        id: "barriers",
-        label:
-          "Are there any barriers — personal, professional, financial, or logistical — that are making it harder to fully participate?",
-        placeholder: "Optional — share anything you're not comfortable with.",
-        required: false,
       },
     ],
   },
 
+  // Page 9 — Security+ interest
   {
     kind: "questions",
-    title: "Looking Ahead — CompTIA Security+",
-    subtitle:
-      "We're exploring whether to offer Security+ after Network+. Your answer here helps us decide.",
+    title: "Looking ahead: CompTIA Security+",
     questions: [
       {
         type: "radio",
         id: "securityplus_interest",
-        label: "How interested are you in continuing to Security+ after completing Network+?",
+        label: "How interested are you in continuing to CompTIA Security+ next?",
         options: [
-          "Very interested — I'm planning to continue",
-          "Somewhat interested — I'd like to know more first",
-          "Undecided — depends on timing, and other factors",
-          "Probably not at this time",
+          "Very interested — count me in",
+          "Somewhat interested — I'd want to know more first",
+          "Undecided — depends on timing",
+          "Probably not right now",
           "Not interested",
         ],
         required: true,
@@ -326,52 +369,35 @@ const PAGES: Page[] = [
     ],
   },
 
+  // Page 10 — Security+ factors (conditional)
   {
     kind: "questions",
-    title: "Security+ Details",
-    subtitle:
-      "These questions help us design a Security+ offering that works for you.",
-    showIf: (a) => a.securityplus_interest !== "Not interested",
+    title: "If we offered Security+",
+    subtitle: "What would matter most to you? Select all that apply.",
+    showIf: (a) =>
+      a.securityplus_interest !== "Probably not right now" &&
+      a.securityplus_interest !== "Not interested",
     questions: [
       {
         type: "multi-select",
         id: "securityplus_factors",
-        label:
-          "If we offered a Security+ cohort, what would matter most to you in deciding to join?",
+        label: "What would matter most to you?",
         options: [
           "Schedule flexibility",
-          "Time between Network+ completion and start date",
-          "Continued access to the same instructors or cohort",
-          "Clear job outcomes and employer partnerships",
-          "Scholarship or financial support availability",
+          "Same instructors / same cohort feel",
+          "Clear path to a job after",
+          "Scholarship or financial support",
+          "Time gap between Network+ and Security+",
         ],
         required: true,
-      },
-      {
-        type: "likert",
-        id: "securityplus_career_impact",
-        label: "Rate your agreement.",
-        scale: LIKERT_1_5,
-        scaleAnchors: { low: "1 — Strongly disagree", high: "5 — Strongly agree" },
-        statements: [
-          "I feel earning a Security+ certification would meaningfully advance my career goals.",
-        ],
-        required: true,
-      },
-      {
-        type: "text",
-        id: "securityplus_feedback",
-        label:
-          "Is there anything you'd want us to know as we design a Security+ offering? What would make it feel worth it for you?",
-        placeholder: "Optional — tell us what matters to you.",
-        required: false,
       },
     ],
   },
 
+  // Page 11 — Last few
   {
     kind: "questions",
-    title: "Final Reflections",
+    title: "Last few questions",
     questions: [
       {
         type: "likert",
@@ -379,28 +405,32 @@ const PAGES: Page[] = [
         label:
           "How likely are you to recommend Beyond Code Collective to someone you know?",
         scale: LIKERT_1_5,
-        scaleAnchors: { low: "1 — Not at all likely", high: "5 — Extremely likely" },
+        scaleAnchors: {
+          low: "1 — Not at all likely",
+          high: "5 — Extremely likely",
+        },
         statements: ["Likelihood to recommend"],
+        required: true,
+      },
+      {
+        type: "text",
+        id: "thirty_day_change",
+        label:
+          "In the past 30 days, what's one specific thing you did differently because of this program? (A behavior, a conversation, a habit — anything concrete.)",
+        placeholder: "Something concrete…",
         required: true,
       },
       {
         type: "text",
         id: "anything_else",
         label:
-          "Is there anything else you'd like us to know — about your experience, your goals, or what would help you succeed?",
+          "Anything else you'd like us to know — about your experience, your goals, or what would help you succeed?",
         placeholder: "Optional — share anything you'd like us to know.",
         required: false,
       },
     ],
   },
 ];
-
-// Bump this whenever the consent text below changes. The version is stored
-// with each response so we can tell which notice a respondent agreed to.
-export const CONSENT_VERSION = "v1";
-
-const CONSENT_TEXT =
-  "Beyond Code Collective (BCC) collects your name, email, and the answers below to improve this program and report aggregated outcomes to our funders. Your responses are stored securely and retained for up to 3 years. We do not sell your data or share individual responses outside BCC staff and program evaluators. You can request removal of your response at any time at /privacy/withdraw or by emailing privacy@bccacademy.io. Your use of this platform is also governed by the BCC Terms of Use and the BCC Privacy Policy at wearebcc.org. Full platform-specific details at /privacy.";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -413,34 +443,50 @@ export function PublicNetworkPlusSurvey({ surveyId, programSlug }: Props) {
   const storageKey = `public-survey-${programSlug}-${surveyId}`;
 
   const initialState = useMemo(() => {
-    if (typeof window === "undefined") return { page: 0, answers: {} as Record<string, unknown>, email: "", fullName: "", consent: false };
+    if (typeof window === "undefined")
+      return {
+        page: 0,
+        answers: {} as Record<string, unknown>,
+        email: "",
+        fullName: "",
+      };
     const saved = window.localStorage.getItem(storageKey);
-    if (!saved) return { page: 0, answers: {} as Record<string, unknown>, email: "", fullName: "", consent: false };
+    if (!saved)
+      return {
+        page: 0,
+        answers: {} as Record<string, unknown>,
+        email: "",
+        fullName: "",
+      };
     try {
       const parsed = JSON.parse(saved) as {
         page?: number;
         answers?: Record<string, unknown>;
         email?: string;
         fullName?: string;
-        consent?: boolean;
       };
       return {
         page: parsed.page ?? 0,
         answers: parsed.answers ?? {},
         email: parsed.email ?? "",
         fullName: parsed.fullName ?? "",
-        consent: parsed.consent ?? false,
       };
     } catch {
-      return { page: 0, answers: {} as Record<string, unknown>, email: "", fullName: "", consent: false };
+      return {
+        page: 0,
+        answers: {} as Record<string, unknown>,
+        email: "",
+        fullName: "",
+      };
     }
   }, [storageKey]);
 
   const [page, setPage] = useState(initialState.page);
-  const [answers, setAnswers] = useState<Record<string, unknown>>(initialState.answers);
+  const [answers, setAnswers] = useState<Record<string, unknown>>(
+    initialState.answers,
+  );
   const [email, setEmail] = useState(initialState.email);
   const [fullName, setFullName] = useState(initialState.fullName);
-  const [consent, setConsent] = useState(initialState.consent);
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -463,7 +509,6 @@ export function PublicNetworkPlusSurvey({ surveyId, programSlug }: Props) {
       answers?: Record<string, unknown>;
       email?: string;
       fullName?: string;
-      consent?: boolean;
     }) => {
       if (typeof window === "undefined") return;
       window.localStorage.setItem(
@@ -473,11 +518,10 @@ export function PublicNetworkPlusSurvey({ surveyId, programSlug }: Props) {
           answers: next.answers ?? answers,
           email: next.email ?? email,
           fullName: next.fullName ?? fullName,
-          consent: next.consent ?? consent,
         }),
       );
     },
-    [storageKey, page, answers, email, fullName, consent],
+    [storageKey, page, answers, email, fullName],
   );
 
   function updateAnswer(id: string, val: unknown) {
@@ -487,7 +531,7 @@ export function PublicNetworkPlusSurvey({ surveyId, programSlug }: Props) {
   }
 
   function contactPageValid(): boolean {
-    return EMAIL_RE.test(email.trim()) && fullName.trim().length > 0 && consent;
+    return EMAIL_RE.test(email.trim()) && fullName.trim().length > 0;
   }
 
   function isCurrentValid(): boolean {
@@ -524,7 +568,7 @@ export function PublicNetworkPlusSurvey({ surveyId, programSlug }: Props) {
         email: email.trim(),
         fullName: fullName.trim(),
         consentVersion: CONSENT_VERSION,
-        responses: { ...answers, consent },
+        responses: answers,
       });
       if (!result.ok) {
         setError(result.error);
@@ -536,7 +580,9 @@ export function PublicNetworkPlusSurvey({ surveyId, programSlug }: Props) {
       }
       setDone(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to submit. Please try again.");
+      setError(
+        e instanceof Error ? e.message : "Failed to submit. Please try again.",
+      );
       setSubmitting(false);
     }
   }
@@ -550,8 +596,8 @@ export function PublicNetworkPlusSurvey({ surveyId, programSlug }: Props) {
           </div>
           <h2 className="text-xl font-bold text-neutral-900">Thank you.</h2>
           <p className="mt-2 text-sm text-neutral-600">
-            Your responses go directly into how we build and improve this
-            program — for you, and for every cohort that comes after you.
+            What you shared helps shape what comes next — for you and for the
+            people coming after you.
           </p>
           <p className="mt-4 text-xs text-neutral-500">
             Change your mind?{" "}
@@ -602,7 +648,6 @@ export function PublicNetworkPlusSurvey({ surveyId, programSlug }: Props) {
         <ContactPage
           email={email}
           fullName={fullName}
-          consent={consent}
           onEmailChange={(v) => {
             setEmail(v);
             persist({ email: v });
@@ -610,10 +655,6 @@ export function PublicNetworkPlusSurvey({ surveyId, programSlug }: Props) {
           onFullNameChange={(v) => {
             setFullName(v);
             persist({ fullName: v });
-          }}
-          onConsentChange={(v) => {
-            setConsent(v);
-            persist({ consent: v });
           }}
         />
       ) : currentPage ? (
@@ -695,49 +736,28 @@ function FooterLinks() {
 function ContactPage({
   email,
   fullName,
-  consent,
   onEmailChange,
   onFullNameChange,
-  onConsentChange,
 }: {
   email: string;
   fullName: string;
-  consent: boolean;
   onEmailChange: (v: string) => void;
   onFullNameChange: (v: string) => void;
-  onConsentChange: (v: boolean) => void;
 }) {
   return (
     <div>
       <div className="mb-6">
-        <h2 className="text-xl font-bold text-neutral-900">Contact</h2>
+        <h2 className="text-xl font-bold text-neutral-900">A few quick basics</h2>
         <p className="mt-1 text-sm text-neutral-700">
-          You've put in real work — and we want to make sure this program is
-          working just as hard for you.
+          So we can tie this response to your record and follow up if you opt in.
         </p>
       </div>
       <div className="space-y-5">
         <div>
-          <label htmlFor="contact-email" className="text-sm font-medium text-neutral-900 mb-2 block">
-            Email address
-            <span aria-hidden="true" className="text-red-500 ml-0.5">
-              *
-            </span>
-          </label>
-          <input
-            id="contact-email"
-            type="email"
-            autoComplete="email"
-            required
-            aria-required="true"
-            value={email}
-            onChange={(e) => onEmailChange(e.target.value)}
-            placeholder="you@example.com"
-            className="w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-3 text-sm text-neutral-900 placeholder:text-neutral-500 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 focus:outline-none transition-all"
-          />
-        </div>
-        <div>
-          <label htmlFor="contact-name" className="text-sm font-medium text-neutral-900 mb-2 block">
+          <label
+            htmlFor="contact-name"
+            className="text-sm font-medium text-neutral-900 mb-2 block"
+          >
             Full name
             <span aria-hidden="true" className="text-red-500 ml-0.5">
               *
@@ -755,27 +775,27 @@ function ContactPage({
             className="w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-3 text-sm text-neutral-900 placeholder:text-neutral-500 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 focus:outline-none transition-all"
           />
         </div>
-        <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
-          <p id="contact-consent-text" className="text-sm text-neutral-700 mb-3">
-            {CONSENT_TEXT}
-          </p>
-          <label htmlFor="contact-consent" className="flex items-center gap-2 cursor-pointer">
-            <input
-              id="contact-consent"
-              type="checkbox"
-              checked={consent}
-              onChange={(e) => onConsentChange(e.target.checked)}
-              aria-required="true"
-              aria-describedby="contact-consent-text"
-              className="rounded border-neutral-300 h-4 w-4"
-            />
-            <span className="text-sm font-medium text-neutral-900">
-              I understand and agree to participate.
-            </span>
-            <span aria-hidden="true" className="text-red-500 text-xs">
+        <div>
+          <label
+            htmlFor="contact-email"
+            className="text-sm font-medium text-neutral-900 mb-2 block"
+          >
+            Email
+            <span aria-hidden="true" className="text-red-500 ml-0.5">
               *
             </span>
           </label>
+          <input
+            id="contact-email"
+            type="email"
+            autoComplete="email"
+            required
+            aria-required="true"
+            value={email}
+            onChange={(e) => onEmailChange(e.target.value)}
+            placeholder="you@example.com"
+            className="w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-3 text-sm text-neutral-900 placeholder:text-neutral-500 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 focus:outline-none transition-all"
+          />
         </div>
       </div>
     </div>

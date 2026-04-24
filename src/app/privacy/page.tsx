@@ -82,9 +82,10 @@ export default async function PrivacyPage() {
 
         <Section title="How long we keep it">
           <p>
-            Survey responses are retained for up to <strong>3 years</strong>{" "}
-            after submission, after which they are deleted automatically.
-            You can request earlier deletion at any time.
+            Survey responses are retained for up to <strong>5 years</strong>{" "}
+            after submission so we can measure long-term program impact,
+            after which your name is removed from the data. You can
+            request earlier deletion at any time.
           </p>
         </Section>
 
