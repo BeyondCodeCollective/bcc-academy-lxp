@@ -31,16 +31,22 @@ type Page = { kind: "contact" } | QuestionsPage;
 
 const LIKERT_1_5: string[] = ["1", "2", "3", "4", "5"];
 
-// Bump this whenever the consent text below changes. The version is stored
-// with each response so we can tell which notice a respondent agreed to.
+// Bump this whenever the consent content below changes. The version is
+// stored with each response so we can tell which notice a respondent agreed
+// to. Keep this in sync with CONSENT_LEAD / CONSENT_BULLETS / CONSENT_FOOTER.
 export const CONSENT_VERSION = "v2";
 
-const CONSENT_TEXT =
-  "Your answers help us make this program better and show our impact. " +
-  "Your name stays private — only the BCC team sees your name with your answers, and when we share results with others, your name is removed. " +
-  "You can mark \"Prefer not to say\" on any sensitive question. " +
-  "You can email info@beyondcodecollective.org anytime to see, change, or delete your answers. " +
-  "We keep your answers for up to 5 years so we can measure long-term impact, then we remove your name from the data. " +
+const CONSENT_LEAD =
+  "Your answers help us make this program better and show our impact. Here's what you should know:";
+
+const CONSENT_BULLETS = [
+  "Your name stays private. Only the BCC team sees your name with your answers. When we share results with others, your name is removed.",
+  'You can mark "Prefer not to say" on any sensitive question.',
+  "You can email info@beyondcodecollective.org anytime to see, change, or delete your answers.",
+  "We keep your answers for up to 5 years so we can measure long-term impact, then we remove your name from the data.",
+];
+
+const CONSENT_FOOTER =
   "Your use of this platform is also governed by the BCC Terms of Use and Privacy Policy at wearebcc.org. Full platform-specific details at /privacy.";
 
 const RETROSPECTIVE_CONFIDENCE_STATEMENTS = [
@@ -65,7 +71,9 @@ const PAGES: Page[] = [
         type: "consent",
         id: "consent_to_participate",
         label: "Consent",
-        text: CONSENT_TEXT,
+        text: CONSENT_LEAD,
+        bullets: CONSENT_BULLETS,
+        footer: CONSENT_FOOTER,
         confirmLabel: "Yes, I want to take this survey.",
         required: true,
       },
