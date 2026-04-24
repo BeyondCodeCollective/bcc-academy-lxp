@@ -300,7 +300,7 @@ function LikertField({
           >
             <p className="text-sm text-neutral-700 mb-2.5">{stmt}</p>
             {question.scaleAnchors && (
-              <div className="mb-1.5 flex justify-between text-[10px] font-medium uppercase tracking-wide text-neutral-400">
+              <div className="mb-1.5 flex justify-between text-[11px] font-medium uppercase tracking-wide text-neutral-600">
                 <span>{question.scaleAnchors.low}</span>
                 <span>{question.scaleAnchors.high}</span>
               </div>

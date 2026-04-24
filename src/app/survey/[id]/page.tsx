@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getProgram } from "@/lib/programs/server";
+import { TextScaleToggle } from "@/components/text-scale-toggle";
 import { PublicNetworkPlusSurvey } from "./public-network-plus-survey";
 
 // Public survey route. Outside /dashboard/* so the proxy/middleware does not
@@ -27,14 +28,17 @@ export default async function PublicSurveyPage({
 
   return (
     <main className="min-h-screen bg-neutral-50">
-      <div className="mx-auto w-full max-w-2xl px-5 pt-10 pb-6">
+      <div className="mx-auto flex w-full max-w-2xl justify-end px-5 pt-4">
+        <TextScaleToggle />
+      </div>
+      <div className="mx-auto w-full max-w-2xl px-5 pt-6 pb-6">
         <p className="text-xs font-medium tracking-wide text-[#E54D2E] uppercase">
           {program.organization}
         </p>
         <h1 className="mt-1 text-2xl font-bold text-neutral-900 sm:text-3xl">
           {survey.title}
         </h1>
-        <p className="mt-2 text-sm text-neutral-600">{survey.description}</p>
+        <p className="mt-2 text-sm text-neutral-700">{survey.description}</p>
       </div>
       <PublicNetworkPlusSurvey
         surveyId={survey.id}

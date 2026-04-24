@@ -9,6 +9,7 @@ import {
   ChatsCircle,
   SignOut,
 } from "@phosphor-icons/react";
+import { TextScaleToggle } from "@/components/text-scale-toggle";
 
 export function Nav({
   isAdmin,
@@ -82,6 +83,10 @@ export function Nav({
               <span className="hidden sm:inline">Admin</span>
             </Link>
           )}
+
+          <div className="hidden sm:flex items-center">
+            <TextScaleToggle compact tone="dark" />
+          </div>
 
           <button
             onClick={async () => {

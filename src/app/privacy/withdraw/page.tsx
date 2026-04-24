@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TextScaleToggle } from "@/components/text-scale-toggle";
 import { WithdrawForm } from "./withdraw-form";
 
 export const dynamic = "force-dynamic";
@@ -6,7 +7,10 @@ export const dynamic = "force-dynamic";
 export default function WithdrawPage() {
   return (
     <main className="min-h-screen bg-neutral-50">
-      <div className="mx-auto w-full max-w-lg px-5 py-12">
+      <div className="mx-auto flex w-full max-w-lg justify-end px-5 pt-4">
+        <TextScaleToggle />
+      </div>
+      <div className="mx-auto w-full max-w-lg px-5 pt-6 pb-12">
         <p className="text-xs font-medium uppercase tracking-wide text-[#E54D2E]">
           Beyond Code Collective
         </p>

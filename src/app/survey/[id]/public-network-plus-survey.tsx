@@ -576,7 +576,7 @@ export function PublicNetworkPlusSurvey({ surveyId, programSlug }: Props) {
           <p className="text-sm font-medium text-neutral-900">
             Page {page + 1} of {visiblePages.length}
           </p>
-          <p className="text-xs text-neutral-400">
+          <p className="text-xs text-neutral-600">
             {Math.round(((page + 1) / visiblePages.length) * 100)}%
           </p>
         </div>
@@ -659,7 +659,7 @@ export function PublicNetworkPlusSurvey({ surveyId, programSlug }: Props) {
 
 function FooterLinks() {
   return (
-    <div className="mt-8 flex items-center justify-center gap-3 text-xs text-neutral-400">
+    <div className="mt-8 flex items-center justify-center gap-3 text-xs text-neutral-600">
       <a
         href="https://www.wearebcc.org/en/terms"
         className="hover:text-neutral-600"
@@ -699,7 +699,7 @@ function ContactPage({
     <div>
       <div className="mb-6">
         <h2 className="text-xl font-bold text-neutral-900">Contact</h2>
-        <p className="mt-1 text-sm text-neutral-500">
+        <p className="mt-1 text-sm text-neutral-700">
           You've put in real work — and we want to make sure this program is
           working just as hard for you.
         </p>
@@ -769,7 +769,7 @@ function QuestionsPageView({
       <div className="mb-6">
         <h2 className="text-xl font-bold text-neutral-900">{page.title}</h2>
         {page.subtitle && (
-          <p className="mt-1 text-sm text-neutral-500">{page.subtitle}</p>
+          <p className="mt-1 text-sm text-neutral-700">{page.subtitle}</p>
         )}
       </div>
       <div className="space-y-6">
