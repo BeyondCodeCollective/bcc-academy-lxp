@@ -584,6 +584,36 @@ async function requireSuperAdmin() {
   return result;
 }
 
+// Records a super-admin view/export/delete against identifiable respondent
+// data. Failures log but never block — we'd rather let the admin see their
+// data than hard-fail on an audit insert.
+async function logAdminAccess(
+  svc: ReturnType<typeof createServiceClient>,
+  args: {
+    actorUserId: string;
+    programId: string | null;
+    action: "view" | "export" | "delete";
+    resource: string;
+    rowCount?: number;
+    metadata?: Record<string, unknown>;
+  },
+) {
+  const { error } = await svc.from("admin_access_log").insert({
+    actor_user_id: args.actorUserId,
+    program_id: args.programId,
+    action: args.action,
+    resource: args.resource,
+    row_count: args.rowCount ?? null,
+    metadata: args.metadata ?? null,
+  });
+  if (error) {
+    console.error("admin_access_log insert failed:", {
+      code: error.code,
+      message: error.message,
+    });
+  }
+}
+
 export type PublicSurveyStatsRow = {
   program_slug: string;
   program_name: string;
@@ -592,7 +622,7 @@ export type PublicSurveyStatsRow = {
 };
 
 export async function getPublicSurveyStats(): Promise<PublicSurveyStatsRow[]> {
-  const { svc } = await requireSuperAdmin();
+  const { svc, userId } = await requireSuperAdmin();
 
   const { data, error } = await svc
     .from("public_survey_responses")
@@ -602,6 +632,14 @@ export async function getPublicSurveyStats(): Promise<PublicSurveyStatsRow[]> {
     console.error("getPublicSurveyStats error:", error.message);
     return [];
   }
+
+  await logAdminAccess(svc, {
+    actorUserId: userId,
+    programId: null,
+    action: "view",
+    resource: "public_survey_responses.stats",
+    rowCount: data?.length ?? 0,
+  });
 
   const counts = new Map<string, PublicSurveyStatsRow>();
   for (const row of data ?? []) {
@@ -638,7 +676,7 @@ export async function exportPublicSurveyResponses(
     completed_at: string | null;
   }[]
 > {
-  const { svc } = await requireSuperAdmin();
+  const { svc, userId } = await requireSuperAdmin();
 
   const { data: programRow } = await svc
     .from("programs")
@@ -659,6 +697,15 @@ export async function exportPublicSurveyResponses(
     console.error("exportPublicSurveyResponses error:", error.message);
     return [];
   }
+
+  await logAdminAccess(svc, {
+    actorUserId: userId,
+    programId: programRow.id as string,
+    action: "export",
+    resource: "public_survey_responses",
+    rowCount: data?.length ?? 0,
+    metadata: { survey_type: surveyType, program_slug: programSlug },
+  });
 
   return (data ?? []) as {
     email: string;
