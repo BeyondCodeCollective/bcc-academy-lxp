@@ -227,6 +227,21 @@ const PAGES: Page[] = [
     title: "Driving Reason",
     questions: [
       {
+        type: "radio",
+        id: "how_heard",
+        label: "How did you hear about this program?",
+        options: [
+          "Friend, family member, or colleague",
+          "Social media",
+          "Employer or workforce program",
+          "School, teacher, or counselor",
+          "Email or newsletter",
+          "Online search",
+          "Other",
+        ],
+        required: true,
+      },
+      {
         type: "text",
         id: "why_enroll",
         label: "What drove you to enroll in this program?",
