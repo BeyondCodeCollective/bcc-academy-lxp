@@ -133,6 +133,21 @@ export function QuestionRenderer({
   }
 }
 
+const EMAIL_RE = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
+
+function linkifyEmails(text: string): React.ReactNode {
+  const parts = text.split(EMAIL_RE);
+  return parts.map((part, i) =>
+    EMAIL_RE.test(part) ? (
+      <a key={i} href={`mailto:${part}`} className="underline hover:text-neutral-900">
+        {part}
+      </a>
+    ) : (
+      part
+    )
+  );
+}
+
 function ConsentField({
   question,
   value,
@@ -151,7 +166,7 @@ function ConsentField({
         {question.bullets && question.bullets.length > 0 && (
           <ul className="list-disc space-y-1.5 pl-5 marker:text-neutral-400">
             {question.bullets.map((b) => (
-              <li key={b}>{b}</li>
+              <li key={b}>{linkifyEmails(b)}</li>
             ))}
           </ul>
         )}
