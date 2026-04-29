@@ -297,6 +297,25 @@ const TECH_CONFIDENCE_STATEMENTS = [
 
 const ATG_MID_PROGRAM_PAGES: SurveyPage[] = [
   {
+    title: "Before you start",
+    subtitle: "Here's how we'll use your feedback.",
+    questions: [
+      {
+        type: "consent",
+        id: "mid_consent",
+        label: "How we use your feedback",
+        text: "Your answers help us make this program better and show our impact. Here's what you should know:",
+        bullets: [
+          "Your answers stay private.",
+          'You can mark "Prefer not to say" on any question.',
+          "You can ask us anytime to see your answers, change them, or delete them. Just email us at info@beyondcodecollective.org.",
+        ],
+        confirmLabel: "Got it — I'm ready to start.",
+        required: true,
+      },
+    ],
+  },
+  {
     title: "About You",
     subtitle:
       'We collect this to share the impact of our learner community with our funders. You can mark "Prefer not to say" on any item — your choice never affects your participation.',
