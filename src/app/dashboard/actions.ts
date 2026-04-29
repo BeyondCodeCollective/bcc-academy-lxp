@@ -37,6 +37,23 @@ export async function completeOnboarding(data: {
   return { success: true };
 }
 
+export async function markWelcomeSeen() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const svc = createServiceClient();
+  await svc
+    .from("students")
+    .update({ welcome_seen_at: new Date().toISOString() })
+    .eq("id", user.id);
+
+  revalidatePath("/dashboard");
+  return { success: true };
+}
+
 // ─── Survey ───────────────────────────────────────────────────────────────────
 
 export async function saveSurveyResponse(

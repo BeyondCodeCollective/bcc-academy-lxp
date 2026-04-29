@@ -8,6 +8,7 @@ import {
   ShieldCheck,
   ChatsCircle,
   SignOut,
+  BookOpenText,
 } from "@phosphor-icons/react";
 
 export function Nav({
@@ -32,6 +33,9 @@ export function Nav({
       : []),
     ...(showTutor
       ? [{ href: "/dashboard/tutor", label: "AI Tutor", icon: ChatsCircle }]
+      : []),
+    ...(isAdmin
+      ? [{ href: "/dashboard/guide", label: "Guide", icon: BookOpenText }]
       : []),
   ];
 

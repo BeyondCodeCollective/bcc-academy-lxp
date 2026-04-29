@@ -55,18 +55,20 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Catalyst has no learner dashboard yet — send anyone hitting /dashboard
-  // (typically cross-subdomain signed-in users) straight to the survey.
-  // Exception: super-admins need to reach /dashboard/admin on catalyst to
-  // view public survey responses.
+  // Programs with no tracks (dashboardless) redirect /dashboard to their
+  // primary survey. Catalyst used to be survey-only but now has tracks, so
+  // this only fires if the config has zero tracks.
   if (
-    program.slug === "catalyst" &&
+    program.tracks.length === 0 &&
     request.nextUrl.pathname.startsWith("/dashboard") &&
     !request.nextUrl.pathname.startsWith("/dashboard/admin")
   ) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/survey/network-plus-post";
-    return NextResponse.redirect(url);
+    const survey = program.surveys?.[0];
+    if (survey) {
+      const url = request.nextUrl.clone();
+      url.pathname = `/survey/${survey.id}`;
+      return NextResponse.redirect(url);
+    }
   }
 
   // Only enforce auth on dashboard routes, not the login page
@@ -82,5 +84,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|icon|robots.txt|sitemap.xml|atg/|forge/).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|icon|robots.txt|sitemap.xml|atg/|forge/|catalyst/).*)"],
 };

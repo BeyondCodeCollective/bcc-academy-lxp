@@ -6,7 +6,6 @@ import { getDemoUser, DEMO_COOKIE } from "@/lib/demo-users";
 import { computeCurrentWeek } from "@/lib/utils";
 import Link from "next/link";
 import { WelcomeVideo } from "@/components/welcome-video";
-import { WelcomeOverlay } from "@/components/welcome-overlay";
 import { OnboardingForm } from "@/components/onboarding-form";
 import { DashboardBodySkeleton } from "@/components/dashboard-skeleton";
 import { getProgram } from "@/lib/programs/server";
@@ -48,8 +47,10 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
   let cohortStartDate = program.defaultCohort.startDate;
   let noCohort = false;
   let needsOnboarding = false;
+  let needsProfileStep = true;
   let enrolledTrackSlugs: string[] = [];
   let pendingSurveys: { id: string; title: string; description: string }[] = [];
+  let announcements: { id: string; message: string; track_slug: string | null; created_at: string }[] = [];
   let userRole = "student";
 
   if (isSupabaseConfigured()) {
@@ -65,7 +66,10 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
 
     firstName = student?.first_name || "there";
     lastName = student?.last_name || "";
-    needsOnboarding = !student?.onboarding_completed;
+    const profileDone = !!student?.onboarding_completed;
+    const welcomeDone = !!student?.welcome_seen_at;
+    needsOnboarding = !profileDone || !welcomeDone;
+    needsProfileStep = !profileDone;
 
     const isAdminUser = canAccessAdminPanel(userRole);
     const needsSurveys = !!program.surveys?.length;
@@ -119,6 +123,19 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
         .filter((s) => s.required && !completedTypes.has(s.id))
         .map((s) => ({ id: s.id, title: s.title, description: s.description }));
     }
+
+    // Hard gate: profile done + required surveys pending → redirect to survey
+    if (profileDone && pendingSurveys.length > 0 && !isAdminUser) {
+      redirect(`/dashboard/survey/${pendingSurveys[0].id}`);
+    }
+
+    const { data: announcementRows } = await supabase
+      .from("announcements")
+      .select("id, message, track_slug, created_at")
+      .gt("expires_at", new Date().toISOString())
+      .order("created_at", { ascending: false })
+      .limit(5);
+    announcements = announcementRows ?? [];
   } else {
     const cookieStore = await cookies();
     const demoEmail = cookieStore.get(DEMO_COOKIE)?.value;
@@ -198,10 +215,15 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
 
   return (
     <div className="space-y-8 sm:space-y-10">
-      {needsOnboarding ? (
-        <OnboardingForm defaultFirstName={firstName} defaultLastName={lastName} />
-      ) : (
-        <WelcomeOverlay firstName={firstName} program={program} visibleTracks={visibleTracks} />
+      {needsOnboarding && (
+        <OnboardingForm
+          defaultFirstName={firstName}
+          defaultLastName={lastName}
+          program={program}
+          visibleTracks={visibleTracks}
+          hasPendingSurveys={pendingSurveys.length > 0}
+          profileDone={!needsProfileStep}
+        />
       )}
 
       <div>
@@ -210,6 +232,29 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
         </h1>
         <p className="mt-1 text-sm text-neutral-500">{cohortName}</p>
       </div>
+
+      {announcements.map((a) => (
+        <div
+          key={a.id}
+          className="rounded-xl border border-blue-200 bg-blue-50 p-4 sm:p-5"
+        >
+          <div className="flex items-start gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 110-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.962.584 1.892.985 2.783.247.55.06 1.21-.463 1.511l-.657.38c-.551.318-1.26.117-1.527-.461a20.845 20.845 0 01-1.44-4.282m3.102.069a18.03 18.03 0 01-.59-4.59c0-1.586.205-3.124.59-4.59m0 9.18a23.848 23.848 0 018.835 2.535M10.34 6.66a23.847 23.847 0 008.835-2.535m0 0A23.74 23.74 0 0018.795 3m.38 1.125a23.91 23.91 0 011.014 5.395m-1.014 8.855c-.118.38-.245.754-.38 1.125m.38-1.125a23.91 23.91 0 001.014-5.395m0-3.46c.495.413.811 1.035.811 1.73 0 .695-.316 1.317-.811 1.73m0-3.46a24.347 24.347 0 010 3.46" />
+              </svg>
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm text-blue-900">{a.message}</p>
+              {a.track_slug && (
+                <p className="mt-1 text-xs text-blue-600">
+                  {program.tracks.find((t) => t.slug === a.track_slug)?.shortName}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      ))}
 
       {pendingSurveys.map((survey) => (
         <SurveyCard key={survey.id} survey={survey} />

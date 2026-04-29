@@ -19,6 +19,7 @@ export default async function AdminPage() {
   let publicSurveyStats: PublicSurveyStatsRow[] = [];
   const surveyStats: Record<string, SurveyStatsRow[]> = {};
   const surveyList = program.surveys ?? [];
+  const engagementScores: Record<string, { total: number; attendance: number; submissions: number; reflections: number; tutorMessages: number }> = {};
 
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
@@ -53,7 +54,7 @@ export default async function AdminPage() {
     // serially, stacking ~8 round-trips. This collapses them to one concurrent
     // batch. publicSurveyStats now lives inside the parallel batch too, so
     // super-admins on Catalyst don't pay a serial round-trip for it.
-    const [coreRes, surveyStatsResults, publicStatsRes] = await Promise.all([
+    const [coreRes, surveyStatsResults, publicStatsRes, engagementRes] = await Promise.all([
       Promise.all([
         svc
           .from("students")
@@ -97,6 +98,12 @@ export default async function AdminPage() {
             return [] as PublicSurveyStatsRow[];
           })
         : Promise.resolve([] as PublicSurveyStatsRow[]),
+      Promise.all([
+        svc.from("attendance").select("student_id, track, week_number").eq("program_id", programId!),
+        svc.from("submissions").select("student_id, track_slug, week_number").eq("program_id", programId!).not("submitted_at", "is", null),
+        svc.from("reflections").select("student_id, track_slug, week_number").eq("program_id", programId!).not("submitted_at", "is", null),
+        svc.from("tutor_messages").select("student_id").eq("program_id", programId!),
+      ]),
     ]);
 
     const [
@@ -118,6 +125,36 @@ export default async function AdminPage() {
       surveyStats[s.id] = (surveyStatsResults[i].data ?? []) as SurveyStatsRow[];
     });
     publicSurveyStats = publicStatsRes;
+
+    // Compute engagement scores
+    const [attendanceRes, submissionsRes, reflectionsRes, tutorRes] = engagementRes;
+    const attendanceRows = (attendanceRes.data ?? []) as { student_id: string; track: string; week_number: number }[];
+    const submissionRows = (submissionsRes.data ?? []) as { student_id: string; track_slug: string; week_number: number }[];
+    const reflectionRows = (reflectionsRes.data ?? []) as { student_id: string; track_slug: string; week_number: number }[];
+    const tutorRows = (tutorRes.data ?? []) as { student_id: string }[];
+
+    const maxWeeks = Math.max(...program.tracks.map((t) => t.totalWeeks), 1);
+
+    for (const s of allStudents) {
+      if (s.role !== "student") continue;
+      const att = new Set(attendanceRows.filter((r) => r.student_id === s.id).map((r) => `${r.track}-${r.week_number}`)).size;
+      const sub = new Set(submissionRows.filter((r) => r.student_id === s.id).map((r) => `${r.track_slug}-${r.week_number}`)).size;
+      const ref = new Set(reflectionRows.filter((r) => r.student_id === s.id).map((r) => `${r.track_slug}-${r.week_number}`)).size;
+      const tut = tutorRows.filter((r) => r.student_id === s.id).length;
+
+      const attScore = Math.min((att / maxWeeks) * 25, 25);
+      const subScore = Math.min((sub / maxWeeks) * 25, 25);
+      const refScore = Math.min((ref / maxWeeks) * 25, 25);
+      const tutScore = Math.min((tut / 10) * 25, 25);
+
+      engagementScores[s.id] = {
+        total: Math.round(attScore + subScore + refScore + tutScore),
+        attendance: att,
+        submissions: sub,
+        reflections: ref,
+        tutorMessages: tut,
+      };
+    }
   }
 
   const surveyConfigs = (program.surveys ?? []).map((s) => ({
@@ -168,6 +205,7 @@ export default async function AdminPage() {
         publicSurveyStats={publicSurveyStats}
         userRole={userRole}
         allPrograms={allProgramsList}
+        engagementScores={engagementScores}
       />
     </div>
   );

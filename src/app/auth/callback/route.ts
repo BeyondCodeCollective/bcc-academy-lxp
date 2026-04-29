@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { createServiceClient } from "@/lib/supabase/server";
 import { authCookieDomain } from "@/lib/supabase/cookie-domain";
 import { getProgram } from "@/lib/programs/server";
+import { sendWelcomeEmail } from "@/lib/email";
 
 // Emails that always get super_admin role (hardcoded + env var)
 const SUPER_ADMIN_EMAILS = [
@@ -229,6 +230,24 @@ export async function GET(request: Request) {
               console.error("[auth/callback] track assignment:", trackErr.message);
             }
           }
+
+          const emailPrefix = (user.email || "").split("@")[0];
+          const derivedName =
+            emailPrefix
+              .split(/[._-]/)
+              .map((s) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase())[0] || "there";
+
+          void sendWelcomeEmail({
+            to: user.email!,
+            firstName: derivedName,
+            program,
+            enrolledTracks: tracksToEnroll,
+          }).then(() =>
+            admin
+              .from("students")
+              .update({ welcome_email_sent_at: new Date().toISOString() })
+              .eq("id", user.id)
+          );
         }
       }
 
