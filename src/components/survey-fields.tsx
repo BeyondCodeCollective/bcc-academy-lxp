@@ -67,13 +67,26 @@ export type ConsentQuestion = {
   required?: boolean;
 };
 
+export type DualLikertQuestion = {
+  type: "dual-likert";
+  id: string;
+  label: string;
+  scale: string[];
+  beforeLabel: string;
+  nowLabel: string;
+  scaleAnchors?: { low: string; high: string };
+  statements: string[];
+  required?: boolean;
+};
+
 export type SurveyQuestion =
   | RadioQuestion
   | MultiSelectQuestion
   | TextQuestion
   | LikertQuestion
   | MonthYearQuestion
-  | ConsentQuestion;
+  | ConsentQuestion
+  | DualLikertQuestion;
 
 export function isPageValid(
   questions: SurveyQuestion[],
@@ -92,6 +105,11 @@ export function isPageValid(
       for (const stmt of q.statements) {
         if (!likertVal[stmt]) return false;
       }
+    } else if (q.type === "dual-likert") {
+      if (!q.required) return true;
+      const val = answers[q.id] as Record<string, { before?: string; now?: string }> | undefined;
+      if (!val) return false;
+      if (!q.statements.every((s) => !!(val[s]?.before && val[s]?.now))) return false;
     } else if (q.type === "month-year") {
       const my = val as { month: string; year: string } | undefined;
       if (!my || !my.month || !my.year) return false;
@@ -127,6 +145,14 @@ export function QuestionRenderer({
         <MonthYearField
           question={question}
           value={value as { month: string; year: string } | undefined}
+          onChange={onChange}
+        />
+      );
+    case "dual-likert":
+      return (
+        <DualLikertField
+          question={question}
+          value={value as Record<string, { before?: string; now?: string }>}
           onChange={onChange}
         />
       );
@@ -419,6 +445,122 @@ function LikertField({
                   <span>{scaleAnchors.high.replace(/^\d+ — /, "")}</span>
                 </div>
               )}
+            </div>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
+}
+
+function DualLikertField({
+  question,
+  value,
+  onChange,
+}: {
+  question: DualLikertQuestion;
+  value: Record<string, { before?: string; now?: string }> | undefined;
+  onChange: (val: Record<string, { before?: string; now?: string }>) => void;
+}) {
+  const responses = value ?? {};
+  const { scaleAnchors } = question;
+
+  function setResponse(stmt: string, side: "before" | "now", val: string) {
+    const current = responses[stmt] ?? {};
+    onChange({ ...responses, [stmt]: { ...current, [side]: val } });
+  }
+
+  return (
+    <fieldset>
+      <legend className="text-sm font-medium text-neutral-900 mb-3">
+        {question.label}
+        {question.required && (
+          <span aria-hidden="true" className="text-red-500 ml-0.5">*</span>
+        )}
+      </legend>
+      <div className="space-y-3">
+        {question.statements.map((stmt, idx) => {
+          const selected = responses[stmt] ?? {};
+          const groupIdBefore = `${question.id}-${idx}-before`;
+          const groupIdNow = `${question.id}-${idx}-now`;
+          return (
+            <div key={stmt} className="rounded-xl border border-neutral-200 bg-white p-4">
+              <p className="text-sm text-neutral-800 mb-4">{stmt}</p>
+              <div className="flex flex-col md:flex-row gap-4">
+                {/* BEFORE column */}
+                <div className="flex-1">
+                  <p id={groupIdBefore} className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500 mb-2">
+                    {question.beforeLabel}
+                  </p>
+                  <div role="radiogroup" aria-labelledby={groupIdBefore} className="flex justify-between">
+                    {question.scale.map((s) => {
+                      const isSelected = selected.before === s;
+                      return (
+                        <button
+                          key={s}
+                          type="button"
+                          role="radio"
+                          aria-checked={isSelected}
+                          aria-label={`${question.beforeLabel}: ${s}`}
+                          onClick={() => setResponse(stmt, "before", s)}
+                          className={`h-9 w-9 rounded-full text-sm font-medium transition-colors ${
+                            isSelected
+                              ? "bg-neutral-900 text-white"
+                              : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
+                          }`}
+                        >
+                          {s}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {scaleAnchors && (
+                    <div aria-hidden="true" className="mt-1.5 flex justify-between text-[11px] text-neutral-400">
+                      <span>{scaleAnchors.low}</span>
+                      <span>{scaleAnchors.high}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Divider */}
+                <div className="hidden md:block w-px bg-neutral-200" />
+                <div className="md:hidden h-px bg-neutral-100" />
+
+                {/* RIGHT NOW column */}
+                <div className="flex-1">
+                  <p id={groupIdNow} className="text-[11px] font-semibold uppercase tracking-wide text-[#E54D2E] mb-2">
+                    {question.nowLabel}
+                  </p>
+                  <div role="radiogroup" aria-labelledby={groupIdNow} className="flex justify-between">
+                    {question.scale.map((s) => {
+                      const isSelected = selected.now === s;
+                      return (
+                        <button
+                          key={s}
+                          type="button"
+                          role="radio"
+                          aria-checked={isSelected}
+                          aria-label={`${question.nowLabel}: ${s}`}
+                          onClick={() => setResponse(stmt, "now", s)}
+                          className={`h-9 w-9 rounded-full text-sm font-medium transition-colors ${
+                            isSelected
+                              ? "bg-[#E54D2E] text-white"
+                              : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
+                          }`}
+                        >
+                          {s}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {scaleAnchors && (
+                    <div aria-hidden="true" className="mt-1.5 flex justify-between text-[11px] text-neutral-400">
+                      <span>{scaleAnchors.low}</span>
+                      <span>{scaleAnchors.high}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           );
         })}
