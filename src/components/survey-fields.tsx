@@ -387,7 +387,7 @@ function LikertField({
                 role="radiogroup"
                 aria-labelledby={groupId}
                 aria-required={question.required || undefined}
-                className="flex gap-2"
+                className="flex justify-between"
               >
                 {question.scale.map((s) => {
                   const isSelected = selected === s;
@@ -414,7 +414,6 @@ function LikertField({
                 <div
                   aria-hidden="true"
                   className="mt-1.5 flex justify-between text-[11px] text-neutral-400"
-                  style={{ width: `calc(${question.scale.length} * 2.25rem + ${question.scale.length - 1} * 0.5rem)` }}
                 >
                   <span>{scaleAnchors.low.replace(/^\d+ — /, "")}</span>
                   <span>{scaleAnchors.high.replace(/^\d+ — /, "")}</span>

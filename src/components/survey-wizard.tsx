@@ -168,13 +168,8 @@ const SHARED_PAGES: SurveyPage[] = [
         type: "likert",
         id: "digital_experience",
         label: "Digital Experience",
-        scale: [
-          "Strongly Agree",
-          "Agree",
-          "Neutral",
-          "Disagree",
-          "Strongly Disagree",
-        ],
+        scale: ["1", "2", "3", "4", "5"],
+        scaleAnchors: { low: "1 — Strongly Agree", high: "5 — Strongly Disagree" },
         statements: [
           "I feel comfortable using a computer or tablet on my own.",
           "I feel comfortable using technology.",
@@ -201,13 +196,8 @@ const FORGE_FINAL_PAGE: SurveyPage = {
       type: "likert",
       id: "ai_experience",
       label: "AI Tools",
-      scale: [
-        "Strongly Agree",
-        "Agree",
-        "Neutral",
-        "Disagree",
-        "Strongly Disagree",
-      ],
+      scale: ["1", "2", "3", "4", "5"],
+      scaleAnchors: { low: "1 — Strongly Agree", high: "5 — Strongly Disagree" },
       statements: [
         "I'm familiar with everyday AI tools (e.g. ChatGPT, Google Gemini, Snapchat AI).",
         "I'm familiar with coding AI tools (e.g. Codex, Replit, Loveable).",
@@ -245,13 +235,8 @@ const ATG_FINAL_PAGE: SurveyPage = {
       type: "likert",
       id: "tech_career_readiness",
       label: "Tech Career Readiness",
-      scale: [
-        "Strongly Agree",
-        "Agree",
-        "Neutral",
-        "Disagree",
-        "Strongly Disagree",
-      ],
+      scale: ["1", "2", "3", "4", "5"],
+      scaleAnchors: { low: "1 — Strongly Agree", high: "5 — Strongly Disagree" },
       statements: [
         "I'm familiar with what IT professionals do day-to-day.",
         "I know what the CompTIA Tech+ certification is and why it matters.",
