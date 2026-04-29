@@ -30,8 +30,14 @@ const SHARED_PAGES: SurveyPage[] = [
       {
         type: "consent",
         id: "consent",
-        label: "Data Use & Consent",
-        text: "Your responses are confidential. We use this information only to improve our program. By completing this survey, you agree to allow Beyond Code Collective to use your anonymous responses for program reporting and improvement.",
+        label: "Before you start: Here's how we'll use your feedback",
+        text: "Your answers help us make this program better and show our impact. Here's what you should know:",
+        bullets: [
+          "Your answers stay private.",
+          'You can mark "Prefer not to say" on any question.',
+          "You can ask us anytime to see your answers, change them, or delete them. Just email us at info@beyondcodecollective.org.",
+        ],
+        confirmLabel: "I understand and agree to participate.",
         required: true,
       },
       {
