@@ -2041,29 +2041,30 @@ function SurveyCard({
           Export CSV
         </button>
         {localResponses.length > 0 && (
-          <>
-            <button
-              type="button"
-              onClick={handleClearAll}
-              disabled={clearingAll}
-              className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
-            >
-              <Trash2 size={12} />
-              {clearingAll ? "Deleting..." : "Delete All"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setExpanded((v) => !v)}
-              className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
-            >
-              <ChevronDown size={12} className={`transition-transform ${expanded ? "rotate-180" : ""}`} />
-              {expanded ? "Hide" : "Responses"}
-            </button>
-          </>
+          <button
+            type="button"
+            onClick={handleClearAll}
+            disabled={clearingAll}
+            className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+          >
+            <Trash2 size={12} />
+            {clearingAll ? "Deleting..." : "Delete All"}
+          </button>
         )}
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+        >
+          <ChevronDown size={12} className={`transition-transform ${expanded ? "rotate-180" : ""}`} />
+          {expanded ? "Hide" : "Responses"}
+        </button>
       </div>
-      {expanded && localResponses.length > 0 && (
+      {expanded && (
         <div className="mt-3 border-t border-neutral-100 pt-3 space-y-1">
+          {localResponses.length === 0 && (
+            <p className="text-xs text-neutral-400 px-2">No responses yet.</p>
+          )}
           {localResponses.map((r) => (
             <div key={r.id} className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 hover:bg-neutral-50">
               <div className="min-w-0">
