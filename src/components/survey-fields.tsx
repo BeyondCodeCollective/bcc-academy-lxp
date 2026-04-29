@@ -27,6 +27,8 @@ export type TextQuestion = {
   label: string;
   placeholder?: string;
   required?: boolean;
+  /** Renders as a single-line <input> instead of a textarea. Use for short values like ZIP codes. */
+  short?: boolean;
 };
 
 export type LikertQuestion = {
@@ -298,15 +300,27 @@ function TextField({
           </span>
         )}
       </label>
-      <textarea
-        id={inputId}
-        value={value ?? ""}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={question.placeholder}
-        rows={3}
-        aria-required={question.required || undefined}
-        className="w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-3 text-sm text-neutral-900 placeholder:text-neutral-500 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 focus:outline-none transition-all resize-none"
-      />
+      {question.short ? (
+        <input
+          id={inputId}
+          type="text"
+          value={value ?? ""}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={question.placeholder}
+          aria-required={question.required || undefined}
+          className="w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-3 text-sm text-neutral-900 placeholder:text-neutral-500 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 focus:outline-none transition-all"
+        />
+      ) : (
+        <textarea
+          id={inputId}
+          value={value ?? ""}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={question.placeholder}
+          rows={3}
+          aria-required={question.required || undefined}
+          className="w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-3 text-sm text-neutral-900 placeholder:text-neutral-500 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 focus:outline-none transition-all resize-none"
+        />
+      )}
     </div>
   );
 }
