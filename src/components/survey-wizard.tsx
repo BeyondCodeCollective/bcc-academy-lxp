@@ -639,6 +639,7 @@ export function SurveyWizard({ surveyId, programSlug, existingResponses }: Props
     const updated = { ...answers, [questionId]: value };
     setAnswers(updated);
     saveProgress(updated, page);
+    if (error) setError("");
   }
 
   function isPageValid(): boolean {
@@ -647,7 +648,11 @@ export function SurveyWizard({ surveyId, programSlug, existingResponses }: Props
   }
 
   function handleNext() {
-    if (!isPageValid()) return;
+    if (!isPageValid()) {
+      setError("Please answer all required questions (marked with *) before continuing.");
+      return;
+    }
+    setError("");
     if (isLastPage) {
       handleSubmit();
     } else {
@@ -744,7 +749,7 @@ export function SurveyWizard({ surveyId, programSlug, existingResponses }: Props
         </button>
         <button
           onClick={handleNext}
-          disabled={!isPageValid() || submitting}
+          disabled={submitting}
           className="inline-flex items-center gap-1 rounded-lg bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800 disabled:opacity-50"
         >
           {submitting ? (

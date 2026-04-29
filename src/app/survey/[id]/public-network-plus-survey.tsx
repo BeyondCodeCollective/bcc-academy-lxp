@@ -552,6 +552,7 @@ export function PublicNetworkPlusSurvey({ surveyId, programSlug }: Props) {
     const updated = { ...answers, [id]: val };
     setAnswers(updated);
     persist({ answers: updated });
+    if (error) setError("");
   }
 
   function contactPageValid(): boolean {
@@ -565,7 +566,11 @@ export function PublicNetworkPlusSurvey({ surveyId, programSlug }: Props) {
   }
 
   function handleNext() {
-    if (!isCurrentValid()) return;
+    if (!isCurrentValid()) {
+      setError("Please answer all required questions (marked with *) before continuing.");
+      return;
+    }
+    setError("");
     if (isLastPage) {
       submit();
       return;
@@ -675,10 +680,12 @@ export function PublicNetworkPlusSurvey({ surveyId, programSlug }: Props) {
           onEmailChange={(v) => {
             setEmail(v);
             persist({ email: v });
+            if (error) setError("");
           }}
           onFullNameChange={(v) => {
             setFullName(v);
             persist({ fullName: v });
+            if (error) setError("");
           }}
         />
       ) : currentPage ? (
@@ -708,7 +715,7 @@ export function PublicNetworkPlusSurvey({ surveyId, programSlug }: Props) {
         </button>
         <button
           onClick={handleNext}
-          disabled={!isCurrentValid() || submitting}
+          disabled={submitting}
           className="inline-flex items-center gap-1 rounded-lg bg-[#1a1a1a] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#2a2a2a] disabled:opacity-50"
         >
           {submitting ? (
