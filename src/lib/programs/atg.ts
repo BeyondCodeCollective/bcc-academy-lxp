@@ -373,7 +373,22 @@ Guidelines:
 - Offer practice questions when appropriate to reinforce learning.
 - Keep responses focused — 2-3 short paragraphs max unless they ask for more detail.`,
   },
-  surveys: [],
+  surveys: [
+    {
+      id: "pre-survey-spring-2026",
+      title: "Pre-Program Survey",
+      description:
+        "Quick background survey so we can tailor the program to you. Takes about 5 minutes.",
+      required: true,
+    },
+    {
+      id: "mid-program-spring-2026",
+      title: "Mid-Program Check-In",
+      description:
+        "You're halfway. 15–20 minutes to help us shape the second half of ATG around what you need.",
+      required: false,
+    },
+  ],
   coppa: { required: false },
   seo: {
     title: "After The Game — IT Career Training by Beyond Code Collective",

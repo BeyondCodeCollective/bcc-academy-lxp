@@ -275,7 +275,306 @@ const ATG_FINAL_PAGE: SurveyPage = {
   ],
 };
 
-function getSurveyPages(programSlug: string): SurveyPage[] {
+const LIKERT_1_5 = ["1", "2", "3", "4", "5"];
+const LIKERT_AGREE_ANCHORS = { low: "1 — Strongly disagree", high: "5 — Strongly agree" };
+
+const MINDSET_STATEMENTS = [
+  "I can clearly describe the career path or type of role I'm working toward.",
+  "I can tell my professional story — who I am, what I've done, where I'm headed.",
+  "I can talk about my value and accomplishments without downplaying them.",
+  "I feel I belong in the career space I'm working toward.",
+  "When I face a setback, I know how to reflect, adjust, and keep moving forward.",
+  "I see myself as more than my athletic identity.",
+];
+
+const TECH_CONFIDENCE_STATEMENTS = [
+  "I feel confident in my ability to learn technical material.",
+  "I see myself succeeding in a tech career.",
+  "I feel I belong in the tech industry.",
+  "I can talk about my technical skills with someone who works in tech.",
+  "I know how to keep building tech skills on my own.",
+];
+
+const ATG_MID_PROGRAM_PAGES: SurveyPage[] = [
+  {
+    title: "About You",
+    subtitle:
+      'We collect this to share the impact of our learner community with our funders. You can mark "Prefer not to say" on any item — your choice never affects your participation.',
+    questions: [
+      { type: "month-year", id: "mid_date_of_birth", label: "Month and year of birth", required: true },
+      {
+        type: "radio",
+        id: "mid_gender",
+        label: "What is your gender?",
+        options: ["Man", "Woman", "Non-binary", "Genderqueer / Gender non-conforming", "Transgender", "Prefer not to say", "Other"],
+        required: true,
+      },
+      {
+        type: "multi-select",
+        id: "mid_race_ethnicity",
+        label: "What is your race and/or ethnicity? Select all that apply.",
+        options: ["American Indian or Alaska Native", "Asian", "Black or African American", "Hispanic or Latino", "Middle Eastern or North African", "Native Hawaiian or Pacific Islander", "White", "Prefer not to say", "Other"],
+        required: true,
+      },
+      {
+        type: "multi-select",
+        id: "mid_languages",
+        label: "What languages do you speak at home? Select all that apply.",
+        options: ["English", "Spanish", "Prefer not to say", "Other"],
+        required: true,
+      },
+      { type: "text", id: "mid_zip_code", label: "ZIP code", placeholder: "e.g. 40202", required: true },
+      {
+        type: "radio",
+        id: "mid_education_level",
+        label: "What is the highest level of education you have completed?",
+        options: ["Some high school (no diploma)", "High school diploma or GED", "Some college (no degree)", "Associate degree", "Bachelor's degree", "Graduate or professional degree", "Prefer not to say"],
+        required: true,
+      },
+      {
+        type: "radio",
+        id: "mid_first_gen_college",
+        label: "If you started college today, would you be the first in your immediate family to attend or complete college?",
+        options: ["Yes", "No", "Not applicable", "Prefer not to say"],
+        required: true,
+      },
+      {
+        type: "multi-select",
+        id: "mid_employment_status",
+        label: "What is your current employment status? Select all that apply.",
+        options: ["Employed full-time", "Employed part-time", "Unemployed", "Looking for work", "Not currently looking for work", "Student", "Prefer not to say", "Other"],
+        required: true,
+      },
+      {
+        type: "radio",
+        id: "mid_household_income",
+        label: "What best describes your household income range?",
+        options: ["Under $20,000", "$20,000 – $39,999", "$40,000 – $59,999", "$60,000 – $79,999", "$80,000 or more", "Prefer not to say"],
+        required: true,
+      },
+      {
+        type: "radio",
+        id: "mid_disability",
+        label: "Do you identify as a person with a disability? (Self-reported and voluntary — helps us keep the program accessible.)",
+        options: ["Yes", "No", "Prefer not to say"],
+        required: true,
+      },
+    ],
+  },
+  {
+    title: "Where you started",
+    subtitle:
+      "Thinking back to BEFORE After the Game started (4 weeks ago), rate how much you agreed with each statement then. (1 = Strongly Disagree · 5 = Strongly Agree)",
+    questions: [
+      {
+        type: "likert",
+        id: "mindset_before",
+        label: "Mindset, identity, and career direction — BEFORE ATG started",
+        scale: LIKERT_1_5,
+        scaleAnchors: LIKERT_AGREE_ANCHORS,
+        statements: MINDSET_STATEMENTS,
+        required: true,
+      },
+      {
+        type: "likert",
+        id: "tech_confidence_before",
+        label: "Tech confidence and direction — BEFORE ATG started",
+        scale: LIKERT_1_5,
+        scaleAnchors: LIKERT_AGREE_ANCHORS,
+        statements: TECH_CONFIDENCE_STATEMENTS,
+        required: true,
+      },
+    ],
+  },
+  {
+    title: "Where you are right now",
+    subtitle:
+      "Now rate yourself on the same statements as of RIGHT NOW (Week 4). (1 = Strongly Disagree · 5 = Strongly Agree)",
+    questions: [
+      {
+        type: "likert",
+        id: "mindset_now",
+        label: "Mindset, identity, and career direction — RIGHT NOW",
+        scale: LIKERT_1_5,
+        scaleAnchors: LIKERT_AGREE_ANCHORS,
+        statements: MINDSET_STATEMENTS,
+        required: true,
+      },
+      {
+        type: "likert",
+        id: "tech_confidence_now",
+        label: "Tech confidence and direction — RIGHT NOW",
+        scale: LIKERT_1_5,
+        scaleAnchors: LIKERT_AGREE_ANCHORS,
+        statements: TECH_CONFIDENCE_STATEMENTS,
+        required: true,
+      },
+    ],
+  },
+  {
+    title: "How the CompTIA course is going",
+    subtitle: "This is about the technical learning side of ATG. (1 = Strongly disagree · 5 = Strongly agree)",
+    questions: [
+      {
+        type: "likert",
+        id: "comptia_experience",
+        label: "How much do you agree with each statement?",
+        scale: LIKERT_1_5,
+        scaleAnchors: LIKERT_AGREE_ANCHORS,
+        statements: [
+          "The pace of the CompTIA course works for me.",
+          "I feel supported by the CompTIA instructor.",
+          "The material feels relevant to a real tech career.",
+          "I am able to keep up with the work outside of class time.",
+        ],
+        required: true,
+      },
+      {
+        type: "text",
+        id: "comptia_most_helpful",
+        label: "What part of CompTIA has been the most helpful so far?",
+        placeholder: "Tell us what's been most valuable…",
+        required: true,
+      },
+      {
+        type: "text",
+        id: "comptia_hardest",
+        label: "What part has been hardest, confusing, or could be better?",
+        placeholder: "Be candid — this is how we improve.",
+        required: true,
+      },
+    ],
+  },
+  {
+    title: "How the mindset & soft skills coaching is going",
+    subtitle: "(1 = Strongly disagree · 5 = Strongly agree)",
+    questions: [
+      {
+        type: "likert",
+        id: "coaching_experience",
+        label: "How much do you agree with each statement?",
+        scale: LIKERT_1_5,
+        scaleAnchors: LIKERT_AGREE_ANCHORS,
+        statements: [
+          "The coaching sessions feel valuable to my growth.",
+          "I leave the sessions thinking differently about my career or myself.",
+          "The pace and structure of the sessions work for me.",
+          "I feel comfortable being honest and open in these sessions.",
+        ],
+        required: true,
+      },
+      {
+        type: "text",
+        id: "coaching_powerful_moment",
+        label: "What's been the most powerful moment or shift from the coaching so far?",
+        placeholder: "Share what's stood out…",
+        required: true,
+      },
+      {
+        type: "text",
+        id: "coaching_improvement",
+        label: "What would make the coaching even more useful in the second half?",
+        placeholder: "Be specific — this shapes how we run the next 4 weeks.",
+        required: true,
+      },
+    ],
+  },
+  {
+    title: "1-on-1 coaching",
+    questions: [
+      {
+        type: "radio",
+        id: "one_on_one_rating",
+        label: "How would you describe your 1:1 sessions with Ramon so far?",
+        options: [
+          "Extremely valuable — I look forward to them",
+          "Valuable — they're helping",
+          "Mixed — some sessions help more than others",
+          "Not yet what I hoped — still figuring out how to use them",
+          "I haven't been able to attend/haven't started",
+          "Prefer not to say",
+        ],
+        required: true,
+      },
+      {
+        type: "text",
+        id: "one_on_one_memorable",
+        label: "What's something Ramon has said or done that has stuck with you? (if applicable)",
+        placeholder: "Optional — share anything that's stayed with you.",
+        required: false,
+      },
+      {
+        type: "text",
+        id: "one_on_one_improvement",
+        label: "What would make your 1:1 time with Ramon more useful in the second half of the program?",
+        placeholder: "Be specific…",
+        required: true,
+      },
+    ],
+  },
+  {
+    title: "Help us adjust the second half",
+    subtitle: "This is the actionable feedback section. We'll use this directly.",
+    questions: [
+      {
+        type: "text",
+        id: "want_more_of",
+        label: "What is one thing you want MORE of in the second half?",
+        placeholder: "Be specific…",
+        required: true,
+      },
+      {
+        type: "multi-select",
+        id: "support_needed",
+        label: "What kind of support would make the biggest difference for you in the next 4 weeks? Select all that apply.",
+        options: [
+          "More 1:1 time with a coach",
+          "Peer accountability or study groups",
+          "Help with exam prep/practice tests",
+          "Resume or interview prep",
+          "Connections to people working in tech",
+          "Mental health or wellness resources",
+          "Financial support information",
+          "More flexibility in scheduling",
+          "Other",
+          "Prefer not to say",
+        ],
+        required: true,
+      },
+    ],
+  },
+  {
+    title: "Looking Ahead",
+    questions: [
+      {
+        type: "text",
+        id: "success_end_of_program",
+        label: "What does success look like for you when After the Game ends?",
+        placeholder: "Be as specific as you can.",
+        required: true,
+      },
+      {
+        type: "text",
+        id: "success_12_months",
+        label: "What does success look like for you 12 months after this program ends?",
+        placeholder: "Where do you want to be?",
+        required: true,
+      },
+      {
+        type: "text",
+        id: "mid_anything_else",
+        label: "Anything else you want us to know?",
+        placeholder: "Optional — share anything you'd like us to know.",
+        required: false,
+      },
+    ],
+  },
+];
+
+function getSurveyPages(surveyId: string, programSlug: string): SurveyPage[] {
+  if (surveyId === "mid-program-spring-2026" && programSlug === "atg") {
+    return ATG_MID_PROGRAM_PAGES;
+  }
   const finalPage = programSlug === "atg" ? ATG_FINAL_PAGE : FORGE_FINAL_PAGE;
   return [...SHARED_PAGES, finalPage];
 }
@@ -291,7 +590,7 @@ interface Props {
 export function SurveyWizard({ surveyId, programSlug, existingResponses }: Props) {
   const router = useRouter();
   const storageKey = `survey-${surveyId}-progress`;
-  const SURVEY_PAGES = getSurveyPages(programSlug);
+  const SURVEY_PAGES = getSurveyPages(surveyId, programSlug);
 
   const [page, setPage] = useState(() => {
     if (typeof window !== "undefined") {
