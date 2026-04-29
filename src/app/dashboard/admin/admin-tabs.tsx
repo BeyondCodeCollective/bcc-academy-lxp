@@ -801,6 +801,7 @@ export function AdminTabs({
                         responseCount={row.response_count}
                         programSlug={row.program_slug}
                         surveyType={row.survey_type}
+                        previewHref={`/survey/${row.survey_type}`}
                         onExport={async () => {
                           const data = await exportPublicSurveyResponses(row.program_slug, row.survey_type);
                           if (data.length === 0) return;
@@ -911,6 +912,7 @@ export function AdminTabs({
                       completed={completed}
                       totalStudents={totalStudents}
                       pct={pct}
+                      previewHref={`/dashboard/survey/${survey.id}`}
                       onExport={async () => {
                         const data = await exportSurveyResponses(programSlug, survey.id);
                         if (data.length === 0) return;
@@ -1985,6 +1987,7 @@ function SurveyCard({
   onExport,
   responses,
   onDelete,
+  previewHref,
 }: {
   title: string;
   completed: number;
@@ -1993,6 +1996,7 @@ function SurveyCard({
   onExport: () => Promise<void>;
   responses: { id: string; label: string; sublabel: string; completedAt: string | null }[];
   onDelete: (id: string) => Promise<void>;
+  previewHref: string;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -2032,6 +2036,15 @@ function SurveyCard({
         <div className="h-full rounded-full bg-neutral-900 transition-all" style={{ width: `${pct}%` }} />
       </div>
       <div className="flex items-center gap-2">
+        <a
+          href={previewHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+        >
+          <ExternalLink size={12} />
+          Preview
+        </a>
         <button
           type="button"
           onClick={async () => { try { await onExport(); } catch (e) { console.error("Export failed:", e); } }}
@@ -2095,6 +2108,7 @@ function PublicSurveyCard({
   surveyType,
   onExport,
   onDelete,
+  previewHref,
 }: {
   title: string;
   responseCount: number;
@@ -2102,6 +2116,7 @@ function PublicSurveyCard({
   surveyType: string;
   onExport: () => Promise<void>;
   onDelete: (email: string) => Promise<void>;
+  previewHref: string;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -2145,6 +2160,15 @@ function PublicSurveyCard({
         </div>
       </div>
       <div className="flex items-center gap-2">
+        <a
+          href={previewHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+        >
+          <ExternalLink size={12} />
+          Preview
+        </a>
         <button
           type="button"
           onClick={async () => { try { await onExport(); } catch (e) { console.error("Export failed:", e); } }}
