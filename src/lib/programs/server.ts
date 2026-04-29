@@ -1,6 +1,7 @@
 import { headers, cookies } from "next/headers";
 import { getProgramBySlug, getProgramByDomain, isKnownProgramHost } from "./index";
 import type { ProgramConfig } from "./types";
+import { createServiceClient } from "@/lib/supabase/server";
 
 /**
  * Get the current program config in a server component or server action.
@@ -31,4 +32,19 @@ export async function getProgram(): Promise<ProgramConfig> {
   if (cookieSlug) return getProgramBySlug(cookieSlug);
 
   return getProgramByDomain(host);
+}
+
+// Resolves the current program's database UUID. Use this in server actions
+// that write to tables with a program_id FK — saves every action from
+// re-querying programs by slug.
+export async function getProgramId(): Promise<string> {
+  const program = await getProgram();
+  const svc = createServiceClient();
+  const { data, error } = await svc
+    .from("programs")
+    .select("id")
+    .eq("slug", program.slug)
+    .single();
+  if (error || !data) throw new Error(`Program not found: ${program.slug}`);
+  return data.id;
 }

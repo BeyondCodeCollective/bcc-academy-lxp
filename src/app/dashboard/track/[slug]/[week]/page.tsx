@@ -5,7 +5,6 @@ import { computeCurrentWeek } from "@/lib/utils";
 import { ArrowLeft, BookOpen, Users, Video, CheckCircle, Download, ExternalLink, Link as LinkIcon, FileText } from "lucide-react";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { getSessionContent } from "@/app/dashboard/admin/actions";
-import type { SessionResource } from "@/app/dashboard/admin/actions";
 import { isStorageUrl, isUploadedVideo, isUploadedRecording, getYouTubeEmbedUrl } from "@/lib/storage-utils";
 import { getProgram } from "@/lib/programs/server";
 import { getTrackBySlug } from "@/lib/programs";
@@ -15,6 +14,7 @@ import { ReflectionForm } from "@/components/reflection-form";
 import { IntakeForm } from "@/components/intake-form";
 import { getSurveyStatus } from "@/app/dashboard/actions";
 import type { WeekConfig } from "@/lib/programs/types";
+import { resolveSessionContent } from "@/lib/session-content";
 
 export default async function TrackWeekPage({
   params,
@@ -66,40 +66,20 @@ export default async function TrackWeekPage({
     ? await getSessionContent(trackSlug, weekNum)
     : null;
 
-  // Apply instructor overrides (DB values override config defaults)
-  const displayTitle = sessionContent?.title || weekContent.title;
-  const displaySubtitle = sessionContent?.subtitle || weekContent.subtitle;
-  const displayDescription = sessionContent?.description || weekContent.description;
-  const displayObjectives = (sessionContent?.objectives as string[] | null)?.length
-    ? (sessionContent!.objectives as string[])
-    : weekContent.objectives;
-
-  // Build meeting links array (supports up to 2 sessions via DB columns)
-  const meetingLinks: (string | null)[] = [];
-  const sessionStatuses: string[] = [];
-  const recordingUrls: (string | null)[] = [];
-
-  for (let i = 0; i < weekContent.sessions.length; i++) {
-    if (i === 0) {
-      meetingLinks.push(sessionContent?.meeting_link ?? null);
-      sessionStatuses.push(sessionContent?.status ?? "upcoming");
-      recordingUrls.push(sessionContent?.recording_url ?? null);
-    } else if (i === 1) {
-      meetingLinks.push(sessionContent?.meeting_link_2 ?? null);
-      sessionStatuses.push(sessionContent?.status_2 ?? "upcoming");
-      recordingUrls.push(sessionContent?.recording_url_2 ?? null);
-    } else {
-      meetingLinks.push(null);
-      sessionStatuses.push("upcoming");
-      recordingUrls.push(null);
-    }
-  }
+  const {
+    title: displayTitle,
+    subtitle: displaySubtitle,
+    description: displayDescription,
+    objectives: displayObjectives,
+    meetingLinks,
+    sessionStatuses,
+    recordingUrls,
+    resources,
+  } = resolveSessionContent(weekContent, sessionContent);
 
   const adminMarkedComplete = sessionStatuses.every((s) => s === "completed");
   const isCompleted = adminMarkedComplete;
   const isCurrent = trackStarted && weekNum === currentWeek && !adminMarkedComplete;
-
-  const resources: SessionResource[] = sessionContent?.resources ?? [];
 
   const sessionsLabel = weekContent.sessions.length === 1 ? "Session" : "Sessions";
 

@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import type { ComponentType } from "react";
 import { getProgram } from "@/lib/programs/server";
 import { TextScaleToggle } from "@/components/text-scale-toggle";
 import { ReadAloudButton } from "@/components/read-aloud-button";
@@ -8,8 +9,19 @@ import { PublicNetworkPlusSurvey } from "./public-network-plus-survey";
 // gate it — anyone who lands on catalyst.bccacademy.io/survey/network-plus-post
 // can fill it out without logging in. The survey config is sourced from the
 // current program (resolved by host header); missing survey IDs 404.
+//
+// Adding a new public survey: register it in SURVEY_COMPONENTS below. The key
+// is the survey ID from the program config; the value is the React component.
+// If a survey needs a totally bespoke layout, add it here as an escape hatch
+// rather than forcing it through a generic wizard.
 
 export const dynamic = "force-dynamic";
+
+type SurveyProps = { surveyId: string; programSlug: string };
+
+const SURVEY_COMPONENTS: Record<string, ComponentType<SurveyProps>> = {
+  "network-plus-post": PublicNetworkPlusSurvey,
+};
 
 export default async function PublicSurveyPage({
   params,
@@ -22,10 +34,8 @@ export default async function PublicSurveyPage({
 
   if (!survey) notFound();
 
-  // For the initial launch we only have one public survey — the Network+
-  // post-survey on Catalyst. Future public surveys will need their own
-  // components or a declarative config-driven wizard.
-  if (id !== "network-plus-post") notFound();
+  const SurveyComponent = SURVEY_COMPONENTS[id];
+  if (!SurveyComponent) notFound();
 
   return (
     <main className="min-h-screen bg-neutral-50">
@@ -42,10 +52,7 @@ export default async function PublicSurveyPage({
         </h1>
         <p className="mt-2 text-sm text-neutral-700">{survey.description}</p>
       </div>
-      <PublicNetworkPlusSurvey
-        surveyId={survey.id}
-        programSlug={program.slug}
-      />
+      <SurveyComponent surveyId={survey.id} programSlug={program.slug} />
     </main>
   );
 }

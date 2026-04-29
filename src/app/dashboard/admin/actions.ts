@@ -108,6 +108,22 @@ export async function updateCohortAction(
   return { success: true };
 }
 
+// Resolves a program UUID from its slug using the service client.
+// Used by actions that receive programSlug as a parameter rather than
+// resolving it from the current host.
+async function programIdFromSlug(
+  svc: ReturnType<typeof createServiceClient>,
+  slug: string,
+): Promise<string> {
+  const { data, error } = await svc
+    .from("programs")
+    .select("id")
+    .eq("slug", slug)
+    .single();
+  if (error || !data) throw new Error(`Program not found: ${slug}`);
+  return data.id;
+}
+
 // ─── Track Enrollment ─────────────────────────────────────────────────────────
 
 export type StudentTrackRow = {
@@ -120,18 +136,14 @@ export type StudentTrackRow = {
 
 export async function getStudentTracks(programSlug: string): Promise<StudentTrackRow[]> {
   const svc = createServiceClient();
-  const { data: programRow } = await svc
-    .from("programs")
-    .select("id")
-    .eq("slug", programSlug)
-    .single();
-
-  if (!programRow) return [];
+  let programId: string;
+  try { programId = await programIdFromSlug(svc, programSlug); }
+  catch { return []; }
 
   const { data, error } = await svc
     .from("student_tracks")
     .select("*")
-    .eq("program_id", programRow.id)
+    .eq("program_id", programId)
     .order("created_at");
 
   if (error) {
@@ -147,21 +159,10 @@ export async function assignStudentTrack(
   programSlug: string
 ) {
   const { svc } = await requireAdmin();
-
-  const { data: programRow } = await svc
-    .from("programs")
-    .select("id")
-    .eq("slug", programSlug)
-    .single();
-
-  if (!programRow) throw new Error("Program not found");
+  const programId = await programIdFromSlug(svc, programSlug);
 
   const { error } = await svc.from("student_tracks").upsert(
-    {
-      student_id: studentId,
-      track_slug: trackSlug,
-      program_id: programRow.id,
-    },
+    { student_id: studentId, track_slug: trackSlug, program_id: programId },
     { onConflict: "student_id,track_slug,program_id" }
   );
 
@@ -176,21 +177,14 @@ export async function removeStudentTrack(
   programSlug: string
 ) {
   const { svc } = await requireAdmin();
-
-  const { data: programRow } = await svc
-    .from("programs")
-    .select("id")
-    .eq("slug", programSlug)
-    .single();
-
-  if (!programRow) throw new Error("Program not found");
+  const programId = await programIdFromSlug(svc, programSlug);
 
   const { error } = await svc
     .from("student_tracks")
     .delete()
     .eq("student_id", studentId)
     .eq("track_slug", trackSlug)
-    .eq("program_id", programRow.id);
+    .eq("program_id", programId);
 
   if (error) throw new Error(error.message);
   revalidatePath("/dashboard", "page");
@@ -203,19 +197,12 @@ export async function bulkAssignTrack(
   programSlug: string
 ) {
   const { svc } = await requireAdmin();
-
-  const { data: programRow } = await svc
-    .from("programs")
-    .select("id")
-    .eq("slug", programSlug)
-    .single();
-
-  if (!programRow) throw new Error("Program not found");
+  const programId = await programIdFromSlug(svc, programSlug);
 
   const rows = studentIds.map((sid) => ({
     student_id: sid,
     track_slug: trackSlug,
-    program_id: programRow.id,
+    program_id: programId,
   }));
 
   const { error } = await svc

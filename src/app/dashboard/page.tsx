@@ -1,8 +1,7 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
-import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
-import { getDemoUser, DEMO_COOKIE } from "@/lib/demo-users";
+import { createClient } from "@/lib/supabase/server";
 import { computeCurrentWeek } from "@/lib/utils";
 import Link from "next/link";
 import { WelcomeVideo } from "@/components/welcome-video";
@@ -12,6 +11,8 @@ import { getProgram } from "@/lib/programs/server";
 import type { ProgramConfig, TrackConfig } from "@/lib/programs/types";
 import { canAccessAdminPanel } from "@/lib/roles";
 import { getSessionContext } from "@/lib/auth/session";
+import { resolveCurrentUser } from "@/lib/current-user";
+import { getEnrolledTracks } from "@/lib/enrollment";
 
 export const dynamic = "force-dynamic";
 
@@ -41,8 +42,13 @@ export default async function DashboardPage() {
 }
 
 async function DashboardContent({ program }: { program: ProgramConfig }) {
-  let firstName = "there";
-  let lastName = "";
+  const cookieStore = await cookies();
+  const currentUser = await resolveCurrentUser(cookieStore);
+  if (!currentUser) redirect("/");
+
+  let firstName = currentUser.firstName;
+  let lastName = currentUser.lastName;
+  let userRole = currentUser.userRole;
   let cohortName = program.defaultCohort.displayName;
   let cohortStartDate = program.defaultCohort.startDate;
   let noCohort = false;
@@ -51,21 +57,17 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
   let enrolledTrackSlugs: string[] = [];
   let pendingSurveys: { id: string; title: string; description: string }[] = [];
   let announcements: { id: string; message: string; track_slug: string | null; created_at: string }[] = [];
-  let userRole = "student";
 
-  if (isSupabaseConfigured()) {
+  if (!currentUser.isDemo) {
     const ctx = await getSessionContext();
     if (!ctx) redirect("/");
 
     const { userId, student } = ctx;
     const supabase = await createClient();
 
-    userRole = student?.role ?? "student";
     const cohort = student?.cohorts ?? null;
     const hasCohortId = !!student?.cohort_id;
 
-    firstName = student?.first_name || "there";
-    lastName = student?.last_name || "";
     const profileDone = !!student?.onboarding_completed;
     const welcomeDone = !!student?.welcome_seen_at;
     needsOnboarding = !profileDone || !welcomeDone;
@@ -74,7 +76,7 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
     const isAdminUser = canAccessAdminPanel(userRole);
     const needsSurveys = !!program.surveys?.length;
 
-    const [defaultCohortRes, trackRowsRes, completedSurveysRes] = await Promise.all([
+    const [defaultCohortRes, enrolledTracks, completedSurveysRes] = await Promise.all([
       hasCohortId
         ? Promise.resolve({ data: null })
         : supabase
@@ -84,8 +86,8 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
             .limit(1)
             .maybeSingle(),
       isAdminUser
-        ? Promise.resolve({ data: null })
-        : supabase.from("student_tracks").select("track_slug").eq("student_id", userId),
+        ? Promise.resolve([])
+        : getEnrolledTracks(supabase, userId, program),
       needsSurveys
         ? supabase
             .from("survey_responses")
@@ -112,7 +114,7 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
     }
 
     if (!isAdminUser) {
-      enrolledTrackSlugs = (trackRowsRes.data ?? []).map((r) => r.track_slug);
+      enrolledTrackSlugs = enrolledTracks.map((t) => t.slug);
     }
 
     if (needsSurveys) {
@@ -136,17 +138,6 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
       .order("created_at", { ascending: false })
       .limit(5);
     announcements = announcementRows ?? [];
-  } else {
-    const cookieStore = await cookies();
-    const demoEmail = cookieStore.get(DEMO_COOKIE)?.value;
-    if (demoEmail) {
-      const demoUser = getDemoUser(demoEmail);
-      if (demoUser) {
-        firstName = demoUser.first_name;
-      } else {
-        firstName = demoEmail.split("@")[0].replace(/[._-]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-      }
-    }
   }
 
   void cohortStartDate;

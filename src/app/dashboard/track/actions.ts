@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { getProgram } from "@/lib/programs/server";
+import { getProgramId } from "@/lib/programs/server";
 import { revalidatePath } from "next/cache";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -67,18 +67,8 @@ export async function submitProject(
     files: SubmissionFile[];
   }
 ) {
-  const userId = await requireAuth();
-  const program = await getProgram();
+  const [userId, programId] = await Promise.all([requireAuth(), getProgramId()]);
   const svc = createServiceClient();
-
-  // Look up program ID
-  const { data: programRow } = await svc
-    .from("programs")
-    .select("id")
-    .eq("slug", program.slug)
-    .single();
-
-  if (!programRow) throw new Error("Program not found");
 
   const { error } = await svc.from("submissions").upsert(
     {
@@ -89,7 +79,7 @@ export async function submitProject(
       links: data.links,
       files: data.files,
       submitted_at: new Date().toISOString(),
-      program_id: programRow.id,
+      program_id: programId,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "student_id,track_slug,week_number" }
@@ -130,17 +120,8 @@ export async function submitReflection(
   weekNumber: number,
   responses: Record<string, string>
 ) {
-  const userId = await requireAuth();
-  const program = await getProgram();
+  const [userId, programId] = await Promise.all([requireAuth(), getProgramId()]);
   const svc = createServiceClient();
-
-  const { data: programRow } = await svc
-    .from("programs")
-    .select("id")
-    .eq("slug", program.slug)
-    .single();
-
-  if (!programRow) throw new Error("Program not found");
 
   const { error } = await svc.from("reflections").upsert(
     {
@@ -149,7 +130,7 @@ export async function submitReflection(
       week_number: weekNumber,
       responses,
       submitted_at: new Date().toISOString(),
-      program_id: programRow.id,
+      program_id: programId,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "student_id,track_slug,week_number" }
