@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { addStudentAction, deleteStudentAction, updateStudentAction, updateCohortAction, saveSessionContent, assignStudentTrack, removeStudentTrack, bulkAssignTrack, exportSurveyResponses, exportPublicSurveyResponses, getAllSubmissions, getAllReflections, addFeedback, assignInstructorTrack, removeInstructorTrack } from "./actions";
+import { addStudentAction, deleteStudentAction, updateStudentAction, updateCohortAction, saveSessionContent, assignStudentTrack, removeStudentTrack, bulkAssignTrack, exportSurveyResponses, exportPublicSurveyResponses, getAllSubmissions, getAllReflections, addFeedback, assignInstructorTrack, removeInstructorTrack, deleteSurveyResponse, deletePublicSurveyResponse, listPublicSurveyResponses } from "./actions";
 import type { SessionResource, StudentTrackRow, SurveyStatsRow, AdminSubmissionRow, AdminReflectionRow, InstructorTrackRow, PublicSurveyStatsRow } from "./actions";
 import { canManageStudents, canSwitchPrograms } from "@/lib/roles";
 import {
@@ -371,6 +371,7 @@ export function AdminTabs({
   publicSurveyStats = [],
   userRole = "admin",
   allPrograms = [],
+  engagementScores = {},
 }: {
   cohorts: CohortRow[];
   students: StudentRow[];
@@ -383,6 +384,7 @@ export function AdminTabs({
   publicSurveyStats?: PublicSurveyStatsRow[];
   userRole?: string;
   allPrograms?: { slug: string; name: string }[];
+  engagementScores?: Record<string, { total: number; attendance: number; submissions: number; reflections: number; tutorMessages: number }>;
 }) {
   const programSlug = initialProgramSlug;
   const isManager = canManageStudents(userRole);
@@ -793,64 +795,33 @@ export function AdminTabs({
                       surveyConfigs.find((s) => s.id === row.survey_type)?.title ??
                       row.survey_type;
                     return (
-                    <div
-                      key={`${row.program_slug}-${row.survey_type}`}
-                      className="rounded-xl border border-neutral-200 bg-white p-4"
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <div>
-                          <p className="text-sm font-semibold text-neutral-900">
-                            {title}
-                          </p>
-                          <p className="text-xs text-neutral-400 mt-0.5">
-                            {row.response_count} response{row.response_count === 1 ? "" : "s"}
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          try {
-                            const data = await exportPublicSurveyResponses(row.program_slug, row.survey_type);
-                            if (data.length === 0) return;
-                            const allKeys = new Set<string>();
-                            data.forEach((r) => {
-                              Object.keys(r.responses).forEach((k) => allKeys.add(k));
-                            });
-                            const headers = ["Full Name", "Email", "Completed At", ...Array.from(allKeys)];
-                            const rows = data.map((r) => [
-                              r.full_name,
-                              r.email,
-                              r.completed_at ?? "",
-                              ...Array.from(allKeys).map((k) => {
-                                const val = r.responses[k];
-                                if (Array.isArray(val)) return val.join("; ");
-                                if (typeof val === "object" && val !== null) {
-                                  return Object.entries(val).map(([stmt, ans]) => `${stmt}: ${ans}`).join("; ");
-                                }
-                                return String(val ?? "");
-                              }),
-                            ]);
-                            const csv = [headers, ...rows]
-                              .map((rr) => rr.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
-                              .join("\n");
-                            const blob = new Blob([csv], { type: "text/csv" });
-                            const url = URL.createObjectURL(blob);
-                            const a = document.createElement("a");
-                            a.href = url;
-                            a.download = `${row.program_slug}-${row.survey_type}-responses.csv`;
-                            a.click();
-                            URL.revokeObjectURL(url);
-                          } catch (e) {
-                            console.error("Public export failed:", e);
-                          }
+                      <PublicSurveyCard
+                        key={`${row.program_slug}-${row.survey_type}`}
+                        title={title}
+                        responseCount={row.response_count}
+                        programSlug={row.program_slug}
+                        surveyType={row.survey_type}
+                        onExport={async () => {
+                          const data = await exportPublicSurveyResponses(row.program_slug, row.survey_type);
+                          if (data.length === 0) return;
+                          const allKeys = new Set<string>();
+                          data.forEach((r) => { Object.keys(r.responses).forEach((k) => allKeys.add(k)); });
+                          const headers = ["Full Name", "Email", "Completed At", ...Array.from(allKeys)];
+                          const rows = data.map((r) => [
+                            r.full_name, r.email, r.completed_at ?? "",
+                            ...Array.from(allKeys).map((k) => {
+                              const val = r.responses[k];
+                              if (Array.isArray(val)) return val.join("; ");
+                              if (typeof val === "object" && val !== null) return Object.entries(val).map(([s, a]) => `${s}: ${a}`).join("; ");
+                              return String(val ?? "");
+                            }),
+                          ]);
+                          downloadCsv([headers, ...rows], `${row.program_slug}-${row.survey_type}-responses.csv`);
                         }}
-                        className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
-                      >
-                        <Download size={12} />
-                        Export CSV
-                      </button>
-                    </div>
+                        onDelete={async (email) => {
+                          await deletePublicSurveyResponse(email, row.survey_type, row.program_slug);
+                        }}
+                      />
                     );
                   })}
               </div>
@@ -932,63 +903,44 @@ export function AdminTabs({
                   const totalStudents = students.filter((s) => s.role !== "admin").length;
                   const pct = totalStudents > 0 ? Math.round((completed / totalStudents) * 100) : 0;
 
+                  const completedStats = stats.filter((s) => s.completed_at);
                   return (
-                    <div key={survey.id} className="rounded-xl border border-neutral-200 bg-white p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="text-sm font-semibold text-neutral-900">{survey.title}</p>
-                        <span className="text-xs text-neutral-400">
-                          {completed} of {totalStudents} completed
-                        </span>
-                      </div>
-                      <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-100 mb-3">
-                        <div
-                          className="h-full rounded-full bg-neutral-900 transition-all"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          try {
-                            const data = await exportSurveyResponses(programSlug, survey.id);
-                            if (data.length === 0) return;
-                            // Build CSV
-                            const allKeys = new Set<string>();
-                            data.forEach((row) => {
-                              Object.keys(row.responses).forEach((k) => allKeys.add(k));
-                            });
-                            const headers = ["Name", "Email", "Completed At", ...Array.from(allKeys)];
-                            const rows = data.map((row) => [
-                              row.student_name,
-                              row.email,
-                              row.completed_at ?? "",
-                              ...Array.from(allKeys).map((k) => {
-                                const val = row.responses[k];
-                                if (Array.isArray(val)) return val.join("; ");
-                                if (typeof val === "object" && val !== null) {
-                                  return Object.entries(val).map(([stmt, ans]) => `${stmt}: ${ans}`).join("; ");
-                                }
-                                return String(val ?? "");
-                              }),
-                            ]);
-                            const csv = [headers, ...rows].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
-                            const blob = new Blob([csv], { type: "text/csv" });
-                            const url = URL.createObjectURL(blob);
-                            const a = document.createElement("a");
-                            a.href = url;
-                            a.download = `${survey.id}-responses.csv`;
-                            a.click();
-                            URL.revokeObjectURL(url);
-                          } catch (e) {
-                            console.error("Export failed:", e);
-                          }
-                        }}
-                        className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
-                      >
-                        <Download size={12} />
-                        Export CSV
-                      </button>
-                    </div>
+                    <SurveyCard
+                      key={survey.id}
+                      title={survey.title}
+                      completed={completed}
+                      totalStudents={totalStudents}
+                      pct={pct}
+                      onExport={async () => {
+                        const data = await exportSurveyResponses(programSlug, survey.id);
+                        if (data.length === 0) return;
+                        const allKeys = new Set<string>();
+                        data.forEach((row) => { Object.keys(row.responses).forEach((k) => allKeys.add(k)); });
+                        const headers = ["Name", "Email", "Completed At", ...Array.from(allKeys)];
+                        const rows = data.map((row) => [
+                          row.student_name, row.email, row.completed_at ?? "",
+                          ...Array.from(allKeys).map((k) => {
+                            const val = row.responses[k];
+                            if (Array.isArray(val)) return val.join("; ");
+                            if (typeof val === "object" && val !== null) return Object.entries(val).map(([s, a]) => `${s}: ${a}`).join("; ");
+                            return String(val ?? "");
+                          }),
+                        ]);
+                        downloadCsv([headers, ...rows], `${survey.id}-responses.csv`);
+                      }}
+                      responses={completedStats.map((s) => {
+                        const student = students.find((st) => st.id === s.student_id);
+                        return {
+                          id: s.student_id,
+                          label: student ? `${student.first_name} ${student.last_name}` : s.student_id,
+                          sublabel: student?.email ?? "",
+                          completedAt: s.completed_at,
+                        };
+                      })}
+                      onDelete={async (id) => {
+                        await deleteSurveyResponse(id, survey.id, programSlug);
+                      }}
+                    />
                   );
                 })}
               </div>
@@ -1269,10 +1221,44 @@ export function AdminTabs({
               </div>
             </form>
           )}
+          {/* Needs Attention Section */}
+          {(() => {
+            const atRisk = students.filter((s) => {
+              if (s.role !== "student") return false;
+              const score = engagementScores[s.id];
+              return score && score.total < 30;
+            });
+            if (atRisk.length === 0) return null;
+            return (
+              <div className="rounded-xl border border-red-200 bg-red-50 p-4 mb-2">
+                <p className="text-sm font-semibold text-red-900 mb-2">
+                  Needs Attention ({atRisk.length})
+                </p>
+                <div className="space-y-1.5">
+                  {atRisk.map((s) => {
+                    const score = engagementScores[s.id];
+                    return (
+                      <div key={s.id} className="flex items-center justify-between text-xs">
+                        <span className="text-red-800">{s.first_name} {s.last_name}</span>
+                        <span className="text-red-600 font-medium">
+                          {score?.attendance ?? 0} sessions · {score?.submissions ?? 0} submissions · {score?.reflections ?? 0} reflections
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
           {students.length === 0 && (
             <p className="text-sm text-neutral-400 py-8 text-center">No people yet</p>
           )}
-          {students.map((student) => (
+          {students.map((student) => {
+            const score = engagementScores[student.id];
+            const scoreColor = !score || student.role !== "student"
+              ? ""
+              : score.total >= 60 ? "bg-green-500" : score.total >= 30 ? "bg-amber-500" : "bg-red-500";
+            return (
             <div
               key={student.id}
               className={`rounded-xl border border-neutral-200 bg-white p-4 transition-opacity ${
@@ -1283,6 +1269,9 @@ export function AdminTabs({
               <div className="flex items-center justify-between mb-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
+                    {scoreColor && (
+                      <span className={`h-2 w-2 shrink-0 rounded-full ${scoreColor}`} title={`Engagement: ${score?.total ?? 0}/100`} />
+                    )}
                     <p className="text-sm font-semibold text-neutral-900">
                       {student.first_name} {student.last_name}
                     </p>
@@ -1353,8 +1342,17 @@ export function AdminTabs({
                   <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
                 </div>
               </div>
+              {score && student.role === "student" && (
+                <div className="mt-2 flex items-center gap-3 text-[11px] text-neutral-400">
+                  <span>{score.attendance} sessions</span>
+                  <span>{score.submissions} submissions</span>
+                  <span>{score.reflections} reflections</span>
+                  <span>{score.tutorMessages} tutor msgs</span>
+                </div>
+              )}
             </div>
-          ))}
+          );
+          })}
         </div>
       )}
 
@@ -1963,3 +1961,207 @@ function StudentWorkTab({
 // Re-export the helper so student-facing pages can use it without importing
 // from this file (avoids "use client" leaking into server components).
 export { isStorageUrl, isUploadedVideo };
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function downloadCsv(rows: string[][], filename: string) {
+  const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ─── Survey Cards ─────────────────────────────────────────────────────────────
+
+function SurveyCard({
+  title,
+  completed,
+  totalStudents,
+  pct,
+  onExport,
+  responses,
+  onDelete,
+}: {
+  title: string;
+  completed: number;
+  totalStudents: number;
+  pct: number;
+  onExport: () => Promise<void>;
+  responses: { id: string; label: string; sublabel: string; completedAt: string | null }[];
+  onDelete: (id: string) => Promise<void>;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [localResponses, setLocalResponses] = useState(responses);
+
+  async function handleDelete(id: string) {
+    setDeleting(id);
+    try {
+      await onDelete(id);
+      setLocalResponses((prev) => prev.filter((r) => r.id !== id));
+    } finally {
+      setDeleting(null);
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-neutral-200 bg-white p-4">
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-sm font-semibold text-neutral-900">{title}</p>
+        <span className="text-xs text-neutral-400">{completed} of {totalStudents} completed</span>
+      </div>
+      <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-100 mb-3">
+        <div className="h-full rounded-full bg-neutral-900 transition-all" style={{ width: `${pct}%` }} />
+      </div>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={async () => { try { await onExport(); } catch (e) { console.error("Export failed:", e); } }}
+          className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+        >
+          <Download size={12} />
+          Export CSV
+        </button>
+        {localResponses.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+          >
+            <ChevronDown size={12} className={`transition-transform ${expanded ? "rotate-180" : ""}`} />
+            {expanded ? "Hide" : "Responses"}
+          </button>
+        )}
+      </div>
+      {expanded && localResponses.length > 0 && (
+        <div className="mt-3 border-t border-neutral-100 pt-3 space-y-1">
+          {localResponses.map((r) => (
+            <div key={r.id} className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 hover:bg-neutral-50">
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-neutral-800 truncate">{r.label}</p>
+                <p className="text-[11px] text-neutral-400 truncate">{r.sublabel}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleDelete(r.id)}
+                disabled={deleting === r.id}
+                className="shrink-0 rounded p-1 text-neutral-300 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
+                title="Delete response"
+              >
+                {deleting === r.id ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PublicSurveyCard({
+  title,
+  responseCount,
+  programSlug,
+  surveyType,
+  onExport,
+  onDelete,
+}: {
+  title: string;
+  responseCount: number;
+  programSlug: string;
+  surveyType: string;
+  onExport: () => Promise<void>;
+  onDelete: (email: string) => Promise<void>;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [responses, setResponses] = useState<{ email: string; full_name: string; completedAt: string | null }[]>([]);
+  const loaded = useRef(false);
+
+  async function loadResponses() {
+    if (loaded.current) return;
+    setLoading(true);
+    try {
+      const data = await listPublicSurveyResponses(programSlug, surveyType);
+      setResponses(data.map((r) => ({ email: r.email, full_name: r.full_name, completedAt: r.completed_at })));
+      loaded.current = true;
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleExpand() {
+    setExpanded((v) => !v);
+    if (!expanded) loadResponses();
+  }
+
+  async function handleDelete(email: string) {
+    setDeleting(email);
+    try {
+      await onDelete(email);
+      setResponses((prev) => prev.filter((r) => r.email !== email));
+    } finally {
+      setDeleting(null);
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-neutral-200 bg-white p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <p className="text-sm font-semibold text-neutral-900">{title}</p>
+          <p className="text-xs text-neutral-400 mt-0.5">{responseCount} response{responseCount === 1 ? "" : "s"}</p>
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={async () => { try { await onExport(); } catch (e) { console.error("Export failed:", e); } }}
+          className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+        >
+          <Download size={12} />
+          Export CSV
+        </button>
+        {responseCount > 0 && (
+          <button
+            type="button"
+            onClick={handleExpand}
+            className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+          >
+            {loading ? <Loader2 size={12} className="animate-spin" /> : <ChevronDown size={12} className={`transition-transform ${expanded ? "rotate-180" : ""}`} />}
+            {expanded ? "Hide" : "Responses"}
+          </button>
+        )}
+      </div>
+      {expanded && (
+        <div className="mt-3 border-t border-neutral-100 pt-3 space-y-1">
+          {responses.length === 0 && !loading && (
+            <p className="text-xs text-neutral-400 px-2">No responses found.</p>
+          )}
+          {responses.map((r) => (
+            <div key={r.email} className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 hover:bg-neutral-50">
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-neutral-800 truncate">{r.full_name}</p>
+                <p className="text-[11px] text-neutral-400 truncate">{r.email}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleDelete(r.email)}
+                disabled={deleting === r.email}
+                className="shrink-0 rounded p-1 text-neutral-300 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
+                title="Delete response"
+              >
+                {deleting === r.email ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

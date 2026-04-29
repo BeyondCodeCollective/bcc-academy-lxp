@@ -720,6 +720,90 @@ export async function exportPublicSurveyResponses(
   }[];
 }
 
+export async function listPublicSurveyResponses(
+  programSlug: string,
+  surveyType: string,
+): Promise<{ email: string; full_name: string; completed_at: string | null }[]> {
+  const { svc } = await requireAdmin();
+
+  const { data: programRow } = await svc
+    .from("programs")
+    .select("id")
+    .eq("slug", programSlug)
+    .single();
+
+  if (!programRow) return [];
+
+  const { data, error } = await svc
+    .from("public_survey_responses")
+    .select("email, full_name, completed_at")
+    .eq("program_id", programRow.id)
+    .eq("survey_type", surveyType)
+    .order("completed_at", { ascending: false });
+
+  if (error) {
+    console.error("listPublicSurveyResponses error:", error.message);
+    return [];
+  }
+  return (data ?? []) as { email: string; full_name: string; completed_at: string | null }[];
+}
+
+export async function deleteSurveyResponse(
+  studentId: string,
+  surveyType: string,
+  programSlug: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const { svc } = await requireAdmin();
+
+  const { data: programRow } = await svc
+    .from("programs")
+    .select("id")
+    .eq("slug", programSlug)
+    .single();
+
+  if (!programRow) return { ok: false, error: "Program not found" };
+
+  const { error } = await svc
+    .from("survey_responses")
+    .delete()
+    .eq("student_id", studentId)
+    .eq("survey_type", surveyType)
+    .eq("program_id", programRow.id);
+
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/dashboard/admin");
+  return { ok: true };
+}
+
+export async function deletePublicSurveyResponse(
+  email: string,
+  surveyType: string,
+  programSlug: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const { svc } = await requireAdmin();
+
+  const { data: programRow } = await svc
+    .from("programs")
+    .select("id")
+    .eq("slug", programSlug)
+    .single();
+
+  if (!programRow) return { ok: false, error: "Program not found" };
+
+  const { error } = await svc
+    .from("public_survey_responses")
+    .delete()
+    .eq("email", email)
+    .eq("survey_type", surveyType)
+    .eq("program_id", programRow.id);
+
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/dashboard/admin");
+  return { ok: true };
+}
+
 // ─── Submissions & Reflections (Admin) ──────────────────────────────────────
 
 export type AdminSubmissionRow = {
@@ -849,6 +933,135 @@ export async function getAllReflections(
     };
   });
 }
+
+// ─── Announcements ───────────────────────────────────────────────────────────
+
+export async function createAnnouncement(data: {
+  programSlug: string;
+  trackSlug?: string;
+  message: string;
+  expiresAt: string;
+}) {
+  const { svc, userId } = await requireAdmin();
+
+  const { data: programRow } = await svc
+    .from("programs")
+    .select("id")
+    .eq("slug", data.programSlug)
+    .single();
+
+  if (!programRow) throw new Error("Program not found");
+
+  const { error } = await svc.from("announcements").insert({
+    program_id: programRow.id,
+    track_slug: data.trackSlug || null,
+    instructor_id: userId,
+    message: data.message,
+    expires_at: data.expiresAt,
+  });
+
+  if (error) throw new Error(error.message);
+  revalidatePath("/dashboard");
+  return { success: true };
+}
+
+export async function deleteAnnouncement(announcementId: string) {
+  const { svc } = await requireAdmin();
+  const { error } = await svc.from("announcements").delete().eq("id", announcementId);
+  if (error) throw new Error(error.message);
+  revalidatePath("/dashboard");
+  return { success: true };
+}
+
+export async function getActiveAnnouncements(programSlug: string) {
+  const svc = createServiceClient();
+  const { data: programRow } = await svc
+    .from("programs")
+    .select("id")
+    .eq("slug", programSlug)
+    .single();
+
+  if (!programRow) return [];
+
+  const { data, error } = await svc
+    .from("announcements")
+    .select("id, message, track_slug, created_at, expires_at, instructor_id")
+    .eq("program_id", programRow.id)
+    .gt("expires_at", new Date().toISOString())
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("getActiveAnnouncements error:", error.message);
+    return [];
+  }
+  return data ?? [];
+}
+
+// ─── Track Completions / Certificates ────────────────────────────────────────
+
+export async function grantCompletion(
+  studentId: string,
+  trackSlug: string,
+  programSlug: string
+) {
+  const { svc } = await requireAdmin();
+
+  const { data: programRow } = await svc
+    .from("programs")
+    .select("id")
+    .eq("slug", programSlug)
+    .single();
+
+  if (!programRow) throw new Error("Program not found");
+
+  const { data: completion, error } = await svc
+    .from("track_completions")
+    .upsert(
+      {
+        student_id: studentId,
+        track_slug: trackSlug,
+        program_id: programRow.id,
+      },
+      { onConflict: "student_id,track_slug,program_id" }
+    )
+    .select("certificate_id")
+    .single();
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/dashboard");
+  return { success: true, certificateId: completion?.certificate_id };
+}
+
+export async function revokeCompletion(
+  studentId: string,
+  trackSlug: string,
+  programSlug: string
+) {
+  const { svc } = await requireAdmin();
+
+  const { data: programRow } = await svc
+    .from("programs")
+    .select("id")
+    .eq("slug", programSlug)
+    .single();
+
+  if (!programRow) throw new Error("Program not found");
+
+  const { error } = await svc
+    .from("track_completions")
+    .delete()
+    .eq("student_id", studentId)
+    .eq("track_slug", trackSlug)
+    .eq("program_id", programRow.id);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/dashboard");
+  return { success: true };
+}
+
+// ─── Feedback ────────────────────────────────────────────────────────────────
 
 export async function addFeedback(data: {
   submissionId?: string;
