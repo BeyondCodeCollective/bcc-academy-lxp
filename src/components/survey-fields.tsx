@@ -361,30 +361,18 @@ function LikertField({
           const groupId = `${question.id}-stmt-${idx}`;
           const selected = responses[stmt];
           return (
-            <fieldset
+            <div
               key={stmt}
-              className="rounded-xl border border-neutral-200 bg-white p-3.5"
+              className="rounded-xl border border-neutral-200 bg-white p-4"
             >
-              <legend
-                id={groupId}
-                className="text-sm text-neutral-700 mb-2.5 float-none"
-              >
+              <p id={groupId} className="text-sm text-neutral-800 mb-3">
                 {stmt}
-              </legend>
-              {scaleAnchors && (
-                <div
-                  aria-hidden="true"
-                  className="mb-1.5 flex justify-between text-[11px] font-medium uppercase tracking-wide text-neutral-600"
-                >
-                  <span>{scaleAnchors.low}</span>
-                  <span>{scaleAnchors.high}</span>
-                </div>
-              )}
+              </p>
               <div
                 role="radiogroup"
                 aria-labelledby={groupId}
                 aria-required={question.required || undefined}
-                className="flex flex-wrap gap-1.5"
+                className="flex gap-2"
               >
                 {question.scale.map((s) => {
                   const isSelected = selected === s;
@@ -396,7 +384,7 @@ function LikertField({
                       aria-checked={isSelected}
                       aria-label={`${s} of ${question.scale.length}${scaleHint ? `. ${scaleHint}` : ""}`}
                       onClick={() => setResponse(stmt, s)}
-                      className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                      className={`h-9 w-9 rounded-full text-sm font-medium transition-colors ${
                         isSelected
                           ? "bg-neutral-900 text-white"
                           : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
@@ -407,7 +395,17 @@ function LikertField({
                   );
                 })}
               </div>
-            </fieldset>
+              {scaleAnchors && (
+                <div
+                  aria-hidden="true"
+                  className="mt-1.5 flex justify-between text-[11px] text-neutral-400"
+                  style={{ width: `calc(${question.scale.length} * 2.25rem + ${question.scale.length - 1} * 0.5rem)` }}
+                >
+                  <span>{scaleAnchors.low.replace(/^\d+ — /, "")}</span>
+                  <span>{scaleAnchors.high.replace(/^\d+ — /, "")}</span>
+                </div>
+              )}
+            </div>
           );
         })}
       </div>
