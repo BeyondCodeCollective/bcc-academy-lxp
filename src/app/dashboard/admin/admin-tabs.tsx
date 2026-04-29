@@ -1996,6 +1996,7 @@ function SurveyCard({
 }) {
   const [expanded, setExpanded] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [clearingAll, setClearingAll] = useState(false);
   const [localResponses, setLocalResponses] = useState(responses);
 
   async function handleDelete(id: string) {
@@ -2005,6 +2006,19 @@ function SurveyCard({
       setLocalResponses((prev) => prev.filter((r) => r.id !== id));
     } finally {
       setDeleting(null);
+    }
+  }
+
+  async function handleClearAll() {
+    if (!confirm(`Delete all ${localResponses.length} responses for "${title}"? This cannot be undone.`)) return;
+    setClearingAll(true);
+    try {
+      for (const r of localResponses) {
+        await onDelete(r.id);
+      }
+      setLocalResponses([]);
+    } finally {
+      setClearingAll(false);
     }
   }
 
@@ -2027,14 +2041,25 @@ function SurveyCard({
           Export CSV
         </button>
         {localResponses.length > 0 && (
-          <button
-            type="button"
-            onClick={() => setExpanded((v) => !v)}
-            className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
-          >
-            <ChevronDown size={12} className={`transition-transform ${expanded ? "rotate-180" : ""}`} />
-            {expanded ? "Hide" : "Responses"}
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={handleClearAll}
+              disabled={clearingAll}
+              className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+            >
+              <Trash2 size={12} />
+              {clearingAll ? "Deleting..." : "Delete All"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setExpanded((v) => !v)}
+              className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+            >
+              <ChevronDown size={12} className={`transition-transform ${expanded ? "rotate-180" : ""}`} />
+              {expanded ? "Hide" : "Responses"}
+            </button>
+          </>
         )}
       </div>
       {expanded && localResponses.length > 0 && (

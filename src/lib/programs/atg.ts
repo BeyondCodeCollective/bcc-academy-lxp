@@ -375,13 +375,6 @@ Guidelines:
   },
   surveys: [
     {
-      id: "pre-survey-spring-2026",
-      title: "Pre-Program Survey",
-      description:
-        "Quick background survey so we can tailor the program to you. Takes about 5 minutes.",
-      required: true,
-    },
-    {
       id: "mid-program-spring-2026",
       title: "Mid-Program Check-In",
       description:
