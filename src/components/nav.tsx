@@ -17,12 +17,14 @@ export function Nav({
   programName,
   showTutor = true,
   showResources = false,
+  minimal = false,
 }: {
   isAdmin: boolean;
   logo: string;
   programName: string;
   showTutor?: boolean;
   showResources?: boolean;
+  minimal?: boolean;
 }) {
   const pathname = usePathname();
 
@@ -52,7 +54,7 @@ export function Nav({
         </Link>
 
         <div className="flex items-center gap-1 sm:gap-2">
-          {navItems.map(({ href, label, icon: Icon }) => {
+          {!minimal && navItems.map(({ href, label, icon: Icon }) => {
             const isActive =
               href === "/dashboard"
                 ? pathname === "/dashboard"
@@ -75,7 +77,7 @@ export function Nav({
             );
           })}
 
-          {isAdmin && (
+          {!minimal && isAdmin && (
             <Link
               href="/dashboard/admin"
               aria-label="Admin"

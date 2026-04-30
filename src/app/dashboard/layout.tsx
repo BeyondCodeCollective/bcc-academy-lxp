@@ -24,11 +24,9 @@ export default async function DashboardLayout({
 
   return (
     <ProgramProvider program={program}>
-      {!isSurveyPage && (
-        <Suspense fallback={<NavShell program={program} />}>
-          <NavWithAuth program={program} />
-        </Suspense>
-      )}
+      <Suspense fallback={<NavShell program={program} minimal={isSurveyPage} />}>
+        <NavWithAuth program={program} minimal={isSurveyPage} />
+      </Suspense>
       <main
         id="dashboard-main"
         className="flex-1 bg-stone-50"
@@ -47,7 +45,7 @@ export default async function DashboardLayout({
   );
 }
 
-async function NavWithAuth({ program }: { program: ProgramConfig }) {
+async function NavWithAuth({ program, minimal }: { program: ProgramConfig; minimal?: boolean }) {
   let isAdmin = false;
 
   if (isSupabaseConfigured()) {
@@ -73,13 +71,14 @@ async function NavWithAuth({ program }: { program: ProgramConfig }) {
         programName={program.name}
         showTutor={showTutor}
         showResources={showResources}
+        minimal={minimal}
       />
-      {showTutor && <TutorFab />}
+      {!minimal && showTutor && <TutorFab />}
     </>
   );
 }
 
-function NavShell({ program }: { program: ProgramConfig }) {
+function NavShell({ program, minimal }: { program: ProgramConfig; minimal?: boolean }) {
   const showResources = program.resourcesEnabled === true;
   return (
     <Nav
@@ -88,6 +87,7 @@ function NavShell({ program }: { program: ProgramConfig }) {
       programName={program.name}
       showTutor={false}
       showResources={showResources}
+      minimal={minimal}
     />
   );
 }
