@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { markWelcomeSeen } from "@/app/dashboard/actions";
 import { BookOpen } from "lucide-react";
 import type { ProgramConfig, TrackConfig } from "@/lib/programs/types";
@@ -12,8 +13,10 @@ interface Props {
 
 export function OnboardingForm({ program, visibleTracks }: Props) {
   const [saving, setSaving] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = prev; };
@@ -28,7 +31,9 @@ export function OnboardingForm({ program, visibleTracks }: Props) {
     }
   }
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-y-auto max-h-[90svh] animate-[fadeIn_0.3s_ease-out]">
         <div className="p-6 sm:p-8">
@@ -89,7 +94,8 @@ export function OnboardingForm({ program, visibleTracks }: Props) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
