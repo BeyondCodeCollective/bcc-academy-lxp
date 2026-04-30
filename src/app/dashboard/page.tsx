@@ -208,8 +208,6 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
     <div className="space-y-8 sm:space-y-10">
       {needsOnboarding && (
         <OnboardingForm
-          defaultFirstName={firstName}
-          defaultLastName={lastName}
           program={program}
           visibleTracks={visibleTracks}
           hasPendingSurveys={pendingSurveys.length > 0}

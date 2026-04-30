@@ -5,20 +5,7 @@ import { completeOnboarding, markWelcomeSeen } from "@/app/dashboard/actions";
 import { User, BookOpen, ChevronRight } from "lucide-react";
 import type { ProgramConfig, TrackConfig } from "@/lib/programs/types";
 
-const EDUCATION_LEVELS = [
-  "Some High School",
-  "High School Diploma / GED",
-  "Some College",
-  "Associate's Degree",
-  "Bachelor's Degree",
-  "Master's Degree or Higher",
-  "Trade / Vocational Certificate",
-  "Other",
-];
-
 interface Props {
-  defaultFirstName: string;
-  defaultLastName: string;
   program: ProgramConfig;
   visibleTracks: TrackConfig[];
   hasPendingSurveys?: boolean;
@@ -26,8 +13,6 @@ interface Props {
 }
 
 export function OnboardingForm({
-  defaultFirstName,
-  defaultLastName,
   program,
   visibleTracks,
   hasPendingSurveys = false,
@@ -37,16 +22,12 @@ export function OnboardingForm({
   const totalSteps = 1 + (hasTracks ? 1 : 0);
 
   const [step, setStep] = useState(profileDone ? 2 : 1);
-  const [firstName, setFirstName] = useState(defaultFirstName);
-  const [lastName, setLastName] = useState(defaultLastName);
-  const [location, setLocation] = useState("");
-  const [dob, setDob] = useState("");
-  const [education, setEducation] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const profileComplete =
-    firstName.trim() && lastName.trim() && location.trim() && dob && education;
+  const profileComplete = firstName.trim() && lastName.trim();
 
   async function handleProfileSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -59,9 +40,6 @@ export function OnboardingForm({
       await completeOnboarding({
         first_name: firstName.trim(),
         last_name: lastName.trim(),
-        location: location.trim(),
-        date_of_birth: dob,
-        education_level: education,
       });
       if (hasPendingSurveys) {
         window.location.reload();
@@ -92,9 +70,8 @@ export function OnboardingForm({
   const currentStepLabel = step === 1 ? "profile" : "orientation";
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm">
-      <div className="flex min-h-full items-center justify-center px-4 py-6">
-      <div className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl animate-[fadeIn_0.3s_ease-out]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-y-auto max-h-[90svh] animate-[fadeIn_0.3s_ease-out]">
         <div className="p-6 sm:p-8">
           {/* Progress dots */}
           {totalSteps > 1 && (
@@ -125,7 +102,7 @@ export function OnboardingForm({
                   Let&apos;s get to know you
                 </h2>
                 <p className="mt-2 text-sm text-neutral-500">
-                  Quick intro so we can personalize your experience.
+                  What should we call you?
                 </p>
               </div>
 
@@ -141,7 +118,8 @@ export function OnboardingForm({
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
                       required
-                      autoComplete="given-name"
+                      autoComplete="off"
+                      placeholder="First"
                       className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-3 text-base text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900 focus:bg-white focus:ring-1 focus:ring-neutral-900 focus:outline-none transition-all"
                     />
                   </div>
@@ -155,59 +133,11 @@ export function OnboardingForm({
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
                       required
-                      autoComplete="family-name"
+                      autoComplete="off"
+                      placeholder="Last"
                       className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-3 text-base text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900 focus:bg-white focus:ring-1 focus:ring-neutral-900 focus:outline-none transition-all"
                     />
                   </div>
-                </div>
-
-                <div>
-                  <label htmlFor="ob-location" className="mb-1.5 block text-xs font-medium text-neutral-600">
-                    Location
-                  </label>
-                  <input
-                    id="ob-location"
-                    type="text"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    placeholder="City, State"
-                    required
-                    autoComplete="address-level2"
-                    className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-3 text-base text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900 focus:bg-white focus:ring-1 focus:ring-neutral-900 focus:outline-none transition-all"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="ob-dob" className="mb-1.5 block text-xs font-medium text-neutral-600">
-                    Date of Birth
-                  </label>
-                  <input
-                    id="ob-dob"
-                    type="date"
-                    value={dob}
-                    onChange={(e) => setDob(e.target.value)}
-                    required
-                    autoComplete="bdate"
-                    className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-3 text-base text-neutral-900 focus:border-neutral-900 focus:bg-white focus:ring-1 focus:ring-neutral-900 focus:outline-none transition-all appearance-none"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="ob-education" className="mb-1.5 block text-xs font-medium text-neutral-600">
-                    Level of Education
-                  </label>
-                  <select
-                    id="ob-education"
-                    value={education}
-                    onChange={(e) => setEducation(e.target.value)}
-                    required
-                    className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-3 text-base text-neutral-900 focus:border-neutral-900 focus:bg-white focus:ring-1 focus:ring-neutral-900 focus:outline-none transition-all appearance-none"
-                  >
-                    <option value="" disabled>Select one</option>
-                    {EDUCATION_LEVELS.map((level) => (
-                      <option key={level} value={level}>{level}</option>
-                    ))}
-                  </select>
                 </div>
 
                 {error && <p className="text-sm text-red-600">{error}</p>}
@@ -291,7 +221,6 @@ export function OnboardingForm({
           )}
 
         </div>
-      </div>
       </div>
     </div>
   );
