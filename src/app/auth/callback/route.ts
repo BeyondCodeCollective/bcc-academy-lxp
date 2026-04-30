@@ -247,6 +247,21 @@ export async function GET(request: Request) {
         }
       }
 
+      // If the program has a required survey, skip the dashboard and go straight to it
+      const requiredSurvey = program.surveys?.find((s) => s.required);
+      if (requiredSurvey) {
+        // Check if already completed
+        const { data: existing } = await admin
+          .from("survey_responses")
+          .select("completed_at")
+          .eq("student_id", user!.id)
+          .eq("survey_type", requiredSurvey.id)
+          .maybeSingle();
+        if (!existing?.completed_at) {
+          return NextResponse.redirect(`${origin}/dashboard/survey/${requiredSurvey.id}`);
+        }
+      }
+
       return NextResponse.redirect(`${origin}/dashboard`);
     } else {
       console.error("[auth/callback] auth error:", authError.message);
