@@ -241,7 +241,8 @@ export function LoginForm({ logo, programName, tagline, taglineColor, organizati
         </div>
 
         <p className="mt-6 text-center text-xs text-neutral-400">
-          &copy; {new Date().getFullYear()} {organization}
+          &copy; {new Date().getFullYear()} {organization} &middot;{" "}
+          <a href="/privacy" className="underline underline-offset-2 hover:text-neutral-600">Privacy Policy</a>
         </p>
       </div>
     </main>
