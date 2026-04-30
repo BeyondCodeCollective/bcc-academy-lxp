@@ -388,7 +388,7 @@ export const forgeConfig: ProgramConfig = {
     },
   ],
   tutorConfig: {
-    enabled: true,
+    enabled: false,
     systemPrompt: `You are the AI Tutor for "The Forge", a program by Beyond Code Collective that teaches AI skills to the next generation of digital creators and professionals.
 
 You are helping students learn AI fundamentals, tools, and applications. The program includes:
@@ -412,7 +412,7 @@ Guidelines:
       required: true,
     },
   ],
-  resourcesEnabled: true,
+  resourcesEnabled: false,
   requireInviteLink: true,
   coppa: { required: false },
   seo: {
