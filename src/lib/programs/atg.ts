@@ -379,7 +379,7 @@ Guidelines:
       title: "Mid-Program Check-In",
       description:
         "You're halfway. 15–20 minutes to help us shape the second half of ATG around what you need.",
-      required: false,
+      required: true,
     },
   ],
   coppa: { required: false },
