@@ -92,8 +92,9 @@ export function OnboardingForm({
   const currentStepLabel = step === 1 ? "profile" : "orientation";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 py-6">
-      <div className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl animate-[fadeIn_0.3s_ease-out] max-h-[calc(100dvh-3rem)] overflow-y-auto">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm">
+      <div className="flex min-h-full items-center justify-center px-4 py-6">
+      <div className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl animate-[fadeIn_0.3s_ease-out]">
         <div className="p-6 sm:p-8">
           {/* Progress dots */}
           {totalSteps > 1 && (
@@ -290,6 +291,7 @@ export function OnboardingForm({
           )}
 
         </div>
+      </div>
       </div>
     </div>
   );
