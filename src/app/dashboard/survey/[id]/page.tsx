@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { getProgram } from "@/lib/programs/server";
 import { SurveyWizard } from "@/components/survey-wizard";
+import { SurveyComplete } from "./survey-complete";
 
 export default async function SurveyPage({
   params,
@@ -32,8 +33,16 @@ export default async function SurveyPage({
       .eq("survey_type", surveyId)
       .maybeSingle();
 
-    // If already completed, redirect back to dashboard
-    if (data?.completed_at) redirect("/dashboard");
+    if (data?.completed_at) {
+      const completedAt = new Date(data.completed_at).getTime();
+      const justCompleted = Date.now() - completedAt < 60_000;
+      if (!justCompleted) redirect("/dashboard");
+      return (
+        <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8">
+          <SurveyComplete />
+        </div>
+      );
+    }
 
     existingResponses = (data?.responses as Record<string, unknown>) ?? null;
   }
