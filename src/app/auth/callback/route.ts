@@ -145,12 +145,8 @@ export async function GET(request: Request) {
             return NextResponse.redirect(`${origin}/?error=invite`);
           }
 
-          const emailPrefix = (user.email || "").split("@")[0];
-          const parts = emailPrefix
-            .split(/[._-]/)
-            .map((s) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase());
-          const firstName = parts[0] || "New";
-          const lastName = parts.slice(1).join(" ") || "Student";
+          const firstName = "";
+          const lastName = "";
 
           const { error: insertErr } = await admin.from("students").insert({
             id: user.id,
