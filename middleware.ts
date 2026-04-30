@@ -8,6 +8,7 @@ export async function middleware(request: NextRequest) {
   const program = getProgramByDomain(host);
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-program-slug", program.slug);
+  requestHeaders.set("x-pathname", request.nextUrl.pathname);
 
   let supabaseResponse = NextResponse.next({
     request: { headers: requestHeaders },

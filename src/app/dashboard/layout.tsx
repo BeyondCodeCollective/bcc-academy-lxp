@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { getDemoUser, DEMO_COOKIE } from "@/lib/demo-users";
 import { Nav } from "@/components/nav";
@@ -18,13 +18,17 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const program = await getProgram();
+  const [program, headersList] = await Promise.all([getProgram(), headers()]);
+  const pathname = headersList.get("x-pathname") ?? "";
+  const isSurveyPage = pathname.startsWith("/dashboard/survey");
 
   return (
     <ProgramProvider program={program}>
-      <Suspense fallback={<NavShell program={program} />}>
-        <NavWithAuth program={program} />
-      </Suspense>
+      {!isSurveyPage && (
+        <Suspense fallback={<NavShell program={program} />}>
+          <NavWithAuth program={program} />
+        </Suspense>
+      )}
       <main
         id="dashboard-main"
         className="flex-1 bg-stone-50"
