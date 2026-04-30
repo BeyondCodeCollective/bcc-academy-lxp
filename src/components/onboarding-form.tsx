@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { completeOnboarding, markWelcomeSeen } from "@/app/dashboard/actions";
-import { User, BookOpen, Bot, ChevronRight, ChevronLeft } from "lucide-react";
+import { User, BookOpen, ChevronRight } from "lucide-react";
 import type { ProgramConfig, TrackConfig } from "@/lib/programs/types";
 
 const EDUCATION_LEVELS = [
@@ -34,8 +34,7 @@ export function OnboardingForm({
   profileDone = false,
 }: Props) {
   const hasTracks = visibleTracks.length > 0;
-  const hasTutor = program.tutorConfig?.enabled !== false && hasTracks;
-  const totalSteps = 1 + (hasTracks ? 1 : 0) + (hasTutor ? 1 : 0);
+  const totalSteps = 1 + (hasTracks ? 1 : 0);
 
   const [step, setStep] = useState(profileDone ? 2 : 1);
   const [firstName, setFirstName] = useState(defaultFirstName);
@@ -90,15 +89,7 @@ export function OnboardingForm({
     }
   }
 
-  function nextStep() {
-    setStep((s) => Math.min(s + 1, totalSteps));
-  }
-
-  function prevStep() {
-    setStep((s) => Math.max(s - 1, 2)); // Can't go back to profile after saving
-  }
-
-  const currentStepLabel = step === 1 ? "profile" : step === totalSteps && hasTutor ? "tutor" : "orientation";
+  const currentStepLabel = step === 1 ? "profile" : "orientation";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 py-6">
@@ -287,95 +278,17 @@ export function OnboardingForm({
               </div>
 
               <div className="flex gap-3">
-                {hasTutor ? (
-                  <button
-                    onClick={nextStep}
-                    className="w-full rounded-xl bg-neutral-900 py-3 text-sm font-semibold text-white transition-colors hover:bg-neutral-800 active:bg-neutral-700"
-                  >
-                    <span className="flex items-center justify-center gap-1">
-                      Continue <ChevronRight size={16} />
-                    </span>
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleFinish}
-                    disabled={saving}
-                    className="w-full rounded-xl bg-neutral-900 py-3 text-sm font-semibold text-white transition-colors hover:bg-neutral-800 active:bg-neutral-700 disabled:opacity-50"
-                  >
-                    {saving ? <Spinner /> : "Let's Go"}
-                  </button>
-                )}
-              </div>
-            </>
-          )}
-
-          {/* Step 3: AI Tutor Intro */}
-          {currentStepLabel === "tutor" && (
-            <>
-              <div className="text-center mb-6">
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-neutral-900 mb-4">
-                  <Bot size={28} className="text-white" />
-                </div>
-                <h2 className="text-xl font-bold text-neutral-900">
-                  Meet Your AI Tutor
-                </h2>
-                <p className="mt-2 text-sm text-neutral-500">
-                  You have a 24/7 study buddy that knows your curriculum.
-                </p>
-              </div>
-
-              <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 mb-4">
-                <div className="space-y-3">
-                  <div className="flex justify-start">
-                    <div className="max-w-[85%] rounded-2xl bg-neutral-100 px-4 py-3 text-sm text-neutral-800 leading-relaxed">
-                      Hey {firstName}! I&apos;m your AI study buddy for {program.name}. Ask me anything about your coursework — I&apos;m here to help you learn.
-                    </div>
-                  </div>
-                  <div className="flex justify-end">
-                    <div className="max-w-[85%] rounded-2xl bg-neutral-900 px-4 py-3 text-sm text-white leading-relaxed">
-                      What are we learning this week?
-                    </div>
-                  </div>
-                  <div className="flex justify-start">
-                    <div className="max-w-[85%] rounded-2xl bg-neutral-100 px-4 py-3 text-sm text-neutral-800 leading-relaxed">
-                      Great question! I can walk you through this week&apos;s objectives and help you prep. You&apos;ll find me in the <strong>AI Tutor</strong> tab anytime you need help.
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2 mb-6 text-xs text-neutral-600">
-                <div className="flex items-start gap-2">
-                  <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-neutral-400" />
-                  <span>Ask questions about this week&apos;s material or any past topics</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-neutral-400" />
-                  <span>Get help with assignments, study prep, or concepts you&apos;re stuck on</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-neutral-400" />
-                  <span>AI can make mistakes — check with your instructor for anything critical</span>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={prevStep}
-                  className="flex items-center justify-center gap-1 rounded-xl border border-neutral-200 px-4 py-3 text-sm font-medium text-neutral-600 transition-colors hover:border-neutral-300 hover:text-neutral-900"
-                >
-                  <ChevronLeft size={16} /> Back
-                </button>
                 <button
                   onClick={handleFinish}
                   disabled={saving}
-                  className="flex-1 rounded-xl bg-neutral-900 py-3 text-sm font-semibold text-white transition-colors hover:bg-neutral-800 active:bg-neutral-700 disabled:opacity-50"
+                  className="w-full rounded-xl bg-neutral-900 py-3 text-sm font-semibold text-white transition-colors hover:bg-neutral-800 active:bg-neutral-700 disabled:opacity-50"
                 >
                   {saving ? <Spinner /> : "Let's Go"}
                 </button>
               </div>
             </>
           )}
+
         </div>
       </div>
     </div>
