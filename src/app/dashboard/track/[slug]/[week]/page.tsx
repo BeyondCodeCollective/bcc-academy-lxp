@@ -31,27 +31,38 @@ export default async function TrackWeekPage({
   const weekContent = track.weeks.find((w) => w.week === weekNum);
   if (!weekContent) redirect("/dashboard");
 
-  // Gate single-event tracks behind intake form
-  if (track.intakeRequired && track.intakeQuestions?.length && isSupabaseConfigured()) {
-    const intakeStatus = await getSurveyStatus(`intake-${trackSlug}`);
-    if (!intakeStatus.completed) {
-      return (
-        <div className="mx-auto w-full max-w-2xl py-4">
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-neutral-900 transition-colors mb-2 py-2 px-4 sm:px-5"
-          >
-            <ArrowLeft size={16} />
-            Back to Dashboard
-          </Link>
-          <IntakeForm
-            trackSlug={trackSlug}
-            trackName={track.name}
-            programSlug={program.slug}
-            questions={track.intakeQuestions}
-          />
-        </div>
-      );
+  // Evaluate track gates. Each gate declares a condition that must be met
+  // before the student can view content. We stop at the first unmet gate.
+  const gates = track.gates ?? (
+    track.intakeRequired && track.intakeQuestions?.length
+      ? [{ type: "intake" as const, surveyKey: trackSlug, questions: track.intakeQuestions }]
+      : []
+  );
+
+  if (gates.length > 0 && isSupabaseConfigured()) {
+    for (const gate of gates) {
+      if (gate.type === "intake") {
+        const intakeStatus = await getSurveyStatus(`intake-${gate.surveyKey}`);
+        if (!intakeStatus.completed) {
+          return (
+            <div className="mx-auto w-full max-w-2xl py-4">
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-neutral-900 transition-colors mb-2 py-2 px-4 sm:px-5"
+              >
+                <ArrowLeft size={16} />
+                Back to Dashboard
+              </Link>
+              <IntakeForm
+                trackSlug={trackSlug}
+                trackName={track.name}
+                programSlug={program.slug}
+                questions={gate.questions}
+              />
+            </div>
+          );
+        }
+      }
     }
   }
 

@@ -1,4 +1,4 @@
-import type { ProgramConfig, IntakeQuestion } from "./types";
+import type { ProgramConfig, IntakeQuestion, IntakeGate } from "./types";
 
 // ─── Intake questions for single-event tracks ──────────────────────────────
 
@@ -93,6 +93,12 @@ const AUTOMATION_BOOTCAMP_INTAKE: IntakeQuestion[] = [
     required: true,
   },
 ];
+
+const AUTOMATION_BOOTCAMP_GATE: IntakeGate = {
+  type: "intake",
+  surveyKey: "automation-bootcamp",
+  questions: AUTOMATION_BOOTCAMP_INTAKE,
+};
 
 export const forgeConfig: ProgramConfig = {
   slug: "forge",
@@ -358,8 +364,7 @@ export const forgeConfig: ProgramConfig = {
       lastSessionDayOffset: 0,
       submissionsEnabled: false,
       reflectionsEnabled: false,
-      intakeRequired: true,
-      intakeQuestions: AUTOMATION_BOOTCAMP_INTAKE,
+      gates: [AUTOMATION_BOOTCAMP_GATE],
       weekSummaries: [
         { week: 1, topic: "AI Automation", icon: "⚡" },
       ],

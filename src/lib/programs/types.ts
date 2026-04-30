@@ -5,7 +5,27 @@ export type SessionInfo = {
   time: string;
 };
 
-// ─── Intake Form (gates single-event session content) ────────────────────────
+// ─── Track Gates ─────────────────────────────────────────────────────────────
+//
+// A TrackGate declares a condition that must be satisfied before a student
+// can view track content. Gates are evaluated declaratively from TrackConfig;
+// the page renders the gate's UI and stops if the condition is unmet.
+//
+// Gate types:
+//   intake — collect demographic/preference data via an intake form.
+//            surveyKey stores the responses as survey_type "intake-<key>".
+
+export type IntakeGate = {
+  type: "intake";
+  /** Used as the survey_type key: stored as "intake-<surveyKey>" */
+  surveyKey: string;
+  questions: IntakeQuestion[];
+};
+
+export type TrackGate = IntakeGate;
+// Future gate types (e.g. survey_completion, week_submission) extend this union.
+
+// ─── Intake Form Questions (used by IntakeGate) ───────────────────────────────
 
 export type IntakeRadioQuestion = {
   type: "radio";
@@ -76,9 +96,11 @@ export type TrackConfig = {
   submissionsEnabled?: boolean;
   /** Whether weekly reflections are enabled for this track (defaults to true) */
   reflectionsEnabled?: boolean;
-  /** If true, session content is gated behind a required intake form */
+  /** Declarative gates evaluated before showing track content. */
+  gates?: TrackGate[];
+  /** @deprecated Use gates: [{ type: "intake", ... }] instead */
   intakeRequired?: boolean;
-  /** Questions shown on the intake form (used when intakeRequired is true) */
+  /** @deprecated Use gates: [{ type: "intake", ... }] instead */
   intakeQuestions?: IntakeQuestion[];
 };
 

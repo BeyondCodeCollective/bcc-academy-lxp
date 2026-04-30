@@ -6,12 +6,22 @@ import { createServiceClient } from "@/lib/supabase/server";
 /**
  * Get the current program config in a server component or server action.
  *
- * Priority:
- * 1. If host is a recognized program subdomain (e.g. forge.bccacademy.io),
- *    the URL wins — explicit navigation is the strongest signal.
- * 2. Otherwise (localhost, vercel previews, etc.), honor the
- *    program-override cookie set by the super-admin switcher.
- * 3. Fall back to the middleware-set header / cookie / host detection.
+ * Resolution order (first match wins):
+ *  1. Recognized production host (e.g. atg.bccacademy.io) — URL is the
+ *     strongest signal and can't be faked by a cookie.
+ *  2. `program-override` cookie — set by the super-admin program switcher
+ *     in the admin panel; only honored on non-production hosts.
+ *  3. `x-program-slug` request header — set by middleware on every request
+ *     so server actions (which don't receive the original URL) can read it.
+ *  4. `program-slug` cookie — fallback for requests where the header hasn't
+ *     propagated yet (e.g. first render on a cold edge node).
+ *  5. Domain-based lookup on the raw host — handles unknown subdomains and
+ *     local dev (falls back to the default program for the domain).
+ *
+ * For client components inside /dashboard: use `useProgram()` from
+ * @/lib/programs/context — the layout already provides it via ProgramProvider.
+ * For client components outside /dashboard (e.g. public survey pages):
+ * use `useProgramSlug()` from @/lib/programs/use-program-slug.
  */
 export async function getProgram(): Promise<ProgramConfig> {
   const h = await headers();

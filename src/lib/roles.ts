@@ -1,22 +1,33 @@
 export type Role = "student" | "instructor" | "admin" | "super_admin";
 
-/** Roles that can access the admin panel */
-const ADMIN_PANEL_ROLES: Role[] = ["instructor", "admin", "super_admin"];
+// Capabilities declare what actions are permitted, independently of the role
+// strings that appear in the database. Adding a new restricted action = add
+// a capability here and call requireCapability() in the server action.
+export type Capability =
+  | "access_admin_panel"   // see the admin UI
+  | "manage_students"      // add, update, delete students; manage cohorts
+  | "switch_programs";     // use the super-admin program switcher
 
-/** Roles that can manage students, cohorts, and program settings */
-const MANAGEMENT_ROLES: Role[] = ["admin", "super_admin"];
+const ROLE_CAPABILITIES: Record<Capability, Role[]> = {
+  access_admin_panel: ["instructor", "admin", "super_admin"],
+  manage_students:    ["admin", "super_admin"],
+  switch_programs:    ["super_admin"],
+};
 
-/** Roles that can switch between programs */
-const CROSS_PROGRAM_ROLES: Role[] = ["super_admin"];
+export function hasCapability(role: string, capability: Capability): boolean {
+  return ROLE_CAPABILITIES[capability].includes(role as Role);
+}
 
+// Convenience aliases kept for call sites that already use the old names.
+// New code should call hasCapability() directly.
 export function canAccessAdminPanel(role: string): boolean {
-  return ADMIN_PANEL_ROLES.includes(role as Role);
+  return hasCapability(role, "access_admin_panel");
 }
 
 export function canManageStudents(role: string): boolean {
-  return MANAGEMENT_ROLES.includes(role as Role);
+  return hasCapability(role, "manage_students");
 }
 
 export function canSwitchPrograms(role: string): boolean {
-  return CROSS_PROGRAM_ROLES.includes(role as Role);
+  return hasCapability(role, "switch_programs");
 }

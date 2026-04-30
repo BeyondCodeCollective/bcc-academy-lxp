@@ -4,9 +4,10 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { canAccessAdminPanel, canManageStudents, canSwitchPrograms } from "@/lib/roles";
+import { hasCapability, canAccessAdminPanel, canSwitchPrograms } from "@/lib/roles";
+import type { Capability } from "@/lib/roles";
 
-async function requireAdmin() {
+async function requireCapability(capability: Capability) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -20,15 +21,14 @@ async function requireAdmin() {
     .eq("id", user.id)
     .single();
 
-  if (!canAccessAdminPanel(student?.role ?? "")) throw new Error("Not authorized");
-  return { svc, userId: user.id, role: student?.role ?? "" };
+  const role = student?.role ?? "";
+  if (!hasCapability(role, capability)) throw new Error("Not authorized");
+  return { svc, userId: user.id, role };
 }
 
-async function requireManager() {
-  const result = await requireAdmin();
-  if (!canManageStudents(result.role)) throw new Error("Not authorized");
-  return result;
-}
+// Shorthand aliases used by the existing call sites below.
+const requireAdmin = () => requireCapability("access_admin_panel");
+const requireManager = () => requireCapability("manage_students");
 
 export async function deleteStudentAction(studentId: string) {
   const { svc } = await requireManager();
