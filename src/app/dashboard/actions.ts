@@ -41,7 +41,7 @@ export async function markWelcomeSeen() {
   const svc = createServiceClient();
   await svc
     .from("students")
-    .update({ welcome_seen_at: new Date().toISOString() })
+    .update({ welcome_seen_at: new Date().toISOString(), onboarding_completed: true })
     .eq("id", user.id);
 
   revalidatePath("/dashboard");

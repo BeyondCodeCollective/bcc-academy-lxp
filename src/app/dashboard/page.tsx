@@ -68,10 +68,9 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
     const cohort = student?.cohorts ?? null;
     const hasCohortId = !!student?.cohort_id;
 
-    const profileDone = !!student?.onboarding_completed;
     const welcomeDone = !!student?.welcome_seen_at;
-    needsOnboarding = !profileDone || !welcomeDone;
-    needsProfileStep = !profileDone;
+    needsOnboarding = !welcomeDone;
+    needsProfileStep = false;
 
     const isAdminUser = canAccessAdminPanel(userRole);
     const needsSurveys = !!program.surveys?.length;
@@ -210,8 +209,6 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
         <OnboardingForm
           program={program}
           visibleTracks={visibleTracks}
-          hasPendingSurveys={pendingSurveys.length > 0}
-          profileDone={!needsProfileStep}
         />
       )}
 
