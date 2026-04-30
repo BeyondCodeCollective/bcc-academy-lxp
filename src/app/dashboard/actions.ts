@@ -128,6 +128,18 @@ export async function saveSurveyResponse(
     throw new Error(`Save failed: ${error.message}`);
   }
 
+  // If the survey collected a name, save it to the student record
+  const firstName = typeof responses.first_name === "string" ? responses.first_name.trim() : null;
+  const lastName = typeof responses.last_name === "string" ? responses.last_name.trim() : null;
+  if (firstName || lastName) {
+    const svc = createServiceClient();
+    await svc.from("students").update({
+      ...(firstName && { first_name: firstName }),
+      ...(lastName && { last_name: lastName }),
+      onboarding_completed: true,
+    }).eq("id", user.id);
+  }
+
   revalidatePath("/dashboard");
   return { success: true };
 }

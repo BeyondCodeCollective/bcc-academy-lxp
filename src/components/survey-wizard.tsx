@@ -295,6 +295,22 @@ const ATG_MID_PROGRAM_PAGES: SurveyPage[] = [
     subtitle: "Here's how we'll use your feedback.",
     questions: [
       {
+        type: "text",
+        id: "first_name",
+        label: "First Name",
+        placeholder: "Your first name",
+        short: true,
+        required: true,
+      },
+      {
+        type: "text",
+        id: "last_name",
+        label: "Last Name",
+        placeholder: "Your last name",
+        short: true,
+        required: true,
+      },
+      {
         type: "consent",
         id: "mid_consent",
         label: "How we use your feedback",
