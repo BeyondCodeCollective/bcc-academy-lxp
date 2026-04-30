@@ -1223,35 +1223,6 @@ export function AdminTabs({
               </div>
             </form>
           )}
-          {/* Needs Attention Section */}
-          {(() => {
-            const atRisk = students.filter((s) => {
-              if (s.role !== "student") return false;
-              const score = engagementScores[s.id];
-              return score && score.total < 30;
-            });
-            if (atRisk.length === 0) return null;
-            return (
-              <div className="rounded-xl border border-red-200 bg-red-50 p-4 mb-2">
-                <p className="text-sm font-semibold text-red-900 mb-2">
-                  Needs Attention ({atRisk.length})
-                </p>
-                <div className="space-y-1.5">
-                  {atRisk.map((s) => {
-                    const score = engagementScores[s.id];
-                    return (
-                      <div key={s.id} className="flex items-center justify-between text-xs">
-                        <span className="text-red-800">{s.first_name} {s.last_name}</span>
-                        <span className="text-red-600 font-medium">
-                          {score?.attendance ?? 0} sessions · {score?.submissions ?? 0} submissions · {score?.reflections ?? 0} reflections
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })()}
           {students.length === 0 && (
             <p className="text-sm text-neutral-400 py-8 text-center">No people yet</p>
           )}
