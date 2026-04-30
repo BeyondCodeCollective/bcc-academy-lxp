@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { markWelcomeSeen } from "@/app/dashboard/actions";
 import { BookOpen } from "lucide-react";
 import type { ProgramConfig, TrackConfig } from "@/lib/programs/types";
@@ -12,6 +12,12 @@ interface Props {
 
 export function OnboardingForm({ program, visibleTracks }: Props) {
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, []);
 
   async function handleFinish() {
     setSaving(true);
