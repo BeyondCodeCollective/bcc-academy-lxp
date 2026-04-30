@@ -126,8 +126,8 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
         .map((s) => ({ id: s.id, title: s.title, description: s.description }));
     }
 
-    // Hard gate: profile done + required surveys pending → redirect to survey
-    if (profileDone && pendingSurveys.length > 0 && !isAdminUser) {
+    // Hard gate: required surveys pending → redirect to survey
+    if (pendingSurveys.length > 0 && !isAdminUser) {
       redirect(`/dashboard/survey/${pendingSurveys[0].id}`);
     }
 
