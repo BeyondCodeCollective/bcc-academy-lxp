@@ -823,7 +823,10 @@ export function AdminTabs({
                             ...Array.from(allKeys).map((k) => {
                               const val = r.responses[k];
                               if (Array.isArray(val)) return val.join("; ");
-                              if (typeof val === "object" && val !== null) return Object.entries(val).map(([s, a]) => `${s}: ${a}`).join("; ");
+                              if (typeof val === "object" && val !== null) return Object.entries(val).map(([s, a]) => {
+                                if (typeof a === "object" && a !== null) { const r2 = a as Record<string, string>; return `${s}: before ${r2.before ?? ""} now ${r2.now ?? ""}`; }
+                                return `${s}: ${String(a)}`;
+                              }).join("; ");
                               return String(val ?? "");
                             }),
                           ]);
@@ -934,7 +937,10 @@ export function AdminTabs({
                           ...Array.from(allKeys).map((k) => {
                             const val = row.responses[k];
                             if (Array.isArray(val)) return val.join("; ");
-                            if (typeof val === "object" && val !== null) return Object.entries(val).map(([s, a]) => `${s}: ${a}`).join("; ");
+                            if (typeof val === "object" && val !== null) return Object.entries(val).map(([s, a]) => {
+                              if (typeof a === "object" && a !== null) { const r2 = a as Record<string, string>; return `${s}: before ${r2.before ?? ""} now ${r2.now ?? ""}`; }
+                              return `${s}: ${String(a)}`;
+                            }).join("; ");
                             return String(val ?? "");
                           }),
                         ]);
