@@ -73,7 +73,6 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
     needsProfileStep = false;
 
     const isAdminUser = canAccessAdminPanel(userRole);
-    const needsSurveys = !!program.surveys?.length;
 
     const [defaultCohortRes, enrolledTracks, completedSurveysRes] = await Promise.all([
       hasCohortId
@@ -87,13 +86,14 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
       isAdminUser
         ? Promise.resolve([])
         : getEnrolledTracks(supabase, userId, program),
-      needsSurveys
-        ? supabase
+      // Always fetch for students — needed for BCC intake gate + program survey gate.
+      isAdminUser
+        ? Promise.resolve({ data: null })
+        : supabase
             .from("survey_responses")
             .select("survey_type")
             .eq("student_id", userId)
-            .not("completed_at", "is", null)
-        : Promise.resolve({ data: null }),
+            .not("completed_at", "is", null),
     ]);
 
     if (!hasCohortId && defaultCohortRes.data) {
@@ -116,18 +116,25 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
       enrolledTrackSlugs = enrolledTracks.map((t) => t.slug);
     }
 
-    if (needsSurveys) {
+    if (!isAdminUser) {
       const completedTypes = new Set(
         (completedSurveysRes.data ?? []).map((r) => r.survey_type)
       );
-      pendingSurveys = program.surveys!
-        .filter((s) => s.required && !completedTypes.has(s.id))
-        .map((s) => ({ id: s.id, title: s.title, description: s.description }));
-    }
 
-    // Hard gate: required surveys pending → redirect to survey
-    if (pendingSurveys.length > 0 && !isAdminUser) {
-      redirect(`/dashboard/survey/${pendingSurveys[0].id}`);
+      // BCC Learner Intake gate — fires before any program-specific survey.
+      if (!completedTypes.has("bcc-learner-intake")) {
+        redirect("/dashboard/survey/bcc-learner-intake");
+      }
+
+      if (program.surveys?.length) {
+        pendingSurveys = program.surveys
+          .filter((s) => s.required && !completedTypes.has(s.id))
+          .map((s) => ({ id: s.id, title: s.title, description: s.description }));
+
+        if (pendingSurveys.length > 0) {
+          redirect(`/dashboard/survey/${pendingSurveys[0].id}`);
+        }
+      }
     }
 
     const { data: announcementRows } = await supabase

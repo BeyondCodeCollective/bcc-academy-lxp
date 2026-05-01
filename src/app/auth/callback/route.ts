@@ -247,6 +247,24 @@ export async function GET(request: Request) {
         }
       }
 
+      // BCC Learner Intake — platform-level required survey, fires before any program-specific
+      // survey. Privileged users (super admins, admins) are exempt.
+      const userEmailForIntake = (user!.email || "").toLowerCase();
+      const isPrivilegedUser =
+        SUPER_ADMIN_EMAILS.includes(userEmailForIntake) ||
+        ADMIN_EMAILS.includes(userEmailForIntake);
+      if (!isPrivilegedUser) {
+        const { data: intakeRow } = await admin
+          .from("survey_responses")
+          .select("completed_at")
+          .eq("student_id", user!.id)
+          .eq("survey_type", "bcc-learner-intake")
+          .maybeSingle();
+        if (!intakeRow?.completed_at) {
+          return NextResponse.redirect(`${origin}/dashboard/survey/bcc-learner-intake`);
+        }
+      }
+
       // If the program has a required survey, skip the dashboard and go straight to it
       const requiredSurvey = program.surveys?.find((s) => s.required);
       if (requiredSurvey) {

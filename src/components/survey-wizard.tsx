@@ -16,6 +16,164 @@ type SurveyPage = {
   questions: SurveyQuestion[];
 };
 
+// ─── Survey IDs ───────────────────────────────────────────────────────────────
+
+export const BCC_INTAKE_SURVEY_ID = "bcc-learner-intake";
+
+// ─── BCC Learner Intake ───────────────────────────────────────────────────────
+// Platform-level required survey — fires once for every student regardless of program.
+
+const BCC_INTAKE_PAGES: SurveyPage[] = [
+  {
+    title: "A few quick basics",
+    subtitle: "This helps us know who we're serving.",
+    questions: [
+      {
+        type: "text",
+        id: "full_name",
+        label: "Full name",
+        placeholder: "e.g. Jordan Smith",
+        required: true,
+        short: true,
+      },
+      {
+        type: "date",
+        id: "date_of_birth",
+        label: "Date of birth",
+        max: new Date().toISOString().split("T")[0],
+        required: true,
+      },
+      {
+        type: "text",
+        id: "zip_code",
+        label: "ZIP code",
+        placeholder: "e.g. 40202",
+        required: true,
+        short: true,
+      },
+    ],
+  },
+  {
+    title: "About You",
+    subtitle:
+      'We collect this so we can share our learner community\'s impact with funders — keeping our programs free and sustainable. You can mark "Prefer not to say" on any item.',
+    questions: [
+      {
+        type: "consent",
+        id: "intake_consent",
+        label: "Why we ask",
+        text: "Beyond Code Collective collects this information to demonstrate the impact of our programs to funders. This keeps our programs free and sustainable.",
+        bullets: [
+          'You can mark "Prefer not to say" on any item — your choice never affects your participation.',
+          "Your answers stay private and are never shared individually.",
+          "To see, change, or delete your answers, email info@beyondcodecollective.org.",
+        ],
+        confirmLabel: "Understood — I'm ready to continue.",
+        required: true,
+      },
+      {
+        type: "radio",
+        id: "education_level",
+        label: "What is the highest level of education you have completed?",
+        options: [
+          "Some high school (no diploma)",
+          "High school diploma or GED",
+          "Some college (no degree)",
+          "Associate degree",
+          "Bachelor's degree",
+          "Graduate or professional degree",
+          "Prefer not to say",
+        ],
+        required: true,
+      },
+      {
+        type: "radio",
+        id: "gender",
+        label: "What is your gender?",
+        options: [
+          "Man",
+          "Woman",
+          "Non-binary",
+          "Genderqueer / Gender non-conforming",
+          "Transgender",
+          "Prefer not to say",
+          "Other",
+        ],
+        required: true,
+      },
+      {
+        type: "multi-select",
+        id: "race_ethnicity",
+        label: "What is your race and/or ethnicity? Select all that apply.",
+        options: [
+          "American Indian or Alaska Native",
+          "Asian",
+          "Black or African American",
+          "Hispanic or Latino",
+          "Middle Eastern or North African",
+          "Native Hawaiian or Pacific Islander",
+          "White",
+          "Prefer not to say",
+          "Other",
+        ],
+        required: true,
+      },
+      {
+        type: "multi-select",
+        id: "languages",
+        label: "What languages do you speak at home? Select all that apply.",
+        options: ["English", "Spanish", "Prefer not to say", "Other"],
+        required: true,
+      },
+      {
+        type: "radio",
+        id: "first_gen_college",
+        label:
+          "If you started college today, would you be the first in your immediate family to attend or complete college?",
+        options: ["Yes", "No", "Not applicable", "Prefer not to say"],
+        required: true,
+      },
+      {
+        type: "multi-select",
+        id: "employment_status",
+        label: "What is your current employment status? Select all that apply.",
+        options: [
+          "Employed full-time",
+          "Employed part-time",
+          "Unemployed",
+          "Looking for work",
+          "Not currently looking for work",
+          "Student",
+          "Prefer not to say",
+          "Other",
+        ],
+        required: true,
+      },
+      {
+        type: "radio",
+        id: "household_income",
+        label: "What best describes your household income range?",
+        options: [
+          "Under $20,000",
+          "$20,000 – $39,999",
+          "$40,000 – $59,999",
+          "$60,000 – $79,999",
+          "$80,000 or more",
+          "Prefer not to say",
+        ],
+        required: true,
+      },
+      {
+        type: "radio",
+        id: "disability",
+        label: "Do you identify as a person with a disability?",
+        options: ["Yes", "No", "Prefer not to say"],
+        required: true,
+      },
+    ],
+  },
+];
+
 // ─── Survey Pages ─────────────────────────────────────────────────────────────
 //
 // Pages 1–4 are shared across every program (demographics, background, digital
@@ -564,6 +722,9 @@ const ATG_MID_PROGRAM_PAGES: SurveyPage[] = [
 ];
 
 function getSurveyPages(surveyId: string, programSlug: string): SurveyPage[] {
+  if (surveyId === BCC_INTAKE_SURVEY_ID) {
+    return BCC_INTAKE_PAGES;
+  }
   if (surveyId === "mid-program-spring-2026" && programSlug === "atg") {
     return ATG_MID_PROGRAM_PAGES;
   }

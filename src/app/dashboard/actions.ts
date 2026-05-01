@@ -128,9 +128,15 @@ export async function saveSurveyResponse(
     throw new Error(`Save failed: ${error.message}`);
   }
 
-  // If the survey collected a name, save it to the student record
-  const firstName = typeof responses.first_name === "string" ? responses.first_name.trim() : null;
-  const lastName = typeof responses.last_name === "string" ? responses.last_name.trim() : null;
+  // If the survey collected a name, save it to the student record.
+  // Supports both separate first_name/last_name fields and a single full_name field.
+  let firstName = typeof responses.first_name === "string" ? responses.first_name.trim() : null;
+  let lastName = typeof responses.last_name === "string" ? responses.last_name.trim() : null;
+  if (!firstName && !lastName && typeof responses.full_name === "string") {
+    const parts = responses.full_name.trim().split(/\s+/);
+    firstName = parts[0] || null;
+    lastName = parts.slice(1).join(" ") || null;
+  }
   if (firstName || lastName) {
     const svc = createServiceClient();
     await svc.from("students").update({

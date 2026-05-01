@@ -79,6 +79,15 @@ export type DualLikertQuestion = {
   required?: boolean;
 };
 
+export type DateQuestion = {
+  type: "date";
+  id: string;
+  label: string;
+  min?: string;
+  max?: string;
+  required?: boolean;
+};
+
 export type SurveyQuestion =
   | RadioQuestion
   | MultiSelectQuestion
@@ -86,7 +95,8 @@ export type SurveyQuestion =
   | LikertQuestion
   | MonthYearQuestion
   | ConsentQuestion
-  | DualLikertQuestion;
+  | DualLikertQuestion
+  | DateQuestion;
 
 export function isPageValid(
   questions: SurveyQuestion[],
@@ -99,6 +109,8 @@ export function isPageValid(
       if (val !== true) return false;
     } else if (q.type === "multi-select") {
       if (!Array.isArray(val) || val.length === 0) return false;
+    } else if (q.type === "date") {
+      if (!val || typeof val !== "string" || !val.trim()) return false;
     } else if (q.type === "likert") {
       const likertVal = val as Record<string, string> | undefined;
       if (!likertVal) return false;
@@ -156,6 +168,8 @@ export function QuestionRenderer({
           onChange={onChange}
         />
       );
+    case "date":
+      return <DateField question={question} value={value as string} onChange={onChange} />;
   }
 }
 
@@ -566,6 +580,36 @@ function DualLikertField({
         })}
       </div>
     </fieldset>
+  );
+}
+
+function DateField({
+  question,
+  value,
+  onChange,
+}: {
+  question: DateQuestion;
+  value: string | undefined;
+  onChange: (val: string) => void;
+}) {
+  const inputId = `date-${question.id}`;
+  return (
+    <div>
+      <label htmlFor={inputId} className="text-sm font-medium text-neutral-900 mb-2 block">
+        {question.label}
+        {question.required && <span aria-hidden="true" className="text-red-500 ml-0.5">*</span>}
+      </label>
+      <input
+        id={inputId}
+        type="date"
+        value={value ?? ""}
+        onChange={(e) => onChange(e.target.value)}
+        min={question.min}
+        max={question.max}
+        aria-required={question.required || undefined}
+        className="w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-3 text-sm text-neutral-900 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 focus:outline-none transition-all"
+      />
+    </div>
   );
 }
 
