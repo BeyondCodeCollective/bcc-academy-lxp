@@ -34,6 +34,11 @@ import type { Student } from "@/lib/types";
 import { isStorageUrl, isUploadedVideo } from "@/lib/storage-utils";
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
 
+const PLATFORM_SURVEY_TITLES: Record<string, string> = {
+  "bcc-learner-intake": "BCC Learner Intake",
+  "bcc-workshop": "Workshop Survey",
+};
+
 type CohortRow = {
   id: string;
   name: string;
@@ -793,6 +798,7 @@ export function AdminTabs({
                   .map((row) => {
                     const title =
                       surveyConfigs.find((s) => s.id === row.survey_type)?.title ??
+                      PLATFORM_SURVEY_TITLES[row.survey_type] ??
                       row.survey_type;
                     return (
                       <PublicSurveyCard
@@ -2092,7 +2098,8 @@ function PublicSurveyCard({
   const [expanded, setExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
-  const [responses, setResponses] = useState<{ email: string; full_name: string; completedAt: string | null }[]>([]);
+  const [expandedEmail, setExpandedEmail] = useState<string | null>(null);
+  const [responses, setResponses] = useState<{ email: string; full_name: string; completedAt: string | null; responses: Record<string, unknown> }[]>([]);
   const loaded = useRef(false);
 
   async function loadResponses() {
@@ -2100,7 +2107,7 @@ function PublicSurveyCard({
     setLoading(true);
     try {
       const data = await listPublicSurveyResponses(programSlug, surveyType);
-      setResponses(data.map((r) => ({ email: r.email, full_name: r.full_name, completedAt: r.completed_at })));
+      setResponses(data.map((r) => ({ email: r.email, full_name: r.full_name, completedAt: r.completed_at, responses: r.responses })));
       loaded.current = true;
     } finally {
       setLoading(false);
@@ -2165,24 +2172,75 @@ function PublicSurveyCard({
             <p className="text-xs text-neutral-400 px-2">No responses found.</p>
           )}
           {responses.map((r) => (
-            <div key={r.email} className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 hover:bg-neutral-50">
-              <div className="min-w-0">
-                <p className="text-xs font-medium text-neutral-800 truncate">{r.full_name}</p>
-                <p className="text-[11px] text-neutral-400 truncate">{r.email}</p>
+            <div key={r.email} className="rounded-lg border border-neutral-100 overflow-hidden">
+              <div className="flex items-center justify-between gap-2 px-2 py-1.5 hover:bg-neutral-50">
+                <button
+                  type="button"
+                  onClick={() => setExpandedEmail(expandedEmail === r.email ? null : r.email)}
+                  className="flex-1 text-left min-w-0"
+                >
+                  <p className="text-xs font-medium text-neutral-800 truncate">{r.full_name}</p>
+                  <p className="text-[11px] text-neutral-400 truncate">{r.email}{r.completedAt ? ` · ${new Date(r.completedAt).toLocaleDateString()}` : ""}</p>
+                </button>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setExpandedEmail(expandedEmail === r.email ? null : r.email)}
+                    className="rounded p-1 text-neutral-300 hover:text-neutral-600 hover:bg-neutral-100 transition-colors"
+                    title={expandedEmail === r.email ? "Hide answers" : "View answers"}
+                  >
+                    <ChevronDown size={13} className={`transition-transform ${expandedEmail === r.email ? "rotate-180" : ""}`} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(r.email)}
+                    disabled={deleting === r.email}
+                    className="rounded p-1 text-neutral-300 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
+                    title="Delete response"
+                  >
+                    {deleting === r.email ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                  </button>
+                </div>
               </div>
-              <button
-                type="button"
-                onClick={() => handleDelete(r.email)}
-                disabled={deleting === r.email}
-                className="shrink-0 rounded p-1 text-neutral-300 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
-                title="Delete response"
-              >
-                {deleting === r.email ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
-              </button>
+              {expandedEmail === r.email && (
+                <div className="border-t border-neutral-100 bg-neutral-50 px-3 py-2 space-y-1.5">
+                  {Object.entries(r.responses)
+                    .filter(([, val]) => val !== null && val !== undefined && val !== "")
+                    .map(([key, val]) => (
+                      <div key={key}>
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400">
+                          {key.replace(/_/g, " ")}
+                        </p>
+                        <p className="text-xs text-neutral-700 mt-0.5">
+                          {formatResponseValue(val)}
+                        </p>
+                      </div>
+                    ))}
+                </div>
+              )}
             </div>
           ))}
         </div>
       )}
     </div>
   );
+}
+
+function formatResponseValue(val: unknown): string {
+  if (Array.isArray(val)) return val.join(", ");
+  if (val === true) return "Yes";
+  if (val === false) return "No";
+  if (typeof val === "object" && val !== null) {
+    // dual-likert: { "Statement text": { before: "3", now: "4" } }
+    return Object.entries(val as Record<string, unknown>)
+      .map(([stmt, rating]) => {
+        if (typeof rating === "object" && rating !== null) {
+          const r = rating as Record<string, string>;
+          return `${stmt}: before ${r.before ?? "—"} → now ${r.now ?? "—"}`;
+        }
+        return `${stmt}: ${String(rating)}`;
+      })
+      .join(" · ");
+  }
+  return String(val);
 }

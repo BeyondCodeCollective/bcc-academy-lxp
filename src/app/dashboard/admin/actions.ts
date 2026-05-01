@@ -710,7 +710,7 @@ export async function exportPublicSurveyResponses(
 export async function listPublicSurveyResponses(
   programSlug: string,
   surveyType: string,
-): Promise<{ email: string; full_name: string; completed_at: string | null }[]> {
+): Promise<{ email: string; full_name: string; completed_at: string | null; responses: Record<string, unknown> }[]> {
   const { svc } = await requireAdmin();
 
   const { data: programRow } = await svc
@@ -723,7 +723,7 @@ export async function listPublicSurveyResponses(
 
   const { data, error } = await svc
     .from("public_survey_responses")
-    .select("email, full_name, completed_at")
+    .select("email, full_name, completed_at, responses")
     .eq("program_id", programRow.id)
     .eq("survey_type", surveyType)
     .order("completed_at", { ascending: false });
@@ -732,7 +732,7 @@ export async function listPublicSurveyResponses(
     console.error("listPublicSurveyResponses error:", error.message);
     return [];
   }
-  return (data ?? []) as { email: string; full_name: string; completed_at: string | null }[];
+  return (data ?? []) as { email: string; full_name: string; completed_at: string | null; responses: Record<string, unknown> }[];
 }
 
 export async function deleteSurveyResponse(

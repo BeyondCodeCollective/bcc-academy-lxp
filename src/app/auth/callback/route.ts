@@ -266,9 +266,10 @@ export async function GET(request: Request) {
         }
       }
 
-      // If the program has a required survey, skip the dashboard and go straight to it
+      // If the program has a required survey, skip the dashboard and go straight to it.
+      // Privileged users (admins, super admins) skip this gate.
       const requiredSurvey = program.surveys?.find((s) => s.required);
-      if (requiredSurvey) {
+      if (requiredSurvey && !isPrivilegedUser) {
         // Check if already completed
         const { data: existing } = await admin
           .from("survey_responses")
