@@ -248,12 +248,12 @@ export async function GET(request: Request) {
       }
 
       // BCC Learner Intake — platform-level required survey, fires before any program-specific
-      // survey. Privileged users (super admins, admins) are exempt.
+      // survey. ATG students and privileged users (super admins, admins) are exempt.
       const userEmailForIntake = (user!.email || "").toLowerCase();
       const isPrivilegedUser =
         SUPER_ADMIN_EMAILS.includes(userEmailForIntake) ||
         ADMIN_EMAILS.includes(userEmailForIntake);
-      if (!isPrivilegedUser) {
+      if (!isPrivilegedUser && program.slug !== "atg") {
         const { data: intakeRow } = await admin
           .from("survey_responses")
           .select("completed_at")

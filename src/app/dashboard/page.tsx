@@ -122,7 +122,8 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
       );
 
       // BCC Learner Intake gate — fires before any program-specific survey.
-      if (!completedTypes.has("bcc-learner-intake")) {
+      // ATG is exempt (existing mid-program survey covers similar data).
+      if (program.slug !== "atg" && !completedTypes.has("bcc-learner-intake")) {
         redirect("/dashboard/survey/bcc-learner-intake");
       }
 
