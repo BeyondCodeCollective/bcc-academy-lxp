@@ -743,18 +743,6 @@ export function SurveyWizard({ surveyId, programSlug, existingResponses }: Props
   const storageKey = `survey-${surveyId}-progress`;
   const SURVEY_PAGES = getSurveyPages(surveyId, programSlug);
 
-  const [page, setPage] = useState(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem(storageKey);
-      if (saved) {
-        try {
-          return JSON.parse(saved).page ?? 0;
-        } catch { /* ignore */ }
-      }
-    }
-    return 0;
-  });
-
   const [answers, setAnswers] = useState<Record<string, unknown>>(() => {
     if (existingResponses) return existingResponses;
     if (typeof window !== "undefined") {
@@ -766,6 +754,27 @@ export function SurveyWizard({ surveyId, programSlug, existingResponses }: Props
       }
     }
     return {};
+  });
+
+  const [page, setPage] = useState(() => {
+    if (typeof window === "undefined") return 0;
+    const saved = localStorage.getItem(storageKey);
+    if (!saved) return 0;
+    try {
+      const { page: savedPage, answers: savedAnswers } = JSON.parse(saved) as {
+        page?: number;
+        answers?: Record<string, unknown>;
+      };
+      if (!savedPage || savedPage <= 0) return 0;
+      // Only restore the page if every preceding page has valid answers.
+      // Guards against navigating forward without answering and then resuming
+      // at a page where required questions are unanswered.
+      const effectiveAnswers = existingResponses ?? savedAnswers ?? {};
+      for (let i = 0; i < savedPage && i < SURVEY_PAGES.length; i++) {
+        if (!validatePage(SURVEY_PAGES[i].questions, effectiveAnswers)) return i;
+      }
+      return Math.min(savedPage, SURVEY_PAGES.length - 1);
+    } catch { return 0; }
   });
 
   const [submitting, setSubmitting] = useState(false);
