@@ -78,7 +78,7 @@ const PAGES: Page[] = [
         label: "ZIP code",
         placeholder: "e.g. 40202",
         required: true,
-        short: true,
+        zip: true,
       },
     ],
   },

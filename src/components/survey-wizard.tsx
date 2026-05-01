@@ -47,7 +47,7 @@ const BCC_INTAKE_PAGES: SurveyPage[] = [
         label: "ZIP code",
         placeholder: "e.g. 40202",
         required: true,
-        short: true,
+        zip: true,
       },
     ],
   },
@@ -492,7 +492,7 @@ const ATG_MID_PROGRAM_PAGES: SurveyPage[] = [
         options: ["English", "Spanish", "Prefer not to say", "Other"],
         required: true,
       },
-      { type: "text", id: "mid_zip_code", label: "ZIP code", placeholder: "e.g. 40202", required: true, short: true },
+      { type: "text", id: "mid_zip_code", label: "ZIP code", placeholder: "e.g. 40202", required: true, zip: true },
       {
         type: "radio",
         id: "mid_education_level",

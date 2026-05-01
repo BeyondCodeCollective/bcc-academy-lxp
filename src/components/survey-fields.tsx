@@ -29,6 +29,8 @@ export type TextQuestion = {
   required?: boolean;
   /** Renders as a single-line <input> instead of a textarea. Use for short values like ZIP codes. */
   short?: boolean;
+  /** Enforces 5-digit US ZIP code format. Implies short. */
+  zip?: boolean;
 };
 
 export type LikertQuestion = {
@@ -125,6 +127,8 @@ export function isPageValid(
     } else if (q.type === "month-year") {
       const my = val as { month: string; year: string } | undefined;
       if (!my || !my.month || !my.year) return false;
+    } else if (q.type === "text" && q.zip) {
+      if (typeof val !== "string" || !/^\d{5}$/.test(val.trim())) return false;
     } else {
       if (!val || (typeof val === "string" && !val.trim())) return false;
     }
@@ -355,12 +359,17 @@ function TextField({
           </span>
         )}
       </label>
-      {question.short ? (
+      {(question.short || question.zip) ? (
         <input
           id={inputId}
           type="text"
+          inputMode={question.zip ? "numeric" : undefined}
+          maxLength={question.zip ? 5 : undefined}
           value={value ?? ""}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => {
+            const raw = question.zip ? e.target.value.replace(/\D/g, "") : e.target.value;
+            onChange(raw);
+          }}
           placeholder={question.placeholder}
           aria-required={question.required || undefined}
           className="w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-3 text-sm text-neutral-900 placeholder:text-neutral-500 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 focus:outline-none transition-all"
