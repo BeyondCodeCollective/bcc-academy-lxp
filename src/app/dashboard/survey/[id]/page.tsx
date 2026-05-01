@@ -1,8 +1,14 @@
 import { redirect } from "next/navigation";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { getProgram } from "@/lib/programs/server";
-import { SurveyWizard } from "@/components/survey-wizard";
+import { SurveyWizard, BCC_INTAKE_SURVEY_ID } from "@/components/survey-wizard";
 import { SurveyComplete } from "./survey-complete";
+
+const BCC_INTAKE_CONFIG = {
+  id: BCC_INTAKE_SURVEY_ID,
+  title: "BCC Learner Intake",
+  description: "A few quick questions to help us know who we're serving.",
+};
 
 export default async function SurveyPage({
   params,
@@ -12,8 +18,11 @@ export default async function SurveyPage({
   const { id: surveyId } = await params;
   const program = await getProgram();
 
-  // Verify survey exists in program config
-  const surveyConfig = program.surveys?.find((s) => s.id === surveyId);
+  // BCC intake is platform-level — not in program.surveys — handle it directly.
+  const surveyConfig =
+    surveyId === BCC_INTAKE_SURVEY_ID
+      ? BCC_INTAKE_CONFIG
+      : program.surveys?.find((s) => s.id === surveyId);
   if (!surveyConfig) redirect("/dashboard");
 
   let existingResponses: Record<string, unknown> | null = null;
