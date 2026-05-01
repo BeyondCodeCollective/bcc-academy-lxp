@@ -1071,3 +1071,162 @@ export async function addFeedback(data: {
   if (error) throw new Error(error.message);
   return { success: true };
 }
+
+// ─── BCC-wide survey data (cross-program) — super_admin only ─────────────────
+
+export type BCCSurveyResponse = {
+  survey_type: string;
+  full_name: string;
+  email: string;
+  program_slug: string;
+  program_name: string;
+  completed_at: string | null;
+  responses: Record<string, unknown>;
+  source: "public" | "authenticated";
+};
+
+export type BCCSurveyStat = {
+  survey_type: string;
+  program_slug: string;
+  program_name: string;
+  count: number;
+  source: "public" | "authenticated";
+};
+
+export async function getBCCSurveyStats(): Promise<BCCSurveyStat[]> {
+  const { svc, userId } = await requireSuperAdmin();
+
+  const [publicRes, authRes] = await Promise.all([
+    svc
+      .from("public_survey_responses")
+      .select("survey_type, program_id, programs(slug, name)")
+      .is("withdrawn_at", null),
+    svc
+      .from("survey_responses")
+      .select("survey_type, program_id, programs(slug, name)")
+      .eq("survey_type", "bcc-learner-intake")
+      .not("completed_at", "is", null),
+  ]);
+
+  logAdminAccess(svc, {
+    actorUserId: userId,
+    programId: null,
+    action: "view",
+    resource: "bcc_survey_stats",
+  });
+
+  const counts = new Map<string, BCCSurveyStat>();
+
+  function tally(
+    rows: { survey_type: string; programs: unknown }[] | null,
+    source: "public" | "authenticated",
+  ) {
+    for (const row of rows ?? []) {
+      const p = (Array.isArray(row.programs) ? row.programs[0] : row.programs) as {
+        slug: string;
+        name: string;
+      } | null;
+      if (!p) continue;
+      const key = `${source}::${row.survey_type}::${p.slug}`;
+      const existing = counts.get(key);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        counts.set(key, {
+          survey_type: row.survey_type,
+          program_slug: p.slug,
+          program_name: p.name,
+          count: 1,
+          source,
+        });
+      }
+    }
+  }
+
+  tally(publicRes.data as { survey_type: string; programs: unknown }[] | null, "public");
+  tally(authRes.data as { survey_type: string; programs: unknown }[] | null, "authenticated");
+
+  return Array.from(counts.values());
+}
+
+export async function getBCCSurveyResponses(
+  surveyType: string,
+): Promise<BCCSurveyResponse[]> {
+  const { svc, userId } = await requireSuperAdmin();
+
+  const [publicRes, authRes] = await Promise.all([
+    svc
+      .from("public_survey_responses")
+      .select("email, full_name, responses, completed_at, programs(slug, name)")
+      .eq("survey_type", surveyType)
+      .is("withdrawn_at", null)
+      .order("completed_at", { ascending: false }),
+    surveyType === "bcc-learner-intake"
+      ? svc
+          .from("survey_responses")
+          .select(
+            "responses, completed_at, program_id, programs(slug, name), students(first_name, last_name, email)",
+          )
+          .eq("survey_type", surveyType)
+          .not("completed_at", "is", null)
+          .order("completed_at", { ascending: false })
+      : Promise.resolve({ data: null }),
+  ]);
+
+  logAdminAccess(svc, {
+    actorUserId: userId,
+    programId: null,
+    action: "view",
+    resource: `bcc_survey_responses.${surveyType}`,
+    rowCount: (publicRes.data?.length ?? 0) + ((authRes.data as unknown[])?.length ?? 0),
+  });
+
+  const publicRows: BCCSurveyResponse[] = (publicRes.data ?? []).map((row) => {
+    const p = (Array.isArray(row.programs) ? row.programs[0] : row.programs) as {
+      slug: string;
+      name: string;
+    } | null;
+    return {
+      survey_type: surveyType,
+      full_name: (row as { full_name: string }).full_name,
+      email: (row as { email: string }).email,
+      program_slug: p?.slug ?? "",
+      program_name: p?.name ?? "",
+      completed_at: (row as { completed_at: string | null }).completed_at,
+      responses: (row as { responses: Record<string, unknown> }).responses,
+      source: "public",
+    };
+  });
+
+  const authData = authRes.data as {
+    responses: Record<string, unknown>;
+    completed_at: string | null;
+    programs: { slug: string; name: string } | { slug: string; name: string }[] | null;
+    students: { first_name: string; last_name: string; email: string } | null;
+  }[] | null;
+
+  const authRows: BCCSurveyResponse[] = (authData ?? []).map((row) => {
+    const p = (Array.isArray(row.programs) ? row.programs[0] : row.programs) as {
+      slug: string;
+      name: string;
+    } | null;
+    return {
+      survey_type: surveyType,
+      full_name: row.students
+        ? `${row.students.first_name} ${row.students.last_name}`
+        : "Unknown",
+      email: row.students?.email ?? "",
+      program_slug: p?.slug ?? "",
+      program_name: p?.name ?? "",
+      completed_at: row.completed_at,
+      responses: row.responses,
+      source: "authenticated",
+    };
+  });
+
+  return [...publicRows, ...authRows].sort((a, b) => {
+    if (!a.completed_at) return 1;
+    if (!b.completed_at) return -1;
+    return new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime();
+  });
+}

@@ -712,6 +712,10 @@ export function AdminTabs({
               value={programSlug}
               onChange={(e) => {
                 const slug = e.target.value;
+                if (slug === "__bcc_surveys__") {
+                  window.location.href = "/dashboard/admin/surveys";
+                  return;
+                }
                 const domains: Record<string, string> = {
                   atg: "atg.bccacademy.io",
                   forge: "forge.bccacademy.io",
@@ -721,10 +725,8 @@ export function AdminTabs({
                 const onKnownDomain = targetDomain && Object.values(domains).includes(window.location.hostname);
 
                 if (onKnownDomain) {
-                  // Production: navigate to the target program's subdomain
                   window.location.href = `https://${targetDomain}/dashboard/admin`;
                 } else {
-                  // Localhost / preview: use override cookie
                   document.cookie = `program-override=${slug}; path=/; max-age=86400`;
                   window.location.reload();
                 }
@@ -734,6 +736,8 @@ export function AdminTabs({
               {allPrograms.map((p) => (
                 <option key={p.slug} value={p.slug}>{p.name}</option>
               ))}
+              <option disabled>─────────────</option>
+              <option value="__bcc_surveys__">BCC — Surveys</option>
             </select>
             <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
           </div>
