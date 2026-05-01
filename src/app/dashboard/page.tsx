@@ -13,6 +13,7 @@ import { canAccessAdminPanel } from "@/lib/roles";
 import { getSessionContext } from "@/lib/auth/session";
 import { resolveCurrentUser } from "@/lib/current-user";
 import { getEnrolledTracks } from "@/lib/enrollment";
+import { BCC_INTAKE_SURVEY_ID, BCC_INTAKE_EXEMPT_PROGRAMS } from "@/lib/surveys/platform";
 
 export const dynamic = "force-dynamic";
 
@@ -121,10 +122,11 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
         (completedSurveysRes.data ?? []).map((r) => r.survey_type)
       );
 
-      // BCC Learner Intake gate — fires before any program-specific survey.
-      // ATG is exempt (existing mid-program survey covers similar data).
-      if (program.slug !== "atg" && !completedTypes.has("bcc-learner-intake")) {
-        redirect("/dashboard/survey/bcc-learner-intake");
+      if (
+        !BCC_INTAKE_EXEMPT_PROGRAMS.includes(program.slug) &&
+        !completedTypes.has(BCC_INTAKE_SURVEY_ID)
+      ) {
+        redirect(`/dashboard/survey/${BCC_INTAKE_SURVEY_ID}`);
       }
 
       if (program.surveys?.length) {

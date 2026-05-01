@@ -5,6 +5,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { authCookieDomain } from "@/lib/supabase/cookie-domain";
 import { getProgram } from "@/lib/programs/server";
 import { sendWelcomeEmail } from "@/lib/email";
+import { BCC_INTAKE_SURVEY_ID, BCC_INTAKE_EXEMPT_PROGRAMS } from "@/lib/surveys/platform";
 
 // Emails that always get super_admin role (hardcoded + env var)
 const SUPER_ADMIN_EMAILS = [
@@ -253,15 +254,15 @@ export async function GET(request: Request) {
       const isPrivilegedUser =
         SUPER_ADMIN_EMAILS.includes(userEmailForIntake) ||
         ADMIN_EMAILS.includes(userEmailForIntake);
-      if (!isPrivilegedUser && program.slug !== "atg") {
+      if (!isPrivilegedUser && !BCC_INTAKE_EXEMPT_PROGRAMS.includes(program.slug)) {
         const { data: intakeRow } = await admin
           .from("survey_responses")
           .select("completed_at")
           .eq("student_id", user!.id)
-          .eq("survey_type", "bcc-learner-intake")
+          .eq("survey_type", BCC_INTAKE_SURVEY_ID)
           .maybeSingle();
         if (!intakeRow?.completed_at) {
-          return NextResponse.redirect(`${origin}/dashboard/survey/bcc-learner-intake`);
+          return NextResponse.redirect(`${origin}/dashboard/survey/${BCC_INTAKE_SURVEY_ID}`);
         }
       }
 

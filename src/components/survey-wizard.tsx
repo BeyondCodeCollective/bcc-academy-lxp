@@ -16,9 +16,7 @@ type SurveyPage = {
   questions: SurveyQuestion[];
 };
 
-// ─── Survey IDs ───────────────────────────────────────────────────────────────
-
-export const BCC_INTAKE_SURVEY_ID = "bcc-learner-intake";
+import { BCC_INTAKE_SURVEY_ID } from "@/lib/surveys/platform";
 
 // ─── BCC Learner Intake ───────────────────────────────────────────────────────
 // Platform-level required survey — fires once for every student regardless of program.

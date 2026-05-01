@@ -1,19 +1,23 @@
 import { notFound } from "next/navigation";
 import type { ComponentType } from "react";
 import { getProgram } from "@/lib/programs/server";
+import { PLATFORM_PUBLIC_SURVEYS } from "@/lib/surveys/platform";
 import { TextScaleToggle } from "@/components/text-scale-toggle";
 import { ReadAloudButton } from "@/components/read-aloud-button";
 import { PublicNetworkPlusSurvey } from "./public-network-plus-survey";
+import { PublicWorkshopSurvey } from "./public-workshop-survey";
+import { PublicLearnerIntake } from "./public-learner-intake";
 
 // Public survey route. Outside /dashboard/* so the proxy/middleware does not
 // gate it — anyone who lands on catalyst.bccacademy.io/survey/network-plus-post
-// can fill it out without logging in. The survey config is sourced from the
-// current program (resolved by host header); missing survey IDs 404.
+// can fill it out without logging in.
 //
-// Adding a new public survey: register it in SURVEY_COMPONENTS below. The key
-// is the survey ID from the program config; the value is the React component.
-// If a survey needs a totally bespoke layout, add it here as an escape hatch
-// rather than forcing it through a generic wizard.
+// Survey config is resolved from the current program first, then falls back to
+// platform-level public surveys (defined in src/lib/surveys/platform.ts).
+//
+// Adding a new public survey: register its component in SURVEY_COMPONENTS
+// below. If it's program-specific, add its config to the program file. If it's
+// platform-wide, add its config to PLATFORM_PUBLIC_SURVEYS.
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +25,8 @@ type SurveyProps = { surveyId: string; programSlug: string };
 
 const SURVEY_COMPONENTS: Record<string, ComponentType<SurveyProps>> = {
   "network-plus-post": PublicNetworkPlusSurvey,
+  "bcc-workshop": PublicWorkshopSurvey,
+  "bcc-learner-intake": PublicLearnerIntake,
 };
 
 export default async function PublicSurveyPage({
@@ -30,7 +36,9 @@ export default async function PublicSurveyPage({
 }) {
   const { id } = await params;
   const program = await getProgram();
-  const survey = (program.surveys ?? []).find((s) => s.id === id);
+  const survey =
+    (program.surveys ?? []).find((s) => s.id === id) ??
+    PLATFORM_PUBLIC_SURVEYS[id];
 
   if (!survey) notFound();
 
