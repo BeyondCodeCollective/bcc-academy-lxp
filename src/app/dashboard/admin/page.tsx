@@ -7,6 +7,7 @@ import type { StudentTrackRow, SurveyStatsRow, InstructorTrackRow, PublicSurveyS
 import { getPublicSurveyStats } from "./actions";
 import { canAccessAdminPanel, canSwitchPrograms } from "@/lib/roles";
 import { getAllPrograms } from "@/lib/programs";
+import { PLATFORM_AUTH_SURVEYS } from "@/lib/surveys/platform";
 
 export default async function AdminPage() {
   const program = await getProgram();
@@ -18,7 +19,10 @@ export default async function AdminPage() {
   let myInstructorTracks: string[] = [];
   let publicSurveyStats: PublicSurveyStatsRow[] = [];
   const surveyStats: Record<string, SurveyStatsRow[]> = {};
-  const surveyList = program.surveys ?? [];
+  const surveyList = [
+    ...Object.values(PLATFORM_AUTH_SURVEYS),
+    ...(program.surveys ?? []),
+  ];
   const engagementScores: Record<string, { total: number; attendance: number; submissions: number; reflections: number; tutorMessages: number }> = {};
 
   if (isSupabaseConfigured()) {
@@ -46,8 +50,7 @@ export default async function AdminPage() {
     // Public-survey stats are only shown on dashboardless programs (e.g.
     // Catalyst). On Forge/ATG the widget is hidden entirely, so fetching
     // across the whole public_survey_responses table is pure waste.
-    const needsPublicSurveyStats =
-      canSwitchPrograms(userRole) && program.tracks.length === 0;
+    const needsPublicSurveyStats = canSwitchPrograms(userRole);
 
     // Batch 2: every data query the admin page needs, fired in one round trip.
     // Previously each helper re-looked-up the program row and they ran
