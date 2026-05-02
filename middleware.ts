@@ -58,8 +58,10 @@ export async function middleware(request: NextRequest) {
 
   // Programs with no tracks (dashboardless) redirect /dashboard to their
   // primary survey. Catalyst used to be survey-only but now has tracks, so
-  // this only fires if the config has zero tracks.
+  // this only fires if the config has zero tracks. Marketing is excluded —
+  // it's a public site, not a program, and has no surveys.
   if (
+    program.slug !== "marketing" &&
     program.tracks.length === 0 &&
     request.nextUrl.pathname.startsWith("/dashboard") &&
     !request.nextUrl.pathname.startsWith("/dashboard/admin")

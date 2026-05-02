@@ -1,11 +1,16 @@
 import { redirect } from "next/navigation";
 import { getProgram } from "@/lib/programs/server";
 import { LoginForm } from "@/components/login-form";
+import { MarketingHome } from "@/components/marketing/MarketingHome";
 
 export const dynamic = "force-dynamic";
 
 export default async function LoginPage() {
   const program = await getProgram();
+
+  if (program.slug === "marketing") {
+    return <MarketingHome />;
+  }
 
   if (program.slug === "catalyst") {
     redirect("/survey/network-plus-post");

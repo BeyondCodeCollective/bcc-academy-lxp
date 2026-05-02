@@ -1,12 +1,20 @@
 import { atgConfig } from "./atg";
 import { forgeConfig } from "./forge";
 import { catalystConfig } from "./catalyst";
+import { marketingConfig, MARKETING_SLUG } from "./marketing";
 import type { ProgramConfig, TrackConfig } from "./types";
 
 const PROGRAMS: Record<string, ProgramConfig> = {
   atg: atgConfig,
   forge: forgeConfig,
   catalyst: catalystConfig,
+};
+
+// Marketing is intentionally NOT in PROGRAMS (so it's excluded from
+// getAllPrograms and the program switcher). It's resolved separately so
+// the apex domain renders marketing pages rather than a program login.
+const SPECIAL_CONFIGS: Record<string, ProgramConfig> = {
+  [MARKETING_SLUG]: marketingConfig,
 };
 
 /**
@@ -17,6 +25,8 @@ const DOMAIN_MAP: Record<string, string> = {
   "atg.bccacademy.io": "atg",
   "forge.bccacademy.io": "forge",
   "catalyst.bccacademy.io": "catalyst",
+  "bccacademy.io": MARKETING_SLUG,
+  "www.bccacademy.io": MARKETING_SLUG,
 };
 
 /**
@@ -36,14 +46,14 @@ export function getProgramByDomain(host: string): ProgramConfig {
   // Strip port for localhost matching
   const bare = host.replace(/:\d+$/, "");
   const slug = DOMAIN_MAP[bare] ?? DOMAIN_MAP[host] ?? process.env.DEFAULT_PROGRAM ?? "atg";
-  return PROGRAMS[slug] ?? PROGRAMS.atg;
+  return SPECIAL_CONFIGS[slug] ?? PROGRAMS[slug] ?? PROGRAMS.atg;
 }
 
 /**
  * Get a program config by its slug.
  */
 export function getProgramBySlug(slug: string): ProgramConfig {
-  return PROGRAMS[slug] ?? PROGRAMS.atg;
+  return SPECIAL_CONFIGS[slug] ?? PROGRAMS[slug] ?? PROGRAMS.atg;
 }
 
 /**
