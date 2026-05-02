@@ -1,11 +1,30 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { getProgramByDomain } from "@/lib/programs";
+import { getProgramByDomain, getProgramBySlug, isKnownProgramHost } from "@/lib/programs";
+
+// Query-param program override. Lets a reviewer (e.g. CEO previewing the
+// marketing site on a Vercel preview URL) flip into a specific program
+// experience without DNS or env config: ?as=marketing|atg|forge|catalyst
+//
+// Only honored on non-production hosts. Once set, persists via the
+// existing program-override cookie (24h) so subsequent navigation works.
+const VALID_PREVIEW_SLUGS = new Set(["marketing", "atg", "forge", "catalyst"]);
 
 export async function middleware(request: NextRequest) {
-  // Resolve program from hostname and propagate via header + cookie
   const host = request.headers.get("host") ?? "localhost:3000";
-  const program = getProgramByDomain(host);
+
+  // Honor ?as= override first, but only on non-production hosts. On a real
+  // bccacademy.io subdomain the URL always wins for safety.
+  const asParam = request.nextUrl.searchParams.get("as");
+  const previewOverride =
+    asParam && VALID_PREVIEW_SLUGS.has(asParam) && !isKnownProgramHost(host)
+      ? asParam
+      : null;
+
+  const program = previewOverride
+    ? getProgramBySlug(previewOverride)
+    : getProgramByDomain(host);
+
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-program-slug", program.slug);
   requestHeaders.set("x-pathname", request.nextUrl.pathname);
@@ -18,6 +37,17 @@ export async function middleware(request: NextRequest) {
     httpOnly: false,
     sameSite: "lax",
   });
+
+  // Persist the preview override for 24h so the reviewer can click around
+  // /quiz, /pathways/*, etc. without re-adding ?as= to every URL.
+  if (previewOverride) {
+    supabaseResponse.cookies.set("program-override", previewOverride, {
+      path: "/",
+      httpOnly: false,
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24,
+    });
+  }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
