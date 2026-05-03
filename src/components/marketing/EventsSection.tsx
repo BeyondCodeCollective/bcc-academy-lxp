@@ -1,10 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import Link from "next/link";
 import { fadeInUp, staggerContainer } from "@/lib/marketing-motion";
 import type { Event } from "@/data/marketing/events";
-import { ArrowRight } from "@phosphor-icons/react";
 import EventCard from "./EventCard";
 
 interface EventsSectionProps {
@@ -53,22 +51,6 @@ export default function EventsSection({ events }: EventsSectionProps) {
             ))}
           </motion.div>
         )}
-
-        {/* View all */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          className="mt-10 text-center"
-        >
-          <Link
-            href="/events"
-            className="inline-flex items-center gap-2 px-8 py-4 border-2 border-cobalt text-cobalt text-sm font-bold uppercase tracking-wider transition-all duration-300 hover:bg-cobalt hover:text-white"
-          >
-            All Events
-            <ArrowRight size={16} weight="bold" />
-          </Link>
-        </motion.div>
       </div>
     </section>
   );
