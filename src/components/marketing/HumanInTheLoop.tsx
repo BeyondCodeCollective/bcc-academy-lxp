@@ -75,6 +75,42 @@ export default function HumanInTheLoop() {
             Human in the Loop
           </h2>
         </motion.div>
+
+        {/* Intergenerational image pair — visual proof of 7→87 */}
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.3 }}
+          transition={{ duration: 0.9, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+          className="relative w-full max-w-5xl mx-auto mt-16 grid grid-cols-2 gap-3 md:gap-4 px-2"
+        >
+          <div className="relative aspect-[4/3] overflow-hidden">
+            <Image
+              src="/images/bcc/brand/youth-group.jpg"
+              alt="Young learners at Beyond Code Collective"
+              fill
+              className="object-cover"
+              sizes="(max-width: 1024px) 50vw, 500px"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-dark-cobalt/40 to-transparent" />
+            <span className="absolute bottom-3 left-3 text-electric-green text-xs font-mono font-bold tracking-[0.2em] uppercase">
+              [ 7 ]
+            </span>
+          </div>
+          <div className="relative aspect-[4/3] overflow-hidden">
+            <Image
+              src="/images/bcc/brand/elder-pair.jpg"
+              alt="Wisdom Leaders at Beyond Code Collective"
+              fill
+              className="object-cover"
+              sizes="(max-width: 1024px) 50vw, 500px"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-dark-cobalt/40 to-transparent" />
+            <span className="absolute bottom-3 right-3 text-electric-green text-xs font-mono font-bold tracking-[0.2em] uppercase">
+              [ 87 ]
+            </span>
+          </div>
+        </motion.div>
       </div>
 
       {/* Divider */}
