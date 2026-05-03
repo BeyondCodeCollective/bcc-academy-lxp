@@ -18,8 +18,12 @@ import FAQSection from "@/components/marketing/FAQSection";
 import FinalCTA from "@/components/marketing/FinalCTA";
 import Footer from "@/components/marketing/Footer";
 import ChatButton from "@/components/marketing/ChatButton";
+import { getEvents } from "@/lib/eventbrite";
 
-export function MarketingHome() {
+export async function MarketingHome() {
+  const events = await getEvents();
+  const upcoming = events.slice(0, 3);
+
   return (
     <div className="marketing-scope">
       <Header />
@@ -31,7 +35,7 @@ export function MarketingHome() {
         <ProofSection />
         <OurPeopleSection />
         <HubsSection />
-        <EventsSection />
+        <EventsSection events={upcoming} />
         <FAQSection />
         <FinalCTA />
       </main>
