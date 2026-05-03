@@ -22,7 +22,6 @@ import { getEvents } from "@/lib/eventbrite";
 
 export async function MarketingHome() {
   const events = await getEvents();
-  const upcoming = events.slice(0, 3);
 
   return (
     <div className="marketing-scope">
@@ -35,7 +34,7 @@ export async function MarketingHome() {
         <ProofSection />
         <OurPeopleSection />
         <HubsSection />
-        <EventsSection events={upcoming} />
+        <EventsSection events={events} />
         <FAQSection />
         <FinalCTA />
       </main>
