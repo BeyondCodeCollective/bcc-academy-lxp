@@ -28,7 +28,7 @@ const hubs = [
     status: "Activation" as const,
     description:
       "Mobile, short-term activations that bring The Forge experience to a community to gauge interest in something more permanent.",
-    image: "/images/bcc/community/community-06.jpg",
+    image: "/images/bcc/brand/forge-meeting.jpg",
   },
   {
     name: "Active Regions",
@@ -36,7 +36,7 @@ const hubs = [
     status: "Exploring" as const,
     description:
       "Where local partners, learners, and demand are pulling The Forge model next — under evaluation for residency or experience.",
-    image: "/images/bcc/community/community-07.jpg",
+    image: "/images/bcc/brand/forge-collab.jpg",
   },
 ];
 
