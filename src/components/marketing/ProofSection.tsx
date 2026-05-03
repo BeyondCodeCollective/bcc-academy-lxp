@@ -127,9 +127,9 @@ export default function ProofSection() {
               },
               {
                 icon: Handshake,
-                name: "AI Literacy",
-                tracks: "Applied Digital Skills, Design Thinking",
-                description: "How to think with AI, not just use it. Workshops that build confidence and the logical reasoning to shape the systems shaping your life.",
+                name: "MASS Coaching",
+                tracks: "Mindset, Soft Skills, Career Transformation",
+                description: "Our signature coaching program for clarity, courage, and career momentum — designed and led by Angel Aviles for emerging professionals turning potential into traction.",
                 color: "text-cobalt",
                 bg: "bg-cobalt/5",
               },
