@@ -9,6 +9,8 @@ export interface Facilitator {
   bio: string;
   pathway: string;
   image: string;
+  /** When true, render a monogram tile instead of the image — flip to false once a high-res headshot is in. */
+  monogram?: boolean;
 }
 
 export const facilitators: Facilitator[] = [
@@ -23,6 +25,7 @@ export const facilitators: Facilitator[] = [
     bio: "Kobie leads the Network and Computer Technology department at Wake Tech, where he oversees IT instruction across associate department heads, program directors, and 20+ faculty. He's a doctoral candidate in Community College Leadership at NC State and a Microsoft & Cisco-aligned educator. He teaches Catalyst's CompTIA Network+ pathway from where he actually works — running the program that trains the workforce.",
     pathway: "Launchers",
     image: "/images/bcc/instructors/kobie-joyner.webp",
+    monogram: true,
   },
   {
     id: "jihan-johnston-mcglotten",
