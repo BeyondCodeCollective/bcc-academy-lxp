@@ -46,6 +46,6 @@ export const facilitators: Facilitator[] = [
     yearsInIndustry: 20,
     bio: "Angel sits on the board of PepUp Tech, the nonprofit that's trained thousands of underserved learners into Salesforce careers, and leads Employee Advocacy & Belonging at Salesforce. She mentors learners moving into the Salesforce ecosystem and teaches the Launchers pathway's Salesforce Agentic Administrator track — pairing certification prep with the network and coaching that turn a credential into a job offer.",
     pathway: "Launchers",
-    image: "/images/bcc/instructors/angel-aviles-placeholder.jpg",
+    image: "/images/bcc/instructors/angel-aviles.png",
   },
 ];
