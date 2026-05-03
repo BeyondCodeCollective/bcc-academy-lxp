@@ -43,14 +43,16 @@ export default function EventsSection() {
           className="text-center mb-16"
         >
           <p className="text-cobalt text-sm font-semibold tracking-[0.3em] uppercase mb-4 font-mono">
-            [ Live Calendar ]
+            [ Recurring Programming ]
           </p>
           <h2 className="font-display text-4xl sm:text-5xl md:text-7xl font-bold text-true-black uppercase">
-            What&rsquo;s Happening
+            Open doors,
+            <br />on a cadence.
           </h2>
           <p className="mt-6 text-lg text-grey-3 max-w-2xl mx-auto leading-relaxed">
-            Real events, real people, real learning. Join us at The Forge ATL
-            or from anywhere in the world.
+            First-Saturday Family Days, monthly Catalyst bootcamps, quarterly
+            hackathons and demo days, founder-funder firesides — recurring at
+            every Forge, open to the community.
           </p>
         </motion.div>
 

@@ -46,29 +46,30 @@ export default function ProofSection() {
               variants={fadeInUp}
               className="text-electric-green text-sm font-semibold tracking-[0.3em] uppercase mb-8 font-mono"
             >
-              [ Day One ]
+              [ Year One &middot; Validation in Place ]
             </motion.p>
 
             <motion.h2
               variants={heroReveal}
               className="font-display text-4xl sm:text-6xl md:text-8xl lg:text-[10rem] font-bold text-white uppercase leading-[0.85]"
             >
-              We just launched.
+              Inspire.
+              <br />Educate.
             </motion.h2>
 
             <motion.p
               variants={fadeInUp}
               className="mt-4 font-display text-2xl sm:text-4xl md:text-6xl lg:text-7xl font-bold text-electric-green uppercase leading-[0.9]"
             >
-              Zero graduates.
+              Launch.
             </motion.p>
 
             <motion.p
               variants={fadeInUp}
               className="mt-8 text-lg md:text-xl text-white/60 max-w-xl mx-auto font-mono"
             >
-              And that&rsquo;s the point. You&rsquo;re not catching up —
-              you&rsquo;re setting the standard.
+              Three commitments. One ecosystem. Built with the people
+              it serves — proof, not messaging.
             </motion.p>
           </motion.div>
         </motion.div>
@@ -91,12 +92,12 @@ export default function ProofSection() {
             <h2 className="font-display text-4xl sm:text-5xl md:text-7xl font-bold text-true-black uppercase leading-[0.9]">
               Real credentials.
               <br />
-              <span className="text-cobalt">Real careers.</span>
+              <span className="text-cobalt">Real employers.</span>
             </h2>
             <p className="mt-6 text-lg text-grey-3 max-w-2xl mx-auto leading-relaxed">
-              Every pathway leads to industry-recognized certifications from the
-              companies that are actually hiring. Not vanity badges — proof
-              that opens doors.
+              Every pathway is aligned to high-demand roles employers actually
+              hire for. We shift from placement promises to employer-integrated
+              learning — taught by partners working in the field.
             </p>
           </motion.div>
 
@@ -111,32 +112,32 @@ export default function ProofSection() {
               {
                 icon: ShieldCheck,
                 name: "CompTIA",
-                tracks: "A+, Security+, Network+",
-                description: "The gold standard for IT careers. Our learners earn CompTIA certifications that 96% of hiring managers look for.",
+                tracks: "ITF+, A+, Network+",
+                description: "Foundational and infrastructure certifications — the entry stack for IT and tech-adjacent careers, taught with industry mentors.",
                 color: "text-cobalt",
                 bg: "bg-cobalt/5",
               },
               {
                 icon: Cloud,
                 name: "Salesforce",
-                tracks: "Admin, Platform Developer",
-                description: "The #1 CRM in the world. Salesforce-certified professionals earn 25% more than their non-certified peers.",
+                tracks: "Agentic Administrator, Platform Developer",
+                description: "Admin and developer pathways on the platform behind a quarter of enterprise CRM work — applied learning, not slideware.",
                 color: "text-cobalt",
                 bg: "bg-cobalt/5",
               },
               {
                 icon: Handshake,
-                name: "Human Skills",
-                tracks: "Communication, Leadership, Collaboration",
-                description: "The skills AI can't replace. We teach facilitation, conflict resolution, and the soft skills that make teams work.",
+                name: "AI Literacy",
+                tracks: "Applied Digital Skills, Design Thinking",
+                description: "How to think with AI, not just use it. Workshops that build confidence and the logical reasoning to shape the systems shaping your life.",
                 color: "text-cobalt",
                 bg: "bg-cobalt/5",
               },
               {
                 icon: Robot,
-                name: "Zapier",
-                tracks: "Automation, No-Code Workflows",
-                description: "Automate the boring stuff. Learn to build workflows that save hours of repetitive work — no coding required.",
+                name: "Project Management",
+                tracks: "Agile, Scrum, PMP Foundations",
+                description: "Durable skills that survive any tech cycle — facilitation, scope, and shipping work as a team, on time, in real conditions.",
                 color: "text-cobalt",
                 bg: "bg-cobalt/5",
               },
@@ -144,15 +145,15 @@ export default function ProofSection() {
                 icon: ChartLineUp,
                 name: "Grow with Google",
                 tracks: "Data Analytics, UX Design, IT Support",
-                description: "Google Career Certificates designed for career changers. Get job-ready in months, not years.",
+                description: "Google Career Certificates paired with mentorship — the credential plus the human relationships that turn it into a job.",
                 color: "text-cobalt",
                 bg: "bg-cobalt/5",
               },
               {
                 icon: Certificate,
                 name: "Microsoft",
-                tracks: "Azure, Power Platform, 365",
-                description: "Microsoft certifications open doors at 90% of Fortune 500 companies. We prep you to pass on the first try.",
+                tracks: "Azure, Power Platform, MakeCode",
+                description: "Cloud, low-code, and youth on-ramps from a partner whose tools sit on every desk in the workforce we&rsquo;re preparing learners to enter.",
                 color: "text-cobalt",
                 bg: "bg-cobalt/5",
               },
@@ -191,7 +192,7 @@ export default function ProofSection() {
               href="/quiz"
               className="group inline-flex items-center px-10 py-5 bg-electric-green text-true-black text-base font-bold transition-all duration-300 hover:shadow-[0_8px_30px_rgba(229,247,1,0.3)] btn-press"
             >
-              <span className="mr-2">Find Your Certification Path</span>
+              <span className="mr-2">Find Your Pathway</span>
               <ArrowRight size={16} weight="bold" className="transition-transform duration-300 group-hover:translate-x-1" />
             </a>
           </motion.div>

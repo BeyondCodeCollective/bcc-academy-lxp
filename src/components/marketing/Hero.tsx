@@ -106,7 +106,7 @@ export default function Hero() {
             variants={fadeInUp}
             className="text-electric-green text-sm font-semibold tracking-[0.3em] uppercase mb-8 font-mono"
           >
-            [ Ages 7 to 70+ &middot; Virtual + In-Person &middot; Human in the Loop ]
+            [ Beyond Code Collective &middot; Ages 7 to 87 &middot; By Us, For Everyone ]
           </motion.p>
 
           <motion.h1
@@ -133,9 +133,9 @@ export default function Hero() {
             variants={fadeInUp}
             className="mt-10 text-lg md:text-xl text-white/70 leading-relaxed max-w-xl font-mono"
           >
-            A global, intergenerational learning ecosystem where every learner
-            gets a real human facilitator. Not a video library. Not an algorithm.
-            A person who sees you.
+            A community-based learning and workforce ecosystem giving people
+            lifelong access to the skills, relationships, and pathways shaping
+            the future of work.
           </motion.p>
 
           <motion.div

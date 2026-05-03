@@ -7,34 +7,34 @@ import { CaretDown } from "@phosphor-icons/react";
 
 const faqs = [
   {
-    question: "Do I need any prior experience?",
+    question: "What is Beyond Code Collective?",
     answer:
-      "Not at all. Our pathways are designed for complete beginners through advanced learners. Your facilitator will meet you where you are and build a plan that fits your current skill level.",
+      "A community-based learning and workforce ecosystem giving people lifelong access to the skills, relationships, and pathways shaping the future of work. We teach learners ages 7 to 87 across in-person Forge hubs and virtual cohorts.",
   },
   {
-    question: "How long does it take to complete a pathway?",
+    question: "Who is this for?",
     answer:
-      "It depends on the pathway and how much time you can dedicate. Most learners complete a pathway in 3-6 months spending 2-4 hours per day. Your facilitator will help you set a realistic timeline.",
+      "K\u201312 youth, parents and caregivers, adult learners and career switchers, educators and facilitators, alumni and community advocates. The ecosystem functions as a living system rather than a funnel \u2014 enter, exit, and re-enter as your life evolves.",
   },
   {
-    question: "Will I get a certificate?",
+    question: "Is this an AI bootcamp?",
     answer:
-      "Yes. Every pathway includes industry-recognized certifications. You\u2019ll earn credentials from partners like CompTIA, Salesforce, and Google that employers actually value.",
+      "No. We integrate AI as a tool in a much larger set of skills. AI as tool, not identity. We use AI where it deepens understanding, not where it shortcuts it \u2014 and we still teach learners to code, because coding doesn\u2019t disappear in an AI world; it evolves.",
   },
   {
-    question: "What makes this different from free YouTube tutorials?",
+    question: "What credentials will I earn?",
     answer:
-      "Every learner gets a dedicated human facilitator \u2014 not a chatbot, not a forum. Someone who checks in, adapts your learning plan, and keeps you accountable. That\u2019s why our completion rate is 95% vs. the industry average of 3-15%.",
+      "Industry-recognized certifications aligned to high-demand roles: CompTIA (ITF+, A+, Network+), Salesforce (Agentic Administrator, Platform Developer), Microsoft (Azure, Power Platform), Grow with Google, Project Management foundations, and applied AI literacy.",
   },
   {
-    question: "Can my employer pay for this?",
+    question: "How is this different from BGC (Black Girls Code)?",
     answer:
-      "Absolutely. We work with employers and workforce development programs. Many learners have their tuition covered through employer sponsorship, scholarships, or government workforce programs.",
+      "BGC continues its identity-first, youth-centered mission. BCC scales the proven model to serve all future technologists \u2014 by us, for everyone. Both are part of the same family.",
   },
   {
-    question: "Is this available for kids and teens?",
+    question: "Can my employer or community partner pay for this?",
     answer:
-      "Yes! Our Explorers pathway is designed for ages 7-17. From Scratch coding to cybersafety workshops, we have age-appropriate programs with facilitators trained to work with young learners.",
+      "Yes. We work with employers, workforce development programs, and community partners. Many learners are supported through employer sponsorship, scholarships, or government workforce funding.",
   },
 ];
 

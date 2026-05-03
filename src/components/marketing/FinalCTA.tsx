@@ -67,13 +67,13 @@ export default function FinalCTA() {
             variants={heroReveal}
             className="font-display text-3xl sm:text-5xl md:text-7xl lg:text-[8rem] font-bold text-white leading-[0.9] uppercase"
           >
-            The future of tech doesn&rsquo;t start with code.
+            Shape the systems already shaping your life.
           </motion.h2>
           <motion.p
             variants={fadeInUp}
             className="mt-8 font-display text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold text-electric-green uppercase leading-[0.95]"
           >
-            It starts with someone who sees you.
+            Build your possible.
           </motion.p>
 
           <motion.div variants={fadeInUp} className="mt-14">
@@ -89,8 +89,8 @@ export default function FinalCTA() {
           {/* Email capture */}
           <motion.div variants={fadeInUp} className="mt-20 pt-10 border-t border-white/15 max-w-lg">
             <p className="text-sm text-white/60 mb-4">
-              Not ready yet? Get a weekly email with free resources and career
-              tips.
+              Not ready yet? Get occasional updates on cohort openings, Forge
+              programming, and free community resources.
             </p>
 
             {submitted ? (

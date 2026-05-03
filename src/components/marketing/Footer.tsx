@@ -46,8 +46,8 @@ export default function Footer() {
               </span>
             </Link>
             <p className="mt-4 text-sm text-white/50 leading-relaxed max-w-xs">
-              BCC Academy is a global, intergenerational learning
-              ecosystem. Every learner gets a real human facilitator.
+              Where everyone builds together. A community-based learning and
+              workforce ecosystem for ages 7 to 87.
             </p>
             <p className="mt-6 text-xs text-white/40">
               Proudly home to{" "}

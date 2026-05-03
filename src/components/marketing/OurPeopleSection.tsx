@@ -21,11 +21,17 @@ export default function OurPeopleSection() {
           className="mb-16"
         >
           <p className="text-cobalt text-sm font-semibold tracking-[0.3em] uppercase mb-4 font-mono">
-            [ Meet Your Guides ]
+            [ By Us, For Everyone ]
           </p>
           <h2 className="font-display text-4xl md:text-6xl lg:text-7xl font-bold text-true-black uppercase">
-            Our People
+            Mentors who
+            <br />reflect the room.
           </h2>
+          <p className="mt-6 text-lg text-grey-3 max-w-2xl leading-relaxed">
+            Confidence grows when learners see themselves reflected in the
+            space, the curriculum, and the facilitators. Our people teach
+            from where they&rsquo;ve actually been.
+          </p>
         </motion.div>
 
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">

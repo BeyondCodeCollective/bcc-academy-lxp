@@ -9,33 +9,33 @@ const hubs = [
   {
     name: "The Forge ATL",
     city: "Atlanta, GA",
-    status: "Now Open" as const,
+    status: "Standalone" as const,
     description:
-      "Our flagship hub in the heart of Atlanta. 10,000 sq ft of learning space, maker labs, and community gathering rooms.",
+      "Our flagship — a permanent, year-round hub anchoring the brand locally and serving as the central site for community partnerships and talent development.",
     image: "/images/bcc/initiatives/forge.jpg",
   },
   {
-    name: "The Forge NYC",
-    city: "New York, NY",
-    status: "Coming Soon" as const,
+    name: "Forge in a Box",
+    city: "NYC · LA · Hampton VA",
+    status: "Residency" as const,
     description:
-      "Bringing The Forge experience to the five boroughs.",
+      "Time-bound programs housed inside existing community, educational, or cultural institutions — bringing The Forge to where trust already lives.",
     image: "/images/bcc/community/community-05.jpg",
   },
   {
-    name: "The Forge LA",
-    city: "Los Angeles, CA",
-    status: "Coming Soon" as const,
+    name: "Forge Experience",
+    city: "Detroit · NJ · Oakland",
+    status: "Activation" as const,
     description:
-      "Expanding to the West Coast creative and tech community.",
+      "Mobile, short-term activations that bring The Forge experience to a community to gauge interest in something more permanent.",
     image: "/images/bcc/community/community-06.jpg",
   },
   {
-    name: "The Forge Bay Area",
-    city: "San Francisco Bay Area, CA",
-    status: "Coming Soon" as const,
+    name: "Active Regions",
+    city: "Puerto Rico · Palm Beach",
+    status: "Exploring" as const,
     description:
-      "Coming to the epicenter of tech innovation.",
+      "Where local partners, learners, and demand are pulling The Forge model next — under evaluation for residency or experience.",
     image: "/images/bcc/community/community-07.jpg",
   },
 ];
@@ -52,17 +52,21 @@ export default function HubsSection() {
           className="text-center mb-16"
         >
           <p className="text-cobalt text-sm font-semibold tracking-[0.3em] uppercase mb-4 font-mono">
-            [ Our Hubs ]
+            [ The Forge &middot; Place-Based Hubs ]
           </p>
           <h2 className="font-display text-4xl sm:text-5xl md:text-7xl font-bold text-true-black uppercase leading-[0.9]">
-            Learn anywhere.
+            A third space.
             <br />
-            Belong somewhere.
+            Neither school
+            <br />
+            nor work.
           </h2>
           <p className="mt-6 text-lg text-grey-3 max-w-2xl mx-auto leading-relaxed">
-            Join virtually from anywhere in the world, or come build in person
-            at one of our physical hubs. Same facilitators. Same community.
-            Your choice.
+            At The Forge, middle schoolers sit next to mid-career
+            professionals, parents learn alongside their kids, and community
+            leaders share tables with technologists. Everyone experiments,
+            asks questions, and builds the confidence to shape the systems
+            already shaping their lives.
           </p>
         </motion.div>
 
@@ -74,7 +78,7 @@ export default function HubsSection() {
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
         >
           {hubs.map((hub) => {
-            const isOpen = hub.status === "Now Open";
+            const isOpen = hub.status === "Standalone" || hub.status === "Residency";
             return (
               <motion.div
                 key={hub.name}

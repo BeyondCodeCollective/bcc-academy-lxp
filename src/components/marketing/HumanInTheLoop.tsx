@@ -10,25 +10,25 @@ import { VIDEO_URLS } from "@/data/marketing/videos";
 const principles = [
   {
     number: "01",
-    title: "Every learner has a named human guide",
+    title: "AI as tool, not identity",
     description:
-      "Not a chatbot. Not a ticket queue. A real person who knows your name, checks in weekly, adapts your plan when life happens, and reaches out if you go quiet. That's why our learners actually finish.",
+      "We use AI where it deepens understanding, not where it shortcuts it. We teach learners how to think with AI, not simply how to use it — and we center human connection, mentorship, and cultural context as essential components of education.",
     image: "/images/bcc/community/community-01.jpg",
     video: VIDEO_URLS.humanInTheLoop.principle01,
   },
   {
     number: "02",
-    title: "Learning happens in conversation",
+    title: "Learning happens in the struggle",
     description:
-      "Weekly live check-ins, cohort discussions, and real-time feedback — not pre-recorded lectures gathering dust. Your facilitator reviews what you shipped, unblocks where you're stuck, and adjusts the pace.",
+      "Not all learning should be automated. Over-reliance on AI can short-circuit the process where understanding actually forms. Some skills are built through effort, iteration, and friction — not instant answers.",
     image: "/images/bcc/community/community-06.jpg",
     video: VIDEO_URLS.humanInTheLoop.principle02,
   },
   {
     number: "03",
-    title: "AI amplifies — it never replaces",
+    title: "Shape the systems, don't just use them",
     description:
-      "Our AI tracks learning velocity, flags disengagement early, and personalizes content recommendations. But every intervention — every message, every pivot — comes from a real person.",
+      "AI is built on code. Learners who understand that foundation aren't limited to using tools — they can shape them. Coding doesn't disappear in an AI world; it evolves, and so do the people who learn it.",
     image: "/images/bcc/community/community-03.jpg",
     video: VIDEO_URLS.humanInTheLoop.principle03,
   },
@@ -57,18 +57,18 @@ export default function HumanInTheLoop() {
           className="text-center"
         >
           <p className="text-electric-green/60 text-sm font-semibold tracking-[0.3em] uppercase mb-10 font-mono">
-            [ Our Difference ]
+            [ Responsive, Not Reactive ]
           </p>
 
           <motion.p
             style={{ scale: statScale, opacity: statOpacity }}
             className="text-[25vw] md:text-[22vw] lg:text-[18vw] font-display font-bold text-electric-green leading-none"
           >
-            95%
+            7→87
           </motion.p>
 
           <p className="mt-6 text-lg md:text-xl text-white/60 font-mono max-w-xl mx-auto">
-            completion rate. The industry average for self-paced online learning is 3–15%.
+            The ages we teach in the same room. Lifelong access — not a pipeline.
           </p>
 
           <h2 className="mt-10 font-display text-4xl md:text-6xl lg:text-7xl font-bold text-white uppercase">

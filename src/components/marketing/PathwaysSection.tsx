@@ -37,15 +37,16 @@ export default function PathwaysSection() {
           className="text-center mb-6"
         >
           <p className="text-cobalt text-sm font-semibold tracking-[0.3em] uppercase mb-4 font-mono">
-            [ Find Your Path ]
+            [ Core Learner Paths ]
           </p>
           <h2 className="font-display text-4xl sm:text-5xl md:text-7xl font-bold text-true-black uppercase leading-[0.9]">
-            Not sure where to start?
+            A living system.
+            <br />Not a funnel.
           </h2>
           <p className="mt-6 text-lg text-grey-3 max-w-xl mx-auto leading-relaxed">
-            Most people don&rsquo;t know which pathway fits them — and
-            that&rsquo;s okay. Take a 2-minute quiz and we&rsquo;ll match
-            you with the right starting point.
+            Enter, exit, and re-enter as your life and career evolve.
+            Take a 2-minute quiz and we&rsquo;ll point you to the
+            entry point that fits where you are now.
           </p>
           <a
             href="/quiz"

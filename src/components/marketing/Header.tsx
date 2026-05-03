@@ -7,8 +7,8 @@ import Link from "next/link";
 
 const navLinks = [
   { label: "Pathways", href: "#pathways" },
-  { label: "How It Works", href: "#human-in-the-loop" },
-  { label: "Results", href: "#proof" },
+  { label: "How We Teach", href: "#human-in-the-loop" },
+  { label: "What You'll Learn", href: "#proof" },
   { label: "Our People", href: "#our-people" },
   { label: "The Forge", href: "#hubs" },
 ];
@@ -37,7 +37,7 @@ export default function Header() {
         <div className="bg-electric-green text-true-black text-center text-sm py-3 px-4 md:px-10 relative font-mono">
           <a href="#hubs" className="hover:underline font-semibold">
             <Lightning size={14} weight="fill" className="inline mr-1 mb-0.5" />
-            Now Open: The Forge ATL — Atlanta&rsquo;s home for human-centered tech education
+            The Forge ATL is open — a third space for technology, neither school nor work
             <span className="ml-2">&rarr;</span>
           </a>
           <button
