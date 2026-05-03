@@ -12,7 +12,7 @@ export const MARKETING_SLUG = "marketing";
 export const marketingConfig: ProgramConfig = {
   slug: MARKETING_SLUG,
   name: "BCC Academy",
-  tagline: "Every Step, Someone's With You",
+  tagline: "Where everyone builds together.",
   domain: "bccacademy.io",
   logo: "/marketing/logo.svg",
   colors: {
@@ -30,12 +30,12 @@ export const marketingConfig: ProgramConfig = {
   tracks: [],
   coppa: { required: false },
   seo: {
-    title: "BCC Academy — Every Step, Someone's With You",
+    title: "Beyond Code Collective — Where everyone builds together",
     description:
-      "A global, intergenerational learning ecosystem for ages 7 to 70+. Every learner gets a real human facilitator. Proudly home to Black Girls Code.",
-    ogTitle: "BCC Academy",
+      "A community-based learning and workforce ecosystem giving people lifelong access to the skills, relationships, and pathways shaping the future of work. Ages 7 to 87. By us, for everyone.",
+    ogTitle: "Beyond Code Collective",
     ogDescription:
-      "A global, intergenerational learning ecosystem for ages 7 to 70+. Every learner gets a real human facilitator.",
+      "A community-based learning and workforce ecosystem for ages 7 to 87. Where everyone builds together.",
   },
   organization: "Beyond Code Collective",
 };
