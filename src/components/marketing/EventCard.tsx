@@ -1,10 +1,26 @@
 "use client";
 
+import { useEffect } from "react";
 import { motion } from "framer-motion";
+import Script from "next/script";
 import { fadeInUp } from "@/lib/marketing-motion";
 import type { Event } from "@/data/marketing/events";
 import { MapPin, VideoCamera, Monitor, ArrowRight } from "@phosphor-icons/react";
 import Image from "next/image";
+
+declare global {
+  interface Window {
+    EBWidgets?: {
+      createWidget: (opts: {
+        widgetType: "checkout";
+        eventId: string;
+        modal: boolean;
+        modalTriggerElementId: string;
+        onOrderComplete?: () => void;
+      }) => void;
+    };
+  }
+}
 
 const fallbackImages = [
   "/images/bcc/initiatives/forge.jpg",
@@ -39,6 +55,38 @@ export default function EventCard({ event, fallbackIndex = 0 }: EventCardProps) 
   const FormatIcon = formatIcons[event.format] || Monitor;
   const image = event.imageUrl ?? fallbackImages[fallbackIndex % fallbackImages.length];
   const isExternal = event.url?.startsWith("http");
+
+  // Numeric IDs come from the live Eventbrite API. Static fallback events
+  // (no token configured) use string slugs and don't get the embedded
+  // checkout — they keep the plain external link.
+  const eventbriteId = /^\d+$/.test(event.id) ? event.id : null;
+  const triggerId = eventbriteId
+    ? `eventbrite-widget-modal-trigger-${eventbriteId}`
+    : undefined;
+
+  useEffect(() => {
+    if (!eventbriteId || !triggerId) return;
+    let cancelled = false;
+    let attempts = 0;
+    const init = () => {
+      if (cancelled) return;
+      if (window.EBWidgets) {
+        window.EBWidgets.createWidget({
+          widgetType: "checkout",
+          eventId: eventbriteId,
+          modal: true,
+          modalTriggerElementId: triggerId,
+        });
+      } else if (attempts < 50) {
+        attempts++;
+        setTimeout(init, 100);
+      }
+    };
+    init();
+    return () => {
+      cancelled = true;
+    };
+  }, [eventbriteId, triggerId]);
 
   const inner = (
     <>
@@ -117,15 +165,25 @@ export default function EventCard({ event, fallbackIndex = 0 }: EventCardProps) 
 
   if (event.url) {
     return (
-      <motion.a
-        variants={fadeInUp}
-        href={event.url}
-        target={isExternal ? "_blank" : undefined}
-        rel={isExternal ? "noopener noreferrer" : undefined}
-        className={cardClasses}
-      >
-        {inner}
-      </motion.a>
+      <>
+        {eventbriteId && (
+          <Script
+            id="eventbrite-widget-sdk"
+            src="https://www.eventbrite.com/static/widgets/eb_widgets.js"
+            strategy="lazyOnload"
+          />
+        )}
+        <motion.a
+          variants={fadeInUp}
+          id={triggerId}
+          href={event.url}
+          target={isExternal ? "_blank" : undefined}
+          rel={isExternal ? "noopener noreferrer" : undefined}
+          className={cardClasses}
+        >
+          {inner}
+        </motion.a>
+      </>
     );
   }
 
