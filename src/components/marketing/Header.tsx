@@ -13,21 +13,31 @@ const navLinks = [
   { label: "The Forge", href: "#hubs" },
 ];
 
-export default function Header() {
+interface HeaderProps {
+  // When true, header starts with the solid black background instead of
+  // fading in on scroll. Use on pages that don't have a dark hero section
+  // immediately below the header (e.g. /events on the off-white bg).
+  solid?: boolean;
+}
+
+export default function Header({ solid = false }: HeaderProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
 
   useEffect(() => {
+    if (solid) return;
     const onScroll = () => setScrolled(window.scrollY > 50);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  }, [solid]);
+
+  const showSolid = solid || scrolled;
 
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-        scrolled
+        showSolid
           ? "bg-true-black border-b border-white/10"
           : "bg-transparent"
       }`}

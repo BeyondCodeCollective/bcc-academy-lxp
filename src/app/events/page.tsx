@@ -24,7 +24,7 @@ export default async function EventsPage() {
 
   return (
     <div className="marketing-scope min-h-screen bg-grey-1">
-      <Header />
+      <Header solid />
       <main className="pt-32 md:pt-40 pb-24 px-6">
         <div className="mx-auto max-w-7xl">
           <header className="text-center mb-16 md:mb-20">
