@@ -161,29 +161,51 @@ export default function EventCard({ event, fallbackIndex = 0 }: EventCardProps) 
   );
 
   const cardClasses =
-    "group flex flex-col border-2 border-true-black/5 hover:border-cobalt/30 transition-all duration-300 bg-white h-full";
+    "group flex flex-col border-2 border-true-black/5 hover:border-cobalt/30 transition-all duration-300 bg-white h-full text-left";
 
-  if (event.url) {
+  // Live Eventbrite events: render as a button so Eventbrite's SDK can bind
+  // its modal trigger without fighting the browser's anchor navigation.
+  // (An <a target="_blank"> would open a new tab AND open the modal in the
+  // background, which is the exact bug we were seeing.) If the SDK script
+  // failed to load (ad-blocker, network), onClick falls back to opening
+  // the Eventbrite URL in a new tab.
+  if (eventbriteId && event.url) {
     return (
       <>
-        {eventbriteId && (
-          <Script
-            id="eventbrite-widget-sdk"
-            src="https://www.eventbrite.com/static/widgets/eb_widgets.js"
-            strategy="lazyOnload"
-          />
-        )}
-        <motion.a
+        <Script
+          id="eventbrite-widget-sdk"
+          src="https://www.eventbrite.com/static/widgets/eb_widgets.js"
+          strategy="lazyOnload"
+        />
+        <motion.button
           variants={fadeInUp}
+          type="button"
           id={triggerId}
-          href={event.url}
-          target={isExternal ? "_blank" : undefined}
-          rel={isExternal ? "noopener noreferrer" : undefined}
+          onClick={() => {
+            if (!window.EBWidgets && event.url) {
+              window.open(event.url, "_blank", "noopener,noreferrer");
+            }
+          }}
           className={cardClasses}
         >
           {inner}
-        </motion.a>
+        </motion.button>
       </>
+    );
+  }
+
+  // Static fallback events (no token configured): plain external link.
+  if (event.url) {
+    return (
+      <motion.a
+        variants={fadeInUp}
+        href={event.url}
+        target={isExternal ? "_blank" : undefined}
+        rel={isExternal ? "noopener noreferrer" : undefined}
+        className={cardClasses}
+      >
+        {inner}
+      </motion.a>
     );
   }
 
