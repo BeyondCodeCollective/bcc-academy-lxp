@@ -38,6 +38,7 @@ export const facilitators: Facilitator[] = [
     bio: "Jihan is an Afro-Latina EdTech entrepreneur based in the Atlanta Metro area, where she founded The Hip-Hop EdTech Diva — hands-on technology training that fuses hip-hop culture, gaming, VR, and music production. She's a Microsoft Learning Consultant training Georgia educators, a Saint Augustine's University 45 Under 45 honoree, and a regular FETC speaker. At The Forge, she leads AI literacy and creative-tech sessions for intergenerational rooms.",
     pathway: "Explorers",
     image: "/images/bcc/instructors/jihan-johnston-mcglotten.jpg",
+    monogram: true,
   },
   {
     id: "angel-aviles",
@@ -50,5 +51,6 @@ export const facilitators: Facilitator[] = [
     bio: "Angel sits on the board of PepUp Tech, the nonprofit that's trained thousands of underserved learners into Salesforce careers, and leads Employee Advocacy & Belonging at Salesforce. She mentors learners moving into the Salesforce ecosystem and teaches the Launchers pathway's Salesforce Agentic Administrator track — pairing certification prep with the network and coaching that turn a credential into a job offer.",
     pathway: "Launchers",
     image: "/images/bcc/instructors/angel-aviles.png",
+    monogram: true,
   },
 ];
