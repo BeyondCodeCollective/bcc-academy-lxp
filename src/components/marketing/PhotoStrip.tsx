@@ -7,7 +7,7 @@ const photos = [
   { src: "/images/bcc/brand/youth-group.jpg", alt: "Young learners after class", wide: true },
   { src: "/images/bcc/community/community-01.jpg", alt: "BCC classroom session", wide: false },
   { src: "/images/bcc/brand/group-selfie.jpg", alt: "BCC community gathering", wide: true },
-  { src: "/images/bcc/community-selfie.png", alt: "BCC community members", wide: true },
+  { src: "/images/bcc/community-selfie.jpg", alt: "BCC community members", wide: true },
   { src: "/images/bcc/community/community-05.jpg", alt: "Learners collaborating", wide: false },
   { src: "/images/bcc/brand/street-joy.jpg", alt: "Beyond Code community", wide: true },
   { src: "/images/bcc/studying-together.jpg", alt: "Studying together", wide: false },

@@ -1,3 +1,5 @@
+import type { PathwayKey } from "./careerPathways";
+
 export type PersonalityKey =
   | "fixer"
   | "architect"
@@ -21,6 +23,7 @@ export interface CareerResult {
   dayToDay: string[];
   forYouth: { items: string[]; cta: string };
   forAdult: { items: string[]; cta: string };
+  pathway: PathwayKey;
 }
 
 export interface AnswerMeta {
@@ -50,6 +53,7 @@ export const careers: Record<PersonalityKey, CareerResult> = {
     ],
     forYouth: { items: ["Cybersafety Workshops", "Code Along Club", "Scratch Workshops"], cta: "Explore Courses" },
     forAdult: { items: ["CompTIA IT Fundamentals (ITF+)", "Workplace Fundamentals", "AI Fundamentals"], cta: "Explore Courses" },
+    pathway: "cybersecurity",
   },
   architect: {
     name: "The Architect",
@@ -66,6 +70,7 @@ export const careers: Record<PersonalityKey, CareerResult> = {
     ],
     forYouth: { items: ["The Happiness Code", "Intro to Data Science", "Python Workshops"], cta: "Explore Courses" },
     forAdult: { items: ["Data Science 101", "Data Science 102", "AI Fundamentals"], cta: "Explore Courses" },
+    pathway: "data-ai",
   },
   connector: {
     name: "The Connector",
@@ -82,6 +87,7 @@ export const careers: Record<PersonalityKey, CareerResult> = {
     ],
     forYouth: { items: ["Code Along Club", "AI Explorers", "Workshops"], cta: "Explore Courses" },
     forAdult: { items: ["Salesforce Administration", "Zapier Fundamentals", "Workplace Fundamentals"], cta: "Explore Courses" },
+    pathway: "enterprise-systems",
   },
   creator: {
     name: "The Creator",
@@ -98,6 +104,7 @@ export const careers: Record<PersonalityKey, CareerResult> = {
     ],
     forYouth: { items: ["P5 JavaScript: Code Art", "Scratch Animation", "Digital Vision Boards with AI"], cta: "Explore Courses" },
     forAdult: { items: ["Figma Make Fundamentals", "Webflow Fundamentals", "Designing with Canva"], cta: "Explore Courses" },
+    pathway: "enterprise-systems",
   },
   builder: {
     name: "The Builder",
@@ -114,6 +121,7 @@ export const careers: Record<PersonalityKey, CareerResult> = {
     ],
     forYouth: { items: ["Entrepreneurship 101", "Websites for Social Innovation", "Professional Website with WIX"], cta: "Explore Courses" },
     forAdult: { items: ["AI Tools for Small Business", "Digital Storytelling for Entrepreneurs", "Zapier Fundamentals"], cta: "Explore Courses" },
+    pathway: "cloud-devops",
   },
   maker: {
     name: "The Maker",
@@ -130,6 +138,7 @@ export const careers: Record<PersonalityKey, CareerResult> = {
     ],
     forYouth: { items: ["VR/AR Game Design Intensive", "Green Thumb Robotics", "Becoming an Inventor"], cta: "Explore Courses" },
     forAdult: { items: ["VR/AR Game Design Intensive", "AI Fundamentals", "Code Along Club"], cta: "Explore Courses" },
+    pathway: "cloud-devops",
   },
   strategist: {
     name: "The Strategist",
@@ -146,6 +155,7 @@ export const careers: Record<PersonalityKey, CareerResult> = {
     ],
     forYouth: { items: ["Code Along Club", "Entrepreneurship 101", "Workshops"], cta: "Explore Courses" },
     forAdult: { items: ["MASS (Mindset + Soft Skills)", "Workplace Fundamentals", "Zapier Fundamentals"], cta: "Explore Courses" },
+    pathway: "enterprise-systems",
   },
   guardian: {
     name: "The Guardian",
@@ -162,6 +172,7 @@ export const careers: Record<PersonalityKey, CareerResult> = {
     ],
     forYouth: { items: ["Cybersafety (Ages 10-13)", "Cybersafety (Ages 14-18)", "Python Workshops"], cta: "Explore Courses" },
     forAdult: { items: ["CompTIA IT Fundamentals (ITF+)", "AI Fundamentals", "Digital Safety for Wisdom Leaders"], cta: "Explore Courses" },
+    pathway: "cybersecurity",
   },
   analyst: {
     name: "The Detective",
@@ -178,6 +189,7 @@ export const careers: Record<PersonalityKey, CareerResult> = {
     ],
     forYouth: { items: ["The Happiness Code", "Intro to Data Science", "Python + Tech Stats"], cta: "Explore Courses" },
     forAdult: { items: ["Data Science 101", "Data Science 102", "AI Fundamentals"], cta: "Explore Courses" },
+    pathway: "data-ai",
   },
   healer: {
     name: "The Healer",
@@ -194,6 +206,7 @@ export const careers: Record<PersonalityKey, CareerResult> = {
     ],
     forYouth: { items: ["AI Explorers", "Coding for Change", "Code Along Club"], cta: "Explore Courses" },
     forAdult: { items: ["AI Fundamentals", "AI Tools for Classrooms", "Digital Safety for Wisdom Leaders"], cta: "Explore Courses" },
+    pathway: "data-ai",
   },
   educator: {
     name: "The Guide",
@@ -210,6 +223,7 @@ export const careers: Record<PersonalityKey, CareerResult> = {
     ],
     forYouth: { items: ["Code Along Club", "AI Explorers", "Scratch: Interactive Story"], cta: "Explore Courses" },
     forAdult: { items: ["AI Tools for Classrooms", "Code Along Club", "AI Fundamentals"], cta: "Explore Courses" },
+    pathway: "enterprise-systems",
   },
   advocate: {
     name: "The Advocate",
@@ -226,6 +240,7 @@ export const careers: Record<PersonalityKey, CareerResult> = {
     ],
     forYouth: { items: ["Coding for Change: Activism through Animation", "Code Along Club", "Climate Games"], cta: "Explore Courses" },
     forAdult: { items: ["AI Tools for Classrooms", "Digital Safety for Wisdom Leaders", "AI Fundamentals"], cta: "Explore Courses" },
+    pathway: "enterprise-systems",
   },
 };
 

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   Wrench, ChartBar, Lightning, Sparkle, Lightbulb, Hammer, Target, Shield,
   MagnifyingGlass, Heart, Star, HandFist, Backpack, Rocket, Envelope, Lock,
@@ -12,6 +13,7 @@ import {
 } from "@phosphor-icons/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { type PersonalityKey, careers, questions } from "@/data/marketing/quiz";
+import { careerPathways, type CertLevel } from "@/data/marketing/careerPathways";
 
 // ============================================
 // TYPES
@@ -132,9 +134,16 @@ function HomeScreen({ onSelectAge }: { onSelectAge: (age: AgeGroup) => void }) {
         </div>
       </div>
 
-      {/* Right side image placeholder */}
-      <div className="hidden lg:flex w-1/2 h-full bg-cobalt items-center justify-center border-l border-white/10">
-        <span className="text-white/30 text-sm uppercase tracking-wider font-mono">Hero Image</span>
+      {/* Right side hero image */}
+      <div className="hidden lg:block relative w-1/2 h-full border-l border-white/10 overflow-hidden">
+        <Image
+          src="/images/bcc/brand/quiz-hero.jpg"
+          alt=""
+          fill
+          priority
+          sizes="50vw"
+          className="object-cover"
+        />
       </div>
     </div>
   );
@@ -258,8 +267,15 @@ function LeadCaptureScreen({
         </div>
       </div>
 
-      <div className="hidden lg:flex w-1/2 h-full bg-cobalt items-center justify-center border-l border-white/10">
-        <span className="text-white/30 text-sm uppercase tracking-wider font-mono">Hero Image</span>
+      <div className="hidden lg:block relative w-1/2 h-full border-l border-white/10 overflow-hidden">
+        <Image
+          src="/images/bcc/brand/quiz-hero-2.jpg"
+          alt=""
+          fill
+          priority
+          sizes="50vw"
+          className="object-cover"
+        />
       </div>
     </div>
   );
@@ -451,6 +467,7 @@ function ResultsScreen({
   const months = career.timeToComplete[hoursPerDay];
   const pathwayItems = isYouth ? career.forYouth.items : career.forAdult.items;
   const pathwayCta = isYouth ? career.forYouth.cta : career.forAdult.cta;
+  const pathway = careerPathways[career.pathway];
 
   return (
     <div className="min-h-[100dvh] bg-off-white">
@@ -569,6 +586,151 @@ function ResultsScreen({
         <p className="text-gray-400 text-[10px] md:text-[11px] leading-tight mb-6 md:mb-8 uppercase tracking-wider">
           Salary and timeline estimates are based on industry averages and are not guaranteed.
         </p>
+
+        {/* Pathway match — header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.45 }}
+          className="mb-4 md:mb-5"
+        >
+          <p className="text-xs font-semibold tracking-wider text-gray-400 uppercase mb-2">
+            [ Your Training Pathway ]
+          </p>
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div className="flex-1 min-w-0">
+              <h2
+                className="font-display text-2xl md:text-4xl text-black tracking-tight leading-[0.95] mb-1"
+                style={{ color: pathway.accent }}
+              >
+                {pathway.shortName}
+              </h2>
+              <p className="text-base md:text-lg text-black italic">
+                &ldquo;{pathway.tagline}&rdquo;
+              </p>
+            </div>
+            {pathway.status === "in-design" ? (
+              <span className="inline-block px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-black/5 text-black/60 border border-black/10 whitespace-nowrap">
+                In Design
+              </span>
+            ) : (
+              <span className="inline-block px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-electric-green text-true-black whitespace-nowrap">
+                Live Now
+              </span>
+            )}
+          </div>
+          <p className="text-sm md:text-base text-gray-600 mt-3 leading-relaxed">
+            {pathway.description}
+          </p>
+        </motion.div>
+
+        {/* Cert ladder */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="mb-6 md:mb-8 bg-white p-4 md:p-6 border border-black/10"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-base md:text-lg font-bold text-black">Your certification ladder</h3>
+            <span className="text-[10px] font-mono text-gray-400 uppercase tracking-wider">
+              {pathway.certLadder.length} rungs
+            </span>
+          </div>
+          <ol className="relative space-y-0">
+            {pathway.certLadder.map((cert, i) => {
+              const isLast = i === pathway.certLadder.length - 1;
+              const levelLabel: Record<CertLevel, string> = {
+                foundational: "Foundational",
+                intermediate: "Intermediate",
+                advanced: "Advanced",
+              };
+              return (
+                <li key={cert.name} className="relative flex gap-4 pb-5">
+                  {!isLast && (
+                    <div
+                      className="absolute left-[15px] top-8 bottom-0 w-px"
+                      style={{ backgroundColor: `${pathway.accent}33` }}
+                    />
+                  )}
+                  <div
+                    className="relative z-10 flex-shrink-0 w-8 h-8 flex items-center justify-center text-white text-xs font-bold"
+                    style={{ backgroundColor: pathway.accent }}
+                  >
+                    {String(i + 1).padStart(2, "0")}
+                  </div>
+                  <div className="flex-1 pt-0.5">
+                    <div className="flex items-baseline gap-2 flex-wrap mb-0.5">
+                      <span className="text-[10px] font-mono uppercase tracking-wider text-gray-400">
+                        {levelLabel[cert.level]}
+                      </span>
+                    </div>
+                    <p className="font-bold text-black text-sm md:text-base">{cert.name}</p>
+                    <p className="text-gray-500 text-xs md:text-sm mt-0.5 leading-relaxed">
+                      {cert.description}
+                    </p>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        </motion.div>
+
+        {/* Role progression */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.55 }}
+          className="mb-6 md:mb-8"
+        >
+          <h3 className="text-base md:text-lg font-bold text-black mb-3 md:mb-4">
+            Where this pathway can take you
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-3">
+            {pathway.roleProgression.map((stage, i) => {
+              const labels = ["Entry", "Mid-level", "Senior"];
+              return (
+                <div
+                  key={stage.title}
+                  className="bg-white border border-black/10 p-4 relative overflow-hidden"
+                >
+                  <div
+                    className="absolute top-0 left-0 right-0 h-0.5"
+                    style={{ backgroundColor: pathway.accent, opacity: 0.3 + i * 0.35 }}
+                  />
+                  <p className="text-[10px] font-mono uppercase tracking-wider text-gray-400 mb-1">
+                    {labels[i]}
+                  </p>
+                  <p className="font-bold text-black text-sm leading-tight mb-2">
+                    {stage.title}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    ${(stage.salary.low / 1000).toFixed(0)}k &ndash; ${(stage.salary.high / 1000).toFixed(0)}k
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </motion.div>
+
+        {/* Capstone preview */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          className="mb-6 md:mb-8 p-5 md:p-6 text-white relative overflow-hidden"
+          style={{ backgroundColor: pathway.accent }}
+        >
+          <p className="text-[10px] font-mono uppercase tracking-wider opacity-70 mb-2">
+            [ Capstone Project ]
+          </p>
+          <h3 className="font-display text-xl md:text-2xl mb-2 leading-tight">
+            {pathway.capstone.title}
+          </h3>
+          <p className="text-sm md:text-base opacity-90 leading-relaxed">
+            {pathway.capstone.preview}
+          </p>
+        </motion.div>
 
         {/* Day to day */}
         <motion.div
