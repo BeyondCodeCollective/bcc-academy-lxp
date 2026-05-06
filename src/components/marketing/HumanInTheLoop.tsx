@@ -3,7 +3,6 @@
 import { useRef } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { statPunch, slideInLeft, slideInRight, fadeInUp } from "@/lib/marketing-motion";
-import Image from "next/image";
 import VideoBackground from "@/components/marketing/VideoBackground";
 import { VIDEO_URLS } from "@/data/marketing/videos";
 
@@ -13,7 +12,7 @@ const principles = [
     title: "AI as tool, not identity",
     description:
       "We use AI where it deepens understanding, not where it shortcuts it. We teach learners how to think with AI, not simply how to use it — and we center human connection, mentorship, and cultural context as essential components of education.",
-    image: "/images/bcc/community/community-01.jpg",
+    image: "/images/bcc/brand/forge-meeting.jpg",
     video: VIDEO_URLS.humanInTheLoop.principle01,
   },
   {
@@ -46,7 +45,7 @@ export default function HumanInTheLoop() {
   const statOpacity = useTransform(scrollYProgress, [0.2, 0.4], [1, 0]);
 
   return (
-    <section ref={sectionRef} id="human-in-the-loop" className="bg-dark-cobalt grain overflow-hidden">
+    <section ref={sectionRef} id="human-in-the-loop" className="bg-dark-cobalt grain overflow-hidden pt-20 md:pt-28">
       {/* Beat 1: The Stat — dramatic, full-width */}
       <div className="relative min-h-[80vh] flex flex-col items-center justify-center px-6 overflow-hidden">
         <motion.div
@@ -64,11 +63,11 @@ export default function HumanInTheLoop() {
             style={{ scale: statScale, opacity: statOpacity }}
             className="text-[25vw] md:text-[22vw] lg:text-[18vw] font-display font-bold text-electric-green leading-none"
           >
-            7→87
+            7→77
           </motion.p>
 
           <p className="mt-6 text-lg md:text-xl text-white/60 font-mono max-w-xl mx-auto">
-            The ages we teach in the same room. Lifelong access — not a pipeline.
+            The ages we teach in the same room. From first code to legacy — not a pipeline.
           </p>
 
           <h2 className="mt-10 font-display text-4xl md:text-6xl lg:text-7xl font-bold text-white uppercase">
@@ -76,41 +75,6 @@ export default function HumanInTheLoop() {
           </h2>
         </motion.div>
 
-        {/* Intergenerational image pair — visual proof of 7→87 */}
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.3 }}
-          transition={{ duration: 0.9, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-          className="relative w-full max-w-5xl mx-auto mt-16 grid grid-cols-2 gap-3 md:gap-4 px-2"
-        >
-          <div className="relative aspect-[4/3] overflow-hidden">
-            <Image
-              src="/images/bcc/brand/youth-group.jpg"
-              alt="Young learners at Beyond Code Collective"
-              fill
-              className="object-cover"
-              sizes="(max-width: 1024px) 50vw, 500px"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-dark-cobalt/40 to-transparent" />
-            <span className="absolute bottom-3 left-3 text-electric-green text-xs font-mono font-bold tracking-[0.2em] uppercase">
-              [ 7 ]
-            </span>
-          </div>
-          <div className="relative aspect-[4/3] overflow-hidden">
-            <Image
-              src="/images/bcc/brand/elder-pair.jpg"
-              alt="Wisdom Leaders at Beyond Code Collective"
-              fill
-              className="object-cover"
-              sizes="(max-width: 1024px) 50vw, 500px"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-dark-cobalt/40 to-transparent" />
-            <span className="absolute bottom-3 right-3 text-electric-green text-xs font-mono font-bold tracking-[0.2em] uppercase">
-              [ 87 ]
-            </span>
-          </div>
-        </motion.div>
       </div>
 
       {/* Divider */}

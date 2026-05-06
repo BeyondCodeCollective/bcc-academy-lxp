@@ -6,17 +6,20 @@ import { heroReveal, fadeInUp, staggerContainer } from "@/lib/marketing-motion";
 import { Play, Pause } from "@phosphor-icons/react";
 import { VIDEO_URLS } from "@/data/marketing/videos";
 
-const partners = [
-  "MIT",
-  "UC Berkeley",
-  "IBM",
-  "Salesforce",
-  "Zapier",
-  "Figma",
-  "CompTIA",
-  "ASU",
-  "Apple",
-  "ATDC",
+// Partners with local logo files render as images; others as styled wordmarks.
+const partners: { name: string; logo?: string }[] = [
+  { name: "CompTIA" },
+  { name: "Salesforce" },
+  { name: "Zapier",      logo: "/images/bcc/logos/zapier.svg" },
+  { name: "IBM" },
+  { name: "Spelman",     logo: "/images/bcc/logos/spelman.png" },
+  { name: "Apple" },
+  { name: "Figma" },
+  { name: "ATDC",        logo: "/images/bcc/logos/atdc.webp" },
+  { name: "MIT" },
+  { name: "Serpentine",  logo: "/images/bcc/logos/serpentine.svg" },
+  { name: "UC Berkeley" },
+  { name: "ASU" },
 ];
 
 const rotatingWords = ["BUILDS.", "GROWS.", "LEARNS.", "LEADS.", "BELONGS."];
@@ -67,7 +70,7 @@ export default function Hero() {
           loop
           playsInline
           className="absolute inset-0 w-full h-[120%] object-cover"
-          poster="/images/bcc/community/community-01.jpg"
+          poster="/images/bcc/brand/group-selfie.jpg"
         >
           <source
             src={VIDEO_URLS.hero}
@@ -106,7 +109,7 @@ export default function Hero() {
             variants={fadeInUp}
             className="text-electric-green text-sm font-semibold tracking-[0.3em] uppercase mb-8 font-mono"
           >
-            [ Beyond Code Collective &middot; Ages 7 to 87 &middot; By Us, For Everyone ]
+            [ Beyond Code Collective &middot; Ages 7 to 77 &middot; By Us, For Everyone ]
           </motion.p>
 
           <motion.h1
@@ -150,37 +153,47 @@ export default function Hero() {
               <span className="inline-block transition-transform duration-300 group-hover:translate-x-1">&rarr;</span>
             </a>
             <a
-              href="#pathways"
+              href="#programs"
               className="inline-flex items-center px-10 py-5 border-2 border-white text-white text-base font-semibold transition-all duration-300 hover:bg-white hover:text-true-black btn-press"
             >
-              Find Your Pathway
+              Explore Programs
             </a>
           </motion.div>
         </motion.div>
 
-        {/* Trusted Partners — Infinite Marquee */}
+        {/* Trusted Partners — static grid */}
         <motion.div
           variants={fadeInUp}
           initial="hidden"
           animate="visible"
-          className="mt-20 md:mt-28 pt-8 border-t border-white/15"
+          className="mt-20 md:mt-28"
         >
-          <p className="text-xs text-white/40 uppercase tracking-[0.3em] mb-6 text-center font-mono">
+          <p className="text-xs text-white/30 uppercase tracking-[0.3em] mb-6 text-center font-mono">
             [ Trusted Partners ]
           </p>
-          <div className="relative overflow-hidden animate-marquee-wrap">
-            <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-true-black to-transparent z-10" />
-            <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-true-black to-transparent z-10" />
-            <div className="flex animate-marquee">
-              {[...partners, ...partners, ...partners].map((name, i) => (
+          <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-5 md:gap-x-12">
+            {partners.map((partner) =>
+              partner.logo ? (
+                // Local logo file — render as image
+                <div key={partner.name} className="flex items-center justify-center h-7">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={partner.logo}
+                    alt={partner.name}
+                    className="h-full w-auto max-w-[100px] object-contain opacity-40"
+                    style={{ filter: "brightness(0) invert(1)" }}
+                  />
+                </div>
+              ) : (
+                // No local logo — render as clean wordmark text
                 <span
-                  key={`${name}-${i}`}
-                  className="flex-shrink-0 px-10 text-lg md:text-xl text-white/40 font-display uppercase tracking-wide whitespace-nowrap"
+                  key={partner.name}
+                  className="text-white/35 font-display font-bold uppercase tracking-widest text-sm md:text-base leading-none whitespace-nowrap"
                 >
-                  {name}
+                  {partner.name}
                 </span>
-              ))}
-            </div>
+              )
+            )}
           </div>
         </motion.div>
       </motion.div>

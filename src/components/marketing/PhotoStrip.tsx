@@ -5,7 +5,6 @@ import Image from "next/image";
 const photos = [
   { src: "/images/bcc/forge-panel.jpg", alt: "Panel discussion at The Forge ATL", wide: true },
   { src: "/images/bcc/brand/youth-group.jpg", alt: "Young learners after class", wide: true },
-  { src: "/images/bcc/community/community-01.jpg", alt: "BCC classroom session", wide: false },
   { src: "/images/bcc/brand/group-selfie.jpg", alt: "BCC community gathering", wide: true },
   { src: "/images/bcc/community-selfie.jpg", alt: "BCC community members", wide: true },
   { src: "/images/bcc/community/community-05.jpg", alt: "Learners collaborating", wide: false },
@@ -25,8 +24,6 @@ export default function PhotoStrip() {
 
   return (
     <div className="relative overflow-hidden bg-true-black py-2">
-      {/* Top accent line */}
-      <div className="absolute top-0 left-0 right-0 h-1 bg-electric-green z-10" />
 
       <div className="flex animate-strip">
         {doubled.map((photo, i) => (

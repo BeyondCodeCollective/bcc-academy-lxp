@@ -2,57 +2,23 @@
 
 import { motion } from "framer-motion";
 import { fadeInUp, staggerContainer } from "@/lib/marketing-motion";
-import { MapPin } from "@phosphor-icons/react";
+import { MapPin, ArrowRight } from "@phosphor-icons/react";
 import Image from "next/image";
-
-const hubs = [
-  {
-    name: "The Forge ATL",
-    city: "Atlanta, GA",
-    status: "Standalone" as const,
-    description:
-      "Our flagship — a permanent, year-round hub anchoring the brand locally and serving as the central site for community partnerships and talent development.",
-    image: "/images/bcc/initiatives/forge.jpg",
-  },
-  {
-    name: "Forge in a Box",
-    city: "NYC · LA · Hampton VA",
-    status: "Residency" as const,
-    description:
-      "Time-bound programs housed inside existing community, educational, or cultural institutions — bringing The Forge to where trust already lives.",
-    image: "/images/bcc/community/community-05.jpg",
-  },
-  {
-    name: "Forge Experience",
-    city: "Detroit · NJ · Oakland",
-    status: "Activation" as const,
-    description:
-      "Mobile, short-term activations that bring The Forge experience to a community to gauge interest in something more permanent.",
-    image: "/images/bcc/brand/forge-meeting.jpg",
-  },
-  {
-    name: "Active Regions",
-    city: "Puerto Rico · Palm Beach",
-    status: "Exploring" as const,
-    description:
-      "Where local partners, learners, and demand are pulling The Forge model next — under evaluation for residency or experience.",
-    image: "/images/bcc/brand/forge-collab.jpg",
-  },
-];
+import { forgeHubs } from "@/data/marketing/hubs";
 
 export default function HubsSection() {
   return (
     <section id="hubs" className="py-16 md:py-28 lg:py-36 px-6 bg-off-white">
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto max-w-5xl">
         <motion.div
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, amount: 0.2 }}
+          viewport={{ once: true }}
           variants={fadeInUp}
-          className="text-center mb-16"
+          className="mb-16"
         >
           <p className="text-cobalt text-sm font-semibold tracking-[0.3em] uppercase mb-4 font-mono">
-            [ The Forge &middot; Place-Based Hubs ]
+            [ The Forge &middot; Find a Hub Near You ]
           </p>
           <h2 className="font-display text-4xl sm:text-5xl md:text-7xl font-bold text-true-black uppercase leading-[0.9]">
             A third space.
@@ -61,12 +27,10 @@ export default function HubsSection() {
             <br />
             nor work.
           </h2>
-          <p className="mt-6 text-lg text-grey-3 max-w-2xl mx-auto leading-relaxed">
-            At The Forge, middle schoolers sit next to mid-career
-            professionals, parents learn alongside their kids, and community
-            leaders share tables with technologists. Everyone experiments,
-            asks questions, and builds the confidence to shape the systems
-            already shaping their lives.
+          <p className="mt-6 text-lg text-grey-3 max-w-2xl leading-relaxed">
+            The Forge is a physical place where humans teach humans and
+            technology is the tool, not the teacher. Find one in your city
+            — or get on the list when we expand.
           </p>
         </motion.div>
 
@@ -75,61 +39,88 @@ export default function HubsSection() {
           whileInView="visible"
           viewport={{ once: true, amount: 0.1 }}
           variants={staggerContainer}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
         >
-          {hubs.map((hub) => {
-            const isOpen = hub.status === "Standalone" || hub.status === "Residency";
+          {forgeHubs.map((hub) => {
+            const isActive = hub.status === "active";
             return (
               <motion.div
-                key={hub.name}
+                key={hub.id}
                 variants={fadeInUp}
-                className={`group border-2 transition-all duration-300 bg-white ${
-                  isOpen
-                    ? "border-cobalt/20 hover:border-cobalt/40"
-                    : "border-true-black/5 hover:border-true-black/15"
+                className={`group border-2 bg-white transition-all duration-300 ${
+                  isActive
+                    ? "border-cobalt/20 hover:border-cobalt/50"
+                    : "border-true-black/5 hover:border-true-black/20"
                 }`}
               >
-                {/* Image */}
-                <div className="h-48 relative overflow-hidden bg-grey-1">
+                <div className="h-52 relative overflow-hidden bg-grey-1">
                   <Image
                     src={hub.image}
                     alt={hub.name}
                     fill
                     className={`object-cover transition-transform duration-500 group-hover:scale-105 ${
-                      !isOpen ? "grayscale opacity-40" : ""
+                      !isActive ? "grayscale opacity-50" : ""
                     }`}
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                   />
-                  {/* Status badge */}
                   <div className="absolute top-4 left-4">
                     <span
                       className={`inline-flex items-center px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${
-                        isOpen
+                        isActive
                           ? "bg-electric-green text-true-black"
                           : "bg-white/90 text-grey-3"
                       }`}
                     >
-                      {hub.status}
+                      {isActive ? "Open" : "Coming Soon"}
                     </span>
                   </div>
                 </div>
-
-                {/* Content */}
                 <div className="p-5">
                   <h3 className="text-lg font-display font-bold text-true-black uppercase">
                     {hub.name}
                   </h3>
                   <p className="mt-1 text-xs text-grey-3 font-mono flex items-center gap-1">
                     <MapPin size={10} weight="bold" />
-                    {hub.city}
+                    {hub.neighborhood ? `${hub.neighborhood} · ` : ""}{hub.city}, {hub.state}
                   </p>
-                  <p className={`mt-3 text-sm leading-relaxed ${isOpen ? "text-grey-3" : "text-grey-3/60"}`}>
-                    {hub.description}
-                  </p>
+                  {isActive && (
+                    <a
+                      href="https://forge.bccacademy.io"
+                      className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-cobalt hover:text-dark-cobalt transition-colors"
+                    >
+                      Apply to The Forge
+                      <ArrowRight size={12} weight="bold" />
+                    </a>
+                  )}
                 </div>
               </motion.div>
             );
           })}
+
+          {/* Waitlist card */}
+          <motion.div
+            variants={fadeInUp}
+            className="border-2 border-dashed border-true-black/15 bg-transparent p-5 flex flex-col justify-between"
+          >
+            <div>
+              <p className="text-xs font-mono text-grey-3 uppercase tracking-wider mb-2">
+                [ Your City ]
+              </p>
+              <h3 className="text-lg font-display font-bold text-true-black uppercase mb-3">
+                Don&rsquo;t see your city?
+              </h3>
+              <p className="text-sm text-grey-3 leading-relaxed">
+                We&rsquo;re expanding. Get on the waitlist and we&rsquo;ll let you know when The Forge comes to you.
+              </p>
+            </div>
+            <a
+              href="#waitlist"
+              className="mt-6 inline-flex items-center gap-1.5 text-sm font-bold text-true-black hover:text-cobalt transition-colors"
+            >
+              Join the waitlist
+              <ArrowRight size={12} weight="bold" />
+            </a>
+          </motion.div>
         </motion.div>
       </div>
     </section>

@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { getProgramByDomain, getProgramBySlug, isKnownProgramHost } from "@/lib/programs";
+import { authCookieDomain } from "@/lib/supabase/cookie-domain";
 
 // Query-param program override. Lets a reviewer (e.g. CEO previewing the
 // marketing site on a Vercel preview URL) flip into a specific program
@@ -68,8 +69,9 @@ export async function middleware(request: NextRequest) {
         supabaseResponse = NextResponse.next({
           request: { headers: requestHeaders },
         });
+        const domain = authCookieDomain(host);
         cookiesToSet.forEach(({ name, value, options }) =>
-          supabaseResponse.cookies.set(name, value, options)
+          supabaseResponse.cookies.set(name, value, domain ? { ...options, domain } : options)
         );
         // Re-set program cookie and debug headers after response recreation
         supabaseResponse.cookies.set("program-slug", program.slug, {

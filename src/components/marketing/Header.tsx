@@ -2,15 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { List, X, Lightning } from "@phosphor-icons/react";
+import { List, X, Lightning, SignIn } from "@phosphor-icons/react";
 import Link from "next/link";
 
 const navLinks = [
-  { label: "Pathways", href: "#pathways" },
-  { label: "How We Teach", href: "#human-in-the-loop" },
-  { label: "What You'll Learn", href: "#proof" },
-  { label: "Our People", href: "#our-people" },
+  { label: "Programs", href: "#programs" },
   { label: "The Forge", href: "#hubs" },
+  { label: "Sessions", href: "#sessions" },
   { label: "Events", href: "#events" },
 ];
 
@@ -73,11 +71,18 @@ export default function Header({ solid = false }: HeaderProps) {
             <a
               key={link.href}
               href={link.href}
-              className="text-sm font-medium text-white/60 hover:text-white transition-colors duration-300 link-reveal"
+              className="text-sm font-medium text-white hover:text-electric-green transition-colors duration-300"
             >
               {link.label}
             </a>
           ))}
+          <Link
+            href="/login"
+            className="inline-flex items-center gap-1.5 px-4 py-2 border border-white/30 text-sm font-medium text-white hover:border-white hover:bg-white/10 transition-all duration-300"
+          >
+            <SignIn size={16} weight="bold" />
+            Sign In
+          </Link>
           <a
             href="/quiz"
             className="inline-flex items-center px-5 py-2.5 bg-electric-green text-true-black text-sm font-bold transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_4px_15px_rgba(229,247,1,0.3)] btn-press"
@@ -116,10 +121,20 @@ export default function Header({ solid = false }: HeaderProps) {
                   {link.label}
                 </a>
               ))}
+              <div className="mt-4 pt-4 border-t border-white/10">
+                <Link
+                  href="/login"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center gap-2 text-lg text-white/70 hover:text-white transition-colors py-2"
+                >
+                  <SignIn size={18} weight="bold" />
+                  Sign In
+                </Link>
+              </div>
               <a
                 href="/quiz"
                 onClick={() => setMobileOpen(false)}
-                className="mt-2 inline-flex items-center justify-center px-5 py-3 bg-electric-green text-true-black font-bold"
+                className="mt-4 inline-flex items-center justify-center px-5 py-3 bg-electric-green text-true-black font-bold"
               >
                 Take the Quiz
               </a>

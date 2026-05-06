@@ -39,7 +39,7 @@ export default function FinalCTA() {
   };
 
   return (
-    <section ref={sectionRef} className="relative py-20 md:py-40 lg:py-52 overflow-hidden bg-cobalt grain">
+    <section id="waitlist" ref={sectionRef} className="relative py-20 md:py-40 lg:py-52 overflow-hidden bg-cobalt grain">
       {/* Cinematic background video */}
       <VideoBackground
         src={VIDEO_URLS.finalCTA}
@@ -76,21 +76,20 @@ export default function FinalCTA() {
             Build your possible.
           </motion.p>
 
-          <motion.div variants={fadeInUp} className="mt-14">
+          <motion.div variants={fadeInUp} className="mt-14 flex flex-wrap gap-4">
             <a
-              href="#pathways"
+              href="#programs"
               className="group inline-flex items-center px-12 py-6 bg-electric-green text-true-black text-lg font-bold transition-all duration-300 hover:shadow-[0_8px_50px_rgba(229,247,1,0.4)] btn-press"
             >
-              <span className="mr-3">Find Your Pathway</span>
+              <span className="mr-3">Apply Now</span>
               <span className="inline-block transition-transform duration-300 group-hover:translate-x-1.5">&rarr;</span>
             </a>
           </motion.div>
 
-          {/* Email capture */}
+          {/* Waitlist / email capture */}
           <motion.div variants={fadeInUp} className="mt-20 pt-10 border-t border-white/15 max-w-lg">
             <p className="text-sm text-white/60 mb-4">
-              Not ready yet? Get occasional updates on cohort openings, Forge
-              programming, and free community resources.
+              No cohort available in your area yet? Join the waitlist — we&rsquo;ll reach out when a program or hub opens near you.
             </p>
 
             {submitted ? (
@@ -130,7 +129,7 @@ export default function FinalCTA() {
                   disabled={loading}
                   className="px-6 py-3 bg-white text-cobalt text-base font-bold transition-all duration-300 hover:shadow-[0_4px_15px_rgba(255,255,255,0.2)] whitespace-nowrap btn-press disabled:opacity-50"
                 >
-                  {loading ? "Sending..." : "Subscribe"}
+                  {loading ? "Sending..." : "Join Waitlist"}
                 </button>
               </form>
             )}

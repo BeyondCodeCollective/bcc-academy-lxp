@@ -8,11 +8,12 @@
 import Header from "@/components/marketing/Header";
 import Hero from "@/components/marketing/Hero";
 import PhotoStrip from "@/components/marketing/PhotoStrip";
-import PathwaysSection from "@/components/marketing/PathwaysSection";
+import ProgramsSection from "@/components/marketing/ProgramsSection";
 import HumanInTheLoop from "@/components/marketing/HumanInTheLoop";
 import ProofSection from "@/components/marketing/ProofSection";
 import OurPeopleSection from "@/components/marketing/OurPeopleSection";
 import HubsSection from "@/components/marketing/HubsSection";
+import LiveSessionsSection from "@/components/marketing/LiveSessionsSection";
 import EventsSection from "@/components/marketing/EventsSection";
 import FAQSection from "@/components/marketing/FAQSection";
 import FinalCTA from "@/components/marketing/FinalCTA";
@@ -29,11 +30,12 @@ export async function MarketingHome() {
       <main>
         <Hero />
         <PhotoStrip />
-        <PathwaysSection />
+        <ProgramsSection />
         <HumanInTheLoop />
         <ProofSection />
         <OurPeopleSection />
         <HubsSection />
+        <LiveSessionsSection />
         <EventsSection events={events} />
         <FAQSection />
         <FinalCTA />
