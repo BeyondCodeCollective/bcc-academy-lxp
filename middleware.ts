@@ -83,10 +83,13 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  // Refresh the auth session so it doesn't expire
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims verifies the JWT locally. getUser makes a network call to
+  // Supabase Auth on every request, which was the dominant latency cost on
+  // every dashboard navigation.
+  const authStart = performance.now();
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const authMs = Math.round(performance.now() - authStart);
+  const hasAuth = !!claimsData?.claims;
 
   // Programs with no tracks (dashboardless) redirect /dashboard to their
   // primary survey. Catalyst used to be survey-only but now has tracks, so
@@ -106,14 +109,16 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Only enforce auth on dashboard routes, not the login page
+
   if (request.nextUrl.pathname.startsWith("/dashboard")) {
-    if (!user) {
+    if (!hasAuth) {
       const url = request.nextUrl.clone();
       url.pathname = "/";
       return NextResponse.redirect(url);
     }
   }
+
+  console.log(`[mw] ${request.method} ${request.nextUrl.pathname} auth=${authMs}ms`);
 
   return supabaseResponse;
 }
