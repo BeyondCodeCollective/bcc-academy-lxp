@@ -411,6 +411,13 @@ Guidelines:
       description: "Help us understand your background and experience so we can better support you.",
       required: true,
     },
+    {
+      id: "post-survey-spring-2026",
+      title: "Post-Survey",
+      description:
+        "You made it — share how the program landed and where you're headed next. Takes about 5 minutes.",
+      required: false,
+    },
   ],
   resourcesEnabled: false,
   requireInviteLink: true,

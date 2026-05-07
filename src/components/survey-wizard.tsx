@@ -719,12 +719,175 @@ const ATG_MID_PROGRAM_PAGES: SurveyPage[] = [
   },
 ];
 
+// ─── Forge AI Fundamentals Post-Survey ───────────────────────────────────────
+//
+// End-of-program survey for the three Forge AI Fundamentals cohorts. Reuses
+// the exact `digital_experience` and `ai_experience` Likert ids from the
+// pre-survey so the dashboard can pair pre→post per student and compute true
+// confidence deltas without asking respondents to recall their "before" state.
+
+const FORGE_POST_SURVEY_PAGES: SurveyPage[] = [
+  {
+    title: "Before you start",
+    subtitle: "A quick note on how we use what you share.",
+    questions: [
+      {
+        type: "consent",
+        id: "post_consent",
+        label: "Why we ask",
+        text: "Your answers help us measure how the program landed and improve future cohorts. Here's what you should know:",
+        bullets: [
+          "Your answers stay private.",
+          'You can mark "Prefer not to say" on any question.',
+          "You can email info@beyondcodecollective.org anytime to see, change, or delete your answers.",
+        ],
+        confirmLabel: "Got it — I'm ready to start.",
+        required: true,
+      },
+      {
+        type: "date",
+        id: "post_today_date",
+        label: "Today's date",
+        max: new Date().toISOString().split("T")[0],
+        required: true,
+      },
+      {
+        type: "radio",
+        id: "program_variant",
+        label: "Which version of the program did you take?",
+        options: [
+          "AI Fundamentals",
+          "AI Fundamentals for Digital Natives",
+          "AI Fundamentals for Wisdom Circle Leaders",
+        ],
+        required: true,
+      },
+    ],
+  },
+  {
+    title: "Digital Experience",
+    subtitle:
+      "For each statement below, select how much you agree or disagree. There are no right or wrong answers.",
+    questions: [
+      {
+        type: "likert",
+        id: "digital_experience",
+        label: "Digital Experience",
+        scale: LIKERT_1_5,
+        scaleAnchors: { low: "1 — Strongly Agree", high: "5 — Strongly Disagree" },
+        statements: [
+          "I feel comfortable using a computer or tablet on my own.",
+          "I feel comfortable using technology.",
+          "I know how to search for information online and check if it's reliable.",
+          "I feel confident sending a professional email.",
+          "I understand how to stay safe online (passwords, scams, privacy).",
+          "I can use tools like Google Docs, Sheets, or MS Word for school or work.",
+          "I feel like technology is something I can learn and control.",
+          "I could use technology to help me reach a goal (job, school, or creative).",
+          "I'm excited to use new technologies.",
+        ],
+        required: true,
+      },
+    ],
+  },
+  {
+    title: "AI Experience",
+    subtitle:
+      "These questions help us understand your current understanding of AI.",
+    questions: [
+      {
+        type: "likert",
+        id: "ai_experience",
+        label: "AI Tools",
+        scale: LIKERT_1_5,
+        scaleAnchors: { low: "1 — Strongly Agree", high: "5 — Strongly Disagree" },
+        statements: [
+          "I'm familiar with everyday AI tools (e.g. ChatGPT, Google Gemini, Snapchat AI).",
+          "I'm familiar with coding AI tools (e.g. Codex, Replit, Loveable).",
+          "I know what AI tools are and have a basic idea of how they work.",
+          "I see learning AI tools as a skill worth developing seriously.",
+          "I feel confident I could learn to use AI tools well.",
+          "AI feels relevant to my future goals.",
+        ],
+        required: true,
+      },
+    ],
+  },
+  {
+    title: "Post-Program Reflection",
+    questions: [
+      {
+        type: "text",
+        id: "post_new_skill",
+        label: "What is something you can do now that you couldn't do before this program?",
+        placeholder: "Tell us what stood out…",
+        required: true,
+      },
+      {
+        type: "radio",
+        id: "post_confidence_change",
+        label: "Do you feel more confident using technology after this program?",
+        options: [
+          "Yes, a lot more confident",
+          "A little more confident",
+          "About the same",
+          "Less confident than before",
+        ],
+        required: true,
+      },
+      {
+        type: "radio",
+        id: "post_taught_others",
+        label:
+          "Did you have a chance to share or teach what you learned to someone else — like a family member or friend?",
+        options: [
+          "Yes — I taught or shared something with someone",
+          "I tried, but it was hard to explain",
+          "Not yet, but I want to",
+          "No",
+        ],
+        required: true,
+      },
+      {
+        type: "text",
+        id: "post_more_help",
+        label: "Do you want more help with anything?",
+        placeholder:
+          "Is there a skill, topic, or type of support you wish the program had included?",
+        required: false,
+      },
+      {
+        type: "radio",
+        id: "post_recommend",
+        label: "Would you recommend this program to someone else?",
+        options: ["Yes", "Maybe", "No"],
+        required: true,
+      },
+      {
+        type: "radio",
+        id: "post_career_interest",
+        label: "How do you feel about working in a career that involves technology?",
+        options: [
+          "More interested than before",
+          "I was already interested and still am",
+          "About the same",
+          "Less interested than before",
+        ],
+        required: true,
+      },
+    ],
+  },
+];
+
 function getSurveyPages(surveyId: string, programSlug: string): SurveyPage[] {
   if (surveyId === BCC_INTAKE_SURVEY_ID) {
     return BCC_INTAKE_PAGES;
   }
   if (surveyId === "mid-program-spring-2026" && programSlug === "atg") {
     return ATG_MID_PROGRAM_PAGES;
+  }
+  if (surveyId === "post-survey-spring-2026" && programSlug === "forge") {
+    return FORGE_POST_SURVEY_PAGES;
   }
   const finalPage = programSlug === "atg" ? ATG_FINAL_PAGE : FORGE_FINAL_PAGE;
   return [...SHARED_PAGES, finalPage];

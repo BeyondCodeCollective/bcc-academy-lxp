@@ -469,6 +469,116 @@ const PRE_SURVEY_SPRING_2026: SurveyQuestion[] = [
   },
 ];
 
+// ─── post-survey-spring-2026 (Forge AI Fundamentals end-of-program) ─────────
+//
+// Reuses the exact `digital_experience` and `ai_experience` Likert ids and
+// statements from `pre-survey-spring-2026` so the dashboard can pair pre→post
+// per student to compute true confidence deltas.
+const POST_SURVEY_SPRING_2026: SurveyQuestion[] = [
+  {
+    type: "radio",
+    id: "program_variant",
+    label: "Which version of the program did you take?",
+    options: [
+      "AI Fundamentals",
+      "AI Fundamentals for Digital Natives",
+      "AI Fundamentals for Wisdom Circle Leaders",
+    ],
+    required: true,
+  },
+  {
+    type: "likert",
+    id: "digital_experience",
+    label: "Digital Experience",
+    scale: LIKERT_1_5,
+    scaleAnchors: { low: "1 — Strongly Agree", high: "5 — Strongly Disagree" },
+    statements: [
+      "I feel comfortable using a computer or tablet on my own.",
+      "I feel comfortable using technology.",
+      "I know how to search for information online and check if it's reliable.",
+      "I feel confident sending a professional email.",
+      "I understand how to stay safe online (passwords, scams, privacy).",
+      "I can use tools like Google Docs, Sheets, or MS Word for school or work.",
+      "I feel like technology is something I can learn and control.",
+      "I could use technology to help me reach a goal (job, school, or creative).",
+      "I'm excited to use new technologies.",
+    ],
+    required: true,
+  },
+  {
+    type: "likert",
+    id: "ai_experience",
+    label: "AI Tools",
+    scale: LIKERT_1_5,
+    scaleAnchors: { low: "1 — Strongly Agree", high: "5 — Strongly Disagree" },
+    statements: [
+      "I'm familiar with everyday AI tools (e.g. ChatGPT, Google Gemini, Snapchat AI).",
+      "I'm familiar with coding AI tools (e.g. Codex, Replit, Loveable).",
+      "I know what AI tools are and have a basic idea of how they work.",
+      "I see learning AI tools as a skill worth developing seriously.",
+      "I feel confident I could learn to use AI tools well.",
+      "AI feels relevant to my future goals.",
+    ],
+    required: true,
+  },
+  {
+    type: "text",
+    id: "post_new_skill",
+    label: "What is something you can do now that you couldn't do before this program?",
+    required: true,
+  },
+  {
+    type: "radio",
+    id: "post_confidence_change",
+    label: "Do you feel more confident using technology after this program?",
+    options: [
+      "Yes, a lot more confident",
+      "A little more confident",
+      "About the same",
+      "Less confident than before",
+    ],
+    required: true,
+  },
+  {
+    type: "radio",
+    id: "post_taught_others",
+    label:
+      "Did you have a chance to share or teach what you learned to someone else?",
+    options: [
+      "Yes — I taught or shared something with someone",
+      "I tried, but it was hard to explain",
+      "Not yet, but I want to",
+      "No",
+    ],
+    required: true,
+  },
+  {
+    type: "text",
+    id: "post_more_help",
+    label: "Do you want more help with anything?",
+    required: false,
+  },
+  {
+    type: "radio",
+    id: "post_recommend",
+    label: "Would you recommend this program to someone else?",
+    options: ["Yes", "Maybe", "No"],
+    required: true,
+  },
+  {
+    type: "radio",
+    id: "post_career_interest",
+    label: "How do you feel about working in a career that involves technology?",
+    options: [
+      "More interested than before",
+      "I was already interested and still am",
+      "About the same",
+      "Less interested than before",
+    ],
+    required: true,
+  },
+];
+
 // ─── mid-program-spring-2026 (ATG mid-cohort) ────────────────────────────────
 const MID_PROGRAM_SPRING_2026: SurveyQuestion[] = [
   {
@@ -733,6 +843,7 @@ const SCHEMAS: Record<string, SurveyQuestion[]> = {
   "bcc-workshop": BCC_WORKSHOP,
   "network-plus-post": NETWORK_PLUS_POST,
   "pre-survey-spring-2026": PRE_SURVEY_SPRING_2026,
+  "post-survey-spring-2026": POST_SURVEY_SPRING_2026,
   "mid-program-spring-2026": MID_PROGRAM_SPRING_2026,
 };
 
