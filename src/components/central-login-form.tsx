@@ -15,7 +15,14 @@ export function CentralLoginForm() {
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [notFound, setNotFound] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(() => {
+    if (typeof window === "undefined") return "";
+    const params = new URLSearchParams(window.location.search);
+    const err = params.get("error");
+    if (err === "auth") return "Sign-in failed — please try again.";
+    if (err === "invite") return "Please use your invite link to sign in.";
+    return "";
+  });
 
   const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
   // Demo shortcut only when there's genuinely no Supabase backend wired up.
