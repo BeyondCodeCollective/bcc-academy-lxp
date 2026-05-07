@@ -3,13 +3,18 @@ import Link from "next/link";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { canSwitchPrograms } from "@/lib/roles";
-import { getDashboardSurveyStats } from "../actions";
+import { getDashboardSurveyStats, getDashboardSurveyResponses } from "../actions";
+import type { BCCSurveyResponse } from "../actions";
 import { PLATFORM_AUTH_SURVEYS, PLATFORM_PUBLIC_SURVEYS } from "@/lib/surveys/platform";
 import { getAllPrograms } from "@/lib/programs";
 import type { SurveyConfig } from "@/lib/programs/types";
-import { BCCSurveysView } from "./bcc-surveys-view";
+import { getSurveySchema } from "@/lib/surveys/schemas";
+import type { SurveyQuestion } from "@/components/survey-fields";
+import { UnifiedSurveysDashboard } from "./unified-surveys-dashboard";
 
-export default async function BCCSurveysPage() {
+export const dynamic = "force-dynamic";
+
+export default async function SurveysDashboardPage() {
   if (!isSupabaseConfigured()) redirect("/dashboard");
 
   const supabase = await createClient();
@@ -28,8 +33,7 @@ export default async function BCCSurveysPage() {
   const stats = await getDashboardSurveyStats();
 
   // Collect every survey config — platform-level plus program-specific —
-  // then dedupe by id so the dashboard list shows ATG mid-program, Forge
-  // pre-survey, etc., not just the BCC platform surveys.
+  // then dedupe by id and keep only those with at least one response.
   const programSurveys: SurveyConfig[] = getAllPrograms().flatMap(
     (p) => p.surveys ?? [],
   );
@@ -41,11 +45,35 @@ export default async function BCCSurveysPage() {
   ]) {
     if (!allSurveysById.has(s.id)) allSurveysById.set(s.id, s);
   }
-  const surveys = Array.from(allSurveysById.values()).filter((s) =>
-    stats.some((r) => r.survey_type === s.id),
+  const surveysWithData = Array.from(allSurveysById.values())
+    .filter((s) => stats.some((r) => r.survey_type === s.id))
+    // Ordering: program-bound surveys first (they tend to be the most-trafficked
+    // cohort/post surveys), then platform-level (workshop, learner intake) last.
+    // Within each bucket, alphabetical-by-title is good enough.
+    .sort((a, b) => a.title.localeCompare(b.title));
+
+  // Fetch every survey's responses + schema in parallel. ~6 surveys, hundreds
+  // of rows each — well within Supabase's limits.
+  const sections = await Promise.all(
+    surveysWithData.map(async (survey) => {
+      const [responses] = await Promise.all([
+        getDashboardSurveyResponses(survey.id),
+      ]);
+      const schema = getSurveySchema(survey.id);
+      return {
+        survey,
+        schema,
+        responses,
+      } as {
+        survey: SurveyConfig;
+        schema: SurveyQuestion[] | null;
+        responses: BCCSurveyResponse[];
+      };
+    }),
   );
 
   const allPrograms = getAllPrograms().map((p) => ({ slug: p.slug, name: p.name }));
+  const totalResponses = sections.reduce((sum, s) => sum + s.responses.length, 0);
 
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-5xl space-y-6 px-5 py-8">
@@ -54,27 +82,24 @@ export default async function BCCSurveysPage() {
           <p className="text-xs font-medium tracking-wide text-[#E54D2E] uppercase mb-1">
             Beyond Code Collective
           </p>
-          <h1 className="text-2xl font-bold text-neutral-900">Surveys</h1>
+          <h1 className="text-2xl font-bold text-neutral-900">
+            Survey Insights
+          </h1>
+          <p className="text-xs text-neutral-500 mt-1">
+            Every survey, every response, on one page.
+          </p>
         </div>
-        <div className="flex items-center gap-3 shrink-0">
-          <Link
-            href="/dashboard/admin/surveys/all"
-            className="inline-flex items-center gap-1 rounded-lg border border-neutral-900 bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-800 transition-colors"
-          >
-            All-surveys overview
-          </Link>
-          <Link
-            href="/dashboard/admin"
-            className="text-sm text-neutral-500 hover:text-neutral-900 transition-colors"
-          >
-            ← Back to admin
-          </Link>
-        </div>
+        <Link
+          href="/dashboard/admin"
+          className="text-sm text-neutral-500 hover:text-neutral-900 transition-colors shrink-0"
+        >
+          ← Back to admin
+        </Link>
       </div>
-      <BCCSurveysView
-        surveys={surveys}
-        stats={stats}
-        allPrograms={allPrograms}
+      <UnifiedSurveysDashboard
+        sections={sections}
+        programs={allPrograms}
+        totalResponses={totalResponses}
       />
     </div>
   );
