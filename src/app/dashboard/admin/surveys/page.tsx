@@ -76,31 +76,30 @@ export default async function SurveysDashboardPage() {
   const totalResponses = sections.reduce((sum, s) => sum + s.responses.length, 0);
 
   return (
-    <div className="mx-auto w-full max-w-2xl md:max-w-5xl space-y-6 px-5 py-8">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <p className="text-xs font-medium tracking-wide text-[#E54D2E] uppercase mb-1">
-            Beyond Code Collective
-          </p>
-          <h1 className="text-2xl font-bold text-neutral-900">
-            Survey Insights
-          </h1>
-          <p className="text-xs text-neutral-500 mt-1">
-            Every survey, every response, on one page.
-          </p>
-        </div>
-        <Link
-          href="/dashboard/admin"
-          className="text-sm text-neutral-500 hover:text-neutral-900 transition-colors shrink-0"
-        >
-          ← Back to admin
-        </Link>
+    <div className="min-h-[100dvh] bg-[#F7F4EE]">
+      <div className="mx-auto w-full max-w-2xl md:max-w-5xl px-5 py-12 md:py-16">
+        <header className="flex items-start justify-between gap-6 mb-12 md:mb-16">
+          <div>
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#9B9388] mb-3">
+              Beyond Code Collective
+            </p>
+            <h1 className="text-4xl md:text-5xl font-semibold text-[#1F1B16] tracking-[-0.02em] leading-[0.95]">
+              Survey Insights
+            </h1>
+          </div>
+          <Link
+            href="/dashboard/admin"
+            className="text-[12px] text-[#6B6258] hover:text-[#1F1B16] transition-colors shrink-0 mt-2"
+          >
+            ← Back to admin
+          </Link>
+        </header>
+        <UnifiedSurveysDashboard
+          sections={sections}
+          programs={allPrograms}
+          totalResponses={totalResponses}
+        />
       </div>
-      <UnifiedSurveysDashboard
-        sections={sections}
-        programs={allPrograms}
-        totalResponses={totalResponses}
-      />
     </div>
   );
 }

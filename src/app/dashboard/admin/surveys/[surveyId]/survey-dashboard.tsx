@@ -11,10 +11,20 @@ interface Props {
   schema: SurveyQuestion[];
   responses: BCCSurveyResponse[];
   programs: { slug: string; name: string }[];
+  /**
+   * "standalone" renders a full editorial header (eyebrow + h1).
+   * "embedded" drops the header, so a parent (e.g. the master-detail
+   *  ledger view) can supply its own.
+   */
+  chrome?: "standalone" | "embedded";
 }
 
-const ACCENT = "#E54D2E";
-const CHARCOAL = "#1a1a1a";
+// Neutral-only data palette derived from the cream surface tokens. No
+// vermillion, no blue, no AI-gradient. Active values render in warm charcoal,
+// inactive in a warm-tinted neutral so the bars sit on cream without looking
+// sterile.
+const INK = "#1F1B16";
+const INK_DIM = "#D8D2C4";
 
 export function SurveyDashboard({
   surveyId,
@@ -22,6 +32,7 @@ export function SurveyDashboard({
   schema,
   responses,
   programs,
+  chrome = "standalone",
 }: Props) {
   const [filter, setFilter] = useState<string>("all");
 
@@ -65,9 +76,7 @@ export function SurveyDashboard({
 
   if (responses.length === 0) {
     return (
-      <div className="rounded-xl border border-neutral-200 bg-white p-8 text-center">
-        <p className="text-sm text-neutral-500">No responses yet for this survey.</p>
-      </div>
+      <p className="text-sm text-[#6B6258]">No responses yet for this survey.</p>
     );
   }
 
@@ -79,59 +88,62 @@ export function SurveyDashboard({
   const textQs = schema.filter((q) => q.type === "text");
 
   return (
-    <div className="space-y-6">
-      {/* Header strip */}
-      <div className="rounded-xl bg-[#1a1a1a] text-white p-5">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400">
-              {surveyTitle}
+    <div className="space-y-10">
+      {/* Header */}
+      <header className="flex flex-wrap items-end justify-between gap-4 pb-4 border-b border-[#E7E1D2]">
+        <div>
+          {chrome === "standalone" && (
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#6B6258] mb-2">
+              Survey Insights
             </p>
-            <p className="text-3xl font-bold mt-1">{total}</p>
-            <p className="text-xs text-neutral-400">
-              response{total === 1 ? "" : "s"}
-              {filter !== "all" && (
-                <> · {programs.find((p) => p.slug === filter)?.name ?? filter}</>
-              )}
-            </p>
-          </div>
+          )}
+          <h2 className="text-3xl font-semibold text-[#1F1B16] tracking-tight">
+            {surveyTitle}
+          </h2>
+          <p className="text-sm text-[#6B6258] mt-2 tabular-nums">
+            {total} response{total === 1 ? "" : "s"}
+            {filter !== "all" && (
+              <> · {programs.find((p) => p.slug === filter)?.name ?? filter}</>
+            )}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {programsWithData.length > 1 && (
+            <div className="flex gap-1">
+              <FilterPill
+                label={`All (${responses.length})`}
+                active={filter === "all"}
+                onClick={() => setFilter("all")}
+              />
+              {programsWithData.map((p) => {
+                const count = responses.filter((r) => r.program_slug === p.slug).length;
+                return (
+                  <FilterPill
+                    key={p.slug}
+                    label={`${p.name} (${count})`}
+                    active={filter === p.slug}
+                    onClick={() => setFilter(p.slug)}
+                  />
+                );
+              })}
+            </div>
+          )}
           <button
             type="button"
             onClick={downloadCsv}
             disabled={total === 0}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-xs font-medium text-neutral-900 hover:bg-neutral-100 transition-colors disabled:opacity-40"
+            className="inline-flex items-center gap-1.5 rounded-md border border-[#E7E1D2] bg-[#FBF9F4] px-3 py-1.5 text-xs font-medium text-[#1F1B16] hover:bg-[#F2EDE0] transition-colors disabled:opacity-40"
           >
             <Download size={13} />
-            Download CSV
+            CSV
           </button>
         </div>
+      </header>
 
-        {programsWithData.length > 1 && (
-          <div className="flex gap-1.5 flex-wrap mt-4">
-            <FilterPill
-              label={`All (${responses.length})`}
-              active={filter === "all"}
-              onClick={() => setFilter("all")}
-            />
-            {programsWithData.map((p) => {
-              const count = responses.filter((r) => r.program_slug === p.slug).length;
-              return (
-                <FilterPill
-                  key={p.slug}
-                  label={`${p.name} (${count})`}
-                  active={filter === p.slug}
-                  onClick={() => setFilter(p.slug)}
-                />
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* Demographics */}
+      {/* Demographics (radio) */}
       {radioQs.length > 0 && (
         <Section title="Single-choice answers">
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid gap-x-10 gap-y-6 md:grid-cols-2">
             {radioQs.map((q) => (
               <RadioBlock key={q.id} question={q} visible={visible} />
             ))}
@@ -142,7 +154,7 @@ export function SurveyDashboard({
       {/* Multi-select */}
       {multiSelectQs.length > 0 && (
         <Section title="Multi-select answers">
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid gap-x-10 gap-y-6 md:grid-cols-2">
             {multiSelectQs.map((q) => (
               <MultiSelectBlock key={q.id} question={q} visible={visible} />
             ))}
@@ -153,7 +165,7 @@ export function SurveyDashboard({
       {/* Likert */}
       {likertQs.length > 0 && (
         <Section title="Rating scales">
-          <div className="space-y-3">
+          <div className="space-y-8">
             {likertQs.map((q) => (
               <LikertBlock key={q.id} question={q} visible={visible} />
             ))}
@@ -161,10 +173,10 @@ export function SurveyDashboard({
         </Section>
       )}
 
-      {/* Dual-likert (before/after) */}
+      {/* Dual-likert */}
       {dualLikertQs.length > 0 && (
-        <Section title="Before → After">
-          <div className="space-y-3">
+        <Section title="Before → after">
+          <div className="space-y-8">
             {dualLikertQs.map((q) => (
               <DualLikertBlock key={q.id} question={q} visible={visible} />
             ))}
@@ -175,7 +187,7 @@ export function SurveyDashboard({
       {/* Free text */}
       {textQs.length > 0 && (
         <Section title="Free text">
-          <div className="space-y-2">
+          <div className="space-y-1">
             {textQs.map((q) => (
               <TextBlock key={q.id} question={q} visible={visible} />
             ))}
@@ -199,10 +211,10 @@ function FilterPill({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
+      className={`rounded-md px-2.5 py-1 text-[11px] font-medium tabular-nums transition-colors ${
         active
-          ? "bg-white text-[#1a1a1a]"
-          : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
+          ? "bg-[#1F1B16] text-[#F7F4EE]"
+          : "bg-transparent text-[#6B6258] hover:bg-[#F2EDE0]"
       }`}
     >
       {label}
@@ -213,9 +225,9 @@ function FilterPill({
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>
-      <h2 className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500 mb-2">
+      <h3 className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#9B9388] mb-4">
         {title}
-      </h2>
+      </h3>
       {children}
     </section>
   );
@@ -242,29 +254,32 @@ function RadioBlock({
   const max = Math.max(1, ...Array.from(counts.values()));
 
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-4">
-      <p className="text-sm font-semibold text-neutral-900 leading-snug">
+    <div>
+      <p className="text-sm font-medium text-[#1F1B16] leading-snug">
         {question.label}
       </p>
-      <p className="text-[11px] text-neutral-400 mt-0.5">{answered} answered</p>
-      <div className="mt-3 space-y-1.5">
+      <p className="text-[11px] text-[#9B9388] mt-1 tabular-nums">
+        {answered} answered
+      </p>
+      <div className="mt-4 space-y-2">
         {question.options.map((opt) => {
           const count = counts.get(opt) ?? 0;
           const pct = answered === 0 ? 0 : Math.round((count / answered) * 100);
           return (
             <div key={opt}>
-              <div className="flex justify-between gap-2 text-[11px] text-neutral-700">
-                <span className="truncate">{opt}</span>
-                <span className="text-neutral-500 shrink-0 tabular-nums">
-                  {count} · {pct}%
+              <div className="flex items-baseline gap-3 text-[12px] text-[#1F1B16]">
+                <span className="flex-1 truncate">{opt}</span>
+                <span className="text-[#6B6258] shrink-0 tabular-nums text-[11px]">
+                  {count}
+                  <span className="text-[#9B9388]"> · {pct}%</span>
                 </span>
               </div>
-              <div className="h-1.5 mt-0.5 rounded-full bg-neutral-100 overflow-hidden">
+              <div className="h-[3px] mt-1 rounded-sm bg-[#EFEAE0] overflow-hidden">
                 <div
-                  className="h-full rounded-full"
+                  className="h-full"
                   style={{
                     width: `${(count / max) * 100}%`,
-                    backgroundColor: count > 0 ? ACCENT : "transparent",
+                    backgroundColor: count > 0 ? INK : "transparent",
                   }}
                 />
               </div>
@@ -297,29 +312,32 @@ function MultiSelectBlock({
   const max = Math.max(1, ...Array.from(counts.values()));
 
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-4">
-      <p className="text-sm font-semibold text-neutral-900 leading-snug">
+    <div>
+      <p className="text-sm font-medium text-[#1F1B16] leading-snug">
         {question.label}
       </p>
-      <p className="text-[11px] text-neutral-400 mt-0.5">{answered} answered</p>
-      <div className="mt-3 space-y-1.5">
+      <p className="text-[11px] text-[#9B9388] mt-1 tabular-nums">
+        {answered} answered
+      </p>
+      <div className="mt-4 space-y-2">
         {question.options.map((opt) => {
           const count = counts.get(opt) ?? 0;
           const pct = answered === 0 ? 0 : Math.round((count / answered) * 100);
           return (
             <div key={opt}>
-              <div className="flex justify-between gap-2 text-[11px] text-neutral-700">
-                <span className="truncate">{opt}</span>
-                <span className="text-neutral-500 shrink-0 tabular-nums">
-                  {count} · {pct}%
+              <div className="flex items-baseline gap-3 text-[12px] text-[#1F1B16]">
+                <span className="flex-1 truncate">{opt}</span>
+                <span className="text-[#6B6258] shrink-0 tabular-nums text-[11px]">
+                  {count}
+                  <span className="text-[#9B9388]"> · {pct}%</span>
                 </span>
               </div>
-              <div className="h-1.5 mt-0.5 rounded-full bg-neutral-100 overflow-hidden">
+              <div className="h-[3px] mt-1 rounded-sm bg-[#EFEAE0] overflow-hidden">
                 <div
-                  className="h-full rounded-full"
+                  className="h-full"
                   style={{
                     width: `${(count / max) * 100}%`,
-                    backgroundColor: count > 0 ? ACCENT : "transparent",
+                    backgroundColor: count > 0 ? INK : "transparent",
                   }}
                 />
               </div>
@@ -342,18 +360,19 @@ function LikertBlock({
   const isNumericAscending = scaleNums.every((n) => !Number.isNaN(n));
 
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-4">
-      <p className="text-sm font-semibold text-neutral-900 leading-snug">
+    <div>
+      <p className="text-sm font-medium text-[#1F1B16] leading-snug">
         {question.label}
       </p>
       {question.scaleAnchors && (
-        <p className="text-[11px] text-neutral-400 mt-0.5">
-          {question.scaleAnchors.low} → {question.scaleAnchors.high}
+        <p className="text-[11px] text-[#9B9388] mt-1">
+          {question.scaleAnchors.low}{" "}
+          <span className="text-[#D8D2C4]">→</span>{" "}
+          {question.scaleAnchors.high}
         </p>
       )}
-      <div className="mt-3 space-y-3">
+      <div className="mt-5 space-y-5">
         {question.statements.map((stmt) => {
-          // Likert answers stored as { [statement]: scaleValue }
           const counts = new Map<string, number>();
           let total = 0;
           let sum = 0;
@@ -371,36 +390,38 @@ function LikertBlock({
 
           return (
             <div key={stmt}>
-              <div className="flex justify-between gap-2 items-baseline">
-                <p className="text-xs text-neutral-700 leading-snug">{stmt}</p>
+              <div className="flex items-baseline gap-3 mb-2">
+                <p className="text-[13px] text-[#1F1B16] leading-snug flex-1">
+                  {stmt}
+                </p>
                 {isNumericAscending && total > 0 && (
-                  <p className="text-xs font-semibold text-neutral-900 shrink-0 tabular-nums">
+                  <p className="text-lg font-semibold text-[#1F1B16] shrink-0 tabular-nums">
                     {mean.toFixed(2)}
-                    <span className="text-[10px] text-neutral-400 font-normal ml-1">
-                      avg
+                    <span className="text-[10px] text-[#9B9388] font-sans font-normal ml-1 tracking-wider uppercase">
+                      mean
                     </span>
                   </p>
                 )}
               </div>
-              <div className="flex gap-1 mt-1">
+              <div className="flex gap-1">
                 {question.scale.map((s) => {
                   const c = counts.get(s) ?? 0;
                   const pct = total === 0 ? 0 : Math.round((c / total) * 100);
                   return (
                     <div key={s} className="flex-1">
-                      <div className="h-6 rounded bg-neutral-100 overflow-hidden flex items-end">
+                      <div className="h-7 bg-[#EFEAE0] flex items-end overflow-hidden">
                         <div
                           className="w-full"
                           style={{
                             height: `${pct}%`,
-                            backgroundColor: c > 0 ? CHARCOAL : "transparent",
+                            backgroundColor: c > 0 ? INK : "transparent",
                           }}
                         />
                       </div>
-                      <p className="text-[9px] text-center text-neutral-400 mt-0.5 tabular-nums">
+                      <p className="text-[10px] text-center text-[#9B9388] mt-1 tabular-nums">
                         {s}
                       </p>
-                      <p className="text-[9px] text-center text-neutral-500 tabular-nums">
+                      <p className="text-[10px] text-center text-[#1F1B16] tabular-nums font-medium">
                         {c}
                       </p>
                     </div>
@@ -425,14 +446,16 @@ function DualLikertBlock({
   const scaleMax = Number(question.scale[question.scale.length - 1]);
 
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-4">
-      <p className="text-sm font-semibold text-neutral-900 leading-snug">
+    <div>
+      <p className="text-sm font-medium text-[#1F1B16] leading-snug">
         {question.label}
       </p>
-      <p className="text-[11px] text-neutral-400 mt-0.5">
-        {question.beforeLabel} → {question.nowLabel}
+      <p className="text-[11px] text-[#9B9388] mt-1">
+        {question.beforeLabel}{" "}
+        <span className="text-[#D8D2C4]">→</span>{" "}
+        {question.nowLabel}
       </p>
-      <div className="mt-3 space-y-2.5">
+      <div className="mt-5 space-y-4">
         {question.statements.map((stmt) => {
           let beforeSum = 0;
           let beforeN = 0;
@@ -463,51 +486,50 @@ function DualLikertBlock({
           const nowPct = (nowMean / scaleMax) * 100;
 
           return (
-            <div key={stmt}>
-              <div className="flex justify-between gap-2 items-baseline mb-1">
-                <p className="text-xs text-neutral-700 leading-snug">{stmt}</p>
-                {beforeN > 0 && nowN > 0 && (
-                  <p className="text-xs font-semibold shrink-0 tabular-nums">
-                    <span className="text-neutral-400">{beforeMean.toFixed(2)}</span>
-                    <span className="mx-1 text-neutral-400">→</span>
-                    <span className="text-neutral-900">{nowMean.toFixed(2)}</span>
-                    <span
-                      className="ml-2 px-1.5 py-0.5 rounded text-white text-[10px]"
-                      style={{
-                        backgroundColor: delta >= 0 ? ACCENT : "#888",
-                      }}
-                    >
-                      {delta >= 0 ? "+" : ""}
-                      {delta.toFixed(2)}
-                    </span>
-                  </p>
-                )}
-              </div>
-              <div className="space-y-0.5">
+            <div key={stmt} className="grid grid-cols-[1fr_auto] gap-x-6 gap-y-2 items-baseline">
+              <p className="text-[13px] text-[#1F1B16] leading-snug">{stmt}</p>
+              {beforeN > 0 && nowN > 0 ? (
+                <p className="text-lg font-semibold text-[#1F1B16] shrink-0 tabular-nums whitespace-nowrap">
+                  {beforeMean.toFixed(2)}
+                  <span className="text-[#9B9388] mx-1.5 font-normal">→</span>
+                  {nowMean.toFixed(2)}
+                  <span
+                    className={`ml-2 text-[11px] font-sans font-medium tabular-nums ${
+                      delta >= 0 ? "text-[#1F1B16]" : "text-[#9B9388]"
+                    }`}
+                  >
+                    {delta >= 0 ? "+" : ""}
+                    {delta.toFixed(2)}
+                  </span>
+                </p>
+              ) : (
+                <span className="text-[11px] text-[#9B9388]">—</span>
+              )}
+              <div className="col-span-2 space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-[9px] text-neutral-400 w-12 shrink-0 uppercase">
+                  <span className="text-[10px] uppercase tracking-wider text-[#9B9388] w-12 shrink-0">
                     Before
                   </span>
-                  <div className="flex-1 h-2 rounded-full bg-neutral-100 overflow-hidden">
+                  <div className="flex-1 h-1.5 bg-[#EFEAE0] overflow-hidden">
                     <div
-                      className="h-full rounded-full"
+                      className="h-full"
                       style={{
                         width: `${beforePct}%`,
-                        backgroundColor: "#bbb",
+                        backgroundColor: INK_DIM,
                       }}
                     />
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-[9px] text-neutral-400 w-12 shrink-0 uppercase">
+                  <span className="text-[10px] uppercase tracking-wider text-[#9B9388] w-12 shrink-0">
                     Now
                   </span>
-                  <div className="flex-1 h-2 rounded-full bg-neutral-100 overflow-hidden">
+                  <div className="flex-1 h-1.5 bg-[#EFEAE0] overflow-hidden">
                     <div
-                      className="h-full rounded-full"
+                      className="h-full"
                       style={{
                         width: `${nowPct}%`,
-                        backgroundColor: ACCENT,
+                        backgroundColor: INK,
                       }}
                     />
                   </div>
@@ -537,30 +559,31 @@ function TextBlock({
     .filter((a) => typeof a.val === "string" && (a.val as string).trim().length > 0);
 
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white">
+    <div className="border-t border-[#E7E1D2] first:border-t-0">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between gap-2 px-4 py-3 text-left hover:bg-neutral-50 transition-colors"
+        className="w-full flex items-baseline justify-between gap-4 py-3 text-left hover:text-[#1F1B16] transition-colors"
       >
-        <p className="text-sm font-semibold text-neutral-900 leading-snug">
+        <p className="text-[13px] text-[#1F1B16] leading-snug">
           {question.label}
         </p>
-        <span className="text-[11px] text-neutral-400 shrink-0 tabular-nums">
-          {answers.length} {open ? "▴" : "▾"}
+        <span className="text-[11px] text-[#9B9388] shrink-0 tabular-nums">
+          {answers.length}
+          <span className="ml-2 inline-block w-3 text-center">{open ? "−" : "+"}</span>
         </span>
       </button>
       {open && (
-        <div className="border-t border-neutral-100 divide-y divide-neutral-100">
+        <div className="pb-4 -mt-1 space-y-4">
           {answers.length === 0 && (
-            <p className="px-4 py-3 text-xs text-neutral-400">No answers.</p>
+            <p className="text-[12px] text-[#9B9388] italic">No answers.</p>
           )}
           {answers.map((a, i) => (
-            <div key={i} className="px-4 py-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400">
+            <div key={i} className="border-l border-[#D8D2C4] pl-4">
+              <p className="text-[10px] font-medium uppercase tracking-wider text-[#9B9388]">
                 {a.name}
               </p>
-              <p className="text-xs text-neutral-700 mt-1 whitespace-pre-wrap">
+              <p className="text-[13px] text-[#1F1B16] mt-1 leading-relaxed whitespace-pre-wrap">
                 {String(a.val)}
               </p>
             </div>

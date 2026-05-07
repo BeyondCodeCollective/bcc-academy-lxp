@@ -49,28 +49,22 @@ export default async function SurveyDashboardPage({
   const programs = getAllPrograms().map((p) => ({ slug: p.slug, name: p.name }));
 
   return (
-    <div className="mx-auto w-full max-w-2xl md:max-w-5xl space-y-6 px-5 py-8">
-      <div className="flex items-center justify-between gap-4">
-        <div className="min-w-0">
-          <p className="text-xs font-medium tracking-wide text-[#E54D2E] uppercase mb-1">
-            Survey Insights
-          </p>
-          <h1 className="text-2xl font-bold text-neutral-900 truncate">{survey.title}</h1>
-        </div>
+    <div className="min-h-[100dvh] bg-[#F7F4EE]">
+      <div className="mx-auto w-full max-w-2xl md:max-w-5xl px-5 py-12 md:py-16">
         <Link
           href="/dashboard/admin/surveys"
-          className="text-sm text-neutral-500 hover:text-neutral-900 transition-colors shrink-0"
+          className="inline-flex text-[12px] text-[#6B6258] hover:text-[#1F1B16] transition-colors mb-12"
         >
           ← All surveys
         </Link>
+        <SurveyDashboard
+          surveyId={surveyId}
+          surveyTitle={survey.title}
+          schema={schema}
+          responses={responses}
+          programs={programs}
+        />
       </div>
-      <SurveyDashboard
-        surveyId={surveyId}
-        surveyTitle={survey.title}
-        schema={schema}
-        responses={responses}
-        programs={programs}
-      />
     </div>
   );
 }

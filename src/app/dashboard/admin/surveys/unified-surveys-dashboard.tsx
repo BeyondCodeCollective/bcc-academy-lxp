@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import { SurveyDashboard } from "./[surveyId]/survey-dashboard";
 import type { SurveyQuestion } from "@/components/survey-fields";
 import type { BCCSurveyResponse } from "../actions";
@@ -22,90 +23,212 @@ export function UnifiedSurveysDashboard({
   programs,
   totalResponses,
 }: Props) {
-  const withSchema = sections.filter((s) => s.schema);
-  const withoutSchema = sections.filter((s) => !s.schema);
+  const ledger = useMemo(() => buildLedger(sections), [sections]);
+
+  // Default to the most recently active survey with a usable schema.
+  const initialId = ledger.find((row) => row.hasSchema)?.id ?? ledger[0]?.id ?? null;
+  const [activeId, setActiveId] = useState<string | null>(initialId);
+
+  // Sync the URL hash so deep-linking (and the back button) keeps working.
+  // The initial-mount setState is the documented "sync with external system"
+  // pattern — the URL is the external system here, and it can't be read at
+  // render time without breaking SSR hydration. Suppressing the rule.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const fromHash = window.location.hash.slice(1);
+    if (fromHash && ledger.some((row) => row.id === fromHash)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setActiveId(fromHash);
+    }
+    function onHashChange() {
+      const id = window.location.hash.slice(1);
+      if (id && ledger.some((row) => row.id === id)) setActiveId(id);
+    }
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, [ledger]);
+
+  function selectSurvey(id: string) {
+    setActiveId(id);
+    if (typeof window !== "undefined") {
+      history.replaceState(null, "", `#${id}`);
+    }
+  }
+
+  const active = sections.find((s) => s.survey.id === activeId) ?? null;
+  const lede = composeLede(ledger, totalResponses);
 
   if (sections.length === 0) {
     return (
-      <div className="rounded-xl border border-neutral-200 bg-white p-8 text-center">
-        <p className="text-sm text-neutral-500">No survey responses yet.</p>
-      </div>
+      <p className="text-sm text-[#6B6258]">
+        No survey responses yet. Once a cohort starts answering, this page will
+        come alive.
+      </p>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Top stat strip */}
-      <div className="rounded-xl bg-[#1a1a1a] text-white p-5">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400">
-          Total responses across all surveys
+    <div className="space-y-12">
+      {/* LEDE — editorial paragraph instead of a hero stat block. */}
+      <p className="text-[17px] leading-[1.65] text-[#1F1B16] max-w-2xl tracking-[-0.005em]">
+        {lede}
+      </p>
+
+      {/* Ledger — a table of every survey, click to focus. */}
+      <div>
+        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#9B9388] mb-3">
+          Surveys
         </p>
-        <p className="text-4xl font-bold mt-1 tabular-nums">{totalResponses}</p>
-        <p className="text-xs text-neutral-400 mt-1">
-          {withSchema.length} survey{withSchema.length === 1 ? "" : "s"} with data
+        <ul className="border-y border-[#E7E1D2]">
+          {ledger.map((row, i) => (
+            <li
+              key={row.id}
+              className={i > 0 ? "border-t border-[#EFEAE0]" : ""}
+            >
+              <button
+                type="button"
+                onClick={() => selectSurvey(row.id)}
+                disabled={!row.hasSchema}
+                className={`group w-full grid grid-cols-[auto_1fr_auto_auto] items-baseline gap-x-6 gap-y-1 px-1 py-3 text-left transition-colors ${
+                  activeId === row.id && row.hasSchema
+                    ? "bg-[#EFEAE0]"
+                    : row.hasSchema
+                      ? "hover:bg-[#F2EDE0]"
+                      : "opacity-60 cursor-not-allowed"
+                }`}
+              >
+                <span
+                  className={`text-[10px] font-mono tabular-nums tracking-tight px-2 ${
+                    activeId === row.id && row.hasSchema
+                      ? "text-[#1F1B16]"
+                      : "text-[#9B9388]"
+                  }`}
+                >
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <div className="min-w-0">
+                  <p className="text-[15px] font-medium text-[#1F1B16] truncate">
+                    {row.title}
+                  </p>
+                  {row.programs && (
+                    <p className="text-[11px] text-[#6B6258] mt-0.5 truncate">
+                      {row.programs}
+                    </p>
+                  )}
+                </div>
+                <p className="text-2xl font-semibold text-[#1F1B16] tabular-nums leading-none">
+                  {row.count}
+                </p>
+                <p className="text-[11px] text-[#9B9388] tabular-nums whitespace-nowrap min-w-[5rem] text-right">
+                  {row.lastActivity ? lastActivityText(row.lastActivity) : "—"}
+                </p>
+              </button>
+            </li>
+          ))}
+        </ul>
+        <p className="text-[11px] text-[#9B9388] mt-3">
+          {ledger.filter((r) => !r.hasSchema).length > 0 && (
+            <>
+              Greyed-out rows have responses but no dashboard schema yet — add
+              one in <code className="text-[10px] bg-[#EFEAE0] px-1 py-0.5 rounded">src/lib/surveys/schemas.ts</code> to visualize.
+            </>
+          )}
         </p>
       </div>
 
-      {/* Sticky table of contents */}
-      {withSchema.length > 1 && (
-        <nav className="sticky top-0 z-10 -mx-5 px-5 py-2.5 bg-white/95 backdrop-blur border-b border-neutral-200">
-          <div className="flex flex-wrap gap-1">
-            {withSchema.map((s) => (
-              <a
-                key={s.survey.id}
-                href={`#${s.survey.id}`}
-                className="text-[11px] font-medium text-neutral-600 hover:text-neutral-900 px-2 py-1 rounded-md hover:bg-neutral-100 transition-colors"
-              >
-                {s.survey.title}{" "}
-                <span className="text-neutral-400 tabular-nums">
-                  ({s.responses.length})
-                </span>
-              </a>
-            ))}
-          </div>
-        </nav>
-      )}
-
-      {/* Per-survey sections */}
-      {withSchema.map((s, i) => (
-        <section
-          key={s.survey.id}
-          id={s.survey.id}
-          className={`scroll-mt-20 ${i > 0 ? "pt-8 border-t border-neutral-200" : ""}`}
-        >
+      {/* Detail — the active survey's full charts. */}
+      {active && active.schema && (
+        <div className="pt-2">
           <SurveyDashboard
-            surveyId={s.survey.id}
-            surveyTitle={s.survey.title}
-            schema={s.schema as SurveyQuestion[]}
-            responses={s.responses}
+            surveyId={active.survey.id}
+            surveyTitle={active.survey.title}
+            schema={active.schema}
+            responses={active.responses}
             programs={programs}
+            chrome="embedded"
           />
-        </section>
-      ))}
-
-      {/* Surveys with responses but no dashboard schema (defensive) */}
-      {withoutSchema.length > 0 && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <p className="text-sm font-semibold text-amber-900">
-            Surveys without dashboard schema
-          </p>
-          <p className="text-xs text-amber-800 mt-1">
-            These surveys have responses but no entry in
-            {" "}<code className="text-[10px]">src/lib/surveys/schemas.ts</code>.
-            Add one to visualize them.
-          </p>
-          <ul className="mt-2 text-xs text-amber-900 space-y-0.5">
-            {withoutSchema.map((s) => (
-              <li key={s.survey.id}>
-                <span className="font-medium">{s.survey.title}</span>
-                <span className="text-amber-700">
-                  {" "}· {s.responses.length} response{s.responses.length === 1 ? "" : "s"}
-                </span>
-              </li>
-            ))}
-          </ul>
         </div>
       )}
     </div>
   );
+}
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+interface LedgerRow {
+  id: string;
+  title: string;
+  programs: string;
+  count: number;
+  lastActivity: string | null;
+  hasSchema: boolean;
+}
+
+function buildLedger(sections: Section[]): LedgerRow[] {
+  return sections
+    .map((s) => {
+      const programNames = Array.from(
+        new Set(s.responses.map((r) => r.program_name).filter(Boolean)),
+      );
+      const last = s.responses.reduce<string | null>((max, r) => {
+        if (!r.completed_at) return max;
+        if (!max) return r.completed_at;
+        return r.completed_at > max ? r.completed_at : max;
+      }, null);
+      return {
+        id: s.survey.id,
+        title: s.survey.title,
+        programs: programNames.join(" · "),
+        count: s.responses.length,
+        lastActivity: last,
+        hasSchema: !!s.schema,
+      };
+    })
+    .sort((a, b) => {
+      // Most recently active first; surveys without activity at the bottom.
+      if (!a.lastActivity && !b.lastActivity) return b.count - a.count;
+      if (!a.lastActivity) return 1;
+      if (!b.lastActivity) return -1;
+      return b.lastActivity.localeCompare(a.lastActivity);
+    });
+}
+
+function composeLede(ledger: LedgerRow[], total: number): string {
+  const active = ledger.filter((r) => r.count > 0);
+  if (active.length === 0) {
+    return "No responses yet. Send a survey link to a cohort to get started.";
+  }
+  const top = active[0];
+  const surveyWord = active.length === 1 ? "survey" : "surveys";
+
+  const parts: string[] = [];
+  parts.push(
+    `${total} response${total === 1 ? "" : "s"} across ${active.length} ${surveyWord}.`,
+  );
+  if (top.lastActivity) {
+    parts.push(
+      `${top.title} is the most recent — ${top.count} response${top.count === 1 ? "" : "s"}, last completed ${lastActivityText(top.lastActivity)}.`,
+    );
+  } else {
+    parts.push(
+      `${top.title} leads with ${top.count} response${top.count === 1 ? "" : "s"}.`,
+    );
+  }
+  if (active.length > 1) {
+    parts.push("Pick a row below to read across cohorts.");
+  }
+  return parts.join(" ");
+}
+
+function lastActivityText(iso: string): string {
+  const then = new Date(iso).getTime();
+  const now = Date.now();
+  const diff = now - then;
+  const day = 24 * 60 * 60 * 1000;
+  const days = Math.floor(diff / day);
+  if (days <= 0) return "today";
+  if (days === 1) return "yesterday";
+  if (days < 14) return `${days}d ago`;
+  if (days < 60) return `${Math.floor(days / 7)}w ago`;
+  return `${Math.floor(days / 30)}mo ago`;
 }
