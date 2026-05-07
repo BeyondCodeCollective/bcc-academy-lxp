@@ -65,9 +65,13 @@ export function CentralLoginForm() {
       return;
     }
 
+    // Use the current origin for the callback so the PKCE code_verifier cookie
+    // (set on this domain) is readable when the callback route runs. Pointing
+    // to a different domain (e.g. atg.bccacademy.io when testing on a Vercel
+    // preview URL) causes exchangeCodeForSession to fail silently.
     const callbackUrl = isLocalDev
       ? `http://localhost:3000/auth/callback`
-      : `https://${PROGRAM_DOMAINS[programSlug]}/auth/callback`;
+      : `${window.location.origin}/auth/callback`;
     const supabase = createClient();
     const { error: otpError } = await supabase.auth.signInWithOtp({
       email: trimmedEmail,
