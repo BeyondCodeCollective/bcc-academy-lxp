@@ -286,8 +286,14 @@ export async function GET(request: Request) {
           }
           if (programSlug) {
             // Vercel preview URL: cookies are host-scoped, must stay on this domain.
-            // ?as= makes middleware set the program-slug cookie so dashboard renders with real tracks.
-            return redirectWithCookies(`${origin}/dashboard?as=${programSlug}`);
+            // Set program cookies directly on the redirect response so the
+            // dashboard's getProgram() reads the real program, not the stale
+            // "marketing" program-override cookie from the earlier ?as=marketing visit.
+            const res = redirectWithCookies(`${origin}/dashboard`);
+            const cookieOpts = { path: "/", httpOnly: false, sameSite: "lax" as const };
+            res.cookies.set("program-slug", programSlug, cookieOpts);
+            res.cookies.set("program-override", programSlug, { ...cookieOpts, maxAge: 60 * 60 * 24 });
+            return res;
           }
           return redirectWithCookies(`${origin}/`);
         }
