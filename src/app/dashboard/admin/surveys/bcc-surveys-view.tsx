@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { ChevronDown, Download, Loader2, Trash2 } from "lucide-react";
-import { getBCCSurveyResponses, deletePublicSurveyResponse } from "../actions";
+import { getDashboardSurveyResponses, deletePublicSurveyResponse } from "../actions";
 import type { BCCSurveyStat, BCCSurveyResponse } from "../actions";
 import type { SurveyConfig } from "@/lib/programs/types";
 
@@ -55,7 +56,7 @@ function SurveyPanel({
     if (loaded) return;
     setLoading(true);
     try {
-      const data = await getBCCSurveyResponses(survey.id);
+      const data = await getDashboardSurveyResponses(survey.id);
       setResponses(data);
       setLoaded(true);
     } finally {
@@ -79,10 +80,12 @@ function SurveyPanel({
     }
   }
 
-  function downloadCsv() {
+  async function downloadCsv() {
+    if (!loaded) await loadResponses();
+    const data = loaded ? responses : await getDashboardSurveyResponses(survey.id);
     const visible = filterProgram === "all"
-      ? responses
-      : responses.filter((r) => r.program_slug === filterProgram);
+      ? data
+      : data.filter((r) => r.program_slug === filterProgram);
     if (visible.length === 0) return;
 
     const allKeys = new Set<string>();
@@ -136,16 +139,23 @@ function SurveyPanel({
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            {loaded && (
-              <button
-                type="button"
-                onClick={downloadCsv}
-                className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
-              >
-                <Download size={12} />
-                CSV
-              </button>
-            )}
+            <Link
+              href={`/dashboard/admin/surveys/${survey.id}`}
+              className="inline-flex items-center gap-1 rounded-lg border border-neutral-900 bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-800 transition-colors"
+            >
+              View dashboard
+            </Link>
+            <button
+              type="button"
+              onClick={downloadCsv}
+              disabled={total === 0 || loading}
+              className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {loading
+                ? <Loader2 size={12} className="animate-spin" />
+                : <Download size={12} />}
+              CSV
+            </button>
             <button
               type="button"
               onClick={handleExpand}
