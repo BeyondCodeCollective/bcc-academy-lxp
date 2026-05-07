@@ -8,6 +8,7 @@ import {
   type SurveyQuestion,
 } from "@/components/survey-fields";
 import { savePublicSurveyResponse } from "./actions";
+import { WORKSHOP_NAMES, WORKSHOP_LOCATIONS as WORKSHOP_LOCATION_OPTIONS } from "@/lib/surveys/schemas";
 
 // BCC Workshop Survey — post-workshop feedback for standalone workshops
 // (1–8 hours). Takes ~3–5 minutes. Mirrors the content spec in
@@ -61,52 +62,24 @@ const PAGES: Page[] = [
   // Page 1 — Contact + Workshop Details
   { kind: "contact" },
 
-  // Page 2 — Where You Started / Where You Are Now
-  {
-    kind: "questions",
-    title: "Where You Started — Where You Are Now",
-    subtitle:
-      "For each statement below, give yourself two scores: how you would have scored yourself BEFORE today's workshop, and how you would score yourself RIGHT NOW.",
-    questions: [
-      {
-        type: "dual-likert",
-        id: "self_assessment",
-        label: "Rate yourself on the following",
-        scale: LIKERT_1_5,
-        beforeLabel: "Before today",
-        nowLabel: "Right now",
-        scaleAnchors: { low: "Not at all", high: "Very much" },
-        statements: [
-          "I understand the main ideas from today.",
-          "I feel ready to use what I learned on my own.",
-          "I can see how today's topic connects to my life.",
-        ],
-        required: true,
-      },
-      {
-        type: "text",
-        id: "still_unsure",
-        label:
-          "Is there anything from today that you're still not sure about?",
-        placeholder:
-          "Example: \"I'm still not sure how to use AI workflow tools on my own.\" Leave blank if everything felt clear.",
-        required: false,
-      },
-    ],
-  },
-
-  // Page 3 — Tell Us About Today
+  // Page 2 — Tell Us About Today (v1: single likert, no before/after)
   {
     kind: "questions",
     title: "Tell Us About Today",
+    subtitle:
+      "For each statement below, please rate yourself. Scale: 1 = Not at all · 5 = Very much.",
     questions: [
       {
         type: "likert",
-        id: "workshop_rating",
-        label: "How would you rate today's workshop overall?",
+        id: "learning_outcomes",
+        label: "Rate yourself on the following",
         scale: LIKERT_1_5,
-        scaleAnchors: { low: "1 — Not useful", high: "5 — Very useful" },
-        statements: ["Overall workshop rating"],
+        scaleAnchors: { low: "1 — Not at all", high: "5 — Very much" },
+        statements: [
+          "I understand the main ideas from today.",
+          "I feel ready to use what I learned.",
+          "Learning about this topic will help me grow personally and professionally.",
+        ],
         required: true,
       },
       {
@@ -118,16 +91,26 @@ const PAGES: Page[] = [
       },
       {
         type: "text",
-        id: "could_be_better",
-        label: "What could have been better, clearer, or different?",
+        id: "still_unsure",
+        label:
+          "Is there anything from today that you're still not sure about?",
         placeholder:
-          "Anything confusing, missing, or that you'd change? Your honest feedback helps us improve.",
+          "Example: \"I'm still not sure how to use AI workflow tools on my own.\" Leave blank if everything felt clear.",
         required: false,
+      },
+      {
+        type: "likert",
+        id: "workshop_rating",
+        label: "How would you rate today's workshop overall?",
+        scale: LIKERT_1_5,
+        scaleAnchors: { low: "1 — Not useful", high: "5 — Very useful" },
+        statements: ["Overall workshop rating"],
+        required: true,
       },
     ],
   },
 
-  // Page 4 — What's Next for You
+  // Page 3 — What's Next for You
   {
     kind: "questions",
     title: "What's Next for You",
@@ -223,12 +206,15 @@ export function PublicWorkshopSurvey({ surveyId, programSlug }: Props) {
         workshopLocation?: string;
         workshopDate?: string;
       };
+      const savedName = parsed.workshopName ?? "";
       return {
         page: parsed.page ?? 0,
         answers: parsed.answers ?? {},
         email: parsed.email ?? "",
         fullName: parsed.fullName ?? "",
-        workshopName: parsed.workshopName ?? "",
+        // Stale free-text workshopName values from before the dropdown won't
+        // match any option, so drop them rather than silently submitting.
+        workshopName: WORKSHOP_NAMES.includes(savedName) ? savedName : "",
         workshopLocation: parsed.workshopLocation ?? "",
         workshopDate: parsed.workshopDate ?? "",
       };
@@ -537,8 +523,6 @@ function FooterLinks() {
   );
 }
 
-const WORKSHOP_LOCATIONS = ["NYC", "ATL", "Virtual"];
-
 function ContactPage({
   email,
   fullName,
@@ -586,16 +570,23 @@ function ContactPage({
               *
             </span>
           </label>
-          <input
+          <select
             id="workshop-name"
-            type="text"
             value={workshopName}
             onChange={(e) => onWorkshopNameChange(e.target.value)}
-            placeholder="e.g. Intro to AI Workflow Tools"
             required
             aria-required="true"
             className={inputClass}
-          />
+          >
+            <option value="" disabled>
+              Choose your workshop…
+            </option>
+            {WORKSHOP_NAMES.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
         </div>
 
         <fieldset>
@@ -606,7 +597,7 @@ function ContactPage({
             </span>
           </legend>
           <div className="space-y-1.5">
-            {WORKSHOP_LOCATIONS.map((loc) => (
+            {WORKSHOP_LOCATION_OPTIONS.map((loc) => (
               <label
                 key={loc}
                 className={`flex items-center gap-2.5 rounded-lg border px-3.5 py-2.5 cursor-pointer transition-colors ${

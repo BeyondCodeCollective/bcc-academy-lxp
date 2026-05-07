@@ -13,6 +13,31 @@ import type { SurveyQuestion } from "@/components/survey-fields";
 
 const LIKERT_1_5: string[] = ["1", "2", "3", "4", "5"];
 
+// Workshop names that go in the Workshop Name dropdown on the bcc-workshop
+// survey. Update this list when the team launches new workshops — keeping
+// the dropdown closed prevents typo'd workshop labels in the data.
+export const WORKSHOP_NAMES = [
+  "Code with Culture x BCC",
+  "Subsume x BCC",
+  "Lunch & Learn | Career Shifting + Mental Health",
+  "Home for the Summers",
+  "Replit Bootcamp for Wisdom Circle Leaders",
+  "Welcome to the Lab | Intro to High Schoolers in Tech",
+  "BIT x BCC",
+  "Subsume x BCC | Afrofuturism Storytelling",
+  "Your Idea Your App | AI Building w/ Replit for Teens",
+  "Design Thinking for Educators",
+  "Beat, Brand & Beyond",
+  "Headshots + Happy Hour Networking Session",
+  "Designing Your World | For High Schoolers",
+  "Breakfast AI Chat | Educators + Parents",
+  "BIT x BCC Cybersecurity",
+  "Game On",
+  "Canva 101 for Wisdom Circle Leaders",
+];
+
+export const WORKSHOP_LOCATIONS = ["NYC", "ATL", "Virtual"];
+
 const SHARED_DEMOGRAPHICS: SurveyQuestion[] = [
   {
     type: "radio",
@@ -123,18 +148,36 @@ const BCC_LEARNER_INTAKE: SurveyQuestion[] = [
 // ─── bcc-workshop (public) ───────────────────────────────────────────────────
 const BCC_WORKSHOP: SurveyQuestion[] = [
   {
-    type: "dual-likert",
-    id: "self_assessment",
+    type: "radio",
+    id: "workshop_name",
+    label: "Workshop name",
+    options: WORKSHOP_NAMES,
+    required: true,
+  },
+  {
+    type: "radio",
+    id: "workshop_location",
+    label: "Workshop location",
+    options: WORKSHOP_LOCATIONS,
+    required: true,
+  },
+  {
+    type: "likert",
+    id: "learning_outcomes",
     label: "Rate yourself on the following",
     scale: LIKERT_1_5,
-    beforeLabel: "Before today",
-    nowLabel: "Right now",
-    scaleAnchors: { low: "Not at all", high: "Very much" },
+    scaleAnchors: { low: "1 — Not at all", high: "5 — Very much" },
     statements: [
       "I understand the main ideas from today.",
-      "I feel ready to use what I learned on my own.",
-      "I can see how today's topic connects to my life.",
+      "I feel ready to use what I learned.",
+      "Learning about this topic will help me grow personally and professionally.",
     ],
+    required: true,
+  },
+  {
+    type: "text",
+    id: "best_part",
+    label: "What was the best part of today's workshop?",
     required: true,
   },
   {
@@ -151,18 +194,6 @@ const BCC_WORKSHOP: SurveyQuestion[] = [
     scaleAnchors: { low: "1 — Not useful", high: "5 — Very useful" },
     statements: ["Overall workshop rating"],
     required: true,
-  },
-  {
-    type: "text",
-    id: "best_part",
-    label: "What was the best part of today's workshop?",
-    required: true,
-  },
-  {
-    type: "text",
-    id: "could_be_better",
-    label: "What could have been better, clearer, or different?",
-    required: false,
   },
   {
     type: "text",
