@@ -7,6 +7,12 @@ import { getProgram } from "@/lib/programs/server";
 import { sendWelcomeEmail } from "@/lib/email";
 import { BCC_INTAKE_SURVEY_ID, BCC_INTAKE_EXEMPT_PROGRAMS } from "@/lib/surveys/platform";
 
+const PROGRAM_DOMAINS: Record<string, string> = {
+  atg: "atg.bccacademy.io",
+  forge: "forge.bccacademy.io",
+  catalyst: "catalyst.bccacademy.io",
+};
+
 // Emails that always get super_admin role (hardcoded + env var)
 const SUPER_ADMIN_EMAILS = [
   "fonz.morris@wearebgc.org",
@@ -107,7 +113,7 @@ export async function GET(request: Request) {
           admin.from("programs").select("id").eq("slug", program.slug).maybeSingle(),
           admin
             .from("students")
-            .select("id, cohort_id, role")
+            .select("id, cohort_id, role, programs(slug)")
             .eq("id", user.id)
             .maybeSingle(),
         ]);
@@ -265,6 +271,26 @@ export async function GET(request: Request) {
               .eq("id", user.id)
           );
         }
+      }
+
+      // Marketing domain: look up the user's real program and route there.
+      // The marketing config has no tracks, so /dashboard would immediately redirect
+      // to "/" — bouncing the user into a login loop.
+      if (program.slug === "marketing") {
+        const programSlug =
+          (existing?.programs as { slug: string } | null)?.slug ??
+          (["super_admin", "admin"].includes(existing?.role ?? "") ? "atg" : null);
+
+        if (programSlug && domain && PROGRAM_DOMAINS[programSlug]) {
+          // Production bccacademy.io: auth cookies are .bccacademy.io scoped → safe cross-domain redirect
+          return redirectWithCookies(`https://${PROGRAM_DOMAINS[programSlug]}/dashboard`);
+        }
+        if (programSlug) {
+          // Vercel preview URL: cookies are host-scoped, must stay on this domain.
+          // ?as= makes middleware set the program-slug cookie so dashboard renders with real tracks.
+          return redirectWithCookies(`${origin}/dashboard?as=${programSlug}`);
+        }
+        return redirectWithCookies(`${origin}/`);
       }
 
       // BCC Learner Intake — platform-level required survey, fires before any program-specific
