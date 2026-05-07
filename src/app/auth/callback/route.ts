@@ -271,26 +271,26 @@ export async function GET(request: Request) {
               .eq("id", user.id)
           );
         }
-      }
 
-      // Marketing domain: look up the user's real program and route there.
-      // The marketing config has no tracks, so /dashboard would immediately redirect
-      // to "/" — bouncing the user into a login loop.
-      if (program.slug === "marketing") {
-        const programSlug =
-          (existing?.programs as { slug: string } | null)?.slug ??
-          (["super_admin", "admin"].includes(existing?.role ?? "") ? "atg" : null);
+        // Marketing domain: look up the user's real program and route there.
+        // The marketing config has no tracks, so /dashboard would immediately redirect
+        // to "/" — bouncing the user into a login loop.
+        if (program.slug === "marketing") {
+          const programSlug =
+            (existing?.programs as unknown as { slug: string } | null)?.slug ??
+            (["super_admin", "admin"].includes(existing?.role ?? "") ? "atg" : null);
 
-        if (programSlug && domain && PROGRAM_DOMAINS[programSlug]) {
-          // Production bccacademy.io: auth cookies are .bccacademy.io scoped → safe cross-domain redirect
-          return redirectWithCookies(`https://${PROGRAM_DOMAINS[programSlug]}/dashboard`);
+          if (programSlug && domain && PROGRAM_DOMAINS[programSlug]) {
+            // Production bccacademy.io: auth cookies are .bccacademy.io scoped → safe cross-domain redirect
+            return redirectWithCookies(`https://${PROGRAM_DOMAINS[programSlug]}/dashboard`);
+          }
+          if (programSlug) {
+            // Vercel preview URL: cookies are host-scoped, must stay on this domain.
+            // ?as= makes middleware set the program-slug cookie so dashboard renders with real tracks.
+            return redirectWithCookies(`${origin}/dashboard?as=${programSlug}`);
+          }
+          return redirectWithCookies(`${origin}/`);
         }
-        if (programSlug) {
-          // Vercel preview URL: cookies are host-scoped, must stay on this domain.
-          // ?as= makes middleware set the program-slug cookie so dashboard renders with real tracks.
-          return redirectWithCookies(`${origin}/dashboard?as=${programSlug}`);
-        }
-        return redirectWithCookies(`${origin}/`);
       }
 
       // BCC Learner Intake — platform-level required survey, fires before any program-specific
