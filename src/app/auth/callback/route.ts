@@ -35,6 +35,12 @@ export async function GET(request: Request) {
     const program = await getProgram();
     const domain = authCookieDomain(request.headers.get("host"));
 
+    // Capture every cookie Supabase wants to set so we can forward them onto
+    // the redirect response. cookies().set() doesn't reliably attach to a
+    // NextResponse.redirect() in Next.js App Router Route Handlers, so we
+    // explicitly copy them onto the response object as well.
+    const pendingCookies: Array<{ name: string; value: string; options: Record<string, unknown> }> = [];
+
     // Auth client — handles session exchange and cookie management
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -45,13 +51,26 @@ export async function GET(request: Request) {
             return cookieStore.getAll();
           },
           setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, domain ? { ...options, domain } : options)
-            );
+            cookiesToSet.forEach(({ name, value, options }) => {
+              const finalOptions = domain ? { ...options, domain } : options;
+              cookieStore.set(name, value, finalOptions);
+              pendingCookies.push({ name, value, options: finalOptions as Record<string, unknown> });
+            });
           },
         },
       }
     );
+
+    // Helper that returns a redirect with all pending Supabase session cookies
+    // already applied directly to the response headers.
+    const redirectWithCookies = (url: string) => {
+      const res = NextResponse.redirect(url);
+      pendingCookies.forEach(({ name, value, options }) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        res.cookies.set(name, value, options as any);
+      });
+      return res;
+    };
 
     // Service client — bypasses RLS for database writes
     const admin = createServiceClient();
@@ -262,7 +281,7 @@ export async function GET(request: Request) {
           .eq("survey_type", BCC_INTAKE_SURVEY_ID)
           .maybeSingle();
         if (!intakeRow?.completed_at) {
-          return NextResponse.redirect(`${origin}/dashboard/survey/${BCC_INTAKE_SURVEY_ID}`);
+          return redirectWithCookies(`${origin}/dashboard/survey/${BCC_INTAKE_SURVEY_ID}`);
         }
       }
 
@@ -278,11 +297,11 @@ export async function GET(request: Request) {
           .eq("survey_type", requiredSurvey.id)
           .maybeSingle();
         if (!existing?.completed_at) {
-          return NextResponse.redirect(`${origin}/dashboard/survey/${requiredSurvey.id}`);
+          return redirectWithCookies(`${origin}/dashboard/survey/${requiredSurvey.id}`);
         }
       }
 
-      return NextResponse.redirect(`${origin}/dashboard`);
+      return redirectWithCookies(`${origin}/dashboard`);
     } else {
       console.error("[auth/callback] auth error:", authError.message);
     }
