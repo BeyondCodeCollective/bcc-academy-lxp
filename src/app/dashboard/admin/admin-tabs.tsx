@@ -744,13 +744,13 @@ export function AdminTabs({
         </div>
       )}
 
-      {/* Mobile tab bar - hidden on desktop */}
-      <div className="flex gap-1 rounded-lg bg-neutral-100 p-1 mb-6 overflow-x-auto md:hidden">
+      {/* Horizontal tab bar — single sidebar lives in the dashboard layout */}
+      <div className="flex gap-1 rounded-lg bg-neutral-100 p-1 mb-6 overflow-x-auto">
         {tabs.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             onClick={() => { setTab(id); setExpandedWeek(1); }}
-            className={`flex-1 flex items-center justify-center gap-1.5 rounded-md px-3 py-2.5 min-h-[44px] text-xs font-medium transition-all whitespace-nowrap ${
+            className={`flex-1 flex items-center justify-center gap-1.5 rounded-md px-3 py-2.5 min-h-[44px] text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
               tab === id
                 ? "bg-white text-neutral-900 shadow-sm"
                 : "text-neutral-400 hover:text-neutral-600"
@@ -762,25 +762,7 @@ export function AdminTabs({
         ))}
       </div>
 
-      <div className="flex flex-col md:flex-row md:gap-6">
-      {/* Desktop sidebar - hidden on mobile */}
-      <nav className="hidden md:flex md:w-52 md:shrink-0 md:flex-col md:gap-1 md:sticky md:top-4 md:self-start">
-        {tabs.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            onClick={() => { setTab(id); setExpandedWeek(1); }}
-            className={`flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium w-full text-left transition-colors ${
-              tab === id
-                ? "bg-white text-neutral-900 shadow-sm"
-                : "text-neutral-500 hover:text-neutral-900 hover:bg-neutral-50"
-            }`}
-          >
-            <Icon size={16} />
-            {label}
-          </button>
-        ))}
-      </nav>
-
+      <div className="flex flex-col">
       <div className="min-w-0 flex-1">
       {/* Dashboardless Program tab — Catalyst etc. — only Public Surveys matter */}
       {tab === "program" && isDashboardless && (

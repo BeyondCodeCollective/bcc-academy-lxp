@@ -4,21 +4,14 @@ export default function AdminLoading() {
       {/* "Admin Panel" title */}
       <div className="mb-6 h-8 w-36 rounded bg-neutral-200" />
 
-      {/* Mobile tab bar (visible < md) */}
-      <div className="mb-6 flex gap-1 rounded-lg bg-neutral-100 p-1 md:hidden">
-        {Array.from({ length: 4 }).map((_, i) => (
+      {/* Horizontal tab bar */}
+      <div className="mb-6 flex gap-1 rounded-lg bg-neutral-100 p-1">
+        {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className="h-11 flex-1 rounded-md bg-neutral-200" />
         ))}
       </div>
 
-      <div className="flex flex-col md:flex-row md:gap-6">
-        {/* Desktop sidebar (hidden on mobile) */}
-        <div className="hidden md:flex md:w-52 md:shrink-0 md:flex-col md:gap-1">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-10 rounded-lg bg-neutral-100" />
-          ))}
-        </div>
-
+      <div className="flex flex-col">
         {/* Content area */}
         <div className="min-w-0 flex-1 space-y-4">
           {/* Card 1 */}
