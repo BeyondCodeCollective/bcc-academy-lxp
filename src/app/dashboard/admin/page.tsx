@@ -6,7 +6,6 @@ import { getProgram } from "@/lib/programs/server";
 import type { StudentTrackRow, SurveyStatsRow, InstructorTrackRow, PublicSurveyStatsRow } from "./actions";
 import { getPublicSurveyStats } from "./actions";
 import { canAccessAdminPanel, canSwitchPrograms } from "@/lib/roles";
-import { getAllPrograms } from "@/lib/programs";
 import { PLATFORM_AUTH_SURVEYS } from "@/lib/surveys/platform";
 
 export default async function AdminPage() {
@@ -188,11 +187,6 @@ export default async function AdminPage() {
     ? allTracks.filter((t) => myInstructorTracks.includes(t.slug))
     : allTracks;
 
-  // For super_admin: list all programs for the switcher
-  const allProgramsList = canSwitchPrograms(userRole)
-    ? getAllPrograms().map((p) => ({ slug: p.slug, name: p.name }))
-    : [];
-
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-5xl space-y-6 px-5 py-8">
       <h1 className="text-2xl font-bold text-neutral-900">Admin Panel</h1>
@@ -207,7 +201,6 @@ export default async function AdminPage() {
         surveyConfigs={surveyConfigs}
         publicSurveyStats={publicSurveyStats}
         userRole={userRole}
-        allPrograms={allProgramsList}
         engagementScores={engagementScores}
       />
     </div>

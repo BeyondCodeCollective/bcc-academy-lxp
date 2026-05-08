@@ -13,6 +13,7 @@ import {
   Compass,
   List,
   X,
+  CaretDown,
 } from "@phosphor-icons/react";
 
 type NavItem = {
@@ -29,6 +30,8 @@ export function Nav({
   showTutor = true,
   showResources = false,
   minimal = false,
+  programs = [],
+  currentProgramSlug,
 }: {
   isAdmin: boolean;
   logo: string;
@@ -36,6 +39,8 @@ export function Nav({
   showTutor?: boolean;
   showResources?: boolean;
   minimal?: boolean;
+  programs?: { slug: string; name: string }[];
+  currentProgramSlug?: string;
 }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -102,6 +107,30 @@ export function Nav({
     </button>
   );
 
+  const showSwitcher = !minimal && programs.length > 1 && currentProgramSlug;
+
+  const handleSwitchProgram = (slug: string) => {
+    if (slug === currentProgramSlug) return;
+    if (slug === "__bcc_surveys__") {
+      window.location.href = "/dashboard/admin/surveys";
+      return;
+    }
+    const domains: Record<string, string> = {
+      atg: "atg.bccacademy.io",
+      forge: "forge.bccacademy.io",
+      catalyst: "catalyst.bccacademy.io",
+    };
+    const targetDomain = domains[slug];
+    const onKnownDomain =
+      targetDomain && Object.values(domains).includes(window.location.hostname);
+    if (onKnownDomain) {
+      window.location.href = `https://${targetDomain}/dashboard/admin`;
+    } else {
+      document.cookie = `program-override=${slug}; path=/; max-age=86400`;
+      window.location.reload();
+    }
+  };
+
   const sidebarBody = (
     <div className="flex h-full flex-col gap-6 p-4">
       <Link
@@ -112,6 +141,39 @@ export function Nav({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={logo} alt={programName} className="h-5" />
       </Link>
+
+      {showSwitcher && (
+        <div className="px-1">
+          <label className="block text-[10px] uppercase tracking-wider text-neutral-500 mb-1.5 px-2">
+            Program
+          </label>
+          <div className="relative">
+            <select
+              value={currentProgramSlug}
+              onChange={(e) => handleSwitchProgram(e.target.value)}
+              className="w-full appearance-none rounded-lg bg-white/10 px-3 py-2 pr-8 text-sm font-medium text-white focus:bg-white/15 focus:outline-none focus:ring-1 focus:ring-white/20"
+            >
+              {programs.map((p) => (
+                <option key={p.slug} value={p.slug} className="text-neutral-900">
+                  {p.name}
+                </option>
+              ))}
+              <option disabled className="text-neutral-400">
+                ─────────
+              </option>
+              <option value="__bcc_surveys__" className="text-neutral-900">
+                BCC — Surveys
+              </option>
+            </select>
+            <CaretDown
+              size={12}
+              weight="bold"
+              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400"
+              aria-hidden
+            />
+          </div>
+        </div>
+      )}
 
       {!minimal && (
         <nav aria-label="Primary" className="flex flex-1 flex-col gap-1">

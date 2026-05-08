@@ -5,10 +5,15 @@ export default function AdminLoading() {
       <div className="mb-6 h-8 w-36 rounded bg-neutral-200" />
 
       {/* Horizontal tab bar */}
-      <div className="mb-6 flex gap-1 rounded-lg bg-neutral-100 p-1">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="h-11 flex-1 rounded-md bg-neutral-200" />
-        ))}
+      <div className="mb-6 -mx-1 md:border-b md:border-neutral-200">
+        <div className="flex gap-1 rounded-lg bg-neutral-100 p-1 md:bg-transparent md:rounded-none md:p-0 md:gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-11 flex-1 md:flex-none md:w-24 rounded-md md:rounded-none bg-neutral-200 md:bg-neutral-100"
+            />
+          ))}
+        </div>
       </div>
 
       <div className="flex flex-col">

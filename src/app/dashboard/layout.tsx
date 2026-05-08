@@ -9,8 +9,9 @@ import { TextScaleToggle } from "@/components/text-scale-toggle";
 import { ReadAloudButton } from "@/components/read-aloud-button";
 import { getProgram } from "@/lib/programs/server";
 import { ProgramProvider } from "@/lib/programs/context";
-import { canAccessAdminPanel } from "@/lib/roles";
+import { canAccessAdminPanel, canSwitchPrograms } from "@/lib/roles";
 import { getSessionContext } from "@/lib/auth/session";
+import { getAllPrograms } from "@/lib/programs";
 import type { ProgramConfig } from "@/lib/programs/types";
 
 export default async function DashboardLayout({
@@ -48,23 +49,31 @@ export default async function DashboardLayout({
 async function NavWithAuth({ program, minimal }: { program: ProgramConfig; minimal?: boolean }) {
   const t0 = performance.now();
   let isAdmin = false;
+  let canSwitch = false;
 
   if (isSupabaseConfigured()) {
     const ctx = await getSessionContext();
     if (!ctx) redirect("/");
-    isAdmin = canAccessAdminPanel(ctx.student?.role ?? "");
+    const role = ctx.student?.role ?? "";
+    isAdmin = canAccessAdminPanel(role);
+    canSwitch = canSwitchPrograms(role);
   } else {
     const cookieStore = await cookies();
     const demoEmail = cookieStore.get(DEMO_COOKIE)?.value;
     if (!demoEmail) redirect("/");
     const user = getDemoUser(demoEmail);
-    isAdmin = canAccessAdminPanel(user?.role ?? "");
+    const role = user?.role ?? "";
+    isAdmin = canAccessAdminPanel(role);
+    canSwitch = canSwitchPrograms(role);
   }
 
   console.log(`[layout] dashboard nav ${Math.round(performance.now() - t0)}ms`);
 
   const showTutor = program.tutorConfig?.enabled !== false;
   const showResources = program.resourcesEnabled === true;
+  const programs = canSwitch
+    ? getAllPrograms().map((p) => ({ slug: p.slug, name: p.name }))
+    : [];
 
   return (
     <>
@@ -75,6 +84,8 @@ async function NavWithAuth({ program, minimal }: { program: ProgramConfig; minim
         showTutor={showTutor}
         showResources={showResources}
         minimal={minimal}
+        programs={programs}
+        currentProgramSlug={program.slug}
       />
       {!minimal && showTutor && <TutorFab />}
     </>

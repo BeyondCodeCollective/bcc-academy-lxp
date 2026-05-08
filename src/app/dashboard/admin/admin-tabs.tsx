@@ -375,7 +375,6 @@ export function AdminTabs({
   surveyConfigs,
   publicSurveyStats = [],
   userRole = "admin",
-  allPrograms = [],
   engagementScores = {},
 }: {
   cohorts: CohortRow[];
@@ -388,12 +387,10 @@ export function AdminTabs({
   surveyConfigs: { id: string; title: string }[];
   publicSurveyStats?: PublicSurveyStatsRow[];
   userRole?: string;
-  allPrograms?: { slug: string; name: string }[];
   engagementScores?: Record<string, { total: number; attendance: number; submissions: number; reflections: number; tutorMessages: number }>;
 }) {
   const programSlug = initialProgramSlug;
   const isManager = canManageStudents(userRole);
-  const showProgramSwitcher = canSwitchPrograms(userRole) && allPrograms.length > 1;
   // Programs like Catalyst don't have a learner dashboard yet — no tracks,
   // no cohorts, no enrolled students. Show only the Program tab (with
   // Public Surveys) rather than a wall of empty tabs.
@@ -703,63 +700,29 @@ export function AdminTabs({
 
   return (
     <div>
-      {/* Program switcher — super_admin only */}
-      {showProgramSwitcher && (
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-xs font-medium text-neutral-500">Program:</span>
-          <div className="relative">
-            <select
-              value={programSlug}
-              onChange={(e) => {
-                const slug = e.target.value;
-                if (slug === "__bcc_surveys__") {
-                  window.location.href = "/dashboard/admin/surveys";
-                  return;
-                }
-                const domains: Record<string, string> = {
-                  atg: "atg.bccacademy.io",
-                  forge: "forge.bccacademy.io",
-                  catalyst: "catalyst.bccacademy.io",
-                };
-                const targetDomain = domains[slug];
-                const onKnownDomain = targetDomain && Object.values(domains).includes(window.location.hostname);
-
-                if (onKnownDomain) {
-                  window.location.href = `https://${targetDomain}/dashboard/admin`;
-                } else {
-                  document.cookie = `program-override=${slug}; path=/; max-age=86400`;
-                  window.location.reload();
-                }
-              }}
-              className="appearance-none rounded-lg border border-neutral-200 bg-white pl-3 pr-7 py-1.5 text-sm font-medium text-neutral-900 focus:border-neutral-400 focus:outline-none"
-            >
-              {allPrograms.map((p) => (
-                <option key={p.slug} value={p.slug}>{p.name}</option>
-              ))}
-              <option disabled>─────────────</option>
-              <option value="__bcc_surveys__">BCC — Surveys</option>
-            </select>
-            <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
-          </div>
+      {/* Horizontal tab bar — single sidebar lives in the dashboard layout.
+          On md+ tabs hug their content (no flex-1) and use a thin underline
+          treatment so 7-8 tabs don't read as a heavy button cluster. */}
+      <div className="mb-6 -mx-1 overflow-x-auto md:border-b md:border-neutral-200">
+        <div className="flex gap-1 rounded-lg bg-neutral-100 p-1 md:bg-transparent md:rounded-none md:p-0 md:gap-0">
+          {tabs.map(({ id, label, icon: Icon }) => {
+            const active = tab === id;
+            return (
+              <button
+                key={id}
+                onClick={() => { setTab(id); setExpandedWeek(1); }}
+                className={`flex-1 md:flex-none flex items-center justify-center gap-1.5 min-h-[44px] text-xs sm:text-sm font-medium transition-all whitespace-nowrap rounded-md px-3 py-2.5 md:rounded-none md:px-3 md:py-2.5 md:border-b-2 md:-mb-[2px] ${
+                  active
+                    ? "bg-white text-neutral-900 shadow-sm md:bg-transparent md:shadow-none md:text-neutral-900 md:border-neutral-900"
+                    : "text-neutral-400 hover:text-neutral-600 md:border-transparent md:hover:text-neutral-700"
+                }`}
+              >
+                <Icon size={14} />
+                <span className="hidden sm:inline">{label}</span>
+              </button>
+            );
+          })}
         </div>
-      )}
-
-      {/* Horizontal tab bar — single sidebar lives in the dashboard layout */}
-      <div className="flex gap-1 rounded-lg bg-neutral-100 p-1 mb-6 overflow-x-auto">
-        {tabs.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            onClick={() => { setTab(id); setExpandedWeek(1); }}
-            className={`flex-1 flex items-center justify-center gap-1.5 rounded-md px-3 py-2.5 min-h-[44px] text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
-              tab === id
-                ? "bg-white text-neutral-900 shadow-sm"
-                : "text-neutral-400 hover:text-neutral-600"
-            }`}
-          >
-            <Icon size={14} />
-            <span className="hidden sm:inline">{label}</span>
-          </button>
-        ))}
       </div>
 
       <div className="flex flex-col">
