@@ -195,14 +195,14 @@ export function Nav({
     <>
       {/* Desktop sidebar (md+) — fixed to viewport */}
       <aside
-        className="hidden md:flex md:fixed md:inset-y-0 md:left-0 md:z-30 md:w-60 md:flex-col bg-neutral-900"
+        className="hidden md:flex md:fixed md:inset-y-0 md:left-0 md:z-30 md:w-60 md:flex-col bg-ink"
         aria-label="Main navigation"
       >
         {sidebarBody}
       </aside>
 
       {/* Mobile top bar */}
-      <div className="md:hidden sticky top-0 z-30 flex items-center justify-between bg-neutral-900 px-4 py-2">
+      <div className="md:hidden sticky top-0 z-30 flex items-center justify-between bg-ink px-4 py-2">
         <Link href="/dashboard" className="flex items-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={logo} alt={programName} className="h-4" />
@@ -236,7 +236,7 @@ export function Nav({
           />
           {/* Panel */}
           <div
-            className={`absolute inset-y-0 left-0 w-72 max-w-[80%] bg-neutral-900 shadow-xl transition-transform ${
+            className={`absolute inset-y-0 left-0 w-72 max-w-[80%] bg-ink shadow-xl transition-transform ${
               mobileOpen ? "translate-x-0" : "-translate-x-full"
             }`}
             role="dialog"

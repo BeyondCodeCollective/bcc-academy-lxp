@@ -1,13 +1,5 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import {
-  House,
-  Books,
-  ChatsCircle,
-  CheckCircle,
-  CalendarBlank,
-  Lifebuoy,
-} from "@phosphor-icons/react/dist/ssr";
 import { getProgram } from "@/lib/programs/server";
 import { getSessionContext } from "@/lib/auth/session";
 
@@ -20,96 +12,84 @@ export default async function GetStartedPage() {
 
   const weeklyTracks = program.tracks.filter((t) => t.type === "weekly");
   const cohort = program.defaultCohort;
+  const startDate = new Date(cohort.startDate).toLocaleDateString(undefined, {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8">
-      <div className="space-y-8">
-        <header>
-          <p className="text-xs uppercase tracking-wider text-neutral-500">Get Started</p>
-          <h1 className="mt-1 text-2xl sm:text-3xl font-bold text-neutral-900">
-            Welcome to {program.name}
-          </h1>
-          <p className="mt-2 text-sm text-neutral-600">
-            {program.tagline}. This page is your orientation — what to expect, how to use the
-            platform, and where to get help.
-          </p>
-        </header>
+    <div className="mx-auto w-full max-w-2xl md:max-w-3xl px-4 sm:px-5 py-12 md:py-16">
+      <header className="mb-12 md:mb-14">
+        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-ink-faint mb-3">
+          Get Started
+        </p>
+        <h1 className="text-4xl md:text-5xl font-semibold text-ink tracking-[-0.02em] leading-[0.95]">
+          Welcome to {program.name}
+        </h1>
+        <p className="mt-5 text-[17px] leading-[1.65] text-ink max-w-2xl tracking-[-0.005em]">
+          {program.tagline}. This page is your orientation — what to expect, how to
+          use the platform, and where to get help.
+        </p>
+      </header>
 
-        <Section title="Your cohort" icon={<CalendarBlank size={20} weight="bold" />}>
-          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-            <div>
-              <dt className="text-neutral-500">Cohort</dt>
-              <dd className="font-medium text-neutral-900">{cohort.displayName}</dd>
-            </div>
-            <div>
-              <dt className="text-neutral-500">Start date</dt>
-              <dd className="font-medium text-neutral-900">
-                {new Date(cohort.startDate).toLocaleDateString(undefined, {
-                  weekday: "long",
-                  month: "long",
-                  day: "numeric",
-                  year: "numeric",
-                })}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-neutral-500">Length</dt>
-              <dd className="font-medium text-neutral-900">{cohort.totalWeeks} weeks</dd>
-            </div>
-            <div>
-              <dt className="text-neutral-500">Tracks you&apos;re in</dt>
-              <dd className="font-medium text-neutral-900">
-                {program.tracks.map((t) => t.shortName).join(", ")}
-              </dd>
-            </div>
+      <div className="space-y-12">
+        <Section eyebrow="Your cohort">
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
+            <Fact label="Cohort" value={cohort.displayName} />
+            <Fact label="Start date" value={startDate} />
+            <Fact label="Length" value={`${cohort.totalWeeks} weeks`} />
+            <Fact
+              label="Tracks you're in"
+              value={program.tracks.map((t) => t.shortName).join(", ")}
+            />
           </dl>
         </Section>
 
         {weeklyTracks.length > 0 && (
-          <Section title="Weekly rhythm" icon={<CalendarBlank size={20} weight="bold" />}>
-            <p className="text-sm text-neutral-600 mb-3">
-              Each week you&apos;ll have live sessions, a short reflection, and (for some tracks) a
-              submission. Recordings post within a day if you miss a session.
+          <Section eyebrow="Weekly rhythm">
+            <p className="text-[15px] leading-[1.6] text-ink-soft mb-5">
+              Each week you&apos;ll have live sessions, a short reflection, and (for
+              some tracks) a submission. Recordings post within a day if you miss a
+              session.
             </p>
-            <ul className="space-y-2 text-sm">
-              {weeklyTracks.map((t) => (
-                <li key={t.slug} className="flex items-start gap-2">
-                  <CheckCircle
-                    size={16}
-                    weight="bold"
-                    className="mt-0.5 shrink-0 text-neutral-400"
-                  />
-                  <span>
-                    <strong className="text-neutral-900">{t.name}</strong>
-                    <span className="text-neutral-600">
-                      {" "}
-                      — {t.totalWeeks} weeks
-                    </span>
+            <ul className="border-y border-rule">
+              {weeklyTracks.map((t, i) => (
+                <li
+                  key={t.slug}
+                  className={`grid grid-cols-[auto_1fr_auto] items-baseline gap-x-6 px-1 py-3 ${
+                    i > 0 ? "border-t border-rule-soft" : ""
+                  }`}
+                >
+                  <span className="text-[10px] font-mono tabular-nums tracking-tight text-ink-faint px-2">
+                    {String(i + 1).padStart(2, "0")}
                   </span>
+                  <p className="text-[15px] font-medium text-ink truncate">{t.name}</p>
+                  <p className="text-[13px] tabular-nums text-ink-soft">
+                    {t.totalWeeks} weeks
+                  </p>
                 </li>
               ))}
             </ul>
           </Section>
         )}
 
-        <Section title="How to use the platform" icon={<House size={20} weight="bold" />}>
-          <ul className="space-y-3 text-sm">
-            <PlatformItem
-              icon={<House size={18} weight="bold" />}
+        <Section eyebrow="How to use the platform">
+          <ul className="border-y border-rule">
+            <PlatformRow
               title="Home"
               body="Your weekly view — current week, upcoming sessions, reflections, and any submissions due."
             />
-            {(program.resourcesEnabled === true) && (
-              <PlatformItem
-                icon={<Books size={18} weight="bold" />}
+            {program.resourcesEnabled === true && (
+              <PlatformRow
                 title="Resources"
                 body="Instructor contacts, meeting links, and study materials for each track."
                 href="/dashboard/resources"
               />
             )}
             {program.tutorConfig?.enabled !== false && (
-              <PlatformItem
-                icon={<ChatsCircle size={18} weight="bold" />}
+              <PlatformRow
                 title="AI Tutor"
                 body="A 24/7 study buddy that knows what you're working on this week. 30 messages per day."
                 href="/dashboard/tutor"
@@ -118,32 +98,47 @@ export default async function GetStartedPage() {
           </ul>
         </Section>
 
-        <Section title="What we expect from you" icon={<CheckCircle size={20} weight="bold" />}>
-          <ul className="space-y-2 text-sm text-neutral-700 list-disc list-inside">
-            <li>Show up to live sessions — it&apos;s where most of the learning happens.</li>
-            <li>Submit reflections each week, even if they&apos;re short. They tell us what&apos;s landing.</li>
-            <li>Ask for help early. Use the AI Tutor or message your instructor — don&apos;t get stuck silently.</li>
-            <li>Be a good cohort-mate. Encouragement matters more than you&apos;d think.</li>
+        <Section eyebrow="What we expect from you">
+          <ul className="space-y-3 text-[15px] leading-[1.6] text-ink">
+            <li className="flex gap-3">
+              <span className="text-ink-faint tabular-nums">01</span>
+              <span>Show up to live sessions — it&apos;s where most of the learning happens.</span>
+            </li>
+            <li className="flex gap-3">
+              <span className="text-ink-faint tabular-nums">02</span>
+              <span>Submit reflections each week, even if they&apos;re short. They tell us what&apos;s landing.</span>
+            </li>
+            <li className="flex gap-3">
+              <span className="text-ink-faint tabular-nums">03</span>
+              <span>Ask for help early. Use the AI Tutor or message your instructor — don&apos;t get stuck silently.</span>
+            </li>
+            <li className="flex gap-3">
+              <span className="text-ink-faint tabular-nums">04</span>
+              <span>Be a good cohort-mate. Encouragement matters more than you&apos;d think.</span>
+            </li>
           </ul>
         </Section>
 
-        <Section title="Stuck or need help?" icon={<Lifebuoy size={20} weight="bold" />}>
-          <p className="text-sm text-neutral-700">
+        <Section eyebrow="Stuck or need help?">
+          <p className="text-[15px] leading-[1.6] text-ink">
             Open the{" "}
-            <Link href="/dashboard/resources" className="font-medium text-neutral-900 underline underline-offset-2">
+            <Link
+              href="/dashboard/resources"
+              className="font-medium text-ink underline decoration-rule underline-offset-4 hover:decoration-ink"
+            >
               Resources tab
             </Link>{" "}
-            for instructor emails and booking links. For platform issues, reach out to your program
-            lead directly.
+            for instructor emails and booking links. For platform issues, reach out
+            to your program lead directly.
           </p>
         </Section>
 
-        <div className="pt-2">
+        <div className="pt-4">
           <Link
             href="/dashboard"
-            className="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-neutral-800 transition-colors"
+            className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-[14px] font-medium text-paper hover:bg-[#2A2520] transition-colors"
           >
-            Go to my dashboard
+            Go to my dashboard →
           </Link>
         </div>
       </div>
@@ -152,58 +147,59 @@ export default async function GetStartedPage() {
 }
 
 function Section({
-  title,
-  icon,
+  eyebrow,
   children,
 }: {
-  title: string;
-  icon: React.ReactNode;
+  eyebrow: string;
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-xl bg-white p-5 sm:p-6">
-      <div className="flex items-center gap-2 mb-3">
-        <span className="text-neutral-500">{icon}</span>
-        <h2 className="text-base font-semibold text-neutral-900">{title}</h2>
-      </div>
+    <section>
+      <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-ink-faint mb-4">
+        {eyebrow}
+      </p>
       {children}
     </section>
   );
 }
 
-function PlatformItem({
-  icon,
+function Fact({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="text-[12px] text-ink-faint mb-1">{label}</dt>
+      <dd className="text-[15px] font-medium text-ink">{value}</dd>
+    </div>
+  );
+}
+
+function PlatformRow({
   title,
   body,
   href,
 }: {
-  icon: React.ReactNode;
   title: string;
   body: string;
   href?: string;
 }) {
-  const inner = (
-    <>
-      <span className="mt-0.5 shrink-0 text-neutral-500">{icon}</span>
-      <span>
-        <strong className="text-neutral-900">{title}</strong>
-        <span className="block text-neutral-600">{body}</span>
-      </span>
-    </>
+  const content = (
+    <div className="grid grid-cols-[auto_1fr_auto] items-baseline gap-x-6 px-1 py-4">
+      <span className="text-[15px] font-medium text-ink min-w-[80px]">{title}</span>
+      <p className="text-[14px] leading-[1.55] text-ink-soft">{body}</p>
+      {href && (
+        <span className="text-[12px] text-ink-faint group-hover:text-ink transition-colors">
+          →
+        </span>
+      )}
+    </div>
   );
-
   if (href) {
     return (
-      <li>
-        <Link
-          href={href}
-          className="flex items-start gap-2 rounded-lg -mx-2 px-2 py-1 hover:bg-neutral-50 transition-colors"
-        >
-          {inner}
+      <li className="border-t border-rule-soft first:border-t-0">
+        <Link href={href} className="group block hover:bg-paper-tint-soft transition-colors">
+          {content}
         </Link>
       </li>
     );
   }
-
-  return <li className="flex items-start gap-2 px-0 py-1">{inner}</li>;
+  return <li className="border-t border-rule-soft first:border-t-0">{content}</li>;
 }

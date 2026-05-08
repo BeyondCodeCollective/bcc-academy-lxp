@@ -64,7 +64,7 @@ export default async function DashboardLayout({
       {!isSurveyPage && showTutor && <TutorFab />}
       <main
         id="dashboard-main"
-        className="flex-1 bg-stone-50 md:pl-60"
+        className="flex-1 bg-paper md:pl-60"
       >
         <div className="mx-auto flex w-full max-w-2xl md:max-w-5xl items-center justify-end gap-2 px-4 sm:px-5 pt-3">
           <ReadAloudButton selector="#dashboard-main" label="Read aloud" />

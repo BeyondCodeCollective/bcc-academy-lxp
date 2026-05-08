@@ -10,6 +10,18 @@
   --muted: #6b7280;
   --muted-bg: #f3f4f6;
   --border: #e5e7eb;
+
+  /* Editorial palette — used by the dashboard surfaces. Matches the
+     Survey Insights design language so the in-app shell reads as one
+     coherent product instead of a stack of differently-toned screens. */
+  --paper: #F7F4EE;
+  --paper-tint: #EFEAE0;
+  --paper-tint-soft: #F2EDE0;
+  --ink: #1F1B16;
+  --ink-soft: #6B6258;
+  --ink-faint: #9B9388;
+  --rule: #E7E1D2;
+  --rule-soft: #EFEAE0;
 }
 
 @theme inline {
@@ -22,6 +34,14 @@
   --color-muted: var(--muted);
   --color-muted-bg: var(--muted-bg);
   --color-border: var(--border);
+  --color-paper: var(--paper);
+  --color-paper-tint: var(--paper-tint);
+  --color-paper-tint-soft: var(--paper-tint-soft);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-rule: var(--rule);
+  --color-rule-soft: var(--rule-soft);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-space-mono);
 }
