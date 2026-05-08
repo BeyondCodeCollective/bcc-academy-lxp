@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
@@ -6,7 +5,6 @@ import { computeCurrentWeek } from "@/lib/utils";
 import Link from "next/link";
 import { WelcomeVideo } from "@/components/welcome-video";
 import { OnboardingForm } from "@/components/onboarding-form";
-import { DashboardBodySkeleton } from "@/components/dashboard-skeleton";
 import { getProgram } from "@/lib/programs/server";
 import type { ProgramConfig, TrackConfig } from "@/lib/programs/types";
 import { canAccessAdminPanel } from "@/lib/roles";
@@ -34,15 +32,9 @@ export default async function DashboardPage() {
     redirect(survey ? `/survey/${survey.id}` : "/");
   }
 
-  // Container lives at the page level so the skeleton and the loaded
-  // content share the exact same width + padding. Without this, the
-  // skeleton renders full-body-width and the real content snaps inward
-  // to max-w-2xl when it finishes streaming.
   return (
     <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8">
-      <Suspense fallback={<DashboardBodySkeleton />}>
-        <DashboardContent program={program} />
-      </Suspense>
+      <DashboardContent program={program} />
     </div>
   );
 }

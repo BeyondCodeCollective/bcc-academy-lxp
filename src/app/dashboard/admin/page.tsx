@@ -188,7 +188,7 @@ export default async function AdminPage() {
     : allTracks;
 
   return (
-    <div className="mx-auto w-full max-w-2xl md:max-w-5xl space-y-6 px-5 py-8">
+    <div className="mx-auto w-full max-w-2xl md:max-w-5xl space-y-6 px-4 sm:px-5 py-8">
       <h1 className="text-2xl font-bold text-neutral-900">Admin Panel</h1>
       <AdminTabs
         cohorts={allCohorts}

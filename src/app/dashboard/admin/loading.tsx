@@ -1,6 +1,6 @@
 export default function AdminLoading() {
   return (
-    <div className="mx-auto w-full max-w-2xl md:max-w-5xl px-5 py-8 animate-pulse">
+    <div className="mx-auto w-full max-w-2xl md:max-w-5xl px-4 sm:px-5 py-8 animate-pulse">
       {/* "Admin Panel" title */}
       <div className="mb-6 h-8 w-36 rounded bg-neutral-200" />
 

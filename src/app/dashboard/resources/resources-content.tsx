@@ -76,7 +76,7 @@ const studyResources = [
 
 export function ResourcesContent() {
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-8 px-5 py-8">
+    <div className="mx-auto w-full max-w-2xl space-y-8 px-4 sm:px-5 py-8">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-neutral-900">Resources</h1>
