@@ -29,7 +29,7 @@ export default async function DashboardLayout({
       </Suspense>
       <main
         id="dashboard-main"
-        className="flex-1 bg-stone-50"
+        className="flex-1 bg-stone-50 md:pl-60"
       >
         {/* Accessibility controls — text size + read-aloud. Sits once at
             the top of every dashboard page so students never have to hunt

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -9,7 +10,17 @@ import {
   ChatsCircle,
   SignOut,
   BookOpenText,
+  Compass,
+  List,
+  X,
 } from "@phosphor-icons/react";
+
+type NavItem = {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ size?: number; weight?: "bold"; "aria-hidden"?: boolean }>;
+  group: "main" | "admin";
+};
 
 export function Nav({
   isAdmin,
@@ -27,89 +38,162 @@ export function Nav({
   minimal?: boolean;
 }) {
   const pathname = usePathname();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
-  const navItems = [
-    { href: "/dashboard", label: "Home", icon: House },
+  const items: NavItem[] = [
+    { href: "/dashboard", label: "Home", icon: House, group: "main" },
+    { href: "/dashboard/start", label: "Get Started", icon: Compass, group: "main" },
     ...(isAdmin || showResources
-      ? [{ href: "/dashboard/resources", label: "Resources", icon: Books }]
+      ? [{ href: "/dashboard/resources", label: "Resources", icon: Books, group: "main" as const }]
       : []),
     ...(showTutor
-      ? [{ href: "/dashboard/tutor", label: "AI Tutor", icon: ChatsCircle }]
+      ? [{ href: "/dashboard/tutor", label: "AI Tutor", icon: ChatsCircle, group: "main" as const }]
       : []),
     ...(isAdmin
-      ? [{ href: "/dashboard/guide", label: "Guide", icon: BookOpenText }]
+      ? [
+          { href: "/dashboard/admin", label: "Admin", icon: ShieldCheck, group: "admin" as const },
+          { href: "/dashboard/guide", label: "Guide", icon: BookOpenText, group: "admin" as const },
+        ]
       : []),
   ];
 
-  return (
-    <nav className="bg-neutral-900">
-      <div className="mx-auto flex max-w-4xl items-center justify-between px-4 sm:px-6 py-2 sm:py-3">
-        <Link href="/dashboard" className="flex items-center shrink-0">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={logo}
-            alt={programName}
-            className="h-3.5 sm:h-4"
-          />
-        </Link>
+  const isItemActive = (href: string) =>
+    href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(href);
 
-        <div className="flex items-center gap-1 sm:gap-2">
-          {!minimal && navItems.map(({ href, label, icon: Icon }) => {
-            const isActive =
-              href === "/dashboard"
-                ? pathname === "/dashboard"
-                : pathname.startsWith(href);
-            return (
-              <Link
-                key={href}
-                href={href}
-                aria-label={label}
-                aria-current={isActive ? "page" : undefined}
-                className={`flex min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 rounded-lg px-3 sm:px-4 py-2 text-sm font-medium transition-colors ${
-                  isActive
-                    ? "bg-white/15 text-white"
-                    : "text-neutral-300 hover:bg-white/10 hover:text-white"
-                }`}
-              >
-                <Icon size={20} weight="bold" aria-hidden="true" />
-                <span className="hidden sm:inline">{label}</span>
-              </Link>
-            );
-          })}
+  const renderItem = ({ href, label, icon: Icon }: NavItem) => {
+    const active = isItemActive(href);
+    return (
+      <Link
+        key={href}
+        href={href}
+        aria-label={label}
+        aria-current={active ? "page" : undefined}
+        onClick={() => setMobileOpen(false)}
+        className={`flex min-h-[44px] items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+          active
+            ? "bg-white/15 text-white"
+            : "text-neutral-300 hover:bg-white/10 hover:text-white"
+        }`}
+      >
+        <Icon size={20} weight="bold" aria-hidden />
+        <span>{label}</span>
+      </Link>
+    );
+  };
 
-          {!minimal && isAdmin && (
-            <Link
-              href="/dashboard/admin"
-              aria-label="Admin"
-              aria-current={pathname.startsWith("/dashboard/admin") ? "page" : undefined}
-              className={`flex min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 rounded-lg px-3 sm:px-4 py-2 text-sm font-medium transition-colors ${
-                pathname.startsWith("/dashboard/admin")
-                  ? "bg-white/15 text-white"
-                  : "text-neutral-300 hover:bg-white/10 hover:text-white"
-              }`}
-            >
-              <ShieldCheck size={20} weight="bold" aria-hidden="true" />
-              <span className="hidden sm:inline">Admin</span>
-            </Link>
+  const mainItems = items.filter((i) => i.group === "main");
+  const adminItems = items.filter((i) => i.group === "admin");
+
+  const signOutButton = (
+    <button
+      onClick={async () => {
+        document.cookie = "atg-demo-user=; path=/; max-age=0";
+        document.cookie = "program-override=; path=/; max-age=0";
+        const { createClient } = await import("@/lib/supabase/client");
+        const supabase = createClient();
+        await supabase.auth.signOut();
+        window.location.href = "/";
+      }}
+      className="flex min-h-[44px] w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-neutral-400 hover:bg-white/10 hover:text-white transition-colors"
+      aria-label="Sign out"
+    >
+      <SignOut size={20} weight="bold" aria-hidden />
+      <span>Sign Out</span>
+    </button>
+  );
+
+  const sidebarBody = (
+    <div className="flex h-full flex-col gap-6 p-4">
+      <Link
+        href="/dashboard"
+        className="flex items-center px-2 py-2"
+        onClick={() => setMobileOpen(false)}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={logo} alt={programName} className="h-5" />
+      </Link>
+
+      {!minimal && (
+        <nav aria-label="Primary" className="flex flex-1 flex-col gap-1">
+          {mainItems.map(renderItem)}
+          {adminItems.length > 0 && (
+            <>
+              <div className="my-3 h-px bg-white/10" role="separator" />
+              {adminItems.map(renderItem)}
+            </>
           )}
+        </nav>
+      )}
 
+      <div className="mt-auto border-t border-white/10 pt-3">{signOutButton}</div>
+    </div>
+  );
+
+  return (
+    <>
+      {/* Desktop sidebar (md+) — fixed to viewport */}
+      <aside
+        className="hidden md:flex md:fixed md:inset-y-0 md:left-0 md:z-30 md:w-60 md:flex-col bg-neutral-900"
+        aria-label="Main navigation"
+      >
+        {sidebarBody}
+      </aside>
+
+      {/* Mobile top bar */}
+      <div className="md:hidden sticky top-0 z-30 flex items-center justify-between bg-neutral-900 px-4 py-2">
+        <Link href="/dashboard" className="flex items-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={logo} alt={programName} className="h-4" />
+        </Link>
+        {!minimal && (
           <button
-            onClick={async () => {
-              document.cookie = "atg-demo-user=; path=/; max-age=0";
-              document.cookie = "program-override=; path=/; max-age=0";
-              const { createClient } = await import("@/lib/supabase/client");
-              const supabase = createClient();
-              await supabase.auth.signOut();
-              window.location.href = "/";
-            }}
-            className="flex min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 rounded-lg px-3 sm:px-4 py-2 text-sm font-medium text-neutral-500 hover:bg-white/10 hover:text-white transition-colors"
-            aria-label="Sign out"
+            onClick={() => setMobileOpen(true)}
+            aria-label="Open menu"
+            aria-expanded={mobileOpen}
+            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-neutral-200 hover:bg-white/10 hover:text-white transition-colors"
           >
-            <SignOut size={20} weight="bold" />
-            <span className="hidden sm:inline">Sign Out</span>
+            <List size={22} weight="bold" aria-hidden />
           </button>
-        </div>
+        )}
       </div>
-    </nav>
+
+      {/* Mobile drawer */}
+      {!minimal && (
+        <div
+          className={`md:hidden fixed inset-0 z-40 transition ${
+            mobileOpen ? "pointer-events-auto" : "pointer-events-none"
+          }`}
+          aria-hidden={!mobileOpen}
+        >
+          {/* Backdrop */}
+          <div
+            onClick={() => setMobileOpen(false)}
+            className={`absolute inset-0 bg-black/50 transition-opacity ${
+              mobileOpen ? "opacity-100" : "opacity-0"
+            }`}
+          />
+          {/* Panel */}
+          <div
+            className={`absolute inset-y-0 left-0 w-72 max-w-[80%] bg-neutral-900 shadow-xl transition-transform ${
+              mobileOpen ? "translate-x-0" : "-translate-x-full"
+            }`}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Main navigation"
+          >
+            <div className="flex items-center justify-end px-2 pt-2">
+              <button
+                onClick={() => setMobileOpen(false)}
+                aria-label="Close menu"
+                className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-neutral-300 hover:bg-white/10 hover:text-white transition-colors"
+              >
+                <X size={22} weight="bold" aria-hidden />
+              </button>
+            </div>
+            {sidebarBody}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
