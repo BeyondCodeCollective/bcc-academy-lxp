@@ -25,6 +25,11 @@ export default async function DashboardPage() {
   // but a cached response or misrouted request could still land here with a
   // student record from another program — which would render the wrong UI.
   if (program.tracks.length === 0) {
+    const ctx = await getSessionContext();
+    const role = ctx?.student?.role ?? "student";
+    if (canAccessAdminPanel(role)) {
+      redirect("/dashboard/admin");
+    }
     const survey = program.surveys?.[0];
     redirect(survey ? `/survey/${survey.id}` : "/");
   }

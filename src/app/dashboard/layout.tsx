@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { cookies, headers } from "next/headers";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
@@ -12,7 +11,6 @@ import { ProgramProvider } from "@/lib/programs/context";
 import { canAccessAdminPanel, canSwitchPrograms } from "@/lib/roles";
 import { getSessionContext } from "@/lib/auth/session";
 import { getAllPrograms } from "@/lib/programs";
-import type { ProgramConfig } from "@/lib/programs/types";
 
 export default async function DashboardLayout({
   children,
@@ -23,34 +21,12 @@ export default async function DashboardLayout({
   const pathname = headersList.get("x-pathname") ?? "";
   const isSurveyPage = pathname.startsWith("/dashboard/survey");
 
-  return (
-    <ProgramProvider program={program}>
-      <Suspense fallback={<NavShell program={program} minimal={isSurveyPage} />}>
-        <NavWithAuth program={program} minimal={isSurveyPage} />
-      </Suspense>
-      <main
-        id="dashboard-main"
-        className="flex-1 bg-stone-50 md:pl-60"
-      >
-        {/* Accessibility controls — text size + read-aloud. Sits once at
-            the top of every dashboard page so students never have to hunt
-            for them. Read-aloud reads everything inside #dashboard-main
-            (nav chrome is skipped by the button's own tree walker). */}
-        <div className="mx-auto flex w-full max-w-2xl md:max-w-5xl items-center justify-end gap-2 px-4 sm:px-5 pt-3">
-          <ReadAloudButton selector="#dashboard-main" label="Read aloud" />
-          <TextScaleToggle compact />
-        </div>
-        {children}
-      </main>
-    </ProgramProvider>
-  );
-}
-
-async function NavWithAuth({ program, minimal }: { program: ProgramConfig; minimal?: boolean }) {
-  const t0 = performance.now();
+  // Resolve auth synchronously with the layout so the nav renders in its
+  // final shape on first paint. The previous Suspense + NavShell pattern
+  // caused a visible layout shift when admin items / the program switcher
+  // popped in once auth resolved — most noticeable when switching programs.
   let isAdmin = false;
   let canSwitch = false;
-
   if (isSupabaseConfigured()) {
     const ctx = await getSessionContext();
     if (!ctx) redirect("/");
@@ -67,8 +43,6 @@ async function NavWithAuth({ program, minimal }: { program: ProgramConfig; minim
     canSwitch = canSwitchPrograms(role);
   }
 
-  console.log(`[layout] dashboard nav ${Math.round(performance.now() - t0)}ms`);
-
   const showTutor = program.tutorConfig?.enabled !== false;
   const showResources = program.resourcesEnabled === true;
   const programs = canSwitch
@@ -76,32 +50,28 @@ async function NavWithAuth({ program, minimal }: { program: ProgramConfig; minim
     : [];
 
   return (
-    <>
+    <ProgramProvider program={program}>
       <Nav
         isAdmin={isAdmin}
         logo={program.logo}
         programName={program.name}
         showTutor={showTutor}
         showResources={showResources}
-        minimal={minimal}
+        minimal={isSurveyPage}
         programs={programs}
         currentProgramSlug={program.slug}
       />
-      {!minimal && showTutor && <TutorFab />}
-    </>
-  );
-}
-
-function NavShell({ program, minimal }: { program: ProgramConfig; minimal?: boolean }) {
-  const showResources = program.resourcesEnabled === true;
-  return (
-    <Nav
-      isAdmin={false}
-      logo={program.logo}
-      programName={program.name}
-      showTutor={false}
-      showResources={showResources}
-      minimal={minimal}
-    />
+      {!isSurveyPage && showTutor && <TutorFab />}
+      <main
+        id="dashboard-main"
+        className="flex-1 bg-stone-50 md:pl-60"
+      >
+        <div className="mx-auto flex w-full max-w-2xl md:max-w-5xl items-center justify-end gap-2 px-4 sm:px-5 pt-3">
+          <ReadAloudButton selector="#dashboard-main" label="Read aloud" />
+          <TextScaleToggle compact />
+        </div>
+        {children}
+      </main>
+    </ProgramProvider>
   );
 }
