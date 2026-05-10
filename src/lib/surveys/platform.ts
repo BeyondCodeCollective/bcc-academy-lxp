@@ -32,6 +32,8 @@ export const PLATFORM_AUTH_SURVEYS: Record<string, SurveyConfig> = {
 
 // ─── Public (no login) ──────────────────────────────────────────────────────
 
+export const BCC_PRE_SURVEY_SPRING_2026_ID = "pre-survey-spring-2026";
+
 export const PLATFORM_PUBLIC_SURVEYS: Record<string, SurveyConfig> = {
   [BCC_INTAKE_SURVEY_ID]: {
     id: BCC_INTAKE_SURVEY_ID,
@@ -45,6 +47,13 @@ export const PLATFORM_PUBLIC_SURVEYS: Record<string, SurveyConfig> = {
     title: "Workshop Survey",
     description:
       "3–5 min. Before you go, share your thoughts on today's workshop.",
+    required: false,
+  },
+  [BCC_PRE_SURVEY_SPRING_2026_ID]: {
+    id: BCC_PRE_SURVEY_SPRING_2026_ID,
+    title: "Pre-Survey",
+    description:
+      "Help us understand your background and experience so we can better support you.",
     required: false,
   },
 };

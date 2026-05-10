@@ -7,6 +7,7 @@ import { ReadAloudButton } from "@/components/read-aloud-button";
 import { PublicNetworkPlusSurvey } from "./public-network-plus-survey";
 import { PublicWorkshopSurvey } from "./public-workshop-survey";
 import { PublicLearnerIntake } from "./public-learner-intake";
+import { PublicPreSurvey } from "./public-pre-survey";
 
 // Public survey route. Outside /dashboard/* so the proxy/middleware does not
 // gate it — anyone who lands on catalyst.bccacademy.io/survey/network-plus-post
@@ -27,6 +28,7 @@ const SURVEY_COMPONENTS: Record<string, ComponentType<SurveyProps>> = {
   "network-plus-post": PublicNetworkPlusSurvey,
   "bcc-workshop": PublicWorkshopSurvey,
   "bcc-learner-intake": PublicLearnerIntake,
+  "pre-survey-spring-2026": PublicPreSurvey,
 };
 
 export default async function PublicSurveyPage({
