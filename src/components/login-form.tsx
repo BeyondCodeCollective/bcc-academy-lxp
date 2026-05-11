@@ -12,7 +12,12 @@ interface Props {
 }
 
 export function LoginForm({ logo, programName, tagline, taglineColor, organization }: Props) {
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(() => {
+    if (typeof window !== "undefined") {
+      return new URLSearchParams(window.location.search).get("email") ?? "";
+    }
+    return "";
+  });
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [trackParam] = useState(() => {
