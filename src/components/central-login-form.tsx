@@ -4,11 +4,11 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Check } from "@phosphor-icons/react";
 
-const PROGRAM_DOMAINS: Record<string, string> = {
-  atg: "atg.bccacademy.io",
-  forge: "forge.bccacademy.io",
-  catalyst: "catalyst.bccacademy.io",
-};
+const PROGRAMS = [
+  { slug: "atg",      name: "After The Game", tagline: "Tech careers for athletes" },
+  { slug: "forge",    name: "The Forge",       tagline: "Human-led learning hubs" },
+  { slug: "catalyst", name: "Catalyst",        tagline: "Accelerate your career" },
+];
 
 export function CentralLoginForm() {
   const [email, setEmail] = useState("");
@@ -18,13 +18,33 @@ export function CentralLoginForm() {
   const [error, setError] = useState("");
 
   const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
-  // Demo shortcut only when there's genuinely no Supabase backend wired up.
-  // When NEXT_PUBLIC_SUPABASE_URL is set (even in dev), run real OTP so
-  // middleware's getUser() check finds an actual session.
   const isDemoMode =
     process.env.NODE_ENV === "development" &&
     !process.env.NEXT_PUBLIC_SUPABASE_URL;
   const isLocalDev = process.env.NODE_ENV === "development";
+
+  function buildCallbackUrl(programSlug?: string) {
+    const base = isLocalDev
+      ? "http://localhost:3000/auth/callback"
+      : `${window.location.origin}/auth/callback`;
+    return programSlug ? `${base}?program=${programSlug}` : base;
+  }
+
+  async function sendOtp(programSlug?: string) {
+    setLoading(true);
+    setError("");
+    const supabase = createClient();
+    const { error: otpError } = await supabase.auth.signInWithOtp({
+      email: email.trim().toLowerCase(),
+      options: { emailRedirectTo: buildCallbackUrl(programSlug) },
+    });
+    if (otpError) {
+      setError(otpError.message || "Something went wrong. Please try again.");
+    } else {
+      setSent(true);
+    }
+    setLoading(false);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -44,7 +64,6 @@ export function CentralLoginForm() {
       return;
     }
 
-    let programSlug: string | null = null;
     try {
       const res = await fetch("/api/auth/lookup-program", {
         method: "POST",
@@ -52,40 +71,20 @@ export function CentralLoginForm() {
         body: JSON.stringify({ email: trimmedEmail }),
       });
       const data = (await res.json()) as { programSlug: string | null };
-      programSlug = data.programSlug;
+
+      if (data.programSlug) {
+        // Known user — send OTP with their program in the callback so the
+        // callback can route them directly to the right subdomain.
+        await sendOtp(data.programSlug);
+      } else {
+        // Unknown email — show program picker.
+        setNotFound(true);
+        setLoading(false);
+      }
     } catch {
       setError("Something went wrong. Please try again.");
       setLoading(false);
-      return;
     }
-
-    if (!programSlug || !PROGRAM_DOMAINS[programSlug]) {
-      setNotFound(true);
-      setLoading(false);
-      return;
-    }
-
-    // Use the current origin for the callback so the PKCE code_verifier cookie
-    // (set on this domain) is readable when the callback route runs. Pointing
-    // to a different domain (e.g. atg.bccacademy.io when testing on a Vercel
-    // preview URL) causes exchangeCodeForSession to fail silently.
-    const callbackUrl = isLocalDev
-      ? `http://localhost:3000/auth/callback`
-      : `${window.location.origin}/auth/callback`;
-    const supabase = createClient();
-    const { error: otpError } = await supabase.auth.signInWithOtp({
-      email: trimmedEmail,
-      options: { emailRedirectTo: callbackUrl },
-    });
-
-    if (otpError) {
-      setError(otpError.message || "Something went wrong. Please try again.");
-      setLoading(false);
-      return;
-    }
-
-    setSent(true);
-    setLoading(false);
   }
 
   if (sent) {
@@ -100,7 +99,7 @@ export function CentralLoginForm() {
           </p>
         </div>
         <button
-          onClick={() => { setSent(false); setEmail(""); }}
+          onClick={() => { setSent(false); setEmail(""); setNotFound(false); }}
           className="text-sm text-white/40 hover:text-white transition-colors"
         >
           Use a different email
@@ -117,29 +116,29 @@ export function CentralLoginForm() {
             New here?
           </h1>
           <p className="text-base md:text-lg text-white/70 leading-relaxed">
-            Select a program below to create your account.
+            Select a program to create your account.
           </p>
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <a
-            href={`https://atg.bccacademy.io?email=${encodeURIComponent(email)}`}
-            className="flex flex-col gap-1 p-4 border border-white/15 hover:border-electric-green/50 hover:bg-white/5 transition-all"
-          >
-            <span className="text-xs text-white/40 font-mono uppercase tracking-wider">Program</span>
-            <span className="text-sm font-bold text-white">After The Game</span>
-            <span className="text-xs text-white/40">Tech careers for athletes</span>
-          </a>
-          <a
-            href={`https://forge.bccacademy.io?email=${encodeURIComponent(email)}`}
-            className="flex flex-col gap-1 p-4 border border-white/15 hover:border-electric-green/50 hover:bg-white/5 transition-all"
-          >
-            <span className="text-xs text-white/40 font-mono uppercase tracking-wider">Program</span>
-            <span className="text-sm font-bold text-white">The Forge</span>
-            <span className="text-xs text-white/40">Human-led learning hubs</span>
-          </a>
+
+        {error && <p className="text-sm text-red-400">{error}</p>}
+
+        <div className="grid grid-cols-1 gap-3">
+          {PROGRAMS.map((p) => (
+            <button
+              key={p.slug}
+              onClick={() => sendOtp(p.slug)}
+              disabled={loading}
+              className="flex flex-col gap-1 p-4 text-left border border-white/15 hover:border-electric-green/50 hover:bg-white/5 transition-all disabled:opacity-50"
+            >
+              <span className="text-xs text-white/40 font-mono uppercase tracking-wider">Program</span>
+              <span className="text-sm font-bold text-white">{p.name}</span>
+              <span className="text-xs text-white/40">{p.tagline}</span>
+            </button>
+          ))}
         </div>
+
         <button
-          onClick={() => { setNotFound(false); setEmail(""); }}
+          onClick={() => { setNotFound(false); setEmail(""); setError(""); }}
           className="text-sm text-white/40 hover:text-white transition-colors"
         >
           Try a different email
@@ -159,39 +158,39 @@ export function CentralLoginForm() {
         </p>
       </div>
       <form onSubmit={handleSubmit} className="space-y-4 md:space-y-5">
-      <div className="relative">
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="your@email.com"
-          required
-          autoComplete="email"
-          autoFocus
-          className="w-full bg-white text-black placeholder-gray-400 px-5 py-4 text-lg focus:outline-none focus:ring-2 focus:ring-electric-green border-0"
-        />
-        {isValid && (
-          <div className="absolute right-4 top-1/2 -translate-y-1/2 text-black">
-            <Check size={24} weight="bold" />
-          </div>
-        )}
-      </div>
+        <div className="relative">
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="your@email.com"
+            required
+            autoComplete="email"
+            autoFocus
+            className="w-full bg-white text-black placeholder-gray-400 px-5 py-4 text-lg focus:outline-none focus:ring-2 focus:ring-electric-green border-0"
+          />
+          {isValid && (
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-black">
+              <Check size={24} weight="bold" />
+            </div>
+          )}
+        </div>
 
-      {error && <p className="text-sm text-red-400">{error}</p>}
+        {error && <p className="text-sm text-red-400">{error}</p>}
 
-      <button
-        type="submit"
-        disabled={loading || !isValid}
-        className={`w-full py-4 text-lg font-bold transition-all uppercase tracking-wider ${
-          isValid
-            ? "bg-electric-green text-true-black hover:brightness-110"
-            : "bg-white/10 text-white/30 cursor-not-allowed"
-        }`}
-      >
-        {loading ? "Checking..." : "Let's Go →"}
-      </button>
+        <button
+          type="submit"
+          disabled={loading || !isValid}
+          className={`w-full py-4 text-lg font-bold transition-all uppercase tracking-wider ${
+            isValid
+              ? "bg-electric-green text-true-black hover:brightness-110"
+              : "bg-white/10 text-white/30 cursor-not-allowed"
+          }`}
+        >
+          {loading ? "Checking..." : "Let's Go →"}
+        </button>
 
-      <p className="text-white/40 text-xs uppercase tracking-wider">
+        <p className="text-white/40 text-xs uppercase tracking-wider">
           No password needed — we&rsquo;ll email you a link.
         </p>
       </form>

@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { createServiceClient } from "@/lib/supabase/server";
 import { authCookieDomain } from "@/lib/supabase/cookie-domain";
 import { getProgram } from "@/lib/programs/server";
+import { getProgramBySlug } from "@/lib/programs";
 import { sendWelcomeEmail } from "@/lib/email";
 import { BCC_INTAKE_SURVEY_ID, BCC_INTAKE_EXEMPT_PROGRAMS } from "@/lib/surveys/platform";
 
@@ -35,10 +36,18 @@ export async function GET(request: Request) {
   const token_hash = searchParams.get("token_hash");
   const type = searchParams.get("type") as "email" | "magiclink" | null;
   const trackParam = searchParams.get("track");
+  // Set by CentralLoginForm when a new user picks a program on the marketing site.
+  const programParam = searchParams.get("program");
 
   if (code || token_hash) {
     const cookieStore = await cookies();
-    const program = await getProgram();
+    // When a new user signs up from bccacademy.io/login and picks a program,
+    // override the host-derived "marketing" context with the real program config
+    // so enrollment runs against the correct program, tracks, and cohort.
+    let program = await getProgram();
+    if (program.slug === "marketing" && programParam) {
+      try { program = getProgramBySlug(programParam); } catch { /* invalid param — keep marketing */ }
+    }
     const domain = authCookieDomain(request.headers.get("host"));
 
     // Capture every cookie Supabase wants to set so we can forward them onto
@@ -331,6 +340,18 @@ export async function GET(request: Request) {
         if (!existing?.completed_at) {
           return redirectWithCookies(`${origin}/dashboard/survey/${requiredSurvey.id}`);
         }
+      }
+
+      // New user enrolled via the marketing login — route to their chosen program subdomain.
+      if (programParam && PROGRAM_DOMAINS[programParam]) {
+        if (domain) {
+          return redirectWithCookies(`https://${PROGRAM_DOMAINS[programParam]}/dashboard`);
+        }
+        const res = redirectWithCookies(`${origin}/dashboard`);
+        const cookieOpts = { path: "/", httpOnly: false, sameSite: "lax" as const };
+        res.cookies.set("program-slug", programParam, cookieOpts);
+        res.cookies.set("program-override", programParam, { ...cookieOpts, maxAge: 60 * 60 * 24 });
+        return res;
       }
 
       return redirectWithCookies(`${origin}/dashboard`);
