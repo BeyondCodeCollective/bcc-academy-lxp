@@ -49,11 +49,9 @@ export default function ProgramsSection() {
             [ Our Programs ]
           </p>
           <h2 className="font-display text-4xl sm:text-5xl md:text-7xl font-bold text-white uppercase leading-[0.9]">
-            Built to learn
+            Built with
             <br />
-            together.
-            <br />
-            With and for
+            and for
             <br />
             our learners.
           </h2>
