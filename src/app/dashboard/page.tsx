@@ -45,13 +45,11 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
   if (!currentUser) redirect("/");
 
   let firstName = currentUser.firstName;
-  let lastName = currentUser.lastName;
   let userRole = currentUser.userRole;
   let cohortName = program.defaultCohort.displayName;
   let cohortStartDate = program.defaultCohort.startDate;
   let noCohort = false;
   let needsOnboarding = false;
-  let needsProfileStep = true;
   let enrolledTrackSlugs: string[] = [];
   let pendingSurveys: { id: string; title: string; description: string }[] = [];
   let announcements: { id: string; message: string; track_slug: string | null; created_at: string }[] = [];
@@ -68,7 +66,6 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
 
     const welcomeDone = !!student?.welcome_seen_at;
     needsOnboarding = !welcomeDone;
-    needsProfileStep = false;
 
     const isAdminUser = canAccessAdminPanel(userRole);
 

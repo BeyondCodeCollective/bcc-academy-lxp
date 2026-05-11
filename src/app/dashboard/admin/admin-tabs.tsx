@@ -351,12 +351,6 @@ function SaveIndicator({ state }: { state: SaveState }) {
 
 // ─── Tab icon helper ─────────────────────────────────────────────────────────
 
-const TAB_ICONS: Record<string, typeof Settings> = {
-  program: Settings,
-  students: Users,
-  attendance: UserCheck,
-};
-
 function getTrackIcon(index: number) {
   const icons = [GraduationCap, BookOpen, Video, FileText];
   return icons[index % icons.length];
