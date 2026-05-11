@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { submitProject } from "@/app/dashboard/track/actions";
 import type { SubmissionRow, SubmissionLink, SubmissionFile, FeedbackRow } from "@/app/dashboard/track/actions";
-import { Plus, X, Link as LinkIcon, Upload, CheckCircle, Loader2, ExternalLink, FileText, MessageSquare, ChevronDown } from "lucide-react";
+import { Plus, X, Link as LinkIcon, Upload, CheckCircle, Loader2, FileText, MessageSquare, ChevronDown } from "lucide-react";
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
 
 export function SubmissionForm({

@@ -43,12 +43,6 @@ export default async function CentralLoginPage() {
             <p className="text-electric-green text-xs font-mono uppercase tracking-[0.3em] mb-3">
               [ Student Portal ]
             </p>
-            <h1 className="font-display text-3xl md:text-5xl text-white mb-3 md:mb-4 leading-[0.9] uppercase font-bold">
-              Welcome back.
-            </h1>
-            <p className="text-base md:text-lg text-white/70 mb-6 md:mb-8 leading-relaxed">
-              Enter your email and we&rsquo;ll send you a sign-in link.
-            </p>
 
             <CentralLoginForm />
           </div>

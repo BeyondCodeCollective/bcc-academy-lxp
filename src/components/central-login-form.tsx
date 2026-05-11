@@ -91,16 +91,13 @@ export function CentralLoginForm() {
   if (sent) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center bg-electric-green text-true-black">
-            <Check size={20} weight="bold" />
-          </div>
-          <div>
-            <p className="text-base font-bold text-white">Check your email</p>
-            <p className="text-sm text-white/50">
-              Sign-in link sent to <span className="text-white/80">{email}</span>
-            </p>
-          </div>
+        <div>
+          <h1 className="font-display text-3xl md:text-5xl text-white mb-3 md:mb-4 leading-[0.9] uppercase font-bold">
+            Check your email.
+          </h1>
+          <p className="text-base md:text-lg text-white/70 leading-relaxed">
+            We sent a sign-in link to <span className="text-white">{email}</span>.
+          </p>
         </div>
         <button
           onClick={() => { setSent(false); setEmail(""); }}
@@ -116,14 +113,16 @@ export function CentralLoginForm() {
     return (
       <div className="space-y-6">
         <div>
-          <p className="text-base font-bold text-white">No account found</p>
-          <p className="mt-1 text-sm text-white/50">
-            We don&rsquo;t recognize <span className="text-white/80">{email}</span>. Ready to apply?
+          <h1 className="font-display text-3xl md:text-5xl text-white mb-3 md:mb-4 leading-[0.9] uppercase font-bold">
+            New here?
+          </h1>
+          <p className="text-base md:text-lg text-white/70 leading-relaxed">
+            Select a program below to create your account.
           </p>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <a
-            href="https://atg.bccacademy.io"
+            href={`https://atg.bccacademy.io?email=${encodeURIComponent(email)}`}
             className="flex flex-col gap-1 p-4 border border-white/15 hover:border-electric-green/50 hover:bg-white/5 transition-all"
           >
             <span className="text-xs text-white/40 font-mono uppercase tracking-wider">Program</span>
@@ -131,7 +130,7 @@ export function CentralLoginForm() {
             <span className="text-xs text-white/40">Tech careers for athletes</span>
           </a>
           <a
-            href="https://forge.bccacademy.io"
+            href={`https://forge.bccacademy.io?email=${encodeURIComponent(email)}`}
             className="flex flex-col gap-1 p-4 border border-white/15 hover:border-electric-green/50 hover:bg-white/5 transition-all"
           >
             <span className="text-xs text-white/40 font-mono uppercase tracking-wider">Program</span>
@@ -150,7 +149,16 @@ export function CentralLoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 md:space-y-5">
+    <div className="space-y-6 md:space-y-8">
+      <div>
+        <h1 className="font-display text-3xl md:text-5xl text-white mb-3 md:mb-4 leading-[0.9] uppercase font-bold">
+          Welcome back.
+        </h1>
+        <p className="text-base md:text-lg text-white/70 leading-relaxed">
+          Enter your email and we&rsquo;ll send you a sign-in link.
+        </p>
+      </div>
+      <form onSubmit={handleSubmit} className="space-y-4 md:space-y-5">
       <div className="relative">
         <input
           type="email"
@@ -184,8 +192,9 @@ export function CentralLoginForm() {
       </button>
 
       <p className="text-white/40 text-xs uppercase tracking-wider">
-        No password needed — we&rsquo;ll email you a link.
-      </p>
-    </form>
+          No password needed — we&rsquo;ll email you a link.
+        </p>
+      </form>
+    </div>
   );
 }

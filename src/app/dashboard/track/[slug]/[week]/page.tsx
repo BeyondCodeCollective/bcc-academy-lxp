@@ -288,7 +288,6 @@ export default async function TrackWeekPage({
                 <p className="text-xs text-neutral-500">{recordingSubtitle}</p>
               </div>
             </div>
-            {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
             <video src={url} controls className="w-full" preload="metadata" />
           </div>
         ) : url ? (

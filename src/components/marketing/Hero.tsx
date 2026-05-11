@@ -24,8 +24,6 @@ const partners: { name: string; logo?: string }[] = [
 
 const rotatingWords = ["BUILDS.", "GROWS.", "LEARNS.", "LEADS.", "BELONGS."];
 
-const easeExpo = [0.16, 1, 0.3, 1] as const;
-
 export default function Hero() {
   const [wordIndex, setWordIndex] = useState(0);
   const [videoPlaying, setVideoPlaying] = useState(true);
@@ -70,7 +68,6 @@ export default function Hero() {
           loop
           playsInline
           className="absolute inset-0 w-full h-[120%] object-cover"
-          poster="/images/bcc/brand/group-selfie.jpg"
         >
           <source
             src={VIDEO_URLS.hero}

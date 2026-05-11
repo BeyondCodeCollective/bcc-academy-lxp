@@ -49,13 +49,13 @@ export default function ProgramsSection() {
             [ Our Programs ]
           </p>
           <h2 className="font-display text-4xl sm:text-5xl md:text-7xl font-bold text-white uppercase leading-[0.9]">
-            Built different.
+            Built to learn
             <br />
-            For people the
+            together.
             <br />
-            system keeps
+            With and for
             <br />
-            overlooking.
+            our learners.
           </h2>
         </motion.div>
 

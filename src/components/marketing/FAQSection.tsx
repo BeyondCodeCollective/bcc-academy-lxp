@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { fadeInUp, slideInLeft } from "@/lib/marketing-motion";
+import { slideInLeft } from "@/lib/marketing-motion";
 import { CaretDown } from "@phosphor-icons/react";
 
 const faqs = [

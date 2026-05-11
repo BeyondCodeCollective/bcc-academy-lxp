@@ -4,7 +4,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { hasCapability, canAccessAdminPanel, canSwitchPrograms } from "@/lib/roles";
+import { hasCapability, canSwitchPrograms } from "@/lib/roles";
 import type { Capability } from "@/lib/roles";
 
 async function requireCapability(capability: Capability) {
