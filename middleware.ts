@@ -24,6 +24,9 @@ export async function middleware(request: NextRequest) {
 
   // ── Site password gate (marketing host only) ──────────────────────────
   const sitePassword = process.env.SITE_PASSWORD;
+  if (MARKETING_HOSTS.has(host)) {
+    console.log(`[gate-debug] host=${host} pwd_len=${sitePassword?.length ?? "undef"} path=${request.nextUrl.pathname}`);
+  }
   if (sitePassword && MARKETING_HOSTS.has(host)) {
     const pathname = request.nextUrl.pathname;
     const isExempt = GATE_EXEMPT_PREFIXES.some((p) => pathname.startsWith(p));
