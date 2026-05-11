@@ -40,41 +40,57 @@ export default function HumanInTheLoop() {
     offset: ["start start", "end start"],
   });
 
-  // 95% zooms up and fades as you scroll past — more dramatic range
-  const statScale = useTransform(scrollYProgress, [0.1, 0.4], [1, 1.3]);
-  const statOpacity = useTransform(scrollYProgress, [0.2, 0.4], [1, 0]);
+  // The 7→77 proof stat zooms slightly and fades as you scroll past it
+  const statScale = useTransform(scrollYProgress, [0.25, 0.5], [1, 1.15]);
+  const statOpacity = useTransform(scrollYProgress, [0.35, 0.55], [1, 0]);
 
   return (
     <section ref={sectionRef} id="human-in-the-loop" className="bg-dark-cobalt grain overflow-hidden pt-20 md:pt-28">
-      {/* Beat 1: The Stat — dramatic, full-width */}
-      <div className="relative min-h-[80vh] flex flex-col items-center justify-center px-6 overflow-hidden">
+      {/* Beat 1: The Differentiator — headline first, proof second */}
+      <div className="relative min-h-[90vh] flex flex-col items-center justify-center px-6 overflow-hidden">
         <motion.div
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, amount: 0.3 }}
           variants={statPunch}
-          className="text-center"
+          className="text-center max-w-5xl mx-auto"
         >
-          <p className="text-electric-green/60 text-sm font-semibold tracking-[0.3em] uppercase mb-10 font-mono">
-            [ Responsive, Not Reactive ]
+          <p className="text-electric-green/60 text-sm font-semibold tracking-[0.3em] uppercase mb-8 font-mono">
+            [ Our Differentiator ]
           </p>
 
+          <h2 className="font-display text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] font-bold text-white uppercase leading-[0.95] tracking-tight">
+            Human in <br className="sm:hidden" />the Loop
+          </h2>
+
+          <p className="mt-8 text-lg md:text-2xl text-white/80 max-w-2xl mx-auto leading-relaxed">
+            Every other AI learning platform is built to remove the human.
+            <span className="text-electric-green"> We're built to keep them in.</span>
+          </p>
+        </motion.div>
+
+        {/* Proof: 7→77 as evidence, smaller and below the claim */}
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.3 }}
+          variants={fadeInUp}
+          className="mt-20 md:mt-24 text-center"
+        >
+          <p className="text-white/40 text-xs font-mono tracking-[0.3em] uppercase mb-4">
+            [ The Proof ]
+          </p>
           <motion.p
             style={{ scale: statScale, opacity: statOpacity }}
-            className="text-[25vw] md:text-[22vw] lg:text-[18vw] font-display font-bold text-electric-green leading-none"
+            className="text-[18vw] md:text-[12vw] lg:text-[9rem] font-display font-bold text-electric-green leading-none"
           >
             7→77
           </motion.p>
-
-          <p className="mt-6 text-lg md:text-xl text-white/60 font-mono max-w-xl mx-auto">
-            The ages we teach in the same room. From first code to legacy — not a pipeline.
+          <p className="mt-6 text-base md:text-lg text-white/60 max-w-xl mx-auto leading-relaxed">
+            From a 7-year-old writing their first line of code to a 77-year-old
+            building a second act — an intergenerational community, not a pipeline.
           </p>
-
-          <h2 className="mt-10 font-display text-4xl md:text-6xl lg:text-7xl font-bold text-white uppercase">
-            Human in the Loop
-          </h2>
         </motion.div>
-
       </div>
 
       {/* Divider */}
