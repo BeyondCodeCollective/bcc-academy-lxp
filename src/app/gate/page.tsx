@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 export const dynamic = "force-dynamic";
 
 export default async function GatePage({
@@ -13,18 +15,30 @@ export default async function GatePage({
       <form
         action="/api/gate"
         method="POST"
-        className="w-full max-w-sm space-y-6 text-center"
+        className="w-full max-w-sm space-y-8 text-center"
       >
-        <div className="space-y-2">
-          <p className="text-[10px] uppercase tracking-[0.3em] text-white/40 font-mono">
-            [ Private Preview ]
-          </p>
-          <h1 className="font-display text-3xl font-bold text-white">
-            BCC Academy
-          </h1>
-          <p className="text-sm text-white/60">
-            This site is under construction. Enter the password to continue.
-          </p>
+        <div className="space-y-6">
+          <div className="flex justify-center">
+            <Image
+              src="/images/bcc/logos/bcc-logo-horizontal-white.png"
+              alt="BCC Academy"
+              width={180}
+              height={48}
+              priority
+              className="h-10 w-auto"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-[10px] uppercase tracking-[0.3em] text-white/40 font-mono">
+              [ Private Preview ]
+            </p>
+            <p className="text-sm text-white/60">
+              This site is under construction.
+              <br />
+              Enter the password to continue.
+            </p>
+          </div>
         </div>
 
         <input type="hidden" name="next" value={next} />
