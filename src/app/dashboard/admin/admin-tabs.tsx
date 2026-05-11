@@ -396,7 +396,6 @@ export function AdminTabs({
         ...(isManager ? [{ id: "program", label: "Program", icon: Settings }] : []),
         ...tracks.map((t, i) => ({ id: t.slug, label: t.shortName, icon: getTrackIcon(i) })),
         ...(isManager ? [{ id: "students", label: "People", icon: Users }] : []),
-        ...(isManager ? [{ id: "enrollments", label: "Enrollments", icon: BookOpen }] : []),
         { id: "student-work", label: "Student Work", icon: ClipboardList },
         { id: "attendance", label: "Analytics", icon: UserCheck },
       ];
@@ -580,6 +579,11 @@ export function AdminTabs({
   const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
   const [bulkSaving, setBulkSaving] = useState(false);
 
+  // Unified People-tab UI state
+  const [peopleSearch, setPeopleSearch] = useState("");
+  const [peopleRoleFilter, setPeopleRoleFilter] = useState<"all" | "student" | "instructor" | "admin">("all");
+  const [showBulkAssign, setShowBulkAssign] = useState(false);
+
   async function updateStudent(id: string, field: "role" | "cohort_id", value: string) {
     setStudentSaving(id);
     try {
@@ -697,7 +701,7 @@ export function AdminTabs({
       {/* Horizontal tab bar — single sidebar lives in the dashboard layout.
           On md+ tabs hug their content (no flex-1) and use a thin underline
           treatment so 7-8 tabs don't read as a heavy button cluster. */}
-      <div className="mb-6 -mx-1 overflow-x-auto md:border-b md:border-neutral-200">
+      <div className="mb-6 -mx-1 overflow-x-auto scrollbar-hide md:border-b md:border-neutral-200">
         <div className="flex gap-1 rounded-lg bg-neutral-100 p-1 md:bg-transparent md:rounded-none md:p-0 md:gap-0">
           {tabs.map(({ id, label, icon: Icon }) => {
             const active = tab === id;
@@ -1080,13 +1084,30 @@ export function AdminTabs({
         </div>
       )}
 
-      {/* People Tab */}
+      {/* People Tab — unified roster + track enrollment management */}
       {tab === "students" && (
         <div className="space-y-3">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-semibold text-neutral-900">People</h2>
-            <div className="flex items-center gap-2">
-              <p className="text-xs text-neutral-400">{students.length} total</p>
+            <div className="min-w-0">
+              <h2 className="text-lg font-semibold text-neutral-900">People</h2>
+              <p className="text-[11px] text-neutral-400 mt-0.5">
+                {students.length} total · {enrollments.length} track assignment{enrollments.length !== 1 ? "s" : ""}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {tracks.length > 0 && (
+                <button
+                  onClick={() => setShowBulkAssign((v) => !v)}
+                  className={`inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                    showBulkAssign
+                      ? "bg-neutral-100 text-neutral-900 border border-neutral-300"
+                      : "bg-white border border-neutral-200 text-neutral-700 hover:bg-neutral-50"
+                  }`}
+                >
+                  <BookOpen size={12} />
+                  Bulk assign
+                </button>
+              )}
               <button
                 onClick={() => { setShowAddForm(!showAddForm); setAddError(""); }}
                 className="inline-flex items-center gap-1 rounded-lg bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-800 transition-colors"
@@ -1178,14 +1199,186 @@ export function AdminTabs({
               </div>
             </form>
           )}
+
+          {/* Bulk-assign drawer (collapsible) */}
+          {showBulkAssign && tracks.length > 0 && (
+            <div className="rounded-xl border border-neutral-200 bg-white p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold text-neutral-700">Bulk assign to track</p>
+                <button
+                  onClick={() => setShowBulkAssign(false)}
+                  className="text-neutral-400 hover:text-neutral-600"
+                  aria-label="Close bulk assign"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="relative">
+                  <select
+                    value={bulkTrack}
+                    onChange={(e) => setBulkTrack(e.target.value)}
+                    className="appearance-none rounded-lg border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-2 text-xs font-medium text-neutral-700 focus:border-neutral-400 focus:outline-none"
+                  >
+                    {tracks.map((t) => (
+                      <option key={t.slug} value={t.slug}>{t.shortName}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
+                </div>
+                <button
+                  onClick={handleBulkAssign}
+                  disabled={bulkSaving || bulkSelected.size === 0}
+                  className="inline-flex items-center gap-1 rounded-lg bg-neutral-900 px-3 py-2 text-xs font-medium text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
+                >
+                  {bulkSaving ? "Assigning..." : `Assign ${bulkSelected.size} selected`}
+                </button>
+                {bulkSelected.size > 0 && (
+                  <button
+                    onClick={() => setBulkSelected(new Set())}
+                    className="text-xs text-neutral-400 hover:text-neutral-600"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              <div className="max-h-48 overflow-y-auto space-y-1 border-t border-neutral-100 pt-2">
+                {students.filter((s) => s.role !== "admin" && s.role !== "super_admin").map((student) => {
+                  const alreadyEnrolled = enrollments.some(
+                    (e) => e.student_id === student.id && e.track_slug === bulkTrack
+                  );
+                  return (
+                    <label
+                      key={student.id}
+                      className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs cursor-pointer hover:bg-neutral-50 ${
+                        alreadyEnrolled ? "opacity-50" : ""
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        disabled={alreadyEnrolled}
+                        checked={bulkSelected.has(student.id)}
+                        onChange={(e) => {
+                          const next = new Set(bulkSelected);
+                          if (e.target.checked) next.add(student.id);
+                          else next.delete(student.id);
+                          setBulkSelected(next);
+                        }}
+                        className="rounded border-neutral-300"
+                      />
+                      <span className="text-neutral-700">
+                        {student.first_name} {student.last_name}
+                      </span>
+                      {alreadyEnrolled && (
+                        <span className="text-[10px] text-neutral-400 ml-auto">Already enrolled</span>
+                      )}
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Search + filters */}
+          {students.length > 0 && (
+            <div className="space-y-2">
+              <input
+                type="text"
+                placeholder="Search by name or email…"
+                value={peopleSearch}
+                onChange={(e) => setPeopleSearch(e.target.value)}
+                className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 placeholder-neutral-400 focus:border-neutral-900 focus:outline-none"
+              />
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[11px] text-neutral-500 mr-1">Role:</span>
+                {(["all", "student", "instructor", "admin"] as const).map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => setPeopleRoleFilter(r)}
+                    className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors capitalize ${
+                      peopleRoleFilter === r ? "bg-neutral-900 text-white" : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                    }`}
+                  >
+                    {r === "all" ? "All" : `${r}s`}
+                  </button>
+                ))}
+                {tracks.length > 0 && (
+                  <>
+                    <span className="text-[11px] text-neutral-500 ml-3 mr-1">Track:</span>
+                    <button
+                      onClick={() => setEnrollmentFilter("all")}
+                      className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                        enrollmentFilter === "all" ? "bg-neutral-900 text-white" : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                      }`}
+                    >
+                      All
+                    </button>
+                    {tracks.map((t) => (
+                      <button
+                        key={t.slug}
+                        onClick={() => setEnrollmentFilter(t.slug)}
+                        className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                          enrollmentFilter === t.slug ? "bg-neutral-900 text-white" : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                        }`}
+                      >
+                        {t.shortName}
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => setEnrollmentFilter("none")}
+                      className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                        enrollmentFilter === "none" ? "bg-neutral-900 text-white" : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                      }`}
+                    >
+                      Unassigned
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
           {students.length === 0 && (
             <p className="text-sm text-neutral-400 py-8 text-center">No people yet</p>
           )}
-          {students.map((student) => {
+          {students
+            .filter((s) => {
+              // Role filter (admin tab includes super_admin)
+              if (peopleRoleFilter !== "all") {
+                if (peopleRoleFilter === "admin") {
+                  if (s.role !== "admin" && s.role !== "super_admin") return false;
+                } else if (s.role !== peopleRoleFilter) return false;
+              }
+              // Track filter — only applies to people who can be on a track
+              if (enrollmentFilter !== "all" && tracks.length > 0) {
+                const isInstr = s.role === "instructor";
+                if (!isInstr && s.role !== "student") return false;
+                const t = isInstr ? getInstructorAssignments(s.id) : getStudentEnrollments(s.id);
+                if (enrollmentFilter === "none") {
+                  if (t.length > 0) return false;
+                } else if (!t.includes(enrollmentFilter)) {
+                  return false;
+                }
+              }
+              // Search
+              const q = peopleSearch.trim().toLowerCase();
+              if (q) {
+                const hay = `${s.first_name} ${s.last_name} ${s.email}`.toLowerCase();
+                if (!hay.includes(q)) return false;
+              }
+              return true;
+            })
+            .map((student) => {
             const score = engagementScores[student.id];
             const scoreColor = !score || student.role !== "student"
               ? ""
               : score.total >= 60 ? "bg-green-500" : score.total >= 30 ? "bg-amber-500" : "bg-red-500";
+            const isInstructor = student.role === "instructor";
+            const isStudent = student.role === "student";
+            const personTracks = isInstructor
+              ? getInstructorAssignments(student.id)
+              : getStudentEnrollments(student.id);
+            const canEnroll = (isStudent || isInstructor) && tracks.length > 0;
             return (
             <div
               key={student.id}
@@ -1234,7 +1427,7 @@ export function AdminTabs({
                   <button
                     onClick={() => setConfirmDelete(student.id)}
                     className="shrink-0 rounded-lg border border-neutral-200 p-2 text-neutral-400 hover:text-red-500 hover:border-red-200 transition-colors"
-                    title="Delete student"
+                    title="Delete person"
                   >
                     <Trash2 size={14} />
                   </button>
@@ -1270,6 +1463,51 @@ export function AdminTabs({
                   <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
                 </div>
               </div>
+              {/* Track chips — students enroll, instructors teach */}
+              {canEnroll && (
+                <div className="mt-3 flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[10px] uppercase tracking-wider text-neutral-400 font-medium mr-0.5">
+                    {isInstructor ? "Teaches" : "Tracks"}
+                  </span>
+                  {tracks.map((t) => {
+                    const isOn = personTracks.includes(t.slug);
+                    const isSaving = isInstructor
+                      ? instrTrackSaving === `${student.id}-${t.slug}`
+                      : enrollmentSaving === `${student.id}-${t.slug}`;
+                    return (
+                      <button
+                        key={t.slug}
+                        onClick={() =>
+                          isInstructor
+                            ? toggleInstructorTrack(student.id, t.slug)
+                            : toggleTrackEnrollment(student.id, t.slug)
+                        }
+                        disabled={isSaving}
+                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition-all ${
+                          isOn
+                            ? isInstructor
+                              ? "bg-blue-600 text-white hover:bg-red-600"
+                              : "bg-neutral-900 text-white hover:bg-red-600"
+                            : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200"
+                        } ${isSaving ? "opacity-50" : ""}`}
+                        title={isOn ? `Remove from ${t.shortName}` : `Add to ${t.shortName}`}
+                      >
+                        {isSaving ? (
+                          <Loader2 size={10} className="animate-spin" />
+                        ) : isOn ? (
+                          <Check size={10} />
+                        ) : (
+                          <Plus size={10} />
+                        )}
+                        {t.shortName}
+                      </button>
+                    );
+                  })}
+                  {isStudent && personTracks.length === 0 && (
+                    <span className="text-[10px] text-neutral-400 ml-1">Sees all tracks</span>
+                  )}
+                </div>
+              )}
               {score && student.role === "student" && (
                 <div className="mt-2 flex items-center gap-3 text-[11px] text-neutral-400">
                   <span>{score.attendance} sessions</span>
@@ -1281,279 +1519,43 @@ export function AdminTabs({
             </div>
           );
           })}
-        </div>
-      )}
 
-      {/* Enrollments Tab */}
-      {tab === "enrollments" && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-neutral-900">Track Enrollments</h2>
-            <p className="text-xs text-neutral-400">
-              {enrollments.length} assignment{enrollments.length !== 1 ? "s" : ""}
-            </p>
-          </div>
-
-          <p className="text-xs text-neutral-500">
-            Students with no track assignments see all tracks. Assign a track to restrict their dashboard to only that track.
-          </p>
-
-          {/* Bulk assign */}
-          <div className="rounded-xl border border-neutral-200 bg-white p-4 space-y-3">
-            <p className="text-xs font-semibold text-neutral-700">Bulk Assign</p>
-            <div className="flex items-center gap-2 flex-wrap">
-              <div className="relative">
-                <select
-                  value={bulkTrack}
-                  onChange={(e) => setBulkTrack(e.target.value)}
-                  className="appearance-none rounded-lg border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-2 text-xs font-medium text-neutral-700 focus:border-neutral-400 focus:outline-none"
-                >
-                  {tracks.map((t) => (
-                    <option key={t.slug} value={t.slug}>{t.shortName}</option>
-                  ))}
-                </select>
-                <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
-              </div>
-              <button
-                onClick={handleBulkAssign}
-                disabled={bulkSaving || bulkSelected.size === 0}
-                className="inline-flex items-center gap-1 rounded-lg bg-neutral-900 px-3 py-2 text-xs font-medium text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
-              >
-                {bulkSaving ? "Assigning..." : `Assign ${bulkSelected.size} selected`}
-              </button>
-              {bulkSelected.size > 0 && (
-                <button
-                  onClick={() => setBulkSelected(new Set())}
-                  className="text-xs text-neutral-400 hover:text-neutral-600"
-                >
-                  Clear
-                </button>
-              )}
-            </div>
-
-            {/* Checkboxes */}
-            <div className="max-h-48 overflow-y-auto space-y-1 border-t border-neutral-100 pt-2">
-              {students.filter((s) => s.role !== "admin").map((student) => {
-                const alreadyEnrolled = enrollments.some(
-                  (e) => e.student_id === student.id && e.track_slug === bulkTrack
-                );
-                return (
-                  <label
-                    key={student.id}
-                    className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs cursor-pointer hover:bg-neutral-50 ${
-                      alreadyEnrolled ? "opacity-50" : ""
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      disabled={alreadyEnrolled}
-                      checked={bulkSelected.has(student.id)}
-                      onChange={(e) => {
-                        const next = new Set(bulkSelected);
-                        if (e.target.checked) next.add(student.id);
-                        else next.delete(student.id);
-                        setBulkSelected(next);
-                      }}
-                      className="rounded border-neutral-300"
-                    />
-                    <span className="text-neutral-700">
-                      {student.first_name} {student.last_name}
-                    </span>
-                    {alreadyEnrolled && (
-                      <span className="text-[10px] text-neutral-400 ml-auto">Already enrolled</span>
-                    )}
-                  </label>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Filter by track */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-neutral-500">Filter:</span>
-            <button
-              onClick={() => setEnrollmentFilter("all")}
-              className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                enrollmentFilter === "all"
-                  ? "bg-neutral-900 text-white"
-                  : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
-              }`}
-            >
-              All
-            </button>
-            {tracks.map((t) => (
-              <button
-                key={t.slug}
-                onClick={() => setEnrollmentFilter(t.slug)}
-                className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                  enrollmentFilter === t.slug
-                    ? "bg-neutral-900 text-white"
-                    : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
-                }`}
-              >
-                {t.shortName}
-              </button>
-            ))}
-            <button
-              onClick={() => setEnrollmentFilter("none")}
-              className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                enrollmentFilter === "none"
-                  ? "bg-neutral-900 text-white"
-                  : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
-              }`}
-            >
-              Unassigned
-            </button>
-          </div>
-
-          {/* Per-student enrollment cards */}
-          <div className="space-y-2">
-            {students
-              .filter((s) => s.role !== "admin")
-              .filter((s) => {
-                if (enrollmentFilter === "all") return true;
-                if (enrollmentFilter === "none") return getStudentEnrollments(s.id).length === 0;
-                return getStudentEnrollments(s.id).includes(enrollmentFilter);
-              })
-              .map((student) => {
-                const studentEnrollments = getStudentEnrollments(student.id);
-                return (
-                  <div
-                    key={student.id}
-                    className="rounded-xl border border-neutral-200 bg-white p-3"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-neutral-900">
-                          {student.first_name} {student.last_name}
-                        </p>
-                        <p className="text-[11px] text-neutral-400">{student.email}</p>
-                      </div>
-                      {studentEnrollments.length === 0 && (
-                        <span className="text-[10px] text-neutral-400 bg-neutral-100 rounded-full px-2 py-0.5">
-                          Sees all tracks
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {tracks.map((t) => {
-                        const isEnrolled = studentEnrollments.includes(t.slug);
-                        const isSaving = enrollmentSaving === `${student.id}-${t.slug}`;
-                        return (
-                          <button
-                            key={t.slug}
-                            onClick={() => toggleTrackEnrollment(student.id, t.slug)}
-                            disabled={isSaving}
-                            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition-all ${
-                              isEnrolled
-                                ? "bg-neutral-900 text-white hover:bg-red-600"
-                                : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200"
-                            } ${isSaving ? "opacity-50" : ""}`}
-                            title={isEnrolled ? `Remove from ${t.shortName}` : `Add to ${t.shortName}`}
-                          >
-                            {isSaving ? (
-                              <Loader2 size={10} className="animate-spin" />
-                            ) : isEnrolled ? (
-                              <Check size={10} />
-                            ) : (
-                              <Plus size={10} />
-                            )}
-                            {t.shortName}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-          </div>
-
-          {/* Instructor Track Assignments */}
-          {(() => {
-            const instructors = students.filter((s) => s.role === "instructor");
-            if (instructors.length === 0) return null;
-            return (
-              <div className="rounded-xl border border-neutral-200 bg-white p-4 space-y-3">
-                <div className="flex items-center gap-2">
-                  <GraduationCap size={14} className="text-blue-500" />
-                  <p className="text-xs font-semibold text-neutral-700">Instructor Track Assignments</p>
-                </div>
+          {/* Enrollment links (collapsible footer) */}
+          {tracks.length > 0 && (
+            <details className="rounded-xl border border-dashed border-neutral-300 bg-neutral-50 mt-4">
+              <summary className="cursor-pointer px-4 py-3 text-xs font-semibold text-neutral-700 select-none flex items-center justify-between">
+                <span>Enrollment links</span>
+                <LinkIcon size={12} className="text-neutral-400" />
+              </summary>
+              <div className="px-4 pb-4 space-y-2">
                 <p className="text-[11px] text-neutral-500">
-                  Assign instructors to the tracks they teach. Instructors only see their assigned tracks in the admin panel.
+                  Share these with students. Signing in through a link auto-enrolls them in that track.
                 </p>
-                <div className="space-y-2">
-                  {instructors.map((instructor) => {
-                    const assigned = getInstructorAssignments(instructor.id);
-                    return (
-                      <div key={instructor.id} className="rounded-lg border border-neutral-100 p-3">
-                        <p className="text-sm font-medium text-neutral-900 mb-2">
-                          {instructor.first_name} {instructor.last_name}
-                          <span className="text-[11px] text-neutral-400 ml-1.5">{instructor.email}</span>
-                        </p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {tracks.map((t) => {
-                            const isAssigned = assigned.includes(t.slug);
-                            const isSaving = instrTrackSaving === `${instructor.id}-${t.slug}`;
-                            return (
-                              <button
-                                key={t.slug}
-                                onClick={() => toggleInstructorTrack(instructor.id, t.slug)}
-                                disabled={isSaving}
-                                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition-all ${
-                                  isAssigned
-                                    ? "bg-blue-600 text-white hover:bg-red-600"
-                                    : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200"
-                                } ${isSaving ? "opacity-50" : ""}`}
-                                title={isAssigned ? `Remove from ${t.shortName}` : `Assign to ${t.shortName}`}
-                              >
-                                {isSaving ? (
-                                  <Loader2 size={10} className="animate-spin" />
-                                ) : isAssigned ? (
-                                  <Check size={10} />
-                                ) : (
-                                  <Plus size={10} />
-                                )}
-                                {t.shortName}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                {tracks.map((t) => {
+                  const domain = typeof window !== "undefined" ? window.location.origin : "";
+                  const link = `${domain}/?track=${t.slug}`;
+                  return (
+                    <div key={t.slug} className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-neutral-600 w-28 shrink-0">{t.shortName}:</span>
+                      <code className="flex-1 text-[11px] text-neutral-500 bg-white rounded px-2 py-1 border border-neutral-200 truncate">
+                        {link}
+                      </code>
+                      <button
+                        onClick={() => navigator.clipboard.writeText(link)}
+                        className="shrink-0 rounded-md border border-neutral-200 p-1.5 text-neutral-400 hover:text-neutral-600 hover:bg-white transition-colors"
+                        title="Copy link"
+                      >
+                        <LinkIcon size={12} />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })()}
-
-          {/* Enrollment links */}
-          <div className="rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-4 space-y-2">
-            <p className="text-xs font-semibold text-neutral-700">Enrollment Links</p>
-            <p className="text-[11px] text-neutral-500">
-              Share these links with students. When they sign in through a link, they&apos;ll be automatically enrolled in that track.
-            </p>
-            {tracks.map((t) => {
-              const domain = typeof window !== "undefined" ? window.location.origin : "";
-              const link = `${domain}/?track=${t.slug}`;
-              return (
-                <div key={t.slug} className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-neutral-600 w-28 shrink-0">{t.shortName}:</span>
-                  <code className="flex-1 text-[11px] text-neutral-500 bg-white rounded px-2 py-1 border border-neutral-200 truncate">
-                    {link}
-                  </code>
-                  <button
-                    onClick={() => navigator.clipboard.writeText(link)}
-                    className="shrink-0 rounded-md border border-neutral-200 p-1.5 text-neutral-400 hover:text-neutral-600 hover:bg-white transition-colors"
-                    title="Copy link"
-                  >
-                    <LinkIcon size={12} />
-                  </button>
-                </div>
-              );
-            })}
-          </div>
+            </details>
+          )}
         </div>
       )}
+
 
       {/* Student Work Tab */}
       {tab === "student-work" && (

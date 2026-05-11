@@ -11,8 +11,33 @@ import { authCookieDomain } from "@/lib/supabase/cookie-domain";
 // existing program-override cookie (24h) so subsequent navigation works.
 const VALID_PREVIEW_SLUGS = new Set(["marketing", "atg", "forge", "catalyst"]);
 
+// Pre-launch password gate. Applies only to the marketing host
+// (bccacademy.io / www.bccacademy.io) — program subdomains have their own
+// auth. Exempted: the gate flow itself and public survey routes (so
+// participants with a direct survey link can take it without the password).
+const GATE_EXEMPT_PREFIXES = ["/gate", "/api/gate", "/survey/"];
+const GATE_COOKIE = "site-access";
+const MARKETING_HOSTS = new Set(["bccacademy.io", "www.bccacademy.io"]);
+
 export async function middleware(request: NextRequest) {
   const host = request.headers.get("host") ?? "localhost:3000";
+
+  // ── Site password gate (marketing host only) ──────────────────────────
+  const sitePassword = process.env.SITE_PASSWORD;
+  if (sitePassword && MARKETING_HOSTS.has(host)) {
+    const pathname = request.nextUrl.pathname;
+    const isExempt = GATE_EXEMPT_PREFIXES.some((p) => pathname.startsWith(p));
+    const hasAccess = request.cookies.get(GATE_COOKIE)?.value === sitePassword;
+    if (!isExempt && !hasAccess) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/gate";
+      url.search = "";
+      if (pathname !== "/") {
+        url.searchParams.set("next", pathname + request.nextUrl.search);
+      }
+      return NextResponse.redirect(url);
+    }
+  }
 
   // Honor ?as= override first, but only on non-production hosts. On a real
   // bccacademy.io subdomain the URL always wins for safety.
