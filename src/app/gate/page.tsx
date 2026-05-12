@@ -1,5 +1,3 @@
-import Image from "next/image";
-
 export const dynamic = "force-dynamic";
 
 export default async function GatePage({
@@ -11,29 +9,22 @@ export default async function GatePage({
   const hasError = error === "1";
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#1a1a1a] px-6">
+    <div className="min-h-screen flex items-center justify-center bg-true-black px-6">
       <form
         action="/api/gate"
         method="POST"
         className="w-full max-w-sm space-y-8 text-center"
       >
         <div className="space-y-6">
-          <div className="flex justify-center">
-            <Image
-              src="/images/bcc/logos/bcc-logo-horizontal-white.png"
-              alt="BCC Academy"
-              width={180}
-              height={48}
-              priority
-              className="h-10 w-auto"
-            />
-          </div>
+          <h1 className="font-display text-3xl md:text-4xl font-bold text-white uppercase tracking-tight leading-none">
+            BCC <span className="text-electric-green">[</span>Academy<span className="text-electric-green">]</span>
+          </h1>
 
           <div className="space-y-2">
-            <p className="text-[10px] uppercase tracking-[0.3em] text-white/40 font-mono">
+            <p className="text-[10px] uppercase tracking-[0.3em] text-electric-green font-mono">
               [ Private Preview ]
             </p>
-            <p className="text-sm text-white/60">
+            <p className="text-sm text-white/60 font-mono">
               This site is under construction.
               <br />
               Enter the password to continue.
@@ -51,16 +42,16 @@ export default async function GatePage({
             required
             autoComplete="current-password"
             placeholder="Password"
-            className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/40 focus:border-[#E54D2E] focus:outline-none"
+            className="w-full border border-white/15 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/40 focus:border-electric-green focus:outline-none font-mono"
           />
 
           {hasError && (
-            <p className="text-xs text-[#E54D2E]">Incorrect password. Try again.</p>
+            <p className="text-xs text-electric-green font-mono">Incorrect password. Try again.</p>
           )}
 
           <button
             type="submit"
-            className="w-full rounded-lg bg-[#E54D2E] px-4 py-3 text-sm font-semibold text-white hover:bg-[#F0613E] transition-colors"
+            className="w-full bg-electric-green px-4 py-3 text-sm font-bold text-true-black uppercase tracking-wider transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_4px_15px_rgba(229,247,1,0.3)] btn-press"
           >
             Enter
           </button>
