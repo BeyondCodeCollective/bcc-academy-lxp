@@ -88,13 +88,7 @@ export default async function GetStartedPage() {
                 href="/dashboard/resources"
               />
             )}
-            {program.tutorConfig?.enabled !== false && (
-              <PlatformRow
-                title="AI Tutor"
-                body="A 24/7 study buddy that knows what you're working on this week. 30 messages per day."
-                href="/dashboard/tutor"
-              />
-            )}
+            {/* AI Tutor row temporarily hidden pre-launch. */}
           </ul>
         </Section>
 
@@ -110,7 +104,7 @@ export default async function GetStartedPage() {
             </li>
             <li className="flex gap-3">
               <span className="text-ink-faint tabular-nums">03</span>
-              <span>Ask for help early. Use the AI Tutor or message your instructor — don&apos;t get stuck silently.</span>
+              <span>Ask for help early. Message your instructor — don&apos;t get stuck silently.</span>
             </li>
             <li className="flex gap-3">
               <span className="text-ink-faint tabular-nums">04</span>

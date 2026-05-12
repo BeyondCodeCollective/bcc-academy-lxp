@@ -115,37 +115,8 @@ export default async function InstructorGuidePage() {
           </ol>
         </GuideSection>
 
-        {/* AI Tutor */}
-        {program.tutorConfig?.enabled !== false && (
-          <GuideSection
-            icon={<ChatCircleDots size={22} weight="bold" />}
-            title="How the AI Tutor Works"
-          >
-            <ul className="space-y-2 text-sm text-neutral-700 list-disc list-inside">
-              <li>
-                Students have a <strong>24/7 AI study buddy</strong> in the AI
-                Tutor tab
-              </li>
-              <li>
-                The tutor knows the current week&apos;s objectives and tailors
-                responses accordingly
-              </li>
-              <li>
-                Students are limited to <strong>30 messages per day</strong> to
-                keep costs manageable
-              </li>
-              <li>
-                All tutor interactions are logged — you can see usage patterns in
-                the admin panel
-              </li>
-              <li>
-                The tutor does <strong>not</strong> replace instructor
-                feedback — it helps students work through concepts between
-                sessions
-              </li>
-            </ul>
-          </GuideSection>
-        )}
+        {/* AI Tutor section temporarily hidden pre-launch.
+            See dashboard/layout.tsx for the matching showTutor=false override. */}
 
         {/* Announcements */}
         <GuideSection

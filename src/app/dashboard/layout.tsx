@@ -43,7 +43,9 @@ export default async function DashboardLayout({
     canSwitch = canSwitchPrograms(role);
   }
 
-  const showTutor = program.tutorConfig?.enabled !== false;
+  // AI Tutor temporarily hidden everywhere pre-launch. Flip back to
+  // `program.tutorConfig?.enabled !== false` to re-enable per-program.
+  const showTutor = false;
   const showResources = program.resourcesEnabled === true;
   const programs = canSwitch
     ? getAllPrograms().map((p) => ({ slug: p.slug, name: p.name }))
