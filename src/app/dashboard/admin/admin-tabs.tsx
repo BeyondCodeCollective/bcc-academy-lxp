@@ -736,12 +736,18 @@ export function AdminTabs({
             </p>
           </div>
 
-          {canSwitchPrograms(userRole) && publicSurveyStats.length > 0 && (
+          {canSwitchPrograms(userRole) && publicSurveyStats.length > 0 && (() => {
+            // On the marketing apex (BCC-wide view) show every program's
+            // public surveys. On a specific program scope to that program.
+            const rowsForView = programSlug === "marketing"
+              ? publicSurveyStats
+              : publicSurveyStats.filter((row) => row.program_slug === programSlug);
+            if (rowsForView.length === 0) return null;
+            return (
             <div>
               <h2 className="text-lg font-semibold text-neutral-900 mb-4">Public Surveys</h2>
               <div className="space-y-3">
-                {publicSurveyStats
-                  .filter((row) => row.program_slug === programSlug)
+                {rowsForView
                   .map((row) => {
                     const title =
                       surveyConfigs.find((s) => s.id === row.survey_type)?.title ??
@@ -783,7 +789,8 @@ export function AdminTabs({
                   })}
               </div>
             </div>
-          )}
+            );
+          })()}
         </div>
       )}
 

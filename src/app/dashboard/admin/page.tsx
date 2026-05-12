@@ -46,17 +46,37 @@ export default async function AdminPage() {
 
     if (!canAccessAdminPanel(userRole)) redirect("/dashboard");
 
-    // Public-survey stats are only shown on dashboardless programs (e.g.
-    // Catalyst). On Forge/ATG the widget is hidden entirely, so fetching
-    // across the whole public_survey_responses table is pure waste.
-    const needsPublicSurveyStats = canSwitchPrograms(userRole);
+    // Public-survey stats are only shown on dashboardless programs
+    // (marketing apex BCC-wide view, Catalyst, etc.). On Forge/ATG the
+    // widget is hidden entirely, so fetching across the whole
+    // public_survey_responses table is pure waste — that query is the
+    // single biggest contributor to admin-page latency for super-admins.
+    // tracks.length is known synchronously from the resolved program
+    // config; no DB round-trip needed to decide.
+    const needsPublicSurveyStats =
+      canSwitchPrograms(userRole) && program.tracks.length === 0;
 
-    // Batch 2: every data query the admin page needs, fired in one round trip.
-    // Previously each helper re-looked-up the program row and they ran
-    // serially, stacking ~8 round-trips. This collapses them to one concurrent
-    // batch. publicSurveyStats now lives inside the parallel batch too, so
-    // super-admins on Catalyst don't pay a serial round-trip for it.
-    const [coreRes, surveyStatsResults, publicStatsRes, engagementRes] = await Promise.all([
+    // Dashboardless programs (marketing apex BCC-wide view, Catalyst) have no
+    // tracks, cohorts, students, etc. — every program-scoped query would
+    // return empty. Skip the heavy batch entirely and only resolve public
+    // survey stats. This makes /dashboard/admin on bccacademy.io render in
+    // one round-trip instead of ~12 empty queries.
+    const isDashboardlessProgram = program.tracks.length === 0;
+
+    if (isDashboardlessProgram) {
+      publicSurveyStats = needsPublicSurveyStats
+        ? await getPublicSurveyStats().catch((e) => {
+            console.error("getPublicSurveyStats failed:", e);
+            return [] as PublicSurveyStatsRow[];
+          })
+        : [];
+    } else {
+      // Batch 2: every data query the admin page needs, fired in one round trip.
+      // Previously each helper re-looked-up the program row and they ran
+      // serially, stacking ~8 round-trips. This collapses them to one concurrent
+      // batch. publicSurveyStats now lives inside the parallel batch too, so
+      // super-admins on Catalyst don't pay a serial round-trip for it.
+      const [coreRes, surveyStatsResults, publicStatsRes, engagementRes] = await Promise.all([
       Promise.all([
         svc
           .from("students")
@@ -157,6 +177,7 @@ export default async function AdminPage() {
         tutorMessages: tut,
       };
     }
+    } // end !isDashboardlessProgram
   }
 
   const surveyConfigs = (program.surveys ?? []).map((s) => ({
