@@ -86,33 +86,22 @@ export default function LiveSessionsSection() {
                   </p>
                 </div>
 
-                <a
-                  href={session.joinUrl}
-                  className="inline-flex items-center gap-2 self-start px-5 py-2.5 border border-white/20 text-white text-sm font-bold hover:bg-electric-green hover:text-true-black hover:border-electric-green transition-all duration-300 group-hover:border-white/40"
-                >
-                  {session.status === "live" ? "Join Live" : "View Schedule"}
-                  <ArrowRight size={13} weight="bold" />
-                </a>
+                {session.status === "live" ? (
+                  <a
+                    href={session.joinUrl}
+                    className="inline-flex items-center gap-2 self-start px-5 py-2.5 border border-white/20 text-white text-sm font-bold hover:bg-electric-green hover:text-true-black hover:border-electric-green transition-all duration-300 group-hover:border-white/40"
+                  >
+                    Join Live
+                    <ArrowRight size={13} weight="bold" />
+                  </a>
+                ) : (
+                  <span className="inline-flex items-center gap-2 self-start px-5 py-2.5 border border-white/10 text-white/50 text-sm font-bold uppercase tracking-wider cursor-default">
+                    Coming Soon
+                  </span>
+                )}
               </div>
             </motion.div>
           ))}
-        </motion.div>
-
-        {/* Footer link */}
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          variants={fadeInUp}
-          className="mt-12 text-center"
-        >
-          <a
-            href="#events"
-            className="inline-flex items-center gap-2 text-sm font-mono font-bold text-white/50 hover:text-electric-green transition-colors duration-300 tracking-wider uppercase"
-          >
-            View full schedule
-            <ArrowRight size={13} weight="bold" />
-          </a>
         </motion.div>
       </div>
     </section>
