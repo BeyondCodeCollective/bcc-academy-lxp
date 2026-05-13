@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { getProgram } from "@/lib/programs/server";
+import { isTutorAvailable } from "@/lib/programs";
 import { computeCurrentWeek } from "@/lib/utils";
 import type { TrackConfig, WeekConfig } from "@/lib/programs/types";
 
@@ -23,7 +24,7 @@ export async function POST(request: Request) {
 
   const program = await getProgram();
 
-  if (program.tutorConfig?.enabled === false) {
+  if (!isTutorAvailable(program)) {
     return NextResponse.json({
       reply: "The AI Tutor is not available for this program.",
     });
