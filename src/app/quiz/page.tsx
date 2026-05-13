@@ -19,7 +19,10 @@ export default async function QuizPage() {
     notFound();
   }
   return (
-    <div className="marketing-scope">
+    // bg-black on the wrapper prevents a white flash between screen
+    // transitions (AnimatePresence briefly has both screens at opacity 0
+    // and the body bg would otherwise bleed through).
+    <div className="marketing-scope bg-black min-h-[100dvh]">
       <QuizClient />
     </div>
   );
