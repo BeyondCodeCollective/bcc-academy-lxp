@@ -16,8 +16,34 @@ import {
 // the URL always wins on the real domain.
 const VALID_PREVIEW_SLUGS = new Set(["marketing", "atg", "forge", "catalyst"]);
 
+// Pre-launch password gate. Applies only to the marketing host
+// (bccacademy.io / www.bccacademy.io) — program subdomains have their own
+// auth. Exempted: the gate flow itself and public survey routes (so
+// participants with a direct survey link can take it without the password).
+const GATE_EXEMPT_PREFIXES = ["/gate", "/api/gate", "/survey/"];
+const GATE_COOKIE = "site-access";
+const MARKETING_HOSTS = new Set(["bccacademy.io", "www.bccacademy.io"]);
+
 export async function proxy(request: NextRequest) {
   const host = request.headers.get("host") ?? "localhost:3000";
+
+  // ── Site password gate (marketing host only) ──────────────────────────
+  const sitePassword = process.env.SITE_PASSWORD;
+  if (sitePassword && MARKETING_HOSTS.has(host)) {
+    const pathname = request.nextUrl.pathname;
+    const isExempt = GATE_EXEMPT_PREFIXES.some((p) => pathname.startsWith(p));
+    const hasAccess = request.cookies.get(GATE_COOKIE)?.value === sitePassword;
+    if (!isExempt && !hasAccess) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/gate";
+      url.search = "";
+      if (pathname !== "/") {
+        url.searchParams.set("next", pathname + request.nextUrl.search);
+      }
+      return NextResponse.redirect(url);
+    }
+  }
+
   const asParam = request.nextUrl.searchParams.get("as");
   const previewOverride =
     asParam && VALID_PREVIEW_SLUGS.has(asParam) && !isKnownProgramHost(host)
@@ -56,6 +82,20 @@ export async function proxy(request: NextRequest) {
     !process.env.NEXT_PUBLIC_SUPABASE_URL ||
     !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   ) {
+    return applyProgramCookies(
+      NextResponse.next({ request: { headers: requestHeaders } }),
+    );
+  }
+
+  // Auth check only runs for routes whose redirect rules depend on it:
+  // dashboard (kick out unauthed users) and `/` (kick authed users to
+  // their dashboard). Everywhere else, skip the network round-trip to
+  // Supabase Auth — broadening the matcher to cover the password gate
+  // would otherwise add ~100–300ms to every marketing page.
+  const pathname = request.nextUrl.pathname;
+  const needsAuthCheck =
+    pathname === "/" || pathname.startsWith("/dashboard");
+  if (!needsAuthCheck) {
     return applyProgramCookies(
       NextResponse.next({ request: { headers: requestHeaders } }),
     );
@@ -117,5 +157,14 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/", "/dashboard/:path*"],
+  // Run on every route except Next.js internals and static asset files.
+  // The previous narrow matcher ("/", "/dashboard/:path*") meant the
+  // pre-launch site-password gate never fired on /quiz, /pathways/*,
+  // /privacy, /terms, /login, /certificate, /survey/*, etc. — anyone could
+  // bypass the gate by guessing a path. The auth-redirect branches at the
+  // bottom of `proxy()` are guarded by explicit path checks so broadening
+  // the matcher does not change auth behavior.
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|icon|robots.txt|sitemap.xml|.*\\.[\\w]+$).*)",
+  ],
 };
