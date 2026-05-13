@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import type { ProgramConfig, TrackConfig } from "@/lib/programs/types";
+import { isTutorAvailable } from "@/lib/programs";
 
 const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
@@ -41,7 +42,7 @@ export async function sendWelcomeEmail({
     )
     .join("");
 
-  const hasTutor = program.tutorConfig?.enabled !== false;
+  const hasTutor = isTutorAvailable(program);
   const dashboardUrl = `https://${program.domain}/dashboard`;
 
   const html = `
