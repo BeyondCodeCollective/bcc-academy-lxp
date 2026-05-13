@@ -430,19 +430,14 @@ function QuestionScreen({
 
 function ResultsScreen({
   personalityKey,
-  ageGroup,
   onRestart,
 }: {
   personalityKey: PersonalityKey;
-  ageGroup: AgeGroup;
   onRestart: () => void;
 }) {
   const career = careers[personalityKey];
   const [hoursPerDay, setHoursPerDay] = useState<2 | 4 | 6>(4);
-  const isYouth = ageGroup === "under18";
   const months = career.timeToComplete[hoursPerDay];
-  const pathwayItems = isYouth ? career.forYouth.items : career.forAdult.items;
-  const pathwayCta = isYouth ? career.forYouth.cta : career.forAdult.cta;
   const pathway = careerPathways[career.pathway];
 
   return (
@@ -532,58 +527,28 @@ function ResultsScreen({
           <p className="text-gray-400 text-xs mt-2 uppercase tracking-wider">*Based on student averages</p>
         </motion.div>
 
-        {/* Salary range */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="mb-6 md:mb-8 bg-gray-50 p-4 md:p-6 border border-black/10"
-        >
-          <h3 className="text-base md:text-lg font-bold text-black mb-3 md:mb-4">Salary range</h3>
-          <div className="relative h-16 md:h-20 flex items-end gap-0.5 md:gap-1 mb-2">
-            {[15, 25, 40, 55, 70, 85, 95, 100, 95, 85, 70].map((height, i) => (
-              <div
-                key={i}
-                className="flex-1 transition-all"
-                style={{
-                  height: `${height}%`,
-                  backgroundColor: i === 5 || i === 6 ? "#1D59FF" : "rgba(29,89,255,0.12)",
-                }}
-              />
-            ))}
-          </div>
-          <div className="flex justify-between text-sm text-gray-400">
-            <span>${(career.salary.low / 1000).toFixed(0)}k</span>
-            <span className="font-semibold text-black">${(career.salary.mid / 1000).toFixed(0)}k</span>
-            <span>${(career.salary.high / 1000).toFixed(0)}k</span>
-          </div>
-        </motion.div>
-
         <p className="text-gray-400 text-[10px] md:text-[11px] leading-tight mb-6 md:mb-8 uppercase tracking-wider">
           Salary and timeline estimates are based on industry averages and are not guaranteed.
         </p>
 
-        {/* Pathway match — header */}
+        {/* Training pathway — header + cert ladder merged */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.45 }}
-          className="mb-4 md:mb-5"
+          transition={{ delay: 0.3 }}
+          className="mb-6 md:mb-8 bg-white p-4 md:p-6 border border-black/10"
         >
-          <p className="text-xs font-semibold tracking-wider text-gray-400 uppercase mb-2">
-            [ Your Training Pathway ]
-          </p>
-          <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
             <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold tracking-wider text-gray-400 uppercase mb-1">
+                [ Your Training Pathway ]
+              </p>
               <h2
-                className="font-display text-2xl md:text-4xl text-black tracking-tight leading-[0.95] mb-1"
+                className="font-display text-xl md:text-2xl tracking-tight leading-tight"
                 style={{ color: pathway.accent }}
               >
                 {pathway.shortName}
               </h2>
-              <p className="text-base md:text-lg text-black italic">
-                &ldquo;{pathway.tagline}&rdquo;
-              </p>
             </div>
             {pathway.status === "in-design" ? (
               <span className="inline-block px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-black/5 text-black/60 border border-black/10 whitespace-nowrap">
@@ -594,24 +559,6 @@ function ResultsScreen({
                 Live Now
               </span>
             )}
-          </div>
-          <p className="text-sm md:text-base text-gray-600 mt-3 leading-relaxed">
-            {pathway.description}
-          </p>
-        </motion.div>
-
-        {/* Cert ladder */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="mb-6 md:mb-8 bg-white p-4 md:p-6 border border-black/10"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base md:text-lg font-bold text-black">Your certification ladder</h3>
-            <span className="text-[10px] font-mono text-gray-400 uppercase tracking-wider">
-              {pathway.certLadder.length} rungs
-            </span>
           </div>
           <ol className="relative space-y-0">
             {pathway.certLadder.map((cert, i) => {
@@ -652,62 +599,6 @@ function ResultsScreen({
           </ol>
         </motion.div>
 
-        {/* Role progression */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.55 }}
-          className="mb-6 md:mb-8"
-        >
-          <h3 className="text-base md:text-lg font-bold text-black mb-3 md:mb-4">
-            Where this pathway can take you
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-3">
-            {pathway.roleProgression.map((stage, i) => {
-              const labels = ["Entry", "Mid-level", "Senior"];
-              return (
-                <div
-                  key={stage.title}
-                  className="bg-white border border-black/10 p-4 relative overflow-hidden"
-                >
-                  <div
-                    className="absolute top-0 left-0 right-0 h-0.5"
-                    style={{ backgroundColor: pathway.accent, opacity: 0.3 + i * 0.35 }}
-                  />
-                  <p className="text-[10px] font-mono uppercase tracking-wider text-gray-400 mb-1">
-                    {labels[i]}
-                  </p>
-                  <p className="font-bold text-black text-sm leading-tight mb-2">
-                    {stage.title}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    ${(stage.salary.low / 1000).toFixed(0)}k &ndash; ${(stage.salary.high / 1000).toFixed(0)}k
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </motion.div>
-
-        {/* Capstone preview */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="mb-6 md:mb-8 p-5 md:p-6 text-white relative overflow-hidden"
-          style={{ backgroundColor: pathway.accent }}
-        >
-          <p className="text-[10px] font-mono uppercase tracking-wider opacity-70 mb-2">
-            [ Capstone Project ]
-          </p>
-          <h3 className="font-display text-xl md:text-2xl mb-2 leading-tight">
-            {pathway.capstone.title}
-          </h3>
-          <p className="text-sm md:text-base opacity-90 leading-relaxed">
-            {pathway.capstone.preview}
-          </p>
-        </motion.div>
-
         {/* Day to day */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -724,40 +615,6 @@ function ResultsScreen({
               </li>
             ))}
           </ul>
-        </motion.div>
-
-        {/* Courses */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="mb-6 md:mb-8"
-        >
-          <p className="text-xs font-semibold tracking-wider text-gray-400 uppercase mb-4">
-            [ Start with these courses ]
-          </p>
-          <div className="space-y-2">
-            {pathwayItems.map((item, i) => (
-              <div
-                key={i}
-                className="flex items-center justify-between p-4 border border-black/10 bg-gray-50 hover:bg-gray-100 transition-colors"
-              >
-                <span className="text-sm font-medium text-black">{item}</span>
-                <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
-              </div>
-            ))}
-          </div>
-          <Link
-            href="/#programs"
-            className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-cobalt hover:text-dark-cobalt transition-colors"
-          >
-            {pathwayCta}
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-            </svg>
-          </Link>
         </motion.div>
 
         {/* Next steps */}
@@ -910,7 +767,6 @@ export default function QuizPage() {
         {screen === "results" && (
           <ResultsScreen
             personalityKey={result}
-            ageGroup={ageGroup}
             onRestart={handleRestart}
           />
         )}
