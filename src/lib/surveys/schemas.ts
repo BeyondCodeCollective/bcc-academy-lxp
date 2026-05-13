@@ -145,6 +145,22 @@ const BCC_LEARNER_INTAKE: SurveyQuestion[] = [
   ...SHARED_DEMOGRAPHICS,
 ];
 
+// Question ids collected by `bcc-learner-intake`. Other surveys (e.g. the
+// Forge pre-survey) embed the same demographic block under the same ids,
+// so the auth callback can recognize a public submission as having covered
+// the intake and skip re-asking. Keep this list in sync with
+// SHARED_DEMOGRAPHICS above.
+export const BCC_INTAKE_QUESTION_IDS = [
+  "gender",
+  "race_ethnicity",
+  "languages",
+  "first_gen_college",
+  "employment_status",
+  "household_income",
+  "disability",
+  "education_level",
+] as const;
+
 // ─── bcc-workshop (public) ───────────────────────────────────────────────────
 const BCC_WORKSHOP: SurveyQuestion[] = [
   {

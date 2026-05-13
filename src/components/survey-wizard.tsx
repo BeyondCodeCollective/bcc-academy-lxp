@@ -899,11 +899,17 @@ interface Props {
   surveyId: string;
   programSlug: string;
   existingResponses?: Record<string, unknown> | null;
+  /** Logged-in user id. Used to scope localStorage so a previous user's
+   *  unsubmitted progress on a shared device doesn't bleed into a new
+   *  user's session. */
+  userId?: string;
 }
 
-export function SurveyWizard({ surveyId, programSlug, existingResponses }: Props) {
+export function SurveyWizard({ surveyId, programSlug, existingResponses, userId }: Props) {
   const router = useRouter();
-  const storageKey = `survey-${surveyId}-progress`;
+  const storageKey = userId
+    ? `survey-${surveyId}-${userId}-progress`
+    : `survey-${surveyId}-progress`;
   const SURVEY_PAGES = getSurveyPages(surveyId, programSlug);
 
   const [answers, setAnswers] = useState<Record<string, unknown>>(() => {
