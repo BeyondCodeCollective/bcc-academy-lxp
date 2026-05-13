@@ -157,27 +157,24 @@ function LeadCaptureScreen({
   onSubmit,
   onSkip,
 }: {
-  onSubmit: (contact: { type: "email" | "phone"; value: string }) => void;
+  onSubmit: (contact: { type: "email"; value: string }) => void;
   onSkip: () => void;
 }) {
-  const [contactType, setContactType] = useState<"email" | "phone">("email");
   const [value, setValue] = useState("");
   const [isValid, setIsValid] = useState(false);
 
-  const validateInput = (input: string, type: "email" | "phone") => {
-    if (type === "email") return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input);
-    return /^[\d\s\-+()]{10,}$/.test(input.replace(/\s/g, ""));
-  };
+  const validateEmail = (input: string) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const v = e.target.value;
     setValue(v);
-    setIsValid(validateInput(v, contactType));
+    setIsValid(validateEmail(v));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (isValid) onSubmit({ type: contactType, value });
+    if (isValid) onSubmit({ type: "email", value });
   };
 
   return (
@@ -203,33 +200,12 @@ function LeadCaptureScreen({
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
-              <div className="flex bg-white/10 p-1 border border-white/20 w-fit">
-                <button
-                  type="button"
-                  onClick={() => { setContactType("email"); setValue(""); setIsValid(false); }}
-                  className={`px-5 py-2 text-base font-medium transition-all ${
-                    contactType === "email" ? "bg-white text-black" : "text-white/60 hover:text-white"
-                  }`}
-                >
-                  Email
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setContactType("phone"); setValue(""); setIsValid(false); }}
-                  className={`px-5 py-2 text-base font-medium transition-all ${
-                    contactType === "phone" ? "bg-white text-black" : "text-white/60 hover:text-white"
-                  }`}
-                >
-                  Phone
-                </button>
-              </div>
-
               <div className="relative">
                 <input
-                  type={contactType === "email" ? "email" : "tel"}
+                  type="email"
                   value={value}
                   onChange={handleChange}
-                  placeholder={contactType === "email" ? "your@email.com" : "(555) 123-4567"}
+                  placeholder="your@email.com"
                   className="w-full bg-white text-black placeholder-gray-400 px-5 py-4 text-lg focus:outline-none focus:ring-2 focus:ring-gray-400 border-0"
                   autoFocus
                 />
@@ -825,42 +801,6 @@ function ResultsScreen({
           </div>
         </motion.div>
 
-        {/* Save results card */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.65 }}
-          className="mb-10 p-4 md:p-5 border-2 border-true-black/10 border-l-4 border-l-cobalt"
-        >
-          <div className="flex items-center gap-2 mb-2">
-            <Envelope size={20} weight="bold" className="text-black" />
-            <h4 className="font-bold text-black text-sm">
-              {isYouth ? "Send to a Parent or Guardian" : "Save Your Results"}
-            </h4>
-          </div>
-          <p className="text-gray-500 text-xs mb-3">
-            {isYouth
-              ? "They'll have everything they need to help you get started."
-              : "Get this full roadmap in your inbox."}
-          </p>
-          <form className="flex gap-2" onSubmit={(e) => e.preventDefault()}>
-            <input
-              type="email"
-              placeholder={isYouth ? "parent@email.com" : "your@email.com"}
-              className="flex-1 bg-gray-50 text-black placeholder-gray-400 px-3 py-2.5 text-sm border border-black/10 focus:outline-none focus:border-black transition-colors"
-            />
-            <button
-              type="submit"
-              className="px-4 py-2.5 bg-cobalt text-white text-xs font-bold tracking-wide hover:bg-dark-cobalt transition-colors uppercase"
-            >
-              Send My Results
-            </button>
-          </form>
-          <div className="flex items-center gap-1 mt-3">
-            <Lock size={10} weight="bold" className="text-gray-400" />
-            <p className="text-gray-400 text-[10px] uppercase tracking-wider">No spam. Unsubscribe anytime.</p>
-          </div>
-        </motion.div>
       </div>
     </div>
   );
@@ -876,7 +816,7 @@ export default function QuizPage() {
   const [questionIndex, setQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<PersonalityKey[]>([]);
   const [result, setResult] = useState<PersonalityKey>("fixer");
-  const [contactInfo, setContactInfo] = useState<{ type: "email" | "phone"; value: string } | null>(null);
+  const [contactInfo, setContactInfo] = useState<{ type: "email"; value: string } | null>(null);
 
   const totalQuestions = questions.length;
 
@@ -901,7 +841,7 @@ export default function QuizPage() {
     setScreen("capture");
   };
 
-  const handleCapture = (contact: { type: "email" | "phone"; value: string }) => {
+  const handleCapture = (contact: { type: "email"; value: string }) => {
     setContactInfo(contact);
     setScreen("quiz");
   };
@@ -918,6 +858,21 @@ export default function QuizPage() {
       const finalResult = calculateResult(newAnswers);
       setResult(finalResult);
       setScreen("loading");
+      // Fire-and-forget the results email. If the user skipped the
+      // capture screen we have no email — just no-op. Failures are
+      // logged server-side but don't block the user from seeing their
+      // results on screen.
+      if (contactInfo?.value) {
+        void fetch("/api/quiz/results", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: contactInfo.value,
+            personalityKey: finalResult,
+            ageGroup,
+          }),
+        }).catch(() => {});
+      }
       setTimeout(() => setScreen("results"), 3000);
     } else {
       setQuestionIndex((prev) => prev + 1);
