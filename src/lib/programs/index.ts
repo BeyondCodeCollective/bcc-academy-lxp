@@ -71,3 +71,14 @@ export function getTrackBySlug(program: ProgramConfig, trackSlug: string): Track
 }
 
 export type { ProgramConfig, TrackConfig, WeekConfig, SessionInfo } from "./types";
+
+// Pre-launch kill-switch for the AI Tutor. Flip back to `false` once we're
+// ready to re-enable per-program tutor configs. While true: the
+// /dashboard/tutor route 404s, /api/tutor refuses requests, the dashboard
+// nav hides the link, and the welcome email omits the tutor blurb.
+export const TUTOR_DISABLED_PRELAUNCH = true;
+
+export function isTutorAvailable(program: ProgramConfig): boolean {
+  if (TUTOR_DISABLED_PRELAUNCH) return false;
+  return program.tutorConfig?.enabled !== false;
+}

@@ -10,7 +10,7 @@ import { getProgram } from "@/lib/programs/server";
 import { ProgramProvider } from "@/lib/programs/context";
 import { canAccessAdminPanel, canSwitchPrograms } from "@/lib/roles";
 import { getSessionContext } from "@/lib/auth/session";
-import { getAllPrograms } from "@/lib/programs";
+import { getAllPrograms, isTutorAvailable } from "@/lib/programs";
 
 export default async function DashboardLayout({
   children,
@@ -43,9 +43,8 @@ export default async function DashboardLayout({
     canSwitch = canSwitchPrograms(role);
   }
 
-  // AI Tutor temporarily hidden everywhere pre-launch. Flip back to
-  // `program.tutorConfig?.enabled !== false` to re-enable per-program.
-  const showTutor = false;
+  // AI Tutor pre-launch kill-switch lives in src/lib/programs/index.ts.
+  const showTutor = isTutorAvailable(program);
   const showResources = program.resourcesEnabled === true;
   const programs = canSwitch
     ? getAllPrograms().map((p) => ({ slug: p.slug, name: p.name }))
