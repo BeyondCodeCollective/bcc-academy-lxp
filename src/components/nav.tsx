@@ -121,11 +121,18 @@ export function Nav({
       catalyst: "catalyst.bccacademy.io",
     };
     const targetDomain = domains[slug];
-    const onKnownDomain =
-      targetDomain && Object.values(domains).includes(window.location.hostname);
-    if (onKnownDomain) {
+    const productionHosts = [
+      "bccacademy.io",
+      "www.bccacademy.io",
+      ...Object.values(domains),
+    ];
+    const onProductionHost = productionHosts.includes(window.location.hostname);
+    if (targetDomain && onProductionHost) {
       window.location.href = `https://${targetDomain}/dashboard/admin`;
     } else {
+      // Preview URL / vercel.app / localhost — proxy honors the override cookie
+      // on non-production hosts via ?as=, so a cookie + reload swaps the
+      // resolved program without needing a real subdomain.
       document.cookie = `program-override=${slug}; path=/; max-age=86400`;
       window.location.reload();
     }
