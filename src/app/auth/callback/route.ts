@@ -297,6 +297,44 @@ export async function GET(request: Request) {
           }
           return redirectWithCookies(`${origin}/`);
         }
+
+        // Claim any public survey submissions that match this user's email.
+        // A user who took a public survey (e.g. forge.bccacademy.io's
+        // pre-survey) before signing up should not be forced to retake it
+        // when they later authenticate with the same email. Upsert with
+        // ignoreDuplicates so existing auth'd responses are never
+        // overwritten by older public ones. Idempotent — safe to run on
+        // every callback.
+        const claimEmail = (user.email || "").toLowerCase();
+        if (claimEmail) {
+          const { data: publicRows, error: publicQueryErr } = await admin
+            .from("public_survey_responses")
+            .select("program_id, survey_type, responses, completed_at")
+            .eq("email", claimEmail)
+            .not("completed_at", "is", null);
+
+          if (publicQueryErr) {
+            console.error("[auth/callback] public submissions lookup:", publicQueryErr.message);
+          } else if (publicRows && publicRows.length > 0) {
+            const claimRows = publicRows.map((r) => ({
+              student_id: user.id,
+              survey_type: r.survey_type as string,
+              responses: r.responses,
+              completed_at: r.completed_at as string,
+              program_id: r.program_id as string,
+              updated_at: new Date().toISOString(),
+            }));
+            const { error: claimErr } = await admin
+              .from("survey_responses")
+              .upsert(claimRows, {
+                onConflict: "student_id,survey_type",
+                ignoreDuplicates: true,
+              });
+            if (claimErr) {
+              console.error("[auth/callback] claim public submissions:", claimErr.message);
+            }
+          }
+        }
       }
 
       // BCC Learner Intake — platform-level required survey, fires before any program-specific
