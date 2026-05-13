@@ -19,6 +19,7 @@ export default async function SurveyPage({
   if (!surveyConfig) redirect("/dashboard");
 
   let existingResponses: Record<string, unknown> | null = null;
+  let userId: string | undefined;
 
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
@@ -26,6 +27,7 @@ export default async function SurveyPage({
       data: { session },
     } = await supabase.auth.getSession();
     if (!session?.user) redirect("/");
+    userId = session.user.id;
 
     // Check for existing partial/complete response
     const { data } = await supabase
@@ -63,6 +65,7 @@ export default async function SurveyPage({
         surveyId={surveyId}
         programSlug={program.slug}
         existingResponses={existingResponses}
+        userId={userId}
       />
     </div>
   );
