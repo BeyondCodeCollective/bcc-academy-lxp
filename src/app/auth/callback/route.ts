@@ -6,6 +6,7 @@ import { authCookieDomain } from "@/lib/supabase/cookie-domain";
 import { getProgram } from "@/lib/programs/server";
 import { sendWelcomeEmail } from "@/lib/email";
 import { BCC_INTAKE_SURVEY_ID, BCC_INTAKE_EXEMPT_PROGRAMS } from "@/lib/surveys/platform";
+import { BCC_INTAKE_QUESTION_IDS } from "@/lib/surveys/schemas";
 
 const PROGRAM_DOMAINS: Record<string, string> = {
   atg: "atg.bccacademy.io",
@@ -332,6 +333,51 @@ export async function GET(request: Request) {
               });
             if (claimErr) {
               console.error("[auth/callback] claim public submissions:", claimErr.message);
+            }
+
+            // BCC intake auto-completion. The BCC learner intake is just
+            // the SHARED_DEMOGRAPHICS block (see lib/surveys/schemas.ts).
+            // Other surveys — e.g. the Forge pre-survey — embed the same
+            // demographic ids. If any claimed public submission has every
+            // intake-required answer, synthesize an intake response so the
+            // user is not asked the same questions again on first login.
+            const intakeAlreadyDone = publicRows.some(
+              (r) => r.survey_type === BCC_INTAKE_SURVEY_ID && r.completed_at,
+            );
+            if (!intakeAlreadyDone) {
+              const intakeSource = publicRows.find((r) => {
+                const responses = (r.responses ?? {}) as Record<string, unknown>;
+                return BCC_INTAKE_QUESTION_IDS.every((key) => {
+                  const v = responses[key];
+                  return v !== undefined && v !== null && v !== "";
+                });
+              });
+              if (intakeSource) {
+                const sourceResponses = (intakeSource.responses ?? {}) as Record<string, unknown>;
+                const intakeResponses: Record<string, unknown> = {};
+                for (const key of BCC_INTAKE_QUESTION_IDS) {
+                  intakeResponses[key] = sourceResponses[key];
+                }
+                const { error: intakeErr } = await admin
+                  .from("survey_responses")
+                  .upsert(
+                    {
+                      student_id: user.id,
+                      survey_type: BCC_INTAKE_SURVEY_ID,
+                      responses: intakeResponses,
+                      completed_at: intakeSource.completed_at as string,
+                      program_id: intakeSource.program_id as string,
+                      updated_at: new Date().toISOString(),
+                    },
+                    {
+                      onConflict: "student_id,survey_type",
+                      ignoreDuplicates: true,
+                    },
+                  );
+                if (intakeErr) {
+                  console.error("[auth/callback] intake auto-complete:", intakeErr.message);
+                }
+              }
             }
           }
         }
