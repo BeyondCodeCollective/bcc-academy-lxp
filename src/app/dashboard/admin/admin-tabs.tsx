@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { addStudentAction, deleteStudentAction, updateStudentAction, updateCohortAction, saveSessionContent, assignStudentTrack, removeStudentTrack, bulkAssignTrack, exportSurveyResponses, exportPublicSurveyResponses, getAllSubmissions, getAllReflections, addFeedback, assignInstructorTrack, removeInstructorTrack, deleteSurveyResponse, deletePublicSurveyResponse, listPublicSurveyResponses } from "./actions";
+import { addStudentAction, deleteStudentAction, updateStudentAction, updateCohortAction, saveSessionContent, assignStudentTrack, removeStudentTrack, bulkAssignTrack, exportSurveyResponses, exportPublicSurveyResponses, getAllSubmissions, getAllReflections, addFeedback, assignInstructorTrack, removeInstructorTrack, deleteSurveyResponse, deletePublicSurveyResponse, listPublicSurveyResponses, sendInviteAction } from "./actions";
 import type { SessionResource, StudentTrackRow, SurveyStatsRow, AdminSubmissionRow, AdminReflectionRow, InstructorTrackRow, PublicSurveyStatsRow } from "./actions";
 import { canManageStudents, canSwitchPrograms } from "@/lib/roles";
 import {
@@ -783,6 +783,9 @@ export function AdminTabs({
                         }}
                         onDelete={async (email) => {
                           await deletePublicSurveyResponse(email, row.survey_type, row.program_slug);
+                        }}
+                        onInvite={async (email) => {
+                          return sendInviteAction(email, row.program_slug, row.survey_type);
                         }}
                       />
                     );
@@ -2043,6 +2046,7 @@ function PublicSurveyCard({
   surveyType,
   onExport,
   onDelete,
+  onInvite,
   previewHref,
 }: {
   title: string;
@@ -2051,13 +2055,15 @@ function PublicSurveyCard({
   surveyType: string;
   onExport: () => Promise<void>;
   onDelete: (email: string) => Promise<void>;
+  onInvite: (email: string) => Promise<{ success: boolean; error?: string }>;
   previewHref: string;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [inviting, setInviting] = useState<string | null>(null);
   const [expandedEmail, setExpandedEmail] = useState<string | null>(null);
-  const [responses, setResponses] = useState<{ email: string; full_name: string; completedAt: string | null; responses: Record<string, unknown> }[]>([]);
+  const [responses, setResponses] = useState<{ email: string; full_name: string; completedAt: string | null; invitedAt: string | null; responses: Record<string, unknown> }[]>([]);
   const loaded = useRef(false);
 
   async function loadResponses() {
@@ -2065,7 +2071,7 @@ function PublicSurveyCard({
     setLoading(true);
     try {
       const data = await listPublicSurveyResponses(programSlug, surveyType);
-      setResponses(data.map((r) => ({ email: r.email, full_name: r.full_name, completedAt: r.completed_at, responses: r.responses })));
+      setResponses(data.map((r) => ({ email: r.email, full_name: r.full_name, completedAt: r.completed_at, invitedAt: r.invited_at, responses: r.responses })));
       loaded.current = true;
     } finally {
       setLoading(false);
@@ -2141,6 +2147,30 @@ function PublicSurveyCard({
                   <p className="text-[11px] text-neutral-400 truncate">{r.email}{r.completedAt ? ` · ${new Date(r.completedAt).toLocaleDateString()}` : ""}</p>
                 </button>
                 <div className="flex items-center gap-1 shrink-0">
+                  {r.invitedAt ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700" title={`Invited ${new Date(r.invitedAt).toLocaleDateString()}`}>
+                      ✓ Invited
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setInviting(r.email);
+                        const result = await onInvite(r.email);
+                        if (result.success) {
+                          setResponses((prev) => prev.map((resp) =>
+                            resp.email === r.email ? { ...resp, invitedAt: new Date().toISOString() } : resp
+                          ));
+                        }
+                        setInviting(null);
+                      }}
+                      disabled={inviting === r.email}
+                      className="inline-flex items-center gap-1 rounded-lg bg-blue-50 px-2 py-1 text-[11px] font-medium text-blue-700 hover:bg-blue-100 transition-colors disabled:opacity-50"
+                      title="Accept & send invite email"
+                    >
+                      {inviting === r.email ? <Loader2 size={11} className="animate-spin" /> : "Send Invite"}
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => setExpandedEmail(expandedEmail === r.email ? null : r.email)}

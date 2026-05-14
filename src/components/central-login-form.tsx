@@ -8,11 +8,13 @@ export function CentralLoginForm() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [noAccount, setNoAccount] = useState(false);
   const [error, setError] = useState("");
 
   const notEnrolled =
-    typeof window !== "undefined" &&
-    new URLSearchParams(window.location.search).get("status") === "not-enrolled";
+    noAccount ||
+    (typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("status") === "not-enrolled");
 
   const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
   const isDemoMode =
@@ -35,6 +37,23 @@ export function CentralLoginForm() {
       });
       window.location.href = "/dashboard";
       return;
+    }
+
+    try {
+      const checkRes = await fetch("/api/auth/account-exists", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: trimmedEmail }),
+      });
+      const { exists } = (await checkRes.json()) as { exists: boolean };
+      if (!exists) {
+        setNoAccount(true);
+        setLoading(false);
+        return;
+      }
+    } catch {
+      // If the check fails, fall through to OTP — the auth callback
+      // has its own guard for unadmitted users.
     }
 
     const callbackUrl = isLocalDev
@@ -82,11 +101,11 @@ export function CentralLoginForm() {
       <div className="space-y-6">
         <div>
           <h1 className="font-display text-3xl md:text-5xl text-white mb-3 md:mb-4 leading-[0.9] uppercase font-bold">
-            Not enrolled yet.
+            No account found.
           </h1>
           <p className="text-base md:text-lg text-white/70 leading-relaxed">
-            If you&rsquo;ve been invited to a program, check your email for the
-            link your instructor sent.
+            We don&rsquo;t have an account for that email. If you&rsquo;ve been
+            invited to a program, use the link your instructor sent you.
           </p>
         </div>
         <a
@@ -98,8 +117,9 @@ export function CentralLoginForm() {
         <div>
           <button
             onClick={() => {
+              setNoAccount(false);
+              setEmail("");
               window.history.replaceState(null, "", "/login");
-              window.location.reload();
             }}
             className="text-sm text-white/40 hover:text-white transition-colors"
           >
