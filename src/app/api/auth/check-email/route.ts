@@ -1,22 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getProgram } from "@/lib/programs/server";
-
-// Mirrors the privileged lists in auth/callback/route.ts so admins can
-// always bootstrap a session without an invite link.
-const SUPER_ADMIN_EMAILS = [
-  "fonz.morris@wearebgc.org",
-  "admin@wearebgc.org",
-  ...(process.env.SUPER_ADMIN_EMAILS || "")
-    .split(",")
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean),
-];
-
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "")
-  .split(",")
-  .map((e) => e.trim().toLowerCase())
-  .filter(Boolean);
+import { isPrivilegedEmail } from "@/lib/auth/admins";
 
 export async function POST(req: Request) {
   const body = (await req.json().catch(() => null)) as
@@ -30,8 +15,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ allowed: false });
   }
 
-  // Admins always allowed (bootstrap access)
-  if (SUPER_ADMIN_EMAILS.includes(email) || ADMIN_EMAILS.includes(email)) {
+  if (isPrivilegedEmail(email)) {
     return NextResponse.json({ allowed: true });
   }
 

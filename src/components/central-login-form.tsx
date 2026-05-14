@@ -4,23 +4,17 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Check } from "@phosphor-icons/react";
 
-const PROGRAM_DOMAINS: Record<string, string> = {
-  atg: "atg.bccacademy.io",
-  forge: "forge.bccacademy.io",
-  catalyst: "catalyst.bccacademy.io",
-};
-
 export function CentralLoginForm() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
-  const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState("");
 
+  const notEnrolled =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("status") === "not-enrolled";
+
   const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
-  // Demo shortcut only when there's genuinely no Supabase backend wired up.
-  // When NEXT_PUBLIC_SUPABASE_URL is set (even in dev), run real OTP so
-  // middleware's getUser() check finds an actual session.
   const isDemoMode =
     process.env.NODE_ENV === "development" &&
     !process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -30,7 +24,6 @@ export function CentralLoginForm() {
     e.preventDefault();
     setLoading(true);
     setError("");
-    setNotFound(false);
 
     const trimmedEmail = email.trim().toLowerCase();
 
@@ -44,31 +37,6 @@ export function CentralLoginForm() {
       return;
     }
 
-    let programSlug: string | null = null;
-    try {
-      const res = await fetch("/api/auth/lookup-program", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: trimmedEmail }),
-      });
-      const data = (await res.json()) as { programSlug: string | null };
-      programSlug = data.programSlug;
-    } catch {
-      setError("Something went wrong. Please try again.");
-      setLoading(false);
-      return;
-    }
-
-    if (!programSlug || !PROGRAM_DOMAINS[programSlug]) {
-      setNotFound(true);
-      setLoading(false);
-      return;
-    }
-
-    // Use the current origin for the callback so the PKCE code_verifier cookie
-    // (set on this domain) is readable when the callback route runs. Pointing
-    // to a different domain (e.g. atg.bccacademy.io when testing on a Vercel
-    // preview URL) causes exchangeCodeForSession to fail silently.
     const callbackUrl = isLocalDev
       ? `http://localhost:3000/auth/callback`
       : `${window.location.origin}/auth/callback`;
@@ -109,41 +77,35 @@ export function CentralLoginForm() {
     );
   }
 
-  if (notFound) {
+  if (notEnrolled) {
     return (
       <div className="space-y-6">
         <div>
           <h1 className="font-display text-3xl md:text-5xl text-white mb-3 md:mb-4 leading-[0.9] uppercase font-bold">
-            New here?
+            Not enrolled yet.
           </h1>
           <p className="text-base md:text-lg text-white/70 leading-relaxed">
-            Select a program below to create your account.
+            If you&rsquo;ve been invited to a program, check your email for the
+            link your instructor sent.
           </p>
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <a
-            href={`https://atg.bccacademy.io?email=${encodeURIComponent(email)}`}
-            className="flex flex-col gap-1 p-4 border border-white/15 hover:border-electric-green/50 hover:bg-white/5 transition-all"
-          >
-            <span className="text-xs text-white/40 font-mono uppercase tracking-wider">Program</span>
-            <span className="text-sm font-bold text-white">After The Game</span>
-            <span className="text-xs text-white/40">Tech careers for athletes</span>
-          </a>
-          <a
-            href={`https://forge.bccacademy.io?email=${encodeURIComponent(email)}`}
-            className="flex flex-col gap-1 p-4 border border-white/15 hover:border-electric-green/50 hover:bg-white/5 transition-all"
-          >
-            <span className="text-xs text-white/40 font-mono uppercase tracking-wider">Program</span>
-            <span className="text-sm font-bold text-white">The Forge</span>
-            <span className="text-xs text-white/40">Human-led learning hubs</span>
-          </a>
-        </div>
-        <button
-          onClick={() => { setNotFound(false); setEmail(""); }}
-          className="text-sm text-white/40 hover:text-white transition-colors"
+        <a
+          href="/#programs"
+          className="inline-flex items-center gap-2 px-6 py-3 bg-electric-green text-true-black text-sm font-bold uppercase tracking-wider transition-all hover:-translate-y-0.5 hover:shadow-[0_4px_15px_rgba(229,247,1,0.3)]"
         >
-          Try a different email
-        </button>
+          Explore our programs &rarr;
+        </a>
+        <div>
+          <button
+            onClick={() => {
+              window.history.replaceState(null, "", "/login");
+              window.location.reload();
+            }}
+            className="text-sm text-white/40 hover:text-white transition-colors"
+          >
+            Try a different email
+          </button>
+        </div>
       </div>
     );
   }
@@ -152,7 +114,7 @@ export function CentralLoginForm() {
     <div className="space-y-6 md:space-y-8">
       <div>
         <h1 className="font-display text-3xl md:text-5xl text-white mb-3 md:mb-4 leading-[0.9] uppercase font-bold">
-          Welcome back.
+          Sign in.
         </h1>
         <p className="text-base md:text-lg text-white/70 leading-relaxed">
           Enter your email and we&rsquo;ll send you a sign-in link.
@@ -188,7 +150,7 @@ export function CentralLoginForm() {
             : "bg-white/10 text-white/30 cursor-not-allowed"
         }`}
       >
-        {loading ? "Checking..." : "Let's Go →"}
+        {loading ? "Sending..." : "Let's Go →"}
       </button>
 
       <p className="text-white/40 text-xs uppercase tracking-wider">

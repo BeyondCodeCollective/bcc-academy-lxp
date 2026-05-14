@@ -7,28 +7,7 @@ import { getProgram } from "@/lib/programs/server";
 import { sendWelcomeEmail } from "@/lib/email";
 import { BCC_INTAKE_SURVEY_ID, BCC_INTAKE_EXEMPT_PROGRAMS } from "@/lib/surveys/platform";
 import { BCC_INTAKE_QUESTION_IDS } from "@/lib/surveys/schemas";
-
-const PROGRAM_DOMAINS: Record<string, string> = {
-  atg: "atg.bccacademy.io",
-  forge: "forge.bccacademy.io",
-  catalyst: "catalyst.bccacademy.io",
-};
-
-// Emails that always get super_admin role (hardcoded + env var)
-const SUPER_ADMIN_EMAILS = [
-  "fonz.morris@wearebgc.org",
-  "admin@wearebgc.org",
-  ...(process.env.SUPER_ADMIN_EMAILS || "")
-    .split(",")
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean),
-];
-
-// Emails that get admin role (env var)
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "")
-  .split(",")
-  .map((e) => e.trim().toLowerCase())
-  .filter(Boolean);
+import { SUPER_ADMIN_EMAILS, ADMIN_EMAILS, determineRole, isPrivilegedEmail } from "@/lib/auth/admins";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -160,31 +139,30 @@ export async function GET(request: Request) {
         }
 
         if (!existing) {
+          // Central login (marketing domain): unadmitted users get a
+          // friendly redirect instead of a student row in the wrong program.
+          // Admitted students arrive via program subdomain invite links, not
+          // through the marketing apex.
+          if (program.slug === "marketing") {
+            return redirectWithCookies(`${origin}/login?status=not-enrolled`);
+          }
+
           // Programs that require invite links (Forge) block new signups that
           // didn't come through a `?track=<slug>` invite link. Programs that
           // don't (ATG — every student gets the same tracks) skip this gate.
           // Super admins and env-configured admins are always exempt.
           const email = (user.email || "").toLowerCase();
-          const isPrivileged =
-            SUPER_ADMIN_EMAILS.includes(email) || ADMIN_EMAILS.includes(email);
-          if (program.requireInviteLink === true && !trackParam && !isPrivileged) {
+          if (program.requireInviteLink === true && !trackParam && !isPrivilegedEmail(email)) {
             await supabase.auth.signOut();
             return NextResponse.redirect(`${origin}/?error=invite`);
           }
 
-          const firstName = "";
-          const lastName = "";
-
           const { error: insertErr } = await admin.from("students").insert({
             id: user.id,
             email: user.email,
-            first_name: firstName,
-            last_name: lastName,
-            role: SUPER_ADMIN_EMAILS.includes(email)
-              ? "super_admin"
-              : ADMIN_EMAILS.includes(email)
-                ? "admin"
-                : "student",
+            first_name: "",
+            last_name: "",
+            role: determineRole(email),
             cohort_id: cohortId || null,
             program_id: programForCohort?.id,
           });
@@ -273,30 +251,25 @@ export async function GET(request: Request) {
           );
         }
 
-        // Marketing domain: look up the user's real program and route there.
-        // The marketing config has no tracks, so /dashboard would immediately redirect
-        // to "/" — bouncing the user into a login loop.
+        // Marketing domain: resolve the user's real program and keep them
+        // on bccacademy.io. The program-override cookie tells getProgram()
+        // which program to render so the dashboard works without subdomains.
         if (program.slug === "marketing") {
           const programSlug =
             (existing?.programs as unknown as { slug: string } | null)?.slug ??
             (["super_admin", "admin"].includes(existing?.role ?? "") ? "atg" : null);
 
-          if (programSlug && domain && PROGRAM_DOMAINS[programSlug]) {
-            // Production bccacademy.io: auth cookies are .bccacademy.io scoped → safe cross-domain redirect
-            return redirectWithCookies(`https://${PROGRAM_DOMAINS[programSlug]}/dashboard`);
-          }
           if (programSlug) {
-            // Vercel preview URL: cookies are host-scoped, must stay on this domain.
-            // Set program cookies directly on the redirect response so the
-            // dashboard's getProgram() reads the real program, not the stale
-            // "marketing" program-override cookie from the earlier ?as=marketing visit.
             const res = redirectWithCookies(`${origin}/dashboard`);
             const cookieOpts = { path: "/", httpOnly: false, sameSite: "lax" as const };
             res.cookies.set("program-slug", programSlug, cookieOpts);
-            res.cookies.set("program-override", programSlug, { ...cookieOpts, maxAge: 60 * 60 * 24 });
+            res.cookies.set("program-override", programSlug, {
+              ...cookieOpts,
+              maxAge: 60 * 60 * 24 * 365,
+            });
             return res;
           }
-          return redirectWithCookies(`${origin}/`);
+          return redirectWithCookies(`${origin}/login?status=not-enrolled`);
         }
 
         // Claim any public survey submissions that match this user's email.
