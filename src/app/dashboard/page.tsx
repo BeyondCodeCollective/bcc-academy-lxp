@@ -28,6 +28,13 @@ export default async function DashboardPage() {
     if (canAccessAdminPanel(role)) {
       redirect("/dashboard/admin");
     }
+    // Marketing domain (bccacademy.io) has no tracks. If a non-admin
+    // lands here without a program-override cookie, redirecting to "/"
+    // creates an infinite loop (proxy sends authed users from "/" back
+    // to "/dashboard"). Send them to the login page instead.
+    if (program.slug === "marketing") {
+      redirect("/login?status=not-enrolled");
+    }
     const survey = program.surveys?.[0];
     redirect(survey ? `/survey/${survey.id}` : "/");
   }
