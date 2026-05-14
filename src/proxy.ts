@@ -144,10 +144,15 @@ export async function proxy(request: NextRequest) {
     return applyProgramCookies(NextResponse.redirect(url));
   }
 
-  // If authenticated and on login page, redirect to dashboard — except when
-  // a preview override is active, since the reviewer is intentionally trying
-  // to see the marketing/program landing rather than their own dashboard.
-  if (user && request.nextUrl.pathname === "/" && !previewOverride) {
+  // On program subdomains, redirect authenticated users from "/" to their
+  // dashboard. On the marketing domain (bccacademy.io), "/" is the public
+  // homepage — authenticated or not, everyone should see it.
+  if (
+    user &&
+    request.nextUrl.pathname === "/" &&
+    !previewOverride &&
+    program.slug !== "marketing"
+  ) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return applyProgramCookies(NextResponse.redirect(url));
