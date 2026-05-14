@@ -580,7 +580,7 @@ function logAdminAccess(
   args: {
     actorUserId: string;
     programId: string | null;
-    action: "view" | "export" | "delete";
+    action: "view" | "export" | "delete" | "send_invite";
     resource: string;
     rowCount?: number;
     metadata?: Record<string, unknown>;
@@ -707,10 +707,18 @@ export async function exportPublicSurveyResponses(
   }[];
 }
 
+export type PublicSurveyResponseRow = {
+  email: string;
+  full_name: string;
+  completed_at: string | null;
+  invited_at: string | null;
+  responses: Record<string, unknown>;
+};
+
 export async function listPublicSurveyResponses(
   programSlug: string,
   surveyType: string,
-): Promise<{ email: string; full_name: string; completed_at: string | null; responses: Record<string, unknown> }[]> {
+): Promise<PublicSurveyResponseRow[]> {
   const { svc } = await requireAdmin();
 
   const { data: programRow } = await svc
@@ -723,7 +731,7 @@ export async function listPublicSurveyResponses(
 
   const { data, error } = await svc
     .from("public_survey_responses")
-    .select("email, full_name, completed_at, responses")
+    .select("email, full_name, completed_at, invited_at, responses")
     .eq("program_id", programRow.id)
     .eq("survey_type", surveyType)
     .order("completed_at", { ascending: false });
@@ -732,7 +740,125 @@ export async function listPublicSurveyResponses(
     console.error("listPublicSurveyResponses error:", error.message);
     return [];
   }
-  return (data ?? []) as { email: string; full_name: string; completed_at: string | null; responses: Record<string, unknown> }[];
+  return (data ?? []) as PublicSurveyResponseRow[];
+}
+
+export async function sendInviteAction(
+  email: string,
+  programSlug: string,
+  surveyType: string,
+): Promise<{ success: boolean; error?: string }> {
+  const { svc, userId } = await requireManager();
+
+  const { getProgramBySlug } = await import("@/lib/programs");
+  const program = getProgramBySlug(programSlug);
+  const defaultTrack = program.tracks[0];
+
+  if (!defaultTrack) {
+    return { success: false, error: "Program has no tracks" };
+  }
+
+  const inviteUrl = `https://${program.domain}?track=${defaultTrack.slug}&email=${encodeURIComponent(email)}`;
+
+  const { Resend } = await import("resend");
+  const resendKey = process.env.RESEND_API_KEY;
+  if (!resendKey) {
+    return { success: false, error: "Email not configured" };
+  }
+  const resend = new Resend(resendKey);
+  const fromAddress =
+    process.env.RESEND_FROM_ADDRESS ?? "BCC Academy <noreply@bccacademy.io>";
+
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/></head>
+<body style="margin:0;padding:0;background:#f5f5f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f7;padding:40px 20px;">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:16px;overflow:hidden;">
+        <tr>
+          <td style="background:${program.colors.primary};padding:32px 24px;text-align:center;">
+            <h1 style="margin:0;font-size:22px;font-weight:700;color:#ffffff;">
+              You're in!
+            </h1>
+            <p style="margin:8px 0 0;font-size:14px;color:rgba(255,255,255,0.85);">
+              You've been accepted to ${program.name}
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:28px 24px;">
+            <p style="margin:0 0 16px;font-size:15px;color:#1a1a1a;line-height:1.5;">
+              Congratulations! Your application has been reviewed and you're ready to get started.
+            </p>
+            <p style="margin:0 0 24px;font-size:15px;color:#1a1a1a;line-height:1.5;">
+              Click below to create your account and join your cohort.
+            </p>
+            <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 20px;">
+              <tr>
+                <td style="background:${program.colors.primary};border-radius:10px;text-align:center;">
+                  <a href="${inviteUrl}" style="display:inline-block;padding:14px 36px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;">
+                    Create Your Account →
+                  </a>
+                </td>
+              </tr>
+            </table>
+            <p style="margin:0;font-size:13px;color:#999;text-align:center;">
+              This link is unique to you. Don't share it with others.
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:16px 24px 24px;border-top:1px solid #f0f0f0;">
+            <p style="margin:0;font-size:12px;color:#999;text-align:center;">
+              ${program.organization} · ${program.name}
+            </p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`.trim();
+
+  const { error: sendError } = await resend.emails.send({
+    from: fromAddress,
+    to: email,
+    subject: `You've been accepted to ${program.name}!`,
+    html,
+  });
+
+  if (sendError) {
+    console.error("[sendInvite] email failed:", sendError);
+    return { success: false, error: "Failed to send email" };
+  }
+
+  const { data: programRow } = await svc
+    .from("programs")
+    .select("id")
+    .eq("slug", programSlug)
+    .single();
+
+  if (programRow) {
+    await svc
+      .from("public_survey_responses")
+      .update({ invited_at: new Date().toISOString() })
+      .eq("email", email)
+      .eq("survey_type", surveyType)
+      .eq("program_id", programRow.id);
+  }
+
+  logAdminAccess(svc, {
+    actorUserId: userId,
+    programId: programRow?.id ?? null,
+    action: "send_invite",
+    resource: "public_survey_responses",
+    metadata: { email, programSlug, surveyType },
+  });
+
+  revalidatePath("/dashboard/admin");
+  return { success: true };
 }
 
 export async function deleteSurveyResponse(

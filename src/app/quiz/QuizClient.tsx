@@ -638,7 +638,7 @@ function ResultsScreen({
               <span className="mt-auto text-xs font-bold text-electric-green group-hover:underline">Apply →</span>
             </a>
             <a
-              href="https://forge.bccacademy.io"
+              href="/survey/pre-survey-spring-2026"
               className="group flex flex-col gap-2 p-4 bg-true-black text-white hover:bg-cobalt transition-colors"
             >
               <span className="text-[10px] font-mono uppercase tracking-wider text-white/60">Program</span>
