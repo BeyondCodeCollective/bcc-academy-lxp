@@ -4,8 +4,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { getDemoUser, DEMO_COOKIE } from "@/lib/demo-users";
 import { Nav } from "@/components/nav";
 import { TutorFab } from "@/components/tutor-fab";
-import { TextScaleToggle } from "@/components/text-scale-toggle";
-import { ReadAloudButton } from "@/components/read-aloud-button";
+import { UserMenu } from "@/components/user-menu";
 import { getProgram } from "@/lib/programs/server";
 import { ProgramProvider } from "@/lib/programs/context";
 import { canAccessAdminPanel, canSwitchPrograms } from "@/lib/roles";
@@ -27,12 +26,20 @@ export default async function DashboardLayout({
   // popped in once auth resolved — most noticeable when switching programs.
   let isAdmin = false;
   let canSwitch = false;
+  let firstName = "";
+  let lastName = "";
+  let email: string | null = null;
+  let avatarUrl: string | null = null;
   if (isSupabaseConfigured()) {
     const ctx = await getSessionContext();
     if (!ctx) redirect("/");
     const role = ctx.student?.role ?? "";
     isAdmin = canAccessAdminPanel(role);
     canSwitch = canSwitchPrograms(role);
+    firstName = ctx.student?.first_name ?? "";
+    lastName = ctx.student?.last_name ?? "";
+    email = ctx.student?.email ?? ctx.userEmail;
+    avatarUrl = ctx.student?.avatar_url ?? null;
   } else {
     const cookieStore = await cookies();
     const demoEmail = cookieStore.get(DEMO_COOKIE)?.value;
@@ -41,13 +48,15 @@ export default async function DashboardLayout({
     const role = user?.role ?? "";
     isAdmin = canAccessAdminPanel(role);
     canSwitch = canSwitchPrograms(role);
+    firstName = user?.first_name ?? "";
+    lastName = user?.last_name ?? "";
+    email = user?.email ?? demoEmail;
   }
 
   // AI Tutor pre-launch kill-switch lives in src/lib/programs/index.ts.
   const showTutor = isTutorAvailable(program);
-  const showResources = program.resourcesEnabled === true;
   const programs = canSwitch
-    ? getAllPrograms().map((p) => ({ slug: p.slug, name: p.name }))
+    ? getAllPrograms().map((p) => ({ slug: p.slug, name: p.name, domain: p.domain }))
     : [];
 
   return (
@@ -57,20 +66,26 @@ export default async function DashboardLayout({
         logo={program.logo}
         programName={program.name}
         showTutor={showTutor}
-        showResources={showResources}
         minimal={isSurveyPage}
-        programs={programs}
-        currentProgramSlug={program.slug}
       />
       {!isSurveyPage && showTutor && <TutorFab />}
       <main
         id="dashboard-main"
         className="flex-1 bg-paper md:pl-60"
       >
-        <div className="mx-auto flex w-full max-w-2xl md:max-w-5xl items-center justify-end gap-2 px-4 sm:px-5 pt-3">
-          <ReadAloudButton selector="#dashboard-main" label="Read aloud" />
-          <TextScaleToggle compact />
-        </div>
+        {!isSurveyPage && (
+          <div className="mx-auto flex w-full max-w-2xl md:max-w-5xl items-center justify-end gap-2 px-4 sm:px-5 pt-3">
+            <UserMenu
+              firstName={firstName}
+              lastName={lastName}
+              email={email}
+              avatarUrl={avatarUrl}
+              canSwitch={canSwitch}
+              programs={programs}
+              currentProgramSlug={program.slug}
+            />
+          </div>
+        )}
         {children}
       </main>
     </ProgramProvider>

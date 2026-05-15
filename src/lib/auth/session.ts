@@ -7,6 +7,7 @@ export type SessionStudent = {
   email: string | null;
   first_name: string | null;
   last_name: string | null;
+  avatar_url: string | null;
   role: "student" | "instructor" | "admin" | "super_admin" | null;
   cohort_id: string | null;
   onboarding_completed: boolean | null;
@@ -33,7 +34,7 @@ export const getSessionContext = cache(async (): Promise<SessionContext | null> 
   const { data: student } = await supabase
     .from("students")
     .select(
-      "id, email, first_name, last_name, role, cohort_id, onboarding_completed, welcome_seen_at, cohorts(id, name, display_name, start_date, end_date, total_weeks, created_at)"
+      "id, email, first_name, last_name, avatar_url, role, cohort_id, onboarding_completed, welcome_seen_at, cohorts(id, name, display_name, start_date, end_date, total_weeks, created_at)"
     )
     .eq("id", session.user.id)
     .maybeSingle<SessionStudent>();

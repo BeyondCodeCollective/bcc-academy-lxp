@@ -20,13 +20,19 @@ export async function resolveCurrentUser(
   if (!isSupabaseConfigured()) {
     const demoEmail = cookieStore.get(DEMO_COOKIE)?.value;
     let firstName = "there";
+    let lastName = "";
+    let userRole = "student";
     if (demoEmail) {
       const demoUser = getDemoUser(demoEmail);
-      firstName = demoUser
-        ? demoUser.first_name
-        : demoEmail.split("@")[0].replace(/[._-]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+      if (demoUser) {
+        firstName = demoUser.first_name;
+        lastName = demoUser.last_name;
+        userRole = demoUser.role;
+      } else {
+        firstName = demoEmail.split("@")[0].replace(/[._-]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+      }
     }
-    return { firstName, lastName: "", userRole: "student", isDemo: true };
+    return { firstName, lastName, userRole, isDemo: true };
   }
 
   const ctx = await getSessionContext();
