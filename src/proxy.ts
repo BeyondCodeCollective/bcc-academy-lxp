@@ -14,7 +14,13 @@ import {
 // `program-override` cookie so subsequent navigation works without re-adding
 // the query param. Production hosts (atg.bccacademy.io etc.) ignore this —
 // the URL always wins on the real domain.
-const VALID_PREVIEW_SLUGS = new Set(["marketing", "atg", "forge", "catalyst"]);
+const VALID_PREVIEW_SLUGS = new Set([
+  "marketing",
+  "atg",
+  "forge",
+  "forte",
+  "catalyst",
+]);
 
 // Pre-launch password gate. Applies only to the marketing host
 // (bccacademy.io / www.bccacademy.io) — program subdomains have their own

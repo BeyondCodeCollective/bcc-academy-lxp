@@ -1,5 +1,6 @@
 import { atgConfig } from "./atg";
 import { forgeConfig } from "./forge";
+import { forteConfig } from "./forte";
 import { catalystConfig } from "./catalyst";
 import { marketingConfig, MARKETING_SLUG } from "./marketing";
 import type { ProgramConfig, TrackConfig } from "./types";
@@ -7,6 +8,7 @@ import type { ProgramConfig, TrackConfig } from "./types";
 const PROGRAMS: Record<string, ProgramConfig> = {
   atg: atgConfig,
   forge: forgeConfig,
+  forte: forteConfig,
   catalyst: catalystConfig,
 };
 
@@ -24,6 +26,7 @@ const SPECIAL_CONFIGS: Record<string, ProgramConfig> = {
 const DOMAIN_MAP: Record<string, string> = {
   "atg.bccacademy.io": "atg",
   "forge.bccacademy.io": "forge",
+  "forte.bccacademy.io": "forte",
   "catalyst.bccacademy.io": "catalyst",
   "bccacademy.io": MARKETING_SLUG,
   "www.bccacademy.io": MARKETING_SLUG,
