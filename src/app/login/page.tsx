@@ -9,6 +9,7 @@ import Link from "next/link";
 const PROGRAM_HOSTS = new Set([
   "atg.bccacademy.io",
   "forge.bccacademy.io",
+  "forte.bccacademy.io",
   "catalyst.bccacademy.io",
 ]);
 

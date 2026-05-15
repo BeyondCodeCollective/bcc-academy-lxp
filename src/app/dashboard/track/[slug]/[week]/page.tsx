@@ -435,7 +435,7 @@ async function SubmissionsReflectionsSection({
           feedback={submissionFeedback}
         />
       )}
-      {showReflections && (
+      {showReflections && reflectionPrompts.length > 0 && (
         <ReflectionForm
           trackSlug={trackSlug}
           weekNumber={weekNum}

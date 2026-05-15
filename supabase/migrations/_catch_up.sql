@@ -77,6 +77,7 @@ create table if not exists programs (
 insert into programs (slug, name) values
   ('atg', 'After The Game'),
   ('forge', 'The Forge'),
+  ('forte', 'Forte Bahamas'),
   ('catalyst', 'Catalyst')
 on conflict (slug) do nothing;
 
