@@ -164,6 +164,65 @@ export async function getReflection(
   return data as ReflectionRow | null;
 }
 
+// ─── Week Progress ────────────────────────────────────────────────────────────
+
+export type WeekProgress = {
+  videoWatched: boolean;
+  homeworkSubmitted: boolean;
+  completed: boolean;
+};
+
+export async function getWeekProgress(
+  trackSlug: string,
+  weekNumber: number
+): Promise<WeekProgress> {
+  const userId = await requireAuth();
+  const svc = createServiceClient();
+
+  const [progressRow, submissionRow] = await Promise.all([
+    svc
+      .from("week_progress")
+      .select("video_watched_at")
+      .eq("user_id", userId)
+      .eq("track_slug", trackSlug)
+      .eq("week_number", weekNumber)
+      .maybeSingle(),
+    svc
+      .from("submissions")
+      .select("submitted_at")
+      .eq("student_id", userId)
+      .eq("track_slug", trackSlug)
+      .eq("week_number", weekNumber)
+      .maybeSingle(),
+  ]);
+
+  const videoWatched = !!progressRow.data?.video_watched_at;
+  const homeworkSubmitted = !!submissionRow.data?.submitted_at;
+
+  return { videoWatched, homeworkSubmitted, completed: videoWatched && homeworkSubmitted };
+}
+
+export async function markVideoWatched(trackSlug: string, weekNumber: number) {
+  const [userId, programId] = await Promise.all([requireAuth(), getProgramId()]);
+  const svc = createServiceClient();
+
+  const { error } = await svc.from("week_progress").upsert(
+    {
+      user_id: userId,
+      program_id: programId,
+      track_slug: trackSlug,
+      week_number: weekNumber,
+      video_watched_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id,track_slug,week_number" }
+  );
+
+  if (error) throw new Error(error.message);
+  revalidatePath(`/dashboard/track/${trackSlug}/${weekNumber}`);
+  return { success: true };
+}
+
 // ─── Feedback (read-only for students) ───────────────────────────────────────
 
 export async function getFeedback(

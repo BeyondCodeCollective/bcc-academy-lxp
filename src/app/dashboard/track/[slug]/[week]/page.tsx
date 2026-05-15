@@ -8,8 +8,9 @@ import { getSessionContent } from "@/app/dashboard/admin/actions";
 import { isStorageUrl, isUploadedVideo, isUploadedRecording, getYouTubeEmbedUrl } from "@/lib/storage-utils";
 import { getProgram } from "@/lib/programs/server";
 import { getTrackBySlug } from "@/lib/programs";
-import { getSubmission, getReflection, getFeedback } from "@/app/dashboard/track/actions";
+import { getSubmission, getReflection, getFeedback, getWeekProgress } from "@/app/dashboard/track/actions";
 import { SubmissionForm } from "@/components/submission-form";
+import { MarkVideoWatchedButton } from "@/components/mark-video-watched-button";
 import { ReflectionForm } from "@/components/reflection-form";
 import { IntakeForm } from "@/components/intake-form";
 import { getSurveyStatus } from "@/app/dashboard/actions";
@@ -72,10 +73,11 @@ export default async function TrackWeekPage({
     ? computeCurrentWeek(track.startDate, track.totalWeeks, track.lastSessionDayOffset)
     : 0;
 
-  // Fetch session content from Supabase
-  const sessionContent = isSupabaseConfigured()
-    ? await getSessionContent(trackSlug, weekNum)
-    : null;
+  // Fetch session content and student progress in parallel
+  const [sessionContent, weekProgress] = await Promise.all([
+    isSupabaseConfigured() ? getSessionContent(trackSlug, weekNum) : null,
+    isSupabaseConfigured() ? getWeekProgress(trackSlug, weekNum).catch(() => null) : null,
+  ]);
 
   const {
     title: displayTitle,
@@ -89,8 +91,12 @@ export default async function TrackWeekPage({
   } = resolveSessionContent(weekContent, sessionContent);
 
   const adminMarkedComplete = sessionStatuses.every((s) => s === "completed");
-  const isCompleted = adminMarkedComplete;
-  const isCurrent = trackStarted && weekNum === currentWeek && !adminMarkedComplete;
+  const studentCompleted = weekProgress?.completed ?? false;
+  const isCompleted = adminMarkedComplete || studentCompleted;
+  const isCurrent = trackStarted && weekNum === currentWeek && !isCompleted;
+
+  const hasRecording = weekContent.sessions.some((_, i) => !!recordingUrls[i]);
+  const showChecklist = isSupabaseConfigured() && (track.submissionsEnabled !== false) && hasRecording && (isCurrent || isCompleted || weekNum < currentWeek);
 
   const sessionsLabel = weekContent.sessions.length === 1 ? "Session" : "Sessions";
 
@@ -256,16 +262,27 @@ export default async function TrackWeekPage({
           ? session.title
           : `Week ${weekNum} replay`;
 
+        const showWatchButton = isSupabaseConfigured() && (isCurrent || isCompleted || weekNum < currentWeek);
+
         return ytEmbed ? (
           <div key={i} className="mb-4 rounded-xl border border-neutral-200 bg-white overflow-hidden">
-            <div className="px-4 sm:px-5 pt-4 pb-3 flex items-center gap-2">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-50">
-                <Video size={15} className="text-emerald-600" />
+            <div className="px-4 sm:px-5 pt-4 pb-3 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-50">
+                  <Video size={15} className="text-emerald-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-neutral-900">{recordingLabel}</p>
+                  <p className="text-xs text-neutral-500">{recordingSubtitle}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-neutral-900">{recordingLabel}</p>
-                <p className="text-xs text-neutral-500">{recordingSubtitle}</p>
-              </div>
+              {showWatchButton && (
+                <MarkVideoWatchedButton
+                  trackSlug={trackSlug}
+                  weekNumber={weekNum}
+                  initialWatched={weekProgress?.videoWatched ?? false}
+                />
+              )}
             </div>
             <div className="relative w-full aspect-video">
               <iframe
@@ -279,14 +296,23 @@ export default async function TrackWeekPage({
           </div>
         ) : url && isVideo ? (
           <div key={i} className="mb-4 rounded-xl border border-neutral-200 bg-white overflow-hidden">
-            <div className="px-4 sm:px-5 pt-4 pb-3 flex items-center gap-2">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-50">
-                <Video size={15} className="text-emerald-600" />
+            <div className="px-4 sm:px-5 pt-4 pb-3 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-50">
+                  <Video size={15} className="text-emerald-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-neutral-900">{recordingLabel}</p>
+                  <p className="text-xs text-neutral-500">{recordingSubtitle}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-neutral-900">{recordingLabel}</p>
-                <p className="text-xs text-neutral-500">{recordingSubtitle}</p>
-              </div>
+              {showWatchButton && (
+                <MarkVideoWatchedButton
+                  trackSlug={trackSlug}
+                  weekNumber={weekNum}
+                  initialWatched={weekProgress?.videoWatched ?? false}
+                />
+              )}
             </div>
             <video src={url} controls className="w-full" preload="metadata" />
           </div>
@@ -362,6 +388,40 @@ export default async function TrackWeekPage({
               );
             })}
           </ul>
+        </div>
+      )}
+
+      {/* Completion checklist */}
+      {showChecklist && (
+        <div className="mt-6 rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
+          <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-3">
+            Week Completion
+          </p>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2.5">
+              <CheckCircle
+                size={16}
+                className={weekProgress?.videoWatched ? "text-green-500" : "text-neutral-200"}
+              />
+              <span className={`text-sm ${weekProgress?.videoWatched ? "text-neutral-900" : "text-neutral-400"}`}>
+                Watch the recording
+              </span>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <CheckCircle
+                size={16}
+                className={weekProgress?.homeworkSubmitted ? "text-green-500" : "text-neutral-200"}
+              />
+              <span className={`text-sm ${weekProgress?.homeworkSubmitted ? "text-neutral-900" : "text-neutral-400"}`}>
+                Submit your homework
+              </span>
+            </div>
+          </div>
+          {studentCompleted && (
+            <p className="mt-3 text-xs font-medium text-green-600">
+              You&apos;ve completed this week 🎉
+            </p>
+          )}
         </div>
       )}
 
