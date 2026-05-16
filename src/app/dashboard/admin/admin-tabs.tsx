@@ -408,6 +408,14 @@ export function AdminTabs({
   const [tab, setTab] = useState<string>(
     initialTab || (isManager ? "program" : tracks[0]?.slug ?? "student-work")
   );
+
+  // Sync tab state when the URL ?tab= param changes (sidebar nav clicks).
+  useEffect(() => {
+    if (initialTab && initialTab !== tab) {
+      setTab(initialTab);
+    }
+  }, [initialTab]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const [cohort, setCohort] = useState(cohorts[0] || null);
   const [students, setStudents] = useState(initialStudents);
   const [saving, setSaving] = useState(false);
