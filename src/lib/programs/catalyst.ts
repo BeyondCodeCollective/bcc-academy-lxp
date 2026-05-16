@@ -2,6 +2,7 @@ import type { ProgramConfig } from "./types";
 import { atgConfig } from "./atg";
 import { forgeConfig } from "./forge";
 import { forteConfig } from "./forte";
+import { additionalTracks } from "./additional-tracks";
 
 // Catalyst consolidates all BCC programs into one: ATG, Forge (now
 // "Beyond Code Centers"), and Forte tracks live side-by-side. Students
@@ -43,6 +44,8 @@ export const catalystConfig: ProgramConfig = {
       ...t,
       phase: "core" as const,
     })),
+    // Additional tracks from Circle export (Network+, Game Dev, etc.)
+    ...additionalTracks,
   ],
   surveys: [
     {
