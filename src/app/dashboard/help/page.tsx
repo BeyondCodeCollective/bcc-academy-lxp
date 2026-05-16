@@ -1,70 +1,18 @@
 import { cookies } from "next/headers";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getProgram } from "@/lib/programs/server";
 import { resolveCurrentUser } from "@/lib/current-user";
 import { canAccessAdminPanel } from "@/lib/roles";
+import { getEnrolledTracks } from "@/lib/enrollment";
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { getSessionContext } from "@/lib/auth/session";
+import type { TrackConfig } from "@/lib/programs/types";
 import {
   Envelope,
   CalendarBlank,
 } from "@phosphor-icons/react/dist/ssr";
 
 export const dynamic = "force-dynamic";
-
-// Reference content for the portal. Consolidates the former /dashboard/start,
-// /dashboard/resources, and /dashboard/guide routes into a single sectioned
-// page so the sidebar can stay focused on workspaces. Admin-only sections
-// (Instructor Guide) are gated below.
-
-const instructors = [
-  {
-    name: "Ramon Clemente",
-    track: "Program Lead",
-    email: "ramon.clemente@wearebgc.org",
-    calUrl: "https://cal.com/ramon-clemente",
-  },
-  {
-    name: "Kobie Joyner",
-    track: "CompTIA Tech+",
-    email: "kkjoyner@gmail.com",
-    calUrl: "https://cal.com/kobie-joyner",
-  },
-  {
-    name: "Angel Aviles",
-    track: "MASS",
-    email: "angel.aviles@wearebgc.org",
-    calUrl: "https://cal.com/angel-aviles",
-  },
-];
-
-const liveSessions = [
-  {
-    label: "MASS Live Session",
-    description: "Tuesdays · 10–11am ET",
-    url: "https://meet.google.com",
-  },
-  {
-    label: "CompTIA Live Session",
-    description: "Wed & Fri · 10am–12pm ET",
-    url: "https://meet.google.com",
-  },
-];
-
-const studyResources = [
-  {
-    label: "CompTIA Tech+ Certification",
-    description:
-      "Official certification overview, exam details, and career paths.",
-    url: "https://www.comptia.org/en-us/certifications/tech/",
-    source: "comptia.org",
-  },
-  {
-    label: "What Career Is Right for Me?",
-    description: "Explore different tech career paths and find your fit.",
-    url: "https://www.youtube.com/watch?v=P2YIwlkUW58",
-    source: "youtube.com",
-  },
-];
 
 export default async function HelpPage() {
   const program = await getProgram();
@@ -74,10 +22,20 @@ export default async function HelpPage() {
 
   const isAdmin = canAccessAdminPanel(currentUser.userRole);
 
-  const weeklyTracks = program.tracks.filter((t) => t.type === "weekly");
-  const singleEventTracks = program.tracks.filter(
-    (t) => t.type === "single-event"
-  );
+  // Resolve which tracks the student is enrolled in.
+  let visibleTracks: TrackConfig[] = program.tracks;
+  if (!isAdmin && !currentUser.isDemo && isSupabaseConfigured()) {
+    const ctx = await getSessionContext();
+    if (ctx) {
+      const supabase = await createClient();
+      const enrolled = await getEnrolledTracks(supabase, ctx.userId, program);
+      if (enrolled.length > 0) {
+        visibleTracks = enrolled;
+      }
+    }
+  }
+
+  const weeklyTracks = visibleTracks.filter((t) => t.type === "weekly");
   const cohort = program.defaultCohort;
   const startDate = new Date(cohort.startDate).toLocaleDateString(undefined, {
     weekday: "long",
@@ -86,16 +44,31 @@ export default async function HelpPage() {
     year: "numeric",
   });
 
+  // Build instructor list from track configs — no hardcoded data.
+  const instructorSet = new Map<string, { name: string; track: string }>();
+  for (const t of visibleTracks) {
+    if (t.instructor && t.instructor !== "TBD") {
+      if (!instructorSet.has(t.instructor)) {
+        instructorSet.set(t.instructor, {
+          name: t.instructor,
+          track: t.shortName,
+        });
+      }
+    }
+  }
+  const instructorList = Array.from(instructorSet.values());
+
   const toc: { id: string; label: string }[] = [
     { id: "welcome", label: "Welcome" },
-    { id: "cohort", label: "Your cohort" },
+    { id: "cohort", label: "Your program" },
     ...(weeklyTracks.length > 0
       ? [{ id: "rhythm", label: "Weekly rhythm" }]
       : []),
     { id: "platform", label: "Using the platform" },
-    { id: "instructors", label: "Instructors" },
-    { id: "live-sessions", label: "Live sessions" },
-    { id: "study", label: "Study materials" },
+    ...(instructorList.length > 0
+      ? [{ id: "instructors", label: "Instructors" }]
+      : []),
+    { id: "sessions", label: "Live sessions" },
     { id: "expectations", label: "What we expect" },
     ...(isAdmin ? [{ id: "instructor-guide", label: "Instructor guide" }] : []),
   ];
@@ -103,7 +76,7 @@ export default async function HelpPage() {
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-6xl px-4 sm:px-5 py-12 md:py-16">
       <div className="md:grid md:grid-cols-[200px_1fr] md:gap-x-12">
-        {/* Sticky TOC on desktop */}
+        {/* Sticky TOC */}
         <nav
           aria-label="On this page"
           className="hidden md:block md:sticky md:top-20 md:self-start"
@@ -140,14 +113,14 @@ export default async function HelpPage() {
           </header>
 
           <div className="space-y-14">
-            <Section id="cohort" eyebrow="Your cohort">
+            <Section id="cohort" eyebrow="Your program">
               <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
-                <Fact label="Cohort" value={cohort.displayName} />
+                <Fact label="Program" value={program.name} />
                 <Fact label="Start date" value={startDate} />
                 <Fact label="Length" value={`${cohort.totalWeeks} weeks`} />
                 <Fact
-                  label="Tracks you're in"
-                  value={program.tracks.map((t) => t.shortName).join(", ")}
+                  label="Your tracks"
+                  value={visibleTracks.map((t) => t.shortName).join(", ") || "Not enrolled yet"}
                 />
               </dl>
             </Section>
@@ -174,7 +147,7 @@ export default async function HelpPage() {
                         {t.name}
                       </p>
                       <p className="text-[13px] tabular-nums text-ink-soft">
-                        {t.totalWeeks} weeks
+                        {t.sessionTimes.join(" · ")}
                       </p>
                     </li>
                   ))}
@@ -190,7 +163,7 @@ export default async function HelpPage() {
                 />
                 <PlatformRow
                   title="Help"
-                  body="This page. Instructor contacts, study materials, and weekly rhythm."
+                  body="This page. Instructor contacts, session schedule, and how to get unstuck."
                 />
                 {isAdmin && (
                   <PlatformRow
@@ -202,105 +175,51 @@ export default async function HelpPage() {
               </ul>
             </Section>
 
-            <Section id="instructors" eyebrow="Your instructors">
+            {instructorList.length > 0 && (
+              <Section id="instructors" eyebrow="Your instructors">
+                <ul className="border-y border-rule">
+                  {instructorList.map((inst, i) => (
+                    <li
+                      key={inst.name}
+                      className={`grid grid-cols-[auto_1fr] items-center gap-x-6 px-1 py-4 ${
+                        i > 0 ? "border-t border-rule-soft" : ""
+                      }`}
+                    >
+                      <span className="text-[10px] font-mono tabular-nums tracking-tight text-ink-faint px-2">
+                        {String(i + 1).padStart(2, "0")}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-[15px] font-medium text-ink truncate">
+                          {inst.name}
+                        </p>
+                        <p className="text-[12px] text-ink-soft mt-0.5">
+                          {inst.track}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </Section>
+            )}
+
+            <Section id="sessions" eyebrow="Live sessions">
               <ul className="border-y border-rule">
-                {instructors.map((inst, i) => (
+                {visibleTracks.map((t, i) => (
                   <li
-                    key={inst.name}
-                    className={`grid grid-cols-[auto_1fr_auto] items-center gap-x-6 px-1 py-4 ${
+                    key={t.slug}
+                    className={`grid grid-cols-[auto_1fr_auto] items-baseline gap-x-6 px-1 py-4 ${
                       i > 0 ? "border-t border-rule-soft" : ""
                     }`}
                   >
                     <span className="text-[10px] font-mono tabular-nums tracking-tight text-ink-faint px-2">
                       {String(i + 1).padStart(2, "0")}
                     </span>
-                    <div className="min-w-0">
-                      <p className="text-[15px] font-medium text-ink truncate">
-                        {inst.name}
-                      </p>
-                      <p className="text-[12px] text-ink-soft mt-0.5">
-                        {inst.track}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <a
-                        href={`mailto:${inst.email}`}
-                        className="text-ink-faint hover:text-ink transition-colors"
-                        title={`Email ${inst.name}`}
-                      >
-                        <Envelope size={16} weight="regular" />
-                      </a>
-                      <a
-                        href={inst.calUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-ink-faint hover:text-ink transition-colors"
-                        title="Schedule office hours"
-                      >
-                        <CalendarBlank size={16} weight="regular" />
-                      </a>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </Section>
-
-            <Section id="live-sessions" eyebrow="Live sessions">
-              <ul className="border-y border-rule">
-                {liveSessions.map((link, i) => (
-                  <li
-                    key={link.label}
-                    className={i > 0 ? "border-t border-rule-soft" : ""}
-                  >
-                    <a
-                      href={link.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="group grid grid-cols-[auto_1fr_auto] items-baseline gap-x-6 px-1 py-4 hover:bg-paper-tint-soft transition-colors"
-                    >
-                      <span className="text-[10px] font-mono tabular-nums tracking-tight text-ink-faint px-2">
-                        {String(i + 1).padStart(2, "0")}
-                      </span>
-                      <p className="text-[15px] font-medium text-ink">
-                        {link.label}
-                      </p>
-                      <p className="text-[13px] tabular-nums text-ink-soft">
-                        {link.description}
-                      </p>
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </Section>
-
-            <Section id="study" eyebrow="Study materials">
-              <ul className="border-y border-rule">
-                {studyResources.map((res, i) => (
-                  <li
-                    key={res.label}
-                    className={i > 0 ? "border-t border-rule-soft" : ""}
-                  >
-                    <a
-                      href={res.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="group block px-1 py-4 hover:bg-paper-tint-soft transition-colors"
-                    >
-                      <div className="grid grid-cols-[auto_1fr_auto] items-baseline gap-x-6">
-                        <span className="text-[10px] font-mono tabular-nums tracking-tight text-ink-faint px-2">
-                          {String(i + 1).padStart(2, "0")}
-                        </span>
-                        <p className="text-[15px] font-medium text-ink truncate">
-                          {res.label}
-                        </p>
-                        <p className="text-[12px] text-ink-faint">
-                          {res.source}
-                        </p>
-                      </div>
-                      <p className="mt-1 ml-[44px] text-[13px] leading-[1.55] text-ink-soft">
-                        {res.description}
-                      </p>
-                    </a>
+                    <p className="text-[15px] font-medium text-ink">
+                      {t.shortName}
+                    </p>
+                    <p className="text-[13px] tabular-nums text-ink-soft">
+                      {t.sessionTimes.join(" · ")}
+                    </p>
                   </li>
                 ))}
               </ul>
@@ -333,19 +252,9 @@ export default async function HelpPage() {
                   <GuideBlock title="Adding meeting links & recordings">
                     <Steps
                       items={[
-                        <>
-                          Go to <strong>Admin → Curriculum</strong>
-                        </>,
-                        "Select your track and the week you want to update",
-                        <>
-                          Add the <strong>meeting link</strong> before each
-                          session so students can join from their dashboard
-                        </>,
-                        <>
-                          After the session, add the{" "}
-                          <strong>recording URL</strong> — it appears on the
-                          student&apos;s week page automatically
-                        </>,
+                        <>Go to <strong>Admin</strong> and select your track from the sidebar</>,
+                        "Click a week to expand it, then add the meeting link before each session",
+                        <>After the session, add the <strong>recording URL</strong> — it appears on the student&apos;s week page</>,
                         "Optionally update the week title, description, or objectives if content changed",
                       ]}
                     />
@@ -354,101 +263,34 @@ export default async function HelpPage() {
                   <GuideBlock title="Reviewing submissions & reflections">
                     <Steps
                       items={[
-                        <>
-                          Go to <strong>Admin → Student Work</strong>
-                        </>,
-                        "Filter by track — you'll see all student work for your assigned tracks",
-                        <>
-                          Click any entry to read the full submission and leave{" "}
-                          <strong>feedback</strong>
-                        </>,
+                        <>Select your track, then switch to the <strong>Student Work</strong> sub-tab</>,
+                        "You'll see all submissions and reflections for that track",
+                        <>Click any entry to read the full submission and leave <strong>feedback</strong></>,
                         "Students receive your feedback on their dashboard — keep it constructive and specific",
                       ]}
                     />
-                    {weeklyTracks.length > 0 && (
-                      <p className="mt-3 text-[12px] text-ink-faint">
-                        Tracks with submissions enabled:{" "}
-                        {weeklyTracks
-                          .filter((t) => t.submissionsEnabled !== false)
-                          .map((t) => t.name)
-                          .join(", ") || "None currently"}
-                      </p>
-                    )}
                   </GuideBlock>
 
                   <GuideBlock title="Tracking attendance">
                     <Steps
                       items={[
-                        <>
-                          Go to <strong>Admin → Analytics</strong>
-                        </>,
-                        "Select the track and week",
-                        "Check off students who attended each session — this data feeds engagement tracking",
-                      ]}
-                    />
-                  </GuideBlock>
-
-                  <GuideBlock title="Posting announcements">
-                    <Bullets
-                      items={[
-                        <>
-                          Go to <strong>Admin → People</strong> to post a
-                          message that appears as a banner on all students&apos;
-                          dashboards
-                        </>,
-                        "Use announcements for schedule changes, reminders, or encouragement",
-                        "Announcements expire automatically after the date you set",
-                      ]}
-                    />
-                  </GuideBlock>
-
-                  {singleEventTracks.length > 0 && (
-                    <GuideBlock title="Single-event tracks">
-                      <Bullets
-                        items={[
-                          <>
-                            Single-event tracks (
-                            {singleEventTracks.map((t) => t.name).join(", ")})
-                            require students to complete an intake form before
-                            accessing session content
-                          </>,
-                          <>
-                            Intake responses are visible in the{" "}
-                            <strong>Surveys</strong> tab
-                          </>,
-                          "These tracks don't have weekly submissions or reflections",
-                        ]}
-                      />
-                    </GuideBlock>
-                  )}
-
-                  <GuideBlock title="Data & exports">
-                    <Bullets
-                      items={[
-                        "Attendance data can be exported as CSV from the Analytics tab",
-                        "Survey responses can be exported from the Surveys tab",
-                        "All data is scoped to your program — instructors only see their assigned tracks",
+                        <>Select your track, then switch to the <strong>Analytics</strong> sub-tab</>,
+                        "See attendance rates, student engagement, and weekly trends",
+                        "Click any student to see their full attendance history",
                       ]}
                     />
                   </GuideBlock>
                 </div>
               </Section>
             )}
-
-            <div className="pt-4">
-              <Link
-                href="/dashboard"
-                className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-[14px] font-medium text-paper hover:bg-[#2A2520] transition-colors"
-              >
-                Go to my dashboard →
-              </Link>
-            </div>
           </div>
         </div>
       </div>
     </div>
   );
 }
+
+// ── Sub-components ──────────────────────────────────────────────────────────
 
 function Section({
   id,
@@ -472,8 +314,8 @@ function Section({
 function Fact({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-[12px] text-ink-faint mb-1">{label}</dt>
-      <dd className="text-[15px] font-medium text-ink">{value}</dd>
+      <dt className="text-[12px] text-ink-faint">{label}</dt>
+      <dd className="text-[15px] font-medium text-ink mt-1">{value}</dd>
     </div>
   );
 }
@@ -487,32 +329,18 @@ function PlatformRow({
   body: string;
   href?: string;
 }) {
-  const content = (
-    <div className="grid grid-cols-[auto_1fr_auto] items-baseline gap-x-6 px-1 py-4">
-      <span className="text-[15px] font-medium text-ink min-w-[80px]">
-        {title}
-      </span>
-      <p className="text-[14px] leading-[1.55] text-ink-soft">{body}</p>
-      {href && (
-        <span className="text-[12px] text-ink-faint group-hover:text-ink transition-colors">
-          →
-        </span>
-      )}
-    </div>
+  const Tag = href ? "a" : "div";
+  return (
+    <li className="border-b border-rule-soft last:border-0">
+      <Tag
+        {...(href ? { href } : {})}
+        className="block px-1 py-4 hover:bg-paper-tint-soft transition-colors"
+      >
+        <p className="text-[15px] font-medium text-ink">{title}</p>
+        <p className="text-[13px] text-ink-soft mt-1">{body}</p>
+      </Tag>
+    </li>
   );
-  if (href) {
-    return (
-      <li className="border-t border-rule-soft first:border-t-0">
-        <Link
-          href={href}
-          className="group block hover:bg-paper-tint-soft transition-colors"
-        >
-          {content}
-        </Link>
-      </li>
-    );
-  }
-  return <li className="border-t border-rule-soft first:border-t-0">{content}</li>;
 }
 
 function GuideBlock({
@@ -532,9 +360,9 @@ function GuideBlock({
 
 function Steps({ items }: { items: React.ReactNode[] }) {
   return (
-    <ol className="space-y-2 text-[14px] leading-[1.55] text-ink-soft">
+    <ol className="space-y-2">
       {items.map((item, i) => (
-        <li key={i} className="flex gap-3">
+        <li key={i} className="flex gap-3 text-[14px] leading-[1.55] text-ink-soft">
           <span className="text-ink-faint tabular-nums shrink-0">
             {String(i + 1).padStart(2, "0")}
           </span>
@@ -542,18 +370,5 @@ function Steps({ items }: { items: React.ReactNode[] }) {
         </li>
       ))}
     </ol>
-  );
-}
-
-function Bullets({ items }: { items: React.ReactNode[] }) {
-  return (
-    <ul className="space-y-2 text-[14px] leading-[1.55] text-ink-soft">
-      {items.map((item, i) => (
-        <li key={i} className="flex gap-3">
-          <span className="text-ink-faint shrink-0">·</span>
-          <span>{item}</span>
-        </li>
-      ))}
-    </ul>
   );
 }
