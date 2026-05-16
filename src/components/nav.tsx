@@ -11,11 +11,18 @@ import {
   List,
   X,
 } from "@phosphor-icons/react";
+import { UserMenu } from "@/components/user-menu";
 
 type NavItem = {
   href: string;
   label: string;
   icon: React.ComponentType<{ size?: number; weight?: "bold"; "aria-hidden"?: boolean }>;
+};
+
+type ProgramOption = {
+  slug: string;
+  name: string;
+  domain: string;
 };
 
 export function Nav({
@@ -24,12 +31,26 @@ export function Nav({
   programName,
   showTutor = true,
   minimal = false,
+  firstName,
+  lastName,
+  email,
+  avatarUrl,
+  canSwitch,
+  programs,
+  currentProgramSlug,
 }: {
   isAdmin: boolean;
   logo: string;
   programName: string;
   showTutor?: boolean;
   minimal?: boolean;
+  firstName: string;
+  lastName: string;
+  email: string | null;
+  avatarUrl: string | null;
+  canSwitch: boolean;
+  programs: ProgramOption[];
+  currentProgramSlug: string;
 }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -90,7 +111,47 @@ export function Nav({
     </Link>
   );
 
+  const sidebarFooter = (
+    <div className="mt-auto flex flex-col gap-1">
+      {helpLink}
+      <div className="my-1 h-px bg-white/10" aria-hidden />
+      <UserMenu
+        variant="sidebar"
+        firstName={firstName}
+        lastName={lastName}
+        email={email}
+        avatarUrl={avatarUrl}
+        canSwitch={canSwitch}
+        programs={programs}
+        currentProgramSlug={currentProgramSlug}
+      />
+    </div>
+  );
+
   const sidebarBody = (
+    <div className="flex h-full flex-col gap-6 p-4">
+      <Link
+        href="/dashboard"
+        className="flex items-center px-2 py-2"
+        onClick={() => setMobileOpen(false)}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={logo} alt={programName} className="h-5" />
+      </Link>
+
+      {!minimal && (
+        <nav aria-label="Primary" className="flex flex-1 flex-col gap-1">
+          {items.map(renderItem)}
+        </nav>
+      )}
+
+      {!minimal && sidebarFooter}
+    </div>
+  );
+
+  // Mobile drawer mirrors the desktop sidebar but omits the user menu —
+  // the avatar is reachable directly from the mobile top bar instead.
+  const drawerBody = (
     <div className="flex h-full flex-col gap-6 p-4">
       <Link
         href="/dashboard"
@@ -128,14 +189,26 @@ export function Nav({
           <img src={logo} alt={programName} className="h-4" />
         </Link>
         {!minimal && (
-          <button
-            onClick={() => setMobileOpen(true)}
-            aria-label="Open menu"
-            aria-expanded={mobileOpen}
-            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-neutral-200 hover:bg-white/10 hover:text-white transition-colors"
-          >
-            <List size={22} weight="bold" aria-hidden />
-          </button>
+          <div className="flex items-center gap-1">
+            <UserMenu
+              variant="topbar"
+              firstName={firstName}
+              lastName={lastName}
+              email={email}
+              avatarUrl={avatarUrl}
+              canSwitch={canSwitch}
+              programs={programs}
+              currentProgramSlug={currentProgramSlug}
+            />
+            <button
+              onClick={() => setMobileOpen(true)}
+              aria-label="Open menu"
+              aria-expanded={mobileOpen}
+              className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-neutral-200 hover:bg-white/10 hover:text-white transition-colors"
+            >
+              <List size={22} weight="bold" aria-hidden />
+            </button>
+          </div>
         )}
       </div>
 
@@ -172,7 +245,7 @@ export function Nav({
                 <X size={22} weight="bold" aria-hidden />
               </button>
             </div>
-            {sidebarBody}
+            {drawerBody}
           </div>
         </div>
       )}

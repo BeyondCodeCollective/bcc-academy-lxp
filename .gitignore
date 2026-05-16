@@ -42,3 +42,7 @@ next-env.d.ts
 
 # gsd tooling
 /gsd-2/
+
+# local-only tooling output
+/graphify-out/
+/scripts/

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CaretDown, SignOut, Check } from "@phosphor-icons/react";
+import { CaretUpDown, SignOut, Check } from "@phosphor-icons/react";
 import { TextScaleToggle } from "@/components/text-scale-toggle";
 import { ReadAloudButton } from "@/components/read-aloud-button";
 
@@ -10,6 +10,8 @@ type ProgramOption = {
   name: string;
   domain: string;
 };
+
+type Variant = "sidebar" | "topbar";
 
 export function UserMenu({
   firstName,
@@ -20,6 +22,7 @@ export function UserMenu({
   programs,
   currentProgramSlug,
   readAloudSelector = "#dashboard-main",
+  variant = "sidebar",
 }: {
   firstName: string;
   lastName: string;
@@ -29,6 +32,7 @@ export function UserMenu({
   programs: ProgramOption[];
   currentProgramSlug: string;
   readAloudSelector?: string;
+  variant?: Variant;
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -86,8 +90,39 @@ export function UserMenu({
     window.location.href = "/";
   };
 
-  return (
-    <div ref={rootRef} className="relative">
+  const avatarNode = (size: "sm" | "md" | "lg") => {
+    const cls =
+      size === "sm"
+        ? "h-8 w-8 text-[11px]"
+        : size === "md"
+          ? "h-9 w-9 text-xs"
+          : "h-10 w-10 text-sm";
+    return (
+      <span
+        aria-hidden
+        className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/10 font-semibold tracking-tight text-white/80 ${cls}`}
+      >
+        {avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={avatarUrl}
+            alt=""
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <span>{initials}</span>
+        )}
+      </span>
+    );
+  };
+
+  const popoverPosition =
+    variant === "sidebar"
+      ? "bottom-full mb-2 left-0 origin-bottom-left"
+      : "top-full mt-2 right-0 origin-top-right";
+
+  const trigger =
+    variant === "sidebar" ? (
       <button
         ref={triggerRef}
         type="button"
@@ -95,37 +130,49 @@ export function UserMenu({
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={open ? "Close account menu" : "Open account menu"}
-        className="inline-flex items-center gap-2 rounded-full border border-rule-soft bg-paper px-1 py-1 pr-2.5 text-sm font-medium text-ink transition-colors hover:bg-paper-tint-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-ink/20 sm:pr-3"
+        className="flex w-full min-h-[44px] items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
       >
-        <span
-          aria-hidden
-          className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-paper-tint text-[11px] font-semibold tracking-tight text-ink-soft"
-        >
-          {avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={avatarUrl}
-              alt=""
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <span>{initials}</span>
+        {avatarNode("md")}
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-medium text-white">
+            {firstName} {lastName}
+          </span>
+          {email && (
+            <span className="block truncate text-xs text-neutral-400">
+              {email}
+            </span>
           )}
         </span>
-        <span className="hidden sm:inline">{firstName}</span>
-        <CaretDown
-          size={11}
+        <CaretUpDown
+          size={14}
           weight="bold"
           aria-hidden
-          className={`hidden text-ink-faint transition-transform sm:inline ${open ? "rotate-180" : ""}`}
+          className="shrink-0 text-neutral-400"
         />
       </button>
+    ) : (
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={open ? "Close account menu" : "Open account menu"}
+        className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full p-1 transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+      >
+        {avatarNode("sm")}
+      </button>
+    );
+
+  return (
+    <div ref={rootRef} className="relative">
+      {trigger}
 
       {open && (
         <div
           role="menu"
           aria-label="Account menu"
-          className="absolute right-0 z-40 mt-2 w-72 origin-top-right rounded-xl border border-rule-soft bg-paper p-1 shadow-[0_8px_24px_-12px_rgba(31,27,22,0.12)]"
+          className={`absolute z-40 w-72 rounded-xl border border-rule-soft bg-paper p-1 shadow-[0_8px_24px_-12px_rgba(31,27,22,0.18)] ${popoverPosition}`}
         >
           {/* Identity header */}
           <div className="flex items-center gap-3 px-3 py-3">
