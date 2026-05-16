@@ -4,7 +4,11 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Check } from "@phosphor-icons/react";
 
-export function CentralLoginForm() {
+export function CentralLoginForm({
+  programs = [],
+}: {
+  programs?: { slug: string; name: string }[];
+}) {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
@@ -104,16 +108,30 @@ export function CentralLoginForm() {
             No account found.
           </h1>
           <p className="text-base md:text-lg text-white/70 leading-relaxed">
-            We don&rsquo;t have an account for that email. If you&rsquo;ve been
-            invited to a program, use the link your instructor sent you.
+            If you have an invite link from your instructor, use that to sign up.
           </p>
         </div>
-        <a
-          href="/#programs"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-electric-green text-true-black text-sm font-bold uppercase tracking-wider transition-all hover:-translate-y-0.5 hover:shadow-[0_4px_15px_rgba(229,247,1,0.3)]"
-        >
-          Explore our programs &rarr;
-        </a>
+
+        {programs.length > 0 && (
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-white/40 mb-3">
+              Or join a program
+            </p>
+            <div className="space-y-2">
+              {programs.map((p) => (
+                <a
+                  key={p.slug}
+                  href={`/join/${p.slug}`}
+                  className="flex w-full items-center justify-between rounded bg-white/5 px-4 py-3 text-sm text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+                >
+                  <span className="font-medium">{p.name}</span>
+                  <span className="text-white/40">&rarr;</span>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div>
           <button
             onClick={() => {
