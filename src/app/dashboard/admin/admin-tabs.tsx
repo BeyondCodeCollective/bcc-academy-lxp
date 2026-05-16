@@ -1698,7 +1698,7 @@ export function AdminTabs({
 
       {/* Attendance Tab */}
       {tab === "attendance" && (
-        <AttendanceTab students={students} />
+        <AttendanceTab students={students.filter((s) => s.role === "student")} />
       )}
       </div>
       </div>
