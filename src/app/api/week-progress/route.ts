@@ -17,15 +17,15 @@ export async function GET(_request: NextRequest) {
   }
 
   const supabase = await createClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.user) {
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const { data: currentStudent } = await supabase
     .from("students")
     .select("role")
-    .eq("id", session.user.id)
+    .eq("id", user.id)
     .single<{ role: string }>();
 
   if (!canAccessAdminPanel(currentStudent?.role ?? "")) {
