@@ -8,11 +8,12 @@ import { TextScaleToggle } from "@/components/text-scale-toggle";
 import { ReadAloudButton } from "@/components/read-aloud-button";
 import { getProgram } from "@/lib/programs/server";
 import { ProgramProvider } from "@/lib/programs/context";
-import { canAccessAdminPanel, canSwitchPrograms } from "@/lib/roles";
+import { canAccessAdminPanel, canSwitchPrograms, canAccessStaffContent } from "@/lib/roles";
 import { getSessionContext } from "@/lib/auth/session";
 import { getAllPrograms, isTutorAvailable } from "@/lib/programs";
 import { getEnrolledTracks } from "@/lib/enrollment";
 import { BCC_INTAKE_SURVEY_ID, BCC_INTAKE_EXEMPT_PROGRAMS } from "@/lib/surveys/platform";
+import { isStaffEmail } from "@/lib/auth/admins";
 
 export default async function DashboardLayout({
   children,
@@ -33,11 +34,13 @@ export default async function DashboardLayout({
   let lastName = "";
   let email: string | null = null;
   let avatarUrl: string | null = null;
+  let userRole = "";
   let enrolledTrackSlugs: string[] = [];
   if (isSupabaseConfigured()) {
     const ctx = await getSessionContext();
     if (!ctx) redirect("/");
     const role = ctx.student?.role ?? "";
+    userRole = role;
     isAdmin = canAccessAdminPanel(role);
     canSwitch = canSwitchPrograms(role);
     firstName = ctx.student?.first_name ?? "";
@@ -46,7 +49,11 @@ export default async function DashboardLayout({
     avatarUrl = ctx.student?.avatar_url ?? null;
     if (!isAdmin && !isSurveyPage) {
       const supabase = await createClient();
-      if (!BCC_INTAKE_EXEMPT_PROGRAMS.includes(program.slug)) {
+      const isStaff = isStaffEmail(email);
+      if (
+        !BCC_INTAKE_EXEMPT_PROGRAMS.includes(program.slug) &&
+        !isStaff
+      ) {
         const { data: intakeRow } = await supabase
           .from("survey_responses")
           .select("completed_at")
@@ -58,7 +65,9 @@ export default async function DashboardLayout({
           redirect(`/dashboard/survey/${BCC_INTAKE_SURVEY_ID}`);
         }
       }
-      const requiredSurvey = program.surveys?.find((s) => s.required);
+      const requiredSurvey = !isStaff
+        ? program.surveys?.find((s) => s.required)
+        : undefined;
       if (requiredSurvey) {
         const { data: surveyRow } = await supabase
           .from("survey_responses")
@@ -84,6 +93,7 @@ export default async function DashboardLayout({
     if (!demoEmail) redirect("/");
     const user = getDemoUser(demoEmail);
     const role = user?.role ?? "";
+    userRole = role;
     isAdmin = canAccessAdminPanel(role);
     canSwitch = canSwitchPrograms(role);
     firstName = user?.first_name ?? "";
@@ -93,6 +103,7 @@ export default async function DashboardLayout({
 
   // AI Tutor pre-launch kill-switch lives in src/lib/programs/index.ts.
   const showTutor = isTutorAvailable(program);
+  const canAccessStaff = canAccessStaffContent(userRole, email);
   const programs = canSwitch
     ? getAllPrograms().map((p) => ({
         slug: p.slug,
@@ -139,6 +150,7 @@ export default async function DashboardLayout({
     <ProgramProvider program={program}>
       <Nav
         isAdmin={isAdmin}
+        canAccessStaff={canAccessStaff}
         logo={program.logo}
         programName={program.name}
         showTutor={showTutor}
@@ -160,7 +172,7 @@ export default async function DashboardLayout({
         className={`flex-1 bg-paper ${hasSidebar ? "md:pl-60" : ""}`}
       >
         {!isSurveyPage && (
-          <div className={`mx-auto flex w-full max-w-2xl items-center justify-end gap-2 px-4 pt-3 sm:px-5 md:max-w-5xl`}>
+          <div className="mx-auto flex w-full max-w-4xl items-center justify-end gap-2 px-4 pt-3 sm:px-5">
             <TextScaleToggle compact />
             <ReadAloudButton selector="#dashboard-main" />
           </div>

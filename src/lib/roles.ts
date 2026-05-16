@@ -1,3 +1,5 @@
+import { isStaffEmail } from "@/lib/auth/admins";
+
 export type Role = "student" | "instructor" | "admin" | "super_admin";
 
 // Capabilities declare what actions are permitted, independently of the role
@@ -30,4 +32,15 @@ export function canManageStudents(role: string): boolean {
 
 export function canSwitchPrograms(role: string): boolean {
   return hasCapability(role, "switch_programs");
+}
+
+// Lunch & Learns access. Internal-only content: staff (BGC/BCC employees) and
+// anyone with admin panel access. Staff are NOT admins — they're regular
+// students whose email matches the staff allowlist (src/lib/auth/admins.ts).
+export function canAccessStaffContent(
+  role: string,
+  email: string | null | undefined,
+): boolean {
+  if (hasCapability(role, "access_admin_panel")) return true;
+  return isStaffEmail(email);
 }

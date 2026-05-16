@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
   House,
@@ -12,13 +12,9 @@ import {
   List,
   X,
   Check,
-  Users,
-  Clipboard,
-  ChartLineUp,
-  BookOpen,
-  Gauge,
 } from "@phosphor-icons/react";
 import { UserMenu } from "@/components/user-menu";
+import { AdminProgramSwitcher } from "@/components/admin-program-switcher";
 import { computeCurrentWeek } from "@/lib/utils";
 
 type NavItem = {
@@ -26,6 +22,20 @@ type NavItem = {
   label: string;
   icon: React.ComponentType<{ size?: number; weight?: "bold"; "aria-hidden"?: boolean }>;
 };
+
+// Renders a small spinner inside its parent Link only while the route
+// transition is pending. Removing the loading.tsx skeletons made nav clicks
+// feel unresponsive — this restores immediate per-link feedback.
+function LinkPending() {
+  const { pending } = useLinkStatus();
+  if (!pending) return null;
+  return (
+    <span
+      aria-hidden
+      className="ml-2 inline-block h-3 w-3 shrink-0 animate-spin rounded-full border border-white/30 border-t-white/80"
+    />
+  );
+}
 
 type ProgramOption = {
   slug: string;
@@ -47,6 +57,7 @@ type NavVariant = "admin-sidebar" | "student-sidebar" | "topbar";
 
 export function Nav({
   isAdmin,
+  canAccessStaff = false,
   logo,
   programName,
   showTutor = true,
@@ -63,6 +74,7 @@ export function Nav({
   adminTracks = [],
 }: {
   isAdmin: boolean;
+  canAccessStaff?: boolean;
   logo: string;
   programName: string;
   showTutor?: boolean;
@@ -79,6 +91,8 @@ export function Nav({
   adminTracks?: { slug: string; shortName: string }[];
 }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const activeTab = searchParams.get("tab") ?? "program";
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const items: NavItem[] = [
@@ -90,12 +104,23 @@ export function Nav({
       ? [{ href: "/dashboard/admin", label: "Admin", icon: ShieldCheck }]
       : []),
     ...(canSwitch
-      ? [{ href: "/dashboard/admin/insights", label: "Insights", icon: ChartBar }]
+      ? [{ href: "/dashboard/admin?tab=insights", label: "Insights", icon: ChartBar }]
       : []),
   ];
 
-  const isItemActive = (href: string) =>
-    href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(href);
+  // Insights now lives at /dashboard/admin?tab=insights. We need both
+  // Admin and Insights to highlight correctly even though they share a
+  // pathname — the tab query param is the discriminator.
+  const isItemActive = (href: string) => {
+    if (href === "/dashboard") return pathname === "/dashboard";
+    if (href === "/dashboard/admin?tab=insights") {
+      return pathname === "/dashboard/admin" && activeTab === "insights";
+    }
+    if (href === "/dashboard/admin") {
+      return pathname.startsWith("/dashboard/admin") && activeTab !== "insights";
+    }
+    return pathname.startsWith(href);
+  };
 
   const renderItem = ({ href, label, icon: Icon }: NavItem) => {
     const active = isItemActive(href);
@@ -113,7 +138,8 @@ export function Nav({
         }`}
       >
         <Icon size={20} weight="bold" aria-hidden />
-        <span>{label}</span>
+        <span className="flex-1">{label}</span>
+        <LinkPending />
       </Link>
     );
   };
@@ -133,7 +159,8 @@ export function Nav({
       }`}
     >
       <Question size={16} weight="regular" aria-hidden />
-      <span>Help</span>
+      <span className="flex-1">Help</span>
+      <LinkPending />
     </Link>
   );
 
@@ -220,52 +247,25 @@ export function Nav({
 
   // ── Admin nav (admin-sidebar, on admin pages) ───────────────────────────
 
-  const searchParams = useSearchParams();
   const onAdminPage = pathname.startsWith("/dashboard/admin");
-  const activeTab = searchParams.get("tab") ?? "program";
+  // Insights is cross-program — the PROGRAMS list in the sidebar shouldn't
+  // appear there or it implies a per-track filter that doesn't apply.
+  const onInsightsTab = activeTab === "insights";
 
-  const adminNav = variant === "admin-sidebar" && onAdminPage && adminTracks.length > 0 && (
+  const adminNav = variant === "admin-sidebar" && onAdminPage && !onInsightsTab && adminTracks.length > 0 && (
     <div className="flex flex-col gap-1">
       <div className="my-1 h-px bg-white/10" aria-hidden />
 
-      {/* Overview — cross-track program view */}
-      {isAdmin && (
-        <Link
-          href="/dashboard/admin?tab=program"
-          onClick={() => setMobileOpen(false)}
-          className={`flex min-h-[36px] items-center gap-2.5 rounded-lg px-3 py-1.5 text-[13px] transition-colors ${
-            activeTab === "program"
-              ? "bg-white/15 text-white"
-              : "text-neutral-400 hover:bg-white/10 hover:text-neutral-200"
-          }`}
-        >
-          <Gauge size={14} weight="bold" aria-hidden className="shrink-0" />
-          <span>Overview</span>
-        </Link>
-      )}
-
-      {/* Tracks — each is a mini program */}
-      <p className="mt-2 mb-1 px-3 text-[10px] font-medium uppercase tracking-[0.14em] text-neutral-500">
+      <p className="mt-1 mb-1 px-3 text-[10px] font-medium uppercase tracking-[0.14em] text-neutral-500">
         Programs
       </p>
-      {adminTracks.map((t) => {
-        const isTrackActive = activeTab === t.slug;
-        return (
-          <Link
-            key={t.slug}
-            href={`/dashboard/admin?tab=${t.slug}`}
-            onClick={() => setMobileOpen(false)}
-            className={`flex min-h-[36px] items-center gap-2.5 rounded-lg px-3 py-1.5 text-[13px] transition-colors ${
-              isTrackActive
-                ? "bg-white/15 text-white"
-                : "text-neutral-400 hover:bg-white/10 hover:text-neutral-200"
-            }`}
-          >
-            <BookOpen size={14} weight="regular" aria-hidden className="shrink-0" />
-            <span className="truncate">{t.shortName}</span>
-          </Link>
-        );
-      })}
+
+      <AdminProgramSwitcher
+        tracks={adminTracks}
+        activeTab={activeTab}
+        showLunchLearn={canAccessStaff && isAdmin}
+        onNavigate={() => setMobileOpen(false)}
+      />
     </div>
   );
 

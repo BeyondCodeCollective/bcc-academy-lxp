@@ -1,0 +1,192 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { getAllReflections, getTrackSurveyResponses } from "@/app/dashboard/admin/actions";
+
+type SurveyConfig = { id: string; title: string };
+
+type Props = {
+  trackSlug: string;
+  trackShortName: string;
+  programSlug: string;
+  totalWeeks: number;
+  enrolledStudentCount: number;
+  surveyConfigs: SurveyConfig[];
+};
+
+type ReflectionWeek = {
+  week: number;
+  count: number;
+};
+
+type SurveyCount = {
+  id: string;
+  title: string;
+  responseCount: number;
+  uniqueRespondents: number;
+};
+
+export function TrackInsightsSection({
+  trackSlug,
+  trackShortName,
+  programSlug,
+  totalWeeks,
+  enrolledStudentCount,
+  surveyConfigs,
+}: Props) {
+  const [reflectionsByWeek, setReflectionsByWeek] = useState<ReflectionWeek[] | null>(null);
+  const [surveyCounts, setSurveyCounts] = useState<SurveyCount[] | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Stable scalar key for the surveys list. If we depended on surveyConfigs
+  // directly, every parent render with a fresh array prop ref would re-fire
+  // the effect and refetch — a real-world loop trigger.
+  const surveyKey = useMemo(
+    () => surveyConfigs.map((s) => s.id).join(","),
+    [surveyConfigs],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      try {
+        const [reflections, ...responses] = await Promise.all([
+          getAllReflections(programSlug, trackSlug),
+          ...surveyConfigs.map((s) => getTrackSurveyResponses(s.id, trackSlug)),
+        ]);
+        if (cancelled) return;
+
+        const byWeek = new Map<number, number>();
+        for (const r of reflections) {
+          byWeek.set(r.week_number, (byWeek.get(r.week_number) ?? 0) + 1);
+        }
+        const weekRows: ReflectionWeek[] = [];
+        for (let w = 1; w <= totalWeeks; w++) {
+          weekRows.push({ week: w, count: byWeek.get(w) ?? 0 });
+        }
+        setReflectionsByWeek(weekRows);
+
+        setSurveyCounts(
+          surveyConfigs.map((s, i) => {
+            const rows = responses[i] ?? [];
+            const emails = new Set<string>();
+            for (const row of rows) {
+              if (row.email) emails.add(row.email.toLowerCase());
+            }
+            return {
+              id: s.id,
+              title: s.title,
+              responseCount: rows.length,
+              uniqueRespondents: emails.size,
+            };
+          }),
+        );
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    void load();
+    return () => {
+      cancelled = true;
+    };
+    // surveyKey (not surveyConfigs) keeps this stable across renders that
+    // re-pass a structurally-identical array with a new reference.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [programSlug, trackSlug, totalWeeks, surveyKey]);
+
+  return (
+    <section className="space-y-6">
+      <div className="flex items-baseline justify-between gap-4">
+        <div>
+          <h3 className="text-base font-semibold text-neutral-900">
+            Surveys &amp; reflections
+          </h3>
+          <p className="text-xs text-neutral-500 mt-0.5">
+            Scoped to {enrolledStudentCount} student
+            {enrolledStudentCount === 1 ? "" : "s"} enrolled in {trackShortName}.
+          </p>
+        </div>
+        <Link
+          href="/dashboard/admin?tab=insights"
+          className="text-xs text-neutral-500 hover:text-neutral-900 transition-colors whitespace-nowrap"
+        >
+          Cross-program insights &rarr;
+        </Link>
+      </div>
+
+      {/* Reflections per week */}
+      <div className="rounded-xl border border-neutral-200 bg-white p-5">
+        <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400 mb-4">
+          Reflections by week
+        </p>
+        {loading || reflectionsByWeek === null ? (
+          <div className="h-20 animate-pulse rounded-lg bg-neutral-100" />
+        ) : reflectionsByWeek.every((w) => w.count === 0) ? (
+          <p className="text-sm text-neutral-500">
+            No reflections submitted yet for this track.
+          </p>
+        ) : (
+          <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+            {reflectionsByWeek.map((w) => {
+              const pct = enrolledStudentCount > 0
+                ? Math.round((w.count / enrolledStudentCount) * 100)
+                : 0;
+              return (
+                <div
+                  key={w.week}
+                  className="flex flex-col items-center rounded-lg border border-neutral-100 bg-neutral-50 p-3 text-center"
+                >
+                  <p className="text-[10px] font-medium uppercase tracking-wider text-neutral-400">
+                    Wk {w.week}
+                  </p>
+                  <p className="mt-1 text-lg font-semibold text-neutral-900 tabular-nums">
+                    {w.count}
+                  </p>
+                  {enrolledStudentCount > 0 && (
+                    <p className="text-[10px] text-neutral-400 tabular-nums">
+                      {pct}%
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Survey response counts */}
+      <div className="rounded-xl border border-neutral-200 bg-white p-5">
+        <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400 mb-4">
+          Survey responses
+        </p>
+        {loading || surveyCounts === null ? (
+          <div className="h-20 animate-pulse rounded-lg bg-neutral-100" />
+        ) : surveyCounts.length === 0 ? (
+          <p className="text-sm text-neutral-500">No surveys configured.</p>
+        ) : (
+          <ul className="divide-y divide-neutral-100">
+            {surveyCounts.map((s) => (
+              <li key={s.id} className="grid grid-cols-[1fr_auto] items-center gap-x-4 py-3 first:pt-0 last:pb-0">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-neutral-900 truncate">
+                    {s.title}
+                  </p>
+                </div>
+                <div className="flex items-baseline gap-3 text-right shrink-0">
+                  <span className="text-sm font-semibold text-neutral-900 tabular-nums">
+                    {s.responseCount}
+                  </span>
+                  <span className="text-[11px] text-neutral-400 tabular-nums">
+                    {s.uniqueRespondents} unique
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </section>
+  );
+}

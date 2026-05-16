@@ -8,9 +8,9 @@
 BEGIN;
 
 -- 1. Ensure the catalyst program row exists
-INSERT INTO programs (slug, name, domain)
-VALUES ('catalyst', 'Catalyst', 'bccacademy.io')
-ON CONFLICT (slug) DO UPDATE SET name = 'Catalyst', domain = 'bccacademy.io';
+INSERT INTO programs (slug, name)
+VALUES ('catalyst', 'Catalyst')
+ON CONFLICT (slug) DO UPDATE SET name = 'Catalyst';
 
 -- 2. Create a default cohort for Catalyst
 INSERT INTO cohorts (name, display_name, start_date, total_weeks, program_id)

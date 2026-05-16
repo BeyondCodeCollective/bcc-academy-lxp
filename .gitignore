@@ -46,3 +46,4 @@ next-env.d.ts
 # local-only tooling output
 /graphify-out/
 /scripts/
+.env*.local

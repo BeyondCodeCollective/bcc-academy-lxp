@@ -1500,3 +1500,68 @@ export async function getDashboardSurveyResponses(
     return new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime();
   });
 }
+
+// Per-track variant of getDashboardSurveyResponses. Filters authenticated
+// responses to students currently enrolled in `trackSlug`. Public responses
+// have no student_id to join on, so they're excluded — track-scoped insights
+// only show data from enrolled cohort members.
+export async function getTrackSurveyResponses(
+  surveyType: string,
+  trackSlug: string,
+): Promise<BCCSurveyResponse[]> {
+  const { svc, userId } = await requireAdmin();
+
+  const { data: enrollmentRows } = await svc
+    .from("student_tracks")
+    .select("student_id")
+    .eq("track_slug", trackSlug);
+
+  const enrolledIds = (enrollmentRows ?? []).map((r) => r.student_id);
+  if (enrolledIds.length === 0) return [];
+
+  const { data } = await svc
+    .from("survey_responses")
+    .select(
+      "responses, completed_at, program_id, programs(slug, name), students(first_name, last_name, email)",
+    )
+    .eq("survey_type", surveyType)
+    .in("student_id", enrolledIds)
+    .not("completed_at", "is", null)
+    .order("completed_at", { ascending: false });
+
+  logAdminAccess(svc, {
+    actorUserId: userId,
+    programId: null,
+    action: "view",
+    resource: `track_survey_responses.${surveyType}.${trackSlug}`,
+    rowCount: (data as unknown[])?.length ?? 0,
+  });
+
+  const rows = data as
+    | {
+        responses: Record<string, unknown>;
+        completed_at: string | null;
+        programs: { slug: string; name: string } | { slug: string; name: string }[] | null;
+        students: { first_name: string; last_name: string; email: string } | null;
+      }[]
+    | null;
+
+  return (rows ?? []).map((row) => {
+    const p = (Array.isArray(row.programs) ? row.programs[0] : row.programs) as {
+      slug: string;
+      name: string;
+    } | null;
+    return {
+      survey_type: surveyType,
+      full_name: row.students
+        ? `${row.students.first_name} ${row.students.last_name}`
+        : "Unknown",
+      email: row.students?.email ?? "",
+      program_slug: p?.slug ?? "",
+      program_name: p?.name ?? "",
+      completed_at: row.completed_at,
+      responses: row.responses,
+      source: "authenticated",
+    };
+  });
+}

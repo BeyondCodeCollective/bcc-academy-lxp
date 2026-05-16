@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CaretUpDown, SignOut, Check, ChartBar } from "@phosphor-icons/react";
+import { CaretUpDown, SignOut, Check } from "@phosphor-icons/react";
 
 type ProgramOption = {
   slug: string;
@@ -58,6 +58,7 @@ export function UserMenu({
   const initials =
     `${firstName?.[0] ?? ""}${lastName?.[0] ?? ""}`.toUpperCase() || "·";
 
+  /* eslint-disable react-hooks/immutability -- intentional browser-global writes for navigation */
   const handleSwitchProgram = (slug: string) => {
     if (slug === currentProgramSlug) return;
     if (slug === "__bcc_surveys__") {
@@ -73,12 +74,14 @@ export function UserMenu({
     const onProductionHost = productionHosts.has(window.location.hostname);
     const targetDnsReady = target?.dnsReady !== false;
     if (target && onProductionHost && targetDnsReady) {
-      window.location.href = `https://${target.domain}/dashboard/admin`;
+      window.location.href = `https://${target.domain}/dashboard`;
     } else {
       document.cookie = `program-override=${slug}; path=/; max-age=86400`;
-      window.location.reload();
+      // Land on the program's home so the new context is obvious.
+      window.location.href = "/dashboard";
     }
   };
+  /* eslint-enable react-hooks/immutability */
 
   const handleSignOut = async () => {
     document.cookie = "atg-demo-user=; path=/; max-age=0";
@@ -200,19 +203,40 @@ export function UserMenu({
             </div>
           </div>
 
-          {/* Insights shortcut (super-admins) */}
-          {canSwitch && (
+          {/* Program switcher (super-admins) */}
+          {canSwitch && programs.length > 1 && (
             <>
               <div className="my-1 h-px bg-rule-soft" role="separator" />
-              <div className="px-1">
-                <a
-                  href="/dashboard/admin/insights"
-                  role="menuitem"
-                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-paper-tint-soft hover:text-ink"
-                >
-                  <ChartBar size={15} weight="bold" aria-hidden />
-                  <span>Insights</span>
-                </a>
+              <div className="px-3 pt-2 pb-1">
+                <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-ink-faint">
+                  Switch program
+                </p>
+              </div>
+              <div className="px-1 pb-1">
+                {programs.map((p) => {
+                  const isCurrent = p.slug === currentProgramSlug;
+                  return (
+                    <button
+                      key={p.slug}
+                      type="button"
+                      role="menuitem"
+                      onClick={() => handleSwitchProgram(p.slug)}
+                      className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition-colors ${
+                        isCurrent
+                          ? "text-ink font-medium"
+                          : "text-ink-soft hover:bg-paper-tint-soft hover:text-ink"
+                      }`}
+                    >
+                      <Check
+                        size={14}
+                        weight="bold"
+                        aria-hidden
+                        className={`shrink-0 ${isCurrent ? "text-ink" : "text-transparent"}`}
+                      />
+                      <span className="truncate">{p.name}</span>
+                    </button>
+                  );
+                })}
               </div>
             </>
           )}

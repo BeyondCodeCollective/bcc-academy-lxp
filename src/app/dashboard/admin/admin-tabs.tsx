@@ -28,12 +28,18 @@ import {
   ClipboardList,
   Send,
   MessageSquare,
+  Coffee,
 } from "lucide-react";
+import { LunchLearnAdmin } from "@/app/dashboard/lunch-learn/admin/admin-client";
 import { AttendanceTab } from "./attendance-tab";
+import { TrackInsightsSection } from "@/components/track-insights-section";
+import { Avatar } from "@/components/avatar";
+import { computeCurrentWeek } from "@/lib/utils";
+import { InsightsDashboard } from "./insights/insights-dashboard";
+import type { InsightsData } from "./page";
 import type { Student } from "@/lib/types";
 import { isStorageUrl, isUploadedVideo } from "@/lib/storage-utils";
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
-import { computeCurrentWeek } from "@/lib/utils";
 
 const PLATFORM_SURVEY_TITLES: Record<string, string> = {
   "bcc-learner-intake": "BCC Learner Intake",
@@ -374,6 +380,8 @@ export function AdminTabs({
   userRole = "admin",
   engagementScores = {},
   initialTab,
+  lunchLearnRecordings = [],
+  insightsData = null,
 }: {
   cohorts: CohortRow[];
   students: StudentRow[];
@@ -387,6 +395,8 @@ export function AdminTabs({
   userRole?: string;
   engagementScores?: Record<string, { total: number; attendance: number; submissions: number; reflections: number; tutorMessages: number }>;
   initialTab?: string;
+  lunchLearnRecordings?: { id: string; title: string; presenter: string; recording_url: string; description: string | null; recorded_at: string }[];
+  insightsData?: InsightsData | null;
 }) {
   const programSlug = initialProgramSlug;
   const isManager = canManageStudents(userRole);
@@ -403,6 +413,7 @@ export function AdminTabs({
         ...(isManager ? [{ id: "students", label: "People", icon: Users }] : []),
         { id: "student-work", label: "Student Work", icon: ClipboardList },
         { id: "attendance", label: "Analytics", icon: UserCheck },
+        ...(isManager ? [{ id: "lunch-learn", label: "Lunch & Learn", icon: Coffee }] : []),
       ];
 
   const [tab, setTab] = useState<string>(
@@ -420,9 +431,10 @@ export function AdminTabs({
   const [students, setStudents] = useState(initialStudents);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [expandedWeek, setExpandedWeek] = useState<number | null>(1);
-  const [trackView, setTrackView] = useState<"curriculum" | "people" | "student-work" | "analytics">("curriculum");
+  const [expandedWeek, setExpandedWeek] = useState<number | null>(null);
+  const [trackView, setTrackView] = useState<"curriculum" | "people" | "student-work" | "insights">("curriculum");
   const [studentSaving, setStudentSaving] = useState<string | null>(null);
+  const [recentError, setRecentError] = useState<string | null>(null);
   const [recentSubs, setRecentSubs] = useState<AdminSubmissionRow[]>([]);
   const [recentRefs, setRecentRefs] = useState<AdminReflectionRow[]>([]);
   const [recentLoaded, setRecentLoaded] = useState(false);
@@ -465,6 +477,9 @@ export function AdminTabs({
         setRecentRefs(refs);
       } catch (err) {
         console.error("Failed to load recent activity:", err);
+        if (!cancelled) {
+          setRecentError(err instanceof Error ? err.message : "Failed to load");
+        }
       } finally {
         if (!cancelled) setRecentLoaded(true);
       }
@@ -813,8 +828,21 @@ export function AdminTabs({
           .sort((a, b) => b.submitted_at.localeCompare(a.submitted_at))
           .slice(0, 5);
 
+        const totalSurveyResponses = Object.values(surveyStats).reduce(
+          (sum, rows) => sum + rows.filter((r) => r.completed_at).length,
+          0,
+        );
+
         return (
         <div className="space-y-6">
+          <header>
+            <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">Overview</h1>
+            <p className="mt-1 text-xs text-neutral-500">
+              {enrolledCount} student{enrolledCount === 1 ? "" : "s"} across{" "}
+              {tracks.length} program{tracks.length === 1 ? "" : "s"}
+            </p>
+          </header>
+
           {/* Metric cards */}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
@@ -833,43 +861,28 @@ export function AdminTabs({
             ))}
           </div>
 
-          {/* This week */}
-          <section>
-            <h2 className="mb-3 text-lg font-semibold text-neutral-900">This week</h2>
-            <div className="space-y-2">
-              {tracks.map((t) => {
-                const currentWeek = computeCurrentWeek(
-                  t.startDate,
-                  t.totalWeeks,
-                  t.lastSessionDayOffset,
-                );
-                const week = t.weeks.find((w) => w.week === currentWeek);
-                const notStarted = new Date(t.startDate).getTime() > Date.now();
-                return (
-                  <div
-                    key={t.slug}
-                    className="flex items-center justify-between gap-3 rounded-xl border border-neutral-200 bg-white p-4"
-                  >
-                    <div className="min-w-0">
-                      <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400">
-                        {t.shortName}
-                      </p>
-                      <p className="mt-0.5 truncate text-sm font-semibold text-neutral-900">
-                        {notStarted
-                          ? `Starts ${new Date(t.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
-                          : week
-                            ? `Week ${currentWeek}: ${week.title}`
-                            : `Week ${currentWeek}`}
-                      </p>
-                    </div>
-                    <p className="shrink-0 text-xs text-neutral-500">
-                      {t.sessionTimes.join(" · ")}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
+          {/* Insights call-out — jumps to the Insights tab where the full
+             cross-program dashboard lives (super-admins only). */}
+          {canSwitchPrograms(userRole) && (
+            <a
+              href="/dashboard/admin?tab=insights"
+              className="flex items-center justify-between gap-4 rounded-xl border border-neutral-200 bg-white p-4 transition-colors hover:border-neutral-300 hover:bg-neutral-50"
+            >
+              <div className="min-w-0">
+                <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400">
+                  Cross-program insights
+                </p>
+                <p className="mt-1 text-sm font-semibold text-neutral-900">
+                  {totalSurveyResponses} survey response
+                  {totalSurveyResponses === 1 ? "" : "s"} across {surveyConfigs.length} survey
+                  {surveyConfigs.length === 1 ? "" : "s"}
+                </p>
+              </div>
+              <span className="shrink-0 text-xs text-neutral-500">
+                Open dashboard &rarr;
+              </span>
+            </a>
+          )}
 
           {/* Recent activity */}
           <section>
@@ -877,6 +890,10 @@ export function AdminTabs({
             <div className="divide-y divide-neutral-100 rounded-xl border border-neutral-200 bg-white">
               {!recentLoaded ? (
                 <p className="p-4 text-sm text-neutral-400">Loading…</p>
+              ) : recentError ? (
+                <p className="p-4 text-sm text-red-500">
+                  Couldn&rsquo;t load recent activity: {recentError}
+                </p>
               ) : activity.length === 0 ? (
                 <p className="p-4 text-sm text-neutral-500">
                   No submissions or reflections yet.
@@ -1042,15 +1059,54 @@ export function AdminTabs({
       })()}
 
       {/* Track view — shows when a track is selected from the sidebar */}
-      {activeTrack && (
+      {activeTrack && (() => {
+        // Count only role=student enrollments. The raw student_tracks rows
+        // include instructors/admins assigned to the track, which would
+        // inflate the header and diverge from the People sub-tab's count.
+        const studentRoleIds = new Set(
+          students.filter((s) => s.role === "student").map((s) => s.id),
+        );
+        const enrolledInTrack = enrollments.filter(
+          (e) => e.track_slug === activeTrack.slug && studentRoleIds.has(e.student_id),
+        ).length;
+        const notStarted = new Date(activeTrack.startDate).getTime() > Date.now();
+        const currentWeek = notStarted
+          ? 0
+          : computeCurrentWeek(
+              activeTrack.startDate,
+              activeTrack.totalWeeks,
+              activeTrack.lastSessionDayOffset,
+            );
+        const startLabel = new Date(activeTrack.startDate).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        });
+        return (
         <div className="space-y-4">
           {/* Track header */}
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-neutral-900">{activeTrack.name}</h2>
-            <p className="text-xs text-neutral-400">
-              {activeTrack.totalWeeks} week{activeTrack.totalWeeks !== 1 ? "s" : ""} · {activeTrack.sessionTimes.join(" & ")}
+          <header className="space-y-1.5">
+            <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">
+              {activeTrack.name}
+            </h1>
+            <p className="text-xs text-neutral-500">
+              with {activeTrack.instructor} &middot;{" "}
+              {activeTrack.sessionTimes.join(" & ")}
             </p>
-          </div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1 text-xs text-neutral-600">
+              <span className="tabular-nums">
+                <strong className="font-semibold text-neutral-900">{enrolledInTrack}</strong>{" "}
+                student{enrolledInTrack === 1 ? "" : "s"}
+              </span>
+              <span className="tabular-nums">
+                {notStarted
+                  ? `Starts ${startLabel}`
+                  : `Week ${currentWeek} of ${activeTrack.totalWeeks}`}
+              </span>
+              <span className="tabular-nums text-neutral-400">
+                {activeTrack.totalWeeks} weeks total
+              </span>
+            </div>
+          </header>
 
           {/* Sub-tab bar within the track */}
           <div className="flex gap-1 rounded-lg bg-neutral-100 p-1">
@@ -1058,7 +1114,7 @@ export function AdminTabs({
               { id: "curriculum" as const, label: "Curriculum" },
               ...(isManager ? [{ id: "people" as const, label: "People" }] : []),
               { id: "student-work" as const, label: "Student Work" },
-              { id: "analytics" as const, label: "Analytics" },
+              { id: "insights" as const, label: "Insights" },
             ].map((v) => (
               <button
                 key={v.id}
@@ -1086,10 +1142,12 @@ export function AdminTabs({
                   className="flex w-full items-center justify-between px-4 sm:px-5 py-3.5 sm:py-4 hover:bg-neutral-50 transition-colors"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="text-xl">{aw.icon}</span>
+                    <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-neutral-300 text-[11px] font-semibold tabular-nums text-neutral-600">
+                      {aw.week}
+                    </span>
                     <div className="text-left">
                       <p className="text-sm font-semibold text-neutral-900">
-                        Week {aw.week}: {aw.title}
+                        {aw.title}
                       </p>
                       <p className="text-[10px] text-neutral-400">
                         {aw.sessions.length} session{aw.sessions.length !== 1 ? "s" : ""}
@@ -1498,6 +1556,7 @@ export function AdminTabs({
           {students.length === 0 && (
             <p className="text-sm text-neutral-400 py-8 text-center">No people yet</p>
           )}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {students
             .filter((s) => {
               // Role filter (admin tab includes super_admin)
@@ -1544,26 +1603,34 @@ export function AdminTabs({
               }`}
             >
               {/* Name row */}
-              <div className="flex items-center justify-between mb-3">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    {scoreColor && (
-                      <span className={`h-2 w-2 shrink-0 rounded-full ${scoreColor}`} title={`Engagement: ${score?.total ?? 0}/100`} />
-                    )}
-                    <p className="text-sm font-semibold text-neutral-900">
-                      {student.first_name && student.last_name ? `${student.first_name} ${student.last_name}` : student.email}
-                    </p>
-                    {student.role === "super_admin" && (
-                      <Shield size={12} className="shrink-0 text-red-500" />
-                    )}
-                    {student.role === "admin" && (
-                      <Shield size={12} className="shrink-0 text-amber-500" />
-                    )}
-                    {student.role === "instructor" && (
-                      <GraduationCap size={12} className="shrink-0 text-blue-500" />
-                    )}
+              <div className="flex items-start justify-between mb-3 gap-3">
+                <div className="flex items-start gap-3 min-w-0">
+                  <Avatar
+                    firstName={student.first_name}
+                    lastName={student.last_name}
+                    email={student.email}
+                    size="md"
+                  />
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      {scoreColor && (
+                        <span className={`h-2 w-2 shrink-0 rounded-full ${scoreColor}`} title={`Engagement: ${score?.total ?? 0}/100`} />
+                      )}
+                      <p className="text-sm font-semibold text-neutral-900 truncate">
+                        {student.first_name && student.last_name ? `${student.first_name} ${student.last_name}` : student.email}
+                      </p>
+                      {student.role === "super_admin" && (
+                        <Shield size={12} className="shrink-0 text-red-500" />
+                      )}
+                      {student.role === "admin" && (
+                        <Shield size={12} className="shrink-0 text-amber-500" />
+                      )}
+                      {student.role === "instructor" && (
+                        <GraduationCap size={12} className="shrink-0 text-blue-500" />
+                      )}
+                    </div>
+                    <p className="text-xs text-neutral-500 mt-0.5 truncate">{student.email}</p>
                   </div>
-                  <p className="text-xs text-neutral-500 mt-0.5">{student.email}</p>
                 </div>
                 {confirmDelete === student.id ? (
                   <div className="flex items-center gap-1.5 shrink-0">
@@ -1676,6 +1743,7 @@ export function AdminTabs({
             </div>
           );
           })}
+          </div>
 
           {/* Enrollment links (collapsible footer) */}
           {tracks.length > 0 && (
@@ -1714,41 +1782,94 @@ export function AdminTabs({
           )}
 
           {/* People sub-view — scoped to this track */}
-          {trackView === "people" && isManager && (
-            <div className="space-y-3">
-              <p className="text-sm text-neutral-500">
-                {trackStudents.filter((s) => s.role === "student").length} student{trackStudents.filter((s) => s.role === "student").length !== 1 ? "s" : ""} enrolled in {activeTrack.shortName}
-              </p>
-              <div className="divide-y divide-neutral-100 rounded-xl border border-neutral-200 bg-white">
-                {trackStudents.filter((s) => s.role === "student").length === 0 ? (
-                  <p className="p-4 text-sm text-neutral-400">No students enrolled yet.</p>
+          {trackView === "people" && isManager && (() => {
+            const trackOnlyStudents = trackStudents.filter((s) => s.role === "student");
+            return (
+              <div className="space-y-3">
+                <p className="text-sm text-neutral-500">
+                  {trackOnlyStudents.length} student{trackOnlyStudents.length !== 1 ? "s" : ""} enrolled in {activeTrack.shortName}
+                </p>
+                {trackOnlyStudents.length === 0 ? (
+                  <p className="rounded-xl border border-neutral-200 bg-white p-4 text-sm text-neutral-400">
+                    No students enrolled yet.
+                  </p>
                 ) : (
-                  trackStudents.filter((s) => s.role === "student").map((s) => (
-                    <div key={s.id} className="flex items-center justify-between px-4 py-3">
-                      <div>
-                        <p className="text-sm font-medium text-neutral-900">
-                          {s.first_name && s.last_name ? `${s.first_name} ${s.last_name}` : s.email}
-                        </p>
-                        <p className="text-xs text-neutral-400">{s.email}</p>
-                      </div>
-                    </div>
-                  ))
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                    {trackOnlyStudents.map((s) => {
+                      const score = engagementScores[s.id];
+                      const scoreColor = !score
+                        ? ""
+                        : score.total >= 60
+                          ? "bg-green-500"
+                          : score.total >= 30
+                            ? "bg-amber-500"
+                            : "bg-red-500";
+                      return (
+                        <div
+                          key={s.id}
+                          className="rounded-xl border border-neutral-200 bg-white p-4"
+                        >
+                          <div className="flex items-start gap-3">
+                            <Avatar
+                              firstName={s.first_name}
+                              lastName={s.last_name}
+                              email={s.email}
+                              size="md"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5">
+                                {scoreColor && (
+                                  <span
+                                    className={`h-2 w-2 shrink-0 rounded-full ${scoreColor}`}
+                                    title={`Engagement: ${score?.total ?? 0}/100`}
+                                  />
+                                )}
+                                <p className="text-sm font-semibold text-neutral-900 truncate">
+                                  {s.first_name && s.last_name ? `${s.first_name} ${s.last_name}` : s.email}
+                                </p>
+                              </div>
+                              <p className="mt-0.5 truncate text-xs text-neutral-500">{s.email}</p>
+                            </div>
+                          </div>
+                          {score && (
+                            <div className="mt-3 flex items-center gap-3 text-[11px] text-neutral-400">
+                              <span>{score.attendance} sessions</span>
+                              <span>{score.submissions} submissions</span>
+                              <span>{score.reflections} reflections</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Student Work sub-view — scoped to this track */}
           {trackView === "student-work" && (
             <StudentWorkTab tracks={[activeTrack]} programSlug={programSlug} />
           )}
 
-          {/* Analytics sub-view — scoped to this track */}
-          {trackView === "analytics" && (
-            <AttendanceTab students={trackStudents.filter((s) => s.role === "student")} />
+          {/* Insights sub-view — scoped to this track. Attendance + engagement
+             on top, surveys/reflections summary below. */}
+          {trackView === "insights" && (
+            <div className="space-y-8">
+              <AttendanceTab students={trackStudents.filter((s) => s.role === "student")} />
+              <TrackInsightsSection
+                trackSlug={activeTrack.slug}
+                trackShortName={activeTrack.shortName}
+                programSlug={programSlug}
+                totalWeeks={activeTrack.totalWeeks}
+                enrolledStudentCount={trackStudentIds?.size ?? 0}
+                surveyConfigs={surveyConfigs}
+              />
+            </div>
           )}
         </div>
-      )}
+        );
+      })()}
 
       {/* Standalone People tab (from sidebar "Overview" context) */}
       {tab === "students" && (
@@ -1766,6 +1887,40 @@ export function AdminTabs({
       {/* Standalone Analytics (from sidebar, all tracks) */}
       {tab === "attendance" && (
         <AttendanceTab students={students.filter((s) => s.role === "student")} />
+      )}
+
+      {/* Lunch & Learn management */}
+      {tab === "lunch-learn" && (
+        <div className="space-y-6">
+          <header>
+            <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">
+              Lunch &amp; Learns
+            </h1>
+            <p className="mt-1 text-xs text-neutral-500">
+              {lunchLearnRecordings.length} recording
+              {lunchLearnRecordings.length === 1 ? "" : "s"} for internal staff
+            </p>
+          </header>
+          <LunchLearnAdmin recordings={lunchLearnRecordings} embedded />
+        </div>
+      )}
+
+      {/* Insights — cross-program survey dashboard. Super-admin only;
+         insightsData is null otherwise. */}
+      {tab === "insights" && (
+        insightsData ? (
+          <InsightsDashboard
+            sections={insightsData.sections}
+            programs={insightsData.programs}
+            totalResponses={insightsData.totalResponses}
+          />
+        ) : (
+          <div className="rounded-xl border border-neutral-200 bg-white p-8 text-center">
+            <p className="text-sm text-neutral-500">
+              Insights are only available to super-admins.
+            </p>
+          </div>
+        )
       )}
       </div>
       </div>
