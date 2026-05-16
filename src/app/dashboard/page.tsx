@@ -204,12 +204,65 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
   }
 
   if (notEnrolled) {
+    const firstTrack = program.tracks[0];
+    const startDate = firstTrack
+      ? new Date(firstTrack.startDate)
+      : null;
+    const hasStarted = startDate ? startDate <= new Date() : false;
+    const formattedStart = startDate?.toLocaleDateString("en-US", {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
+
     return (
-      <div>
-        <h1 className="text-2xl font-bold text-neutral-900">
-          Welcome, {firstName}
-        </h1>
-        <p className="mt-1 text-sm text-neutral-700">You&apos;re signed in.</p>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-neutral-900">
+            Welcome, {firstName}
+          </h1>
+          <p className="mt-1 text-sm text-neutral-500">{program.name}</p>
+        </div>
+
+        <div className="rounded-xl border border-neutral-200 bg-white p-6 sm:p-8 text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-neutral-100 text-2xl">
+            {firstTrack?.weekSummaries[0]?.icon ?? "🎓"}
+          </div>
+          <h2 className="mt-4 text-lg font-semibold text-neutral-900">
+            {hasStarted ? "You’re registered!" : "You’re in!"}
+          </h2>
+          <p className="mx-auto mt-2 max-w-md text-sm text-neutral-500">
+            {hasStarted
+              ? "Your track enrollment is being finalized. You’ll see your full dashboard here shortly."
+              : formattedStart
+                ? `${program.name} kicks off ${formattedStart}. We’ll send you everything you need before then.`
+                : `${program.name} is coming soon. We’ll let you know when it’s time to start.`}
+          </p>
+        </div>
+
+        {firstTrack && (
+          <div className="rounded-xl border border-neutral-200 bg-white p-5">
+            <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400">
+              What you&apos;ll cover
+            </p>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5">
+              {firstTrack.weekSummaries.slice(0, 10).map((ws) => (
+                <div
+                  key={ws.week}
+                  className="flex flex-col items-center rounded-lg bg-neutral-50 p-3 text-center"
+                >
+                  <span className="text-lg">{ws.icon}</span>
+                  <span className="mt-1 text-[11px] font-medium text-neutral-900">
+                    {ws.topic}
+                  </span>
+                  <span className="text-[10px] text-neutral-400">
+                    Week {ws.week}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
