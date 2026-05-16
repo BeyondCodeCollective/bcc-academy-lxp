@@ -2,8 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { CaretUpDown, SignOut, Check } from "@phosphor-icons/react";
-import { TextScaleToggle } from "@/components/text-scale-toggle";
-import { ReadAloudButton } from "@/components/read-aloud-button";
 
 type ProgramOption = {
   slug: string;
@@ -21,7 +19,6 @@ export function UserMenu({
   canSwitch,
   programs,
   currentProgramSlug,
-  readAloudSelector = "#dashboard-main",
   variant = "sidebar",
 }: {
   firstName: string;
@@ -31,7 +28,6 @@ export function UserMenu({
   canSwitch: boolean;
   programs: ProgramOption[];
   currentProgramSlug: string;
-  readAloudSelector?: string;
   variant?: Variant;
 }) {
   const [open, setOpen] = useState(false);
@@ -249,20 +245,6 @@ export function UserMenu({
               </ul>
             </>
           )}
-
-          {/* Accessibility controls */}
-          <div className="my-1 h-px bg-rule-soft" role="separator" />
-          <div className="px-3 pb-1 pt-2 text-[10px] font-medium uppercase tracking-[0.14em] text-ink-faint">
-            Accessibility
-          </div>
-          <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
-            <span className="text-xs text-ink-soft">Text size</span>
-            <TextScaleToggle compact />
-          </div>
-          <div className="flex items-center justify-between gap-2 px-3 pb-2">
-            <span className="text-xs text-ink-soft">Read aloud</span>
-            <ReadAloudButton selector={readAloudSelector} label="Read aloud" />
-          </div>
 
           {/* Sign out */}
           <div className="my-1 h-px bg-rule-soft" role="separator" />
