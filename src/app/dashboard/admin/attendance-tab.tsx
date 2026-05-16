@@ -112,7 +112,7 @@ function exportCSV(risks: StudentRisk[]) {
   const header = "Name,Email,MASS %,Tech+ %,Combined %,Status,Consecutive Misses";
   const rows = risks.map((r) =>
     [
-      `"${r.student.first_name} ${r.student.last_name}"`,
+      `"${r.student.first_name && r.student.last_name ? `${r.student.first_name} ${r.student.last_name}` : r.student.email}"`,
       r.student.email,
       r.massRate,
       r.techRate,
@@ -439,7 +439,7 @@ export function AttendanceTab({ students }: AttendanceTabProps) {
                   >
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-neutral-900 truncate">
-                        {student.first_name} {student.last_name}
+                        {student.first_name && student.last_name ? `${student.first_name} ${student.last_name}` : student.email}
                       </p>
                       <p className="text-[11px] text-neutral-400 truncate sm:hidden">
                         MASS {massRate}% · Tech+ {techRate}% · {consecutiveMisses > 0 ? `${consecutiveMisses} missed` : "No misses"}
@@ -584,7 +584,7 @@ export function AttendanceTab({ students }: AttendanceTabProps) {
                         <div key={student.id} className="flex items-center gap-3 px-4 py-2.5">
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-neutral-900 truncate">
-                              {student.first_name} {student.last_name}
+                              {student.first_name && student.last_name ? `${student.first_name} ${student.last_name}` : student.email}
                             </p>
                             <p className="text-[11px] text-neutral-400 truncate">
                               {student.email}
