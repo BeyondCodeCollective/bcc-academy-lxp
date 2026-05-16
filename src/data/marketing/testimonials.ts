@@ -11,7 +11,7 @@ export const testimonials: Testimonial[] = [
   {
     id: "1",
     quote:
-      "I tried learning to code three times before. Udemy, YouTube, a bootcamp. Every time I quit. The Forge was different — not because the content was easier, but because someone actually noticed when I stopped showing up. My facilitator called me. That call changed everything.",
+      "I tried learning to code three times before. Udemy, YouTube, a bootcamp. Every time I quit. Beyond Code Centers was different — not because the content was easier, but because someone actually noticed when I stopped showing up. My facilitator called me. That call changed everything.",
     name: "Terri Washington",
     role: "Career Pivoter → Junior Data Analyst",
     pathway: "Pivoters",

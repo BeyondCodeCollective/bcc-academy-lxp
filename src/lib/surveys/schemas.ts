@@ -413,7 +413,7 @@ const NETWORK_PLUS_POST: SurveyQuestion[] = [
   },
 ];
 
-// ─── pre-survey-spring-2026 (Forge auth pre-survey) ──────────────────────────
+// ─── pre-survey-spring-2026 (Beyond Code Centers auth pre-survey) ──────────────────────────
 const PRE_SURVEY_SPRING_2026: SurveyQuestion[] = [
   ...SHARED_DEMOGRAPHICS,
   {
@@ -485,7 +485,7 @@ const PRE_SURVEY_SPRING_2026: SurveyQuestion[] = [
   },
 ];
 
-// ─── post-survey-spring-2026 (Forge AI Fundamentals end-of-program) ─────────
+// ─── post-survey-spring-2026 (Beyond Code Centers AI Fundamentals end-of-program) ─────────
 //
 // Reuses the exact `digital_experience` and `ai_experience` Likert ids and
 // statements from `pre-survey-spring-2026` so the dashboard can pair pre→post

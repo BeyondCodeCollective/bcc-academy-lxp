@@ -13,7 +13,7 @@ export interface ForgeHub {
 export const forgeHubs: ForgeHub[] = [
   {
     id: "atl",
-    name: "The Forge ATL",
+    name: "Beyond Code Centers ATL",
     city: "Atlanta",
     state: "GA",
     neighborhood: "Midtown",
@@ -22,7 +22,7 @@ export const forgeHubs: ForgeHub[] = [
   },
   {
     id: "nyc",
-    name: "The Forge NYC",
+    name: "Beyond Code Centers NYC",
     city: "New York",
     state: "NY",
     status: "coming-soon",

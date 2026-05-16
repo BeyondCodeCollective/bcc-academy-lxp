@@ -4,7 +4,7 @@ import type { ProgramConfig } from "./types";
 // market, served from forte.bccacademy.io. Curriculum is the 10-session
 // "AI Literacy" track below (see .context/attachments/ForteBahamas syllabus).
 //
-// NOTE: "forte" is a separate program from "forge" (The Forge) — similar
+// NOTE: "forte" is a separate program from "forge" (Beyond Code Centers) — similar
 // names, unrelated programs.
 //
 // TODO(launch): `startDate` below is a placeholder. The track uses the

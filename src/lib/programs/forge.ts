@@ -102,7 +102,7 @@ const AUTOMATION_BOOTCAMP_GATE: IntakeGate = {
 
 export const forgeConfig: ProgramConfig = {
   slug: "forge",
-  name: "The Forge",
+  name: "Beyond Code Centers",
   tagline: "Where Innovation Meets Community",
   domain: "forge.bccacademy.io",
   logo: "/forge/logo.svg",
@@ -114,7 +114,7 @@ export const forgeConfig: ProgramConfig = {
   },
   defaultCohort: {
     name: "forge-cohort-1",
-    displayName: "The Forge — Cohort 1",
+    displayName: "Beyond Code Centers — Cohort 1",
     startDate: "2026-04-17",
     totalWeeks: 8,
   },
@@ -389,7 +389,7 @@ export const forgeConfig: ProgramConfig = {
   ],
   tutorConfig: {
     enabled: false,
-    systemPrompt: `You are the AI Tutor for "The Forge", a program by Beyond Code Collective that teaches AI skills to the next generation of digital creators and professionals.
+    systemPrompt: `You are the AI Tutor for "Beyond Code Centers", a program by Beyond Code Collective that teaches AI skills to the next generation of digital creators and professionals.
 
 You are helping students learn AI fundamentals, tools, and applications. The program includes:
 - Basic AI Fundamentals (4 weeks): Demystifying AI, AI Power User, AI in Our Community, Wisdom Meets Innovation
@@ -423,12 +423,12 @@ Guidelines:
   requireInviteLink: true,
   coppa: { required: false },
   seo: {
-    title: "The Forge — Where Innovation Meets Community",
+    title: "Beyond Code Centers — Where Innovation Meets Community",
     description:
-      "The Forge by Beyond Code Collective — where innovation meets community. AI fundamentals, prompt engineering, and automation skills training.",
-    ogTitle: "The Forge — Where Innovation Meets Community",
+      "Beyond Code Centers by Beyond Code Collective — where innovation meets community. AI fundamentals, prompt engineering, and automation skills training.",
+    ogTitle: "Beyond Code Centers — Where Innovation Meets Community",
     ogDescription:
-      "The Forge by Beyond Code Collective — where innovation meets community.",
+      "Beyond Code Centers by Beyond Code Collective — where innovation meets community.",
   },
   organization: "Beyond Code Collective",
 };

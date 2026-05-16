@@ -10,15 +10,11 @@ import {
 
 // Preview override: lets a reviewer flip into a specific program experience
 // on a non-production host (Vercel preview URL, vercel.app alias, localhost)
-// via ?as=marketing|atg|forge|catalyst. Persisted as a 24h
-// `program-override` cookie so subsequent navigation works without re-adding
-// the query param. Production hosts (atg.bccacademy.io etc.) ignore this —
-// the URL always wins on the real domain.
+// via ?as=marketing|catalyst. With the Catalyst consolidation there's only
+// one program, but the preview override is still useful for switching between
+// marketing and the authenticated program view on non-production hosts.
 const VALID_PREVIEW_SLUGS = new Set([
   "marketing",
-  "atg",
-  "forge",
-  "forte",
   "catalyst",
 ]);
 

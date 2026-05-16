@@ -15,13 +15,31 @@ const programs = [
     href: "https://catalyst.bccacademy.io",
   },
   {
-    id: "forge",
-    label: "The Forge",
-    tagline: "Human-led learning in physical hubs.",
+    id: "ai-fundamentals",
+    label: "AI Fundamentals",
+    tagline: "Build a practical understanding of AI — no tech background required.",
     description:
-      "Cohort-based, in-person, and first-come-first-serve. The Forge brings structured learning into your city — a space where humans teach humans, and technology is the tool, not the teacher.",
-    cta: "Apply to The Forge",
-    href: "https://forge.bccacademy.io",
+      "A 4-week, in-person cohort at Beyond Code Centers. Demystify AI, become a power user, explore community impact, and build something real — all guided by live instructors.",
+    cta: "Join AI Fundamentals",
+    href: "/join/ai-fundamentals",
+  },
+  {
+    id: "ai-digital-natives",
+    label: "AI for Digital Natives",
+    tagline: "Master AI tools — from prompt engineering to building with APIs.",
+    description:
+      "An 8-week deep dive for digital-native learners at Beyond Code Centers. Prompt engineering, content creation, coding with AI, data analysis, and a capstone project.",
+    cta: "Join Digital Natives",
+    href: "/join/ai-digital-natives",
+  },
+  {
+    id: "ai-automation",
+    label: "AI Automation Bootcamp",
+    tagline: "Automate your workflow with AI — a hands-on 2-hour intensive.",
+    description:
+      "A single-session bootcamp at Beyond Code Centers. Identify tasks AI can automate, build a workflow from scratch using no-code tools, and leave with something running.",
+    cta: "Join Bootcamp",
+    href: "/join/ai-automation",
   },
   {
     id: "atg",

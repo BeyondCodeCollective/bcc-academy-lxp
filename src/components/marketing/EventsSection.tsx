@@ -30,7 +30,7 @@ export default function EventsSection({ events }: EventsSectionProps) {
           </h2>
           <p className="mt-6 text-lg text-grey-3 max-w-2xl mx-auto leading-relaxed">
             Workshops, cohorts, family days, and meetups — recurring at every
-            Forge, open to the community.
+            Beyond Code Centers, open to the community.
           </p>
         </motion.div>
 

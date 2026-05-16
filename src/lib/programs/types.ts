@@ -102,6 +102,10 @@ export type TrackConfig = {
   intakeRequired?: boolean;
   /** @deprecated Use gates: [{ type: "intake", ... }] instead */
   intakeQuestions?: IntakeQuestion[];
+  /** Phase grouping for the Catalyst journey (e.g. "foundation", "core", "workshop", "exit") */
+  phase?: string;
+  /** Slug of a track that must be completed before this one unlocks */
+  prerequisiteTrackSlug?: string;
 };
 
 export type ProgramColors = {

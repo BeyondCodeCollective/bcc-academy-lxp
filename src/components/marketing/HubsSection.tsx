@@ -18,7 +18,7 @@ export default function HubsSection() {
           className="mb-16"
         >
           <p className="text-cobalt text-sm font-semibold tracking-[0.3em] uppercase mb-4 font-mono">
-            [ The Forge &middot; Find a Hub Near You ]
+            [ Beyond Code Centers &middot; Find a Hub Near You ]
           </p>
           <h2 className="font-display text-4xl sm:text-5xl md:text-7xl font-bold text-true-black uppercase leading-[0.9]">
             A third space.
@@ -28,7 +28,7 @@ export default function HubsSection() {
             nor work.
           </h2>
           <p className="mt-6 text-lg text-grey-3 max-w-2xl leading-relaxed">
-            The Forge is a physical place where humans teach humans and
+            Beyond Code Centers is a physical place where humans teach humans and
             technology is the tool, not the teacher. Find one in your city
             — or get on the list when we expand.
           </p>
@@ -85,10 +85,10 @@ export default function HubsSection() {
                   </p>
                   {isActive && (
                     <a
-                      href="https://forge.bccacademy.io"
+                      href="/#programs"
                       className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-cobalt hover:text-dark-cobalt transition-colors"
                     >
-                      Apply to The Forge
+                      View programs at Beyond Code Centers
                       <ArrowRight size={12} weight="bold" />
                     </a>
                   )}
@@ -110,7 +110,7 @@ export default function HubsSection() {
                 Don&rsquo;t see your city?
               </h3>
               <p className="text-sm text-grey-3 leading-relaxed">
-                We&rsquo;re expanding. Get on the waitlist and we&rsquo;ll let you know when The Forge comes to you.
+                We&rsquo;re expanding. Get on the waitlist and we&rsquo;ll let you know when Beyond Code Centers comes to you.
               </p>
             </div>
             <a

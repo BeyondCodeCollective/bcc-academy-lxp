@@ -16,7 +16,7 @@ export const pathways: Pathway[] = [
     stage: "K–12 youth",
     tagline: "Exposure → Confidence → Skill → Community",
     description:
-      "Young learners who first encounter Beyond Code through Code Along, a Forge activation, or a community partner — and decide to keep going.",
+      "Young learners who first encounter Beyond Code through Code Along, a Beyond Code Centers activation, or a community partner — and decide to keep going.",
     color: "#00BCD4",
     icon: "🔭",
     image: "/images/bcc/community/community-02.jpg",

@@ -14,7 +14,7 @@ const footerColumns = [
   {
     title: "Programs",
     links: [
-      { label: "The Forge ATL", href: "#hubs" },
+      { label: "Beyond Code Centers ATL", href: "#hubs" },
       { label: "Catalyst", href: null },
       { label: "Black Girls Code", href: "https://wearebgc.org" },
       { label: "Summer Camps", href: null },

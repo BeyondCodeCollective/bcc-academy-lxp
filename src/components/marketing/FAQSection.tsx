@@ -9,7 +9,7 @@ const faqs = [
   {
     question: "What is Beyond Code Collective?",
     answer:
-      "A community-based learning and workforce ecosystem giving people lifelong access to the skills, relationships, and pathways shaping the future of work. We teach learners ages 7 to 87 across in-person Forge hubs and virtual cohorts.",
+      "A community-based learning and workforce ecosystem giving people lifelong access to the skills, relationships, and pathways shaping the future of work. We teach learners ages 7 to 87 across in-person Beyond Code Centers hubs and virtual cohorts.",
   },
   {
     question: "Who is this for?",

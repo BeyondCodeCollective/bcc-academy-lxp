@@ -9,7 +9,7 @@ import {
 } from "@/components/survey-fields";
 import { savePublicSurveyResponse } from "./actions";
 
-// Public (unauthenticated) Forge pre-survey — Spring 2026.
+// Public (unauthenticated) Beyond Code Centers pre-survey — Spring 2026.
 // Students land here via a shared link without needing to log in.
 // Collects demographics, device access, digital literacy, and AI experience.
 
@@ -44,7 +44,7 @@ const PAGES: Page[] = [
     kind: "questions",
     title: "Before you start",
     subtitle:
-      "Thanks for joining The Forge! Before we get started, take a few minutes to tell us about yourself.",
+      "Thanks for joining Beyond Code Centers! Before we get started, take a few minutes to tell us about yourself.",
     questions: [
       {
         type: "consent",
@@ -404,7 +404,7 @@ export function PublicPreSurvey({ surveyId, programSlug }: Props) {
           </div>
           <h2 className="text-xl font-bold text-neutral-900">You&apos;re all set.</h2>
           <p className="mt-2 text-sm text-neutral-600">
-            Thanks for sharing. Your answers help us build The Forge around you.
+            Thanks for sharing. Your answers help us build Beyond Code Centers around you.
           </p>
           <p className="mt-4 text-xs text-neutral-500">
             Change your mind?{" "}
