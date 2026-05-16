@@ -12,6 +12,7 @@ import { canAccessAdminPanel, canSwitchPrograms } from "@/lib/roles";
 import { getSessionContext } from "@/lib/auth/session";
 import { getAllPrograms, isTutorAvailable } from "@/lib/programs";
 import { getEnrolledTracks } from "@/lib/enrollment";
+import { BCC_INTAKE_SURVEY_ID, BCC_INTAKE_EXEMPT_PROGRAMS } from "@/lib/surveys/platform";
 
 export default async function DashboardLayout({
   children,
@@ -43,10 +44,39 @@ export default async function DashboardLayout({
     lastName = ctx.student?.last_name ?? "";
     email = ctx.student?.email ?? ctx.userEmail;
     avatarUrl = ctx.student?.avatar_url ?? null;
-    if (!isAdmin && program.tracks.length > 0) {
+    if (!isAdmin && !isSurveyPage) {
       const supabase = await createClient();
-      const enrolled = await getEnrolledTracks(supabase, ctx.userId, program);
-      enrolledTrackSlugs = enrolled.map((t) => t.slug);
+      if (!BCC_INTAKE_EXEMPT_PROGRAMS.includes(program.slug)) {
+        const { data: intakeRow } = await supabase
+          .from("survey_responses")
+          .select("completed_at")
+          .eq("student_id", ctx.userId)
+          .eq("survey_type", BCC_INTAKE_SURVEY_ID)
+          .not("completed_at", "is", null)
+          .maybeSingle();
+        if (!intakeRow) {
+          redirect(`/dashboard/survey/${BCC_INTAKE_SURVEY_ID}`);
+        }
+      }
+      const requiredSurvey = program.surveys?.find((s) => s.required);
+      if (requiredSurvey) {
+        const { data: surveyRow } = await supabase
+          .from("survey_responses")
+          .select("completed_at")
+          .eq("student_id", ctx.userId)
+          .eq("survey_type", requiredSurvey.id)
+          .not("completed_at", "is", null)
+          .maybeSingle();
+        if (!surveyRow) {
+          redirect(`/dashboard/survey/${requiredSurvey.id}`);
+        }
+      }
+      if (program.tracks.length > 0) {
+        const enrolled = await getEnrolledTracks(supabase, ctx.userId, program);
+        enrolledTrackSlugs = enrolled.map((t) => t.slug);
+      }
+    } else if (!isAdmin && isSurveyPage) {
+      // No enrollment query needed on survey pages
     }
   } else {
     const cookieStore = await cookies();
