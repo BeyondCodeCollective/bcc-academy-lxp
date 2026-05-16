@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { cookies, headers } from "next/headers";
-import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { isSupabaseConfigured, createClient } from "@/lib/supabase/server";
 import { getDemoUser, DEMO_COOKIE } from "@/lib/demo-users";
 import { Nav } from "@/components/nav";
 import { TutorFab } from "@/components/tutor-fab";
@@ -11,6 +11,7 @@ import { ProgramProvider } from "@/lib/programs/context";
 import { canAccessAdminPanel, canSwitchPrograms } from "@/lib/roles";
 import { getSessionContext } from "@/lib/auth/session";
 import { getAllPrograms, isTutorAvailable } from "@/lib/programs";
+import { getEnrolledTracks } from "@/lib/enrollment";
 
 export default async function DashboardLayout({
   children,
@@ -31,6 +32,7 @@ export default async function DashboardLayout({
   let lastName = "";
   let email: string | null = null;
   let avatarUrl: string | null = null;
+  let enrolledTrackSlugs: string[] = [];
   if (isSupabaseConfigured()) {
     const ctx = await getSessionContext();
     if (!ctx) redirect("/");
@@ -41,6 +43,11 @@ export default async function DashboardLayout({
     lastName = ctx.student?.last_name ?? "";
     email = ctx.student?.email ?? ctx.userEmail;
     avatarUrl = ctx.student?.avatar_url ?? null;
+    if (!isAdmin && program.tracks.length > 0) {
+      const supabase = await createClient();
+      const enrolled = await getEnrolledTracks(supabase, ctx.userId, program);
+      enrolledTrackSlugs = enrolled.map((t) => t.slug);
+    }
   } else {
     const cookieStore = await cookies();
     const demoEmail = cookieStore.get(DEMO_COOKIE)?.value;
@@ -65,6 +72,34 @@ export default async function DashboardLayout({
       }))
     : [];
 
+  // Nav variant: admin → sidebar with admin items; enrolled student → sidebar
+  // with curriculum weeks; unenrolled student → horizontal top bar.
+  const navVariant: "admin-sidebar" | "student-sidebar" | "topbar" = isAdmin
+    ? "admin-sidebar"
+    : enrolledTrackSlugs.length > 0
+      ? "student-sidebar"
+      : "topbar";
+  const hasSidebar = navVariant !== "topbar";
+
+  // Serialize track info for the curriculum sidebar (student-sidebar only).
+  const curriculumTracks =
+    navVariant === "student-sidebar"
+      ? program.tracks
+          .filter((t) => enrolledTrackSlugs.includes(t.slug))
+          .map((t) => ({
+            slug: t.slug,
+            shortName: t.shortName,
+            startDate: t.startDate,
+            totalWeeks: t.totalWeeks,
+            lastSessionDayOffset: t.lastSessionDayOffset,
+            weekSummaries: t.weekSummaries.map((ws) => ({
+              week: ws.week,
+              topic: ws.topic,
+              icon: ws.icon,
+            })),
+          }))
+      : [];
+
   return (
     <ProgramProvider program={program}>
       <Nav
@@ -80,14 +115,16 @@ export default async function DashboardLayout({
         canSwitch={canSwitch}
         programs={programs}
         currentProgramSlug={program.slug}
+        variant={navVariant}
+        curriculumTracks={curriculumTracks}
       />
       {!isSurveyPage && showTutor && <TutorFab />}
       <main
         id="dashboard-main"
-        className="flex-1 bg-paper md:pl-60"
+        className={`flex-1 bg-paper ${hasSidebar ? "md:pl-60" : ""}`}
       >
         {!isSurveyPage && (
-          <div className="mx-auto flex w-full max-w-2xl items-center justify-end gap-2 px-4 pt-3 sm:px-5 md:max-w-5xl">
+          <div className={`mx-auto flex w-full max-w-2xl items-center justify-end gap-2 px-4 pt-3 sm:px-5 md:max-w-5xl`}>
             <TextScaleToggle compact />
             <ReadAloudButton selector="#dashboard-main" />
           </div>
