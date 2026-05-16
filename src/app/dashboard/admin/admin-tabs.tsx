@@ -725,75 +725,22 @@ export function AdminTabs({
 
       <div className="flex flex-col">
       <div className="min-w-0 flex-1">
-      {/* Dashboardless Program tab — Catalyst etc. — only Public Surveys matter */}
+      {/* Dashboardless Program tab — Catalyst etc. */}
       {tab === "program" && isDashboardless && (
         <div className="space-y-6">
-          <div className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
+          <div className="rounded-xl border border-neutral-200 bg-white p-5 text-center">
             <p className="text-sm text-neutral-600">
-              This program doesn't have a full learner dashboard yet — no
-              tracks, cohorts, or enrolled students. Only public survey
-              responses are available here.
+              This program doesn&apos;t have a full learner dashboard yet.
             </p>
+            {canSwitchPrograms(userRole) && (
+              <a
+                href="/dashboard/admin/insights"
+                className="mt-3 inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800"
+              >
+                View all survey insights
+              </a>
+            )}
           </div>
-
-          {canSwitchPrograms(userRole) && publicSurveyStats.length > 0 && (() => {
-            // On the marketing apex (BCC-wide view) show every program's
-            // public surveys. On a specific program scope to that program.
-            const rowsForView = programSlug === "marketing"
-              ? publicSurveyStats
-              : publicSurveyStats.filter((row) => row.program_slug === programSlug);
-            if (rowsForView.length === 0) return null;
-            return (
-            <div>
-              <h2 className="text-lg font-semibold text-neutral-900 mb-4">Public Surveys</h2>
-              <div className="space-y-3">
-                {rowsForView
-                  .map((row) => {
-                    const title =
-                      surveyConfigs.find((s) => s.id === row.survey_type)?.title ??
-                      PLATFORM_SURVEY_TITLES[row.survey_type] ??
-                      row.survey_type;
-                    return (
-                      <PublicSurveyCard
-                        key={`${row.program_slug}-${row.survey_type}`}
-                        title={title}
-                        responseCount={row.response_count}
-                        programSlug={row.program_slug}
-                        surveyType={row.survey_type}
-                        previewHref={`/survey/${row.survey_type}`}
-                        onExport={async () => {
-                          const data = await exportPublicSurveyResponses(row.program_slug, row.survey_type);
-                          if (data.length === 0) return;
-                          const allKeys = new Set<string>();
-                          data.forEach((r) => { Object.keys(r.responses).forEach((k) => allKeys.add(k)); });
-                          const headers = ["Full Name", "Email", "Completed At", ...Array.from(allKeys)];
-                          const rows = data.map((r) => [
-                            r.full_name, r.email, r.completed_at ?? "",
-                            ...Array.from(allKeys).map((k) => {
-                              const val = r.responses[k];
-                              if (Array.isArray(val)) return val.join("; ");
-                              if (typeof val === "object" && val !== null) return Object.entries(val).map(([s, a]) => {
-                                if (typeof a === "object" && a !== null) { const r2 = a as Record<string, string>; return `${s}: before ${r2.before ?? ""} now ${r2.now ?? ""}`; }
-                                return `${s}: ${String(a)}`;
-                              }).join("; ");
-                              return String(val ?? "");
-                            }),
-                          ]);
-                          downloadCsv([headers, ...rows], `${row.program_slug}-${row.survey_type}-responses.csv`);
-                        }}
-                        onDelete={async (email) => {
-                          await deletePublicSurveyResponse(email, row.survey_type, row.program_slug);
-                        }}
-                        onInvite={async (email) => {
-                          return sendInviteAction(email, row.program_slug, row.survey_type);
-                        }}
-                      />
-                    );
-                  })}
-              </div>
-            </div>
-            );
-          })()}
         </div>
       )}
 
