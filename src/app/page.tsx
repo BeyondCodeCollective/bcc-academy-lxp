@@ -12,10 +12,6 @@ export default async function LoginPage() {
     return <MarketingHome />;
   }
 
-  if (program.slug === "catalyst") {
-    redirect("/survey/network-plus-post");
-  }
-
   return (
     <LoginForm
       logo={program.logo}
