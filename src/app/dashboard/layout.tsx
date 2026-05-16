@@ -4,7 +4,6 @@ import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { getDemoUser, DEMO_COOKIE } from "@/lib/demo-users";
 import { Nav } from "@/components/nav";
 import { TutorFab } from "@/components/tutor-fab";
-import { UserMenu } from "@/components/user-menu";
 import { getProgram } from "@/lib/programs/server";
 import { ProgramProvider } from "@/lib/programs/context";
 import { canAccessAdminPanel, canSwitchPrograms } from "@/lib/roles";
@@ -67,25 +66,19 @@ export default async function DashboardLayout({
         programName={program.name}
         showTutor={showTutor}
         minimal={isSurveyPage}
+        firstName={firstName}
+        lastName={lastName}
+        email={email}
+        avatarUrl={avatarUrl}
+        canSwitch={canSwitch}
+        programs={programs}
+        currentProgramSlug={program.slug}
       />
       {!isSurveyPage && showTutor && <TutorFab />}
       <main
         id="dashboard-main"
         className="flex-1 bg-paper md:pl-60"
       >
-        {!isSurveyPage && (
-          <div className="mx-auto flex w-full max-w-2xl md:max-w-5xl items-center justify-end gap-2 px-4 sm:px-5 pt-3">
-            <UserMenu
-              firstName={firstName}
-              lastName={lastName}
-              email={email}
-              avatarUrl={avatarUrl}
-              canSwitch={canSwitch}
-              programs={programs}
-              currentProgramSlug={program.slug}
-            />
-          </div>
-        )}
         {children}
       </main>
     </ProgramProvider>
