@@ -777,7 +777,7 @@ export function AdminTabs({
 
       {/* Program Tab */}
       {tab === "program" && !isDashboardless && (() => {
-        const enrolledCount = students.filter((s) => s.role !== "admin").length;
+        const enrolledCount = students.filter((s) => s.role === "student").length;
         const scoreVals = Object.values(engagementScores);
         const totalAttendance = scoreVals.reduce((a, s) => a + s.attendance, 0);
         const totalSubs = scoreVals.reduce((a, s) => a + s.submissions, 0);
@@ -932,7 +932,7 @@ export function AdminTabs({
                 {surveyConfigs.map((survey) => {
                   const stats = surveyStats[survey.id] ?? [];
                   const completed = stats.filter((s) => s.completed_at).length;
-                  const totalStudents = students.filter((s) => s.role !== "admin").length;
+                  const totalStudents = students.filter((s) => s.role === "student").length;
                   const pct = totalStudents > 0 ? Math.round((completed / totalStudents) * 100) : 0;
 
                   const completedStats = stats.filter((s) => s.completed_at);
