@@ -200,45 +200,6 @@ export function UserMenu({
             </div>
           </div>
 
-          {/* Program switcher (super-admins only) */}
-          {canSwitch && programs.length > 1 && (
-            <>
-              <div className="my-1 h-px bg-rule-soft" role="separator" />
-              <div className="px-3 pb-1 pt-2 text-[10px] font-medium uppercase tracking-[0.14em] text-ink-faint">
-                Program
-              </div>
-              <ul className="px-1">
-                {programs.map((p) => {
-                  const active = p.slug === currentProgramSlug;
-                  return (
-                    <li key={p.slug}>
-                      <button
-                        type="button"
-                        role="menuitem"
-                        onClick={() => handleSwitchProgram(p.slug)}
-                        className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-sm transition-colors ${
-                          active
-                            ? "bg-paper-tint text-ink"
-                            : "text-ink-soft hover:bg-paper-tint-soft hover:text-ink"
-                        }`}
-                      >
-                        <span className="truncate">{p.name}</span>
-                        {active && (
-                          <Check
-                            size={13}
-                            weight="bold"
-                            aria-hidden
-                            className="text-ink-soft"
-                          />
-                        )}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </>
-          )}
-
           {/* Insights shortcut (super-admins) */}
           {canSwitch && (
             <>

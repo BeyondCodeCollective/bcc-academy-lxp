@@ -1,14 +1,8 @@
-import { atgConfig } from "./atg";
-import { forgeConfig } from "./forge";
-import { forteConfig } from "./forte";
 import { catalystConfig } from "./catalyst";
 import { marketingConfig, MARKETING_SLUG } from "./marketing";
 import type { ProgramConfig, TrackConfig } from "./types";
 
 const PROGRAMS: Record<string, ProgramConfig> = {
-  atg: atgConfig,
-  forge: forgeConfig,
-  forte: forteConfig,
   catalyst: catalystConfig,
 };
 
@@ -21,15 +15,24 @@ const SPECIAL_CONFIGS: Record<string, ProgramConfig> = {
 
 /**
  * Map hostnames to program slugs.
- * Localhost defaults to the DEFAULT_PROGRAM env var or "atg".
+ *
+ * With the Catalyst consolidation, all program subdomains are retired.
+ * The apex (bccacademy.io) serves marketing for unauthenticated visitors;
+ * the program-override cookie routes authenticated users to Catalyst.
+ * Legacy subdomains redirect to the apex via DNS/Vercel config.
  */
 const DOMAIN_MAP: Record<string, string> = {
-  "atg.bccacademy.io": "atg",
-  "forge.bccacademy.io": "forge",
-  "forte.bccacademy.io": "forte",
-  "catalyst.bccacademy.io": "catalyst",
   "bccacademy.io": MARKETING_SLUG,
   "www.bccacademy.io": MARKETING_SLUG,
+  // Legacy subdomains — kept so existing bookmarks/links don't 404.
+  // They resolve to the Catalyst program, same as the override cookie.
+  "atg.bccacademy.io": "catalyst",
+  "forge.bccacademy.io": "catalyst",
+  "forte.bccacademy.io": "catalyst",
+  "catalyst.bccacademy.io": "catalyst",
+  "ai-fundamentals.bccacademy.io": "catalyst",
+  "ai-digital-natives.bccacademy.io": "catalyst",
+  "ai-automation.bccacademy.io": "catalyst",
 };
 
 /**
@@ -38,8 +41,7 @@ const DOMAIN_MAP: Record<string, string> = {
  *
  * The marketing apex (`bccacademy.io`) is intentionally excluded: it
  * resolves to marketing by default, but we want the program-override
- * cookie to win there so super-admins can preview a program from the
- * apex (e.g. before IT has provisioned that program's subdomain).
+ * cookie to win there so authenticated users land in Catalyst.
  */
 export function isKnownProgramHost(host: string): boolean {
   const bare = host.replace(/:\d+$/, "");
@@ -49,20 +51,19 @@ export function isKnownProgramHost(host: string): boolean {
 
 /**
  * Resolve a hostname to a program config.
- * Falls back to ATG if the domain isn't recognized.
+ * Falls back to Catalyst if the domain isn't recognized.
  */
 export function getProgramByDomain(host: string): ProgramConfig {
-  // Strip port for localhost matching
   const bare = host.replace(/:\d+$/, "");
-  const slug = DOMAIN_MAP[bare] ?? DOMAIN_MAP[host] ?? process.env.DEFAULT_PROGRAM ?? "atg";
-  return SPECIAL_CONFIGS[slug] ?? PROGRAMS[slug] ?? PROGRAMS.atg;
+  const slug = DOMAIN_MAP[bare] ?? DOMAIN_MAP[host] ?? process.env.DEFAULT_PROGRAM ?? "catalyst";
+  return SPECIAL_CONFIGS[slug] ?? PROGRAMS[slug] ?? PROGRAMS.catalyst;
 }
 
 /**
  * Get a program config by its slug.
  */
 export function getProgramBySlug(slug: string): ProgramConfig {
-  return SPECIAL_CONFIGS[slug] ?? PROGRAMS[slug] ?? PROGRAMS.atg;
+  return SPECIAL_CONFIGS[slug] ?? PROGRAMS[slug] ?? PROGRAMS.catalyst;
 }
 
 /**

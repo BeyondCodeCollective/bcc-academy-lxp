@@ -642,7 +642,7 @@ function ResultsScreen({
               className="group flex flex-col gap-2 p-4 bg-true-black text-white hover:bg-cobalt transition-colors"
             >
               <span className="text-[10px] font-mono uppercase tracking-wider text-white/60">Program</span>
-              <span className="font-bold text-sm">The Forge</span>
+              <span className="font-bold text-sm">Beyond Code Centers</span>
               <span className="text-xs text-white/70 leading-snug">Human-led learning in a hub near you</span>
               <span className="mt-auto text-xs font-bold text-electric-green group-hover:underline">Apply →</span>
             </a>
@@ -651,7 +651,7 @@ function ResultsScreen({
               className="group flex flex-col gap-2 p-4 border-2 border-true-black/10 hover:border-cobalt/40 transition-colors"
             >
               <span className="text-[10px] font-mono uppercase tracking-wider text-gray-400">Location</span>
-              <span className="font-bold text-sm text-black">Find a Forge Hub</span>
+              <span className="font-bold text-sm text-black">Find a Hub Near You</span>
               <span className="text-xs text-gray-400 leading-snug">See if there&rsquo;s a hub in your city</span>
               <span className="mt-auto text-xs font-bold text-cobalt group-hover:underline">Find a Hub →</span>
             </a>

@@ -16,7 +16,7 @@ The BCC Academy Portal is a multi-program learning management system built for t
 | Program | Domain | Audience | Status |
 |---|---|---|---|
 | **After The Game (ATG)** | atg.bccacademy.io | Athletes transitioning to tech | Active (Cohort 1) |
-| **The Forge** | forge.bccacademy.io | General BCC learners | Active |
+| **Beyond Code Centers** | forge.bccacademy.io | General BCC learners | Active |
 | **Catalyst** | catalyst.bccacademy.io | CompTIA Network+ cohort | Active |
 
 Each program is defined in its own config file (`atg.ts`, `forge.ts`, `catalyst.ts`) and controls: branding/colors, tracks, weekly schedule, surveys, and cohort dates.
@@ -71,7 +71,7 @@ Each program has **tracks** — the core learning threads students follow each w
 - CompTIA Tech+ (certification prep)
 - Financial Literacy
 
-**The Forge tracks:**
+**Beyond Code Centers tracks:**
 - Varies by cohort configuration
 
 **Catalyst:**

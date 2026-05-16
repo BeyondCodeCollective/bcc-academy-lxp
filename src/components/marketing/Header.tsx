@@ -7,7 +7,7 @@ import Link from "next/link";
 
 const navLinks = [
   { label: "Programs", href: "#programs" },
-  { label: "The Forge", href: "#hubs" },
+  { label: "Beyond Code Centers", href: "#hubs" },
   { label: "Sessions", href: "#sessions" },
   { label: "Events", href: "#events" },
 ];
@@ -46,7 +46,7 @@ export default function Header({ solid = false }: HeaderProps) {
         <div className="bg-electric-green text-true-black text-center text-sm py-3 px-4 md:px-10 relative font-mono">
           <a href="#hubs" className="hover:underline font-semibold">
             <Lightning size={14} weight="fill" className="inline mr-1 mb-0.5" />
-            The Forge ATL is open — a third space for technology, neither school nor work
+            Beyond Code Centers ATL is open — a third space for technology, neither school nor work
             <span className="ml-2">&rarr;</span>
           </a>
           <button

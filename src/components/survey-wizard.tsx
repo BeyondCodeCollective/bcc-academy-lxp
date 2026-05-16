@@ -886,7 +886,7 @@ function getSurveyPages(surveyId: string, programSlug: string): SurveyPage[] {
   if (surveyId === "mid-program-spring-2026" && programSlug === "atg") {
     return ATG_MID_PROGRAM_PAGES;
   }
-  if (surveyId === "post-survey-spring-2026" && programSlug === "forge") {
+  if (surveyId === "post-survey-spring-2026" && programSlug === "catalyst") {
     return FORGE_POST_SURVEY_PAGES;
   }
   const finalPage = programSlug === "atg" ? ATG_FINAL_PAGE : FORGE_FINAL_PAGE;

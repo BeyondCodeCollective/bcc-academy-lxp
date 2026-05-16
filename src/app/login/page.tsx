@@ -6,12 +6,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { getAllPrograms } from "@/lib/programs";
 
-// Program subdomains already have their own login at /
+// Legacy program subdomains redirect to their own login at /.
+// With the Catalyst consolidation, all programs are under one roof —
+// but existing subdomains may still receive traffic.
 const PROGRAM_HOSTS = new Set([
+  "catalyst.bccacademy.io",
   "atg.bccacademy.io",
   "forge.bccacademy.io",
   "forte.bccacademy.io",
-  "catalyst.bccacademy.io",
 ]);
 
 export const dynamic = "force-dynamic";
