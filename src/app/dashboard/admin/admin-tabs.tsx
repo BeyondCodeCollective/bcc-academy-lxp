@@ -740,6 +740,14 @@ export function AdminTabs({
   const activeTrack = tracks.find((t) => t.slug === tab);
   const activeWeeks = trackData[tab] ?? [];
 
+  // Students enrolled in the active track (for track-scoped views).
+  const trackStudentIds = activeTrack
+    ? new Set(enrollments.filter((e) => e.track_slug === activeTrack.slug).map((e) => e.student_id))
+    : null;
+  const trackStudents = trackStudentIds
+    ? students.filter((s) => trackStudentIds.has(s.id))
+    : students;
+
   return (
     <div>
       <div className="flex flex-col">
@@ -1707,9 +1715,26 @@ export function AdminTabs({
 
           {/* People sub-view — scoped to this track */}
           {trackView === "people" && isManager && (
-            <div className="rounded-xl border border-neutral-200 bg-white p-4 text-center text-sm text-neutral-500">
-              People view for {activeTrack.shortName} — showing students enrolled in this track.
-              {/* TODO: filter the People tab content by this track's enrollment */}
+            <div className="space-y-3">
+              <p className="text-sm text-neutral-500">
+                {trackStudents.filter((s) => s.role === "student").length} student{trackStudents.filter((s) => s.role === "student").length !== 1 ? "s" : ""} enrolled in {activeTrack.shortName}
+              </p>
+              <div className="divide-y divide-neutral-100 rounded-xl border border-neutral-200 bg-white">
+                {trackStudents.filter((s) => s.role === "student").length === 0 ? (
+                  <p className="p-4 text-sm text-neutral-400">No students enrolled yet.</p>
+                ) : (
+                  trackStudents.filter((s) => s.role === "student").map((s) => (
+                    <div key={s.id} className="flex items-center justify-between px-4 py-3">
+                      <div>
+                        <p className="text-sm font-medium text-neutral-900">
+                          {s.first_name && s.last_name ? `${s.first_name} ${s.last_name}` : s.email}
+                        </p>
+                        <p className="text-xs text-neutral-400">{s.email}</p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           )}
 
@@ -1720,7 +1745,7 @@ export function AdminTabs({
 
           {/* Analytics sub-view — scoped to this track */}
           {trackView === "analytics" && (
-            <AttendanceTab students={students.filter((s) => s.role === "student")} />
+            <AttendanceTab students={trackStudents.filter((s) => s.role === "student")} />
           )}
         </div>
       )}
