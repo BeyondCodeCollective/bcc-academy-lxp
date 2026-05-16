@@ -7,6 +7,7 @@ import {
   House,
   ShieldCheck,
   ChatsCircle,
+  ChartBar,
   Question,
   List,
   X,
@@ -66,6 +67,9 @@ export function Nav({
       : []),
     ...(isAdmin
       ? [{ href: "/dashboard/admin", label: "Admin", icon: ShieldCheck }]
+      : []),
+    ...(canSwitch
+      ? [{ href: "/dashboard/admin/insights", label: "Insights", icon: ChartBar }]
       : []),
   ];
 

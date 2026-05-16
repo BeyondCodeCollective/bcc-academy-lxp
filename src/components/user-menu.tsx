@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CaretUpDown, SignOut, Check } from "@phosphor-icons/react";
+import { CaretUpDown, SignOut, Check, ChartBar } from "@phosphor-icons/react";
 
 type ProgramOption = {
   slug: string;
@@ -235,17 +235,24 @@ export function UserMenu({
                     </li>
                   );
                 })}
-                <li>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    onClick={() => handleSwitchProgram("__bcc_surveys__")}
-                    className="flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-sm text-ink-soft transition-colors hover:bg-paper-tint-soft hover:text-ink"
-                  >
-                    <span className="truncate">BCC — Surveys</span>
-                  </button>
-                </li>
               </ul>
+            </>
+          )}
+
+          {/* Insights shortcut (super-admins) */}
+          {canSwitch && (
+            <>
+              <div className="my-1 h-px bg-rule-soft" role="separator" />
+              <div className="px-1">
+                <a
+                  href="/dashboard/admin/insights"
+                  role="menuitem"
+                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-paper-tint-soft hover:text-ink"
+                >
+                  <ChartBar size={15} weight="bold" aria-hidden />
+                  <span>Insights</span>
+                </a>
+              </div>
             </>
           )}
 
