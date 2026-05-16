@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { computeCurrentWeek } from "@/lib/utils";
@@ -425,23 +424,19 @@ export default async function TrackWeekPage({
         </div>
       )}
 
-      {/* Submissions & Reflections — only for current or past weeks.
-          Streamed via Suspense so the rest of the page renders immediately
-          and these forms pop in after their DB round-trips finish. */}
+      {/* Submissions & Reflections — only for current or past weeks. */}
       {(isCurrent || isCompleted || weekNum < currentWeek) &&
         isSupabaseConfigured() &&
         (track.submissionsEnabled !== false ||
           track.reflectionsEnabled !== false) && (
-          <Suspense fallback={<SubmissionsReflectionsSkeleton />}>
-            <SubmissionsReflectionsSection
-              trackSlug={trackSlug}
-              weekNum={weekNum}
-              weekContent={weekContent}
-              showSubmissions={track.submissionsEnabled !== false}
-              showReflections={track.reflectionsEnabled !== false}
-              defaultReflectionPrompts={track.defaultReflectionPrompts}
-            />
-          </Suspense>
+          <SubmissionsReflectionsSection
+            trackSlug={trackSlug}
+            weekNum={weekNum}
+            weekContent={weekContent}
+            showSubmissions={track.submissionsEnabled !== false}
+            showReflections={track.reflectionsEnabled !== false}
+            defaultReflectionPrompts={track.defaultReflectionPrompts}
+          />
         )}
     </div>
   );
@@ -508,17 +503,3 @@ async function SubmissionsReflectionsSection({
   );
 }
 
-function SubmissionsReflectionsSkeleton() {
-  return (
-    <div className="mt-6 space-y-4 animate-pulse">
-      <div className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
-        <div className="h-4 w-32 rounded bg-neutral-200" />
-        <div className="mt-3 h-24 w-full rounded bg-neutral-100" />
-      </div>
-      <div className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
-        <div className="h-4 w-40 rounded bg-neutral-200" />
-        <div className="mt-3 h-24 w-full rounded bg-neutral-100" />
-      </div>
-    </div>
-  );
-}

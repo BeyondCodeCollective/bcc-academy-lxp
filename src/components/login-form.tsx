@@ -36,7 +36,12 @@ export function LoginForm({ logo, programName, tagline, taglineColor, organizati
     return "";
   });
 
-  const isDev = process.env.NODE_ENV === "development";
+  // Dev shortcut: only use the demo-cookie path when Supabase isn't configured.
+  // With Supabase env vars present, even local dev should go through the real
+  // magic-link flow so the dashboard layout (which requires a real session) works.
+  const isDev =
+    process.env.NODE_ENV === "development" &&
+    !process.env.NEXT_PUBLIC_SUPABASE_URL;
 
   async function handleSignIn(e: React.FormEvent) {
     e.preventDefault();

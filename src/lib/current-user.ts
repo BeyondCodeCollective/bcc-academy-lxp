@@ -6,6 +6,7 @@ import { getSessionContext } from "@/lib/auth/session";
 export type CurrentUser = {
   firstName: string;
   lastName: string;
+  email: string | null;
   userRole: string;
   isDemo: boolean;
 };
@@ -32,7 +33,7 @@ export async function resolveCurrentUser(
         firstName = demoEmail.split("@")[0].replace(/[._-]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
       }
     }
-    return { firstName, lastName, userRole, isDemo: true };
+    return { firstName, lastName, email: demoEmail ?? null, userRole, isDemo: true };
   }
 
   const ctx = await getSessionContext();
@@ -42,6 +43,7 @@ export async function resolveCurrentUser(
   return {
     firstName: student?.first_name || "there",
     lastName: student?.last_name || "",
+    email: student?.email ?? ctx.userEmail ?? null,
     userRole: student?.role ?? "student",
     isDemo: false,
   };

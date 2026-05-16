@@ -4,11 +4,11 @@ import { cookies } from "next/headers";
 import { createServiceClient } from "@/lib/supabase/server";
 import { authCookieDomain } from "@/lib/supabase/cookie-domain";
 import { getProgram } from "@/lib/programs/server";
-import { getProgramBySlug } from "@/lib/programs";
+import { getProgramBySlug, isKnownProgramHost } from "@/lib/programs";
 import { sendWelcomeEmail } from "@/lib/email";
 import { BCC_INTAKE_SURVEY_ID, BCC_INTAKE_EXEMPT_PROGRAMS } from "@/lib/surveys/platform";
 import { BCC_INTAKE_QUESTION_IDS } from "@/lib/surveys/schemas";
-import { SUPER_ADMIN_EMAILS, ADMIN_EMAILS, determineRole, isPrivilegedEmail } from "@/lib/auth/admins";
+import { SUPER_ADMIN_EMAILS, ADMIN_EMAILS, determineRole, isPrivilegedEmail, isStaffEmail } from "@/lib/auth/admins";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -81,6 +81,15 @@ export async function GET(request: Request) {
       } = await supabase.auth.getUser();
 
       if (user) {
+        // Hosts that don't pin a program via URL (apex marketing host,
+        // localhost dev) require us to recompute the user's home program
+        // from their identity — otherwise an old `program-override` cookie
+        // from a previous switch would stick and route them to the wrong
+        // place after sign-in. Production program subdomains (e.g.
+        // atg.bccacademy.io) pin the program via host, so we skip this.
+        const hostStr = request.headers.get("host") ?? "";
+        const isUnpinnedHost = !isKnownProgramHost(hostStr);
+
         // Use program-specific default cohort
         const defaultCohort = {
           name: program.defaultCohort.name,
@@ -253,13 +262,15 @@ export async function GET(request: Request) {
           );
         }
 
-        // Marketing domain: resolve the user's real program and keep them
-        // on bccacademy.io. The program-override cookie tells getProgram()
-        // which program to render so the dashboard works without subdomains.
-        if (program.slug === "marketing") {
+        // Unpinned hosts (marketing apex, localhost): recompute the user's
+        // home program from identity (role/enrollment) and overwrite the
+        // override cookie so a previous program switch doesn't leak into
+        // this session. On pinned hosts (program subdomains) the URL is
+        // authoritative — leave the cookie alone.
+        if (isUnpinnedHost) {
           const programSlug =
             (existing?.programs as unknown as { slug: string } | null)?.slug ??
-            (["super_admin", "admin"].includes(existing?.role ?? "") ? "atg" : null);
+            (["super_admin", "admin"].includes(existing?.role ?? "") ? "catalyst" : null);
 
           if (programSlug) {
             const res = redirectWithCookies(`${origin}/dashboard`);
@@ -359,12 +370,18 @@ export async function GET(request: Request) {
       }
 
       // BCC Learner Intake — platform-level required survey, fires before any program-specific
-      // survey. ATG students and privileged users (super admins, admins) are exempt.
+      // survey. ATG students, privileged users (admins/super-admins), and
+      // internal staff (Lunch & Learns audience) are exempt.
       const userEmailForIntake = (user!.email || "").toLowerCase();
       const isPrivilegedUser =
         SUPER_ADMIN_EMAILS.includes(userEmailForIntake) ||
         ADMIN_EMAILS.includes(userEmailForIntake);
-      if (!isPrivilegedUser && !BCC_INTAKE_EXEMPT_PROGRAMS.includes(program.slug)) {
+      const isStaff = isStaffEmail(userEmailForIntake);
+      if (
+        !isPrivilegedUser &&
+        !isStaff &&
+        !BCC_INTAKE_EXEMPT_PROGRAMS.includes(program.slug)
+      ) {
         const { data: intakeRow } = await admin
           .from("survey_responses")
           .select("completed_at")
@@ -377,9 +394,9 @@ export async function GET(request: Request) {
       }
 
       // If the program has a required survey, skip the dashboard and go straight to it.
-      // Privileged users (admins, super admins) skip this gate.
+      // Privileged users (admins, super admins) and internal staff skip this gate.
       const requiredSurvey = program.surveys?.find((s) => s.required);
-      if (requiredSurvey && !isPrivilegedUser) {
+      if (requiredSurvey && !isPrivilegedUser && !isStaff) {
         // Check if already completed
         const { data: existing } = await admin
           .from("survey_responses")

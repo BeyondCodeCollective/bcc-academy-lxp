@@ -16,9 +16,6 @@ interface Props {
   sections: Section[];
   programs: { slug: string; name: string }[];
   totalResponses: number;
-  currentProgramSlug: string;
-  currentProgramName: string;
-  canViewAll: boolean;
 }
 
 const PALETTE = [
@@ -39,31 +36,10 @@ function colorFor(
 }
 
 export function InsightsDashboard({
-  sections: allSections,
+  sections,
   programs,
-  totalResponses: allTotalResponses,
-  currentProgramSlug,
-  currentProgramName,
-  canViewAll,
+  totalResponses,
 }: Props) {
-  const [showAll, setShowAll] = useState(false);
-
-  // Filter sections to the current program unless "All programs" is toggled.
-  const sections = useMemo(() => {
-    if (showAll) return allSections;
-    return allSections
-      .map((s) => ({
-        ...s,
-        responses: s.responses.filter(
-          (r) => r.program_slug === currentProgramSlug,
-        ),
-      }))
-      .filter((s) => s.responses.length > 0);
-  }, [allSections, showAll, currentProgramSlug]);
-
-  const totalResponses = showAll
-    ? allTotalResponses
-    : sections.reduce((sum, s) => sum + s.responses.length, 0);
 
   const ledger = useMemo(() => buildLedger(sections, programs), [sections, programs]);
   const uniqueRespondents = useMemo(() => {
@@ -121,34 +97,6 @@ export function InsightsDashboard({
 
   return (
     <div className="space-y-10">
-      {/* Scope toggle (super-admin only) */}
-      {canViewAll && (
-        <div className="flex items-center gap-1 rounded-lg bg-neutral-100 p-1 self-start w-fit">
-          <button
-            type="button"
-            onClick={() => setShowAll(false)}
-            className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-              !showAll
-                ? "bg-white text-neutral-900 shadow-sm"
-                : "text-neutral-500 hover:text-neutral-700"
-            }`}
-          >
-            {currentProgramName}
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowAll(true)}
-            className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-              showAll
-                ? "bg-white text-neutral-900 shadow-sm"
-                : "text-neutral-500 hover:text-neutral-700"
-            }`}
-          >
-            All programs
-          </button>
-        </div>
-      )}
-
       {/* Hero stats */}
       <div className="grid grid-cols-3 gap-3">
         <StatCard value={totalResponses} label="Responses" />

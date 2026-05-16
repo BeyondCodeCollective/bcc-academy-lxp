@@ -3,10 +3,33 @@ import { createClient, createServiceClient, isSupabaseConfigured } from "@/lib/s
 import { AdminTabs } from "./admin-tabs";
 import type { Student } from "@/lib/types";
 import { getProgram } from "@/lib/programs/server";
-import type { StudentTrackRow, SurveyStatsRow, InstructorTrackRow, PublicSurveyStatsRow } from "./actions";
-import { getPublicSurveyStats } from "./actions";
+import type { StudentTrackRow, SurveyStatsRow, InstructorTrackRow, PublicSurveyStatsRow, BCCSurveyResponse } from "./actions";
+import { getPublicSurveyStats, getDashboardSurveyStats, getDashboardSurveyResponses } from "./actions";
 import { canAccessAdminPanel, canSwitchPrograms } from "@/lib/roles";
-import { PLATFORM_AUTH_SURVEYS } from "@/lib/surveys/platform";
+import { PLATFORM_AUTH_SURVEYS, PLATFORM_PUBLIC_SURVEYS } from "@/lib/surveys/platform";
+import { getAllPrograms } from "@/lib/programs";
+import type { SurveyConfig } from "@/lib/programs/types";
+import { getSurveySchema } from "@/lib/surveys/schemas";
+import type { SurveyQuestion } from "@/components/survey-fields";
+
+export type InsightsData = {
+  sections: {
+    survey: SurveyConfig;
+    schema: SurveyQuestion[] | null;
+    responses: BCCSurveyResponse[];
+  }[];
+  programs: { slug: string; name: string }[];
+  totalResponses: number;
+};
+
+type LunchLearnRow = {
+  id: string;
+  title: string;
+  presenter: string;
+  recording_url: string;
+  description: string | null;
+  recorded_at: string;
+};
 
 export default async function AdminPage({
   searchParams,
@@ -15,6 +38,18 @@ export default async function AdminPage({
 }) {
   const { tab: initialTab } = await searchParams;
   const program = await getProgram();
+
+  // Tab-gated data fetching. The admin page re-renders on every ?tab=
+  // change, so we only pay the cost for queries the active tab actually
+  // needs. Default-tab heuristic mirrors AdminTabs's own initial state:
+  // managers land on "program", instructors on their first track.
+  const effectiveTab = initialTab ?? "program";
+  const isTrackTab = program.tracks.some((t) => t.slug === effectiveTab);
+  const needsEngagement = effectiveTab === "program" || effectiveTab === "students";
+  const needsSurveyStats = effectiveTab === "program";
+  const needsLunchLearns = effectiveTab === "lunch-learn";
+  const needsInsightsData = effectiveTab === "insights";
+  void isTrackTab; // reserved — track-tab queries are already inside the core batch
   let allStudents: Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id">[] = [];
   let allCohorts: { id: string; name: string; display_name: string | null; start_date: string; total_weeks: number }[] = [];
   let studentTracks: StudentTrackRow[] = [];
@@ -22,6 +57,8 @@ export default async function AdminPage({
   let userRole = "student";
   let myInstructorTracks: string[] = [];
   let publicSurveyStats: PublicSurveyStatsRow[] = [];
+  let lunchLearnRecordings: LunchLearnRow[] = [];
+  let insightsData: InsightsData | null = null;
   const surveyStats: Record<string, SurveyStatsRow[]> = {};
   const surveyList = [
     ...Object.values(PLATFORM_AUTH_SURVEYS),
@@ -76,12 +113,20 @@ export default async function AdminPage({
           })
         : [];
     } else {
-      // Batch 2: every data query the admin page needs, fired in one round trip.
-      // Previously each helper re-looked-up the program row and they ran
-      // serially, stacking ~8 round-trips. This collapses them to one concurrent
-      // batch. publicSurveyStats now lives inside the parallel batch too, so
-      // super-admins on Catalyst don't pay a serial round-trip for it.
-      const [coreRes, surveyStatsResults, publicStatsRes, engagementRes] = await Promise.all([
+      // Tab-gated batch. The previous version fired every query on every
+      // admin page load; now we only pay for what the current tab renders.
+      // Core entities (students/cohorts/tracks/instructor enrollments) are
+      // always fetched — they're cheap and used as nav metadata everywhere.
+      // Survey stats, engagement scores, lunch_learns are skipped on tabs
+      // that don't render them.
+      const surveyIds = surveyList.map((s) => s.id);
+
+      const [
+        coreRes,
+        surveyResponsesRes,
+        publicStatsRes,
+        engagementRes,
+      ] = await Promise.all([
       Promise.all([
         svc
           .from("students")
@@ -110,27 +155,28 @@ export default async function AdminPage({
               .eq("student_id", session.user.id)
           : Promise.resolve({ data: null as { track_slug: string }[] | null }),
       ]),
-      Promise.all(
-        surveyList.map((s) =>
-          svc
+      // Single .in() query replaces N per-survey queries. Bucketed below.
+      needsSurveyStats && surveyIds.length > 0
+        ? svc
             .from("survey_responses")
             .select("student_id, survey_type, completed_at")
             .eq("program_id", programId!)
-            .eq("survey_type", s.id)
-        )
-      ),
+            .in("survey_type", surveyIds)
+        : Promise.resolve({ data: null as { student_id: string; survey_type: string; completed_at: string | null }[] | null }),
       needsPublicSurveyStats
         ? getPublicSurveyStats().catch((e) => {
             console.error("getPublicSurveyStats failed:", e);
             return [] as PublicSurveyStatsRow[];
           })
         : Promise.resolve([] as PublicSurveyStatsRow[]),
-      Promise.all([
-        svc.from("attendance").select("student_id, track, week_number").eq("program_id", programId!),
-        svc.from("submissions").select("student_id, track_slug, week_number").eq("program_id", programId!).not("submitted_at", "is", null),
-        svc.from("reflections").select("student_id, track_slug, week_number").eq("program_id", programId!).not("submitted_at", "is", null),
-        svc.from("tutor_messages").select("student_id").eq("program_id", programId!),
-      ]),
+      needsEngagement
+        ? Promise.all([
+            svc.from("attendance").select("student_id, track, week_number").eq("program_id", programId!),
+            svc.from("submissions").select("student_id, track_slug, week_number").eq("program_id", programId!).not("submitted_at", "is", null),
+            svc.from("reflections").select("student_id, track_slug, week_number").eq("program_id", programId!).not("submitted_at", "is", null),
+            svc.from("tutor_messages").select("student_id").eq("program_id", programId!),
+          ])
+        : Promise.resolve(null),
     ]);
 
     const [
@@ -148,41 +194,92 @@ export default async function AdminPage({
     myInstructorTracks = ((myInstrTracksRes.data ?? []) as { track_slug: string }[]).map(
       (r) => r.track_slug
     );
-    surveyList.forEach((s, i) => {
-      surveyStats[s.id] = (surveyStatsResults[i].data ?? []) as SurveyStatsRow[];
-    });
+    // Bucket the single survey_responses fetch by survey_type.
+    if (needsSurveyStats) {
+      const allRows = (surveyResponsesRes.data ?? []) as SurveyStatsRow[];
+      for (const s of surveyList) surveyStats[s.id] = [];
+      for (const row of allRows) {
+        (surveyStats[row.survey_type] ??= []).push(row);
+      }
+    }
     publicSurveyStats = publicStatsRes;
 
-    // Compute engagement scores
-    const [attendanceRes, submissionsRes, reflectionsRes, tutorRes] = engagementRes;
-    const attendanceRows = (attendanceRes.data ?? []) as { student_id: string; track: string; week_number: number }[];
-    const submissionRows = (submissionsRes.data ?? []) as { student_id: string; track_slug: string; week_number: number }[];
-    const reflectionRows = (reflectionsRes.data ?? []) as { student_id: string; track_slug: string; week_number: number }[];
-    const tutorRows = (tutorRes.data ?? []) as { student_id: string }[];
+    // Compute engagement scores only when the active tab needs them.
+    if (engagementRes) {
+      const [attendanceRes, submissionsRes, reflectionsRes, tutorRes] = engagementRes;
+      const attendanceRows = (attendanceRes.data ?? []) as { student_id: string; track: string; week_number: number }[];
+      const submissionRows = (submissionsRes.data ?? []) as { student_id: string; track_slug: string; week_number: number }[];
+      const reflectionRows = (reflectionsRes.data ?? []) as { student_id: string; track_slug: string; week_number: number }[];
+      const tutorRows = (tutorRes.data ?? []) as { student_id: string }[];
 
-    const maxWeeks = Math.max(...program.tracks.map((t) => t.totalWeeks), 1);
+      const maxWeeks = Math.max(...program.tracks.map((t) => t.totalWeeks), 1);
 
-    for (const s of allStudents) {
-      if (s.role !== "student") continue;
-      const att = new Set(attendanceRows.filter((r) => r.student_id === s.id).map((r) => `${r.track}-${r.week_number}`)).size;
-      const sub = new Set(submissionRows.filter((r) => r.student_id === s.id).map((r) => `${r.track_slug}-${r.week_number}`)).size;
-      const ref = new Set(reflectionRows.filter((r) => r.student_id === s.id).map((r) => `${r.track_slug}-${r.week_number}`)).size;
-      const tut = tutorRows.filter((r) => r.student_id === s.id).length;
+      for (const s of allStudents) {
+        if (s.role !== "student") continue;
+        const att = new Set(attendanceRows.filter((r) => r.student_id === s.id).map((r) => `${r.track}-${r.week_number}`)).size;
+        const sub = new Set(submissionRows.filter((r) => r.student_id === s.id).map((r) => `${r.track_slug}-${r.week_number}`)).size;
+        const ref = new Set(reflectionRows.filter((r) => r.student_id === s.id).map((r) => `${r.track_slug}-${r.week_number}`)).size;
+        const tut = tutorRows.filter((r) => r.student_id === s.id).length;
 
-      const attScore = Math.min((att / maxWeeks) * 25, 25);
-      const subScore = Math.min((sub / maxWeeks) * 25, 25);
-      const refScore = Math.min((ref / maxWeeks) * 25, 25);
-      const tutScore = Math.min((tut / 10) * 25, 25);
+        const attScore = Math.min((att / maxWeeks) * 25, 25);
+        const subScore = Math.min((sub / maxWeeks) * 25, 25);
+        const refScore = Math.min((ref / maxWeeks) * 25, 25);
+        const tutScore = Math.min((tut / 10) * 25, 25);
 
-      engagementScores[s.id] = {
-        total: Math.round(attScore + subScore + refScore + tutScore),
-        attendance: att,
-        submissions: sub,
-        reflections: ref,
-        tutorMessages: tut,
-      };
+        engagementScores[s.id] = {
+          total: Math.round(attScore + subScore + refScore + tutScore),
+          attendance: att,
+          submissions: sub,
+          reflections: ref,
+          tutorMessages: tut,
+        };
+      }
     }
     } // end !isDashboardlessProgram
+
+    // Lunch & Learns recordings — only fetch when actually on that tab.
+    if (canAccessAdminPanel(userRole) && needsLunchLearns) {
+      const { data: llRows } = await svc
+        .from("lunch_learns")
+        .select("id, title, presenter, recording_url, description, recorded_at")
+        .order("recorded_at", { ascending: false });
+      lunchLearnRecordings = (llRows ?? []) as LunchLearnRow[];
+    }
+
+    // Insights data — super-admins only, AND only when on the insights tab.
+    // Previously fired on every admin nav (~10 extra queries cross-program);
+    // now skipped unless ?tab=insights.
+    if (canSwitchPrograms(userRole) && needsInsightsData) {
+      const stats = await getDashboardSurveyStats();
+      const programSurveys: SurveyConfig[] = getAllPrograms().flatMap(
+        (p) => p.surveys ?? [],
+      );
+      const allSurveysById = new Map<string, SurveyConfig>();
+      for (const s of [
+        ...Object.values(PLATFORM_AUTH_SURVEYS),
+        ...Object.values(PLATFORM_PUBLIC_SURVEYS),
+        ...programSurveys,
+      ]) {
+        if (!allSurveysById.has(s.id)) allSurveysById.set(s.id, s);
+      }
+      const surveysWithData = Array.from(allSurveysById.values())
+        .filter((s) => stats.some((r) => r.survey_type === s.id))
+        .sort((a, b) => a.title.localeCompare(b.title));
+
+      const sections = await Promise.all(
+        surveysWithData.map(async (survey) => {
+          const responses = await getDashboardSurveyResponses(survey.id);
+          const schema = getSurveySchema(survey.id);
+          return { survey, schema, responses };
+        }),
+      );
+
+      insightsData = {
+        sections,
+        programs: getAllPrograms().map((p) => ({ slug: p.slug, name: p.name })),
+        totalResponses: sections.reduce((sum, s) => sum + s.responses.length, 0),
+      };
+    }
   }
 
   const surveyConfigs = (program.surveys ?? []).map((s) => ({
@@ -217,7 +314,6 @@ export default async function AdminPage({
 
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-5xl space-y-6 px-4 sm:px-5 py-8">
-      <h1 className="text-2xl font-bold text-neutral-900">Admin Panel</h1>
       <AdminTabs
         cohorts={allCohorts}
         students={allStudents}
@@ -231,6 +327,8 @@ export default async function AdminPage({
         userRole={userRole}
         engagementScores={engagementScores}
         initialTab={initialTab}
+        lunchLearnRecordings={lunchLearnRecordings}
+        insightsData={insightsData}
       />
     </div>
   );

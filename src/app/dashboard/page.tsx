@@ -5,6 +5,8 @@ import { computeCurrentWeek } from "@/lib/utils";
 import Link from "next/link";
 import { WelcomeVideo } from "@/components/welcome-video";
 import { OnboardingForm } from "@/components/onboarding-form";
+import { LunchLearnHub } from "@/components/lunch-learn-hub";
+import { CollapsibleTrackSection } from "@/components/collapsible-track-section";
 import { getProgram } from "@/lib/programs/server";
 import type { ProgramConfig, TrackConfig } from "@/lib/programs/types";
 import { canAccessAdminPanel } from "@/lib/roles";
@@ -12,20 +14,32 @@ import { getSessionContext } from "@/lib/auth/session";
 import { resolveCurrentUser } from "@/lib/current-user";
 import { getEnrolledTracks } from "@/lib/enrollment";
 import { BCC_INTAKE_SURVEY_ID, BCC_INTAKE_EXEMPT_PROGRAMS } from "@/lib/surveys/platform";
+import { isStaffEmail } from "@/lib/auth/admins";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const program = await getProgram();
 
-  // Defense-in-depth: programs with no tracks (e.g. Catalyst) don't have a
-  // learner dashboard. Middleware normally redirects these off /dashboard,
-  // but a cached response or misrouted request could still land here with a
-  // student record from another program — which would render the wrong UI.
+  // Staff users (BGC/BCC employees, not admins) see the Lunch & Learns hub
+  // directly when they hit /dashboard — they have no tracks to land on, and
+  // the L&L grid is their actual home. Admins still see the regular dashboard.
+  const ctx = await getSessionContext();
+  const role = ctx?.student?.role ?? "";
+  const email = ctx?.student?.email ?? ctx?.userEmail ?? null;
+  const isAdmin = canAccessAdminPanel(role);
+  if (!isAdmin && isStaffEmail(email)) {
+    const firstName = ctx?.student?.first_name || "";
+    return <LunchLearnHub isAdmin={false} firstName={firstName} />;
+  }
+
+  // Defense-in-depth: programs with no tracks (e.g. Catalyst marketing apex)
+  // don't have a learner dashboard. Middleware normally redirects these off
+  // /dashboard, but a cached response or misrouted request could still land
+  // here with a student record from another program — which would render the
+  // wrong UI.
   if (program.tracks.length === 0) {
-    const ctx = await getSessionContext();
-    const role = ctx?.student?.role ?? "student";
-    if (canAccessAdminPanel(role)) {
+    if (isAdmin) {
       redirect("/dashboard/admin");
     }
     // Marketing domain (bccacademy.io) has no tracks. If a non-admin
@@ -40,7 +54,7 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8">
+    <div className="mx-auto w-full max-w-4xl px-4 sm:px-5 py-8">
       <DashboardContent program={program} />
     </div>
   );
@@ -122,15 +136,17 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
       const completedTypes = new Set(
         (completedSurveysRes.data ?? []).map((r) => r.survey_type)
       );
+      const isStaff = isStaffEmail(currentUser.email ?? null);
 
       if (
+        !isStaff &&
         !BCC_INTAKE_EXEMPT_PROGRAMS.includes(program.slug) &&
         !completedTypes.has(BCC_INTAKE_SURVEY_ID)
       ) {
         redirect(`/dashboard/survey/${BCC_INTAKE_SURVEY_ID}`);
       }
 
-      if (program.surveys?.length) {
+      if (!isStaff && program.surveys?.length) {
         pendingSurveys = program.surveys
           .filter((s) => s.required && !completedTypes.has(s.id))
           .map((s) => ({ id: s.id, title: s.title, description: s.description }));
@@ -280,7 +296,9 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
         <h1 className="text-2xl font-bold text-neutral-900">
           Welcome back, {firstName}
         </h1>
-        <p className="mt-1 text-sm text-neutral-500">{cohortName}</p>
+        {!isAdmin && (
+          <p className="mt-1 text-sm text-neutral-500">{cohortName}</p>
+        )}
       </div>
 
       {announcements.map((a) => (
@@ -310,25 +328,27 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
         <SurveyCard key={survey.id} survey={survey} />
       ))}
 
-      <div className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <p className="text-sm font-semibold text-neutral-900">
-              Your Progress
-            </p>
-            <p className="text-xs text-neutral-500">
-              Week {progressWeek} of {totalProgramWeeks}
-            </p>
+      {!isAdmin && (
+        <div className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <p className="text-sm font-semibold text-neutral-900">
+                Your Progress
+              </p>
+              <p className="text-xs text-neutral-500">
+                Week {progressWeek} of {totalProgramWeeks}
+              </p>
+            </div>
+            <span className="text-2xl font-bold text-neutral-900">{pct}%</span>
           </div>
-          <span className="text-2xl font-bold text-neutral-900">{pct}%</span>
+          <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-100">
+            <div
+              className="h-full rounded-full bg-neutral-900 transition-all"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
         </div>
-        <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-100">
-          <div
-            className="h-full rounded-full bg-neutral-900 transition-all"
-            style={{ width: `${pct}%` }}
-          />
-        </div>
-      </div>
+      )}
 
       {program.welcomeVideo && (
         <WelcomeVideo
@@ -342,122 +362,26 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
         track.type === "single-event" ? (
           <SingleEventCard key={track.slug} track={track} />
         ) : (
-          <WeeklyTrackGrid
+          <CollapsibleTrackSection
             key={track.slug}
-            track={track}
+            slug={track.slug}
+            name={track.name}
+            instructor={track.instructor}
+            totalWeeks={track.totalWeeks}
+            sessionsPerWeek={track.sessionsPerWeek}
+            startDate={track.startDate}
+            weekSummaries={track.weekSummaries}
             started={started}
             currentWeek={currentWeek}
+            defaultOpen={!isAdmin && visibleTracks.length <= 2}
           />
+
         )
       )}
     </div>
   );
 }
 
-function WeeklyTrackGrid({
-  track,
-  started,
-  currentWeek,
-}: {
-  track: TrackConfig;
-  started: boolean;
-  currentWeek: number;
-}) {
-  const startDate = new Date(track.startDate);
-  const startLabel = startDate.toLocaleDateString("en-US", { month: "long", day: "numeric" });
-
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-1">
-        <h2 className="text-lg font-semibold text-neutral-900">
-          {track.name}
-        </h2>
-        {started ? (
-          <span className="inline-flex items-center gap-1 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-semibold text-white">
-            <span className="h-1 w-1 rounded-full bg-white animate-pulse" />
-            Active
-          </span>
-        ) : (
-          <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
-            Starts {startLabel}
-          </span>
-        )}
-      </div>
-      <p className="text-xs text-neutral-400 mb-4">
-        {track.totalWeeks}-week {track.sessionsPerWeek > 1 ? "course" : "coaching"}
-        {started ? ` · Week ${currentWeek} of ${track.totalWeeks}` : ` · with ${track.instructor}`}
-      </p>
-
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-        {track.weekSummaries.map(({ week, topic, icon }) => {
-          const isCompleted = started && week < currentWeek;
-          const isCurrent = started && week === currentWeek;
-          const isFuture = !started || week > currentWeek;
-
-          return (
-            <Link
-              key={week}
-              href={`/dashboard/track/${track.slug}/${week}`}
-              className={`group relative flex flex-col items-center rounded-xl border p-3 sm:p-5 text-center transition-all ${
-                isCurrent
-                  ? "border-neutral-900 bg-white shadow-sm"
-                  : isCompleted
-                    ? "border-neutral-200 bg-white hover:border-neutral-300"
-                    : "border-neutral-100 bg-neutral-50 hover:border-neutral-200"
-              }`}
-            >
-              <div
-                className={`relative flex h-11 w-11 sm:h-14 sm:w-14 items-center justify-center rounded-full text-2xl ${
-                  isCompleted
-                    ? "bg-green-50"
-                    : isCurrent
-                      ? "bg-neutral-900"
-                      : "bg-neutral-100"
-                }`}
-              >
-                {isFuture ? (
-                  <span className="text-lg grayscale opacity-40">{icon}</span>
-                ) : (
-                  <span className={isCurrent ? "text-lg" : ""}>{icon}</span>
-                )}
-
-                {isCompleted && (
-                  <div className="absolute -top-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-green-500">
-                    <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                    </svg>
-                  </div>
-                )}
-              </div>
-
-              {isCurrent && (
-                <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-semibold text-white">
-                  <span className="h-1 w-1 rounded-full bg-white animate-pulse" />
-                  This Week
-                </span>
-              )}
-
-              <p
-                className={`mt-2 text-xs font-medium leading-tight ${
-                  isFuture ? "text-neutral-300" : "text-neutral-700"
-                }`}
-              >
-                {topic}
-              </p>
-              <p
-                className={`mt-0.5 text-[10px] ${
-                  isFuture ? "text-neutral-200" : "text-neutral-400"
-                }`}
-              >
-                Week {week}
-              </p>
-            </Link>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 function SurveyCard({
   survey,
@@ -503,35 +427,33 @@ function SingleEventCard({ track }: { track: TrackConfig }) {
     month: "long",
     day: "numeric",
   });
-  const session = track.weeks[0]?.sessions[0];
   const isPast = new Date() > eventDate;
 
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
-      <div className="flex items-center justify-between mb-2">
-        <h2 className="text-lg font-semibold text-neutral-900">{track.name}</h2>
-        {isPast ? (
-          <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-semibold text-green-600">
-            Completed
-          </span>
-        ) : (
-          <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
-            Upcoming
-          </span>
-        )}
+    <Link
+      href={`/dashboard/track/${track.slug}/1`}
+      className="group block"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <h2 className="text-[15px] font-semibold text-neutral-900 leading-snug truncate">
+            {track.name}
+          </h2>
+          {isPast ? (
+            <span className="inline-flex items-center rounded-full bg-neutral-200 px-2 py-0.5 text-[10px] font-semibold text-neutral-600 shrink-0">
+              Completed
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 rounded-full bg-[#E54D2E] px-2 py-0.5 text-[10px] font-semibold text-white shrink-0">
+              <span className="h-1 w-1 rounded-full bg-white/80 animate-pulse" />
+              Upcoming
+            </span>
+          )}
+        </div>
       </div>
-      <p className="text-xs text-neutral-400 mb-3">
+      <p className="mt-0.5 text-[12px] text-neutral-400">
         {dateStr} · with {track.instructor}
       </p>
-      {session && (
-        <p className="text-sm text-neutral-600 mb-3">{session.time}</p>
-      )}
-      <Link
-        href={`/dashboard/track/${track.slug}/1`}
-        className="inline-flex items-center gap-1.5 rounded-lg bg-neutral-900 text-white text-xs font-semibold px-4 py-2.5 transition-colors hover:bg-neutral-800"
-      >
-        View Details
-      </Link>
-    </div>
+    </Link>
   );
 }
