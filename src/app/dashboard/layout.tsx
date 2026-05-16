@@ -4,6 +4,8 @@ import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { getDemoUser, DEMO_COOKIE } from "@/lib/demo-users";
 import { Nav } from "@/components/nav";
 import { TutorFab } from "@/components/tutor-fab";
+import { TextScaleToggle } from "@/components/text-scale-toggle";
+import { ReadAloudButton } from "@/components/read-aloud-button";
 import { getProgram } from "@/lib/programs/server";
 import { ProgramProvider } from "@/lib/programs/context";
 import { canAccessAdminPanel, canSwitchPrograms } from "@/lib/roles";
@@ -79,6 +81,12 @@ export default async function DashboardLayout({
         id="dashboard-main"
         className="flex-1 bg-paper md:pl-60"
       >
+        {!isSurveyPage && (
+          <div className="mx-auto flex w-full max-w-2xl items-center justify-end gap-2 px-4 pt-3 sm:px-5 md:max-w-5xl">
+            <TextScaleToggle compact />
+            <ReadAloudButton selector="#dashboard-main" />
+          </div>
+        )}
         {children}
       </main>
     </ProgramProvider>
