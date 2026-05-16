@@ -131,6 +131,12 @@ export type ProgramConfig = {
   tagline: string;
   /** Primary domain for this program */
   domain: string;
+  /**
+   * If false, the program switcher uses cookie-based override instead of
+   * redirecting to `domain` (so a program can go live before IT provisions
+   * its DNS). Defaults to true. Remove the field once DNS is cut over.
+   */
+  dnsReady?: boolean;
   /** Path to logo in /public (e.g. "/atg/logo.svg") */
   logo: string;
   /** Optional PNG logo for contexts that need it */

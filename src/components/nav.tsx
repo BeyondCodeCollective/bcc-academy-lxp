@@ -23,6 +23,7 @@ type ProgramOption = {
   slug: string;
   name: string;
   domain: string;
+  dnsReady?: boolean;
 };
 
 export function Nav({
