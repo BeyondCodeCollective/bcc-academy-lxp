@@ -35,10 +35,16 @@ const DOMAIN_MAP: Record<string, string> = {
 /**
  * Returns true when the host is a recognized program subdomain.
  * Used to decide whether the override cookie should win or the URL.
+ *
+ * The marketing apex (`bccacademy.io`) is intentionally excluded: it
+ * resolves to marketing by default, but we want the program-override
+ * cookie to win there so super-admins can preview a program from the
+ * apex (e.g. before IT has provisioned that program's subdomain).
  */
 export function isKnownProgramHost(host: string): boolean {
   const bare = host.replace(/:\d+$/, "");
-  return bare in DOMAIN_MAP || host in DOMAIN_MAP;
+  const slug = DOMAIN_MAP[bare] ?? DOMAIN_MAP[host];
+  return slug !== undefined && slug !== MARKETING_SLUG;
 }
 
 /**

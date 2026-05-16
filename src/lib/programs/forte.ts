@@ -19,6 +19,10 @@ export const forteConfig: ProgramConfig = {
   name: "Forte Bahamas",
   tagline: "AI literacy for the modern Bahamas",
   domain: "forte.bccacademy.io",
+  // IT hasn't cut DNS over yet — until then, the program switcher uses the
+  // cookie-based override so super-admins can still preview Forte content
+  // from bccacademy.io. Remove this line once forte.bccacademy.io resolves.
+  dnsReady: false,
   // TODO(branding): placeholder wordmark — swap in real Forte branding.
   logo: "/forte/logo.svg",
   colors: {

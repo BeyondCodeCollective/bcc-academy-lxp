@@ -57,7 +57,12 @@ export default async function DashboardLayout({
   // AI Tutor pre-launch kill-switch lives in src/lib/programs/index.ts.
   const showTutor = isTutorAvailable(program);
   const programs = canSwitch
-    ? getAllPrograms().map((p) => ({ slug: p.slug, name: p.name, domain: p.domain }))
+    ? getAllPrograms().map((p) => ({
+        slug: p.slug,
+        name: p.name,
+        domain: p.domain,
+        dnsReady: p.dnsReady,
+      }))
     : [];
 
   return (

@@ -7,6 +7,8 @@ type ProgramOption = {
   slug: string;
   name: string;
   domain: string;
+  /** If false, switching uses the cookie-based override instead of redirecting to `domain`. */
+  dnsReady?: boolean;
 };
 
 type Variant = "sidebar" | "topbar";
@@ -69,7 +71,8 @@ export function UserMenu({
       ...programs.map((p) => p.domain),
     ]);
     const onProductionHost = productionHosts.has(window.location.hostname);
-    if (target && onProductionHost) {
+    const targetDnsReady = target?.dnsReady !== false;
+    if (target && onProductionHost && targetDnsReady) {
       window.location.href = `https://${target.domain}/dashboard/admin`;
     } else {
       document.cookie = `program-override=${slug}; path=/; max-age=86400`;
