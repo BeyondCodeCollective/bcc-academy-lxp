@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { createServiceClient } from "@/lib/supabase/server";
 import { authCookieDomain } from "@/lib/supabase/cookie-domain";
 import { getProgram } from "@/lib/programs/server";
+import { getProgramBySlug } from "@/lib/programs";
 import { sendWelcomeEmail } from "@/lib/email";
 import { BCC_INTAKE_SURVEY_ID, BCC_INTAKE_EXEMPT_PROGRAMS } from "@/lib/surveys/platform";
 import { BCC_INTAKE_QUESTION_IDS } from "@/lib/surveys/schemas";
@@ -15,10 +16,11 @@ export async function GET(request: Request) {
   const token_hash = searchParams.get("token_hash");
   const type = searchParams.get("type") as "email" | "magiclink" | null;
   const trackParam = searchParams.get("track");
+  const joinSlug = searchParams.get("join");
 
   if (code || token_hash) {
     const cookieStore = await cookies();
-    const program = await getProgram();
+    const program = joinSlug ? getProgramBySlug(joinSlug) : await getProgram();
     const domain = authCookieDomain(request.headers.get("host"));
 
     // Capture every cookie Supabase wants to set so we can forward them onto

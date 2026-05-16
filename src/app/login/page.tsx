@@ -4,6 +4,7 @@ import { CentralLoginForm } from "@/components/central-login-form";
 import { SignIn } from "@phosphor-icons/react/dist/ssr";
 import Image from "next/image";
 import Link from "next/link";
+import { getAllPrograms } from "@/lib/programs";
 
 // Program subdomains already have their own login at /
 const PROGRAM_HOSTS = new Set([
@@ -45,7 +46,11 @@ export default async function CentralLoginPage() {
               [ Student Portal ]
             </p>
 
-            <CentralLoginForm />
+            <CentralLoginForm
+              programs={getAllPrograms()
+                .filter((p) => p.tracks.length > 0)
+                .map((p) => ({ slug: p.slug, name: p.name }))}
+            />
           </div>
         </div>
       </div>
