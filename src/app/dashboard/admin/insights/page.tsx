@@ -7,6 +7,7 @@ import { getDashboardSurveyStats, getDashboardSurveyResponses } from "../actions
 import type { BCCSurveyResponse } from "../actions";
 import { PLATFORM_AUTH_SURVEYS, PLATFORM_PUBLIC_SURVEYS } from "@/lib/surveys/platform";
 import { getAllPrograms } from "@/lib/programs";
+import { getProgram } from "@/lib/programs/server";
 import type { SurveyConfig } from "@/lib/programs/types";
 import { getSurveySchema } from "@/lib/surveys/schemas";
 import type { SurveyQuestion } from "@/components/survey-fields";
@@ -28,9 +29,14 @@ export default async function InsightsPage() {
     .eq("id", session.user.id)
     .single();
 
-  if (!canSwitchPrograms(student?.role ?? "student")) redirect("/dashboard/admin");
+  const userRole = student?.role ?? "student";
+  const isSuperAdmin = canSwitchPrograms(userRole);
+  if (!isSuperAdmin) redirect("/dashboard/admin");
 
-  const stats = await getDashboardSurveyStats();
+  const [stats, currentProgram] = await Promise.all([
+    getDashboardSurveyStats(),
+    getProgram(),
+  ]);
 
   const programSurveys: SurveyConfig[] = getAllPrograms().flatMap(
     (p) => p.surveys ?? [],
@@ -89,6 +95,9 @@ export default async function InsightsPage() {
           sections={sections}
           programs={allPrograms}
           totalResponses={totalResponses}
+          currentProgramSlug={currentProgram.slug}
+          currentProgramName={currentProgram.name}
+          canViewAll={isSuperAdmin}
         />
       </div>
     </div>
