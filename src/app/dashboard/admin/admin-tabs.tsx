@@ -968,7 +968,7 @@ export function AdminTabs({
                         const student = students.find((st) => st.id === s.student_id);
                         return {
                           id: s.student_id,
-                          label: student ? `${student.first_name} ${student.last_name}` : s.student_id,
+                          label: student ? (student.first_name && student.last_name ? `${student.first_name} ${student.last_name}` : student.email) : s.student_id,
                           sublabel: student?.email ?? "",
                           completedAt: s.completed_at,
                         };
@@ -1401,7 +1401,7 @@ export function AdminTabs({
                         className="rounded border-neutral-300"
                       />
                       <span className="text-neutral-700">
-                        {student.first_name} {student.last_name}
+                        {student.first_name && student.last_name ? `${student.first_name} ${student.last_name}` : student.email}
                       </span>
                       {alreadyEnrolled && (
                         <span className="text-[10px] text-neutral-400 ml-auto">Already enrolled</span>
@@ -1528,7 +1528,7 @@ export function AdminTabs({
                       <span className={`h-2 w-2 shrink-0 rounded-full ${scoreColor}`} title={`Engagement: ${score?.total ?? 0}/100`} />
                     )}
                     <p className="text-sm font-semibold text-neutral-900">
-                      {student.first_name} {student.last_name}
+                      {student.first_name && student.last_name ? `${student.first_name} ${student.last_name}` : student.email}
                     </p>
                     {student.role === "super_admin" && (
                       <Shield size={12} className="shrink-0 text-red-500" />
