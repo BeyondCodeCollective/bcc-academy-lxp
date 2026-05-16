@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   House,
   ShieldCheck,
@@ -12,6 +12,11 @@ import {
   List,
   X,
   Check,
+  Users,
+  Clipboard,
+  ChartLineUp,
+  BookOpen,
+  Gauge,
 } from "@phosphor-icons/react";
 import { UserMenu } from "@/components/user-menu";
 import { computeCurrentWeek } from "@/lib/utils";
@@ -55,6 +60,7 @@ export function Nav({
   currentProgramSlug,
   variant = "admin-sidebar",
   curriculumTracks = [],
+  adminTracks = [],
 }: {
   isAdmin: boolean;
   logo: string;
@@ -70,6 +76,7 @@ export function Nav({
   currentProgramSlug: string;
   variant?: NavVariant;
   curriculumTracks?: CurriculumTrack[];
+  adminTracks?: { slug: string; shortName: string }[];
 }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -206,6 +213,57 @@ export function Nav({
               })}
             </div>
           </div>
+        );
+      })}
+    </div>
+  );
+
+  // ── Admin nav (admin-sidebar, on admin pages) ───────────────────────────
+
+  const searchParams = useSearchParams();
+  const onAdminPage = pathname.startsWith("/dashboard/admin");
+  const activeTab = searchParams.get("tab") ?? "program";
+
+  const adminNav = variant === "admin-sidebar" && onAdminPage && adminTracks.length > 0 && (
+    <div className="flex flex-col gap-1">
+      <div className="my-1 h-px bg-white/10" aria-hidden />
+
+      {/* Overview — cross-track program view */}
+      {isAdmin && (
+        <Link
+          href="/dashboard/admin?tab=program"
+          onClick={() => setMobileOpen(false)}
+          className={`flex min-h-[36px] items-center gap-2.5 rounded-lg px-3 py-1.5 text-[13px] transition-colors ${
+            activeTab === "program"
+              ? "bg-white/15 text-white"
+              : "text-neutral-400 hover:bg-white/10 hover:text-neutral-200"
+          }`}
+        >
+          <Gauge size={14} weight="bold" aria-hidden className="shrink-0" />
+          <span>Overview</span>
+        </Link>
+      )}
+
+      {/* Tracks — each is a mini program */}
+      <p className="mt-2 mb-1 px-3 text-[10px] font-medium uppercase tracking-[0.14em] text-neutral-500">
+        Programs
+      </p>
+      {adminTracks.map((t) => {
+        const isTrackActive = activeTab === t.slug;
+        return (
+          <Link
+            key={t.slug}
+            href={`/dashboard/admin?tab=${t.slug}`}
+            onClick={() => setMobileOpen(false)}
+            className={`flex min-h-[36px] items-center gap-2.5 rounded-lg px-3 py-1.5 text-[13px] transition-colors ${
+              isTrackActive
+                ? "bg-white/15 text-white"
+                : "text-neutral-400 hover:bg-white/10 hover:text-neutral-200"
+            }`}
+          >
+            <BookOpen size={14} weight="regular" aria-hidden className="shrink-0" />
+            <span className="truncate">{t.shortName}</span>
+          </Link>
         );
       })}
     </div>
@@ -366,6 +424,8 @@ export function Nav({
         </div>
       )}
 
+      {adminNav}
+
       {sidebarFooter}
     </div>
   );
@@ -391,6 +451,8 @@ export function Nav({
           {curriculumNav}
         </div>
       )}
+
+      {adminNav}
 
       <div className="mt-auto">{helpLink}</div>
     </div>
