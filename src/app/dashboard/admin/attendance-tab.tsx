@@ -12,7 +12,10 @@ import {
   AlertTriangle,
   TrendingDown,
   BarChart3,
+  Video,
+  FileText,
 } from "lucide-react";
+import type { ProgressRecord } from "@/app/api/week-progress/route";
 
 type StudentRow = {
   id: string;
@@ -49,6 +52,8 @@ type StudentRisk = {
   techRate: number;
   combinedRate: number;
   consecutiveMisses: number;
+  completionRate: number;
+  engagementScore: number;
   status: "on-track" | "at-risk" | "disengaged";
 };
 
@@ -56,6 +61,7 @@ function computeStudentRisks(
   students: StudentRow[],
   massRecords: AttendanceRecord[],
   techRecords: AttendanceRecord[],
+  progressRecords: ProgressRecord[],
   massWeeksElapsed: number,
   techWeeksElapsed: number
 ): StudentRisk[] {
@@ -63,7 +69,7 @@ function computeStudentRisks(
     const massAttended = massRecords.filter((r) => r.student_id === student.id).length;
     const techAttended = techRecords.filter((r) => r.student_id === student.id).length;
 
-    const massPossible = massWeeksElapsed; // 1 session per week
+    const massPossible = massWeeksElapsed;
     const techPossible = techWeeksElapsed * TECH_SESSIONS_PER_WEEK;
 
     const massRate = massPossible > 0 ? Math.round((massAttended / massPossible) * 100) : 100;
@@ -73,9 +79,8 @@ function computeStudentRisks(
     const totalAttended = massAttended + techAttended;
     const combinedRate = totalPossible > 0 ? Math.round((totalAttended / totalPossible) * 100) : 100;
 
-    // Compute consecutive misses (most recent sessions first)
+    // Consecutive misses (most recent sessions first)
     let consecutiveMisses = 0;
-    // Check from most recent week backwards across both tracks
     const allSessions: { track: string; week: number; session: number }[] = [];
     for (let w = massWeeksElapsed; w >= 1; w--) {
       allSessions.push({ track: "mass", week: w, session: 1 });
@@ -84,7 +89,6 @@ function computeStudentRisks(
       allSessions.push({ track: "techplus", week: w, session: 2 });
       allSessions.push({ track: "techplus", week: w, session: 1 });
     }
-    // Sort by most recent first (rough: higher week first)
     allSessions.sort((a, b) => b.week - a.week || b.session - a.session);
 
     const allRecords = [...massRecords, ...techRecords];
@@ -100,16 +104,35 @@ function computeStudentRisks(
       consecutiveMisses++;
     }
 
-    let status: StudentRisk["status"] = "on-track";
-    if (combinedRate < 50) status = "disengaged";
-    else if (combinedRate < 80) status = "at-risk";
+    // Completion rate: % of elapsed weeks with both video + homework done
+    const possibleCompletions = massWeeksElapsed + techWeeksElapsed;
+    let completedWeeks = 0;
+    for (let w = 1; w <= massWeeksElapsed; w++) {
+      const pr = progressRecords.find(
+        (r) => r.student_id === student.id && r.track_slug === "mass" && r.week_number === w
+      );
+      if (pr?.video_watched && pr?.homework_submitted) completedWeeks++;
+    }
+    for (let w = 1; w <= techWeeksElapsed; w++) {
+      const pr = progressRecords.find(
+        (r) => r.student_id === student.id && r.track_slug === "techplus" && r.week_number === w
+      );
+      if (pr?.video_watched && pr?.homework_submitted) completedWeeks++;
+    }
+    const completionRate = possibleCompletions > 0 ? Math.round((completedWeeks / possibleCompletions) * 100) : 100;
 
-    return { student, massRate, techRate, combinedRate, consecutiveMisses, status };
+    const engagementScore = Math.round(0.5 * combinedRate + 0.5 * completionRate);
+
+    let status: StudentRisk["status"] = "on-track";
+    if (engagementScore < 50) status = "disengaged";
+    else if (engagementScore < 80) status = "at-risk";
+
+    return { student, massRate, techRate, combinedRate, consecutiveMisses, completionRate, engagementScore, status };
   });
 }
 
 function exportCSV(risks: StudentRisk[]) {
-  const header = "Name,Email,MASS %,Tech+ %,Combined %,Status,Consecutive Misses";
+  const header = "Name,Email,MASS %,Tech+ %,Combined %,Completion %,Engagement Score,Status,Consecutive Misses";
   const rows = risks.map((r) =>
     [
       `"${r.student.first_name && r.student.last_name ? `${r.student.first_name} ${r.student.last_name}` : r.student.email}"`,
@@ -117,6 +140,8 @@ function exportCSV(risks: StudentRisk[]) {
       r.massRate,
       r.techRate,
       r.combinedRate,
+      r.completionRate,
+      r.engagementScore,
       r.status === "on-track" ? "On Track" : r.status === "at-risk" ? "At Risk" : "Disengaged",
       r.consecutiveMisses,
     ].join(",")
@@ -140,6 +165,7 @@ const STATUS_STYLES = {
 export function AttendanceTab({ students }: AttendanceTabProps) {
   const [massRecords, setMassRecords] = useState<AttendanceRecord[]>([]);
   const [techRecords, setTechRecords] = useState<AttendanceRecord[]>([]);
+  const [progressRecords, setProgressRecords] = useState<ProgressRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [gridTrack, setGridTrack] = useState<"mass" | "techplus">("mass");
   const [toggling, setToggling] = useState<string | null>(null);
@@ -148,9 +174,10 @@ export function AttendanceTab({ students }: AttendanceTabProps) {
   const fetchAllAttendance = useCallback(async () => {
     setLoading(true);
     try {
-      const [massRes, techRes] = await Promise.all([
+      const [massRes, techRes, progressRes] = await Promise.all([
         fetch("/api/attendance?track=mass"),
         fetch("/api/attendance?track=techplus"),
+        fetch("/api/week-progress"),
       ]);
       if (massRes.ok) {
         const d = await massRes.json();
@@ -159,6 +186,10 @@ export function AttendanceTab({ students }: AttendanceTabProps) {
       if (techRes.ok) {
         const d = await techRes.json();
         setTechRecords(d.records || []);
+      }
+      if (progressRes.ok) {
+        const d = await progressRes.json();
+        setProgressRecords(d.records || []);
       }
     } finally {
       setLoading(false);
@@ -225,10 +256,10 @@ export function AttendanceTab({ students }: AttendanceTabProps) {
   // Student risk list
   const risks = useMemo(
     () =>
-      computeStudentRisks(students, massRecords, techRecords, massWeeksElapsed, techWeeksElapsed).sort(
-        (a, b) => a.combinedRate - b.combinedRate
+      computeStudentRisks(students, massRecords, techRecords, progressRecords, massWeeksElapsed, techWeeksElapsed).sort(
+        (a, b) => a.engagementScore - b.engagementScore
       ),
-    [students, massRecords, techRecords, massWeeksElapsed, techWeeksElapsed]
+    [students, massRecords, techRecords, progressRecords, massWeeksElapsed, techWeeksElapsed]
   );
 
   const atRiskCount = risks.filter((r) => r.status !== "on-track").length;
@@ -427,10 +458,11 @@ export function AttendanceTab({ students }: AttendanceTabProps) {
               <div className="w-16 text-center">Tech+</div>
               <div className="w-20 text-center">Overall</div>
               <div className="w-20 text-center">Streak</div>
+              <div className="w-20 text-center">Done</div>
               <div className="w-24 text-center">Status</div>
             </div>
             <div className="divide-y divide-neutral-50">
-              {risks.map(({ student, massRate, techRate, combinedRate, consecutiveMisses, status }) => {
+              {risks.map(({ student, massRate, techRate, combinedRate, consecutiveMisses, completionRate, status }) => {
                 const style = STATUS_STYLES[status];
                 return (
                   <div
@@ -442,7 +474,7 @@ export function AttendanceTab({ students }: AttendanceTabProps) {
                         {student.first_name && student.last_name ? `${student.first_name} ${student.last_name}` : student.email}
                       </p>
                       <p className="text-[11px] text-neutral-400 truncate sm:hidden">
-                        MASS {massRate}% · Tech+ {techRate}% · {consecutiveMisses > 0 ? `${consecutiveMisses} missed` : "No misses"}
+                        MASS {massRate}% · Tech+ {techRate}% · Done {completionRate}% · {consecutiveMisses > 0 ? `${consecutiveMisses} missed` : "No misses"}
                       </p>
                     </div>
                     <div className="hidden sm:flex items-center">
@@ -470,6 +502,11 @@ export function AttendanceTab({ students }: AttendanceTabProps) {
                         ) : (
                           <span className="text-xs text-neutral-300">—</span>
                         )}
+                      </div>
+                      <div className="w-20 text-center">
+                        <span className={`text-xs font-semibold ${completionRate >= 80 ? "text-green-600" : completionRate >= 50 ? "text-amber-600" : "text-red-600"}`}>
+                          {completionRate}%
+                        </span>
                       </div>
                     </div>
                     <div className="w-24 flex justify-center sm:justify-center">
@@ -589,6 +626,23 @@ export function AttendanceTab({ students }: AttendanceTabProps) {
                             <p className="text-[11px] text-neutral-400 truncate">
                               {student.email}
                             </p>
+                          </div>
+                          <div className="flex items-center gap-1.5 mr-1">
+                            {(() => {
+                              const pr = progressRecords.find(
+                                (r) => r.student_id === student.id && r.track_slug === gridTrack && r.week_number === week
+                              );
+                              return (
+                                <>
+                                  <span title="Video watched" className={pr?.video_watched ? "text-green-500" : "text-neutral-200"}>
+                                    <Video size={12} />
+                                  </span>
+                                  <span title="Homework submitted" className={pr?.homework_submitted ? "text-green-500" : "text-neutral-200"}>
+                                    <FileText size={12} />
+                                  </span>
+                                </>
+                              );
+                            })()}
                           </div>
                           <div className="flex items-center gap-2">
                             {Array.from({ length: sessionsPerWeek }, (_, j) => j + 1).map((session) => {
