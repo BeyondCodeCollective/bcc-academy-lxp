@@ -194,6 +194,8 @@ export default async function AdminPage() {
     sessionsPerWeek: t.sessionsPerWeek,
     instructor: t.instructor,
     sessionTimes: t.sessionTimes,
+    startDate: t.startDate,
+    lastSessionDayOffset: t.lastSessionDayOffset,
     weekSummaries: t.weekSummaries,
     weeks: t.weeks.map((w) => ({
       week: w.week,

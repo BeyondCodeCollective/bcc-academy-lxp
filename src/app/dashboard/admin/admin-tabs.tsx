@@ -33,6 +33,7 @@ import { AttendanceTab } from "./attendance-tab";
 import type { Student } from "@/lib/types";
 import { isStorageUrl, isUploadedVideo } from "@/lib/storage-utils";
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
+import { computeCurrentWeek } from "@/lib/utils";
 
 const PLATFORM_SURVEY_TITLES: Record<string, string> = {
   "bcc-learner-intake": "BCC Learner Intake",
@@ -58,6 +59,8 @@ type AdminTrackConfig = {
   sessionsPerWeek: number;
   instructor: string;
   sessionTimes: string[];
+  startDate: string;
+  lastSessionDayOffset: number;
   weekSummaries: { week: number; topic: string; icon: string }[];
   weeks: {
     week: number;
@@ -407,6 +410,9 @@ export function AdminTabs({
   const [saved, setSaved] = useState(false);
   const [expandedWeek, setExpandedWeek] = useState<number | null>(1);
   const [studentSaving, setStudentSaving] = useState<string | null>(null);
+  const [recentSubs, setRecentSubs] = useState<AdminSubmissionRow[]>([]);
+  const [recentRefs, setRecentRefs] = useState<AdminReflectionRow[]>([]);
+  const [recentLoaded, setRecentLoaded] = useState(false);
 
   // Track data: keyed by track slug
   const [trackData, setTrackData] = useState<Record<string, AdminWeek[]>>(() => {
@@ -429,6 +435,31 @@ export function AdminTabs({
       }
     };
   }, []);
+
+  // Recent activity for the Program tab overview. Fires once the admin lands
+  // on Program; cached for the session.
+  useEffect(() => {
+    if (tab !== "program" || recentLoaded || isDashboardless) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const [subs, refs] = await Promise.all([
+          getAllSubmissions(programSlug),
+          getAllReflections(programSlug),
+        ]);
+        if (cancelled) return;
+        setRecentSubs(subs);
+        setRecentRefs(refs);
+      } catch (err) {
+        console.error("Failed to load recent activity:", err);
+      } finally {
+        if (!cancelled) setRecentLoaded(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [tab, recentLoaded, isDashboardless, programSlug]);
 
   // Load initial session content from the API for all tracks
   useEffect(() => {
@@ -745,66 +776,153 @@ export function AdminTabs({
       )}
 
       {/* Program Tab */}
-      {tab === "program" && !isDashboardless && cohort && (
+      {tab === "program" && !isDashboardless && (() => {
+        const enrolledCount = students.filter((s) => s.role !== "admin").length;
+        const scoreVals = Object.values(engagementScores);
+        const totalAttendance = scoreVals.reduce((a, s) => a + s.attendance, 0);
+        const totalSubs = scoreVals.reduce((a, s) => a + s.submissions, 0);
+        const totalRefs = scoreVals.reduce((a, s) => a + s.reflections, 0);
+
+        const trackBySlug = Object.fromEntries(tracks.map((t) => [t.slug, t]));
+        type ActivityItem = {
+          id: string;
+          kind: "submission" | "reflection";
+          student_name: string;
+          track_slug: string;
+          week_number: number;
+          submitted_at: string;
+        };
+        const activity: ActivityItem[] = [
+          ...recentSubs
+            .filter((s) => s.submitted_at)
+            .map((s) => ({
+              id: `s:${s.id}`,
+              kind: "submission" as const,
+              student_name: s.student_name,
+              track_slug: s.track_slug,
+              week_number: s.week_number,
+              submitted_at: s.submitted_at!,
+            })),
+          ...recentRefs
+            .filter((r) => r.submitted_at)
+            .map((r) => ({
+              id: `r:${r.id}`,
+              kind: "reflection" as const,
+              student_name: r.student_name,
+              track_slug: r.track_slug,
+              week_number: r.week_number,
+              submitted_at: r.submitted_at!,
+            })),
+        ]
+          .sort((a, b) => b.submitted_at.localeCompare(a.submitted_at))
+          .slice(0, 5);
+
+        return (
         <div className="space-y-6">
-          <div>
-            <h2 className="text-lg font-semibold text-neutral-900 mb-4">Cohort Settings</h2>
-            <div className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5 space-y-4">
-              <div>
-                <label className="text-xs font-medium text-neutral-500">Display Name</label>
-                <input
-                  type="text"
-                  value={cohort.display_name || ""}
-                  onChange={(e) => setCohort({ ...cohort, display_name: e.target.value })}
-                  className="mt-1 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
-                />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                <div>
-                  <label className="text-xs font-medium text-neutral-500">Start Date</label>
-                  <input
-                    type="date"
-                    value={cohort.start_date}
-                    onChange={(e) => setCohort({ ...cohort, start_date: e.target.value })}
-                    className="mt-1 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-neutral-500">Total Weeks</label>
-                  <input
-                    type="number"
-                    value={cohort.total_weeks}
-                    min={1}
-                    onChange={(e) => setCohort({ ...cohort, total_weeks: parseInt(e.target.value) || 1 })}
-                    className="mt-1 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
-                  />
-                </div>
-              </div>
-              <button
-                onClick={saveCohort}
-                disabled={saving}
-                className="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
+          {/* Metric cards */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {[
+              { label: "Students", value: enrolledCount },
+              { label: "Submissions", value: totalSubs },
+              { label: "Reflections", value: totalRefs },
+              { label: "Sessions attended", value: totalAttendance },
+            ].map((m) => (
+              <div
+                key={m.label}
+                className="rounded-xl border border-neutral-200 bg-white p-4"
               >
-                {saved ? <><Check size={14} /> Saved</> : saving ? "Saving..." : <><Save size={14} /> Save Changes</>}
-              </button>
-            </div>
+                <p className="text-2xl font-bold text-neutral-900">{m.value}</p>
+                <p className="mt-0.5 text-xs text-neutral-400">{m.label}</p>
+              </div>
+            ))}
           </div>
 
-          <div className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
-            <h3 className="text-sm font-semibold text-neutral-900 mb-3">Quick Stats</h3>
-            <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${Math.min(tracks.length + 1, 4)}, minmax(0, 1fr))` }}>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-neutral-900">{students.length}</p>
-                <p className="text-xs text-neutral-400">Students</p>
-              </div>
-              {tracks.map((t) => (
-                <div key={t.slug} className="text-center">
-                  <p className="text-2xl font-bold text-neutral-900">{t.totalWeeks}</p>
-                  <p className="text-xs text-neutral-400">{t.shortName} Weeks</p>
-                </div>
-              ))}
+          {/* This week */}
+          <section>
+            <h2 className="mb-3 text-lg font-semibold text-neutral-900">This week</h2>
+            <div className="space-y-2">
+              {tracks.map((t) => {
+                const currentWeek = computeCurrentWeek(
+                  t.startDate,
+                  t.totalWeeks,
+                  t.lastSessionDayOffset,
+                );
+                const week = t.weeks.find((w) => w.week === currentWeek);
+                const notStarted = new Date(t.startDate).getTime() > Date.now();
+                return (
+                  <div
+                    key={t.slug}
+                    className="flex items-center justify-between gap-3 rounded-xl border border-neutral-200 bg-white p-4"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400">
+                        {t.shortName}
+                      </p>
+                      <p className="mt-0.5 truncate text-sm font-semibold text-neutral-900">
+                        {notStarted
+                          ? `Starts ${new Date(t.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+                          : week
+                            ? `Week ${currentWeek}: ${week.title}`
+                            : `Week ${currentWeek}`}
+                      </p>
+                    </div>
+                    <p className="shrink-0 text-xs text-neutral-500">
+                      {t.sessionTimes.join(" · ")}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
-          </div>
+          </section>
+
+          {/* Recent activity */}
+          <section>
+            <h2 className="mb-3 text-lg font-semibold text-neutral-900">Recent activity</h2>
+            <div className="divide-y divide-neutral-100 rounded-xl border border-neutral-200 bg-white">
+              {!recentLoaded ? (
+                <p className="p-4 text-sm text-neutral-400">Loading…</p>
+              ) : activity.length === 0 ? (
+                <p className="p-4 text-sm text-neutral-500">
+                  No submissions or reflections yet.
+                </p>
+              ) : (
+                activity.map((item) => {
+                  const track = trackBySlug[item.track_slug];
+                  const trackLabel = track?.shortName ?? item.track_slug;
+                  const submittedAt = new Date(item.submitted_at);
+                  const diffMs = Date.now() - submittedAt.getTime();
+                  const diffHrs = Math.round(diffMs / (1000 * 60 * 60));
+                  const ago =
+                    diffHrs < 1
+                      ? "just now"
+                      : diffHrs < 24
+                        ? `${diffHrs}h ago`
+                        : `${Math.round(diffHrs / 24)}d ago`;
+                  return (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between gap-3 p-3 text-sm"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate font-medium text-neutral-900">
+                          {item.student_name}
+                        </p>
+                        <p className="truncate text-xs text-neutral-500">
+                          {item.kind === "submission"
+                            ? "Submitted homework"
+                            : "Added reflection"}{" "}
+                          — {trackLabel} Week {item.week_number}
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-xs text-neutral-400">
+                        {ago}
+                      </span>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </section>
 
           {/* Survey Stats */}
           {surveyConfigs.length > 0 && (
@@ -865,8 +983,67 @@ export function AdminTabs({
             </div>
           )}
 
+          {/* Cohort settings — collapsible, demoted from the top */}
+          <details className="group rounded-xl border border-neutral-200 bg-white">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-2 p-4 text-sm font-semibold text-neutral-900">
+              <span>Cohort settings</span>
+              <ChevronDown
+                size={14}
+                className="text-neutral-400 transition-transform group-open:rotate-180"
+              />
+            </summary>
+            <div className="space-y-4 border-t border-neutral-100 p-4">
+              {cohort ? (
+                <>
+                  <div>
+                    <label className="text-xs font-medium text-neutral-500">Display Name</label>
+                    <input
+                      type="text"
+                      value={cohort.display_name || ""}
+                      onChange={(e) => setCohort({ ...cohort, display_name: e.target.value })}
+                      className="mt-1 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+                    <div>
+                      <label className="text-xs font-medium text-neutral-500">Start Date</label>
+                      <input
+                        type="date"
+                        value={cohort.start_date}
+                        onChange={(e) => setCohort({ ...cohort, start_date: e.target.value })}
+                        className="mt-1 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-neutral-500">Total Weeks</label>
+                      <input
+                        type="number"
+                        value={cohort.total_weeks}
+                        min={1}
+                        onChange={(e) => setCohort({ ...cohort, total_weeks: parseInt(e.target.value) || 1 })}
+                        className="mt-1 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    onClick={saveCohort}
+                    disabled={saving}
+                    className="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800 disabled:opacity-50"
+                  >
+                    {saved ? <><Check size={14} /> Saved</> : saving ? "Saving..." : <><Save size={14} /> Save Changes</>}
+                  </button>
+                </>
+              ) : (
+                <p className="text-sm text-neutral-500">
+                  No cohort has been created yet for this program. A cohort is seeded automatically when the first student enrolls.
+                </p>
+              )}
+            </div>
+          </details>
+
         </div>
-      )}
+        );
+      })()}
 
       {/* Dynamic Track Tabs */}
       {activeTrack && (
