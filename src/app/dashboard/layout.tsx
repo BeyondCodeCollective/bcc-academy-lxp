@@ -130,6 +130,11 @@ export default async function DashboardLayout({
           }))
       : [];
 
+  // Admin tracks for the admin sidebar nav.
+  const adminTracks = isAdmin
+    ? program.tracks.map((t) => ({ slug: t.slug, shortName: t.shortName }))
+    : [];
+
   return (
     <ProgramProvider program={program}>
       <Nav
@@ -147,6 +152,7 @@ export default async function DashboardLayout({
         currentProgramSlug={program.slug}
         variant={navVariant}
         curriculumTracks={curriculumTracks}
+        adminTracks={adminTracks}
       />
       {!isSurveyPage && showTutor && <TutorFab />}
       <main

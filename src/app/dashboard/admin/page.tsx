@@ -8,7 +8,12 @@ import { getPublicSurveyStats } from "./actions";
 import { canAccessAdminPanel, canSwitchPrograms } from "@/lib/roles";
 import { PLATFORM_AUTH_SURVEYS } from "@/lib/surveys/platform";
 
-export default async function AdminPage() {
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>;
+}) {
+  const { tab: initialTab } = await searchParams;
   const program = await getProgram();
   let allStudents: Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id">[] = [];
   let allCohorts: { id: string; name: string; display_name: string | null; start_date: string; total_weeks: number }[] = [];
@@ -225,6 +230,7 @@ export default async function AdminPage() {
         publicSurveyStats={publicSurveyStats}
         userRole={userRole}
         engagementScores={engagementScores}
+        initialTab={initialTab}
       />
     </div>
   );
