@@ -390,8 +390,12 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
             }))}
         />
       )}
+      {/* Upcoming single-event tracks only. Past events read as orphans on
+         the dashboard — they have no week to navigate into and no ongoing
+         action — so hide them once the event date has passed. They remain
+         reachable via direct track URL for anyone with the link. */}
       {trackStates
-        .filter(({ track }) => track.type === "single-event")
+        .filter(({ track }) => track.type === "single-event" && new Date() <= new Date(track.startDate))
         .map(({ track }) => (
           <SingleEventCard key={track.slug} track={track} />
         ))}
