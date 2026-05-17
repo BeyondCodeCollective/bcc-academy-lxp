@@ -16,9 +16,9 @@ export async function POST(request: NextRequest) {
 
   const { data: currentStudent } = await supabase
     .from("students")
-    .select("id, role")
+    .select("id, role, program_id")
     .eq("id", session.user.id)
-    .single<{ id: string; role: string }>();
+    .single<{ id: string; role: string; program_id: string | null }>();
 
   if (!currentStudent || !canAccessAdminPanel(currentStudent.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -27,14 +27,31 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
   const { track, week_number, session_number = 1, student_id } = body;
 
-  if (!track || !["mass", "techplus"].includes(track)) {
-    return NextResponse.json({ error: "Invalid track" }, { status: 400 });
+  // Track is a free-form slug — must be present and well-shaped, but no
+  // hardcoded allowlist. Any program/cohort/track combination can write
+  // attendance; admin role + program_id cross-check below already gate this.
+  // Slug format check keeps absurd payloads (SQL strings, long blobs) out
+  // of the DB.
+  if (!track || typeof track !== "string" || !/^[a-z0-9-]{1,64}$/.test(track)) {
+    return NextResponse.json({ error: "Invalid track slug" }, { status: 400 });
   }
   if (!week_number || typeof week_number !== "number") {
     return NextResponse.json({ error: "Invalid week_number" }, { status: 400 });
   }
   if (!student_id) {
     return NextResponse.json({ error: "student_id is required" }, { status: 400 });
+  }
+
+  // Program-scope check. The attendance row carries no program_id, so RLS
+  // can't enforce cross-tenant separation here — verify in app code.
+  const { data: targetStudent } = await supabase
+    .from("students")
+    .select("id, program_id")
+    .eq("id", student_id)
+    .single<{ id: string; program_id: string | null }>();
+
+  if (!targetStudent || targetStudent.program_id !== currentStudent.program_id) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const { error } = await supabase.from("attendance").upsert(
@@ -77,11 +94,22 @@ export async function DELETE(request: NextRequest) {
 
   const { data: currentStudent } = await supabase
     .from("students")
-    .select("role")
+    .select("role, program_id")
     .eq("id", session.user.id)
-    .single<{ role: string }>();
+    .single<{ role: string; program_id: string | null }>();
 
   if (!canAccessAdminPanel(currentStudent?.role ?? "")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // Program-scope check (same reason as POST — attendance has no program_id).
+  const { data: targetStudent } = await supabase
+    .from("students")
+    .select("program_id")
+    .eq("id", student_id)
+    .single<{ program_id: string | null }>();
+
+  if (!targetStudent || targetStudent.program_id !== currentStudent?.program_id) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

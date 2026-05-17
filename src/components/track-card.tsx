@@ -83,7 +83,7 @@ export function TrackCard({
   return (
     <Link
       href={`/dashboard/track/${slug}`}
-      className="group flex h-full flex-col overflow-hidden rounded-xl border border-rule bg-[#FBFAF6] transition-colors hover:border-ink-faint hover:bg-paper-tint-soft"
+      className="group flex h-full flex-col overflow-hidden rounded-xl border border-rule bg-surface-soft transition-colors hover:border-ink-faint hover:bg-paper-tint-soft"
     >
       {/* Top visual — curated Phosphor icon, tone-tinted background */}
       <div
@@ -115,7 +115,7 @@ export function TrackCard({
 
       {/* Body */}
       <div className="flex flex-1 flex-col p-5">
-        <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-faint">
+        <p className="text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
           {totalWeeks}-week track
         </p>
         <h2 className="mt-2 text-[17px] font-semibold text-ink leading-snug tracking-[-0.01em]">

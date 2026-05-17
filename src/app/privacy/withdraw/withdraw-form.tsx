@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { withdrawPublicSurveyResponses } from "./actions";
+import { requestWithdrawConfirmation } from "./actions";
 
 export function WithdrawForm() {
   const [email, setEmail] = useState("");
@@ -14,7 +14,7 @@ export function WithdrawForm() {
     setError("");
     setSubmitting(true);
     try {
-      const result = await withdrawPublicSurveyResponses({ email });
+      const result = await requestWithdrawConfirmation({ email });
       if (!result.ok) {
         setError(result.error);
         setSubmitting(false);
@@ -30,10 +30,11 @@ export function WithdrawForm() {
   if (done) {
     return (
       <div className="rounded-2xl border border-neutral-200 bg-white p-6">
-        <p className="text-sm font-semibold text-neutral-900">Request received.</p>
+        <p className="text-sm font-semibold text-neutral-900">Check your email.</p>
         <p className="mt-2 text-sm text-neutral-600">
-          If any survey responses were tied to that email, they have been
-          deleted. Thanks for letting us know.
+          If any survey responses are tied to that address, we&apos;ve emailed
+          a confirmation link. Click it within the next hour to complete the
+          deletion. If nothing arrives, the address has no data on file.
         </p>
       </div>
     );
@@ -72,7 +73,7 @@ export function WithdrawForm() {
         disabled={submitting}
         className="w-full rounded-xl bg-neutral-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-neutral-800 disabled:opacity-50"
       >
-        {submitting ? "Removing…" : "Remove my response"}
+        {submitting ? "Sending…" : "Email me a confirmation link"}
       </button>
     </form>
   );

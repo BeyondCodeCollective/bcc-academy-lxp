@@ -1,0 +1,204 @@
+<h2>Dashboard home — which layout fits?</h2>
+<p class="subtitle">All three solve the "too many boxes" problem differently. Click one to select it.</p>
+
+<div class="cards">
+
+  <!-- OPTION A -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="display:flex;height:340px;background:#F7F4EE;border-radius:6px;overflow:hidden;font-family:system-ui,sans-serif;">
+        <!-- sidebar -->
+        <div style="width:80px;background:#1a1a1a;flex-shrink:0;padding:12px 8px;display:flex;flex-direction:column;gap:6px;">
+          <div style="height:16px;background:#fff;border-radius:3px;opacity:0.15;margin-bottom:8px;"></div>
+          <div style="height:28px;background:#fff;border-radius:5px;opacity:0.2;display:flex;align-items:center;padding:0 8px;">
+            <div style="width:10px;height:10px;border-radius:2px;background:#fff;opacity:0.6;margin-right:5px;"></div>
+            <div style="height:6px;background:#fff;opacity:0.5;border-radius:2px;flex:1;"></div>
+          </div>
+          <div style="height:28px;background:#fff;border-radius:5px;opacity:0.12;display:flex;align-items:center;padding:0 8px;">
+            <div style="width:10px;height:10px;border-radius:2px;background:#fff;opacity:0.4;margin-right:5px;"></div>
+            <div style="height:6px;background:#fff;opacity:0.35;border-radius:2px;flex:1;"></div>
+          </div>
+          <div style="height:28px;background:#fff;border-radius:5px;opacity:0.12;display:flex;align-items:center;padding:0 8px;">
+            <div style="width:10px;height:10px;border-radius:2px;background:#fff;opacity:0.4;margin-right:5px;"></div>
+            <div style="height:6px;background:#fff;opacity:0.35;border-radius:2px;flex:1;"></div>
+          </div>
+          <div style="margin-top:8px;height:1px;background:#fff;opacity:0.08;"></div>
+          <div style="height:5px;background:#fff;opacity:0.2;border-radius:2px;width:60%;margin:4px auto 0;"></div>
+          <div style="display:flex;flex-direction:column;gap:3px;margin-top:2px;">
+            <div style="height:22px;border-radius:4px;background:#fff;opacity:0.08;padding:0 6px;display:flex;align-items:center;"><div style="height:4px;background:#fff;opacity:0.4;border-radius:2px;flex:1;"></div></div>
+            <div style="height:22px;border-radius:4px;background:#fff;opacity:0.08;padding:0 6px;display:flex;align-items:center;"><div style="height:4px;background:#fff;opacity:0.4;border-radius:2px;flex:1;"></div></div>
+            <div style="height:22px;border-radius:4px;background:#fff;opacity:0.08;padding:0 6px;display:flex;align-items:center;"><div style="height:4px;background:#fff;opacity:0.4;border-radius:2px;flex:1;"></div></div>
+          </div>
+        </div>
+        <!-- content -->
+        <div style="flex:1;padding:16px 14px;overflow:hidden;display:flex;flex-direction:column;gap:10px;">
+          <div style="font-size:12px;font-weight:700;color:#0F0F0F;letter-spacing:-0.01em;">Welcome back, Fonz</div>
+          <!-- active week hero -->
+          <div style="background:#0F0F0F;border-radius:8px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;">
+            <div>
+              <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;">
+                <div style="width:5px;height:5px;border-radius:50%;background:#E54D2E;"></div>
+                <span style="font-size:8px;font-weight:700;color:#E54D2E;letter-spacing:0.05em;text-transform:uppercase;">Live now</span>
+              </div>
+              <div style="font-size:10px;font-weight:700;color:#fff;">Network+ Certification</div>
+              <div style="font-size:8px;color:#999;margin-top:1px;">Week 4 · Subnetting &amp; IP Addressing</div>
+            </div>
+            <div style="background:#E54D2E;border-radius:5px;padding:4px 8px;font-size:7px;font-weight:700;color:#fff;white-space:nowrap;">Open week →</div>
+          </div>
+          <!-- program list -->
+          <div style="font-size:7px;font-weight:600;color:#999;letter-spacing:0.1em;text-transform:uppercase;margin-top:2px;">All programs</div>
+          <div style="display:flex;flex-direction:column;gap:0;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid #e8e5e0;">
+              <span style="font-size:8.5px;font-weight:500;color:#1a1a1a;">AI Digital Natives</span>
+              <div style="display:flex;align-items:center;gap:6px;"><span style="font-size:7px;color:#999;">Wk 3/8</span><span style="font-size:7px;color:#E54D2E;font-weight:600;">→</span></div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid #e8e5e0;">
+              <span style="font-size:8.5px;font-weight:500;color:#1a1a1a;">Mass Wraparound</span>
+              <div style="display:flex;align-items:center;gap:6px;"><span style="font-size:7px;color:#999;">Wk 1/6</span><span style="font-size:7px;color:#E54D2E;font-weight:600;">→</span></div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid #e8e5e0;">
+              <span style="font-size:8.5px;font-weight:500;color:#aaa;">Game Dev Bootcamp</span>
+              <span style="font-size:7px;color:#ccc;">Upcoming</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid #e8e5e0;">
+              <span style="font-size:8.5px;font-weight:500;color:#aaa;">AI Skills</span>
+              <span style="font-size:7px;color:#ccc;">Upcoming</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;">
+              <span style="font-size:8.5px;font-weight:500;color:#aaa;">+ 3 more programs</span>
+              <span style="font-size:7px;color:#ccc;">Upcoming</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Status board</h3>
+      <p>Active week gets a hero treatment. Everything else is a plain list — name, week, arrow. Clean, fast to scan. No boxes.</p>
+    </div>
+  </div>
+
+  <!-- OPTION B -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="display:flex;height:340px;background:#F7F4EE;border-radius:6px;overflow:hidden;font-family:system-ui,sans-serif;">
+        <!-- sidebar -->
+        <div style="width:80px;background:#1a1a1a;flex-shrink:0;padding:12px 8px;display:flex;flex-direction:column;gap:6px;">
+          <div style="height:16px;background:#fff;border-radius:3px;opacity:0.15;margin-bottom:8px;"></div>
+          <div style="height:28px;background:#fff;border-radius:5px;opacity:0.2;display:flex;align-items:center;padding:0 8px;"><div style="width:10px;height:10px;border-radius:2px;background:#fff;opacity:0.6;margin-right:5px;"></div><div style="height:6px;background:#fff;opacity:0.5;border-radius:2px;flex:1;"></div></div>
+          <div style="height:28px;background:#fff;border-radius:5px;opacity:0.12;display:flex;align-items:center;padding:0 8px;"><div style="width:10px;height:10px;border-radius:2px;background:#fff;opacity:0.4;margin-right:5px;"></div><div style="height:6px;background:#fff;opacity:0.35;border-radius:2px;flex:1;"></div></div>
+        </div>
+        <!-- content -->
+        <div style="flex:1;padding:14px;overflow:hidden;display:flex;flex-direction:column;gap:10px;">
+          <div style="font-size:12px;font-weight:700;color:#0F0F0F;">Programs</div>
+          <!-- tab strip -->
+          <div style="display:flex;gap:0;border-bottom:2px solid #e8e5e0;overflow:hidden;">
+            <div style="padding:5px 8px;font-size:7.5px;font-weight:700;color:#0F0F0F;border-bottom:2px solid #0F0F0F;margin-bottom:-2px;white-space:nowrap;">Network+</div>
+            <div style="padding:5px 8px;font-size:7.5px;color:#999;white-space:nowrap;">AI Digital</div>
+            <div style="padding:5px 8px;font-size:7.5px;color:#999;white-space:nowrap;">Mass</div>
+            <div style="padding:5px 8px;font-size:7.5px;color:#999;white-space:nowrap;">Game Dev</div>
+            <div style="padding:5px 8px;font-size:7.5px;color:#999;white-space:nowrap;">+4 ▾</div>
+          </div>
+          <!-- active tab content -->
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="font-size:9px;font-weight:600;color:#1a1a1a;">Network+ Certification</div>
+            <div style="display:flex;align-items:center;gap:4px;background:#E54D2E;border-radius:20px;padding:2px 6px;">
+              <div style="width:4px;height:4px;border-radius:50%;background:#fff;"></div>
+              <span style="font-size:6.5px;font-weight:700;color:#fff;">Week 4/8</span>
+            </div>
+          </div>
+          <div style="font-size:7px;color:#999;">8-week course · Instructor Name</div>
+          <!-- week grid -->
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:2px;">
+            <div style="border:1px solid #ddd;border-radius:6px;background:#fff;padding:5px 3px;text-align:center;"><div style="font-size:12px;opacity:0.4;">🖥</div><div style="font-size:6px;color:#666;margin-top:2px;">Intro</div><div style="font-size:6px;color:#aaa;">✓</div></div>
+            <div style="border:1px solid #ddd;border-radius:6px;background:#fff;padding:5px 3px;text-align:center;"><div style="font-size:12px;opacity:0.4;">🔌</div><div style="font-size:6px;color:#666;margin-top:2px;">Hardware</div><div style="font-size:6px;color:#aaa;">✓</div></div>
+            <div style="border:1px solid #ddd;border-radius:6px;background:#fff;padding:5px 3px;text-align:center;"><div style="font-size:12px;opacity:0.4;">📡</div><div style="font-size:6px;color:#666;margin-top:2px;">Networking</div><div style="font-size:6px;color:#aaa;">✓</div></div>
+            <div style="border:1.5px solid #0F0F0F;border-radius:6px;background:#fff;padding:5px 3px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,0.08);"><div style="font-size:12px;">🌐</div><div style="font-size:6px;color:#0F0F0F;font-weight:600;margin-top:2px;">Subnets</div><div style="font-size:5.5px;color:#E54D2E;font-weight:700;">NOW</div></div>
+            <div style="border:1px solid #eee;border-radius:6px;background:#f7f7f7;padding:5px 3px;text-align:center;"><div style="font-size:12px;opacity:0.2;">🔒</div><div style="font-size:6px;color:#ccc;margin-top:2px;">Security</div><div style="font-size:6px;color:#ddd;">5</div></div>
+            <div style="border:1px solid #eee;border-radius:6px;background:#f7f7f7;padding:5px 3px;text-align:center;"><div style="font-size:12px;opacity:0.2;">☁️</div><div style="font-size:6px;color:#ccc;margin-top:2px;">Cloud</div><div style="font-size:6px;color:#ddd;">6</div></div>
+            <div style="border:1px solid #eee;border-radius:6px;background:#f7f7f7;padding:5px 3px;text-align:center;"><div style="font-size:12px;opacity:0.2;">🛠</div><div style="font-size:6px;color:#ccc;margin-top:2px;">Troubleshoot</div><div style="font-size:6px;color:#ddd;">7</div></div>
+            <div style="border:1px solid #eee;border-radius:6px;background:#f7f7f7;padding:5px 3px;text-align:center;"><div style="font-size:12px;opacity:0.2;">🏆</div><div style="font-size:6px;color:#ccc;margin-top:2px;">Exam Prep</div><div style="font-size:6px;color:#ddd;">8</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Tab strip</h3>
+      <p>Programs become tabs. You see one track at a time — full week grid on screen, nothing buried. Overflow tabs collapse into a dropdown.</p>
+    </div>
+  </div>
+
+  <!-- OPTION C -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="display:flex;height:340px;background:#F7F4EE;border-radius:6px;overflow:hidden;font-family:system-ui,sans-serif;">
+        <!-- sidebar -->
+        <div style="width:80px;background:#1a1a1a;flex-shrink:0;padding:12px 8px;display:flex;flex-direction:column;gap:6px;">
+          <div style="height:16px;background:#fff;border-radius:3px;opacity:0.15;margin-bottom:8px;"></div>
+          <div style="height:28px;background:#fff;border-radius:5px;opacity:0.2;display:flex;align-items:center;padding:0 8px;"><div style="width:10px;height:10px;border-radius:2px;background:#fff;opacity:0.6;margin-right:5px;"></div><div style="height:6px;background:#fff;opacity:0.5;border-radius:2px;flex:1;"></div></div>
+          <div style="height:28px;background:#fff;border-radius:5px;opacity:0.12;display:flex;align-items:center;padding:0 8px;"><div style="width:10px;height:10px;border-radius:2px;background:#fff;opacity:0.4;margin-right:5px;"></div><div style="height:6px;background:#fff;opacity:0.35;border-radius:2px;flex:1;"></div></div>
+          <div style="margin-top:8px;height:1px;background:#fff;opacity:0.08;"></div>
+          <div style="height:5px;background:#fff;opacity:0.2;border-radius:2px;width:60%;margin:4px auto 0;"></div>
+          <div style="display:flex;flex-direction:column;gap:3px;margin-top:2px;">
+            <div style="height:22px;border-radius:4px;background:#fff;opacity:0.08;"></div>
+            <div style="height:22px;border-radius:4px;background:#fff;opacity:0.08;"></div>
+            <div style="height:22px;border-radius:4px;background:#fff;opacity:0.08;"></div>
+            <div style="height:22px;border-radius:4px;background:#fff;opacity:0.08;"></div>
+            <div style="height:22px;border-radius:4px;background:#fff;opacity:0.08;"></div>
+          </div>
+        </div>
+        <!-- content: two columns -->
+        <div style="flex:1;padding:14px;overflow:hidden;display:flex;gap:10px;">
+          <!-- left: active programs -->
+          <div style="flex:1;display:flex;flex-direction:column;gap:8px;min-width:0;">
+            <div style="font-size:7px;font-weight:600;color:#999;letter-spacing:0.1em;text-transform:uppercase;">Active</div>
+            <!-- active program card -->
+            <div style="border:1.5px solid #0F0F0F;border-radius:8px;background:#fff;padding:8px 10px;">
+              <div style="display:flex;align-items:center;gap:4px;margin-bottom:3px;">
+                <div style="width:4px;height:4px;border-radius:50%;background:#E54D2E;"></div>
+                <span style="font-size:7px;font-weight:700;color:#E54D2E;letter-spacing:0.04em;text-transform:uppercase;">Week 4 of 8</span>
+              </div>
+              <div style="font-size:9px;font-weight:700;color:#0F0F0F;">Network+ Certification</div>
+              <div style="font-size:7px;color:#999;margin-top:1px;margin-bottom:5px;">Subnetting &amp; IP Addressing</div>
+              <div style="background:#0F0F0F;border-radius:4px;padding:3px 7px;display:inline-block;font-size:7px;font-weight:700;color:#fff;">Go to session →</div>
+            </div>
+            <div style="border:1px solid #e8e5e0;border-radius:8px;background:#fff;padding:8px 10px;">
+              <div style="display:flex;align-items:center;gap:4px;margin-bottom:3px;">
+                <div style="width:4px;height:4px;border-radius:50%;background:#E54D2E;"></div>
+                <span style="font-size:7px;font-weight:700;color:#E54D2E;letter-spacing:0.04em;text-transform:uppercase;">Week 3 of 8</span>
+              </div>
+              <div style="font-size:9px;font-weight:700;color:#0F0F0F;">AI Digital Natives</div>
+              <div style="font-size:7px;color:#999;margin-top:1px;margin-bottom:5px;">Prompt Engineering</div>
+              <div style="color:#999;font-size:7px;font-weight:600;">Go to session →</div>
+            </div>
+          </div>
+          <!-- right: upcoming -->
+          <div style="width:90px;display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+            <div style="font-size:7px;font-weight:600;color:#999;letter-spacing:0.1em;text-transform:uppercase;">Upcoming</div>
+            <div style="border:1px solid #e8e5e0;border-radius:6px;background:#fff;padding:6px 8px;">
+              <div style="font-size:8px;font-weight:600;color:#aaa;">Mass Wraparound</div>
+              <div style="font-size:6.5px;color:#ccc;margin-top:1px;">Jun 10</div>
+            </div>
+            <div style="border:1px solid #e8e5e0;border-radius:6px;background:#fff;padding:6px 8px;">
+              <div style="font-size:8px;font-weight:600;color:#aaa;">Game Dev</div>
+              <div style="font-size:6.5px;color:#ccc;margin-top:1px;">Jun 17</div>
+            </div>
+            <div style="border:1px solid #e8e5e0;border-radius:6px;background:#fff;padding:6px 8px;">
+              <div style="font-size:8px;font-weight:600;color:#aaa;">AI Skills</div>
+              <div style="font-size:6.5px;color:#ccc;margin-top:1px;">Jun 24</div>
+            </div>
+            <div style="border:1px solid #e8e5e0;border-radius:6px;background:#fff;padding:6px 8px;">
+              <div style="font-size:8px;font-weight:600;color:#aaa;">+3 more</div>
+              <div style="font-size:6.5px;color:#ccc;margin-top:1px;"> </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Active / Upcoming split</h3>
+      <p>Two columns: active programs get a card with a direct CTA on the left; upcoming programs are a compact list on the right. Nothing buried, nothing overwhelming.</p>
+    </div>
+  </div>
+
+</div>

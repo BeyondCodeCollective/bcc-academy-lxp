@@ -9,6 +9,44 @@ const resend = process.env.RESEND_API_KEY
 const FROM_ADDRESS =
   process.env.RESEND_FROM_ADDRESS ?? "BCC Academy <noreply@bccacademy.io>";
 
+/** Confirmation email for the public-survey withdrawal flow.
+ *  The action that triggers this always returns success regardless of
+ *  whether the address has any data on file, so this email also doubles
+ *  as the only enumeration signal — keep the wording neutral. */
+export async function sendWithdrawConfirmEmail(params: {
+  to: string;
+  confirmUrl: string;
+}): Promise<void> {
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY not set — skipping withdraw confirmation email");
+    return;
+  }
+  const { to, confirmUrl } = params;
+  await resend.emails.send({
+    from: FROM_ADDRESS,
+    to,
+    subject: "Confirm survey response deletion",
+    html: `
+      <div style="font-family:-apple-system,system-ui,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#1a1a1a">
+        <p style="font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:#E54D2E;margin:0 0 12px">Beyond Code Collective</p>
+        <h1 style="font-size:22px;font-weight:700;margin:0 0 12px">Confirm deletion</h1>
+        <p style="font-size:14px;line-height:1.55;color:#374151;margin:0 0 16px">
+          Someone requested to remove every public survey response tied to this email
+          address. If that was you, click the button below within the next hour to
+          complete the deletion. Otherwise, ignore this email — nothing will change.
+        </p>
+        <p style="margin:24px 0">
+          <a href="${confirmUrl}" style="display:inline-block;padding:12px 20px;background:#1a1a1a;color:#fff;text-decoration:none;border-radius:8px;font-weight:600;font-size:14px">Delete my responses</a>
+        </p>
+        <p style="font-size:12px;color:#6b7280;margin:24px 0 0">
+          This link expires in 1 hour. Need help? Reply to
+          <a href="mailto:privacy@bccacademy.io" style="color:#1a1a1a">privacy@bccacademy.io</a>.
+        </p>
+      </div>
+    `,
+  });
+}
+
 type WelcomeEmailParams = {
   to: string;
   firstName: string;

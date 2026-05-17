@@ -1,7 +1,14 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
+  /* ─── Surface system ──────────────────────────────────────────────────
+     One source of truth for "what color is the page / card / subtle card."
+     Body default is warm cream (paper), per .impeccable.md — never pure
+     white. White is reserved for elevated cards that need to pop on cream.
+     ─────────────────────────────────────────────────────────────────── */
+  --background: #F7F4EE;          /* page body — warm cream (was: #ffffff) */
+  --surface-elevated: #ffffff;    /* cards that pop on cream */
+  --surface-soft: #FBFAF6;        /* subtle near-cream surfaces */
   --foreground: #111111;
   --primary: #2E75B6;
   --primary-hover: #245d94;
@@ -13,7 +20,8 @@
 
   /* Editorial palette — used by the dashboard surfaces. Matches the
      Survey Insights design language so the in-app shell reads as one
-     coherent product instead of a stack of differently-toned screens. */
+     coherent product instead of a stack of differently-toned screens.
+     --paper aliases --background to keep the existing utility class. */
   --paper: #F7F4EE;
   --paper-tint: #EFEAE0;
   --paper-tint-soft: #F2EDE0;
@@ -34,6 +42,8 @@
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-surface-soft: var(--surface-soft);
   --color-foreground: var(--foreground);
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
