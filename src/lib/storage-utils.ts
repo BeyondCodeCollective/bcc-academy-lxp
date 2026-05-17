@@ -47,3 +47,27 @@ export function getYouTubeEmbedUrl(url: string): string | null {
   }
   return null;
 }
+
+/** Returns a YouTube thumbnail URL for any supported YouTube URL format, or
+ *  null if the URL isn't recognized. `hqdefault` always exists; `maxresdefault`
+ *  may 404 on older or unavailable videos, so we default to hqdefault. */
+export function getYouTubeThumbnailUrl(url: string): string | null {
+  try {
+    const u = new URL(url);
+    let videoId: string | null = null;
+    if (u.hostname === "youtu.be") {
+      videoId = u.pathname.slice(1);
+    } else if (u.hostname === "www.youtube.com" || u.hostname === "youtube.com") {
+      videoId = u.searchParams.get("v");
+      if (!videoId) {
+        const parts = u.pathname.split("/").filter(Boolean);
+        if ((parts[0] === "embed" || parts[0] === "live") && parts[1]) {
+          videoId = parts[1];
+        }
+      }
+    }
+    return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null;
+  } catch {
+    return null;
+  }
+}

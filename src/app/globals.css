@@ -59,6 +59,12 @@ body {
   color: var(--foreground);
 }
 
+/* Heading font — Bricolage Grotesque. Scoped to dashboard/in-app pages;
+   the marketing-scope below overrides headings to its own display font. */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;

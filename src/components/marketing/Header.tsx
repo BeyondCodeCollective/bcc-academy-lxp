@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { List, X, Lightning, SignIn } from "@phosphor-icons/react";
+import { List, X, Lightning } from "@phosphor-icons/react";
 import Link from "next/link";
 
 const navLinks = [
@@ -76,12 +76,15 @@ export default function Header({ solid = false }: HeaderProps) {
               {link.label}
             </a>
           ))}
+          {/* Sign-in is for returning students AND internal staff (L&L
+             access); intentionally quieter than the primary "Take the Quiz"
+             funnel CTA. New prospects come in via per-track invite links,
+             not the apex sign-in. */}
           <Link
             href="/login"
-            className="inline-flex items-center gap-1.5 px-4 py-2 border border-white/30 text-sm font-medium text-white hover:border-white hover:bg-white/10 transition-all duration-300"
+            className="text-sm font-medium text-white/60 hover:text-white transition-colors"
           >
-            <SignIn size={16} weight="bold" />
-            Sign In
+            Sign in →
           </Link>
           <a
             href="/quiz"
@@ -125,10 +128,9 @@ export default function Header({ solid = false }: HeaderProps) {
                 <Link
                   href="/login"
                   onClick={() => setMobileOpen(false)}
-                  className="flex items-center gap-2 text-lg text-white/70 hover:text-white transition-colors py-2"
+                  className="block text-sm text-white/50 hover:text-white transition-colors py-2"
                 >
-                  <SignIn size={18} weight="bold" />
-                  Sign In
+                  Sign in →
                 </Link>
               </div>
               <a

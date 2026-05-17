@@ -59,6 +59,7 @@ export default async function AdminPage({
   let publicSurveyStats: PublicSurveyStatsRow[] = [];
   let lunchLearnRecordings: LunchLearnRow[] = [];
   let insightsData: InsightsData | null = null;
+  let alumniEnrollments: { track_slug: string; email: string; source: string }[] = [];
   const surveyStats: Record<string, SurveyStatsRow[]> = {};
   const surveyList = [
     ...Object.values(PLATFORM_AUTH_SURVEYS),
@@ -126,6 +127,7 @@ export default async function AdminPage({
         surveyResponsesRes,
         publicStatsRes,
         engagementRes,
+        alumniRes,
       ] = await Promise.all([
       Promise.all([
         svc
@@ -177,6 +179,14 @@ export default async function AdminPage({
             svc.from("tutor_messages").select("student_id").eq("program_id", programId!),
           ])
         : Promise.resolve(null),
+      // Historical alumni (imported from Circle and similar). Only fetched
+      // on the program overview tab where the metric and chart use it.
+      effectiveTab === "program"
+        ? svc
+            .from("alumni_enrollments")
+            .select("track_slug, email, source")
+            .eq("program_id", programId!)
+        : Promise.resolve({ data: null as { track_slug: string; email: string; source: string }[] | null }),
     ]);
 
     const [
@@ -203,6 +213,8 @@ export default async function AdminPage({
       }
     }
     publicSurveyStats = publicStatsRes;
+
+    alumniEnrollments = (alumniRes.data ?? []) as { track_slug: string; email: string; source: string }[];
 
     // Compute engagement scores only when the active tab needs them.
     if (engagementRes) {
@@ -292,6 +304,7 @@ export default async function AdminPage({
     slug: t.slug,
     name: t.name,
     shortName: t.shortName,
+    description: t.description,
     totalWeeks: t.totalWeeks,
     sessionsPerWeek: t.sessionsPerWeek,
     instructor: t.instructor,
@@ -299,6 +312,9 @@ export default async function AdminPage({
     startDate: t.startDate,
     lastSessionDayOffset: t.lastSessionDayOffset,
     weekSummaries: t.weekSummaries,
+    defaultReflectionPrompts: t.defaultReflectionPrompts,
+    submissionsEnabled: t.submissionsEnabled,
+    reflectionsEnabled: t.reflectionsEnabled,
     weeks: t.weeks.map((w) => ({
       week: w.week,
       title: w.title,
@@ -329,6 +345,7 @@ export default async function AdminPage({
         initialTab={initialTab}
         lunchLearnRecordings={lunchLearnRecordings}
         insightsData={insightsData}
+        alumniEnrollments={alumniEnrollments}
       />
     </div>
   );

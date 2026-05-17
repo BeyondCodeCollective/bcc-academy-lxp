@@ -319,6 +319,97 @@ export async function saveSessionContent(
   return { success: true };
 }
 
+// ─── Track Overview (track_overrides) ───────────────────────────────────────
+//
+// Non-engineer admins edit the track shell (name, instructor, description,
+// dates, weekSummaries, etc.) via this action. The DB row overrides the TS
+// config field-by-field; null = "use TS default". See merge logic in
+// src/lib/programs/server.ts:mergeTrack and the migration in
+// supabase/migrations/track_overrides.sql.
+
+export type TrackOverviewPatch = {
+  name?: string | null;
+  short_name?: string | null;
+  description?: string | null;
+  instructor?: string | null;
+  start_date?: string | null;
+  total_weeks?: number | null;
+  sessions_per_week?: number | null;
+  last_session_day_offset?: number | null;
+  session_times?: string[] | null;
+  week_summaries?: { week: number; topic: string; icon: string }[] | null;
+  default_reflection_prompts?: string[] | null;
+  submissions_enabled?: boolean | null;
+  reflections_enabled?: boolean | null;
+};
+
+export async function saveTrackOverview(
+  trackSlug: string,
+  patch: TrackOverviewPatch,
+) {
+  const { svc, userId } = await requireAdmin();
+
+  const { getProgram } = await import("@/lib/programs/server");
+  const program = await getProgram();
+  const { data: programRow } = await svc
+    .from("programs")
+    .select("id")
+    .eq("slug", program.slug)
+    .single();
+  if (!programRow?.id) throw new Error(`Program not found: ${program.slug}`);
+
+  // Empty-string text fields become null (= "use TS default") so admins can
+  // clear an override without nuking their row. Numeric/array fields pass
+  // through unchanged; the caller is expected to send null when clearing.
+  const blankToNull = <V>(v: V | undefined): V | null | undefined => {
+    if (v === undefined) return undefined;
+    if (typeof v === "string" && v.trim() === "") return null;
+    return v;
+  };
+
+  const row: Record<string, unknown> = {
+    program_id: programRow.id,
+    track_slug: trackSlug,
+    updated_at: new Date().toISOString(),
+    updated_by: userId,
+  };
+  if ("name" in patch) row.name = blankToNull(patch.name);
+  if ("short_name" in patch) row.short_name = blankToNull(patch.short_name);
+  if ("description" in patch) row.description = blankToNull(patch.description);
+  if ("instructor" in patch) row.instructor = blankToNull(patch.instructor);
+  if ("start_date" in patch) row.start_date = blankToNull(patch.start_date);
+  if ("total_weeks" in patch) row.total_weeks = patch.total_weeks;
+  if ("sessions_per_week" in patch) row.sessions_per_week = patch.sessions_per_week;
+  if ("last_session_day_offset" in patch)
+    row.last_session_day_offset = patch.last_session_day_offset;
+  if ("session_times" in patch) row.session_times = patch.session_times;
+  if ("week_summaries" in patch) row.week_summaries = patch.week_summaries;
+  if ("default_reflection_prompts" in patch)
+    row.default_reflection_prompts = patch.default_reflection_prompts;
+  if ("submissions_enabled" in patch)
+    row.submissions_enabled = patch.submissions_enabled;
+  if ("reflections_enabled" in patch)
+    row.reflections_enabled = patch.reflections_enabled;
+
+  const { error } = await svc.from("track_overrides").upsert(row, {
+    onConflict: "program_id,track_slug",
+  });
+  if (error) {
+    console.error(`[saveTrackOverview] ${trackSlug}:`, error.message);
+    throw new Error(error.message);
+  }
+
+  // Bust every page that renders track metadata so the edit propagates
+  // immediately — dashboard grid, track overview, week pages, admin.
+  revalidatePath("/dashboard", "page");
+  revalidatePath(`/dashboard/track/${trackSlug}`, "page");
+  revalidatePath(`/dashboard/track/${trackSlug}/[week]`, "page");
+  revalidatePath("/dashboard/admin", "page");
+  revalidatePath(`/join/${program.slug}`, "page");
+
+  return { success: true };
+}
+
 /**
  * Read session content for a single week. Uses service client so it works in
  * server components regardless of the viewer's auth state.
@@ -327,21 +418,14 @@ export async function getSessionContent(
   track: string,
   weekNumber: number
 ): Promise<SessionContentRow | null> {
-  const { getProgram } = await import("@/lib/programs/server");
-  const program = await getProgram();
+  const { getProgramId } = await import("@/lib/programs/server");
+  const programId = await getProgramId();
   const svc = createServiceClient();
-
-  // Look up program ID to scope the query
-  const { data: programRow } = await svc
-    .from("programs")
-    .select("id")
-    .eq("slug", program.slug)
-    .single();
 
   const { data, error } = await svc
     .from("session_content")
     .select("*")
-    .eq("program_id", programRow?.id ?? "")
+    .eq("program_id", programId)
     .eq("track", track)
     .eq("week_number", weekNumber)
     .maybeSingle();
@@ -360,20 +444,14 @@ export async function getSessionContent(
 export async function getAllSessionContent(
   track: string
 ): Promise<SessionContentRow[]> {
-  const { getProgram } = await import("@/lib/programs/server");
-  const program = await getProgram();
+  const { getProgramId } = await import("@/lib/programs/server");
+  const programId = await getProgramId();
   const svc = createServiceClient();
-
-  const { data: programRow } = await svc
-    .from("programs")
-    .select("id")
-    .eq("slug", program.slug)
-    .single();
 
   const { data, error } = await svc
     .from("session_content")
     .select("*")
-    .eq("program_id", programRow?.id ?? "")
+    .eq("program_id", programId)
     .eq("track", track)
     .order("week_number");
 

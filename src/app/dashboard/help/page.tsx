@@ -6,6 +6,7 @@ import { canAccessAdminPanel } from "@/lib/roles";
 import { getEnrolledTracks } from "@/lib/enrollment";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
+import { getPreviewTrackSlug, LUNCH_LEARN_PREVIEW_SLUG } from "@/lib/auth/preview-mode";
 import type { TrackConfig } from "@/lib/programs/types";
 import {
   Envelope,
@@ -20,11 +21,24 @@ export default async function HelpPage() {
   const currentUser = await resolveCurrentUser(cookieStore);
   if (!currentUser) redirect("/");
 
-  const isAdmin = canAccessAdminPanel(currentUser.userRole);
+  const actualIsAdmin = canAccessAdminPanel(currentUser.userRole);
+  // Super-admins previewing as a specific track/L&L should see that
+  // context's help, not the firehose. For real students, enrollment scopes it.
+  const previewSlug = await getPreviewTrackSlug(currentUser.userRole);
+  const previewingLunchLearn = previewSlug === LUNCH_LEARN_PREVIEW_SLUG;
+  const previewingTrack = previewSlug && !previewingLunchLearn
+    ? program.tracks.find((t) => t.slug === previewSlug)
+    : null;
+  const isAdmin = actualIsAdmin && !previewSlug;
 
-  // Resolve which tracks the student is enrolled in.
-  let visibleTracks: TrackConfig[] = program.tracks;
-  if (!isAdmin && !currentUser.isDemo && isSupabaseConfigured()) {
+  let visibleTracks: TrackConfig[];
+  if (previewingLunchLearn) {
+    // L&L context has no tracks — scope out everything track-specific.
+    visibleTracks = [];
+  } else if (previewingTrack) {
+    visibleTracks = [previewingTrack];
+  } else if (!isAdmin && !currentUser.isDemo && isSupabaseConfigured()) {
+    visibleTracks = program.tracks;
     const ctx = await getSessionContext();
     if (ctx) {
       const supabase = await createClient();
@@ -33,6 +47,8 @@ export default async function HelpPage() {
         visibleTracks = enrolled;
       }
     }
+  } else {
+    visibleTracks = program.tracks;
   }
 
   const weeklyTracks = visibleTracks.filter((t) => t.type === "weekly");
