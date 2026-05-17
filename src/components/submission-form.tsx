@@ -54,8 +54,14 @@ export function SubmissionForm({
 
     try {
       const supabase = createBrowserClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("You must be signed in to upload.");
+
+      // Path includes the student's user id so the bucket RLS policy
+      // (storage_bucket_lockdown migration) restricts insert to your own
+      // folder — no cross-student overwrites, no arbitrary-path writes.
       const safeName = file.name.replace(/[^a-zA-Z0-9._\-]/g, "_");
-      const storagePath = `submissions/${trackSlug}/${weekNumber}/${Date.now()}_${safeName}`;
+      const storagePath = `submissions/${trackSlug}/${weekNumber}/${user.id}/${Date.now()}_${safeName}`;
 
       const { error: uploadError } = await supabase.storage
         .from("session-files")

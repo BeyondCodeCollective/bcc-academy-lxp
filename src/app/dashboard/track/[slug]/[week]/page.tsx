@@ -12,6 +12,7 @@ import { SubmissionForm } from "@/components/submission-form";
 import { RecordingCard } from "@/components/recording-card";
 import { ReflectionForm } from "@/components/reflection-form";
 import { IntakeForm } from "@/components/intake-form";
+import { WeekKeyboardNav } from "@/components/week-keyboard-nav";
 import { getSurveyStatus } from "@/app/dashboard/actions";
 import type { WeekConfig } from "@/lib/programs/types";
 import { resolveSessionContent } from "@/lib/session-content";
@@ -104,6 +105,10 @@ export default async function TrackWeekPage({
 
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-5xl px-4 sm:px-5 py-8">
+      <WeekKeyboardNav
+        prevHref={prevWeek ? `/dashboard/track/${trackSlug}/${prevWeek}` : null}
+        nextHref={nextWeek ? `/dashboard/track/${trackSlug}/${nextWeek}` : null}
+      />
       {/* Top nav: back to track overview + prev/next week. The overview itself
          has a "Back to Dashboard" link, so the breadcrumb is Dashboard →
          {track} overview → Week N. */}
@@ -185,9 +190,10 @@ export default async function TrackWeekPage({
         </div>
       </div>
 
-      {/* Sessions card */}
-      <div className="mb-6 rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
-        <h2 className="mb-4 text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400">
+      {/* Sessions — typographic flow, no surrounding card. Join action is
+         the page's primary CTA and stays prominent without needing a frame. */}
+      <section className="mb-8 border-t border-rule pt-6">
+        <h2 className="mb-4 text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
           {sessionsLabel}
         </h2>
         <div className="space-y-4">
@@ -197,14 +203,14 @@ export default async function TrackWeekPage({
               className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-3.5"
             >
               <div className="flex items-center gap-3.5 flex-1 min-w-0">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-xs font-bold text-neutral-500">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-rule text-xs font-bold tabular-nums text-ink-soft">
                   {i + 1}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-neutral-900">
+                  <p className="text-sm font-semibold text-ink">
                     {weekContent.sessions.length > 1 ? `Session ${i + 1}: ` : ""}{session.title}
                   </p>
-                  <p className="text-xs text-neutral-400 mt-0.5">
+                  <p className="text-xs text-ink-faint mt-0.5">
                     {session.time}
                   </p>
                 </div>
@@ -235,30 +241,27 @@ export default async function TrackWeekPage({
             </div>
           ))}
         </div>
-      </div>
+      </section>
 
-      {/* Brief description */}
-      <p className="mb-6 text-sm text-neutral-500 leading-relaxed px-1">
+      {/* Brief description — leads the editorial flow that follows. */}
+      <p className="mb-8 text-base leading-relaxed text-ink-soft max-w-[65ch]">
         {displayDescription}
       </p>
 
-      {/* What You'll Cover */}
-      <div className="mb-6 rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
-        <div className="mb-3 flex items-center gap-2">
-          <BookOpen size={14} className="text-neutral-400" />
-          <h2 className="text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400">
-            What You&apos;ll Cover
-          </h2>
-        </div>
-        <ul className="space-y-1.5">
+      {/* What You'll Cover — divider + eyebrow + list, no card. */}
+      <section className="mb-8 border-t border-rule pt-6">
+        <h2 className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
+          What you&apos;ll cover
+        </h2>
+        <ul className="space-y-2">
           {displayObjectives.map((obj, i) => (
-            <li key={i} className="flex gap-2 text-sm text-neutral-600">
-              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-neutral-300" />
+            <li key={i} className="flex gap-2.5 text-sm text-ink-soft leading-relaxed">
+              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-ink-faint" />
               {obj}
             </li>
           ))}
         </ul>
-      </div>
+      </section>
 
       {/* Session Recordings — same poster-card UX as Lunch & Learn; click to play */}
       {weekContent.sessions.map((session, i) => {
@@ -290,14 +293,11 @@ export default async function TrackWeekPage({
 
       {/* Resources */}
       {resources.length > 0 && (
-        <div className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
-          <div className="mb-3 flex items-center gap-2">
-            <LinkIcon size={14} className="text-neutral-400" />
-            <h2 className="text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400">
-              Resources
-            </h2>
-          </div>
-          <ul className="space-y-2">
+        <section className="mb-8 border-t border-rule pt-6">
+          <h2 className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
+            Resources
+          </h2>
+          <ul className="space-y-1.5">
             {resources.map((r, i) => {
               const isFile = r.type === "file" || isStorageUrl(r.url);
               const isVid = isUploadedVideo(r);
@@ -308,61 +308,61 @@ export default async function TrackWeekPage({
                     target="_blank"
                     rel="noopener noreferrer"
                     download={isFile ? (r.name || true) : undefined}
-                    className="flex items-center gap-3 rounded-lg border border-neutral-100 bg-neutral-50 px-3 py-2.5 text-sm font-medium text-neutral-800 hover:border-neutral-300 hover:bg-white transition-colors group min-h-[44px]"
+                    className="flex items-center gap-3 rounded-lg border border-transparent bg-surface-soft px-3 py-2.5 text-sm font-medium text-ink hover:border-rule hover:bg-surface-elevated transition-colors group min-h-[44px]"
                   >
                     {isVid ? (
-                      <Video size={14} className="text-neutral-400 group-hover:text-neutral-600 shrink-0" />
+                      <Video size={14} className="text-ink-faint group-hover:text-ink-soft shrink-0" />
                     ) : isFile ? (
-                      <FileText size={14} className="text-neutral-400 group-hover:text-neutral-600 shrink-0" />
+                      <FileText size={14} className="text-ink-faint group-hover:text-ink-soft shrink-0" />
                     ) : (
-                      <LinkIcon size={14} className="text-neutral-400 group-hover:text-neutral-600 shrink-0" />
+                      <LinkIcon size={14} className="text-ink-faint group-hover:text-ink-soft shrink-0" />
                     )}
                     <span className="flex-1 truncate">{r.name || r.url}</span>
                     {isFile ? (
-                      <Download size={12} className="text-neutral-300 group-hover:text-neutral-500 shrink-0" />
+                      <Download size={12} className="text-ink-faint group-hover:text-ink-soft shrink-0" />
                     ) : (
-                      <ExternalLink size={12} className="text-neutral-300 group-hover:text-neutral-500 shrink-0" />
+                      <ExternalLink size={12} className="text-ink-faint group-hover:text-ink-soft shrink-0" />
                     )}
                   </a>
                 </li>
               );
             })}
           </ul>
-        </div>
+        </section>
       )}
 
-      {/* Completion checklist */}
+      {/* Completion checklist — inline, no card. */}
       {showChecklist && (
-        <div className="mt-6 rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
-          <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400">
-            Week Completion
-          </p>
+        <section className="mt-2 border-t border-rule pt-6">
+          <h2 className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
+            Week completion
+          </h2>
           <div className="space-y-2">
             <div className="flex items-center gap-2.5">
               <CheckCircle
                 size={16}
-                className={weekProgress?.videoWatched ? "text-green-500" : "text-neutral-200"}
+                className={weekProgress?.videoWatched ? "text-green-500" : "text-ink-faint/50"}
               />
-              <span className={`text-sm ${weekProgress?.videoWatched ? "text-neutral-900" : "text-neutral-400"}`}>
+              <span className={`text-sm ${weekProgress?.videoWatched ? "text-ink" : "text-ink-faint"}`}>
                 Watch the recording
               </span>
             </div>
             <div className="flex items-center gap-2.5">
               <CheckCircle
                 size={16}
-                className={weekProgress?.homeworkSubmitted ? "text-green-500" : "text-neutral-200"}
+                className={weekProgress?.homeworkSubmitted ? "text-green-500" : "text-ink-faint/50"}
               />
-              <span className={`text-sm ${weekProgress?.homeworkSubmitted ? "text-neutral-900" : "text-neutral-400"}`}>
+              <span className={`text-sm ${weekProgress?.homeworkSubmitted ? "text-ink" : "text-ink-faint"}`}>
                 Submit your homework
               </span>
             </div>
           </div>
           {studentCompleted && (
             <p className="mt-3 text-xs font-medium text-green-600">
-              You&apos;ve completed this week 🎉
+              You&apos;ve completed this week.
             </p>
           )}
-        </div>
+        </section>
       )}
 
       {/* Submissions & Reflections — only for current or past weeks. */}

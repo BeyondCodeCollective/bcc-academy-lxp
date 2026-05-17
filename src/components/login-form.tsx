@@ -102,7 +102,7 @@ export function LoginForm({ logo, programName, tagline, taglineColor, organizati
   }
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-[#fafafa] px-5 py-8">
+    <main className="flex min-h-dvh items-center justify-center bg-background px-5 py-8">
       {/* Subtle grid background */}
       <div
         className="pointer-events-none fixed inset-0 opacity-[0.4]"
@@ -205,7 +205,13 @@ export function LoginForm({ logo, programName, tagline, taglineColor, organizati
                   </div>
 
                   {error && (
-                    <p className="text-sm text-red-600">{error}</p>
+                    <p
+                      role="alert"
+                      aria-live="polite"
+                      className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+                    >
+                      {error}
+                    </p>
                   )}
 
                   <button
@@ -250,9 +256,9 @@ export function LoginForm({ logo, programName, tagline, taglineColor, organizati
           </div>
         </div>
 
-        <p className="mt-6 text-center text-xs text-neutral-400">
+        <p className="mt-6 text-center text-xs text-neutral-600">
           &copy; {new Date().getFullYear()} {organization} &middot;{" "}
-          <a href="/privacy" className="underline underline-offset-2 hover:text-neutral-600">Privacy Policy</a>
+          <a href="/privacy" className="underline underline-offset-2 hover:text-neutral-900">Privacy Policy</a>
         </p>
       </div>
     </main>

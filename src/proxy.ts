@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { authCookieDomain } from "@/lib/supabase/cookie-domain";
+import { gateCookieMatches } from "@/lib/gate-cookie";
 import {
   getProgramByDomain,
   getProgramBySlug,
@@ -34,7 +35,10 @@ export async function proxy(request: NextRequest) {
   if (sitePassword && MARKETING_HOSTS.has(host)) {
     const pathname = request.nextUrl.pathname;
     const isExempt = GATE_EXEMPT_PREFIXES.some((p) => pathname.startsWith(p));
-    const hasAccess = request.cookies.get(GATE_COOKIE)?.value === sitePassword;
+    const hasAccess = gateCookieMatches(
+      request.cookies.get(GATE_COOKIE)?.value,
+      sitePassword,
+    );
     if (!isExempt && !hasAccess) {
       const url = request.nextUrl.clone();
       url.pathname = "/gate";

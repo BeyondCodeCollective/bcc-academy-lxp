@@ -73,7 +73,7 @@ export default async function TrackOverviewPage({
       </div>
 
       <header className="mb-8">
-        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-400 mb-3">
+        <p className="text-xs font-medium uppercase tracking-[0.18em] text-neutral-400 mb-3">
           {track.shortName} · {track.totalWeeks}-week track
         </p>
         <h1 className="text-3xl font-bold text-neutral-900 tracking-tight leading-[1.1]">
@@ -103,7 +103,7 @@ export default async function TrackOverviewPage({
       </header>
 
       <section className="border-t border-neutral-200 pt-6">
-        <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400">
+        <p className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-neutral-400">
           Weeks
         </p>
         <ol className="divide-y divide-neutral-100">

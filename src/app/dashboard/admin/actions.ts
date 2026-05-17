@@ -17,13 +17,13 @@ async function requireCapability(capability: Capability) {
   const svc = createServiceClient();
   const { data: student } = await svc
     .from("students")
-    .select("role")
+    .select("role, program_id")
     .eq("id", user.id)
-    .single();
+    .single<{ role: string; program_id: string | null }>();
 
   const role = student?.role ?? "";
   if (!hasCapability(role, capability)) throw new Error("Not authorized");
-  return { svc, userId: user.id, role };
+  return { svc, userId: user.id, role, programId: student?.program_id ?? null };
 }
 
 // Shorthand aliases used by the existing call sites below.
@@ -62,7 +62,10 @@ export async function addStudentAction(data: {
   role: "student" | "instructor" | "admin";
   cohort_id: string | null;
 }) {
-  const { svc } = await requireManager();
+  const { svc, programId } = await requireManager();
+  if (!programId) {
+    throw new Error("Calling admin has no program — refusing to create student");
+  }
 
   // Create auth user (sends magic link invite)
   const { data: authUser, error: authError } = await svc.auth.admin.createUser({
@@ -73,7 +76,9 @@ export async function addStudentAction(data: {
   if (authError) throw new Error(authError.message);
   if (!authUser.user) throw new Error("Failed to create user");
 
-  // Insert student record
+  // Insert student record — pinned to the calling admin's program so
+  // program-scoped RLS (program_rls.sql) lets the new user read their
+  // data, AND so admins can't manufacture students outside their program.
   const { error: studentError } = await svc.from("students").insert({
     id: authUser.user.id,
     email: data.email,
@@ -81,6 +86,7 @@ export async function addStudentAction(data: {
     last_name: data.last_name,
     role: data.role,
     cohort_id: data.cohort_id || null,
+    program_id: programId,
   });
 
   if (studentError) throw new Error(studentError.message);

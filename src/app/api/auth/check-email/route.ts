@@ -2,8 +2,24 @@ import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getProgram } from "@/lib/programs/server";
 import { isPrivilegedEmail } from "@/lib/auth/admins";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function POST(req: Request) {
+  // Same enumeration concern as /api/auth/account-exists — when the program
+  // requires invite links the response leaks whether an email has a record.
+  const limit = rateLimit({
+    key: getClientIp(req),
+    scope: "check-email",
+    max: 10,
+    windowMs: 60_000,
+  });
+  if (!limit.ok) {
+    return NextResponse.json(
+      { allowed: false, error: "Too many requests" },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfter) } },
+    );
+  }
+
   const body = (await req.json().catch(() => null)) as
     | { email?: string; track?: string }
     | null;

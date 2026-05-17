@@ -276,7 +276,7 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
 
         {firstTrack && (
           <div className="rounded-xl border border-neutral-200 bg-white p-5">
-            <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400">
+            <p className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-neutral-400">
               What you&apos;ll cover
             </p>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5">
@@ -328,23 +328,14 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
       {announcements.map((a) => (
         <div
           key={a.id}
-          className="rounded-xl border border-blue-200 bg-blue-50 p-4 sm:p-5"
+          className="rounded-xl border-l-2 border-blue-500 bg-blue-50 px-4 py-3 sm:px-5 sm:py-4"
         >
-          <div className="flex items-start gap-3">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600">
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 110-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.962.584 1.892.985 2.783.247.55.06 1.21-.463 1.511l-.657.38c-.551.318-1.26.117-1.527-.461a20.845 20.845 0 01-1.44-4.282m3.102.069a18.03 18.03 0 01-.59-4.59c0-1.586.205-3.124.59-4.59m0 9.18a23.848 23.848 0 018.835 2.535M10.34 6.66a23.847 23.847 0 008.835-2.535m0 0A23.74 23.74 0 0018.795 3m.38 1.125a23.91 23.91 0 011.014 5.395m-1.014 8.855c-.118.38-.245.754-.38 1.125m.38-1.125a23.91 23.91 0 001.014-5.395m0-3.46c.495.413.811 1.035.811 1.73 0 .695-.316 1.317-.811 1.73m0-3.46a24.347 24.347 0 010 3.46" />
-              </svg>
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm text-blue-900">{a.message}</p>
-              {a.track_slug && (
-                <p className="mt-1 text-xs text-blue-600">
-                  {program.tracks.find((t) => t.slug === a.track_slug)?.shortName}
-                </p>
-              )}
-            </div>
-          </div>
+          <p className="text-xs font-medium uppercase tracking-[0.14em] text-blue-700 mb-1">
+            {a.track_slug
+              ? program.tracks.find((t) => t.slug === a.track_slug)?.shortName ?? "Announcement"
+              : "Announcement"}
+          </p>
+          <p className="text-sm text-blue-900 leading-relaxed">{a.message}</p>
         </div>
       ))}
 
@@ -353,25 +344,20 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
       ))}
 
       {!isAdmin && (
-        <div className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <p className="text-sm font-semibold text-neutral-900">
-                Your Progress
-              </p>
-              <p className="text-xs text-neutral-500">
-                Week {progressWeek} of {totalProgramWeeks}
-              </p>
-            </div>
-            <span className="text-2xl font-bold text-neutral-900">{pct}%</span>
+        <section aria-label="Program progress">
+          <div className="flex items-baseline justify-between mb-2">
+            <p className="text-sm font-semibold text-ink">
+              Week {progressWeek} of {totalProgramWeeks}
+            </p>
+            <span className="text-sm font-semibold tabular-nums text-ink-soft">{pct}%</span>
           </div>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-100">
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-rule">
             <div
-              className="h-full rounded-full bg-neutral-900 transition-all"
+              className="h-full rounded-full bg-ink transition-all"
               style={{ width: `${pct}%` }}
             />
           </div>
-        </div>
+        </section>
       )}
 
       {program.welcomeVideo && (
@@ -422,31 +408,20 @@ function SurveyCard({
   return (
     <Link
       href={`/dashboard/survey/${survey.id}`}
-      className="block rounded-xl border border-amber-200 bg-amber-50 p-4 sm:p-5 transition-colors hover:border-amber-300 hover:bg-amber-100/60"
+      className="group block rounded-xl border-l-2 border-amber-500 bg-amber-50 px-4 py-3 sm:px-5 sm:py-4 transition-colors hover:bg-amber-100/70"
     >
-      <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-lg">
-          <svg className="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15a2.25 2.25 0 012.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
-          </svg>
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold text-amber-900">
-              {survey.title}
-            </p>
-            <span className="inline-flex items-center rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
-              Required
-            </span>
-          </div>
-          <p className="mt-0.5 text-xs text-amber-700">
-            {survey.description}
-          </p>
-          <p className="mt-2 text-xs font-medium text-amber-800">
-            Take survey &rarr;
-          </p>
-        </div>
+      <div className="flex items-center justify-between gap-3 mb-1">
+        <p className="text-xs font-medium uppercase tracking-[0.14em] text-amber-700">
+          Required survey
+        </p>
+        <span className="text-xs font-medium text-amber-800 transition-transform group-hover:translate-x-0.5">
+          Take it &rarr;
+        </span>
       </div>
+      <p className="text-sm font-semibold text-amber-900">{survey.title}</p>
+      <p className="mt-0.5 text-xs text-amber-700 leading-relaxed">
+        {survey.description}
+      </p>
     </Link>
   );
 }
@@ -475,8 +450,7 @@ function SingleEventCard({ track }: { track: TrackConfig }) {
               Completed
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 rounded-full bg-[#E54D2E] px-2 py-0.5 text-[10px] font-semibold text-white shrink-0">
-              <span className="h-1 w-1 rounded-full bg-white/80 animate-pulse" />
+            <span className="inline-flex items-center rounded-full bg-[#E54D2E] px-2 py-0.5 text-[10px] font-semibold text-white shrink-0">
               Upcoming
             </span>
           )}

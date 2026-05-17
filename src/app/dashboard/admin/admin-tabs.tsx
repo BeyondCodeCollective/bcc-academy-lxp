@@ -864,36 +864,28 @@ export function AdminTabs({
         );
 
         return (
-        <div className="space-y-6">
+        <div className="space-y-8">
           <header>
-            <h1 className="text-3xl font-bold text-neutral-900 tracking-tight">Overview</h1>
-            <p className="mt-1 text-xs text-neutral-500">
-              {enrolledCount} student{enrolledCount === 1 ? "" : "s"} across{" "}
-              {tracks.length} program{tracks.length === 1 ? "" : "s"}
+            <p className="mb-2 text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
+              Overview
+            </p>
+            {/* Editorial summary — facts in a sentence, not a templated KPI grid.
+               Numbers tinted ink so they sit in the prose, not above it. */}
+            <p className="text-2xl sm:text-[28px] leading-snug tracking-tight text-ink max-w-[55ch]">
+              <span className="font-semibold tabular-nums">{enrolledCount.toLocaleString()}</span>{" "}
+              <span className="text-ink-soft">student{enrolledCount === 1 ? "" : "s"} across</span>{" "}
+              <span className="font-semibold tabular-nums">{tracks.length}</span>{" "}
+              <span className="text-ink-soft">
+                program{tracks.length === 1 ? "" : "s"}. They&apos;ve created
+              </span>{" "}
+              <span className="font-semibold tabular-nums">{(totalSubs + totalRefs).toLocaleString()}</span>{" "}
+              <span className="text-ink-soft">pieces of work, attended</span>{" "}
+              <span className="font-semibold tabular-nums">{totalAttendance.toLocaleString()}</span>{" "}
+              <span className="text-ink-soft">sessions, and returned</span>{" "}
+              <span className="font-semibold tabular-nums">{totalSurveyResponses.toLocaleString()}</span>{" "}
+              <span className="text-ink-soft">survey responses.</span>
             </p>
           </header>
-
-          {/* Metric cards — board-demo framing: scale, output, delivery, voice */}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {[
-              { label: "Students served", value: enrolledCount },
-              { label: "Pieces of work created", value: totalSubs + totalRefs },
-              { label: "Sessions delivered", value: totalAttendance },
-              { label: "Survey responses", value: totalSurveyResponses },
-            ].map((m) => (
-              <div
-                key={m.label}
-                className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5"
-              >
-                <p className="text-3xl sm:text-4xl font-bold text-neutral-900 tabular-nums tracking-tight">
-                  {m.value.toLocaleString()}
-                </p>
-                <p className="mt-1.5 text-[10px] sm:text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400 leading-tight">
-                  {m.label}
-                </p>
-              </div>
-            ))}
-          </div>
 
           {/* Charts row — Students per track + Survey completion donut */}
           {(() => {
@@ -1951,7 +1943,11 @@ export function AdminTabs({
              on top, surveys/reflections summary below. */}
           {trackView === "insights" && (
             <div className="space-y-8">
-              <AttendanceTab students={trackStudents.filter((s) => s.role === "student")} />
+              <AttendanceTab
+                students={trackStudents.filter((s) => s.role === "student")}
+                tracks={[activeTrack]}
+                scopeLabel={activeTrack.shortName}
+              />
               <TrackInsightsSection
                 trackSlug={activeTrack.slug}
                 trackShortName={activeTrack.shortName}
@@ -1981,7 +1977,11 @@ export function AdminTabs({
 
       {/* Standalone Analytics (from sidebar, all tracks) */}
       {tab === "attendance" && (
-        <AttendanceTab students={students.filter((s) => s.role === "student")} />
+        <AttendanceTab
+          students={students.filter((s) => s.role === "student")}
+          tracks={tracks}
+          scopeLabel="All tracks"
+        />
       )}
 
       {/* Lunch & Learn management */}

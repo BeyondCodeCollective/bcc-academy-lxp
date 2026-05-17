@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { gateCookieValue } from "@/lib/gate-cookie";
 
 const COOKIE_NAME = "site-access";
 const ONE_WEEK = 60 * 60 * 24 * 7;
@@ -27,7 +28,10 @@ export async function POST(req: NextRequest) {
   target.search = "";
 
   const res = NextResponse.redirect(target, { status: 303 });
-  res.cookies.set(COOKIE_NAME, expected, {
+  // Cookie carries an HMAC of the password, not the raw value. Anyone with
+  // browser access used to be able to read the password from devtools and
+  // share it. The proxy compares via timingSafeEqual to the same HMAC.
+  res.cookies.set(COOKIE_NAME, gateCookieValue(expected), {
     path: "/",
     httpOnly: true,
     sameSite: "lax",
