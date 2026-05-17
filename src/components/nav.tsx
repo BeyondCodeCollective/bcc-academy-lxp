@@ -53,7 +53,13 @@ type CurriculumTrack = {
   weekSummaries: { week: number; topic: string; icon: string }[];
 };
 
-type NavVariant = "admin-sidebar" | "student-sidebar" | "topbar";
+type NavVariant = "admin-sidebar" | "student-sidebar" | "lunch-learn-sidebar" | "topbar";
+
+type LunchLearnRecording = {
+  id: string;
+  title: string;
+  recorded_at: string;
+};
 
 export function Nav({
   isAdmin,
@@ -72,6 +78,7 @@ export function Nav({
   variant = "admin-sidebar",
   curriculumTracks = [],
   adminTracks = [],
+  lunchLearnRecordings = [],
 }: {
   isAdmin: boolean;
   canAccessStaff?: boolean;
@@ -89,6 +96,7 @@ export function Nav({
   variant?: NavVariant;
   curriculumTracks?: CurriculumTrack[];
   adminTracks?: { slug: string; shortName: string }[];
+  lunchLearnRecordings?: LunchLearnRecording[];
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -240,6 +248,42 @@ export function Nav({
               })}
             </div>
           </div>
+        );
+      })}
+    </div>
+  );
+
+  // ── Lunch & Learn recordings (lunch-learn-sidebar) ──────────────────────
+
+  const lunchLearnNav = lunchLearnRecordings.length > 0 && (
+    <div className="flex flex-col gap-0.5">
+      <p className="mb-1 px-3 text-[10px] font-medium uppercase tracking-[0.14em] text-neutral-500">
+        Recordings
+      </p>
+      {lunchLearnRecordings.map((r) => {
+        const href = `/dashboard/lunch-learn/${r.id}`;
+        const isActive = pathname === href;
+        const date = new Date(r.recorded_at).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        });
+        return (
+          <Link
+            key={r.id}
+            href={href}
+            onClick={() => setMobileOpen(false)}
+            aria-current={isActive ? "page" : undefined}
+            className={`flex min-h-[36px] items-start gap-2.5 rounded-lg px-3 py-1.5 text-[13px] transition-colors ${
+              isActive
+                ? "bg-white/15 text-white"
+                : "text-neutral-300 hover:bg-white/10 hover:text-white"
+            }`}
+          >
+            <span className="w-10 shrink-0 pt-0.5 text-[10px] tabular-nums text-neutral-500">
+              {date}
+            </span>
+            <span className="line-clamp-2 flex-1">{r.title}</span>
+          </Link>
         );
       })}
     </div>
@@ -424,6 +468,13 @@ export function Nav({
         </div>
       )}
 
+      {variant === "lunch-learn-sidebar" && lunchLearnNav && (
+        <div className="flex flex-col gap-1">
+          <div className="my-1 h-px bg-white/10" aria-hidden />
+          {lunchLearnNav}
+        </div>
+      )}
+
       {adminNav}
 
       {sidebarFooter}
@@ -449,6 +500,13 @@ export function Nav({
         <div className="flex flex-col gap-1">
           <div className="my-1 h-px bg-white/10" aria-hidden />
           {curriculumNav}
+        </div>
+      )}
+
+      {variant === "lunch-learn-sidebar" && lunchLearnNav && (
+        <div className="flex flex-col gap-1">
+          <div className="my-1 h-px bg-white/10" aria-hidden />
+          {lunchLearnNav}
         </div>
       )}
 

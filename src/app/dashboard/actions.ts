@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { getSessionContext } from "@/lib/auth/session";
 import { revalidatePath } from "next/cache";
 
 export async function completeOnboarding(data: {
@@ -153,16 +154,16 @@ export async function saveSurveyResponse(
 export async function getSurveyStatus(
   surveyType: string
 ): Promise<{ completed: boolean; responses: Record<string, unknown> | null }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { completed: false, responses: null };
+  // Reuses the React-cached session so a page that already resolved auth
+  // doesn't pay for a second auth roundtrip here.
+  const ctx = await getSessionContext();
+  if (!ctx?.userId) return { completed: false, responses: null };
 
+  const supabase = await createClient();
   const { data } = await supabase
     .from("survey_responses")
     .select("completed_at, responses")
-    .eq("student_id", user.id)
+    .eq("student_id", ctx.userId)
     .eq("survey_type", surveyType)
     .maybeSingle();
 

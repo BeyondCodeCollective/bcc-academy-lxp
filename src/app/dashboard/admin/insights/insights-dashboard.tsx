@@ -101,7 +101,7 @@ export function InsightsDashboard({
       <div className="grid grid-cols-3 gap-3">
         <StatCard value={totalResponses} label="Responses" />
         <StatCard value={uniqueRespondents} label="Respondents" />
-        <StatCard value={sections.length} label="Active surveys" />
+        <StatCard value={sections.length} label="Surveys" />
       </div>
 
       {/* Response timeline */}

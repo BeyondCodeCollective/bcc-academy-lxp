@@ -409,6 +409,14 @@ export async function GET(request: Request) {
         }
       }
 
+      // If they arrived via a track-specific invite (?track=<slug>), drop
+      // them on that track's overview page instead of the dashboard. Saves
+      // a click for single-track students — the dashboard grid would just
+      // show one card. Validate the slug to avoid open-redirect shenanigans.
+      if (trackParam && program.tracks.some((t) => t.slug === trackParam)) {
+        return redirectWithCookies(`${origin}/dashboard/track/${trackParam}`);
+      }
+
       return redirectWithCookies(`${origin}/dashboard`);
     } else {
       console.error("[auth/callback] auth error:", authError.message);

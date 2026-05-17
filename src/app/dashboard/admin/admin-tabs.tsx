@@ -36,6 +36,9 @@ import { TrackInsightsSection } from "@/components/track-insights-section";
 import { Avatar } from "@/components/avatar";
 import { computeCurrentWeek } from "@/lib/utils";
 import { InsightsDashboard } from "./insights/insights-dashboard";
+import { TrackOverviewForm } from "./track-overview-form";
+import { HorizontalBarChart } from "@/components/charts/horizontal-bar-chart";
+import { DonutChart } from "@/components/charts/donut-chart";
 import type { InsightsData } from "./page";
 import type { Student } from "@/lib/types";
 import { isStorageUrl, isUploadedVideo } from "@/lib/storage-utils";
@@ -61,6 +64,7 @@ type AdminTrackConfig = {
   slug: string;
   name: string;
   shortName: string;
+  description?: string;
   totalWeeks: number;
   sessionsPerWeek: number;
   instructor: string;
@@ -68,6 +72,9 @@ type AdminTrackConfig = {
   startDate: string;
   lastSessionDayOffset: number;
   weekSummaries: { week: number; topic: string; icon: string }[];
+  defaultReflectionPrompts?: string[];
+  submissionsEnabled?: boolean;
+  reflectionsEnabled?: boolean;
   weeks: {
     week: number;
     title: string;
@@ -153,6 +160,19 @@ function applyContentMap(weeks: AdminWeek[], map: SessionContentMap): AdminWeek[
       })),
     };
   });
+}
+
+// "Tasha Morris" → "Tasha M." for board-demo screens where full names
+// shouldn't appear. Falls back to whatever's available if the name is a
+// single token or empty.
+function anonymizeName(fullName: string): string {
+  const trimmed = fullName.trim();
+  if (!trimmed) return "Anonymous";
+  const parts = trimmed.split(/\s+/);
+  if (parts.length === 1) return parts[0];
+  const first = parts[0];
+  const lastInitial = parts[parts.length - 1].charAt(0).toUpperCase();
+  return `${first} ${lastInitial}.`;
 }
 
 // ─── Upload Button (generic) ────────────────────────────────────────────────
@@ -382,6 +402,7 @@ export function AdminTabs({
   initialTab,
   lunchLearnRecordings = [],
   insightsData = null,
+  alumniEnrollments = [],
 }: {
   cohorts: CohortRow[];
   students: StudentRow[];
@@ -397,6 +418,7 @@ export function AdminTabs({
   initialTab?: string;
   lunchLearnRecordings?: { id: string; title: string; presenter: string; recording_url: string; description: string | null; recorded_at: string }[];
   insightsData?: InsightsData | null;
+  alumniEnrollments?: { track_slug: string; email: string; source: string }[];
 }) {
   const programSlug = initialProgramSlug;
   const isManager = canManageStudents(userRole);
@@ -432,7 +454,7 @@ export function AdminTabs({
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [expandedWeek, setExpandedWeek] = useState<number | null>(null);
-  const [trackView, setTrackView] = useState<"curriculum" | "people" | "student-work" | "insights">("curriculum");
+  const [trackView, setTrackView] = useState<"overview" | "curriculum" | "people" | "student-work" | "insights">("overview");
   const [studentSaving, setStudentSaving] = useState<string | null>(null);
   const [recentError, setRecentError] = useState<string | null>(null);
   const [recentSubs, setRecentSubs] = useState<AdminSubmissionRow[]>([]);
@@ -788,7 +810,15 @@ export function AdminTabs({
 
       {/* Program Tab */}
       {tab === "program" && !isDashboardless && (() => {
-        const enrolledCount = students.filter((s) => s.role === "student").length;
+        // "Students served" counts unique humans across the live LXP roster
+        // and the imported historical alumni — same person enrolled in both
+        // shouldn't be double-counted, so we dedupe by lowercased email.
+        const liveStudentEmails = new Set(
+          students.filter((s) => s.role === "student" && s.email).map((s) => s.email!.toLowerCase()),
+        );
+        const alumniEmails = new Set(alumniEnrollments.map((a) => a.email.toLowerCase()));
+        const allServedEmails = new Set([...liveStudentEmails, ...alumniEmails]);
+        const enrolledCount = allServedEmails.size;
         const scoreVals = Object.values(engagementScores);
         const totalAttendance = scoreVals.reduce((a, s) => a + s.attendance, 0);
         const totalSubs = scoreVals.reduce((a, s) => a + s.submissions, 0);
@@ -836,53 +866,113 @@ export function AdminTabs({
         return (
         <div className="space-y-6">
           <header>
-            <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">Overview</h1>
+            <h1 className="text-3xl font-bold text-neutral-900 tracking-tight">Overview</h1>
             <p className="mt-1 text-xs text-neutral-500">
               {enrolledCount} student{enrolledCount === 1 ? "" : "s"} across{" "}
               {tracks.length} program{tracks.length === 1 ? "" : "s"}
             </p>
           </header>
 
-          {/* Metric cards */}
+          {/* Metric cards — board-demo framing: scale, output, delivery, voice */}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
-              { label: "Students", value: enrolledCount },
-              { label: "Submissions", value: totalSubs },
-              { label: "Reflections", value: totalRefs },
-              { label: "Sessions attended", value: totalAttendance },
+              { label: "Students served", value: enrolledCount },
+              { label: "Pieces of work created", value: totalSubs + totalRefs },
+              { label: "Sessions delivered", value: totalAttendance },
+              { label: "Survey responses", value: totalSurveyResponses },
             ].map((m) => (
               <div
                 key={m.label}
-                className="rounded-xl border border-neutral-200 bg-white p-4"
+                className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5"
               >
-                <p className="text-2xl font-bold text-neutral-900">{m.value}</p>
-                <p className="mt-0.5 text-xs text-neutral-400">{m.label}</p>
+                <p className="text-3xl sm:text-4xl font-bold text-neutral-900 tabular-nums tracking-tight">
+                  {m.value.toLocaleString()}
+                </p>
+                <p className="mt-1.5 text-[10px] sm:text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400 leading-tight">
+                  {m.label}
+                </p>
               </div>
             ))}
           </div>
 
-          {/* Insights call-out — jumps to the Insights tab where the full
-             cross-program dashboard lives (super-admins only). */}
-          {canSwitchPrograms(userRole) && (
-            <a
-              href="/dashboard/admin?tab=insights"
-              className="flex items-center justify-between gap-4 rounded-xl border border-neutral-200 bg-white p-4 transition-colors hover:border-neutral-300 hover:bg-neutral-50"
-            >
-              <div className="min-w-0">
-                <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400">
-                  Cross-program insights
-                </p>
-                <p className="mt-1 text-sm font-semibold text-neutral-900">
-                  {totalSurveyResponses} survey response
-                  {totalSurveyResponses === 1 ? "" : "s"} across {surveyConfigs.length} survey
-                  {surveyConfigs.length === 1 ? "" : "s"}
-                </p>
+          {/* Charts row — Students per track + Survey completion donut */}
+          {(() => {
+            const studentRoleIds = new Set(
+              students.filter((s) => s.role === "student").map((s) => s.id),
+            );
+            const liveEmailByStudentId = new Map(
+              students.map((s) => [s.id, s.email?.toLowerCase() ?? null]),
+            );
+            const alumniByTrack = new Map<string, Set<string>>();
+            for (const a of alumniEnrollments) {
+              if (!alumniByTrack.has(a.track_slug)) alumniByTrack.set(a.track_slug, new Set());
+              alumniByTrack.get(a.track_slug)!.add(a.email.toLowerCase());
+            }
+            const studentsByTrack = tracks
+              .map((t) => {
+                const liveEmails = new Set<string>();
+                for (const e of enrollments) {
+                  if (e.track_slug !== t.slug || !studentRoleIds.has(e.student_id)) continue;
+                  const email = liveEmailByStudentId.get(e.student_id);
+                  if (email) liveEmails.add(email);
+                }
+                const alumniEmails = alumniByTrack.get(t.slug) ?? new Set<string>();
+                // Dedupe overlap: alumni who later signed up in the LXP count once.
+                const combined = new Set([...liveEmails, ...alumniEmails]);
+                return { label: t.shortName, value: combined.size };
+              })
+              .filter((d) => d.value > 0)
+              .sort((a, b) => b.value - a.value);
+
+            const completedTotal = Object.values(surveyStats).reduce(
+              (sum, rows) => sum + rows.filter((r) => r.completed_at).length,
+              0,
+            );
+            const startedTotal = Object.values(surveyStats).reduce(
+              (sum, rows) => sum + rows.filter((r) => !r.completed_at).length,
+              0,
+            );
+            const surveySegments = [
+              { label: "Completed", value: completedTotal, color: "#E54D2E" },
+              { label: "In progress", value: startedTotal, color: "#FBC8B9" },
+            ].filter((s) => s.value > 0);
+
+            return (
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                <HorizontalBarChart
+                  title="Students per track"
+                  data={studentsByTrack}
+                  totalCaption={{ value: enrolledCount, label: "unique" }}
+                />
+                <DonutChart
+                  title="Survey responses"
+                  segments={surveySegments}
+                  centerValue={completedTotal.toLocaleString()}
+                  centerLabel="Completed"
+                />
               </div>
-              <span className="shrink-0 text-xs text-neutral-500">
-                Open dashboard &rarr;
-              </span>
-            </a>
-          )}
+            );
+          })()}
+
+          {/* Insights deep-dive — full cross-program dashboard lives here */}
+          <a
+            href="/dashboard/admin?tab=insights"
+            className="flex items-center justify-between gap-4 rounded-xl border border-neutral-200 bg-white p-4 transition-colors hover:border-neutral-300 hover:bg-neutral-50"
+          >
+            <div className="min-w-0">
+              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400">
+                Insights
+              </p>
+              <p className="mt-1 text-sm font-semibold text-neutral-900">
+                {totalSurveyResponses} survey response
+                {totalSurveyResponses === 1 ? "" : "s"} across {surveyConfigs.length} survey
+                {surveyConfigs.length === 1 ? "" : "s"}
+              </p>
+            </div>
+            <span className="shrink-0 text-xs text-neutral-500">
+              Deep dive &rarr;
+            </span>
+          </a>
 
           {/* Recent activity */}
           <section>
@@ -918,7 +1008,7 @@ export function AdminTabs({
                     >
                       <div className="min-w-0">
                         <p className="truncate font-medium text-neutral-900">
-                          {item.student_name}
+                          {anonymizeName(item.student_name)}
                         </p>
                         <p className="truncate text-xs text-neutral-500">
                           {item.kind === "submission"
@@ -1085,7 +1175,7 @@ export function AdminTabs({
         <div className="space-y-4">
           {/* Track header */}
           <header className="space-y-1.5">
-            <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">
+            <h1 className="text-3xl font-bold text-neutral-900 tracking-tight">
               {activeTrack.name}
             </h1>
             <p className="text-xs text-neutral-500">
@@ -1111,6 +1201,7 @@ export function AdminTabs({
           {/* Sub-tab bar within the track */}
           <div className="flex gap-1 rounded-lg bg-neutral-100 p-1">
             {[
+              { id: "overview" as const, label: "Overview" },
               { id: "curriculum" as const, label: "Curriculum" },
               ...(isManager ? [{ id: "people" as const, label: "People" }] : []),
               { id: "student-work" as const, label: "Student Work" },
@@ -1131,6 +1222,10 @@ export function AdminTabs({
           </div>
 
           {/* Sub-tab content */}
+          {trackView === "overview" && (
+            <TrackOverviewForm key={activeTrack.slug} track={activeTrack} />
+          )}
+
           {trackView === "curriculum" && (
           <div className="space-y-3">
           {activeWeeks.map((aw) => {
@@ -1893,7 +1988,7 @@ export function AdminTabs({
       {tab === "lunch-learn" && (
         <div className="space-y-6">
           <header>
-            <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">
+            <h1 className="text-3xl font-bold text-neutral-900 tracking-tight">
               Lunch &amp; Learns
             </h1>
             <p className="mt-1 text-xs text-neutral-500">
@@ -1908,19 +2003,29 @@ export function AdminTabs({
       {/* Insights — cross-program survey dashboard. Super-admin only;
          insightsData is null otherwise. */}
       {tab === "insights" && (
-        insightsData ? (
-          <InsightsDashboard
-            sections={insightsData.sections}
-            programs={insightsData.programs}
-            totalResponses={insightsData.totalResponses}
-          />
-        ) : (
-          <div className="rounded-xl border border-neutral-200 bg-white p-8 text-center">
-            <p className="text-sm text-neutral-500">
-              Insights are only available to super-admins.
+        <div className="space-y-6">
+          <header>
+            <h1 className="text-3xl font-bold text-neutral-900 tracking-tight">
+              Insights
+            </h1>
+            <p className="mt-1 text-xs text-neutral-500">
+              Cross-program survey responses
             </p>
-          </div>
-        )
+          </header>
+          {insightsData ? (
+            <InsightsDashboard
+              sections={insightsData.sections}
+              programs={insightsData.programs}
+              totalResponses={insightsData.totalResponses}
+            />
+          ) : (
+            <div className="rounded-xl border border-neutral-200 bg-white p-8 text-center">
+              <p className="text-sm text-neutral-500">
+                Insights are only available to super-admins.
+              </p>
+            </div>
+          )}
+        </div>
       )}
       </div>
       </div>
@@ -2578,3 +2683,4 @@ function formatResponseValue(val: unknown): string {
   }
   return String(val);
 }
+

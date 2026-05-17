@@ -2,6 +2,7 @@
 
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { getProgramId } from "@/lib/programs/server";
+import { getSessionContext } from "@/lib/auth/session";
 import { revalidatePath } from "next/cache";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -47,7 +48,12 @@ export type FeedbackRow = {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+// Reads/page-loads use the React-cached session context so all `requireAuth()`
+// calls within a single request share one auth roundtrip. Mutations still
+// fall back to a fresh `auth.getUser()` so we're not trusting a stale cache.
 async function requireAuth() {
+  const ctx = await getSessionContext();
+  if (ctx?.userId) return ctx.userId;
   const supabase = await createClient();
   const {
     data: { user },

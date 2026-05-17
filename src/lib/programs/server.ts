@@ -1,6 +1,7 @@
+import { cache } from "react";
 import { headers, cookies } from "next/headers";
 import { getProgramBySlug, getProgramByDomain, isKnownProgramHost } from "./index";
-import type { ProgramConfig } from "./types";
+import type { ProgramConfig, TrackConfig } from "./types";
 import { createServiceClient } from "@/lib/supabase/server";
 
 /**
@@ -18,12 +19,23 @@ import { createServiceClient } from "@/lib/supabase/server";
  *  5. Domain-based lookup on the raw host — handles unknown subdomains and
  *     local dev (falls back to the default program for the domain).
  *
+ * Track-level metadata from `track_overrides` is layered on top of the
+ * static TS config (null in DB = use config default), so admins can edit
+ * track name, instructor, description, dates, weekSummaries, etc. without
+ * a code deploy.
+ *
  * For client components inside /dashboard: use `useProgram()` from
  * @/lib/programs/context — the layout already provides it via ProgramProvider.
  * For client components outside /dashboard (e.g. public survey pages):
  * use `useProgramSlug()` from @/lib/programs/use-program-slug.
  */
 export async function getProgram(): Promise<ProgramConfig> {
+  const base = await resolveBaseProgram();
+  return applyTrackOverrides(base);
+}
+
+/** The legacy synchronous resolution — TS config only, no DB. */
+async function resolveBaseProgram(): Promise<ProgramConfig> {
   const h = await headers();
   const host = h.get("host") ?? "localhost:3000";
 
@@ -44,11 +56,101 @@ export async function getProgram(): Promise<ProgramConfig> {
   return getProgramByDomain(host);
 }
 
-// Resolves the current program's database UUID. Use this in server actions
-// that write to tables with a program_id FK — saves every action from
-// re-querying programs by slug.
-export async function getProgramId(): Promise<string> {
-  const program = await getProgram();
+/** Row shape returned by Supabase for the track_overrides table. */
+type TrackOverrideRow = {
+  track_slug: string;
+  name: string | null;
+  short_name: string | null;
+  description: string | null;
+  instructor: string | null;
+  start_date: string | null;
+  total_weeks: number | null;
+  sessions_per_week: number | null;
+  last_session_day_offset: number | null;
+  session_times: string[] | null;
+  week_summaries: { week: number; topic: string; icon: string }[] | null;
+  default_reflection_prompts: string[] | null;
+  submissions_enabled: boolean | null;
+  reflections_enabled: boolean | null;
+};
+
+/**
+ * Merge `track_overrides` from DB onto the static program config. Field-by-
+ * field null-fallback: any non-null DB value wins; null = use TS default.
+ * Same semantics as `resolveSessionContent` (src/lib/session-content.ts:42).
+ *
+ * Cached per-request so layout + page + admin share one DB roundtrip.
+ */
+const fetchOverrides = cache(
+  async (programSlug: string): Promise<Map<string, TrackOverrideRow>> => {
+    try {
+      const svc = createServiceClient();
+      const { data: programRow } = await svc
+        .from("programs")
+        .select("id")
+        .eq("slug", programSlug)
+        .maybeSingle();
+      if (!programRow?.id) return new Map();
+      const { data } = await svc
+        .from("track_overrides")
+        .select(
+          "track_slug, name, short_name, description, instructor, start_date, total_weeks, sessions_per_week, last_session_day_offset, session_times, week_summaries, default_reflection_prompts, submissions_enabled, reflections_enabled",
+        )
+        .eq("program_id", programRow.id);
+      const map = new Map<string, TrackOverrideRow>();
+      for (const row of data ?? []) {
+        map.set((row as TrackOverrideRow).track_slug, row as TrackOverrideRow);
+      }
+      return map;
+    } catch (err) {
+      // Don't take down the app if the table is missing (e.g. migration
+      // hasn't been applied yet) — fall back to TS configs untouched.
+      console.warn("[getProgram] track_overrides fetch failed:", err);
+      return new Map();
+    }
+  },
+);
+
+async function applyTrackOverrides(program: ProgramConfig): Promise<ProgramConfig> {
+  const overrides = await fetchOverrides(program.slug);
+  if (overrides.size === 0) return program;
+  return {
+    ...program,
+    tracks: program.tracks.map((t) => mergeTrack(t, overrides.get(t.slug))),
+  };
+}
+
+function mergeTrack(
+  config: TrackConfig,
+  override: TrackOverrideRow | undefined,
+): TrackConfig {
+  if (!override) return config;
+  return {
+    ...config,
+    name: override.name ?? config.name,
+    shortName: override.short_name ?? config.shortName,
+    description: override.description ?? config.description,
+    instructor: override.instructor ?? config.instructor,
+    startDate: override.start_date ?? config.startDate,
+    totalWeeks: override.total_weeks ?? config.totalWeeks,
+    sessionsPerWeek: override.sessions_per_week ?? config.sessionsPerWeek,
+    lastSessionDayOffset:
+      override.last_session_day_offset ?? config.lastSessionDayOffset,
+    sessionTimes: override.session_times ?? config.sessionTimes,
+    weekSummaries: override.week_summaries ?? config.weekSummaries,
+    defaultReflectionPrompts:
+      override.default_reflection_prompts ?? config.defaultReflectionPrompts,
+    submissionsEnabled:
+      override.submissions_enabled ?? config.submissionsEnabled,
+    reflectionsEnabled:
+      override.reflections_enabled ?? config.reflectionsEnabled,
+  };
+}
+
+// Resolves the current program's database UUID. Cached per request so the
+// layout, page, and any action that needs the FK share one roundtrip.
+export const getProgramId = cache(async (): Promise<string> => {
+  const program = await resolveBaseProgram();
   const svc = createServiceClient();
   const { data, error } = await svc
     .from("programs")
@@ -57,4 +159,4 @@ export async function getProgramId(): Promise<string> {
     .single();
   if (error || !data) throw new Error(`Program not found: ${program.slug}`);
   return data.id;
-}
+});

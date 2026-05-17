@@ -77,6 +77,8 @@ export type TrackConfig = {
   name: string;
   /** Short label for dashboard cards */
   shortName: string;
+  /** One-paragraph track overview, shown on the track landing page. */
+  description?: string;
   type: TrackType;
   totalWeeks: number;
   sessionsPerWeek: number;

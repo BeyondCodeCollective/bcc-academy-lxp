@@ -4,12 +4,12 @@ import { computeCurrentWeek } from "@/lib/utils";
 import { ArrowLeft, BookOpen, Users, Video, CheckCircle, Download, ExternalLink, Link as LinkIcon, FileText } from "lucide-react";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { getSessionContent } from "@/app/dashboard/admin/actions";
-import { isStorageUrl, isUploadedVideo, isUploadedRecording, getYouTubeEmbedUrl } from "@/lib/storage-utils";
+import { isStorageUrl, isUploadedVideo } from "@/lib/storage-utils";
 import { getProgram } from "@/lib/programs/server";
 import { getTrackBySlug } from "@/lib/programs";
 import { getSubmission, getReflection, getFeedback, getWeekProgress } from "@/app/dashboard/track/actions";
 import { SubmissionForm } from "@/components/submission-form";
-import { MarkVideoWatchedButton } from "@/components/mark-video-watched-button";
+import { RecordingCard } from "@/components/recording-card";
 import { ReflectionForm } from "@/components/reflection-form";
 import { IntakeForm } from "@/components/intake-form";
 import { getSurveyStatus } from "@/app/dashboard/actions";
@@ -99,49 +99,80 @@ export default async function TrackWeekPage({
 
   const sessionsLabel = weekContent.sessions.length === 1 ? "Session" : "Sessions";
 
+  const prevWeek = weekNum > 1 ? weekNum - 1 : null;
+  const nextWeek = weekNum < track.totalWeeks ? weekNum + 1 : null;
+
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8">
-      {/* Back link */}
-      <Link
-        href="/dashboard"
-        className="inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-neutral-900 transition-colors mb-5 py-2"
-      >
-        <ArrowLeft size={16} />
-        Back to Dashboard
-      </Link>
+    <div className="mx-auto w-full max-w-2xl md:max-w-5xl px-4 sm:px-5 py-8">
+      {/* Top nav: back to track overview + prev/next week. The overview itself
+         has a "Back to Dashboard" link, so the breadcrumb is Dashboard →
+         {track} overview → Week N. */}
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <Link
+          href={`/dashboard/track/${trackSlug}`}
+          className="inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-neutral-900 transition-colors py-2"
+        >
+          <ArrowLeft size={16} />
+          Back to {track.shortName}
+        </Link>
+        <nav aria-label="Week navigation" className="flex items-center gap-1">
+          {prevWeek ? (
+            <Link
+              href={`/dashboard/track/${trackSlug}/${prevWeek}`}
+              className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition-colors"
+            >
+              <ArrowLeft size={12} />
+              Week {prevWeek}
+            </Link>
+          ) : (
+            <span className="inline-flex items-center gap-1 rounded-lg border border-neutral-100 px-3 py-1.5 text-xs font-medium text-neutral-300">
+              <ArrowLeft size={12} />
+              Week {weekNum}
+            </span>
+          )}
+          {nextWeek ? (
+            <Link
+              href={`/dashboard/track/${trackSlug}/${nextWeek}`}
+              className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition-colors"
+            >
+              Week {nextWeek}
+              <ArrowLeft size={12} className="rotate-180" />
+            </Link>
+          ) : (
+            <span className="inline-flex items-center gap-1 rounded-lg border border-neutral-100 px-3 py-1.5 text-xs font-medium text-neutral-300">
+              Week {weekNum}
+              <ArrowLeft size={12} className="rotate-180" />
+            </span>
+          )}
+        </nav>
+      </div>
 
       {/* Compact header */}
       <div className="mb-6">
         <div className="flex items-center gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-xl">
-            {weekContent.icon}
+          <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-neutral-300 text-[13px] font-semibold tabular-nums text-neutral-600">
+            {weekContent.week}
           </span>
           <div className="flex-1">
             <div className="flex items-center gap-2.5">
-              <p className="text-[10px] font-semibold text-neutral-400 uppercase tracking-wide">
-                {track.shortName} · Week {weekContent.week}
+              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400">
+                Week {weekContent.week}
               </p>
-              <span
-                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                  isCompleted
-                    ? "bg-green-50 text-green-600"
-                    : isCurrent
-                      ? "bg-red-50 text-red-600"
-                      : !trackStarted
-                        ? "bg-neutral-100 text-neutral-400"
-                        : "bg-neutral-100 text-neutral-400"
-                }`}
-              >
-                {isCompleted
-                  ? weekContent.sessions.length > 1 ? "Sessions Ended" : "Session Ended"
-                  : isCurrent
-                    ? "This Week"
-                    : !trackStarted
-                      ? "Coming Soon"
-                      : "Upcoming"}
-              </span>
+              {(isCompleted || isCurrent) && (
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                    isCompleted
+                      ? "bg-green-50 text-green-600"
+                      : "bg-red-50 text-red-600"
+                  }`}
+                >
+                  {isCompleted
+                    ? weekContent.sessions.length > 1 ? "Sessions Ended" : "Session Ended"
+                    : "This Week"}
+                </span>
+              )}
             </div>
-            <h1 className="text-2xl font-bold text-neutral-900 leading-tight">
+            <h1 className="text-3xl font-bold text-neutral-900 tracking-tight leading-tight">
               {displayTitle}
             </h1>
           </div>
@@ -155,8 +186,8 @@ export default async function TrackWeekPage({
       </div>
 
       {/* Sessions card */}
-      <div className="mb-6 rounded-xl border-2 border-neutral-200 bg-white p-4 sm:p-6 shadow-sm">
-        <h2 className="text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-4">
+      <div className="mb-6 rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
+        <h2 className="mb-4 text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400">
           {sessionsLabel}
         </h2>
         <div className="space-y-4">
@@ -212,10 +243,10 @@ export default async function TrackWeekPage({
       </p>
 
       {/* What You'll Cover */}
-      <div className="mb-6 rounded-xl border border-neutral-200 bg-white p-4 sm:p-6">
-        <div className="flex items-center gap-2 mb-3">
+      <div className="mb-6 rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
+        <div className="mb-3 flex items-center gap-2">
           <BookOpen size={14} className="text-neutral-400" />
-          <h2 className="text-xs font-semibold text-neutral-400 uppercase tracking-wide">
+          <h2 className="text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400">
             What You&apos;ll Cover
           </h2>
         </div>
@@ -229,30 +260,10 @@ export default async function TrackWeekPage({
         </ul>
       </div>
 
-      {/* Session Recordings */}
+      {/* Session Recordings — same poster-card UX as Lunch & Learn; click to play */}
       {weekContent.sessions.map((session, i) => {
         const url = recordingUrls[i];
-        const ytEmbed = url ? getYouTubeEmbedUrl(url) : null;
-        const isVideo = url ? isUploadedRecording(url) : false;
-        const showPlaceholder = !url && (isCompleted || isCurrent || weekNum < currentWeek);
-
-        if (!url && !showPlaceholder) {
-          // Check for recording note (e.g. "This session was not recorded")
-          if (weekContent.recordingNote && i === 0) {
-            return (
-              <div key={i} className="mb-4 flex items-center gap-4 rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-neutral-100">
-                  <Video size={20} className="text-neutral-300" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-neutral-600">No Recording</p>
-                  <p className="text-xs text-neutral-500">{weekContent.recordingNote}</p>
-                </div>
-              </div>
-            );
-          }
-          return null;
-        }
+        if (!url) return null;
 
         const recordingLabel = weekContent.sessions.length > 1
           ? `Session ${i + 1} Recording`
@@ -263,96 +274,26 @@ export default async function TrackWeekPage({
 
         const showWatchButton = isSupabaseConfigured() && (isCurrent || isCompleted || weekNum < currentWeek);
 
-        return ytEmbed ? (
-          <div key={i} className="mb-4 rounded-xl border border-neutral-200 bg-white overflow-hidden">
-            <div className="px-4 sm:px-5 pt-4 pb-3 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-50">
-                  <Video size={15} className="text-emerald-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-neutral-900">{recordingLabel}</p>
-                  <p className="text-xs text-neutral-500">{recordingSubtitle}</p>
-                </div>
-              </div>
-              {showWatchButton && (
-                <MarkVideoWatchedButton
-                  trackSlug={trackSlug}
-                  weekNumber={weekNum}
-                  initialWatched={weekProgress?.videoWatched ?? false}
-                />
-              )}
-            </div>
-            <div className="relative w-full aspect-video">
-              <iframe
-                src={ytEmbed}
-                title={recordingLabel}
-                className="absolute inset-0 w-full h-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-            </div>
-          </div>
-        ) : url && isVideo ? (
-          <div key={i} className="mb-4 rounded-xl border border-neutral-200 bg-white overflow-hidden">
-            <div className="px-4 sm:px-5 pt-4 pb-3 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-50">
-                  <Video size={15} className="text-emerald-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-neutral-900">{recordingLabel}</p>
-                  <p className="text-xs text-neutral-500">{recordingSubtitle}</p>
-                </div>
-              </div>
-              {showWatchButton && (
-                <MarkVideoWatchedButton
-                  trackSlug={trackSlug}
-                  weekNumber={weekNum}
-                  initialWatched={weekProgress?.videoWatched ?? false}
-                />
-              )}
-            </div>
-            <video src={url} controls className="w-full" preload="metadata" />
-          </div>
-        ) : url ? (
-          <a
+        return (
+          <RecordingCard
             key={i}
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mb-4 flex items-center gap-4 rounded-xl border border-neutral-200 bg-white p-4 sm:p-5 transition-colors hover:border-neutral-300 hover:bg-neutral-50"
-          >
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-50">
-              <Video size={20} className="text-emerald-600" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-neutral-900">{recordingLabel}</p>
-              <p className="text-xs text-neutral-500">{recordingSubtitle}</p>
-            </div>
-            <ExternalLink size={14} className="text-neutral-400 shrink-0" />
-          </a>
-        ) : (
-          <div key={i} className="mb-4 rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-neutral-100">
-                <Video size={20} className="text-neutral-300" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-neutral-400">{recordingLabel}</p>
-                <p className="text-xs text-neutral-500">Available after the session</p>
-              </div>
-            </div>
-          </div>
+            url={url}
+            title={recordingLabel}
+            subtitle={recordingSubtitle}
+            trackSlug={trackSlug}
+            weekNumber={weekNum}
+            showWatchButton={showWatchButton}
+            initialWatched={weekProgress?.videoWatched ?? false}
+          />
         );
       })}
 
       {/* Resources */}
       {resources.length > 0 && (
         <div className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
-          <div className="flex items-center gap-2 mb-3">
+          <div className="mb-3 flex items-center gap-2">
             <LinkIcon size={14} className="text-neutral-400" />
-            <h2 className="text-xs font-semibold text-neutral-400 uppercase tracking-wide">
+            <h2 className="text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400">
               Resources
             </h2>
           </div>
@@ -393,7 +334,7 @@ export default async function TrackWeekPage({
       {/* Completion checklist */}
       {showChecklist && (
         <div className="mt-6 rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
-          <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-3">
+          <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400">
             Week Completion
           </p>
           <div className="space-y-2">

@@ -6,11 +6,12 @@ import Link from "next/link";
 import { WelcomeVideo } from "@/components/welcome-video";
 import { OnboardingForm } from "@/components/onboarding-form";
 import { LunchLearnHub } from "@/components/lunch-learn-hub";
-import { CollapsibleTrackSection } from "@/components/collapsible-track-section";
+import { TrackGrid } from "@/components/track-grid";
 import { getProgram } from "@/lib/programs/server";
 import type { ProgramConfig, TrackConfig } from "@/lib/programs/types";
 import { canAccessAdminPanel } from "@/lib/roles";
 import { getSessionContext } from "@/lib/auth/session";
+import { getPreviewTrackSlug, LUNCH_LEARN_PREVIEW_SLUG } from "@/lib/auth/preview-mode";
 import { resolveCurrentUser } from "@/lib/current-user";
 import { getEnrolledTracks } from "@/lib/enrollment";
 import { BCC_INTAKE_SURVEY_ID, BCC_INTAKE_EXEMPT_PROGRAMS } from "@/lib/surveys/platform";
@@ -28,7 +29,9 @@ export default async function DashboardPage() {
   const role = ctx?.student?.role ?? "";
   const email = ctx?.student?.email ?? ctx?.userEmail ?? null;
   const isAdmin = canAccessAdminPanel(role);
-  if (!isAdmin && isStaffEmail(email)) {
+  const previewSlugTop = await getPreviewTrackSlug(role);
+  const previewingLunchLearns = previewSlugTop === LUNCH_LEARN_PREVIEW_SLUG;
+  if ((!isAdmin && isStaffEmail(email)) || previewingLunchLearns) {
     const firstName = ctx?.student?.first_name || "";
     return <LunchLearnHub isAdmin={false} firstName={firstName} />;
   }
@@ -54,7 +57,7 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 sm:px-5 py-8">
+    <div className="mx-auto w-full max-w-2xl md:max-w-5xl px-4 sm:px-5 py-8">
       <DashboardContent program={program} />
     </div>
   );
@@ -88,7 +91,14 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
     const welcomeDone = !!student?.welcome_seen_at;
     needsOnboarding = !welcomeDone;
 
-    const isAdminUser = canAccessAdminPanel(userRole);
+    const rawPreviewSlug = await getPreviewTrackSlug(userRole);
+    const previewSlug =
+      rawPreviewSlug && program.tracks.some((t) => t.slug === rawPreviewSlug)
+        ? rawPreviewSlug
+        : null;
+    // In preview-as-student mode, treat the super-admin as a non-admin
+    // enrolled in just the previewed track.
+    const isAdminUser = canAccessAdminPanel(userRole) && !previewSlug;
 
     const [defaultCohortRes, enrolledTracks, completedSurveysRes] = await Promise.all([
       hasCohortId
@@ -129,10 +139,13 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
     }
 
     if (!isAdminUser) {
-      enrolledTrackSlugs = enrolledTracks.map((t) => t.slug);
+      enrolledTrackSlugs = previewSlug
+        ? [previewSlug]
+        : enrolledTracks.map((t) => t.slug);
     }
 
-    if (!isAdminUser) {
+    // Survey gates only apply to actual students, not preview mode.
+    if (!isAdminUser && !previewSlug) {
       const completedTypes = new Set(
         (completedSurveysRes.data ?? []).map((r) => r.survey_type)
       );
@@ -168,7 +181,12 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
 
   void cohortStartDate;
 
-  const isAdmin = canAccessAdminPanel(userRole);
+  const rawPreviewSlugOuter = await getPreviewTrackSlug(userRole);
+  const previewSlugOuter =
+    rawPreviewSlugOuter && program.tracks.some((t) => t.slug === rawPreviewSlugOuter)
+      ? rawPreviewSlugOuter
+      : null;
+  const isAdmin = canAccessAdminPanel(userRole) && !previewSlugOuter;
   const visibleTracks = isAdmin
     ? program.tracks
     : program.tracks.filter((t) => enrolledTrackSlugs.includes(t.slug));
@@ -197,7 +215,7 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-neutral-900">
+          <h1 className="text-3xl font-bold text-neutral-900 tracking-tight">
             Welcome, {firstName}
           </h1>
           <p className="mt-1 text-sm text-neutral-700">
@@ -234,7 +252,7 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-neutral-900">
+          <h1 className="text-3xl font-bold text-neutral-900 tracking-tight">
             Welcome, {firstName}
           </h1>
           <p className="mt-1 text-sm text-neutral-500">{program.name}</p>
@@ -293,11 +311,17 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
       )}
 
       <div>
-        <h1 className="text-2xl font-bold text-neutral-900">
+        <h1 className="text-3xl font-bold text-neutral-900 tracking-tight">
           Welcome back, {firstName}
         </h1>
-        {!isAdmin && (
+        {!isAdmin && !previewSlugOuter && (
           <p className="mt-1 text-sm text-neutral-500">{cohortName}</p>
+        )}
+        {previewSlugOuter && (
+          <p className="mt-1 text-sm text-[#E54D2E]">
+            Previewing as student enrolled in{" "}
+            {program.tracks.find((t) => t.slug === previewSlugOuter)?.name}
+          </p>
         )}
       </div>
 
@@ -358,26 +382,33 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
         />
       )}
 
-      {trackStates.map(({ track, started, currentWeek }) =>
-        track.type === "single-event" ? (
-          <SingleEventCard key={track.slug} track={track} />
-        ) : (
-          <CollapsibleTrackSection
-            key={track.slug}
-            slug={track.slug}
-            name={track.name}
-            instructor={track.instructor}
-            totalWeeks={track.totalWeeks}
-            sessionsPerWeek={track.sessionsPerWeek}
-            startDate={track.startDate}
-            weekSummaries={track.weekSummaries}
-            started={started}
-            currentWeek={currentWeek}
-            defaultOpen={!isAdmin && visibleTracks.length <= 2}
-          />
-
-        )
+      {/* Weekly track cards — typography-led with per-track color band.
+         Single-event tracks keep their inline row treatment since they
+         don't have weeks to navigate into. */}
+      {trackStates.filter(({ track }) => track.type !== "single-event").length > 0 && (
+        <TrackGrid
+          tracks={trackStates
+            .filter(({ track }) => track.type !== "single-event")
+            .map(({ track, started, currentWeek }) => ({
+              track: {
+                slug: track.slug,
+                name: track.name,
+                instructor: track.instructor,
+                totalWeeks: track.totalWeeks,
+                sessionsPerWeek: track.sessionsPerWeek,
+                startDate: track.startDate,
+                weekOneTopic: track.weekSummaries[0]?.topic ?? "",
+              },
+              started,
+              currentWeek,
+            }))}
+        />
       )}
+      {trackStates
+        .filter(({ track }) => track.type === "single-event")
+        .map(({ track }) => (
+          <SingleEventCard key={track.slug} track={track} />
+        ))}
     </div>
   );
 }

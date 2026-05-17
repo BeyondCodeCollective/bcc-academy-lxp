@@ -8,9 +8,11 @@ import Link from "next/link";
 export function JoinForm({
   programSlug,
   trackSlug,
+  trackName,
 }: {
   programSlug: string;
   trackSlug: string | null;
+  trackName?: string;
 }) {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -101,7 +103,7 @@ export function JoinForm({
               : "cursor-not-allowed bg-white/10 text-white/30"
           }`}
         >
-          {loading ? "Sending..." : "Join →"}
+          {loading ? "Sending..." : trackName ? `Join ${trackName} →` : "Join →"}
         </button>
 
         <p className="text-xs uppercase tracking-wider text-white/40">

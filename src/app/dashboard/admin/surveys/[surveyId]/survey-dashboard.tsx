@@ -97,7 +97,7 @@ export function SurveyDashboard({
               Survey Insights
             </p>
           )}
-          <h2 className="text-3xl font-semibold text-[#1F1B16] tracking-tight">
+          <h2 className="text-3xl font-bold text-[#1F1B16] tracking-tight">
             {surveyTitle}
           </h2>
           <p className="text-sm text-[#6B6258] mt-2 tabular-nums">

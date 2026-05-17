@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { createServiceClient } from "@/lib/supabase/server";
+import { getYouTubeThumbnailUrl } from "@/lib/storage-utils";
+import { VideoPoster } from "@/components/video-poster";
 
 type Props = {
   isAdmin: boolean;
@@ -13,7 +15,7 @@ export async function LunchLearnHub({ isAdmin, firstName }: Props) {
   const svc = createServiceClient();
   const { data: rows } = await svc
     .from("lunch_learns")
-    .select("id, title, presenter, recorded_at, description")
+    .select("id, title, presenter, recorded_at, description, recording_url")
     .order("recorded_at", { ascending: false });
 
   const recordings = rows ?? [];
@@ -54,36 +56,30 @@ export async function LunchLearnHub({ isAdmin, firstName }: Props) {
         </div>
       ) : (
         <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {recordings.map((r) => (
-            <li key={r.id}>
-              <Link
-                href={`/dashboard/lunch-learn/${r.id}`}
-                className="group flex h-full flex-col rounded-xl border border-rule-soft bg-paper p-5 transition-colors hover:border-rule hover:bg-paper-tint-soft"
-              >
-                <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-faint">
-                  {new Date(r.recorded_at).toLocaleDateString("en-US", {
-                    month: "long",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
-                </p>
-                <h2 className="mt-2 text-[17px] font-semibold text-ink leading-snug tracking-[-0.01em]">
-                  {r.title}
-                </h2>
-                <p className="mt-1 text-[13px] text-ink-soft">
-                  with {r.presenter}
-                </p>
-                {r.description && (
-                  <p className="mt-3 text-[13px] leading-[1.55] text-ink-soft line-clamp-3">
-                    {r.description}
-                  </p>
-                )}
-                <span className="mt-auto pt-4 text-[12px] font-medium text-ink-soft group-hover:text-ink">
-                  Watch &rarr;
-                </span>
-              </Link>
-            </li>
-          ))}
+          {recordings.map((r) => {
+            const thumbnail = r.recording_url ? getYouTubeThumbnailUrl(r.recording_url) : null;
+            const eyebrow = new Date(r.recorded_at).toLocaleDateString("en-US", {
+              month: "long",
+              day: "numeric",
+              year: "numeric",
+            });
+            return (
+              <li key={r.id}>
+                <Link
+                  href={`/dashboard/lunch-learn/${r.id}`}
+                  className="group flex h-full flex-col overflow-hidden rounded-xl border border-rule-soft bg-paper transition-colors hover:border-rule hover:bg-paper-tint-soft"
+                >
+                  <VideoPoster
+                    thumbnailUrl={thumbnail}
+                    eyebrow={eyebrow}
+                    title={r.title}
+                    subtitle={`with ${r.presenter}`}
+                    description={r.description}
+                  />
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>
