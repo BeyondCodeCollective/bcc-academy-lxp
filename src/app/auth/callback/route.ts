@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import type { EmailOtpType } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { createServiceClient } from "@/lib/supabase/server";
 import { authCookieDomain } from "@/lib/supabase/cookie-domain";
@@ -14,7 +15,22 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   const token_hash = searchParams.get("token_hash");
-  const type = searchParams.get("type") as "email" | "magiclink" | null;
+  // Supabase email templates use a 'type' param that maps to the OTP type
+  // we pass to verifyOtp (magiclink, signup, recovery, invite, email,
+  // email_change). Anything else is ignored — verifyOtp validates the
+  // value at runtime.
+  const rawType = searchParams.get("type");
+  const ALLOWED_TYPES: EmailOtpType[] = [
+    "magiclink",
+    "signup",
+    "recovery",
+    "invite",
+    "email",
+    "email_change",
+  ];
+  const type: EmailOtpType | null = ALLOWED_TYPES.includes(rawType as EmailOtpType)
+    ? (rawType as EmailOtpType)
+    : null;
   const trackParam = searchParams.get("track");
   const joinSlug = searchParams.get("join");
 
@@ -63,16 +79,26 @@ export async function GET(request: Request) {
     // Service client — bypasses RLS for database writes
     const admin = createServiceClient();
 
+    // Idempotency: if the user is already authenticated, skip the verify/
+    // exchange step. Magic-link tokens are single-use, so a second click
+    // (double-tap, browser back-button, email-client preview hitting the
+    // link after the user already clicked) would otherwise consume an
+    // already-burnt token and surface as otp_expired. If we already have
+    // a session, just route them home.
+    const { data: { user: preAuthedUser } } = await supabase.auth.getUser();
+
     let authError = null;
-    if (code) {
-      const { error } = await supabase.auth.exchangeCodeForSession(code);
-      authError = error;
-    } else if (token_hash && type) {
-      const { error } = await supabase.auth.verifyOtp({
-        token_hash,
-        type,
-      });
-      authError = error;
+    if (!preAuthedUser) {
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        authError = error;
+      } else if (token_hash && type) {
+        const { error } = await supabase.auth.verifyOtp({
+          token_hash,
+          type,
+        });
+        authError = error;
+      }
     }
 
     if (!authError) {
