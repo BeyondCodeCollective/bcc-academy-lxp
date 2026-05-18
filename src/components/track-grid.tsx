@@ -12,12 +12,34 @@ type TrackState = {
     sessionsPerWeek: number;
     startDate: string;
     weekOneTopic: string;
+    phase?: string;
   };
   started: boolean;
   currentWeek: number;
 };
 
 type FilterKey = "all" | "in-progress" | "upcoming";
+
+// Display order + human label for the Catalyst phases. Anything else falls
+// through to a generic "Other" bucket at the end.
+const PHASE_ORDER: { key: string; label: string }[] = [
+  { key: "foundation", label: "Foundation" },
+  { key: "core", label: "Core" },
+  { key: "workshop", label: "Workshops" },
+  { key: "exit", label: "Exit" },
+];
+
+function phaseLabel(key: string): string {
+  return (
+    PHASE_ORDER.find((p) => p.key === key)?.label ??
+    key.charAt(0).toUpperCase() + key.slice(1)
+  );
+}
+
+function phaseRank(key: string): number {
+  const i = PHASE_ORDER.findIndex((p) => p.key === key);
+  return i === -1 ? PHASE_ORDER.length : i;
+}
 
 export function TrackGrid({ tracks }: { tracks: TrackState[] }) {
   const counts = useMemo(() => {
@@ -43,7 +65,6 @@ export function TrackGrid({ tracks }: { tracks: TrackState[] }) {
       if (filter === "upcoming") return !t.started;
       return true;
     });
-    // In-progress first, then upcoming. Within each, earliest start first.
     return [...filtered].sort((a, b) => {
       if (a.started !== b.started) return a.started ? -1 : 1;
       return (
@@ -52,6 +73,23 @@ export function TrackGrid({ tracks }: { tracks: TrackState[] }) {
       );
     });
   }, [tracks, filter]);
+
+  // Group by phase. If only one phase is present in the visible set, render
+  // a flat grid (no header — the section label would be noise).
+  const grouped = useMemo(() => {
+    const buckets = new Map<string, TrackState[]>();
+    for (const t of visible) {
+      const key = t.track.phase ?? "other";
+      const arr = buckets.get(key) ?? [];
+      arr.push(t);
+      buckets.set(key, arr);
+    }
+    return Array.from(buckets.entries())
+      .map(([key, items]) => ({ key, label: phaseLabel(key), items }))
+      .sort((a, b) => phaseRank(a.key) - phaseRank(b.key));
+  }, [visible]);
+
+  const showPhaseHeaders = grouped.length > 1;
 
   const FILTERS: { key: FilterKey; label: string }[] = [
     { key: "all", label: "All" },
@@ -99,6 +137,32 @@ export function TrackGrid({ tracks }: { tracks: TrackState[] }) {
         <p className="rounded-xl border border-rule bg-surface-soft px-5 py-8 text-center text-sm text-ink-soft">
           No tracks in this view.
         </p>
+      ) : showPhaseHeaders ? (
+        <div className="space-y-8">
+          {grouped.map((group) => (
+            <section key={group.key} className="space-y-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-faint">
+                {group.label}
+              </p>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {group.items.map(({ track, started, currentWeek }) => (
+                  <TrackCard
+                    key={track.slug}
+                    slug={track.slug}
+                    name={track.name}
+                    instructor={track.instructor}
+                    totalWeeks={track.totalWeeks}
+                    sessionsPerWeek={track.sessionsPerWeek}
+                    startDate={track.startDate}
+                    started={started}
+                    currentWeek={currentWeek}
+                    weekOneTopic={track.weekOneTopic}
+                  />
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {visible.map(({ track, started, currentWeek }) => (
