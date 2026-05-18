@@ -1,8 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { useMemo, useState } from "react";
 import { TrackCard } from "./track-card";
 
 type TrackState = {
@@ -19,130 +17,91 @@ type TrackState = {
   currentWeek: number;
 };
 
-type SortKey = "status" | "name" | "start";
-
-const SORT_OPTIONS: { key: SortKey; label: string }[] = [
-  { key: "status", label: "In progress" },
-  { key: "name", label: "Name" },
-  { key: "start", label: "Start date" },
-];
+type FilterKey = "all" | "in-progress" | "upcoming";
 
 export function TrackGrid({ tracks }: { tracks: TrackState[] }) {
-  const [sortKey, setSortKey] = useState<SortKey>("status");
+  const counts = useMemo(() => {
+    const inProgress = tracks.filter((t) => t.started).length;
+    return {
+      all: tracks.length,
+      "in-progress": inProgress,
+      upcoming: tracks.length - inProgress,
+    } satisfies Record<FilterKey, number>;
+  }, [tracks]);
 
-  const sorted = [...tracks].sort((a, b) => {
-    if (sortKey === "name") return a.track.name.localeCompare(b.track.name);
-    if (sortKey === "start")
+  // Default to whichever bucket has something to show — students with no
+  // in-progress tracks shouldn't land on an empty grid.
+  const [filter, setFilter] = useState<FilterKey>(() => {
+    if (counts["in-progress"] > 0) return "in-progress";
+    if (counts.upcoming > 0) return "upcoming";
+    return "all";
+  });
+
+  const visible = useMemo(() => {
+    const filtered = tracks.filter((t) => {
+      if (filter === "in-progress") return t.started;
+      if (filter === "upcoming") return !t.started;
+      return true;
+    });
+    // In-progress first, then upcoming. Within each, earliest start first.
+    return [...filtered].sort((a, b) => {
+      if (a.started !== b.started) return a.started ? -1 : 1;
       return (
         new Date(a.track.startDate).getTime() -
         new Date(b.track.startDate).getTime()
       );
-    // status: in-progress first, then by soonest start
-    if (a.started !== b.started) return a.started ? -1 : 1;
-    return (
-      new Date(a.track.startDate).getTime() -
-      new Date(b.track.startDate).getTime()
-    );
-  });
+    });
+  }, [tracks, filter]);
 
-  // Default sort splits naturally: in-progress get the visual weight of the
-  // poster grid, upcoming collapse into a typographic list below. Other sorts
-  // (name / start) keep the uniform poster grid since the split would mix
-  // alphabetically/chronologically and feel arbitrary.
-  const useSplit = sortKey === "status";
-  const inProgress = useSplit ? sorted.filter((t) => t.started) : [];
-  const upcoming = useSplit ? sorted.filter((t) => !t.started) : [];
-  const flatGrid = useSplit ? [] : sorted;
+  const FILTERS: { key: FilterKey; label: string }[] = [
+    { key: "all", label: "All" },
+    { key: "in-progress", label: "In progress" },
+    { key: "upcoming", label: "Upcoming" },
+  ];
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <p className="text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
           Your tracks
         </p>
         <div className="flex items-center gap-1">
-          {SORT_OPTIONS.map((opt) => (
-            <button
-              key={opt.key}
-              type="button"
-              onClick={() => setSortKey(opt.key)}
-              className={`rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
-                sortKey === opt.key
-                  ? "bg-ink text-white"
-                  : "text-ink-soft hover:text-ink"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
+          {FILTERS.map((opt) => {
+            const active = filter === opt.key;
+            const count = counts[opt.key];
+            return (
+              <button
+                key={opt.key}
+                type="button"
+                onClick={() => setFilter(opt.key)}
+                disabled={count === 0}
+                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
+                  active
+                    ? "bg-ink text-white"
+                    : "text-ink-soft hover:text-ink disabled:cursor-not-allowed disabled:text-ink-faint/50 disabled:hover:text-ink-faint/50"
+                }`}
+              >
+                {opt.label}
+                <span
+                  className={`tabular-nums text-[10px] font-semibold ${
+                    active ? "text-white/70" : "text-ink-faint"
+                  }`}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* In-progress tracks render as featured posters — what the student
-         opens today. */}
-      {inProgress.length > 0 && (
+      {visible.length === 0 ? (
+        <p className="rounded-xl border border-rule bg-surface-soft px-5 py-8 text-center text-sm text-ink-soft">
+          No tracks in this view.
+        </p>
+      ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {inProgress.map(({ track, started, currentWeek }) => (
-            <TrackCard
-              key={track.slug}
-              slug={track.slug}
-              name={track.name}
-              instructor={track.instructor}
-              totalWeeks={track.totalWeeks}
-              sessionsPerWeek={track.sessionsPerWeek}
-              startDate={track.startDate}
-              started={started}
-              currentWeek={currentWeek}
-              weekOneTopic={track.weekOneTopic}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Upcoming tracks collapse into a compact list — they don't compete
-         for attention against what's live this week. */}
-      {upcoming.length > 0 && (
-        <div className="border-t border-rule pt-5">
-          <p className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
-            Starting soon
-          </p>
-          <ul className="divide-y divide-rule-soft">
-            {upcoming.map(({ track }) => {
-              const startLabel = new Date(track.startDate).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-              });
-              return (
-                <li key={track.slug}>
-                  <Link
-                    href={`/dashboard/track/${track.slug}`}
-                    className="group flex items-center gap-4 py-3 transition-colors"
-                  >
-                    <span className="shrink-0 text-xs font-medium tabular-nums text-ink-faint w-16">
-                      {startLabel}
-                    </span>
-                    <span className="flex-1 min-w-0 truncate text-[15px] text-ink-soft group-hover:text-ink">
-                      {track.name}
-                    </span>
-                    <span className="hidden sm:inline text-xs text-ink-faint">
-                      with {track.instructor}
-                    </span>
-                    <ArrowRight
-                      size={13}
-                      className="shrink-0 text-ink-faint/60 transition-colors group-hover:text-ink-soft"
-                    />
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      )}
-
-      {/* Non-status sorts keep uniform poster grid. */}
-      {flatGrid.length > 0 && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {flatGrid.map(({ track, started, currentWeek }) => (
+          {visible.map(({ track, started, currentWeek }) => (
             <TrackCard
               key={track.slug}
               slug={track.slug}
