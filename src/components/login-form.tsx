@@ -26,15 +26,10 @@ export function LoginForm({ logo, programName, tagline, taglineColor, organizati
     }
     return "";
   });
-  const [error, setError] = useState(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const err = params.get("error");
-      if (err === "auth") return "Sign-in failed — please try again.";
-      if (err === "invite") return "Please use your invite link to sign in.";
-    }
-    return "";
-  });
+  // URL-borne sign-in errors are surfaced by the global AuthErrorBanner
+  // (src/components/auth-error-banner.tsx), which also reads the Supabase
+  // fragment (#error_code=otp_expired) that fetches can't see.
+  const [error, setError] = useState("");
 
   // Dev shortcut: only use the demo-cookie path when Supabase isn't configured.
   // With Supabase env vars present, even local dev should go through the real
