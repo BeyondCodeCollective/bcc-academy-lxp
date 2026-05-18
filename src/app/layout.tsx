@@ -17,6 +17,7 @@ import {
   parseTextScale,
   rootFontSizeFor,
 } from "@/lib/accessibility/scale";
+import { AuthErrorBanner } from "@/components/auth-error-banner";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -126,6 +127,7 @@ export default async function RootLayout({
         >
           Skip to main content
         </a>
+        <AuthErrorBanner />
         <div id="main-content" className="flex flex-1 flex-col">
           {children}
         </div>
