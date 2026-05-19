@@ -42,10 +42,19 @@ export async function savePublicSurveyResponse(input: {
 
   const svc = createServiceClient();
 
+  // bccacademy.io (apex) resolves to the "marketing" program in code, but
+  // marketing has no row in the programs DB table — only atg/catalyst/forge/forte
+  // do. Public surveys taken on the apex (e.g. the pre-survey at an event)
+  // are recorded against Catalyst, the umbrella program that owns the
+  // pre-survey config. Anyone hitting /survey/<id> from the apex should be
+  // able to submit without needing to be "in a program."
+  const lookupSlug =
+    input.programSlug === "marketing" ? "catalyst" : input.programSlug;
+
   const { data: programRow, error: programErr } = await svc
     .from("programs")
     .select("id")
-    .eq("slug", input.programSlug)
+    .eq("slug", lookupSlug)
     .single();
 
   if (programErr || !programRow?.id) {
