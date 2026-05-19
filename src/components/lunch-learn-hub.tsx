@@ -55,33 +55,75 @@ export async function LunchLearnHub({ isAdmin, firstName }: Props) {
           </p>
         </div>
       ) : (
-        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {recordings.map((r) => {
-            const thumbnail = r.recording_url ? getYouTubeThumbnailUrl(r.recording_url) : null;
-            const eyebrow = new Date(r.recorded_at).toLocaleDateString("en-US", {
-              month: "long",
-              day: "numeric",
-              year: "numeric",
-            });
-            return (
-              <li key={r.id}>
-                <Link
-                  href={`/dashboard/lunch-learn/${r.id}`}
-                  className="group flex h-full flex-col overflow-hidden rounded-xl border border-rule-soft bg-paper transition-colors hover:border-rule hover:bg-paper-tint-soft"
-                >
-                  <VideoPoster
-                    thumbnailUrl={thumbnail}
-                    eyebrow={eyebrow}
-                    title={r.title}
-                    subtitle={`with ${r.presenter}`}
-                    description={r.description}
-                  />
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        <YearGroupedRecordings recordings={recordings} />
       )}
+    </div>
+  );
+}
+
+type Recording = {
+  id: string;
+  title: string;
+  presenter: string;
+  recorded_at: string;
+  description: string | null;
+  recording_url: string;
+};
+
+function YearGroupedRecordings({ recordings }: { recordings: Recording[] }) {
+  // Group by recording year so a growing archive doesn't read as one
+  // unbroken wall. Sections render newest-first; within a section,
+  // recordings keep the parent's recorded_at desc ordering.
+  const byYear = new Map<number, Recording[]>();
+  for (const r of recordings) {
+    const year = new Date(r.recorded_at).getFullYear();
+    const arr = byYear.get(year) ?? [];
+    arr.push(r);
+    byYear.set(year, arr);
+  }
+  const sections = Array.from(byYear.entries()).sort((a, b) => b[0] - a[0]);
+
+  return (
+    <div className="space-y-10">
+      {sections.map(([year, items]) => (
+        <section key={year} className="space-y-4">
+          <div className="flex items-baseline justify-between">
+            <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-faint">
+              {year}
+            </h2>
+            <span className="text-xs tabular-nums text-ink-faint">
+              {items.length}
+            </span>
+          </div>
+          <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {items.map((r) => {
+              const thumbnail = r.recording_url
+                ? getYouTubeThumbnailUrl(r.recording_url)
+                : null;
+              const eyebrow = new Date(r.recorded_at).toLocaleDateString("en-US", {
+                month: "long",
+                day: "numeric",
+              });
+              return (
+                <li key={r.id}>
+                  <Link
+                    href={`/dashboard/lunch-learn/${r.id}`}
+                    className="group flex h-full flex-col overflow-hidden rounded-xl border border-rule-soft bg-paper transition-colors hover:border-rule hover:bg-paper-tint-soft"
+                  >
+                    <VideoPoster
+                      thumbnailUrl={thumbnail}
+                      eyebrow={eyebrow}
+                      title={r.title}
+                      subtitle={`with ${r.presenter}`}
+                      description={r.description}
+                    />
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ))}
     </div>
   );
 }

@@ -1,20 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import {
-  Microphone,
-  Wrench,
-  Sparkle,
-  DeviceMobile,
-  BookOpen,
-  Cloud,
-  GameController,
-  GraduationCap,
-  Certificate,
-  Buildings,
-  Compass,
-  type IconProps,
-} from "@phosphor-icons/react";
+import { toneForTrack, iconForTrack } from "@/lib/track-visual";
 
 type Props = {
   slug: string;
@@ -28,40 +15,6 @@ type Props = {
   weekOneTopic: string;
 };
 
-// Curated single-tone palette per track. Matte, editorial — no rainbow.
-// Color is deterministic per slug so each track keeps its identity across
-// sessions.
-const TRACK_TONES = [
-  "#E54D2E", // vermillion (brand)
-  "#1F1B16", // ink
-  "#2563EB", // editorial blue
-  "#15803D", // forest
-  "#B45309", // burnt amber
-  "#7C3AED", // plum
-];
-
-function toneFor(slug: string): string {
-  let h = 0;
-  for (let i = 0; i < slug.length; i++) h = (h * 31 + slug.charCodeAt(i)) | 0;
-  return TRACK_TONES[Math.abs(h) % TRACK_TONES.length];
-}
-
-// One curated Phosphor icon per track. Compass is the fallback for any
-// track slug not in the map.
-const ICON_FOR_SLUG: Record<string, React.ComponentType<IconProps>> = {
-  mass: Microphone,
-  techplus: Wrench,
-  "ai-fundamentals": Sparkle,
-  "ai-digital-natives": DeviceMobile,
-  "ai-automation-bootcamp": Sparkle,
-  "ai-literacy": BookOpen,
-  "network-plus": Cloud,
-  "endless-games-godot": GameController,
-  "foundations-ai": GraduationCap,
-  "ibm-ai-fundamentals": Certificate,
-  "salesforce-admin": Buildings,
-};
-
 export function TrackCard({
   slug,
   name,
@@ -73,8 +26,8 @@ export function TrackCard({
   currentWeek,
   weekOneTopic,
 }: Props) {
-  const tone = toneFor(slug);
-  const Icon = ICON_FOR_SLUG[slug] ?? Compass;
+  const tone = toneForTrack(slug);
+  const Icon = iconForTrack(slug);
   const startLabel = new Date(startDate).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
