@@ -13,6 +13,7 @@ import {
   X,
   Check,
   Confetti,
+  BookOpen,
 } from "@phosphor-icons/react";
 import { UserMenu } from "@/components/user-menu";
 import { AdminProgramSwitcher } from "@/components/admin-program-switcher";
@@ -106,6 +107,7 @@ export function Nav({
 
   const items: NavItem[] = [
     { href: "/dashboard", label: "Home", icon: House },
+    { href: "/dashboard/courses", label: "Courses", icon: BookOpen },
     { href: "/dashboard/workshops", label: "Workshops", icon: Confetti },
     ...(showTutor
       ? [{ href: "/dashboard/tutor", label: "AI Tutor", icon: ChatsCircle }]
