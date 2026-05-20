@@ -113,7 +113,7 @@ export function TrackGrid({ tracks }: { tracks: TrackState[] }) {
                 type="button"
                 onClick={() => setFilter(opt.key)}
                 disabled={count === 0}
-                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium transition-colors ${
                   active
                     ? "bg-ink text-white"
                     : "text-ink-soft hover:text-ink disabled:cursor-not-allowed disabled:text-ink-faint/50 disabled:hover:text-ink-faint/50"
@@ -134,7 +134,7 @@ export function TrackGrid({ tracks }: { tracks: TrackState[] }) {
       </div>
 
       {visible.length === 0 ? (
-        <p className="rounded-xl border border-rule bg-surface-soft px-5 py-8 text-center text-sm text-ink-soft">
+        <p className="border border-rule bg-surface-soft px-5 py-8 text-center text-sm text-ink-soft">
           No tracks in this view.
         </p>
       ) : showPhaseHeaders ? (
