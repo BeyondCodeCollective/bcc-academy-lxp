@@ -221,6 +221,7 @@ export default async function DashboardLayout({
       <main
         id="dashboard-main"
         className={`flex-1 bg-paper ${hasSidebar ? "md:pl-60" : ""}`}
+        style={{ fontSize: "16px" }}
       >
         {children}
       </main>
