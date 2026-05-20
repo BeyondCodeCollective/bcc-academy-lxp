@@ -68,20 +68,20 @@ export function OnboardingForm({ program, visibleTracks }: Props) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="onboarding-title"
-        className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-y-auto max-h-[90svh] animate-[fadeIn_0.3s_ease-out]"
+        className="relative w-full max-w-md bg-white shadow-2xl overflow-y-auto max-h-[90svh] animate-[fadeIn_0.3s_ease-out]"
       >
         <button
           ref={closeBtnRef}
           type="button"
           onClick={handleDismiss}
           aria-label="Dismiss welcome"
-          className="absolute top-3 right-3 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 transition-colors"
+          className="absolute top-3 right-3 z-10 inline-flex h-9 w-9 items-center justify-center text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 transition-colors"
         >
           <X size={18} />
         </button>
         <div className="p-6 sm:p-8">
           <div className="text-center mb-6">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-neutral-900 mb-4">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center bg-neutral-900 mb-4">
               <BookOpen size={28} className="text-white" />
             </div>
             <h2 id="onboarding-title" className="text-xl font-bold text-neutral-900">
@@ -96,9 +96,9 @@ export function OnboardingForm({ program, visibleTracks }: Props) {
             {visibleTracks.map((track) => (
               <div
                 key={track.slug}
-                className="flex gap-3 rounded-xl border border-neutral-200 bg-neutral-50 p-3.5"
+                className="flex gap-3 border border-rule bg-surface-soft p-3.5"
               >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-neutral-900 text-lg">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center bg-neutral-900 text-lg">
                   {track.weekSummaries[0]?.icon ?? "📚"}
                 </div>
                 <div className="min-w-0">
@@ -115,15 +115,15 @@ export function OnboardingForm({ program, visibleTracks }: Props) {
 
           <div className="space-y-2 mb-6 text-xs text-neutral-600">
             <div className="flex items-start gap-2">
-              <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-neutral-400" />
+              <span className="mt-0.5 h-1.5 w-1.5 shrink-0 bg-neutral-400" />
               <span>Tap any week card to see details, objectives, and join your session</span>
             </div>
             <div className="flex items-start gap-2">
-              <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-neutral-400" />
+              <span className="mt-0.5 h-1.5 w-1.5 shrink-0 bg-neutral-400" />
               <span>Visit <strong>Resources</strong> for instructor contacts and study materials</span>
             </div>
             <div className="flex items-start gap-2">
-              <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-neutral-400" />
+              <span className="mt-0.5 h-1.5 w-1.5 shrink-0 bg-neutral-400" />
               <span>Session recordings appear on each week&apos;s page after class</span>
             </div>
           </div>
@@ -131,7 +131,7 @@ export function OnboardingForm({ program, visibleTracks }: Props) {
           <button
             onClick={handleFinish}
             disabled={saving}
-            className="w-full rounded-xl bg-neutral-900 py-3 text-sm font-semibold text-white transition-colors hover:bg-neutral-800 active:bg-neutral-700 disabled:opacity-50"
+            className="w-full bg-neutral-900 py-3 text-sm font-semibold text-white transition-colors hover:bg-neutral-800 active:bg-neutral-700 disabled:opacity-50"
           >
             {saving ? <Spinner /> : "Let's Go"}
           </button>
