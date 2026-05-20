@@ -44,6 +44,8 @@ import type { InsightsData } from "./page";
 import type { Student } from "@/lib/types";
 import { isStorageUrl, isUploadedVideo } from "@/lib/storage-utils";
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
+import { iconForTrack, toneForTrack } from "@/lib/track-visual";
+import { Clipboard as ClipboardListIcon, Users as UsersIcon, Coffee as CoffeeIcon, ChartBar as ChartBarIcon } from "@phosphor-icons/react";
 
 const PLATFORM_SURVEY_TITLES: Record<string, string> = {
   "bcc-learner-intake": "BCC Learner Intake",
@@ -66,6 +68,7 @@ type AdminTrackConfig = {
   name: string;
   shortName: string;
   description?: string;
+  type?: string;
   totalWeeks: number;
   sessionsPerWeek: number;
   instructor: string;
@@ -439,9 +442,13 @@ export function AdminTabs({
         ...(isManager ? [{ id: "lunch-learn", label: "Lunch & Learn", icon: Coffee }] : []),
       ];
 
-  const defaultTab = isManager
-    ? "students"
-    : tracks[0]?.slug ?? "student-work";
+  // Default landing is the Admin Home picker — a grid of cards that lets
+  // the admin choose what to manage. People + Student Work + Attendance +
+  // Lunch & Learn are still reachable from the picker's secondary links
+  // (or via direct URL), they're just not the default surface anymore.
+  // Instructors with assigned tracks still land on the picker so the URL
+  // pattern stays consistent — they'll see only the tracks they teach.
+  const defaultTab = "home";
 
   const [tab, setTab] = useState<string>(initialTab || defaultTab);
 
@@ -772,6 +779,162 @@ export function AdminTabs({
           )}
         </div>
       )}
+
+      {/* Admin Home — the picker grid. Default landing when no ?tab= is set.
+         Replaces the old crowded People-tab-as-default. Click a card to go
+         into that track's per-track admin; quiet secondary links below
+         cover cross-track operations (People, Student Work, Attendance,
+         Lunch & Learn). */}
+      {tab === "home" && !isDashboardless && (() => {
+        const studentRoleIds = new Set(
+          students.filter((s) => s.role === "student").map((s) => s.id),
+        );
+        const studentCountFor = (slug: string) =>
+          enrollments.filter(
+            (e) => e.track_slug === slug && studentRoleIds.has(e.student_id),
+          ).length;
+        const now = new Date();
+
+        return (
+          <div className="space-y-8">
+            <header>
+              <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
+                Admin
+              </h1>
+              <p className="mt-1 text-sm text-neutral-500">
+                Pick a program to manage — curriculum, roster, student work, and attendance.
+              </p>
+            </header>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {tracks.map((t) => {
+                const tone = toneForTrack(t.slug);
+                const Icon = iconForTrack(t.slug);
+                const start = new Date(t.startDate);
+                const started = now >= start;
+                const currentWeek = started
+                  ? computeCurrentWeek(
+                      t.startDate,
+                      t.totalWeeks,
+                      t.lastSessionDayOffset,
+                    )
+                  : 0;
+                const status =
+                  t.type === "single-event"
+                    ? "Single session"
+                    : started
+                      ? `Week ${currentWeek} of ${t.totalWeeks}`
+                      : `Starts ${start.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+                const count = studentCountFor(t.slug);
+                return (
+                  <button
+                    key={t.slug}
+                    type="button"
+                    onClick={() => {
+                      setTab(t.slug);
+                      // Keep URL in sync so deep links + sidebar nav work.
+                      const url = new URL(window.location.href);
+                      url.searchParams.set("tab", t.slug);
+                      window.history.replaceState(null, "", url.toString());
+                    }}
+                    className="group flex h-full flex-col overflow-hidden border border-rule bg-surface-elevated text-left transition-colors hover:border-neutral-300"
+                  >
+                    <div
+                      aria-hidden
+                      className="relative flex aspect-video w-full items-center justify-center overflow-hidden"
+                      style={{ backgroundColor: `${tone}1A` }}
+                    >
+                      <Icon size={48} weight="light" color={tone} />
+                    </div>
+                    <div className="flex flex-1 flex-col p-4">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-neutral-400">
+                        {status}
+                      </p>
+                      <h3 className="mt-1.5 text-[15px] font-semibold leading-snug tracking-[-0.01em] text-neutral-900 line-clamp-2">
+                        {t.shortName || t.name}
+                      </h3>
+                      <p className="mt-1 text-[12px] text-neutral-500">
+                        with {t.instructor}
+                      </p>
+                      <p className="mt-auto pt-3 text-[12px] text-neutral-500">
+                        {count} {count === 1 ? "student" : "students"}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            <section className="space-y-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
+                Other admin tools
+              </p>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {isManager && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTab("students");
+                      const url = new URL(window.location.href);
+                      url.searchParams.set("tab", "students");
+                      window.history.replaceState(null, "", url.toString());
+                    }}
+                    className="flex items-center gap-3 border border-rule bg-surface-elevated px-4 py-3 text-left text-sm text-neutral-700 transition-colors hover:border-neutral-300 hover:text-neutral-900"
+                  >
+                    <UsersIcon size={16} weight="bold" aria-hidden />
+                    <span className="flex-1">All people</span>
+                    <span aria-hidden className="text-neutral-300">&rarr;</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTab("student-work");
+                    const url = new URL(window.location.href);
+                    url.searchParams.set("tab", "student-work");
+                    window.history.replaceState(null, "", url.toString());
+                  }}
+                  className="flex items-center gap-3 border border-rule bg-surface-elevated px-4 py-3 text-left text-sm text-neutral-700 transition-colors hover:border-neutral-300 hover:text-neutral-900"
+                >
+                  <ClipboardListIcon size={16} weight="bold" aria-hidden />
+                  <span className="flex-1">All student work</span>
+                  <span aria-hidden className="text-neutral-300">&rarr;</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTab("attendance");
+                    const url = new URL(window.location.href);
+                    url.searchParams.set("tab", "attendance");
+                    window.history.replaceState(null, "", url.toString());
+                  }}
+                  className="flex items-center gap-3 border border-rule bg-surface-elevated px-4 py-3 text-left text-sm text-neutral-700 transition-colors hover:border-neutral-300 hover:text-neutral-900"
+                >
+                  <ChartBarIcon size={16} weight="bold" aria-hidden />
+                  <span className="flex-1">Attendance</span>
+                  <span aria-hidden className="text-neutral-300">&rarr;</span>
+                </button>
+                {isManager && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTab("lunch-learn");
+                      const url = new URL(window.location.href);
+                      url.searchParams.set("tab", "lunch-learn");
+                      window.history.replaceState(null, "", url.toString());
+                    }}
+                    className="flex items-center gap-3 border border-rule bg-surface-elevated px-4 py-3 text-left text-sm text-neutral-700 transition-colors hover:border-neutral-300 hover:text-neutral-900"
+                  >
+                    <CoffeeIcon size={16} weight="bold" aria-hidden />
+                    <span className="flex-1">Lunch & Learns</span>
+                    <span aria-hidden className="text-neutral-300">&rarr;</span>
+                  </button>
+                )}
+              </div>
+            </section>
+          </div>
+        );
+      })()}
 
       {/* Track view — shows when a track is selected from the sidebar */}
       {activeTrack && (() => {
