@@ -91,9 +91,13 @@ function chunkForSpeech(text: string, maxLen = 200): string[] {
 export function ReadAloudButton({
   selector = "#main-content",
   label = "Read aloud",
+  compact = false,
+  tone = "light",
 }: {
   selector?: string;
   label?: string;
+  compact?: boolean;
+  tone?: "light" | "dark";
 }) {
   const [supported, setSupported] = useState(false);
   const [speaking, setSpeaking] = useState(false);
@@ -152,20 +156,29 @@ export function ReadAloudButton({
 
   if (!supported) return null;
 
+  const darkCls = "text-neutral-300 hover:bg-white/10 hover:text-white";
+  const lightCls = "border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50";
+  const activeDark = speaking ? "text-white" : "";
+  const activeLight = speaking ? "bg-neutral-100" : "";
+
   return (
     <button
       type="button"
       onClick={() => (speaking ? stop() : start())}
       aria-label={speaking ? "Stop reading aloud" : label}
       aria-pressed={speaking}
-      className="inline-flex items-center gap-1.5 border border-neutral-200 bg-white px-2.5 py-1.5 text-xs font-medium text-neutral-700 transition-colors hover:bg-neutral-50"
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium transition-colors ${
+        tone === "dark"
+          ? `${darkCls} ${activeDark}`
+          : `${lightCls} ${activeLight}`
+      }`}
     >
       {speaking ? (
         <Stop size={14} weight="fill" aria-hidden="true" />
       ) : (
         <SpeakerHigh size={14} weight="regular" aria-hidden="true" />
       )}
-      <span>{speaking ? "Stop" : label}</span>
+      {!compact && <span>{speaking ? "Stop" : label}</span>}
     </button>
   );
 }
