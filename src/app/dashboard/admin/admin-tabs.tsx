@@ -464,7 +464,7 @@ export function AdminTabs({
 
   const [students, setStudents] = useState(initialStudents);
   const [expandedWeek, setExpandedWeek] = useState<number | null>(null);
-  const [trackView, setTrackView] = useState<"overview" | "curriculum" | "people" | "student-work" | "insights">("overview");
+  const [trackView, setTrackView] = useState<"overview" | "curriculum" | "student-work" | "insights">("overview");
   const [studentSaving, setStudentSaving] = useState<string | null>(null);
 
   // Track data: keyed by track slug
@@ -620,9 +620,6 @@ export function AdminTabs({
   const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
   const [bulkSaving, setBulkSaving] = useState(false);
 
-  // Unified People-tab UI state
-  const [peopleSearch, setPeopleSearch] = useState("");
-  const [peopleRoleFilter, setPeopleRoleFilter] = useState<"all" | "student" | "instructor" | "admin">("all");
   const [showBulkAssign, setShowBulkAssign] = useState(false);
 
   async function updateStudent(id: string, field: "role" | "cohort_id", value: string) {
@@ -974,7 +971,6 @@ export function AdminTabs({
             {[
               { id: "overview" as const, label: "Overview" },
               { id: "curriculum" as const, label: "Curriculum" },
-              ...(isManager ? [{ id: "people" as const, label: "People" }] : []),
               { id: "student-work" as const, label: "Student Work" },
               { id: "insights" as const, label: "Insights" },
             ].map((v) => (
@@ -1164,72 +1160,6 @@ export function AdminTabs({
           })}
         </div>
       )}
-
-          {/* People sub-view — scoped to this track */}
-          {trackView === "people" && isManager && (() => {
-            const trackOnlyStudents = trackStudents.filter((s) => s.role === "student");
-            return (
-              <div className="space-y-3">
-                <p className="text-sm text-neutral-500">
-                  {trackOnlyStudents.length} student{trackOnlyStudents.length !== 1 ? "s" : ""} enrolled in {activeTrack.shortName}
-                </p>
-                {trackOnlyStudents.length === 0 ? (
-                  <p className="border border-rule bg-surface-elevated p-4 text-sm text-neutral-400">
-                    No students enrolled yet.
-                  </p>
-                ) : (
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                    {trackOnlyStudents.map((s) => {
-                      const score = engagementScores[s.id];
-                      const scoreColor = !score
-                        ? ""
-                        : score.total >= 60
-                          ? "bg-green-500"
-                          : score.total >= 30
-                            ? "bg-amber-500"
-                            : "bg-red-500";
-                      return (
-                        <div
-                          key={s.id}
-                          className="border border-rule bg-surface-elevated p-4"
-                        >
-                          <div className="flex items-start gap-3">
-                            <Avatar
-                              firstName={s.first_name}
-                              lastName={s.last_name}
-                              email={s.email}
-                              size="md"
-                            />
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-1.5">
-                                {scoreColor && (
-                                  <span
-                                    className={`h-2 w-2 shrink-0 rounded-full ${scoreColor}`}
-                                    title={`Engagement: ${score?.total ?? 0}/100`}
-                                  />
-                                )}
-                                <p className="text-sm font-semibold text-neutral-900 truncate">
-                                  {s.first_name && s.last_name ? `${s.first_name} ${s.last_name}` : s.email}
-                                </p>
-                              </div>
-                              <p className="mt-0.5 truncate text-xs text-neutral-500">{s.email}</p>
-                            </div>
-                          </div>
-                          {score && (
-                            <div className="mt-3 flex items-center gap-3 text-[11px] text-neutral-400">
-                              <span>{score.attendance} sessions</span>
-                              <span>{score.submissions} submissions</span>
-                              <span>{score.reflections} reflections</span>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })()}
 
           {/* Student Work sub-view — scoped to this track */}
           {trackView === "student-work" && (
