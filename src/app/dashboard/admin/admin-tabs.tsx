@@ -1164,21 +1164,62 @@ export function AdminTabs({
 
       {/* Standalone Student Work (from sidebar, all tracks) */}
       {tab === "student-work" && (
-        <StudentWorkTab tracks={tracks} programSlug={programSlug} />
+        <div className="space-y-6">
+          <Link
+            href="/dashboard/admin"
+            className="inline-flex items-center gap-1.5 text-[11px] font-medium text-neutral-400 transition-colors hover:text-neutral-700"
+          >
+            <ArrowLeftIcon size={11} weight="bold" aria-hidden />
+            Admin
+          </Link>
+          <header>
+            <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
+              Student Work
+            </h1>
+            <p className="mt-1 text-sm text-neutral-500">
+              Submissions and reflections across all tracks
+            </p>
+          </header>
+          <StudentWorkTab tracks={tracks} programSlug={programSlug} />
+        </div>
       )}
 
       {/* Standalone Analytics (from sidebar, all tracks) */}
       {tab === "attendance" && (
-        <AttendanceTab
-          students={students.filter((s) => s.role === "student")}
-          tracks={tracks}
-          scopeLabel="All tracks"
-        />
+        <div className="space-y-6">
+          <Link
+            href="/dashboard/admin"
+            className="inline-flex items-center gap-1.5 text-[11px] font-medium text-neutral-400 transition-colors hover:text-neutral-700"
+          >
+            <ArrowLeftIcon size={11} weight="bold" aria-hidden />
+            Admin
+          </Link>
+          <header>
+            <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
+              Attendance
+            </h1>
+            <p className="mt-1 text-sm text-neutral-500">
+              Attendance and engagement across all tracks
+            </p>
+          </header>
+          <AttendanceTab
+            students={students.filter((s) => s.role === "student")}
+            tracks={tracks}
+            scopeLabel="All tracks"
+          />
+        </div>
       )}
 
       {/* Lunch & Learn management */}
       {tab === "lunch-learn" && (
         <div className="space-y-6">
+          <Link
+            href="/dashboard/admin"
+            className="inline-flex items-center gap-1.5 text-[11px] font-medium text-neutral-400 transition-colors hover:text-neutral-700"
+          >
+            <ArrowLeftIcon size={11} weight="bold" aria-hidden />
+            Admin
+          </Link>
           <header>
             <h1 className="text-3xl font-bold text-neutral-900 tracking-tight">
               Lunch &amp; Learns
@@ -1734,7 +1775,14 @@ function PeopleTab({
   const instructorCount = students.filter((s) => s.role === "instructor").length;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      <Link
+        href="/dashboard/admin"
+        className="inline-flex items-center gap-1.5 text-[11px] font-medium text-neutral-400 transition-colors hover:text-neutral-700"
+      >
+        <ArrowLeftIcon size={11} weight="bold" aria-hidden />
+        Admin
+      </Link>
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
