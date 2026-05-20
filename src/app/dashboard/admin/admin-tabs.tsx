@@ -453,10 +453,7 @@ export function AdminTabs({
     if (next !== tab) setTab(next);
   }, [initialTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const [cohort, setCohort] = useState(cohorts[0] || null);
   const [students, setStudents] = useState(initialStudents);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [expandedWeek, setExpandedWeek] = useState<number | null>(null);
   const [trackView, setTrackView] = useState<"overview" | "curriculum" | "people" | "student-work" | "insights">("overview");
   const [studentSaving, setStudentSaving] = useState<string | null>(null);
@@ -628,25 +625,6 @@ export function AdminTabs({
       scheduleSave(trackSlug, weekNum, week);
       return { ...prev, [trackSlug]: updated };
     });
-  }
-
-  // ── Cohort save ──────────────────────────────────────────────────────────
-
-  async function saveCohort() {
-    if (!cohort) return;
-    setSaving(true);
-    try {
-      await updateCohortAction(cohort.id, {
-        display_name: cohort.display_name ?? undefined,
-        start_date: cohort.start_date,
-        total_weeks: cohort.total_weeks,
-      });
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    } catch (e) {
-      console.error("Failed to save cohort:", e);
-    }
-    setSaving(false);
   }
 
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
@@ -1023,122 +1001,9 @@ export function AdminTabs({
             </div>
           </section>
 
-          {/* Survey Stats */}
-          {surveyConfigs.length > 0 && (
-            <div>
-              <h2 className="text-lg font-semibold text-neutral-900 mb-4">Surveys</h2>
-              <div className="space-y-3">
-                {surveyConfigs.map((survey) => {
-                  const stats = surveyStats[survey.id] ?? [];
-                  const completed = stats.filter((s) => s.completed_at).length;
-                  const totalStudents = students.filter((s) => s.role === "student").length;
-                  const pct = totalStudents > 0 ? Math.round((completed / totalStudents) * 100) : 0;
-
-                  const completedStats = stats.filter((s) => s.completed_at);
-                  return (
-                    <SurveyCard
-                      key={survey.id}
-                      title={survey.title}
-                      completed={completed}
-                      totalStudents={totalStudents}
-                      pct={pct}
-                      previewHref={`/dashboard/survey/${survey.id}`}
-                      onExport={async () => {
-                        const data = await exportSurveyResponses(programSlug, survey.id);
-                        if (data.length === 0) return;
-                        const allKeys = new Set<string>();
-                        data.forEach((row) => { Object.keys(row.responses).forEach((k) => allKeys.add(k)); });
-                        const headers = ["Name", "Email", "Completed At", ...Array.from(allKeys)];
-                        const rows = data.map((row) => [
-                          row.student_name, row.email, row.completed_at ?? "",
-                          ...Array.from(allKeys).map((k) => {
-                            const val = row.responses[k];
-                            if (Array.isArray(val)) return val.join("; ");
-                            if (typeof val === "object" && val !== null) return Object.entries(val).map(([s, a]) => {
-                              if (typeof a === "object" && a !== null) { const r2 = a as Record<string, string>; return `${s}: before ${r2.before ?? ""} now ${r2.now ?? ""}`; }
-                              return `${s}: ${String(a)}`;
-                            }).join("; ");
-                            return String(val ?? "");
-                          }),
-                        ]);
-                        downloadCsv([headers, ...rows], `${survey.id}-responses.csv`);
-                      }}
-                      responses={completedStats.map((s) => {
-                        const student = students.find((st) => st.id === s.student_id);
-                        return {
-                          id: s.student_id,
-                          label: student ? (student.first_name && student.last_name ? `${student.first_name} ${student.last_name}` : student.email) : s.student_id,
-                          sublabel: student?.email ?? "",
-                          completedAt: s.completed_at,
-                        };
-                      })}
-                      onDelete={async (id) => {
-                        await deleteSurveyResponse(id, survey.id, programSlug);
-                      }}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Cohort settings — collapsible, demoted from the top */}
-          <details className="group border border-rule bg-surface-elevated">
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-2 p-4 text-sm font-semibold text-neutral-900">
-              <span>Cohort settings</span>
-              <ChevronDown
-                size={14}
-                className="text-neutral-400 transition-transform group-open:rotate-180"
-              />
-            </summary>
-            <div className="space-y-4 border-t border-neutral-100 p-4">
-              {cohort ? (
-                <>
-                  <div>
-                    <label className="text-xs font-medium text-neutral-500">Display Name</label>
-                    <input
-                      type="text"
-                      value={cohort.display_name || ""}
-                      onChange={(e) => setCohort({ ...cohort, display_name: e.target.value })}
-                      className="mt-1 w-full border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
-                    />
-                  </div>
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
-                    <div>
-                      <label className="text-xs font-medium text-neutral-500">Start Date</label>
-                      <input
-                        type="date"
-                        value={cohort.start_date}
-                        onChange={(e) => setCohort({ ...cohort, start_date: e.target.value })}
-                        className="mt-1 w-full border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-neutral-500">Total Weeks</label>
-                      <input
-                        type="number"
-                        value={cohort.total_weeks}
-                        min={1}
-                        onChange={(e) => setCohort({ ...cohort, total_weeks: parseInt(e.target.value) || 1 })}
-                        className="mt-1 w-full border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-                  <button
-                    onClick={saveCohort}
-                    disabled={saving}
-                    className="inline-flex items-center gap-2 bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800 disabled:opacity-50"
-                  >
-                    {saved ? <><Check size={14} /> Saved</> : saving ? "Saving..." : <><Save size={14} /> Save Changes</>}
-                  </button>
-                </>
-              ) : (
-                <p className="text-sm text-neutral-500">
-                  No cohort has been created yet for this program. A cohort is seeded automatically when the first student enrolls.
-                </p>
-              )}
-            </div>
-          </details>
+          {/* Per-program survey management has moved to Survey Insights
+             (tab="insights"). The Overview tab now reads as a snapshot,
+             not a control panel. */}
 
         </div>
         );
@@ -2004,10 +1869,11 @@ export function AdminTabs({
         </div>
       )}
 
-      {/* Survey Insights — cross-program survey dashboard. Super-admin only;
-         insightsData is null otherwise. The bare /dashboard/insights route
-         hosts the broader analytics dashboard (engagement, attendance,
-         alumni); this tab is specifically the survey-response viewer. */}
+      {/* Survey Insights — per-program survey management + cross-program
+         response viewer. The Overview tab used to host the Pre/Post survey
+         cards too; they were noisy there and properly belong here next to
+         the response data. The bare /dashboard/insights route hosts the
+         broader operational dashboard (engagement, attendance, alumni). */}
       {tab === "insights" && (
         <div className="space-y-6">
           <header>
@@ -2015,9 +1881,67 @@ export function AdminTabs({
               Survey Insights
             </h1>
             <p className="mt-1 text-xs text-neutral-500">
-              Cross-program survey responses
+              Per-program survey management and cross-program responses
             </p>
           </header>
+
+          {surveyConfigs.length > 0 && (
+            <section className="space-y-3">
+              <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
+                {programSlug === "catalyst" ? "Catalyst" : "Program"} surveys
+              </h2>
+              {surveyConfigs.map((survey) => {
+                const stats = surveyStats[survey.id] ?? [];
+                const completed = stats.filter((s) => s.completed_at).length;
+                const totalStudents = students.filter((s) => s.role === "student").length;
+                const pct = totalStudents > 0 ? Math.round((completed / totalStudents) * 100) : 0;
+                const completedStats = stats.filter((s) => s.completed_at);
+                return (
+                  <SurveyCard
+                    key={survey.id}
+                    title={survey.title}
+                    completed={completed}
+                    totalStudents={totalStudents}
+                    pct={pct}
+                    previewHref={`/dashboard/survey/${survey.id}`}
+                    onExport={async () => {
+                      const data = await exportSurveyResponses(programSlug, survey.id);
+                      if (data.length === 0) return;
+                      const allKeys = new Set<string>();
+                      data.forEach((row) => { Object.keys(row.responses).forEach((k) => allKeys.add(k)); });
+                      const headers = ["Name", "Email", "Completed At", ...Array.from(allKeys)];
+                      const rows = data.map((row) => [
+                        row.student_name, row.email, row.completed_at ?? "",
+                        ...Array.from(allKeys).map((k) => {
+                          const val = row.responses[k];
+                          if (Array.isArray(val)) return val.join("; ");
+                          if (typeof val === "object" && val !== null) return Object.entries(val).map(([s, a]) => {
+                            if (typeof a === "object" && a !== null) { const r2 = a as Record<string, string>; return `${s}: before ${r2.before ?? ""} now ${r2.now ?? ""}`; }
+                            return `${s}: ${String(a)}`;
+                          }).join("; ");
+                          return String(val ?? "");
+                        }),
+                      ]);
+                      downloadCsv([headers, ...rows], `${survey.id}-responses.csv`);
+                    }}
+                    responses={completedStats.map((s) => {
+                      const student = students.find((st) => st.id === s.student_id);
+                      return {
+                        id: s.student_id,
+                        label: student ? (student.first_name && student.last_name ? `${student.first_name} ${student.last_name}` : student.email) : s.student_id,
+                        sublabel: student?.email ?? "",
+                        completedAt: s.completed_at,
+                      };
+                    })}
+                    onDelete={async (id) => {
+                      await deleteSurveyResponse(id, survey.id, programSlug);
+                    }}
+                  />
+                );
+              })}
+            </section>
+          )}
+
           {insightsData ? (
             <InsightsDashboard
               sections={insightsData.sections}
