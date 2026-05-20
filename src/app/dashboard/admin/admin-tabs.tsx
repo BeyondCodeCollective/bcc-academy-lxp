@@ -744,6 +744,35 @@ export function AdminTabs({
       <div className="flex flex-col">
       <div className="min-w-0 flex-1">
 
+      {/* Dashboardless programs (marketing apex with no tracks) have nothing
+         per-track to show. Surface the next useful destinations instead. */}
+      {isDashboardless && (
+        <div className="space-y-4">
+          <header>
+            <p className="text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
+              Admin
+            </p>
+            <h1 className="mt-1 text-3xl font-bold tracking-tight text-neutral-900">
+              No program selected
+            </h1>
+            <p className="mt-1 text-sm text-neutral-500">
+              {canSwitchPrograms(userRole)
+                ? "This domain doesn't have a learner dashboard. Pick a program from the sidebar to manage its tracks, or open Insights for cross-program analytics."
+                : "This domain doesn't have a learner dashboard. Contact a super-admin to switch programs."}
+            </p>
+          </header>
+          {canSwitchPrograms(userRole) && (
+            <a
+              href="/dashboard/insights"
+              className="inline-flex items-center gap-2 bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800"
+            >
+              View Insights
+              <span aria-hidden>&rarr;</span>
+            </a>
+          )}
+        </div>
+      )}
+
       {/* Track view — shows when a track is selected from the sidebar */}
       {activeTrack && (() => {
         // Count only role=student enrollments. The raw student_tracks rows
