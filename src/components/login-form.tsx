@@ -110,7 +110,7 @@ export function LoginForm({ logo, programName, tagline, taglineColor, organizati
 
       <div className="relative z-10 w-full max-w-sm animate-[fadeIn_0.4s_ease-out]">
         {/* Card */}
-        <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
+        <div className="overflow-hidden border border-rule bg-surface-elevated shadow-sm">
           {/* Logo banner */}
           <div className="bg-neutral-900 px-6 py-7 flex flex-col items-center gap-2.5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -195,7 +195,7 @@ export function LoginForm({ logo, programName, tagline, taglineColor, organizati
                       onChange={(e) => setEmail(e.target.value)}
                       required
                       autoComplete="email"
-                      className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3.5 py-3 text-base text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900 focus:bg-white focus:ring-1 focus:ring-neutral-900 focus:outline-none transition-all"
+                      className="w-full border border-neutral-200 bg-neutral-50 px-3.5 py-3 text-base text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900 focus:bg-white focus:ring-1 focus:ring-neutral-900 focus:outline-none transition-all"
                     />
                   </div>
 
@@ -203,7 +203,7 @@ export function LoginForm({ logo, programName, tagline, taglineColor, organizati
                     <p
                       role="alert"
                       aria-live="polite"
-                      className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+                      className="border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
                     >
                       {error}
                     </p>
@@ -212,7 +212,7 @@ export function LoginForm({ logo, programName, tagline, taglineColor, organizati
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full rounded-lg bg-neutral-900 px-4 py-3 text-base font-medium text-white transition-colors hover:bg-neutral-800 active:bg-neutral-950 disabled:opacity-50"
+                    className="w-full bg-neutral-900 px-4 py-3 text-base font-medium text-white transition-colors hover:bg-neutral-800 active:bg-neutral-950 disabled:opacity-50"
                   >
                     {loading ? (
                       <span className="flex items-center justify-center gap-2">

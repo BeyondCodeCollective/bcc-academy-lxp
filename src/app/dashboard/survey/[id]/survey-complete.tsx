@@ -7,7 +7,7 @@ export function SurveyComplete() {
   const router = useRouter();
 
   return (
-    <div className="rounded-2xl border border-neutral-200 bg-white p-8 sm:p-12 text-center">
+    <div className="border border-rule bg-surface-elevated p-8 sm:p-12 text-center">
       <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-100 mb-6">
         <Check size={28} className="text-green-600" />
       </div>
@@ -20,7 +20,7 @@ export function SurveyComplete() {
       </p>
       <button
         onClick={() => router.push("/dashboard")}
-        className="inline-flex items-center gap-2 rounded-xl bg-neutral-900 px-6 py-3 text-sm font-semibold text-white hover:bg-neutral-800 transition-colors"
+        className="inline-flex items-center gap-2 bg-neutral-900 px-6 py-3 text-sm font-semibold text-white hover:bg-neutral-800 transition-colors"
       >
         Back to Dashboard
       </button>

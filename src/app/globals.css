@@ -3,33 +3,32 @@
 :root {
   /* ─── Surface system ──────────────────────────────────────────────────
      One source of truth for "what color is the page / card / subtle card."
-     Body default is warm cream (paper), per .impeccable.md — never pure
-     white. White is reserved for elevated cards that need to pop on cream.
+     Clean neutral palette with BCC cobalt primary.
      ─────────────────────────────────────────────────────────────────── */
-  --background: #F7F4EE;          /* page body — warm cream (was: #ffffff) */
-  --surface-elevated: #ffffff;    /* cards that pop on cream */
-  --surface-soft: #FBFAF6;        /* subtle near-cream surfaces */
-  --foreground: #111111;
-  --primary: #2E75B6;
-  --primary-hover: #245d94;
-  --accent: #D4A843;
-  --cream: #fdf5de;
-  --muted: #6b7280;
-  --muted-bg: #f3f4f6;
-  --border: #e5e7eb;
+  --background: #f5f5f7;          /* page body — clean light neutral */
+  --surface-elevated: #ffffff;    /* cards that pop on neutral */
+  --surface-soft: #f0f0f2;        /* subtle near-white surfaces */
+  --foreground: #1a1a1a;
+  --primary: #1D59FF;
+  --primary-hover: #1448CC;
+  --accent: #E54D2E;
+  --cream: #f5f5f7;
+  --muted: #888888;
+  --muted-bg: #ebebed;
+  --border: #e5e5e5;
 
   /* Editorial palette — used by the dashboard surfaces. Matches the
      Survey Insights design language so the in-app shell reads as one
      coherent product instead of a stack of differently-toned screens.
      --paper aliases --background to keep the existing utility class. */
-  --paper: #F7F4EE;
-  --paper-tint: #EFEAE0;
-  --paper-tint-soft: #F2EDE0;
-  --ink: #1F1B16;
-  --ink-soft: #6B6258;
-  --ink-faint: #9B9388;
-  --rule: #E7E1D2;
-  --rule-soft: #EFEAE0;
+  --paper: #f5f5f7;
+  --paper-tint: #ebebed;
+  --paper-tint-soft: #f0f0f2;
+  --ink: #1a1a1a;
+  --ink-soft: #555555;
+  --ink-faint: #888888;
+  --rule: #e5e5e5;
+  --rule-soft: #eeeeee;
 }
 
 .scrollbar-hide {

@@ -104,11 +104,11 @@ export function SubmissionForm({
   const hasContent = description.trim() || links.some((l) => l.url.trim()) || files.length > 0;
 
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white">
+    <div className="border border-rule bg-surface-elevated">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between p-4 sm:p-6 text-left hover:bg-neutral-50 transition-colors rounded-xl"
+        className="flex w-full items-center justify-between p-4 sm:p-6 text-left hover:bg-neutral-50 transition-colors"
       >
         <div className="flex items-center gap-2">
           <Upload size={14} className="text-neutral-400" />
@@ -142,7 +142,7 @@ export function SubmissionForm({
           onChange={(e) => { setDescription(e.target.value); setSaved(false); }}
           placeholder="Describe what you worked on this week..."
           rows={3}
-          className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900 focus:outline-none resize-none"
+          className="w-full border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900 focus:outline-none resize-none"
         />
       </div>
 
@@ -171,14 +171,14 @@ export function SubmissionForm({
                 value={link.url}
                 onChange={(e) => updateLink(i, "url", e.target.value)}
                 placeholder="https://..."
-                className="flex-1 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
+                className="flex-1 border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
               />
               <input
                 type="text"
                 value={link.label}
                 onChange={(e) => updateLink(i, "label", e.target.value)}
                 placeholder="Label (optional)"
-                className="w-32 sm:w-40 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
+                className="w-32 sm:w-40 border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
               />
               <button
                 type="button"
@@ -218,7 +218,7 @@ export function SubmissionForm({
           {files.map((file, i) => (
             <div
               key={i}
-              className="flex items-center gap-2 rounded-lg border border-neutral-100 bg-neutral-50 px-3 py-2"
+              className="flex items-center gap-2 border border-neutral-100 bg-neutral-50 px-3 py-2"
             >
               <FileText size={14} className="text-neutral-400 shrink-0" />
               <a
@@ -248,7 +248,7 @@ export function SubmissionForm({
       <button
         onClick={handleSubmit}
         disabled={saving || !hasContent}
-        className="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
+        className="inline-flex items-center gap-2 bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
       >
         {saving ? (
           <><Loader2 size={14} className="animate-spin" /> Saving...</>
@@ -271,7 +271,7 @@ export function SubmissionForm({
           {feedback.map((fb) => (
             <div
               key={fb.id}
-              className="rounded-lg border border-neutral-100 bg-neutral-50 p-3"
+              className="border border-neutral-100 bg-neutral-50 p-3"
             >
               <p className="text-sm text-neutral-700">{fb.comment}</p>
               <p className="text-[11px] text-neutral-400 mt-1">

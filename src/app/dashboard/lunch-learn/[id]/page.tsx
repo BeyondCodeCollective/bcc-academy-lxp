@@ -62,7 +62,7 @@ export default async function LunchLearnDetailPage({
       </header>
 
       {embedUrl ? (
-        <div className="relative w-full overflow-hidden rounded-xl bg-ink" style={{ aspectRatio: "16 / 9" }}>
+        <div className="relative w-full overflow-hidden bg-ink" style={{ aspectRatio: "16 / 9" }}>
           <iframe
             src={embedUrl}
             allow="autoplay; fullscreen"
@@ -72,7 +72,7 @@ export default async function LunchLearnDetailPage({
           />
         </div>
       ) : (
-        <div className="rounded-xl border border-rule-soft bg-paper-tint-soft p-6 text-center">
+        <div className="border border-rule-soft bg-paper-tint-soft p-6 text-center">
           <p className="text-[14px] text-ink-soft">
             This recording can&rsquo;t be embedded.
           </p>
@@ -80,7 +80,7 @@ export default async function LunchLearnDetailPage({
             href={recording.recording_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-ink text-paper text-[13px] font-semibold px-4 py-2.5 transition-colors hover:bg-ink-soft"
+            className="mt-3 inline-flex items-center gap-1.5 bg-ink text-paper text-[13px] font-semibold px-4 py-2.5 transition-colors hover:bg-ink-soft"
           >
             Open in Google Drive
           </a>

@@ -10,7 +10,7 @@ function TrackSkeleton({ weeks = 8 }: { weeks?: number }) {
         {Array.from({ length: weeks }).map((_, i) => (
           <div
             key={i}
-            className="flex flex-col items-center rounded-xl border border-neutral-100 bg-neutral-50 p-3 sm:p-5"
+            className="flex flex-col items-center border border-neutral-100 bg-neutral-50 p-3 sm:p-5"
           >
             <div className="h-11 w-11 sm:h-14 sm:w-14 rounded-full bg-neutral-200" />
             <div className="mt-2 h-3 w-16 rounded bg-neutral-200" />
@@ -32,7 +32,7 @@ export function DashboardSkeleton() {
       </div>
 
       {/* Progress bar */}
-      <div className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
+      <div className="border border-rule bg-surface-elevated p-4 sm:p-5">
         <div className="flex items-center justify-between mb-3">
           <div>
             <div className="h-4 w-24 rounded bg-neutral-200" />

@@ -117,12 +117,12 @@ export function TrackInsightsSection({
       </div>
 
       {/* Reflections per week */}
-      <div className="rounded-xl border border-neutral-200 bg-white p-5">
+      <div className="border border-rule bg-surface-elevated p-5">
         <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400 mb-4">
           Reflections by week
         </p>
         {loading || reflectionsByWeek === null ? (
-          <div className="h-20 animate-pulse rounded-lg bg-neutral-100" />
+          <div className="h-20 animate-pulse bg-neutral-100" />
         ) : reflectionsByWeek.every((w) => w.count === 0) ? (
           <p className="text-sm text-neutral-500">
             No reflections submitted yet for this track.
@@ -136,7 +136,7 @@ export function TrackInsightsSection({
               return (
                 <div
                   key={w.week}
-                  className="flex flex-col items-center rounded-lg border border-neutral-100 bg-neutral-50 p-3 text-center"
+                  className="flex flex-col items-center border border-neutral-100 bg-neutral-50 p-3 text-center"
                 >
                   <p className="text-[10px] font-medium uppercase tracking-wider text-neutral-400">
                     Wk {w.week}
@@ -157,12 +157,12 @@ export function TrackInsightsSection({
       </div>
 
       {/* Survey response counts */}
-      <div className="rounded-xl border border-neutral-200 bg-white p-5">
+      <div className="border border-rule bg-surface-elevated p-5">
         <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400 mb-4">
           Survey responses
         </p>
         {loading || surveyCounts === null ? (
-          <div className="h-20 animate-pulse rounded-lg bg-neutral-100" />
+          <div className="h-20 animate-pulse bg-neutral-100" />
         ) : surveyCounts.length === 0 ? (
           <p className="text-sm text-neutral-500">No surveys configured.</p>
         ) : (

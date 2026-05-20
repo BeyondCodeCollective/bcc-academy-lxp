@@ -57,7 +57,7 @@ export default async function WorkshopDetailPage({
       <header className="space-y-5">
         <div
           aria-hidden
-          className="flex aspect-[16/7] w-full items-center justify-center overflow-hidden rounded-xl"
+          className="flex aspect-[16/7] w-full items-center justify-center overflow-hidden"
           style={{ backgroundColor: `${workshop.tone}1A` }}
         >
           <Icon size={72} weight="light" color={workshop.tone} />
@@ -134,7 +134,7 @@ export default async function WorkshopDetailPage({
 
       {/* Capstone */}
       {workshop.capstone && (
-        <section className="rounded-xl border border-neutral-200 bg-white p-5 space-y-2">
+        <section className="border border-rule bg-surface-elevated p-5 space-y-2">
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-400">
             Capstone
           </p>
@@ -212,7 +212,7 @@ export default async function WorkshopDetailPage({
       </div>
 
       {workshop.credentialName && (
-        <section className="rounded-xl border border-neutral-200 bg-neutral-50 p-5">
+        <section className="border border-rule bg-surface-soft p-5">
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-400">
             Credential earned
           </p>
@@ -235,7 +235,7 @@ function Fact({
   value: string;
 }) {
   return (
-    <div className="space-y-1 rounded-xl border border-neutral-200 bg-white p-3">
+    <div className="space-y-1 border border-rule bg-surface-elevated p-3">
       <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-neutral-400">
         <Icon size={11} weight="bold" aria-hidden />
         {label}

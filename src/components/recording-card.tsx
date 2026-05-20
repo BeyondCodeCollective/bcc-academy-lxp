@@ -35,7 +35,7 @@ export function RecordingCard({
   const isVideoFile = isUploadedRecording(url);
 
   return (
-    <div className="mb-4 overflow-hidden rounded-xl border border-neutral-200 bg-white">
+    <div className="mb-4 overflow-hidden border border-rule bg-surface-elevated">
       <div className="flex items-center justify-between gap-2 px-4 sm:px-5 pt-4 pb-3">
         <div className="flex items-center gap-2 min-w-0">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-50">
@@ -83,7 +83,7 @@ export function RecordingCard({
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-neutral-900 text-white text-xs font-semibold px-4 py-2.5 transition-colors hover:bg-neutral-700"
+            className="mt-3 inline-flex items-center gap-1.5 bg-neutral-900 text-white text-xs font-semibold px-4 py-2.5 transition-colors hover:bg-neutral-700"
           >
             Open recording
           </a>

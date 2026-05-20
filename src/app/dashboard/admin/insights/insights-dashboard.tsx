@@ -86,7 +86,7 @@ export function InsightsDashboard({
 
   if (sections.length === 0) {
     return (
-      <div className="rounded-xl border border-neutral-200 bg-white p-8 text-center">
+      <div className="border border-rule bg-surface-elevated p-8 text-center">
         <p className="text-sm text-neutral-500">
           No survey responses yet. Once a cohort starts answering, this page
           will come alive.
@@ -109,7 +109,7 @@ export function InsightsDashboard({
         <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400">
           Responses — last 8 weeks
         </p>
-        <div className="rounded-xl border border-neutral-200 bg-white p-4">
+        <div className="border border-rule bg-surface-elevated p-4">
           <Timeline responses={allResponses} />
         </div>
       </section>
@@ -126,7 +126,7 @@ export function InsightsDashboard({
               type="button"
               onClick={() => row.hasSchema && selectSurvey(row.id)}
               disabled={!row.hasSchema}
-              className={`group rounded-xl border bg-white p-4 text-left transition-all ${
+              className={`group border bg-surface-elevated p-4 text-left transition-all ${
                 activeId === row.id
                   ? "border-neutral-900 ring-1 ring-neutral-900"
                   : row.hasSchema
@@ -221,7 +221,7 @@ export function InsightsDashboard({
 
 function StatCard({ value, label }: { value: number; label: string }) {
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-4">
+    <div className="border border-rule bg-surface-elevated p-4">
       <p className="text-3xl font-bold tabular-nums text-neutral-900">
         {value.toLocaleString()}
       </p>

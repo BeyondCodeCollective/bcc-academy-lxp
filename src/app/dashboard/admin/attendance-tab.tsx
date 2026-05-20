@@ -276,7 +276,7 @@ export function AttendanceTab({ students, tracks, scopeLabel }: AttendanceTabPro
 
   if (tracks.length === 0) {
     return (
-      <div className="rounded-xl border border-rule bg-surface-elevated p-8 text-center">
+      <div className="border border-rule bg-surface-elevated p-8 text-center">
         <p className="text-sm text-ink-soft">
           No tracks configured for this view. Attendance lights up once a track
           is added.
@@ -451,7 +451,7 @@ function OverviewPanel({
 
   if (loading) {
     return (
-      <div className="rounded-xl border border-rule bg-surface-elevated p-8 text-center text-sm text-ink-soft">
+      <div className="border border-rule bg-surface-elevated p-8 text-center text-sm text-ink-soft">
         Loading attendance…
       </div>
     );
@@ -485,7 +485,7 @@ function OverviewPanel({
       </p>
 
       {/* Per-track weekly trend — one row per track, no hardcoded pair. */}
-      <section className="rounded-xl border border-rule bg-surface-elevated p-4 sm:p-5">
+      <section className="border border-rule bg-surface-elevated p-4 sm:p-5">
         <div className="mb-4 flex items-center gap-2">
           <BarChart3 size={14} className="text-ink-faint" />
           <h3 className="text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
@@ -669,7 +669,7 @@ function MarkPanel({
 
   if (loading) {
     return (
-      <div className="rounded-xl border border-rule bg-surface-elevated p-8 text-center text-sm text-ink-soft">
+      <div className="border border-rule bg-surface-elevated p-8 text-center text-sm text-ink-soft">
         Loading attendance…
       </div>
     );
@@ -677,7 +677,7 @@ function MarkPanel({
 
   if (startedTracks.length === 0) {
     return (
-      <div className="rounded-xl border border-rule bg-surface-elevated p-8 text-center">
+      <div className="border border-rule bg-surface-elevated p-8 text-center">
         <p className="text-sm text-ink-soft">
           No tracks have started yet. Marking lights up on each track&apos;s start
           date.
@@ -815,7 +815,7 @@ function SessionTable({
   const sessionNumbers = Array.from({ length: sessionsPerWeek }, (_, i) => i + 1);
 
   return (
-    <div className="overflow-hidden rounded-xl border border-rule bg-surface-elevated">
+    <div className="overflow-hidden border border-rule bg-surface-elevated">
       {/* Header: per-session present count + "mark all" */}
       <div className="grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_repeat(var(--sessions),auto)_auto] gap-x-3 items-center px-4 py-2.5 bg-paper-tint-soft border-b border-rule text-[11px] font-medium uppercase tracking-[0.14em] text-ink-faint"
         style={{ ["--sessions" as string]: sessionsPerWeek }}>

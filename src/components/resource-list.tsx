@@ -68,7 +68,7 @@ export function ResourceList({
                     onClick={() =>
                       setOpenId(openId === resource.id ? null : resource.id)
                     }
-                    className={`flex w-full items-center gap-3 rounded-xl border p-4 text-left transition-all ${
+                    className={`flex w-full items-center gap-3 border p-4 text-left transition-all ${
                       openId === resource.id
                         ? "border-neutral-900 bg-white shadow-sm"
                         : "border-neutral-200 bg-white hover:border-neutral-300"
@@ -101,7 +101,7 @@ export function ResourceList({
 
       {/* Inline content panel — slides open below the card */}
       {openResource?.content && (
-        <div className="mt-4 rounded-xl border border-neutral-200 bg-neutral-50 p-5 sm:p-6">
+        <div className="mt-4 border border-rule bg-surface-soft p-5 sm:p-6">
           <div className="flex items-start justify-between mb-4">
             <div>
               <p className="text-base font-semibold text-neutral-900">
@@ -115,7 +115,7 @@ export function ResourceList({
             </div>
             <button
               onClick={() => setOpenId(null)}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-neutral-400 hover:bg-neutral-200 hover:text-neutral-700 transition-colors"
+              className="flex h-8 w-8 shrink-0 items-center justify-center text-neutral-400 hover:bg-neutral-200 hover:text-neutral-700 transition-colors"
             >
               <X size={16} weight="bold" />
             </button>

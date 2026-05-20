@@ -204,7 +204,7 @@ function ConsentField({
   const checkboxId = `consent-${question.id}`;
   const descId = `${checkboxId}-text`;
   return (
-    <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+    <div className="border border-rule bg-surface-soft p-4">
       <div id={descId} className="text-sm text-neutral-700 space-y-2 mb-4">
         <p>{question.text}</p>
         {question.bullets && question.bullets.length > 0 && (
@@ -264,7 +264,7 @@ function RadioField({
         {question.options.map((opt) => (
           <label
             key={opt}
-            className={`flex items-center gap-2.5 rounded-lg border px-3.5 py-2.5 cursor-pointer transition-colors ${
+            className={`flex items-center gap-2.5 border px-3.5 py-2.5 cursor-pointer transition-colors ${
               value === opt
                 ? "border-neutral-900 bg-neutral-900/5"
                 : "border-neutral-200 bg-white hover:border-neutral-300"
@@ -319,7 +319,7 @@ function MultiSelectField({
         {question.options.map((opt) => (
           <label
             key={opt}
-            className={`flex items-center gap-2.5 rounded-lg border px-3.5 py-2.5 cursor-pointer transition-colors ${
+            className={`flex items-center gap-2.5 border px-3.5 py-2.5 cursor-pointer transition-colors ${
               selected.includes(opt)
                 ? "border-neutral-900 bg-neutral-900/5"
                 : "border-neutral-200 bg-white hover:border-neutral-300"
@@ -372,7 +372,7 @@ function TextField({
           }}
           placeholder={question.placeholder}
           aria-required={question.required || undefined}
-          className="w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-3 text-sm text-neutral-900 placeholder:text-neutral-500 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 focus:outline-none transition-all"
+          className="w-full border border-neutral-200 bg-white px-3.5 py-3 text-sm text-neutral-900 placeholder:text-neutral-500 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 focus:outline-none transition-all"
         />
       ) : (
         <textarea
@@ -382,7 +382,7 @@ function TextField({
           placeholder={question.placeholder}
           rows={3}
           aria-required={question.required || undefined}
-          className="w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-3 text-sm text-neutral-900 placeholder:text-neutral-500 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 focus:outline-none transition-all resize-none"
+          className="w-full border border-neutral-200 bg-white px-3.5 py-3 text-sm text-neutral-900 placeholder:text-neutral-500 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 focus:outline-none transition-all resize-none"
         />
       )}
     </div>
@@ -427,7 +427,7 @@ function LikertField({
           return (
             <div
               key={stmt}
-              className="rounded-xl border border-neutral-200 bg-white p-4"
+              className="border border-rule bg-surface-elevated p-4"
             >
               <p id={groupId} className="text-sm text-neutral-800 mb-3">
                 {stmt}
@@ -507,7 +507,7 @@ function DualLikertField({
           const groupIdBefore = `${question.id}-${idx}-before`;
           const groupIdNow = `${question.id}-${idx}-now`;
           return (
-            <div key={stmt} className="rounded-xl border border-neutral-200 bg-white p-4">
+            <div key={stmt} className="border border-rule bg-surface-elevated p-4">
               <p className="text-sm text-neutral-800 mb-4">{stmt}</p>
               <div className="flex flex-col md:flex-row gap-4">
                 {/* BEFORE column */}
@@ -616,7 +616,7 @@ function DateField({
         min={question.min}
         max={question.max}
         aria-required={question.required || undefined}
-        className="w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-3 text-sm text-neutral-900 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 focus:outline-none transition-all"
+        className="w-full border border-neutral-200 bg-white px-3.5 py-3 text-sm text-neutral-900 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 focus:outline-none transition-all"
       />
     </div>
   );
@@ -654,7 +654,7 @@ function MonthYearField({
   for (let y = maxYear; y >= minYear; y--) years.push(y);
 
   const selectClass =
-    "w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-3 text-sm text-neutral-900 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 focus:outline-none transition-all";
+    "w-full border border-neutral-200 bg-white px-3.5 py-3 text-sm text-neutral-900 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 focus:outline-none transition-all";
 
   return (
     <div>

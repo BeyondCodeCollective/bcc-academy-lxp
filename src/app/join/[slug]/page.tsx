@@ -110,7 +110,7 @@ export default async function JoinPage({
 
               {/* Sign-up form — right column */}
               <div className="md:sticky md:top-8">
-                <div className="rounded-2xl bg-white/5 p-6 md:p-8 ring-1 ring-white/10">
+                <div className="bg-white/5 p-6 md:p-8 ring-1 ring-white/10">
                   <p className="mb-2 text-[10px] font-mono uppercase tracking-[0.3em] text-[#E5F701]">
                     [ Step 1 of 1 ]
                   </p>
@@ -145,7 +145,7 @@ export default async function JoinPage({
 
               {needsInvite ? (
                 <div className="space-y-6">
-                  <div className="rounded-lg border border-white/10 bg-white/5 p-5">
+                  <div className="border border-white/10 bg-white/5 p-5">
                     <p className="text-sm leading-relaxed text-white/70">
                       {program.name} is invite-only. You should have received a
                       link from your program coordinator — it looks like:

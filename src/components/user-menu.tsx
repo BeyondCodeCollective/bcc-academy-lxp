@@ -132,7 +132,7 @@ export function UserMenu({
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={open ? "Close account menu" : "Open account menu"}
-        className="flex w-full min-h-[44px] items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+        className="flex w-full min-h-[44px] items-center gap-2.5 px-2 py-1.5 text-left transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
       >
         {avatarNode("md")}
         <span className="min-w-0 flex-1">
@@ -174,7 +174,7 @@ export function UserMenu({
         <div
           role="menu"
           aria-label="Account menu"
-          className={`absolute z-40 w-72 rounded-xl border border-rule-soft bg-paper p-1 shadow-[0_8px_24px_-12px_rgba(31,27,22,0.18)] ${popoverPosition}`}
+          className={`absolute z-40 w-72 border border-rule-soft bg-surface-elevated p-1 shadow-lg ${popoverPosition}`}
         >
           {/* Identity header */}
           <div className="flex items-center gap-3 px-3 py-3">
@@ -221,7 +221,7 @@ export function UserMenu({
                       type="button"
                       role="menuitem"
                       onClick={() => handleSwitchProgram(p.slug)}
-                      className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition-colors ${
+                      className={`flex w-full items-center gap-2 px-2.5 py-2 text-sm transition-colors ${
                         isCurrent
                           ? "text-ink font-medium"
                           : "text-ink-soft hover:bg-paper-tint-soft hover:text-ink"
@@ -248,7 +248,7 @@ export function UserMenu({
               type="button"
               role="menuitem"
               onClick={handleSignOut}
-              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-paper-tint-soft hover:text-ink"
+              className="flex w-full items-center gap-2 px-2.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-paper-tint-soft hover:text-ink"
             >
               <SignOut size={15} weight="bold" aria-hidden />
               <span>Sign out</span>

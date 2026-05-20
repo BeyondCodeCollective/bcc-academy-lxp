@@ -1026,9 +1026,9 @@ export function SurveyWizard({ surveyId, programSlug, existingResponses, userId 
             {Math.round(((page + 1) / SURVEY_PAGES.length) * 100)}%
           </p>
         </div>
-        <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-100">
+        <div className="h-2 w-full overflow-hidden bg-neutral-100">
           <div
-            className="h-full rounded-full bg-neutral-900 transition-all duration-300"
+            className="h-full bg-primary transition-all duration-300"
             style={{
               width: `${((page + 1) / SURVEY_PAGES.length) * 100}%`,
             }}
@@ -1070,7 +1070,7 @@ export function SurveyWizard({ surveyId, programSlug, existingResponses, userId 
         <button
           onClick={handleBack}
           disabled={page === 0}
-          className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 px-4 py-2.5 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-50 disabled:opacity-30 disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-1 border border-neutral-200 px-4 py-2.5 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-50 disabled:opacity-30 disabled:cursor-not-allowed"
         >
           <ChevronLeft size={16} />
           Back
@@ -1078,7 +1078,7 @@ export function SurveyWizard({ surveyId, programSlug, existingResponses, userId 
         <button
           onClick={handleNext}
           disabled={submitting}
-          className="inline-flex items-center gap-1 rounded-lg bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800 disabled:opacity-50"
+          className="inline-flex items-center gap-1 bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800 disabled:opacity-50"
         >
           {submitting ? (
             <>

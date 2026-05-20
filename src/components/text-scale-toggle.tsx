@@ -54,7 +54,7 @@ export function TextScaleToggle({
       aria-label="Text size"
       className={`inline-flex items-center ${
         compact ? "gap-0.5" : "gap-1"
-      } rounded-lg ${
+      } ${
         tone === "dark" ? "bg-transparent" : "bg-neutral-50"
       } p-0.5`}
     >

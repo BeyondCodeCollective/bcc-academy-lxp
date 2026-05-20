@@ -87,7 +87,7 @@ export function CollapsibleTrackSection({
                 <Link
                   key={week}
                   href={`/dashboard/track/${slug}/${week}`}
-                  className={`flex flex-col items-center rounded-xl border p-3 text-center transition-all ${
+                  className={`flex flex-col items-center border p-3 text-center transition-all ${
                     isCurrent
                       ? "border-neutral-900 bg-white shadow-sm"
                       : isCompleted

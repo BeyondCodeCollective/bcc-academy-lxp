@@ -30,7 +30,7 @@ export function HorizontalBarChart({ title, data, barClass = "bg-[#E54D2E]", max
   };
 
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-5">
+    <div className="border border-rule bg-surface-elevated p-5">
       <div className="mb-4 flex items-baseline justify-between gap-3">
         <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400">
           {title}

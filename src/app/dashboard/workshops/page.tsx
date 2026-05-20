@@ -40,7 +40,7 @@ export default async function WorkshopsIndexPage() {
       )}
 
       {all.length === 0 && (
-        <p className="rounded-xl border border-neutral-200 bg-white px-5 py-8 text-center text-sm text-neutral-500">
+        <p className="border border-rule bg-surface-elevated px-5 py-8 text-center text-sm text-neutral-500">
           No workshops yet.
         </p>
       )}
@@ -89,7 +89,7 @@ function WorkshopCard({ workshop }: { workshop: Workshop }) {
   return (
     <Link
       href={`/dashboard/workshops/${workshop.slug}`}
-      className="group flex h-full flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white transition-colors hover:border-neutral-300"
+      className="group flex h-full flex-col overflow-hidden border border-rule bg-surface-elevated transition-colors hover:border-neutral-300"
     >
       <div
         aria-hidden

@@ -84,7 +84,7 @@ export function TrackOverviewForm({ track }: Props) {
         fall back to the default.
       </p>
 
-      <div className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5 space-y-4">
+      <div className="border border-rule bg-surface-elevated p-4 sm:p-5 space-y-4">
         <Field label="Track name">
           <input
             type="text"
@@ -116,7 +116,7 @@ export function TrackOverviewForm({ track }: Props) {
         </Field>
       </div>
 
-      <div className="rounded-xl border border-neutral-200 bg-white p-4 sm:p-5">
+      <div className="border border-rule bg-surface-elevated p-4 sm:p-5">
         <p className="mb-1 text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-500">
           Week titles
         </p>

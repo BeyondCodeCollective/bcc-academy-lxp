@@ -332,10 +332,10 @@ function ResourceEditor({
               value={r.name}
               onChange={(e) => updateResource(i, "name", e.target.value)}
               placeholder="Display name"
-              className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-900 focus:border-neutral-900 focus:outline-none"
+              className="border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-900 focus:border-neutral-900 focus:outline-none"
             />
             {r.type === "file" || isStorageUrl(r.url) ? (
-              <div className="rounded-lg border border-neutral-100 bg-neutral-100 px-3 py-2 text-xs text-neutral-400 truncate">
+              <div className="border border-neutral-100 bg-muted-bg px-3 py-2 text-xs text-neutral-400 truncate">
                 {r.url.split("/").pop() ?? r.url}
               </div>
             ) : (
@@ -344,7 +344,7 @@ function ResourceEditor({
                 value={r.url}
                 onChange={(e) => updateResource(i, "url", e.target.value)}
                 placeholder="https://..."
-                className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-900 focus:border-neutral-900 focus:outline-none"
+                className="border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-900 focus:border-neutral-900 focus:outline-none"
               />
             )}
           </div>
@@ -792,14 +792,14 @@ export function AdminTabs({
       {/* Dashboardless Program tab — Catalyst etc. */}
       {tab === "program" && isDashboardless && (
         <div className="space-y-6">
-          <div className="rounded-xl border border-neutral-200 bg-white p-5 text-center">
+          <div className="border border-rule bg-surface-elevated p-5 text-center">
             <p className="text-sm text-neutral-600">
               This program doesn&apos;t have a full learner dashboard yet.
             </p>
             {canSwitchPrograms(userRole) && (
               <a
                 href="/dashboard/admin/insights"
-                className="mt-3 inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800"
+                className="mt-3 inline-flex items-center gap-2 bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800"
               >
                 View all survey insights
               </a>
@@ -949,7 +949,7 @@ export function AdminTabs({
           {/* Insights deep-dive — full cross-program dashboard lives here */}
           <a
             href="/dashboard/admin?tab=insights"
-            className="flex items-center justify-between gap-4 rounded-xl border border-neutral-200 bg-white p-4 transition-colors hover:border-neutral-300 hover:bg-neutral-50"
+            className="flex items-center justify-between gap-4 border border-rule bg-surface-elevated p-4 transition-colors hover:border-neutral-300 hover:bg-neutral-50"
           >
             <div className="min-w-0">
               <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400">
@@ -969,7 +969,7 @@ export function AdminTabs({
           {/* Recent activity */}
           <section>
             <h2 className="mb-3 text-lg font-semibold text-neutral-900">Recent activity</h2>
-            <div className="divide-y divide-neutral-100 rounded-xl border border-neutral-200 bg-white">
+            <div className="divide-y divide-neutral-100 border border-rule bg-surface-elevated">
               {!recentLoaded ? (
                 <p className="p-4 text-sm text-neutral-400">Loading…</p>
               ) : recentError ? (
@@ -1079,7 +1079,7 @@ export function AdminTabs({
           )}
 
           {/* Cohort settings — collapsible, demoted from the top */}
-          <details className="group rounded-xl border border-neutral-200 bg-white">
+          <details className="group border border-rule bg-surface-elevated">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-2 p-4 text-sm font-semibold text-neutral-900">
               <span>Cohort settings</span>
               <ChevronDown
@@ -1096,7 +1096,7 @@ export function AdminTabs({
                       type="text"
                       value={cohort.display_name || ""}
                       onChange={(e) => setCohort({ ...cohort, display_name: e.target.value })}
-                      className="mt-1 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
+                      className="mt-1 w-full border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
                     />
                   </div>
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
@@ -1106,7 +1106,7 @@ export function AdminTabs({
                         type="date"
                         value={cohort.start_date}
                         onChange={(e) => setCohort({ ...cohort, start_date: e.target.value })}
-                        className="mt-1 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
+                        className="mt-1 w-full border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
                       />
                     </div>
                     <div>
@@ -1116,14 +1116,14 @@ export function AdminTabs({
                         value={cohort.total_weeks}
                         min={1}
                         onChange={(e) => setCohort({ ...cohort, total_weeks: parseInt(e.target.value) || 1 })}
-                        className="mt-1 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
+                        className="mt-1 w-full border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
                       />
                     </div>
                   </div>
                   <button
                     onClick={saveCohort}
                     disabled={saving}
-                    className="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800 disabled:opacity-50"
+                    className="inline-flex items-center gap-2 bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800 disabled:opacity-50"
                   >
                     {saved ? <><Check size={14} /> Saved</> : saving ? "Saving..." : <><Save size={14} /> Save Changes</>}
                   </button>
@@ -1191,7 +1191,7 @@ export function AdminTabs({
           </header>
 
           {/* Sub-tab bar within the track */}
-          <div className="flex gap-1 rounded-lg bg-neutral-100 p-1">
+          <div className="flex gap-1 bg-neutral-100 p-1">
             {[
               { id: "overview" as const, label: "Overview" },
               { id: "curriculum" as const, label: "Curriculum" },
@@ -1223,7 +1223,7 @@ export function AdminTabs({
           {activeWeeks.map((aw) => {
             const hasMultipleSessions = aw.sessions.length > 1;
             return (
-              <div key={aw.week} className="rounded-xl border border-neutral-200 bg-white overflow-hidden">
+              <div key={aw.week} className="border border-rule bg-surface-elevated overflow-hidden">
                 <button
                   onClick={() => setExpandedWeek(expandedWeek === aw.week ? null : aw.week)}
                   className="flex w-full items-center justify-between px-4 sm:px-5 py-3.5 sm:py-4 hover:bg-neutral-50 transition-colors"
@@ -1265,7 +1265,7 @@ export function AdminTabs({
                             value={aw.overrideTitle}
                             onChange={(e) => updateWeekOverride(activeTrack.slug, aw.week, { overrideTitle: e.target.value })}
                             placeholder={aw.title}
-                            className="mt-1 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-300 focus:border-neutral-900 focus:outline-none"
+                            className="mt-1 w-full border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-300 focus:border-neutral-900 focus:outline-none"
                           />
                         </div>
                         <div>
@@ -1275,7 +1275,7 @@ export function AdminTabs({
                             value={aw.overrideSubtitle}
                             onChange={(e) => updateWeekOverride(activeTrack.slug, aw.week, { overrideSubtitle: e.target.value })}
                             placeholder="e.g. Industry Perspectives"
-                            className="mt-1 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-300 focus:border-neutral-900 focus:outline-none"
+                            className="mt-1 w-full border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-300 focus:border-neutral-900 focus:outline-none"
                           />
                         </div>
                       </div>
@@ -1286,7 +1286,7 @@ export function AdminTabs({
                           onChange={(e) => updateWeekOverride(activeTrack.slug, aw.week, { overrideDescription: e.target.value })}
                           placeholder="Leave blank to use the default description"
                           rows={2}
-                          className="mt-1 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-300 focus:border-neutral-900 focus:outline-none resize-none"
+                          className="mt-1 w-full border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-300 focus:border-neutral-900 focus:outline-none resize-none"
                         />
                       </div>
                       <div>
@@ -1298,7 +1298,7 @@ export function AdminTabs({
                           onChange={(e) => updateWeekOverride(activeTrack.slug, aw.week, { overrideObjectives: e.target.value })}
                           placeholder="Leave blank to use defaults"
                           rows={4}
-                          className="mt-1 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-300 focus:border-neutral-900 focus:outline-none resize-none"
+                          className="mt-1 w-full border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-300 focus:border-neutral-900 focus:outline-none resize-none"
                         />
                       </div>
                     </div>
@@ -1321,7 +1321,7 @@ export function AdminTabs({
                             value={s.meetingLink}
                             onChange={(e) => updateSession(activeTrack.slug, aw.week, s.num, { meetingLink: e.target.value })}
                             placeholder="https://meet.google.com/..."
-                            className="mt-1 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
+                            className="mt-1 w-full border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
                           />
                         </div>
 
@@ -1334,7 +1334,7 @@ export function AdminTabs({
                               value={s.recordingUrl}
                               onChange={(e) => updateSession(activeTrack.slug, aw.week, s.num, { recordingUrl: e.target.value })}
                               placeholder="https://youtube.com/... or https://drive.google.com/..."
-                              className="flex-1 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
+                              className="flex-1 border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
                             />
                             <UploadButton accept={VIDEO_ACCEPT} label="Upload Recording" icon={Video}
                               track={activeTrack.slug}
@@ -1350,7 +1350,7 @@ export function AdminTabs({
                         </div>
 
                         {/* Resources */}
-                        <div className="rounded-lg border border-neutral-100 bg-neutral-50 p-3">
+                        <div className="border border-neutral-100 bg-neutral-50 p-3">
                           <ResourceEditor
                             resources={s.resources}
                             track={activeTrack.slug}
@@ -1400,7 +1400,7 @@ export function AdminTabs({
               {tracks.length > 0 && (
                 <button
                   onClick={() => setShowBulkAssign((v) => !v)}
-                  className={`inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                  className={`inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium transition-colors ${
                     showBulkAssign
                       ? "bg-neutral-100 text-neutral-900 border border-neutral-300"
                       : "bg-white border border-neutral-200 text-neutral-700 hover:bg-neutral-50"
@@ -1412,7 +1412,7 @@ export function AdminTabs({
               )}
               <button
                 onClick={() => { setShowAddForm(!showAddForm); setAddError(""); }}
-                className="inline-flex items-center gap-1 rounded-lg bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-800 transition-colors"
+                className="inline-flex items-center gap-1 bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-800 transition-colors"
               >
                 <UserPlus size={12} />
                 Add
@@ -1447,26 +1447,26 @@ export function AdminTabs({
                   setAddingStudent(false);
                 }
               }}
-              className="rounded-xl border border-neutral-200 bg-white p-4 space-y-3"
+              className="border border-rule bg-surface-elevated p-4 space-y-3"
             >
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-neutral-500">First Name</label>
-                  <input name="first_name" required className="mt-1 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none" />
+                  <input name="first_name" required className="mt-1 w-full border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none" />
                 </div>
                 <div>
                   <label className="text-xs font-medium text-neutral-500">Last Name</label>
-                  <input name="last_name" required className="mt-1 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none" />
+                  <input name="last_name" required className="mt-1 w-full border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none" />
                 </div>
               </div>
               <div>
                 <label className="text-xs font-medium text-neutral-500">Email</label>
-                <input name="email" type="email" required className="mt-1 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none" />
+                <input name="email" type="email" required className="mt-1 w-full border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-neutral-500">Role</label>
-                  <select name="role" defaultValue="student" className="mt-1 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none">
+                  <select name="role" defaultValue="student" className="mt-1 w-full border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none">
                     <option value="student">Student</option>
                     <option value="instructor">Instructor</option>
                     <option value="admin">Admin</option>
@@ -1474,7 +1474,7 @@ export function AdminTabs({
                 </div>
                 <div>
                   <label className="text-xs font-medium text-neutral-500">Cohort</label>
-                  <select name="cohort_id" defaultValue={cohorts[0]?.id ?? ""} className="mt-1 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none">
+                  <select name="cohort_id" defaultValue={cohorts[0]?.id ?? ""} className="mt-1 w-full border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none">
                     <option value="">No cohort</option>
                     {cohorts.map((co) => (
                       <option key={co.id} value={co.id}>{co.display_name || co.name}</option>
@@ -1487,14 +1487,14 @@ export function AdminTabs({
                 <button
                   type="submit"
                   disabled={addingStudent}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
+                  className="inline-flex items-center gap-1.5 bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
                 >
                   {addingStudent ? "Adding..." : <><Plus size={14} /> Add</>}
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowAddForm(false)}
-                  className="rounded-lg border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+                  className="border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
                 >
                   Cancel
                 </button>
@@ -1504,7 +1504,7 @@ export function AdminTabs({
 
           {/* Bulk-assign drawer (collapsible) */}
           {showBulkAssign && tracks.length > 0 && (
-            <div className="rounded-xl border border-neutral-200 bg-white p-4 space-y-3">
+            <div className="border border-rule bg-surface-elevated p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-semibold text-neutral-700">Bulk assign to track</p>
                 <button
@@ -1520,7 +1520,7 @@ export function AdminTabs({
                   <select
                     value={bulkTrack}
                     onChange={(e) => setBulkTrack(e.target.value)}
-                    className="appearance-none rounded-lg border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-2 text-xs font-medium text-neutral-700 focus:border-neutral-400 focus:outline-none"
+                    className="appearance-none border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-2 text-xs font-medium text-neutral-700 focus:border-neutral-400 focus:outline-none"
                   >
                     {tracks.map((t) => (
                       <option key={t.slug} value={t.slug}>{t.shortName}</option>
@@ -1531,7 +1531,7 @@ export function AdminTabs({
                 <button
                   onClick={handleBulkAssign}
                   disabled={bulkSaving || bulkSelected.size === 0}
-                  className="inline-flex items-center gap-1 rounded-lg bg-neutral-900 px-3 py-2 text-xs font-medium text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
+                  className="inline-flex items-center gap-1 bg-neutral-900 px-3 py-2 text-xs font-medium text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
                 >
                   {bulkSaving ? "Assigning..." : `Assign ${bulkSelected.size} selected`}
                 </button>
@@ -1552,7 +1552,7 @@ export function AdminTabs({
                   return (
                     <label
                       key={student.id}
-                      className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs cursor-pointer hover:bg-neutral-50 ${
+                      className={`flex items-center gap-2 px-2 py-1.5 text-xs cursor-pointer hover:bg-neutral-50 ${
                         alreadyEnrolled ? "opacity-50" : ""
                       }`}
                     >
@@ -1589,7 +1589,7 @@ export function AdminTabs({
                 placeholder="Search by name or email…"
                 value={peopleSearch}
                 onChange={(e) => setPeopleSearch(e.target.value)}
-                className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 placeholder-neutral-400 focus:border-neutral-900 focus:outline-none"
+                className="w-full border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 placeholder-neutral-400 focus:border-neutral-900 focus:outline-none"
               />
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="text-[11px] text-neutral-500 mr-1">Role:</span>
@@ -1685,7 +1685,7 @@ export function AdminTabs({
             return (
             <div
               key={student.id}
-              className={`rounded-xl border border-neutral-200 bg-white p-4 transition-opacity ${
+              className={`border border-rule bg-surface-elevated p-4 transition-opacity ${
                 studentSaving === student.id ? "opacity-50" : ""
               }`}
             >
@@ -1723,13 +1723,13 @@ export function AdminTabs({
                   <div className="flex items-center gap-1.5 shrink-0">
                     <button
                       onClick={() => deleteStudent(student.id)}
-                      className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 transition-colors"
+                      className="bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 transition-colors"
                     >
                       Delete
                     </button>
                     <button
                       onClick={() => setConfirmDelete(null)}
-                      className="rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+                      className="border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
                     >
                       Cancel
                     </button>
@@ -1737,7 +1737,7 @@ export function AdminTabs({
                 ) : (
                   <button
                     onClick={() => setConfirmDelete(student.id)}
-                    className="shrink-0 rounded-lg border border-neutral-200 p-2 text-neutral-400 hover:text-red-500 hover:border-red-200 transition-colors"
+                    className="shrink-0 border border-neutral-200 p-2 text-neutral-400 hover:text-red-500 hover:border-red-200 transition-colors"
                     title="Delete person"
                   >
                     <Trash2 size={14} />
@@ -1751,7 +1751,7 @@ export function AdminTabs({
                     value={student.role}
                     onChange={(e) => updateStudent(student.id, "role", e.target.value)}
                     disabled={student.role === "super_admin"}
-                    className="w-full appearance-none rounded-lg border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-2 text-xs font-medium text-neutral-700 focus:border-neutral-400 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                    className="w-full appearance-none border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-2 text-xs font-medium text-neutral-700 focus:border-neutral-400 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <option value="student">Student</option>
                     <option value="instructor">Instructor</option>
@@ -1764,7 +1764,7 @@ export function AdminTabs({
                   <select
                     value={student.cohort_id || ""}
                     onChange={(e) => updateStudent(student.id, "cohort_id", e.target.value)}
-                    className="w-full appearance-none rounded-lg border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-2 text-xs font-medium text-neutral-700 focus:border-neutral-400 focus:outline-none truncate"
+                    className="w-full appearance-none border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-2 text-xs font-medium text-neutral-700 focus:border-neutral-400 focus:outline-none truncate"
                   >
                     <option value="">No cohort</option>
                     {cohorts.map((c) => (
@@ -1834,7 +1834,7 @@ export function AdminTabs({
 
           {/* Enrollment links (collapsible footer) */}
           {tracks.length > 0 && (
-            <details className="rounded-xl border border-dashed border-neutral-300 bg-neutral-50 mt-4">
+            <details className="border border-dashed border-neutral-300 bg-surface-soft mt-4">
               <summary className="cursor-pointer px-4 py-3 text-xs font-semibold text-neutral-700 select-none flex items-center justify-between">
                 <span>Enrollment links</span>
                 <LinkIcon size={12} className="text-neutral-400" />
@@ -1877,7 +1877,7 @@ export function AdminTabs({
                   {trackOnlyStudents.length} student{trackOnlyStudents.length !== 1 ? "s" : ""} enrolled in {activeTrack.shortName}
                 </p>
                 {trackOnlyStudents.length === 0 ? (
-                  <p className="rounded-xl border border-neutral-200 bg-white p-4 text-sm text-neutral-400">
+                  <p className="border border-rule bg-surface-elevated p-4 text-sm text-neutral-400">
                     No students enrolled yet.
                   </p>
                 ) : (
@@ -1894,7 +1894,7 @@ export function AdminTabs({
                       return (
                         <div
                           key={s.id}
-                          className="rounded-xl border border-neutral-200 bg-white p-4"
+                          className="border border-rule bg-surface-elevated p-4"
                         >
                           <div className="flex items-start gap-3">
                             <Avatar
@@ -2019,7 +2019,7 @@ export function AdminTabs({
               totalResponses={insightsData.totalResponses}
             />
           ) : (
-            <div className="rounded-xl border border-neutral-200 bg-white p-8 text-center">
+            <div className="border border-rule bg-surface-elevated p-8 text-center">
               <p className="text-sm text-neutral-500">
                 Insights are only available to super-admins.
               </p>
@@ -2114,7 +2114,7 @@ function StudentWorkTab({
 
       {/* View toggle + filters */}
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex rounded-lg bg-neutral-100 p-0.5">
+        <div className="flex bg-neutral-100 p-0.5">
           <button
             onClick={() => setView("submissions")}
             className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
@@ -2137,7 +2137,7 @@ function StudentWorkTab({
           <select
             value={trackFilter}
             onChange={(e) => setTrackFilter(e.target.value)}
-            className="appearance-none rounded-lg border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-1.5 text-xs font-medium text-neutral-700 focus:border-neutral-400 focus:outline-none"
+            className="appearance-none border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-1.5 text-xs font-medium text-neutral-700 focus:border-neutral-400 focus:outline-none"
           >
             <option value="all">All Tracks</option>
             {tracks.map((t) => (
@@ -2151,7 +2151,7 @@ function StudentWorkTab({
           <select
             value={weekFilter}
             onChange={(e) => setWeekFilter(e.target.value === "all" ? "all" : parseInt(e.target.value))}
-            className="appearance-none rounded-lg border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-1.5 text-xs font-medium text-neutral-700 focus:border-neutral-400 focus:outline-none"
+            className="appearance-none border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-1.5 text-xs font-medium text-neutral-700 focus:border-neutral-400 focus:outline-none"
           >
             <option value="all">All Weeks</option>
             {Array.from({ length: maxWeeks }, (_, i) => (
@@ -2178,7 +2178,7 @@ function StudentWorkTab({
             <p className="text-sm text-neutral-400 py-8 text-center">No submissions yet</p>
           )}
           {filteredSubmissions.map((sub) => (
-            <div key={sub.id} className="rounded-xl border border-neutral-200 bg-white overflow-hidden">
+            <div key={sub.id} className="border border-rule bg-surface-elevated overflow-hidden">
               <button
                 onClick={() => setExpandedId(expandedId === sub.id ? null : sub.id)}
                 className="flex w-full items-center justify-between px-4 py-3 hover:bg-neutral-50 transition-colors"
@@ -2244,7 +2244,7 @@ function StudentWorkTab({
                         value={feedbackText[sub.id] ?? ""}
                         onChange={(e) => setFeedbackText((prev) => ({ ...prev, [sub.id]: e.target.value }))}
                         placeholder="Leave feedback..."
-                        className="flex-1 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
+                        className="flex-1 border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
                         onKeyDown={(e) => {
                           if (e.key === "Enter" && !e.shiftKey) {
                             e.preventDefault();
@@ -2255,7 +2255,7 @@ function StudentWorkTab({
                       <button
                         onClick={() => handleSendFeedback(sub.id, "submission")}
                         disabled={!feedbackText[sub.id]?.trim() || sendingFeedback === sub.id}
-                        className="inline-flex items-center gap-1 rounded-lg bg-neutral-900 px-3 py-2 text-xs font-medium text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
+                        className="inline-flex items-center gap-1 bg-neutral-900 px-3 py-2 text-xs font-medium text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
                       >
                         {sendingFeedback === sub.id ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
                       </button>
@@ -2274,7 +2274,7 @@ function StudentWorkTab({
             <p className="text-sm text-neutral-400 py-8 text-center">No reflections yet</p>
           )}
           {filteredReflections.map((ref) => (
-            <div key={ref.id} className="rounded-xl border border-neutral-200 bg-white overflow-hidden">
+            <div key={ref.id} className="border border-rule bg-surface-elevated overflow-hidden">
               <button
                 onClick={() => setExpandedId(expandedId === ref.id ? null : ref.id)}
                 className="flex w-full items-center justify-between px-4 py-3 hover:bg-neutral-50 transition-colors"
@@ -2322,7 +2322,7 @@ function StudentWorkTab({
                         value={feedbackText[ref.id] ?? ""}
                         onChange={(e) => setFeedbackText((prev) => ({ ...prev, [ref.id]: e.target.value }))}
                         placeholder="Leave feedback..."
-                        className="flex-1 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
+                        className="flex-1 border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
                         onKeyDown={(e) => {
                           if (e.key === "Enter" && !e.shiftKey) {
                             e.preventDefault();
@@ -2333,7 +2333,7 @@ function StudentWorkTab({
                       <button
                         onClick={() => handleSendFeedback(ref.id, "reflection")}
                         disabled={!feedbackText[ref.id]?.trim() || sendingFeedback === ref.id}
-                        className="inline-flex items-center gap-1 rounded-lg bg-neutral-900 px-3 py-2 text-xs font-medium text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
+                        className="inline-flex items-center gap-1 bg-neutral-900 px-3 py-2 text-xs font-medium text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
                       >
                         {sendingFeedback === ref.id ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
                       </button>
@@ -2416,7 +2416,7 @@ function SurveyCard({
   }
 
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-4">
+    <div className="border border-rule bg-surface-elevated p-4">
       <div className="flex items-center justify-between mb-2">
         <p className="text-sm font-semibold text-neutral-900">{title}</p>
         <span className="text-xs text-neutral-400">{completed} of {totalStudents} completed</span>
@@ -2429,7 +2429,7 @@ function SurveyCard({
           href={previewHref}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+          className="inline-flex items-center gap-1 border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
         >
           <ExternalLink size={12} />
           Preview
@@ -2437,7 +2437,7 @@ function SurveyCard({
         <button
           type="button"
           onClick={async () => { try { await onExport(); } catch (e) { console.error("Export failed:", e); } }}
-          className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+          className="inline-flex items-center gap-1 border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
         >
           <Download size={12} />
           Export CSV
@@ -2447,7 +2447,7 @@ function SurveyCard({
             type="button"
             onClick={handleClearAll}
             disabled={clearingAll}
-            className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-1 border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
           >
             <Trash2 size={12} />
             {clearingAll ? "Deleting..." : "Delete All"}
@@ -2456,7 +2456,7 @@ function SurveyCard({
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+          className="inline-flex items-center gap-1 border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
         >
           <ChevronDown size={12} className={`transition-transform ${expanded ? "rotate-180" : ""}`} />
           {expanded ? "Hide" : "Responses"}
@@ -2468,7 +2468,7 @@ function SurveyCard({
             <p className="text-xs text-neutral-400 px-2">No responses yet.</p>
           )}
           {localResponses.map((r) => (
-            <div key={r.id} className="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 hover:bg-neutral-50">
+            <div key={r.id} className="flex items-center justify-between gap-2 px-2 py-1.5 hover:bg-neutral-50">
               <div className="min-w-0">
                 <p className="text-xs font-medium text-neutral-800 truncate">{r.label}</p>
                 <p className="text-[11px] text-neutral-400 truncate">{r.sublabel}</p>
@@ -2545,7 +2545,7 @@ function PublicSurveyCard({
   }
 
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-4">
+    <div className="border border-rule bg-surface-elevated p-4">
       <div className="flex items-center justify-between mb-3">
         <div>
           <p className="text-sm font-semibold text-neutral-900">{title}</p>
@@ -2557,7 +2557,7 @@ function PublicSurveyCard({
           href={previewHref}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+          className="inline-flex items-center gap-1 border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
         >
           <ExternalLink size={12} />
           Preview
@@ -2565,7 +2565,7 @@ function PublicSurveyCard({
         <button
           type="button"
           onClick={async () => { try { await onExport(); } catch (e) { console.error("Export failed:", e); } }}
-          className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+          className="inline-flex items-center gap-1 border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
         >
           <Download size={12} />
           Export CSV
@@ -2574,7 +2574,7 @@ function PublicSurveyCard({
           <button
             type="button"
             onClick={handleExpand}
-            className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+            className="inline-flex items-center gap-1 border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
           >
             {loading ? <Loader2 size={12} className="animate-spin" /> : <ChevronDown size={12} className={`transition-transform ${expanded ? "rotate-180" : ""}`} />}
             {expanded ? "Hide" : "Responses"}
@@ -2587,7 +2587,7 @@ function PublicSurveyCard({
             <p className="text-xs text-neutral-400 px-2">No responses found.</p>
           )}
           {responses.map((r) => (
-            <div key={r.email} className="rounded-lg border border-neutral-100 overflow-hidden">
+            <div key={r.email} className="border border-neutral-100 overflow-hidden">
               <div className="flex items-center justify-between gap-2 px-2 py-1.5 hover:bg-neutral-50">
                 <button
                   type="button"
@@ -2616,7 +2616,7 @@ function PublicSurveyCard({
                         setInviting(null);
                       }}
                       disabled={inviting === r.email}
-                      className="inline-flex items-center gap-1 rounded-lg bg-blue-50 px-2 py-1 text-[11px] font-medium text-blue-700 hover:bg-blue-100 transition-colors disabled:opacity-50"
+                      className="inline-flex items-center gap-1 bg-blue-50 px-2 py-1 text-[11px] font-medium text-blue-700 hover:bg-blue-100 transition-colors disabled:opacity-50"
                       title="Accept & send invite email"
                     >
                       {inviting === r.email ? <Loader2 size={11} className="animate-spin" /> : "Send Invite"}

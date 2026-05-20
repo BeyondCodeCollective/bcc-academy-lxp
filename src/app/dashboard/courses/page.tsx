@@ -66,7 +66,7 @@ export default async function CoursesIndexPage() {
       </header>
 
       {program.tracks.length === 0 ? (
-        <p className="rounded-xl border border-neutral-200 bg-white px-5 py-8 text-center text-sm text-neutral-500">
+        <p className="border border-rule bg-surface-elevated px-5 py-8 text-center text-sm text-neutral-500">
           No courses yet.
         </p>
       ) : (
@@ -117,7 +117,7 @@ function CourseCard({ track }: { track: TrackConfig }) {
   return (
     <Link
       href={`/dashboard/track/${track.slug}`}
-      className="group flex h-full flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white transition-colors hover:border-neutral-300"
+      className="group flex h-full flex-col overflow-hidden border border-rule bg-surface-elevated transition-colors hover:border-neutral-300"
     >
       <div
         aria-hidden

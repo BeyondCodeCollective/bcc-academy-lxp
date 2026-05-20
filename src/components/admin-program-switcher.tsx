@@ -89,7 +89,7 @@ export function AdminProgramSwitcher({
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
-        className={`flex w-full min-h-[36px] items-center gap-2.5 rounded-lg px-3 py-1.5 text-[13px] transition-colors ${
+        className={`flex w-full min-h-[36px] items-center gap-2.5 px-3 py-1.5 text-[13px] transition-colors ${
           activeItem
             ? "bg-white/15 text-white"
             : "text-neutral-300 hover:bg-white/10 hover:text-white"
@@ -115,7 +115,7 @@ export function AdminProgramSwitcher({
         <div
           role="menu"
           aria-label="Programs"
-          className="absolute left-0 right-0 top-full z-40 mt-1 rounded-xl border border-white/10 bg-ink py-1 shadow-lg"
+          className="absolute left-0 right-0 top-full z-40 mt-1 border border-white/10 bg-ink py-1 shadow-lg"
         >
           {items.map((item) => {
             const isActive = item.slug === activeTab;

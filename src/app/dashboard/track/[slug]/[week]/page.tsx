@@ -124,13 +124,13 @@ export default async function TrackWeekPage({
           {prevWeek ? (
             <Link
               href={`/dashboard/track/${trackSlug}/${prevWeek}`}
-              className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition-colors"
+              className="inline-flex items-center gap-1 border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition-colors"
             >
               <ArrowLeft size={12} />
               Week {prevWeek}
             </Link>
           ) : (
-            <span className="inline-flex items-center gap-1 rounded-lg border border-neutral-100 px-3 py-1.5 text-xs font-medium text-neutral-300">
+            <span className="inline-flex items-center gap-1 border border-neutral-100 px-3 py-1.5 text-xs font-medium text-neutral-300">
               <ArrowLeft size={12} />
               Week {weekNum}
             </span>
@@ -138,13 +138,13 @@ export default async function TrackWeekPage({
           {nextWeek ? (
             <Link
               href={`/dashboard/track/${trackSlug}/${nextWeek}`}
-              className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition-colors"
+              className="inline-flex items-center gap-1 border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition-colors"
             >
               Week {nextWeek}
               <ArrowLeft size={12} className="rotate-180" />
             </Link>
           ) : (
-            <span className="inline-flex items-center gap-1 rounded-lg border border-neutral-100 px-3 py-1.5 text-xs font-medium text-neutral-300">
+            <span className="inline-flex items-center gap-1 border border-neutral-100 px-3 py-1.5 text-xs font-medium text-neutral-300">
               Week {weekNum}
               <ArrowLeft size={12} className="rotate-180" />
             </span>
@@ -226,13 +226,13 @@ export default async function TrackWeekPage({
                     href={meetingLinks[i]!}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2.5 min-h-[44px] transition-colors w-full sm:w-auto"
+                    className="inline-flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2.5 min-h-[44px] transition-colors w-full sm:w-auto"
                   >
                     <Video size={14} />
                     Join Session
                   </a>
                 ) : (
-                  <span className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-neutral-200 text-neutral-400 text-xs font-semibold px-3.5 py-2.5 min-h-[44px] cursor-not-allowed w-full sm:w-auto">
+                  <span className="inline-flex items-center justify-center gap-1.5 bg-neutral-200 text-neutral-400 text-xs font-semibold px-3.5 py-2.5 min-h-[44px] cursor-not-allowed w-full sm:w-auto">
                     <Video size={14} />
                     Link Coming Soon
                   </span>
@@ -308,7 +308,7 @@ export default async function TrackWeekPage({
                     target="_blank"
                     rel="noopener noreferrer"
                     download={isFile ? (r.name || true) : undefined}
-                    className="flex items-center gap-3 rounded-lg border border-transparent bg-surface-soft px-3 py-2.5 text-sm font-medium text-ink hover:border-rule hover:bg-surface-elevated transition-colors group min-h-[44px]"
+                    className="flex items-center gap-3 border border-transparent bg-surface-soft px-3 py-2.5 text-sm font-medium text-ink hover:border-rule hover:bg-surface-elevated transition-colors group min-h-[44px]"
                   >
                     {isVid ? (
                       <Video size={14} className="text-ink-faint group-hover:text-ink-soft shrink-0" />

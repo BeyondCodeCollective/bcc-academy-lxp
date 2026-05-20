@@ -31,7 +31,7 @@ export function PreviewToggle({
   return (
     <div ref={ref} className="fixed bottom-4 right-4 z-40">
       {open && (
-        <div className="absolute bottom-full right-0 mb-2 w-64 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-xl">
+        <div className="absolute bottom-full right-0 mb-2 w-64 overflow-hidden border border-rule bg-surface-elevated shadow-xl">
           <p className="border-b border-neutral-100 px-3 py-2 text-[10px] font-medium uppercase tracking-[0.14em] text-neutral-400">
             Preview as enrolled in
           </p>
