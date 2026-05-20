@@ -2004,13 +2004,15 @@ export function AdminTabs({
         </div>
       )}
 
-      {/* Insights — cross-program survey dashboard. Super-admin only;
-         insightsData is null otherwise. */}
+      {/* Survey Insights — cross-program survey dashboard. Super-admin only;
+         insightsData is null otherwise. The bare /dashboard/insights route
+         hosts the broader analytics dashboard (engagement, attendance,
+         alumni); this tab is specifically the survey-response viewer. */}
       {tab === "insights" && (
         <div className="space-y-6">
           <header>
             <h1 className="text-3xl font-bold text-neutral-900 tracking-tight">
-              Insights
+              Survey Insights
             </h1>
             <p className="mt-1 text-xs text-neutral-500">
               Cross-program survey responses
