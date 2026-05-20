@@ -860,6 +860,14 @@ export function AdminTabs({
               </p>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <Link
+                  href="/dashboard/admin?tab=students"
+                  className="flex items-center gap-3 border border-rule bg-surface-elevated px-4 py-3 text-left text-sm text-neutral-700 transition-colors hover:border-neutral-300 hover:text-neutral-900"
+                >
+                  <UsersIcon size={16} weight="bold" aria-hidden />
+                  <span className="flex-1">All people</span>
+                  <span aria-hidden className="text-neutral-300">&rarr;</span>
+                </Link>
+                <Link
                   href="/dashboard/admin?tab=student-work"
                   className="flex items-center gap-3 border border-rule bg-surface-elevated px-4 py-3 text-left text-sm text-neutral-700 transition-colors hover:border-neutral-300 hover:text-neutral-900"
                 >
@@ -1163,6 +1171,28 @@ export function AdminTabs({
         </div>
         );
       })()}
+
+      {/* People — compact cross-track roster */}
+      {tab === "students" && (
+        <PeopleTab
+          students={students}
+          cohorts={cohorts}
+          tracks={tracks}
+          enrollments={enrollments}
+          instrTracks={instrTracks}
+          engagementScores={engagementScores}
+          isManager={isManager}
+          programSlug={programSlug}
+          enrollmentSaving={enrollmentSaving}
+          instrTrackSaving={instrTrackSaving}
+          studentSaving={studentSaving}
+          onUpdateStudent={updateStudent}
+          onDeleteStudent={deleteStudent}
+          onToggleStudentTrack={toggleTrackEnrollment}
+          onToggleInstructorTrack={toggleInstructorTrack}
+          onStudentAdded={(s) => setStudents((prev) => [...prev, s])}
+        />
+      )}
 
       {/* Standalone Student Work (from sidebar, all tracks) */}
       {tab === "student-work" && (
@@ -1618,6 +1648,539 @@ function StudentWorkTab({
 // Re-export the helper so student-facing pages can use it without importing
 // from this file (avoids "use client" leaking into server components).
 export { isStorageUrl, isUploadedVideo };
+
+// ─── People Tab ───────────────────────────────────────────────────────────────
+
+function PeopleTab({
+  students,
+  cohorts,
+  tracks,
+  enrollments,
+  instrTracks,
+  engagementScores,
+  isManager,
+  programSlug,
+  enrollmentSaving,
+  instrTrackSaving,
+  studentSaving,
+  onUpdateStudent,
+  onDeleteStudent,
+  onToggleStudentTrack,
+  onToggleInstructorTrack,
+  onStudentAdded,
+}: {
+  students: StudentRow[];
+  cohorts: CohortRow[];
+  tracks: AdminTrackConfig[];
+  enrollments: StudentTrackRow[];
+  instrTracks: InstructorTrackRow[];
+  engagementScores: Record<string, { total: number; attendance: number; submissions: number; reflections: number; tutorMessages: number }>;
+  isManager: boolean;
+  programSlug: string;
+  enrollmentSaving: string | null;
+  instrTrackSaving: string | null;
+  studentSaving: string | null;
+  onUpdateStudent: (id: string, field: "role" | "cohort_id", value: string) => Promise<void>;
+  onDeleteStudent: (id: string) => Promise<void>;
+  onToggleStudentTrack: (studentId: string, trackSlug: string) => Promise<void>;
+  onToggleInstructorTrack: (instructorId: string, trackSlug: string) => Promise<void>;
+  onStudentAdded: (student: StudentRow) => void;
+}) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [showBulkAssign, setShowBulkAssign] = useState(false);
+  const [bulkTrack, setBulkTrack] = useState(tracks[0]?.slug ?? "");
+  const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
+  const [bulkSaving, setBulkSaving] = useState(false);
+  const [addFirstName, setAddFirstName] = useState("");
+  const [addLastName, setAddLastName] = useState("");
+  const [addEmail, setAddEmail] = useState("");
+  const [addRole, setAddRole] = useState<"student" | "instructor" | "admin">("student");
+  const [addCohortId, setAddCohortId] = useState("");
+  const [addingStudent, setAddingStudent] = useState(false);
+  const [addError, setAddError] = useState("");
+
+  const filtered = students.filter((s) => {
+    const matchesSearch =
+      !searchQuery ||
+      `${s.first_name ?? ""} ${s.last_name ?? ""} ${s.email ?? ""}`
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
+    const matchesRole = roleFilter === "all" || s.role === roleFilter;
+    return matchesSearch && matchesRole;
+  });
+
+  function getStudentTrackSlugs(studentId: string) {
+    return enrollments.filter((e) => e.student_id === studentId).map((e) => e.track_slug);
+  }
+  function getInstructorTrackSlugs(instructorId: string) {
+    return instrTracks.filter((e) => e.student_id === instructorId).map((e) => e.track_slug);
+  }
+  function getTrackCount(studentId: string) {
+    return enrollments.filter((e) => e.student_id === studentId).length;
+  }
+
+  async function handleBulkAssign() {
+    if (bulkSelected.size === 0 || !bulkTrack) return;
+    setBulkSaving(true);
+    try {
+      await bulkAssignTrack(Array.from(bulkSelected), bulkTrack, programSlug);
+      setBulkSelected(new Set());
+      setShowBulkAssign(false);
+    } catch (e) {
+      console.error("Bulk assign failed:", e);
+    }
+    setBulkSaving(false);
+  }
+
+  async function handleAddStudent(e: React.FormEvent) {
+    e.preventDefault();
+    if (!addEmail.trim()) return;
+    setAddingStudent(true);
+    setAddError("");
+    try {
+      const result = await addStudentAction({
+        email: addEmail.trim(),
+        first_name: addFirstName.trim(),
+        last_name: addLastName.trim(),
+        role: addRole,
+        cohort_id: addCohortId || null,
+      });
+      onStudentAdded(result.student as StudentRow);
+      setAddFirstName("");
+      setAddLastName("");
+      setAddEmail("");
+      setAddRole("student");
+      setAddCohortId("");
+      setShowAddForm(false);
+    } catch (err) {
+      setAddError(err instanceof Error ? err.message : "Failed to add person");
+    }
+    setAddingStudent(false);
+  }
+
+  const studentCount = students.filter((s) => s.role === "student").length;
+  const instructorCount = students.filter((s) => s.role === "instructor").length;
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-neutral-900">People</h1>
+          <p className="mt-0.5 text-sm text-neutral-500">
+            {studentCount} {studentCount === 1 ? "student" : "students"} · {instructorCount} {instructorCount === 1 ? "instructor" : "instructors"}
+          </p>
+        </div>
+        {isManager && (
+          <div className="flex flex-wrap items-center gap-2">
+            {showBulkAssign ? (
+              <>
+                <div className="relative">
+                  <select
+                    value={bulkTrack}
+                    onChange={(e) => setBulkTrack(e.target.value)}
+                    className="appearance-none border border-neutral-200 bg-white pl-3 pr-7 py-2 text-xs font-medium text-neutral-700 focus:border-neutral-400 focus:outline-none"
+                  >
+                    {tracks.map((t) => (
+                      <option key={t.slug} value={t.slug}>{t.shortName}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleBulkAssign}
+                  disabled={bulkSelected.size === 0 || bulkSaving}
+                  className="inline-flex items-center gap-1.5 bg-neutral-900 px-3 py-2 text-xs font-medium text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
+                >
+                  {bulkSaving ? <Loader2 size={12} className="animate-spin" /> : <UserCheck size={12} />}
+                  Assign{bulkSelected.size > 0 ? ` (${bulkSelected.size})` : ""}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowBulkAssign(false); setBulkSelected(new Set()); }}
+                  className="inline-flex items-center gap-1.5 border border-neutral-200 px-3 py-2 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+                >
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setShowBulkAssign(true)}
+                  className="inline-flex items-center gap-1.5 border border-neutral-200 px-3 py-2 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+                >
+                  <Users size={13} />
+                  Bulk assign
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowAddForm((v) => !v)}
+                  className="inline-flex items-center gap-1.5 bg-neutral-900 px-3 py-2 text-xs font-medium text-white hover:bg-neutral-800 transition-colors"
+                >
+                  <UserPlus size={13} />
+                  Add person
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Add person form */}
+      {showAddForm && (
+        <form onSubmit={handleAddStudent} className="border border-rule bg-surface-elevated p-4 space-y-3">
+          <p className="text-sm font-semibold text-neutral-900">Add person</p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label className="text-xs font-medium text-neutral-500">First name</label>
+              <input
+                type="text"
+                value={addFirstName}
+                onChange={(e) => setAddFirstName(e.target.value)}
+                placeholder="First"
+                className="mt-1 w-full border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-neutral-500">Last name</label>
+              <input
+                type="text"
+                value={addLastName}
+                onChange={(e) => setAddLastName(e.target.value)}
+                placeholder="Last"
+                className="mt-1 w-full border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-neutral-500">Email *</label>
+              <input
+                type="email"
+                required
+                value={addEmail}
+                onChange={(e) => setAddEmail(e.target.value)}
+                placeholder="email@example.com"
+                className="mt-1 w-full border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-neutral-500">Role</label>
+              <div className="relative mt-1">
+                <select
+                  value={addRole}
+                  onChange={(e) => setAddRole(e.target.value as "student" | "instructor" | "admin")}
+                  className="w-full appearance-none border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-2 text-sm text-neutral-700 focus:border-neutral-400 focus:outline-none"
+                >
+                  <option value="student">Student</option>
+                  <option value="instructor">Instructor</option>
+                  <option value="admin">Admin</option>
+                </select>
+                <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
+              </div>
+            </div>
+            {cohorts.length > 0 && (
+              <div>
+                <label className="text-xs font-medium text-neutral-500">Cohort</label>
+                <div className="relative mt-1">
+                  <select
+                    value={addCohortId}
+                    onChange={(e) => setAddCohortId(e.target.value)}
+                    className="w-full appearance-none border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-2 text-sm text-neutral-700 focus:border-neutral-400 focus:outline-none"
+                  >
+                    <option value="">No cohort</option>
+                    {cohorts.map((c) => (
+                      <option key={c.id} value={c.id}>{c.display_name || c.name}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
+                </div>
+              </div>
+            )}
+          </div>
+          {addError && <p className="text-xs text-red-500">{addError}</p>}
+          <div className="flex items-center gap-2">
+            <button
+              type="submit"
+              disabled={addingStudent || !addEmail.trim()}
+              className="inline-flex items-center gap-1.5 bg-neutral-900 px-4 py-2 text-xs font-medium text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
+            >
+              {addingStudent ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
+              {addingStudent ? "Adding..." : "Add person"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowAddForm(false)}
+              className="inline-flex items-center gap-1.5 border border-neutral-200 px-4 py-2 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          type="search"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search by name or email…"
+          className="flex-1 min-w-[200px] border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-400 focus:outline-none"
+        />
+        <div className="relative">
+          <select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            className="appearance-none border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-2 text-sm text-neutral-700 focus:border-neutral-400 focus:outline-none"
+          >
+            <option value="all">All roles</option>
+            <option value="student">Students</option>
+            <option value="instructor">Instructors</option>
+            <option value="admin">Admins</option>
+          </select>
+          <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
+        </div>
+        <span className="text-xs text-neutral-400">{filtered.length} shown</span>
+      </div>
+
+      {/* Roster */}
+      <div className="divide-y divide-neutral-100 border border-rule bg-surface-elevated">
+        {filtered.length === 0 && (
+          <p className="p-4 text-sm text-neutral-500">No people found.</p>
+        )}
+        {filtered.map((s) => {
+          const fullName =
+            [s.first_name, s.last_name].filter(Boolean).join(" ") || "—";
+          const isExpanded = expandedId === s.id;
+          const trackCount = getTrackCount(s.id);
+          const studentSlugs = getStudentTrackSlugs(s.id);
+          const instructorSlugs = getInstructorTrackSlugs(s.id);
+
+          return (
+            <div key={s.id}>
+              <div
+                className="flex items-center gap-3 px-4 py-3 hover:bg-neutral-50 cursor-pointer select-none"
+                onClick={() => setExpandedId(isExpanded ? null : s.id)}
+              >
+                {showBulkAssign && s.role === "student" && (
+                  <input
+                    type="checkbox"
+                    checked={bulkSelected.has(s.id)}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => {
+                      setBulkSelected((prev) => {
+                        const next = new Set(prev);
+                        if (e.target.checked) next.add(s.id);
+                        else next.delete(s.id);
+                        return next;
+                      });
+                    }}
+                    className="h-4 w-4 shrink-0 rounded border-neutral-300 accent-neutral-900"
+                  />
+                )}
+                <Avatar
+                  firstName={s.first_name ?? ""}
+                  lastName={s.last_name ?? ""}
+                  size="sm"
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-neutral-900 truncate">
+                    {fullName}
+                  </p>
+                  <p className="text-xs text-neutral-400 truncate">{s.email}</p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-[11px] text-neutral-400 tabular-nums hidden sm:block">
+                    {trackCount} {trackCount === 1 ? "track" : "tracks"}
+                  </span>
+                  <span
+                    className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                      s.role === "student"
+                        ? "bg-neutral-100 text-neutral-600"
+                        : s.role === "instructor"
+                          ? "bg-blue-50 text-blue-700"
+                          : "bg-amber-50 text-amber-700"
+                    }`}
+                  >
+                    {s.role}
+                  </span>
+                  <ChevronDown
+                    size={14}
+                    className={`text-neutral-400 transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                  />
+                </div>
+              </div>
+
+              {isExpanded && (
+                <div
+                  className="border-t border-neutral-100 bg-neutral-50 px-4 py-4 space-y-4"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Role + cohort */}
+                  <div className="flex flex-wrap gap-3">
+                    <div>
+                      <label className="text-[11px] font-medium uppercase tracking-wide text-neutral-500">
+                        Role
+                      </label>
+                      <div className="relative mt-1">
+                        <select
+                          value={s.role}
+                          disabled={studentSaving === s.id}
+                          onChange={(e) => onUpdateStudent(s.id, "role", e.target.value)}
+                          className="appearance-none border border-neutral-200 bg-white pl-3 pr-7 py-2 text-xs font-medium text-neutral-700 focus:border-neutral-400 focus:outline-none disabled:opacity-60"
+                        >
+                          <option value="student">Student</option>
+                          <option value="instructor">Instructor</option>
+                          <option value="admin">Admin</option>
+                          <option value="super-admin">Super Admin</option>
+                        </select>
+                        <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
+                      </div>
+                    </div>
+                    {cohorts.length > 0 && (
+                      <div>
+                        <label className="text-[11px] font-medium uppercase tracking-wide text-neutral-500">
+                          Cohort
+                        </label>
+                        <div className="relative mt-1">
+                          <select
+                            value={s.cohort_id ?? ""}
+                            disabled={studentSaving === s.id}
+                            onChange={(e) => onUpdateStudent(s.id, "cohort_id", e.target.value)}
+                            className="appearance-none border border-neutral-200 bg-white pl-3 pr-7 py-2 text-xs font-medium text-neutral-700 focus:border-neutral-400 focus:outline-none disabled:opacity-60"
+                          >
+                            <option value="">No cohort</option>
+                            {cohorts.map((c) => (
+                              <option key={c.id} value={c.id}>
+                                {c.display_name || c.name}
+                              </option>
+                            ))}
+                          </select>
+                          <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Track chips */}
+                  {(s.role === "student" || s.role === "instructor") && tracks.length > 0 && (
+                    <div>
+                      <p className="text-[11px] font-medium uppercase tracking-wide text-neutral-500 mb-2">
+                        {s.role === "instructor" ? "Teaching" : "Enrolled tracks"}
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {tracks.map((t) => {
+                          const savingKey = `${s.id}-${t.slug}`;
+                          const enrolled =
+                            s.role === "student"
+                              ? studentSlugs.includes(t.slug)
+                              : instructorSlugs.includes(t.slug);
+                          const isSaving =
+                            s.role === "student"
+                              ? enrollmentSaving === savingKey
+                              : instrTrackSaving === savingKey;
+                          return (
+                            <button
+                              key={t.slug}
+                              type="button"
+                              onClick={() =>
+                                s.role === "student"
+                                  ? onToggleStudentTrack(s.id, t.slug)
+                                  : onToggleInstructorTrack(s.id, t.slug)
+                              }
+                              disabled={isSaving}
+                              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors disabled:opacity-60 ${
+                                enrolled
+                                  ? "bg-neutral-900 text-white"
+                                  : "border border-neutral-200 bg-white text-neutral-500 hover:border-neutral-400 hover:text-neutral-700"
+                              }`}
+                            >
+                              {isSaving ? (
+                                <Loader2 size={10} className="animate-spin" />
+                              ) : enrolled ? (
+                                <Check size={10} />
+                              ) : (
+                                <Plus size={10} />
+                              )}
+                              {t.shortName}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Engagement snapshot (only if scores were fetched) */}
+                  {s.role === "student" && engagementScores[s.id] && (
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-neutral-500">
+                      <span>
+                        <strong className="font-semibold text-neutral-900">
+                          {engagementScores[s.id].total}
+                        </strong>
+                        /100 engagement
+                      </span>
+                      <span className="text-neutral-300">·</span>
+                      <span>{engagementScores[s.id].attendance} attended</span>
+                      <span className="text-neutral-300">·</span>
+                      <span>{engagementScores[s.id].submissions} submitted</span>
+                      <span className="text-neutral-300">·</span>
+                      <span>{engagementScores[s.id].reflections} reflected</span>
+                    </div>
+                  )}
+
+                  {/* Remove person */}
+                  {isManager && (
+                    <div className="border-t border-neutral-200 pt-3">
+                      {confirmDeleteId === s.id ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-neutral-500">
+                            Remove {s.first_name || s.email}?
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onDeleteStudent(s.id);
+                              setConfirmDeleteId(null);
+                              setExpandedId(null);
+                            }}
+                            className="text-xs font-medium text-red-600 hover:text-red-700"
+                          >
+                            Confirm
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmDeleteId(null)}
+                            className="text-xs text-neutral-400 hover:text-neutral-600"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setConfirmDeleteId(s.id)}
+                          className="inline-flex items-center gap-1.5 text-xs text-neutral-400 hover:text-red-500 transition-colors"
+                        >
+                          <Trash2 size={12} />
+                          Remove person
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

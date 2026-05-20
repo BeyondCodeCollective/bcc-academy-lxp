@@ -3,6 +3,7 @@ import { MarkVideoWatchedButton } from "@/components/mark-video-watched-button";
 import {
   getYouTubeEmbedUrl,
   isUploadedRecording,
+  toVideoProxyUrl,
 } from "@/lib/storage-utils";
 import { toDriveEmbedUrl } from "@/lib/lunch-learns/drive";
 
@@ -75,7 +76,7 @@ export function RecordingCard({
           />
         </div>
       ) : isVideoFile ? (
-        <video src={url} controls className="w-full" preload="metadata" />
+        <video src={toVideoProxyUrl(url)} controls className="w-full" preload="metadata" />
       ) : (
         <div className="p-6 text-center">
           <p className="text-sm text-neutral-600">This recording can&rsquo;t be embedded.</p>
