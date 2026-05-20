@@ -17,8 +17,6 @@ import {
 } from "@phosphor-icons/react";
 import { UserMenu } from "@/components/user-menu";
 import { AdminProgramSwitcher } from "@/components/admin-program-switcher";
-import { TextScaleToggle } from "@/components/text-scale-toggle";
-import { ReadAloudButton } from "@/components/read-aloud-button";
 import { computeCurrentWeek } from "@/lib/utils";
 
 type NavItem = {
@@ -189,11 +187,6 @@ export function Nav({
   const sidebarFooter = (
     <div className="mt-auto flex flex-col gap-1">
       {helpLink}
-      <div className="my-1 h-px bg-white/10" aria-hidden />
-      <div className="flex items-center gap-1 px-3 py-1">
-        <TextScaleToggle compact tone="dark" />
-        <ReadAloudButton selector="#dashboard-main" compact tone="dark" />
-      </div>
       <div className="my-1 h-px bg-white/10" aria-hidden />
       <UserMenu variant="sidebar" {...userMenuProps} />
     </div>
