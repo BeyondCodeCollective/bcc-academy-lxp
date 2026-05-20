@@ -36,7 +36,8 @@ export function TrackCard({
   return (
     <Link
       href={`/dashboard/track/${slug}`}
-      className="group flex h-full flex-col overflow-hidden rounded-xl border border-rule bg-surface-soft transition-colors hover:border-ink-faint hover:bg-paper-tint-soft"
+      className="group flex h-full flex-col overflow-hidden border border-rule bg-surface-soft transition-colors hover:border-ink-faint hover:bg-paper-tint-soft"
+      style={{ borderTopColor: tone, borderTopWidth: "2px" }}
     >
       {/* Top visual — curated Phosphor icon, tone-tinted background */}
       <div
