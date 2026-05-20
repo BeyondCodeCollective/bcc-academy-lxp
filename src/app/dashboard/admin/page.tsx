@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
-import { createClient, createServiceClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { createServiceClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { getSessionContext } from "@/lib/auth/session";
 import { AdminTabs } from "./admin-tabs";
 import type { Student } from "@/lib/types";
 import { getProgram } from "@/lib/programs/server";
@@ -50,6 +51,10 @@ export default async function AdminPage({
   // cross-track People tab is gone.
   const needsEngagement = isTrackTab;
   const needsSurveyStats = false;
+  // Home tab only needs track/instructor enrollment counts — skip the full
+  // student list and cohorts to cut 2 queries from the most common landing.
+  const needsFullStudentList = isTrackTab || effectiveTab === "students" || effectiveTab === "student-work" || effectiveTab === "attendance";
+  const needsCohorts = isTrackTab || effectiveTab === "students";
   const needsLunchLearns = effectiveTab === "lunch-learn";
   const needsInsightsData = effectiveTab === "insights";
   void needsSurveyStats; // kept as a named constant for the gated query below
@@ -71,24 +76,18 @@ export default async function AdminPage({
   const engagementScores: Record<string, { total: number; attendance: number; submissions: number; reflections: number; tutorMessages: number }> = {};
 
   if (isSupabaseConfigured()) {
-    const supabase = await createClient();
-
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (!session?.user) redirect("/");
+    // Reuse the React-cached session context resolved by the layout — avoids
+    // a duplicate students.select("role") query on every admin page render.
+    const ctx = await getSessionContext();
+    if (!ctx) redirect("/");
+    const userId = ctx.userId;
+    userRole = ctx.student?.role ?? "student";
 
     const svc = createServiceClient();
 
-    // Batch 1: program lookup + current user's role. Needed to authorize the
-    // page and to scope every subsequent query to this program.
-    const [programRowRes, studentCheckRes] = await Promise.all([
-      svc.from("programs").select("id").eq("slug", program.slug).single(),
-      svc.from("students").select("role").eq("id", session.user.id).single(),
-    ]);
-
+    // Program ID lookup — scopes every subsequent query to this program.
+    const programRowRes = await svc.from("programs").select("id").eq("slug", program.slug).single();
     const programId = programRowRes.data?.id;
-    userRole = studentCheckRes.data?.role ?? "student";
 
     if (!canAccessAdminPanel(userRole)) redirect("/dashboard");
 
@@ -140,31 +139,35 @@ export default async function AdminPage({
         alumniRes,
       ] = await Promise.all([
       Promise.all([
-        svc
-          .from("students")
-          .select("id, first_name, last_name, email, role, cohort_id")
-          .eq("program_id", programId!)
-          .order("created_at", { ascending: true }),
-        svc
-          .from("cohorts")
-          .select("id, name, display_name, start_date, total_weeks")
-          .eq("program_id", programId!)
-          .order("created_at", { ascending: true }),
+        needsFullStudentList
+          ? svc
+              .from("students")
+              .select("id, first_name, last_name, email, role, cohort_id")
+              .eq("program_id", programId!)
+              .order("created_at", { ascending: true })
+          : Promise.resolve({ data: [] as Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id">[] }),
+        needsCohorts
+          ? svc
+              .from("cohorts")
+              .select("id, name, display_name, start_date, total_weeks")
+              .eq("program_id", programId!)
+              .order("created_at", { ascending: true })
+          : Promise.resolve({ data: [] as { id: string; name: string; display_name: string | null; start_date: string; total_weeks: number }[] }),
         svc
           .from("student_tracks")
-          .select("*")
+          .select("id, student_id, track_slug, program_id, created_at")
           .eq("program_id", programId!)
           .order("created_at"),
         svc
           .from("instructor_tracks")
-          .select("*")
+          .select("id, student_id, track_slug, program_id, created_at")
           .eq("program_id", programId!)
           .order("created_at"),
         userRole === "instructor"
           ? svc
               .from("instructor_tracks")
               .select("track_slug")
-              .eq("student_id", session.user.id)
+              .eq("student_id", userId)
           : Promise.resolve({ data: null as { track_slug: string }[] | null }),
       ]),
       // Single .in() query replaces N per-survey queries. Bucketed below.
@@ -275,7 +278,7 @@ export default async function AdminPage({
       // Diagnostic: a user landed on ?tab=insights but isn't being treated as
       // super-admin. Captures the actual role string we resolved so we can
       // tell legitimate non-super-admin hits from a role-lookup mismatch.
-      console.warn("[admin/insights] skipping fetch — role=%s, userId=%s", userRole, session.user.id);
+      console.warn("[admin/insights] skipping fetch — role=%s, userId=%s", userRole, userId);
     }
     if (canSwitchPrograms(userRole) && needsInsightsData) {
       const stats = await getDashboardSurveyStats();
