@@ -88,7 +88,7 @@ export default async function TrackOverviewPage({
       <header className="space-y-5">
         <div
           aria-hidden
-          className="relative flex aspect-[16/7] w-full items-center justify-center overflow-hidden rounded-xl"
+          className="relative flex aspect-[16/7] w-full items-center justify-center overflow-hidden"
           style={{ backgroundColor: `${tone}1A` }}
         >
           <Icon size={72} weight="light" color={tone} />
@@ -127,7 +127,7 @@ export default async function TrackOverviewPage({
         <div>
           <Link
             href={`/dashboard/track/${slug}/${ctaWeek}`}
-            className="inline-flex items-center gap-2 rounded-full bg-neutral-900 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-neutral-700"
+            className="inline-flex items-center gap-2 bg-neutral-900 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-neutral-700"
           >
             {ctaLabel}
             <ArrowRight size={14} weight="bold" />
@@ -168,7 +168,7 @@ export default async function TrackOverviewPage({
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
           Curriculum
         </h2>
-        <ol className="divide-y divide-neutral-100 rounded-xl border border-neutral-200 bg-white">
+        <ol className="divide-y divide-rule border border-rule bg-surface-elevated">
           {track.weekSummaries.map((ws) => {
             const isCurrent = started && ws.week === currentWeek;
             const isPast = started && ws.week < currentWeek;
@@ -240,7 +240,7 @@ function Fact({
   value: string;
 }) {
   return (
-    <div className="space-y-1 rounded-xl border border-neutral-200 bg-white p-3">
+    <div className="space-y-1 border border-rule bg-surface-elevated p-3">
       <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-neutral-400">
         <Icon size={11} weight="bold" aria-hidden />
         {label}
