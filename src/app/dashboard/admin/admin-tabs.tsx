@@ -1177,7 +1177,7 @@ export function AdminTabs({
               Student Work
             </h1>
             <p className="mt-1 text-sm text-neutral-500">
-              Submissions and reflections across all tracks
+              Review submitted work and leave feedback across all tracks
             </p>
           </header>
           <StudentWorkTab tracks={tracks} programSlug={programSlug} />
@@ -1413,10 +1413,6 @@ function StudentWorkTab({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-neutral-900">Student Work</h2>
-      </div>
-
       {/* View toggle + filters */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex bg-neutral-100 p-0.5">
