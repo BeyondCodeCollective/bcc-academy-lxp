@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import Link from "next/link";
 import { addStudentAction, deleteStudentAction, updateStudentAction, updateCohortAction, saveSessionContent, assignStudentTrack, removeStudentTrack, bulkAssignTrack, exportSurveyResponses, exportPublicSurveyResponses, getAllSubmissions, getAllReflections, addFeedback, assignInstructorTrack, removeInstructorTrack, deleteSurveyResponse, deletePublicSurveyResponse, listPublicSurveyResponses, sendInviteAction } from "./actions";
 import type { SessionResource, StudentTrackRow, SurveyStatsRow, AdminSubmissionRow, AdminReflectionRow, InstructorTrackRow, PublicSurveyStatsRow } from "./actions";
 import { canManageStudents, canSwitchPrograms } from "@/lib/roles";
@@ -790,22 +791,12 @@ export function AdminTabs({
         </div>
       )}
 
-      {/* Program Tab */}
+      {/* Program Tab. Trimmed down to Recent Activity — the per-track chart,
+         survey-completion donut, lifetime-served narrative, and "Insights
+         deep dive" tile all moved to /dashboard/insights so super-admins
+         have a single canonical analytics surface and we stop showing two
+         versions of "Students per track" that count different things. */}
       {tab === "program" && !isDashboardless && (() => {
-        // "Students served" counts unique humans across the live LXP roster
-        // and the imported historical alumni — same person enrolled in both
-        // shouldn't be double-counted, so we dedupe by lowercased email.
-        const liveStudentEmails = new Set(
-          students.filter((s) => s.role === "student" && s.email).map((s) => s.email!.toLowerCase()),
-        );
-        const alumniEmails = new Set(alumniEnrollments.map((a) => a.email.toLowerCase()));
-        const allServedEmails = new Set([...liveStudentEmails, ...alumniEmails]);
-        const enrolledCount = allServedEmails.size;
-        const scoreVals = Object.values(engagementScores);
-        const totalAttendance = scoreVals.reduce((a, s) => a + s.attendance, 0);
-        const totalSubs = scoreVals.reduce((a, s) => a + s.submissions, 0);
-        const totalRefs = scoreVals.reduce((a, s) => a + s.reflections, 0);
-
         const trackBySlug = Object.fromEntries(tracks.map((t) => [t.slug, t]));
         type ActivityItem = {
           id: string;
@@ -840,113 +831,31 @@ export function AdminTabs({
           .sort((a, b) => b.submitted_at.localeCompare(a.submitted_at))
           .slice(0, 5);
 
-        const totalSurveyResponses = Object.values(surveyStats).reduce(
-          (sum, rows) => sum + rows.filter((r) => r.completed_at).length,
-          0,
-        );
-
         return (
         <div className="space-y-8">
-          <header>
-            <p className="mb-2 text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
-              Overview
-            </p>
-            {/* Editorial summary — facts in a sentence, not a templated KPI grid.
-               Numbers tinted ink so they sit in the prose, not above it. */}
-            <p className="text-2xl sm:text-[28px] leading-snug tracking-tight text-ink max-w-[55ch]">
-              <span className="font-semibold tabular-nums">{enrolledCount.toLocaleString()}</span>{" "}
-              <span className="text-ink-soft">student{enrolledCount === 1 ? "" : "s"} across</span>{" "}
-              <span className="font-semibold tabular-nums">{tracks.length}</span>{" "}
-              <span className="text-ink-soft">
-                program{tracks.length === 1 ? "" : "s"}. They&apos;ve created
-              </span>{" "}
-              <span className="font-semibold tabular-nums">{(totalSubs + totalRefs).toLocaleString()}</span>{" "}
-              <span className="text-ink-soft">pieces of work, attended</span>{" "}
-              <span className="font-semibold tabular-nums">{totalAttendance.toLocaleString()}</span>{" "}
-              <span className="text-ink-soft">sessions, and returned</span>{" "}
-              <span className="font-semibold tabular-nums">{totalSurveyResponses.toLocaleString()}</span>{" "}
-              <span className="text-ink-soft">survey responses.</span>
-            </p>
-          </header>
-
-          {/* Charts row — Students per track + Survey completion donut */}
-          {(() => {
-            const studentRoleIds = new Set(
-              students.filter((s) => s.role === "student").map((s) => s.id),
-            );
-            const liveEmailByStudentId = new Map(
-              students.map((s) => [s.id, s.email?.toLowerCase() ?? null]),
-            );
-            const alumniByTrack = new Map<string, Set<string>>();
-            for (const a of alumniEnrollments) {
-              if (!alumniByTrack.has(a.track_slug)) alumniByTrack.set(a.track_slug, new Set());
-              alumniByTrack.get(a.track_slug)!.add(a.email.toLowerCase());
-            }
-            const studentsByTrack = tracks
-              .map((t) => {
-                const liveEmails = new Set<string>();
-                for (const e of enrollments) {
-                  if (e.track_slug !== t.slug || !studentRoleIds.has(e.student_id)) continue;
-                  const email = liveEmailByStudentId.get(e.student_id);
-                  if (email) liveEmails.add(email);
-                }
-                const alumniEmails = alumniByTrack.get(t.slug) ?? new Set<string>();
-                // Dedupe overlap: alumni who later signed up in the LXP count once.
-                const combined = new Set([...liveEmails, ...alumniEmails]);
-                return { label: t.shortName, value: combined.size };
-              })
-              .filter((d) => d.value > 0)
-              .sort((a, b) => b.value - a.value);
-
-            const completedTotal = Object.values(surveyStats).reduce(
-              (sum, rows) => sum + rows.filter((r) => r.completed_at).length,
-              0,
-            );
-            const startedTotal = Object.values(surveyStats).reduce(
-              (sum, rows) => sum + rows.filter((r) => !r.completed_at).length,
-              0,
-            );
-            const surveySegments = [
-              { label: "Completed", value: completedTotal, color: "#E54D2E" },
-              { label: "In progress", value: startedTotal, color: "#FBC8B9" },
-            ].filter((s) => s.value > 0);
-
-            return (
-              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-                <HorizontalBarChart
-                  title="Students per track"
-                  data={studentsByTrack}
-                  totalCaption={{ value: enrolledCount, label: "unique" }}
-                />
-                <DonutChart
-                  title="Survey responses"
-                  segments={surveySegments}
-                  centerValue={completedTotal.toLocaleString()}
-                  centerLabel="Completed"
-                />
-              </div>
-            );
-          })()}
-
-          {/* Insights deep-dive — full cross-program dashboard lives here */}
-          <a
-            href="/dashboard/admin?tab=insights"
-            className="flex items-center justify-between gap-4 border border-rule bg-surface-elevated p-4 transition-colors hover:border-neutral-300 hover:bg-neutral-50"
-          >
-            <div className="min-w-0">
-              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400">
-                Insights
+          <header className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
+                Overview
               </p>
-              <p className="mt-1 text-sm font-semibold text-neutral-900">
-                {totalSurveyResponses} survey response
-                {totalSurveyResponses === 1 ? "" : "s"} across {surveyConfigs.length} survey
-                {surveyConfigs.length === 1 ? "" : "s"}
+              <h1 className="mt-1 text-3xl font-bold tracking-tight text-neutral-900">
+                Recent activity
+              </h1>
+              <p className="mt-1 text-sm text-neutral-500">
+                Latest submissions and reflections across {tracks.length}{" "}
+                track{tracks.length === 1 ? "" : "s"}.
               </p>
             </div>
-            <span className="shrink-0 text-xs text-neutral-500">
-              Deep dive &rarr;
-            </span>
-          </a>
+            {canSwitchPrograms(userRole) && (
+              <Link
+                href="/dashboard/insights"
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral-500 transition-colors hover:text-neutral-900"
+              >
+                Cross-program analytics
+                <span aria-hidden>&rarr;</span>
+              </Link>
+            )}
+          </header>
 
           {/* Recent activity */}
           <section>
