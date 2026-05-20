@@ -823,16 +823,9 @@ export function AdminTabs({
                       : `Starts ${start.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
                 const count = studentCountFor(t.slug);
                 return (
-                  <button
+                  <Link
                     key={t.slug}
-                    type="button"
-                    onClick={() => {
-                      setTab(t.slug);
-                      // Keep URL in sync so deep links + sidebar nav work.
-                      const url = new URL(window.location.href);
-                      url.searchParams.set("tab", t.slug);
-                      window.history.replaceState(null, "", url.toString());
-                    }}
+                    href={`/dashboard/admin?tab=${t.slug}`}
                     className="group flex h-full flex-col overflow-hidden border border-rule bg-surface-elevated text-left transition-colors hover:border-neutral-300"
                   >
                     <div
@@ -856,7 +849,7 @@ export function AdminTabs({
                         {count} {count === 1 ? "student" : "students"}
                       </p>
                     </div>
-                  </button>
+                  </Link>
                 );
               })}
             </div>
@@ -866,49 +859,31 @@ export function AdminTabs({
                 Other admin tools
               </p>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setTab("student-work");
-                    const url = new URL(window.location.href);
-                    url.searchParams.set("tab", "student-work");
-                    window.history.replaceState(null, "", url.toString());
-                  }}
+                <Link
+                  href="/dashboard/admin?tab=student-work"
                   className="flex items-center gap-3 border border-rule bg-surface-elevated px-4 py-3 text-left text-sm text-neutral-700 transition-colors hover:border-neutral-300 hover:text-neutral-900"
                 >
                   <ClipboardListIcon size={16} weight="bold" aria-hidden />
                   <span className="flex-1">All student work</span>
                   <span aria-hidden className="text-neutral-300">&rarr;</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setTab("attendance");
-                    const url = new URL(window.location.href);
-                    url.searchParams.set("tab", "attendance");
-                    window.history.replaceState(null, "", url.toString());
-                  }}
+                </Link>
+                <Link
+                  href="/dashboard/admin?tab=attendance"
                   className="flex items-center gap-3 border border-rule bg-surface-elevated px-4 py-3 text-left text-sm text-neutral-700 transition-colors hover:border-neutral-300 hover:text-neutral-900"
                 >
                   <ChartBarIcon size={16} weight="bold" aria-hidden />
                   <span className="flex-1">Attendance</span>
                   <span aria-hidden className="text-neutral-300">&rarr;</span>
-                </button>
+                </Link>
                 {isManager && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setTab("lunch-learn");
-                      const url = new URL(window.location.href);
-                      url.searchParams.set("tab", "lunch-learn");
-                      window.history.replaceState(null, "", url.toString());
-                    }}
+                  <Link
+                    href="/dashboard/admin?tab=lunch-learn"
                     className="flex items-center gap-3 border border-rule bg-surface-elevated px-4 py-3 text-left text-sm text-neutral-700 transition-colors hover:border-neutral-300 hover:text-neutral-900"
                   >
                     <CoffeeIcon size={16} weight="bold" aria-hidden />
                     <span className="flex-1">Lunch & Learns</span>
                     <span aria-hidden className="text-neutral-300">&rarr;</span>
-                  </button>
+                  </Link>
                 )}
               </div>
             </section>
