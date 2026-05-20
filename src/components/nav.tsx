@@ -116,13 +116,17 @@ export function Nav({
       ? [{ href: "/dashboard/admin", label: "Admin", icon: ShieldCheck }]
       : []),
     ...(canSwitch
-      ? [{ href: "/dashboard/admin?tab=insights", label: "Insights", icon: ChartBar }]
+      ? [
+          { href: "/dashboard/insights", label: "Insights", icon: ChartBar },
+          { href: "/dashboard/admin?tab=insights", label: "Survey Insights", icon: ChartBar },
+        ]
       : []),
   ];
 
-  // Insights now lives at /dashboard/admin?tab=insights. We need both
-  // Admin and Insights to highlight correctly even though they share a
-  // pathname — the tab query param is the discriminator.
+  // Insights (the cross-program survey view) still lives at
+  // /dashboard/admin?tab=insights. We need both Admin and Survey Insights
+  // to highlight correctly even though they share a pathname — the tab
+  // query param is the discriminator.
   const isItemActive = (href: string) => {
     if (href === "/dashboard") return pathname === "/dashboard";
     if (href === "/dashboard/admin?tab=insights") {
