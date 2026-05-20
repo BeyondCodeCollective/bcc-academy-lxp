@@ -222,8 +222,8 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
             You&apos;re signed in &mdash; your cohort hasn&apos;t started yet.
           </p>
         </div>
-        <div className="rounded-xl border border-neutral-200 bg-white p-6 sm:p-8 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-neutral-100 text-2xl">
+        <div className="border border-rule bg-surface-elevated p-6 sm:p-8 text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center bg-muted-bg text-2xl">
             {program.tracks[0]?.weekSummaries[0]?.icon ?? "📚"}
           </div>
           <h2 className="mt-4 text-lg font-semibold text-neutral-900">
@@ -258,8 +258,8 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
           <p className="mt-1 text-sm text-neutral-500">{program.name}</p>
         </div>
 
-        <div className="rounded-xl border border-neutral-200 bg-white p-6 sm:p-8 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-neutral-100 text-2xl">
+        <div className="border border-rule bg-surface-elevated p-6 sm:p-8 text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center bg-muted-bg text-2xl">
             {firstTrack?.weekSummaries[0]?.icon ?? "🎓"}
           </div>
           <h2 className="mt-4 text-lg font-semibold text-neutral-900">
@@ -275,7 +275,7 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
         </div>
 
         {firstTrack && (
-          <div className="rounded-xl border border-neutral-200 bg-white p-5">
+          <div className="border border-rule bg-surface-elevated p-5">
             <p className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-neutral-400">
               What you&apos;ll cover
             </p>
@@ -283,7 +283,7 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
               {firstTrack.weekSummaries.slice(0, 10).map((ws) => (
                 <div
                   key={ws.week}
-                  className="flex flex-col items-center rounded-lg bg-neutral-50 p-3 text-center"
+                  className="flex flex-col items-center bg-muted-bg p-3 text-center"
                 >
                   <span className="text-lg">{ws.icon}</span>
                   <span className="mt-1 text-[11px] font-medium text-neutral-900">
@@ -328,7 +328,7 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
       {announcements.map((a) => (
         <div
           key={a.id}
-          className="rounded-xl border-l-2 border-blue-500 bg-blue-50 px-4 py-3 sm:px-5 sm:py-4"
+          className="border-l-2 border-blue-500 bg-blue-50 px-4 py-3 sm:px-5 sm:py-4"
         >
           <p className="text-xs font-medium uppercase tracking-[0.14em] text-blue-700 mb-1">
             {a.track_slug
@@ -351,9 +351,9 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
             </p>
             <span className="text-sm font-semibold tabular-nums text-ink-soft">{pct}%</span>
           </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-rule">
+          <div className="h-1.5 w-full overflow-hidden bg-rule">
             <div
-              className="h-full rounded-full bg-ink transition-all"
+              className="h-full bg-primary transition-all"
               style={{ width: `${pct}%` }}
             />
           </div>
@@ -413,7 +413,7 @@ function SurveyCard({
   return (
     <Link
       href={`/dashboard/survey/${survey.id}`}
-      className="group block rounded-xl border-l-2 border-amber-500 bg-amber-50 px-4 py-3 sm:px-5 sm:py-4 transition-colors hover:bg-amber-100/70"
+      className="group block border-l-2 border-amber-500 bg-amber-50 px-4 py-3 sm:px-5 sm:py-4 transition-colors hover:bg-amber-100/70"
     >
       <div className="flex items-center justify-between gap-3 mb-1">
         <p className="text-xs font-medium uppercase tracking-[0.14em] text-amber-700">
