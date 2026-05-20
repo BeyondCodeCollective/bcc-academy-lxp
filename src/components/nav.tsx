@@ -143,10 +143,10 @@ export function Nav({
         aria-label={label}
         aria-current={active ? "page" : undefined}
         onClick={() => setMobileOpen(false)}
-        className={`flex min-h-[44px] items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+        className={`flex min-h-[44px] items-center gap-3 py-2 text-sm font-medium transition-colors ${
           active
-            ? "bg-white/15 text-white"
-            : "text-neutral-300 hover:bg-white/10 hover:text-white"
+            ? "border-l-2 border-primary bg-white/10 text-white pl-[10px] pr-3"
+            : "border-l-2 border-transparent text-neutral-300 hover:bg-white/10 hover:text-white pl-[10px] pr-3"
         }`}
       >
         <Icon size={20} weight="bold" aria-hidden />
@@ -164,7 +164,7 @@ export function Nav({
       onClick={() => setMobileOpen(false)}
       aria-label="Help"
       aria-current={helpActive ? "page" : undefined}
-      className={`flex min-h-[40px] items-center gap-2.5 rounded-lg px-3 py-1.5 text-[13px] transition-colors ${
+      className={`flex min-h-[40px] items-center gap-2.5 px-3 py-1.5 text-[13px] transition-colors ${
         helpActive
           ? "text-neutral-200"
           : "text-neutral-500 hover:text-neutral-300"
@@ -226,14 +226,14 @@ export function Nav({
                     href={weekHref}
                     onClick={() => setMobileOpen(false)}
                     aria-current={isActive ? "page" : undefined}
-                    className={`flex min-h-[36px] items-center gap-2.5 rounded-lg px-3 py-1.5 text-[13px] transition-colors ${
+                    className={`flex min-h-[36px] items-center gap-2.5 py-1.5 text-[13px] transition-colors ${
                       isActive
-                        ? "bg-white/15 text-white"
+                        ? "border-l-2 border-primary bg-white/10 text-white pl-[10px] pr-3"
                         : isCurrent
-                          ? "text-white hover:bg-white/10"
+                          ? "border-l-2 border-transparent text-white hover:bg-white/10 pl-[10px] pr-3"
                           : isFuture
-                            ? "text-neutral-600 hover:bg-white/5 hover:text-neutral-400"
-                            : "text-neutral-400 hover:bg-white/10 hover:text-neutral-200"
+                            ? "border-l-2 border-transparent text-neutral-600 hover:bg-white/5 hover:text-neutral-400 pl-[10px] pr-3"
+                            : "border-l-2 border-transparent text-neutral-400 hover:bg-white/10 hover:text-neutral-200 pl-[10px] pr-3"
                     }`}
                   >
                     {isPast ? (
@@ -277,10 +277,10 @@ export function Nav({
             href={href}
             onClick={() => setMobileOpen(false)}
             aria-current={isActive ? "page" : undefined}
-            className={`flex min-h-[36px] items-start gap-2.5 rounded-lg px-3 py-1.5 text-[13px] transition-colors ${
+            className={`flex min-h-[36px] items-start gap-2.5 py-1.5 text-[13px] transition-colors ${
               isActive
-                ? "bg-white/15 text-white"
-                : "text-neutral-300 hover:bg-white/10 hover:text-white"
+                ? "border-l-2 border-primary bg-white/10 text-white pl-[10px] pr-3"
+                : "border-l-2 border-transparent text-neutral-300 hover:bg-white/10 hover:text-white pl-[10px] pr-3"
             }`}
           >
             <span className="w-10 shrink-0 pt-0.5 text-[10px] tabular-nums text-neutral-500">
@@ -336,7 +336,7 @@ export function Nav({
                   <Link
                     key={href}
                     href={href}
-                    className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                    className={`px-3 py-1.5 text-sm font-medium transition-colors ${
                       active
                         ? "bg-white/15 text-white"
                         : "text-neutral-300 hover:bg-white/10 hover:text-white"
@@ -348,7 +348,7 @@ export function Nav({
               })}
               <Link
                 href="/dashboard/help"
-                className={`rounded-lg px-3 py-1.5 text-sm transition-colors ${
+                className={`px-3 py-1.5 text-sm transition-colors ${
                   helpActive
                     ? "text-neutral-200"
                     : "text-neutral-500 hover:text-neutral-300"
@@ -373,7 +373,7 @@ export function Nav({
               onClick={() => setMobileOpen(true)}
               aria-label="Open menu"
               aria-expanded={mobileOpen}
-              className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-neutral-200 hover:bg-white/10 hover:text-white transition-colors"
+              className="flex min-h-[44px] min-w-[44px] items-center justify-center text-neutral-200 hover:bg-white/10 hover:text-white transition-colors"
             >
               <List size={22} weight="bold" aria-hidden />
             </button>
@@ -405,7 +405,7 @@ export function Nav({
               <button
                 onClick={() => setMobileOpen(false)}
                 aria-label="Close menu"
-                className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-neutral-300 hover:bg-white/10 hover:text-white transition-colors"
+                className="flex min-h-[44px] min-w-[44px] items-center justify-center text-neutral-300 hover:bg-white/10 hover:text-white transition-colors"
               >
                 <X size={22} weight="bold" aria-hidden />
               </button>
@@ -542,7 +542,7 @@ export function Nav({
             onClick={() => setMobileOpen(true)}
             aria-label="Open menu"
             aria-expanded={mobileOpen}
-            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-neutral-200 hover:bg-white/10 hover:text-white transition-colors"
+            className="flex min-h-[44px] min-w-[44px] items-center justify-center text-neutral-200 hover:bg-white/10 hover:text-white transition-colors"
           >
             <List size={22} weight="bold" aria-hidden />
           </button>
@@ -574,7 +574,7 @@ export function Nav({
             <button
               onClick={() => setMobileOpen(false)}
               aria-label="Close menu"
-              className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-neutral-300 hover:bg-white/10 hover:text-white transition-colors"
+              className="flex min-h-[44px] min-w-[44px] items-center justify-center text-neutral-300 hover:bg-white/10 hover:text-white transition-colors"
             >
               <X size={22} weight="bold" aria-hidden />
             </button>
