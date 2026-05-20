@@ -397,9 +397,7 @@ export function AdminTabs({
   programSlug: initialProgramSlug,
   surveyStats,
   surveyConfigs,
-  publicSurveyStats = [],
   userRole = "admin",
-  firstName = "",
   engagementScores = {},
   initialTab,
   lunchLearnRecordings = [],
@@ -414,9 +412,7 @@ export function AdminTabs({
   programSlug: string;
   surveyStats: Record<string, SurveyStatsRow[]>;
   surveyConfigs: { id: string; title: string }[];
-  publicSurveyStats?: PublicSurveyStatsRow[];
   userRole?: string;
-  firstName?: string;
   engagementScores?: Record<string, { total: number; attendance: number; submissions: number; reflections: number; tutorMessages: number }>;
   initialTab?: string;
   lunchLearnRecordings?: { id: string; title: string; presenter: string; recording_url: string; description: string | null; recorded_at: string }[];
@@ -425,15 +421,17 @@ export function AdminTabs({
 }) {
   const programSlug = initialProgramSlug;
   const isManager = canManageStudents(userRole);
-  // Programs like Catalyst don't have a learner dashboard yet — no tracks,
-  // no cohorts, no enrolled students. Show only the Program tab (with
-  // Public Surveys) rather than a wall of empty tabs.
+  // Programs like Catalyst (apex) don't have a learner dashboard — no
+  // tracks, no cohorts. They render a single empty-state pointer to
+  // Survey Insights via the `insights` tab.
   const isDashboardless = tracks.length === 0 && cohorts.length === 0;
-  // Build tab list dynamically
+  // Build tab list dynamically. The old "Program" Overview tab is gone —
+  // it duplicated /dashboard/insights for super-admins and was a wasted
+  // landing for managers. Admins now land directly on People (or first
+  // track for instructors).
   const tabs = isDashboardless
-    ? [{ id: "program", label: "Program", icon: Settings }]
+    ? []
     : [
-        ...(isManager ? [{ id: "program", label: "Program", icon: Settings }] : []),
         ...tracks.map((t, i) => ({ id: t.slug, label: t.shortName, icon: getTrackIcon(i) })),
         ...(isManager ? [{ id: "students", label: "People", icon: Users }] : []),
         { id: "student-work", label: "Student Work", icon: ClipboardList },
@@ -441,7 +439,9 @@ export function AdminTabs({
         ...(isManager ? [{ id: "lunch-learn", label: "Lunch & Learn", icon: Coffee }] : []),
       ];
 
-  const defaultTab = isManager ? "program" : tracks[0]?.slug ?? "student-work";
+  const defaultTab = isManager
+    ? "students"
+    : tracks[0]?.slug ?? "student-work";
 
   const [tab, setTab] = useState<string>(initialTab || defaultTab);
 
@@ -460,10 +460,6 @@ export function AdminTabs({
   const [expandedWeek, setExpandedWeek] = useState<number | null>(null);
   const [trackView, setTrackView] = useState<"overview" | "curriculum" | "people" | "student-work" | "insights">("overview");
   const [studentSaving, setStudentSaving] = useState<string | null>(null);
-  const [recentError, setRecentError] = useState<string | null>(null);
-  const [recentSubs, setRecentSubs] = useState<AdminSubmissionRow[]>([]);
-  const [recentRefs, setRecentRefs] = useState<AdminReflectionRow[]>([]);
-  const [recentLoaded, setRecentLoaded] = useState(false);
 
   // Track data: keyed by track slug
   const [trackData, setTrackData] = useState<Record<string, AdminWeek[]>>(() => {
@@ -487,33 +483,6 @@ export function AdminTabs({
     };
   }, []);
 
-  // Recent activity for the Program tab overview. Fires once the admin lands
-  // on Program; cached for the session.
-  useEffect(() => {
-    if (tab !== "program" || recentLoaded || isDashboardless) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const [subs, refs] = await Promise.all([
-          getAllSubmissions(programSlug),
-          getAllReflections(programSlug),
-        ]);
-        if (cancelled) return;
-        setRecentSubs(subs);
-        setRecentRefs(refs);
-      } catch (err) {
-        console.error("Failed to load recent activity:", err);
-        if (!cancelled) {
-          setRecentError(err instanceof Error ? err.message : "Failed to load");
-        }
-      } finally {
-        if (!cancelled) setRecentLoaded(true);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [tab, recentLoaded, isDashboardless, programSlug]);
 
   // Load initial session content from the API for all tracks
   useEffect(() => {
@@ -774,229 +743,6 @@ export function AdminTabs({
     <div>
       <div className="flex flex-col">
       <div className="min-w-0 flex-1">
-      {/* Dashboardless Program tab — Catalyst etc. */}
-      {tab === "program" && isDashboardless && (
-        <div className="space-y-6">
-          <div className="border border-rule bg-surface-elevated p-5 text-center">
-            <p className="text-sm text-neutral-600">
-              This program doesn&apos;t have a full learner dashboard yet.
-            </p>
-            {canSwitchPrograms(userRole) && (
-              <a
-                href="/dashboard/admin/insights"
-                className="mt-3 inline-flex items-center gap-2 bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800"
-              >
-                View all survey insights
-              </a>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Program Tab. Trimmed down to Recent Activity — the per-track chart,
-         survey-completion donut, lifetime-served narrative, and "Insights
-         deep dive" tile all moved to /dashboard/insights so super-admins
-         have a single canonical analytics surface and we stop showing two
-         versions of "Students per track" that count different things. */}
-      {tab === "program" && !isDashboardless && (() => {
-        const trackBySlug = Object.fromEntries(tracks.map((t) => [t.slug, t]));
-        type ActivityItem = {
-          id: string;
-          kind: "submission" | "reflection";
-          student_name: string;
-          track_slug: string;
-          week_number: number;
-          submitted_at: string;
-        };
-        const activity: ActivityItem[] = [
-          ...recentSubs
-            .filter((s) => s.submitted_at)
-            .map((s) => ({
-              id: `s:${s.id}`,
-              kind: "submission" as const,
-              student_name: s.student_name,
-              track_slug: s.track_slug,
-              week_number: s.week_number,
-              submitted_at: s.submitted_at!,
-            })),
-          ...recentRefs
-            .filter((r) => r.submitted_at)
-            .map((r) => ({
-              id: `r:${r.id}`,
-              kind: "reflection" as const,
-              student_name: r.student_name,
-              track_slug: r.track_slug,
-              week_number: r.week_number,
-              submitted_at: r.submitted_at!,
-            })),
-        ]
-          .sort((a, b) => b.submitted_at.localeCompare(a.submitted_at))
-          .slice(0, 5);
-
-        // Per-program quick stats. Insights owns lifetime + cross-program
-        // (alumni, every track ever); this strip is scoped to this program
-        // and the current moment.
-        const totalEnrolled = students.filter((s) => s.role === "student").length;
-
-        const nowMs = Date.now();
-        const tracksRunning = tracks.filter((t) => {
-          const startMs = new Date(t.startDate).getTime();
-          if (startMs > nowMs) return false;
-          const currentWeek = computeCurrentWeek(
-            t.startDate,
-            t.totalWeeks,
-            t.lastSessionDayOffset,
-          );
-          return currentWeek <= t.totalWeeks;
-        }).length;
-
-        const sevenDaysAgoMs = nowMs - 7 * 86400 * 1000;
-        const activeThisWeekIds = new Set<string>();
-        for (const s of recentSubs) {
-          if (s.submitted_at && new Date(s.submitted_at).getTime() >= sevenDaysAgoMs) {
-            activeThisWeekIds.add(s.student_id);
-          }
-        }
-        for (const r of recentRefs) {
-          if (r.submitted_at && new Date(r.submitted_at).getTime() >= sevenDaysAgoMs) {
-            activeThisWeekIds.add(r.student_id);
-          }
-        }
-        const activeThisWeek = activeThisWeekIds.size;
-
-        const surveysCompleted = Object.values(surveyStats).reduce(
-          (sum, rows) => sum + rows.filter((r) => r.completed_at).length,
-          0,
-        );
-
-        return (
-        <div className="space-y-8">
-          <header className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
-                Overview
-              </p>
-              <h1 className="mt-1 text-3xl font-bold tracking-tight text-neutral-900">
-                {firstName ? `Welcome back, ${firstName}` : "Admin overview"}
-              </h1>
-              <p className="mt-1 text-sm text-neutral-500">
-                What&apos;s happening this week across {tracks.length}{" "}
-                track{tracks.length === 1 ? "" : "s"}.
-              </p>
-            </div>
-            {canSwitchPrograms(userRole) && (
-              <Link
-                href="/dashboard/insights"
-                className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral-500 transition-colors hover:text-neutral-900"
-              >
-                Cross-program analytics
-                <span aria-hidden>&rarr;</span>
-              </Link>
-            )}
-          </header>
-
-          {/* This week strip */}
-          <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <OverviewStat label="Students" value={totalEnrolled} hint="enrolled, role=student" />
-            <OverviewStat label="Active 7d" value={activeThisWeek} hint="submitted or reflected" />
-            <OverviewStat label="Tracks running" value={tracksRunning} hint={`of ${tracks.length} total`} />
-            <OverviewStat label="Surveys complete" value={surveysCompleted} hint="across all surveys" />
-          </dl>
-
-          {/* Quick actions — switch tabs into the existing surfaces */}
-          {(isManager || canSwitchPrograms(userRole)) && (
-            <div className="flex flex-wrap gap-2">
-              {isManager && (
-                <button
-                  type="button"
-                  onClick={() => setTab("students")}
-                  className="inline-flex items-center gap-2 border border-rule bg-surface-elevated px-3.5 py-2 text-sm font-medium text-neutral-800 transition-colors hover:bg-neutral-50"
-                >
-                  <Users size={14} />
-                  Manage students
-                </button>
-              )}
-              {tracks.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setTab(tracks[0].slug)}
-                  className="inline-flex items-center gap-2 border border-rule bg-surface-elevated px-3.5 py-2 text-sm font-medium text-neutral-800 transition-colors hover:bg-neutral-50"
-                >
-                  <BookOpen size={14} />
-                  Open curriculum
-                </button>
-              )}
-              {isManager && (
-                <button
-                  type="button"
-                  onClick={() => setTab("lunch-learn")}
-                  className="inline-flex items-center gap-2 border border-rule bg-surface-elevated px-3.5 py-2 text-sm font-medium text-neutral-800 transition-colors hover:bg-neutral-50"
-                >
-                  <Coffee size={14} />
-                  Lunch &amp; Learns
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* Recent activity — single heading lives in the page header above */}
-          <section>
-            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
-              Recent activity
-            </p>
-            <div className="divide-y divide-neutral-100 border border-rule bg-surface-elevated">
-              {!recentLoaded ? (
-                <p className="p-4 text-sm text-neutral-400">Loading…</p>
-              ) : recentError ? (
-                <p className="p-4 text-sm text-red-500">
-                  Couldn&rsquo;t load recent activity: {recentError}
-                </p>
-              ) : activity.length === 0 ? (
-                <p className="p-4 text-sm text-neutral-500">
-                  No submissions or reflections yet.
-                </p>
-              ) : (
-                activity.map((item) => {
-                  const track = trackBySlug[item.track_slug];
-                  const trackLabel = track?.shortName ?? item.track_slug;
-                  const submittedAt = new Date(item.submitted_at);
-                  const diffMs = Date.now() - submittedAt.getTime();
-                  const diffHrs = Math.round(diffMs / (1000 * 60 * 60));
-                  const ago =
-                    diffHrs < 1
-                      ? "just now"
-                      : diffHrs < 24
-                        ? `${diffHrs}h ago`
-                        : `${Math.round(diffHrs / 24)}d ago`;
-                  return (
-                    <div
-                      key={item.id}
-                      className="flex items-center justify-between gap-3 p-3 text-sm"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate font-medium text-neutral-900">
-                          {anonymizeName(item.student_name)}
-                        </p>
-                        <p className="truncate text-xs text-neutral-500">
-                          {item.kind === "submission"
-                            ? "Submitted homework"
-                            : "Added reflection"}{" "}
-                          — {trackLabel} Week {item.week_number}
-                        </p>
-                      </div>
-                      <span className="shrink-0 text-xs text-neutral-400">
-                        {ago}
-                      </span>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </section>
-
-        </div>
-        );
-      })()}
 
       {/* Track view — shows when a track is selected from the sidebar */}
       {activeTrack && (() => {
@@ -2590,32 +2336,6 @@ function PublicSurveyCard({
             </div>
           ))}
         </div>
-      )}
-    </div>
-  );
-}
-
-function OverviewStat({
-  label,
-  value,
-  hint,
-}: {
-  label: string;
-  value: number;
-  hint?: string;
-}) {
-  return (
-    <div className="border border-rule bg-surface-elevated p-4">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-neutral-400">
-        {label}
-      </p>
-      <p className="mt-2 text-2xl font-bold tabular-nums text-neutral-900 tracking-tight">
-        {value.toLocaleString()}
-      </p>
-      {hint && (
-        <p className="mt-1 text-[10px] text-neutral-400 leading-relaxed">
-          {hint}
-        </p>
       )}
     </div>
   );
