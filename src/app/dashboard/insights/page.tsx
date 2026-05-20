@@ -37,30 +37,22 @@ export default async function InsightsPage() {
     reflectionsRes,
     studentTracksRes,
     alumniRes,
-    programsRes,
   ] = await Promise.all([
     svc
       .from("students")
-      .select("id, program_id, role, created_at")
+      .select("id, role")
       .eq("role", "student"),
-    svc
-      .from("attendance")
-      .select("student_id, checked_in_at, track, program_id"),
+    svc.from("attendance").select("student_id, checked_in_at"),
     svc
       .from("submissions")
-      .select("student_id, submitted_at, track_slug, program_id")
+      .select("student_id, submitted_at")
       .not("submitted_at", "is", null),
     svc
       .from("reflections")
-      .select("student_id, submitted_at, track_slug, program_id")
+      .select("student_id, submitted_at")
       .not("submitted_at", "is", null),
-    svc
-      .from("student_tracks")
-      .select("student_id, track_slug, program_id"),
-    svc
-      .from("alumni_enrollments")
-      .select("email, track_slug, program_id"),
-    svc.from("programs").select("id, slug, name"),
+    svc.from("student_tracks").select("student_id, track_slug"),
+    svc.from("alumni_enrollments").select("email"),
   ]);
 
   const students = studentsRes.data ?? [];
@@ -69,7 +61,6 @@ export default async function InsightsPage() {
   const reflections = reflectionsRes.data ?? [];
   const studentTracks = studentTracksRes.data ?? [];
   const alumni = alumniRes.data ?? [];
-  const programs = programsRes.data ?? [];
 
   const totalStudents = students.length;
 
@@ -116,36 +107,20 @@ export default async function InsightsPage() {
     alumni.map((a) => (a.email || "").toLowerCase()).filter(Boolean),
   );
 
-  // Per-program student counts. We use student_tracks not students.program_id
-  // so admins enrolled in tracks across programs are counted where they
-  // actually learn, not where their primary record happens to live.
-  const programNameById = new Map(programs.map((p) => [p.id, p.name]));
+  // Catalyst is the umbrella now, so "students by program" would always be
+  // a single-segment donut. The meaningful axis is **phase** — Foundation
+  // (e.g. MASS), Core (technical tracks), Workshops (single-event), Exit.
   const allCatalystTracks = getAllPrograms().find((p) => p.slug === "catalyst")
     ?.tracks ?? [];
   const trackNameBySlug = new Map(
     allCatalystTracks.map((t) => [t.slug, t.shortName || t.name]),
   );
+  const phaseBySlug = new Map(
+    allCatalystTracks.map((t) => [t.slug, t.phase ?? "other"]),
+  );
 
-  // Distinct (student, program) pairs so co-enrolled students don't get
-  // double-counted.
-  const studentProgramSet = new Set<string>();
-  for (const r of studentTracks) {
-    if (r.student_id && r.program_id) {
-      studentProgramSet.add(`${r.student_id}::${r.program_id}`);
-    }
-  }
-  const programCounts = new Map<string, number>();
-  for (const key of studentProgramSet) {
-    const programId = key.split("::")[1];
-    const name = programNameById.get(programId) ?? "Unknown program";
-    programCounts.set(name, (programCounts.get(name) ?? 0) + 1);
-  }
-  const programData = Array.from(programCounts.entries())
-    .map(([label, value]) => ({ label, value }))
-    .sort((a, b) => b.value - a.value);
-
-  // Per-track student counts (distinct students). Catalyst-only since that's
-  // where the actual track-level enrollment exists.
+  // Per-track student counts (distinct students). Used for the track bar
+  // chart and as the source for phase aggregation below.
   const trackStudentSet = new Set<string>();
   const trackPairs = new Map<string, Set<string>>();
   for (const r of studentTracks) {
@@ -164,6 +139,34 @@ export default async function InsightsPage() {
     }))
     .sort((a, b) => b.value - a.value);
 
+  // Phase rollup. Dedupe (student, phase) so a student in two core tracks
+  // counts once toward Core, not twice.
+  const PHASE_LABELS: Record<string, string> = {
+    foundation: "Foundation",
+    core: "Core",
+    workshop: "Workshops",
+    exit: "Exit",
+  };
+  const PHASE_ORDER = ["foundation", "core", "workshop", "exit"];
+  const studentPhasePairs = new Set<string>();
+  for (const r of studentTracks) {
+    if (!r.student_id || !r.track_slug) continue;
+    const phase = phaseBySlug.get(r.track_slug) ?? "other";
+    studentPhasePairs.add(`${r.student_id}::${phase}`);
+  }
+  const phaseCounts = new Map<string, number>();
+  for (const pair of studentPhasePairs) {
+    const phase = pair.split("::")[1];
+    phaseCounts.set(phase, (phaseCounts.get(phase) ?? 0) + 1);
+  }
+  const phaseData = Array.from(phaseCounts.entries())
+    .map(([key, value]) => ({ key, value }))
+    .sort((a, b) => {
+      const ai = PHASE_ORDER.indexOf(a.key);
+      const bi = PHASE_ORDER.indexOf(b.key);
+      return (ai === -1 ? PHASE_ORDER.length : ai) - (bi === -1 ? PHASE_ORDER.length : bi);
+    });
+
   // Donut palette pulls from the same matte editorial set used elsewhere.
   const DONUT_TONES = [
     "#E54D2E", // vermillion
@@ -173,11 +176,14 @@ export default async function InsightsPage() {
     "#B45309", // burnt amber
     "#7C3AED", // plum
   ];
-  const donutSegments = programData.map((d, i) => ({
-    label: d.label,
+  const phaseSegments = phaseData.map((d, i) => ({
+    label: PHASE_LABELS[d.key] ?? d.key,
     value: d.value,
     color: DONUT_TONES[i % DONUT_TONES.length],
   }));
+  // Only render the donut when it's actually informative (2+ phases). With
+  // one segment it collapses to a thick ring that adds noise without insight.
+  const showPhaseDonut = phaseSegments.length >= 2;
 
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-5xl px-4 sm:px-5 py-8 space-y-8">
@@ -227,13 +233,15 @@ export default async function InsightsPage() {
         />
       </dl>
 
-      {/* Per-program breakdown */}
-      <DonutChart
-        title="Students by program"
-        segments={donutSegments}
-        centerValue={studentProgramSet.size.toLocaleString()}
-        centerLabel="enrollments"
-      />
+      {/* Phase breakdown — only when the donut would actually segment. */}
+      {showPhaseDonut && (
+        <DonutChart
+          title="Students by phase"
+          segments={phaseSegments}
+          centerValue={totalStudents.toLocaleString()}
+          centerLabel="students"
+        />
+      )}
 
       {/* Per-track student counts */}
       <HorizontalBarChart

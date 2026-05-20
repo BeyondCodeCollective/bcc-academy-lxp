@@ -116,22 +116,16 @@ export function Nav({
       ? [{ href: "/dashboard/admin", label: "Admin", icon: ShieldCheck }]
       : []),
     ...(canSwitch
-      ? [
-          { href: "/dashboard/insights", label: "Insights", icon: ChartBar },
-          { href: "/dashboard/admin?tab=insights", label: "Survey Insights", icon: ChartBar },
-        ]
+      ? [{ href: "/dashboard/insights", label: "Insights", icon: ChartBar }]
       : []),
   ];
 
-  // Insights (the cross-program survey view) still lives at
-  // /dashboard/admin?tab=insights. We need both Admin and Survey Insights
-  // to highlight correctly even though they share a pathname — the tab
-  // query param is the discriminator.
+  // Survey-specific responses live at /dashboard/admin?tab=insights and are
+  // reachable from the Insights page header, so they're no longer a sidebar
+  // item of their own. Admin still needs to NOT highlight when ?tab=insights
+  // is the active tab (it would feel wrong for both to highlight).
   const isItemActive = (href: string) => {
     if (href === "/dashboard") return pathname === "/dashboard";
-    if (href === "/dashboard/admin?tab=insights") {
-      return pathname === "/dashboard/admin" && activeTab === "insights";
-    }
     if (href === "/dashboard/admin") {
       return pathname.startsWith("/dashboard/admin") && activeTab !== "insights";
     }
