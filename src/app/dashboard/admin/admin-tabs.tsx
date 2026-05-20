@@ -438,15 +438,19 @@ export function AdminTabs({
         ...(isManager ? [{ id: "lunch-learn", label: "Lunch & Learn", icon: Coffee }] : []),
       ];
 
-  const [tab, setTab] = useState<string>(
-    initialTab || (isManager ? "program" : tracks[0]?.slug ?? "student-work")
-  );
+  const defaultTab = isManager ? "program" : tracks[0]?.slug ?? "student-work";
+
+  const [tab, setTab] = useState<string>(initialTab || defaultTab);
 
   // Sync tab state when the URL ?tab= param changes (sidebar nav clicks).
+  // Critical: when the URL switches BACK to /dashboard/admin with no ?tab=
+  // (e.g. clicking the Admin sidebar item after viewing Insights), the
+  // component used to keep its previous tab state — which rendered the
+  // old view with empty server data and looked like a load failure. Now
+  // we reset to the default tab whenever initialTab is absent.
   useEffect(() => {
-    if (initialTab && initialTab !== tab) {
-      setTab(initialTab);
-    }
+    const next = initialTab || defaultTab;
+    if (next !== tab) setTab(next);
   }, [initialTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [cohort, setCohort] = useState(cohorts[0] || null);
