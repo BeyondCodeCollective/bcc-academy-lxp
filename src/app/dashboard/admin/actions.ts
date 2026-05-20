@@ -1585,6 +1585,91 @@ export async function getDashboardSurveyResponses(
   });
 }
 
+// Batched variant: fetches all survey responses for multiple survey types in
+// two queries instead of 2×N. Used by the Insights page to avoid the N+1
+// that was firing one getDashboardSurveyResponses call per survey.
+export async function getDashboardAllSurveyResponses(
+  surveyTypes: string[],
+): Promise<Record<string, BCCSurveyResponse[]>> {
+  if (surveyTypes.length === 0) return {};
+  const { svc, userId } = await requireSuperAdmin();
+
+  const [publicRes, authRes] = await Promise.all([
+    svc
+      .from("public_survey_responses")
+      .select("survey_type, email, full_name, responses, completed_at, programs(slug, name)")
+      .in("survey_type", surveyTypes)
+      .is("withdrawn_at", null)
+      .order("completed_at", { ascending: false }),
+    svc
+      .from("survey_responses")
+      .select(
+        "survey_type, responses, completed_at, program_id, programs(slug, name), students(first_name, last_name, email)",
+      )
+      .in("survey_type", surveyTypes)
+      .not("completed_at", "is", null)
+      .order("completed_at", { ascending: false }),
+  ]);
+
+  logAdminAccess(svc, {
+    actorUserId: userId,
+    programId: null,
+    action: "view",
+    resource: "dashboard_all_survey_responses",
+    rowCount: (publicRes.data?.length ?? 0) + ((authRes.data as unknown[])?.length ?? 0),
+  });
+
+  const byType: Record<string, BCCSurveyResponse[]> = {};
+  for (const t of surveyTypes) byType[t] = [];
+
+  for (const row of publicRes.data ?? []) {
+    const surveyType = (row as { survey_type: string }).survey_type;
+    const p = (Array.isArray(row.programs) ? row.programs[0] : row.programs) as { slug: string; name: string } | null;
+    (byType[surveyType] ??= []).push({
+      survey_type: surveyType,
+      full_name: (row as { full_name: string }).full_name,
+      email: (row as { email: string }).email,
+      program_slug: p?.slug ?? "",
+      program_name: p?.name ?? "",
+      completed_at: (row as { completed_at: string | null }).completed_at,
+      responses: (row as { responses: Record<string, unknown> }).responses,
+      source: "public",
+    });
+  }
+
+  const authData = authRes.data as {
+    survey_type: string;
+    responses: Record<string, unknown>;
+    completed_at: string | null;
+    programs: { slug: string; name: string } | { slug: string; name: string }[] | null;
+    students: { first_name: string; last_name: string; email: string } | null;
+  }[] | null;
+
+  for (const row of authData ?? []) {
+    const p = (Array.isArray(row.programs) ? row.programs[0] : row.programs) as { slug: string; name: string } | null;
+    (byType[row.survey_type] ??= []).push({
+      survey_type: row.survey_type,
+      full_name: row.students ? `${row.students.first_name} ${row.students.last_name}` : "Unknown",
+      email: row.students?.email ?? "",
+      program_slug: p?.slug ?? "",
+      program_name: p?.name ?? "",
+      completed_at: row.completed_at,
+      responses: row.responses,
+      source: "authenticated",
+    });
+  }
+
+  for (const t of surveyTypes) {
+    byType[t].sort((a, b) => {
+      if (!a.completed_at) return 1;
+      if (!b.completed_at) return -1;
+      return new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime();
+    });
+  }
+
+  return byType;
+}
+
 // Per-track variant of getDashboardSurveyResponses. Filters authenticated
 // responses to students currently enrolled in `trackSlug`. Public responses
 // have no student_id to join on, so they're excluded — track-scoped insights

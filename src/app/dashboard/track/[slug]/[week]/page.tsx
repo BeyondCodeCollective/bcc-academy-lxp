@@ -96,7 +96,7 @@ export default async function TrackWeekPage({
   const isCurrent = trackStarted && weekNum === currentWeek && !isCompleted;
 
   const hasRecording = weekContent.sessions.some((_, i) => !!recordingUrls[i]);
-  const showChecklist = isSupabaseConfigured() && (track.submissionsEnabled !== false) && hasRecording && (isCurrent || isCompleted || weekNum < currentWeek);
+  const showChecklist = isSupabaseConfigured() && (track.submissionsEnabled !== false);
 
   const sessionsLabel = weekContent.sessions.length === 1 ? "Session" : "Sessions";
 

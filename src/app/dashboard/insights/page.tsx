@@ -30,8 +30,10 @@ export default async function InsightsPage() {
   const svc = createServiceClient();
   const sevenDaysAgoIso = new Date(Date.now() - 7 * 86400 * 1000).toISOString();
 
+  // Single students query covers both the role=student metric AND the
+  // names lookup for the activity feed — was two separate fetches before.
   const [
-    studentsRes,
+    allStudentsRes,
     attendanceRes,
     submissionsRes,
     reflectionsRes,
@@ -39,12 +41,10 @@ export default async function InsightsPage() {
     alumniRes,
     recentSubmissionsRes,
     recentReflectionsRes,
-    namesRes,
   ] = await Promise.all([
     svc
       .from("students")
-      .select("id, role, email")
-      .eq("role", "student"),
+      .select("id, role, email, first_name, last_name"),
     svc.from("attendance").select("student_id, checked_in_at"),
     svc
       .from("submissions")
@@ -56,8 +56,7 @@ export default async function InsightsPage() {
       .not("submitted_at", "is", null),
     svc.from("student_tracks").select("student_id, track_slug"),
     svc.from("alumni_enrollments").select("email"),
-    // Recent activity — cross-program, latest first. Used to populate the
-    // recent-activity feed at the bottom of this page.
+    // Recent activity — cross-program, latest first.
     svc
       .from("submissions")
       .select("id, student_id, track_slug, week_number, submitted_at")
@@ -70,13 +69,10 @@ export default async function InsightsPage() {
       .not("submitted_at", "is", null)
       .order("submitted_at", { ascending: false })
       .limit(10),
-    // Names lookup for the activity feed. The students list above is filtered
-    // to role=student; activity may come from any role, so fetch the full
-    // first_name/last_name map separately.
-    svc.from("students").select("id, first_name, last_name"),
   ]);
 
-  const students = studentsRes.data ?? [];
+  const allStudents = allStudentsRes.data ?? [];
+  const students = allStudents.filter((s) => s.role === "student");
   const attendance = attendanceRes.data ?? [];
   const submissions = submissionsRes.data ?? [];
   const reflections = reflectionsRes.data ?? [];
@@ -85,7 +81,7 @@ export default async function InsightsPage() {
   const recentSubmissions = recentSubmissionsRes.data ?? [];
   const recentReflections = recentReflectionsRes.data ?? [];
   const namesById = new Map(
-    (namesRes.data ?? []).map((s) => [
+    allStudents.map((s) => [
       s.id,
       [s.first_name, s.last_name].filter(Boolean).join(" ").trim() || "Anonymous",
     ]),
