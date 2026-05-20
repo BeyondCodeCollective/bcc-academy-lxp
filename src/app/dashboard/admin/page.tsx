@@ -46,11 +46,12 @@ export default async function AdminPage({
   // students + studentTracks already in the core batch.
   const effectiveTab = initialTab ?? "home";
   const isTrackTab = program.tracks.some((t) => t.slug === effectiveTab);
-  const needsEngagement = effectiveTab === "students";
+  // Engagement scores only feed the per-track People sub-view now that the
+  // cross-track People tab is gone.
+  const needsEngagement = isTrackTab;
   const needsSurveyStats = false;
   const needsLunchLearns = effectiveTab === "lunch-learn";
   const needsInsightsData = effectiveTab === "insights";
-  void isTrackTab; // reserved — track-tab queries are already inside the core batch
   void needsSurveyStats; // kept as a named constant for the gated query below
   let allStudents: Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id">[] = [];
   let allCohorts: { id: string; name: string; display_name: string | null; start_date: string; total_weeks: number }[] = [];
