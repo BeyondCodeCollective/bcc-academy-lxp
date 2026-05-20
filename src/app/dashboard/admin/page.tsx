@@ -89,14 +89,12 @@ export default async function AdminPage({
 
     if (!canAccessAdminPanel(userRole)) redirect("/dashboard");
 
-    // The Admin Overview tab was removed — Insights now owns lifetime metrics
-    // and Admin owns per-track ops. For super-admins landing on
-    // /dashboard/admin without an explicit tab, send them to the canonical
-    // analytics surface. Managers fall through to AdminTabs' default tab
-    // (People), instructors to their first track tab.
-    if (!initialTab && canSwitchPrograms(userRole)) {
-      redirect("/dashboard/insights");
-    }
+    // No auto-redirect away from /dashboard/admin. The previous version
+    // bounced super-admins to /dashboard/insights, which meant clicking
+    // "Admin" in the sidebar appeared to do nothing whenever you were
+    // already on Insights. AdminTabs' defaultTab handles landing inside
+    // a useful tab (People for managers/super-admins, first track for
+    // instructors); dashboardless programs render their own empty state.
 
     // Public-survey stats are only shown on dashboardless programs
     // (marketing apex BCC-wide view, Catalyst, etc.). On Forge/ATG the
