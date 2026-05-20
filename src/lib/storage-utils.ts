@@ -28,6 +28,22 @@ export function isUploadedRecording(url: string): boolean {
   return VIDEO_EXTENSIONS.some((ext) => url.toLowerCase().endsWith(ext));
 }
 
+/**
+ * Converts a Supabase Storage public URL to the same-origin /api/video proxy
+ * URL. This lets the browser make Range requests to a same-origin endpoint,
+ * bypassing any CORS restrictions on the Storage CDN that would otherwise
+ * prevent HTML5 video from seeking or loading.
+ *
+ * Non-storage URLs (YouTube, Drive) are returned unchanged.
+ */
+export function toVideoProxyUrl(url: string): string {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+  const prefix = `${supabaseUrl}/storage/v1/object/public/`;
+  if (!url.startsWith(prefix)) return url;
+  const storagePath = url.slice(prefix.length);
+  return `/api/video?path=${encodeURIComponent(storagePath)}`;
+}
+
 /** Extracts a YouTube embed URL from various YouTube URL formats. */
 export function getYouTubeEmbedUrl(url: string): string | null {
   try {
