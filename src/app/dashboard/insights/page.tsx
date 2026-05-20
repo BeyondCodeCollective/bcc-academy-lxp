@@ -40,7 +40,7 @@ export default async function InsightsPage() {
   ] = await Promise.all([
     svc
       .from("students")
-      .select("id, role")
+      .select("id, role, email")
       .eq("role", "student"),
     svc.from("attendance").select("student_id, checked_in_at"),
     svc
@@ -185,6 +185,24 @@ export default async function InsightsPage() {
   // one segment it collapses to a thick ring that adds noise without insight.
   const showPhaseDonut = phaseSegments.length >= 2;
 
+  // Lifetime served — every human BCC has touched through the LXP or
+  // historical alumni imports. Dedupes by lowercased email so someone
+  // who appears in both rosters counts once. This is the headline number
+  // for board demos and the marketing page; the per-metric strip above
+  // splits it into active + alumni for operational clarity.
+  const liveEmails = new Set(
+    students
+      .map((s) => s.email ?? null)
+      .filter((e): e is string => !!e)
+      .map((e) => e.toLowerCase()),
+  );
+  const alumniEmails = new Set(
+    alumni
+      .map((a) => (a.email || "").toLowerCase())
+      .filter(Boolean),
+  );
+  const lifetimeServed = new Set([...liveEmails, ...alumniEmails]).size;
+
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-5xl px-4 sm:px-5 py-8 space-y-8">
       <header className="flex flex-wrap items-end justify-between gap-3">
@@ -204,6 +222,16 @@ export default async function InsightsPage() {
           <ArrowRight size={11} weight="bold" />
         </Link>
       </header>
+
+      {/* Lifetime headline — the "served since launch" story that used to
+         live on the Admin Overview, now centralized here. */}
+      <p className="text-2xl sm:text-[28px] leading-snug tracking-tight text-neutral-900 max-w-[55ch]">
+        <span className="font-semibold tabular-nums">{lifetimeServed.toLocaleString()}</span>{" "}
+        <span className="text-neutral-500">
+          people served since launch — {totalStudents.toLocaleString()} active
+          in the LXP, {uniqueAlumni.size.toLocaleString()} historical alumni.
+        </span>
+      </p>
 
       {/* Metric strip */}
       <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
