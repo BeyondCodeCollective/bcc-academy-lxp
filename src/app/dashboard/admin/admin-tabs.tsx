@@ -802,6 +802,40 @@ export function AdminTabs({
               </p>
             </header>
 
+            {/* Quick-access tool strip — always visible above the program grid */}
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href="/dashboard/admin?tab=students"
+                className="inline-flex items-center gap-2 border border-rule bg-surface-elevated px-3 py-2 text-xs font-medium text-neutral-600 transition-colors hover:border-neutral-300 hover:text-neutral-900"
+              >
+                <UsersIcon size={13} weight="bold" aria-hidden />
+                All people
+              </Link>
+              <Link
+                href="/dashboard/admin?tab=student-work"
+                className="inline-flex items-center gap-2 border border-rule bg-surface-elevated px-3 py-2 text-xs font-medium text-neutral-600 transition-colors hover:border-neutral-300 hover:text-neutral-900"
+              >
+                <ClipboardListIcon size={13} weight="bold" aria-hidden />
+                Student work
+              </Link>
+              <Link
+                href="/dashboard/admin?tab=attendance"
+                className="inline-flex items-center gap-2 border border-rule bg-surface-elevated px-3 py-2 text-xs font-medium text-neutral-600 transition-colors hover:border-neutral-300 hover:text-neutral-900"
+              >
+                <ChartBarIcon size={13} weight="bold" aria-hidden />
+                Attendance
+              </Link>
+              {isManager && (
+                <Link
+                  href="/dashboard/admin?tab=lunch-learn"
+                  className="inline-flex items-center gap-2 border border-rule bg-surface-elevated px-3 py-2 text-xs font-medium text-neutral-600 transition-colors hover:border-neutral-300 hover:text-neutral-900"
+                >
+                  <CoffeeIcon size={13} weight="bold" aria-hidden />
+                  Lunch &amp; Learns
+                </Link>
+              )}
+            </div>
+
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {tracks.map((t) => {
                 const tone = toneForTrack(t.slug);
@@ -854,47 +888,6 @@ export function AdminTabs({
               })}
             </div>
 
-            <section className="space-y-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
-                Other admin tools
-              </p>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                <Link
-                  href="/dashboard/admin?tab=students"
-                  className="flex items-center gap-3 border border-rule bg-surface-elevated px-4 py-3 text-left text-sm text-neutral-700 transition-colors hover:border-neutral-300 hover:text-neutral-900"
-                >
-                  <UsersIcon size={16} weight="bold" aria-hidden />
-                  <span className="flex-1">All people</span>
-                  <span aria-hidden className="text-neutral-300">&rarr;</span>
-                </Link>
-                <Link
-                  href="/dashboard/admin?tab=student-work"
-                  className="flex items-center gap-3 border border-rule bg-surface-elevated px-4 py-3 text-left text-sm text-neutral-700 transition-colors hover:border-neutral-300 hover:text-neutral-900"
-                >
-                  <ClipboardListIcon size={16} weight="bold" aria-hidden />
-                  <span className="flex-1">All student work</span>
-                  <span aria-hidden className="text-neutral-300">&rarr;</span>
-                </Link>
-                <Link
-                  href="/dashboard/admin?tab=attendance"
-                  className="flex items-center gap-3 border border-rule bg-surface-elevated px-4 py-3 text-left text-sm text-neutral-700 transition-colors hover:border-neutral-300 hover:text-neutral-900"
-                >
-                  <ChartBarIcon size={16} weight="bold" aria-hidden />
-                  <span className="flex-1">Attendance</span>
-                  <span aria-hidden className="text-neutral-300">&rarr;</span>
-                </Link>
-                {isManager && (
-                  <Link
-                    href="/dashboard/admin?tab=lunch-learn"
-                    className="flex items-center gap-3 border border-rule bg-surface-elevated px-4 py-3 text-left text-sm text-neutral-700 transition-colors hover:border-neutral-300 hover:text-neutral-900"
-                  >
-                    <CoffeeIcon size={16} weight="bold" aria-hidden />
-                    <span className="flex-1">Lunch & Learns</span>
-                    <span aria-hidden className="text-neutral-300">&rarr;</span>
-                  </Link>
-                )}
-              </div>
-            </section>
           </div>
         );
       })()}

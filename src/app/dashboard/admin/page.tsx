@@ -4,7 +4,7 @@ import { AdminTabs } from "./admin-tabs";
 import type { Student } from "@/lib/types";
 import { getProgram } from "@/lib/programs/server";
 import type { StudentTrackRow, SurveyStatsRow, InstructorTrackRow, PublicSurveyStatsRow, BCCSurveyResponse } from "./actions";
-import { getPublicSurveyStats, getDashboardSurveyStats, getDashboardSurveyResponses } from "./actions";
+import { getPublicSurveyStats, getDashboardSurveyStats, getDashboardAllSurveyResponses } from "./actions";
 import { canAccessAdminPanel, canSwitchPrograms } from "@/lib/roles";
 import { PLATFORM_AUTH_SURVEYS, PLATFORM_PUBLIC_SURVEYS } from "@/lib/surveys/platform";
 import { getAllPrograms } from "@/lib/programs";
@@ -294,13 +294,16 @@ export default async function AdminPage({
         .filter((s) => stats.some((r) => r.survey_type === s.id))
         .sort((a, b) => a.title.localeCompare(b.title));
 
-      const sections = await Promise.all(
-        surveysWithData.map(async (survey) => {
-          const responses = await getDashboardSurveyResponses(survey.id);
-          const schema = getSurveySchema(survey.id);
-          return { survey, schema, responses };
-        }),
+      // Single batched fetch replaces N individual getDashboardSurveyResponses
+      // calls — two DB round-trips total regardless of how many surveys exist.
+      const allResponses = await getDashboardAllSurveyResponses(
+        surveysWithData.map((s) => s.id),
       );
+      const sections = surveysWithData.map((survey) => ({
+        survey,
+        schema: getSurveySchema(survey.id),
+        responses: allResponses[survey.id] ?? [],
+      }));
 
       insightsData = {
         sections,

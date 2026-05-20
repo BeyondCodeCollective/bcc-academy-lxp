@@ -49,7 +49,7 @@ export const forteConfig: ProgramConfig = {
       instructor: "TBD",
       sessionTimes: ["Self-paced · live sessions TBD"],
       lastSessionDayOffset: 6,
-      submissionsEnabled: false,
+      submissionsEnabled: true,
       reflectionsEnabled: true,
       weekSummaries: [
         { week: 1, topic: "What AI Is", icon: "🤖" },
