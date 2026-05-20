@@ -45,7 +45,7 @@ import type { Student } from "@/lib/types";
 import { isStorageUrl, isUploadedVideo } from "@/lib/storage-utils";
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
 import { iconForTrack, toneForTrack } from "@/lib/track-visual";
-import { Clipboard as ClipboardListIcon, Users as UsersIcon, Coffee as CoffeeIcon, ChartBar as ChartBarIcon } from "@phosphor-icons/react";
+import { Clipboard as ClipboardListIcon, Users as UsersIcon, Coffee as CoffeeIcon, ChartBar as ChartBarIcon, ArrowLeft as ArrowLeftIcon } from "@phosphor-icons/react";
 
 const PLATFORM_SURVEY_TITLES: Record<string, string> = {
   "bcc-learner-intake": "BCC Learner Intake",
@@ -793,13 +793,47 @@ export function AdminTabs({
 
         return (
           <div className="space-y-8">
-            <header>
-              <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
-                Admin
-              </h1>
-              <p className="mt-1 text-sm text-neutral-500">
-                Pick a program to manage — curriculum, roster, student work, and attendance.
-              </p>
+            <header className="flex items-start justify-between gap-4">
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
+                  Admin
+                </h1>
+                <p className="mt-1 text-sm text-neutral-500">
+                  Pick a program to manage — curriculum, roster, student work, and attendance.
+                </p>
+              </div>
+              <div className="flex items-center gap-0.5 pt-1">
+                <Link
+                  href="/dashboard/admin?tab=students"
+                  title="All people"
+                  className="flex h-8 w-8 items-center justify-center text-neutral-400 transition-colors hover:text-neutral-900"
+                >
+                  <UsersIcon size={16} weight="bold" aria-label="All people" />
+                </Link>
+                <Link
+                  href="/dashboard/admin?tab=student-work"
+                  title="Student work"
+                  className="flex h-8 w-8 items-center justify-center text-neutral-400 transition-colors hover:text-neutral-900"
+                >
+                  <ClipboardListIcon size={16} weight="bold" aria-label="Student work" />
+                </Link>
+                <Link
+                  href="/dashboard/admin?tab=attendance"
+                  title="Attendance"
+                  className="flex h-8 w-8 items-center justify-center text-neutral-400 transition-colors hover:text-neutral-900"
+                >
+                  <ChartBarIcon size={16} weight="bold" aria-label="Attendance" />
+                </Link>
+                {isManager && (
+                  <Link
+                    href="/dashboard/admin?tab=lunch-learn"
+                    title="Lunch & Learns"
+                    className="flex h-8 w-8 items-center justify-center text-neutral-400 transition-colors hover:text-neutral-900"
+                  >
+                    <CoffeeIcon size={16} weight="bold" aria-label="Lunch & Learns" />
+                  </Link>
+                )}
+              </div>
             </header>
 
             {/* Quick-access tool strip — always visible above the program grid */}
@@ -917,6 +951,15 @@ export function AdminTabs({
         });
         return (
         <div className="space-y-4">
+          {/* Back to Admin home */}
+          <Link
+            href="/dashboard/admin"
+            className="inline-flex items-center gap-1.5 text-[11px] font-medium text-neutral-400 transition-colors hover:text-neutral-700"
+          >
+            <ArrowLeftIcon size={11} weight="bold" aria-hidden />
+            Admin
+          </Link>
+
           {/* Track header */}
           <header className="space-y-1.5">
             <h1 className="text-3xl font-bold text-neutral-900 tracking-tight">
