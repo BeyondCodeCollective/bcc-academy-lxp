@@ -34,9 +34,17 @@ export default async function CoursesIndexPage() {
 
   const program = await getProgram();
 
+  // Courses = multi-week cohort tracks. Single-event tracks (e.g. the
+  // 2-hour AI Automation Bootcamp) belong on /dashboard/workshops, not
+  // here — including them surfaced a "Workshops" phase header inside the
+  // courses catalog, which conflicted with the dedicated workshops hub.
+  const cohortTracks = program.tracks.filter(
+    (t) => t.type !== "single-event",
+  );
+
   // Group tracks by phase so the catalog reads as a taxonomy, not a flat dump.
   const grouped = new Map<string, TrackConfig[]>();
-  for (const t of program.tracks) {
+  for (const t of cohortTracks) {
     const key = t.phase ?? "other";
     const arr = grouped.get(key) ?? [];
     arr.push(t);
@@ -65,7 +73,7 @@ export default async function CoursesIndexPage() {
         </p>
       </header>
 
-      {program.tracks.length === 0 ? (
+      {cohortTracks.length === 0 ? (
         <p className="border border-rule bg-surface-elevated px-5 py-8 text-center text-sm text-neutral-500">
           No courses yet.
         </p>
