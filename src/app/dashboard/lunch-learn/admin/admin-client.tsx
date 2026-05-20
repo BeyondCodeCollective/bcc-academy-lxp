@@ -118,7 +118,7 @@ export function LunchLearnAdmin({ recordings, embedded }: { recordings: Recordin
 
       <form
         onSubmit={handleSubmit}
-        className="rounded-xl border border-rule-soft bg-paper p-5 sm:p-6 mb-10"
+        className="border border-rule-soft bg-paper p-5 sm:p-6 mb-10"
       >
         <p className="text-[13px] font-semibold text-ink mb-4">
           {editingId ? "Edit recording" : "Add a recording"}
@@ -180,7 +180,7 @@ export function LunchLearnAdmin({ recordings, embedded }: { recordings: Recordin
           <button
             type="submit"
             disabled={pending}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-ink text-paper text-[13px] font-semibold px-4 py-2.5 transition-colors hover:bg-ink-soft disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 bg-ink text-paper text-[13px] font-semibold px-4 py-2.5 transition-colors hover:bg-ink-soft disabled:opacity-50"
           >
             {pending ? "Saving…" : editingId ? "Save changes" : "Add recording"}
           </button>
@@ -228,7 +228,7 @@ export function LunchLearnAdmin({ recordings, embedded }: { recordings: Recordin
                   <button
                     type="button"
                     onClick={() => startEdit(r)}
-                    className="rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-ink-soft hover:bg-paper-tint-soft hover:text-ink"
+                    className="px-2.5 py-1.5 text-[12px] font-medium text-ink-soft hover:bg-paper-tint-soft hover:text-ink"
                   >
                     Edit
                   </button>
@@ -237,7 +237,7 @@ export function LunchLearnAdmin({ recordings, embedded }: { recordings: Recordin
                     onClick={() => handleDelete(r.id)}
                     disabled={pending}
                     aria-label="Delete recording"
-                    className="rounded-lg p-1.5 text-ink-faint hover:bg-paper-tint-soft hover:text-red-600 disabled:opacity-50"
+                    className="p-1.5 text-ink-faint hover:bg-paper-tint-soft hover:text-red-600 disabled:opacity-50"
                   >
                     <Trash size={14} weight="bold" aria-hidden />
                   </button>
@@ -252,7 +252,7 @@ export function LunchLearnAdmin({ recordings, embedded }: { recordings: Recordin
 }
 
 const inputCls =
-  "w-full rounded-lg border border-rule-soft bg-paper px-3 py-2 text-[14px] text-ink placeholder:text-ink-faint focus:border-ink focus:outline-none focus:ring-0";
+  "w-full border border-rule-soft bg-paper px-3 py-2 text-[14px] text-ink placeholder:text-ink-faint focus:border-ink focus:outline-none focus:ring-0";
 
 function Field({
   label,

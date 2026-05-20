@@ -38,7 +38,7 @@ export async function LunchLearnHub({ isAdmin, firstName }: Props) {
         {isAdmin && (
           <Link
             href="/dashboard/admin?tab=lunch-learn"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-ink text-paper text-[13px] font-semibold px-4 py-2.5 transition-colors hover:bg-ink-soft"
+            className="inline-flex items-center gap-1.5 bg-ink text-paper text-[13px] font-semibold px-4 py-2.5 transition-colors hover:bg-ink-soft"
           >
             Add a recording
           </Link>
@@ -46,7 +46,7 @@ export async function LunchLearnHub({ isAdmin, firstName }: Props) {
       </header>
 
       {recordings.length === 0 ? (
-        <div className="rounded-xl border border-rule-soft bg-paper-tint-soft p-8 sm:p-10 text-center">
+        <div className="border border-rule-soft bg-paper-tint-soft p-8 sm:p-10 text-center">
           <p className="text-[15px] font-medium text-ink">No recordings yet</p>
           <p className="mt-1.5 text-[13px] text-ink-soft max-w-sm mx-auto">
             {isAdmin
@@ -108,7 +108,7 @@ function YearGroupedRecordings({ recordings }: { recordings: Recording[] }) {
                 <li key={r.id}>
                   <Link
                     href={`/dashboard/lunch-learn/${r.id}`}
-                    className="group flex h-full flex-col overflow-hidden rounded-xl border border-rule-soft bg-paper transition-colors hover:border-rule hover:bg-paper-tint-soft"
+                    className="group flex h-full flex-col overflow-hidden border border-rule-soft bg-paper transition-colors hover:border-rule hover:bg-paper-tint-soft"
                   >
                     <VideoPoster
                       thumbnailUrl={thumbnail}

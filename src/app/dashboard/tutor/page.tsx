@@ -103,7 +103,7 @@ export default function TutorPage() {
         </div>
         <button
           onClick={handleNewTopic}
-          className="rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 transition-colors hover:border-neutral-300 hover:text-neutral-900"
+          className="border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 transition-colors hover:border-neutral-300 hover:text-neutral-900"
         >
           New Topic
         </button>
@@ -120,7 +120,7 @@ export default function TutorPage() {
               }`}
             >
               <div
-                className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                className={`max-w-[85%] px-4 py-3 text-sm leading-relaxed ${
                   msg.role === "user"
                     ? "bg-neutral-900 text-white"
                     : "bg-neutral-100 text-neutral-800"
@@ -132,7 +132,7 @@ export default function TutorPage() {
           ))}
           {loading && (
             <div className="flex justify-start">
-              <div className="flex items-center gap-1.5 rounded-2xl bg-neutral-100 px-4 py-3">
+              <div className="flex items-center gap-1.5 bg-neutral-100 px-4 py-3">
                 <span className="h-1.5 w-1.5 rounded-full bg-neutral-400 animate-bounce" />
                 <span className="h-1.5 w-1.5 rounded-full bg-neutral-400 animate-bounce [animation-delay:0.15s]" />
                 <span className="h-1.5 w-1.5 rounded-full bg-neutral-400 animate-bounce [animation-delay:0.3s]" />
@@ -154,12 +154,12 @@ export default function TutorPage() {
             placeholder="Ask a question..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            className="flex-1 rounded-lg border border-neutral-200 bg-neutral-50 px-3.5 py-3 text-base text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900 focus:bg-white focus:ring-1 focus:ring-neutral-900 focus:outline-none transition-all"
+            className="flex-1 border border-neutral-200 bg-neutral-50 px-3.5 py-3 text-base text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900 focus:bg-white focus:ring-1 focus:ring-neutral-900 focus:outline-none transition-all"
           />
           <button
             type="submit"
             disabled={loading || !input.trim()}
-            className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-lg bg-neutral-900 text-white transition-colors hover:bg-neutral-800 disabled:opacity-30"
+            className="flex h-[46px] w-[46px] shrink-0 items-center justify-center bg-neutral-900 text-white transition-colors hover:bg-neutral-800 disabled:opacity-30"
           >
             <Send size={18} />
           </button>

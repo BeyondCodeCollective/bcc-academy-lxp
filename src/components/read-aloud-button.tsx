@@ -158,7 +158,7 @@ export function ReadAloudButton({
       onClick={() => (speaking ? stop() : start())}
       aria-label={speaking ? "Stop reading aloud" : label}
       aria-pressed={speaking}
-      className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-xs font-medium text-neutral-700 transition-colors hover:bg-neutral-50"
+      className="inline-flex items-center gap-1.5 border border-neutral-200 bg-white px-2.5 py-1.5 text-xs font-medium text-neutral-700 transition-colors hover:bg-neutral-50"
     >
       {speaking ? (
         <Stop size={14} weight="fill" aria-hidden="true" />

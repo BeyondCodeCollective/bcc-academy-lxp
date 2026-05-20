@@ -66,11 +66,11 @@ export function ReflectionForm({
   const hasContent = Object.values(responses).some((v) => v.trim());
 
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white">
+    <div className="border border-rule bg-surface-elevated">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between p-4 sm:p-6 text-left hover:bg-neutral-50 transition-colors rounded-xl"
+        className="flex w-full items-center justify-between p-4 sm:p-6 text-left hover:bg-neutral-50 transition-colors"
       >
         <div className="flex items-center gap-2">
           <PenLine size={14} className="text-neutral-400" />
@@ -105,7 +105,7 @@ export function ReflectionForm({
               value={responses[prompt] ?? ""}
               onChange={(e) => updateResponse(prompt, e.target.value)}
               rows={2}
-              className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900 focus:outline-none resize-none"
+              className="w-full border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900 focus:outline-none resize-none"
             />
           </div>
         ))}
@@ -121,7 +121,7 @@ export function ReflectionForm({
           onChange={(e) => updateResponse("_additional", e.target.value)}
           placeholder="Anything else on your mind..."
           rows={2}
-          className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900 focus:outline-none resize-none"
+          className="w-full border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900 focus:outline-none resize-none"
         />
       </div>
 
@@ -132,7 +132,7 @@ export function ReflectionForm({
       <button
         onClick={handleSubmit}
         disabled={saving || !hasContent}
-        className="inline-flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
+        className="inline-flex items-center gap-2 bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
       >
         {saving ? (
           <><Loader2 size={14} className="animate-spin" /> Saving...</>
@@ -155,7 +155,7 @@ export function ReflectionForm({
           {feedback.map((fb) => (
             <div
               key={fb.id}
-              className="rounded-lg border border-neutral-100 bg-neutral-50 p-3"
+              className="border border-neutral-100 bg-neutral-50 p-3"
             >
               <p className="text-sm text-neutral-700">{fb.comment}</p>
               <p className="text-[11px] text-neutral-400 mt-1">

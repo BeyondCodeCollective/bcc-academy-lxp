@@ -36,7 +36,7 @@ export function DonutChart({ title, segments, centerValue, centerLabel }: Props)
   const displayCenter = centerValue ?? total.toLocaleString();
 
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-5">
+    <div className="border border-rule bg-surface-elevated p-5">
       <p className="mb-4 text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400">
         {title}
       </p>

@@ -13,7 +13,7 @@ export function WelcomeVideo({ videoSrc, title, presenter }: Props) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white">
+    <div className="overflow-hidden border border-rule bg-surface-elevated">
       <button
         onClick={() => setOpen(!open)}
         className="flex w-full items-center justify-between px-4 sm:px-5 py-3 sm:py-4 min-h-[44px] transition-colors hover:bg-neutral-50"

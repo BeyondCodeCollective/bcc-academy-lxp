@@ -78,7 +78,7 @@ export function AuthErrorBanner() {
       aria-live="polite"
       className="fixed inset-x-3 top-3 z-[100] sm:inset-x-auto sm:left-1/2 sm:top-4 sm:w-full sm:max-w-md sm:-translate-x-1/2"
     >
-      <div className="rounded-xl border border-[#E54D2E]/30 bg-[#1a1a1a] px-4 py-3 shadow-2xl sm:px-5 sm:py-4">
+      <div className="border border-[#E54D2E]/30 bg-[#1a1a1a] px-4 py-3 shadow-2xl sm:px-5 sm:py-4">
         <div className="flex items-start gap-3">
           <div className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-[#E54D2E]" />
           <div className="min-w-0 flex-1">

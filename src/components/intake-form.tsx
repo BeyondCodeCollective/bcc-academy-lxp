@@ -82,7 +82,7 @@ export function IntakeForm({
         <button
           type="submit"
           disabled={!isValid() || submitting}
-          className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-neutral-900 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full inline-flex items-center justify-center gap-2 bg-neutral-900 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {submitting ? (
             <>
@@ -159,7 +159,7 @@ function RadioField({
         {question.options.map((opt) => (
           <label
             key={opt}
-            className={`flex items-center gap-2.5 rounded-lg border px-3.5 py-2.5 cursor-pointer transition-colors ${
+            className={`flex items-center gap-2.5 border px-3.5 py-2.5 cursor-pointer transition-colors ${
               value === opt
                 ? "border-neutral-900 bg-neutral-900/5"
                 : "border-neutral-200 bg-white hover:border-neutral-300"
@@ -210,7 +210,7 @@ function MultiSelectField({
         {question.options.map((opt) => (
           <label
             key={opt}
-            className={`flex items-center gap-2.5 rounded-lg border px-3.5 py-2.5 cursor-pointer transition-colors ${
+            className={`flex items-center gap-2.5 border px-3.5 py-2.5 cursor-pointer transition-colors ${
               selected.includes(opt)
                 ? "border-neutral-900 bg-neutral-900/5"
                 : "border-neutral-200 bg-white hover:border-neutral-300"
@@ -250,7 +250,7 @@ function TextField({
         onChange={(e) => onChange(e.target.value)}
         placeholder={question.placeholder}
         rows={3}
-        className="w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-3 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 focus:outline-none transition-all resize-none"
+        className="w-full border border-neutral-200 bg-white px-3.5 py-3 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 focus:outline-none transition-all resize-none"
       />
     </div>
   );
