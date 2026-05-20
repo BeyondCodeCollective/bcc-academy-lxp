@@ -55,7 +55,6 @@ export default async function AdminPage({
   let studentTracks: StudentTrackRow[] = [];
   let instructorTracks: InstructorTrackRow[] = [];
   let userRole = "student";
-  let firstName = "";
   let myInstructorTracks: string[] = [];
   let publicSurveyStats: PublicSurveyStatsRow[] = [];
   let lunchLearnRecordings: LunchLearnRow[] = [];
@@ -82,14 +81,22 @@ export default async function AdminPage({
     // page and to scope every subsequent query to this program.
     const [programRowRes, studentCheckRes] = await Promise.all([
       svc.from("programs").select("id").eq("slug", program.slug).single(),
-      svc.from("students").select("role, first_name").eq("id", session.user.id).single(),
+      svc.from("students").select("role").eq("id", session.user.id).single(),
     ]);
 
     const programId = programRowRes.data?.id;
     userRole = studentCheckRes.data?.role ?? "student";
-    firstName = studentCheckRes.data?.first_name ?? "";
 
     if (!canAccessAdminPanel(userRole)) redirect("/dashboard");
+
+    // The Admin Overview tab was removed — Insights now owns lifetime metrics
+    // and Admin owns per-track ops. For super-admins landing on
+    // /dashboard/admin without an explicit tab, send them to the canonical
+    // analytics surface. Managers fall through to AdminTabs' default tab
+    // (People), instructors to their first track tab.
+    if (!initialTab && canSwitchPrograms(userRole)) {
+      redirect("/dashboard/insights");
+    }
 
     // Public-survey stats are only shown on dashboardless programs
     // (marketing apex BCC-wide view, Catalyst, etc.). On Forge/ATG the
@@ -347,9 +354,7 @@ export default async function AdminPage({
         programSlug={program.slug}
         surveyStats={surveyStats}
         surveyConfigs={surveyConfigs}
-        publicSurveyStats={publicSurveyStats}
         userRole={userRole}
-        firstName={firstName}
         engagementScores={engagementScores}
         initialTab={initialTab}
         lunchLearnRecordings={lunchLearnRecordings}

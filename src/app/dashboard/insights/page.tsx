@@ -37,6 +37,9 @@ export default async function InsightsPage() {
     reflectionsRes,
     studentTracksRes,
     alumniRes,
+    recentSubmissionsRes,
+    recentReflectionsRes,
+    namesRes,
   ] = await Promise.all([
     svc
       .from("students")
@@ -53,6 +56,24 @@ export default async function InsightsPage() {
       .not("submitted_at", "is", null),
     svc.from("student_tracks").select("student_id, track_slug"),
     svc.from("alumni_enrollments").select("email"),
+    // Recent activity — cross-program, latest first. Used to populate the
+    // recent-activity feed at the bottom of this page.
+    svc
+      .from("submissions")
+      .select("id, student_id, track_slug, week_number, submitted_at")
+      .not("submitted_at", "is", null)
+      .order("submitted_at", { ascending: false })
+      .limit(10),
+    svc
+      .from("reflections")
+      .select("id, student_id, track_slug, week_number, submitted_at")
+      .not("submitted_at", "is", null)
+      .order("submitted_at", { ascending: false })
+      .limit(10),
+    // Names lookup for the activity feed. The students list above is filtered
+    // to role=student; activity may come from any role, so fetch the full
+    // first_name/last_name map separately.
+    svc.from("students").select("id, first_name, last_name"),
   ]);
 
   const students = studentsRes.data ?? [];
@@ -61,6 +82,44 @@ export default async function InsightsPage() {
   const reflections = reflectionsRes.data ?? [];
   const studentTracks = studentTracksRes.data ?? [];
   const alumni = alumniRes.data ?? [];
+  const recentSubmissions = recentSubmissionsRes.data ?? [];
+  const recentReflections = recentReflectionsRes.data ?? [];
+  const namesById = new Map(
+    (namesRes.data ?? []).map((s) => [
+      s.id,
+      [s.first_name, s.last_name].filter(Boolean).join(" ").trim() || "Anonymous",
+    ]),
+  );
+
+  // Merge submissions + reflections, sort by recency, take the top 10.
+  type ActivityItem = {
+    id: string;
+    kind: "submission" | "reflection";
+    student_name: string;
+    track_slug: string;
+    week_number: number;
+    submitted_at: string;
+  };
+  const activity: ActivityItem[] = [
+    ...recentSubmissions.map((s) => ({
+      id: `s:${s.id}`,
+      kind: "submission" as const,
+      student_name: namesById.get(s.student_id) ?? "Unknown",
+      track_slug: s.track_slug,
+      week_number: s.week_number,
+      submitted_at: s.submitted_at as string,
+    })),
+    ...recentReflections.map((r) => ({
+      id: `r:${r.id}`,
+      kind: "reflection" as const,
+      student_name: namesById.get(r.student_id) ?? "Unknown",
+      track_slug: r.track_slug,
+      week_number: r.week_number,
+      submitted_at: r.submitted_at as string,
+    })),
+  ]
+    .sort((a, b) => b.submitted_at.localeCompare(a.submitted_at))
+    .slice(0, 10);
 
   const totalStudents = students.length;
 
@@ -282,6 +341,54 @@ export default async function InsightsPage() {
           label: `track${trackPairs.size === 1 ? "" : "s"}`,
         }}
       />
+
+      {/* Recent activity — the feed that used to live on the Admin Overview
+         tab. Cross-program, latest 10 submissions + reflections. */}
+      <section className="space-y-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
+          Recent activity
+        </p>
+        <div className="divide-y divide-neutral-100 border border-rule bg-surface-elevated">
+          {activity.length === 0 ? (
+            <p className="p-4 text-sm text-neutral-500">
+              No submissions or reflections yet.
+            </p>
+          ) : (
+            activity.map((item) => {
+              const submittedAt = new Date(item.submitted_at);
+              const diffMs = Date.now() - submittedAt.getTime();
+              const diffHrs = Math.round(diffMs / (1000 * 60 * 60));
+              const ago =
+                diffHrs < 1
+                  ? "just now"
+                  : diffHrs < 24
+                    ? `${diffHrs}h ago`
+                    : `${Math.round(diffHrs / 24)}d ago`;
+              return (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between gap-3 p-3 text-sm"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-medium text-neutral-900">
+                      {item.student_name}
+                    </p>
+                    <p className="truncate text-xs text-neutral-500">
+                      {item.kind === "submission"
+                        ? "Submitted homework"
+                        : "Added reflection"}{" "}
+                      — {item.track_slug} Week {item.week_number}
+                    </p>
+                  </div>
+                  <span className="shrink-0 text-xs text-neutral-400">
+                    {ago}
+                  </span>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </section>
     </div>
   );
 }
