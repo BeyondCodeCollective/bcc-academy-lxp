@@ -399,6 +399,7 @@ export function AdminTabs({
   surveyConfigs,
   publicSurveyStats = [],
   userRole = "admin",
+  firstName = "",
   engagementScores = {},
   initialTab,
   lunchLearnRecordings = [],
@@ -415,6 +416,7 @@ export function AdminTabs({
   surveyConfigs: { id: string; title: string }[];
   publicSurveyStats?: PublicSurveyStatsRow[];
   userRole?: string;
+  firstName?: string;
   engagementScores?: Record<string, { total: number; attendance: number; submissions: number; reflections: number; tutorMessages: number }>;
   initialTab?: string;
   lunchLearnRecordings?: { id: string; title: string; presenter: string; recording_url: string; description: string | null; recorded_at: string }[];
@@ -831,6 +833,42 @@ export function AdminTabs({
           .sort((a, b) => b.submitted_at.localeCompare(a.submitted_at))
           .slice(0, 5);
 
+        // Per-program quick stats. Insights owns lifetime + cross-program
+        // (alumni, every track ever); this strip is scoped to this program
+        // and the current moment.
+        const totalEnrolled = students.filter((s) => s.role === "student").length;
+
+        const nowMs = Date.now();
+        const tracksRunning = tracks.filter((t) => {
+          const startMs = new Date(t.startDate).getTime();
+          if (startMs > nowMs) return false;
+          const currentWeek = computeCurrentWeek(
+            t.startDate,
+            t.totalWeeks,
+            t.lastSessionDayOffset,
+          );
+          return currentWeek <= t.totalWeeks;
+        }).length;
+
+        const sevenDaysAgoMs = nowMs - 7 * 86400 * 1000;
+        const activeThisWeekIds = new Set<string>();
+        for (const s of recentSubs) {
+          if (s.submitted_at && new Date(s.submitted_at).getTime() >= sevenDaysAgoMs) {
+            activeThisWeekIds.add(s.student_id);
+          }
+        }
+        for (const r of recentRefs) {
+          if (r.submitted_at && new Date(r.submitted_at).getTime() >= sevenDaysAgoMs) {
+            activeThisWeekIds.add(r.student_id);
+          }
+        }
+        const activeThisWeek = activeThisWeekIds.size;
+
+        const surveysCompleted = Object.values(surveyStats).reduce(
+          (sum, rows) => sum + rows.filter((r) => r.completed_at).length,
+          0,
+        );
+
         return (
         <div className="space-y-8">
           <header className="flex flex-wrap items-end justify-between gap-3">
@@ -839,10 +877,10 @@ export function AdminTabs({
                 Overview
               </p>
               <h1 className="mt-1 text-3xl font-bold tracking-tight text-neutral-900">
-                Recent activity
+                {firstName ? `Welcome back, ${firstName}` : "Admin overview"}
               </h1>
               <p className="mt-1 text-sm text-neutral-500">
-                Latest submissions and reflections across {tracks.length}{" "}
+                What&apos;s happening this week across {tracks.length}{" "}
                 track{tracks.length === 1 ? "" : "s"}.
               </p>
             </div>
@@ -857,9 +895,55 @@ export function AdminTabs({
             )}
           </header>
 
-          {/* Recent activity */}
+          {/* This week strip */}
+          <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <OverviewStat label="Students" value={totalEnrolled} hint="enrolled, role=student" />
+            <OverviewStat label="Active 7d" value={activeThisWeek} hint="submitted or reflected" />
+            <OverviewStat label="Tracks running" value={tracksRunning} hint={`of ${tracks.length} total`} />
+            <OverviewStat label="Surveys complete" value={surveysCompleted} hint="across all surveys" />
+          </dl>
+
+          {/* Quick actions — switch tabs into the existing surfaces */}
+          {(isManager || canSwitchPrograms(userRole)) && (
+            <div className="flex flex-wrap gap-2">
+              {isManager && (
+                <button
+                  type="button"
+                  onClick={() => setTab("students")}
+                  className="inline-flex items-center gap-2 border border-rule bg-surface-elevated px-3.5 py-2 text-sm font-medium text-neutral-800 transition-colors hover:bg-neutral-50"
+                >
+                  <Users size={14} />
+                  Manage students
+                </button>
+              )}
+              {tracks.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setTab(tracks[0].slug)}
+                  className="inline-flex items-center gap-2 border border-rule bg-surface-elevated px-3.5 py-2 text-sm font-medium text-neutral-800 transition-colors hover:bg-neutral-50"
+                >
+                  <BookOpen size={14} />
+                  Open curriculum
+                </button>
+              )}
+              {isManager && (
+                <button
+                  type="button"
+                  onClick={() => setTab("lunch-learn")}
+                  className="inline-flex items-center gap-2 border border-rule bg-surface-elevated px-3.5 py-2 text-sm font-medium text-neutral-800 transition-colors hover:bg-neutral-50"
+                >
+                  <Coffee size={14} />
+                  Lunch &amp; Learns
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Recent activity — single heading lives in the page header above */}
           <section>
-            <h2 className="mb-3 text-lg font-semibold text-neutral-900">Recent activity</h2>
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
+              Recent activity
+            </p>
             <div className="divide-y divide-neutral-100 border border-rule bg-surface-elevated">
               {!recentLoaded ? (
                 <p className="p-4 text-sm text-neutral-400">Loading…</p>
@@ -909,10 +993,6 @@ export function AdminTabs({
               )}
             </div>
           </section>
-
-          {/* Per-program survey management has moved to Survey Insights
-             (tab="insights"). The Overview tab now reads as a snapshot,
-             not a control panel. */}
 
         </div>
         );
@@ -2510,6 +2590,32 @@ function PublicSurveyCard({
             </div>
           ))}
         </div>
+      )}
+    </div>
+  );
+}
+
+function OverviewStat({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: number;
+  hint?: string;
+}) {
+  return (
+    <div className="border border-rule bg-surface-elevated p-4">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-neutral-400">
+        {label}
+      </p>
+      <p className="mt-2 text-2xl font-bold tabular-nums text-neutral-900 tracking-tight">
+        {value.toLocaleString()}
+      </p>
+      {hint && (
+        <p className="mt-1 text-[10px] text-neutral-400 leading-relaxed">
+          {hint}
+        </p>
       )}
     </div>
   );

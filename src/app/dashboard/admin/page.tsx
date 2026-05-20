@@ -55,6 +55,7 @@ export default async function AdminPage({
   let studentTracks: StudentTrackRow[] = [];
   let instructorTracks: InstructorTrackRow[] = [];
   let userRole = "student";
+  let firstName = "";
   let myInstructorTracks: string[] = [];
   let publicSurveyStats: PublicSurveyStatsRow[] = [];
   let lunchLearnRecordings: LunchLearnRow[] = [];
@@ -81,11 +82,12 @@ export default async function AdminPage({
     // page and to scope every subsequent query to this program.
     const [programRowRes, studentCheckRes] = await Promise.all([
       svc.from("programs").select("id").eq("slug", program.slug).single(),
-      svc.from("students").select("role").eq("id", session.user.id).single(),
+      svc.from("students").select("role, first_name").eq("id", session.user.id).single(),
     ]);
 
     const programId = programRowRes.data?.id;
     userRole = studentCheckRes.data?.role ?? "student";
+    firstName = studentCheckRes.data?.first_name ?? "";
 
     if (!canAccessAdminPanel(userRole)) redirect("/dashboard");
 
@@ -347,6 +349,7 @@ export default async function AdminPage({
         surveyConfigs={surveyConfigs}
         publicSurveyStats={publicSurveyStats}
         userRole={userRole}
+        firstName={firstName}
         engagementScores={engagementScores}
         initialTab={initialTab}
         lunchLearnRecordings={lunchLearnRecordings}
