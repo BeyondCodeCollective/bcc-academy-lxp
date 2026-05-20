@@ -297,8 +297,13 @@ export function Nav({
   // Insights is cross-program — the PROGRAMS list in the sidebar shouldn't
   // appear there or it implies a per-track filter that doesn't apply.
   const onInsightsTab = activeTab === "insights";
+  // Admin Home (the picker, no ?tab=) IS the canonical track selector for
+  // that surface. Hiding the sidebar track switcher there avoids doubling
+  // up; it reappears as soon as the admin clicks into a track tab.
+  const onAdminHome =
+    pathname === "/dashboard/admin" && !searchParams.get("tab");
 
-  const adminNav = variant === "admin-sidebar" && onAdminPage && !onInsightsTab && adminTracks.length > 0 && (
+  const adminNav = variant === "admin-sidebar" && onAdminPage && !onInsightsTab && !onAdminHome && adminTracks.length > 0 && (
     <div className="flex flex-col gap-1">
       <div className="my-1 h-px bg-white/10" aria-hidden />
 

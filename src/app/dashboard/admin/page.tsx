@@ -42,14 +42,16 @@ export default async function AdminPage({
   // Tab-gated data fetching. The admin page re-renders on every ?tab=
   // change, so we only pay the cost for queries the active tab actually
   // needs. Default-tab heuristic mirrors AdminTabs's own initial state:
-  // managers land on "program", instructors on their first track.
-  const effectiveTab = initialTab ?? "program";
+  // no ?tab= → Admin Home picker, which only needs the basic tracks +
+  // students + studentTracks already in the core batch.
+  const effectiveTab = initialTab ?? "home";
   const isTrackTab = program.tracks.some((t) => t.slug === effectiveTab);
-  const needsEngagement = effectiveTab === "program" || effectiveTab === "students";
-  const needsSurveyStats = effectiveTab === "program";
+  const needsEngagement = effectiveTab === "students";
+  const needsSurveyStats = false;
   const needsLunchLearns = effectiveTab === "lunch-learn";
   const needsInsightsData = effectiveTab === "insights";
   void isTrackTab; // reserved — track-tab queries are already inside the core batch
+  void needsSurveyStats; // kept as a named constant for the gated query below
   let allStudents: Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id">[] = [];
   let allCohorts: { id: string; name: string; display_name: string | null; start_date: string; total_weeks: number }[] = [];
   let studentTracks: StudentTrackRow[] = [];
@@ -318,6 +320,7 @@ export default async function AdminPage({
     name: t.name,
     shortName: t.shortName,
     description: t.description,
+    type: t.type,
     totalWeeks: t.totalWeeks,
     sessionsPerWeek: t.sessionsPerWeek,
     instructor: t.instructor,
