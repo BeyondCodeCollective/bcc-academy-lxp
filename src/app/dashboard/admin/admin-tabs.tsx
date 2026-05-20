@@ -2018,6 +2018,17 @@ export function AdminTabs({
               programs={insightsData.programs}
               totalResponses={insightsData.totalResponses}
             />
+          ) : canSwitchPrograms(userRole) ? (
+            <div className="border border-rule bg-surface-elevated p-8 text-center space-y-2">
+              <p className="text-sm font-medium text-neutral-900">
+                Insights didn&apos;t load
+              </p>
+              <p className="text-sm text-neutral-500">
+                Refresh the page. If it still doesn&apos;t load, the
+                cross-program survey query may have failed — check the Vercel
+                runtime logs for this request.
+              </p>
+            </div>
           ) : (
             <div className="border border-rule bg-surface-elevated p-8 text-center">
               <p className="text-sm text-neutral-500">

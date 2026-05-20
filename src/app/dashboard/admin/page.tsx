@@ -261,6 +261,12 @@ export default async function AdminPage({
     // Insights data — super-admins only, AND only when on the insights tab.
     // Previously fired on every admin nav (~10 extra queries cross-program);
     // now skipped unless ?tab=insights.
+    if (needsInsightsData && !canSwitchPrograms(userRole)) {
+      // Diagnostic: a user landed on ?tab=insights but isn't being treated as
+      // super-admin. Captures the actual role string we resolved so we can
+      // tell legitimate non-super-admin hits from a role-lookup mismatch.
+      console.warn("[admin/insights] skipping fetch — role=%s, userId=%s", userRole, session.user.id);
+    }
     if (canSwitchPrograms(userRole) && needsInsightsData) {
       const stats = await getDashboardSurveyStats();
       const programSurveys: SurveyConfig[] = getAllPrograms().flatMap(
