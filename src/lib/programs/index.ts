@@ -1,9 +1,11 @@
 import { catalystConfig } from "./catalyst";
+import { forteConfig } from "./forte";
 import { marketingConfig, MARKETING_SLUG } from "./marketing";
 import type { ProgramConfig, TrackConfig } from "./types";
 
 const PROGRAMS: Record<string, ProgramConfig> = {
   catalyst: catalystConfig,
+  forte: forteConfig,
 };
 
 // Marketing is intentionally NOT in PROGRAMS (so it's excluded from
