@@ -18,6 +18,8 @@ export type SubmissionRow = {
   description: string | null;
   links: SubmissionLink[];
   files: SubmissionFile[];
+  /** Structured answers keyed by prompt text (Forte's Written Artifact). */
+  prompt_responses: Record<string, string>;
   submitted_at: string | null;
   program_id: string;
   created_at: string;
@@ -71,6 +73,7 @@ export async function submitProject(
     description: string;
     links: SubmissionLink[];
     files: SubmissionFile[];
+    promptResponses?: Record<string, string>;
   }
 ) {
   const [userId, programId] = await Promise.all([requireAuth(), getProgramId()]);
@@ -84,6 +87,7 @@ export async function submitProject(
       description: data.description,
       links: data.links,
       files: data.files,
+      prompt_responses: data.promptResponses ?? {},
       submitted_at: new Date().toISOString(),
       program_id: programId,
       updated_at: new Date().toISOString(),
