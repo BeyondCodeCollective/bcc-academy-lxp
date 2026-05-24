@@ -9,6 +9,41 @@ const resend = process.env.RESEND_API_KEY
 const FROM_ADDRESS =
   process.env.RESEND_FROM_ADDRESS ?? "BCC Academy <noreply@bccacademy.io>";
 
+export async function sendSignInEmail({
+  to,
+  magicLink,
+  programName,
+}: {
+  to: string;
+  magicLink: string;
+  programName: string;
+}): Promise<void> {
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY not set — skipping sign-in email");
+    return;
+  }
+  await resend.emails.send({
+    from: FROM_ADDRESS,
+    to,
+    subject: `Your ${programName} sign-in link`,
+    html: `
+<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:520px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;">
+  <div style="background:#1a1a1a;padding:28px 24px;text-align:center;">
+    <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:#E5F701;">Beyond Code Collective</p>
+    <p style="margin:8px 0 0;font-size:20px;font-weight:700;color:#ffffff;">${programName}</p>
+  </div>
+  <div style="padding:32px 24px;">
+    <p style="margin:0 0 8px;font-size:22px;font-weight:700;color:#1a1a1a;">You're almost in.</p>
+    <p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:#555;">Click the button below to confirm your email and access your dashboard. This link expires in 24 hours.</p>
+    <div style="text-align:center;margin:0 0 28px;">
+      <a href="${magicLink}" style="display:inline-block;padding:14px 36px;background:#1a1a1a;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:700;font-size:15px;letter-spacing:0.02em;">Confirm my account →</a>
+    </div>
+    <p style="margin:0;font-size:12px;color:#999;line-height:1.5;">If you didn't request this, you can safely ignore this email. Questions? Reply here or email <a href="mailto:hello@wearebgc.org" style="color:#1a1a1a;">hello@wearebgc.org</a>.</p>
+  </div>
+</div>`,
+  });
+}
+
 /** Confirmation email for the public-survey withdrawal flow.
  *  The action that triggers this always returns success regardless of
  *  whether the address has any data on file, so this email also doubles

@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { Check } from "@phosphor-icons/react";
 import Link from "next/link";
+import { sendJoinLink } from "./actions";
 
 export function JoinForm({
   programSlug,
@@ -26,18 +26,15 @@ export function JoinForm({
     setLoading(true);
     setError("");
 
-    const callbackParams = new URLSearchParams({ join: programSlug });
-    if (trackSlug) callbackParams.set("track", trackSlug);
-    const callbackUrl = `${window.location.origin}/auth/callback?${callbackParams}`;
-
-    const supabase = createClient();
-    const { error: otpError } = await supabase.auth.signInWithOtp({
-      email: email.trim().toLowerCase(),
-      options: { emailRedirectTo: callbackUrl },
+    const result = await sendJoinLink({
+      email,
+      programSlug,
+      trackSlug,
+      origin: window.location.origin,
     });
 
-    if (otpError) {
-      setError(otpError.message || "Something went wrong. Please try again.");
+    if (!result.ok) {
+      setError(result.error ?? "Something went wrong. Please try again.");
       setLoading(false);
       return;
     }
