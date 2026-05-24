@@ -291,9 +291,14 @@ export async function GET(request: Request) {
         // this session. On pinned hosts (program subdomains) the URL is
         // authoritative — leave the cookie alone.
         if (isUnpinnedHost) {
+          // For brand-new students arriving via a ?join=<slug> link, use
+          // the join program — `existing` was fetched before the insert so
+          // it's still null here even though the row now exists.
           const programSlug =
-            (existing?.programs as unknown as { slug: string } | null)?.slug ??
-            (["super_admin", "admin"].includes(existing?.role ?? "") ? "catalyst" : null);
+            (!existing && joinSlug && joinSlug !== "marketing")
+              ? joinSlug
+              : (existing?.programs as unknown as { slug: string } | null)?.slug ??
+                (["super_admin", "admin"].includes(existing?.role ?? "") ? "catalyst" : null);
 
           if (programSlug) {
             const res = redirectWithCookies(`${origin}/dashboard`);
