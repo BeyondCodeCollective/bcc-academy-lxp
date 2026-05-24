@@ -211,6 +211,7 @@ export const forteConfig: ProgramConfig = {
             "One thing you now understand about your topic that you didn't understand before starting.",
             "What's the most important thing to learn next, and how will you do it?",
           ],
+          videoUrl: "https://drive.google.com/file/d/1T-SW_1jviaBIl6wJJMX62MJsolnMtcO8/view?usp=drive_link",
         },
         {
           week: 8,
@@ -233,6 +234,7 @@ export const forteConfig: ProgramConfig = {
             "What did AI suggest that you rejected? Why wasn't it the right fit?",
             "If you were actually going to pursue this, what's the first concrete step you'd take?",
           ],
+          videoUrl: "https://drive.google.com/file/d/1d95nRF5sHydB1Q4b9L7ypSN8_EiU92T4/view?usp=drive_link",
         },
         {
           week: 9,

@@ -9,11 +9,20 @@ import { createClient as createBrowserClient } from "@/lib/supabase/client";
 export function SubmissionForm({
   trackSlug,
   weekNumber,
+  prompts,
   existing,
   feedback,
 }: {
   trackSlug: string;
   weekNumber: number;
+  /**
+   * Optional structured guidance for this week's submission ("Written
+   * Artifact"). When provided, rendered as a numbered prompt list above
+   * the description field so the student knows what to answer.
+   * Per-prompt persistence (separate textareas) is the next step; for now
+   * answers go into the single description field.
+   */
+  prompts?: string[];
   existing: SubmissionRow | null;
   feedback: FeedbackRow[];
 }) {
@@ -132,16 +141,34 @@ export function SubmissionForm({
 
       {!open ? null : (
       <div className="px-4 sm:px-6 pb-4 sm:pb-6">
+      {/* Prompts (structured guidance) */}
+      {prompts && prompts.length > 0 && (
+        <div className="mb-4 border border-neutral-100 bg-neutral-50 px-3 py-3">
+          <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-2">
+            Answer in your submission
+          </p>
+          <ol className="list-decimal list-inside space-y-1.5 text-sm text-neutral-700">
+            {prompts.map((p, i) => (
+              <li key={i} className="leading-snug">{p}</li>
+            ))}
+          </ol>
+        </div>
+      )}
+
       {/* Description */}
       <div className="mb-4">
         <label className="text-xs font-medium text-neutral-500 mb-1 block">
-          Description
+          {prompts && prompts.length > 0 ? "Your responses" : "Description"}
         </label>
         <textarea
           value={description}
           onChange={(e) => { setDescription(e.target.value); setSaved(false); }}
-          placeholder="Describe what you worked on this week..."
-          rows={3}
+          placeholder={
+            prompts && prompts.length > 0
+              ? "Answer the prompts above. You can also add supporting links and files below."
+              : "Describe what you worked on this week..."
+          }
+          rows={prompts && prompts.length > 0 ? 8 : 3}
           className="w-full border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900 focus:outline-none resize-none"
         />
       </div>
