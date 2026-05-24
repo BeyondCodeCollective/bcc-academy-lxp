@@ -343,6 +343,7 @@ export default async function AdminPage({
       title: w.title,
       icon: w.icon,
       sessions: w.sessions.map((s) => ({ title: s.title })),
+      submissionPrompts: w.submissionPrompts,
     })),
   }));
 

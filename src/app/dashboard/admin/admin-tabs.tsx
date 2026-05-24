@@ -84,6 +84,7 @@ type AdminTrackConfig = {
     title: string;
     icon: string;
     sessions: { title: string }[];
+    submissionPrompts?: string[];
   }[];
 };
 
@@ -1556,8 +1557,8 @@ function StudentWorkTab({
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-neutral-900">{sub.student_name}</p>
                     <p className="text-[11px] text-neutral-400">
-                      {tracks.find((t) => t.slug === sub.track_slug)?.shortName ?? sub.track_slug} &middot; Week {sub.week_number}
-                      {sub.submitted_at && ` &middot; ${new Date(sub.submitted_at).toLocaleDateString()}`}
+                      {tracks.find((t) => t.slug === sub.track_slug)?.shortName ?? sub.track_slug} · Week {sub.week_number}
+                      {sub.submitted_at && ` · ${new Date(sub.submitted_at).toLocaleDateString()}`}
                     </p>
                   </div>
                 </div>
@@ -1571,8 +1572,28 @@ function StudentWorkTab({
                 </div>
               </button>
 
-              {expandedId === sub.id && (
+              {expandedId === sub.id && (() => {
+                // Render answers in syllabus order, not jsonb key order
+                // (Postgres jsonb doesn't preserve insertion order).
+                const responses = sub.prompt_responses ?? {};
+                const orderedPrompts =
+                  tracks
+                    .find((t) => t.slug === sub.track_slug)
+                    ?.weeks?.find((w) => w.week === sub.week_number)
+                    ?.submissionPrompts ?? [];
+                const orderedKeys = orderedPrompts.filter((p) => p in responses);
+                const extraKeys = Object.keys(responses).filter(
+                  (k) => !orderedKeys.includes(k),
+                );
+                const promptOrder = [...orderedKeys, ...extraKeys];
+                return (
                 <div className="border-t border-neutral-100 px-4 py-3 space-y-3">
+                  {promptOrder.map((prompt) => (
+                    <div key={prompt}>
+                      <p className="text-[11px] font-medium text-neutral-400 mb-0.5">{prompt}</p>
+                      <p className="text-sm text-neutral-700 whitespace-pre-wrap">{responses[prompt]}</p>
+                    </div>
+                  ))}
                   {sub.description && (
                     <div>
                       <p className="text-[11px] font-medium text-neutral-400 uppercase tracking-wide mb-1">Description</p>
@@ -1631,7 +1652,8 @@ function StudentWorkTab({
                     </div>
                   </div>
                 </div>
-              )}
+                );
+              })()}
             </div>
           ))}
         </div>
@@ -1652,8 +1674,8 @@ function StudentWorkTab({
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-neutral-900">{ref.student_name}</p>
                     <p className="text-[11px] text-neutral-400">
-                      {tracks.find((t) => t.slug === ref.track_slug)?.shortName ?? ref.track_slug} &middot; Week {ref.week_number}
-                      {ref.submitted_at && ` &middot; ${new Date(ref.submitted_at).toLocaleDateString()}`}
+                      {tracks.find((t) => t.slug === ref.track_slug)?.shortName ?? ref.track_slug} · Week {ref.week_number}
+                      {ref.submitted_at && ` · ${new Date(ref.submitted_at).toLocaleDateString()}`}
                     </p>
                   </div>
                 </div>

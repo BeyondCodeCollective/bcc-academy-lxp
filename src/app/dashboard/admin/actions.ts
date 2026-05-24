@@ -1013,6 +1013,7 @@ export type AdminSubmissionRow = {
   description: string | null;
   links: { url: string; label: string }[];
   files: { url: string; name: string; type: string }[];
+  prompt_responses: Record<string, string>;
   submitted_at: string | null;
   feedback_count: number;
 };
@@ -1075,6 +1076,7 @@ export async function getAllSubmissions(
       description: row.description as string | null,
       links: (row.links ?? []) as { url: string; label: string }[],
       files: (row.files ?? []) as { url: string; name: string; type: string }[],
+      prompt_responses: (row.prompt_responses ?? {}) as Record<string, string>,
       submitted_at: row.submitted_at as string | null,
       feedback_count: feedbackArr?.length ?? 0,
     };

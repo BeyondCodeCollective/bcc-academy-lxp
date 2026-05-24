@@ -16,16 +16,26 @@ export function SubmissionForm({
   trackSlug: string;
   weekNumber: number;
   /**
-   * Optional structured guidance for this week's submission ("Written
-   * Artifact"). When provided, rendered as a numbered prompt list above
-   * the description field so the student knows what to answer.
-   * Per-prompt persistence (separate textareas) is the next step; for now
-   * answers go into the single description field.
+   * Structured questions ("Written Artifact") for this week's submission.
+   * When provided, the form renders one labeled textarea per prompt and
+   * persists the answers to `submissions.prompt_responses`. Files and links
+   * remain available below as optional attachments.
    */
   prompts?: string[];
   existing: SubmissionRow | null;
   feedback: FeedbackRow[];
 }) {
+  const activePrompts = prompts ?? [];
+  const hasPrompts = activePrompts.length > 0;
+  const existingPromptResponses = existing?.prompt_responses ?? {};
+
+  const [promptResponses, setPromptResponses] = useState<Record<string, string>>(() => {
+    const initial: Record<string, string> = {};
+    for (const prompt of activePrompts) {
+      initial[prompt] = existingPromptResponses[prompt] ?? "";
+    }
+    return initial;
+  });
   const [description, setDescription] = useState(existing?.description ?? "");
   const [links, setLinks] = useState<SubmissionLink[]>(existing?.links ?? []);
   const [files, setFiles] = useState<SubmissionFile[]>(existing?.files ?? []);
@@ -34,6 +44,14 @@ export function SubmissionForm({
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
   const [open, setOpen] = useState(false);
+  const [attachmentsOpen, setAttachmentsOpen] = useState(
+    (existing?.links?.length ?? 0) > 0 || (existing?.files?.length ?? 0) > 0
+  );
+
+  function updatePromptResponse(prompt: string, value: string) {
+    setPromptResponses((prev) => ({ ...prev, [prompt]: value }));
+    setSaved(false);
+  }
 
   function addLink() {
     setLinks([...links, { url: "", label: "" }]);
@@ -98,10 +116,15 @@ export function SubmissionForm({
     setSaving(true);
     setError("");
     try {
+      const cleanedPromptResponses: Record<string, string> = {};
+      for (const [prompt, answer] of Object.entries(promptResponses)) {
+        if (answer.trim()) cleanedPromptResponses[prompt] = answer.trim();
+      }
       await submitProject(trackSlug, weekNumber, {
         description,
         links: links.filter((l) => l.url.trim()),
         files,
+        promptResponses: cleanedPromptResponses,
       });
       setSaved(true);
     } catch (err) {
@@ -110,7 +133,12 @@ export function SubmissionForm({
     setSaving(false);
   }
 
-  const hasContent = description.trim() || links.some((l) => l.url.trim()) || files.length > 0;
+  const hasPromptContent = Object.values(promptResponses).some((v) => v.trim());
+  const hasAttachmentContent =
+    description.trim() || links.some((l) => l.url.trim()) || files.length > 0;
+  const hasContent = hasPrompts ? hasPromptContent : hasAttachmentContent;
+
+  const header = hasPrompts ? "Submit Your Project" : "Submit Your Work";
 
   return (
     <div className="border border-rule bg-surface-elevated">
@@ -122,7 +150,7 @@ export function SubmissionForm({
         <div className="flex items-center gap-2">
           <Upload size={14} className="text-neutral-400" />
           <h2 className="text-xs font-semibold text-neutral-400 uppercase tracking-wide">
-            Submit Your Work
+            {header}
           </h2>
         </div>
         <div className="flex items-center gap-3">
@@ -141,34 +169,159 @@ export function SubmissionForm({
 
       {!open ? null : (
       <div className="px-4 sm:px-6 pb-4 sm:pb-6">
-      {/* Prompts (structured guidance) */}
-      {prompts && prompts.length > 0 && (
-        <div className="mb-4 border border-neutral-100 bg-neutral-50 px-3 py-3">
-          <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-2">
-            Answer in your submission
-          </p>
-          <ol className="list-decimal list-inside space-y-1.5 text-sm text-neutral-700">
-            {prompts.map((p, i) => (
-              <li key={i} className="leading-snug">{p}</li>
-            ))}
-          </ol>
+
+      {/* Per-prompt structured answers (Forte's Written Artifact). */}
+      {hasPrompts && (
+        <div className="space-y-4 mb-4">
+          {activePrompts.map((prompt) => (
+            <div key={prompt}>
+              <label className="text-sm font-medium text-neutral-700 mb-1.5 block">
+                {prompt}
+              </label>
+              <textarea
+                value={promptResponses[prompt] ?? ""}
+                onChange={(e) => updatePromptResponse(prompt, e.target.value)}
+                rows={3}
+                className="w-full border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900 focus:outline-none resize-none"
+              />
+            </div>
+          ))}
         </div>
       )}
 
+      {/* Attachments — collapsed by default when prompts are the focus. */}
+      {hasPrompts ? (
+        <div className="mb-4 border-t border-neutral-100 pt-4">
+          <button
+            type="button"
+            onClick={() => setAttachmentsOpen((v) => !v)}
+            className="flex w-full items-center justify-between text-left hover:opacity-80 transition-opacity"
+          >
+            <span className="text-xs font-medium text-neutral-500">
+              Attachments (optional)
+            </span>
+            <ChevronDown
+              size={14}
+              className={`text-neutral-400 transition-transform ${attachmentsOpen ? "rotate-180" : ""}`}
+            />
+          </button>
+          {attachmentsOpen && (
+            <div className="mt-3">
+              <AttachmentFields
+                description={description}
+                setDescription={(v) => { setDescription(v); setSaved(false); }}
+                descriptionPlaceholder="Any notes for your instructor about this submission..."
+                links={links}
+                addLink={addLink}
+                updateLink={updateLink}
+                removeLink={removeLink}
+                files={files}
+                removeFile={removeFile}
+                handleFileUpload={handleFileUpload}
+                uploading={uploading}
+              />
+            </div>
+          )}
+        </div>
+      ) : (
+        <AttachmentFields
+          description={description}
+          setDescription={(v) => { setDescription(v); setSaved(false); }}
+          descriptionPlaceholder="Describe what you worked on this week..."
+          links={links}
+          addLink={addLink}
+          updateLink={updateLink}
+          removeLink={removeLink}
+          files={files}
+          removeFile={removeFile}
+          handleFileUpload={handleFileUpload}
+          uploading={uploading}
+        />
+      )}
+
+      {/* Error */}
+      {error && <p className="text-xs text-red-500 mb-3">{error}</p>}
+
+      {/* Submit */}
+      <button
+        onClick={handleSubmit}
+        disabled={saving || !hasContent}
+        className="inline-flex items-center gap-2 bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
+      >
+        {saving ? (
+          <><Loader2 size={14} className="animate-spin" /> Saving...</>
+        ) : saved ? (
+          <><CheckCircle size={14} /> Update Submission</>
+        ) : (
+          "Submit"
+        )}
+      </button>
+
+      {/* Feedback from instructor */}
+      {feedback.length > 0 && (
+        <div className="mt-5 pt-4 border-t border-neutral-100 space-y-3">
+          <div className="flex items-center gap-2">
+            <MessageSquare size={14} className="text-neutral-400" />
+            <h3 className="text-xs font-semibold text-neutral-400 uppercase tracking-wide">
+              Instructor Feedback
+            </h3>
+          </div>
+          {feedback.map((fb) => (
+            <div
+              key={fb.id}
+              className="border border-neutral-100 bg-neutral-50 p-3"
+            >
+              <p className="text-sm text-neutral-700">{fb.comment}</p>
+              <p className="text-[11px] text-neutral-400 mt-1">
+                {fb.reviewer_name} · {new Date(fb.created_at).toLocaleDateString()}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+      </div>
+      )}
+    </div>
+  );
+}
+
+function AttachmentFields({
+  description,
+  setDescription,
+  descriptionPlaceholder,
+  links,
+  addLink,
+  updateLink,
+  removeLink,
+  files,
+  removeFile,
+  handleFileUpload,
+  uploading,
+}: {
+  description: string;
+  setDescription: (v: string) => void;
+  descriptionPlaceholder: string;
+  links: SubmissionLink[];
+  addLink: () => void;
+  updateLink: (index: number, field: keyof SubmissionLink, value: string) => void;
+  removeLink: (index: number) => void;
+  files: SubmissionFile[];
+  removeFile: (index: number) => void;
+  handleFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  uploading: boolean;
+}) {
+  return (
+    <>
       {/* Description */}
       <div className="mb-4">
         <label className="text-xs font-medium text-neutral-500 mb-1 block">
-          {prompts && prompts.length > 0 ? "Your responses" : "Description"}
+          Description
         </label>
         <textarea
           value={description}
-          onChange={(e) => { setDescription(e.target.value); setSaved(false); }}
-          placeholder={
-            prompts && prompts.length > 0
-              ? "Answer the prompts above. You can also add supporting links and files below."
-              : "Describe what you worked on this week..."
-          }
-          rows={prompts && prompts.length > 0 ? 8 : 3}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder={descriptionPlaceholder}
+          rows={3}
           className="w-full border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900 focus:outline-none resize-none"
         />
       </div>
@@ -267,50 +420,6 @@ export function SubmissionForm({
           ))}
         </div>
       </div>
-
-      {/* Error */}
-      {error && <p className="text-xs text-red-500 mb-3">{error}</p>}
-
-      {/* Submit */}
-      <button
-        onClick={handleSubmit}
-        disabled={saving || !hasContent}
-        className="inline-flex items-center gap-2 bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
-      >
-        {saving ? (
-          <><Loader2 size={14} className="animate-spin" /> Saving...</>
-        ) : saved ? (
-          <><CheckCircle size={14} /> Update Submission</>
-        ) : (
-          "Submit"
-        )}
-      </button>
-
-      {/* Feedback from instructor */}
-      {feedback.length > 0 && (
-        <div className="mt-5 pt-4 border-t border-neutral-100 space-y-3">
-          <div className="flex items-center gap-2">
-            <MessageSquare size={14} className="text-neutral-400" />
-            <h3 className="text-xs font-semibold text-neutral-400 uppercase tracking-wide">
-              Instructor Feedback
-            </h3>
-          </div>
-          {feedback.map((fb) => (
-            <div
-              key={fb.id}
-              className="border border-neutral-100 bg-neutral-50 p-3"
-            >
-              <p className="text-sm text-neutral-700">{fb.comment}</p>
-              <p className="text-[11px] text-neutral-400 mt-1">
-                {fb.reviewer_name} &middot;{" "}
-                {new Date(fb.created_at).toLocaleDateString()}
-              </p>
-            </div>
-          ))}
-        </div>
-      )}
-      </div>
-      )}
-    </div>
+    </>
   );
 }
