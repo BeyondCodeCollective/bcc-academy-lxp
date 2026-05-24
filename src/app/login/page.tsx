@@ -4,7 +4,7 @@ import { CentralLoginForm } from "@/components/central-login-form";
 import { SignIn } from "@phosphor-icons/react/dist/ssr";
 import Image from "next/image";
 import Link from "next/link";
-import { getAllPrograms } from "@/lib/programs";
+import { getJoinablePrograms } from "@/lib/programs";
 
 // Legacy program subdomains redirect to their own login at /.
 // With the Catalyst consolidation, all programs are under one roof —
@@ -49,7 +49,7 @@ export default async function CentralLoginPage() {
             </p>
 
             <CentralLoginForm
-              programs={getAllPrograms()
+              programs={getJoinablePrograms()
                 .filter((p) => p.tracks.length > 0)
                 .map((p) => ({ slug: p.slug, name: p.name }))}
             />
