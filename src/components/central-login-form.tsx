@@ -7,7 +7,13 @@ import { Check } from "@phosphor-icons/react";
 export function CentralLoginForm({
   programs = [],
 }: {
-  programs?: { slug: string; name: string }[];
+  /**
+   * Programs to surface on the "No account found" CTA list. `defaultTrack`
+   * is the slug to append as `?track=<slug>` for invite-only programs
+   * (Forte's `/join/forte` shows a dead-end "invite required" message
+   * without it). For programs that accept bare `/join/<slug>`, leave it null.
+   */
+  programs?: { slug: string; name: string; defaultTrack: string | null }[];
 }) {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -121,7 +127,7 @@ export function CentralLoginForm({
               {programs.map((p) => (
                 <a
                   key={p.slug}
-                  href={`/join/${p.slug}`}
+                  href={p.defaultTrack ? `/join/${p.slug}?track=${p.defaultTrack}` : `/join/${p.slug}`}
                   className="flex w-full items-center justify-between rounded bg-white/5 px-4 py-3 text-sm text-white/80 transition-colors hover:bg-white/10 hover:text-white"
                 >
                   <span className="font-medium">{p.name}</span>
