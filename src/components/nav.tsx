@@ -108,7 +108,12 @@ export function Nav({
   const items: NavItem[] = [
     { href: "/dashboard", label: "Home", icon: House },
     { href: "/dashboard/courses", label: "Courses", icon: BookOpen },
-    { href: "/dashboard/workshops", label: "Workshops", icon: Confetti },
+    // Workshops are internal-only: admin panel access OR BGC/BCC staff email.
+    // Students (current or prospective) don't see this; past workshops are
+    // archival material for the org, not enrolled-learner content.
+    ...(canAccessStaff
+      ? [{ href: "/dashboard/workshops", label: "Workshops", icon: Confetti }]
+      : []),
     ...(showTutor
       ? [{ href: "/dashboard/tutor", label: "AI Tutor", icon: ChatsCircle }]
       : []),
