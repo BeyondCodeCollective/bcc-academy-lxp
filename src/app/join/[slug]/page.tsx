@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getAllPrograms, getProgramBySlug, getTrackBySlug } from "@/lib/programs";
+import { getJoinablePrograms, getProgramBySlug, getTrackBySlug } from "@/lib/programs";
 import { JoinForm } from "./join-form";
 
 export function generateStaticParams() {
-  return getAllPrograms().map((p) => ({ slug: p.slug }));
+  return getJoinablePrograms().map((p) => ({ slug: p.slug }));
 }
 
 export default async function JoinPage({
@@ -17,7 +17,7 @@ export default async function JoinPage({
   const { slug } = await params;
   const { track: trackParam } = await searchParams;
 
-  const allSlugs = new Set(getAllPrograms().map((p) => p.slug));
+  const allSlugs = new Set(getJoinablePrograms().map((p) => p.slug));
   if (!allSlugs.has(slug)) notFound();
 
   const program = getProgramBySlug(slug);
