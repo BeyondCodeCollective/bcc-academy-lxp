@@ -20,10 +20,15 @@ export const dynamic = "force-dynamic";
 
 export default async function TrackOverviewPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ hero?: string }>;
 }) {
   const { slug } = await params;
+  const { hero } = await searchParams;
+  const heroVariant: "default" | "typo" | "grid" =
+    hero === "typo" || hero === "grid" ? hero : "default";
   const program = await getProgram();
   const track = getTrackBySlug(program, slug);
   if (!track) redirect("/dashboard");
@@ -84,45 +89,145 @@ export default async function TrackOverviewPage({
         )}
       </div>
 
-      {/* Hero — tone-tinted icon banner + eyebrow + title + tagline */}
+      {/* Hero — three variants for visual comparison (toggle via ?hero=typo|grid). */}
       <header className="space-y-5">
-        <div
-          aria-hidden
-          className="relative flex aspect-[16/7] w-full items-center justify-center overflow-hidden"
-          style={{ backgroundColor: `${tone}1A` }}
-        >
-          <Icon size={72} weight="light" color={tone} />
-          {started && (
-            <div className="absolute top-4 right-4">
-              <span
-                className="inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold backdrop-blur"
-                style={{ color: tone }}
-              >
+        {heroVariant === "typo" ? (
+          // VARIANT: typographic hero — no tinted block, large display title
+          // does the work; "In progress" pill sits inline with the eyebrow.
+          <div className="space-y-4 pt-2">
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="text-xs font-medium uppercase tracking-[0.18em] text-neutral-400">
+                {eyebrow}
+                <span className="mx-2 text-neutral-300">·</span>
+                {track.totalWeeks}-week track
+              </p>
+              {started && (
                 <span
-                  className="h-1.5 w-1.5 rounded-full animate-pulse"
-                  style={{ backgroundColor: tone }}
-                />
-                In progress
-              </span>
+                  className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                  style={{ backgroundColor: `${tone}1A`, color: tone }}
+                >
+                  <span
+                    className="h-1.5 w-1.5 rounded-full animate-pulse"
+                    style={{ backgroundColor: tone }}
+                  />
+                  In progress
+                </span>
+              )}
             </div>
-          )}
-        </div>
-
-        <div>
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-neutral-400">
-            {eyebrow}
-            <span className="mx-2 text-neutral-300">·</span>
-            {track.totalWeeks}-week track
-          </p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-neutral-900 sm:text-4xl">
-            {track.name}
-          </h1>
-          {overviewCopy && (
-            <p className="mt-3 text-base leading-relaxed text-neutral-600">
-              {overviewCopy}
-            </p>
-          )}
-        </div>
+            <h1 className="text-5xl font-bold tracking-tight text-neutral-900 sm:text-6xl">
+              {track.name}
+            </h1>
+            {overviewCopy && (
+              <p className="max-w-2xl text-lg leading-relaxed text-neutral-600">
+                {overviewCopy}
+              </p>
+            )}
+          </div>
+        ) : heroVariant === "grid" ? (
+          // VARIANT: curriculum-as-hero — tinted block stays, but its content
+          // is a 5×2 grid of week icons + topics, so the hero communicates
+          // scope instead of decoration. Current week is ringed in the tone.
+          <>
+            <div
+              className="relative w-full overflow-hidden p-5 sm:p-7"
+              style={{ backgroundColor: `${tone}1A` }}
+            >
+              <ol className="grid grid-cols-5 gap-2 sm:gap-3">
+                {track.weekSummaries.map((ws) => {
+                  const isCurrent = started && ws.week === currentWeek;
+                  return (
+                    <li
+                      key={ws.week}
+                      className="flex aspect-square flex-col items-center justify-center bg-white/85 p-1.5 backdrop-blur sm:p-2"
+                      style={
+                        isCurrent
+                          ? { boxShadow: `inset 0 0 0 2px ${tone}` }
+                          : undefined
+                      }
+                    >
+                      <span className="text-xl leading-none sm:text-2xl">
+                        {ws.icon}
+                      </span>
+                      <span className="mt-1 line-clamp-2 px-0.5 text-center text-[9px] font-medium leading-tight text-neutral-600 sm:text-[10px]">
+                        {ws.topic}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ol>
+              {started && (
+                <div className="absolute top-3 right-3">
+                  <span
+                    className="inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold backdrop-blur"
+                    style={{ color: tone }}
+                  >
+                    <span
+                      className="h-1.5 w-1.5 rounded-full animate-pulse"
+                      style={{ backgroundColor: tone }}
+                    />
+                    In progress
+                  </span>
+                </div>
+              )}
+            </div>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-[0.18em] text-neutral-400">
+                {eyebrow}
+                <span className="mx-2 text-neutral-300">·</span>
+                {track.totalWeeks}-week track
+              </p>
+              <h1 className="mt-2 text-3xl font-bold tracking-tight text-neutral-900 sm:text-4xl">
+                {track.name}
+              </h1>
+              {overviewCopy && (
+                <p className="mt-3 text-base leading-relaxed text-neutral-600">
+                  {overviewCopy}
+                </p>
+              )}
+            </div>
+          </>
+        ) : (
+          // VARIANT: default (current production) — single Phosphor icon in a
+          // tone-tinted block. Kept as the comparison baseline.
+          <>
+            <div
+              aria-hidden
+              className="relative flex aspect-[16/7] w-full items-center justify-center overflow-hidden"
+              style={{ backgroundColor: `${tone}1A` }}
+            >
+              <Icon size={72} weight="light" color={tone} />
+              {started && (
+                <div className="absolute top-4 right-4">
+                  <span
+                    className="inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold backdrop-blur"
+                    style={{ color: tone }}
+                  >
+                    <span
+                      className="h-1.5 w-1.5 rounded-full animate-pulse"
+                      style={{ backgroundColor: tone }}
+                    />
+                    In progress
+                  </span>
+                </div>
+              )}
+            </div>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-[0.18em] text-neutral-400">
+                {eyebrow}
+                <span className="mx-2 text-neutral-300">·</span>
+                {track.totalWeeks}-week track
+              </p>
+              <h1 className="mt-2 text-3xl font-bold tracking-tight text-neutral-900 sm:text-4xl">
+                {track.name}
+              </h1>
+              {overviewCopy && (
+                <p className="mt-3 text-base leading-relaxed text-neutral-600">
+                  {overviewCopy}
+                </p>
+              )}
+            </div>
+          </>
+        )}
 
         <div>
           <Link
