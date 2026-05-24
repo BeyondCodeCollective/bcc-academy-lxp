@@ -85,12 +85,15 @@ export async function saveSurveyResponse(
 
   // Fall back to a programs-by-slug lookup if the student row is somehow
   // missing a program_id (shouldn't happen on a healthy DB, but be safe).
+  // "marketing" is the apex-domain placeholder — it has no DB row; treat it
+  // the same as catalyst (the umbrella program that owns the intake).
   let programId = studentRow?.program_id ?? null;
   if (!programId) {
+    const lookupSlug = programSlug === "marketing" ? "catalyst" : programSlug;
     const { data: programRow, error: programErr } = await supabase
       .from("programs")
       .select("id")
-      .eq("slug", programSlug)
+      .eq("slug", lookupSlug)
       .maybeSingle();
     if (programErr || !programRow) {
       console.error("[saveSurveyResponse] program fallback lookup failed", {

@@ -50,7 +50,11 @@ export const forteConfig: ProgramConfig = {
       sessionTimes: ["Self-paced · live sessions TBD"],
       lastSessionDayOffset: 6,
       submissionsEnabled: true,
-      reflectionsEnabled: true,
+      // Forte's "Written Artifact" is modeled as the project submission
+      // (structured prompts on the SubmissionForm), not as a separate
+      // reflection. Keep reflections off so the student sees one submission
+      // block per week, not two.
+      reflectionsEnabled: false,
       weekSummaries: [
         { week: 1, topic: "What AI Is", icon: "🤖" },
         { week: 2, topic: "AI & Bias", icon: "⚖️" },
@@ -77,6 +81,7 @@ export const forteConfig: ProgramConfig = {
             "Recognize who shapes how AI is defined and built",
           ],
           sessions: [{ title: "Will We Ever Achieve AGI?", time: "Self-paced" }],
+          submissionsEnabled: false,
         },
         {
           week: 2,
@@ -91,6 +96,8 @@ export const forteConfig: ProgramConfig = {
             "Describe practical responses to biased AI output",
           ],
           sessions: [{ title: "Is AI Objective?", time: "Self-paced" }],
+          submissionsEnabled: false,
+          videoUrl: "https://drive.google.com/file/d/1jRY7B6-aR78Y-SfbFB2TTbroIyZ2X1-N/view?usp=drive_link",
         },
         {
           week: 3,
@@ -107,7 +114,7 @@ export const forteConfig: ProgramConfig = {
           sessions: [
             { title: "Prompt Design & AI Communication", time: "Self-paced" },
           ],
-          reflectionPrompts: [
+          submissionPrompts: [
             "Your three prompt templates, with a note on when and why to use each.",
             "The best prompt you wrote today — and what specifically made it work. Name the elements.",
             "One thing you now understand about how AI responds to input that you didn't understand before today.",
@@ -132,7 +139,7 @@ export const forteConfig: ProgramConfig = {
               time: "Self-paced",
             },
           ],
-          reflectionPrompts: [
+          submissionPrompts: [
             "Your revised professional bio — minimum 3 sentences, specific to you. Include your real role, real context, and something that distinguishes you from a generic description.",
             "One sentence, your own words: who you are professionally and what you bring. Specific enough that it couldn't describe anyone else.",
             "What did the AI get right? What did you have to correct, add, or rewrite entirely? Be specific about what the gap was.",
@@ -154,7 +161,7 @@ export const forteConfig: ProgramConfig = {
           sessions: [
             { title: "Say It Better: Communication Toolkit", time: "Self-paced" },
           ],
-          reflectionPrompts: [
+          submissionPrompts: [
             "Your three-audience message set — all three versions included, with a one-sentence note on what changed for each audience.",
             "The most important edit you made to AI's output. What did you change and why?",
             "One principle about professional tone that you'll carry with you. Put it in your own words.",
@@ -174,7 +181,7 @@ export const forteConfig: ProgramConfig = {
             "Activity 3 — Build a Weekly Productivity Plan for next week and edit it to reflect reality",
           ],
           sessions: [{ title: "AI-Powered Productivity", time: "Self-paced" }],
-          reflectionPrompts: [
+          submissionPrompts: [
             "Your completed Weekly Productivity Plan for next week.",
             "What did AI miss or get wrong about your actual workload? What did you have to add or correct?",
             "One task you've been avoiding that this process helped you break down into something manageable.",
@@ -194,7 +201,7 @@ export const forteConfig: ProgramConfig = {
             "Activity 3 — Build a 7-day learning plan and edit it for your schedule, learning style, and actual goal",
           ],
           sessions: [{ title: "AI as a Learning Tool", time: "Self-paced" }],
-          reflectionPrompts: [
+          submissionPrompts: [
             "Your 7-Day Learning Plan — edited and specific to your actual situation, not just what AI produced.",
             "What was the most useful question you asked today? Why did it work?",
             "One thing you now understand about your topic that you didn't understand before starting.",
@@ -216,7 +223,7 @@ export const forteConfig: ProgramConfig = {
           sessions: [
             { title: "AI for Creative Thinking & Innovation", time: "Self-paced" },
           ],
-          reflectionPrompts: [
+          submissionPrompts: [
             "Your idea — 1 paragraph: what it is, what problem it solves, who it serves.",
             "The strongest objection to your idea — and how you'd respond to it.",
             "What did AI suggest that you rejected? Why wasn't it the right fit?",
@@ -238,7 +245,7 @@ export const forteConfig: ProgramConfig = {
           sessions: [
             { title: "AI for Research, Analysis & Reporting", time: "Self-paced" },
           ],
-          reflectionPrompts: [
+          submissionPrompts: [
             "Your completed Research Mini-Report — 3–4 paragraphs, structured, with verified claims and cited sources.",
             "What did you have to fact-check? What did you find when you looked it up?",
             "What did AI get wrong or fabricate? How did you catch it? What would have happened if you hadn't?",
@@ -258,7 +265,7 @@ export const forteConfig: ProgramConfig = {
             "Activity 3 — Draft the opening of your Local Opportunity Brief: the gap you see, the community you'd serve, and one concrete next step",
           ],
           sessions: [{ title: "AI for Entrepreneurship", time: "Self-paced" }],
-          reflectionPrompts: [
+          submissionPrompts: [
             "Local Opportunity Brief — 3–4 paragraphs: the gap, the audience, your proposed response, one next step.",
             "Brand Starter — name, tagline, and one-sentence positioning statement.",
             "What's the one skill from this entire program you'll use most in building this?",
