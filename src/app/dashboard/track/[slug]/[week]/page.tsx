@@ -206,49 +206,54 @@ export default async function TrackWeekPage({
           {sessionsLabel}
         </h2>
         <div className="space-y-4">
-          {weekContent.sessions.map((session, i) => (
-            <div
-              key={i}
-              className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-3.5"
-            >
-              <div className="flex items-center gap-3.5 flex-1 min-w-0">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-rule text-xs font-bold tabular-nums text-ink-soft">
-                  {i + 1}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-ink">
-                    {weekContent.sessions.length > 1 ? `Session ${i + 1}: ` : ""}{session.title}
-                  </p>
-                  <p className="text-xs text-ink-faint mt-0.5">
-                    {session.time}
-                  </p>
+          {weekContent.sessions.map((session, i) => {
+            // Self-paced sessions never need a "Join" link — the recording
+            // is the session — so suppress the "Link Coming Soon" fallback.
+            const isSelfPaced = session.time.toLowerCase().startsWith("self-paced");
+            const action = sessionStatuses[i] === "completed" ? (
+              <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
+                <CheckCircle size={14} />
+                Session Ended
+              </span>
+            ) : meetingLinks[i] ? (
+              <a
+                href={meetingLinks[i]!}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2.5 min-h-[44px] transition-colors w-full sm:w-auto"
+              >
+                <Video size={14} />
+                Join Session
+              </a>
+            ) : isSelfPaced ? null : (
+              <span className="inline-flex items-center justify-center gap-1.5 bg-neutral-200 text-neutral-400 text-xs font-semibold px-3.5 py-2.5 min-h-[44px] cursor-not-allowed w-full sm:w-auto">
+                <Video size={14} />
+                Link Coming Soon
+              </span>
+            );
+
+            return (
+              <div
+                key={i}
+                className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-3.5"
+              >
+                <div className="flex items-center gap-3.5 flex-1 min-w-0">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-rule text-xs font-bold tabular-nums text-ink-soft">
+                    {i + 1}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-ink">
+                      {weekContent.sessions.length > 1 ? `Session ${i + 1}: ` : ""}{session.title}
+                    </p>
+                    <p className="text-xs text-ink-faint mt-0.5">
+                      {session.time}
+                    </p>
+                  </div>
                 </div>
+                {action && <div className="shrink-0 ml-11 sm:ml-0">{action}</div>}
               </div>
-              <div className="shrink-0 ml-11 sm:ml-0">
-                {sessionStatuses[i] === "completed" ? (
-                  <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
-                    <CheckCircle size={14} />
-                    Session Ended
-                  </span>
-                ) : meetingLinks[i] ? (
-                  <a
-                    href={meetingLinks[i]!}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2.5 min-h-[44px] transition-colors w-full sm:w-auto"
-                  >
-                    <Video size={14} />
-                    Join Session
-                  </a>
-                ) : (
-                  <span className="inline-flex items-center justify-center gap-1.5 bg-neutral-200 text-neutral-400 text-xs font-semibold px-3.5 py-2.5 min-h-[44px] cursor-not-allowed w-full sm:w-auto">
-                    <Video size={14} />
-                    Link Coming Soon
-                  </span>
-                )}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
