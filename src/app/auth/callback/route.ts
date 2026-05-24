@@ -31,11 +31,22 @@ export async function GET(request: Request) {
   const type: EmailOtpType | null = ALLOWED_TYPES.includes(rawType as EmailOtpType)
     ? (rawType as EmailOtpType)
     : null;
-  const trackParam = searchParams.get("track");
-  const joinSlug = searchParams.get("join");
+  let trackParam = searchParams.get("track");
+  let joinSlug = searchParams.get("join");
 
   if (code || token_hash) {
     const cookieStore = await cookies();
+
+    // Fall back to the join intent cookies set by JoinForm if Supabase
+    // stripped the query params from the magic-link redirect (happens when
+    // the full URL with params isn't whitelisted in Supabase Redirect URLs).
+    if (!joinSlug) {
+      joinSlug = cookieStore.get("pending-join-slug")?.value ?? null;
+    }
+    if (!trackParam) {
+      trackParam = cookieStore.get("pending-join-track")?.value ?? null;
+    }
+
     const program = joinSlug ? getProgramBySlug(joinSlug) : await getProgram();
     const domain = authCookieDomain(request.headers.get("host"));
 
@@ -66,13 +77,16 @@ export async function GET(request: Request) {
     );
 
     // Helper that returns a redirect with all pending Supabase session cookies
-    // already applied directly to the response headers.
+    // already applied directly to the response headers. Also clears the
+    // pending-join cookies once the magic-link round-trip is done.
     const redirectWithCookies = (url: string) => {
       const res = NextResponse.redirect(url);
       pendingCookies.forEach(({ name, value, options }) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         res.cookies.set(name, value, options as any);
       });
+      res.cookies.set("pending-join-slug", "", { path: "/", maxAge: 0 });
+      res.cookies.set("pending-join-track", "", { path: "/", maxAge: 0 });
       return res;
     };
 
