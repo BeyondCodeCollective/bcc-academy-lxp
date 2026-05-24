@@ -7,12 +7,11 @@ import type { ProgramConfig } from "./types";
 // NOTE: "forte" is a separate program from "forge" (Beyond Code Centers) — similar
 // names, unrelated programs.
 //
-// TODO(launch): `startDate` below is a placeholder. The track uses the
-// "weekly" type (the only multi-session type available), which unlocks
-// sessions progressively from `startDate` via computeCurrentWeek(). Set this
-// to the real launch date for a cohort run; for a fully self-paced run where
-// all 10 sessions are open immediately, set it ~10+ weeks in the past.
-const FORTE_START_DATE = "2026-06-01";
+// Forte runs fully self-paced — every session is a pre-recorded video, no live
+// meetings. The "weekly" track type still gates content by `startDate` via
+// computeCurrentWeek(), so we backdate the start so all 10 weeks unlock on
+// day one. Flip this to a future date if we ever run a paced cohort.
+const FORTE_START_DATE = "2026-02-23";
 
 export const forteConfig: ProgramConfig = {
   slug: "forte",
