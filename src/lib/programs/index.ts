@@ -76,6 +76,20 @@ export function getAllPrograms(): ProgramConfig[] {
 }
 
 /**
+ * Full program configs for every program a new student could self-join
+ * (Catalyst + Forte). Used by the "No account found" CTA list on /login
+ * so a Forte invitee who lost their join link can still self-route to
+ * the right program instead of accidentally signing up for Catalyst.
+ */
+export function getJoinablePrograms(): ProgramConfig[] {
+  const joinable: ProgramConfig[] = [...Object.values(PROGRAMS)];
+  for (const [slug, cfg] of Object.entries(SPECIAL_CONFIGS)) {
+    if (slug !== MARKETING_SLUG) joinable.push(cfg);
+  }
+  return joinable;
+}
+
+/**
  * Find a track config within a program by its slug.
  */
 export function getTrackBySlug(program: ProgramConfig, trackSlug: string): TrackConfig | undefined {
