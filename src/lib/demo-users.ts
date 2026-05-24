@@ -7,66 +7,39 @@ export type DemoUser = {
   role: Role;
 };
 
-// Super admin
+// Dev demo users — all example.com, no real PII.
 const SUPER_ADMINS: DemoUser[] = [
   {
-    email: "fonz.morris@wearebgc.org",
-    first_name: "Fonz",
-    last_name: "Morris",
+    email: "admin@example.com",
+    first_name: "Admin",
+    last_name: "User",
     role: "super_admin",
   },
 ];
 
-// Admins
 const ADMINS: DemoUser[] = [
   {
-    email: "ramon.clemente@wearebgc.org",
-    first_name: "Ramon",
-    last_name: "Clemente",
-    role: "admin",
-  },
-  {
-    email: "mancini@wearebgc.org",
-    first_name: "Cristina",
-    last_name: "Mancini",
+    email: "admin2@example.com",
+    first_name: "Admin",
+    last_name: "Two",
     role: "admin",
   },
 ];
 
-// Instructors
 const INSTRUCTORS: DemoUser[] = [
   {
-    email: "kkjoyner@gmail.com",
-    first_name: "Kobie",
-    last_name: "Joyner",
+    email: "instructor@example.com",
+    first_name: "Instructor",
+    last_name: "User",
     role: "instructor",
   },
 ];
 
-// Students — update these emails as needed
 const STUDENTS: DemoUser[] = [
   {
-    email: "youngfonz@gmail.com",
-    first_name: "Fonz",
-    last_name: "Test",
-    role: "student",
-  },
-  {
-    email: "student2@example.com",
-    first_name: "Chris",
-    last_name: "Johnson",
-    role: "student",
-  },
-  {
-    email: "student3@example.com",
-    first_name: "Kendra",
-    last_name: "Davis",
-    role: "student",
-  },
-  {
-    email: "student4@example.com",
-    first_name: "Cameron",
-    last_name: "Thompson",
+    email: "student@example.com",
+    first_name: "Student",
+    last_name: "User",
     role: "student",
   },
 ];

@@ -1,13 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
-import {
-  Geist,
-  Space_Mono,
-  Bricolage_Grotesque,
-  Plus_Jakarta_Sans,
-  Geist_Mono,
-  Source_Serif_4,
-} from "next/font/google";
+import { Geist, Space_Mono, Bricolage_Grotesque } from "next/font/google";
 import localFont from "next/font/local";
 import { Analytics } from "@vercel/analytics/react";
 import { GoogleAnalytics } from "@next/third-parties/google";
@@ -31,32 +24,9 @@ const spaceMono = Space_Mono({
   weight: ["400", "700"],
 });
 
-// Marketing-side fonts. Loaded globally so the marketing pages can reference
-// them via CSS variables, but they don't change dashboard rendering — the
-// dashboard uses Geist + Space Mono via .font-sans / .font-mono utilities.
 const bricolage = Bricolage_Grotesque({
   variable: "--font-bricolage",
   subsets: ["latin"],
-  display: "swap",
-});
-
-const jakarta = Plus_Jakarta_Sans({
-  variable: "--font-jakarta",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const sourceSerif = Source_Serif_4({
-  variable: "--font-source-serif",
-  subsets: ["latin"],
-  weight: ["300", "400", "600", "700"],
-  style: ["normal", "italic"],
   display: "swap",
 });
 
@@ -117,7 +87,7 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${spaceMono.variable} ${bricolage.variable} ${jakarta.variable} ${geistMono.variable} ${sourceSerif.variable} ${specialGothic.variable} ${gtStandard.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${spaceMono.variable} ${bricolage.variable} ${specialGothic.variable} ${gtStandard.variable} h-full antialiased`}
       style={{ fontSize: rootFontSizeFor(textScale) }}
     >
       <body className="min-h-full flex flex-col font-sans">

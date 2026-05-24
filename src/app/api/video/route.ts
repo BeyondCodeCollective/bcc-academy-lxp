@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import path from "node:path";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+
+const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500 MB
 
 // Proxy for uploaded Supabase Storage videos. Browsers require 206 Partial
 // Content responses to seek in an HTML5 <video> element. Direct Supabase
@@ -23,11 +26,12 @@ export async function GET(request: NextRequest) {
   }
 
   // Only allow the session-files bucket — prevents this becoming an open proxy.
-  if (!storagePath.startsWith("session-files/")) {
+  const normalized = path.normalize(storagePath).replace(/\\/g, "/");
+  if (!normalized.startsWith("session-files/") || normalized.includes("..")) {
     return new NextResponse("Forbidden", { status: 403 });
   }
 
-  const originUrl = `${supabaseUrl}/storage/v1/object/public/${storagePath}`;
+  const originUrl = `${supabaseUrl}/storage/v1/object/public/${normalized}`;
 
   const rangeHeader = request.headers.get("range");
   const fetchHeaders: Record<string, string> = {};
@@ -44,6 +48,12 @@ export async function GET(request: NextRequest) {
     return new NextResponse("Not found", {
       status: upstream.status === 404 ? 404 : 502,
     });
+  }
+
+  // Check content-length against limit to prevent OOM on large files.
+  const contentLength = upstream.headers.get("content-length");
+  if (contentLength && Number(contentLength) > MAX_FILE_SIZE) {
+    return new NextResponse("File too large", { status: 413 });
   }
 
   const out = new Headers();

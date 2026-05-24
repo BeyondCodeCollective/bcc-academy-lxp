@@ -13,7 +13,7 @@ import type { SurveyConfig } from "@/lib/programs/types";
 // ─── IDs ─────────────────────────────────────────────────────────────────────
 
 export const BCC_INTAKE_SURVEY_ID = "bcc-learner-intake";
-export const BCC_WORKSHOP_SURVEY_ID = "bcc-workshop";
+const BCC_WORKSHOP_SURVEY_ID = "bcc-workshop";
 
 // Programs where the BCC Learner Intake is skipped because a program-specific
 // survey already covers the same data.

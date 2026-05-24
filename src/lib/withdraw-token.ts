@@ -4,9 +4,7 @@ import crypto from "node:crypto";
 // authorized the deletion of their public_survey_responses. The token
 // encodes `email:expiry` and a signature; verification recomputes the
 // signature server-side. No DB row needed — the secret is the only
-// state. Falls back to SUPABASE_SERVICE_ROLE_KEY-derived material in
-// dev so tokens still work without an extra env var, but production
-// MUST set WITHDRAW_SECRET to a long random string.
+// state. Production MUST set WITHDRAW_SECRET to a long random string.
 
 const ALGO = "sha256" as const;
 const ENCODING = "base64url" as const;
@@ -15,12 +13,13 @@ const DEFAULT_TTL_SECONDS = 60 * 60; // 1 hour
 function getSecret(): string {
   const fromEnv = process.env.WITHDRAW_SECRET;
   if (fromEnv && fromEnv.length >= 32) return fromEnv;
-  // Dev fallback — not for prod. The service role key is already a long
-  // random string; deriving from it avoids hardcoding a dev secret and
-  // surfaces a clear warning if prod ever forgets the env var.
+  // Dev fallback — not for prod.
   const fallback = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!fallback) {
-    throw new Error("WITHDRAW_SECRET (or SUPABASE_SERVICE_ROLE_KEY for dev) must be set");
+    throw new Error("Withdraw secret is not configured");
+  }
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("WITHDRAW_SECRET must be set in production");
   }
   console.warn("[withdraw-token] WITHDRAW_SECRET not set — using derived fallback. Set WITHDRAW_SECRET in prod.");
   return crypto.createHash("sha256").update("withdraw:" + fallback).digest("hex");

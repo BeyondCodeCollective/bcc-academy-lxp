@@ -5,12 +5,27 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.resolve(__dirname),
   },
+  images: {
+    formats: ["image/avif", "image/webp"],
+    remotePatterns: [
+      { protocol: "https", hostname: "*.supabase.co" },
+      { protocol: "https", hostname: "images.pexels.com" },
+      { protocol: "https", hostname: "img.evbuc.com" },
+    ],
+  },
   async headers() {
-    // Applied to every response. CSP is intentionally NOT enforced yet —
-    // adding it requires sweeping every inline script / 3rd-party domain
-    // (YouTube, Supabase Storage, Resend pixel, Vercel Analytics) into
-    // the policy. Plan: ship Content-Security-Policy-Report-Only first,
-    // watch the report endpoint for a week, then promote to enforcing CSP.
+    const cspReport = [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://va.vercel-scripts.com https://www.googletagmanager.com",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "img-src 'self' data: blob: https://*.supabase.co https://images.pexels.com https://img.evbuc.com https://*.google-analytics.com https://*.googletagmanager.com",
+      "font-src 'self' https://fonts.gstatic.com",
+      "media-src 'self' https://*.supabase.co https://images.pexels.com",
+      "frame-src https://www.youtube.com https://www.youtube-nocookie.com",
+      "connect-src 'self' https://*.supabase.co https://*.resend.com https://va.vercel-scripts.com https://*.google-analytics.com https://o4506503091847168.ingest.us.sentry.io",
+      "report-uri /api/csp-report",
+    ].join("; ");
+
     const baseHeaders = [
       {
         key: "Strict-Transport-Security",
@@ -23,6 +38,7 @@ const nextConfig: NextConfig = {
         key: "Permissions-Policy",
         value: "camera=(), microphone=(), geolocation=(), payment=()",
       },
+      { key: "Content-Security-Policy-Report-Only", value: cspReport },
     ];
     return [{ source: "/(.*)", headers: baseHeaders }];
   },

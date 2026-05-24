@@ -179,18 +179,6 @@ h1, h2, h3, h4, h5, h6 {
   scroll-margin-top: 80px;
 }
 
-/* Infinite marquee — used in Hero "Trusted Partners" row */
-@keyframes marquee {
-  0%   { transform: translateX(0); }
-  100% { transform: translateX(-33.333%); }
-}
-.animate-marquee {
-  animation: marquee 20s linear infinite;
-}
-.animate-marquee-wrap:hover .animate-marquee {
-  animation-play-state: paused;
-}
-
 /* Photo strip — used in PhotoStrip section */
 @keyframes strip-scroll {
   0%   { transform: translateX(0); }
@@ -210,24 +198,6 @@ h1, h2, h3, h4, h5, h6 {
 .btn-press:active {
   transform: translateY(1px) !important;
   box-shadow: none !important;
-}
-
-/* Link underline reveal on hover — used in marketing nav */
-.link-reveal {
-  position: relative;
-}
-.link-reveal::after {
-  content: "";
-  position: absolute;
-  bottom: -2px;
-  left: 0;
-  width: 0;
-  height: 1px;
-  background: currentColor;
-  transition: width 0.3s cubic-bezier(0.25, 1, 0.5, 1);
-}
-.link-reveal:hover::after {
-  width: 100%;
 }
 
 /* Grain texture overlay — used in marketing Hero */

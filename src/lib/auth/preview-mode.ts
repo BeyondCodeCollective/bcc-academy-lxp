@@ -22,7 +22,4 @@ export async function getPreviewTrackSlug(role: string): Promise<string | null> 
   return value && value.length > 0 ? value : null;
 }
 
-/** Convenience: whether preview mode is active at all. */
-export async function isPreviewingAsStudent(role: string): Promise<boolean> {
-  return (await getPreviewTrackSlug(role)) !== null;
-}
+

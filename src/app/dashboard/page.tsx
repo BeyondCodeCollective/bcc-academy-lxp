@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { computeCurrentWeek } from "@/lib/utils";
 import Link from "next/link";
 import { WelcomeVideo } from "@/components/welcome-video";
@@ -25,7 +25,7 @@ export default async function DashboardPage() {
   // Staff users (BGC/BCC employees, not admins) see the Lunch & Learns hub
   // directly when they hit /dashboard — they have no tracks to land on, and
   // the L&L grid is their actual home. Admins still see the regular dashboard.
-  const ctx = await getSessionContext();
+  const ctx = isSupabaseConfigured() ? await getSessionContext() : null;
   const role = ctx?.student?.role ?? "";
   const email = ctx?.student?.email ?? ctx?.userEmail ?? null;
   const isAdmin = canAccessAdminPanel(role);

@@ -23,28 +23,6 @@ export function computeCurrentWeek(
 }
 
 /**
- * Format a date string to a readable format like "Mar 21, 2026"
- */
-export function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
-/**
- * Format a time string (HH:MM:SS) to 12-hour format like "6:00 PM"
- */
-export function formatTime(timeStr: string): string {
-  const [hours, minutes] = timeStr.split(":");
-  const h = parseInt(hours, 10);
-  const ampm = h >= 12 ? "PM" : "AM";
-  const h12 = h % 12 || 12;
-  return `${h12}:${minutes} ${ampm}`;
-}
-
-/**
  * Category display names
  */
 export const CATEGORY_LABELS: Record<string, string> = {

@@ -71,12 +71,14 @@ export async function proxy(request: NextRequest) {
       path: "/",
       httpOnly: false,
       sameSite: "lax",
+      secure: true,
     });
     if (previewOverride) {
       res.cookies.set("program-override", previewOverride, {
         path: "/",
         httpOnly: false,
         sameSite: "lax",
+        secure: true,
         maxAge: 60 * 60 * 24,
       });
     }
