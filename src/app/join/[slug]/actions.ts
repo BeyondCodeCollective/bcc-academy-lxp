@@ -33,11 +33,16 @@ export async function sendJoinLink({
     return { ok: false, error: "Couldn't send the link. Please try again." };
   }
 
-  await sendSignInEmail({
-    to: email.trim().toLowerCase(),
-    magicLink: data.properties.action_link,
-    programName: program.name,
-  });
+  try {
+    await sendSignInEmail({
+      to: email.trim().toLowerCase(),
+      magicLink: data.properties.action_link,
+      programName: program.name,
+    });
+  } catch (emailErr) {
+    console.error("[join] sendSignInEmail failed:", emailErr);
+    return { ok: false, error: "Couldn't send the link. Please try again." };
+  }
 
   return { ok: true };
 }

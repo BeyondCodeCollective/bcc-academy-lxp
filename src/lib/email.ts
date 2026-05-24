@@ -22,7 +22,7 @@ export async function sendSignInEmail({
     console.warn("[email] RESEND_API_KEY not set — skipping sign-in email");
     return;
   }
-  await resend.emails.send({
+  const { error } = await resend.emails.send({
     from: FROM_ADDRESS,
     to,
     subject: `Your ${programName} sign-in link`,
@@ -42,6 +42,10 @@ export async function sendSignInEmail({
   </div>
 </div>`,
   });
+  if (error) {
+    console.error("[email] sendSignInEmail failed:", JSON.stringify(error));
+    throw new Error("Failed to send sign-in email");
+  }
 }
 
 /** Confirmation email for the public-survey withdrawal flow.
