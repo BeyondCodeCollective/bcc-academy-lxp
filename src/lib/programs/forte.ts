@@ -120,6 +120,7 @@ export const forteConfig: ProgramConfig = {
             "One thing you now understand about how AI responds to input that you didn't understand before today.",
             "What's the next prompt template you'd add to this toolkit? What recurring task does it serve?",
           ],
+          videoUrl: "https://drive.google.com/file/d/1FsTxSqdeCvOZZdHyK8PUasmW9uS4npbS/view?usp=drive_link",
         },
         {
           week: 4,
@@ -145,6 +146,7 @@ export const forteConfig: ProgramConfig = {
             "What did the AI get right? What did you have to correct, add, or rewrite entirely? Be specific about what the gap was.",
             "What one thing about your professional story are you most confident about? What do you want people to know?",
           ],
+          videoUrl: "https://drive.google.com/file/d/1cqkYXBQbUys2wlZDdvCLcl2XTe1Y2EO9/view?usp=drive_link",
         },
         {
           week: 5,
@@ -167,6 +169,7 @@ export const forteConfig: ProgramConfig = {
             "One principle about professional tone that you'll carry with you. Put it in your own words.",
             "What's one situation coming up where you'll use what you practiced today?",
           ],
+          videoUrl: "https://drive.google.com/file/d/1VZxvwExXFK1MYGnOvc1aTGXvWtwvVSio/view?usp=drive_link",
         },
         {
           week: 6,
@@ -187,6 +190,7 @@ export const forteConfig: ProgramConfig = {
             "One task you've been avoiding that this process helped you break down into something manageable.",
             "How will you use AI for planning going forward? Be specific about when and how.",
           ],
+          videoUrl: "https://drive.google.com/file/d/1wAS_XGd9hPdASRjkcCP-g2ZGQYmSP56I/view?usp=drive_link",
         },
         {
           week: 7,
