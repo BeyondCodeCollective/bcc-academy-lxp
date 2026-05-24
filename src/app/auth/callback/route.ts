@@ -79,25 +79,22 @@ export async function GET(request: Request) {
     // Service client — bypasses RLS for database writes
     const admin = createServiceClient();
 
-    // Idempotency: if the user is already authenticated, skip the verify/
-    // exchange step. Magic-link tokens are single-use, so a second click
-    // (double-tap, browser back-button, email-client preview hitting the
-    // link after the user already clicked) would otherwise consume an
-    // already-burnt token and surface as otp_expired. If we already have
-    // a session, just route them home.
-    const { data: { user: preAuthedUser } } = await supabase.auth.getUser();
-
+    // Always attempt to exchange the token so the session is set to the user
+    // who owns the link — not whoever was already logged in. If the token is
+    // expired or already used (double-click, email-client pre-fetch), fall
+    // back to the existing session silently rather than showing an error.
     let authError = null;
-    if (!preAuthedUser) {
-      if (code) {
-        const { error } = await supabase.auth.exchangeCodeForSession(code);
-        authError = error;
-      } else if (token_hash && type) {
-        const { error } = await supabase.auth.verifyOtp({
-          token_hash,
-          type,
-        });
-        authError = error;
+    if (code) {
+      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      if (error) {
+        const { data: { user: fallbackUser } } = await supabase.auth.getUser();
+        if (!fallbackUser) authError = error;
+      }
+    } else if (token_hash && type) {
+      const { error } = await supabase.auth.verifyOtp({ token_hash, type });
+      if (error) {
+        const { data: { user: fallbackUser } } = await supabase.auth.getUser();
+        if (!fallbackUser) authError = error;
       }
     }
 
