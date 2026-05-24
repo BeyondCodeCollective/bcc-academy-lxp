@@ -27,6 +27,17 @@ export function JoinForm({
     setLoading(true);
     setError("");
 
+    // Persist join intent in cookies so the auth callback can recover it
+    // if Supabase strips query params from the magic-link redirect URL
+    // (happens when the exact callback URL — params and all — isn't in
+    // Supabase's Redirect URL allowlist). Short TTL — these are only needed
+    // to bridge the email round-trip.
+    const tenMinutes = 60 * 10;
+    document.cookie = `pending-join-slug=${encodeURIComponent(programSlug)}; path=/; max-age=${tenMinutes}; samesite=lax`;
+    if (trackSlug) {
+      document.cookie = `pending-join-track=${encodeURIComponent(trackSlug)}; path=/; max-age=${tenMinutes}; samesite=lax`;
+    }
+
     const callbackParams = new URLSearchParams({ join: programSlug });
     if (trackSlug) callbackParams.set("track", trackSlug);
     const callbackUrl = `${window.location.origin}/auth/callback?${callbackParams}`;
