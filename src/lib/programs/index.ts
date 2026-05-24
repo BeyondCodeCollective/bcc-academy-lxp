@@ -5,14 +5,14 @@ import type { ProgramConfig, TrackConfig } from "./types";
 
 const PROGRAMS: Record<string, ProgramConfig> = {
   catalyst: catalystConfig,
-  forte: forteConfig,
 };
 
-// Marketing is intentionally NOT in PROGRAMS (so it's excluded from
-// getAllPrograms and the program switcher). It's resolved separately so
-// the apex domain renders marketing pages rather than a program login.
+// Marketing and Forte are intentionally NOT in PROGRAMS (so they're excluded
+// from getAllPrograms and the program switcher). They're resolved separately:
+// marketing → apex domain; forte → /join/forte and auth callback only.
 const SPECIAL_CONFIGS: Record<string, ProgramConfig> = {
   [MARKETING_SLUG]: marketingConfig,
+  forte: forteConfig,
 };
 
 /**
