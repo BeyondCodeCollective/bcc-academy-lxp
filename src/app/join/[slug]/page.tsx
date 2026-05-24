@@ -81,7 +81,7 @@ export default async function JoinPage({
                       What you&apos;ll cover
                     </p>
                     <ol className="divide-y divide-white/10 border-y border-white/10">
-                      {track.weekSummaries.slice(0, 8).map((ws) => (
+                      {track.weekSummaries.map((ws) => (
                         <li
                           key={ws.week}
                           className="flex items-center gap-3 py-2"
@@ -94,11 +94,6 @@ export default async function JoinPage({
                           </span>
                         </li>
                       ))}
-                      {track.weekSummaries.length > 8 && (
-                        <li className="py-2 text-[12px] text-white/40">
-                          +{track.weekSummaries.length - 8} more weeks
-                        </li>
-                      )}
                     </ol>
                   </div>
                 )}
