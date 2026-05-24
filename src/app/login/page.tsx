@@ -51,7 +51,17 @@ export default async function CentralLoginPage() {
             <CentralLoginForm
               programs={getJoinablePrograms()
                 .filter((p) => p.tracks.length > 0)
-                .map((p) => ({ slug: p.slug, name: p.name }))}
+                .map((p) => ({
+                  slug: p.slug,
+                  name: p.name,
+                  // Invite-only programs (Forte) dead-end on bare /join/<slug>,
+                  // so route the CTA straight to /join/<slug>?track=<first track>.
+                  // Programs without an invite gate (Catalyst) keep the bare URL.
+                  defaultTrack:
+                    p.requireInviteLink === true && p.tracks[0]
+                      ? p.tracks[0].slug
+                      : null,
+                }))}
             />
           </div>
         </div>
