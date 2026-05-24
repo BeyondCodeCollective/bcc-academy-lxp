@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { Check } from "@phosphor-icons/react";
 import Link from "next/link";
-import { sendJoinLink } from "./actions";
+import { createClient } from "@/lib/supabase/client";
+// TODO: swap back to sendJoinLink (Resend) once mail.bccacademy.io is verified in Resend (Tuesday)
 
 export function JoinForm({
   programSlug,
@@ -26,15 +27,18 @@ export function JoinForm({
     setLoading(true);
     setError("");
 
-    const result = await sendJoinLink({
-      email,
-      programSlug,
-      trackSlug,
-      origin: window.location.origin,
+    const callbackParams = new URLSearchParams({ join: programSlug });
+    if (trackSlug) callbackParams.set("track", trackSlug);
+    const callbackUrl = `${window.location.origin}/auth/callback?${callbackParams}`;
+
+    const supabase = createClient();
+    const { error: otpError } = await supabase.auth.signInWithOtp({
+      email: email.trim().toLowerCase(),
+      options: { emailRedirectTo: callbackUrl },
     });
 
-    if (!result.ok) {
-      setError(result.error ?? "Something went wrong. Please try again.");
+    if (otpError) {
+      setError(otpError.message || "Something went wrong. Please try again.");
       setLoading(false);
       return;
     }
