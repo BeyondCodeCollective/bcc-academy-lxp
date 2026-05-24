@@ -90,13 +90,22 @@ export default async function TrackWeekPage({
     resources,
   } = resolveSessionContent(weekContent, sessionContent);
 
+  // Submissions can be disabled per-week (e.g. Forte's conceptual weeks 1-2),
+  // overriding the track-level default. When off, the homework checklist row
+  // and the SubmissionForm both hide, and "completed" only requires the video.
+  const trackSubmissionsEnabled = track.submissionsEnabled !== false;
+  const weekSubmissionsEnabled =
+    trackSubmissionsEnabled && weekContent.submissionsEnabled !== false;
+
   const adminMarkedComplete = sessionStatuses.every((s) => s === "completed");
-  const studentCompleted = weekProgress?.completed ?? false;
+  const studentCompleted = weekSubmissionsEnabled
+    ? (weekProgress?.completed ?? false)
+    : (weekProgress?.videoWatched ?? false);
   const isCompleted = adminMarkedComplete || studentCompleted;
   const isCurrent = trackStarted && weekNum === currentWeek && !isCompleted;
 
   const hasRecording = weekContent.sessions.some((_, i) => !!recordingUrls[i]);
-  const showChecklist = isSupabaseConfigured() && (track.submissionsEnabled !== false);
+  const showChecklist = isSupabaseConfigured() && weekSubmissionsEnabled;
 
   const sessionsLabel = weekContent.sessions.length === 1 ? "Session" : "Sessions";
 
@@ -263,7 +272,20 @@ export default async function TrackWeekPage({
         </ul>
       </section>
 
-      {/* Session Recordings — same poster-card UX as Lunch & Learn; click to play */}
+      {/* Config-level recording (e.g. Google Drive links set in the program config) */}
+      {weekContent.videoUrl && (
+        <RecordingCard
+          url={weekContent.videoUrl}
+          title="Session Recording"
+          subtitle={`Week ${weekNum} replay`}
+          trackSlug={trackSlug}
+          weekNumber={weekNum}
+          showWatchButton={isSupabaseConfigured() && (isCurrent || isCompleted || weekNum < currentWeek)}
+          initialWatched={weekProgress?.videoWatched ?? false}
+        />
+      )}
+
+      {/* Admin-uploaded session recordings */}
       {weekContent.sessions.map((session, i) => {
         const url = recordingUrls[i];
         if (!url) return null;
@@ -368,13 +390,12 @@ export default async function TrackWeekPage({
       {/* Submissions & Reflections — only for current or past weeks. */}
       {(isCurrent || isCompleted || weekNum < currentWeek) &&
         isSupabaseConfigured() &&
-        (track.submissionsEnabled !== false ||
-          track.reflectionsEnabled !== false) && (
+        (weekSubmissionsEnabled || track.reflectionsEnabled !== false) && (
           <SubmissionsReflectionsSection
             trackSlug={trackSlug}
             weekNum={weekNum}
             weekContent={weekContent}
-            showSubmissions={track.submissionsEnabled !== false}
+            showSubmissions={weekSubmissionsEnabled}
             showReflections={track.reflectionsEnabled !== false}
             defaultReflectionPrompts={track.defaultReflectionPrompts}
           />
@@ -427,6 +448,7 @@ async function SubmissionsReflectionsSection({
         <SubmissionForm
           trackSlug={trackSlug}
           weekNumber={weekNum}
+          prompts={weekContent.submissionPrompts}
           existing={existingSubmission}
           feedback={submissionFeedback}
         />

@@ -68,6 +68,26 @@ export type WeekConfig = {
   recordingNote?: string | null;
   /** Custom reflection prompts for this specific week (overrides track defaults) */
   reflectionPrompts?: string[];
+  /**
+   * Per-week override for project submissions. Defaults to the track-level
+   * `submissionsEnabled`. Set to false for conceptual sessions where there's
+   * nothing for the student to submit, so the submission UI and the homework
+   * checklist row are both hidden.
+   */
+  submissionsEnabled?: boolean;
+  /**
+   * Structured questions that make up this week's submission ("Written
+   * Artifact"). When set, the SubmissionForm renders one labeled textarea per
+   * prompt and persists the answers to `submissions.prompt_responses`. Files
+   * and links remain available as supporting attachments.
+   */
+  submissionPrompts?: string[];
+  /**
+   * Google Drive share URL for the session recording.
+   * Pass the standard share link (drive.google.com/file/d/…/view) — the
+   * session view converts it to a /preview embed automatically.
+   */
+  videoUrl?: string;
 };
 
 export type TrackConfig = {
