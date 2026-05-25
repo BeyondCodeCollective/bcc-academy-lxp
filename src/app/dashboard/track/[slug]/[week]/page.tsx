@@ -106,6 +106,12 @@ export default async function TrackWeekPage({
 
   const hasRecording = weekContent.sessions.some((_, i) => !!recordingUrls[i]);
   const showChecklist = isSupabaseConfigured() && weekSubmissionsEnabled;
+  // Self-paced tracks unlock the watch button and the submission form on every
+  // week regardless of `currentWeek` — the date gate only matches cohort-style
+  // tracks. Without this, a self-paced track with a future `startDate` would
+  // render videos and forms invisibly until launch day.
+  const unlocked =
+    track.selfPaced || isCurrent || isCompleted || weekNum < currentWeek;
 
   const sessionsLabel = weekContent.sessions.length === 1 ? "Session" : "Sessions";
 
@@ -285,7 +291,7 @@ export default async function TrackWeekPage({
           subtitle={`Week ${weekNum} replay`}
           trackSlug={trackSlug}
           weekNumber={weekNum}
-          showWatchButton={isSupabaseConfigured() && (isCurrent || isCompleted || weekNum < currentWeek)}
+          showWatchButton={isSupabaseConfigured() && unlocked}
           initialWatched={weekProgress?.videoWatched ?? false}
         />
       )}
@@ -302,7 +308,7 @@ export default async function TrackWeekPage({
           ? session.title
           : `Week ${weekNum} replay`;
 
-        const showWatchButton = isSupabaseConfigured() && (isCurrent || isCompleted || weekNum < currentWeek);
+        const showWatchButton = isSupabaseConfigured() && unlocked;
 
         return (
           <RecordingCard
@@ -392,8 +398,9 @@ export default async function TrackWeekPage({
         </section>
       )}
 
-      {/* Submissions & Reflections — only for current or past weeks. */}
-      {(isCurrent || isCompleted || weekNum < currentWeek) &&
+      {/* Submissions & Reflections — current/past weeks for cohort tracks,
+         every week for self-paced tracks (see `unlocked` above). */}
+      {unlocked &&
         isSupabaseConfigured() &&
         (weekSubmissionsEnabled || track.reflectionsEnabled !== false) && (
           <SubmissionsReflectionsSection
