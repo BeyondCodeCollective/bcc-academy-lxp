@@ -167,101 +167,147 @@ export default async function TrackWeekPage({
         </nav>
       </div>
 
-      {/* Compact header */}
-      <div className="mb-6">
-        <div className="flex items-center gap-3">
-          <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-neutral-300 text-[13px] font-semibold tabular-nums text-neutral-600">
-            {weekContent.week}
-          </span>
-          <div className="flex-1">
-            <div className="flex items-center gap-2.5">
-              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400">
-                Week {weekContent.week}
-              </p>
-              {(isCompleted || isCurrent) && (
-                <span
-                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                    isCompleted
-                      ? "bg-green-50 text-green-600"
-                      : "bg-red-50 text-red-600"
-                  }`}
-                >
-                  {isCompleted
-                    ? weekContent.sessions.length > 1 ? "Sessions Ended" : "Session Ended"
-                    : "This Week"}
+      {/* Compact header. For single-session weeks the session title equals
+         the week title, so we fold session metadata (time + Join action)
+         into the header instead of repeating the title below. Multi-session
+         weeks still render the dedicated Sessions list further down. */}
+      {(() => {
+        const isSingleSession = weekContent.sessions.length === 1;
+        const headerSession = isSingleSession ? weekContent.sessions[0] : null;
+        const headerSessionIsSelfPaced =
+          !!headerSession && headerSession.time.toLowerCase().startsWith("self-paced");
+        const headerAction =
+          isSingleSession
+            ? sessionStatuses[0] === "completed" ? (
+                <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
+                  <CheckCircle size={14} />
+                  Session Ended
                 </span>
+              ) : meetingLinks[0] ? (
+                <a
+                  href={meetingLinks[0]!}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2.5 min-h-[44px] transition-colors w-full sm:w-auto"
+                >
+                  <Video size={14} />
+                  Join Session
+                </a>
+              ) : headerSessionIsSelfPaced ? null : (
+                <span className="inline-flex items-center justify-center gap-1.5 bg-neutral-200 text-neutral-400 text-xs font-semibold px-3.5 py-2.5 min-h-[44px] cursor-not-allowed w-full sm:w-auto">
+                  <Video size={14} />
+                  Link Coming Soon
+                </span>
+              )
+            : null;
+        return (
+          <div className="mb-6">
+            <div className="flex items-center gap-3">
+              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-neutral-300 text-[13px] font-semibold tabular-nums text-neutral-600">
+                {weekContent.week}
+              </span>
+              <div className="flex-1">
+                <div className="flex items-center gap-2.5">
+                  <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400">
+                    Week {weekContent.week}
+                  </p>
+                  {(isCompleted || isCurrent) && (
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                        isCompleted
+                          ? "bg-green-50 text-green-600"
+                          : "bg-red-50 text-red-600"
+                      }`}
+                    >
+                      {isCompleted
+                        ? weekContent.sessions.length > 1 ? "Sessions Ended" : "Session Ended"
+                        : "This Week"}
+                    </span>
+                  )}
+                </div>
+                <h1 className="text-3xl font-bold text-neutral-900 tracking-tight leading-tight">
+                  {displayTitle}
+                </h1>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5 mt-2 pl-[52px]">
+              <Users size={13} className="text-neutral-400" />
+              <span className="text-xs text-neutral-500">{track.instructor}</span>
+              <span className="text-neutral-300 mx-1">·</span>
+              <span className="text-xs text-neutral-500">{displaySubtitle}</span>
+              {headerSession && (
+                <>
+                  <span className="text-neutral-300 mx-1">·</span>
+                  <span className="text-xs text-neutral-500">{headerSession.time}</span>
+                </>
               )}
             </div>
-            <h1 className="text-3xl font-bold text-neutral-900 tracking-tight leading-tight">
-              {displayTitle}
-            </h1>
+            {headerAction && (
+              <div className="mt-4 pl-[52px]">{headerAction}</div>
+            )}
           </div>
-        </div>
-        <div className="flex items-center gap-1.5 mt-2 pl-[52px]">
-          <Users size={13} className="text-neutral-400" />
-          <span className="text-xs text-neutral-500">{track.instructor}</span>
-          <span className="text-neutral-300 mx-1">·</span>
-          <span className="text-xs text-neutral-500">{displaySubtitle}</span>
-        </div>
-      </div>
+        );
+      })()}
 
-      {/* Sessions — typographic flow, no surrounding card. Join action is
-         the page's primary CTA and stays prominent without needing a frame. */}
-      <section className="mb-8 border-t border-rule pt-6">
-        <h2 className="mb-4 text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
-          {sessionsLabel}
-        </h2>
-        <div className="space-y-4">
-          {weekContent.sessions.map((session, i) => {
-            // Self-paced sessions never need a "Join" link — the recording
-            // is the session — so suppress the "Link Coming Soon" fallback.
-            const isSelfPaced = session.time.toLowerCase().startsWith("self-paced");
-            const action = sessionStatuses[i] === "completed" ? (
-              <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
-                <CheckCircle size={14} />
-                Session Ended
-              </span>
-            ) : meetingLinks[i] ? (
-              <a
-                href={meetingLinks[i]!}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2.5 min-h-[44px] transition-colors w-full sm:w-auto"
-              >
-                <Video size={14} />
-                Join Session
-              </a>
-            ) : isSelfPaced ? null : (
-              <span className="inline-flex items-center justify-center gap-1.5 bg-neutral-200 text-neutral-400 text-xs font-semibold px-3.5 py-2.5 min-h-[44px] cursor-not-allowed w-full sm:w-auto">
-                <Video size={14} />
-                Link Coming Soon
-              </span>
-            );
+      {/* Sessions list — only for multi-session weeks (single-session weeks
+         fold their metadata into the header above). */}
+      {weekContent.sessions.length > 1 && (
+        <section className="mb-8 border-t border-rule pt-6">
+          <h2 className="mb-4 text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
+            {sessionsLabel}
+          </h2>
+          <div className="space-y-4">
+            {weekContent.sessions.map((session, i) => {
+              // Self-paced sessions never need a "Join" link — the recording
+              // is the session — so suppress the "Link Coming Soon" fallback.
+              const isSelfPaced = session.time.toLowerCase().startsWith("self-paced");
+              const action = sessionStatuses[i] === "completed" ? (
+                <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
+                  <CheckCircle size={14} />
+                  Session Ended
+                </span>
+              ) : meetingLinks[i] ? (
+                <a
+                  href={meetingLinks[i]!}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2.5 min-h-[44px] transition-colors w-full sm:w-auto"
+                >
+                  <Video size={14} />
+                  Join Session
+                </a>
+              ) : isSelfPaced ? null : (
+                <span className="inline-flex items-center justify-center gap-1.5 bg-neutral-200 text-neutral-400 text-xs font-semibold px-3.5 py-2.5 min-h-[44px] cursor-not-allowed w-full sm:w-auto">
+                  <Video size={14} />
+                  Link Coming Soon
+                </span>
+              );
 
-            return (
-              <div
-                key={i}
-                className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-3.5"
-              >
-                <div className="flex items-center gap-3.5 flex-1 min-w-0">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-rule text-xs font-bold tabular-nums text-ink-soft">
-                    {i + 1}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-ink">
-                      {weekContent.sessions.length > 1 ? `Session ${i + 1}: ` : ""}{session.title}
-                    </p>
-                    <p className="text-xs text-ink-faint mt-0.5">
-                      {session.time}
-                    </p>
+              return (
+                <div
+                  key={i}
+                  className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-3.5"
+                >
+                  <div className="flex items-center gap-3.5 flex-1 min-w-0">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-rule text-xs font-bold tabular-nums text-ink-soft">
+                      {i + 1}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-ink">
+                        Session {i + 1}: {session.title}
+                      </p>
+                      <p className="text-xs text-ink-faint mt-0.5">
+                        {session.time}
+                      </p>
+                    </div>
                   </div>
+                  {action && <div className="shrink-0 ml-11 sm:ml-0">{action}</div>}
                 </div>
-                {action && <div className="shrink-0 ml-11 sm:ml-0">{action}</div>}
-              </div>
-            );
-          })}
-        </div>
-      </section>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Brief description — leads the editorial flow that follows. */}
       <p className="mb-8 text-base leading-relaxed text-ink-soft max-w-[65ch]">
