@@ -1,21 +1,19 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Space_Mono, Bricolage_Grotesque } from "next/font/google";
+import dynamic from "next/dynamic";
+import { Geist, Bricolage_Grotesque } from "next/font/google";
 import localFont from "next/font/local";
 import { Analytics } from "@vercel/analytics/react";
-import { AuthErrorBanner } from "@/components/auth-error-banner";
 import { TextScaleProvider } from "@/components/text-scale-provider";
 import { GoogleAnalyticsProvider } from "@/components/google-analytics-provider";
 import "./globals.css";
 
+const AuthErrorBanner = dynamic(
+  () => import("@/components/auth-error-banner").then((m) => m.AuthErrorBanner),
+);
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
-});
-
-const spaceMono = Space_Mono({
-  variable: "--font-space-mono",
-  subsets: ["latin"],
-  weight: ["400", "700"],
 });
 
 const bricolage = Bricolage_Grotesque({
@@ -74,7 +72,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${spaceMono.variable} ${bricolage.variable} ${specialGothic.variable} ${gtStandard.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${bricolage.variable} ${specialGothic.variable} ${gtStandard.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-sans">
         <TextScaleProvider />

@@ -72,7 +72,7 @@
   --color-rule: var(--rule);
   --color-rule-soft: var(--rule-soft);
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-space-mono);
+  --font-mono: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", monospace;
 }
 
 body {

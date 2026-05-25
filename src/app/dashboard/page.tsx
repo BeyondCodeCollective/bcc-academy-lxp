@@ -100,7 +100,7 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
     // enrolled in just the previewed track.
     const isAdminUser = canAccessAdminPanel(userRole) && !previewSlug;
 
-    const [defaultCohortRes, enrolledTracks, completedSurveysRes] = await Promise.all([
+    const [defaultCohortRes, enrolledTracks, completedSurveysRes, announcementsRes] = await Promise.all([
       hasCohortId
         ? Promise.resolve({ data: null })
         : supabase
@@ -120,7 +120,14 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
             .select("survey_type")
             .eq("student_id", userId)
             .not("completed_at", "is", null),
+      supabase
+        .from("announcements")
+        .select("id, message, track_slug, created_at")
+        .gt("expires_at", new Date().toISOString())
+        .order("created_at", { ascending: false })
+        .limit(5),
     ]);
+    announcements = (announcementsRes.data ?? []);
 
     if (!hasCohortId && defaultCohortRes.data) {
       // Fire-and-forget: catch up the student's cohort_id. Not awaited because
@@ -170,13 +177,7 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
       }
     }
 
-    const { data: announcementRows } = await supabase
-      .from("announcements")
-      .select("id, message, track_slug, created_at")
-      .gt("expires_at", new Date().toISOString())
-      .order("created_at", { ascending: false })
-      .limit(5);
-    announcements = announcementRows ?? [];
+
   }
 
   void cohortStartDate;
