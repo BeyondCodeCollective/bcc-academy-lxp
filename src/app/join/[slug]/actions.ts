@@ -16,6 +16,35 @@ export async function sendJoinLink({
   origin: string;
 }): Promise<{ ok: boolean; error?: string }> {
   const program = getProgramBySlug(programSlug);
+  const normalised = email.trim().toLowerCase();
+
+  // Allowlist gate. When `requireAllowlist` is on, reject any email that
+  // doesn't have a row in `allowed_signup_emails` for this program. Admins
+  // manage the list at /dashboard/admin/allowlist.
+  if (program.requireAllowlist) {
+    const svcAllow = createServiceClient();
+    const { data: allowed, error: allowErr } = await svcAllow
+      .from("allowed_signup_emails")
+      .select("email")
+      .eq("program_slug", programSlug)
+      .eq("email", normalised)
+      .maybeSingle();
+    if (allowErr) {
+      console.error("[join] allowlist lookup failed:", allowErr);
+      return { ok: false, error: "Couldn't verify your email. Please try again." };
+    }
+    if (!allowed) {
+      console.warn("[join] blocked unallowlisted signup", {
+        email: normalised,
+        programSlug,
+      });
+      return {
+        ok: false,
+        error:
+          "We don't have that email on file. If you should be on the list, contact your program coordinator.",
+      };
+    }
+  }
 
   const callbackParams = new URLSearchParams({ join: programSlug });
   if (trackSlug) callbackParams.set("track", trackSlug);
@@ -24,7 +53,7 @@ export async function sendJoinLink({
   const svc = createServiceClient();
   const { data, error } = await svc.auth.admin.generateLink({
     type: "magiclink",
-    email: email.trim().toLowerCase(),
+    email: normalised,
     options: { redirectTo },
   });
 
@@ -35,7 +64,7 @@ export async function sendJoinLink({
 
   try {
     await sendSignInEmail({
-      to: email.trim().toLowerCase(),
+      to: normalised,
       magicLink: data.properties.action_link,
       programName: program.name,
     });
