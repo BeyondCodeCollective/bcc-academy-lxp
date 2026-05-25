@@ -7,11 +7,13 @@ import { canAccessAdminPanel } from "@/lib/roles";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function parseEmails(raw: string): string[] {
+/** Parse a pasted list or CSV blob into a deduped, lowercased list of emails. */
+export async function parseEmailList(raw: string): Promise<string[]> {
   const set = new Set<string>();
   for (const line of raw.split(/\r?\n/)) {
-    const email = line.trim().toLowerCase();
-    if (EMAIL_REGEX.test(email)) set.add(email);
+    const cells = line.split(",").map((c) => c.trim().toLowerCase());
+    const email = cells.find((c) => EMAIL_REGEX.test(c));
+    if (email) set.add(email);
   }
   return [...set];
 }
@@ -49,7 +51,7 @@ export async function replaceAllowedEmails(
   if (!ctx || !canAccessAdminPanel(ctx.student?.role ?? "")) {
     return { ok: false, count: 0, error: "Not authorized" };
   }
-  const emails = parseEmails(rawCsvOrList);
+  const emails = await parseEmailList(rawCsvOrList);
   const svc = createServiceClient();
 
   const { error: deleteErr } = await svc

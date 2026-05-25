@@ -45,9 +45,9 @@ export default async function AllowlistAdminPage({
           Manage who can sign up
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-neutral-600 max-w-prose">
-          Paste a list of emails (one per line). Replacing the list clears the
-          previous allowlist for this program — anyone not on the new list will
-          be blocked from signing up via /join/{selectedSlug}.
+          Paste a list of emails (one per line) or upload a CSV. Replacing the
+          list clears the previous allowlist for this program — anyone not on
+          the new list will be blocked from signing up via /join/{selectedSlug}.
           Existing students remain unaffected; this gate only applies to new
           signups, and only when the program's <code className="font-mono text-[12px] bg-neutral-100 px-1 py-0.5">requireAllowlist</code> flag is on.
         </p>
