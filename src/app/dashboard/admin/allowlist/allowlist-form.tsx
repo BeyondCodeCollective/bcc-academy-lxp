@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition, useRef } from "react";
-import { CheckCircle, AlertCircle, Upload, Loader2 } from "lucide-react";
-import { replaceAllowedEmails, parseEmailList } from "./actions";
+import { useState, useTransition } from "react";
+import { CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { replaceAllowedEmails } from "./actions";
 
 export function AllowlistForm({
   programSlug,
@@ -20,8 +20,6 @@ export function AllowlistForm({
     { kind: "idle" } | { kind: "ok"; count: number } | { kind: "error"; msg: string }
   >({ kind: "idle" });
   const [isPending, startTransition] = useTransition();
-  const [previewCount, setPreviewCount] = useState<number | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   function handleSave() {
     setStatus({ kind: "idle" });
@@ -33,15 +31,6 @@ export function AllowlistForm({
         setStatus({ kind: "error", msg: result.error ?? "Save failed" });
       }
     });
-  }
-
-  async function handleFile(file: File) {
-    const text = await file.text();
-    // Parse server-side to keep the normalisation in one place; reuse result.
-    const parsed = await parseEmailList(text);
-    setValue(parsed.join("\n"));
-    setPreviewCount(parsed.length);
-    setStatus({ kind: "idle" });
   }
 
   return (
@@ -62,14 +51,13 @@ export function AllowlistForm({
           htmlFor="emails"
           className="block text-xs font-semibold uppercase tracking-wide text-neutral-500 mb-2"
         >
-          Allowed emails — one per line, or upload a CSV
+          Allowed emails — one per line
         </label>
         <textarea
           id="emails"
           value={value}
           onChange={(e) => {
             setValue(e.target.value);
-            setPreviewCount(null);
             setStatus({ kind: "idle" });
           }}
           rows={14}
@@ -79,32 +67,10 @@ export function AllowlistForm({
         />
         <p className="mt-1.5 text-xs text-neutral-500">
           {value.split(/\r?\n/).filter((l) => l.trim().length > 0).length} line(s)
-          {previewCount !== null && previewCount !== value.split(/\r?\n/).filter((l) => l.trim().length > 0).length && (
-            <> · {previewCount} valid email(s) detected from upload</>
-          )}
         </p>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".csv,.txt,text/csv,text/plain"
-          className="hidden"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) handleFile(f);
-            e.target.value = "";
-          }}
-        />
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          className="inline-flex items-center gap-2 border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 transition-colors"
-        >
-          <Upload size={14} />
-          Upload CSV
-        </button>
         <button
           type="button"
           onClick={handleSave}
@@ -135,10 +101,7 @@ export function AllowlistForm({
       </div>
 
       <p className="text-xs text-neutral-500">
-        Smart CSV parsing: if your file has a header row with an <code className="font-mono text-[11px]">email</code>{" "}
-        column (Sprout Social, Mailchimp, etc), only that column is picked.
-        Otherwise the first valid email in each row is taken. Duplicates and
-        non-emails are dropped automatically.
+        Duplicates and invalid emails are dropped automatically.
       </p>
     </div>
   );

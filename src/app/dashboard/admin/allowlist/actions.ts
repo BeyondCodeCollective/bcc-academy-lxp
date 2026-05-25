@@ -5,75 +5,15 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { canAccessAdminPanel } from "@/lib/roles";
 
-const EMAIL_REGEX = /^[^\s,;<>"']+@[^\s,;<>"']+\.[^\s,;<>"']+$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-/**
- * Parse a CSV/paste blob into a normalised list of emails. Accepts:
- *  - One email per line.
- *  - Single-column CSV.
- *  - Multi-column CSV (Sprout Social, Mailchimp, etc) — picks the column
- *    matching an `email`-like header if present, otherwise scans each cell
- *    for the first valid email.
- *
- * Returns a deduped, lowercased list of valid email strings.
- */
-export async function parseEmailList(raw: string): Promise<string[]> {
-  if (!raw.trim()) return [];
-
-  const lines = raw
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter((l) => l.length > 0);
-  if (lines.length === 0) return [];
-
-  // Detect a header row by looking at the first line's columns.
-  const firstCols = splitCsvLine(lines[0]);
-  const headerLower = firstCols.map((c) => c.toLowerCase().trim());
-  const emailColIdx = headerLower.findIndex((c) =>
-    /(^|\b)(e[\W_-]?mail|email[\W_-]?address|mail)\b/.test(c),
-  );
-  const hasHeader = emailColIdx >= 0;
-  const rows = hasHeader ? lines.slice(1) : lines;
-
-  const out = new Set<string>();
-  for (const line of rows) {
-    const cols = splitCsvLine(line);
-    let candidate: string | null = null;
-    if (hasHeader && cols[emailColIdx]) {
-      candidate = cols[emailColIdx].trim();
-    } else {
-      candidate = cols.find((c) => EMAIL_REGEX.test(c.trim())) ?? null;
-    }
-    if (!candidate) continue;
-    const normalised = candidate.replace(/^['"]|['"]$/g, "").trim().toLowerCase();
-    if (EMAIL_REGEX.test(normalised)) out.add(normalised);
+function parseEmails(raw: string): string[] {
+  const set = new Set<string>();
+  for (const line of raw.split(/\r?\n/)) {
+    const email = line.trim().toLowerCase();
+    if (EMAIL_REGEX.test(email)) set.add(email);
   }
-  return [...out];
-}
-
-// Lightweight CSV line splitter — handles double-quoted cells with commas.
-function splitCsvLine(line: string): string[] {
-  const cells: string[] = [];
-  let cur = "";
-  let inQuotes = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (ch === '"') {
-      if (inQuotes && line[i + 1] === '"') {
-        cur += '"';
-        i++;
-      } else {
-        inQuotes = !inQuotes;
-      }
-    } else if (ch === "," && !inQuotes) {
-      cells.push(cur);
-      cur = "";
-    } else {
-      cur += ch;
-    }
-  }
-  cells.push(cur);
-  return cells.length === 1 ? line.split(/[,\t;]/) : cells;
+  return [...set];
 }
 
 export async function getAllowedEmails(
@@ -109,7 +49,7 @@ export async function replaceAllowedEmails(
   if (!ctx || !canAccessAdminPanel(ctx.student?.role ?? "")) {
     return { ok: false, count: 0, error: "Not authorized" };
   }
-  const emails = await parseEmailList(rawCsvOrList);
+  const emails = parseEmails(rawCsvOrList);
   const svc = createServiceClient();
 
   const { error: deleteErr } = await svc
