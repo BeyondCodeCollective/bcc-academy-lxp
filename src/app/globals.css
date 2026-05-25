@@ -29,6 +29,18 @@
   --ink-faint: #888888;
   --rule: #e5e5e5;
   --rule-soft: #eeeeee;
+
+  /* ─── Nav heights (single source of truth) ──────────────────────────
+     Set by the nav component; consumed by pages like /dashboard/tutor
+     that need to subtract nav height from viewport. Avoids magic numbers
+     in page files that silently break when nav padding changes. */
+  --nav-height: 49px;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --nav-height: 57px;
+  }
 }
 
 .scrollbar-hide {
@@ -66,6 +78,12 @@
 body {
   background: var(--background);
   color: var(--foreground);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* iOS Safari auto-zooms inputs below 16px — set minimum to prevent it */
+input, textarea, select {
+  font-size: max(16px, 1rem);
 }
 
 /* Heading font — Bricolage Grotesque. Scoped to dashboard/in-app pages;

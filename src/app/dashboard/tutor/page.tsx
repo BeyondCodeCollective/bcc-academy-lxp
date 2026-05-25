@@ -92,7 +92,7 @@ export default function TutorPage() {
   }
 
   return (
-    <div className="flex h-[calc(100dvh-49px)] sm:h-[calc(100dvh-57px)] flex-col">
+    <div className="flex h-[calc(100dvh-var(--nav-height,49px))] flex-col">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-4">
         <div>

@@ -96,7 +96,7 @@ export default async function TrackOverviewPage({
           className="relative w-full overflow-hidden p-5 sm:p-7"
           style={{ backgroundColor: `${tone}1A` }}
         >
-          <ol className="grid grid-cols-2 gap-2 sm:grid-cols-5 sm:gap-3">
+          <ol className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5 sm:gap-3">
             {track.weekSummaries.map((ws) => {
               const isCurrent = started && ws.week === currentWeek;
               const isPast = started && ws.week < currentWeek;
