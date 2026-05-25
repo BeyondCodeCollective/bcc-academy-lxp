@@ -71,39 +71,47 @@ export default async function DashboardLayout({
     if (!isAdmin && !isSurveyPage && !validPreviewSlug) {
       const supabase = await createClient();
       const isStaff = isStaffEmail(email);
-      if (
-        !BCC_INTAKE_EXEMPT_PROGRAMS.includes(program.slug) &&
-        !isStaff
-      ) {
-        const { data: intakeRow } = await supabase
-          .from("survey_responses")
-          .select("completed_at")
-          .eq("student_id", ctx.userId)
-          .eq("survey_type", BCC_INTAKE_SURVEY_ID)
-          .not("completed_at", "is", null)
-          .maybeSingle();
-        if (!intakeRow) {
-          redirect(`/dashboard/survey/${BCC_INTAKE_SURVEY_ID}`);
-        }
-      }
+      const needsIntakeCheck =
+        !BCC_INTAKE_EXEMPT_PROGRAMS.includes(program.slug) && !isStaff;
       const requiredSurvey = !isStaff
         ? program.surveys?.find((s) => s.required)
         : undefined;
-      if (requiredSurvey) {
-        const { data: surveyRow } = await supabase
-          .from("survey_responses")
-          .select("completed_at")
-          .eq("student_id", ctx.userId)
-          .eq("survey_type", requiredSurvey.id)
-          .not("completed_at", "is", null)
-          .maybeSingle();
-        if (!surveyRow) {
-          redirect(`/dashboard/survey/${requiredSurvey.id}`);
-        }
+      const needsEnrollment = program.tracks.length > 0;
+
+      // Issue all three queries in one round-trip — previously they were
+      // sequential and added ~3× the latency on every dashboard navigation.
+      const [intakeRes, surveyRes, enrolledRes] = await Promise.all([
+        needsIntakeCheck
+          ? supabase
+              .from("survey_responses")
+              .select("completed_at")
+              .eq("student_id", ctx.userId)
+              .eq("survey_type", BCC_INTAKE_SURVEY_ID)
+              .not("completed_at", "is", null)
+              .maybeSingle()
+          : Promise.resolve({ data: null }),
+        requiredSurvey
+          ? supabase
+              .from("survey_responses")
+              .select("completed_at")
+              .eq("student_id", ctx.userId)
+              .eq("survey_type", requiredSurvey.id)
+              .not("completed_at", "is", null)
+              .maybeSingle()
+          : Promise.resolve({ data: null }),
+        needsEnrollment
+          ? getEnrolledTracks(supabase, ctx.userId, program)
+          : Promise.resolve([]),
+      ]);
+
+      if (needsIntakeCheck && !intakeRes.data) {
+        redirect(`/dashboard/survey/${BCC_INTAKE_SURVEY_ID}`);
       }
-      if (program.tracks.length > 0) {
-        const enrolled = await getEnrolledTracks(supabase, ctx.userId, program);
-        enrolledTrackSlugs = enrolled.map((t) => t.slug);
+      if (requiredSurvey && !surveyRes.data) {
+        redirect(`/dashboard/survey/${requiredSurvey.id}`);
+      }
+      if (needsEnrollment) {
+        enrolledTrackSlugs = enrolledRes.map((t) => t.slug);
       }
     } else if (!isAdmin && isSurveyPage) {
       // No enrollment query needed on survey pages

@@ -98,9 +98,11 @@ export default async function JoinPage({
                   </div>
                 )}
 
-                <p className="mt-6 text-[12px] uppercase tracking-wider text-white/40">
-                  Starts {startLabel}
-                </p>
+                {!track.selfPaced && (
+                  <p className="mt-6 text-[12px] uppercase tracking-wider text-white/40">
+                    Starts {startLabel}
+                  </p>
+                )}
               </div>
 
               {/* Sign-up form — right column */}
