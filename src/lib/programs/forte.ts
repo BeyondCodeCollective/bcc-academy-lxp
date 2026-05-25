@@ -8,10 +8,12 @@ import type { ProgramConfig } from "./types";
 // names, unrelated programs.
 //
 // Forte runs fully self-paced — every session is a pre-recorded video, no live
-// meetings. The "weekly" track type still gates content by `startDate` via
-// computeCurrentWeek(), so we backdate the start so all 10 weeks unlock on
-// day one. Flip this to a future date if we ever run a paced cohort.
-const FORTE_START_DATE = "2026-02-23";
+// meetings. The `selfPaced: true` flag on the track unlocks per-week recordings
+// and submissions independently of `startDate`, so this date is only the
+// marketing "Starts" label on the overview page (and not a real gate on
+// content). Pre-launch we keep it in the future so the overview reads "Not
+// Launched" while still letting testers and early students use the content.
+const FORTE_START_DATE = "2026-06-01";
 
 export const forteConfig: ProgramConfig = {
   slug: "forte",
@@ -48,6 +50,7 @@ export const forteConfig: ProgramConfig = {
       instructor: "TBD",
       sessionTimes: ["Self-paced"],
       lastSessionDayOffset: 6,
+      selfPaced: true,
       submissionsEnabled: true,
       // Forte's "Written Artifact" is modeled as the project submission
       // (structured prompts on the SubmissionForm), not as a separate

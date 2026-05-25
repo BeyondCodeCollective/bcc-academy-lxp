@@ -116,6 +116,14 @@ export type TrackConfig = {
   defaultReflectionPrompts?: string[];
   /** Whether project submissions are enabled for this track (defaults to true) */
   submissionsEnabled?: boolean;
+  /**
+   * Self-paced tracks (every session is a pre-recorded video, no live meetings)
+   * unlock per-week recordings and submissions independently of `startDate` /
+   * `computeCurrentWeek`. The track overview can still read "Not Launched"
+   * until the marketing start date passes, but students who land on a week
+   * page can already watch and submit.
+   */
+  selfPaced?: boolean;
   /** Whether weekly reflections are enabled for this track (defaults to true) */
   reflectionsEnabled?: boolean;
   /** Declarative gates evaluated before showing track content. */
