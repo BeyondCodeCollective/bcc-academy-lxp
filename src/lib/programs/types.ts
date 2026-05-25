@@ -220,6 +220,13 @@ export type ProgramConfig = {
    * (ATG — MASS + Tech+) leave this false so new signups are auto-enrolled.
    */
   requireInviteLink?: boolean;
+  /**
+   * If true, /join/[slug] only sends a magic link when the email is in the
+   * `allowed_signup_emails` table for this program. Admins manage the list
+   * at /dashboard/admin/allowlist. Off by default — flipping this on locks
+   * out anyone not on the list, so populate the allowlist first.
+   */
+  requireAllowlist?: boolean;
   coppa: {
     required: boolean;
   };
