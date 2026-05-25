@@ -60,9 +60,13 @@ export default async function TrackOverviewPage({
 
   const tone = toneForTrack(slug);
 
+  // Self-paced tracks suppress the marketing start date — once live, "Starts
+  // June 1" reads as stale. Empty string => JSX skips the eyebrow segment.
   const eyebrow = started
     ? `Week ${currentWeek} of ${track.totalWeeks}`
-    : `Starts ${startDateLabel}`;
+    : track.selfPaced
+      ? ""
+      : `Starts ${startDateLabel}`;
 
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-3xl px-4 sm:px-5 py-8 space-y-8">
@@ -147,18 +151,28 @@ export default async function TrackOverviewPage({
 
         <div>
           <p className="text-xs font-medium uppercase tracking-[0.18em] text-neutral-400">
-            {eyebrow}
-            <span className="mx-2 text-neutral-300">·</span>
+            {eyebrow && (
+              <>
+                {eyebrow}
+                <span className="mx-2 text-neutral-300">·</span>
+              </>
+            )}
             {track.totalWeeks}-week track
           </p>
           <h1 className="mt-2 text-3xl font-bold tracking-tight text-neutral-900 sm:text-4xl">
             {track.name}
           </h1>
-          {overviewCopy && (
-            <p className="mt-3 text-base leading-relaxed text-neutral-600">
-              {overviewCopy}
-            </p>
-          )}
+          {overviewCopy &&
+            overviewCopy
+              .split(/\n\n+/)
+              .map((para, i) => (
+                <p
+                  key={i}
+                  className="mt-3 text-base leading-relaxed text-neutral-600"
+                >
+                  {para}
+                </p>
+              ))}
         </div>
 
         <div>
@@ -172,8 +186,14 @@ export default async function TrackOverviewPage({
         </div>
       </header>
 
-      {/* Quick facts strip — mirrors workshop detail */}
-      <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {/* Quick facts strip — mirrors workshop detail. Self-paced tracks
+         skip the start-date card (it reads as stale once a self-paced
+         program is live) and the grid drops to 3 columns. */}
+      <dl
+        className={`grid gap-3 ${
+          track.selfPaced ? "grid-cols-3" : "grid-cols-2 sm:grid-cols-4"
+        }`}
+      >
         <Fact
           icon={ChalkboardTeacher}
           label="Instructor"
@@ -193,13 +213,47 @@ export default async function TrackOverviewPage({
               : "1×/week"
           }
         />
-        <Fact
-          icon={CalendarBlank}
-          label={started ? "Started" : "Starts"}
-          value={startDateLabel}
-        />
+        {!track.selfPaced && (
+          <Fact
+            icon={CalendarBlank}
+            label={started ? "Started" : "Starts"}
+            value={startDateLabel}
+          />
+        )}
       </dl>
 
+      {track.officeHours && track.officeHours.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
+            Office Hours
+          </h2>
+          <ul className="divide-y divide-rule border border-rule bg-surface-elevated">
+            {[...track.officeHours]
+              .sort((a, b) => a.date.localeCompare(b.date))
+              .map((oh) => {
+                const display = new Date(`${oh.date}T12:00:00`).toLocaleDateString(
+                  "en-US",
+                  { weekday: "long", month: "long", day: "numeric" },
+                );
+                return (
+                  <li key={`${oh.date}-${oh.title}`} className="px-4 py-3.5">
+                    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                      <p className="text-sm font-semibold text-neutral-900">
+                        {oh.title}
+                      </p>
+                      <p className="text-xs text-neutral-500">
+                        {display} · {oh.time}
+                      </p>
+                    </div>
+                    <p className="mt-1 text-sm leading-relaxed text-neutral-600">
+                      {oh.description}
+                    </p>
+                  </li>
+                );
+              })}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }

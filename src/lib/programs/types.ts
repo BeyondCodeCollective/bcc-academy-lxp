@@ -90,6 +90,17 @@ export type WeekConfig = {
   videoUrl?: string;
 };
 
+export type OfficeHour = {
+  /** ISO date (yyyy-mm-dd) — used for sort + day-of-week label */
+  date: string;
+  /** Display time, e.g. "1pm EST" */
+  time: string;
+  /** Title, e.g. "Office Hours" or "Building an App Using Replit" */
+  title: string;
+  /** One-paragraph description */
+  description: string;
+};
+
 export type TrackConfig = {
   /** URL-safe identifier: "mass", "techplus", "ai-fundamentals" */
   slug: string;
@@ -97,7 +108,10 @@ export type TrackConfig = {
   name: string;
   /** Short label for dashboard cards */
   shortName: string;
-  /** One-paragraph track overview, shown on the track landing page. */
+  /**
+   * Track overview shown on the track landing page. Split on blank lines
+   * (`\n\n`) by the renderer to support multi-paragraph welcome copy.
+   */
   description?: string;
   type: TrackType;
   totalWeeks: number;
@@ -132,6 +146,11 @@ export type TrackConfig = {
   intakeRequired?: boolean;
   /** @deprecated Use gates: [{ type: "intake", ... }] instead */
   intakeQuestions?: IntakeQuestion[];
+  /**
+   * Optional office-hours / live drop-ins (Google Calendar events recorded).
+   * Rendered on the track landing page below the curriculum hero.
+   */
+  officeHours?: OfficeHour[];
   /** Phase grouping for the Catalyst journey (e.g. "foundation", "core", "workshop", "exit") */
   phase?: string;
   /** Slug of a track that must be completed before this one unlocks */

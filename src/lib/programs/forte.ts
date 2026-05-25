@@ -43,11 +43,36 @@ export const forteConfig: ProgramConfig = {
       slug: "ai-literacy",
       name: "AI Literacy",
       shortName: "AI Literacy",
+      description:
+        "Welcome to Foundations of AI and Digital Literacy Program.\n\nYou're in the right place. This portal is your home base for the full program: 10 self-paced sessions designed to build real, practical AI and digital skills you can apply immediately, wherever you work and whatever you're building toward.\n\nHere, you'll find session videos, guided activities, and submission instructions for each module. Whether you're starting fresh today or picking up where you left off, the complete course is here and ready for you.\n\nA few things to know before you begin. For the AI activities, you can use whichever tool you're most comfortable with — ChatGPT, Gemini, Claude, or any other AI assistant. The free version of any of these is all you need to complete every activity in this program. To keep track of your work as you go, we recommend saving your notes and submissions somewhere you can easily access them (Google Drive, Notion, Notes app, a Word doc), whatever works best for you. The habit of keeping your activities organized will serve you well beyond this course.\n\nWe're glad you're here. Let's get to work.",
+      officeHours: [
+        {
+          date: "2026-06-08",
+          time: "1pm EST",
+          title: "Office Hours",
+          description:
+            "Drop in with your questions, experiments, and half-baked ideas — this is open space to explore how AI tools can support your work, your learning, and your next move.",
+        },
+        {
+          date: "2026-06-23",
+          time: "4pm EST",
+          title: "Building an App Using Replit",
+          description:
+            "A hands-on intro to building and running code in the browser to develop your own app — no setup required, just curiosity and a willingness to try something new. Join using any device but note that a computer is best suited for this activity.",
+        },
+        {
+          date: "2026-07-09",
+          time: "9am EST",
+          title: "Office Hours",
+          description:
+            "Drop in with your questions, experiments, and half-baked ideas — this is open space to explore how AI tools can support your work, your learning, and your next move.",
+        },
+      ],
       type: "weekly",
       totalWeeks: 10,
       sessionsPerWeek: 1,
       startDate: FORTE_START_DATE,
-      instructor: "TBD",
+      instructor: "Ashley Morgan",
       sessionTimes: ["Self-paced"],
       lastSessionDayOffset: 6,
       selfPaced: true,
