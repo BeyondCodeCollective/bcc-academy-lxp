@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { getProgram } from "@/lib/programs/server";
@@ -10,6 +11,30 @@ const MARKETING_HOSTS = new Set([
 ]);
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const program = await getProgram();
+  const url = `https://${program.domain}`;
+
+  return {
+    title: program.seo.title,
+    description: program.seo.description,
+    openGraph: {
+      title: program.seo.ogTitle,
+      description: program.seo.ogDescription,
+      url,
+      siteName: program.name,
+    },
+    twitter: {
+      card: "summary",
+      title: program.seo.ogTitle,
+      description: program.seo.ogDescription,
+    },
+    alternates: {
+      canonical: url,
+    },
+  };
+}
 
 export default async function LoginPage() {
   const h = await headers();

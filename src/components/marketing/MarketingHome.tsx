@@ -5,21 +5,23 @@
 // and display-font heading rule from globals.css apply ONLY here, not
 // to the dashboard side.
 
+import dynamic from "next/dynamic";
 import Header from "@/components/marketing/Header";
 import Hero from "@/components/marketing/Hero";
 import PhotoStrip from "@/components/marketing/PhotoStrip";
-import ProgramsSection from "@/components/marketing/ProgramsSection";
-import HumanInTheLoop from "@/components/marketing/HumanInTheLoop";
-import ProofSection from "@/components/marketing/ProofSection";
-import OurPeopleSection from "@/components/marketing/OurPeopleSection";
-import HubsSection from "@/components/marketing/HubsSection";
-import LiveSessionsSection from "@/components/marketing/LiveSessionsSection";
-import EventsSection from "@/components/marketing/EventsSection";
-import FAQSection from "@/components/marketing/FAQSection";
-import FinalCTA from "@/components/marketing/FinalCTA";
-import Footer from "@/components/marketing/Footer";
-import ChatButton from "@/components/marketing/ChatButton";
 import { getEvents } from "@/lib/eventbrite";
+
+const ProgramsSection = dynamic(() => import("@/components/marketing/ProgramsSection"));
+const HumanInTheLoop = dynamic(() => import("@/components/marketing/HumanInTheLoop"));
+const ProofSection = dynamic(() => import("@/components/marketing/ProofSection"));
+const OurPeopleSection = dynamic(() => import("@/components/marketing/OurPeopleSection"));
+const HubsSection = dynamic(() => import("@/components/marketing/HubsSection"));
+const LiveSessionsSection = dynamic(() => import("@/components/marketing/LiveSessionsSection"));
+const EventsSection = dynamic(() => import("@/components/marketing/EventsSection"));
+const FAQSection = dynamic(() => import("@/components/marketing/FAQSection"));
+const FinalCTA = dynamic(() => import("@/components/marketing/FinalCTA"));
+const Footer = dynamic(() => import("@/components/marketing/Footer"));
+const ChatButton = dynamic(() => import("@/components/marketing/ChatButton"));
 
 export async function MarketingHome() {
   const events = await getEvents();

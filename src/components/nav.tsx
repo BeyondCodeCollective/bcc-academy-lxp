@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
+import dynamic from "next/dynamic";
 import Link, { useLinkStatus } from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
@@ -15,9 +16,28 @@ import {
   Confetti,
   BookOpen,
 } from "@phosphor-icons/react";
-import { UserMenu } from "@/components/user-menu";
-import { AdminProgramSwitcher } from "@/components/admin-program-switcher";
 import { computeCurrentWeek } from "@/lib/utils";
+
+const UserMenu = dynamic(
+  () => import("@/components/user-menu").then((m) => m.UserMenu),
+  {
+    loading: () => (
+      <div className="h-8 w-8 shrink-0 animate-pulse rounded-full bg-white/10" />
+    ),
+  },
+);
+
+const AdminProgramSwitcher = dynamic(
+  () =>
+    import("@/components/admin-program-switcher").then(
+      (m) => m.AdminProgramSwitcher,
+    ),
+  {
+    loading: () => (
+      <div className="mx-3 h-12 animate-pulse rounded bg-white/10" />
+    ),
+  },
+);
 
 type NavItem = {
   href: string;

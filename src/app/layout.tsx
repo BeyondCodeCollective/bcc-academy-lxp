@@ -1,16 +1,10 @@
 import type { Metadata, Viewport } from "next";
-import { cookies } from "next/headers";
 import { Geist, Space_Mono, Bricolage_Grotesque } from "next/font/google";
 import localFont from "next/font/local";
 import { Analytics } from "@vercel/analytics/react";
-import { GoogleAnalytics } from "@next/third-parties/google";
-import { getProgram } from "@/lib/programs/server";
-import {
-  TEXT_SCALE_COOKIE,
-  parseTextScale,
-  rootFontSizeFor,
-} from "@/lib/accessibility/scale";
 import { AuthErrorBanner } from "@/components/auth-error-banner";
+import { TextScaleProvider } from "@/components/text-scale-provider";
+import { GoogleAnalyticsProvider } from "@/components/google-analytics-provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -27,22 +21,20 @@ const spaceMono = Space_Mono({
 const bricolage = Bricolage_Grotesque({
   variable: "--font-bricolage",
   subsets: ["latin"],
-  display: "swap",
+  display: "optional",
 });
 
 const specialGothic = localFont({
-  src: "../fonts/SpecialGothic-Variable.ttf",
+  src: "../fonts/SpecialGothic-Variable.subset.woff2",
   variable: "--font-special-gothic",
-  display: "swap",
+  display: "optional",
 });
 
 const gtStandard = localFont({
-  src: "../fonts/GT-Standard-Regular.ttf",
+  src: "../fonts/GT-Standard-Regular.subset.woff2",
   variable: "--font-gt-standard",
-  display: "swap",
+  display: "optional",
 });
-
-export const dynamic = "force-dynamic";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -50,47 +42,43 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export async function generateMetadata(): Promise<Metadata> {
-  const program = await getProgram();
-  const url = `https://${program.domain}`;
+export const metadata: Metadata = {
+  title: "Beyond Code Collective — Where everyone builds together",
+  description:
+    "A community-based learning and workforce ecosystem giving people lifelong access to the skills, relationships, and pathways shaping the future of work. Ages 7 to 87. By us, for everyone.",
+  metadataBase: new URL("https://bccacademy.io"),
+  openGraph: {
+    title: "Beyond Code Collective",
+    description:
+      "A community-based learning and workforce ecosystem for ages 7 to 87. Where everyone builds together.",
+    url: "https://bccacademy.io",
+    siteName: "BCC Academy",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "Beyond Code Collective",
+    description:
+      "A community-based learning and workforce ecosystem for ages 7 to 87. Where everyone builds together.",
+  },
+  alternates: {
+    canonical: "https://bccacademy.io",
+  },
+};
 
-  return {
-    title: program.seo.title,
-    description: program.seo.description,
-    metadataBase: new URL(url),
-    openGraph: {
-      title: program.seo.ogTitle,
-      description: program.seo.ogDescription,
-      url,
-      siteName: program.name,
-      type: "website",
-    },
-    twitter: {
-      card: "summary",
-      title: program.seo.ogTitle,
-      description: program.seo.ogDescription,
-    },
-    alternates: {
-      canonical: url,
-    },
-  };
-}
-
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [program, cookieStore] = await Promise.all([getProgram(), cookies()]);
-  const textScale = parseTextScale(cookieStore.get(TEXT_SCALE_COOKIE)?.value);
-
   return (
     <html
       lang="en"
       className={`${geistSans.variable} ${spaceMono.variable} ${bricolage.variable} ${specialGothic.variable} ${gtStandard.variable} h-full antialiased`}
-      style={{ fontSize: rootFontSizeFor(textScale) }}
     >
       <body className="min-h-full flex flex-col font-sans">
+        <TextScaleProvider />
+        <GoogleAnalyticsProvider />
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-neutral-900 focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#E54D2E]"
@@ -102,7 +90,6 @@ export default async function RootLayout({
           {children}
         </div>
         <Analytics />
-        {program.gaId && <GoogleAnalytics gaId={program.gaId} />}
       </body>
     </html>
   );

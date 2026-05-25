@@ -1,5 +1,5 @@
+import type { Metadata } from "next";
 import Link from "next/link";
-import { getProgram } from "@/lib/programs/server";
 import { TextScaleToggle } from "@/components/text-scale-toggle";
 import { ReadAloudButton } from "@/components/read-aloud-button";
 
@@ -8,11 +8,14 @@ import { ReadAloudButton } from "@/components/read-aloud-button";
 // in place (no CMS); the consent text in the survey is the short version
 // and this page is the long version.
 
-export const dynamic = "force-dynamic";
+export const metadata: Metadata = {
+  title: "Privacy Notice — Beyond Code Collective",
+  description:
+    "How Beyond Code Collective handles your data on the BCC Learning Platform.",
+};
 
-export default async function PrivacyPage() {
-  const program = await getProgram();
-  const orgName = program.organization ?? "Beyond Code Collective";
+export default function PrivacyPage() {
+  const orgName = "Beyond Code Collective";
 
   return (
     <main className="min-h-screen bg-neutral-50">

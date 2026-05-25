@@ -1,9 +1,14 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
 // Short passthrough page. The canonical Terms of Use live on the BCC
 // marketing site — we link out instead of duplicating to avoid drift.
 
-export const dynamic = "force-dynamic";
+export const metadata: Metadata = {
+  title: "Terms of Use — Beyond Code Collective",
+  description:
+    "Your use of this platform is subject to the Beyond Code Collective Terms of Use.",
+};
 
 const BCC_TERMS_URL = "https://www.wearebcc.org/en/terms";
 
