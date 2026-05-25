@@ -11,6 +11,9 @@ const isValidEmail = (email: string) =>
 
 export default function FinalCTA() {
   const [email, setEmail] = useState("");
+  const [city, setCity] = useState("");
+  const [ageBracket, setAgeBracket] = useState("");
+  const [engagement, setEngagement] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -109,7 +112,7 @@ export default function FinalCTA() {
             ) : (
               <form
                 onSubmit={handleSubmit}
-                className="flex flex-col sm:flex-row gap-3"
+                className="flex flex-col gap-4"
               >
                 <input
                   type="email"
@@ -120,14 +123,46 @@ export default function FinalCTA() {
                   }}
                   placeholder="your@email.com"
                   required
-                  className={`flex-1 px-5 py-3 text-base border-2 ${
+                  className={`w-full px-5 py-3 text-base border-2 ${
                     error ? "border-orange" : "border-white/20"
                   } bg-white/10 text-white placeholder-white/40 focus:outline-none focus:border-electric-green focus:bg-white/15 focus:shadow-[0_0_0_3px_rgba(229,247,1,0.15)] transition-all duration-300`}
                 />
+                <input
+                  type="text"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  placeholder="Your city"
+                  className="w-full px-5 py-3 text-base border-2 border-white/20 bg-white/10 text-white placeholder-white/40 focus:outline-none focus:border-electric-green focus:bg-white/15 focus:shadow-[0_0_0_3px_rgba(229,247,1,0.15)] transition-all duration-300"
+                />
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <select
+                    value={ageBracket}
+                    onChange={(e) => setAgeBracket(e.target.value)}
+                    className="flex-1 px-5 py-3 text-base border-2 border-white/20 bg-white/10 text-white focus:outline-none focus:border-electric-green focus:bg-white/15 transition-all duration-300"
+                  >
+                    <option value="" disabled>Age bracket</option>
+                    <option value="under-18">Under 18</option>
+                    <option value="18-24">18–24</option>
+                    <option value="25-34">25–34</option>
+                    <option value="35-44">35–44</option>
+                    <option value="45-54">45–54</option>
+                    <option value="55-plus">55+</option>
+                  </select>
+                  <select
+                    value={engagement}
+                    onChange={(e) => setEngagement(e.target.value)}
+                    className="flex-1 px-5 py-3 text-base border-2 border-white/20 bg-white/10 text-white focus:outline-none focus:border-electric-green focus:bg-white/15 transition-all duration-300"
+                  >
+                    <option value="" disabled>Preference</option>
+                    <option value="in-person">In-person at a hub</option>
+                    <option value="virtual">Virtual / online</option>
+                    <option value="both">Both</option>
+                  </select>
+                </div>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-6 py-3 bg-white text-cobalt text-base font-bold transition-all duration-300 hover:shadow-[0_4px_15px_rgba(255,255,255,0.2)] whitespace-nowrap btn-press disabled:opacity-50"
+                  className="w-full px-6 py-3 bg-white text-cobalt text-base font-bold transition-all duration-300 hover:shadow-[0_4px_15px_rgba(255,255,255,0.2)] btn-press disabled:opacity-50"
                 >
                   {loading ? "Sending..." : "Join Waitlist"}
                 </button>

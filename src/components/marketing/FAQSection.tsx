@@ -74,12 +74,7 @@ export default function FAQSection() {
                 >
                   Contact Us
                 </span>
-                <span
-                  title="Coming soon"
-                  className="inline-flex items-center gap-2 text-sm font-semibold text-cobalt/40 cursor-default self-start"
-                >
-                  Browse Free Resources &rarr;
-                </span>
+
               </div>
             </div>
           </motion.div>

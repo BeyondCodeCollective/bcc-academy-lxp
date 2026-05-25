@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { heroReveal, fadeInUp, staggerContainer, staggerContainerSlow } from "@/lib/marketing-motion";
-import { ArrowRight, Certificate, ShieldCheck, Cloud, Handshake, Robot, ChartLineUp } from "@phosphor-icons/react";
+import { ShieldCheck, ChartLineUp, Rocket } from "@phosphor-icons/react";
 import VideoBackground from "@/components/marketing/VideoBackground";
 import { VIDEO_URLS } from "@/data/marketing/videos";
 
@@ -42,27 +42,13 @@ export default function ProofSection() {
             viewport={{ once: true, amount: 0.3 }}
             variants={staggerContainerSlow}
           >
-            <motion.p
-              variants={fadeInUp}
-              className="text-electric-green text-sm font-semibold tracking-[0.3em] uppercase mb-8 font-mono"
-            >
-              [ Year One &middot; Validation in Place ]
-            </motion.p>
-
             <motion.h2
               variants={heroReveal}
               className="font-display text-4xl sm:text-6xl md:text-8xl lg:text-[10rem] font-bold text-white uppercase leading-[0.85]"
             >
-              Inspire.
-              <br />Educate.
+              Inspire. Educate.{" "}
+              <span className="text-electric-green">Launch.</span>
             </motion.h2>
-
-            <motion.p
-              variants={fadeInUp}
-              className="mt-4 font-display text-2xl sm:text-4xl md:text-6xl lg:text-7xl font-bold text-electric-green uppercase leading-[0.9]"
-            >
-              Launch.
-            </motion.p>
 
             <motion.p
               variants={fadeInUp}
@@ -84,20 +70,20 @@ export default function ProofSection() {
             whileInView="visible"
             viewport={{ once: true, amount: 0.2 }}
             variants={fadeInUp}
-            className="text-center mb-16"
+            className="text-center mb-16 max-w-3xl mx-auto"
           >
             <p className="text-cobalt text-sm font-semibold tracking-[0.3em] uppercase mb-4 font-mono">
-              [ What You&rsquo;ll Learn ]
+              [ How It Works ]
             </p>
             <h2 className="font-display text-4xl sm:text-5xl md:text-7xl font-bold text-true-black uppercase leading-[0.9]">
-              Real credentials.
+              One cohort.
               <br />
-              <span className="text-cobalt">Real employers.</span>
+              <span className="text-cobalt">Three paths.</span>
             </h2>
-            <p className="mt-6 text-lg text-grey-3 max-w-2xl mx-auto leading-relaxed">
-              Every pathway is aligned to high-demand roles employers actually
-              hire for. We shift from placement promises to employer-integrated
-              learning — taught by partners working in the field.
+            <p className="mt-6 text-lg text-grey-3 leading-relaxed">
+              Every learner starts together, building a shared digital and
+              workforce foundation. Then they specialize into one of three
+              tracks aligned to how the labor market actually hires:
             </p>
           </motion.div>
 
@@ -106,95 +92,85 @@ export default function ProofSection() {
             whileInView="visible"
             viewport={{ once: true, amount: 0.1 }}
             variants={staggerContainer}
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+            className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-16"
           >
             {[
               {
+                title: "Direct Placement",
+                description:
+                  "Employer-integrated pathways with industry certifications — CompTIA, Salesforce, Google, Microsoft — designed for learners who want a clear on-ramp to a specific role.",
                 icon: ShieldCheck,
-                name: "CompTIA",
-                tracks: "ITF+, A+, Network+",
-                description: "Foundational and infrastructure certifications — the entry stack for IT and tech-adjacent careers, taught with industry mentors.",
-                color: "text-cobalt",
-                bg: "bg-cobalt/5",
               },
               {
-                icon: Cloud,
-                name: "Salesforce",
-                tracks: "Agentic Administrator, Platform Developer",
-                description: "Admin and developer pathways on the platform behind a quarter of enterprise CRM work — applied learning, not slideware.",
-                color: "text-cobalt",
-                bg: "bg-cobalt/5",
-              },
-              {
-                icon: Handshake,
-                name: "MASS Coaching",
-                tracks: "Mindset, Soft Skills, Career Transformation",
-                description: "Our signature coaching program for clarity, courage, and career momentum — designed and led by Angel Aviles for emerging professionals turning potential into traction.",
-                color: "text-cobalt",
-                bg: "bg-cobalt/5",
-              },
-              {
-                icon: Robot,
-                name: "Project Management",
-                tracks: "Agile, Scrum, PMP Foundations",
-                description: "Durable skills that survive any tech cycle — facilitation, scope, and shipping work as a team, on time, in real conditions.",
-                color: "text-cobalt",
-                bg: "bg-cobalt/5",
-              },
-              {
+                title: "Portfolio Building",
+                description:
+                  "Project-based learning with real deliverables. Build a body of work that speaks louder than a résumé — for freelancers, founders, and anyone who wants to lead with what they've made.",
                 icon: ChartLineUp,
-                name: "Grow with Google",
-                tracks: "Data Analytics, UX Design, IT Support",
-                description: "Google Career Certificates paired with mentorship — the credential plus the human relationships that turn it into a job.",
-                color: "text-cobalt",
-                bg: "bg-cobalt/5",
               },
               {
-                icon: Certificate,
-                name: "Microsoft",
-                tracks: "Azure, Power Platform, MakeCode",
-                description: "Cloud, low-code, and youth on-ramps from a partner whose tools sit on every desk in the workforce we&rsquo;re preparing learners to enter.",
-                color: "text-cobalt",
-                bg: "bg-cobalt/5",
+                title: "Entrepreneurial Path",
+                description:
+                  "Validate an idea, build an MVP, and launch. No-code and AI tools keep the focus on creating, not coding — with mentorship from founders who've done it before.",
+                icon: Rocket,
               },
-            ].map((cert) => {
-              const Icon = cert.icon;
+            ].map((track) => {
+              const Icon = track.icon;
               return (
                 <motion.div
-                  key={cert.name}
+                  key={track.title}
                   variants={fadeInUp}
-                  className="group p-6 md:p-8 border-2 border-true-black/5 bg-white hover:border-cobalt/30 transition-all duration-300"
+                  className="p-6 md:p-8 border-2 border-true-black/5 bg-white hover:border-cobalt/30 transition-all duration-300"
                 >
-                  <div className={`w-12 h-12 flex items-center justify-center ${cert.bg} mb-5`}>
-                    <Icon size={24} weight="duotone" className={cert.color} />
+                  <div className="w-12 h-12 flex items-center justify-center bg-cobalt/5 mb-5">
+                    <Icon size={24} weight="duotone" className="text-cobalt" />
                   </div>
-                  <h3 className="text-xl font-display font-bold text-true-black uppercase">
-                    {cert.name}
+                  <h3 className="text-xl font-display font-bold text-true-black uppercase mb-3">
+                    {track.title}
                   </h3>
-                  <p className="mt-1 text-xs font-mono text-cobalt font-semibold uppercase tracking-wider">
-                    {cert.tracks}
-                  </p>
-                  <p className="mt-3 text-sm text-grey-3 leading-relaxed">
-                    {cert.description}
+                  <p className="text-sm text-grey-3 leading-relaxed">
+                    {track.description}
                   </p>
                 </motion.div>
               );
             })}
           </motion.div>
 
+          {/* Certification ticker */}
           <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
+            initial="hidden"
+            whileInView="visible"
             viewport={{ once: true }}
-            className="mt-12 text-center"
+            variants={fadeInUp}
+            className="border-t-2 border-true-black/10 pt-10"
           >
-            <a
-              href="/quiz"
-              className="group inline-flex items-center px-10 py-5 bg-electric-green text-true-black text-base font-bold transition-all duration-300 hover:shadow-[0_8px_30px_rgba(229,247,1,0.3)] btn-press"
-            >
-              <span className="mr-2">Find Your Pathway</span>
-              <ArrowRight size={16} weight="bold" className="transition-transform duration-300 group-hover:translate-x-1" />
-            </a>
+            <p className="text-xs text-grey-3 font-mono uppercase tracking-[0.3em] text-center mb-6">
+              [ Industry-Recognized Certifications ]
+            </p>
+            <div className="overflow-hidden">
+              <div className="flex gap-8 animate-strip" style={{ width: "fit-content" }}>
+                {[
+                  "CompTIA",
+                  "Salesforce",
+                  "Google",
+                  "Microsoft",
+                  "Zapier",
+                  "IBM",
+                  "CompTIA",
+                  "Salesforce",
+                  "Google",
+                  "Microsoft",
+                  "Zapier",
+                  "IBM",
+                ].map((name, i) => (
+                  <span
+                    key={`${name}-${i}`}
+                    className="whitespace-nowrap font-display text-sm md:text-base font-bold text-grey-3/50 uppercase tracking-widest"
+                  >
+                    {name}
+                  </span>
+                ))}
+              </div>
+            </div>
           </motion.div>
         </div>
       </div>

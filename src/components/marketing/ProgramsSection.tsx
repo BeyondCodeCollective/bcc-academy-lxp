@@ -5,8 +5,6 @@ import { fadeInUp, staggerContainer } from "@/lib/marketing-motion";
 import {
   ArrowRight,
   Buildings,
-  Sparkle,
-  Code,
   Lightning,
   Trophy,
   Rocket,
@@ -25,32 +23,12 @@ const programs: {
   {
     id: "catalyst",
     label: "Catalyst",
-    tagline: "Workforce development for organizations.",
+    tagline: "Adult learners. Real pathways. One ecosystem.",
     description:
-      "BCC's employer and partner-facing initiative. CompTIA certification cohorts and workforce readiness training brought directly into organizations and institutions.",
-    cta: "Learn More",
-    href: "https://catalyst.bccacademy.io",
+      "Catalyst meets adult learners where they are and prepares them for where work is going. A core cohort delivers a shared digital and workforce foundation, then participants specialize into one of three tracks aligned to how today's labor market actually hires: direct placement, portfolio building, or an entrepreneurial path of their own.",
+    cta: "Get Started",
+    href: "#waitlist",
     icon: Buildings,
-  },
-  {
-    id: "ai-fundamentals",
-    label: "AI Fundamentals",
-    tagline: "Build a practical understanding of AI — no tech background required.",
-    description:
-      "A 4-week, in-person cohort at Beyond Code Centers. Demystify AI, become a power user, explore community impact, and build something real — all guided by live instructors.",
-    cta: "Join AI Fundamentals",
-    href: "/join/ai-fundamentals",
-    icon: Sparkle,
-  },
-  {
-    id: "ai-digital-natives",
-    label: "AI for Digital Natives",
-    tagline: "Master AI tools — from prompt engineering to building with APIs.",
-    description:
-      "An 8-week deep dive for digital-native learners at Beyond Code Centers. Prompt engineering, content creation, coding with AI, data analysis, and a capstone project.",
-    cta: "Join Digital Natives",
-    href: "/join/ai-digital-natives",
-    icon: Code,
   },
   {
     id: "ai-automation",
@@ -67,7 +45,7 @@ const programs: {
     label: "After The Game",
     tagline: "Tech careers for athletes in transition.",
     description:
-      "CompTIA Tech+ certification prep, MASS wraparound coaching, and financial literacy — built for former athletes ready to pivot into tech.",
+      "A cohort-based program that meets athletes in transition and prepares them for where work is going. Participants build a shared digital and workforce foundation, then specialize into direct placement, portfolio building, or an entrepreneurial path aligned to their strengths.",
     cta: "Apply to ATG",
     href: "https://atg.bccacademy.io",
     icon: Trophy,
@@ -75,11 +53,11 @@ const programs: {
   {
     id: "entrepreneurship",
     label: "Entrepreneurship",
-    tagline: "Build a business with AI as your co-founder.",
+    tagline: "Build something that matters.",
     description:
-      "A founders' track at Beyond Code Centers. Validate your idea, build an MVP with no-code and AI tools, pitch to peers, and leave with the playbook — and the network — to launch.",
-    cta: "Join Entrepreneurship",
-    href: "/join/entrepreneurship",
+      "A founders' track where you validate your idea, build an MVP, pitch to peers, and leave with the playbook — and the network — to launch. No-code and AI tools keep the focus on building, not boilerplate.",
+    cta: "Build With Us",
+    href: "#waitlist",
     icon: Rocket,
   },
 ];
