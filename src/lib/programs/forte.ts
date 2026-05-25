@@ -310,6 +310,7 @@ export const forteConfig: ProgramConfig = {
     },
   ],
   requireInviteLink: true,
+  requireAllowlist: true,
   coppa: { required: false },
   seo: {
     title: "Upskill Bahamas — AI Literacy Program by Beyond Code Collective",
