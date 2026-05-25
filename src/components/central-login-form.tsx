@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Check } from "@phosphor-icons/react";
+import { sendLoginLink } from "@/app/login/actions";
 
 export function CentralLoginForm({
   programs = [],
@@ -66,16 +67,38 @@ export function CentralLoginForm({
       // has its own guard for unadmitted users.
     }
 
-    const callbackUrl = isLocalDev
-      ? `http://localhost:3000/auth/callback`
-      : `${window.location.origin}/auth/callback`;
+    // Try the branded Resend path first (server action). If Resend isn't
+    // configured or the FROM domain isn't verified yet, the action returns
+    // `fallback: true` and we silently retry via Supabase's built-in OTP
+    // sender — keeps users unblocked while we instrument the delivery path.
+    const origin = isLocalDev
+      ? "http://localhost:3000"
+      : window.location.origin;
+    const result = await sendLoginLink({ email: trimmedEmail, origin });
+
+    if (result.ok) {
+      setSent(true);
+      setLoading(false);
+      return;
+    }
+
+    if (!result.fallback) {
+      setError(result.error);
+      setLoading(false);
+      return;
+    }
+
     const supabase = createClient();
     const { error: otpError } = await supabase.auth.signInWithOtp({
       email: trimmedEmail,
-      options: { emailRedirectTo: callbackUrl },
+      options: { emailRedirectTo: `${origin}/auth/callback` },
     });
 
     if (otpError) {
+      console.error("[login] OTP fallback failed", {
+        email: trimmedEmail,
+        error: otpError.message,
+      });
       setError(otpError.message || "Something went wrong. Please try again.");
       setLoading(false);
       return;
