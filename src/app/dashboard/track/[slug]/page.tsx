@@ -14,21 +14,16 @@ import { getTrackBySlug } from "@/lib/programs";
 import { getSessionContext } from "@/lib/auth/session";
 import { canAccessAdminPanel } from "@/lib/roles";
 import { CopyInviteLink } from "@/components/copy-invite-link";
-import { toneForTrack, iconForTrack } from "@/lib/track-visual";
+import { toneForTrack } from "@/lib/track-visual";
 
 export const dynamic = "force-dynamic";
 
 export default async function TrackOverviewPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ hero?: string }>;
 }) {
   const { slug } = await params;
-  const { hero } = await searchParams;
-  const heroVariant: "default" | "typo" | "grid" =
-    hero === "typo" || hero === "grid" ? hero : "default";
   const program = await getProgram();
   const track = getTrackBySlug(program, slug);
   if (!track) redirect("/dashboard");
@@ -64,7 +59,6 @@ export default async function TrackOverviewPage({
   const overviewCopy = track.description ?? track.weeks[0]?.description ?? "";
 
   const tone = toneForTrack(slug);
-  const Icon = iconForTrack(slug);
 
   const eyebrow = started
     ? `Week ${currentWeek} of ${track.totalWeeks}`
@@ -89,145 +83,83 @@ export default async function TrackOverviewPage({
         )}
       </div>
 
-      {/* Hero — three variants for visual comparison (toggle via ?hero=typo|grid). */}
+      {/* Hero — the tone-tinted block frames a 2×5 grid of weekly topics, so
+         it doubles as the curriculum-at-a-glance and as week-level navigation.
+         Each cell links to its week page; current week is inset-ringed in the
+         track tone. Replaces a previous decorative-icon hero. */}
       <header className="space-y-5">
-        {heroVariant === "typo" ? (
-          // VARIANT: typographic hero — no tinted block, large display title
-          // does the work; "In progress" pill sits inline with the eyebrow.
-          <div className="space-y-4 pt-2">
-            <div className="flex flex-wrap items-center gap-3">
-              <p className="text-xs font-medium uppercase tracking-[0.18em] text-neutral-400">
-                {eyebrow}
-                <span className="mx-2 text-neutral-300">·</span>
-                {track.totalWeeks}-week track
-              </p>
-              {started && (
-                <span
-                  className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold"
-                  style={{ backgroundColor: `${tone}1A`, color: tone }}
-                >
-                  <span
-                    className="h-1.5 w-1.5 rounded-full animate-pulse"
-                    style={{ backgroundColor: tone }}
-                  />
-                  In progress
-                </span>
-              )}
-            </div>
-            <h1 className="text-5xl font-bold tracking-tight text-neutral-900 sm:text-6xl">
-              {track.name}
-            </h1>
-            {overviewCopy && (
-              <p className="max-w-2xl text-lg leading-relaxed text-neutral-600">
-                {overviewCopy}
-              </p>
-            )}
-          </div>
-        ) : heroVariant === "grid" ? (
-          // VARIANT: curriculum-as-hero — tinted block stays, but its content
-          // is a 5×2 grid of week icons + topics, so the hero communicates
-          // scope instead of decoration. Current week is ringed in the tone.
-          <>
-            <div
-              className="relative w-full overflow-hidden p-5 sm:p-7"
-              style={{ backgroundColor: `${tone}1A` }}
-            >
-              <ol className="grid grid-cols-5 gap-2 sm:gap-3">
-                {track.weekSummaries.map((ws) => {
-                  const isCurrent = started && ws.week === currentWeek;
-                  return (
-                    <li
-                      key={ws.week}
-                      className="flex aspect-square flex-col items-center justify-center bg-white/85 p-1.5 backdrop-blur sm:p-2"
-                      style={
-                        isCurrent
-                          ? { boxShadow: `inset 0 0 0 2px ${tone}` }
-                          : undefined
-                      }
+        <div
+          className="relative w-full overflow-hidden p-5 sm:p-7"
+          style={{ backgroundColor: `${tone}1A` }}
+        >
+          <ol className="grid grid-cols-2 gap-2 sm:grid-cols-5 sm:gap-3">
+            {track.weekSummaries.map((ws) => {
+              const isCurrent = started && ws.week === currentWeek;
+              const isPast = started && ws.week < currentWeek;
+              return (
+                <li key={ws.week}>
+                  <Link
+                    href={`/dashboard/track/${slug}/${ws.week}`}
+                    aria-label={`Week ${ws.week}: ${ws.topic}${isCurrent ? " (current week)" : ""}`}
+                    className="group flex aspect-square flex-col items-center justify-center bg-white/85 p-2 backdrop-blur transition-colors hover:bg-white sm:p-2.5"
+                    style={
+                      isCurrent
+                        ? { boxShadow: `inset 0 0 0 2px ${tone}` }
+                        : undefined
+                    }
+                  >
+                    <span
+                      className={`text-2xl leading-none sm:text-3xl ${
+                        isPast ? "opacity-60" : ""
+                      }`}
                     >
-                      <span className="text-xl leading-none sm:text-2xl">
-                        {ws.icon}
-                      </span>
-                      <span className="mt-1 line-clamp-2 px-0.5 text-center text-[9px] font-medium leading-tight text-neutral-600 sm:text-[10px]">
-                        {ws.topic}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ol>
-              {started && (
-                <div className="absolute top-3 right-3">
-                  <span
-                    className="inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold backdrop-blur"
-                    style={{ color: tone }}
-                  >
+                      {ws.icon}
+                    </span>
                     <span
-                      className="h-1.5 w-1.5 rounded-full animate-pulse"
-                      style={{ backgroundColor: tone }}
-                    />
-                    In progress
-                  </span>
-                </div>
-              )}
+                      className={`mt-1.5 line-clamp-2 px-1 text-center text-[10px] font-medium leading-tight transition-colors sm:text-[11px] ${
+                        isPast
+                          ? "text-neutral-400"
+                          : "text-neutral-600 group-hover:text-neutral-900"
+                      }`}
+                    >
+                      {ws.topic}
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ol>
+          {started && (
+            <div className="absolute top-3 right-3">
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold backdrop-blur"
+                style={{ color: tone }}
+              >
+                <span
+                  className="h-1.5 w-1.5 rounded-full animate-pulse"
+                  style={{ backgroundColor: tone }}
+                />
+                In progress
+              </span>
             </div>
-            <div>
-              <p className="text-xs font-medium uppercase tracking-[0.18em] text-neutral-400">
-                {eyebrow}
-                <span className="mx-2 text-neutral-300">·</span>
-                {track.totalWeeks}-week track
-              </p>
-              <h1 className="mt-2 text-3xl font-bold tracking-tight text-neutral-900 sm:text-4xl">
-                {track.name}
-              </h1>
-              {overviewCopy && (
-                <p className="mt-3 text-base leading-relaxed text-neutral-600">
-                  {overviewCopy}
-                </p>
-              )}
-            </div>
-          </>
-        ) : (
-          // VARIANT: default (current production) — single Phosphor icon in a
-          // tone-tinted block. Kept as the comparison baseline.
-          <>
-            <div
-              aria-hidden
-              className="relative flex aspect-[16/7] w-full items-center justify-center overflow-hidden"
-              style={{ backgroundColor: `${tone}1A` }}
-            >
-              <Icon size={72} weight="light" color={tone} />
-              {started && (
-                <div className="absolute top-4 right-4">
-                  <span
-                    className="inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold backdrop-blur"
-                    style={{ color: tone }}
-                  >
-                    <span
-                      className="h-1.5 w-1.5 rounded-full animate-pulse"
-                      style={{ backgroundColor: tone }}
-                    />
-                    In progress
-                  </span>
-                </div>
-              )}
-            </div>
-            <div>
-              <p className="text-xs font-medium uppercase tracking-[0.18em] text-neutral-400">
-                {eyebrow}
-                <span className="mx-2 text-neutral-300">·</span>
-                {track.totalWeeks}-week track
-              </p>
-              <h1 className="mt-2 text-3xl font-bold tracking-tight text-neutral-900 sm:text-4xl">
-                {track.name}
-              </h1>
-              {overviewCopy && (
-                <p className="mt-3 text-base leading-relaxed text-neutral-600">
-                  {overviewCopy}
-                </p>
-              )}
-            </div>
-          </>
-        )}
+          )}
+        </div>
+
+        <div>
+          <p className="text-xs font-medium uppercase tracking-[0.18em] text-neutral-400">
+            {eyebrow}
+            <span className="mx-2 text-neutral-300">·</span>
+            {track.totalWeeks}-week track
+          </p>
+          <h1 className="mt-2 text-3xl font-bold tracking-tight text-neutral-900 sm:text-4xl">
+            {track.name}
+          </h1>
+          {overviewCopy && (
+            <p className="mt-3 text-base leading-relaxed text-neutral-600">
+              {overviewCopy}
+            </p>
+          )}
+        </div>
 
         <div>
           <Link
@@ -268,69 +200,6 @@ export default async function TrackOverviewPage({
         />
       </dl>
 
-      {/* Curriculum — the weeks list, styled like a workshop "what you'll learn" */}
-      <section className="space-y-3">
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
-          Curriculum
-        </h2>
-        <ol className="divide-y divide-rule border border-rule bg-surface-elevated">
-          {track.weekSummaries.map((ws) => {
-            const isCurrent = started && ws.week === currentWeek;
-            const isPast = started && ws.week < currentWeek;
-            return (
-              <li key={ws.week}>
-                <Link
-                  href={`/dashboard/track/${slug}/${ws.week}`}
-                  className="group flex items-center gap-4 px-4 py-3 transition-colors hover:bg-neutral-50"
-                >
-                  <span
-                    className={`w-12 shrink-0 text-[13px] font-medium tabular-nums ${
-                      isPast
-                        ? "text-neutral-300"
-                        : isCurrent
-                          ? "text-neutral-900"
-                          : "text-neutral-400"
-                    }`}
-                  >
-                    Wk {ws.week}
-                  </span>
-                  <div className="flex min-w-0 flex-1 items-center gap-2.5">
-                    <span
-                      className={`truncate text-[15px] ${
-                        isPast
-                          ? "text-neutral-400"
-                          : "text-neutral-700 group-hover:text-neutral-900"
-                      }`}
-                    >
-                      {ws.topic}
-                    </span>
-                    {isCurrent && (
-                      <span
-                        className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold"
-                        style={{
-                          backgroundColor: `${tone}1A`,
-                          color: tone,
-                        }}
-                      >
-                        <span
-                          className="h-1.5 w-1.5 rounded-full animate-pulse"
-                          style={{ backgroundColor: tone }}
-                        />
-                        Current
-                      </span>
-                    )}
-                  </div>
-                  <ArrowRight
-                    size={13}
-                    weight="bold"
-                    className="shrink-0 text-neutral-300 transition-colors group-hover:text-neutral-600"
-                  />
-                </Link>
-              </li>
-            );
-          })}
-        </ol>
-      </section>
     </div>
   );
 }
