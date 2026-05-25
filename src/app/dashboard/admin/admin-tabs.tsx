@@ -826,13 +826,22 @@ export function AdminTabs({
                   <ChartBarIcon size={16} weight="bold" aria-label="Attendance" />
                 </Link>
                 {isManager && (
-                  <Link
-                    href="/dashboard/admin?tab=lunch-learn"
-                    title="Lunch & Learns"
-                    className="flex h-8 w-8 items-center justify-center text-neutral-400 transition-colors hover:text-neutral-900"
-                  >
-                    <CoffeeIcon size={16} weight="bold" aria-label="Lunch & Learns" />
-                  </Link>
+                  <>
+                    <Link
+                      href="/dashboard/admin/allowlist"
+                      title="Signup allowlist"
+                      className="flex h-8 w-8 items-center justify-center text-neutral-400 transition-colors hover:text-neutral-900"
+                    >
+                      <Shield size={14} aria-label="Signup allowlist" />
+                    </Link>
+                    <Link
+                      href="/dashboard/admin?tab=lunch-learn"
+                      title="Lunch & Learns"
+                      className="flex h-8 w-8 items-center justify-center text-neutral-400 transition-colors hover:text-neutral-900"
+                    >
+                      <CoffeeIcon size={16} weight="bold" aria-label="Lunch & Learns" />
+                    </Link>
+                  </>
                 )}
               </div>
             </header>
@@ -861,13 +870,22 @@ export function AdminTabs({
                 Attendance
               </Link>
               {isManager && (
-                <Link
-                  href="/dashboard/admin?tab=lunch-learn"
-                  className="inline-flex items-center gap-2 border border-rule bg-surface-elevated px-3 py-2 text-xs font-medium text-neutral-600 transition-colors hover:border-neutral-300 hover:text-neutral-900"
-                >
-                  <CoffeeIcon size={13} weight="bold" aria-hidden />
-                  Lunch &amp; Learns
-                </Link>
+                <>
+                  <Link
+                    href="/dashboard/admin/allowlist"
+                    className="inline-flex items-center gap-2 border border-rule bg-surface-elevated px-3 py-2 text-xs font-medium text-neutral-600 transition-colors hover:border-neutral-300 hover:text-neutral-900"
+                  >
+                    <Shield size={13} aria-hidden />
+                    Signup allowlist
+                  </Link>
+                  <Link
+                    href="/dashboard/admin?tab=lunch-learn"
+                    className="inline-flex items-center gap-2 border border-rule bg-surface-elevated px-3 py-2 text-xs font-medium text-neutral-600 transition-colors hover:border-neutral-300 hover:text-neutral-900"
+                  >
+                    <CoffeeIcon size={13} weight="bold" aria-hidden />
+                    Lunch &amp; Learns
+                  </Link>
+                </>
               )}
             </div>
 
