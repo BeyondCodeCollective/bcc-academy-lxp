@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { CaretUpDown, SignOut, Check } from "@phosphor-icons/react";
+import { createClient } from "@/lib/supabase/client";
 
 type ProgramOption = {
   slug: string;
@@ -86,9 +87,10 @@ export function UserMenu({
   const handleSignOut = async () => {
     document.cookie = "atg-demo-user=; path=/; max-age=0";
     document.cookie = "program-override=; path=/; max-age=0";
-    const { createClient } = await import("@/lib/supabase/client");
-    const supabase = createClient();
-    await supabase.auth.signOut();
+    if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+    }
     window.location.href = "/";
   };
 
