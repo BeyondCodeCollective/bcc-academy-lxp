@@ -46,7 +46,7 @@ export const forteConfig: ProgramConfig = {
       sessionsPerWeek: 1,
       startDate: FORTE_START_DATE,
       instructor: "TBD",
-      sessionTimes: ["Self-paced · live sessions TBD"],
+      sessionTimes: ["Self-paced"],
       lastSessionDayOffset: 6,
       submissionsEnabled: true,
       // Forte's "Written Artifact" is modeled as the project submission
