@@ -102,10 +102,11 @@ export function JoinForm({
             Check your email.
           </h2>
           <p className="text-base text-white/70 md:text-lg">
-            If <span className="text-white">{email}</span> is on the list
-            for this course, we just sent a sign-in link. If you don&rsquo;t
-            see it within a few minutes, check spam — or contact your
-            program coordinator.
+            If <span className="text-white">{email}</span>
+            {" "}
+            is on the list for this course, we just sent a sign-in link.
+            If you don&rsquo;t see it within a few minutes, check spam
+            — or contact your program coordinator.
           </p>
         </div>
         <button
