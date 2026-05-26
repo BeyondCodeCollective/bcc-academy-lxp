@@ -1,4 +1,5 @@
 import { createServiceClient } from "@/lib/supabase/server";
+import { getProgramId } from "@/lib/programs/server";
 import type { ProgramConfig } from "@/lib/programs/types";
 import { BCC_INTAKE_SURVEY_ID } from "@/lib/surveys/platform";
 import { BCC_INTAKE_QUESTION_IDS } from "@/lib/surveys/schemas";
@@ -13,45 +14,28 @@ import { determineRole } from "@/lib/auth/admins";
  *
  * Every operation is idempotent: safe to call multiple times, and
  * returns immediately if the student is already fully set up.
+ *
+ * Accepts the student's current state to skip redundant DB queries
+ * when the caller already has this data from getSessionContext.
  */
 export async function completePendingSetup(
   userId: string,
   email: string,
   program: ProgramConfig,
   trackParam?: string | null,
+  currentCohortId?: string | null,
+  currentRole?: string | null,
+  welcomeSeenAt?: string | null,
 ): Promise<void> {
   const admin = createServiceClient();
 
-  // 1. Fetch program UUID from DB
-  const { data: programRow } = await admin
-    .from("programs")
-    .select("id")
-    .eq("slug", program.slug)
-    .maybeSingle();
+  // Use the cached per-request program UUID instead of a fresh query
+  const programId = await getProgramId();
 
-  if (!programRow) {
-    console.warn("[deferred-setup] program not found:", program.slug);
-    return;
-  }
+  const isNew = !welcomeSeenAt;
 
-  const programId = programRow.id;
-
-  // 2. Check student's current state
-  const { data: student } = await admin
-    .from("students")
-    .select("id, cohort_id, role, welcome_email_sent_at")
-    .eq("id", userId)
-    .maybeSingle();
-
-  if (!student) {
-    console.warn("[deferred-setup] student not found:", userId);
-    return;
-  }
-
-  const isNew = !student.welcome_email_sent_at;
-
-  // 3. Look up or create cohort if student has none
-  if (!student.cohort_id) {
+  // 1. Look up or create cohort if student has none
+  if (!currentCohortId) {
     const defaultCohort = {
       name: program.defaultCohort.name,
       display_name: program.defaultCohort.displayName,
@@ -91,7 +75,7 @@ export async function completePendingSetup(
     }
   }
 
-  // 4. Enroll in tracks (new users only)
+  // 2. Enroll in tracks (new users only)
   if (isNew) {
     const tracksToEnroll =
       program.requireInviteLink === true
@@ -114,7 +98,7 @@ export async function completePendingSetup(
     }
   }
 
-  // 5. Claim public survey submissions (new users only)
+  // 3. Claim public survey submissions (new users only)
   if (isNew && email) {
     const { data: publicRows } = await admin
       .from("public_survey_responses")
@@ -141,7 +125,7 @@ export async function completePendingSetup(
         console.error("[deferred-setup] public survey claim:", claimErr.message);
       }
 
-      // 6. Auto-complete intake if any claimed survey has all demographic answers
+      // 4. Auto-complete intake if any claimed survey has all demographic answers
       const intakeAlreadyDone = publicRows.some(
         (r) => r.survey_type === BCC_INTAKE_SURVEY_ID && r.completed_at,
       );
@@ -184,7 +168,7 @@ export async function completePendingSetup(
     }
   }
 
-  // 7. Send welcome email (new users only)
+  // 5. Send welcome email (new users only)
   if (isNew && email) {
     const tracksToEnroll =
       program.requireInviteLink === true
@@ -212,9 +196,9 @@ export async function completePendingSetup(
     }
   }
 
-  // 8. Role update for privileged users
+  // 6. Role update for privileged users
   const correctRole = determineRole(email);
-  if (correctRole !== "student" && student.role !== correctRole) {
+  if (correctRole !== "student" && currentRole !== correctRole) {
     const { error: roleErr } = await admin
       .from("students")
       .update({ role: correctRole })

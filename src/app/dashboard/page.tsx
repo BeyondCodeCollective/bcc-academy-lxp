@@ -20,7 +20,12 @@ import { completePendingSetup } from "@/lib/auth/deferred-setup";
 
 export const dynamic = "force-dynamic";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ setup?: string }>;
+}) {
+  const { setup } = await searchParams;
   const program = await getProgram();
 
   // Staff users (BGC/BCC employees, not admins) see the Lunch & Learns hub
@@ -59,12 +64,18 @@ export default async function DashboardPage() {
 
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-5xl px-4 sm:px-5 py-8">
-      <DashboardContent program={program} />
+      <DashboardContent program={program} setup={setup} />
     </div>
   );
 }
 
-async function DashboardContent({ program }: { program: ProgramConfig }) {
+async function DashboardContent({
+  program,
+  setup,
+}: {
+  program: ProgramConfig;
+  setup?: string;
+}) {
   const cookieStore = await cookies();
   const currentUser = await resolveCurrentUser(cookieStore);
   if (!currentUser) redirect("/");
@@ -87,17 +98,18 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
 
     // Deferred setup: cohort, track enrollment, survey claims, welcome email
     // runs on first dashboard paint after login instead of blocking the callback.
-    // The pending-setup cookie has a 60s TTL to handle the first-time case — for
-    // returning users the setup returns immediately (student already has cohort
-    // and tracks). Idempotent; safe to call multiple times.
-    if (cookieStore.get("pending-setup")) {
-      await completePendingSetup(userId, currentUser.email ?? "", program);
-      try {
-        cookieStore.set("pending-setup", "", { path: "/", maxAge: 0 });
-      } catch {
-        // cookieStore.set may not be writable in all server component contexts.
-        // The cookie TTL of 60s handles cleanup regardless.
-      }
+    // Triggered by ?setup=1 in the redirect URL from the auth callback — naturally
+    // one-time (no persistence on client-side nav or refresh).
+    if (setup === "1") {
+      await completePendingSetup(
+        userId,
+        currentUser.email ?? "",
+        program,
+        null,
+        student?.cohort_id,
+        student?.role ?? "student",
+        student?.welcome_seen_at,
+      );
     }
 
     const { cohorts: cohort, cohort_id: cohortId } = student ?? {};

@@ -168,14 +168,13 @@ export async function GET(request: Request) {
           { onConflict: "id", ignoreDuplicates: true }
         );
 
-        const res = redirectWithCookies(`${origin}/dashboard`);
+        const res = redirectWithCookies(`${origin}/dashboard?setup=1`);
         const cookieOpts = { path: "/", httpOnly: false, sameSite: "lax" as const };
         res.cookies.set("program-slug", effectiveSlug, cookieOpts);
         res.cookies.set("program-override", effectiveSlug, {
           ...cookieOpts,
           maxAge: 60 * 60 * 24 * 365,
         });
-        res.cookies.set("pending-setup", "1", { ...cookieOpts, httpOnly: true, maxAge: 60 });
 
         return res;
       }
@@ -196,11 +195,7 @@ export async function GET(request: Request) {
         { onConflict: "id", ignoreDuplicates: true }
       );
 
-      const res = redirectWithCookies(`${origin}/dashboard`);
-      res.cookies.set("pending-setup", "1", {
-        path: "/", httpOnly: true, sameSite: "lax" as const, maxAge: 60,
-      });
-      return res;
+      return redirectWithCookies(`${origin}/dashboard?setup=1`);
     } else {
       console.error("[auth/callback] auth error:", authError!.message);
     }
