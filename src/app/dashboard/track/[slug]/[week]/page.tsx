@@ -366,18 +366,22 @@ export default async function TrackWeekPage({
         </ul>
       </section>
 
-      {/* Config-level recording (e.g. Google Drive links set in the program config) */}
-      {weekContent.videoUrl && (
-        <RecordingCard
-          url={weekContent.videoUrl}
-          title="Session Recording"
-          subtitle={`Week ${weekNum} replay`}
-          trackSlug={trackSlug}
-          weekNumber={weekNum}
-          showWatchButton={isSupabaseConfigured() && unlocked}
-          initialWatched={weekProgress?.videoWatched ?? false}
-        />
-      )}
+      {/* Config-level recording (e.g. Google Drive link set in the program
+         config). Skipped when any session has an admin-uploaded recording —
+         those are intentional overrides for this cohort and rendering both
+         stacks duplicate cards on the page. */}
+      {weekContent.videoUrl &&
+        !recordingUrls.some((u) => !!u) && (
+          <RecordingCard
+            url={weekContent.videoUrl}
+            title="Session Recording"
+            subtitle={`Week ${weekNum} replay`}
+            trackSlug={trackSlug}
+            weekNumber={weekNum}
+            showWatchButton={isSupabaseConfigured() && unlocked}
+            initialWatched={weekProgress?.videoWatched ?? false}
+          />
+        )}
 
       {/* Admin-uploaded session recordings */}
       {weekContent.sessions.map((session, i) => {
