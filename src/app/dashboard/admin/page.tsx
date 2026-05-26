@@ -425,8 +425,14 @@ export default async function AdminPage({
 
 /**
  * Cross-request TTL cache for the program-slugs-to-UUIDs lookup. Program
- * UUIDs never change, so this is 100% safe to cache and saves one Supabase
+ * UUIDs never change, so this is safe to cache and saves one Supabase
  * round-trip per admin page navigation.
+ *
+ * IMPORTANT: only cache non-empty results. An empty result is almost
+ * always transient (cold-start auth race, RLS context not yet warm) and
+ * caching it for 60 seconds was making the admin home read "0 students
+ * across every track" for up to a minute after a deploy. Re-query on the
+ * next request instead.
  */
 const _progIdCache = new Map<string, { data: { id: string; slug: string }[]; ts: number }>();
 async function getCachedProgramIds(
@@ -436,8 +442,15 @@ async function getCachedProgramIds(
   const cached = _progIdCache.get(key);
   if (cached && Date.now() - cached.ts < 60_000) return cached.data;
   const svc = createServiceClient();
-  const { data } = await svc.from("programs").select("id, slug").in("slug", slugs);
+  const { data, error } = await svc
+    .from("programs")
+    .select("id, slug")
+    .in("slug", slugs);
   const result = (data ?? []) as { id: string; slug: string }[];
+  if (error || result.length === 0) {
+    if (error) console.error("[admin] getCachedProgramIds query failed:", error);
+    return result;
+  }
   _progIdCache.set(key, { data: result, ts: Date.now() });
   return result;
 }
