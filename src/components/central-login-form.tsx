@@ -99,7 +99,17 @@ export function CentralLoginForm({
         email: trimmedEmail,
         error: otpError.message,
       });
-      setError(otpError.message || "Something went wrong. Please try again.");
+      // Supabase enforces a ~60s per-email cooldown on sign-in emails. The
+      // raw error reads as a security warning when it really means "we just
+      // sent one; check your inbox." Rewrite it.
+      const rateLimited = /security purposes|only request this after/i.test(
+        otpError.message ?? "",
+      );
+      setError(
+        rateLimited
+          ? "We just sent a sign-in link to this email. Check your inbox — and your spam folder. Try again in a minute if it doesn't arrive."
+          : otpError.message || "Something went wrong. Please try again.",
+      );
       setLoading(false);
       return;
     }
