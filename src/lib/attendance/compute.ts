@@ -145,11 +145,30 @@ export function summarizeStudent(
   let attended = 0;
   let expected = 0;
 
+  // A session "counts" only when an admin has actually taken attendance
+  // for it — i.e. when at least one student has a record for that slot.
+  // Sessions that should have happened but where no one was ever marked
+  // are excluded from `expected`. Previously every scheduled session
+  // counted, which made every student in an unmarked class read as
+  // "0/35 sessions · 35 in a row missed" even when the admin simply
+  // hadn't recorded attendance yet.
+  const takenKey = (trackSlug: string, week: number, session: number) =>
+    `${trackSlug}|${week}|${session}`;
+  const takenSlots = new Set<string>();
+  for (const r of records) {
+    takenSlots.add(takenKey(r.track, r.week_number, r.session_number));
+  }
+
   for (const track of tracks) {
-    const sessions = expectedSessionsFor(track, asOf);
-    if (sessions.length === 0) continue;
+    const sessions = expectedSessionsFor(track, asOf).filter((s) =>
+      takenSlots.has(takenKey(s.trackSlug, s.week, s.session)),
+    );
+    if (sessions.length === 0) {
+      byTrack[track.slug] = { attended: 0, expected: 0, rate: 100 };
+      continue;
+    }
     const recordsForTrack = records.filter(
-      (r) => r.student_id === student.id && r.track === track.slug
+      (r) => r.student_id === student.id && r.track === track.slug,
     );
     const trackAttended = recordsForTrack.length;
     byTrack[track.slug] = {
@@ -161,16 +180,15 @@ export function summarizeStudent(
     expected += sessions.length;
   }
 
-  // Consecutive misses across all tracks, walking backward in time.
-  // Collapse to "chronological session slots, newest first" then count
-  // until we find one the student attended.
-  const allExpected: ExpectedSession[] = tracks.flatMap((t) =>
-    expectedSessionsFor(t, asOf)
-  );
-  // Newest first: higher week first, then higher session.
-  allExpected.sort((a, b) => b.week - a.week || b.session - a.session);
+  // Consecutive misses: walk only sessions where attendance was taken,
+  // newest first, count until we find one this student attended.
+  // Sessions the admin never recorded don't penalize anyone.
+  const takenExpected = tracks
+    .flatMap((t) => expectedSessionsFor(t, asOf))
+    .filter((s) => takenSlots.has(takenKey(s.trackSlug, s.week, s.session)))
+    .sort((a, b) => b.week - a.week || b.session - a.session);
   let consecutiveMisses = 0;
-  for (const slot of allExpected) {
+  for (const slot of takenExpected) {
     const attendedSlot = records.some(
       (r) =>
         r.student_id === student.id &&
