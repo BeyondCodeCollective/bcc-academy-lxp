@@ -94,13 +94,13 @@ export default async function AdminPage({
     // by catalyst.id alone returns 0 across the board. For Catalyst we
     // aggregate IDs from every underlying program plus Catalyst itself; for
     // any other program we keep the single-program scope.
+    //
+    // Cached across requests with a short TTL: program UUIDs never change,
+    // so there is zero staleness risk.
     const aggregatedSlugs = program.slug === "catalyst"
       ? ["catalyst", "atg", "forge", "forte"]
       : [program.slug];
-    const { data: programRows } = await svc
-      .from("programs")
-      .select("id, slug")
-      .in("slug", aggregatedSlugs);
+    const programRows = await getCachedProgramIds(aggregatedSlugs);
     const programIds = (programRows ?? []).map((p) => p.id as string);
     const programId = programRows?.find((p) => p.slug === program.slug)?.id;
 
@@ -412,4 +412,23 @@ export default async function AdminPage({
       />
     </div>
   );
+}
+
+/**
+ * Cross-request TTL cache for the program-slugs-to-UUIDs lookup. Program
+ * UUIDs never change, so this is 100% safe to cache and saves one Supabase
+ * round-trip per admin page navigation.
+ */
+const _progIdCache = new Map<string, { data: { id: string; slug: string }[]; ts: number }>();
+async function getCachedProgramIds(
+  slugs: string[],
+): Promise<{ id: string; slug: string }[]> {
+  const key = slugs.sort().join(",");
+  const cached = _progIdCache.get(key);
+  if (cached && Date.now() - cached.ts < 60_000) return cached.data;
+  const svc = createServiceClient();
+  const { data } = await svc.from("programs").select("id, slug").in("slug", slugs);
+  const result = (data ?? []) as { id: string; slug: string }[];
+  _progIdCache.set(key, { data: result, ts: Date.now() });
+  return result;
 }
