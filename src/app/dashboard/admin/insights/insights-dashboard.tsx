@@ -82,7 +82,6 @@ export function InsightsDashboard({
     () => sections.flatMap((s) => s.responses),
     [sections],
   );
-  const maxCount = Math.max(...ledger.map((r) => r.count), 1);
 
   if (sections.length === 0) {
     return (
@@ -150,18 +149,14 @@ export function InsightsDashboard({
                 </p>
               </div>
 
-              {/* Volume bar — relative to the largest survey */}
-              <div className="mb-2 h-1.5 w-full overflow-hidden rounded-full bg-neutral-100">
-                <div
-                  className="h-full rounded-full bg-neutral-900 transition-all"
-                  style={{ width: `${(row.count / maxCount) * 100}%` }}
-                />
-              </div>
-
-              {/* Program breakdown */}
-              {row.programBreakdown.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <div className="flex h-2 flex-1 overflow-hidden rounded-full bg-neutral-100">
+              {/* Per-program breakdown. Single bar with a clear inline
+                 legend underneath — previous design had two bars (one
+                 "volume vs largest survey", one "split by program") and no
+                 key, so neither was readable. The count to the right
+                 already tells the volume story; the bar shows the split. */}
+              {row.programBreakdown.length > 0 ? (
+                <>
+                  <div className="mb-1.5 flex h-2 w-full overflow-hidden rounded-full bg-neutral-100">
                     {row.programBreakdown.map((seg) => (
                       <div
                         key={seg.slug}
@@ -174,11 +169,22 @@ export function InsightsDashboard({
                       />
                     ))}
                   </div>
-                  <span className="shrink-0 text-[10px] text-neutral-400">
-                    {row.programBreakdown.length} program
-                    {row.programBreakdown.length !== 1 ? "s" : ""}
-                  </span>
-                </div>
+                  <p className="text-[11px] text-neutral-500">
+                    {row.programBreakdown.map((seg, i) => (
+                      <span key={seg.slug}>
+                        {i > 0 && <span className="text-neutral-300"> · </span>}
+                        <span
+                          aria-hidden
+                          className="mr-1 inline-block h-1.5 w-1.5 rounded-full align-middle"
+                          style={{ backgroundColor: seg.color }}
+                        />
+                        {seg.name} <span className="tabular-nums text-neutral-700">{seg.count}</span>
+                      </span>
+                    ))}
+                  </p>
+                </>
+              ) : (
+                <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-100" />
               )}
             </button>
           ))}
