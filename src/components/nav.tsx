@@ -136,7 +136,13 @@ export function Nav({
 
   const items: NavItem[] = [
     { href: "/dashboard", label: "Home", icon: House },
-    { href: "/dashboard/courses", label: "Courses", icon: BookOpen },
+    // Catalog (every track in the program) is admin-only. Students get their
+    // own track grid on /dashboard and the curriculum sidebar when they're
+    // inside a track — they don't need a browsable catalog of programs
+    // they aren't enrolled in.
+    ...(isAdmin
+      ? [{ href: "/dashboard/courses", label: "Courses", icon: BookOpen }]
+      : []),
     // Workshops are internal-only: admin panel access OR BGC/BCC staff email.
     // Students (current or prospective) don't see this; past workshops are
     // archival material for the org, not enrolled-learner content.
