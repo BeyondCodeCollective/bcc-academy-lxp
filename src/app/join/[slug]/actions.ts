@@ -18,41 +18,48 @@ export async function sendJoinLink({
   const program = getProgramBySlug(programSlug);
   const normalised = email.trim().toLowerCase();
 
-  // Allowlist gate. There's no per-program toggle — the gate is implicit:
-  // if the program has at least one row in `allowed_signup_emails`, signups
-  // are restricted to that list. If the table is empty for this program,
-  // anyone can sign up. Admins manage the list at
-  // /dashboard/admin/allowlist by picking the program from the dropdown.
-  const svcAllow = createServiceClient();
-  const { count: allowlistSize, error: countErr } = await svcAllow
-    .from("allowed_signup_emails")
-    .select("email", { count: "exact", head: true })
-    .eq("program_slug", programSlug);
-  if (countErr) {
-    console.error("[join] allowlist count failed:", countErr);
-    return { ok: false, error: "Couldn't verify your email. Please try again." };
-  }
-  if ((allowlistSize ?? 0) > 0) {
-    const { data: allowed, error: lookupErr } = await svcAllow
+  // Allowlist gate (per-track). If the target track has any rows in
+  // `allowed_signup_emails`, signups are restricted to those addresses.
+  // If the track's list is empty, anyone can sign up.
+  //
+  // Joins without a `?track=` query param (ATG-style auto-enroll into
+  // every program track) skip the gate — there's no specific track to
+  // check, and a program-wide check would gate every track based on the
+  // most restrictive one. Admins should distribute per-track invite
+  // links (`/join/<program>?track=<slug>`) when they want gating.
+  if (trackSlug) {
+    const svcAllow = createServiceClient();
+    const { count: allowlistSize, error: countErr } = await svcAllow
       .from("allowed_signup_emails")
-      .select("email")
-      .eq("program_slug", programSlug)
-      .eq("email", normalised)
-      .maybeSingle();
-    if (lookupErr) {
-      console.error("[join] allowlist lookup failed:", lookupErr);
+      .select("email", { count: "exact", head: true })
+      .eq("track_slug", trackSlug);
+    if (countErr) {
+      console.error("[join] allowlist count failed:", countErr);
       return { ok: false, error: "Couldn't verify your email. Please try again." };
     }
-    if (!allowed) {
-      console.warn("[join] blocked unallowlisted signup", {
-        email: normalised,
-        programSlug,
-      });
-      return {
-        ok: false,
-        error:
-          "We don't have that email on file. If you should be on the list, contact your program coordinator.",
-      };
+    if ((allowlistSize ?? 0) > 0) {
+      const { data: allowed, error: lookupErr } = await svcAllow
+        .from("allowed_signup_emails")
+        .select("email")
+        .eq("track_slug", trackSlug)
+        .eq("email", normalised)
+        .maybeSingle();
+      if (lookupErr) {
+        console.error("[join] allowlist lookup failed:", lookupErr);
+        return { ok: false, error: "Couldn't verify your email. Please try again." };
+      }
+      if (!allowed) {
+        console.warn("[join] blocked unallowlisted signup", {
+          email: normalised,
+          programSlug,
+          trackSlug,
+        });
+        return {
+          ok: false,
+          error:
+            "We don't have that email on file. If you should be on the list, contact your program coordinator.",
+        };
+      }
     }
   }
 

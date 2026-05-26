@@ -2180,12 +2180,21 @@ function PeopleTab({
                     )}
                   </div>
 
-                  {/* Track chips */}
+                  {/* Track chips — every track is rendered; the filled "✓"
+                     chips are the student's current enrollments, the
+                     outlined "+" chips are tracks they're not in (click to
+                     add). Previously labeled "Enrolled tracks" which made
+                     the "+" chips read like current memberships. */}
                   {(s.role === "student" || s.role === "instructor") && tracks.length > 0 && (
                     <div>
-                      <p className="text-[11px] font-medium uppercase tracking-wide text-neutral-500 mb-2">
-                        {s.role === "instructor" ? "Teaching" : "Enrolled tracks"}
-                      </p>
+                      <div className="mb-2 flex items-baseline gap-3">
+                        <p className="text-[11px] font-medium uppercase tracking-wide text-neutral-500">
+                          {s.role === "instructor" ? "Teaching" : "Tracks"}
+                        </p>
+                        <p className="text-[10px] text-neutral-400">
+                          ✓ enrolled · + click to add
+                        </p>
+                      </div>
                       <div className="flex flex-wrap gap-1.5">
                         {tracks.map((t) => {
                           const savingKey = `${s.id}-${t.slug}`;
