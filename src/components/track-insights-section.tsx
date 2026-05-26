@@ -155,63 +155,68 @@ export function TrackInsightsSection({
         </p>
       </div>
 
-      {/* Reflections per week */}
+      {/* Reflections per week. Always render the grid (one tile per week,
+         even empty) so the layout doesn't shift between loading and
+         loaded states or between empty and non-empty data. The previous
+         3-branch render (skeleton / empty text / grid) caused a visible
+         jump on the per-track Insights view: the 80px skeleton or the
+         short empty-state paragraph would collapse/expand into a
+         different-height grid the moment the fetch resolved. */}
       <div className="border border-rule bg-surface-elevated p-5">
         <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400 mb-4">
           Reflections by week
         </p>
-        {loading || reflectionsByWeek === null ? (
-          <div className="h-20 animate-pulse bg-neutral-100" />
-        ) : reflectionsByWeek.every((w) => w.count === 0) ? (
-          <p className="text-sm text-neutral-500">
-            No reflections submitted yet for this track.
-          </p>
-        ) : (
-          <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
-            {reflectionsByWeek.map((w) => {
-              const pct = enrolledStudentCount > 0
-                ? Math.round((w.count / enrolledStudentCount) * 100)
+        <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+          {Array.from({ length: totalWeeks }, (_, i) => {
+            const week = i + 1;
+            const data = reflectionsByWeek?.find((w) => w.week === week);
+            const count = data?.count ?? 0;
+            const pct =
+              data && enrolledStudentCount > 0
+                ? Math.round((data.count / enrolledStudentCount) * 100)
                 : 0;
-              return (
-                <div
-                  key={w.week}
-                  className="flex flex-col items-center border border-neutral-100 bg-neutral-50 p-3 text-center"
+            return (
+              <div
+                key={week}
+                className="flex flex-col items-center border border-neutral-100 bg-neutral-50 p-3 text-center"
+              >
+                <p className="text-[10px] font-medium uppercase tracking-wider text-neutral-400">
+                  Wk {week}
+                </p>
+                <p
+                  className={`mt-1 text-lg font-semibold tabular-nums ${
+                    loading || reflectionsByWeek === null
+                      ? "text-neutral-300"
+                      : "text-neutral-900"
+                  }`}
                 >
-                  <p className="text-[10px] font-medium uppercase tracking-wider text-neutral-400">
-                    Wk {w.week}
+                  {loading || reflectionsByWeek === null ? "—" : count}
+                </p>
+                {enrolledStudentCount > 0 && (
+                  <p className="text-[10px] text-neutral-400 tabular-nums">
+                    {loading || reflectionsByWeek === null ? "" : `${pct}%`}
                   </p>
-                  <p className="mt-1 text-lg font-semibold text-neutral-900 tabular-nums">
-                    {w.count}
-                  </p>
-                  {enrolledStudentCount > 0 && (
-                    <p className="text-[10px] text-neutral-400 tabular-nums">
-                      {pct}%
-                    </p>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Auth-survey response counts. Hide surveys with zero responses
          from this track — they're program-wide surveys (e.g. Catalyst's
          Post-Survey) and a "0 / 0 unique" row looks duplicative with the
          Public surveys section right below, which often has real
-         responses for the same conceptual survey. If everything is empty
-         the whole card collapses to a single empty-state message. */}
+         responses for the same conceptual survey.
+
+         We deliberately render NOTHING while loading instead of a
+         skeleton — the section often collapses to empty after the fetch,
+         and showing an 80px placeholder that vanishes a moment later
+         caused a visible layout shift on the per-track Insights view.
+         The Reflections card above is always rendered, so it absorbs
+         any perceived "loading" feedback. */}
       {(() => {
-        if (loading || surveyCounts === null) {
-          return (
-            <div className="border border-rule bg-surface-elevated p-5">
-              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400 mb-4">
-                Survey responses
-              </p>
-              <div className="h-20 animate-pulse bg-neutral-100" />
-            </div>
-          );
-        }
+        if (loading || surveyCounts === null) return null;
         const withResponses = surveyCounts.filter((s) => s.responseCount > 0);
         if (withResponses.length === 0) return null;
         return (
