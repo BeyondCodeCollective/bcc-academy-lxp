@@ -197,7 +197,7 @@ export const forteConfig: ProgramConfig = {
             "One principle about professional tone that you'll carry with you. Put it in your own words.",
             "What's one situation coming up where you'll use what you practiced today?",
           ],
-          videoUrl: "https://drive.google.com/file/d/1wAS_XGd9hPdASRjkcCP-g2ZGQYmSP56I/view?usp=drive_link",
+          videoUrl: "https://drive.google.com/file/d/1WaZ0ysQduq7BP5lY0H-I-4m_5b79FkHf/view?usp=drive_link",
         },
         {
           week: 6,
@@ -218,7 +218,7 @@ export const forteConfig: ProgramConfig = {
             "One task you've been avoiding that this process helped you break down into something manageable.",
             "How will you use AI for planning going forward? Be specific about when and how.",
           ],
-          videoUrl: "https://drive.google.com/file/d/1T-SW_1jviaBIl6wJJMX62MJsolnMtcO8/view?usp=drive_link",
+          videoUrl: "https://drive.google.com/file/d/1ERoB4B2YY74yuwHHzOG8zk3btGEaddNL/view?usp=drive_link",
         },
         {
           week: 7,
@@ -239,7 +239,7 @@ export const forteConfig: ProgramConfig = {
             "One thing you now understand about your topic that you didn't understand before starting.",
             "What's the most important thing to learn next, and how will you do it?",
           ],
-          videoUrl: "https://drive.google.com/file/d/1d95nRF5sHydB1Q4b9L7ypSN8_EiU92T4/view?usp=drive_link",
+          videoUrl: "https://drive.google.com/file/d/1ch2EJsr8ntn8vfBnpFRsNI3ApbVUsyLS/view?usp=drive_link",
         },
         {
           week: 8,
@@ -262,7 +262,7 @@ export const forteConfig: ProgramConfig = {
             "What did AI suggest that you rejected? Why wasn't it the right fit?",
             "If you were actually going to pursue this, what's the first concrete step you'd take?",
           ],
-          videoUrl: "https://drive.google.com/file/d/1jRY7B6-aR78Y-SfbFB2TTbroIyZ2X1-N/view?usp=drive_link",
+          videoUrl: "https://drive.google.com/file/d/1iA9giaIhV75O4AYYLaqyywqZmzlMP3Ej/view?usp=drive_link",
         },
         {
           week: 9,
@@ -285,6 +285,7 @@ export const forteConfig: ProgramConfig = {
             "What did AI get wrong or fabricate? How did you catch it? What would have happened if you hadn't?",
             "One thing you learned about this topic that you didn't know before.",
           ],
+          comingSoonUntil: "2026-06-01",
         },
         {
           week: 10,
@@ -305,6 +306,7 @@ export const forteConfig: ProgramConfig = {
             "What's the one skill from this entire program you'll use most in building this?",
             "What's the first thing you're going to do with what you've built here?",
           ],
+          comingSoonUntil: "2026-06-01",
         },
       ],
     },

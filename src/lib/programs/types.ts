@@ -88,6 +88,14 @@ export type WeekConfig = {
    * session view converts it to a /preview embed automatically.
    */
   videoUrl?: string;
+  /**
+   * ISO date (YYYY-MM-DD). While `now < comingSoonUntil`, the week renders
+   * as a greyed, non-clickable cell on the track overview with a
+   * "Coming {date}" label, and direct navigation to the week page falls
+   * back to a placeholder. Used to drip-release weeks while the rest of a
+   * self-paced track is already live.
+   */
+  comingSoonUntil?: string;
 };
 
 export type OfficeHour = {
