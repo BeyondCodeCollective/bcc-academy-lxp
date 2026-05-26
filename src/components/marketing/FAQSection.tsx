@@ -9,7 +9,7 @@ const faqs = [
   {
     question: "What is Beyond Code Collective?",
     answer:
-      "A community-based learning and workforce ecosystem giving people lifelong access to the skills, relationships, and pathways shaping the future of work. We teach learners ages 7 to 87 across in-person Beyond Code Centers hubs and virtual cohorts.",
+      "An AI literacy and workforce ecosystem teaching applied tech skills \u2014 from prompt design and no-code automation with tools like Zapier to coding, certifications, and career-ready workflows. We give learners ages 7 to 77 lifelong access to the skills, relationships, and pathways shaping the future of work, across in-person Beyond Code Centers hubs and virtual cohorts.",
   },
   {
     question: "Who is this for?",
@@ -22,19 +22,9 @@ const faqs = [
       "No. We integrate AI as a tool in a much larger set of skills. AI as tool, not identity. We use AI where it deepens understanding, not where it shortcuts it \u2014 and we still teach learners to code, because coding doesn\u2019t disappear in an AI world; it evolves.",
   },
   {
-    question: "What credentials will I earn?",
-    answer:
-      "Industry-recognized certifications aligned to high-demand roles: CompTIA (ITF+, A+, Network+), Salesforce (Agentic Administrator, Platform Developer), Microsoft (Azure, Power Platform), Grow with Google, Project Management foundations, and applied AI literacy.",
-  },
-  {
     question: "How is this different from BGC (Black Girls Code)?",
     answer:
       "BGC continues its identity-first, youth-centered mission. BCC scales the proven model to serve all future technologists \u2014 by us, for everyone. Both are part of the same family.",
-  },
-  {
-    question: "Can my employer or community partner pay for this?",
-    answer:
-      "Yes. We work with employers, workforce development programs, and community partners. Many learners are supported through employer sponsorship, scholarships, or government workforce funding.",
   },
 ];
 
