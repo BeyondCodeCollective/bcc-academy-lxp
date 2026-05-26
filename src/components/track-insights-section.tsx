@@ -195,37 +195,57 @@ export function TrackInsightsSection({
         )}
       </div>
 
-      {/* Survey response counts */}
-      <div className="border border-rule bg-surface-elevated p-5">
-        <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400 mb-4">
-          Survey responses
-        </p>
-        {loading || surveyCounts === null ? (
-          <div className="h-20 animate-pulse bg-neutral-100" />
-        ) : surveyCounts.length === 0 ? (
-          <p className="text-sm text-neutral-500">No surveys configured.</p>
-        ) : (
-          <ul className="divide-y divide-neutral-100">
-            {surveyCounts.map((s) => (
-              <li key={s.id} className="grid grid-cols-[1fr_auto] items-center gap-x-4 py-3 first:pt-0 last:pb-0">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-neutral-900 truncate">
-                    {s.title}
-                  </p>
-                </div>
-                <div className="flex items-baseline gap-3 text-right shrink-0">
-                  <span className="text-sm font-semibold text-neutral-900 tabular-nums">
-                    {s.responseCount}
-                  </span>
-                  <span className="text-[11px] text-neutral-400 tabular-nums">
-                    {s.uniqueRespondents} unique
-                  </span>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      {/* Auth-survey response counts. Hide surveys with zero responses
+         from this track — they're program-wide surveys (e.g. Catalyst's
+         Post-Survey) and a "0 / 0 unique" row looks duplicative with the
+         Public surveys section right below, which often has real
+         responses for the same conceptual survey. If everything is empty
+         the whole card collapses to a single empty-state message. */}
+      {(() => {
+        if (loading || surveyCounts === null) {
+          return (
+            <div className="border border-rule bg-surface-elevated p-5">
+              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400 mb-4">
+                Survey responses
+              </p>
+              <div className="h-20 animate-pulse bg-neutral-100" />
+            </div>
+          );
+        }
+        const withResponses = surveyCounts.filter((s) => s.responseCount > 0);
+        if (withResponses.length === 0) return null;
+        return (
+          <div className="border border-rule bg-surface-elevated p-5">
+            <div className="mb-4 flex items-baseline justify-between gap-4">
+              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400">
+                Survey responses
+              </p>
+              <p className="text-[11px] text-neutral-400">
+                Program-wide surveys scoped to enrolled {trackShortName} students
+              </p>
+            </div>
+            <ul className="divide-y divide-neutral-100">
+              {withResponses.map((s) => (
+                <li key={s.id} className="grid grid-cols-[1fr_auto] items-center gap-x-4 py-3 first:pt-0 last:pb-0">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-neutral-900 truncate">
+                      {s.title}
+                    </p>
+                  </div>
+                  <div className="flex items-baseline gap-3 text-right shrink-0">
+                    <span className="text-sm font-semibold text-neutral-900 tabular-nums">
+                      {s.responseCount}
+                    </span>
+                    <span className="text-[11px] text-neutral-400 tabular-nums">
+                      {s.uniqueRespondents} unique
+                    </span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        );
+      })()}
 
       {/* Public surveys tied to this track (network-plus-post, etc).
          Public-survey responses don't carry a student_id so the counts above
