@@ -1,39 +1,15 @@
-import { redirect } from "next/navigation";
-import { headers } from "next/headers";
 import { CentralLoginForm } from "@/components/central-login-form";
 import { SignIn } from "@phosphor-icons/react/dist/ssr";
 import Image from "next/image";
 import Link from "next/link";
 import { getJoinablePrograms } from "@/lib/programs";
 
-// Apex login page (and its sendLoginLink server action). Pin to both
-// regions so EU users hit Frankfurt instead of US-East. See /join page
-// for context on the perf tradeoff.
-export const preferredRegion = ["fra1", "iad1"];
+// Apex login page. Fully static — render input is just the in-memory
+// program list. Legacy program subdomains (catalyst/atg/forge/forte
+// .bccacademy.io) are redirected to "/" by proxy.ts before this page
+// ever runs, so no headers() check is needed here.
 
-// Legacy program subdomains redirect to their own login at /.
-// With the Catalyst consolidation, all programs are under one roof —
-// but existing subdomains may still receive traffic.
-const PROGRAM_HOSTS = new Set([
-  "catalyst.bccacademy.io",
-  "atg.bccacademy.io",
-  "forge.bccacademy.io",
-  "forte.bccacademy.io",
-]);
-
-export const dynamic = "force-dynamic";
-
-export default async function CentralLoginPage() {
-  const h = await headers();
-  const host = (h.get("host") ?? "").replace(/:\d+$/, "");
-
-  // Redirect only when genuinely on a program subdomain — never on localhost
-  // or bccacademy.io itself. Checking the host directly avoids the
-  // program-override cookie causing a false redirect in local dev.
-  if (PROGRAM_HOSTS.has(host)) {
-    redirect("/");
-  }
-
+export default function CentralLoginPage() {
   return (
     <div className="h-[100dvh] flex">
       {/* Left panel */}

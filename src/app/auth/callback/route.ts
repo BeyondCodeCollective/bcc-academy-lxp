@@ -8,11 +8,15 @@ import { getProgram } from "@/lib/programs/server";
 import { getProgramBySlug, isKnownProgramHost } from "@/lib/programs";
 import { determineRole, isPrivilegedEmail } from "@/lib/auth/admins";
 
-// Magic-link landing. Pin to both regions so the click-to-dashboard
-// transition is fast for EU users — they hit the nearest Vercel
-// function instead of crossing the Atlantic to verify a token. Auto-
-// falls back to a single region on Hobby plans.
-export const preferredRegion = ["fra1", "iad1"];
+// Magic-link landing. Pin to iad1 only: Supabase is in us-west-2 and
+// even after the deferred-setup refactor the callback still issues
+// 3–5 sequential round-trips (auth token exchange + program lookup +
+// student upsert; unpinned hosts add a student SELECT and a second
+// program lookup). From fra1 each round-trip is ~310ms (transatlantic
+// + transcontinental) vs ~150ms from iad1, so iad1 nets ~300–800ms
+// even after losing fra1's user-proximity advantage. /login is fully
+// static (served from the CDN edge), so no region pin needed there.
+export const preferredRegion = ["iad1"];
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
