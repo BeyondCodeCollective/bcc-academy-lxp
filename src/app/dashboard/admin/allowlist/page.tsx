@@ -115,7 +115,15 @@ export default async function AllowlistAdminPage({
         <TrackPicker selectedSlug={selectedSlug} groups={orderedGroups} />
       </div>
 
+      {/* `key` forces a fresh mount whenever the selected course changes
+         so the form's textarea state re-syncs from the new initialEmails.
+         Without this, switching from a populated course (AI Literacy)
+         to an empty one (Tech+) kept showing the previous course's
+         emails AND the wrong count in the status banner — a real
+         "looks like I'd be overwriting Tech+ with AI Literacy's list"
+         footgun if you also hit Save. */}
       <AllowlistForm
+        key={selectedSlug}
         trackSlug={selectedSlug}
         trackName={selectedOption?.name ?? selectedSlug}
         initialEmails={emails}
