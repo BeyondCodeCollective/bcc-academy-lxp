@@ -227,8 +227,18 @@ export function Nav({
   );
 
   // ── Curriculum weeks (student-sidebar) ──────────────────────────────────
+  //
+  // Only render the week list when the user is actually inside a track —
+  // i.e. on /dashboard/track/<slug> or /dashboard/track/<slug>/<week>.
+  // Showing it on /dashboard, /dashboard/courses, /dashboard/workshops, etc
+  // surfaced a stale list of weeks from whichever track was last open and
+  // read as "you're still in AI Literacy" even after the user navigated
+  // away. Off-track pages now get the bare sidebar (Home / Courses /
+  // Workshops) without the curriculum block.
 
-  const curriculumNav = curriculumTracks.length > 0 && (
+  const onTrackPage = pathname.startsWith("/dashboard/track/");
+
+  const curriculumNav = onTrackPage && curriculumTracks.length > 0 && (
     <div className="flex flex-col gap-4">
       {curriculumTracks.map((track) => {
         const now = new Date();
