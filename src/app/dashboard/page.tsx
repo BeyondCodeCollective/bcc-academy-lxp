@@ -83,10 +83,8 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
     if (!ctx) redirect("/");
 
     const { userId, student } = ctx;
-    const supabase = await createClient();
-
-    const cohort = student?.cohorts ?? null;
-    const hasCohortId = !!student?.cohort_id;
+    const { cohorts: cohort, cohort_id: cohortId } = student ?? {};
+    const hasCohortId = !!cohortId;
 
     const welcomeDone = !!student?.welcome_seen_at;
     needsOnboarding = !welcomeDone;
@@ -96,88 +94,80 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
       rawPreviewSlug && program.tracks.some((t) => t.slug === rawPreviewSlug)
         ? rawPreviewSlug
         : null;
-    // In preview-as-student mode, treat the super-admin as a non-admin
-    // enrolled in just the previewed track.
     const isAdminUser = canAccessAdminPanel(userRole) && !previewSlug;
 
-    const [defaultCohortRes, enrolledTracks, completedSurveysRes, announcementsRes] = await Promise.all([
-      hasCohortId
-        ? Promise.resolve({ data: null })
-        : supabase
-            .from("cohorts")
-            .select("id")
-            .order("created_at", { ascending: true })
-            .limit(1)
-            .maybeSingle(),
-      isAdminUser
-        ? Promise.resolve([])
-        : getEnrolledTracks(supabase, userId, program),
-      // Always fetch for students — needed for BCC intake gate + program survey gate.
-      isAdminUser
-        ? Promise.resolve({ data: null })
-        : supabase
+    // Only non-admin students need Supabase queries — admins see none of
+    // this data (cohort, enrollment, surveys, announcements).
+    if (!isAdminUser) {
+      const supabase = await createClient();
+
+      const [defaultCohortRes, enrolledTracks, completedSurveysRes, announcementsRes] = await Promise.all([
+        hasCohortId
+          ? Promise.resolve({ data: null })
+          : supabase
+              .from("cohorts")
+              .select("id")
+              .order("created_at", { ascending: true })
+              .limit(1)
+              .maybeSingle(),
+        getEnrolledTracks(supabase, userId, program),
+        supabase
             .from("survey_responses")
             .select("survey_type")
             .eq("student_id", userId)
             .not("completed_at", "is", null),
-      supabase
-        .from("announcements")
-        .select("id, message, track_slug, created_at")
-        .gt("expires_at", new Date().toISOString())
-        .order("created_at", { ascending: false })
-        .limit(5),
-    ]);
-    announcements = (announcementsRes.data ?? []);
+        supabase
+            .from("announcements")
+            .select("id, message, track_slug, created_at")
+            .gt("expires_at", new Date().toISOString())
+            .order("created_at", { ascending: false })
+            .limit(5),
+      ]);
+      announcements = (announcementsRes.data ?? []);
 
-    if (!hasCohortId && defaultCohortRes.data) {
-      // Fire-and-forget: catch up the student's cohort_id. Not awaited because
-      // no downstream render depends on it.
-      void supabase
-        .from("students")
-        .update({ cohort_id: defaultCohortRes.data.id })
-        .eq("id", userId);
-    }
+      if (!hasCohortId && defaultCohortRes.data) {
+        void supabase
+          .from("students")
+          .update({ cohort_id: defaultCohortRes.data.id })
+          .eq("id", userId);
+      }
 
-    if (cohort) {
-      cohortName = cohort.display_name || cohort.name;
-      cohortStartDate = cohort.start_date;
-    } else if (!hasCohortId && !defaultCohortRes.data) {
-      noCohort = true;
-    }
+      if (cohort) {
+        cohortName = cohort.display_name || cohort.name;
+        cohortStartDate = cohort.start_date;
+      } else if (!hasCohortId && !defaultCohortRes.data) {
+        noCohort = true;
+      }
 
-    if (!isAdminUser) {
       enrolledTrackSlugs = previewSlug
         ? [previewSlug]
         : enrolledTracks.map((t) => t.slug);
-    }
 
-    // Survey gates only apply to actual students, not preview mode.
-    if (!isAdminUser && !previewSlug) {
-      const completedTypes = new Set(
-        (completedSurveysRes.data ?? []).map((r) => r.survey_type)
-      );
-      const isStaff = isStaffEmail(currentUser.email ?? null);
+      if (!previewSlug) {
+        const completedTypes = new Set(
+          (completedSurveysRes.data ?? []).map((r) => r.survey_type)
+        );
+        const isStaff = isStaffEmail(currentUser.email ?? null);
 
-      if (
-        !isStaff &&
-        !BCC_INTAKE_EXEMPT_PROGRAMS.includes(program.slug) &&
-        !completedTypes.has(BCC_INTAKE_SURVEY_ID)
-      ) {
-        redirect(`/dashboard/survey/${BCC_INTAKE_SURVEY_ID}`);
-      }
+        if (
+          !isStaff &&
+          !BCC_INTAKE_EXEMPT_PROGRAMS.includes(program.slug) &&
+          !completedTypes.has(BCC_INTAKE_SURVEY_ID)
+        ) {
+          redirect(`/dashboard/survey/${BCC_INTAKE_SURVEY_ID}`);
+        }
 
-      if (!isStaff && program.surveys?.length) {
-        pendingSurveys = program.surveys
-          .filter((s) => s.required && !completedTypes.has(s.id))
-          .map((s) => ({ id: s.id, title: s.title, description: s.description }));
+        if (!isStaff && program.surveys?.length) {
+          pendingSurveys = program.surveys
+            .filter((s) => s.required && !completedTypes.has(s.id))
+            .map((s) => ({ id: s.id, title: s.title, description: s.description }));
 
-        if (pendingSurveys.length > 0) {
-          redirect(`/dashboard/survey/${pendingSurveys[0].id}`);
+          if (pendingSurveys.length > 0) {
+            redirect(`/dashboard/survey/${pendingSurveys[0].id}`);
+          }
         }
       }
     }
-
-
   }
 
   void cohortStartDate;
