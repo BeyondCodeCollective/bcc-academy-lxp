@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getJoinablePrograms, getProgramBySlug, getTrackBySlug } from "@/lib/programs";
+import { getJoinablePrograms, getProgramBySlug, getTrackBySlug, getHomeProgramForTrack } from "@/lib/programs";
 import { JoinForm } from "./join-form";
 
 export function generateStaticParams() {
@@ -23,6 +23,13 @@ export default async function JoinPage({
   const program = getProgramBySlug(slug);
   const track = trackParam ? getTrackBySlug(program, trackParam) : undefined;
   const needsInvite = program.requireInviteLink === true && !track;
+  // When a track is selected, label it with its home program (the original
+  // config it lives in) rather than whichever program slug the visitor
+  // hit. Catalyst spreads tracks from ATG/Forge/Upskill Bahamas, so
+  // /join/catalyst?track=ai-literacy used to read "Join Track · Catalyst"
+  // when "Upskill Bahamas" is the actual owner.
+  const trackHomeProgram = track ? getHomeProgramForTrack(track.slug) : undefined;
+  const trackLabelProgram = trackHomeProgram ?? program;
 
   // Track-aware mode: when a real track is named, lead with what they're
   // actually signing up for instead of the generic program copy.
@@ -58,7 +65,7 @@ export default async function JoinPage({
               {/* Track hero — left column */}
               <div>
                 <p className="mb-2 text-xs font-mono uppercase tracking-[0.3em] text-[#E5F701]">
-                  [ Join Track · {program.name} ]
+                  [ Join Track · {trackLabelProgram.name} ]
                 </p>
                 <h1 className="mb-3 text-3xl font-bold uppercase leading-[0.95] tracking-tight text-white md:text-5xl font-display">
                   {track.name}

@@ -96,6 +96,31 @@ export function getTrackBySlug(program: ProgramConfig, trackSlug: string): Track
   return program.tracks.find((t) => t.slug === trackSlug);
 }
 
+/**
+ * Find the "home" program for a track — the original config the track was
+ * authored in. Catalyst spreads tracks from other programs (ATG, Forge,
+ * Forte), so a track resolved via Catalyst doesn't tell you where it
+ * actually lives.
+ *
+ * Walks the special configs first (forte) and then registered programs,
+ * skipping Catalyst itself — those are the underlying owners. Falls back
+ * to Catalyst when nothing else claims the track (e.g. additionalTracks
+ * that only live in Catalyst's config).
+ */
+export function getHomeProgramForTrack(trackSlug: string): ProgramConfig | undefined {
+  for (const cfg of Object.values(SPECIAL_CONFIGS)) {
+    if (cfg.slug === MARKETING_SLUG) continue;
+    if (cfg.tracks.some((t) => t.slug === trackSlug)) return cfg;
+  }
+  for (const cfg of Object.values(PROGRAMS)) {
+    if (cfg.slug === "catalyst") continue;
+    if (cfg.tracks.some((t) => t.slug === trackSlug)) return cfg;
+  }
+  return PROGRAMS.catalyst?.tracks.some((t) => t.slug === trackSlug)
+    ? PROGRAMS.catalyst
+    : undefined;
+}
+
 export type { ProgramConfig, TrackConfig, WeekConfig, SessionInfo } from "./types";
 
 // Pre-launch kill-switch for the AI Tutor. Flip back to `false` once we're
