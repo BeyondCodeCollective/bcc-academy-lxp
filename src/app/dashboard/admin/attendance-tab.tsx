@@ -8,7 +8,6 @@ import {
   ChevronRight,
   Download,
   AlertTriangle,
-  BarChart3,
   Check,
   Circle,
 } from "lucide-react";
@@ -449,12 +448,13 @@ function OverviewPanel({
     [summaries]
   );
 
+  // Loading state intentionally renders nothing — the previous
+  // "Loading attendance…" card sat at a different height than the
+  // populated overview, causing a visible jump on the per-track Insights
+  // view. The fetch is quick enough that no placeholder is better than a
+  // flashing one.
   if (loading) {
-    return (
-      <div className="border border-rule bg-surface-elevated p-8 text-center text-sm text-ink-soft">
-        Loading attendance…
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -484,17 +484,13 @@ function OverviewPanel({
         )}
       </p>
 
-      {/* Per-track weekly trend — one row per track, no hardcoded pair. */}
-      <section className="border border-rule bg-surface-elevated p-4 sm:p-5">
-        <div className="mb-4 flex items-center gap-2">
-          <BarChart3 size={14} className="text-ink-faint" />
-          <h3 className="text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
-            Weekly attendance
-          </h3>
-        </div>
-        {startedTracks.length === 0 ? (
-          <p className="text-sm text-ink-soft">No tracks have started yet.</p>
-        ) : (
+      {/* Per-track weekly trend — one row per track. Section is omitted
+         entirely when no tracks have started; an empty card with a
+         "weekly attendance" header read as broken/loading. The page-level
+         "Attendance · {Track}" header already names this view, so the
+         redundant inner h3 is gone too. */}
+      {startedTracks.length > 0 && (
+        <section className="border border-rule bg-surface-elevated p-4 sm:p-5">
           <div className="space-y-5">
             {startedTracks.map((track) => (
               <TrackTrendRow
@@ -506,22 +502,21 @@ function OverviewPanel({
               />
             ))}
           </div>
-        )}
-      </section>
+        </section>
+      )}
 
-      {/* Needs attention — editorial list, never empty-state-shamey. */}
-      <section>
-        <div className="mb-3 flex items-center gap-2">
-          <AlertTriangle size={14} className="text-ink-faint" />
-          <h3 className="text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
-            Needs attention
-          </h3>
-        </div>
-        {atRisk.length === 0 ? (
-          <p className="text-sm text-ink-soft">
-            Nobody on the risk list right now. Worth a celebration.
-          </p>
-        ) : (
+      {/* Needs attention — only renders when there's actually someone on
+         the risk list. The previous empty-state ("Nobody on the risk list
+         right now. Worth a celebration.") added a third section that
+         didn't say anything useful on a quiet day. */}
+      {atRisk.length > 0 && (
+        <section>
+          <div className="mb-3 flex items-center gap-2">
+            <AlertTriangle size={14} className="text-ink-faint" />
+            <h3 className="text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
+              Needs attention
+            </h3>
+          </div>
           <ul className="divide-y divide-rule-soft border-t border-rule">
             {atRisk.map((s) => {
               const status = STATUS_LABEL[s.status];
@@ -552,8 +547,8 @@ function OverviewPanel({
               );
             })}
           </ul>
-        )}
-      </section>
+        </section>
+      )}
     </div>
   );
 }
