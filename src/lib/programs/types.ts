@@ -147,6 +147,14 @@ export type TrackConfig = {
   /** Whether project submissions are enabled for this track (defaults to true) */
   submissionsEnabled?: boolean;
   /**
+   * Public survey IDs that belong to this track. Public surveys are
+   * non-authenticated and live in `public_survey_responses` keyed by
+   * `survey_type` — they don't appear under any program by default. Listing
+   * them here surfaces response counts and a CSV export on the per-track
+   * Insights view alongside the track's authenticated surveys.
+   */
+  publicSurveys?: string[];
+  /**
    * Self-paced tracks (every session is a pre-recorded video, no live meetings)
    * unlock per-week recordings and submissions independently of `startDate` /
    * `computeCurrentWeek`. The track overview can still read "Not Launched"
