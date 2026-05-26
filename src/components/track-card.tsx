@@ -10,6 +10,7 @@ type Props = {
   totalWeeks: number;
   sessionsPerWeek: number;
   startDate: string;
+  startDateTbd?: boolean;
   started: boolean;
   currentWeek: number;
   weekOneTopic: string;
@@ -22,16 +23,19 @@ export function TrackCard({
   totalWeeks,
   sessionsPerWeek,
   startDate,
+  startDateTbd,
   started,
   currentWeek,
   weekOneTopic,
 }: Props) {
   const tone = toneForTrack(slug);
   const Icon = iconForTrack(slug);
-  const startLabel = new Date(startDate).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
+  const startLabel = startDateTbd
+    ? "TBD"
+    : new Date(startDate).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      });
 
   return (
     <Link

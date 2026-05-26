@@ -62,11 +62,15 @@ export default async function TrackOverviewPage({
 
   // Self-paced tracks suppress the marketing start date — once live, "Starts
   // June 1" reads as stale. Empty string => JSX skips the eyebrow segment.
+  // Tracks parked at a placeholder startDate use `startDateTbd` and render
+  // "Starts TBD" instead of committing to a date.
   const eyebrow = started
     ? `Week ${currentWeek} of ${track.totalWeeks}`
     : track.selfPaced
       ? ""
-      : `Starts ${startDateLabel}`;
+      : track.startDateTbd
+        ? "Starts TBD"
+        : `Starts ${startDateLabel}`;
 
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-3xl px-4 sm:px-5 py-8 space-y-8">
@@ -251,8 +255,8 @@ export default async function TrackOverviewPage({
         {!track.selfPaced && (
           <Fact
             icon={CalendarBlank}
-            label={started ? "Started" : "Starts"}
-            value={startDateLabel}
+            label={track.startDateTbd ? "Starts" : started ? "Started" : "Starts"}
+            value={track.startDateTbd ? "TBD" : startDateLabel}
           />
         )}
       </dl>

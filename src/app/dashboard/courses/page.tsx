@@ -159,7 +159,9 @@ function CourseCard({ track }: { track: TrackConfig }) {
           </p>
         )}
         <p className="mt-auto pt-4 text-[12px] text-neutral-500">
-          {hasStarted ? "Started" : "Starts"} {startLabel}
+          {track.startDateTbd
+            ? "Starts TBD"
+            : `${hasStarted ? "Started" : "Starts"} ${startLabel}`}
         </p>
       </div>
     </Link>
