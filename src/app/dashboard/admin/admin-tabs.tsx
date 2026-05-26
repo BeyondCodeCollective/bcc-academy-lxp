@@ -1190,15 +1190,15 @@ export function AdminTabs({
             <StudentWorkTab tracks={[activeTrack]} programSlug={programSlug} />
           )}
 
-          {/* Insights sub-view — scoped to this track. Attendance + engagement
-             on top, surveys/reflections summary below. */}
+          {/* Insights sub-view — scoped to this track. Surveys, reflections,
+             and any track-specific public surveys. Attendance lives on the
+             cross-track Attendance tab and is no longer embedded here —
+             the embedded panel rendered null while its data fetched and
+             then expanded into the full view, causing a visible jump on
+             every load. Admins still mark attendance from the top-level
+             Attendance tab. */}
           {trackView === "insights" && (
             <div className="space-y-8">
-              <AttendanceTab
-                students={trackStudents.filter((s) => s.role === "student")}
-                tracks={[activeTrack]}
-                scopeLabel={activeTrack.shortName}
-              />
               <TrackInsightsSection
                 trackSlug={activeTrack.slug}
                 trackShortName={activeTrack.shortName}
