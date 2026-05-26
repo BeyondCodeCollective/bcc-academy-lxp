@@ -18,19 +18,29 @@ export async function sendJoinLink({
   const program = getProgramBySlug(programSlug);
   const normalised = email.trim().toLowerCase();
 
-  // Allowlist gate. When `requireAllowlist` is on, reject any email that
-  // doesn't have a row in `allowed_signup_emails` for this program. Admins
-  // manage the list at /dashboard/admin/allowlist.
-  if (program.requireAllowlist) {
-    const svcAllow = createServiceClient();
-    const { data: allowed, error: allowErr } = await svcAllow
+  // Allowlist gate. There's no per-program toggle — the gate is implicit:
+  // if the program has at least one row in `allowed_signup_emails`, signups
+  // are restricted to that list. If the table is empty for this program,
+  // anyone can sign up. Admins manage the list at
+  // /dashboard/admin/allowlist by picking the program from the dropdown.
+  const svcAllow = createServiceClient();
+  const { count: allowlistSize, error: countErr } = await svcAllow
+    .from("allowed_signup_emails")
+    .select("email", { count: "exact", head: true })
+    .eq("program_slug", programSlug);
+  if (countErr) {
+    console.error("[join] allowlist count failed:", countErr);
+    return { ok: false, error: "Couldn't verify your email. Please try again." };
+  }
+  if ((allowlistSize ?? 0) > 0) {
+    const { data: allowed, error: lookupErr } = await svcAllow
       .from("allowed_signup_emails")
       .select("email")
       .eq("program_slug", programSlug)
       .eq("email", normalised)
       .maybeSingle();
-    if (allowErr) {
-      console.error("[join] allowlist lookup failed:", allowErr);
+    if (lookupErr) {
+      console.error("[join] allowlist lookup failed:", lookupErr);
       return { ok: false, error: "Couldn't verify your email. Please try again." };
     }
     if (!allowed) {
