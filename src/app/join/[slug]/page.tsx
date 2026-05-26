@@ -3,6 +3,15 @@ import Link from "next/link";
 import { getJoinablePrograms, getProgramBySlug, getTrackBySlug, getHomeProgramForTrack } from "@/lib/programs";
 import { JoinForm } from "./join-form";
 
+// Deploy the join page (and its server actions) to both Frankfurt and
+// US-East. Vercel routes each request to the nearest region, so users in
+// Europe hit a Frankfurt function instead of crossing the Atlantic to
+// IAD. Supabase still lives in the US, so the function→DB hop is still
+// transatlantic, but we drop the user→function leg (~120ms RTT for an
+// EU user) which is the biggest chunk of the slow-signup report from
+// Portugal. Auto-falls back to a single region on Hobby plans.
+export const preferredRegion = ["fra1", "iad1"];
+
 export function generateStaticParams() {
   return getJoinablePrograms().map((p) => ({ slug: p.slug }));
 }
