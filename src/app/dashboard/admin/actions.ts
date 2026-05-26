@@ -647,6 +647,76 @@ export async function exportSurveyResponses(
   });
 }
 
+// ─── Per-track public survey stats + export ─────────────────────────────────
+//
+// Public surveys (e.g. `network-plus-post`) live in `public_survey_responses`
+// and are filled out by anyone with the link — no `student_id`, no enrolment
+// row. The track-level auth aggregation in `surveyStats` deliberately misses
+// them. These helpers expose them by `survey_type` so the per-track Insights
+// view can render counts + CSV export alongside authenticated surveys.
+
+export type PublicSurveyCountRow = { survey_type: string; count: number };
+
+export async function getPublicSurveyCountsByType(
+  surveyTypes: string[],
+): Promise<PublicSurveyCountRow[]> {
+  if (surveyTypes.length === 0) return [];
+  const { svc } = await requireAdmin();
+  const { data, error } = await svc
+    .from("public_survey_responses")
+    .select("survey_type")
+    .in("survey_type", surveyTypes)
+    .is("withdrawn_at", null);
+  if (error) {
+    console.error("getPublicSurveyCountsByType error:", error.message);
+    return [];
+  }
+  const counts = new Map<string, number>();
+  for (const row of data ?? []) {
+    const t = (row as { survey_type: string }).survey_type;
+    counts.set(t, (counts.get(t) ?? 0) + 1);
+  }
+  return surveyTypes.map((t) => ({
+    survey_type: t,
+    count: counts.get(t) ?? 0,
+  }));
+}
+
+export async function exportPublicSurveyResponsesByType(
+  surveyType: string,
+): Promise<{
+  full_name: string;
+  email: string;
+  responses: Record<string, unknown>;
+  completed_at: string | null;
+}[]> {
+  const { svc, userId } = await requireAdmin();
+  const { data, error } = await svc
+    .from("public_survey_responses")
+    .select("full_name, email, responses, completed_at")
+    .eq("survey_type", surveyType)
+    .is("withdrawn_at", null)
+    .order("completed_at", { ascending: false });
+  if (error) {
+    console.error("exportPublicSurveyResponsesByType error:", error.message);
+    return [];
+  }
+  logAdminAccess(svc, {
+    actorUserId: userId,
+    programId: null,
+    action: "export",
+    resource: "public_survey_responses",
+    rowCount: data?.length ?? 0,
+    metadata: { surveyType },
+  });
+  return (data ?? []).map((row) => ({
+    full_name: (row as { full_name: string | null }).full_name ?? "",
+    email: (row as { email: string | null }).email ?? "",
+    responses: (row as { responses: Record<string, unknown> }).responses ?? {},
+    completed_at: (row as { completed_at: string | null }).completed_at ?? null,
+  }));
+}
+
 // ─── Public (anonymous) survey responses — super_admin only ─────────────────
 
 async function requireSuperAdmin() {

@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { getAllReflections, getTrackSurveyResponses } from "@/app/dashboard/admin/actions";
+import { DownloadSimple } from "@phosphor-icons/react";
+import { getAllReflections, getTrackSurveyResponses, exportPublicSurveyResponsesByType } from "@/app/dashboard/admin/actions";
 
 type SurveyConfig = { id: string; title: string };
 
@@ -13,6 +14,12 @@ type Props = {
   totalWeeks: number;
   enrolledStudentCount: number;
   surveyConfigs: SurveyConfig[];
+  /**
+   * Public surveys (no-login) tied to this track via the `publicSurveys` field
+   * on TrackConfig. Counts are server-rendered; the Export CSV button pulls
+   * the full responses on click. Empty array = no public surveys for this track.
+   */
+  trackPublicSurveys?: { id: string; title: string; count: number }[];
 };
 
 type ReflectionWeek = {
@@ -34,7 +41,48 @@ export function TrackInsightsSection({
   totalWeeks,
   enrolledStudentCount,
   surveyConfigs,
+  trackPublicSurveys = [],
 }: Props) {
+  const [exporting, setExporting] = useState<string | null>(null);
+
+  async function handleExportPublic(surveyId: string, title: string) {
+    setExporting(surveyId);
+    try {
+      const rows = await exportPublicSurveyResponsesByType(surveyId);
+      if (rows.length === 0) return;
+      const allKeys = new Set<string>();
+      for (const r of rows) Object.keys(r.responses).forEach((k) => allKeys.add(k));
+      const headers = ["Name", "Email", "Completed At", ...Array.from(allKeys)];
+      const csv = [
+        headers,
+        ...rows.map((r) => [
+          r.full_name,
+          r.email,
+          r.completed_at ?? "",
+          ...Array.from(allKeys).map((k) => {
+            const v = r.responses[k];
+            if (Array.isArray(v)) return v.join("; ");
+            if (typeof v === "object" && v !== null) return JSON.stringify(v);
+            return v == null ? "" : String(v);
+          }),
+        ]),
+      ];
+      const blob = new Blob(
+        [csv.map((row) => row.map(escapeCsv).join(",")).join("\n")],
+        { type: "text/csv;charset=utf-8" },
+      );
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${surveyId}-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } finally {
+      setExporting(null);
+    }
+  }
   const [reflectionsByWeek, setReflectionsByWeek] = useState<ReflectionWeek[] | null>(null);
   const [surveyCounts, setSurveyCounts] = useState<SurveyCount[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -187,6 +235,56 @@ export function TrackInsightsSection({
           </ul>
         )}
       </div>
+
+      {/* Public surveys tied to this track (network-plus-post, etc).
+         Public-survey responses don't carry a student_id so the counts above
+         miss them entirely — this card shows the totals and gives admins a
+         direct CSV export. */}
+      {trackPublicSurveys.length > 0 && (
+        <div className="border border-rule bg-surface-elevated p-5">
+          <div className="mb-4 flex items-baseline justify-between gap-4">
+            <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400">
+              Public surveys for {trackShortName}
+            </p>
+            <p className="text-[11px] text-neutral-400">
+              Anyone with the link can submit — not scoped to enrolled students.
+            </p>
+          </div>
+          <ul className="divide-y divide-neutral-100">
+            {trackPublicSurveys.map((s) => (
+              <li
+                key={s.id}
+                className="grid grid-cols-[1fr_auto_auto] items-center gap-x-4 py-3 first:pt-0 last:pb-0"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-neutral-900 truncate">
+                    {s.title}
+                  </p>
+                  <p className="text-[11px] text-neutral-500 font-mono truncate">
+                    /survey/{s.id}
+                  </p>
+                </div>
+                <span className="text-sm font-semibold text-neutral-900 tabular-nums">
+                  {s.count}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleExportPublic(s.id, s.title)}
+                  disabled={s.count === 0 || exporting === s.id}
+                  className="inline-flex items-center gap-1.5 border border-neutral-300 bg-white px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  <DownloadSimple size={13} weight="bold" />
+                  {exporting === s.id ? "Exporting…" : "Export CSV"}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </section>
   );
+}
+
+function escapeCsv(v: string): string {
+  return /[",\n\r]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
 }

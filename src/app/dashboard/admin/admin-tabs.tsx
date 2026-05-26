@@ -76,6 +76,7 @@ type AdminTrackConfig = {
   instructor: string;
   sessionTimes: string[];
   startDate: string;
+  startDateTbd?: boolean;
   lastSessionDayOffset: number;
   weekSummaries: { week: number; topic: string; icon: string }[];
   defaultReflectionPrompts?: string[];
@@ -403,6 +404,7 @@ export function AdminTabs({
   programSlug: initialProgramSlug,
   surveyStats,
   surveyConfigs,
+  trackPublicSurveys = [],
   userRole = "admin",
   engagementScores = {},
   initialTab,
@@ -418,6 +420,7 @@ export function AdminTabs({
   programSlug: string;
   surveyStats: Record<string, SurveyStatsRow[]>;
   surveyConfigs: { id: string; title: string }[];
+  trackPublicSurveys?: { id: string; title: string; count: number }[];
   userRole?: string;
   engagementScores?: Record<string, { total: number; attendance: number; submissions: number; reflections: number; tutorMessages: number }>;
   initialTab?: string;
@@ -966,10 +969,12 @@ export function AdminTabs({
               activeTrack.totalWeeks,
               activeTrack.lastSessionDayOffset,
             );
-        const startLabel = new Date(activeTrack.startDate).toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-        });
+        const startLabel = activeTrack.startDateTbd
+          ? "TBD"
+          : new Date(activeTrack.startDate).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+            });
         return (
         <div className="space-y-4">
           {/* Back to Admin home */}
@@ -997,11 +1002,8 @@ export function AdminTabs({
               </span>
               <span className="tabular-nums">
                 {notStarted
-                  ? `Starts ${startLabel}`
+                  ? `Starts ${startLabel} · ${activeTrack.totalWeeks}-week track`
                   : `Week ${currentWeek} of ${activeTrack.totalWeeks}`}
-              </span>
-              <span className="tabular-nums text-neutral-400">
-                {activeTrack.totalWeeks} weeks total
               </span>
             </div>
           </header>
@@ -1222,6 +1224,7 @@ export function AdminTabs({
                 totalWeeks={activeTrack.totalWeeks}
                 enrolledStudentCount={trackStudentIds?.size ?? 0}
                 surveyConfigs={surveyConfigs}
+                trackPublicSurveys={trackPublicSurveys}
               />
             </div>
           )}
@@ -1338,7 +1341,13 @@ export function AdminTabs({
             </p>
           </header>
 
-          {surveyConfigs.length > 0 && (
+          {/* The "{Program} surveys" widget that used to live here pulled from
+             `surveyStats` (auth-only, never populated on the Insights tab since
+             needsSurveyStats is false). It always rendered "0 of 0 students
+             completed" while the Survey Insights cards directly below showed
+             real numbers — a confusing contradiction. The InsightsDashboard
+             component below now serves as the single source for these counts. */}
+          {false && surveyConfigs.length > 0 && (
             <section className="space-y-3">
               <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
                 {programSlug === "catalyst" ? "Catalyst" : "Program"} surveys

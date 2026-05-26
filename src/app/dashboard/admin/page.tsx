@@ -5,7 +5,7 @@ import { AdminTabs } from "./admin-tabs";
 import type { Student } from "@/lib/types";
 import { getProgram } from "@/lib/programs/server";
 import type { StudentTrackRow, SurveyStatsRow, InstructorTrackRow, PublicSurveyStatsRow, BCCSurveyResponse } from "./actions";
-import { getPublicSurveyStats, getDashboardSurveyStats, getDashboardAllSurveyResponses } from "./actions";
+import { getPublicSurveyStats, getDashboardSurveyStats, getDashboardAllSurveyResponses, getPublicSurveyCountsByType } from "./actions";
 import { canAccessAdminPanel, canSwitchPrograms } from "@/lib/roles";
 import { PLATFORM_AUTH_SURVEYS, PLATFORM_PUBLIC_SURVEYS } from "@/lib/surveys/platform";
 import { getAllPrograms } from "@/lib/programs";
@@ -321,6 +321,29 @@ export default async function AdminPage({
     title: s.title,
   }));
 
+  // Public surveys tied to a track (e.g. network-plus-post → Network+).
+  // Fetched only when an admin is viewing a track-scoped tab — keeps the
+  // home/people/etc tabs unaffected by the extra query.
+  const activeTrack = isTrackTab
+    ? program.tracks.find((t) => t.slug === effectiveTab)
+    : undefined;
+  const activeTrackPublicSurveyIds = activeTrack?.publicSurveys ?? [];
+  const publicSurveyCounts = activeTrackPublicSurveyIds.length > 0
+    ? await getPublicSurveyCountsByType(activeTrackPublicSurveyIds).catch((e) => {
+        console.error("getPublicSurveyCountsByType failed:", e);
+        return [] as { survey_type: string; count: number }[];
+      })
+    : [];
+  const trackPublicSurveys = activeTrackPublicSurveyIds.map((id) => {
+    const cfg = PLATFORM_PUBLIC_SURVEYS[id];
+    const stat = publicSurveyCounts.find((r) => r.survey_type === id);
+    return {
+      id,
+      title: cfg?.title ?? id,
+      count: stat?.count ?? 0,
+    };
+  });
+
   // Serialize track configs for the client component
   const allTracks = program.tracks.map((t) => ({
     slug: t.slug,
@@ -333,6 +356,7 @@ export default async function AdminPage({
     instructor: t.instructor,
     sessionTimes: t.sessionTimes,
     startDate: t.startDate,
+    startDateTbd: t.startDateTbd,
     lastSessionDayOffset: t.lastSessionDayOffset,
     weekSummaries: t.weekSummaries,
     defaultReflectionPrompts: t.defaultReflectionPrompts,
@@ -363,6 +387,7 @@ export default async function AdminPage({
         programSlug={program.slug}
         surveyStats={surveyStats}
         surveyConfigs={surveyConfigs}
+        trackPublicSurveys={trackPublicSurveys}
         userRole={userRole}
         engagementScores={engagementScores}
         initialTab={initialTab}

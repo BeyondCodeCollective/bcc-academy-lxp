@@ -56,4 +56,11 @@ export const PLATFORM_PUBLIC_SURVEYS: Record<string, SurveyConfig> = {
       "Help us understand your background and experience so we can better support you.",
     required: false,
   },
+  "network-plus-post": {
+    id: "network-plus-post",
+    title: "CompTIA Network+ End-of-Cohort Survey",
+    description:
+      "End-of-cohort feedback for CompTIA Network+ — Catalyst's first end-to-end pilot run.",
+    required: false,
+  },
 };
