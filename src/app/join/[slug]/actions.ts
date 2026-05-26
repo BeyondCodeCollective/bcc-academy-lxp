@@ -1,27 +1,22 @@
 "use server";
 
-import { createServiceClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { getProgramBySlug } from "@/lib/programs";
 import { sendSignInEmail } from "@/lib/email";
 
 // Result shape for join attempts:
-//   ok            — allowlist check passed AND a magic-link email was sent
-//                   via Resend. Show the generic "check your inbox" page.
-//   rejected      — allowlist check failed. No magic link minted, no email
-//                   sent. The CLIENT should still show the same generic
-//                   "check your inbox" message to avoid revealing which
-//                   addresses are on the list (no enumeration).
-//   fallback      — allowlist check passed, but Resend isn't configured /
-//                   the FROM domain isn't verified yet. The CLIENT should
-//                   retry via supabase.auth.signInWithOtp so the magic
-//                   link still goes out via Supabase's built-in SMTP. The
-//                   gate has already run, so this fallback is safe — only
-//                   allowlisted emails reach this branch.
-//   error         — unexpected failure (DB error, etc). Surface to user.
+//   ok        — magic-link email sent (Resend path when LOGIN_VIA_RESEND
+//               is on, otherwise Supabase OTP server-side). Show the
+//               generic "check your inbox" page.
+//   rejected  — allowlist check failed. No magic link minted, no email
+//               sent. The CLIENT should still show the same generic
+//               "check your inbox" message to avoid revealing which
+//               addresses are on the list (no enumeration).
+//   error     — unexpected failure (DB error, rate-limit, etc). Surface
+//               to user with a readable message.
 export type JoinResult =
   | { ok: true }
   | { ok: false; rejected: true }
-  | { ok: false; fallback: true }
   | { ok: false; error: string };
 
 export async function sendJoinLink({
@@ -47,53 +42,84 @@ export async function sendJoinLink({
   // check, and a program-wide check would gate every track based on the
   // most restrictive one. Admins should distribute per-track invite
   // links (`/join/<program>?track=<slug>`) when they want gating.
+  //
+  // Perf: the two queries (overall count + targeted lookup) are fired
+  // in parallel via Promise.all. Previously they ran sequentially,
+  // which on a Portugal→US-Supabase request stacked two ~250-300ms
+  // round-trips before the user saw any feedback. One RTT now.
   if (trackSlug) {
     const svcAllow = createServiceClient();
-    const { count: allowlistSize, error: countErr } = await svcAllow
-      .from("allowed_signup_emails")
-      .select("email", { count: "exact", head: true })
-      .eq("track_slug", trackSlug);
-    if (countErr) {
-      console.error("[join] allowlist count failed:", countErr);
-      return { ok: false, error: "Couldn't verify your email. Please try again." };
-    }
-    if ((allowlistSize ?? 0) > 0) {
-      const { data: allowed, error: lookupErr } = await svcAllow
+    const [{ count: allowlistSize, error: countErr }, { data: allowed, error: lookupErr }] = await Promise.all([
+      svcAllow
+        .from("allowed_signup_emails")
+        .select("email", { count: "exact", head: true })
+        .eq("track_slug", trackSlug),
+      svcAllow
         .from("allowed_signup_emails")
         .select("email")
         .eq("track_slug", trackSlug)
         .eq("email", normalised)
-        .maybeSingle();
-      if (lookupErr) {
-        console.error("[join] allowlist lookup failed:", lookupErr);
-        return { ok: false, error: "Couldn't verify your email. Please try again." };
-      }
-      if (!allowed) {
-        console.warn("[join] blocked unallowlisted signup", {
-          email: normalised,
-          programSlug,
-          trackSlug,
-        });
-        return { ok: false, rejected: true };
-      }
+        .maybeSingle(),
+    ]);
+    if (countErr || lookupErr) {
+      console.error("[join] allowlist gate failed:", countErr ?? lookupErr);
+      return { ok: false, error: "Couldn't verify your email. Please try again." };
+    }
+    if ((allowlistSize ?? 0) > 0 && !allowed) {
+      console.warn("[join] blocked unallowlisted signup", {
+        email: normalised,
+        programSlug,
+        trackSlug,
+      });
+      return { ok: false, rejected: true };
     }
   }
 
-  // Allowlist passed. Now mint the magic link.
+  // Allowlist passed. Now send the magic link.
   //
   // Resend path is gated behind LOGIN_VIA_RESEND (same env flag that
   // controls the apex login). When it's off — current state, since
-  // mail.bccacademy.io isn't DNS-verified yet — we hand back a fallback
-  // signal so the client retries via supabase.auth.signInWithOtp. The
-  // gate above has already run, so the fallback is safe.
+  // mail.bccacademy.io isn't DNS-verified yet — we run signInWithOtp
+  // SERVER-SIDE here instead of asking the client to do it. From an EU
+  // user that saves one Portugal→Supabase round-trip (now Portugal→
+  // Vercel→Supabase server-to-server, which is one round-trip total
+  // instead of two stacked).
   if (process.env.LOGIN_VIA_RESEND !== "true") {
-    return { ok: false, fallback: true };
+    const callbackParams = new URLSearchParams({ join: programSlug });
+    if (trackSlug) callbackParams.set("track", trackSlug);
+    const callbackUrl = `${origin}/auth/callback?${callbackParams}`;
+    const anon = await createClient();
+    const { error: otpErr } = await anon.auth.signInWithOtp({
+      email: normalised,
+      options: { emailRedirectTo: callbackUrl },
+    });
+    if (otpErr) {
+      // Rate-limit and config errors land here; surface the message but
+      // never leak whether the email is on the allowlist (the gate
+      // already passed by the time we got here, so there's nothing to
+      // hide except real config problems).
+      console.error("[join] signInWithOtp failed:", otpErr);
+      const rateLimited = /security purposes|only request this after/i.test(
+        otpErr.message ?? "",
+      );
+      return {
+        ok: false,
+        error: rateLimited
+          ? "We just sent a sign-in link to this email. Check your inbox — and your spam folder. Try again in a minute if it doesn't arrive."
+          : otpErr.message || "Couldn't send the link. Please try again.",
+      };
+    }
+    return { ok: true };
   }
 
   const callbackParams = new URLSearchParams({ join: programSlug });
   if (trackSlug) callbackParams.set("track", trackSlug);
   const redirectTo = `${origin}/auth/callback?${callbackParams}`;
 
+  // Resend path. LOGIN_VIA_RESEND=true → mint via admin generateLink and
+  // deliver through Resend with the BCC-branded template. If either step
+  // fails we fall through to the server-side OTP path below so a single
+  // bad config doesn't block everyone.
   const svc = createServiceClient();
   const { data, error } = await svc.auth.admin.generateLink({
     type: "magiclink",
@@ -101,20 +127,39 @@ export async function sendJoinLink({
     options: { redirectTo },
   });
 
-  if (error || !data?.properties?.action_link) {
-    console.error("[join] generateLink failed:", error);
-    return { ok: false, fallback: true };
+  if (!error && data?.properties?.action_link) {
+    try {
+      await sendSignInEmail({
+        to: normalised,
+        magicLink: data.properties.action_link,
+        programName: program.name,
+      });
+      return { ok: true };
+    } catch (emailErr) {
+      console.error("[join] sendSignInEmail failed, falling back to OTP:", emailErr);
+    }
+  } else {
+    console.error("[join] generateLink failed, falling back to OTP:", error);
   }
 
-  try {
-    await sendSignInEmail({
-      to: normalised,
-      magicLink: data.properties.action_link,
-      programName: program.name,
-    });
-    return { ok: true };
-  } catch (emailErr) {
-    console.error("[join] sendSignInEmail failed, falling back to OTP:", emailErr);
-    return { ok: false, fallback: true };
+  // Fallback: server-side signInWithOtp. Same end-user experience —
+  // Supabase sends the magic link, the auth callback handles the rest.
+  const anon = await createClient();
+  const { error: otpErr } = await anon.auth.signInWithOtp({
+    email: normalised,
+    options: { emailRedirectTo: redirectTo },
+  });
+  if (otpErr) {
+    console.error("[join] OTP fallback failed:", otpErr);
+    const rateLimited = /security purposes|only request this after/i.test(
+      otpErr.message ?? "",
+    );
+    return {
+      ok: false,
+      error: rateLimited
+        ? "We just sent a sign-in link to this email. Check your inbox — and your spam folder. Try again in a minute if it doesn't arrive."
+        : otpErr.message || "Couldn't send the link. Please try again.",
+    };
   }
+  return { ok: true };
 }

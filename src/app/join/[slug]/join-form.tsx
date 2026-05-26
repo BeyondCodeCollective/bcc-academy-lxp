@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Check } from "@phosphor-icons/react";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
 import { sendJoinLink } from "./actions";
 
 export function JoinForm({
@@ -40,10 +39,11 @@ export function JoinForm({
 
     const trimmedEmail = email.trim().toLowerCase();
 
-    // Always run through the server action — it enforces the per-course
-    // allowlist BEFORE any magic link is minted. Bypassing it (calling
-    // signInWithOtp directly) lets unauthorised emails through, since
-    // Supabase will happily issue a link for any address.
+    // One round-trip: the server action enforces the per-course allowlist
+    // AND sends the magic link (Resend if configured, signInWithOtp
+    // server-side as fallback). Bypassing this and calling signInWithOtp
+    // client-side would (a) skip the gate entirely, since Supabase will
+    // happily mint a link for any address, and (b) add another EU→US RTT.
     const result = await sendJoinLink({
       email: trimmedEmail,
       programSlug,
@@ -51,36 +51,11 @@ export function JoinForm({
       origin: window.location.origin,
     });
 
-    // Same "check your inbox" page for both success AND rejection — so the
-    // response doesn't reveal whether the email was actually on the list
-    // (prevents enumeration). Allowed signups get a real link; rejected
-    // ones get nothing, but the UX is identical.
+    // Same "check your inbox" page for both success AND rejection so the
+    // response doesn't reveal whether the email was actually on the
+    // allowlist (no enumeration). Allowed signups get a real link;
+    // rejected ones get nothing — UX is identical.
     if (result.ok || ("rejected" in result && result.rejected)) {
-      setSent(true);
-      setLoading(false);
-      return;
-    }
-
-    // Allowed by the gate but Resend can't deliver yet (DNS not verified)
-    // → fall back to Supabase's built-in OTP. Only reached when the
-    // allowlist check has already passed.
-    if ("fallback" in result && result.fallback) {
-      const callbackParams = new URLSearchParams({ join: programSlug });
-      if (trackSlug) callbackParams.set("track", trackSlug);
-      const callbackUrl = `${window.location.origin}/auth/callback?${callbackParams}`;
-
-      const supabase = createClient();
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        email: trimmedEmail,
-        options: { emailRedirectTo: callbackUrl },
-      });
-
-      if (otpError) {
-        setError(otpError.message || "Something went wrong. Please try again.");
-        setLoading(false);
-        return;
-      }
-
       setSent(true);
       setLoading(false);
       return;
