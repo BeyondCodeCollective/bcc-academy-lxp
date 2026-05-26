@@ -16,6 +16,7 @@ import { resolveCurrentUser } from "@/lib/current-user";
 import { getEnrolledTracks } from "@/lib/enrollment";
 import { BCC_INTAKE_SURVEY_ID, BCC_INTAKE_EXEMPT_PROGRAMS } from "@/lib/surveys/platform";
 import { isStaffEmail } from "@/lib/auth/admins";
+import { completePendingSetup } from "@/lib/auth/deferred-setup";
 
 export const dynamic = "force-dynamic";
 
@@ -83,6 +84,22 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
     if (!ctx) redirect("/");
 
     const { userId, student } = ctx;
+
+    // Deferred setup: cohort, track enrollment, survey claims, welcome email
+    // runs on first dashboard paint after login instead of blocking the callback.
+    // The pending-setup cookie has a 60s TTL to handle the first-time case — for
+    // returning users the setup returns immediately (student already has cohort
+    // and tracks). Idempotent; safe to call multiple times.
+    if (cookieStore.get("pending-setup")) {
+      await completePendingSetup(userId, currentUser.email ?? "", program);
+      try {
+        cookieStore.set("pending-setup", "", { path: "/", maxAge: 0 });
+      } catch {
+        // cookieStore.set may not be writable in all server component contexts.
+        // The cookie TTL of 60s handles cleanup regardless.
+      }
+    }
+
     const { cohorts: cohort, cohort_id: cohortId } = student ?? {};
     const hasCohortId = !!cohortId;
 

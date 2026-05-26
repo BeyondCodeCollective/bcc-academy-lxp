@@ -6,10 +6,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { authCookieDomain } from "@/lib/supabase/cookie-domain";
 import { getProgram } from "@/lib/programs/server";
 import { getProgramBySlug, isKnownProgramHost } from "@/lib/programs";
-import { sendWelcomeEmail } from "@/lib/email";
-import { BCC_INTAKE_SURVEY_ID, BCC_INTAKE_EXEMPT_PROGRAMS } from "@/lib/surveys/platform";
-import { BCC_INTAKE_QUESTION_IDS } from "@/lib/surveys/schemas";
-import { SUPER_ADMIN_EMAILS, ADMIN_EMAILS, determineRole, isPrivilegedEmail, isStaffEmail } from "@/lib/auth/admins";
+import { determineRole, isPrivilegedEmail } from "@/lib/auth/admins";
 
 // Magic-link landing. Pin to both regions so the click-to-dashboard
 // transition is fast for EU users — they hit the nearest Vercel
@@ -21,10 +18,6 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   const token_hash = searchParams.get("token_hash");
-  // Supabase email templates use a 'type' param that maps to the OTP type
-  // we pass to verifyOtp (magiclink, signup, recovery, invite, email,
-  // email_change). Anything else is ignored — verifyOtp validates the
-  // value at runtime.
   const rawType = searchParams.get("type");
   const ALLOWED_TYPES: EmailOtpType[] = [
     "magiclink",
@@ -43,9 +36,6 @@ export async function GET(request: Request) {
   if (code || token_hash) {
     const cookieStore = await cookies();
 
-    // Fall back to the join intent cookies set by JoinForm if Supabase
-    // stripped the query params from the magic-link redirect (happens when
-    // the full URL with params isn't whitelisted in Supabase Redirect URLs).
     if (!joinSlug) {
       joinSlug = cookieStore.get("pending-join-slug")?.value ?? null;
     }
@@ -56,13 +46,8 @@ export async function GET(request: Request) {
     const program = joinSlug ? getProgramBySlug(joinSlug) : await getProgram();
     const domain = authCookieDomain(request.headers.get("host"));
 
-    // Capture every cookie Supabase wants to set so we can forward them onto
-    // the redirect response. cookies().set() doesn't reliably attach to a
-    // NextResponse.redirect() in Next.js App Router Route Handlers, so we
-    // explicitly copy them onto the response object as well.
     const pendingCookies: Array<{ name: string; value: string; options: Record<string, unknown> }> = [];
 
-    // Auth client — handles session exchange and cookie management
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -82,9 +67,6 @@ export async function GET(request: Request) {
       }
     );
 
-    // Helper that returns a redirect with all pending Supabase session cookies
-    // already applied directly to the response headers. Also clears the
-    // pending-join cookies once the magic-link round-trip is done.
     const redirectWithCookies = (url: string) => {
       const res = NextResponse.redirect(url);
       pendingCookies.forEach(({ name, value, options }) => {
@@ -96,18 +78,8 @@ export async function GET(request: Request) {
       return res;
     };
 
-    // Service client — bypasses RLS for database writes
     const admin = createServiceClient();
 
-    // Always attempt to exchange the token so the session is set to the user
-    // who owns the link — not whoever was already logged in. If the token is
-    // expired or already used (double-click, email-client pre-fetch), fall
-    // back to the existing session silently rather than showing an error.
-    //
-    // Both exchangeCodeForSession and verifyOtp return the user in their
-    // response data, so we capture it directly and skip the separate
-    // supabase.auth.getUser() call that was previously mandatory. This saves
-    // one round-trip (~130ms from Portugal) on every login.
     let authResult: { user: import("@supabase/supabase-js").User | null } | null = null;
     let authError = null;
     const fallbackToExisting = async () => {
@@ -129,357 +101,106 @@ export async function GET(request: Request) {
     const user = authResult?.user ?? null;
 
     if (!authError && user) {
+      const hostStr = request.headers.get("host") ?? "";
+      const isUnpinnedHost = !isKnownProgramHost(hostStr);
+      const email = (user.email || "").toLowerCase();
 
-      if (user) {
-        // Hosts that don't pin a program via URL (apex marketing host,
-        // localhost dev) require us to recompute the user's home program
-        // from their identity — otherwise an old `program-override` cookie
-        // from a previous switch would stick and route them to the wrong
-        // place after sign-in. Production program subdomains (e.g.
-        // atg.bccacademy.io) pin the program via host, so we skip this.
-        const hostStr = request.headers.get("host") ?? "";
-        const isUnpinnedHost = !isKnownProgramHost(hostStr);
+      // Marketing domain — unadmitted users get a friendly redirect
+      if (program.slug === "marketing") {
+        return redirectWithCookies(`${origin}/login?status=not-enrolled`);
+      }
 
-        // Use program-specific default cohort
-        const defaultCohort = {
-          name: program.defaultCohort.name,
-          display_name: program.defaultCohort.displayName,
-          start_date: program.defaultCohort.startDate,
-          total_weeks: program.defaultCohort.totalWeeks,
-        };
+      // Programs that require invite links block new signups without ?track=<slug>
+      if (program.requireInviteLink === true && !trackParam && !isPrivilegedEmail(email)) {
+        await supabase.auth.signOut();
+        return NextResponse.redirect(`${origin}/?error=invite`);
+      }
 
-        // Fetch program row, existing student row, and survey completions
-        // in parallel — independent queries, all needed before we can decide
-        // where to route. Previously the intake and required-survey checks
-        // ran sequentially at the end, adding ~2 round-trips on every login.
-        const requiredSurvey = program.surveys?.find((s) => s.required);
-        const intakeSurveyTypes = [
-          BCC_INTAKE_SURVEY_ID,
-          ...(requiredSurvey ? [requiredSurvey.id] : []),
-        ].filter(Boolean);
-        const [programRes, studentRes, surveyCompletionsRes] = await Promise.all([
-          admin.from("programs").select("id").eq("slug", program.slug).maybeSingle(),
-          admin
-            .from("students")
-            .select("id, cohort_id, role, programs(slug)")
-            .eq("id", user.id)
-            .maybeSingle(),
-          // Batch intake + required survey completion checks into one query
-          // instead of two sequential .maybeSingle() calls at the end.
-          intakeSurveyTypes.length > 0
-            ? admin
-                .from("survey_responses")
-                .select("survey_type, completed_at")
-                .eq("student_id", user.id)
-                .in("survey_type", intakeSurveyTypes)
-            : Promise.resolve({ data: null as { survey_type: string; completed_at: string | null }[] | null }),
-        ]);
-        const surveyCompletions = surveyCompletionsRes?.data ?? [];
+      // Fetch program UUID (needed for student upsert)
+      const { data: programRow } = await admin
+        .from("programs")
+        .select("id")
+        .eq("slug", program.slug)
+        .maybeSingle();
 
-        const programForCohort = programRes.data;
-        const existing = studentRes.data;
+      const programId = programRow?.id;
 
-        if (studentRes.error) {
-          console.error("[auth/callback] student query:", studentRes.error.message);
-        }
+      if (isUnpinnedHost) {
+        // Unpinned hosts (marketing apex, localhost): determine the student's
+        // home program from their identity or join intent so the program cookie
+        // routes them to the right dashboard.
+        const { data: existing } = await admin
+          .from("students")
+          .select("id, role, programs(slug)")
+          .eq("id", user.id)
+          .maybeSingle();
 
-        // Returning users with a cohort already set skip the cohort round-trip
-        // entirely — it's only needed for brand-new signups or stale rows.
-        let cohortId: string | undefined = existing?.cohort_id ?? undefined;
-
-        if (!cohortId) {
-          const { data: cohort, error: cohortQueryErr } = await admin
-            .from("cohorts")
-            .select("id")
-            .eq("program_id", programForCohort?.id ?? "")
-            .order("created_at", { ascending: true })
-            .limit(1)
-            .maybeSingle();
-
-          if (cohortQueryErr) {
-            console.error("[auth/callback] cohort query:", cohortQueryErr.message);
-          }
-
-          cohortId = cohort?.id;
-
-          if (!cohortId) {
-            const { data: newCohort, error: cohortInsertErr } = await admin
-              .from("cohorts")
-              .insert({ ...defaultCohort, program_id: programForCohort?.id })
-              .select("id")
-              .single();
-
-            if (cohortInsertErr) {
-              console.error("[auth/callback] cohort insert:", cohortInsertErr.message);
-            }
-            cohortId = newCohort?.id;
-          }
-        }
-
+        let effectiveSlug: string | null = null;
         if (!existing) {
-          // Central login (marketing domain): unadmitted users get a
-          // friendly redirect instead of a student row in the wrong program.
-          // Admitted students arrive via program subdomain invite links, not
-          // through the marketing apex.
-          if (program.slug === "marketing") {
-            return redirectWithCookies(`${origin}/login?status=not-enrolled`);
-          }
+          effectiveSlug = (joinSlug && joinSlug !== "marketing") ? joinSlug : null;
+        } else {
+          effectiveSlug = (existing.programs as unknown as { slug: string } | null)?.slug ??
+            (["super_admin", "admin"].includes(existing.role ?? "") ? "catalyst" : null);
+        }
 
-          // Programs that require invite links (Forge) block new signups that
-          // didn't come through a `?track=<slug>` invite link. Programs that
-          // don't (ATG — every student gets the same tracks) skip this gate.
-          // Super admins and env-configured admins are always exempt.
-          const email = (user.email || "").toLowerCase();
-          if (program.requireInviteLink === true && !trackParam && !isPrivilegedEmail(email)) {
-            await supabase.auth.signOut();
-            return NextResponse.redirect(`${origin}/?error=invite`);
-          }
+        if (!effectiveSlug) {
+          return redirectWithCookies(`${origin}/login?status=not-enrolled`);
+        }
 
-          const { error: insertErr } = await admin.from("students").insert({
+        // Upsert minimal student row in the resolved program
+        const effectiveProgram = getProgramBySlug(effectiveSlug);
+        const { data: effectiveProgramRow } = await admin
+          .from("programs")
+          .select("id")
+          .eq("slug", effectiveSlug)
+          .maybeSingle();
+
+        await admin.from("students").upsert(
+          {
             id: user.id,
             email: user.email,
             first_name: "",
             last_name: "",
             role: determineRole(email),
-            cohort_id: cohortId || null,
-            program_id: programForCohort?.id,
-          });
+            cohort_id: null,
+            program_id: effectiveProgramRow?.id ?? programId,
+          },
+          { onConflict: "id", ignoreDuplicates: true }
+        );
 
-          if (insertErr) {
-            console.error("[auth/callback] student insert:", insertErr.message);
-          }
-        } else {
-          // Student exists — ensure cohort is set and role stays correct.
-          // `existing` was fetched in parallel above with cohort_id + role, so
-          // no extra query is needed here.
-          const email = (user.email || "").toLowerCase();
-          const correctRole = SUPER_ADMIN_EMAILS.includes(email)
-            ? "super_admin"
-            : ADMIN_EMAILS.includes(email)
-              ? "admin"
-              : null; // null = don't change role
+        const res = redirectWithCookies(`${origin}/dashboard`);
+        const cookieOpts = { path: "/", httpOnly: false, sameSite: "lax" as const };
+        res.cookies.set("program-slug", effectiveSlug, cookieOpts);
+        res.cookies.set("program-override", effectiveSlug, {
+          ...cookieOpts,
+          maxAge: 60 * 60 * 24 * 365,
+        });
+        res.cookies.set("pending-setup", "1", { ...cookieOpts, httpOnly: true, maxAge: 60 });
 
-          const updates: Record<string, unknown> = {};
-
-          if (!existing.cohort_id && cohortId) {
-            updates.cohort_id = cohortId;
-          }
-
-          if (correctRole && existing.role !== correctRole) {
-            updates.role = correctRole;
-          }
-
-          if (Object.keys(updates).length > 0) {
-            const { error: updateErr } = await admin
-              .from("students")
-              .update(updates)
-              .eq("id", user.id);
-
-            if (updateErr) {
-              console.error("[auth/callback] student update:", updateErr.message);
-            }
-          }
-        }
-
-        // Assign track enrollment on first signup only.
-        // Returning users don't get re-enrolled by clicking another track's
-        // link, so students can't leak tracks to each other by sharing URLs.
-        if (!existing && programForCohort) {
-          // Programs without invite gating (ATG) auto-enroll new signups in
-          // every track. Programs with invite gating (Forge) only enroll in
-          // the specific track from `?track=<slug>`.
-          const tracksToEnroll =
-            program.requireInviteLink === true
-              ? program.tracks.filter((t) => t.slug === trackParam)
-              : program.tracks;
-
-          if (tracksToEnroll.length > 0) {
-            const { error: trackErr } = await admin
-              .from("student_tracks")
-              .upsert(
-                tracksToEnroll.map((t) => ({
-                  student_id: user.id,
-                  track_slug: t.slug,
-                  program_id: programForCohort.id,
-                })),
-                { onConflict: "student_id,track_slug,program_id" }
-              );
-
-            if (trackErr) {
-              console.error("[auth/callback] track assignment:", trackErr.message);
-            }
-          }
-
-          const emailPrefix = (user.email || "").split("@")[0];
-          const derivedName =
-            emailPrefix
-              .split(/[._-]/)
-              .map((s) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase())[0] || "there";
-
-          void sendWelcomeEmail({
-            to: user.email!,
-            firstName: derivedName,
-            program,
-            enrolledTracks: tracksToEnroll,
-          }).then(() =>
-            admin
-              .from("students")
-              .update({ welcome_email_sent_at: new Date().toISOString() })
-              .eq("id", user.id)
-          );
-        }
-
-        // Unpinned hosts (marketing apex, localhost): recompute the user's
-        // home program from identity (role/enrollment) and overwrite the
-        // override cookie so a previous program switch doesn't leak into
-        // this session. On pinned hosts (program subdomains) the URL is
-        // authoritative — leave the cookie alone.
-        if (isUnpinnedHost) {
-          // For brand-new students arriving via a ?join=<slug> link, use
-          // the join program — `existing` was fetched before the insert so
-          // it's still null here even though the row now exists.
-          const programSlug =
-            (!existing && joinSlug && joinSlug !== "marketing")
-              ? joinSlug
-              : (existing?.programs as unknown as { slug: string } | null)?.slug ??
-                (["super_admin", "admin"].includes(existing?.role ?? "") ? "catalyst" : null);
-
-          if (programSlug) {
-            const res = redirectWithCookies(`${origin}/dashboard`);
-            const cookieOpts = { path: "/", httpOnly: false, sameSite: "lax" as const };
-            res.cookies.set("program-slug", programSlug, cookieOpts);
-            res.cookies.set("program-override", programSlug, {
-              ...cookieOpts,
-              maxAge: 60 * 60 * 24 * 365,
-            });
-            return res;
-          }
-          return redirectWithCookies(`${origin}/login?status=not-enrolled`);
-        }
-
-        // Claim any public survey submissions that match this user's email.
-        // Only runs on first signup (!existing) — returning users don't need
-        // their public responses re-claimed on every login. Running this on
-        // every callback was adding a public_survey_responses table scan on
-        // every login (~1 extra round-trip). Upsert with ignoreDuplicates
-        // so existing auth'd responses are never overwritten.
-        const claimEmail = (user.email || "").toLowerCase();
-        if (!existing && claimEmail) {
-          const { data: publicRows, error: publicQueryErr } = await admin
-            .from("public_survey_responses")
-            .select("program_id, survey_type, responses, completed_at")
-            .eq("email", claimEmail)
-            .not("completed_at", "is", null);
-
-          if (publicQueryErr) {
-            console.error("[auth/callback] public submissions lookup:", publicQueryErr.message);
-          } else if (publicRows && publicRows.length > 0) {
-            const claimRows = publicRows.map((r) => ({
-              student_id: user.id,
-              survey_type: r.survey_type as string,
-              responses: r.responses,
-              completed_at: r.completed_at as string,
-              program_id: r.program_id as string,
-              updated_at: new Date().toISOString(),
-            }));
-            const { error: claimErr } = await admin
-              .from("survey_responses")
-              .upsert(claimRows, {
-                onConflict: "student_id,survey_type",
-                ignoreDuplicates: true,
-              });
-            if (claimErr) {
-              console.error("[auth/callback] claim public submissions:", claimErr.message);
-            }
-
-            // BCC intake auto-completion. The BCC learner intake is just
-            // the SHARED_DEMOGRAPHICS block (see lib/surveys/schemas.ts).
-            // Other surveys — e.g. the Forge pre-survey — embed the same
-            // demographic ids. If any claimed public submission has every
-            // intake-required answer, synthesize an intake response so the
-            // user is not asked the same questions again on first login.
-            const intakeAlreadyDone = publicRows.some(
-              (r) => r.survey_type === BCC_INTAKE_SURVEY_ID && r.completed_at,
-            );
-            if (!intakeAlreadyDone) {
-              const intakeSource = publicRows.find((r) => {
-                const responses = (r.responses ?? {}) as Record<string, unknown>;
-                return BCC_INTAKE_QUESTION_IDS.every((key) => {
-                  const v = responses[key];
-                  return v !== undefined && v !== null && v !== "";
-                });
-              });
-              if (intakeSource) {
-                const sourceResponses = (intakeSource.responses ?? {}) as Record<string, unknown>;
-                const intakeResponses: Record<string, unknown> = {};
-                for (const key of BCC_INTAKE_QUESTION_IDS) {
-                  intakeResponses[key] = sourceResponses[key];
-                }
-                const { error: intakeErr } = await admin
-                  .from("survey_responses")
-                  .upsert(
-                    {
-                      student_id: user.id,
-                      survey_type: BCC_INTAKE_SURVEY_ID,
-                      responses: intakeResponses,
-                      completed_at: intakeSource.completed_at as string,
-                      program_id: intakeSource.program_id as string,
-                      updated_at: new Date().toISOString(),
-                    },
-                    {
-                      onConflict: "student_id,survey_type",
-                      ignoreDuplicates: true,
-                    },
-                  );
-                if (intakeErr) {
-                  console.error("[auth/callback] intake auto-complete:", intakeErr.message);
-                }
-              }
-            }
-          }
-        }
-        // Check intake + required survey completions from the batched fetch
-        // above. Previously this was 2 sequential .maybeSingle() calls — now
-        // resolved from the in-memory surveyCompletions map.
-        const userEmailForIntake = (user.email || "").toLowerCase();
-        const isPrivilegedUser =
-          SUPER_ADMIN_EMAILS.includes(userEmailForIntake) ||
-          ADMIN_EMAILS.includes(userEmailForIntake);
-        const isStaff = isStaffEmail(userEmailForIntake);
-        const intakeComplete = surveyCompletions.find(
-          (r) => r.survey_type === BCC_INTAKE_SURVEY_ID,
-        )?.completed_at;
-
-        if (
-          !isPrivilegedUser &&
-          !isStaff &&
-          !BCC_INTAKE_EXEMPT_PROGRAMS.includes(program.slug) &&
-          !intakeComplete
-        ) {
-          return redirectWithCookies(`${origin}/dashboard/survey/${BCC_INTAKE_SURVEY_ID}`);
-        }
-
-        // If the program has a required survey, skip the dashboard and go straight to it.
-        // Privileged users (admins, super admins) and internal staff skip this gate.
-        if (requiredSurvey && !isPrivilegedUser && !isStaff) {
-          const requiredComplete = surveyCompletions.find(
-            (r) => r.survey_type === requiredSurvey.id,
-          )?.completed_at;
-          if (!requiredComplete) {
-            return redirectWithCookies(`${origin}/dashboard/survey/${requiredSurvey.id}`);
-          }
-        }
-
-        // If they arrived via a track-specific invite (?track=<slug>), drop
-        // them on that track's overview page instead of the dashboard. Saves
-        // a click for single-track students — the dashboard grid would just
-        // show one card. Validate the slug to avoid open-redirect shenanigans.
-        if (trackParam && program.tracks.some((t) => t.slug === trackParam)) {
-          return redirectWithCookies(`${origin}/dashboard/track/${trackParam}`);
-        }
-
-        return redirectWithCookies(`${origin}/dashboard`);
+        return res;
       }
+
+      // Pinned host (program subdomain): simple upsert + redirect.
+      // Cohort, track enrollment, and survey work happen on the dashboard
+      // after the first paint via completePendingSetup().
+      await admin.from("students").upsert(
+        {
+          id: user.id,
+          email: user.email,
+          first_name: "",
+          last_name: "",
+          role: determineRole(email),
+          cohort_id: null,
+          program_id: programId,
+        },
+        { onConflict: "id", ignoreDuplicates: true }
+      );
+
+      const res = redirectWithCookies(`${origin}/dashboard`);
+      res.cookies.set("pending-setup", "1", {
+        path: "/", httpOnly: true, sameSite: "lax" as const, maxAge: 60,
+      });
+      return res;
     } else {
       console.error("[auth/callback] auth error:", authError!.message);
     }
