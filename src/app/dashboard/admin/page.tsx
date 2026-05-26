@@ -51,9 +51,11 @@ export default async function AdminPage({
   // cross-track People tab is gone.
   const needsEngagement = isTrackTab;
   const needsSurveyStats = false;
-  // Home tab only needs track/instructor enrollment counts — skip the full
-  // student list and cohorts to cut 2 queries from the most common landing.
-  const needsFullStudentList = isTrackTab || effectiveTab === "students" || effectiveTab === "student-work" || effectiveTab === "attendance";
+  // Home tab needs the student list too — its per-track count filters
+  // student_tracks rows by role=student, which requires the students table.
+  // Without this allStudents stays empty on home and every track card reads
+  // "0 students" regardless of how many enrolments exist.
+  const needsFullStudentList = isTrackTab || effectiveTab === "students" || effectiveTab === "student-work" || effectiveTab === "attendance" || effectiveTab === "home";
   const needsCohorts = isTrackTab || effectiveTab === "students";
   const needsLunchLearns = effectiveTab === "lunch-learn";
   const needsInsightsData = effectiveTab === "insights";
@@ -85,9 +87,22 @@ export default async function AdminPage({
 
     const svc = createServiceClient();
 
-    // Program ID lookup — scopes every subsequent query to this program.
-    const programRowRes = await svc.from("programs").select("id").eq("slug", program.slug).single();
-    const programId = programRowRes.data?.id;
+    // Program ID lookup. Catalyst is an "umbrella" program — its track list
+    // is spread from ATG / BCC Centers / Upskill Bahamas configs, but the
+    // students enrolled in those tracks are stored with the source program's
+    // ID (e.g. a MASS enrollee from /join/atg has program_id = atg). Filtering
+    // by catalyst.id alone returns 0 across the board. For Catalyst we
+    // aggregate IDs from every underlying program plus Catalyst itself; for
+    // any other program we keep the single-program scope.
+    const aggregatedSlugs = program.slug === "catalyst"
+      ? ["catalyst", "atg", "forge", "forte"]
+      : [program.slug];
+    const { data: programRows } = await svc
+      .from("programs")
+      .select("id, slug")
+      .in("slug", aggregatedSlugs);
+    const programIds = (programRows ?? []).map((p) => p.id as string);
+    const programId = programRows?.find((p) => p.slug === program.slug)?.id;
 
     if (!canAccessAdminPanel(userRole)) redirect("/dashboard");
 
@@ -143,25 +158,25 @@ export default async function AdminPage({
           ? svc
               .from("students")
               .select("id, first_name, last_name, email, role, cohort_id")
-              .eq("program_id", programId!)
+              .in("program_id", programIds)
               .order("created_at", { ascending: true })
           : Promise.resolve({ data: [] as Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id">[] }),
         needsCohorts
           ? svc
               .from("cohorts")
               .select("id, name, display_name, start_date, total_weeks")
-              .eq("program_id", programId!)
+              .in("program_id", programIds)
               .order("created_at", { ascending: true })
           : Promise.resolve({ data: [] as { id: string; name: string; display_name: string | null; start_date: string; total_weeks: number }[] }),
         svc
           .from("student_tracks")
           .select("id, student_id, track_slug, program_id, created_at")
-          .eq("program_id", programId!)
+          .in("program_id", programIds)
           .order("created_at"),
         svc
           .from("instructor_tracks")
           .select("id, student_id, track_slug, program_id, created_at")
-          .eq("program_id", programId!)
+          .in("program_id", programIds)
           .order("created_at"),
         userRole === "instructor"
           ? svc
@@ -175,7 +190,7 @@ export default async function AdminPage({
         ? svc
             .from("survey_responses")
             .select("student_id, survey_type, completed_at")
-            .eq("program_id", programId!)
+            .in("program_id", programIds)
             .in("survey_type", surveyIds)
         : Promise.resolve({ data: null as { student_id: string; survey_type: string; completed_at: string | null }[] | null }),
       needsPublicSurveyStats
@@ -186,10 +201,10 @@ export default async function AdminPage({
         : Promise.resolve([] as PublicSurveyStatsRow[]),
       needsEngagement
         ? Promise.all([
-            svc.from("attendance").select("student_id, track, week_number").eq("program_id", programId!),
-            svc.from("submissions").select("student_id, track_slug, week_number").eq("program_id", programId!).not("submitted_at", "is", null),
-            svc.from("reflections").select("student_id, track_slug, week_number").eq("program_id", programId!).not("submitted_at", "is", null),
-            svc.from("tutor_messages").select("student_id").eq("program_id", programId!),
+            svc.from("attendance").select("student_id, track, week_number").in("program_id", programIds),
+            svc.from("submissions").select("student_id, track_slug, week_number").in("program_id", programIds).not("submitted_at", "is", null),
+            svc.from("reflections").select("student_id, track_slug, week_number").in("program_id", programIds).not("submitted_at", "is", null),
+            svc.from("tutor_messages").select("student_id").in("program_id", programIds),
           ])
         : Promise.resolve(null),
       // Historical alumni (imported from Circle and similar). Only fetched
@@ -198,7 +213,7 @@ export default async function AdminPage({
         ? svc
             .from("alumni_enrollments")
             .select("track_slug, email, source")
-            .eq("program_id", programId!)
+            .in("program_id", programIds)
         : Promise.resolve({ data: null as { track_slug: string; email: string; source: string }[] | null }),
     ]);
 
