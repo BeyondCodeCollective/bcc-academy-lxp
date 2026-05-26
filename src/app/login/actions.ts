@@ -35,6 +35,20 @@ export async function sendLoginLink({
 }): Promise<SendLoginLinkResult> {
   const trimmed = email.trim().toLowerCase();
 
+  // Feature gate: only attempt the Resend path when explicitly enabled.
+  // Without this, generateLink runs first and consumes Supabase's per-email
+  // rate-limit slot — then if sendSignInEmail throws (e.g. Resend FROM domain
+  // not yet verified), the client-side OTP fallback hits the 60-second
+  // cooldown on the user's first try. Flip LOGIN_VIA_RESEND=true once
+  // mail.bccacademy.io is verified in Resend and the path is reliable.
+  if (process.env.LOGIN_VIA_RESEND !== "true") {
+    return {
+      ok: false,
+      fallback: true,
+      reason: "LOGIN_VIA_RESEND not enabled",
+    };
+  }
+
   if (!process.env.RESEND_API_KEY) {
     console.warn("[login] RESEND_API_KEY not set — falling back to OTP", {
       email: trimmed,
