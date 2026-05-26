@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { resolveCurrentUser } from "@/lib/current-user";
 import { getProgram } from "@/lib/programs/server";
+import { canAccessAdminPanel } from "@/lib/roles";
 import { toneForTrack, iconForTrack } from "@/lib/track-visual";
 import type { TrackConfig } from "@/lib/programs/types";
 
@@ -31,6 +32,14 @@ export default async function CoursesIndexPage() {
   const cookieStore = await cookies();
   const currentUser = await resolveCurrentUser(cookieStore);
   if (!currentUser) redirect("/");
+
+  // Catalog is admin-only. Students who hit this URL directly bounce back
+  // to /dashboard where their track grid already lives — they don't see a
+  // browsable catalog of programs they aren't enrolled in. Matches the
+  // nav, which only renders the Courses link for admins.
+  if (!canAccessAdminPanel(currentUser.userRole)) {
+    redirect("/dashboard");
+  }
 
   const program = await getProgram();
 
