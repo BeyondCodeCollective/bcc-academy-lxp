@@ -18,6 +18,17 @@ const VALID_PREVIEW_SLUGS = new Set([
   "catalyst",
 ]);
 
+// Legacy program subdomains have their own login at "/" — sending /login
+// here routes the user to that program's own sign-in form. Handled at
+// the proxy so the apex /login page itself can be statically rendered
+// (no headers() call → no force-dynamic → cached at the edge).
+const LEGACY_LOGIN_HOSTS = new Set([
+  "catalyst.bccacademy.io",
+  "atg.bccacademy.io",
+  "forge.bccacademy.io",
+  "forte.bccacademy.io",
+]);
+
 export async function proxy(request: NextRequest) {
   const host = request.headers.get("host") ?? "localhost:3000";
 
@@ -36,6 +47,18 @@ export async function proxy(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-program-slug", program.slug);
   requestHeaders.set("x-pathname", request.nextUrl.pathname);
+
+  // Legacy program-subdomain → apex /login redirect. Done before any
+  // Supabase work so subdomain visitors never pay an auth round-trip
+  // when they're about to be redirected anyway.
+  if (
+    request.nextUrl.pathname === "/login" &&
+    LEGACY_LOGIN_HOSTS.has(host)
+  ) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/";
+    return NextResponse.redirect(url);
+  }
 
   const applyProgramCookies = (res: NextResponse) => {
     res.cookies.set("program-slug", program.slug, {

@@ -12,10 +12,11 @@ import { createServiceClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-// Pin to both regions so when Vercel Cron fires from Frankfurt it warms
-// the EU function (and IAD when fired from US). Without this all warm
-// pings hit IAD regardless of the cron's origin region.
-export const preferredRegion = ["fra1", "iad1"];
+// Cron fires from a single origin region (currently us-east), so this
+// function always lands in iad1 regardless of preferredRegion. Pin
+// explicitly to iad1 to make that intent obvious, and fan out to
+// /api/warm-eu (pinned to fra1) so both regions stay hot on one cron.
+export const preferredRegion = ["iad1"];
 
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
@@ -38,5 +39,23 @@ export async function GET(request: Request) {
     // hit this line.
   }
 
-  return NextResponse.json({ ok: true, ts: new Date().toISOString() });
+  // Warm the fra1 sibling. Building the URL from the request's own host
+  // keeps preview deploys and the production domain both working without
+  // a hard-coded URL. Awaited so the fetch actually completes before the
+  // function returns — Vercel doesn't guarantee dangling promises run.
+  let euOk: boolean | null = null;
+  try {
+    const host = request.headers.get("host") ?? process.env.VERCEL_PROJECT_PRODUCTION_URL ?? "";
+    if (host) {
+      const protocol = host.startsWith("localhost") ? "http" : "https";
+      const res = await fetch(`${protocol}://${host}/api/warm-eu`, {
+        headers: secret ? { authorization: `Bearer ${secret}` } : {},
+      });
+      euOk = res.ok;
+    }
+  } catch {
+    euOk = false;
+  }
+
+  return NextResponse.json({ ok: true, euOk, ts: new Date().toISOString() });
 }
