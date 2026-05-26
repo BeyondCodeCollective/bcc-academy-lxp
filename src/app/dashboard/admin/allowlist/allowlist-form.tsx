@@ -46,13 +46,17 @@ export function AllowlistForm({
   return (
     <div className="space-y-4">
       {!requireAllowlist && (
-        <div className="flex gap-2 border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-          <AlertCircle size={16} className="mt-0.5 shrink-0" />
-          <p>
-            <strong>Gate is currently off</strong> for {programName}. The
-            allowlist saves to the database but isn&apos;t enforced until the
-            program&apos;s <code className="font-mono text-[12px]">requireAllowlist</code> flag is flipped on in code.
-          </p>
+        <div className="flex gap-2 border-l-4 border-amber-400 bg-amber-50 p-4 text-sm text-amber-900">
+          <AlertCircle size={18} className="mt-0.5 shrink-0 text-amber-600" />
+          <div>
+            <p className="font-semibold">
+              Heads up — the gate is OFF for {programName}.
+            </p>
+            <p className="mt-1">
+              Anything you upload here is saved but isn&apos;t enforced.
+              Signups via <code className="font-mono text-[12px]">/join/{programName.toLowerCase().replace(/\s+/g, "-")}</code> will go through whether the email is on the list or not. If you meant to gate a different program, switch programs above.
+            </p>
+          </div>
         </div>
       )}
 

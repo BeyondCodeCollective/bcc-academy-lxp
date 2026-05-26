@@ -312,6 +312,11 @@ export const forteConfig: ProgramConfig = {
     },
   ],
   requireInviteLink: true,
+  // Lock signups to the curated allowlist. The team uploads CSVs at
+  // /dashboard/admin/allowlist?program=forte; anyone whose email isn't on
+  // the list gets a polite rejection from /join/forte. Existing students
+  // are unaffected — the gate only runs on first-time signup.
+  requireAllowlist: true,
   coppa: { required: false },
   seo: {
     title: "Upskill Bahamas — AI Literacy Program by Beyond Code Collective",
