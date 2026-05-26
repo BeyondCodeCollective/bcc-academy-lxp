@@ -11,6 +11,12 @@ import { BCC_INTAKE_SURVEY_ID, BCC_INTAKE_EXEMPT_PROGRAMS } from "@/lib/surveys/
 import { BCC_INTAKE_QUESTION_IDS } from "@/lib/surveys/schemas";
 import { SUPER_ADMIN_EMAILS, ADMIN_EMAILS, determineRole, isPrivilegedEmail, isStaffEmail } from "@/lib/auth/admins";
 
+// Magic-link landing. Pin to both regions so the click-to-dashboard
+// transition is fast for EU users — they hit the nearest Vercel
+// function instead of crossing the Atlantic to verify a token. Auto-
+// falls back to a single region on Hobby plans.
+export const preferredRegion = ["fra1", "iad1"];
+
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");

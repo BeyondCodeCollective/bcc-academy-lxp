@@ -6,6 +6,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { getJoinablePrograms } from "@/lib/programs";
 
+// Apex login page (and its sendLoginLink server action). Pin to both
+// regions so EU users hit Frankfurt instead of US-East. See /join page
+// for context on the perf tradeoff.
+export const preferredRegion = ["fra1", "iad1"];
+
 // Legacy program subdomains redirect to their own login at /.
 // With the Catalyst consolidation, all programs are under one roof —
 // but existing subdomains may still receive traffic.
