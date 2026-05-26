@@ -12,6 +12,11 @@ import { createServiceClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
+// Pin to both regions so when Vercel Cron fires from Frankfurt it warms
+// the EU function (and IAD when fired from US). Without this all warm
+// pings hit IAD regardless of the cron's origin region.
+export const preferredRegion = ["fra1", "iad1"];
+
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
   if (secret) {
