@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Check } from "@phosphor-icons/react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-// TODO: swap back to sendJoinLink (Resend) once mail.bccacademy.io is verified in Resend (Tuesday)
+import { sendJoinLink } from "./actions";
 
 export function JoinForm({
   programSlug,
@@ -38,23 +38,59 @@ export function JoinForm({
       document.cookie = `pending-join-track=${encodeURIComponent(trackSlug)}; path=/; max-age=${tenMinutes}; samesite=lax`;
     }
 
-    const callbackParams = new URLSearchParams({ join: programSlug });
-    if (trackSlug) callbackParams.set("track", trackSlug);
-    const callbackUrl = `${window.location.origin}/auth/callback?${callbackParams}`;
+    const trimmedEmail = email.trim().toLowerCase();
 
-    const supabase = createClient();
-    const { error: otpError } = await supabase.auth.signInWithOtp({
-      email: email.trim().toLowerCase(),
-      options: { emailRedirectTo: callbackUrl },
+    // Always run through the server action — it enforces the per-course
+    // allowlist BEFORE any magic link is minted. Bypassing it (calling
+    // signInWithOtp directly) lets unauthorised emails through, since
+    // Supabase will happily issue a link for any address.
+    const result = await sendJoinLink({
+      email: trimmedEmail,
+      programSlug,
+      trackSlug,
+      origin: window.location.origin,
     });
 
-    if (otpError) {
-      setError(otpError.message || "Something went wrong. Please try again.");
+    // Same "check your inbox" page for both success AND rejection — so the
+    // response doesn't reveal whether the email was actually on the list
+    // (prevents enumeration). Allowed signups get a real link; rejected
+    // ones get nothing, but the UX is identical.
+    if (result.ok || ("rejected" in result && result.rejected)) {
+      setSent(true);
       setLoading(false);
       return;
     }
 
-    setSent(true);
+    // Allowed by the gate but Resend can't deliver yet (DNS not verified)
+    // → fall back to Supabase's built-in OTP. Only reached when the
+    // allowlist check has already passed.
+    if ("fallback" in result && result.fallback) {
+      const callbackParams = new URLSearchParams({ join: programSlug });
+      if (trackSlug) callbackParams.set("track", trackSlug);
+      const callbackUrl = `${window.location.origin}/auth/callback?${callbackParams}`;
+
+      const supabase = createClient();
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email: trimmedEmail,
+        options: { emailRedirectTo: callbackUrl },
+      });
+
+      if (otpError) {
+        setError(otpError.message || "Something went wrong. Please try again.");
+        setLoading(false);
+        return;
+      }
+
+      setSent(true);
+      setLoading(false);
+      return;
+    }
+
+    setError(
+      "error" in result && result.error
+        ? result.error
+        : "Something went wrong. Please try again.",
+    );
     setLoading(false);
   }
 
@@ -66,8 +102,10 @@ export function JoinForm({
             Check your email.
           </h2>
           <p className="text-base text-white/70 md:text-lg">
-            We sent a sign-in link to{" "}
-            <span className="text-white">{email}</span>.
+            If <span className="text-white">{email}</span> is on the list
+            for this course, we just sent a sign-in link. If you don&rsquo;t
+            see it within a few minutes, check spam — or contact your
+            program coordinator.
           </p>
         </div>
         <button
