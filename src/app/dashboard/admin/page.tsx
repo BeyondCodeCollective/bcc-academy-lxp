@@ -106,6 +106,15 @@ export default async function AdminPage({
 
     if (!canAccessAdminPanel(userRole)) redirect("/dashboard");
 
+    // The cross-program Survey Insights tab is super-admin-only by content
+    // (renders nothing useful for a regular admin), so bounce non-super-admins
+    // off ?tab=insights entirely instead of showing them the "Insights are
+    // only available to super-admins" empty state. Per-track Surveys sub-tabs
+    // are the regular-admin surface for survey data.
+    if (effectiveTab === "insights" && !canSwitchPrograms(userRole)) {
+      redirect("/dashboard/admin");
+    }
+
     // No auto-redirect away from /dashboard/admin. The previous version
     // bounced super-admins to /dashboard/insights, which meant clicking
     // "Admin" in the sidebar appeared to do nothing whenever you were
