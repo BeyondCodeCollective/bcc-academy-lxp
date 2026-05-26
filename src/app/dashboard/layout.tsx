@@ -160,7 +160,12 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
   }
 
   const showTutor = isTutorAvailable(program);
-  const canAccessStaff = canAccessStaffContent(userRole, email);
+  // canAccessStaff gates the Workshops nav. Demote it in preview mode the
+  // same way isAdmin / canSwitch are — otherwise a super-admin previewing
+  // as an AI Literacy student still sees the Workshops link and the nav
+  // doesn't fully match what a real student would experience.
+  const canAccessStaff =
+    canAccessStaffContent(userRole, email) && !previewingSlug;
   const programs = canSwitch
     ? getAllPrograms().map((p) => ({
         slug: p.slug,
