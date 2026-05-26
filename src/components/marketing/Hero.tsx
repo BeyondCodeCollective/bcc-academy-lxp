@@ -58,7 +58,7 @@ export default function Hero() {
   };
 
   return (
-    <section ref={sectionRef} className="relative min-h-screen flex items-end overflow-hidden bg-true-black grain">
+    <section ref={sectionRef} className="relative min-h-[100dvh] flex items-end overflow-hidden bg-true-black grain">
       {/* Background video with parallax */}
       <motion.div className="absolute inset-0" style={{ y: videoY }}>
         <video
@@ -67,6 +67,7 @@ export default function Hero() {
           muted
           loop
           playsInline
+          poster="/images/bcc/community/community-01.jpg"
           className="absolute inset-0 w-full h-[120%] object-cover"
         >
           <source
@@ -86,7 +87,7 @@ export default function Hero() {
       {/* Video toggle */}
       <button
         onClick={toggleVideo}
-        className="absolute top-28 right-6 z-20 w-11 h-11 bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/20 transition-colors duration-300"
+        className="absolute top-36 md:top-28 right-6 z-20 w-11 h-11 bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/20 transition-colors duration-300"
         aria-label={videoPlaying ? "Pause video" : "Play video"}
       >
         {videoPlaying ? <Pause size={16} weight="bold" /> : <Play size={16} weight="bold" />}

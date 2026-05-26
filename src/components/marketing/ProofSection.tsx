@@ -20,7 +20,7 @@ export default function ProofSection() {
   return (
     <section id="proof" className="overflow-hidden">
       {/* Cinematic video block — full width, story moment */}
-      <div ref={sectionRef} className="relative min-h-[70vh] md:min-h-[80vh] flex items-center justify-center overflow-hidden">
+      <div ref={sectionRef} className="relative min-h-[70dvh] md:min-h-[80dvh] flex items-center justify-center overflow-hidden">
         <motion.div className="absolute inset-0" style={{ scale: videoScale }}>
           <VideoBackground
             src={VIDEO_URLS.proof}
@@ -135,43 +135,6 @@ export default function ProofSection() {
             })}
           </motion.div>
 
-          {/* Certification ticker */}
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={fadeInUp}
-            className="border-t-2 border-true-black/10 pt-10"
-          >
-            <p className="text-xs text-grey-3 font-mono uppercase tracking-[0.3em] text-center mb-6">
-              [ Industry-Recognized Certifications ]
-            </p>
-            <div className="overflow-hidden">
-              <div className="flex gap-8 animate-strip" style={{ width: "fit-content" }}>
-                {[
-                  "CompTIA",
-                  "Salesforce",
-                  "Google",
-                  "Microsoft",
-                  "Zapier",
-                  "IBM",
-                  "CompTIA",
-                  "Salesforce",
-                  "Google",
-                  "Microsoft",
-                  "Zapier",
-                  "IBM",
-                ].map((name, i) => (
-                  <span
-                    key={`${name}-${i}`}
-                    className="whitespace-nowrap font-display text-sm md:text-base font-bold text-grey-3/50 uppercase tracking-widest"
-                  >
-                    {name}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </motion.div>
         </div>
       </div>
     </section>

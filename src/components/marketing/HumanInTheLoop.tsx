@@ -47,7 +47,7 @@ export default function HumanInTheLoop() {
   return (
     <section ref={sectionRef} id="human-in-the-loop" className="bg-dark-cobalt grain overflow-hidden pt-20 md:pt-28">
       {/* Beat 1: The Differentiator — headline first, proof second */}
-      <div className="relative min-h-[90vh] flex flex-col items-center justify-center px-6 overflow-hidden">
+      <div className="relative min-h-[90dvh] flex flex-col items-center justify-center px-6 overflow-hidden">
         <motion.div
           initial="hidden"
           whileInView="visible"

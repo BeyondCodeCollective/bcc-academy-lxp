@@ -103,25 +103,32 @@ export async function GET(request: Request) {
     // who owns the link — not whoever was already logged in. If the token is
     // expired or already used (double-click, email-client pre-fetch), fall
     // back to the existing session silently rather than showing an error.
+    //
+    // Both exchangeCodeForSession and verifyOtp return the user in their
+    // response data, so we capture it directly and skip the separate
+    // supabase.auth.getUser() call that was previously mandatory. This saves
+    // one round-trip (~130ms from Portugal) on every login.
+    let authResult: { user: import("@supabase/supabase-js").User | null } | null = null;
     let authError = null;
+    const fallbackToExisting = async () => {
+      const { data: { user: fu } } = await supabase.auth.getUser();
+      if (fu) authResult = { user: fu };
+      return !!fu;
+    };
+
     if (code) {
-      const { error } = await supabase.auth.exchangeCodeForSession(code);
-      if (error) {
-        const { data: { user: fallbackUser } } = await supabase.auth.getUser();
-        if (!fallbackUser) authError = error;
-      }
+      const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+      if (error) { if (!(await fallbackToExisting())) authError = error; }
+      else { authResult = data; }
     } else if (token_hash && type) {
-      const { error } = await supabase.auth.verifyOtp({ token_hash, type });
-      if (error) {
-        const { data: { user: fallbackUser } } = await supabase.auth.getUser();
-        if (!fallbackUser) authError = error;
-      }
+      const { data, error } = await supabase.auth.verifyOtp({ token_hash, type });
+      if (error) { if (!(await fallbackToExisting())) authError = error; }
+      else { authResult = data; }
     }
 
-    if (!authError) {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+    const user = authResult?.user ?? null;
+
+    if (!authError && user) {
 
       if (user) {
         // Hosts that don't pin a program via URL (apex marketing host,
@@ -141,16 +148,33 @@ export async function GET(request: Request) {
           total_weeks: program.defaultCohort.totalWeeks,
         };
 
-        // Fetch program row and existing student row in parallel — they're
-        // independent queries but both needed before we can decide what to do.
-        const [programRes, studentRes] = await Promise.all([
+        // Fetch program row, existing student row, and survey completions
+        // in parallel — independent queries, all needed before we can decide
+        // where to route. Previously the intake and required-survey checks
+        // ran sequentially at the end, adding ~2 round-trips on every login.
+        const requiredSurvey = program.surveys?.find((s) => s.required);
+        const intakeSurveyTypes = [
+          BCC_INTAKE_SURVEY_ID,
+          ...(requiredSurvey ? [requiredSurvey.id] : []),
+        ].filter(Boolean);
+        const [programRes, studentRes, surveyCompletionsRes] = await Promise.all([
           admin.from("programs").select("id").eq("slug", program.slug).maybeSingle(),
           admin
             .from("students")
             .select("id, cohort_id, role, programs(slug)")
             .eq("id", user.id)
             .maybeSingle(),
+          // Batch intake + required survey completion checks into one query
+          // instead of two sequential .maybeSingle() calls at the end.
+          intakeSurveyTypes.length > 0
+            ? admin
+                .from("survey_responses")
+                .select("survey_type, completed_at")
+                .eq("student_id", user.id)
+                .in("survey_type", intakeSurveyTypes)
+            : Promise.resolve({ data: null as { survey_type: string; completed_at: string | null }[] | null }),
         ]);
+        const surveyCompletions = surveyCompletionsRes?.data ?? [];
 
         const programForCohort = programRes.data;
         const existing = studentRes.data;
@@ -334,14 +358,13 @@ export async function GET(request: Request) {
         }
 
         // Claim any public survey submissions that match this user's email.
-        // A user who took a public survey (e.g. forge.bccacademy.io's
-        // pre-survey) before signing up should not be forced to retake it
-        // when they later authenticate with the same email. Upsert with
-        // ignoreDuplicates so existing auth'd responses are never
-        // overwritten by older public ones. Idempotent — safe to run on
-        // every callback.
+        // Only runs on first signup (!existing) — returning users don't need
+        // their public responses re-claimed on every login. Running this on
+        // every callback was adding a public_survey_responses table scan on
+        // every login (~1 extra round-trip). Upsert with ignoreDuplicates
+        // so existing auth'd responses are never overwritten.
         const claimEmail = (user.email || "").toLowerCase();
-        if (claimEmail) {
+        if (!existing && claimEmail) {
           const { data: publicRows, error: publicQueryErr } = await admin
             .from("public_survey_responses")
             .select("program_id, survey_type, responses, completed_at")
@@ -415,59 +438,50 @@ export async function GET(request: Request) {
             }
           }
         }
-      }
+        // Check intake + required survey completions from the batched fetch
+        // above. Previously this was 2 sequential .maybeSingle() calls — now
+        // resolved from the in-memory surveyCompletions map.
+        const userEmailForIntake = (user.email || "").toLowerCase();
+        const isPrivilegedUser =
+          SUPER_ADMIN_EMAILS.includes(userEmailForIntake) ||
+          ADMIN_EMAILS.includes(userEmailForIntake);
+        const isStaff = isStaffEmail(userEmailForIntake);
+        const intakeComplete = surveyCompletions.find(
+          (r) => r.survey_type === BCC_INTAKE_SURVEY_ID,
+        )?.completed_at;
 
-      // BCC Learner Intake — platform-level required survey, fires before any program-specific
-      // survey. ATG students, privileged users (admins/super-admins), and
-      // internal staff (Lunch & Learns audience) are exempt.
-      const userEmailForIntake = (user!.email || "").toLowerCase();
-      const isPrivilegedUser =
-        SUPER_ADMIN_EMAILS.includes(userEmailForIntake) ||
-        ADMIN_EMAILS.includes(userEmailForIntake);
-      const isStaff = isStaffEmail(userEmailForIntake);
-      if (
-        !isPrivilegedUser &&
-        !isStaff &&
-        !BCC_INTAKE_EXEMPT_PROGRAMS.includes(program.slug)
-      ) {
-        const { data: intakeRow } = await admin
-          .from("survey_responses")
-          .select("completed_at")
-          .eq("student_id", user!.id)
-          .eq("survey_type", BCC_INTAKE_SURVEY_ID)
-          .maybeSingle();
-        if (!intakeRow?.completed_at) {
+        if (
+          !isPrivilegedUser &&
+          !isStaff &&
+          !BCC_INTAKE_EXEMPT_PROGRAMS.includes(program.slug) &&
+          !intakeComplete
+        ) {
           return redirectWithCookies(`${origin}/dashboard/survey/${BCC_INTAKE_SURVEY_ID}`);
         }
-      }
 
-      // If the program has a required survey, skip the dashboard and go straight to it.
-      // Privileged users (admins, super admins) and internal staff skip this gate.
-      const requiredSurvey = program.surveys?.find((s) => s.required);
-      if (requiredSurvey && !isPrivilegedUser && !isStaff) {
-        // Check if already completed
-        const { data: existing } = await admin
-          .from("survey_responses")
-          .select("completed_at")
-          .eq("student_id", user!.id)
-          .eq("survey_type", requiredSurvey.id)
-          .maybeSingle();
-        if (!existing?.completed_at) {
-          return redirectWithCookies(`${origin}/dashboard/survey/${requiredSurvey.id}`);
+        // If the program has a required survey, skip the dashboard and go straight to it.
+        // Privileged users (admins, super admins) and internal staff skip this gate.
+        if (requiredSurvey && !isPrivilegedUser && !isStaff) {
+          const requiredComplete = surveyCompletions.find(
+            (r) => r.survey_type === requiredSurvey.id,
+          )?.completed_at;
+          if (!requiredComplete) {
+            return redirectWithCookies(`${origin}/dashboard/survey/${requiredSurvey.id}`);
+          }
         }
-      }
 
-      // If they arrived via a track-specific invite (?track=<slug>), drop
-      // them on that track's overview page instead of the dashboard. Saves
-      // a click for single-track students — the dashboard grid would just
-      // show one card. Validate the slug to avoid open-redirect shenanigans.
-      if (trackParam && program.tracks.some((t) => t.slug === trackParam)) {
-        return redirectWithCookies(`${origin}/dashboard/track/${trackParam}`);
-      }
+        // If they arrived via a track-specific invite (?track=<slug>), drop
+        // them on that track's overview page instead of the dashboard. Saves
+        // a click for single-track students — the dashboard grid would just
+        // show one card. Validate the slug to avoid open-redirect shenanigans.
+        if (trackParam && program.tracks.some((t) => t.slug === trackParam)) {
+          return redirectWithCookies(`${origin}/dashboard/track/${trackParam}`);
+        }
 
-      return redirectWithCookies(`${origin}/dashboard`);
+        return redirectWithCookies(`${origin}/dashboard`);
+      }
     } else {
-      console.error("[auth/callback] auth error:", authError.message);
+      console.error("[auth/callback] auth error:", authError!.message);
     }
   }
 

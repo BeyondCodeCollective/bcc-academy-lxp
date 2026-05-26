@@ -51,14 +51,16 @@ export default async function AdminPage({
   // cross-track People tab is gone.
   const needsEngagement = isTrackTab;
   const needsSurveyStats = false;
-  // Home tab needs the student list too — its per-track count filters
-  // student_tracks rows by role=student, which requires the students table.
-  // Without this allStudents stays empty on home and every track card reads
-  // "0 students" regardless of how many enrolments exist.
-  const needsFullStudentList = isTrackTab || effectiveTab === "students" || effectiveTab === "student-work" || effectiveTab === "attendance" || effectiveTab === "home";
+  // Home tab only needs id+role for enrollment-count filtering; tabs that
+  // display student details need the full row. Similarly, student_tracks are
+  // fetched as full rows only for tabs that manage individual enrollments.
+  const needsStudents = isTrackTab || effectiveTab === "students" || effectiveTab === "student-work" || effectiveTab === "attendance" || effectiveTab === "home";
+  const needsStudentTracks = isTrackTab || effectiveTab === "students" || effectiveTab === "student-work" || effectiveTab === "attendance" || effectiveTab === "home";
+  const needsInstructorTracks = isTrackTab || effectiveTab === "students";
   const needsCohorts = isTrackTab || effectiveTab === "students";
   const needsLunchLearns = effectiveTab === "lunch-learn";
   const needsInsightsData = effectiveTab === "insights";
+  const isHomeTab = effectiveTab === "home";
   void needsSurveyStats; // kept as a named constant for the gated query below
   let allStudents: Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id">[] = [];
   let allCohorts: { id: string; name: string; display_name: string | null; start_date: string; total_weeks: number }[] = [];
@@ -163,12 +165,17 @@ export default async function AdminPage({
         alumniRes,
       ] = await Promise.all([
       Promise.all([
-        needsFullStudentList
-          ? svc
-              .from("students")
-              .select("id, first_name, last_name, email, role, cohort_id")
-              .in("program_id", programIds)
-              .order("created_at", { ascending: true })
+        needsStudents
+          ? isHomeTab
+              ? svc
+                  .from("students")
+                  .select("id, role")
+                  .in("program_id", programIds)
+              : svc
+                  .from("students")
+                  .select("id, first_name, last_name, email, role, cohort_id")
+                  .in("program_id", programIds)
+                  .order("created_at", { ascending: true })
           : Promise.resolve({ data: [] as Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id">[] }),
         needsCohorts
           ? svc
@@ -177,16 +184,25 @@ export default async function AdminPage({
               .in("program_id", programIds)
               .order("created_at", { ascending: true })
           : Promise.resolve({ data: [] as { id: string; name: string; display_name: string | null; start_date: string; total_weeks: number }[] }),
-        svc
-          .from("student_tracks")
-          .select("id, student_id, track_slug, program_id, created_at")
-          .in("program_id", programIds)
-          .order("created_at"),
-        svc
-          .from("instructor_tracks")
-          .select("id, student_id, track_slug, program_id, created_at")
-          .in("program_id", programIds)
-          .order("created_at"),
+        needsStudentTracks
+          ? isHomeTab
+              ? svc
+                  .from("student_tracks")
+                  .select("track_slug, student_id")
+                  .in("program_id", programIds)
+              : svc
+                  .from("student_tracks")
+                  .select("id, student_id, track_slug, program_id, created_at")
+                  .in("program_id", programIds)
+                  .order("created_at")
+          : Promise.resolve({ data: [] as StudentTrackRow[] }),
+        needsInstructorTracks
+          ? svc
+              .from("instructor_tracks")
+              .select("id, student_id, track_slug, program_id, created_at")
+              .in("program_id", programIds)
+              .order("created_at")
+          : Promise.resolve({ data: [] as InstructorTrackRow[] }),
         userRole === "instructor"
           ? svc
               .from("instructor_tracks")
@@ -234,7 +250,7 @@ export default async function AdminPage({
       myInstrTracksRes,
     ] = coreRes;
 
-    allStudents = studentsResult.data || [];
+    allStudents = (studentsResult.data ?? []) as Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id">[];
     allCohorts = cohortsResult.data || [];
     studentTracks = (studentTracksRes.data ?? []) as StudentTrackRow[];
     instructorTracks = (instructorTracksRes.data ?? []) as InstructorTrackRow[];
@@ -368,32 +384,45 @@ export default async function AdminPage({
     };
   });
 
-  // Serialize track configs for the client component
-  const allTracks = program.tracks.map((t) => ({
-    slug: t.slug,
-    name: t.name,
-    shortName: t.shortName,
-    description: t.description,
-    type: t.type,
-    totalWeeks: t.totalWeeks,
-    sessionsPerWeek: t.sessionsPerWeek,
-    instructor: t.instructor,
-    sessionTimes: t.sessionTimes,
-    startDate: t.startDate,
-    startDateTbd: t.startDateTbd,
-    lastSessionDayOffset: t.lastSessionDayOffset,
-    weekSummaries: t.weekSummaries,
-    defaultReflectionPrompts: t.defaultReflectionPrompts,
-    submissionsEnabled: t.submissionsEnabled,
-    reflectionsEnabled: t.reflectionsEnabled,
-    weeks: t.weeks.map((w) => ({
-      week: w.week,
-      title: w.title,
-      icon: w.icon,
-      sessions: w.sessions.map((s) => ({ title: s.title })),
-      submissionPrompts: w.submissionPrompts,
-    })),
-  }));
+  // Serialize track configs for the client component. Home/insights/lunch-learn
+  // tabs only show track cards (basic metadata + enrollment counts), not the
+  // week/session details. Skipping weeks for those tabs reduces serialized
+  // payload dramatically — ~200 weeks + ~400 sessions objects for a typical
+  // 5-track, 10-week, 2-session program.
+  const needsFullTrackConfig = isTrackTab || effectiveTab === "students" || effectiveTab === "student-work" || effectiveTab === "attendance";
+  const allTracks = program.tracks.map((t) => {
+    const base = {
+      slug: t.slug,
+      name: t.name,
+      shortName: t.shortName,
+      description: t.description,
+      type: t.type,
+      totalWeeks: t.totalWeeks,
+      sessionsPerWeek: t.sessionsPerWeek,
+      instructor: t.instructor,
+      sessionTimes: t.sessionTimes,
+      startDate: t.startDate,
+      startDateTbd: t.startDateTbd,
+      lastSessionDayOffset: t.lastSessionDayOffset,
+      weekSummaries: t.weekSummaries,
+      defaultReflectionPrompts: t.defaultReflectionPrompts,
+      submissionsEnabled: t.submissionsEnabled,
+      reflectionsEnabled: t.reflectionsEnabled,
+    };
+    if (needsFullTrackConfig) {
+      return {
+        ...base,
+        weeks: t.weeks.map((w) => ({
+          week: w.week,
+          title: w.title,
+          icon: w.icon,
+          sessions: w.sessions.map((s) => ({ title: s.title })),
+          submissionPrompts: w.submissionPrompts,
+        })),
+      };
+    }
+    return { ...base, weeks: [] };
+  });
 
   // Instructors only see their assigned tracks
   const tracks = userRole === "instructor" && myInstructorTracks.length > 0
