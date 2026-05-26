@@ -44,7 +44,7 @@ export const forteConfig: ProgramConfig = {
       name: "AI Literacy",
       shortName: "AI Literacy",
       description:
-        "Welcome to Foundations of AI and Digital Literacy Program.\n\nYou're in the right place. This portal is your home base for the full program: 10 self-paced sessions designed to build real, practical AI and digital skills you can apply immediately, wherever you work and whatever you're building toward.\n\nHere, you'll find session videos, guided activities, and submission instructions for each module. Whether you're starting fresh today or picking up where you left off, the complete course is here and ready for you.\n\nA few things to know before you begin. For the AI activities, you can use whichever tool you're most comfortable with — ChatGPT, Gemini, Claude, or any other AI assistant. The free version of any of these is all you need to complete every activity in this program. To keep track of your work as you go, we recommend saving your notes and submissions somewhere you can easily access them (Google Drive, Notion, Notes app, a Word doc), whatever works best for you. The habit of keeping your activities organized will serve you well beyond this course.\n\nWe're glad you're here. Let's get to work.",
+        "Ten self-paced sessions to build real, practical AI and digital skills you can use right away — at work, in school, or on your own projects. Each week comes with guided activities and a short written deliverable.\n\nUse whatever AI tool you like — ChatGPT, Gemini, Claude. Free versions cover everything. Keep your notes wherever works for you.",
       officeHours: [
         {
           date: "2026-06-08",
