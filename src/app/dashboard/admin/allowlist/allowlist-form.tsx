@@ -8,12 +8,10 @@ export function AllowlistForm({
   programSlug,
   programName,
   initialEmails,
-  requireAllowlist,
 }: {
   programSlug: string;
   programName: string;
   initialEmails: string[];
-  requireAllowlist: boolean;
 }) {
   const [value, setValue] = useState(initialEmails.join("\n"));
   const [status, setStatus] = useState<
@@ -43,22 +41,41 @@ export function AllowlistForm({
     });
   }
 
+  const savedCount = value
+    .split(/\r?\n/)
+    .filter((l) => l.trim().length > 0).length;
+  const gateActive = savedCount > 0;
+
   return (
     <div className="space-y-4">
-      {!requireAllowlist && (
-        <div className="flex gap-2 border-l-4 border-amber-400 bg-amber-50 p-4 text-sm text-amber-900">
-          <AlertCircle size={18} className="mt-0.5 shrink-0 text-amber-600" />
-          <div>
-            <p className="font-semibold">
-              Heads up — the gate is OFF for {programName}.
-            </p>
-            <p className="mt-1">
-              Anything you upload here is saved but isn&apos;t enforced.
-              Signups via <code className="font-mono text-[12px]">/join/{programName.toLowerCase().replace(/\s+/g, "-")}</code> will go through whether the email is on the list or not. If you meant to gate a different program, switch programs above.
-            </p>
-          </div>
-        </div>
-      )}
+      <div
+        className={`flex gap-2 border-l-4 p-4 text-sm ${
+          gateActive
+            ? "border-emerald-400 bg-emerald-50 text-emerald-900"
+            : "border-neutral-300 bg-neutral-50 text-neutral-700"
+        }`}
+      >
+        <span
+          aria-hidden
+          className={`mt-0.5 h-3 w-3 shrink-0 rounded-full ${
+            gateActive ? "bg-emerald-500" : "bg-neutral-400"
+          }`}
+        />
+        <p>
+          {gateActive ? (
+            <>
+              <strong>{savedCount} email{savedCount === 1 ? "" : "s"}</strong>{" "}
+              on the {programName} list — only these addresses can sign up
+              via /join/{programSlug}.
+            </>
+          ) : (
+            <>
+              The {programName} list is empty, so the gate is off — anyone
+              can sign up. Add emails below to turn it on.
+            </>
+          )}
+        </p>
+      </div>
 
       <div>
         <label
