@@ -21,6 +21,15 @@ export type SessionContext = {
   student: SessionStudent | null;
 };
 
+/**
+ * Cross-request TTL cache so the dashboard layout skips the students table
+ * query on every navigation. The student profile (name, role, avatar) barely
+ * changes within a session; a 60s window of staleness is acceptable for a
+ * dramatically faster click-through experience.
+ */
+const _profileStore = new Map<string, { data: SessionContext; ts: number }>();
+const _PROFILE_TTL = 60_000;
+
 // Deduped across a single request via React `cache`, so the dashboard layout
 // and dashboard page share one round-trip instead of each fetching session +
 // student independently.
@@ -31,6 +40,13 @@ export const getSessionContext = cache(async (): Promise<SessionContext | null> 
   } = await supabase.auth.getSession();
   if (!session?.user) return null;
 
+  // Check cross-request cache before hitting the students table.
+  const userId = session.user.id;
+  const cached = _profileStore.get(userId);
+  if (cached && Date.now() - cached.ts < _PROFILE_TTL) {
+    return cached.data;
+  }
+
   const { data: student } = await supabase
     .from("students")
     .select(
@@ -39,9 +55,11 @@ export const getSessionContext = cache(async (): Promise<SessionContext | null> 
     .eq("id", session.user.id)
     .maybeSingle<SessionStudent>();
 
-  return {
+  const result = {
     userId: session.user.id,
     userEmail: session.user.email ?? null,
     student: student ?? null,
   };
+  _profileStore.set(userId, { data: result, ts: Date.now() });
+  return result;
 });

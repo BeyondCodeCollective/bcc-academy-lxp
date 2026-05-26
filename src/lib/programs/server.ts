@@ -75,14 +75,28 @@ type TrackOverrideRow = {
 };
 
 /**
+ * Cross-request TTL cache so the dashboard layout skips Supabase on every
+ * navigation. track_overrides change infrequently (admins editing track meta),
+ * so a 60s TTL eliminates 2 DB round-trips per page click.
+ */
+const _overrideStore = new Map<string, { data: Map<string, TrackOverrideRow>; ts: number }>();
+const _OVERRIDE_TTL = 60_000;
+
+/**
  * Merge `track_overrides` from DB onto the static program config. Field-by-
  * field null-fallback: any non-null DB value wins; null = use TS default.
  * Same semantics as `resolveSessionContent` (src/lib/session-content.ts:42).
  *
- * Cached per-request so layout + page + admin share one DB roundtrip.
+ * Cached per-request via React.cache (layout + page share one roundtrip)
+ * AND cross-request via module-level TTL cache (navigation re-renders skip
+ * Supabase entirely for up to 60 seconds).
  */
 const fetchOverrides = cache(
   async (programSlug: string): Promise<Map<string, TrackOverrideRow>> => {
+    const cached = _overrideStore.get(programSlug);
+    if (cached && Date.now() - cached.ts < _OVERRIDE_TTL) {
+      return cached.data;
+    }
     try {
       const svc = createServiceClient();
       const { data: programRow } = await svc
@@ -101,6 +115,7 @@ const fetchOverrides = cache(
       for (const row of data ?? []) {
         map.set((row as TrackOverrideRow).track_slug, row as TrackOverrideRow);
       }
+      _overrideStore.set(programSlug, { data: map, ts: Date.now() });
       return map;
     } catch (err) {
       // Don't take down the app if the table is missing (e.g. migration

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { CaretUpDown, SignOut, Check } from "@phosphor-icons/react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -33,6 +34,7 @@ export function UserMenu({
   currentProgramSlug: string;
   variant?: Variant;
 }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -78,8 +80,7 @@ export function UserMenu({
       window.location.href = `https://${target.domain}/dashboard`;
     } else {
       document.cookie = `program-override=${slug}; path=/; max-age=86400`;
-      // Land on the program's home so the new context is obvious.
-      window.location.href = "/dashboard";
+      router.push("/dashboard");
     }
   };
   /* eslint-enable react-hooks/immutability */
