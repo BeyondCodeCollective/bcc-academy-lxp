@@ -5,12 +5,12 @@ import { CheckCircle, AlertCircle, Upload, Loader2 } from "lucide-react";
 import { replaceAllowedEmails, parseEmailList } from "./actions";
 
 export function AllowlistForm({
-  programSlug,
-  programName,
+  trackSlug,
+  trackName,
   initialEmails,
 }: {
-  programSlug: string;
-  programName: string;
+  trackSlug: string;
+  trackName: string;
   initialEmails: string[];
 }) {
   const [value, setValue] = useState(initialEmails.join("\n"));
@@ -32,7 +32,7 @@ export function AllowlistForm({
   function handleSave() {
     setStatus({ kind: "idle" });
     startTransition(async () => {
-      const result = await replaceAllowedEmails(programSlug, value);
+      const result = await replaceAllowedEmails(trackSlug, value);
       if (result.ok) {
         setStatus({ kind: "ok", count: result.count });
       } else {
@@ -65,13 +65,13 @@ export function AllowlistForm({
           {gateActive ? (
             <>
               <strong>{savedCount} email{savedCount === 1 ? "" : "s"}</strong>{" "}
-              on the {programName} list — only these addresses can sign up
-              via /join/{programSlug}.
+              on the {trackName} list — only these addresses can sign up to{" "}
+              {trackName}.
             </>
           ) : (
             <>
-              The {programName} list is empty, so the gate is off — anyone
-              can sign up. Add emails below to turn it on.
+              The {trackName} list is empty, so the gate is off — anyone
+              can sign up to {trackName}. Add emails below to turn it on.
             </>
           )}
         </p>
