@@ -85,10 +85,10 @@ export default function HubsSection() {
                   </p>
                   {isActive && (
                     <a
-                      href="/#programs"
+                      href="#waitlist"
                       className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-cobalt hover:text-dark-cobalt transition-colors"
                     >
-                      View programs at Beyond Code Centers
+                      Join the waitlist
                       <ArrowRight size={12} weight="bold" />
                     </a>
                   )}
