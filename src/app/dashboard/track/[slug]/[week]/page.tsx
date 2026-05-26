@@ -32,6 +32,43 @@ export default async function TrackWeekPage({
   const weekContent = track.weeks.find((w) => w.week === weekNum);
   if (!weekContent) redirect("/dashboard");
 
+  // Coming-soon guard. If the week has a `comingSoonUntil` date still in the
+  // future, render a placeholder regardless of how the student got here —
+  // direct URL, link, etc. The overview grid renders these cells as
+  // non-clickable, but this catches anyone who hits the URL directly.
+  if (weekContent.comingSoonUntil) {
+    const unlockDate = new Date(weekContent.comingSoonUntil);
+    if (new Date() < unlockDate) {
+      const dateLabel = unlockDate.toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      });
+      return (
+        <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8">
+          <Link
+            href={`/dashboard/track/${trackSlug}`}
+            className="mb-6 inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-neutral-900 transition-colors py-2"
+          >
+            <ArrowLeft size={16} />
+            Back to {track.shortName}
+          </Link>
+          <div className="border border-neutral-200 bg-neutral-50 p-8 text-center">
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-400 mb-2">
+              Week {weekContent.week}
+            </p>
+            <h1 className="text-2xl font-bold tracking-tight text-neutral-900 sm:text-3xl">
+              {weekContent.title}
+            </h1>
+            <p className="mt-4 text-base text-neutral-600">
+              This session opens on <strong>{dateLabel}</strong>.
+            </p>
+          </div>
+        </div>
+      );
+    }
+  }
+
   // Evaluate track gates. Each gate declares a condition that must be met
   // before the student can view content. We stop at the first unmet gate.
   const gates = track.gates ?? (

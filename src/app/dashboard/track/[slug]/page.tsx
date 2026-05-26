@@ -100,6 +100,41 @@ export default async function TrackOverviewPage({
             {track.weekSummaries.map((ws) => {
               const isCurrent = started && ws.week === currentWeek;
               const isPast = started && ws.week < currentWeek;
+              // Locked: week has a `comingSoonUntil` date still in the future.
+              // Render a non-clickable greyed cell with the unlock-date label
+              // instead of the topic so the student sees when it opens.
+              const weekConfig = track.weeks.find((w) => w.week === ws.week);
+              const comingSoonUntil = weekConfig?.comingSoonUntil;
+              const isLocked =
+                !!comingSoonUntil && now < new Date(comingSoonUntil);
+              const lockedLabel = isLocked
+                ? new Date(comingSoonUntil!).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                  })
+                : null;
+
+              if (isLocked) {
+                return (
+                  <li key={ws.week}>
+                    <div
+                      aria-label={`Week ${ws.week}: ${ws.topic} (coming ${lockedLabel})`}
+                      className="flex aspect-square cursor-not-allowed flex-col items-center justify-center bg-white/40 p-2 backdrop-blur sm:p-2.5"
+                    >
+                      <span className="text-2xl leading-none opacity-30 sm:text-3xl">
+                        {ws.icon}
+                      </span>
+                      <span className="mt-1.5 line-clamp-2 px-1 text-center text-[10px] font-medium leading-tight text-neutral-400 sm:text-[11px]">
+                        {ws.topic}
+                      </span>
+                      <span className="mt-1 px-1 text-center text-[9px] font-semibold uppercase tracking-wide text-neutral-500 sm:text-[10px]">
+                        Coming {lockedLabel}
+                      </span>
+                    </div>
+                  </li>
+                );
+              }
+
               return (
                 <li key={ws.week}>
                   <Link
