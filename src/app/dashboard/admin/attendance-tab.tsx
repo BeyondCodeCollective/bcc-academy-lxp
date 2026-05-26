@@ -457,6 +457,27 @@ function OverviewPanel({
     return null;
   }
 
+  // Nothing-to-report state. The editorial summary literally read
+  // "0 students across 0 active tracks. Overall attendance 100% across 0
+  // expected sessions." for tracks that hadn't started yet (AI Literacy,
+  // Network+, etc) — technically correct, completely useless. Replace
+  // it with a clear empty state when there's no usable data: no tracks
+  // started, no records anywhere, and no students to report on.
+  const nothingToShow =
+    startedTracks.length === 0 &&
+    records.length === 0 &&
+    summaries.every((s) => s.expected === 0);
+  if (nothingToShow) {
+    return (
+      <div className="border border-rule bg-surface-elevated p-6 text-center">
+        <p className="text-sm text-ink-soft max-w-[40ch] mx-auto">
+          No attendance to show yet. This will fill in once a session
+          starts and someone marks attendance.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Editorial summary — facts in prose. */}
