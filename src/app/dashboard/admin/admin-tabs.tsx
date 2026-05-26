@@ -470,7 +470,9 @@ export function AdminTabs({
 
   const [students, setStudents] = useState(initialStudents);
   const [expandedWeek, setExpandedWeek] = useState<number | null>(null);
-  const [trackView, setTrackView] = useState<"overview" | "curriculum" | "student-work" | "insights">("overview");
+  const [trackView, setTrackView] = useState<
+    "overview" | "curriculum" | "student-work" | "attendance" | "surveys"
+  >("overview");
   const [studentSaving, setStudentSaving] = useState<string | null>(null);
 
   // Track data: keyed by track slug
@@ -996,7 +998,8 @@ export function AdminTabs({
               { id: "overview" as const, label: "Overview" },
               { id: "curriculum" as const, label: "Curriculum" },
               { id: "student-work" as const, label: "Student Work" },
-              { id: "insights" as const, label: "Insights" },
+              { id: "attendance" as const, label: "Attendance" },
+              { id: "surveys" as const, label: "Surveys" },
             ].map((v) => (
               <button
                 key={v.id}
@@ -1190,20 +1193,28 @@ export function AdminTabs({
             <StudentWorkTab tracks={[activeTrack]} programSlug={programSlug} />
           )}
 
-          {/* Insights sub-view — scoped to this track. Surveys, reflections,
-             and any track-specific public surveys. Attendance lives on the
-             cross-track Attendance tab and is no longer embedded here —
-             the embedded panel rendered null while its data fetched and
-             then expanded into the full view, causing a visible jump on
-             every load. Admins still mark attendance from the top-level
-             Attendance tab. */}
-          {trackView === "insights" && (
+          {/* Attendance sub-view — scoped to this track. Standalone now, so
+             the data-fetch flash that used to disrupt the combined Insights
+             page only affects this one tab. */}
+          {trackView === "attendance" && (
+            <AttendanceTab
+              students={trackStudents.filter((s) => s.role === "student")}
+              tracks={[activeTrack]}
+              scopeLabel={activeTrack.shortName}
+            />
+          )}
+
+          {/* Surveys sub-view — scoped to this track. Pre/Post auth-survey
+             counts for enrolled students AND any track-specific public
+             surveys (e.g. Network+ End-of-Cohort). Reflections-by-week
+             panel was removed: only ATG/Forge tracks use weekly reflections
+             today, and the empty grid added noise on every other track. */}
+          {trackView === "surveys" && (
             <div className="space-y-8">
               <TrackInsightsSection
                 trackSlug={activeTrack.slug}
                 trackShortName={activeTrack.shortName}
                 programSlug={programSlug}
-                totalWeeks={activeTrack.totalWeeks}
                 enrolledStudentCount={trackStudentIds?.size ?? 0}
                 surveyConfigs={surveyConfigs}
                 trackPublicSurveys={trackPublicSurveys}

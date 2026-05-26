@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { DownloadSimple } from "@phosphor-icons/react";
-import { getAllReflections, getTrackSurveyResponses, exportPublicSurveyResponsesByType } from "@/app/dashboard/admin/actions";
+import { getTrackSurveyResponses, exportPublicSurveyResponsesByType } from "@/app/dashboard/admin/actions";
 
 type SurveyConfig = { id: string; title: string };
 
@@ -10,7 +10,6 @@ type Props = {
   trackSlug: string;
   trackShortName: string;
   programSlug: string;
-  totalWeeks: number;
   enrolledStudentCount: number;
   surveyConfigs: SurveyConfig[];
   /**
@@ -19,11 +18,6 @@ type Props = {
    * the full responses on click. Empty array = no public surveys for this track.
    */
   trackPublicSurveys?: { id: string; title: string; count: number }[];
-};
-
-type ReflectionWeek = {
-  week: number;
-  count: number;
 };
 
 type SurveyCount = {
@@ -37,7 +31,6 @@ export function TrackInsightsSection({
   trackSlug,
   trackShortName,
   programSlug,
-  totalWeeks,
   enrolledStudentCount,
   surveyConfigs,
   trackPublicSurveys = [],
@@ -82,7 +75,6 @@ export function TrackInsightsSection({
       setExporting(null);
     }
   }
-  const [reflectionsByWeek, setReflectionsByWeek] = useState<ReflectionWeek[] | null>(null);
   const [surveyCounts, setSurveyCounts] = useState<SurveyCount[] | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -99,22 +91,10 @@ export function TrackInsightsSection({
     async function load() {
       setLoading(true);
       try {
-        const [reflections, ...responses] = await Promise.all([
-          getAllReflections(programSlug, trackSlug),
-          ...surveyConfigs.map((s) => getTrackSurveyResponses(s.id, trackSlug)),
-        ]);
+        const responses = await Promise.all(
+          surveyConfigs.map((s) => getTrackSurveyResponses(s.id, trackSlug)),
+        );
         if (cancelled) return;
-
-        const byWeek = new Map<number, number>();
-        for (const r of reflections) {
-          byWeek.set(r.week_number, (byWeek.get(r.week_number) ?? 0) + 1);
-        }
-        const weekRows: ReflectionWeek[] = [];
-        for (let w = 1; w <= totalWeeks; w++) {
-          weekRows.push({ week: w, count: byWeek.get(w) ?? 0 });
-        }
-        setReflectionsByWeek(weekRows);
-
         setSurveyCounts(
           surveyConfigs.map((s, i) => {
             const rows = responses[i] ?? [];
@@ -141,66 +121,18 @@ export function TrackInsightsSection({
     // surveyKey (not surveyConfigs) keeps this stable across renders that
     // re-pass a structurally-identical array with a new reference.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [programSlug, trackSlug, totalWeeks, surveyKey]);
+  }, [programSlug, trackSlug, surveyKey]);
 
   return (
     <section className="space-y-6">
       <div>
         <h3 className="text-base font-semibold text-neutral-900">
-          Surveys &amp; reflections
+          Surveys
         </h3>
         <p className="text-xs text-neutral-500 mt-0.5">
           Scoped to {enrolledStudentCount} student
           {enrolledStudentCount === 1 ? "" : "s"} enrolled in {trackShortName}.
         </p>
-      </div>
-
-      {/* Reflections per week. Always render the grid (one tile per week,
-         even empty) so the layout doesn't shift between loading and
-         loaded states or between empty and non-empty data. The previous
-         3-branch render (skeleton / empty text / grid) caused a visible
-         jump on the per-track Insights view: the 80px skeleton or the
-         short empty-state paragraph would collapse/expand into a
-         different-height grid the moment the fetch resolved. */}
-      <div className="border border-rule bg-surface-elevated p-5">
-        <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400 mb-4">
-          Reflections by week
-        </p>
-        <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
-          {Array.from({ length: totalWeeks }, (_, i) => {
-            const week = i + 1;
-            const data = reflectionsByWeek?.find((w) => w.week === week);
-            const count = data?.count ?? 0;
-            const pct =
-              data && enrolledStudentCount > 0
-                ? Math.round((data.count / enrolledStudentCount) * 100)
-                : 0;
-            return (
-              <div
-                key={week}
-                className="flex flex-col items-center border border-neutral-100 bg-neutral-50 p-3 text-center"
-              >
-                <p className="text-[10px] font-medium uppercase tracking-wider text-neutral-400">
-                  Wk {week}
-                </p>
-                <p
-                  className={`mt-1 text-lg font-semibold tabular-nums ${
-                    loading || reflectionsByWeek === null
-                      ? "text-neutral-300"
-                      : "text-neutral-900"
-                  }`}
-                >
-                  {loading || reflectionsByWeek === null ? "—" : count}
-                </p>
-                {enrolledStudentCount > 0 && (
-                  <p className="text-[10px] text-neutral-400 tabular-nums">
-                    {loading || reflectionsByWeek === null ? "" : `${pct}%`}
-                  </p>
-                )}
-              </div>
-            );
-          })}
-        </div>
       </div>
 
       {/* Auth-survey response counts. Hide surveys with zero responses
