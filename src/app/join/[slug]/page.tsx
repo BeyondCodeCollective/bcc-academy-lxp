@@ -64,7 +64,11 @@ export default async function JoinPage({
             <div className="grid gap-12 md:grid-cols-[1.1fr_1fr] md:items-start">
               {/* Track hero — left column */}
               <div>
-                <p className="mb-2 text-xs font-mono uppercase tracking-[0.3em] text-[#E5F701]">
+                {/* whitespace-nowrap stops the closing bracket from
+                   falling to a second line on narrow phones; tighter
+                   tracking on mobile keeps the line fitting at 375px
+                   without forcing horizontal scroll. */}
+                <p className="mb-2 whitespace-nowrap text-[10px] font-mono uppercase tracking-[0.18em] text-[#E5F701] sm:text-xs sm:tracking-[0.3em]">
                   [ Join Track · {trackLabelProgram.name} ]
                 </p>
                 <h1 className="mb-3 text-3xl font-bold uppercase leading-[0.95] tracking-tight text-white md:text-5xl font-display">
