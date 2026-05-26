@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { DownloadSimple } from "@phosphor-icons/react";
 import { getAllReflections, getTrackSurveyResponses, exportPublicSurveyResponsesByType } from "@/app/dashboard/admin/actions";
 
@@ -146,22 +145,14 @@ export function TrackInsightsSection({
 
   return (
     <section className="space-y-6">
-      <div className="flex items-baseline justify-between gap-4">
-        <div>
-          <h3 className="text-base font-semibold text-neutral-900">
-            Surveys &amp; reflections
-          </h3>
-          <p className="text-xs text-neutral-500 mt-0.5">
-            Scoped to {enrolledStudentCount} student
-            {enrolledStudentCount === 1 ? "" : "s"} enrolled in {trackShortName}.
-          </p>
-        </div>
-        <Link
-          href="/dashboard/admin?tab=insights"
-          className="text-xs text-neutral-500 hover:text-neutral-900 transition-colors whitespace-nowrap"
-        >
-          Cross-program insights &rarr;
-        </Link>
+      <div>
+        <h3 className="text-base font-semibold text-neutral-900">
+          Surveys &amp; reflections
+        </h3>
+        <p className="text-xs text-neutral-500 mt-0.5">
+          Scoped to {enrolledStudentCount} student
+          {enrolledStudentCount === 1 ? "" : "s"} enrolled in {trackShortName}.
+        </p>
       </div>
 
       {/* Reflections per week */}
