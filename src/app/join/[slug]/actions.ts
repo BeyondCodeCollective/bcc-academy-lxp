@@ -4,6 +4,26 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { getProgramBySlug } from "@/lib/programs";
 import { sendSignInEmail } from "@/lib/email";
 
+// Result shape for join attempts:
+//   ok            — allowlist check passed AND a magic-link email was sent
+//                   via Resend. Show the generic "check your inbox" page.
+//   rejected      — allowlist check failed. No magic link minted, no email
+//                   sent. The CLIENT should still show the same generic
+//                   "check your inbox" message to avoid revealing which
+//                   addresses are on the list (no enumeration).
+//   fallback      — allowlist check passed, but Resend isn't configured /
+//                   the FROM domain isn't verified yet. The CLIENT should
+//                   retry via supabase.auth.signInWithOtp so the magic
+//                   link still goes out via Supabase's built-in SMTP. The
+//                   gate has already run, so this fallback is safe — only
+//                   allowlisted emails reach this branch.
+//   error         — unexpected failure (DB error, etc). Surface to user.
+export type JoinResult =
+  | { ok: true }
+  | { ok: false; rejected: true }
+  | { ok: false; fallback: true }
+  | { ok: false; error: string };
+
 export async function sendJoinLink({
   email,
   programSlug,
@@ -14,7 +34,7 @@ export async function sendJoinLink({
   programSlug: string;
   trackSlug: string | null;
   origin: string;
-}): Promise<{ ok: boolean; error?: string }> {
+}): Promise<JoinResult> {
   const program = getProgramBySlug(programSlug);
   const normalised = email.trim().toLowerCase();
 
@@ -54,13 +74,20 @@ export async function sendJoinLink({
           programSlug,
           trackSlug,
         });
-        return {
-          ok: false,
-          error:
-            "We don't have that email on file. If you should be on the list, contact your program coordinator.",
-        };
+        return { ok: false, rejected: true };
       }
     }
+  }
+
+  // Allowlist passed. Now mint the magic link.
+  //
+  // Resend path is gated behind LOGIN_VIA_RESEND (same env flag that
+  // controls the apex login). When it's off — current state, since
+  // mail.bccacademy.io isn't DNS-verified yet — we hand back a fallback
+  // signal so the client retries via supabase.auth.signInWithOtp. The
+  // gate above has already run, so the fallback is safe.
+  if (process.env.LOGIN_VIA_RESEND !== "true") {
+    return { ok: false, fallback: true };
   }
 
   const callbackParams = new URLSearchParams({ join: programSlug });
@@ -76,7 +103,7 @@ export async function sendJoinLink({
 
   if (error || !data?.properties?.action_link) {
     console.error("[join] generateLink failed:", error);
-    return { ok: false, error: "Couldn't send the link. Please try again." };
+    return { ok: false, fallback: true };
   }
 
   try {
@@ -85,10 +112,9 @@ export async function sendJoinLink({
       magicLink: data.properties.action_link,
       programName: program.name,
     });
+    return { ok: true };
   } catch (emailErr) {
-    console.error("[join] sendSignInEmail failed:", emailErr);
-    return { ok: false, error: "Couldn't send the link. Please try again." };
+    console.error("[join] sendSignInEmail failed, falling back to OTP:", emailErr);
+    return { ok: false, fallback: true };
   }
-
-  return { ok: true };
 }
