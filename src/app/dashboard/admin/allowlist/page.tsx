@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { getSessionContext } from "@/lib/auth/session";
 import { canAccessAdminPanel } from "@/lib/roles";
-import { getAllPrograms } from "@/lib/programs";
+import { getProgramBySlug } from "@/lib/programs";
 import { getAllowedEmails } from "./actions";
 import { AllowlistForm } from "./allowlist-form";
 import { TrackPicker } from "./track-picker";
@@ -22,46 +22,57 @@ export default async function AllowlistAdminPage({
 
   const { track: trackParam } = await searchParams;
 
-  // Build the full list of selectable tracks, grouped by program. Catalyst
-  // is a view of the underlying programs' tracks (atg/forge/forte +
-  // additionalTracks), so we'd see most tracks twice if we walked it. Skip
-  // it and walk the source programs instead.
-  const programs = getAllPrograms().filter(
-    (p) => p.slug !== "marketing" && p.slug !== "catalyst",
-  );
-  type Option = {
-    slug: string;
-    name: string;
-    programSlug: string;
-    programName: string;
-  };
+  // Catalyst is the umbrella program — its track list aggregates every
+  // course we offer (ATG, BCC Centers / Forge, Upskill Bahamas / Forte,
+  // plus additionalTracks). Walking Catalyst gives every track exactly
+  // once, with each track's `phase` field telling us which bucket it
+  // belongs to. We use phase for grouping in the dropdown (Foundation /
+  // Core / Workshop / Exit / Other) — much closer to the team's mental
+  // model than the underlying program names, which mostly read like
+  // legacy plumbing.
+  const catalyst = getProgramBySlug("catalyst");
+  type Option = { slug: string; name: string; phase: string };
   const seen = new Set<string>();
   const options: Option[] = [];
-  for (const p of programs) {
-    for (const t of p.tracks) {
-      if (seen.has(t.slug)) continue;
-      seen.add(t.slug);
-      options.push({
-        slug: t.slug,
-        name: t.shortName || t.name,
-        programSlug: p.slug,
-        programName: p.name,
-      });
-    }
+  for (const t of catalyst.tracks) {
+    if (seen.has(t.slug)) continue;
+    seen.add(t.slug);
+    options.push({
+      slug: t.slug,
+      name: t.shortName || t.name,
+      phase: t.phase ?? "other",
+    });
   }
-  const groupedByProgram = new Map<string, Option[]>();
+
+  const PHASE_LABELS: Record<string, string> = {
+    foundation: "Foundation",
+    core: "Core",
+    workshop: "Workshops",
+    exit: "Exit",
+    other: "Other",
+  };
+  const PHASE_ORDER = ["foundation", "core", "workshop", "exit", "other"];
+  const groupedByPhase = new Map<string, Option[]>();
   for (const o of options) {
-    const arr = groupedByProgram.get(o.programName) ?? [];
+    const arr = groupedByPhase.get(o.phase) ?? [];
     arr.push(o);
-    groupedByProgram.set(o.programName, arr);
+    groupedByPhase.set(o.phase, arr);
   }
+  const orderedGroups = PHASE_ORDER
+    .filter((key) => groupedByPhase.has(key))
+    .map((key) => ({
+      label: PHASE_LABELS[key] ?? key,
+      options: (groupedByPhase.get(key) ?? []).map((o) => ({
+        slug: o.slug,
+        name: o.name,
+      })),
+    }));
 
   const selectedSlug =
     options.find((o) => o.slug === trackParam)?.slug ??
     options[0]?.slug ??
     "ai-literacy";
-  const selectedOption =
-    options.find((o) => o.slug === selectedSlug) ?? options[0];
+  const selectedOption = options.find((o) => o.slug === selectedSlug);
 
   const { emails } = await getAllowedEmails(selectedSlug);
 
@@ -86,10 +97,9 @@ export default async function AllowlistAdminPage({
           Each course has its own allowlist. Pick the course, paste emails or
           upload a CSV. If the list has any entries, only those addresses can
           sign up via{" "}
-          <code className="font-mono text-[12px] bg-neutral-100 px-1 py-0.5">
-            /join/{selectedOption?.programSlug}?track={selectedSlug}
-          </code>
-          . If you clear it (save with an empty list), the gate turns off and
+          the course-specific join link for{" "}
+          <strong>{selectedOption?.name ?? selectedSlug}</strong>. If you
+          clear it (save with an empty list), the gate turns off and
           anyone can sign up to that course again. Existing students are
           unaffected.
         </p>
@@ -102,15 +112,7 @@ export default async function AllowlistAdminPage({
         >
           Course
         </label>
-        <TrackPicker
-          selectedSlug={selectedSlug}
-          groups={Array.from(groupedByProgram.entries()).map(
-            ([programName, opts]) => ({
-              programName,
-              options: opts.map((o) => ({ slug: o.slug, name: o.name })),
-            }),
-          )}
-        />
+        <TrackPicker selectedSlug={selectedSlug} groups={orderedGroups} />
       </div>
 
       <AllowlistForm

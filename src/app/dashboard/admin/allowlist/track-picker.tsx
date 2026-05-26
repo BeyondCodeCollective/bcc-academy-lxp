@@ -7,7 +7,7 @@ export function TrackPicker({
   groups,
 }: {
   selectedSlug: string;
-  groups: { programName: string; options: { slug: string; name: string }[] }[];
+  groups: { label: string; options: { slug: string; name: string }[] }[];
 }) {
   const router = useRouter();
   return (
@@ -20,7 +20,7 @@ export function TrackPicker({
       className="w-full sm:w-auto min-w-[320px] border border-neutral-300 bg-white px-3 py-2 text-sm font-medium text-neutral-900 focus:outline-none focus:border-neutral-900"
     >
       {groups.map((group) => (
-        <optgroup key={group.programName} label={group.programName}>
+        <optgroup key={group.label} label={group.label}>
           {group.options.map((o) => (
             <option key={o.slug} value={o.slug}>
               {o.name}
