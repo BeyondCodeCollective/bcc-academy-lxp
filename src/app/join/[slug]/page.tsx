@@ -100,7 +100,7 @@ export default async function JoinPage({
 
                 {!track.selfPaced && (
                   <p className="mt-6 text-[12px] uppercase tracking-wider text-white/40">
-                    Starts {startLabel}
+                    Starts {track.startDateTbd ? "TBD" : startLabel}
                   </p>
                 )}
               </div>

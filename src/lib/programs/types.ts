@@ -125,6 +125,14 @@ export type TrackConfig = {
   totalWeeks: number;
   sessionsPerWeek: number;
   startDate: string;
+  /**
+   * If true, every user-facing "Starts {date}" / "Started {date}" rendering
+   * collapses to "TBD". The real `startDate` is still used for internal
+   * sorting and `computeCurrentWeek` logic, but nothing on the page commits
+   * to a date the team hasn't confirmed yet. Useful for tracks parked at a
+   * placeholder start so the catalog doesn't make a promise.
+   */
+  startDateTbd?: boolean;
   instructor: string;
   /** Human-readable schedule: ["Tuesday 10-11am ET"] */
   sessionTimes: string[];

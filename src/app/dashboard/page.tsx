@@ -384,6 +384,7 @@ async function DashboardContent({ program }: { program: ProgramConfig }) {
                 totalWeeks: track.totalWeeks,
                 sessionsPerWeek: track.sessionsPerWeek,
                 startDate: track.startDate,
+                startDateTbd: track.startDateTbd,
                 weekOneTopic: track.weekSummaries[0]?.topic ?? "",
                 phase: track.phase,
               },

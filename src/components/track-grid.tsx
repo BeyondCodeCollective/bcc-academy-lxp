@@ -11,6 +11,7 @@ type TrackState = {
     totalWeeks: number;
     sessionsPerWeek: number;
     startDate: string;
+    startDateTbd?: boolean;
     weekOneTopic: string;
     phase?: string;
   };
@@ -154,6 +155,7 @@ export function TrackGrid({ tracks }: { tracks: TrackState[] }) {
                     totalWeeks={track.totalWeeks}
                     sessionsPerWeek={track.sessionsPerWeek}
                     startDate={track.startDate}
+                    startDateTbd={track.startDateTbd}
                     started={started}
                     currentWeek={currentWeek}
                     weekOneTopic={track.weekOneTopic}
