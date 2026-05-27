@@ -1,9 +1,20 @@
-export const SUPER_ADMIN_EMAILS = [
-  ...(process.env.SUPER_ADMIN_EMAILS || "")
-    .split(",")
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean),
+// Hardcoded baseline so the owner's primary admin addresses always resolve to
+// super_admin regardless of whether the Vercel env var is set. Env-var entries
+// are merged on top.
+const DEFAULT_SUPER_ADMIN_EMAILS = [
+  "youngfonz@gmail.com",
+  "fonz.morris@wearebgc.org",
 ];
+
+export const SUPER_ADMIN_EMAILS = Array.from(
+  new Set([
+    ...DEFAULT_SUPER_ADMIN_EMAILS.map((e) => e.toLowerCase()),
+    ...(process.env.SUPER_ADMIN_EMAILS || "")
+      .split(",")
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean),
+  ]),
+);
 
 export const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "")
   .split(",")
