@@ -6,7 +6,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { authCookieDomain } from "@/lib/supabase/cookie-domain";
 import { getProgram } from "@/lib/programs/server";
 import { getProgramBySlug, isKnownProgramHost } from "@/lib/programs";
-import { determineRole, isPrivilegedEmail } from "@/lib/auth/admins";
+import { determineRole, isPrivilegedEmail, isStaffEmail } from "@/lib/auth/admins";
 
 // Magic-link landing. Pin to iad1 only: Supabase is in us-west-2 and
 // even after the deferred-setup refactor the callback still issues
@@ -114,8 +114,16 @@ export async function GET(request: Request) {
         return redirectWithCookies(`${origin}/login?status=not-enrolled`);
       }
 
-      // Programs that require invite links block new signups without ?track=<slug>
-      if (program.requireInviteLink === true && !trackParam && !isPrivilegedEmail(email)) {
+      // Programs that require invite links block new signups without
+      // ?track=<slug>. Privileged admins (SUPER_ADMIN_EMAILS /
+      // ADMIN_EMAILS) and internal staff (wearebgc.org / BCC staff) bypass
+      // this — they're not signing up for a course, they're signing in to
+      // the dashboard. Without the staff bypass, BGC employees who weren't
+      // explicitly listed in SUPER_ADMIN_EMAILS got rejected as if they
+      // were a stray learner.
+      const canBypassInviteGate =
+        isPrivilegedEmail(email) || isStaffEmail(email);
+      if (program.requireInviteLink === true && !trackParam && !canBypassInviteGate) {
         await supabase.auth.signOut();
         return NextResponse.redirect(`${origin}/?error=invite`);
       }
