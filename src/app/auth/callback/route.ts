@@ -147,12 +147,21 @@ export async function GET(request: Request) {
           .eq("id", user.id)
           .maybeSingle();
 
+        // Privileged emails always route to Catalyst, regardless of any stale
+        // role on the existing students row. Without this, an admin whose row
+        // was created before being added to SUPER_ADMIN_EMAILS would bounce to
+        // /login?status=not-enrolled forever.
+        const envRole = determineRole(email);
+        const isPrivilegedByEnv = envRole === "super_admin" || envRole === "admin";
+
         let effectiveSlug: string | null = null;
         if (!existing) {
-          effectiveSlug = (joinSlug && joinSlug !== "marketing") ? joinSlug : null;
+          effectiveSlug = isPrivilegedByEnv
+            ? "catalyst"
+            : (joinSlug && joinSlug !== "marketing") ? joinSlug : null;
         } else {
           effectiveSlug = (existing.programs as unknown as { slug: string } | null)?.slug ??
-            (["super_admin", "admin"].includes(existing.role ?? "") ? "catalyst" : null);
+            (isPrivilegedByEnv || ["super_admin", "admin"].includes(existing.role ?? "") ? "catalyst" : null);
         }
 
         if (!effectiveSlug) {
