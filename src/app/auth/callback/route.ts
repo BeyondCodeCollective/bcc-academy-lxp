@@ -109,8 +109,15 @@ export async function GET(request: Request) {
       const isUnpinnedHost = !isKnownProgramHost(hostStr);
       const email = (user.email || "").toLowerCase();
 
-      // Marketing domain — unadmitted users get a friendly redirect
-      if (program.slug === "marketing") {
+      // Marketing domain — unadmitted users get a friendly redirect.
+      // Privileged emails (super_admin/admin) and internal staff fall through
+      // to the unpinned-host branch below, which routes them to Catalyst.
+      const earlyRole = determineRole(email);
+      const earlyPrivileged =
+        earlyRole === "super_admin" ||
+        earlyRole === "admin" ||
+        isStaffEmail(email);
+      if (program.slug === "marketing" && !earlyPrivileged) {
         return redirectWithCookies(`${origin}/login?status=not-enrolled`);
       }
 
