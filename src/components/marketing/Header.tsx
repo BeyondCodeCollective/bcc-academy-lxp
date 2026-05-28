@@ -118,7 +118,7 @@ export default function Header({ solid = false }: HeaderProps) {
                   {link.label}
                 </a>
               ))}
-              <
+              <a
                 href="/quiz"
                 onClick={() => setMobileOpen(false)}
                 className="mt-4 inline-flex items-center justify-center px-5 py-3 bg-electric-green text-true-black font-bold"
