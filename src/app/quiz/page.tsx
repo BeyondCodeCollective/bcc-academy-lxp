@@ -1,5 +1,3 @@
-import { notFound } from "next/navigation";
-import { getProgram } from "@/lib/programs/server";
 import QuizClient from "./QuizClient";
 
 export const dynamic = "force-dynamic";
@@ -11,13 +9,6 @@ export const metadata = {
 };
 
 export default async function QuizPage() {
-  const program = await getProgram();
-  // The quiz only lives on the apex marketing domain. On any program
-  // subdomain (atg/forge/catalyst), this route 404s — students don't
-  // land on a marketing quiz from inside their dashboard experience.
-  if (program.slug !== "marketing") {
-    notFound();
-  }
   return (
     // bg-black on the *inner* wrapper. .marketing-scope sets its own
     // background: #FFFDF7 in globals.css, so putting bg-black on the
