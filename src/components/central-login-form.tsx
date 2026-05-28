@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { Check } from "@phosphor-icons/react";
 import { sendLoginLink } from "@/app/login/actions";
 
@@ -50,27 +49,13 @@ export function CentralLoginForm({
       return;
     }
 
-    try {
-      const checkRes = await fetch("/api/auth/account-exists", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: trimmedEmail }),
-      });
-      const { exists } = (await checkRes.json()) as { exists: boolean };
-      if (!exists) {
-        setNoAccount(true);
-        setLoading(false);
-        return;
-      }
-    } catch {
-      // If the check fails, fall through to OTP — the auth callback
-      // has its own guard for unadmitted users.
-    }
-
-    // Try the branded Resend path first (server action). If Resend isn't
-    // configured or the FROM domain isn't verified yet, the action returns
-    // `fallback: true` and we silently retry via Supabase's built-in OTP
-    // sender — keeps users unblocked while we instrument the delivery path.
+    // Single server-action round-trip handles the entire flow:
+    //   - branded Resend send when configured, or
+    //   - server-side Supabase OTP fallback.
+    // Previously the client did three RTTs (account-exists → action →
+    // direct supabase.signInWithOtp), which stalled iCloud/Bahamas
+    // users on "Sending…" for 5–10s. Now: one short hop to Vercel,
+    // server-to-server to Supabase, done.
     const origin = isLocalDev
       ? "http://localhost:3000"
       : window.location.origin;
@@ -82,39 +67,7 @@ export function CentralLoginForm({
       return;
     }
 
-    if (!result.fallback) {
-      setError(result.error);
-      setLoading(false);
-      return;
-    }
-
-    const supabase = createClient();
-    const { error: otpError } = await supabase.auth.signInWithOtp({
-      email: trimmedEmail,
-      options: { emailRedirectTo: `${origin}/auth/callback` },
-    });
-
-    if (otpError) {
-      console.error("[login] OTP fallback failed", {
-        email: trimmedEmail,
-        error: otpError.message,
-      });
-      // Supabase enforces a ~60s per-email cooldown on sign-in emails. The
-      // raw error reads as a security warning when it really means "we just
-      // sent one; check your inbox." Rewrite it.
-      const rateLimited = /security purposes|only request this after/i.test(
-        otpError.message ?? "",
-      );
-      setError(
-        rateLimited
-          ? "We just sent a sign-in link to this email. Check your inbox — and your spam folder. Try again in a minute if it doesn't arrive."
-          : otpError.message || "Something went wrong. Please try again.",
-      );
-      setLoading(false);
-      return;
-    }
-
-    setSent(true);
+    setError(result.error);
     setLoading(false);
   }
 
