@@ -49,16 +49,9 @@ export default function CentralLoginPage() {
       </div>
 
       {/* Right panel — brand photo */}
-      <div className="hidden lg:block relative w-1/2 h-full border-l border-white/10 overflow-hidden">
-        <Image
-          src="/images/bcc/brand/quiz-hero-2.jpg"
-          alt=""
-          fill
-          priority
-          sizes="50vw"
-          className="object-cover"
-        />
-      </div>
+      {/* TODO: Replace with new brand photo (current image has ex-employee) */}
+      <div className="hidden lg:block relative w-1/2 h-full border-l border-white/10 overflow-hidden bg-gradient-to-br from-electric-green/10 to-transparent" />
+
     </div>
   );
 }
