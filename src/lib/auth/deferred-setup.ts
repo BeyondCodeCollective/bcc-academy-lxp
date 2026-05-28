@@ -75,26 +75,64 @@ export async function completePendingSetup(
     }
   }
 
-  // 2. Enroll in tracks (new users only)
-  if (isNew) {
-    const tracksToEnroll =
-      program.requireInviteLink === true
-        ? program.tracks.filter((t) => t.slug === trackParam)
-        : program.tracks;
+  // 2. Resolve the set of tracks this user should be enrolled in.
+  //
+  // Two sources, OR'd together for invite-only programs:
+  //   • `trackParam` — set when the user came in through a /join link with
+  //     `?track=<slug>` and that slug propagated to the auth callback.
+  //   • allowlist match — admins also pre-add learners to specific tracks via
+  //     `allowed_signup_emails (email, track_slug)`. Treat that row as the
+  //     intended enrollment, so a learner who signs in via /login (or the
+  //     marketing apex, or a join link missing `?track=`) still lands in the
+  //     right course instead of an empty dashboard.
+  //
+  // Open-enrollment programs (`requireInviteLink !== true`) keep the legacy
+  // "enroll in every program track" behavior.
+  let tracksToEnroll: ProgramConfig["tracks"] = [];
+  if (program.requireInviteLink === true) {
+    const trackParamTracks = program.tracks.filter((t) => t.slug === trackParam);
 
-    if (tracksToEnroll.length > 0) {
-      const { error: trackErr } = await admin.from("student_tracks").upsert(
-        tracksToEnroll.map((t) => ({
-          student_id: userId,
-          track_slug: t.slug,
-          program_id: programId,
-        })),
-        { onConflict: "student_id,track_slug,program_id" },
-      );
-
-      if (trackErr) {
-        console.error("[deferred-setup] track enrollment:", trackErr.message);
+    let allowlistTracks: ProgramConfig["tracks"] = [];
+    if (email) {
+      const { data: rows, error: allowErr } = await admin
+        .from("allowed_signup_emails")
+        .select("track_slug")
+        .eq("email", email.toLowerCase());
+      if (allowErr) {
+        console.error("[deferred-setup] allowlist lookup:", allowErr.message);
+      } else {
+        const slugs = new Set((rows ?? []).map((r) => r.track_slug as string));
+        allowlistTracks = program.tracks.filter((t) => slugs.has(t.slug));
       }
+    }
+
+    tracksToEnroll = Array.from(
+      new Map(
+        [...trackParamTracks, ...allowlistTracks].map((t) => [t.slug, t]),
+      ).values(),
+    );
+  } else {
+    tracksToEnroll = program.tracks;
+  }
+
+  // Enroll on every sign-in (not just new users). The upsert is idempotent
+  // — onConflict (student_id, track_slug, program_id) — so re-running for a
+  // returning learner is a no-op when they're already enrolled, and a
+  // self-heal when a previous sign-in missed the enrollment step (e.g.
+  // someone allowlisted *after* their first login, or a learner who landed
+  // on the empty "You're registered!" state because of a routing gap).
+  if (tracksToEnroll.length > 0) {
+    const { error: trackErr } = await admin.from("student_tracks").upsert(
+      tracksToEnroll.map((t) => ({
+        student_id: userId,
+        track_slug: t.slug,
+        program_id: programId,
+      })),
+      { onConflict: "student_id,track_slug,program_id" },
+    );
+
+    if (trackErr) {
+      console.error("[deferred-setup] track enrollment:", trackErr.message);
     }
   }
 
@@ -170,11 +208,6 @@ export async function completePendingSetup(
 
   // 5. Send welcome email (new users only)
   if (isNew && email) {
-    const tracksToEnroll =
-      program.requireInviteLink === true
-        ? program.tracks.filter((t) => t.slug === trackParam)
-        : program.tracks;
-
     const emailPrefix = email.split("@")[0];
     const derivedName =
       emailPrefix
