@@ -36,6 +36,31 @@ export async function sendLoginLink({
   const redirectTo = `${origin}/auth/callback`;
   const svc = createServiceClient();
 
+  // If the user is on the allowlist for a track, set cookies so the track
+  // survives the magic-link redirect. This is needed because forte (and other
+  // invite-only programs) require the ?track= param even on /auth/callback.
+  const { data: allowlistHit } = await svc
+    .from("allowed_signup_emails")
+    .select("track_slug")
+    .eq("email", trimmed)
+    .maybeSingle();
+
+  if (allowlistHit?.track_slug) {
+    const { getHomeProgramForTrack } = await import("@/lib/programs");
+    const homeProgram = getHomeProgramForTrack(allowlistHit.track_slug as string);
+    if (homeProgram) {
+      const cookieStore = await import("next/headers").then((m) => m.cookies());
+      (await cookieStore).set("pending-join-slug", homeProgram.slug, {
+        path: "/",
+        maxAge: 60 * 15, // 15 minutes
+      });
+      (await cookieStore).set("pending-join-track", allowlistHit.track_slug as string, {
+        path: "/",
+        maxAge: 60 * 15,
+      });
+    }
+  }
+
   const tryResend =
     process.env.LOGIN_VIA_RESEND === "true" && !!process.env.RESEND_API_KEY;
 
