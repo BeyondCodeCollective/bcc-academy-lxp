@@ -62,6 +62,13 @@ export function CentralLoginForm({
     const result = await sendLoginLink({ email: trimmedEmail, origin });
 
     if (result.ok) {
+      // Email is on a course allowlist but doesn't have an account yet →
+      // bounce to the matching /join page so they start the right signup
+      // flow instead of dead-ending on a magic link.
+      if ("redirect" in result && result.redirect) {
+        window.location.href = result.redirect;
+        return;
+      }
       setSent(true);
       setLoading(false);
       return;
