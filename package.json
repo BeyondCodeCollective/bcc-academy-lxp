@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:smoke": "playwright test",
+    "test:smoke:install": "playwright install --with-deps chromium"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.96.0",
@@ -23,6 +25,7 @@
     "resend": "^6.12.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
