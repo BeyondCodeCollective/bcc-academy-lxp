@@ -1,0 +1,729 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>BCC Academy — The Platform We Built</title>
+<meta name="description" content="A walkthrough of the BCC Academy Learning Experience Platform — what we built, what it does, and the data we can now see." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #1a1a1a;
+    --bg-elev: #222222;
+    --text: #f5f5f7;
+    --text-dim: #a0a0a0;
+    --text-faint: #6b6b6b;
+    --accent: #E54D2E;
+    --accent-soft: rgba(229, 77, 46, 0.12);
+    --line: rgba(255, 255, 255, 0.06);
+    --line-strong: rgba(255, 255, 255, 0.14);
+    --display: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+    --body: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+    --mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--body);
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    overflow: hidden;
+  }
+
+  main {
+    height: 100vh;
+    overflow-y: scroll;
+    scroll-snap-type: y mandatory;
+    scroll-behavior: smooth;
+  }
+
+  section {
+    min-height: 100vh;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    padding: clamp(2.5rem, 6vw, 6rem) clamp(1.5rem, 6vw, 6rem);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .section-inner {
+    max-width: 1040px;
+    width: 100%;
+    margin: 0 auto;
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 700ms cubic-bezier(.2,.7,.2,1), transform 700ms cubic-bezier(.2,.7,.2,1);
+  }
+
+  section.in-view .section-inner {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .label {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 2rem;
+  }
+
+  .label::before {
+    content: "// ";
+    color: var(--accent);
+  }
+
+  h1, h2, h3 {
+    font-family: var(--display);
+    font-weight: 700;
+    line-height: 0.98;
+    letter-spacing: -0.025em;
+    margin: 0 0 1.25rem 0;
+  }
+
+  h1 {
+    font-size: clamp(3.25rem, 9vw, 7.5rem);
+    font-weight: 800;
+  }
+
+  h2 {
+    font-size: clamp(2.25rem, 5.5vw, 4.5rem);
+  }
+
+  h3 {
+    font-size: clamp(1.5rem, 2.5vw, 2rem);
+    font-weight: 600;
+    letter-spacing: -0.015em;
+  }
+
+  p {
+    margin: 0 0 1rem 0;
+    color: var(--text);
+    font-size: clamp(1rem, 1.25vw, 1.125rem);
+    max-width: 60ch;
+  }
+
+  p.lead {
+    font-size: clamp(1.125rem, 1.6vw, 1.375rem);
+    color: var(--text-dim);
+    max-width: 56ch;
+    line-height: 1.5;
+  }
+
+  .accent { color: var(--accent); }
+  .dim { color: var(--text-dim); }
+  .faint { color: var(--text-faint); }
+
+  .x-divider {
+    font-family: var(--display);
+    font-size: clamp(4rem, 12vw, 9rem);
+    font-weight: 300;
+    line-height: 1;
+    color: var(--accent);
+    margin: 1.5rem 0 2.5rem 0;
+    display: block;
+  }
+
+  .counter {
+    position: fixed;
+    bottom: clamp(1rem, 3vw, 2rem);
+    right: clamp(1.25rem, 4vw, 3rem);
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    z-index: 50;
+    pointer-events: none;
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+  }
+
+  .counter .current { color: var(--text); }
+  .counter .arrow { color: var(--accent); }
+
+  .brand {
+    position: fixed;
+    top: clamp(1rem, 3vw, 1.75rem);
+    left: clamp(1.25rem, 4vw, 3rem);
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    z-index: 50;
+    pointer-events: none;
+  }
+  .brand strong { color: var(--text); font-weight: 500; }
+
+  /* Tables */
+  .grid {
+    display: grid;
+    gap: 1rem;
+    margin-top: 2.5rem;
+  }
+
+  .grid-2 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+  .grid-3 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  .grid-4 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+
+  .card {
+    background: var(--bg-elev);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 1.5rem 1.5rem 1.75rem;
+  }
+
+  .card h3 {
+    margin-bottom: 0.5rem;
+    font-size: 1.125rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .card p {
+    color: var(--text-dim);
+    font-size: 0.9375rem;
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  .card .num {
+    font-family: var(--display);
+    font-size: clamp(2.5rem, 5vw, 3.75rem);
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.03em;
+  }
+
+  /* Data table — design-first, not browser default */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 2rem;
+    font-size: 0.9375rem;
+  }
+
+  .data-table th,
+  .data-table td {
+    text-align: left;
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .data-table th {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    font-weight: 500;
+    padding-top: 0;
+  }
+
+  .data-table td { color: var(--text); }
+  .data-table td.num {
+    font-family: var(--display);
+    font-weight: 600;
+    color: var(--accent);
+    font-size: 1.0625rem;
+    text-align: right;
+  }
+  .data-table tr:last-child td { border-bottom: none; }
+
+  /* Journey flow */
+  .flow {
+    margin-top: 2.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    font-family: var(--mono);
+    font-size: 0.875rem;
+    color: var(--text-dim);
+    line-height: 1.7;
+  }
+  .flow .step { display: flex; align-items: baseline; gap: 1rem; }
+  .flow .marker { color: var(--accent); flex-shrink: 0; }
+  .flow .arrow-down { color: var(--text-faint); padding-left: 1.5rem; font-size: 0.75rem; }
+  .flow strong { color: var(--text); font-weight: 500; }
+
+  /* Pull quotes */
+  .quotes {
+    margin-top: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+  }
+  .quote {
+    border-left: 3px solid var(--accent);
+    padding: 0.25rem 0 0.25rem 1.5rem;
+  }
+  .quote p {
+    font-family: var(--display);
+    font-size: clamp(1.375rem, 2.4vw, 2rem);
+    font-weight: 500;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    color: var(--text);
+    max-width: 36ch;
+    margin: 0;
+  }
+  .quote cite {
+    display: block;
+    margin-top: 0.75rem;
+    font-style: normal;
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+
+  /* Two-column layout */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: clamp(1.5rem, 4vw, 3rem);
+    margin-top: 2.5rem;
+  }
+  @media (min-width: 880px) {
+    .two-col { grid-template-columns: 5fr 4fr; align-items: start; }
+  }
+
+  .stat-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 1rem;
+    padding: 0.875rem 0;
+    border-bottom: 1px solid var(--line);
+    align-items: baseline;
+  }
+  .stat-row:last-child { border-bottom: none; }
+  .stat-row .label-inline {
+    color: var(--text-dim);
+    font-size: 0.9375rem;
+    line-height: 1.4;
+  }
+  .stat-row .val {
+    font-family: var(--display);
+    font-weight: 700;
+    color: var(--accent);
+    font-size: 1.5rem;
+    letter-spacing: -0.02em;
+  }
+
+  .tag-row {
+    margin-top: 1.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .tag {
+    font-family: var(--mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.4rem 0.65rem;
+    border: 1px solid var(--line-strong);
+    border-radius: 999px;
+    color: var(--text-dim);
+  }
+
+  /* Cover hero */
+  .cover h1 {
+    font-size: clamp(3.5rem, 12vw, 10rem);
+    letter-spacing: -0.04em;
+  }
+  .cover .meta {
+    margin-top: 2.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+    font-family: var(--mono);
+    font-size: 0.8125rem;
+    color: var(--text-faint);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .cover .meta span strong { color: var(--text); font-weight: 500; }
+
+  /* Closing */
+  .closing h2 strong { color: var(--accent); }
+
+  /* Small screens */
+  @media (max-width: 640px) {
+    section { padding: 4.5rem 1.5rem 4.5rem; }
+    .brand, .counter { font-size: 0.6875rem; }
+    p.lead { font-size: 1.0625rem; }
+    .quote p { font-size: 1.375rem; }
+  }
+
+  /* Print — flatten the snap so PDF export works */
+  @media print {
+    body { overflow: visible; }
+    main { height: auto; overflow: visible; scroll-snap-type: none; }
+    section { min-height: auto; page-break-after: always; border-bottom: none; padding: 2rem; }
+    .section-inner { opacity: 1; transform: none; }
+    .counter, .brand { display: none; }
+    h1 { font-size: 3.5rem; }
+    h2 { font-size: 2.25rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="brand"><strong>BCC Academy</strong> · the platform</div>
+<div class="counter"><span class="current" id="cur">01</span><span>/</span><span id="total">12</span><span>·</span><span class="arrow">scroll ↓</span></div>
+
+<main id="deck">
+
+  <!-- 01: COVER -->
+  <section class="cover" data-i="1">
+    <div class="section-inner">
+      <div class="label">the learning platform we built</div>
+      <h1>BCC<br/>Academy.</h1>
+      <span class="x-divider">×</span>
+      <p class="lead">A custom learning experience platform — built for our programs, our learners, and our data. This is a walkthrough.</p>
+      <div class="meta">
+        <span><strong>May 2026</strong></span>
+        <span>9 weeks of build · <strong>371 commits</strong></span>
+        <span>bccacademy.io</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02: WHAT IS IT -->
+  <section data-i="2">
+    <div class="section-inner">
+      <div class="label">01 · what is it</div>
+      <h2>One codebase.<br/>Four programs.<br/><span class="accent">One source of truth.</span></h2>
+      <p class="lead">BCC Academy isn't a white-labeled, off-the-shelf LMS. Every screen, data model, and workflow was designed around BCC's specific programs.</p>
+      <div class="grid grid-4">
+        <div class="card">
+          <h3>After The Game</h3>
+          <p class="dim">atg.bccacademy.io</p>
+          <p>Athletes transitioning to tech. Cohort 1 active.</p>
+        </div>
+        <div class="card">
+          <h3>Black Girls Code</h3>
+          <p class="dim">Virtual workshops</p>
+          <p>Partnership workshops delivered through the platform.</p>
+        </div>
+        <div class="card">
+          <h3>Beyond Code Centers</h3>
+          <p class="dim">bccenters.bccacademy.io</p>
+          <p>General BCC learners. Cohort 1 running.</p>
+        </div>
+        <div class="card">
+          <h3>Catalyst</h3>
+          <p class="dim">catalyst.bccacademy.io</p>
+          <p>BCC's flagship multi-track training program.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03: STUDENT JOURNEY -->
+  <section data-i="3">
+    <div class="section-inner">
+      <div class="label">02 · the student journey</div>
+      <h2>From login to learning,<br/>without a manual.</h2>
+      <p class="lead">The platform knows who you are, what program you're in, and what survey you still owe — automatically.</p>
+      <div class="flow">
+        <div class="step"><span class="marker">→</span><span>Student logs in <span class="faint">(magic link — no passwords)</span></span></div>
+        <div class="arrow-down">↓</div>
+        <div class="step"><span class="marker">→</span><span><strong>Is this an admin or instructor?</strong> Route to the admin panel.</span></div>
+        <div class="arrow-down">↓</div>
+        <div class="step"><span class="marker">→</span><span><strong>Does this program require the intake survey?</strong></span></div>
+        <div class="step" style="padding-left: 2rem;"><span class="marker">·</span><span>Not done? Redirect to <strong>/dashboard/survey/bcc-learner-intake</strong></span></div>
+        <div class="step" style="padding-left: 2rem;"><span class="marker">·</span><span>Done? Land on dashboard.</span></div>
+        <div class="arrow-down">↓</div>
+        <div class="step"><span class="marker">→</span><span><strong>Dashboard</strong> — cohort tracks, weekly content, reflections, submissions</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 04: PROGRAMS & COHORTS -->
+  <section data-i="4">
+    <div class="section-inner">
+      <div class="label">03 · what's running right now</div>
+      <h2>Three active cohorts.<br/><span class="accent">23 enrollments.</span></h2>
+      <p class="lead">As of May 22, 2026 — live in production.</p>
+      <table class="data-table">
+        <thead>
+          <tr><th>Cohort</th><th>Start</th><th>Duration</th><th style="text-align:right;">Track size</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Tech+ Foundations · MASS · AI Fundamentals — Cohort 1</td><td>Mar 23, 2026</td><td>8 weeks</td><td class="num">19</td></tr>
+          <tr><td>Catalyst — Cohort 1</td><td>Mar 24, 2026</td><td>10 weeks</td><td class="num">23</td></tr>
+          <tr><td>Beyond Code Centers — Cohort 1</td><td>Apr 17, 2026</td><td>8 weeks</td><td class="num">—</td></tr>
+        </tbody>
+      </table>
+      <div class="tag-row">
+        <span class="tag">AI Fundamentals · 9</span>
+        <span class="tag">AI + Digital Natives · 6</span>
+        <span class="tag">MASS Training · 4</span>
+        <span class="tag">TechPlus · 4</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05: WHAT STUDENTS GET -->
+  <section data-i="5">
+    <div class="section-inner">
+      <div class="label">04 · what students get</div>
+      <h2>A platform that<br/>meets them where they are.</h2>
+      <div class="grid grid-2">
+        <div class="card">
+          <h3>Personalized dashboard</h3>
+          <p>Every student lands on their program and track automatically. The platform already knows who they are.</p>
+        </div>
+        <div class="card">
+          <h3>Curriculum viewer</h3>
+          <p>Weekly lesson modules with resources, organized by cohort week. Session content authored by instructors.</p>
+        </div>
+        <div class="card">
+          <h3>Assignments &amp; reflections</h3>
+          <p>Students submit written work directly in the platform. Instructors review and leave feedback inline.</p>
+        </div>
+        <div class="card">
+          <h3>Built for accessibility</h3>
+          <p>Text scale controls, read-aloud mode, screen-reader integration. Designed for learners with varying needs.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 06: WHAT INSTRUCTORS GET -->
+  <section data-i="6">
+    <div class="section-inner">
+      <div class="label">05 · what instructors get</div>
+      <h2>One screen,<br/>their whole track.</h2>
+      <p class="lead">Instructors see only the students assigned to them. Engagement, attendance, and submissions live in one place.</p>
+      <div class="grid grid-2">
+        <div class="card">
+          <h3>Roster &amp; assignments</h3>
+          <p>Students by track. Cohort assignments. Roles. All visible at a glance.</p>
+        </div>
+        <div class="card">
+          <h3>Student work review</h3>
+          <p>Every submission and reflection across the track, from one screen. Leave feedback inline.</p>
+        </div>
+        <div class="card">
+          <h3>Attendance tracking</h3>
+          <p>Mark and review session attendance by track. Weekly records by cohort.</p>
+        </div>
+        <div class="card">
+          <h3>Engagement scoring</h3>
+          <p>Per-student engagement signals derived from submissions, reflections, and attendance — surfaced automatically.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 07: WHAT ADMINS GET -->
+  <section data-i="7">
+    <div class="section-inner">
+      <div class="label">06 · what admins get</div>
+      <h2>Run every program<br/>from one chair.</h2>
+      <p class="lead">Super-admins can switch between ATG, Beyond Code Centers, Black Girls Code, and Catalyst with a click. Each program has its own admin surface — the program switcher unifies them.</p>
+      <div class="two-col">
+        <div>
+          <div class="stat-row"><span class="label-inline">Program tab</span><span class="val faint" style="font-size:1rem;">cohort settings, survey stats, CSV export</span></div>
+          <div class="stat-row"><span class="label-inline">Per-track tabs</span><span class="val faint" style="font-size:1rem;">attendance · submissions · announcements</span></div>
+          <div class="stat-row"><span class="label-inline">People</span><span class="val faint" style="font-size:1rem;">roles · cohorts · engagement scores</span></div>
+          <div class="stat-row"><span class="label-inline">Student Work</span><span class="val faint" style="font-size:1rem;">every submission · every reflection</span></div>
+          <div class="stat-row"><span class="label-inline">Analytics</span><span class="val faint" style="font-size:1rem;">attendance + engagement scoring</span></div>
+          <div class="stat-row"><span class="label-inline">BCC-wide surveys</span><span class="val faint" style="font-size:1rem;">all programs · super-admin only</span></div>
+        </div>
+        <div class="card">
+          <h3>Today on the platform</h3>
+          <div class="stat-row"><span class="label-inline">Students</span><span class="val">19</span></div>
+          <div class="stat-row"><span class="label-inline">Admins</span><span class="val">3</span></div>
+          <div class="stat-row"><span class="label-inline">Super-admins</span><span class="val">3</span></div>
+          <div class="stat-row"><span class="label-inline">Instructors</span><span class="val">2</span></div>
+          <div class="stat-row"><span class="label-inline">Network+ alumni reachable</span><span class="val">374</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 08: THE SURVEY SYSTEM -->
+  <section data-i="8">
+    <div class="section-inner">
+      <div class="label">07 · the survey system</div>
+      <h2>Matched pre · mid · post.<br/><span class="accent">Same questions, every stage.</span></h2>
+      <p class="lead">The platform asks the same confidence statements at the start, midpoint, and end of every cohort — so gains can be measured precisely, not estimated.</p>
+      <div class="grid grid-2">
+        <div class="card">
+          <h3>Two pipelines</h3>
+          <p><strong style="color:var(--text)">Authenticated</strong> — for logged-in students. Required gates between login and dashboard.</p>
+          <p><strong style="color:var(--text)">Public</strong> — for walk-ins, workshops, and alumni. No account needed.</p>
+        </div>
+        <div class="card">
+          <h3>Nine question types</h3>
+          <p>Text · ZIP · radio · multi-select · Likert · <strong style="color:var(--accent)">dual-Likert (before/now)</strong> · month-year · date · consent.</p>
+        </div>
+      </div>
+      <div class="tag-row">
+        <span class="tag">BCC Learner Intake</span>
+        <span class="tag">ATG Pre-Survey</span>
+        <span class="tag">Mid-Program (Catalyst)</span>
+        <span class="tag">Network+ Post</span>
+        <span class="tag">Workshop Feedback</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 09: WE HAVE DATA NOW -->
+  <section data-i="9">
+    <div class="section-inner">
+      <div class="label">08 · we have data now</div>
+      <h2>For the first time,<br/>we can see the cohort.</h2>
+      <p class="lead">Before this platform existed, outcomes data lived in Google Forms, spreadsheets, and Circle. Now every response lands in one queryable database.</p>
+      <table class="data-table">
+        <thead>
+          <tr><th>Survey</th><th style="text-align:right;">Responses</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Pre-Program (Catalyst Spring 2026)</td><td class="num">15</td></tr>
+          <tr><td>Mid-Program (Catalyst Spring 2026)</td><td class="num">5</td></tr>
+          <tr><td>Post-Program (Catalyst Spring 2026)</td><td class="num">3</td></tr>
+          <tr><td>Learner Intake</td><td class="num">5</td></tr>
+          <tr><td>Network+ Post-Program</td><td class="num">15</td></tr>
+          <tr><td>Workshop Feedback</td><td class="num">1</td></tr>
+        </tbody>
+      </table>
+      <p class="dim" style="margin-top:1.5rem; font-size: 0.875rem;"><strong style="color:var(--accent)">79%</strong> pre-survey response rate on Catalyst Cohort 1 — 15 of 19 students.</p>
+    </div>
+  </section>
+
+  <!-- 10: WHAT THE DATA SHOWS -->
+  <section data-i="10">
+    <div class="section-inner">
+      <div class="label">09 · what the data shows</div>
+      <h2>Students aren't just<br/>learning the material.<br/><span class="accent">They're changing.</span></h2>
+      <p class="lead">Mid-program confidence gains, Catalyst Cohort 1. Same five tech-identity statements, asked at the start and again at the midpoint.</p>
+      <table class="data-table">
+        <thead>
+          <tr><th>Statement</th><th style="text-align:right;">Gain</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>I know how to keep building tech skills on my own</td><td class="num">+1.75</td></tr>
+          <tr><td>I can talk about my technical skills with someone who works in tech</td><td class="num">+1.50</td></tr>
+          <tr><td>I feel I belong in the tech industry</td><td class="num">+1.25</td></tr>
+          <tr><td>I feel confident in my ability to learn technical material</td><td class="num">+1.00</td></tr>
+          <tr><td>I see myself succeeding in a tech career</td><td class="num">+0.50</td></tr>
+        </tbody>
+      </table>
+      <p style="margin-top:1.75rem;"><strong style="color:var(--text)">The largest gains aren't in subject-matter knowledge.</strong> <span class="dim">They're in agency and belonging — students feel they can navigate the tech world, not just that they know the material.</span></p>
+      <div class="tag-row">
+        <span class="tag">Coaching · valuable · 4.75/5</span>
+        <span class="tag">Honesty in sessions · 4.75/5</span>
+        <span class="tag">Pace &amp; structure · 4.50/5</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11: STUDENT VOICE -->
+  <section data-i="11">
+    <div class="section-inner">
+      <div class="label">10 · in their own words</div>
+      <h2>What success looks like<br/>to them.</h2>
+      <p class="lead faint">Open-text responses, mid-program survey. "What does success look like for you at the end of this program?"</p>
+      <div class="quotes">
+        <div class="quote">
+          <p>A new career and a path to lead others to the same success.</p>
+          <cite>— Catalyst Cohort 1</cite>
+        </div>
+        <div class="quote">
+          <p>Being able to continue to take care of my loved ones financially.</p>
+          <cite>— Catalyst Cohort 1</cite>
+        </div>
+        <div class="quote">
+          <p>Being more knowledgeable about tech. Have my Cert and possibly a job.</p>
+          <cite>— Catalyst Cohort 1</cite>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12: WHAT'S NEXT -->
+  <section class="closing" data-i="12">
+    <div class="section-inner">
+      <div class="label">11 · what this unlocks</div>
+      <h2>Every cohort.<br/>Every signal.<br/><strong>Measurable.</strong></h2>
+      <div class="grid grid-2" style="margin-top:2.5rem;">
+        <div class="card">
+          <div class="num">374</div>
+          <h3>Network+ alumni reachable</h3>
+          <p>One import. Follow-on programs and impact surveys land here.</p>
+        </div>
+        <div class="card">
+          <div class="num">∞</div>
+          <h3>Pre/post enforced automatically</h3>
+          <p>Students can't reach their dashboard without completing intake. No more chasing forms.</p>
+        </div>
+        <div class="card">
+          <div class="num">0</div>
+          <h3>Manual engagement tracking</h3>
+          <p>Submissions, reflections, attendance — all logged as students use the platform.</p>
+        </div>
+        <div class="card">
+          <div class="num">1</div>
+          <h3>Database, queryable in real time</h3>
+          <p>This deck's numbers were pulled from production. Every cohort joins the same picture.</p>
+        </div>
+      </div>
+      <span class="x-divider" style="margin-top:3rem;">×</span>
+      <p class="lead">This is the foundation. The first cohort is mid-flight — and for the first time, we can see it.</p>
+    </div>
+  </section>
+
+</main>
+
+<script>
+  (function() {
+    var sections = document.querySelectorAll('section[data-i]');
+    var cur = document.getElementById('cur');
+    var total = document.getElementById('total');
+    total.textContent = String(sections.length).padStart(2, '0');
+
+    var io = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.55) {
+          entry.target.classList.add('in-view');
+          var i = entry.target.getAttribute('data-i');
+          cur.textContent = String(i).padStart(2, '0');
+        }
+      });
+    }, { threshold: [0.55] });
+
+    sections.forEach(function(s) { io.observe(s); });
+
+    // Reveal first section immediately
+    if (sections[0]) sections[0].classList.add('in-view');
+  })();
+</script>
+
+</body>
+</html>
