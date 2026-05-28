@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { createServiceClient } from "@/lib/supabase/server";
 import { authCookieDomain } from "@/lib/supabase/cookie-domain";
 import { getProgram } from "@/lib/programs/server";
-import { getProgramBySlug, isKnownProgramHost } from "@/lib/programs";
+import { getProgramBySlug, getHomeProgramForTrack, isKnownProgramHost } from "@/lib/programs";
 import { determineRole, isPrivilegedEmail, isStaffEmail } from "@/lib/auth/admins";
 
 // Magic-link landing. Pin to iad1 only: Supabase is in us-west-2 and
@@ -161,11 +161,37 @@ export async function GET(request: Request) {
         const envRole = determineRole(email);
         const isPrivilegedByEnv = envRole === "super_admin" || envRole === "admin";
 
+        // Allowlist inference: when a learner has no existing student row and
+        // no explicit join slug, fall back to their per-track allowlist entries
+        // to decide which program shell to drop them into. Upskill Bahamas
+        // (forte) tracks live both in their own config and inside Catalyst's
+        // aggregated track list, so a learner allowlisted only for forte
+        // tracks should land on the Upskill Bahamas dashboard — not the
+        // generic Catalyst umbrella — so they see the right branding and skip
+        // the Catalyst pre-survey gate they aren't supposed to take.
+        let singleNonCatalystHome: string | null = null;
+        if (!existing && !isPrivilegedByEnv && !joinSlug) {
+          const { data: allowRows } = await admin
+            .from("allowed_signup_emails")
+            .select("track_slug")
+            .eq("email", email);
+          const homePrograms = new Set(
+            (allowRows ?? [])
+              .map((r) => getHomeProgramForTrack(r.track_slug as string)?.slug)
+              .filter((s): s is string => !!s && s !== "catalyst"),
+          );
+          if (homePrograms.size === 1) {
+            singleNonCatalystHome = [...homePrograms][0];
+          }
+        }
+
         let effectiveSlug: string | null = null;
         if (!existing) {
           effectiveSlug = isPrivilegedByEnv
             ? "catalyst"
-            : (joinSlug && joinSlug !== "marketing") ? joinSlug : null;
+            : (joinSlug && joinSlug !== "marketing")
+              ? joinSlug
+              : singleNonCatalystHome;
         } else {
           effectiveSlug = (existing.programs as unknown as { slug: string } | null)?.slug ??
             (isPrivilegedByEnv || ["super_admin", "admin"].includes(existing.role ?? "") ? "catalyst" : null);
