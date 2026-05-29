@@ -59,8 +59,27 @@ export default function Hero() {
 
   return (
     <section ref={sectionRef} className="relative min-h-[100dvh] flex items-end overflow-hidden bg-true-black grain">
-      {/* Background video with parallax */}
-      <motion.div className="absolute inset-0" style={{ y: videoY }}>
+      {/* Mobile background — dot-grid pattern (hides video) */}
+      <div className="absolute inset-0 md:hidden bg-true-black">
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: `
+              radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px)
+            `,
+            backgroundSize: "24px 24px",
+          }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background: "radial-gradient(ellipse 80% 60% at 50% 40%, rgba(229,247,1,0.06) 0%, transparent 70%)",
+          }}
+        />
+      </div>
+
+      {/* Background video with parallax — hidden on mobile */}
+      <motion.div className="absolute inset-0 max-md:hidden" style={{ y: videoY }}>
         <video
           ref={videoRef}
           autoPlay
@@ -84,10 +103,10 @@ export default function Hero() {
       />
       <div className="absolute inset-0 bg-gradient-to-t from-true-black via-transparent to-transparent" />
 
-      {/* Video toggle */}
+      {/* Video toggle — hidden on mobile (no video) */}
       <button
         onClick={toggleVideo}
-        className="absolute top-36 md:top-28 right-6 z-20 w-11 h-11 bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/20 transition-colors duration-300"
+        className="absolute top-36 md:top-28 right-6 z-20 w-11 h-11 bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/20 transition-colors duration-300 max-md:hidden"
         aria-label={videoPlaying ? "Pause video" : "Play video"}
       >
         {videoPlaying ? <Pause size={16} weight="bold" /> : <Play size={16} weight="bold" />}
