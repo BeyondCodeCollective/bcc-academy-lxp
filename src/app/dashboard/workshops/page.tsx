@@ -10,7 +10,7 @@ import {
 import { createServiceClient } from "@/lib/supabase/server";
 import { MapPin, GlobeHemisphereWest, Video, User } from "@phosphor-icons/react/dist/ssr";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 export default async function WorkshopsIndexPage() {
   const cookieStore = await cookies();

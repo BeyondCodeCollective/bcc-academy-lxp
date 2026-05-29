@@ -1,0 +1,76 @@
+import { createServiceClient } from "@/lib/supabase/server";
+
+export async function fetchAllInsightsData() {
+  const svc = createServiceClient();
+  const sevenDaysAgoIso = new Date(Date.now() - 7 * 86400 * 1000).toISOString();
+
+  const [
+    allStudentsRes,
+    studentTracksRes,
+    alumniRes,
+    recentSubmissionsRes,
+    recentReflectionsRes,
+    activeAttendanceRes,
+    activeSubmissionsRes,
+    activeReflectionsRes,
+    engagedAttendanceRes,
+    engagedSubmissionsRes,
+    engagedReflectionsRes,
+  ] = await Promise.all([
+    svc
+      .from("students")
+      .select("id, role, email, first_name, last_name")
+      .not("role", "eq", "admin"),
+    svc.from("student_tracks").select("student_id, track_slug"),
+    svc.from("alumni_enrollments").select("email"),
+    svc
+      .from("submissions")
+      .select("id, student_id, track_slug, week_number, submitted_at")
+      .not("submitted_at", "is", null)
+      .order("submitted_at", { ascending: false })
+      .limit(10),
+    svc
+      .from("reflections")
+      .select("id, student_id, track_slug, week_number, submitted_at")
+      .not("submitted_at", "is", null)
+      .order("submitted_at", { ascending: false })
+      .limit(10),
+    svc
+      .from("attendance")
+      .select("student_id")
+      .gte("checked_in_at", sevenDaysAgoIso),
+    svc
+      .from("submissions")
+      .select("student_id")
+      .not("submitted_at", "is", null)
+      .gte("submitted_at", sevenDaysAgoIso),
+    svc
+      .from("reflections")
+      .select("student_id")
+      .not("submitted_at", "is", null)
+      .gte("submitted_at", sevenDaysAgoIso),
+    svc.from("attendance").select("student_id"),
+    svc
+      .from("submissions")
+      .select("student_id")
+      .not("submitted_at", "is", null),
+    svc
+      .from("reflections")
+      .select("student_id")
+      .not("submitted_at", "is", null),
+  ]);
+
+  return {
+    allStudents: allStudentsRes.data ?? [],
+    studentTracks: studentTracksRes.data ?? [],
+    alumni: alumniRes.data ?? [],
+    recentSubmissions: recentSubmissionsRes.data ?? [],
+    recentReflections: recentReflectionsRes.data ?? [],
+    activeAttendance: activeAttendanceRes.data ?? [],
+    activeSubmissions: activeSubmissionsRes.data ?? [],
+    activeReflections: activeReflectionsRes.data ?? [],
+    engagedAttendance: engagedAttendanceRes.data ?? [],
+    engagedSubmissions: engagedSubmissionsRes.data ?? [],
+    engagedReflections: engagedReflectionsRes.data ?? [],
+  };
+}
