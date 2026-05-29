@@ -8,7 +8,7 @@ import {
   type Workshop,
 } from "@/lib/workshops";
 import { createServiceClient } from "@/lib/supabase/server";
-import { MapPin, GlobeHemisphereWest } from "@phosphor-icons/react/dist/ssr";
+import { MapPin, GlobeHemisphereWest, Video, User } from "@phosphor-icons/react/dist/ssr";
 
 export const dynamic = "force-dynamic";
 
@@ -68,6 +68,8 @@ type LuncheonRow = {
   recording_url: string;
 };
 
+const LUNCHEON_TONE = "#E54D2E";
+
 function LuncheonSection({ luncheons }: { luncheons: LuncheonRow[] }) {
   return (
     <section className="space-y-4">
@@ -92,6 +94,21 @@ function LuncheonSection({ luncheons }: { luncheons: LuncheonRow[] }) {
               href={`/dashboard/lunch-learn/${r.id}`}
               className="group flex h-full flex-col overflow-hidden border border-rule bg-surface-elevated transition-colors hover:border-neutral-300"
             >
+              <div
+                aria-hidden
+                className="relative flex aspect-video w-full items-center justify-center overflow-hidden"
+                style={{ backgroundColor: `${LUNCHEON_TONE}1A` }}
+              >
+                <Video size={56} weight="light" color={LUNCHEON_TONE} />
+                <div className="absolute top-3 right-3">
+                  <span
+                    className="inline-flex items-center rounded-full bg-white/95 px-2 py-0.5 text-[10px] font-semibold capitalize backdrop-blur"
+                    style={{ color: LUNCHEON_TONE }}
+                  >
+                    Recording
+                  </span>
+                </div>
+              </div>
               <div className="flex flex-1 flex-col p-5">
                 <p className="text-xs font-medium uppercase tracking-[0.14em] text-neutral-400">
                   {date}
@@ -99,14 +116,15 @@ function LuncheonSection({ luncheons }: { luncheons: LuncheonRow[] }) {
                 <h3 className="mt-2 text-[17px] font-semibold leading-snug tracking-[-0.01em] text-neutral-900 line-clamp-2">
                   {r.title}
                 </h3>
-                <p className="mt-1.5 text-[13px] leading-[1.55] text-neutral-600">
-                  with {r.presenter}
+                <p className="mt-2 text-[13px] leading-[1.55] text-neutral-600 line-clamp-3">
+                  {r.description}
                 </p>
-                {r.description && (
-                  <p className="mt-2 text-[13px] leading-[1.55] text-neutral-500 line-clamp-2">
-                    {r.description}
-                  </p>
-                )}
+                <div className="mt-auto flex items-center gap-3 pt-4 text-[12px] text-neutral-500">
+                  <span className="inline-flex items-center gap-1">
+                    <User size={12} weight="bold" aria-hidden />
+                    {r.presenter}
+                  </span>
+                </div>
               </div>
             </Link>
           );
