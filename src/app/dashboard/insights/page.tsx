@@ -14,7 +14,7 @@ import { getAllPrograms } from "@/lib/programs";
 import { HorizontalBarChart } from "@/components/charts/horizontal-bar-chart";
 import { DonutChart } from "@/components/charts/donut-chart";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 120;
 
 // Super-admin analytics dashboard. Cross-program metrics computed from
 // students / attendance / submissions / reflections / alumni_enrollments.
