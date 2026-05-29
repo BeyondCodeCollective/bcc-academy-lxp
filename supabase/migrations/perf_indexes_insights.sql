@@ -1,31 +1,37 @@
--- Performance indexes for Insights page analytics queries (June 2026)
+-- Performance indexes for the super-admin insights page.
+-- The insights page runs cross-program (no program_id filter), so
+-- program_id-based indexes don't apply. These covering indexes make
+-- the date-range and full-scan queries index-only.
 -- Idempotent; safe to re-run.
 
--- Covering index for active-7d attendance query: makes it index-only scan
--- Query: SELECT student_id FROM attendance WHERE checked_in_at >= '...'
-create index if not exists idx_attendance_active_7d
+-- The active-7d query on attendance:
+--   SELECT student_id FROM attendance WHERE checked_in_at >= ?
+-- Without this index, Postgres seq scans the entire table.
+create index if not exists idx_attendance_checked_in_student
   on attendance(checked_in_at, student_id);
 
--- Covering index for active-7d submissions query
--- Query: SELECT student_id FROM submissions WHERE submitted_at IS NOT NULL AND submitted_at >= '...'
-create index if not exists idx_submissions_active_7d
+-- The active-7d query on submissions:
+--   SELECT student_id FROM submissions
+--   WHERE submitted_at IS NOT NULL AND submitted_at >= ?
+-- Partial index avoids unsubmitted rows.
+create index if not exists idx_submissions_submitted_at_student
   on submissions(submitted_at, student_id)
   where submitted_at is not null;
 
--- Covering index for active-7d reflections query
--- Query: SELECT student_id FROM reflections WHERE submitted_at IS NOT NULL AND submitted_at >= '...'
-create index if not exists idx_reflections_active_7d
+-- Same for reflections.
+create index if not exists idx_reflections_submitted_at_student
   on reflections(submitted_at, student_id)
   where submitted_at is not null;
 
--- Covering index for engaged-ever submissions query (full table scan, index-only)
--- Query: SELECT student_id FROM submissions WHERE submitted_at IS NOT NULL
-create index if not exists idx_submissions_engaged_ever
+-- Covering index for the engaged-ever query:
+--   SELECT student_id FROM submissions WHERE submitted_at IS NOT NULL
+-- The existing partial index is on (program_id), not (student_id).
+-- This one enables an index-only scan for the insights page.
+create index if not exists idx_submissions_student_submitted
   on submissions(student_id)
   where submitted_at is not null;
 
--- Covering index for engaged-ever reflections query (full table scan, index-only)
--- Query: SELECT student_id FROM reflections WHERE submitted_at IS NOT NULL
-create index if not exists idx_reflections_engaged_ever
+-- Same for reflections.
+create index if not exists idx_reflections_student_submitted
   on reflections(student_id)
   where submitted_at is not null;
