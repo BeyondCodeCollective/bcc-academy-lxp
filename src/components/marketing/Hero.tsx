@@ -67,7 +67,6 @@ export default function Hero() {
           muted
           loop
           playsInline
-          poster="/images/bcc/community/community-01.jpg"
           className="absolute inset-0 w-full h-[120%] object-cover"
         >
           <source
