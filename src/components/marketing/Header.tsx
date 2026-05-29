@@ -76,10 +76,12 @@ export default function Header({ solid = false }: HeaderProps) {
               {link.label}
             </a>
           ))}
-          {/* Sign-in entry hidden until the auth flow is hardened — too
-             many learners landed in the wrong program by entering their
-             email here instead of using the per-track invite URL. Staff
-             can reach /login directly; the link just isn't surfaced. */}
+          <a
+            href="/login"
+            className="text-sm font-medium text-white/50 hover:text-white transition-colors duration-300"
+          >
+            Sign In
+          </a>
           <a
             href="/quiz"
             className="inline-flex items-center px-5 py-2.5 bg-electric-green text-true-black text-sm font-bold transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_4px_15px_rgba(229,247,1,0.3)] btn-press"
@@ -118,6 +120,13 @@ export default function Header({ solid = false }: HeaderProps) {
                   {link.label}
                 </a>
               ))}
+              <a
+                href="/login"
+                onClick={() => setMobileOpen(false)}
+                className="text-base text-white/50 hover:text-white transition-colors py-2"
+              >
+                Sign In
+              </a>
               <a
                 href="/quiz"
                 onClick={() => setMobileOpen(false)}

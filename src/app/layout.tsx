@@ -19,19 +19,19 @@ const geistSans = Geist({
 const bricolage = Bricolage_Grotesque({
   variable: "--font-bricolage",
   subsets: ["latin"],
-  display: "optional",
+  display: "swap",
 });
 
 const specialGothic = localFont({
   src: "../fonts/SpecialGothic-Variable.subset.woff2",
   variable: "--font-special-gothic",
-  display: "optional",
+  display: "swap",
 });
 
 const gtStandard = localFont({
   src: "../fonts/GT-Standard-Regular.subset.woff2",
   variable: "--font-gt-standard",
-  display: "optional",
+  display: "swap",
 });
 
 export const viewport: Viewport = {
