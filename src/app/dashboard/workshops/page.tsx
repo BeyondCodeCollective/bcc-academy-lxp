@@ -7,6 +7,7 @@ import {
   formatWorkshopDateRange,
   type Workshop,
 } from "@/lib/workshops";
+import { createServiceClient } from "@/lib/supabase/server";
 import { MapPin, GlobeHemisphereWest } from "@phosphor-icons/react/dist/ssr";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,12 @@ export default async function WorkshopsIndexPage() {
   const all = getAllWorkshops();
   const upcoming = all.filter((w) => w.status === "upcoming");
   const past = all.filter((w) => w.status === "past");
+
+  const svc = createServiceClient();
+  const { data: luncheons } = await svc
+    .from("lunch_learns")
+    .select("id, title, presenter, recorded_at, description, recording_url")
+    .order("recorded_at", { ascending: false });
 
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-5xl px-4 sm:px-5 py-8 space-y-10">
@@ -39,12 +46,73 @@ export default async function WorkshopsIndexPage() {
         <Section label="Past" workshops={past} />
       )}
 
-      {all.length === 0 && (
+      {luncheons && luncheons.length > 0 && (
+        <LuncheonSection luncheons={luncheons} />
+      )}
+
+      {all.length === 0 && (!luncheons || luncheons.length === 0) && (
         <p className="border border-rule bg-surface-elevated px-5 py-8 text-center text-sm text-neutral-500">
           No workshops yet.
         </p>
       )}
     </div>
+  );
+}
+
+type LuncheonRow = {
+  id: string;
+  title: string;
+  presenter: string;
+  recorded_at: string;
+  description: string | null;
+  recording_url: string;
+};
+
+function LuncheonSection({ luncheons }: { luncheons: LuncheonRow[] }) {
+  return (
+    <section className="space-y-4">
+      <div className="flex items-baseline justify-between">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
+          Luncheons
+        </h2>
+        <span className="text-xs tabular-nums text-neutral-400">
+          {luncheons.length}
+        </span>
+      </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {luncheons.map((r) => {
+          const date = new Date(r.recorded_at).toLocaleDateString("en-US", {
+            month: "long",
+            day: "numeric",
+            year: "numeric",
+          });
+          return (
+            <Link
+              key={r.id}
+              href={`/dashboard/lunch-learn/${r.id}`}
+              className="group flex h-full flex-col overflow-hidden border border-rule bg-surface-elevated transition-colors hover:border-neutral-300"
+            >
+              <div className="flex flex-1 flex-col p-5">
+                <p className="text-xs font-medium uppercase tracking-[0.14em] text-neutral-400">
+                  {date}
+                </p>
+                <h3 className="mt-2 text-[17px] font-semibold leading-snug tracking-[-0.01em] text-neutral-900 line-clamp-2">
+                  {r.title}
+                </h3>
+                <p className="mt-1.5 text-[13px] leading-[1.55] text-neutral-600">
+                  with {r.presenter}
+                </p>
+                {r.description && (
+                  <p className="mt-2 text-[13px] leading-[1.55] text-neutral-500 line-clamp-2">
+                    {r.description}
+                  </p>
+                )}
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
