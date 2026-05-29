@@ -98,6 +98,7 @@ export async function submitProject(
   if (error) throw new Error(error.message);
 
   revalidatePath(`/dashboard/track/${trackSlug}/${weekNumber}`);
+  revalidatePath(`/dashboard/insights`);
   return { success: true };
 }
 
@@ -149,6 +150,7 @@ export async function submitReflection(
   if (error) throw new Error(error.message);
 
   revalidatePath(`/dashboard/track/${trackSlug}/${weekNumber}`);
+  revalidatePath(`/dashboard/insights`);
   return { success: true };
 }
 

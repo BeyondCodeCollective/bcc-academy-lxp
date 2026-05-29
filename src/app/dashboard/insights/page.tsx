@@ -9,12 +9,12 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import { getSessionContext } from "@/lib/auth/session";
 import { canSwitchPrograms } from "@/lib/roles";
-import { createServiceClient } from "@/lib/supabase/server";
 import { getAllPrograms } from "@/lib/programs";
 import { HorizontalBarChart } from "@/components/charts/horizontal-bar-chart";
 import { DonutChart } from "@/components/charts/donut-chart";
+import { fetchAllInsightsData } from "@/lib/insights-data";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 120;
 
 // Super-admin analytics dashboard. Cross-program metrics computed from
 // students / attendance / submissions / reflections / alumni_enrollments.
@@ -27,103 +27,19 @@ export default async function InsightsPage() {
   const role = ctx.student?.role ?? "";
   if (!canSwitchPrograms(role)) redirect("/dashboard");
 
-  const svc = createServiceClient();
-  const sevenDaysAgoIso = new Date(Date.now() - 7 * 86400 * 1000).toISOString();
-
-  // Data fetching split into three tiers:
-  //
-  // Tier 1 — light metadata (always fast, narrow selects):
-  //   students (id+email+name), student_tracks (2 cols), alumni (1 col),
-  //   recent activity (limit 10 each).
-  //
-  // Tier 2 — active-7d metrics (date-filtered, index-friendly):
-  //   attendance/submissions/reflections filtered to last 7 days,
-  //   fetching only student_id. Avoids the full-table scan.
-  //
-  // Tier 3 — engagement-ever (all time, narrow select):
-  //   attendance/submissions/reflections for ALL time but only
-  //   student_id (1 column each). Still a full scan but payload is
-  //   ~40 bytes per row vs the 100+ bytes with timestamps before.
-  //
-  // Previously all 3 tables were fetched with full timestamp columns
-  // and zero date filters, causing the page to pull every row ever
-  // recorded into JS memory just to compute two numbers.
-
-  const [
-    allStudentsRes,
-    studentTracksRes,
-    alumniRes,
-    recentSubmissionsRes,
-    recentReflectionsRes,
-    // Tier 2 — active within 7 days
-    activeAttendanceRes,
-    activeSubmissionsRes,
-    activeReflectionsRes,
-    // Tier 3 — engaged ever
-    engagedAttendanceRes,
-    engagedSubmissionsRes,
-    engagedReflectionsRes,
-  ] = await Promise.all([
-    svc
-      .from("students")
-      .select("id, role, email, first_name, last_name")
-      .not("role", "eq", "admin"),
-    svc.from("student_tracks").select("student_id, track_slug"),
-    svc.from("alumni_enrollments").select("email"),
-    svc
-      .from("submissions")
-      .select("id, student_id, track_slug, week_number, submitted_at")
-      .not("submitted_at", "is", null)
-      .order("submitted_at", { ascending: false })
-      .limit(10),
-    svc
-      .from("reflections")
-      .select("id, student_id, track_slug, week_number, submitted_at")
-      .not("submitted_at", "is", null)
-      .order("submitted_at", { ascending: false })
-      .limit(10),
-    // Active-7d: date-filtered, only student_id
-    svc
-      .from("attendance")
-      .select("student_id")
-      .gte("checked_in_at", sevenDaysAgoIso),
-    svc
-      .from("submissions")
-      .select("student_id")
-      .not("submitted_at", "is", null)
-      .gte("submitted_at", sevenDaysAgoIso),
-    svc
-      .from("reflections")
-      .select("student_id")
-      .not("submitted_at", "is", null)
-      .gte("submitted_at", sevenDaysAgoIso),
-    // Engaged-ever: ALL time, but only student_id (no timestamps)
-    svc
-      .from("attendance")
-      .select("student_id"),
-    svc
-      .from("submissions")
-      .select("student_id")
-      .not("submitted_at", "is", null),
-    svc
-      .from("reflections")
-      .select("student_id")
-      .not("submitted_at", "is", null),
-  ]);
-
-  const allStudents = allStudentsRes.data ?? [];
-  const studentTracks = studentTracksRes.data ?? [];
-  const alumni = alumniRes.data ?? [];
-  const recentSubmissions = recentSubmissionsRes.data ?? [];
-  const recentReflections = recentReflectionsRes.data ?? [];
-  // Narrow, date-filtered sets for active-7d computation
-  const activeAttendance = activeAttendanceRes.data ?? [];
-  const activeSubmissions = activeSubmissionsRes.data ?? [];
-  const activeReflections = activeReflectionsRes.data ?? [];
-  // Narrow, all-time sets for engagement-ever computation
-  const engagedAttendance = engagedAttendanceRes.data ?? [];
-  const engagedSubmissions = engagedSubmissionsRes.data ?? [];
-  const engagedReflections = engagedReflectionsRes.data ?? [];
+  const {
+    allStudents,
+    studentTracks,
+    alumni,
+    recentSubmissions,
+    recentReflections,
+    activeAttendance,
+    activeSubmissions,
+    activeReflections,
+    engagedAttendance,
+    engagedSubmissions,
+    engagedReflections,
+  } = await fetchAllInsightsData();
 
   const namesById = new Map(
     allStudents.map((s) => [
