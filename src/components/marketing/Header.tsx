@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { List, X, Lightning } from "@phosphor-icons/react";
+import { List, X } from "@phosphor-icons/react";
 import Link from "next/link";
 
 const navLinks = [
@@ -22,7 +22,6 @@ interface HeaderProps {
 export default function Header({ solid = false }: HeaderProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [bannerDismissed, setBannerDismissed] = useState(false);
 
   useEffect(() => {
     if (solid) return;
@@ -41,23 +40,7 @@ export default function Header({ solid = false }: HeaderProps) {
           : "bg-transparent"
       }`}
     >
-      {/* Announcement Banner */}
-      {!bannerDismissed && (
-        <div className="bg-electric-green text-true-black text-center text-sm py-3 px-4 md:px-10 relative font-mono">
-          <a href="#hubs" className="hover:underline font-semibold">
-            <Lightning size={14} weight="fill" className="inline mr-1 mb-0.5" />
-            Beyond Code Centers ATL is open — a third space for technology, neither school nor work
-            <span className="ml-2">&rarr;</span>
-          </a>
-          <button
-            onClick={() => setBannerDismissed(true)}
-            className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-true-black/40 hover:text-true-black transition-colors"
-            aria-label="Dismiss"
-          >
-            <X size={16} weight="bold" />
-          </button>
-        </div>
-      )}
+
 
       <div className="mx-auto max-w-7xl px-6 flex items-center justify-between h-20">
         <Link href="/" className="flex items-center group">
