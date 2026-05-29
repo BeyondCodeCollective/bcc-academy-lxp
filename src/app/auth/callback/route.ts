@@ -132,7 +132,7 @@ export async function GET(request: Request) {
         isPrivilegedEmail(email) || isStaffEmail(email);
       if (program.requireInviteLink === true && !trackParam && !canBypassInviteGate) {
         await supabase.auth.signOut();
-        return NextResponse.redirect(`${origin}/?error=invite`);
+        return NextResponse.redirect(`${origin}/login?error=invite`);
       }
 
       // Fetch program UUID (needed for student upsert)
@@ -255,5 +255,5 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.redirect(`${origin}/?error=auth`);
+  return NextResponse.redirect(`${origin}/login?error=auth`);
 }
