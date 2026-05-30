@@ -408,6 +408,7 @@ export function AdminTabs({
   userRole = "admin",
   engagementScores = {},
   initialTab,
+  initialTrackView,
   lunchLearnRecordings = [],
   insightsData = null,
   alumniEnrollments = [],
@@ -424,7 +425,8 @@ export function AdminTabs({
   userRole?: string;
   engagementScores?: Record<string, { total: number; attendance: number; submissions: number; reflections: number; tutorMessages: number }>;
   initialTab?: string;
-  lunchLearnRecordings?: { id: string; title: string; presenter: string; recording_url: string; description: string | null; recorded_at: string }[];
+  initialTrackView?: string;
+  lunchLearnRecordings?:{ id: string; title: string; presenter: string; recording_url: string; description: string | null; recorded_at: string }[];
   insightsData?: InsightsData | null;
   alumniEnrollments?: { track_slug: string; email: string; source: string }[];
 }) {
@@ -472,7 +474,7 @@ export function AdminTabs({
   const [expandedWeek, setExpandedWeek] = useState<number | null>(null);
   const [trackView, setTrackView] = useState<
     "overview" | "curriculum" | "students" | "surveys"
-  >("overview");
+  >((initialTrackView as "overview" | "curriculum" | "students" | "surveys") ?? "overview");
   const [studentSubView, setStudentSubView] = useState<"students" | "work">("students");
   const [studentSaving, setStudentSaving] = useState<string | null>(null);
 

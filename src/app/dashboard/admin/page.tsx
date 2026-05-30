@@ -35,9 +35,9 @@ type LunchLearnRow = {
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; view?: string }>;
 }) {
-  const { tab: initialTab } = await searchParams;
+  const { tab: initialTab, view: initialTrackView } = await searchParams;
   const program = await getProgram();
 
   // Tab-gated data fetching. The admin page re-renders on every ?tab=
@@ -439,6 +439,7 @@ export default async function AdminPage({
         userRole={userRole}
         engagementScores={engagementScores}
         initialTab={initialTab}
+        initialTrackView={initialTrackView}
         lunchLearnRecordings={lunchLearnRecordings}
         insightsData={insightsData}
         alumniEnrollments={alumniEnrollments}

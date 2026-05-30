@@ -23,11 +23,16 @@ function findSurveyConfig(surveyId: string): SurveyConfig | null {
 
 export default async function SurveyDashboardPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ surveyId: string }>;
+  searchParams: Promise<{ returnTo?: string; returnLabel?: string }>;
 }) {
   if (!isSupabaseConfigured()) redirect("/dashboard");
   const { surveyId } = await params;
+  const { returnTo, returnLabel } = await searchParams;
+  const backHref = returnTo ? decodeURIComponent(returnTo) : "/dashboard/admin/surveys";
+  const backLabel = returnLabel ? `← ${decodeURIComponent(returnLabel)}` : "← All surveys";
 
   const supabase = await createClient();
   const { data: { session } } = await supabase.auth.getSession();
@@ -52,10 +57,10 @@ export default async function SurveyDashboardPage({
     <div className="min-h-[100dvh] bg-[#F7F4EE]">
       <div className="mx-auto w-full max-w-2xl md:max-w-5xl px-5 py-12 md:py-16">
         <Link
-          href="/dashboard/admin/surveys"
-          className="inline-flex text-[12px] text-[#6B6258] hover:text-[#1F1B16] transition-colors mb-12"
+          href={backHref}
+          className="inline-flex text-[12px] text-[#6B6258] hover:text-[#1F1B16] transition-colors mb-8"
         >
-          ← All surveys
+          {backLabel}
         </Link>
         <SurveyDashboard
           surveyId={surveyId}
