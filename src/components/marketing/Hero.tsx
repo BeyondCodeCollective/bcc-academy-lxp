@@ -112,7 +112,7 @@ export default function Hero() {
       </button>
 
       <motion.div
-        className="relative z-10 w-full mx-auto max-w-7xl px-6 pb-16 md:pb-24 pt-24 md:pt-64"
+        className="relative z-10 w-full mx-auto max-w-7xl px-6 pb-12 md:pb-24 pt-20 md:pt-64"
         style={{ y: contentY, opacity: contentOpacity }}
       >
         <motion.div
@@ -130,7 +130,7 @@ export default function Hero() {
 
           <motion.h1
             variants={heroReveal}
-            className="font-display text-5xl sm:text-7xl md:text-[10rem] lg:text-[12rem] font-bold leading-[0.85] tracking-tight text-white uppercase"
+            className="font-display text-4xl sm:text-6xl md:text-[10rem] lg:text-[12rem] font-bold leading-[0.85] tracking-tight text-white uppercase"
           >
             Everyone
             <br />
@@ -150,7 +150,7 @@ export default function Hero() {
 
           <motion.p
             variants={fadeInUp}
-            className="mt-10 text-lg md:text-xl text-white/70 leading-relaxed max-w-xl font-mono"
+            className="mt-6 md:mt-10 text-base md:text-xl text-white/70 leading-relaxed max-w-xl font-mono"
           >
             A community-based learning and workforce ecosystem giving people
             lifelong access to the skills, relationships, and pathways shaping
@@ -159,7 +159,7 @@ export default function Hero() {
 
           <motion.div
             variants={fadeInUp}
-            className="mt-12 flex flex-col sm:flex-row items-start gap-4"
+            className="mt-8 md:mt-12 flex flex-col sm:flex-row items-start gap-4"
           >
             <a
               href="#programs"
