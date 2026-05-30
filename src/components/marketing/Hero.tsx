@@ -112,7 +112,7 @@ export default function Hero() {
       </button>
 
       <motion.div
-        className="relative z-10 w-full mx-auto max-w-7xl px-6 pb-16 md:pb-24 pt-24 md:pt-64"
+        className="relative z-10 w-full mx-auto max-w-7xl px-6 pb-16 md:pb-24 pt-16 md:pt-64"
         style={{ y: contentY, opacity: contentOpacity }}
       >
         <motion.div
