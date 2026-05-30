@@ -1244,7 +1244,6 @@ export function AdminTabs({
                 trackSlug={activeTrack.slug}
                 trackShortName={activeTrack.shortName}
                 programSlug={programSlug}
-                enrolledStudentCount={trackStudentIds?.size ?? 0}
                 surveyConfigs={surveyConfigs}
                 trackPublicSurveys={trackPublicSurveys}
               />
