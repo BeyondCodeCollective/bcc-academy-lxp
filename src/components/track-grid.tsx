@@ -10,8 +10,6 @@ type TrackState = {
     instructor: string;
     totalWeeks: number;
     sessionsPerWeek: number;
-    startDate: string;
-    startDateTbd?: boolean;
     weekOneTopic: string;
     phase?: string;
   };
@@ -68,10 +66,7 @@ export function TrackGrid({ tracks }: { tracks: TrackState[] }) {
     });
     return [...filtered].sort((a, b) => {
       if (a.started !== b.started) return a.started ? -1 : 1;
-      return (
-        new Date(a.track.startDate).getTime() -
-        new Date(b.track.startDate).getTime()
-      );
+      return a.track.name.localeCompare(b.track.name);
     });
   }, [tracks, filter]);
 
@@ -154,8 +149,6 @@ export function TrackGrid({ tracks }: { tracks: TrackState[] }) {
                     instructor={track.instructor}
                     totalWeeks={track.totalWeeks}
                     sessionsPerWeek={track.sessionsPerWeek}
-                    startDate={track.startDate}
-                    startDateTbd={track.startDateTbd}
                     started={started}
                     currentWeek={currentWeek}
                     weekOneTopic={track.weekOneTopic}
@@ -175,7 +168,6 @@ export function TrackGrid({ tracks }: { tracks: TrackState[] }) {
               instructor={track.instructor}
               totalWeeks={track.totalWeeks}
               sessionsPerWeek={track.sessionsPerWeek}
-              startDate={track.startDate}
               started={started}
               currentWeek={currentWeek}
               weekOneTopic={track.weekOneTopic}

@@ -265,15 +265,6 @@ async function DashboardContent({
 
   if (notEnrolled) {
     const firstTrack = program.tracks[0];
-    const startDate = firstTrack
-      ? new Date(firstTrack.startDate)
-      : null;
-    const hasStarted = startDate ? startDate <= new Date() : false;
-    const formattedStart = startDate?.toLocaleDateString("en-US", {
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-    });
 
     return (
       <div className="space-y-6">
@@ -289,14 +280,10 @@ async function DashboardContent({
             {firstTrack?.weekSummaries[0]?.icon ?? "🎓"}
           </div>
           <h2 className="mt-4 text-lg font-semibold text-neutral-900">
-            {hasStarted ? "You’re registered!" : "You’re in!"}
+            You&apos;re in!
           </h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-neutral-500">
-            {hasStarted
-              ? "Your track enrollment is being finalized. You’ll see your full dashboard here shortly."
-              : formattedStart
-                ? `${program.name} kicks off ${formattedStart}. We’ll send you everything you need before then.`
-                : `${program.name} is coming soon. We’ll let you know when it’s time to start.`}
+            Your track enrollment is being finalized. You&apos;ll see your full dashboard here shortly.
           </p>
         </div>
 
@@ -412,8 +399,6 @@ async function DashboardContent({
                 instructor: track.instructor,
                 totalWeeks: track.totalWeeks,
                 sessionsPerWeek: track.sessionsPerWeek,
-                startDate: track.startDate,
-                startDateTbd: track.startDateTbd,
                 weekOneTopic: track.weekSummaries[0]?.topic ?? "",
                 phase: track.phase,
               },
@@ -463,37 +448,18 @@ function SurveyCard({
 }
 
 function SingleEventCard({ track }: { track: TrackConfig }) {
-  const eventDate = new Date(track.startDate);
-  const dateStr = eventDate.toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
-  const isPast = new Date() > eventDate;
-
   return (
     <Link
       href={`/dashboard/track/${track.slug}/1`}
       className="group block"
     >
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <h2 className="text-[15px] font-semibold text-neutral-900 leading-snug truncate">
-            {track.name}
-          </h2>
-          {isPast ? (
-            <span className="inline-flex items-center rounded-full bg-neutral-200 px-2 py-0.5 text-[10px] font-semibold text-neutral-600 shrink-0">
-              Completed
-            </span>
-          ) : (
-            <span className="inline-flex items-center rounded-full bg-[#E54D2E] px-2 py-0.5 text-[10px] font-semibold text-white shrink-0">
-              Upcoming
-            </span>
-          )}
-        </div>
+      <div className="flex items-center gap-2.5 min-w-0">
+        <h2 className="text-[15px] font-semibold text-neutral-900 leading-snug truncate">
+          {track.name}
+        </h2>
       </div>
       <p className="mt-0.5 text-[12px] text-neutral-400">
-        {dateStr} · with {track.instructor}
+        with {track.instructor}
       </p>
     </Link>
   );
