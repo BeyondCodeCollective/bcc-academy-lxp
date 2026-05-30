@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getJoinablePrograms, getProgramBySlug, getTrackBySlug, getHomeProgramForTrack } from "@/lib/programs";
+import type { ProgramConfig } from "@/lib/programs";
+import { fetchDynamicProgram } from "@/lib/programs/server";
 import { JoinForm } from "./join-form";
 
 // Deploy the join page (and its server actions) to both Frankfurt and
@@ -26,10 +28,15 @@ export default async function JoinPage({
   const { slug } = await params;
   const { track: trackParam } = await searchParams;
 
-  const allSlugs = new Set(getJoinablePrograms().map((p) => p.slug));
-  if (!allSlugs.has(slug)) notFound();
-
-  const program = getProgramBySlug(slug);
+  const tsSlugSet = new Set(getJoinablePrograms().map((p) => p.slug));
+  let program: ProgramConfig;
+  if (tsSlugSet.has(slug)) {
+    program = getProgramBySlug(slug);
+  } else {
+    const dynamic = await fetchDynamicProgram(slug);
+    if (!dynamic) notFound();
+    program = dynamic;
+  }
   const track = trackParam ? getTrackBySlug(program, trackParam) : undefined;
   const needsInvite = program.requireInviteLink === true && !track;
   // When a track is selected, label it with its home program (the original
