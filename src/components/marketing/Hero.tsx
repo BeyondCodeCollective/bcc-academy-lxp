@@ -58,7 +58,7 @@ export default function Hero() {
   };
 
   return (
-    <section ref={sectionRef} className="relative min-h-[100dvh] flex items-end overflow-hidden bg-true-black grain">
+    <section ref={sectionRef} className="relative min-h-[100dvh] flex items-start md:items-end overflow-hidden bg-true-black grain">
       {/* Mobile background — dot-grid pattern (hides video) */}
       <div className="absolute inset-0 md:hidden bg-true-black">
         <div
@@ -112,7 +112,7 @@ export default function Hero() {
       </button>
 
       <motion.div
-        className="relative z-10 w-full mx-auto max-w-7xl px-6 pb-16 md:pb-24 pt-[100px] md:pt-64"
+        className="relative z-10 w-full mx-auto max-w-7xl px-6 pb-16 md:pb-24 pt-24 md:pt-64"
         style={{ y: contentY, opacity: contentOpacity }}
       >
         <motion.div
