@@ -65,7 +65,7 @@ export default function Hero() {
           className="absolute inset-0"
           style={{
             backgroundImage: `
-              radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px)
+              radial-gradient(rgba(255,255,255,0.12) 1px, transparent 1px)
             `,
             backgroundSize: "24px 24px",
           }}
@@ -73,7 +73,7 @@ export default function Hero() {
         <div
           className="absolute inset-0"
           style={{
-            background: "radial-gradient(ellipse 80% 60% at 50% 40%, rgba(229,247,1,0.06) 0%, transparent 70%)",
+            background: "radial-gradient(ellipse 80% 60% at 50% 40%, rgba(229,247,1,0.12) 0%, transparent 70%)",
           }}
         />
       </div>
@@ -112,7 +112,7 @@ export default function Hero() {
       </button>
 
       <motion.div
-        className="relative z-10 w-full mx-auto max-w-7xl px-6 pb-16 md:pb-24 pt-[270px] md:pt-64"
+        className="relative z-10 w-full mx-auto max-w-7xl px-6 pb-16 md:pb-24 pt-24 md:pt-64"
         style={{ y: contentY, opacity: contentOpacity }}
       >
         <motion.div
@@ -123,9 +123,9 @@ export default function Hero() {
         >
           <motion.p
             variants={fadeInUp}
-            className="text-electric-green text-sm font-semibold tracking-[0.3em] uppercase mb-8 font-mono"
+            className="hidden md:block text-electric-green text-sm font-semibold tracking-[0.3em] uppercase mb-8 font-mono"
           >
-            [ Beyond Code Collective &middot; Ages 7 to 77 &middot; By Us, For Everyone ]
+            [ Beyond Code · For Everyone ]
           </motion.p>
 
           <motion.h1
@@ -162,17 +162,17 @@ export default function Hero() {
             className="mt-12 flex flex-col sm:flex-row items-start gap-4"
           >
             <a
-              href="/quiz"
+              href="#programs"
               className="group inline-flex items-center px-10 py-5 bg-electric-green text-true-black text-base font-bold transition-all duration-300 hover:shadow-[0_8px_40px_rgba(229,247,1,0.35)] btn-press"
             >
-              <span className="mr-3">Take the Career Quiz</span>
+              <span className="mr-3">Explore Programs</span>
               <span className="inline-block transition-transform duration-300 group-hover:translate-x-1">&rarr;</span>
             </a>
             <a
-              href="#programs"
+              href="/quiz"
               className="inline-flex items-center px-10 py-5 border-2 border-white text-white text-base font-semibold transition-all duration-300 hover:bg-white hover:text-true-black btn-press"
             >
-              Explore Programs
+              Take the Career Quiz
             </a>
           </motion.div>
         </motion.div>

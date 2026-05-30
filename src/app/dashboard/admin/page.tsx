@@ -166,12 +166,7 @@ export default async function AdminPage({
       ] = await Promise.all([
       Promise.all([
         needsStudents
-          ? isHomeTab
-              ? svc
-                  .from("students")
-                  .select("id, role")
-                  .in("program_id", programIds)
-              : svc
+          ? svc
                   .from("students")
                   .select("id, first_name, last_name, email, role, cohort_id")
                   .in("program_id", programIds)
