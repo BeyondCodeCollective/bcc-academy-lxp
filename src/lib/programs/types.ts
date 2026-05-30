@@ -197,6 +197,9 @@ export type SurveyConfig = {
   description: string;
   /** If true, card keeps reappearing until completed */
   required: boolean;
+  /** Program slugs whose students should skip this survey even when they
+   *  resolve to this program's dashboard (e.g. forte students on Catalyst) */
+  skipForPrograms?: string[];
 };
 
 export type ProgramConfig = {
