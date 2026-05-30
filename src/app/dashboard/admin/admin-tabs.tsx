@@ -1180,23 +1180,16 @@ export function AdminTabs({
           {/* Students tab — roster, work, and attendance scoped to this track */}
           {trackView === "students" && (
             <div className="space-y-4">
-              <div className="flex gap-1 bg-neutral-50 border border-rule p-1">
-                {([
-                  { id: "students" as const, label: "Students" },
-                  { id: "work" as const, label: "Work" },
-                ] as const).map((v) => (
-                  <button
-                    key={v.id}
-                    onClick={() => setStudentSubView(v.id)}
-                    className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${
-                      studentSubView === v.id
-                        ? "bg-white text-neutral-900 shadow-sm"
-                        : "text-neutral-500 hover:text-neutral-700"
-                    }`}
-                  >
-                    {v.label}
-                  </button>
-                ))}
+              <div className="relative w-fit">
+                <select
+                  value={studentSubView}
+                  onChange={(e) => setStudentSubView(e.target.value as "students" | "work")}
+                  className="appearance-none border border-rule bg-surface-elevated pl-3 pr-8 py-2 text-sm font-medium text-neutral-700 focus:border-neutral-400 focus:outline-none"
+                >
+                  <option value="students">Roster &amp; Attendance</option>
+                  <option value="work">Submissions</option>
+                </select>
+                <ChevronDown size={13} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400" />
               </div>
 
               {studentSubView === "students" && (
