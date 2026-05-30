@@ -14,6 +14,8 @@ type Props = {
 };
 
 export function TrackInsightsSection({
+  trackSlug,
+  trackShortName,
   surveyConfigs,
   trackPublicSurveys = [],
 }: Props) {
@@ -30,12 +32,16 @@ export function TrackInsightsSection({
     );
   }
 
+  const returnTo = encodeURIComponent(
+    `/dashboard/admin?tab=${trackSlug}&view=surveys`
+  );
+
   return (
     <div className="border border-rule bg-surface-elevated divide-y divide-neutral-100">
       {all.map((s) => (
         <Link
           key={s.id}
-          href={`/dashboard/admin/surveys/${s.id}`}
+          href={`/dashboard/admin/surveys/${s.id}?returnTo=${returnTo}&returnLabel=${encodeURIComponent(trackShortName)}`}
           className="flex items-center justify-between px-4 py-3 hover:bg-neutral-50 transition-colors group"
         >
           <p className="text-sm font-medium text-neutral-900">{s.title}</p>
