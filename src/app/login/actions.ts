@@ -3,6 +3,7 @@
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { getProgram } from "@/lib/programs/server";
 import { sendSignInEmail } from "@/lib/email";
+import { isPrivilegedEmail, isStaffEmail } from "@/lib/auth/admins";
 
 type SendLoginLinkResult =
   | { ok: true }
@@ -11,16 +12,12 @@ type SendLoginLinkResult =
 /**
  * Send a magic-link sign-in email.
  *
- *   1. Email belongs to an existing student → send the magic link
- *      (Resend if configured, server-side OTP fallback otherwise) and
- *      return ok.
- *   2. Email is unknown to students but on the allowlist → send the
- *      magic link. The auth callback's allowlist inference will route
- *      them to the right program shell. This avoids the confusing UX
- *      of bouncing from /login to /join (which also asks for email).
- *   3. Email is unknown to both tables → still send the link (Supabase
- *      will deliver it; the auth callback rejects unadmitted users).
- *      Same wording as success so we don't enumerate accounts.
+ *   1. Email belongs to an existing student → send the magic link.
+ *   2. Email is on the allowlist → send the magic link; the auth
+ *      callback's allowlist inference routes them to the right program.
+ *   3. Email is privileged (admin/staff) → send the magic link.
+ *   4. Email is unknown to all three → return an error immediately
+ *      instead of sending a link that would dead-end at the callback.
  *
  * Always runs server-side end-to-end so the browser only makes one
  * short hop, not three transcontinental ones.
@@ -36,15 +33,36 @@ export async function sendLoginLink({
   const redirectTo = `${origin}/auth/callback`;
   const svc = createServiceClient();
 
+  // Run allowlist + student existence checks in parallel.
+  const [{ data: allowlistHit }, { data: studentHit }] = await Promise.all([
+    svc
+      .from("allowed_signup_emails")
+      .select("track_slug")
+      .eq("email", trimmed)
+      .maybeSingle(),
+    svc
+      .from("students")
+      .select("id")
+      .eq("email", trimmed)
+      .maybeSingle(),
+  ]);
+
+  const isAdmitted =
+    !!allowlistHit ||
+    !!studentHit ||
+    isPrivilegedEmail(trimmed) ||
+    isStaffEmail(trimmed);
+
+  if (!isAdmitted) {
+    return {
+      ok: false,
+      error: "This email isn't on our invite list. If you have an invite link from your instructor, use that to sign up.",
+    };
+  }
+
   // If the user is on the allowlist for a track, set cookies so the track
   // survives the magic-link redirect. This is needed because forte (and other
   // invite-only programs) require the ?track= param even on /auth/callback.
-  const { data: allowlistHit } = await svc
-    .from("allowed_signup_emails")
-    .select("track_slug")
-    .eq("email", trimmed)
-    .maybeSingle();
-
   if (allowlistHit?.track_slug) {
     const { getHomeProgramForTrack } = await import("@/lib/programs");
     const homeProgram = getHomeProgramForTrack(allowlistHit.track_slug as string);
