@@ -980,17 +980,6 @@ export function AdminTabs({
               with {activeTrack.instructor} &middot;{" "}
               {activeTrack.sessionTimes.join(" & ")}
             </p>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1 text-xs text-neutral-600">
-              <span className="tabular-nums">
-                <strong className="font-semibold text-neutral-900">{enrolledInTrack}</strong>{" "}
-                student{enrolledInTrack === 1 ? "" : "s"}
-              </span>
-              <span className="tabular-nums">
-                {notStarted
-                  ? `Starts ${startLabel} · ${activeTrack.totalWeeks}-week track`
-                  : `Week ${currentWeek} of ${activeTrack.totalWeeks}`}
-              </span>
-            </div>
           </header>
 
           {/* Sub-tab bar within the track */}
@@ -1829,14 +1818,17 @@ function PeopleTab({
         </Link>
       )}
       {/* Header */}
+      {(!embedded || isManager) && (
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           {!embedded && <h1 className="text-3xl font-bold tracking-tight text-neutral-900">People</h1>}
-          <p className="mt-0.5 text-sm text-neutral-500">
-            {studentCount} {studentCount === 1 ? "student" : "students"} · {instructorCount} {instructorCount === 1 ? "instructor" : "instructors"}
-          </p>
+          {!embedded && (
+            <p className="mt-0.5 text-sm text-neutral-500">
+              {studentCount} {studentCount === 1 ? "student" : "students"} · {instructorCount} {instructorCount === 1 ? "instructor" : "instructors"}
+            </p>
+          )}
         </div>
-        {isManager && (
+        {!embedded && isManager && (
           <div className="flex flex-wrap items-center gap-2">
             {showBulkAssign ? (
               <>
@@ -1892,9 +1884,10 @@ function PeopleTab({
           </div>
         )}
       </div>
+      )}
 
       {/* Add person form */}
-      {showAddForm && (
+      {!embedded && showAddForm && (
         <form onSubmit={handleAddStudent} className="border border-rule bg-surface-elevated p-4 space-y-3">
           <p className="text-sm font-semibold text-neutral-900">Add person</p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -1986,13 +1979,15 @@ function PeopleTab({
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-2">
-        <input
-          type="search"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search by name or email…"
-          className="flex-1 min-w-[200px] border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-400 focus:outline-none"
-        />
+        {!embedded && (
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by name or email…"
+            className="flex-1 min-w-[200px] border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-400 focus:outline-none"
+          />
+        )}
         <div className="relative">
           <select
             value={roleFilter}
@@ -2006,7 +2001,7 @@ function PeopleTab({
           </select>
           <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
         </div>
-        {tracks.length > 0 && (
+        {!embedded && tracks.length > 0 && (
           <div className="relative">
             <select
               value={trackFilter}
