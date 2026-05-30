@@ -1731,7 +1731,7 @@ function PeopleTab({
   viewSwitcher?: React.ReactNode;
 }) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [roleFilter, setRoleFilter] = useState("all");
+  const [roleFilter, setRoleFilter] = useState(embedded ? "student" : "all");
   const [trackFilter, setTrackFilter] = useState(initialTrackFilter ?? "all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -1996,19 +1996,21 @@ function PeopleTab({
             className="flex-1 min-w-[200px] border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-400 focus:outline-none"
           />
         )}
-        <div className="relative">
-          <select
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-            className="appearance-none border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-2 text-sm text-neutral-700 focus:border-neutral-400 focus:outline-none"
-          >
-            <option value="all">All roles</option>
-            <option value="student">Students</option>
-            <option value="instructor">Instructors</option>
-            <option value="admin">Admins</option>
-          </select>
-          <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
-        </div>
+        {!embedded && (
+          <div className="relative">
+            <select
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+              className="appearance-none border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-2 text-sm text-neutral-700 focus:border-neutral-400 focus:outline-none"
+            >
+              <option value="all">All roles</option>
+              <option value="student">Students</option>
+              <option value="instructor">Instructors</option>
+              <option value="admin">Admins</option>
+            </select>
+            <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
+          </div>
+        )}
         {!embedded && tracks.length > 0 && (
           <div className="relative">
             <select
