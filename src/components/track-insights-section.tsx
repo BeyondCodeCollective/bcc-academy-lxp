@@ -1,8 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { DownloadSimple } from "@phosphor-icons/react";
-import { getTrackSurveyResponses, exportPublicSurveyResponsesByType } from "@/app/dashboard/admin/actions";
+import {
+  getTrackSurveyResponses,
+  exportPublicSurveyResponsesByType,
+  type BCCSurveyResponse,
+} from "@/app/dashboard/admin/actions";
 
 type SurveyConfig = { id: string; title: string };
 
@@ -10,32 +15,56 @@ type Props = {
   trackSlug: string;
   trackShortName: string;
   programSlug: string;
-  enrolledStudentCount: number;
   surveyConfigs: SurveyConfig[];
-  /**
-   * Public surveys (no-login) tied to this track via the `publicSurveys` field
-   * on TrackConfig. Counts are server-rendered; the Export CSV button pulls
-   * the full responses on click. Empty array = no public surveys for this track.
-   */
   trackPublicSurveys?: { id: string; title: string; count: number }[];
 };
 
-type SurveyCount = {
+type SurveyWithResponses = {
   id: string;
   title: string;
-  responseCount: number;
-  uniqueRespondents: number;
+  responses: BCCSurveyResponse[];
 };
 
 export function TrackInsightsSection({
   trackSlug,
   trackShortName,
   programSlug,
-  enrolledStudentCount,
   surveyConfigs,
   trackPublicSurveys = [],
 }: Props) {
+  const [surveys, setSurveys] = useState<SurveyWithResponses[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [expandedSurvey, setExpandedSurvey] = useState<string | null>(null);
+  const [expandedRespondent, setExpandedRespondent] = useState<string | null>(null);
   const [exporting, setExporting] = useState<string | null>(null);
+
+  const surveyKey = useMemo(
+    () => surveyConfigs.map((s) => s.id).join(","),
+    [surveyConfigs],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      try {
+        const results = await Promise.all(
+          surveyConfigs.map((s) => getTrackSurveyResponses(s.id, trackSlug)),
+        );
+        if (cancelled) return;
+        setSurveys(
+          surveyConfigs
+            .map((s, i) => ({ id: s.id, title: s.title, responses: results[i] ?? [] }))
+            .filter((s) => s.responses.length > 0),
+        );
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    void load();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [programSlug, trackSlug, surveyKey]);
 
   async function handleExportPublic(surveyId: string, title: string) {
     setExporting(surveyId);
@@ -48,9 +77,7 @@ export function TrackInsightsSection({
       const csv = [
         headers,
         ...rows.map((r) => [
-          r.full_name,
-          r.email,
-          r.completed_at ?? "",
+          r.full_name, r.email, r.completed_at ?? "",
           ...Array.from(allKeys).map((k) => {
             const v = r.responses[k];
             if (Array.isArray(v)) return v.join("; ");
@@ -75,161 +102,121 @@ export function TrackInsightsSection({
       setExporting(null);
     }
   }
-  const [surveyCounts, setSurveyCounts] = useState<SurveyCount[] | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  // Stable scalar key for the surveys list. If we depended on surveyConfigs
-  // directly, every parent render with a fresh array prop ref would re-fire
-  // the effect and refetch — a real-world loop trigger.
-  const surveyKey = useMemo(
-    () => surveyConfigs.map((s) => s.id).join(","),
-    [surveyConfigs],
-  );
+  if (loading) return null;
 
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      setLoading(true);
-      try {
-        const responses = await Promise.all(
-          surveyConfigs.map((s) => getTrackSurveyResponses(s.id, trackSlug)),
-        );
-        if (cancelled) return;
-        setSurveyCounts(
-          surveyConfigs.map((s, i) => {
-            const rows = responses[i] ?? [];
-            const emails = new Set<string>();
-            for (const row of rows) {
-              if (row.email) emails.add(row.email.toLowerCase());
-            }
-            return {
-              id: s.id,
-              title: s.title,
-              responseCount: rows.length,
-              uniqueRespondents: emails.size,
-            };
-          }),
-        );
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-    void load();
-    return () => {
-      cancelled = true;
-    };
-    // surveyKey (not surveyConfigs) keeps this stable across renders that
-    // re-pass a structurally-identical array with a new reference.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [programSlug, trackSlug, surveyKey]);
+  const hasAnything = surveys.length > 0 || trackPublicSurveys.length > 0;
+  if (!hasAnything) {
+    return (
+      <p className="text-sm text-neutral-400 py-8 text-center">
+        No survey responses yet for this track.
+      </p>
+    );
+  }
 
   return (
-    <section className="space-y-6">
-      <div>
-        <h3 className="text-base font-semibold text-neutral-900">
-          Surveys
-        </h3>
-        <p className="text-xs text-neutral-500 mt-0.5">
-          Scoped to {enrolledStudentCount} student
-          {enrolledStudentCount === 1 ? "" : "s"} enrolled in {trackShortName}.
-        </p>
-      </div>
-
-      {/* Auth-survey response counts. Hide surveys with zero responses
-         from this track — they're program-wide surveys (e.g. Catalyst's
-         Post-Survey) and a "0 / 0 unique" row looks duplicative with the
-         Public surveys section right below, which often has real
-         responses for the same conceptual survey.
-
-         We deliberately render NOTHING while loading instead of a
-         skeleton — the section often collapses to empty after the fetch,
-         and showing an 80px placeholder that vanishes a moment later
-         caused a visible layout shift on the per-track Insights view.
-         The Reflections card above is always rendered, so it absorbs
-         any perceived "loading" feedback. */}
-      {(() => {
-        if (loading || surveyCounts === null) return null;
-        const withResponses = surveyCounts.filter((s) => s.responseCount > 0);
-        if (withResponses.length === 0) return null;
+    <div className="space-y-2">
+      {/* Auth surveys — expandable rows */}
+      {surveys.map((survey) => {
+        const isOpen = expandedSurvey === survey.id;
         return (
-          <div className="border border-rule bg-surface-elevated p-5">
-            <div className="mb-4 flex items-baseline justify-between gap-4">
-              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400">
-                Survey responses
-              </p>
-              <p className="text-[11px] text-neutral-400">
-                Program-wide surveys scoped to enrolled {trackShortName} students
-              </p>
-            </div>
-            <ul className="divide-y divide-neutral-100">
-              {withResponses.map((s) => (
-                <li key={s.id} className="grid grid-cols-[1fr_auto] items-center gap-x-4 py-3 first:pt-0 last:pb-0">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-neutral-900 truncate">
-                      {s.title}
-                    </p>
-                  </div>
-                  <div className="flex items-baseline gap-3 text-right shrink-0">
-                    <span className="text-sm font-semibold text-neutral-900 tabular-nums">
-                      {s.responseCount}
-                    </span>
-                    <span className="text-[11px] text-neutral-400 tabular-nums">
-                      {s.uniqueRespondents} unique
-                    </span>
-                  </div>
-                </li>
-              ))}
-            </ul>
+          <div key={survey.id} className="border border-rule bg-surface-elevated overflow-hidden">
+            <button
+              onClick={() => {
+                setExpandedSurvey(isOpen ? null : survey.id);
+                setExpandedRespondent(null);
+              }}
+              className="flex w-full items-center justify-between px-4 py-3 hover:bg-neutral-50 transition-colors"
+            >
+              <p className="text-sm font-medium text-neutral-900">{survey.title}</p>
+              <div className="flex items-center gap-3 shrink-0">
+                <span className="text-xs text-neutral-400 tabular-nums">
+                  {survey.responses.length} {survey.responses.length === 1 ? "response" : "responses"}
+                </span>
+                <ChevronDown
+                  size={14}
+                  className={`text-neutral-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                />
+              </div>
+            </button>
+
+            {isOpen && (
+              <div className="border-t border-neutral-100 divide-y divide-neutral-100">
+                {survey.responses.map((r, i) => {
+                  const key = `${survey.id}-${i}`;
+                  const isExpanded = expandedRespondent === key;
+                  return (
+                    <div key={key}>
+                      <button
+                        onClick={() => setExpandedRespondent(isExpanded ? null : key)}
+                        className="flex w-full items-center justify-between px-4 py-2.5 hover:bg-neutral-50 transition-colors"
+                      >
+                        <div className="text-left">
+                          <p className="text-sm text-neutral-900">{r.full_name}</p>
+                          <p className="text-[11px] text-neutral-400">{r.email}</p>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          {r.completed_at && (
+                            <span className="text-[11px] text-neutral-400">
+                              {new Date(r.completed_at).toLocaleDateString()}
+                            </span>
+                          )}
+                          <ChevronDown
+                            size={13}
+                            className={`text-neutral-300 transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                          />
+                        </div>
+                      </button>
+
+                      {isExpanded && (
+                        <div className="px-4 py-3 bg-neutral-50 border-t border-neutral-100 space-y-3">
+                          {Object.entries(r.responses).map(([prompt, answer]) => (
+                            <div key={prompt}>
+                              <p className="text-[11px] font-medium text-neutral-400 mb-0.5">{prompt}</p>
+                              <p className="text-sm text-neutral-700 whitespace-pre-wrap">
+                                {Array.isArray(answer)
+                                  ? answer.join(", ")
+                                  : typeof answer === "object" && answer !== null
+                                    ? JSON.stringify(answer)
+                                    : String(answer ?? "")}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         );
-      })()}
+      })}
 
-      {/* Public surveys tied to this track (network-plus-post, etc).
-         Public-survey responses don't carry a student_id so the counts above
-         miss them entirely — this card shows the totals and gives admins a
-         direct CSV export. */}
-      {trackPublicSurveys.length > 0 && (
-        <div className="border border-rule bg-surface-elevated p-5">
-          <div className="mb-4 flex items-baseline justify-between gap-4">
-            <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400">
-              Public surveys for {trackShortName}
-            </p>
-            <p className="text-[11px] text-neutral-400">
-              Anyone with the link can submit — not scoped to enrolled students.
-            </p>
+      {/* Public surveys — count + export only (no student_id to link responses to) */}
+      {trackPublicSurveys.map((s) => (
+        <div key={s.id} className="border border-rule bg-surface-elevated flex items-center justify-between px-4 py-3">
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-neutral-900">{s.title}</p>
+            <p className="text-[11px] text-neutral-400 font-mono">/survey/{s.id}</p>
           </div>
-          <ul className="divide-y divide-neutral-100">
-            {trackPublicSurveys.map((s) => (
-              <li
-                key={s.id}
-                className="grid grid-cols-[1fr_auto_auto] items-center gap-x-4 py-3 first:pt-0 last:pb-0"
-              >
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-neutral-900 truncate">
-                    {s.title}
-                  </p>
-                  <p className="text-[11px] text-neutral-500 font-mono truncate">
-                    /survey/{s.id}
-                  </p>
-                </div>
-                <span className="text-sm font-semibold text-neutral-900 tabular-nums">
-                  {s.count}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => handleExportPublic(s.id, s.title)}
-                  disabled={s.count === 0 || exporting === s.id}
-                  className="inline-flex items-center gap-1.5 border border-neutral-300 bg-white px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                >
-                  <DownloadSimple size={13} weight="bold" />
-                  {exporting === s.id ? "Exporting…" : "Export CSV"}
-                </button>
-              </li>
-            ))}
-          </ul>
+          <div className="flex items-center gap-4 shrink-0">
+            <span className="text-xs text-neutral-400 tabular-nums">
+              {s.count} {s.count === 1 ? "response" : "responses"}
+            </span>
+            <button
+              type="button"
+              onClick={() => handleExportPublic(s.id, s.title)}
+              disabled={s.count === 0 || exporting === s.id}
+              className="inline-flex items-center gap-1.5 border border-neutral-300 bg-white px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              <DownloadSimple size={13} weight="bold" />
+              {exporting === s.id ? "Exporting…" : "Export CSV"}
+            </button>
+          </div>
         </div>
-      )}
-    </section>
+      ))}
+    </div>
   );
 }
 
