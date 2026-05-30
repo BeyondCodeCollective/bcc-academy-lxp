@@ -18,7 +18,7 @@ export default async function ProgramsListPage() {
     .select("id, slug, name")
     .eq("is_dynamic", true)
     .order("name");
-  if (dbError) throw dbError;
+  if (dbError) console.error("[programs/page] DB error:", dbError);
 
   const tsPrograms = getAllPrograms();
 
@@ -40,7 +40,13 @@ export default async function ProgramsListPage() {
         </Link>
       </div>
 
-      {(dynamicPrograms ?? []).length > 0 && (
+      {dbError && (
+        <div className="rounded-lg border border-red-900 bg-red-950 px-4 py-3 text-sm text-red-400">
+          Could not load dynamic programs — {dbError.message}
+        </div>
+      )}
+
+      {!dbError && (dynamicPrograms ?? []).length > 0 && (
         <section className="space-y-3">
           <h2 className="text-xs font-semibold uppercase tracking-widest text-neutral-500">
             Created via Builder
