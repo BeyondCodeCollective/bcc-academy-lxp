@@ -1178,9 +1178,9 @@ export function AdminTabs({
       )}
 
           {/* Students tab — roster, work, and attendance scoped to this track */}
-          {trackView === "students" && (
-            <div className="space-y-4">
-              <div className="relative w-fit">
+          {trackView === "students" && (() => {
+            const viewSwitcher = (
+              <div className="relative">
                 <select
                   value={studentSubView}
                   onChange={(e) => setStudentSubView(e.target.value as "students" | "work")}
@@ -1191,42 +1191,51 @@ export function AdminTabs({
                 </select>
                 <ChevronDown size={13} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400" />
               </div>
+            );
+            return (
+              <div className="space-y-4">
+                {studentSubView === "students" && (
+                  <div className="space-y-8">
+                    <PeopleTab
+                      students={students}
+                      cohorts={cohorts}
+                      tracks={tracks}
+                      enrollments={enrollments}
+                      instrTracks={instrTracks}
+                      engagementScores={engagementScores}
+                      isManager={isManager}
+                      programSlug={programSlug}
+                      enrollmentSaving={enrollmentSaving}
+                      instrTrackSaving={instrTrackSaving}
+                      studentSaving={studentSaving}
+                      onUpdateStudent={updateStudent}
+                      onDeleteStudent={deleteStudent}
+                      onToggleStudentTrack={toggleTrackEnrollment}
+                      onToggleInstructorTrack={toggleInstructorTrack}
+                      onStudentAdded={(s) => setStudents((prev) => [...prev, s])}
+                      initialTrackFilter={activeTrack.slug}
+                      embedded
+                      viewSwitcher={viewSwitcher}
+                    />
+                    <AttendanceTab
+                      students={trackStudents.filter((s) => s.role === "student")}
+                      tracks={[activeTrack]}
+                      scopeLabel={activeTrack.shortName}
+                      embedded
+                    />
+                  </div>
+                )}
 
-              {studentSubView === "students" && (
-                <div className="space-y-8">
-                  <PeopleTab
-                    students={students}
-                    cohorts={cohorts}
-                    tracks={tracks}
-                    enrollments={enrollments}
-                    instrTracks={instrTracks}
-                    engagementScores={engagementScores}
-                    isManager={isManager}
-                    programSlug={programSlug}
-                    enrollmentSaving={enrollmentSaving}
-                    instrTrackSaving={instrTrackSaving}
-                    studentSaving={studentSaving}
-                    onUpdateStudent={updateStudent}
-                    onDeleteStudent={deleteStudent}
-                    onToggleStudentTrack={toggleTrackEnrollment}
-                    onToggleInstructorTrack={toggleInstructorTrack}
-                    onStudentAdded={(s) => setStudents((prev) => [...prev, s])}
-                    initialTrackFilter={activeTrack.slug}
-                    embedded
-                  />
-                  <AttendanceTab
-                    students={trackStudents.filter((s) => s.role === "student")}
+                {studentSubView === "work" && (
+                  <StudentWorkTab
                     tracks={[activeTrack]}
-                    scopeLabel={activeTrack.shortName}
+                    programSlug={programSlug}
+                    viewSwitcher={viewSwitcher}
                   />
-                </div>
-              )}
-
-              {studentSubView === "work" && (
-                <StudentWorkTab tracks={[activeTrack]} programSlug={programSlug} />
-              )}
-            </div>
-          )}
+                )}
+              </div>
+            );
+          })()}
 
           {/* Surveys sub-view — scoped to this track */}
           {trackView === "surveys" && (
@@ -1454,9 +1463,11 @@ export function AdminTabs({
 function StudentWorkTab({
   tracks,
   programSlug,
+  viewSwitcher,
 }: {
   tracks: AdminTrackConfig[];
   programSlug: string;
+  viewSwitcher?: React.ReactNode;
 }) {
   const [trackFilter, setTrackFilter] = useState<string>("all");
   const [weekFilter, setWeekFilter] = useState<number | "all">("all");
@@ -1509,6 +1520,7 @@ function StudentWorkTab({
     <div className="space-y-4">
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-2">
+        {viewSwitcher}
         {tracks.length > 1 && (
           <div className="relative">
             <select
@@ -1696,6 +1708,7 @@ function PeopleTab({
   onStudentAdded,
   initialTrackFilter,
   embedded,
+  viewSwitcher,
 }: {
   students: StudentRow[];
   cohorts: CohortRow[];
@@ -1715,6 +1728,7 @@ function PeopleTab({
   onStudentAdded: (student: StudentRow) => void;
   initialTrackFilter?: string;
   embedded?: boolean;
+  viewSwitcher?: React.ReactNode;
 }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
@@ -1972,6 +1986,7 @@ function PeopleTab({
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-2">
+        {viewSwitcher}
         {!embedded && (
           <input
             type="search"
