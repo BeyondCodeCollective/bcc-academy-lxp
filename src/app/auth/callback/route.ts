@@ -4,8 +4,8 @@ import type { EmailOtpType } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { createServiceClient } from "@/lib/supabase/server";
 import { authCookieDomain } from "@/lib/supabase/cookie-domain";
-import { getProgram } from "@/lib/programs/server";
-import { getProgramBySlug, getHomeProgramForTrack, isKnownProgramHost } from "@/lib/programs";
+import { getProgram, fetchDynamicProgram } from "@/lib/programs/server";
+import { getProgramBySlug, getHomeProgramForTrack, isKnownProgramHost, hasTsConfigSlug } from "@/lib/programs";
 import { determineRole, isPrivilegedEmail, isStaffEmail } from "@/lib/auth/admins";
 
 // Magic-link landing. Pin to iad1 only: Supabase is in us-west-2 and
@@ -47,7 +47,19 @@ export async function GET(request: Request) {
       trackParam = cookieStore.get("pending-join-track")?.value ?? null;
     }
 
-    const program = joinSlug ? getProgramBySlug(joinSlug) : await getProgram();
+    // Resolve program config. For dynamic (DB-created) courses, fall back to
+    // fetchDynamicProgram so the invite gate and program_id use the correct config.
+    let program: Awaited<ReturnType<typeof getProgram>>;
+    if (joinSlug) {
+      if (hasTsConfigSlug(joinSlug)) {
+        program = getProgramBySlug(joinSlug);
+      } else {
+        const dynamic = await fetchDynamicProgram(joinSlug);
+        program = dynamic ?? getProgramBySlug(joinSlug);
+      }
+    } else {
+      program = await getProgram();
+    }
     const domain = authCookieDomain(request.headers.get("host"));
 
     const pendingCookies: Array<{ name: string; value: string; options: Record<string, unknown> }> = [];

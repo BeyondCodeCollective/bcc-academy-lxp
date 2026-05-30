@@ -3,16 +3,7 @@
 import { useState } from "react";
 import { createCourseAction } from "../actions";
 import type { CreateCourseResult } from "../actions";
-
-function toSlug(name: string): string {
-  return name
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
+import { toSlug } from "@/lib/programs/slug";
 
 export function CreateCourseForm() {
   const [name, setName] = useState("");
@@ -30,19 +21,23 @@ export function CreateCourseForm() {
     setError(null);
     setPending(true);
 
-    const res = await createCourseAction({
-      name,
-      instructor,
-      totalWeeks: parseInt(totalWeeks, 10),
-      sessionsPerWeek: parseInt(sessionsPerWeek, 10),
-    });
+    try {
+      const res = await createCourseAction({
+        name,
+        instructor,
+        totalWeeks: parseInt(totalWeeks, 10),
+        sessionsPerWeek: parseInt(sessionsPerWeek, 10),
+      });
 
-    setPending(false);
-
-    if (res.success) {
-      setResult(res);
-    } else {
-      setError(res.error);
+      if (res.success) {
+        setResult(res);
+      } else {
+        setError(res.error);
+      }
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setPending(false);
     }
   }
 
@@ -67,7 +62,7 @@ export function CreateCourseForm() {
         </div>
         <button
           type="button"
-          onClick={() => { setResult(null); setName(""); setInstructor(""); setTotalWeeks(""); setSessionsPerWeek(""); }}
+          onClick={() => { setResult(null); setError(null); setName(""); setInstructor(""); setTotalWeeks(""); setSessionsPerWeek(""); }}
           className="text-sm text-neutral-500 hover:text-neutral-300"
         >
           Create another course
