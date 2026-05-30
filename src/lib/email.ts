@@ -7,7 +7,7 @@ const resend = process.env.RESEND_API_KEY
   : null;
 
 const FROM_ADDRESS =
-  process.env.RESEND_FROM_ADDRESS ?? "BCC Academy <noreply@bccacademy.io>";
+  process.env.RESEND_FROM_ADDRESS ?? "BCC Academy <noreply@mail.bccacademy.io>";
 
 export async function sendSignInEmail({
   to,
@@ -29,8 +29,7 @@ export async function sendSignInEmail({
     html: `
 <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:520px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;">
   <div style="background:#1a1a1a;padding:28px 24px;text-align:center;">
-    <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:#E5F701;">Beyond Code Collective</p>
-    <p style="margin:8px 0 0;font-size:20px;font-weight:700;color:#ffffff;">${programName}</p>
+    <p style="margin:0;font-size:24px;font-weight:700;letter-spacing:-0.02em;text-transform:uppercase;color:#ffffff;">BCC <span style="color:#E5F701;">[</span>Academy<span style="color:#E5F701;">]</span></p>
   </div>
   <div style="padding:32px 24px;">
     <p style="margin:0 0 8px;font-size:22px;font-weight:700;color:#1a1a1a;">You're almost in.</p>
