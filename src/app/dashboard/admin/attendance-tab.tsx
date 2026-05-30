@@ -26,6 +26,8 @@ type AttendanceTabProps = {
   tracks: TrackLike[];
   /** Used in the CSV filename + page heading. Defaults to "attendance". */
   scopeLabel?: string;
+  /** When true: hides the header/title, defaults straight to mark view. */
+  embedded?: boolean;
 };
 
 type View = "overview" | "mark";
@@ -48,7 +50,7 @@ const STATUS_LABEL: Record<string, { label: string; bg: string; text: string }> 
   disengaged: { label: "Disengaged", bg: "bg-red-50", text: "text-red-700" },
 };
 
-export function AttendanceTab({ students, tracks, scopeLabel }: AttendanceTabProps) {
+export function AttendanceTab({ students, tracks, scopeLabel, embedded }: AttendanceTabProps) {
   const startedTracks = useMemo(
     () => tracks.filter((t) => new Date() >= new Date(t.startDate)),
     [tracks]
@@ -56,7 +58,7 @@ export function AttendanceTab({ students, tracks, scopeLabel }: AttendanceTabPro
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [view, setView] = useState<View>("overview");
+  const [view, setView] = useState<View>(embedded ? "mark" : "overview");
   // Stores the user's explicit pick. `null` (the initial value) means
   // "fall back to the first started track." Switching tracks goes through
   // selectTrack() so we can snap the week navigator at the same time.
@@ -286,15 +288,17 @@ export function AttendanceTab({ students, tracks, scopeLabel }: AttendanceTabPro
 
   return (
     <div className="space-y-6">
-      <Header
-        scopeLabel={scopeLabel}
-        view={view}
-        setView={setView}
-        refreshing={refreshing}
-        onRefresh={() => void fetchRecords(true)}
-        onExport={exportCSV}
-        hasData={summaries.length > 0}
-      />
+      {!embedded && (
+        <Header
+          scopeLabel={scopeLabel}
+          view={view}
+          setView={setView}
+          refreshing={refreshing}
+          onRefresh={() => void fetchRecords(true)}
+          onExport={exportCSV}
+          hasData={summaries.length > 0}
+        />
+      )}
 
       {view === "overview" ? (
         <OverviewPanel
