@@ -138,7 +138,7 @@ export default async function TrackWeekPage({
   const studentCompleted = weekSubmissionsEnabled
     ? (weekProgress?.completed ?? false)
     : (weekProgress?.videoWatched ?? false);
-  const isCompleted = adminMarkedComplete || studentCompleted;
+  const isCompleted = trackStarted && (adminMarkedComplete || studentCompleted);
   const isCurrent = trackStarted && weekNum === currentWeek && !isCompleted;
 
   const hasRecording = weekContent.sessions.some((_, i) => !!recordingUrls[i]);
