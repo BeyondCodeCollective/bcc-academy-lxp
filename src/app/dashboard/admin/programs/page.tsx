@@ -13,11 +13,12 @@ export default async function ProgramsListPage() {
   if (!canSwitchPrograms(ctx.student?.role ?? "")) redirect("/dashboard/admin");
 
   const svc = createServiceClient();
-  const { data: dynamicPrograms } = await svc
+  const { data: dynamicPrograms, error: dbError } = await svc
     .from("programs")
     .select("id, slug, name")
     .eq("is_dynamic", true)
     .order("name");
+  if (dbError) throw dbError;
 
   const tsPrograms = getAllPrograms();
 
