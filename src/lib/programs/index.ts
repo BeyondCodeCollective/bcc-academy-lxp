@@ -121,6 +121,15 @@ export function getHomeProgramForTrack(trackSlug: string): ProgramConfig | undef
     : undefined;
 }
 
+/**
+ * Returns true when the slug is a known TS-config program (PROGRAMS or
+ * SPECIAL_CONFIGS). Used by resolveBaseProgram() to decide whether to
+ * fall through to the DB lookup for is_dynamic programs.
+ */
+export function hasTsConfigSlug(slug: string): boolean {
+  return slug in PROGRAMS || slug in SPECIAL_CONFIGS;
+}
+
 export type { ProgramConfig, TrackConfig, WeekConfig, SessionInfo } from "./types";
 
 // Pre-launch kill-switch for the AI Tutor. Flip back to `false` once we're
