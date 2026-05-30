@@ -341,7 +341,11 @@ async function DashboardContent({
           Welcome back, {firstName}
         </h1>
         {!isAdmin && !previewSlugOuter && (
-          <p className="mt-1 text-sm text-neutral-500">{cohortName}</p>
+          <p className="mt-1 text-sm text-neutral-500">
+            {visibleTracks.length > 0
+              ? visibleTracks.map((t) => t.name).join(" · ")
+              : cohortName}
+          </p>
         )}
         {previewSlugOuter && (
           <p className="mt-1 text-sm text-[#E54D2E]">

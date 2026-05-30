@@ -125,11 +125,17 @@ export async function sendJoinLink({
     options: { redirectTo },
   });
 
-  if (!error && data?.properties?.action_link) {
+  if (!error && data?.properties?.hashed_token) {
+    // Build a direct callback URL with token_hash in the query string.
+    // Using action_link instead would redirect through Supabase's server,
+    // which sends the session back as a #hash fragment — unreadable server-side.
+    const callbackUrl = new URL(redirectTo);
+    callbackUrl.searchParams.set("token_hash", data.properties.hashed_token);
+    callbackUrl.searchParams.set("type", "magiclink");
     try {
       await sendSignInEmail({
         to: normalised,
-        magicLink: data.properties.action_link,
+        magicLink: callbackUrl.toString(),
         programName: program.name,
       });
       return { ok: true };
