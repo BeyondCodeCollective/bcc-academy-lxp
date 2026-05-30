@@ -41,6 +41,10 @@ export default function Header({ solid = false }: HeaderProps) {
       }`}
     >
 
+      <div className="mx-auto max-w-7xl px-6 flex items-center justify-between h-20">
+        </div>
+      )}
+>>>>>>> 5c662f3 (UI updates: Hero hero copy/buttons, admin tabs improvements)
 
       <div className="mx-auto max-w-7xl px-6 flex items-center justify-between h-20">
         <Link href="/" className="flex items-center group">

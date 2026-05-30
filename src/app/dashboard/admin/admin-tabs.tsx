@@ -1805,6 +1805,7 @@ function PeopleTab({
 }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
+  const [trackFilter, setTrackFilter] = useState("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -1827,7 +1828,10 @@ function PeopleTab({
         .toLowerCase()
         .includes(searchQuery.toLowerCase());
     const matchesRole = roleFilter === "all" || s.role === roleFilter;
-    return matchesSearch && matchesRole;
+    const matchesTrack =
+      trackFilter === "all" ||
+      enrollments.some((e) => e.student_id === s.id && e.track_slug === trackFilter);
+    return matchesSearch && matchesRole && matchesTrack;
   });
 
   function getStudentTrackSlugs(studentId: string) {
@@ -2069,6 +2073,21 @@ function PeopleTab({
           </select>
           <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
         </div>
+        {tracks.length > 0 && (
+          <div className="relative">
+            <select
+              value={trackFilter}
+              onChange={(e) => setTrackFilter(e.target.value)}
+              className="appearance-none border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-2 text-sm text-neutral-700 focus:border-neutral-400 focus:outline-none"
+            >
+              <option value="all">All tracks</option>
+              {tracks.map((t) => (
+                <option key={t.slug} value={t.slug}>{t.shortName}</option>
+              ))}
+            </select>
+            <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
+          </div>
+        )}
         <span className="text-xs text-neutral-400">{filtered.length} shown</span>
       </div>
 
