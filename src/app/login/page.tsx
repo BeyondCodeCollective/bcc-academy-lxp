@@ -15,7 +15,7 @@ export default function CentralLoginPage() {
       {/* Left panel */}
       <div className="w-full lg:w-1/2 h-full bg-black flex flex-col">
         <header className="flex items-center px-8 md:px-12 py-6 md:py-8">
-          <Link href="/" className="font-display text-white text-sm md:text-base font-bold uppercase tracking-tight">
+          <Link href="/" className="font-display text-2xl font-bold text-white uppercase tracking-tight leading-none">
             BCC <span className="text-electric-green">[</span>Academy<span className="text-electric-green">]</span>
           </Link>
         </header>
