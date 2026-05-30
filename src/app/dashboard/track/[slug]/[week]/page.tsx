@@ -346,26 +346,6 @@ export default async function TrackWeekPage({
         </section>
       )}
 
-      {/* Brief description — leads the editorial flow that follows. */}
-      <p className="mb-8 text-base leading-relaxed text-ink-soft max-w-[65ch]">
-        {displayDescription}
-      </p>
-
-      {/* What You'll Cover — divider + eyebrow + list, no card. */}
-      <section className="mb-8 border-t border-rule pt-6">
-        <h2 className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
-          What you&apos;ll cover
-        </h2>
-        <ul className="space-y-2">
-          {displayObjectives.map((obj, i) => (
-            <li key={i} className="flex gap-2.5 text-sm text-ink-soft leading-relaxed">
-              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-ink-faint" />
-              {obj}
-            </li>
-          ))}
-        </ul>
-      </section>
-
       {/* Config-level recording (e.g. Google Drive link set in the program
          config). Skipped when any session has an admin-uploaded recording —
          those are intentional overrides for this cohort and rendering both
@@ -410,6 +390,26 @@ export default async function TrackWeekPage({
           />
         );
       })}
+
+      {/* Brief description */}
+      <p className="mb-8 text-base leading-relaxed text-ink-soft max-w-[65ch]">
+        {displayDescription}
+      </p>
+
+      {/* What You'll Cover — divider + eyebrow + list, no card. */}
+      <section className="mb-8 border-t border-rule pt-6">
+        <h2 className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
+          What you&apos;ll cover
+        </h2>
+        <ul className="space-y-2">
+          {displayObjectives.map((obj, i) => (
+            <li key={i} className="flex gap-2.5 text-sm text-ink-soft leading-relaxed">
+              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-ink-faint" />
+              {obj}
+            </li>
+          ))}
+        </ul>
+      </section>
 
       {/* Resources */}
       {resources.length > 0 && (

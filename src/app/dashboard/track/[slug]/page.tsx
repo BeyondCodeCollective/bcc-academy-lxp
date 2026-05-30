@@ -15,6 +15,7 @@ import { getSessionContext } from "@/lib/auth/session";
 import { canAccessAdminPanel } from "@/lib/roles";
 import { CopyInviteLink } from "@/components/copy-invite-link";
 import { toneForTrack } from "@/lib/track-visual";
+import { WeekCarousel, type WeekCardData } from "@/components/week-carousel";
 
 export const dynamic = "force-dynamic";
 
@@ -60,6 +61,30 @@ export default async function TrackOverviewPage({
 
   const tone = toneForTrack(slug);
 
+  const weekCards: WeekCardData[] = track.weekSummaries.map((ws) => {
+    const isCurrent = started && ws.week === currentWeek;
+    const isPast = started && ws.week < currentWeek;
+    const weekConfig = track.weeks.find((w) => w.week === ws.week);
+    const comingSoonUntil = weekConfig?.comingSoonUntil;
+    const isLocked = !!comingSoonUntil && now < new Date(comingSoonUntil);
+    const lockedLabel = isLocked
+      ? new Date(comingSoonUntil!).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        })
+      : null;
+    return {
+      week: ws.week,
+      topic: ws.topic,
+      icon: ws.icon,
+      href: isLocked ? null : `/dashboard/track/${slug}/${ws.week}`,
+      isCurrent,
+      isPast,
+      isLocked,
+      lockedLabel,
+    };
+  });
+
   // Self-paced tracks suppress the marketing start date — once live, "Starts
   // June 1" reads as stale. Empty string => JSX skips the eyebrow segment.
   // Tracks parked at a placeholder startDate use `startDateTbd` and render
@@ -100,78 +125,7 @@ export default async function TrackOverviewPage({
           className="relative w-full overflow-hidden p-5 sm:p-7"
           style={{ backgroundColor: `${tone}1A` }}
         >
-          <ol className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5 sm:gap-3">
-            {track.weekSummaries.map((ws) => {
-              const isCurrent = started && ws.week === currentWeek;
-              const isPast = started && ws.week < currentWeek;
-              // Locked: week has a `comingSoonUntil` date still in the future.
-              // Render a non-clickable greyed cell with the unlock-date label
-              // instead of the topic so the student sees when it opens.
-              const weekConfig = track.weeks.find((w) => w.week === ws.week);
-              const comingSoonUntil = weekConfig?.comingSoonUntil;
-              const isLocked =
-                !!comingSoonUntil && now < new Date(comingSoonUntil);
-              const lockedLabel = isLocked
-                ? new Date(comingSoonUntil!).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                  })
-                : null;
-
-              if (isLocked) {
-                return (
-                  <li key={ws.week}>
-                    <div
-                      aria-label={`Week ${ws.week}: ${ws.topic} (coming ${lockedLabel})`}
-                      className="flex aspect-square cursor-not-allowed flex-col items-center justify-center bg-white/40 p-2 backdrop-blur sm:p-2.5"
-                    >
-                      <span className="text-2xl leading-none opacity-30 sm:text-3xl">
-                        {ws.icon}
-                      </span>
-                      <span className="mt-1.5 line-clamp-2 px-1 text-center text-[10px] font-medium leading-tight text-neutral-400 sm:text-[11px]">
-                        {ws.topic}
-                      </span>
-                      <span className="mt-1 px-1 text-center text-[9px] font-semibold uppercase tracking-wide text-neutral-500 sm:text-[10px]">
-                        Coming {lockedLabel}
-                      </span>
-                    </div>
-                  </li>
-                );
-              }
-
-              return (
-                <li key={ws.week}>
-                  <Link
-                    href={`/dashboard/track/${slug}/${ws.week}`}
-                    aria-label={`Week ${ws.week}: ${ws.topic}${isCurrent ? " (current week)" : ""}`}
-                    className="group flex aspect-square flex-col items-center justify-center bg-white/85 p-2 backdrop-blur transition-colors hover:bg-white sm:p-2.5"
-                    style={
-                      isCurrent
-                        ? { boxShadow: `inset 0 0 0 2px ${tone}` }
-                        : undefined
-                    }
-                  >
-                    <span
-                      className={`text-2xl leading-none sm:text-3xl ${
-                        isPast ? "opacity-60" : ""
-                      }`}
-                    >
-                      {ws.icon}
-                    </span>
-                    <span
-                      className={`mt-1.5 line-clamp-2 px-1 text-center text-[10px] font-medium leading-tight transition-colors sm:text-[11px] ${
-                        isPast
-                          ? "text-neutral-400"
-                          : "text-neutral-600 group-hover:text-neutral-900"
-                      }`}
-                    >
-                      {ws.topic}
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ol>
+          <WeekCarousel weeks={weekCards} tone={tone} />
           {started && (
             <div className="absolute top-3 right-3">
               <span
