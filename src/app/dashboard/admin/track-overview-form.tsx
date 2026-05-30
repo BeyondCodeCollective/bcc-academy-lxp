@@ -6,15 +6,12 @@ import { saveTrackOverview, type TrackOverviewPatch } from "./actions";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
-type WeekSummary = { week: number; topic: string; icon: string };
-
 type Props = {
   track: {
     slug: string;
     name: string;
     description?: string;
     instructor: string;
-    weekSummaries: WeekSummary[];
   };
 };
 
@@ -31,9 +28,6 @@ export function TrackOverviewForm({ track }: Props) {
   const [name, setName] = useState(track.name);
   const [instructor, setInstructor] = useState(track.instructor);
   const [description, setDescription] = useState(track.description ?? "");
-  const [weekSummaries, setWeekSummaries] = useState<WeekSummary[]>(
-    track.weekSummaries,
-  );
   const [saveState, setSaveState] = useState<SaveState>("idle");
 
   // Debounced autosave — fires 800ms after the last edit. Skips the initial
@@ -53,7 +47,6 @@ export function TrackOverviewForm({ track }: Props) {
           name,
           instructor,
           description,
-          week_summaries: weekSummaries,
         };
         await saveTrackOverview(track.slug, patch);
         setSaveState("saved");
@@ -67,7 +60,7 @@ export function TrackOverviewForm({ track }: Props) {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [name, instructor, description, weekSummaries]);
+  }, [name, instructor, description]);
 
   return (
     <div className="space-y-6">
@@ -77,12 +70,6 @@ export function TrackOverviewForm({ track }: Props) {
         </p>
         <SaveIndicator state={saveState} />
       </div>
-
-      <p className="text-xs text-neutral-500 max-w-2xl">
-        Edit what shows on the student&apos;s track page. Changes save
-        automatically a moment after you stop typing. Leave a field blank to
-        fall back to the default.
-      </p>
 
       <div className="border border-rule bg-surface-elevated p-4 sm:p-5 space-y-4">
         <Field label="Track name">
@@ -105,7 +92,7 @@ export function TrackOverviewForm({ track }: Props) {
 
         <Field
           label="Description"
-          hint="Paragraph shown below the title on the track overview page."
+          hint="Shown below the title on the student's track page."
         >
           <textarea
             value={description}
@@ -114,37 +101,6 @@ export function TrackOverviewForm({ track }: Props) {
             className={`${inputCls} resize-y leading-relaxed`}
           />
         </Field>
-      </div>
-
-      <div className="border border-rule bg-surface-elevated p-4 sm:p-5">
-        <p className="mb-1 text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-500">
-          Week titles
-        </p>
-        <p className="mb-4 text-xs text-neutral-500">
-          One short line per week — shown on the overview &ldquo;Weeks&rdquo;
-          list and in the curriculum sidebar.
-        </p>
-        <div className="space-y-2">
-          {weekSummaries.map((ws, idx) => (
-            <div key={ws.week} className="flex items-center gap-3">
-              <span className="w-12 shrink-0 text-[11px] font-medium tabular-nums text-neutral-400">
-                Wk {ws.week}
-              </span>
-              <input
-                type="text"
-                value={ws.topic}
-                onChange={(e) => {
-                  const next = [...weekSummaries];
-                  next[idx] = { ...ws, topic: e.target.value };
-                  setWeekSummaries(next);
-                }}
-                className={`${inputCls} flex-1`}
-                placeholder="Topic"
-                aria-label={`Week ${ws.week} title`}
-              />
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   );
