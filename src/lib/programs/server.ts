@@ -66,6 +66,9 @@ async function resolveBaseProgram(): Promise<ProgramConfig> {
   if (cookieSlug) {
     const resolved = await resolveSlug(cookieSlug);
     if (resolved) return resolved;
+    // Stale cookie for an unknown slug — fall through to next resolution step.
+    // Old behaviour was to silently return catalyst; now we try the header and
+    // cookie-slug before domain-fallback, which is more correct.
   }
 
   return getProgramByDomain(host);
@@ -250,6 +253,9 @@ const fetchOverrides = cache(
 );
 
 async function applyTrackOverrides(program: ProgramConfig): Promise<ProgramConfig> {
+  // Dynamic programs have all track data built from DB rows already;
+  // there are no TS config defaults to override.
+  if (!hasTsConfigSlug(program.slug)) return program;
   const overrides = await fetchOverrides(program.slug);
   if (overrides.size === 0) return program;
   return {
