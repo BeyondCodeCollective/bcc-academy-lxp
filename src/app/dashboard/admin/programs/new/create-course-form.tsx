@@ -62,7 +62,7 @@ export function CreateCourseForm() {
         </div>
         <button
           type="button"
-          onClick={() => { setResult(null); setName(""); setInstructor(""); setTotalWeeks(""); setSessionsPerWeek(""); }}
+          onClick={() => { setResult(null); setError(null); setName(""); setInstructor(""); setTotalWeeks(""); setSessionsPerWeek(""); }}
           className="text-sm text-neutral-500 hover:text-neutral-300"
         >
           Create another course

@@ -41,8 +41,8 @@ export async function createCourseAction(formData: {
 
   if (!name.trim()) return { success: false, error: "Course name is required." };
   if (!instructor.trim()) return { success: false, error: "Instructor name is required." };
-  if (!Number.isFinite(totalWeeks) || totalWeeks < 1 || totalWeeks > 52) return { success: false, error: "Weeks must be between 1 and 52." };
-  if (!Number.isFinite(sessionsPerWeek) || sessionsPerWeek < 1 || sessionsPerWeek > 7) return { success: false, error: "Sessions per week must be between 1 and 7." };
+  if (!Number.isFinite(totalWeeks) || !Number.isInteger(totalWeeks) || totalWeeks < 1 || totalWeeks > 52) return { success: false, error: "Weeks must be between 1 and 52." };
+  if (!Number.isFinite(sessionsPerWeek) || !Number.isInteger(sessionsPerWeek) || sessionsPerWeek < 1 || sessionsPerWeek > 7) return { success: false, error: "Sessions per week must be between 1 and 7." };
 
   const slug = toSlug(name);
   if (!slug) return { success: false, error: "Could not derive a valid slug from the course name." };
@@ -88,7 +88,8 @@ export async function createCourseAction(formData: {
 
   if (trackError) {
     // Best-effort cleanup: delete the orphaned program row
-    await svc.from("programs").delete().eq("id", newProgram.id);
+    const { error: cleanupError } = await svc.from("programs").delete().eq("id", newProgram.id);
+    if (cleanupError) console.error("[createCourseAction] orphan cleanup failed:", cleanupError);
     console.error("[createCourseAction] track_overrides insert failed:", trackError);
     return { success: false, error: "Failed to save track details. Please try again." };
   }
