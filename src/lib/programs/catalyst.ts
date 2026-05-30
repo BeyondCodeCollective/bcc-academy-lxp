@@ -54,6 +54,7 @@ export const catalystConfig: ProgramConfig = {
       description:
         "Help us understand your background and experience so we can better support you.",
       required: true,
+      skipForPrograms: ["forte"],
     },
     {
       id: "post-survey-spring-2026",
