@@ -21,7 +21,6 @@ export function CreateCourseForm() {
     setError(null);
     setPending(true);
 
-<<<<<<< HEAD
     try {
       const res = await createCourseAction({
         name,
@@ -39,21 +38,6 @@ export function CreateCourseForm() {
       setError("Something went wrong. Please try again.");
     } finally {
       setPending(false);
-=======
-    const res = await createCourseAction({
-      name,
-      instructor,
-      totalWeeks: parseInt(totalWeeks, 10),
-      sessionsPerWeek: parseInt(sessionsPerWeek, 10),
-    });
-
-    setPending(false);
-
-    if (res.success) {
-      setResult(res);
-    } else {
-      setError(res.error);
->>>>>>> origin/main
     }
   }
 
@@ -78,11 +62,7 @@ export function CreateCourseForm() {
         </div>
         <button
           type="button"
-<<<<<<< HEAD
           onClick={() => { setResult(null); setError(null); setName(""); setInstructor(""); setTotalWeeks(""); setSessionsPerWeek(""); }}
-=======
-          onClick={() => { setResult(null); setName(""); setInstructor(""); setTotalWeeks(""); setSessionsPerWeek(""); }}
->>>>>>> origin/main
           className="text-sm text-neutral-500 hover:text-neutral-300"
         >
           Create another course
