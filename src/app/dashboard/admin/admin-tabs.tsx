@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { addStudentAction, deleteStudentAction, updateStudentAction, updateCohortAction, saveSessionContent, assignStudentTrack, removeStudentTrack, bulkAssignTrack, exportSurveyResponses, exportPublicSurveyResponses, getAllSubmissions, getAllReflections, addFeedback, assignInstructorTrack, removeInstructorTrack, deleteSurveyResponse, deletePublicSurveyResponse, listPublicSurveyResponses, sendInviteAction } from "./actions";
-import type { SessionResource, StudentTrackRow, SurveyStatsRow, AdminSubmissionRow, AdminReflectionRow, InstructorTrackRow, PublicSurveyStatsRow } from "./actions";
+import { addStudentAction, deleteStudentAction, updateStudentAction, updateCohortAction, saveSessionContent, assignStudentTrack, removeStudentTrack, bulkAssignTrack, exportSurveyResponses, exportPublicSurveyResponses, getAllSubmissions, addFeedback, assignInstructorTrack, removeInstructorTrack, deleteSurveyResponse, deletePublicSurveyResponse, listPublicSurveyResponses, sendInviteAction } from "./actions";
+import type { SessionResource, StudentTrackRow, SurveyStatsRow, AdminSubmissionRow, InstructorTrackRow, PublicSurveyStatsRow } from "./actions";
 import { canManageStudents, canSwitchPrograms } from "@/lib/roles";
 import {
   Users,
@@ -473,7 +473,7 @@ export function AdminTabs({
   const [trackView, setTrackView] = useState<
     "overview" | "curriculum" | "students" | "surveys"
   >("overview");
-  const [studentSubView, setStudentSubView] = useState<"people" | "work" | "attendance">("people");
+  const [studentSubView, setStudentSubView] = useState<"students" | "work">("students");
   const [studentSaving, setStudentSaving] = useState<string | null>(null);
 
   // Track data: keyed by track slug
@@ -1193,9 +1193,8 @@ export function AdminTabs({
             <div className="space-y-4">
               <div className="flex gap-1 bg-neutral-50 border border-rule p-1">
                 {([
-                  { id: "people" as const, label: "Roster" },
-                  { id: "work" as const, label: "Student Work" },
-                  { id: "attendance" as const, label: "Attendance" },
+                  { id: "students" as const, label: "Students" },
+                  { id: "work" as const, label: "Work" },
                 ] as const).map((v) => (
                   <button
                     key={v.id}
@@ -1211,39 +1210,38 @@ export function AdminTabs({
                 ))}
               </div>
 
-              {studentSubView === "people" && (
-                <PeopleTab
-                  students={students}
-                  cohorts={cohorts}
-                  tracks={tracks}
-                  enrollments={enrollments}
-                  instrTracks={instrTracks}
-                  engagementScores={engagementScores}
-                  isManager={isManager}
-                  programSlug={programSlug}
-                  enrollmentSaving={enrollmentSaving}
-                  instrTrackSaving={instrTrackSaving}
-                  studentSaving={studentSaving}
-                  onUpdateStudent={updateStudent}
-                  onDeleteStudent={deleteStudent}
-                  onToggleStudentTrack={toggleTrackEnrollment}
-                  onToggleInstructorTrack={toggleInstructorTrack}
-                  onStudentAdded={(s) => setStudents((prev) => [...prev, s])}
-                  initialTrackFilter={activeTrack.slug}
-                  embedded
-                />
+              {studentSubView === "students" && (
+                <div className="space-y-8">
+                  <PeopleTab
+                    students={students}
+                    cohorts={cohorts}
+                    tracks={tracks}
+                    enrollments={enrollments}
+                    instrTracks={instrTracks}
+                    engagementScores={engagementScores}
+                    isManager={isManager}
+                    programSlug={programSlug}
+                    enrollmentSaving={enrollmentSaving}
+                    instrTrackSaving={instrTrackSaving}
+                    studentSaving={studentSaving}
+                    onUpdateStudent={updateStudent}
+                    onDeleteStudent={deleteStudent}
+                    onToggleStudentTrack={toggleTrackEnrollment}
+                    onToggleInstructorTrack={toggleInstructorTrack}
+                    onStudentAdded={(s) => setStudents((prev) => [...prev, s])}
+                    initialTrackFilter={activeTrack.slug}
+                    embedded
+                  />
+                  <AttendanceTab
+                    students={trackStudents.filter((s) => s.role === "student")}
+                    tracks={[activeTrack]}
+                    scopeLabel={activeTrack.shortName}
+                  />
+                </div>
               )}
 
               {studentSubView === "work" && (
                 <StudentWorkTab tracks={[activeTrack]} programSlug={programSlug} />
-              )}
-
-              {studentSubView === "attendance" && (
-                <AttendanceTab
-                  students={trackStudents.filter((s) => s.role === "student")}
-                  tracks={[activeTrack]}
-                  scopeLabel={activeTrack.shortName}
-                />
               )}
             </div>
           )}
@@ -1478,11 +1476,9 @@ function StudentWorkTab({
   tracks: AdminTrackConfig[];
   programSlug: string;
 }) {
-  const [view, setView] = useState<"submissions" | "reflections">("submissions");
   const [trackFilter, setTrackFilter] = useState<string>("all");
   const [weekFilter, setWeekFilter] = useState<number | "all">("all");
   const [submissions, setSubmissions] = useState<AdminSubmissionRow[]>([]);
-  const [reflections, setReflections] = useState<AdminReflectionRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [feedbackText, setFeedbackText] = useState<Record<string, string>>({});
@@ -1492,12 +1488,8 @@ function StudentWorkTab({
     async function load() {
       setLoading(true);
       try {
-        const [subs, refs] = await Promise.all([
-          getAllSubmissions(programSlug, trackFilter !== "all" ? trackFilter : undefined),
-          getAllReflections(programSlug, trackFilter !== "all" ? trackFilter : undefined),
-        ]);
+        const subs = await getAllSubmissions(programSlug, trackFilter !== "all" ? trackFilter : undefined);
         setSubmissions(subs);
-        setReflections(refs);
       } catch (err) {
         console.error("Failed to load student work:", err);
       }
@@ -1506,27 +1498,19 @@ function StudentWorkTab({
     load();
   }, [programSlug, trackFilter]);
 
-  async function handleSendFeedback(itemId: string, type: "submission" | "reflection") {
+  async function handleSendFeedback(itemId: string) {
     const text = feedbackText[itemId]?.trim();
     if (!text) return;
     setSendingFeedback(itemId);
     try {
       await addFeedback({
-        submissionId: type === "submission" ? itemId : undefined,
-        reflectionId: type === "reflection" ? itemId : undefined,
+        submissionId: itemId,
         comment: text,
       });
       setFeedbackText((prev) => ({ ...prev, [itemId]: "" }));
-      // Update feedback count locally
-      if (type === "submission") {
-        setSubmissions((prev) =>
-          prev.map((s) => (s.id === itemId ? { ...s, feedback_count: s.feedback_count + 1 } : s))
-        );
-      } else {
-        setReflections((prev) =>
-          prev.map((r) => (r.id === itemId ? { ...r, feedback_count: r.feedback_count + 1 } : r))
-        );
-      }
+      setSubmissions((prev) =>
+        prev.map((s) => (s.id === itemId ? { ...s, feedback_count: s.feedback_count + 1 } : s))
+      );
     } catch (err) {
       console.error("Failed to send feedback:", err);
     }
@@ -1536,48 +1520,28 @@ function StudentWorkTab({
   const filteredSubmissions = submissions.filter((s) =>
     weekFilter === "all" ? true : s.week_number === weekFilter
   );
-  const filteredReflections = reflections.filter((r) =>
-    weekFilter === "all" ? true : r.week_number === weekFilter
-  );
 
   const maxWeeks = Math.max(...tracks.map((t) => t.totalWeeks), 0);
 
   return (
     <div className="space-y-4">
-      {/* View toggle + filters */}
+      {/* Filters */}
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex bg-neutral-100 p-0.5">
-          <button
-            onClick={() => setView("submissions")}
-            className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-              view === "submissions" ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-500"
-            }`}
-          >
-            Submissions
-          </button>
-          <button
-            onClick={() => setView("reflections")}
-            className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-              view === "reflections" ? "bg-white text-neutral-900 shadow-sm" : "text-neutral-500"
-            }`}
-          >
-            Reflections
-          </button>
-        </div>
-
-        <div className="relative">
-          <select
-            value={trackFilter}
-            onChange={(e) => setTrackFilter(e.target.value)}
-            className="appearance-none border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-1.5 text-xs font-medium text-neutral-700 focus:border-neutral-400 focus:outline-none"
-          >
-            <option value="all">All Tracks</option>
-            {tracks.map((t) => (
-              <option key={t.slug} value={t.slug}>{t.shortName}</option>
-            ))}
-          </select>
-          <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
-        </div>
+        {tracks.length > 1 && (
+          <div className="relative">
+            <select
+              value={trackFilter}
+              onChange={(e) => setTrackFilter(e.target.value)}
+              className="appearance-none border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-1.5 text-xs font-medium text-neutral-700 focus:border-neutral-400 focus:outline-none"
+            >
+              <option value="all">All Tracks</option>
+              {tracks.map((t) => (
+                <option key={t.slug} value={t.slug}>{t.shortName}</option>
+              ))}
+            </select>
+            <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
+          </div>
+        )}
 
         <div className="relative">
           <select
@@ -1594,7 +1558,7 @@ function StudentWorkTab({
         </div>
 
         <span className="text-xs text-neutral-400 ml-auto">
-          {view === "submissions" ? filteredSubmissions.length : filteredReflections.length} result{(view === "submissions" ? filteredSubmissions.length : filteredReflections.length) !== 1 ? "s" : ""}
+          {filteredSubmissions.length} result{filteredSubmissions.length !== 1 ? "s" : ""}
         </span>
       </div>
 
@@ -1604,7 +1568,7 @@ function StudentWorkTab({
         </div>
       )}
 
-      {!loading && view === "submissions" && (
+      {!loading && (
         <div className="space-y-2">
           {filteredSubmissions.length === 0 && (
             <p className="text-sm text-neutral-400 py-8 text-center">No submissions yet</p>
@@ -1700,12 +1664,12 @@ function StudentWorkTab({
                         onKeyDown={(e) => {
                           if (e.key === "Enter" && !e.shiftKey) {
                             e.preventDefault();
-                            handleSendFeedback(sub.id, "submission");
+                            handleSendFeedback(sub.id);
                           }
                         }}
                       />
                       <button
-                        onClick={() => handleSendFeedback(sub.id, "submission")}
+                        onClick={() => handleSendFeedback(sub.id)}
                         disabled={!feedbackText[sub.id]?.trim() || sendingFeedback === sub.id}
                         className="inline-flex items-center gap-1 bg-neutral-900 px-3 py-2 text-xs font-medium text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
                       >
@@ -1721,83 +1685,6 @@ function StudentWorkTab({
         </div>
       )}
 
-      {!loading && view === "reflections" && (
-        <div className="space-y-2">
-          {filteredReflections.length === 0 && (
-            <p className="text-sm text-neutral-400 py-8 text-center">No reflections yet</p>
-          )}
-          {filteredReflections.map((ref) => (
-            <div key={ref.id} className="border border-rule bg-surface-elevated overflow-hidden">
-              <button
-                onClick={() => setExpandedId(expandedId === ref.id ? null : ref.id)}
-                className="flex w-full items-center justify-between px-4 py-3 hover:bg-neutral-50 transition-colors"
-              >
-                <div className="flex items-center gap-3 text-left min-w-0">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-neutral-900">{ref.student_name}</p>
-                    <p className="text-[11px] text-neutral-400">
-                      {tracks.find((t) => t.slug === ref.track_slug)?.shortName ?? ref.track_slug} · Week {ref.week_number}
-                      {ref.submitted_at && ` · ${new Date(ref.submitted_at).toLocaleDateString()}`}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {ref.feedback_count > 0 && (
-                    <span className="inline-flex items-center gap-0.5 text-[10px] text-green-600 bg-green-50 rounded-full px-1.5 py-0.5">
-                      <MessageSquare size={10} /> {ref.feedback_count}
-                    </span>
-                  )}
-                  <ChevronDown size={14} className={`text-neutral-400 transition-transform ${expandedId === ref.id ? "rotate-180" : ""}`} />
-                </div>
-              </button>
-
-              {expandedId === ref.id && (
-                <div className="border-t border-neutral-100 px-4 py-3 space-y-3">
-                  {Object.entries(ref.responses)
-                    .filter(([key]) => key !== "_additional")
-                    .map(([prompt, answer]) => (
-                      <div key={prompt}>
-                        <p className="text-[11px] font-medium text-neutral-400 mb-0.5">{prompt}</p>
-                        <p className="text-sm text-neutral-700">{answer}</p>
-                      </div>
-                    ))}
-                  {ref.responses["_additional"] && (
-                    <div>
-                      <p className="text-[11px] font-medium text-neutral-400 mb-0.5">Additional thoughts</p>
-                      <p className="text-sm text-neutral-700">{ref.responses["_additional"]}</p>
-                    </div>
-                  )}
-                  {/* Feedback input */}
-                  <div className="pt-2 border-t border-neutral-100">
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={feedbackText[ref.id] ?? ""}
-                        onChange={(e) => setFeedbackText((prev) => ({ ...prev, [ref.id]: e.target.value }))}
-                        placeholder="Leave feedback..."
-                        className="flex-1 border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && !e.shiftKey) {
-                            e.preventDefault();
-                            handleSendFeedback(ref.id, "reflection");
-                          }
-                        }}
-                      />
-                      <button
-                        onClick={() => handleSendFeedback(ref.id, "reflection")}
-                        disabled={!feedbackText[ref.id]?.trim() || sendingFeedback === ref.id}
-                        className="inline-flex items-center gap-1 bg-neutral-900 px-3 py-2 text-xs font-medium text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
-                      >
-                        {sendingFeedback === ref.id ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
