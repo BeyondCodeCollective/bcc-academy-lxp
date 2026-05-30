@@ -2,7 +2,7 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient, isSupabaseConfigured, createServiceClient } from "@/lib/supabase/server";
 import { canSwitchPrograms } from "@/lib/roles";
-import { getDashboardSurveyResponses } from "../../actions";
+import { getDashboardSurveyResponses, getTrackSurveyResponses } from "../../actions";
 import { getSurveySchema } from "@/lib/surveys/schemas";
 import { PLATFORM_AUTH_SURVEYS, PLATFORM_PUBLIC_SURVEYS } from "@/lib/surveys/platform";
 import { getAllPrograms } from "@/lib/programs";
@@ -26,11 +26,11 @@ export default async function SurveyDashboardPage({
   searchParams,
 }: {
   params: Promise<{ surveyId: string }>;
-  searchParams: Promise<{ returnTo?: string; returnLabel?: string }>;
+  searchParams: Promise<{ returnTo?: string; returnLabel?: string; trackSlug?: string }>;
 }) {
   if (!isSupabaseConfigured()) redirect("/dashboard");
   const { surveyId } = await params;
-  const { returnTo, returnLabel } = await searchParams;
+  const { returnTo, returnLabel, trackSlug } = await searchParams;
   const backHref = returnTo ? decodeURIComponent(returnTo) : "/dashboard/admin/surveys";
   const backLabel = returnLabel ? `← ${decodeURIComponent(returnLabel)}` : "← All surveys";
 
@@ -50,7 +50,9 @@ export default async function SurveyDashboardPage({
   const schema = getSurveySchema(surveyId);
   if (!survey || !schema) notFound();
 
-  const responses = await getDashboardSurveyResponses(surveyId);
+  const responses = trackSlug
+    ? await getTrackSurveyResponses(surveyId, decodeURIComponent(trackSlug))
+    : await getDashboardSurveyResponses(surveyId);
   const programs = getAllPrograms().map((p) => ({ slug: p.slug, name: p.name }));
 
   return (

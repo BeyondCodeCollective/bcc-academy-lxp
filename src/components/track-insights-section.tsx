@@ -41,7 +41,7 @@ export function TrackInsightsSection({
       {all.map((s) => (
         <Link
           key={s.id}
-          href={`/dashboard/admin/surveys/${s.id}?returnTo=${returnTo}&returnLabel=${encodeURIComponent(trackShortName)}`}
+          href={`/dashboard/admin/surveys/${s.id}?returnTo=${returnTo}&returnLabel=${encodeURIComponent(trackShortName)}&trackSlug=${encodeURIComponent(trackSlug)}`}
           className="flex items-center justify-between px-4 py-3 hover:bg-neutral-50 transition-colors group"
         >
           <p className="text-sm font-medium text-neutral-900">{s.title}</p>
