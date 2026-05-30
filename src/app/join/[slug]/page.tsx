@@ -53,14 +53,6 @@ export default async function JoinPage({
     ? track.description ?? track.weeks[0]?.description ?? ""
     : "";
 
-  const startLabel = track
-    ? new Date(track.startDate).toLocaleDateString("en-US", {
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-      })
-    : "";
-
   return (
     <div className="flex min-h-[100dvh] flex-col bg-[#1a1a1a]">
       <header className="flex items-center px-8 py-6 md:px-12 md:py-8">
@@ -125,11 +117,6 @@ export default async function JoinPage({
                   </div>
                 )}
 
-                {!track.selfPaced && (
-                  <p className="mt-6 text-[12px] uppercase tracking-wider text-white/40">
-                    Starts {track.startDateTbd ? "TBD" : startLabel}
-                  </p>
-                )}
               </div>
 
               {/* Sign-up form — right column */}

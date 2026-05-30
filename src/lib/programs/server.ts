@@ -203,7 +203,9 @@ export async function fetchDynamicProgram(slug: string): Promise<ProgramConfig |
     return config;
   } catch (err) {
     console.warn("[fetchDynamicProgram] failed for slug=%s:", slug, err);
-    _dynamicCache.set(slug, { data: null, ts: Date.now() });
+    // Don't cache errors — a transient failure shouldn't make a newly-created
+    // course invisible for 60 seconds. Only successful null-results (program
+    // genuinely not found) are cached.
     return null;
   }
 }

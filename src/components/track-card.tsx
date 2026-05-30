@@ -9,8 +9,6 @@ type Props = {
   instructor: string;
   totalWeeks: number;
   sessionsPerWeek: number;
-  startDate: string;
-  startDateTbd?: boolean;
   started: boolean;
   currentWeek: number;
   weekOneTopic: string;
@@ -22,20 +20,12 @@ export function TrackCard({
   instructor,
   totalWeeks,
   sessionsPerWeek,
-  startDate,
-  startDateTbd,
   started,
   currentWeek,
   weekOneTopic,
 }: Props) {
   const tone = toneForTrack(slug);
   const Icon = iconForTrack(slug);
-  const startLabel = startDateTbd
-    ? "TBD"
-    : new Date(startDate).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      });
 
   return (
     <Link
@@ -52,7 +42,7 @@ export function TrackCard({
         <Icon size={56} weight="light" color={tone} />
         {/* Status badge floats top-right */}
         <div className="absolute top-3 right-3">
-          {started ? (
+          {started && (
             <span
               className="inline-flex items-center gap-1 rounded-full bg-white/95 px-2 py-0.5 text-[10px] font-semibold backdrop-blur"
               style={{ color: tone }}
@@ -62,10 +52,6 @@ export function TrackCard({
                 style={{ backgroundColor: tone }}
               />
               Wk {currentWeek}/{totalWeeks}
-            </span>
-          ) : (
-            <span className="inline-flex items-center rounded-full bg-white/95 px-2 py-0.5 text-[10px] font-semibold text-ink-soft backdrop-blur">
-              Starts {startLabel}
             </span>
           )}
         </div>

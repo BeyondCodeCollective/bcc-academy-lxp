@@ -3,7 +3,6 @@ import Link from "next/link";
 import {
   ArrowLeft,
   Clock,
-  CalendarBlank,
   ChalkboardTeacher,
   Lightning,
   ArrowRight,
@@ -44,12 +43,6 @@ export default async function TrackOverviewPage({
     ? computeCurrentWeek(track.startDate, track.totalWeeks, track.lastSessionDayOffset)
     : 0;
 
-  const startDateLabel = new Date(track.startDate).toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
-
   const ctaWeek = started ? currentWeek : 1;
   const ctaLabel = started
     ? `Open current week — Week ${currentWeek}`
@@ -67,12 +60,7 @@ export default async function TrackOverviewPage({
     const weekConfig = track.weeks.find((w) => w.week === ws.week);
     const comingSoonUntil = weekConfig?.comingSoonUntil;
     const isLocked = !!comingSoonUntil && now < new Date(comingSoonUntil);
-    const lockedLabel = isLocked
-      ? new Date(comingSoonUntil!).toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-        })
-      : null;
+    const lockedLabel = isLocked ? "soon" : null;
     return {
       week: ws.week,
       topic: ws.topic,
@@ -85,17 +73,7 @@ export default async function TrackOverviewPage({
     };
   });
 
-  // Self-paced tracks suppress the marketing start date — once live, "Starts
-  // June 1" reads as stale. Empty string => JSX skips the eyebrow segment.
-  // Tracks parked at a placeholder startDate use `startDateTbd` and render
-  // "Starts TBD" instead of committing to a date.
-  const eyebrow = started
-    ? `Week ${currentWeek} of ${track.totalWeeks}`
-    : track.selfPaced
-      ? ""
-      : track.startDateTbd
-        ? "Starts TBD"
-        : `Starts ${startDateLabel}`;
+  const eyebrow = started ? `Week ${currentWeek} of ${track.totalWeeks}` : "";
 
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-3xl px-4 sm:px-5 py-8 space-y-8">
@@ -183,9 +161,7 @@ export default async function TrackOverviewPage({
          skip the start-date card (it reads as stale once a self-paced
          program is live) and the grid drops to 3 columns. */}
       <dl
-        className={`grid gap-3 ${
-          track.selfPaced ? "grid-cols-3" : "grid-cols-2 sm:grid-cols-4"
-        }`}
+        className="grid grid-cols-3 gap-3"
       >
         <Fact
           icon={ChalkboardTeacher}
@@ -206,13 +182,6 @@ export default async function TrackOverviewPage({
               : "1×/week"
           }
         />
-        {!track.selfPaced && (
-          <Fact
-            icon={CalendarBlank}
-            label={track.startDateTbd ? "Starts" : started ? "Started" : "Starts"}
-            value={track.startDateTbd ? "TBD" : startDateLabel}
-          />
-        )}
       </dl>
 
       {track.officeHours && track.officeHours.length > 0 && (

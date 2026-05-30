@@ -67,7 +67,7 @@ export function WeekCarousel({
                     {w.topic}
                   </span>
                   <span className="mt-1.5 text-xs font-semibold uppercase tracking-wide text-neutral-400">
-                    Coming {w.lockedLabel}
+                    Coming soon
                   </span>
                 </div>
               </div>
@@ -133,7 +133,7 @@ export function WeekCarousel({
                   {w.topic}
                 </span>
                 <span className="mt-1 px-1 text-center text-[9px] font-semibold uppercase tracking-wide text-neutral-500 sm:text-[10px]">
-                  Coming {w.lockedLabel}
+                  Coming soon
                 </span>
               </div>
             ) : (
