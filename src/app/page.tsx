@@ -8,6 +8,9 @@ import { MarketingHome } from "@/components/marketing/MarketingHome";
 const MARKETING_HOSTS = new Set([
   "bccacademy.io",
   "www.bccacademy.io",
+  "localhost",
+  "127.0.0.1",
+  "192.168.1.83",
 ]);
 
 export const dynamic = "force-dynamic";
