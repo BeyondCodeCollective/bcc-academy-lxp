@@ -26,6 +26,8 @@ async function requireSuperAdmin() {
 
 function toSlug(name: string): string {
   return name
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9]+/g, "-")
@@ -103,6 +105,6 @@ export async function createCourseAction(formData: {
   return {
     success: true,
     slug,
-    joinUrl: `bccacademy.io/join/${slug}`,
+    joinUrl: `https://bccacademy.io/join/${slug}`,
   };
 }
