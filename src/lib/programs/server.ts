@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { headers, cookies } from "next/headers";
-import { getProgramBySlug, getProgramByDomain, isKnownProgramHost } from "./index";
+import { getProgramBySlug, getProgramByDomain, isKnownProgramHost, hasTsConfigSlug } from "./index";
 import type { ProgramConfig, TrackConfig } from "./types";
 import { createServiceClient } from "@/lib/supabase/server";
 
@@ -44,14 +44,29 @@ async function resolveBaseProgram(): Promise<ProgramConfig> {
   }
 
   const c = await cookies();
+
+  const resolveSlug = async (slug: string): Promise<ProgramConfig | null> => {
+    if (hasTsConfigSlug(slug)) return getProgramBySlug(slug);
+    return fetchDynamicProgram(slug);
+  };
+
   const overrideSlug = c.get("program-override")?.value;
-  if (overrideSlug) return getProgramBySlug(overrideSlug);
+  if (overrideSlug) {
+    const resolved = await resolveSlug(overrideSlug);
+    if (resolved) return resolved;
+  }
 
   const headerSlug = h.get("x-program-slug");
-  if (headerSlug) return getProgramBySlug(headerSlug);
+  if (headerSlug) {
+    const resolved = await resolveSlug(headerSlug);
+    if (resolved) return resolved;
+  }
 
   const cookieSlug = c.get("program-slug")?.value;
-  if (cookieSlug) return getProgramBySlug(cookieSlug);
+  if (cookieSlug) {
+    const resolved = await resolveSlug(cookieSlug);
+    if (resolved) return resolved;
+  }
 
   return getProgramByDomain(host);
 }
@@ -81,6 +96,114 @@ type TrackOverrideRow = {
  */
 const _overrideStore = new Map<string, { data: Map<string, TrackOverrideRow>; ts: number }>();
 const _OVERRIDE_TTL = 60_000;
+
+// ─── Dynamic Program Resolution ──────────────────────────────────────────────
+
+type DynamicProgramRow = { id: string; slug: string; name: string | null };
+
+const _dynamicCache = new Map<string, { data: ProgramConfig | null; ts: number }>();
+const _DYNAMIC_TTL = 60_000;
+
+function buildTrackFromOverride(row: TrackOverrideRow): TrackConfig {
+  return {
+    slug: row.track_slug,
+    name: row.name ?? row.track_slug,
+    shortName: row.short_name ?? row.name ?? row.track_slug,
+    description: row.description ?? undefined,
+    type: "weekly",
+    totalWeeks: row.total_weeks ?? 12,
+    sessionsPerWeek: row.sessions_per_week ?? 2,
+    startDate: row.start_date ?? "2099-01-01",
+    startDateTbd: !row.start_date,
+    instructor: row.instructor ?? "",
+    sessionTimes: (row.session_times as string[] | null) ?? [],
+    lastSessionDayOffset: row.last_session_day_offset ?? 0,
+    weekSummaries: (row.week_summaries as { week: number; topic: string; icon: string }[] | null) ?? [],
+    weeks: [],
+    defaultReflectionPrompts: (row.default_reflection_prompts as string[] | null) ?? [],
+    submissionsEnabled: row.submissions_enabled ?? true,
+    reflectionsEnabled: row.reflections_enabled ?? true,
+  };
+}
+
+function buildProgramFromDB(
+  programRow: DynamicProgramRow,
+  trackRows: TrackOverrideRow[],
+): ProgramConfig {
+  const displayName = programRow.name ?? programRow.slug;
+  return {
+    slug: programRow.slug,
+    name: displayName,
+    tagline: "",
+    domain: "bccacademy.io",
+    dnsReady: false,
+    logo: "/catalyst/logo.svg",
+    colors: {
+      primary: "#E54D2E",
+      primaryHover: "#F0613E",
+      accent: "#E54D2E",
+      tagline: "#888888",
+    },
+    defaultCohort: {
+      name: "cohort-1",
+      displayName: "Cohort 1",
+      startDate: "2099-01-01",
+      totalWeeks: trackRows[0] ? (trackRows[0].total_weeks ?? 12) : 12,
+    },
+    tracks: trackRows.map(buildTrackFromOverride),
+    requireInviteLink: false,
+    coppa: { required: false },
+    seo: {
+      title: displayName,
+      description: "",
+      ogTitle: displayName,
+      ogDescription: "",
+    },
+    organization: "Beyond Code Collective",
+  };
+}
+
+/**
+ * Fetch a dynamic (DB-created) program by slug. Returns null when no
+ * is_dynamic program with that slug exists. TTL-cached like track_overrides.
+ */
+export async function fetchDynamicProgram(slug: string): Promise<ProgramConfig | null> {
+  const cached = _dynamicCache.get(slug);
+  if (cached && Date.now() - cached.ts < _DYNAMIC_TTL) return cached.data;
+
+  try {
+    const svc = createServiceClient();
+    const { data: programRow } = await svc
+      .from("programs")
+      .select("id, slug, name")
+      .eq("slug", slug)
+      .eq("is_dynamic", true)
+      .maybeSingle();
+
+    if (!programRow) {
+      _dynamicCache.set(slug, { data: null, ts: Date.now() });
+      return null;
+    }
+
+    const { data: trackRows } = await svc
+      .from("track_overrides")
+      .select(
+        "track_slug, name, short_name, description, instructor, start_date, total_weeks, sessions_per_week, last_session_day_offset, session_times, week_summaries, default_reflection_prompts, submissions_enabled, reflections_enabled",
+      )
+      .eq("program_id", programRow.id);
+
+    const config = buildProgramFromDB(
+      programRow as DynamicProgramRow,
+      (trackRows ?? []) as TrackOverrideRow[],
+    );
+    _dynamicCache.set(slug, { data: config, ts: Date.now() });
+    return config;
+  } catch (err) {
+    console.warn("[fetchDynamicProgram] failed for slug=%s:", slug, err);
+    _dynamicCache.set(slug, { data: null, ts: Date.now() });
+    return null;
+  }
+}
 
 /**
  * Merge `track_overrides` from DB onto the static program config. Field-by-
