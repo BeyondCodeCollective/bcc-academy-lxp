@@ -471,8 +471,9 @@ export function AdminTabs({
   const [students, setStudents] = useState(initialStudents);
   const [expandedWeek, setExpandedWeek] = useState<number | null>(null);
   const [trackView, setTrackView] = useState<
-    "overview" | "curriculum" | "student-work" | "attendance" | "surveys"
+    "overview" | "curriculum" | "students" | "surveys"
   >("overview");
+  const [studentSubView, setStudentSubView] = useState<"people" | "work" | "attendance">("people");
   const [studentSaving, setStudentSaving] = useState<string | null>(null);
 
   // Track data: keyed by track slug
@@ -997,8 +998,7 @@ export function AdminTabs({
             {[
               { id: "overview" as const, label: "Overview" },
               { id: "curriculum" as const, label: "Curriculum" },
-              { id: "student-work" as const, label: "Student Work" },
-              { id: "attendance" as const, label: "Attendance" },
+              { id: "students" as const, label: "Students" },
               { id: "surveys" as const, label: "Surveys" },
             ].map((v) => (
               <button
@@ -1188,27 +1188,67 @@ export function AdminTabs({
         </div>
       )}
 
-          {/* Student Work sub-view — scoped to this track */}
-          {trackView === "student-work" && (
-            <StudentWorkTab tracks={[activeTrack]} programSlug={programSlug} />
+          {/* Students tab — roster, work, and attendance scoped to this track */}
+          {trackView === "students" && (
+            <div className="space-y-4">
+              <div className="flex gap-1 bg-neutral-50 border border-rule p-1">
+                {([
+                  { id: "people" as const, label: "Roster" },
+                  { id: "work" as const, label: "Student Work" },
+                  { id: "attendance" as const, label: "Attendance" },
+                ] as const).map((v) => (
+                  <button
+                    key={v.id}
+                    onClick={() => setStudentSubView(v.id)}
+                    className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${
+                      studentSubView === v.id
+                        ? "bg-white text-neutral-900 shadow-sm"
+                        : "text-neutral-500 hover:text-neutral-700"
+                    }`}
+                  >
+                    {v.label}
+                  </button>
+                ))}
+              </div>
+
+              {studentSubView === "people" && (
+                <PeopleTab
+                  students={students}
+                  cohorts={cohorts}
+                  tracks={tracks}
+                  enrollments={enrollments}
+                  instrTracks={instrTracks}
+                  engagementScores={engagementScores}
+                  isManager={isManager}
+                  programSlug={programSlug}
+                  enrollmentSaving={enrollmentSaving}
+                  instrTrackSaving={instrTrackSaving}
+                  studentSaving={studentSaving}
+                  onUpdateStudent={updateStudent}
+                  onDeleteStudent={deleteStudent}
+                  onToggleStudentTrack={toggleTrackEnrollment}
+                  onToggleInstructorTrack={toggleInstructorTrack}
+                  onStudentAdded={(s) => setStudents((prev) => [...prev, s])}
+                  initialTrackFilter={activeTrack.slug}
+                  embedded
+                />
+              )}
+
+              {studentSubView === "work" && (
+                <StudentWorkTab tracks={[activeTrack]} programSlug={programSlug} />
+              )}
+
+              {studentSubView === "attendance" && (
+                <AttendanceTab
+                  students={trackStudents.filter((s) => s.role === "student")}
+                  tracks={[activeTrack]}
+                  scopeLabel={activeTrack.shortName}
+                />
+              )}
+            </div>
           )}
 
-          {/* Attendance sub-view — scoped to this track. Standalone now, so
-             the data-fetch flash that used to disrupt the combined Insights
-             page only affects this one tab. */}
-          {trackView === "attendance" && (
-            <AttendanceTab
-              students={trackStudents.filter((s) => s.role === "student")}
-              tracks={[activeTrack]}
-              scopeLabel={activeTrack.shortName}
-            />
-          )}
-
-          {/* Surveys sub-view — scoped to this track. Pre/Post auth-survey
-             counts for enrolled students AND any track-specific public
-             surveys (e.g. Network+ End-of-Cohort). Reflections-by-week
-             panel was removed: only ATG/Forge tracks use weekly reflections
-             today, and the empty grid added noise on every other track. */}
+          {/* Surveys sub-view — scoped to this track */}
           {trackView === "surveys" && (
             <div className="space-y-8">
               <TrackInsightsSection
@@ -1785,6 +1825,8 @@ function PeopleTab({
   onToggleStudentTrack,
   onToggleInstructorTrack,
   onStudentAdded,
+  initialTrackFilter,
+  embedded,
 }: {
   students: StudentRow[];
   cohorts: CohortRow[];
@@ -1802,10 +1844,12 @@ function PeopleTab({
   onToggleStudentTrack: (studentId: string, trackSlug: string) => Promise<void>;
   onToggleInstructorTrack: (instructorId: string, trackSlug: string) => Promise<void>;
   onStudentAdded: (student: StudentRow) => void;
+  initialTrackFilter?: string;
+  embedded?: boolean;
 }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
-  const [trackFilter, setTrackFilter] = useState("all");
+  const [trackFilter, setTrackFilter] = useState(initialTrackFilter ?? "all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -1888,17 +1932,19 @@ function PeopleTab({
 
   return (
     <div className="space-y-6">
-      <Link
-        href="/dashboard/admin"
-        className="inline-flex items-center gap-1.5 text-[11px] font-medium text-neutral-400 transition-colors hover:text-neutral-700"
-      >
-        <ArrowLeftIcon size={11} weight="bold" aria-hidden />
-        Admin
-      </Link>
+      {!embedded && (
+        <Link
+          href="/dashboard/admin"
+          className="inline-flex items-center gap-1.5 text-[11px] font-medium text-neutral-400 transition-colors hover:text-neutral-700"
+        >
+          <ArrowLeftIcon size={11} weight="bold" aria-hidden />
+          Admin
+        </Link>
+      )}
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-neutral-900">People</h1>
+          {!embedded && <h1 className="text-3xl font-bold tracking-tight text-neutral-900">People</h1>}
           <p className="mt-0.5 text-sm text-neutral-500">
             {studentCount} {studentCount === 1 ? "student" : "students"} · {instructorCount} {instructorCount === 1 ? "instructor" : "instructors"}
           </p>
