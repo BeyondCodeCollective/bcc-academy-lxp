@@ -58,7 +58,7 @@ export default function Hero() {
   };
 
   return (
-    <section ref={sectionRef} className="relative min-h-[100dvh] flex items-end overflow-hidden bg-true-black grain">
+    <section ref={sectionRef} className="relative min-h-[100dvh] flex items-start md:items-end overflow-hidden bg-true-black grain">
       {/* Mobile background — dot-grid pattern (hides video) */}
       <div className="absolute inset-0 md:hidden bg-true-black">
         <div
