@@ -75,40 +75,33 @@ export function RecordingCard({
           <div className="border-t border-neutral-100">
             {youtubeEmbed ? (
               <div className="relative w-full aspect-video bg-neutral-900">
-                {open && (
-                  <iframe
-                    src={youtubeEmbed}
-                    title={title}
-                    className="absolute inset-0 w-full h-full"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
-                )}
+                <iframe
+                  src={youtubeEmbed}
+                  title={title}
+                  className="absolute inset-0 w-full h-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
               </div>
             ) : driveEmbed ? (
               <div className="relative w-full aspect-video bg-neutral-900">
-                {open && (
-                  <iframe
-                    src={driveEmbed}
-                    title={title}
-                    className="absolute inset-0 w-full h-full"
-                    allow="autoplay; fullscreen"
-                    allowFullScreen
-                  />
-                )}
+                <iframe
+                  src={driveEmbed}
+                  title={title}
+                  className="absolute inset-0 w-full h-full"
+                  allow="autoplay; fullscreen"
+                  allowFullScreen
+                />
               </div>
             ) : isVideoFile ? (
               <div className="bg-neutral-900">
-                {open && (
-                  <video
-                    src={toVideoProxyUrl(url)}
-                    controls
-                    autoPlay
-                    playsInline
-                    className="w-full max-h-[480px] object-contain"
-                    preload="metadata"
-                  />
-                )}
+                <video
+                  src={toVideoProxyUrl(url)}
+                  controls
+                  playsInline
+                  className="w-full max-h-[480px] object-contain"
+                  preload="metadata"
+                />
               </div>
             ) : null}
           </div>
