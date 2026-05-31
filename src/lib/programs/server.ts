@@ -100,6 +100,12 @@ type TrackOverrideRow = {
 const _overrideStore = new Map<string, { data: Map<string, TrackOverrideRow>; ts: number }>();
 const _OVERRIDE_TTL = 60_000;
 
+/** Call after any mutation to track_overrides so the next request sees fresh data. */
+export function bustOverrideCache(programSlug: string) {
+  _overrideStore.delete(programSlug);
+  _dynamicCache.delete(programSlug);
+}
+
 // ─── Dynamic Program Resolution ──────────────────────────────────────────────
 
 type DynamicProgramRow = { id: string; slug: string; name: string | null };

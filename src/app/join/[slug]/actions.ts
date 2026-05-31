@@ -48,6 +48,25 @@ export async function sendJoinLink({
   // which on a Portugal→US-Supabase request stacked two ~250-300ms
   // round-trips before the user saw any feedback. One RTT now.
   if (trackSlug) {
+    // Archived check: block new enrollments into archived courses.
+    const svcCheck = createServiceClient();
+    const { data: programRow } = await svcCheck
+      .from("programs")
+      .select("id")
+      .eq("slug", programSlug)
+      .maybeSingle<{ id: string }>();
+    if (programRow) {
+      const { data: archivedRow } = await svcCheck
+        .from("track_overrides")
+        .select("archived_at")
+        .eq("program_id", programRow.id)
+        .eq("track_slug", trackSlug)
+        .maybeSingle<{ archived_at: string | null }>();
+      if (archivedRow?.archived_at) {
+        return { ok: false, error: "This course is no longer accepting new students." };
+      }
+    }
+
     const svcAllow = createServiceClient();
     const [{ count: allowlistSize, error: countErr }, { data: allowed, error: lookupErr }] = await Promise.all([
       svcAllow
