@@ -135,7 +135,12 @@ export async function GET(request: Request) {
         if (firstTrack) {
           const homeProgram = getHomeProgramForTrack(firstTrack);
           if (homeProgram) {
-            if (!joinSlug) joinSlug = homeProgram.slug;
+            // Always trust the allowlist over a stale pending-join-slug cookie.
+            // The cookie can be left over from a previous session on a different
+            // program (e.g. someone who previously visited /join/catalyst then
+            // tries to log in as a Forte student). The allowlist is the canonical
+            // source of truth for which program the student belongs to.
+            joinSlug = homeProgram.slug;
             if (!trackParam) trackParam = firstTrack;
             // Re-resolve the program config now that we have the slug
             if (hasTsConfigSlug(joinSlug)) {
@@ -155,8 +160,29 @@ export async function GET(request: Request) {
       const canBypassInviteGate =
         isPrivilegedEmail(email) || isStaffEmail(email);
       if (program.requireInviteLink === true && !trackParam && !canBypassInviteGate) {
-        await supabase.auth.signOut();
-        return NextResponse.redirect(`${origin}/login?error=invite`);
+        // The allowlist fallback above may have failed silently (transient DB error,
+        // Supabase stripping URL params, cross-browser cookie loss — all of these
+        // leave trackParam null). Do one final direct lookup before rejecting: if the
+        // email is genuinely on the list, recover the track and continue rather than
+        // bouncing a legitimate student.
+        const { data: finalCheck } = await admin
+          .from("allowed_signup_emails")
+          .select("track_slug")
+          .eq("email", email)
+          .maybeSingle();
+        if (finalCheck?.track_slug) {
+          trackParam = finalCheck.track_slug as string;
+          if (!joinSlug) {
+            const hp = getHomeProgramForTrack(trackParam);
+            if (hp) {
+              joinSlug = hp.slug;
+              if (hasTsConfigSlug(joinSlug)) program = getProgramBySlug(joinSlug);
+            }
+          }
+        } else {
+          await supabase.auth.signOut();
+          return NextResponse.redirect(`${origin}/login?error=invite`);
+        }
       }
 
       // Fetch program UUID (needed for student upsert)
