@@ -229,9 +229,9 @@ export async function completePendingSetup(
     }
   }
 
-  // 6. Role update for privileged users
+  // 6. Role sync — handles both upgrades and downgrades
   const correctRole = determineRole(email);
-  if (correctRole !== "student" && currentRole !== correctRole) {
+  if (correctRole !== currentRole) {
     const { error: roleErr } = await admin
       .from("students")
       .update({ role: correctRole })
