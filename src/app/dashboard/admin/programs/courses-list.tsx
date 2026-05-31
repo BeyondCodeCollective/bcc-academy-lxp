@@ -4,6 +4,7 @@ import { useState } from "react";
 
 export type CourseRow = {
   slug: string;
+  programSlug: string;
   name: string;
   joinUrl: string;
 };
@@ -28,7 +29,7 @@ function CopyButton({ url }: { url: string }) {
 
 function CourseItem({ course }: { course: CourseRow }) {
   function openCourse() {
-    document.cookie = `program-override=${course.slug}; path=/; max-age=86400`;
+    document.cookie = `program-override=${course.programSlug}; path=/; max-age=86400`;
     window.location.href = "/dashboard/admin";
   }
 

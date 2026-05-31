@@ -4,7 +4,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { hasCapability } from "@/lib/roles";
-import { hasTsConfigSlug } from "@/lib/programs";
+import { getProgramBySlug } from "@/lib/programs";
 import { toSlug } from "@/lib/programs/slug";
 
 async function requireSuperAdmin() {
@@ -47,38 +47,38 @@ export async function createCourseAction(formData: {
   const slug = toSlug(name);
   if (!slug) return { success: false, error: "Could not derive a valid slug from the course name." };
 
-  // Uniqueness check: TS configs
-  if (hasTsConfigSlug(slug)) {
+  // All builder courses live as tracks under Catalyst (no standalone program row).
+  const { data: catalystRow } = await svc
+    .from("programs")
+    .select("id")
+    .eq("slug", "catalyst")
+    .single<{ id: string }>();
+  if (!catalystRow) {
+    return { success: false, error: "Could not find the Catalyst program. Please contact an engineer." };
+  }
+
+  // Uniqueness check: TS config tracks in Catalyst
+  const catalystTracks = getProgramBySlug("catalyst").tracks;
+  if (catalystTracks.some((t) => t.slug === slug)) {
     return { success: false, error: `A course with this name already exists (slug: ${slug}).` };
   }
 
-  // Uniqueness check: DB
+  // Uniqueness check: existing track_overrides rows under Catalyst
   const { data: existing } = await svc
-    .from("programs")
-    .select("id")
-    .eq("slug", slug)
+    .from("track_overrides")
+    .select("track_slug")
+    .eq("program_id", catalystRow.id)
+    .eq("track_slug", slug)
     .maybeSingle();
   if (existing) {
     return { success: false, error: `A course with this name already exists (slug: ${slug}).` };
   }
 
-  // Insert program row
-  const { data: newProgram, error: programError } = await svc
-    .from("programs")
-    .insert({ slug, name: name.trim(), is_dynamic: true })
-    .select("id")
-    .single<{ id: string }>();
-
-  if (programError || !newProgram) {
-    console.error("[createCourseAction] programs insert failed:", programError);
-    return { success: false, error: "Failed to create course. Please try again." };
-  }
-
-  // Insert track_overrides row (track slug = program slug for single-track courses)
+  // Insert track_overrides row under Catalyst
   const { error: trackError } = await svc
     .from("track_overrides")
     .insert({
-      program_id: newProgram.id,
+      program_id: catalystRow.id,
       track_slug: slug,
       name: name.trim(),
       instructor: instructor.trim(),
@@ -87,16 +87,13 @@ export async function createCourseAction(formData: {
     });
 
   if (trackError) {
-    // Best-effort cleanup: delete the orphaned program row
-    const { error: cleanupError } = await svc.from("programs").delete().eq("id", newProgram.id);
-    if (cleanupError) console.error("[createCourseAction] orphan cleanup failed:", cleanupError);
     console.error("[createCourseAction] track_overrides insert failed:", trackError);
-    return { success: false, error: "Failed to save track details. Please try again." };
+    return { success: false, error: "Failed to create course. Please try again." };
   }
 
   return {
     success: true,
     slug,
-    joinUrl: `https://bccacademy.io/join/${slug}`,
+    joinUrl: `https://bccacademy.io/join/catalyst?track=${slug}`,
   };
 }

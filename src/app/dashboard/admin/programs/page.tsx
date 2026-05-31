@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSessionContext } from "@/lib/auth/session";
 import { canSwitchPrograms } from "@/lib/roles";
-import { getAllPrograms } from "@/lib/programs";
+import { getProgramBySlug } from "@/lib/programs";
 import { createServiceClient } from "@/lib/supabase/server";
 import { CoursesList } from "./courses-list";
 import type { CourseRow } from "./courses-list";
@@ -12,32 +12,43 @@ export default async function ProgramsListPage() {
   if (!ctx) redirect("/");
   if (!canSwitchPrograms(ctx.student?.role ?? "")) redirect("/dashboard/admin");
 
-  // TS-config programs (Catalyst etc.) — shown with their real join structure
-  const tsCourses: CourseRow[] = getAllPrograms()
-    .filter((p) => p.tracks.length > 0)
-    .flatMap((p) =>
-      p.tracks.map((t) => ({
-        slug: p.slug,
-        name: t.name,
-        joinUrl: `https://bccacademy.io/join/${p.slug}?track=${t.slug}`,
-      }))
-    );
+  // All courses are tracks inside Catalyst. Start with TS-config tracks.
+  const catalyst = getProgramBySlug("catalyst");
+  const tsTrackSlugs = new Set(catalyst.tracks.map((t) => t.slug));
 
-  // Builder-created courses
-  const svc = createServiceClient();
-  const { data: dynamic } = await svc
-    .from("programs")
-    .select("slug, name")
-    .eq("is_dynamic", true)
-    .order("name");
-
-  const dynamicCourses: CourseRow[] = (dynamic ?? []).map((p) => ({
-    slug: p.slug as string,
-    name: (p.name as string | null) ?? (p.slug as string),
-    joinUrl: `https://bccacademy.io/join/${p.slug}`,
+  const tsCourses: CourseRow[] = catalyst.tracks.map((t) => ({
+    slug: t.slug,
+    programSlug: "catalyst",
+    name: t.name,
+    joinUrl: `https://bccacademy.io/join/catalyst?track=${t.slug}`,
   }));
 
-  const allCourses = [...dynamicCourses, ...tsCourses].sort((a, b) =>
+  // Builder-created tracks: track_overrides rows under Catalyst not in TS config
+  const svc = createServiceClient();
+  const { data: catalystRow } = await svc
+    .from("programs")
+    .select("id")
+    .eq("slug", "catalyst")
+    .single<{ id: string }>();
+
+  let dynamicCourses: CourseRow[] = [];
+  if (catalystRow) {
+    const { data: overrides } = await svc
+      .from("track_overrides")
+      .select("track_slug, name")
+      .eq("program_id", catalystRow.id)
+      .order("name");
+    dynamicCourses = (overrides ?? [])
+      .filter((o) => !tsTrackSlugs.has(o.track_slug as string))
+      .map((o) => ({
+        slug: o.track_slug as string,
+        programSlug: "catalyst",
+        name: (o.name as string | null) ?? (o.track_slug as string),
+        joinUrl: `https://bccacademy.io/join/catalyst?track=${o.track_slug}`,
+      }));
+  }
+
+  const allCourses = [...tsCourses, ...dynamicCourses].sort((a, b) =>
     a.name.localeCompare(b.name)
   );
 

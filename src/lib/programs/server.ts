@@ -283,9 +283,20 @@ async function applyTrackOverrides(program: ProgramConfig): Promise<ProgramConfi
   if (!hasTsConfigSlug(program.slug)) return program;
   const overrides = await fetchOverrides(program.slug);
   if (overrides.size === 0) return program;
+
+  const existingSlugs = new Set(program.tracks.map((t) => t.slug));
+  // Builder-created courses are stored as track_overrides rows under Catalyst
+  // with no corresponding TS config entry. Append them as fully DB-sourced tracks.
+  const extraTracks = [...overrides.values()]
+    .filter((o) => !existingSlugs.has(o.track_slug))
+    .map(buildTrackFromOverride);
+
   return {
     ...program,
-    tracks: program.tracks.map((t) => mergeTrack(t, overrides.get(t.slug))),
+    tracks: [
+      ...program.tracks.map((t) => mergeTrack(t, overrides.get(t.slug))),
+      ...extraTracks,
+    ],
   };
 }
 

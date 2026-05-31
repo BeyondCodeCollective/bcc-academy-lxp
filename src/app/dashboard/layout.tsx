@@ -174,18 +174,8 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
       domain: p.domain,
       dnsReady: p.dnsReady,
     }));
-    // Add builder-created (dynamic) courses so super-admins can switch to them
-    if (isSupabaseConfigured()) {
-      const svcForPrograms = createServiceClient();
-      const { data: dynamicPrograms } = await svcForPrograms
-        .from("programs")
-        .select("slug, name")
-        .eq("is_dynamic", true)
-        .order("name");
-      for (const dp of dynamicPrograms ?? []) {
-        programs.push({ slug: dp.slug as string, name: (dp.name as string | null) ?? dp.slug as string, domain: "bccacademy.io", dnsReady: false });
-      }
-    }
+    // Builder-created courses are now tracks inside Catalyst, not separate programs.
+    // The switcher only shows TS-config programs; manage courses via /admin/courses.
   }
 
   const showLunchLearnSidebar =
