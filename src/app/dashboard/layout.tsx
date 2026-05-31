@@ -15,6 +15,7 @@ import { getPreviewTrackSlug, LUNCH_LEARN_PREVIEW_SLUG } from "@/lib/auth/previe
 import { getEnrolledTracks } from "@/lib/enrollment";
 import { BCC_INTAKE_SURVEY_ID, BCC_INTAKE_EXEMPT_PROGRAMS } from "@/lib/surveys/platform";
 import { isStaffEmail } from "@/lib/auth/admins";
+import { getHomeProgramForTrack } from "@/lib/programs";
 
 function NavSkeleton() {
   return (
@@ -106,12 +107,9 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
       const isStaff = isStaffEmail(email);
       const needsIntakeCheck =
         !BCC_INTAKE_EXEMPT_PROGRAMS.includes(program.slug) && !isStaff;
-      const requiredSurvey = !isStaff
-        ? program.surveys?.find((s) => s.required)
-        : undefined;
       const needsEnrollment = program.tracks.length > 0;
 
-      const [intakeRes, surveyRes, enrolledRes] = await Promise.all([
+      const [intakeRes, enrolledRes, allowlistRes] = await Promise.all([
         needsIntakeCheck
           ? supabase
               .from("survey_responses")
@@ -121,25 +119,50 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
               .not("completed_at", "is", null)
               .maybeSingle()
           : Promise.resolve({ data: null }),
-        requiredSurvey
-          ? supabase
-              .from("survey_responses")
-              .select("completed_at")
-              .eq("student_id", ctx.userId)
-              .eq("survey_type", requiredSurvey.id)
-              .not("completed_at", "is", null)
-              .maybeSingle()
-          : Promise.resolve({ data: null }),
         needsEnrollment
           ? getEnrolledTracks(supabase, ctx.userId, program)
           : Promise.resolve([]),
+        // Always fetch allowlist entries so skipForPrograms works even when
+        // a student's routing landed them on the wrong program dashboard.
+        email
+          ? createServiceClient()
+              .from("allowed_signup_emails")
+              .select("track_slug")
+              .eq("email", email.toLowerCase())
+          : Promise.resolve({ data: [] }),
       ]);
+
+      // Build the set of home programs from enrolled tracks + allowlist so
+      // surveys with skipForPrograms: ['forte'] are suppressed for Forte
+      // students regardless of which program dashboard they landed on.
+      const homePrograms = new Set<string>();
+      for (const t of enrolledRes as { slug: string }[]) {
+        const h = getHomeProgramForTrack(t.slug)?.slug;
+        if (h) homePrograms.add(h);
+      }
+      for (const row of (allowlistRes as { data: { track_slug: string }[] | null }).data ?? []) {
+        const h = getHomeProgramForTrack(row.track_slug)?.slug;
+        if (h) homePrograms.add(h);
+      }
+
+      const requiredSurvey = !isStaff
+        ? program.surveys?.find(
+            (s) => s.required && !s.skipForPrograms?.some((p) => homePrograms.has(p)),
+          )
+        : undefined;
 
       if (needsIntakeCheck && !intakeRes.data) {
         redirect(`/dashboard/survey/${BCC_INTAKE_SURVEY_ID}`);
       }
-      if (requiredSurvey && !surveyRes.data) {
-        redirect(`/dashboard/survey/${requiredSurvey.id}`);
+      if (requiredSurvey) {
+        const { data: surveyDone } = await supabase
+          .from("survey_responses")
+          .select("completed_at")
+          .eq("student_id", ctx.userId)
+          .eq("survey_type", requiredSurvey.id)
+          .not("completed_at", "is", null)
+          .maybeSingle();
+        if (!surveyDone) redirect(`/dashboard/survey/${requiredSurvey.id}`);
       }
       if (needsEnrollment) {
         enrolledTrackSlugs = enrolledRes.map((t) => t.slug);
