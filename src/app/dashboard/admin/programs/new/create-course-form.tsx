@@ -71,6 +71,17 @@ export function CreateCourseForm() {
           </p>
         </div>
 
+        <button
+          type="button"
+          onClick={() => {
+            document.cookie = `program-override=${result.slug}; path=/; max-age=86400`;
+            window.location.href = "/dashboard/admin";
+          }}
+          className="flex items-center justify-center w-full rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-neutral-700 transition-colors"
+        >
+          Manage this course →
+        </button>
+
         <a
           href="/dashboard/admin/programs"
           className="flex items-center justify-center w-full rounded-lg border border-neutral-300 bg-white px-4 py-2.5 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 transition-colors"
