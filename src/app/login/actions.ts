@@ -33,23 +33,14 @@ export async function sendLoginLink({
   const redirectTo = `${origin}/auth/callback`;
   const svc = createServiceClient();
 
-  // Run allowlist + student existence checks in parallel.
-  const [{ data: allowlistHit }, { data: studentHit }] = await Promise.all([
-    svc
-      .from("allowed_signup_emails")
-      .select("track_slug")
-      .eq("email", trimmed)
-      .maybeSingle(),
-    svc
-      .from("students")
-      .select("id")
-      .eq("email", trimmed)
-      .maybeSingle(),
-  ]);
+  const { data: allowlistHit } = await svc
+    .from("allowed_signup_emails")
+    .select("track_slug")
+    .eq("email", trimmed)
+    .maybeSingle();
 
   const isAdmitted =
     !!allowlistHit ||
-    !!studentHit ||
     isPrivilegedEmail(trimmed) ||
     isStaffEmail(trimmed);
 
