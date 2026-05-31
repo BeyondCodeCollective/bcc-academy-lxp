@@ -191,17 +191,18 @@ async function DashboardContent({
         if (!isStaff && program.surveys?.length) {
           const { getHomeProgramForTrack } = await import("@/lib/programs");
 
-          // Derive home programs from enrolled tracks, then fall back to a
-          // direct allowlist lookup. The fallback covers the case where
-          // enrollment hasn't been written yet or routing landed the student
-          // on the wrong program dashboard (e.g. Forte student on Catalyst).
+          // Build the set of home programs from enrolled tracks AND the
+          // allowlist. Using both sources means a Forte student who ends up
+          // on the Catalyst dashboard (wrong cookie, previous Catalyst
+          // enrollment, routing race) still has "forte" in the set and the
+          // skipForPrograms: ["forte"] check fires correctly.
           const enrolledHomePrograms = new Set(
             enrolledTrackSlugs
               .map((slug) => getHomeProgramForTrack(slug)?.slug)
               .filter((s): s is string => !!s),
           );
 
-          if (enrolledHomePrograms.size === 0 && currentUser.email) {
+          if (currentUser.email) {
             const svc = createServiceClient();
             const { data: allowRows } = await svc
               .from("allowed_signup_emails")
