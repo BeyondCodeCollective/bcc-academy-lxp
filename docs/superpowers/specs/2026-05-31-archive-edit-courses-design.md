@@ -90,11 +90,20 @@ In `src/app/dashboard/track/[slug]/page.tsx`:
 
 ---
 
+## Join Flow Guard
+
+In `src/app/join/[slug]/actions.ts` — `sendJoinLink`:
+
+- Before the allowlist gate, if `trackSlug` is present, query `track_overrides` for a matching row with `archived_at IS NOT NULL`
+- If archived, return `{ ok: false, error: "This course is no longer accepting new students." }`
+- TS-config tracks (no `track_overrides` row) are never archived and always pass this check
+
+---
+
 ## What's Not Changing
 
 - Enrolled students are **not** unenrolled on archive — `student_tracks` rows are preserved
 - Curriculum content (sessions, progress data) is **not** deleted on archive or week-count reduction
-- The join link continues to exist but new enrollments via an archived track are implicitly blocked (the track page shows "course ended" so the join flow would need a guard too — out of scope for this spec)
 
 ---
 
@@ -106,3 +115,5 @@ In `src/app/dashboard/track/[slug]/page.tsx`:
 - [ ] Edit weeks (increase back) → hidden weeks reappear
 - [ ] Archive/edit buttons absent on TS-config tracks
 - [ ] Non-super-admin cannot call any of the three actions
+- [ ] Attempting to join an archived course via its URL returns "no longer accepting students" error
+- [ ] TS-config track join links are unaffected by the archived check
