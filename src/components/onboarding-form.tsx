@@ -40,9 +40,16 @@ export function OnboardingForm({ program, visibleTracks }: Props) {
     if (saving) return;
     setSaving(true);
     try {
-      await markWelcomeSeen();
+      await Promise.race([
+        markWelcomeSeen(),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("timeout")), 5000),
+        ),
+      ]);
     } catch {
-      // Non-critical — dashboard will still load
+      // Non-critical — dismiss the modal anyway so the user isn't stuck
+    } finally {
+      setDismissed(true);
     }
   }
 
