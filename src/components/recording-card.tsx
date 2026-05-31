@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { MarkVideoWatchedButton } from "@/components/mark-video-watched-button";
 import {
   getYouTubeEmbedUrl,
@@ -29,6 +29,15 @@ export function RecordingCard({
   initialWatched,
 }: Props) {
   const [open, setOpen] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Auto-play the video when the section opens so clicking "Play" in the
+  // card header immediately starts the video, matching iframe embed behavior.
+  useEffect(() => {
+    if (open && videoRef.current) {
+      videoRef.current.play().catch(() => {});
+    }
+  }, [open]);
 
   const youtubeEmbed = getYouTubeEmbedUrl(url);
   const driveEmbed = toDriveEmbedUrl(url);
@@ -93,6 +102,7 @@ export function RecordingCard({
             </div>
           ) : isVideoFile ? (
             <video
+              ref={videoRef}
               src={toVideoProxyUrl(url)}
               controls
               playsInline
