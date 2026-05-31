@@ -136,6 +136,7 @@ function buildTrackFromOverride(row: TrackOverrideRow): TrackConfig {
     name: row.name ?? row.track_slug,
     shortName: row.short_name ?? row.name ?? row.track_slug,
     description: row.description ?? undefined,
+    phase: "core",
     type: "weekly",
     totalWeeks,
     sessionsPerWeek,
