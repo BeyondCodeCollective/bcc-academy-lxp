@@ -13,6 +13,7 @@ export function CreateCourseForm() {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Extract<CreateCourseResult, { success: true }> | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const slug = toSlug(name);
 
@@ -41,31 +42,56 @@ export function CreateCourseForm() {
     }
   }
 
+  function handleCopy() {
+    if (!result) return;
+    navigator.clipboard.writeText(result.joinUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
   if (result) {
     return (
-      <div className="space-y-6">
-        <div className="rounded-lg border border-green-200 bg-green-50 p-5">
-          <p className="text-sm font-semibold text-green-800">Course created</p>
-          <div className="mt-3 flex items-center gap-3 rounded-md border border-green-200 bg-white px-4 py-3">
-            <span className="flex-1 font-mono text-sm text-green-700">{result.joinUrl}</span>
+      <div className="space-y-4">
+        <div className="rounded-lg border border-green-200 bg-green-50 p-5 space-y-4">
+          <p className="text-sm font-semibold text-green-800">✓ Course created</p>
+
+          <div className="rounded-md border border-green-200 bg-white p-4 space-y-3">
+            <p className="font-mono text-sm text-green-700 break-all">{result.joinUrl}</p>
             <button
               type="button"
-              onClick={() => navigator.clipboard.writeText(result.joinUrl)}
-              className="shrink-0 rounded bg-green-100 px-3 py-1 text-xs font-semibold text-green-700 hover:bg-green-200 transition-colors"
+              onClick={handleCopy}
+              className="w-full rounded-md bg-[#E54D2E] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#F0613E] transition-colors"
             >
-              Copy link
+              {copied ? "Copied!" : "Copy join link"}
             </button>
           </div>
-          <p className="mt-3 text-xs text-green-600">
-            Share this link to start enrolling students. Switch to this course in the admin panel to manage it.
+
+          <p className="text-xs text-green-700">
+            Share this link to start enrolling students.
           </p>
         </div>
+
+        <a
+          href="/dashboard/admin/programs"
+          className="flex items-center justify-center w-full rounded-lg border border-neutral-300 bg-white px-4 py-2.5 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 transition-colors"
+        >
+          View all courses
+        </a>
+
         <button
           type="button"
-          onClick={() => { setResult(null); setError(null); setName(""); setInstructor(""); setTotalWeeks(""); setSessionsPerWeek(""); }}
-          className="text-sm text-neutral-500 hover:text-neutral-700 transition-colors"
+          onClick={() => {
+            setResult(null);
+            setError(null);
+            setName("");
+            setInstructor("");
+            setTotalWeeks("");
+            setSessionsPerWeek("");
+            setCopied(false);
+          }}
+          className="w-full text-center text-sm text-neutral-500 hover:text-neutral-700 transition-colors py-1"
         >
-          Create another course
+          + Create another course
         </button>
       </div>
     );

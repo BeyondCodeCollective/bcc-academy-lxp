@@ -16,7 +16,7 @@ export default async function NewCoursePage() {
           href="/dashboard/admin/programs"
           className="inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-neutral-900 transition-colors mb-2"
         >
-          ← All Programs
+          ← All Courses
         </Link>
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-neutral-900">
           New Course
