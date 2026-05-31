@@ -192,7 +192,15 @@ export async function GET(request: Request) {
               ? joinSlug
               : singleNonCatalystHome;
         } else {
-          effectiveSlug = (existing.programs as unknown as { slug: string } | null)?.slug ??
+          // Honor an explicit join slug over the stored program so a student
+          // coming through /join/forte (or via the allowlist which sets the
+          // pending-join-slug cookie) lands in Forte even if they have an
+          // existing Catalyst record. Without this, the program-override
+          // cookie would stay "catalyst" and skip logic keyed on "forte"
+          // (e.g. skipForPrograms: ["forte"]) would never fire.
+          const joinOverride = (!isPrivilegedByEnv && joinSlug && joinSlug !== "marketing") ? joinSlug : null;
+          effectiveSlug = joinOverride ??
+            (existing.programs as unknown as { slug: string } | null)?.slug ??
             (isPrivilegedByEnv || ["super_admin", "admin"].includes(existing.role ?? "") ? "catalyst" : null);
         }
 
