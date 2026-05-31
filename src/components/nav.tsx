@@ -358,7 +358,7 @@ export function Nav({
       <div className="my-1 h-px bg-white/10" aria-hidden />
 
       <p className="mt-1 mb-1 px-3 text-[10px] font-medium uppercase tracking-[0.14em] text-neutral-500">
-        Programs
+        Courses
       </p>
 
       <AdminProgramSwitcher

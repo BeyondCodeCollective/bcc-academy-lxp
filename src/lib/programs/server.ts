@@ -108,21 +108,44 @@ const _dynamicCache = new Map<string, { data: ProgramConfig | null; ts: number }
 const _DYNAMIC_TTL = 60_000;
 
 function buildTrackFromOverride(row: TrackOverrideRow): TrackConfig {
+  const totalWeeks = row.total_weeks ?? 12;
+  const sessionsPerWeek = row.sessions_per_week ?? 2;
+  const weekSummaries = (row.week_summaries as { week: number; topic: string; icon: string }[] | null) ?? [];
+
+  // Generate a WeekConfig for each week so the admin curriculum editor
+  // renders week tabs just like it does for TS-config courses.
+  const weeks = Array.from({ length: totalWeeks }, (_, i) => {
+    const weekNum = i + 1;
+    const summary = weekSummaries.find((s) => s.week === weekNum);
+    return {
+      week: weekNum,
+      title: summary?.topic ?? `Week ${weekNum}`,
+      icon: summary?.icon ?? "📅",
+      subtitle: "",
+      description: "",
+      objectives: [] as string[],
+      sessions: Array.from({ length: sessionsPerWeek }, (_, j) => ({
+        title: `Session ${j + 1}`,
+        time: "",
+      })),
+    };
+  });
+
   return {
     slug: row.track_slug,
     name: row.name ?? row.track_slug,
     shortName: row.short_name ?? row.name ?? row.track_slug,
     description: row.description ?? undefined,
     type: "weekly",
-    totalWeeks: row.total_weeks ?? 12,
-    sessionsPerWeek: row.sessions_per_week ?? 2,
+    totalWeeks,
+    sessionsPerWeek,
     startDate: row.start_date ?? "2099-01-01",
     startDateTbd: !row.start_date,
     instructor: row.instructor ?? "",
     sessionTimes: (row.session_times as string[] | null) ?? [],
     lastSessionDayOffset: row.last_session_day_offset ?? 0,
-    weekSummaries: (row.week_summaries as { week: number; topic: string; icon: string }[] | null) ?? [],
-    weeks: [],
+    weekSummaries,
+    weeks,
     defaultReflectionPrompts: (row.default_reflection_prompts as string[] | null) ?? [],
     submissionsEnabled: row.submissions_enabled ?? true,
     reflectionsEnabled: row.reflections_enabled ?? true,
