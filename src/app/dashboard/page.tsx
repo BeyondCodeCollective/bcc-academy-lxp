@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
-import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { createClient, createServiceClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { computeCurrentWeek } from "@/lib/utils";
 import Link from "next/link";
 import { WelcomeVideo } from "@/components/welcome-video";
@@ -190,11 +190,29 @@ async function DashboardContent({
 
         if (!isStaff && program.surveys?.length) {
           const { getHomeProgramForTrack } = await import("@/lib/programs");
+
+          // Derive home programs from enrolled tracks, then fall back to a
+          // direct allowlist lookup. The fallback covers the case where
+          // enrollment hasn't been written yet or routing landed the student
+          // on the wrong program dashboard (e.g. Forte student on Catalyst).
           const enrolledHomePrograms = new Set(
             enrolledTrackSlugs
               .map((slug) => getHomeProgramForTrack(slug)?.slug)
               .filter((s): s is string => !!s),
           );
+
+          if (enrolledHomePrograms.size === 0 && currentUser.email) {
+            const svc = createServiceClient();
+            const { data: allowRows } = await svc
+              .from("allowed_signup_emails")
+              .select("track_slug")
+              .eq("email", currentUser.email.toLowerCase());
+            for (const row of allowRows ?? []) {
+              const home = getHomeProgramForTrack(row.track_slug as string)?.slug;
+              if (home) enrolledHomePrograms.add(home);
+            }
+          }
+
           pendingSurveys = program.surveys
             .filter((s) => {
               if (!s.required || completedTypes.has(s.id)) return false;
