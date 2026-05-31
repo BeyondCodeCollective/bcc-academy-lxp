@@ -189,12 +189,16 @@ async function DashboardContent({
         }
 
         if (!isStaff && program.surveys?.length) {
-          const cookieStore = await cookies();
-          const studentHomeProgram = cookieStore.get("program-override")?.value ?? cookieStore.get("program-slug")?.value;
+          const { getHomeProgramForTrack } = await import("@/lib/programs");
+          const enrolledHomePrograms = new Set(
+            enrolledTrackSlugs
+              .map((slug) => getHomeProgramForTrack(slug)?.slug)
+              .filter((s): s is string => !!s),
+          );
           pendingSurveys = program.surveys
             .filter((s) => {
               if (!s.required || completedTypes.has(s.id)) return false;
-              if (studentHomeProgram && s.skipForPrograms?.includes(studentHomeProgram)) return false;
+              if (s.skipForPrograms?.some((p) => enrolledHomePrograms.has(p))) return false;
               return true;
             })
             .map((s) => ({ id: s.id, title: s.title, description: s.description }));
