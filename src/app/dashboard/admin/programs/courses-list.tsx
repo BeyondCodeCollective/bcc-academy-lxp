@@ -13,21 +13,31 @@ export type CourseRow = {
   isEditable: boolean;
 };
 
-function CopyButton({ url }: { url: string }) {
-  const [copied, setCopied] = useState(false);
+function IconButton({ onClick, title, children, className = "" }: {
+  onClick: (e: React.MouseEvent) => void;
+  title: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
     <button
       type="button"
-      onClick={(e) => {
-        e.stopPropagation();
-        navigator.clipboard.writeText(url);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      }}
-      className="shrink-0 rounded-md border border-neutral-200 bg-white px-3 py-1.5 text-xs font-semibold text-neutral-600 hover:bg-neutral-50 transition-colors"
+      title={title}
+      onClick={onClick}
+      className={`shrink-0 flex items-center justify-center w-8 h-8 rounded-md border border-neutral-200 bg-white text-neutral-500 hover:bg-neutral-50 transition-colors ${className}`}
     >
-      {copied ? "Copied!" : "Copy link"}
+      {children}
     </button>
+  );
+}
+
+function CopyIcon({ copied }: { copied: boolean }) {
+  if (copied) return <span className="text-[10px] font-semibold text-[#E54D2E]">✓</span>;
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="4.5" y="0.5" width="9" height="9" rx="1.5" stroke="currentColor" />
+      <path d="M0.5 4.5H3.5V13.5H9.5V10.5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 
@@ -35,11 +45,19 @@ function CourseItem({ course }: { course: CourseRow }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [confirming, setConfirming] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function openCourse() {
     document.cookie = `program-override=${course.programSlug}; path=/; max-age=86400`;
     window.location.href = `/dashboard/admin?tab=${course.slug}`;
+  }
+
+  function handleCopy(e: React.MouseEvent) {
+    e.stopPropagation();
+    navigator.clipboard.writeText(course.joinUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   }
 
   async function handleArchive() {
@@ -69,7 +87,7 @@ function CourseItem({ course }: { course: CourseRow }) {
 
   if (course.archived) {
     return (
-      <div className="flex items-center gap-4 px-4 py-4 opacity-60">
+      <div className="flex items-center gap-3 px-4 py-4 opacity-60">
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-neutral-500">{course.name}</p>
           <p className="font-mono text-xs text-neutral-400 mt-0.5 truncate">{course.joinUrl}</p>
@@ -89,40 +107,44 @@ function CourseItem({ course }: { course: CourseRow }) {
 
   return (
     <div className="group flex flex-col gap-1 px-4 py-4">
-      <div className="flex items-center gap-4">
-        <div
-          onClick={openCourse}
-          className="flex-1 min-w-0 cursor-pointer"
-        >
+      <div className="flex items-center gap-2">
+        <div onClick={openCourse} className="flex-1 min-w-0 cursor-pointer">
           <p className="text-sm font-semibold text-neutral-900 group-hover:text-[#E54D2E] transition-colors">
             {course.name}
           </p>
           <p className="font-mono text-xs text-neutral-400 mt-0.5 truncate">{course.joinUrl}</p>
         </div>
-        <CopyButton url={course.joinUrl} />
+
+        <IconButton onClick={handleCopy} title="Copy join link">
+          <CopyIcon copied={copied} />
+        </IconButton>
+
         {course.isEditable && (
           <a
             href={`/dashboard/admin/programs/${course.slug}/edit`}
             onClick={(e) => e.stopPropagation()}
-            className="shrink-0 text-xs text-neutral-400 hover:text-neutral-700 transition-colors"
+            title="Course settings"
+            className="shrink-0 flex items-center justify-center w-8 h-8 rounded-md border border-neutral-200 bg-white text-neutral-500 hover:bg-neutral-50 transition-colors"
           >
-            Edit
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="7" cy="7" r="2" stroke="currentColor" />
+              <path d="M7 1v1.5M7 11.5V13M1 7h1.5M11.5 7H13M2.929 2.929l1.06 1.06M10.01 10.01l1.06 1.06M11.07 2.929l-1.06 1.06M3.99 10.01l-1.06 1.06" stroke="currentColor" strokeLinecap="round" />
+            </svg>
           </a>
         )}
-        <span
-          onClick={openCourse}
-          className="text-xs text-neutral-400 group-hover:text-[#E54D2E] transition-colors shrink-0 select-none cursor-pointer"
-        >
-          Manage →
-        </span>
+
         {course.isEditable && !confirming && (
-          <button
-            type="button"
+          <IconButton
             onClick={(e) => { e.stopPropagation(); setConfirming(true); }}
-            className="shrink-0 text-xs text-neutral-400 hover:text-red-600 transition-colors"
+            title="Archive course"
+            className="hover:border-red-300 hover:text-red-500"
           >
-            Archive
-          </button>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="0.5" y="0.5" width="13" height="3" rx="0.5" stroke="currentColor" />
+              <path d="M1.5 4v8.5a1 1 0 001 1h9a1 1 0 001-1V4" stroke="currentColor" strokeLinecap="round" />
+              <path d="M5 7.5h4" stroke="currentColor" strokeLinecap="round" />
+            </svg>
+          </IconButton>
         )}
       </div>
 

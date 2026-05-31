@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { hasCapability } from "@/lib/roles";
 import { getProgramBySlug } from "@/lib/programs";
 import { toSlug } from "@/lib/programs/slug";
+import { bustOverrideCache } from "@/lib/programs/server";
 
 async function requireSuperAdmin() {
   const supabase = await createClient();
@@ -84,6 +85,7 @@ export async function createCourseAction(formData: {
       instructor: instructor.trim(),
       total_weeks: totalWeeks,
       sessions_per_week: sessionsPerWeek,
+      start_date: new Date().toISOString().slice(0, 10),
     });
 
   if (trackError) {
@@ -91,6 +93,7 @@ export async function createCourseAction(formData: {
     return { success: false, error: "Failed to create course. Please try again." };
   }
 
+  bustOverrideCache("catalyst");
   return {
     success: true,
     slug,
@@ -118,6 +121,7 @@ export async function archiveCourseAction(trackSlug: string): Promise<{ success:
     console.error("[archiveCourseAction] failed:", error);
     return { success: false, error: "Failed to archive course." };
   }
+  bustOverrideCache("catalyst");
   return { success: true };
 }
 
@@ -141,6 +145,7 @@ export async function unarchiveCourseAction(trackSlug: string): Promise<{ succes
     console.error("[unarchiveCourseAction] failed:", error);
     return { success: false, error: "Failed to unarchive course." };
   }
+  bustOverrideCache("catalyst");
   return { success: true };
 }
 
@@ -184,5 +189,6 @@ export async function updateCourseAction(
     console.error("[updateCourseAction] failed:", error);
     return { success: false, error: "Failed to update course." };
   }
+  bustOverrideCache("catalyst");
   return { success: true };
 }

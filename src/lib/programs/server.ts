@@ -100,6 +100,12 @@ type TrackOverrideRow = {
 const _overrideStore = new Map<string, { data: Map<string, TrackOverrideRow>; ts: number }>();
 const _OVERRIDE_TTL = 60_000;
 
+/** Call after any mutation to track_overrides so the next request sees fresh data. */
+export function bustOverrideCache(programSlug: string) {
+  _overrideStore.delete(programSlug);
+  _dynamicCache.delete(programSlug);
+}
+
 // ─── Dynamic Program Resolution ──────────────────────────────────────────────
 
 type DynamicProgramRow = { id: string; slug: string; name: string | null };
@@ -140,8 +146,8 @@ function buildTrackFromOverride(row: TrackOverrideRow): TrackConfig {
     type: "weekly",
     totalWeeks,
     sessionsPerWeek,
-    startDate: row.start_date ?? "2099-01-01",
-    startDateTbd: !row.start_date,
+    startDate: row.start_date ?? new Date().toISOString().slice(0, 10),
+    startDateTbd: false,
     instructor: row.instructor ?? "",
     sessionTimes: (row.session_times as string[] | null) ?? [],
     lastSessionDayOffset: row.last_session_day_offset ?? 0,
@@ -277,6 +283,12 @@ const fetchOverrides = cache(
     }
   },
 );
+
+/** Returns a TS-config program with DB track overrides applied (includes builder-created tracks). */
+export async function getProgramWithOverrides(slug: string): Promise<ProgramConfig> {
+  const base = getProgramBySlug(slug);
+  return applyTrackOverrides(base);
+}
 
 async function applyTrackOverrides(program: ProgramConfig): Promise<ProgramConfig> {
   // Dynamic programs have all track data built from DB rows already;

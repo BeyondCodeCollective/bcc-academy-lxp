@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getJoinablePrograms, getProgramBySlug, getTrackBySlug, getHomeProgramForTrack } from "@/lib/programs";
 import type { ProgramConfig } from "@/lib/programs";
-import { fetchDynamicProgram } from "@/lib/programs/server";
+import { fetchDynamicProgram, getProgramWithOverrides } from "@/lib/programs/server";
 import { JoinForm } from "./join-form";
 
 // Deploy the join page (and its server actions) to both Frankfurt and
@@ -31,7 +31,11 @@ export default async function JoinPage({
   const tsSlugSet = new Set(getJoinablePrograms().map((p) => p.slug));
   let program: ProgramConfig;
   if (tsSlugSet.has(slug)) {
-    program = getProgramBySlug(slug);
+    // When a specific track is requested, fetch DB overrides too so builder-created
+    // tracks (stored in track_overrides, not the TS config) are visible on the join page.
+    program = trackParam
+      ? await getProgramWithOverrides(slug)
+      : getProgramBySlug(slug);
   } else {
     const dynamic = await fetchDynamicProgram(slug);
     if (!dynamic) notFound();
