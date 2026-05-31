@@ -5,6 +5,7 @@ import { getProgram } from "@/lib/programs/server";
 import { getTrackBySlug } from "@/lib/programs";
 import { getSessionContext } from "@/lib/auth/session";
 import { canAccessAdminPanel } from "@/lib/roles";
+import { createServiceClient } from "@/lib/supabase/server";
 import { CopyInviteLink } from "@/components/copy-invite-link";
 import { toneForTrack } from "@/lib/track-visual";
 import { WeekCarousel, type WeekCardData } from "@/components/week-carousel";
@@ -23,6 +24,35 @@ export default async function TrackOverviewPage({
 
   const ctx = await getSessionContext();
   const isAdminViewer = canAccessAdminPanel(ctx?.student?.role ?? "");
+
+  // Archived gate: non-admin students cannot view archived builder-created courses.
+  if (!isAdminViewer) {
+    const svc = createServiceClient();
+    const { data: programRow } = await svc
+      .from("programs")
+      .select("id")
+      .eq("slug", program.slug)
+      .maybeSingle<{ id: string }>();
+    if (programRow) {
+      const { data: overrideRow } = await svc
+        .from("track_overrides")
+        .select("archived_at")
+        .eq("program_id", programRow.id)
+        .eq("track_slug", slug)
+        .maybeSingle<{ archived_at: string | null }>();
+      if (overrideRow?.archived_at) {
+        return (
+          <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-16 text-center space-y-3">
+            <p className="text-4xl">📦</p>
+            <h1 className="text-xl font-bold text-neutral-900">This course has ended</h1>
+            <p className="text-sm text-neutral-500">
+              {track.name} is no longer active. Reach out to your instructor if you have questions.
+            </p>
+          </div>
+        );
+      }
+    }
+  }
 
   // Single-event tracks don't have weeks to scrub — send them straight to
   // the session page (same destination the dashboard card used to use).
