@@ -2,11 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { MarkVideoWatchedButton } from "@/components/mark-video-watched-button";
-import {
-  getYouTubeEmbedUrl,
-  isUploadedRecording,
-  toVideoProxyUrl,
-} from "@/lib/storage-utils";
+import { getYouTubeEmbedUrl, VIDEO_EXTENSIONS } from "@/lib/storage-utils";
 import { toDriveEmbedUrl } from "@/lib/lunch-learns/drive";
 
 type Props = {
@@ -41,7 +37,11 @@ export function RecordingCard({
 
   const youtubeEmbed = getYouTubeEmbedUrl(url);
   const driveEmbed = toDriveEmbedUrl(url);
-  const isVideoFile = isUploadedRecording(url);
+  // Check by extension only — avoids a NEXT_PUBLIC_SUPABASE_URL env-var
+  // dependency in the client bundle that was silently making canEmbed false.
+  const isVideoFile =
+    !youtubeEmbed && !driveEmbed &&
+    VIDEO_EXTENSIONS.some((ext) => url.toLowerCase().endsWith(ext));
   const canEmbed = !!(youtubeEmbed || driveEmbed || isVideoFile);
 
   return (
@@ -103,7 +103,7 @@ export function RecordingCard({
           ) : isVideoFile ? (
             <video
               ref={videoRef}
-              src={toVideoProxyUrl(url)}
+              src={url}
               controls
               playsInline
               className="w-full max-h-[480px] bg-neutral-900"
