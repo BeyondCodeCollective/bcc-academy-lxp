@@ -30,7 +30,7 @@ function CopyButton({ url }: { url: string }) {
 function CourseItem({ course }: { course: CourseRow }) {
   function openCourse() {
     document.cookie = `program-override=${course.programSlug}; path=/; max-age=86400`;
-    window.location.href = "/dashboard/admin";
+    window.location.href = `/dashboard/admin?tab=${course.slug}`;
   }
 
   return (

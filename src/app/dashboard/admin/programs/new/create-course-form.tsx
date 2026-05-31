@@ -75,7 +75,7 @@ export function CreateCourseForm() {
           type="button"
           onClick={() => {
             document.cookie = `program-override=catalyst; path=/; max-age=86400`;
-            window.location.href = "/dashboard/admin";
+            window.location.href = `/dashboard/admin?tab=${result.slug}`;
           }}
           className="flex items-center justify-center w-full rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-neutral-700 transition-colors"
         >
