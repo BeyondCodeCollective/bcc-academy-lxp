@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create Course</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #111;
+    color: #e0e0e0;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 48px 24px;
+  }
+
+  .container { width: 100%; max-width: 480px; }
+
+  .back-link {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; color: #555; text-decoration: none; margin-bottom: 32px;
+    cursor: pointer;
+  }
+  .back-link:hover { color: #aaa; }
+
+  h1 { font-size: 24px; font-weight: 800; color: #f0f0f0; margin-bottom: 4px; }
+  .subtitle { font-size: 14px; color: #555; margin-bottom: 36px; }
+
+  .field { margin-bottom: 22px; }
+  .field label {
+    display: block; font-size: 12px; color: #888; font-weight: 600;
+    margin-bottom: 7px; text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .field label .opt { color: #444; font-weight: 400; font-size: 11px; text-transform: none; letter-spacing: 0; margin-left: 4px; }
+  .field input {
+    width: 100%;
+    background: #1a1a1a;
+    border: 1px solid #2e2e2e;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 15px;
+    color: #f0f0f0;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .field input::placeholder { color: #3a3a3a; }
+  .field input:focus { border-color: #E54D2E; }
+
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  .join-preview {
+    margin-top: 8px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .join-preview .label { font-size: 11px; color: #444; }
+  .join-preview .link {
+    font-family: 'Geist Mono', monospace;
+    font-size: 12px; color: #666;
+    background: #141414; border: 1px solid #222; border-radius: 5px;
+    padding: 5px 10px; flex: 1;
+  }
+  .join-preview .link span { color: #E54D2E; }
+
+  .divider { border: none; border-top: 1px solid #1e1e1e; margin: 28px 0; }
+
+  .submit-btn {
+    width: 100%;
+    background: #E54D2E;
+    border: none; border-radius: 9px;
+    color: white; font-size: 15px; font-weight: 700;
+    padding: 14px;
+    cursor: pointer; font-family: inherit;
+    transition: background 0.15s;
+    margin-top: 8px;
+  }
+  .submit-btn:hover { background: #F0613E; }
+  .submit-btn:active { background: #c43d20; }
+  .submit-btn.done { background: #2d7a2d; }
+
+  .success {
+    display: none;
+    background: #0d1f0d; border: 1px solid #2d5a2d; border-radius: 10px;
+    padding: 20px; margin-top: 20px;
+  }
+  .success.visible { display: block; }
+  .success h3 { font-size: 14px; font-weight: 700; color: #5cb85c; margin-bottom: 12px; }
+  .success .link-row {
+    background: #0a0a0a; border: 1px solid #1f3f1f; border-radius: 7px;
+    padding: 11px 14px;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  }
+  .success .link-row span {
+    font-family: 'Geist Mono', monospace; font-size: 13px; color: #7ec87e;
+  }
+  .success .copy-btn {
+    background: #2d5a2d; border: none; border-radius: 5px;
+    color: #5cb85c; padding: 5px 12px; font-size: 12px; font-weight: 700;
+    cursor: pointer; font-family: inherit; flex-shrink: 0;
+  }
+  .success .copy-btn:hover { background: #3a7a3a; }
+  .success .next-hint { font-size: 12px; color: #4a7a4a; margin-top: 10px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="back-link">← All Programs</div>
+
+  <h1>New Course</h1>
+  <p class="subtitle">Takes about 30 seconds.</p>
+
+  <div class="field">
+    <label>Course Name</label>
+    <input type="text" placeholder="e.g. Salesforce Admin" id="name-input" oninput="updateSlug(this.value)" autofocus />
+    <div class="join-preview">
+      <div class="link">bccacademy.io/join/<span id="slug-out">your-course</span></div>
+    </div>
+  </div>
+
+  <div class="field">
+    <label>Instructor</label>
+    <input type="text" placeholder="e.g. Marcus Williams" />
+  </div>
+
+  <div class="field-row">
+    <div class="field">
+      <label>Length</label>
+      <input type="number" placeholder="12" min="1" max="52" />
+    </div>
+    <div class="field">
+      <label>Sessions / Week</label>
+      <input type="number" placeholder="2" min="1" max="7" />
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <button class="submit-btn" id="create-btn" onclick="createCourse()">Create Course</button>
+
+  <div class="success" id="success">
+    <h3>✓ Course created</h3>
+    <div class="link-row">
+      <span id="success-link">bccacademy.io/join/your-course</span>
+      <button class="copy-btn" onclick="this.textContent='Copied!'">Copy link</button>
+    </div>
+    <p class="next-hint">Share this link to start enrolling students.</p>
+  </div>
+
+</div>
+<script>
+function updateSlug(val) {
+  const slug = val.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'your-course';
+  document.getElementById('slug-out').textContent = slug;
+  document.getElementById('success-link').textContent = 'bccacademy.io/join/' + slug;
+}
+function createCourse() {
+  const btn = document.getElementById('create-btn');
+  btn.textContent = '✓ Course created';
+  btn.classList.add('done');
+  document.getElementById('success').classList.add('visible');
+  window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>

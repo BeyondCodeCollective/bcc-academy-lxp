@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import Script from "next/script";
 import { fadeInUp } from "@/lib/marketing-motion";
 import type { Event } from "@/data/marketing/events";
-import { MapPin, VideoCamera, Monitor, ArrowRight } from "@phosphor-icons/react";
 import Image from "next/image";
 
 declare global {
@@ -31,10 +30,10 @@ const fallbackImages = [
   "/images/bcc/community/community-06.jpg",
 ];
 
-const formatIcons: Record<string, typeof MapPin> = {
-  "In-Person": MapPin,
-  Virtual: VideoCamera,
-  Hybrid: Monitor,
+const formatIcons: Record<string, string> = {
+  "In-Person": "📍",
+  Virtual: "🎬",
+  Hybrid: "🖥️",
 };
 
 function formatDate(dateStr: string): string {
@@ -52,7 +51,7 @@ interface EventCardProps {
 }
 
 export default function EventCard({ event, fallbackIndex = 0 }: EventCardProps) {
-  const FormatIcon = formatIcons[event.format] || Monitor;
+  const formatIcon = formatIcons[event.format] || "🖥️";
   const image = event.imageUrl ?? fallbackImages[fallbackIndex % fallbackImages.length];
   const isExternal = event.url?.startsWith("http");
 
@@ -103,8 +102,7 @@ export default function EventCard({ event, fallbackIndex = 0 }: EventCardProps) 
         <div className="absolute inset-0 bg-gradient-to-t from-true-black/20 to-transparent" />
         <div className="absolute top-4 right-4">
           <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-white/90 text-true-black">
-            <FormatIcon size={10} weight="bold" />
-            {event.format}
+            {formatIcon} {event.format}
           </span>
         </div>
       </div>
@@ -142,8 +140,7 @@ export default function EventCard({ event, fallbackIndex = 0 }: EventCardProps) 
           </span>
           {event.location && (
             <span className="text-xs text-grey-3 font-mono flex items-center gap-1">
-              <MapPin size={10} weight="bold" />
-              {event.location.split(",")[0]}
+              📍 {event.location.split(",")[0]}
             </span>
           )}
         </div>
@@ -151,8 +148,7 @@ export default function EventCard({ event, fallbackIndex = 0 }: EventCardProps) 
         {event.url && (
           <div className="mt-4 pt-4 border-t border-true-black/5">
             <span className="inline-flex items-center gap-2 text-sm font-bold text-cobalt group-hover:gap-3 transition-all">
-              Register
-              <ArrowRight size={14} weight="bold" />
+              Register →
             </span>
           </div>
         )}

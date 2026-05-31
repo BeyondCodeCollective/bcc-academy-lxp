@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { slideInLeft } from "@/lib/marketing-motion";
-import { CaretDown } from "@phosphor-icons/react";
 
 const faqs = [
   {
@@ -96,13 +95,11 @@ export default function FAQSection() {
                           {faq.question}
                         </span>
                       </span>
-                      <CaretDown
-                        size={20}
-                        weight="bold"
-                        className={`text-cobalt flex-shrink-0 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                      <span
+                        className={`text-cobalt flex-shrink-0 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] inline-block ${
                           isOpen ? "rotate-180" : ""
                         }`}
-                      />
+                      >▾</span>
                     </button>
                     <AnimatePresence>
                       {isOpen && (

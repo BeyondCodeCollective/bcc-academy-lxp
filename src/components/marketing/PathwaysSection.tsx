@@ -4,13 +4,12 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { fadeInUp } from "@/lib/marketing-motion";
 import { pathways } from "@/data/marketing/pathways";
-import { Compass, Wrench, Rocket, ArrowsClockwise, Star, ArrowRight } from "@phosphor-icons/react";
 import Image from "next/image";
 import Link from "next/link";
 import VideoBackground from "@/components/marketing/VideoBackground";
 import { VIDEO_URLS } from "@/data/marketing/videos";
 
-const pathwayIcons = [Compass, Wrench, Rocket, ArrowsClockwise, Star];
+const pathwayIcons = ["🧭", "🔧", "🚀", "🔄", "⭐"];
 
 const pathwayVideos = [
   VIDEO_URLS.pathways.explorers,
@@ -23,7 +22,7 @@ const pathwayVideos = [
 export default function PathwaysSection() {
   const [activeIndex, setActiveIndex] = useState(0);
   const pathway = pathways[activeIndex];
-  const Icon = pathwayIcons[activeIndex];
+  const icon = pathwayIcons[activeIndex];
 
   return (
     <section id="pathways" className="py-16 md:py-28 lg:py-36 px-6 bg-off-white">
@@ -141,8 +140,8 @@ export default function PathwaysSection() {
                 </p>
 
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 flex items-center justify-center bg-electric-green/10">
-                    <Icon size={20} weight="duotone" className="text-cobalt" />
+                  <div className="w-10 h-10 flex items-center justify-center bg-electric-green/10 text-xl">
+                    {icon}
                   </div>
                   <h3 className="text-3xl md:text-4xl font-display font-bold text-true-black uppercase">
                     {pathway.name}
@@ -162,7 +161,7 @@ export default function PathwaysSection() {
                   className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-cobalt hover:text-dark-cobalt transition-colors duration-300 self-start group"
                 >
                   Explore {pathway.name} pathway
-                  <ArrowRight size={14} weight="bold" className="transition-transform group-hover:translate-x-1" />
+                  <span className="transition-transform group-hover:translate-x-1 inline-block">→</span>
                 </Link>
               </div>
             </div>

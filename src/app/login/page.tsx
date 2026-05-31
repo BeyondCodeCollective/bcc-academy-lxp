@@ -1,5 +1,4 @@
 import { CentralLoginForm } from "@/components/central-login-form";
-import { SignIn } from "@phosphor-icons/react/dist/ssr";
 import Image from "next/image";
 import Link from "next/link";
 import { getJoinablePrograms } from "@/lib/programs";
@@ -23,7 +22,7 @@ export default function CentralLoginPage() {
         <div className="flex-1 flex items-center px-8 md:px-12 lg:px-16 pb-6">
           <div className="w-full max-w-xl">
             <div className="text-white mb-4 md:mb-6">
-              <SignIn size={48} weight="bold" />
+              🔑
             </div>
             <p className="text-electric-green text-xs font-mono uppercase tracking-[0.3em] mb-3">
               [ Student Portal ]

@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { computeCurrentWeek } from "@/lib/utils";
-import { ArrowLeft, BookOpen, Users, Video, CheckCircle, Download, ExternalLink, Link as LinkIcon, FileText } from "lucide-react";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { getSessionContent } from "@/app/dashboard/admin/actions";
 import { isStorageUrl, isUploadedVideo } from "@/lib/storage-utils";
@@ -50,7 +49,7 @@ export default async function TrackWeekPage({
             href={`/dashboard/track/${trackSlug}`}
             className="mb-6 inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-neutral-900 transition-colors py-2"
           >
-            <ArrowLeft size={16} />
+            ←
             Back to {track.shortName}
           </Link>
           <div className="border border-neutral-200 bg-neutral-50 p-8 text-center">
@@ -88,7 +87,7 @@ export default async function TrackWeekPage({
                 href="/dashboard"
                 className="inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-neutral-900 transition-colors mb-2 py-2 px-4 sm:px-5"
               >
-                <ArrowLeft size={16} />
+                ←
                 Back to Dashboard
               </Link>
               <IntakeForm
@@ -169,8 +168,7 @@ export default async function TrackWeekPage({
           href={`/dashboard/track/${trackSlug}`}
           className="inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-neutral-900 transition-colors py-2"
         >
-          <ArrowLeft size={16} />
-          Back to {track.shortName}
+          ← Back to {track.shortName}
         </Link>
         <nav aria-label="Week navigation" className="flex items-center gap-1">
           {prevWeek ? (
@@ -178,12 +176,12 @@ export default async function TrackWeekPage({
               href={`/dashboard/track/${trackSlug}/${prevWeek}`}
               className="inline-flex items-center gap-1 border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition-colors"
             >
-              <ArrowLeft size={12} />
+              ←
               Week {prevWeek}
             </Link>
           ) : (
             <span className="inline-flex items-center gap-1 border border-neutral-100 px-3 py-1.5 text-xs font-medium text-neutral-300">
-              <ArrowLeft size={12} />
+              ←
               Week {weekNum}
             </span>
           )}
@@ -193,12 +191,12 @@ export default async function TrackWeekPage({
               className="inline-flex items-center gap-1 border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition-colors"
             >
               Week {nextWeek}
-              <ArrowLeft size={12} className="rotate-180" />
+              →
             </Link>
           ) : (
             <span className="inline-flex items-center gap-1 border border-neutral-100 px-3 py-1.5 text-xs font-medium text-neutral-300">
               Week {weekNum}
-              <ArrowLeft size={12} className="rotate-180" />
+              →
             </span>
           )}
         </nav>
@@ -217,8 +215,7 @@ export default async function TrackWeekPage({
           isSingleSession
             ? sessionStatuses[0] === "completed" ? (
                 <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
-                  <CheckCircle size={14} />
-                  Session Ended
+                  ✓ Session Ended
                 </span>
               ) : meetingLinks[0] ? (
                 <a
@@ -227,12 +224,10 @@ export default async function TrackWeekPage({
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2.5 min-h-[44px] transition-colors w-full sm:w-auto"
                 >
-                  <Video size={14} />
                   Join Session
                 </a>
               ) : headerSessionIsSelfPaced ? null : (
                 <span className="inline-flex items-center justify-center gap-1.5 bg-neutral-200 text-neutral-400 text-xs font-semibold px-3.5 py-2.5 min-h-[44px] cursor-not-allowed w-full sm:w-auto">
-                  <Video size={14} />
                   Link Coming Soon
                 </span>
               )
@@ -268,7 +263,7 @@ export default async function TrackWeekPage({
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-1.5 mt-2 pl-[52px]">
-              <Users size={13} className="text-neutral-400" />
+              <span aria-hidden className="text-neutral-400">👥</span>
               <span className="text-xs text-neutral-500">{track.instructor}</span>
               <span className="text-neutral-300 mx-1">·</span>
               <span className="text-xs text-neutral-500">{displaySubtitle}</span>
@@ -300,8 +295,7 @@ export default async function TrackWeekPage({
               const isSelfPaced = session.time.toLowerCase().startsWith("self-paced");
               const action = sessionStatuses[i] === "completed" ? (
                 <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
-                  <CheckCircle size={14} />
-                  Session Ended
+                  ✓ Session Ended
                 </span>
               ) : meetingLinks[i] ? (
                 <a
@@ -310,12 +304,10 @@ export default async function TrackWeekPage({
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2.5 min-h-[44px] transition-colors w-full sm:w-auto"
                 >
-                  <Video size={14} />
                   Join Session
                 </a>
               ) : isSelfPaced ? null : (
                 <span className="inline-flex items-center justify-center gap-1.5 bg-neutral-200 text-neutral-400 text-xs font-semibold px-3.5 py-2.5 min-h-[44px] cursor-not-allowed w-full sm:w-auto">
-                  <Video size={14} />
                   Link Coming Soon
                 </span>
               );
@@ -430,19 +422,13 @@ export default async function TrackWeekPage({
                     download={isFile ? (r.name || true) : undefined}
                     className="flex items-center gap-3 border border-transparent bg-surface-soft px-3 py-2.5 text-sm font-medium text-ink hover:border-rule hover:bg-surface-elevated transition-colors group min-h-[44px]"
                   >
-                    {isVid ? (
-                      <Video size={14} className="text-ink-faint group-hover:text-ink-soft shrink-0" />
-                    ) : isFile ? (
-                      <FileText size={14} className="text-ink-faint group-hover:text-ink-soft shrink-0" />
-                    ) : (
-                      <LinkIcon size={14} className="text-ink-faint group-hover:text-ink-soft shrink-0" />
-                    )}
+                    <span aria-hidden className="text-ink-faint group-hover:text-ink-soft shrink-0">
+                      {isVid ? "▶" : isFile ? "📄" : "🔗"}
+                    </span>
                     <span className="flex-1 truncate">{r.name || r.url}</span>
-                    {isFile ? (
-                      <Download size={12} className="text-ink-faint group-hover:text-ink-soft shrink-0" />
-                    ) : (
-                      <ExternalLink size={12} className="text-ink-faint group-hover:text-ink-soft shrink-0" />
-                    )}
+                    <span aria-hidden className="text-ink-faint group-hover:text-ink-soft shrink-0">
+                      {isFile ? "⬇️" : "↗️"}
+                    </span>
                   </a>
                 </li>
               );
@@ -459,19 +445,13 @@ export default async function TrackWeekPage({
           </h2>
           <div className="space-y-2">
             <div className="flex items-center gap-2.5">
-              <CheckCircle
-                size={16}
-                className={weekProgress?.videoWatched ? "text-green-500" : "text-ink-faint/50"}
-              />
+              <span aria-hidden className={weekProgress?.videoWatched ? "text-green-500" : "text-ink-faint/50"}>✓</span>
               <span className={`text-sm ${weekProgress?.videoWatched ? "text-ink" : "text-ink-faint"}`}>
                 Watch the recording
               </span>
             </div>
             <div className="flex items-center gap-2.5">
-              <CheckCircle
-                size={16}
-                className={weekProgress?.homeworkSubmitted ? "text-green-500" : "text-ink-faint/50"}
-              />
+              <span aria-hidden className={weekProgress?.homeworkSubmitted ? "text-green-500" : "text-ink-faint/50"}>✓</span>
               <span className={`text-sm ${weekProgress?.homeworkSubmitted ? "text-ink" : "text-ink-faint"}`}>
                 Submit your homework
               </span>

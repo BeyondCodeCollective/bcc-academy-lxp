@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Check, Loader2 } from "lucide-react";
 import {
   QuestionRenderer,
   isPageValid as validatePage,
@@ -400,7 +399,7 @@ export function PublicPreSurvey({ surveyId, programSlug }: Props) {
       <div className="mx-auto w-full max-w-2xl px-5 pb-20">
         <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#E54D2E]/10">
-            <Check className="h-6 w-6 text-[#E54D2E]" />
+            <span className="text-2xl">✓</span>
           </div>
           <h2 className="text-xl font-bold text-neutral-900">You&apos;re all set.</h2>
           <p className="mt-2 text-sm text-neutral-600">
@@ -474,21 +473,14 @@ export function PublicPreSurvey({ surveyId, programSlug }: Props) {
           disabled={page === 0}
           className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 px-4 py-2.5 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-50 disabled:opacity-30 disabled:cursor-not-allowed"
         >
-          <ChevronLeft size={16} />
-          Back
+          ← Back
         </button>
         <button
           onClick={handleNext}
           disabled={submitting}
           className="inline-flex items-center gap-1 rounded-lg bg-[#1a1a1a] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#2a2a2a] disabled:opacity-50"
         >
-          {submitting ? (
-            <><Loader2 size={16} className="animate-spin" />Submitting...</>
-          ) : isLastPage ? (
-            <><Check size={16} />Submit</>
-          ) : (
-            <>Next<ChevronRight size={16} /></>
-          )}
+          {submitting ? <>… Submitting...</> : isLastPage ? <>✓ Submit</> : <>Next →</>}
         </button>
       </div>
       <FooterLinks />

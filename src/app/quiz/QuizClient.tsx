@@ -3,14 +3,6 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import {
-  Wrench, ChartBar, Lightning, Sparkle, Lightbulb, Hammer, Target, Shield,
-  MagnifyingGlass, Heart, Star, HandFist, Backpack, Rocket, Envelope, Lock,
-  Desktop, ChartLineUp, Confetti, GraduationCap, HeartBreak, EyeSlash,
-  Prohibit, PaintBrush, Warning, Fire, Clipboard, Handshake, Books, Brain,
-  Eye, Smiley, Palette, Moon, ChatCircle, DeviceMobile, HandWaving,
-  FingerprintSimple, Check,
-} from "@phosphor-icons/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { type PersonalityKey, careers, questions } from "@/data/marketing/quiz";
 import { careerPathways, type CertLevel } from "@/data/marketing/careerPathways";
@@ -26,47 +18,30 @@ type Screen = "home" | "capture" | "quiz" | "loading" | "results";
 // ICON HELPERS
 // ============================================
 
-function CareerIcon({ type, size = 32, className = "" }: { type: PersonalityKey; size?: number; className?: string }) {
-  const props = { size, weight: "bold" as const, className };
-  switch (type) {
-    case "fixer": return <Wrench {...props} />;
-    case "architect": return <ChartBar {...props} />;
-    case "connector": return <Lightning {...props} />;
-    case "creator": return <Sparkle {...props} />;
-    case "builder": return <Lightbulb {...props} />;
-    case "maker": return <Hammer {...props} />;
-    case "strategist": return <Target {...props} />;
-    case "guardian": return <Shield {...props} />;
-    case "analyst": return <MagnifyingGlass {...props} />;
-    case "healer": return <Heart {...props} />;
-    case "educator": return <Star {...props} />;
-    case "advocate": return <HandFist {...props} />;
-  }
+const CAREER_ICONS: Record<string, string> = {
+  fixer: "🔧", architect: "📊", connector: "⚡", creator: "✨",
+  builder: "💡", maker: "🔨", strategist: "🎯", guardian: "🛡️",
+  analyst: "🔍", healer: "❤️", educator: "⭐", advocate: "✊",
+};
+
+function CareerIcon({ type, className = "" }: { type: PersonalityKey; size?: number; className?: string }) {
+  return <span className={className}>{CAREER_ICONS[type] ?? "✨"}</span>;
 }
 
-function AnswerIcon({ name, size = 28, className = "" }: { name: string; size?: number; className?: string }) {
-  const props = { size, weight: "bold" as const, className };
-  const icons: Record<string, React.ReactNode> = {
-    wrench: <Wrench {...props} />, "magnifying-glass": <MagnifyingGlass {...props} />,
-    "device-mobile": <DeviceMobile {...props} />, target: <Target {...props} />,
-    shield: <Shield {...props} />, star: <Star {...props} />,
-    desktop: <Desktop {...props} />, "chart-line-up": <ChartLineUp {...props} />,
-    party: <Confetti {...props} />, rocket: <Rocket {...props} />,
-    "hand-fist": <HandFist {...props} />, "graduation-cap": <GraduationCap {...props} />,
-    "heart-break": <HeartBreak {...props} />, "eye-slash": <EyeSlash {...props} />,
-    prohibit: <Prohibit {...props} />, "paint-brush": <PaintBrush {...props} />,
-    warning: <Warning {...props} />, fire: <Fire {...props} />,
-    lightning: <Lightning {...props} />, clipboard: <Clipboard {...props} />,
-    handshake: <Handshake {...props} />, sparkle: <Sparkle {...props} />,
-    books: <Books {...props} />, heart: <Heart {...props} />,
-    brain: <Brain {...props} />, eye: <Eye {...props} />,
-    smiley: <Smiley {...props} />, lightbulb: <Lightbulb {...props} />,
-    palette: <Palette {...props} />, moon: <Moon {...props} />,
-    "chat-circle": <ChatCircle {...props} />, hammer: <Hammer {...props} />,
-    "hand-waving": <HandWaving {...props} />, "fingerprint-simple": <FingerprintSimple {...props} />,
-    "chart-bar": <ChartBar {...props} />,
-  };
-  return <>{icons[name] || <Sparkle {...props} />}</>;
+const ANSWER_ICONS: Record<string, string> = {
+  wrench: "🔧", "magnifying-glass": "🔍", "device-mobile": "📱", target: "🎯",
+  shield: "🛡️", star: "⭐", desktop: "🖥️", "chart-line-up": "📈",
+  party: "🎉", rocket: "🚀", "hand-fist": "✊", "graduation-cap": "🎓",
+  "heart-break": "💔", "eye-slash": "🙈", prohibit: "🚫", "paint-brush": "🖌️",
+  warning: "⚠️", fire: "🔥", lightning: "⚡", clipboard: "📋",
+  handshake: "🤝", sparkle: "✨", books: "📚", heart: "❤️",
+  brain: "🧠", eye: "👁️", smiley: "😊", lightbulb: "💡",
+  palette: "🎨", moon: "🌙", "chat-circle": "💬", hammer: "🔨",
+  "hand-waving": "👋", "fingerprint-simple": "🔑", "chart-bar": "📊",
+};
+
+function AnswerIcon({ name, className = "" }: { name: string; size?: number; className?: string }) {
+  return <span className={className}>{ANSWER_ICONS[name] ?? "✨"}</span>;
 }
 
 // ============================================
@@ -105,7 +80,7 @@ function HomeScreen({ onSelectAge }: { onSelectAge: (age: AgeGroup) => void }) {
                   onClick={() => onSelectAge("under18")}
                   className="group border-2 border-white/20 px-5 py-5 text-left transition-all hover:border-white active:scale-[0.98] md:hover:scale-[1.02] flex-1 bg-white/5"
                 >
-                  <div className="text-white/60 mb-2"><Backpack size={28} weight="bold" /></div>
+                  <div className="text-white/60 mb-2 text-3xl leading-none">🎒</div>
                   <div className="text-lg font-semibold text-white mb-1">Still in school</div>
                   <div className="text-white/60 text-sm">Middle school, high school, or college</div>
                   <div className="text-white/40 text-[10px] mt-2 uppercase tracking-wider">
@@ -117,7 +92,7 @@ function HomeScreen({ onSelectAge }: { onSelectAge: (age: AgeGroup) => void }) {
                   onClick={() => onSelectAge("18plus")}
                   className="group border-2 border-white/20 px-5 py-5 text-left transition-all hover:border-white active:scale-[0.98] md:hover:scale-[1.02] flex-1 bg-white/5"
                 >
-                  <div className="text-white/60 mb-2"><Rocket size={28} weight="bold" /></div>
+                  <div className="text-white/60 mb-2 text-3xl leading-none">🚀</div>
                   <div className="text-lg font-semibold text-white mb-1">Ready to level up</div>
                   <div className="text-white/60 text-sm">Looking for a new career or skill</div>
                 </button>
@@ -191,7 +166,7 @@ function LeadCaptureScreen({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
           >
-            <div className="text-white mb-4 md:mb-6"><Envelope size={48} weight="bold" /></div>
+            <div className="text-white mb-4 md:mb-6 text-5xl leading-none">✉️</div>
             <h1 className="font-display text-2xl md:text-4xl text-white mb-3 md:mb-4 leading-[0.9]">
               One quick thing
             </h1>
@@ -211,7 +186,7 @@ function LeadCaptureScreen({
                 />
                 {isValid && (
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 text-black">
-                    <Check size={24} weight="bold" />
+                    <span className="text-xl font-bold">✓</span>
                   </div>
                 )}
               </div>
@@ -237,7 +212,7 @@ function LeadCaptureScreen({
             </button>
 
             <p className="mt-6 md:mt-8 text-white/40 text-xs flex items-center gap-2 uppercase tracking-wider">
-              <Lock size={14} weight="bold" /> No spam. Unsubscribe anytime.
+              🔒 No spam. Unsubscribe anytime.
             </p>
           </motion.div>
         </div>
@@ -290,7 +265,7 @@ function LoadingScreen({ personalityKey }: { personalityKey: PersonalityKey }) {
                 i <= stage ? "text-white opacity-100" : "text-white/30"
               }`}
             >
-              {i < stage && <Check size={16} weight="bold" className="inline mr-2 text-white" />}
+              {i < stage && <span className="inline mr-2">✓</span>}
               {i === stage && <span className="mr-2">&#9679;</span>}
               {text}
             </p>
@@ -406,8 +381,8 @@ function QuestionScreen({
                     </span>
                   </div>
                   {selected === i && (
-                    <div className="absolute top-2 right-2 md:top-3 md:right-3">
-                      <Check size={24} weight="bold" className="text-black/60" />
+                    <div className="absolute top-2 right-2 md:top-3 md:right-3 text-black/60 font-bold text-lg">
+                      ✓
                     </div>
                   )}
                 </button>

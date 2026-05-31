@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { ChevronLeft, ChevronRight, Check, Loader2 } from "lucide-react";
 import { saveSurveyResponse } from "@/app/dashboard/actions";
 import { useRouter } from "next/navigation";
 import {
@@ -1072,8 +1071,7 @@ export function SurveyWizard({ surveyId, programSlug, existingResponses, userId 
           disabled={page === 0}
           className="inline-flex items-center gap-1 border border-neutral-200 px-4 py-2.5 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-50 disabled:opacity-30 disabled:cursor-not-allowed"
         >
-          <ChevronLeft size={16} />
-          Back
+          ‹ Back
         </button>
         <button
           onClick={handleNext}
@@ -1081,20 +1079,11 @@ export function SurveyWizard({ surveyId, programSlug, existingResponses, userId 
           className="inline-flex items-center gap-1 bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800 disabled:opacity-50"
         >
           {submitting ? (
-            <>
-              <Loader2 size={16} className="animate-spin" />
-              Submitting...
-            </>
+            <>… Submitting...</>
           ) : isLastPage ? (
-            <>
-              <Check size={16} />
-              Submit
-            </>
+            <>✓ Submit</>
           ) : (
-            <>
-              Next
-              <ChevronRight size={16} />
-            </>
+            <>Next ›</>
           )}
         </button>
       </div>

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle, Eye, Loader2 } from "lucide-react";
 import { markVideoWatched } from "@/app/dashboard/track/actions";
 
 export function MarkVideoWatchedButton({
@@ -19,7 +18,7 @@ export function MarkVideoWatchedButton({
   if (watched) {
     return (
       <div className="flex items-center gap-1.5 text-xs font-medium text-green-600">
-        <CheckCircle size={14} />
+        <span aria-hidden>✓</span>
         Marked as watched
       </div>
     );
@@ -41,7 +40,7 @@ export function MarkVideoWatchedButton({
       disabled={loading}
       className="inline-flex items-center gap-1.5 border border-neutral-200 bg-white px-3 py-2 text-xs font-medium text-neutral-600 hover:border-neutral-300 hover:bg-neutral-50 disabled:opacity-50 transition-colors min-h-[36px]"
     >
-      {loading ? <Loader2 size={13} className="animate-spin" /> : <Eye size={13} />}
+      {loading ? <span aria-hidden className="animate-spin inline-block">◌</span> : <span aria-hidden>👁</span>}
       Mark as watched
     </button>
   );

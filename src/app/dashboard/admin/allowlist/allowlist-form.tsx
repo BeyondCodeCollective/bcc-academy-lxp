@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition, useRef } from "react";
-import { CheckCircle, AlertCircle, Upload, Loader2 } from "lucide-react";
 import { replaceAllowedEmails, parseEmailList } from "./actions";
 
 export function AllowlistForm({
@@ -122,8 +121,7 @@ export function AllowlistForm({
           onClick={() => fileInputRef.current?.click()}
           className="inline-flex items-center gap-2 border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 transition-colors"
         >
-          <Upload size={14} />
-          Upload CSV
+          ⬆️ Upload CSV
         </button>
         <button
           type="button"
@@ -131,25 +129,16 @@ export function AllowlistForm({
           disabled={isPending}
           className="inline-flex items-center gap-2 bg-neutral-900 px-5 py-2 text-sm font-semibold text-white hover:bg-neutral-700 disabled:opacity-50 transition-colors"
         >
-          {isPending ? (
-            <>
-              <Loader2 size={14} className="animate-spin" />
-              Saving…
-            </>
-          ) : (
-            "Replace allowlist"
-          )}
+          {isPending ? "… Saving…" : "Replace allowlist"}
         </button>
         {status.kind === "ok" && (
           <span className="inline-flex items-center gap-1.5 text-sm text-green-700">
-            <CheckCircle size={14} />
-            Saved · {status.count} email{status.count === 1 ? "" : "s"} on the list
+            ✓ Saved · {status.count} email{status.count === 1 ? "" : "s"} on the list
           </span>
         )}
         {status.kind === "error" && (
           <span className="inline-flex items-center gap-1.5 text-sm text-red-600">
-            <AlertCircle size={14} />
-            {status.msg}
+            ✕ {status.msg}
           </span>
         )}
       </div>

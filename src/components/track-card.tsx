@@ -25,7 +25,7 @@ export function TrackCard({
   weekOneTopic,
 }: Props) {
   const tone = toneForTrack(slug);
-  const Icon = iconForTrack(slug);
+  const icon = iconForTrack(slug);
 
   return (
     <Link
@@ -39,7 +39,7 @@ export function TrackCard({
         className="relative flex aspect-video w-full items-center justify-center overflow-hidden"
         style={{ backgroundColor: `${tone}1A` }}
       >
-        <Icon size={56} weight="light" color={tone} />
+        <span className="text-5xl leading-none">{icon}</span>
         {/* Status badge floats top-right */}
         <div className="absolute top-3 right-3">
           {started && (

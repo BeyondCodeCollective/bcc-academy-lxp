@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "if": "Bash(vercel (deploy )?--prod)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"continue\": false, \"stopReason\": \"🛑 BLOCKED: Use the GitHub workflow instead.\\n\\n✅ Correct workflow:\\n  1. Create feature branch: git checkout -b fix/your-feature\\n  2. Make changes and commit\\n  3. Push: git push origin fix/your-feature\\n  4. Create PR on GitHub for review\\n  5. Merge via GitHub UI (not locally)\\n  6. Vercel auto-deploys within 30s\\n\\nWhy: Deploying locally from non-main branches causes code mismatches. GitHub is your source of truth.\"}'",
+            "shell": "bash"
+          }
+        ]
+      }
+    ]
+  }
+}
