@@ -23,42 +23,52 @@ export default async function ProgramsListPage() {
   const tsPrograms = getAllPrograms();
 
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-8 px-4 py-12">
-      <div className="flex items-center justify-between">
+    <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8 space-y-8">
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <Link href="/dashboard/admin" className="text-xs text-neutral-500 hover:text-neutral-300">
+          <Link
+            href="/dashboard/admin"
+            className="inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-neutral-900 transition-colors mb-4"
+          >
             ← Admin
           </Link>
-          <h1 className="mt-4 text-2xl font-bold tracking-tight text-neutral-100">Programs</h1>
-          <p className="mt-1 text-sm text-neutral-500">All programs on the platform.</p>
+          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-400 mb-1">
+            Super Admin
+          </p>
+          <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
+            Programs
+          </h1>
+          <p className="mt-1 text-sm text-neutral-500">
+            All programs on the platform.
+          </p>
         </div>
         <Link
           href="/dashboard/admin/programs/new"
-          className="rounded-lg bg-[#E54D2E] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#F0613E]"
+          className="shrink-0 mt-1 rounded-lg bg-[#E54D2E] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#F0613E] transition-colors"
         >
           New Course
         </Link>
       </div>
 
       {dbError && (
-        <div className="rounded-lg border border-red-900 bg-red-950 px-4 py-3 text-sm text-red-400">
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           Could not load dynamic programs — {dbError.message}
         </div>
       )}
 
       {!dbError && (dynamicPrograms ?? []).length > 0 && (
         <section className="space-y-3">
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-neutral-500">
+          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-400">
             Created via Builder
-          </h2>
-          <div className="divide-y divide-neutral-800 rounded-lg border border-neutral-800">
+          </p>
+          <div className="divide-y divide-neutral-100 rounded-lg border border-neutral-200 bg-white">
             {(dynamicPrograms as DynamicProgramRow[]).map((p) => (
               <div key={p.id} className="flex items-center justify-between px-4 py-3">
                 <div>
-                  <p className="text-sm font-medium text-neutral-100">{p.name ?? p.slug}</p>
-                  <p className="font-mono text-xs text-neutral-600">bccacademy.io/join/{p.slug}</p>
+                  <p className="text-sm font-medium text-neutral-900">{p.name ?? p.slug}</p>
+                  <p className="font-mono text-xs text-neutral-500 mt-0.5">bccacademy.io/join/{p.slug}</p>
                 </div>
-                <span className="rounded bg-neutral-800 px-2 py-0.5 text-xs text-neutral-400">
+                <span className="rounded bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-500">
                   dynamic
                 </span>
               </div>
@@ -68,17 +78,17 @@ export default async function ProgramsListPage() {
       )}
 
       <section className="space-y-3">
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-neutral-500">
+        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-400">
           Hardcoded (read-only)
-        </h2>
-        <div className="divide-y divide-neutral-800 rounded-lg border border-neutral-800">
+        </p>
+        <div className="divide-y divide-neutral-100 rounded-lg border border-neutral-200 bg-white">
           {tsPrograms.map((p) => (
             <div key={p.slug} className="flex items-center justify-between px-4 py-3">
               <div>
-                <p className="text-sm font-medium text-neutral-100">{p.name}</p>
-                <p className="font-mono text-xs text-neutral-600">{p.slug}</p>
+                <p className="text-sm font-medium text-neutral-900">{p.name}</p>
+                <p className="font-mono text-xs text-neutral-500 mt-0.5">{p.slug}</p>
               </div>
-              <span className="rounded bg-neutral-800 px-2 py-0.5 text-xs text-neutral-400">
+              <span className="rounded bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-500">
                 config
               </span>
             </div>
