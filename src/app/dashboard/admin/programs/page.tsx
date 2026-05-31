@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSessionContext } from "@/lib/auth/session";
 import { canSwitchPrograms } from "@/lib/roles";
-import { getProgramBySlug } from "@/lib/programs";
+import { getProgramBySlug, getHomeProgramForTrack } from "@/lib/programs";
 import { createServiceClient } from "@/lib/supabase/server";
 import { CoursesList } from "./courses-list";
 import type { CourseRow } from "./courses-list";
@@ -16,14 +16,17 @@ export default async function ProgramsListPage() {
   const catalyst = getProgramBySlug("catalyst");
   const tsTrackSlugs = new Set(catalyst.tracks.map((t) => t.slug));
 
-  const tsCourses: CourseRow[] = catalyst.tracks.map((t) => ({
-    slug: t.slug,
-    programSlug: "catalyst",
-    name: t.name,
-    joinUrl: `https://bccacademy.io/join/catalyst?track=${t.slug}`,
-    archived: false,
-    isEditable: false,
-  }));
+  const tsCourses: CourseRow[] = catalyst.tracks.map((t) => {
+    const programSlug = getHomeProgramForTrack(t.slug)?.slug ?? "catalyst";
+    return {
+      slug: t.slug,
+      programSlug,
+      name: t.name,
+      joinUrl: `https://bccacademy.io/join/${programSlug}?track=${t.slug}`,
+      archived: false,
+      isEditable: false,
+    };
+  });
 
   // Builder-created tracks: track_overrides rows under Catalyst not in TS config
   const svc = createServiceClient();
