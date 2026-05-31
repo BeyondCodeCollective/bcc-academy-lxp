@@ -37,7 +37,9 @@ export default async function ProgramsListPage() {
     joinUrl: `https://bccacademy.io/join/${p.slug}`,
   }));
 
-  const allCourses = [...dynamicCourses, ...tsCourses];
+  const allCourses = [...dynamicCourses, ...tsCourses].sort((a, b) =>
+    a.name.localeCompare(b.name)
+  );
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8 space-y-6">
