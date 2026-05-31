@@ -155,8 +155,29 @@ export async function GET(request: Request) {
       const canBypassInviteGate =
         isPrivilegedEmail(email) || isStaffEmail(email);
       if (program.requireInviteLink === true && !trackParam && !canBypassInviteGate) {
-        await supabase.auth.signOut();
-        return NextResponse.redirect(`${origin}/login?error=invite`);
+        // The allowlist fallback above may have failed silently (transient DB error,
+        // Supabase stripping URL params, cross-browser cookie loss — all of these
+        // leave trackParam null). Do one final direct lookup before rejecting: if the
+        // email is genuinely on the list, recover the track and continue rather than
+        // bouncing a legitimate student.
+        const { data: finalCheck } = await admin
+          .from("allowed_signup_emails")
+          .select("track_slug")
+          .eq("email", email)
+          .maybeSingle();
+        if (finalCheck?.track_slug) {
+          trackParam = finalCheck.track_slug as string;
+          if (!joinSlug) {
+            const hp = getHomeProgramForTrack(trackParam);
+            if (hp) {
+              joinSlug = hp.slug;
+              if (hasTsConfigSlug(joinSlug)) program = getProgramBySlug(joinSlug);
+            }
+          }
+        } else {
+          await supabase.auth.signOut();
+          return NextResponse.redirect(`${origin}/login?error=invite`);
+        }
       }
 
       // Fetch program UUID (needed for student upsert)
