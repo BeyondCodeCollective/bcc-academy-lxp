@@ -2,7 +2,6 @@
 
 import { motion } from "framer-motion";
 import { fadeInUp, staggerContainer } from "@/lib/marketing-motion";
-import { ArrowRight } from "@phosphor-icons/react";
 import Image from "next/image";
 import { classSessions, trackLabels } from "@/data/marketing/sessions";
 
@@ -91,8 +90,7 @@ export default function LiveSessionsSection() {
                     href={session.joinUrl}
                     className="inline-flex items-center gap-2 self-start px-5 py-2.5 border border-white/20 text-white text-sm font-bold hover:bg-electric-green hover:text-true-black hover:border-electric-green transition-all duration-300 group-hover:border-white/40"
                   >
-                    Join Live
-                    <ArrowRight size={13} weight="bold" />
+                    Join Live →
                   </a>
                 ) : (
                   <span className="inline-flex items-center gap-2 self-start px-5 py-2.5 border border-white/10 text-white/50 text-sm font-bold uppercase tracking-wider cursor-default">

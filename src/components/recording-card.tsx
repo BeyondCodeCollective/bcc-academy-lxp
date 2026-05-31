@@ -1,4 +1,3 @@
-import { Video } from "lucide-react";
 import { MarkVideoWatchedButton } from "@/components/mark-video-watched-button";
 import {
   getYouTubeEmbedUrl,
@@ -40,7 +39,7 @@ export function RecordingCard({
       <div className="flex items-center justify-between gap-2 px-4 sm:px-5 pt-4 pb-3">
         <div className="flex items-center gap-2 min-w-0">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-50">
-            <Video size={15} className="text-emerald-600" />
+            🎬
           </div>
           <div className="min-w-0">
             <p className="text-sm font-medium text-neutral-900 truncate">{title}</p>

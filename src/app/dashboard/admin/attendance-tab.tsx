@@ -2,16 +2,6 @@
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import {
-  UserCheck,
-  RefreshCw,
-  ChevronLeft,
-  ChevronRight,
-  Download,
-  AlertTriangle,
-  Check,
-  Circle,
-} from "lucide-react";
-import {
   type AttendanceRecord,
   type StudentRow,
   type TrackLike,
@@ -392,10 +382,7 @@ function Header({
           aria-label="Refresh attendance"
           className="inline-flex h-8 w-8 items-center justify-center rounded-full text-ink-soft hover:bg-paper-tint-soft hover:text-ink disabled:opacity-50 transition-colors"
         >
-          <RefreshCw
-            size={14}
-            className={refreshing ? "animate-spin" : undefined}
-          />
+          <span aria-hidden>{refreshing ? "…" : "↺"}</span>
         </button>
         <button
           type="button"
@@ -403,8 +390,7 @@ function Header({
           disabled={!hasData}
           className="inline-flex items-center gap-1.5 rounded-full border border-rule px-3 py-1.5 text-xs font-medium text-ink-soft hover:bg-surface-elevated hover:text-ink disabled:opacity-40 transition-colors"
         >
-          <Download size={12} />
-          Export CSV
+          ⬇️ Export CSV
         </button>
       </div>
     </header>
@@ -537,7 +523,7 @@ function OverviewPanel({
       {atRisk.length > 0 && (
         <section>
           <div className="mb-3 flex items-center gap-2">
-            <AlertTriangle size={14} className="text-ink-faint" />
+            <span aria-hidden className="text-ink-faint">⚠</span>
             <h3 className="text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
               Needs attention
             </h3>
@@ -761,7 +747,7 @@ function MarkPanel({
           aria-label="Previous week"
           className="inline-flex h-9 w-9 items-center justify-center rounded-full text-ink-soft hover:bg-paper-tint-soft hover:text-ink disabled:opacity-30 transition-colors"
         >
-          <ChevronLeft size={16} />
+          ←
         </button>
         <div className="text-center">
           <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-faint">
@@ -783,7 +769,7 @@ function MarkPanel({
           aria-label="Next week"
           className="inline-flex h-9 w-9 items-center justify-center rounded-full text-ink-soft hover:bg-paper-tint-soft hover:text-ink disabled:opacity-30 transition-colors"
         >
-          <ChevronRight size={16} />
+          →
         </button>
       </div>
 
@@ -907,7 +893,7 @@ function SessionTable({
                           : "border-rule bg-surface-elevated text-ink-faint hover:border-ink-soft hover:text-ink-soft"
                       } ${saving ? "opacity-60" : ""}`}
                     >
-                      {checked ? <Check size={14} strokeWidth={2.5} /> : <Circle size={12} />}
+                      {checked ? "✓" : ""}
                       {sessionsPerWeek > 1 && (
                         <span className="absolute -bottom-3.5 text-[9px] text-ink-faint hidden sm:block">
                           S{sNum}
@@ -931,5 +917,3 @@ function SessionTable({
 // Re-export for backwards compatibility — anything currently importing the
 // old static helper still resolves.
 export { type StudentRow, type AttendanceRecord, type TrackLike };
-// Silence unused import warning — kept for future quick-mark icon swaps.
-void UserCheck;

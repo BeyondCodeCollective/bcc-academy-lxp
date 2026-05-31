@@ -4,18 +4,6 @@ import { useState, useEffect, Suspense } from "react";
 import dynamic from "next/dynamic";
 import Link, { useLinkStatus } from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import {
-  House,
-  ShieldCheck,
-  ChatsCircle,
-  ChartBar,
-  Question,
-  List,
-  X,
-  Check,
-  Confetti,
-  BookOpen,
-} from "@phosphor-icons/react";
 import { computeCurrentWeek } from "@/lib/utils";
 
 const UserMenu = dynamic(
@@ -42,7 +30,7 @@ const AdminProgramSwitcher = dynamic(
 type NavItem = {
   href: string;
   label: string;
-  icon: React.ComponentType<{ size?: number; weight?: "bold"; "aria-hidden"?: boolean }>;
+  icon: string;
 };
 
 // Renders a small spinner inside its parent Link only while the route
@@ -135,28 +123,28 @@ export function Nav({
   }, [mobileOpen]);
 
   const items: NavItem[] = [
-    { href: "/dashboard", label: "Home", icon: House },
+    { href: "/dashboard", label: "Home", icon: "🏠" },
     // Catalog (every track in the program) is admin-only. Students get their
     // own track grid on /dashboard and the curriculum sidebar when they're
     // inside a track — they don't need a browsable catalog of programs
     // they aren't enrolled in.
     ...(isAdmin
-      ? [{ href: "/dashboard/courses", label: "Courses", icon: BookOpen }]
+      ? [{ href: "/dashboard/courses", label: "Courses", icon: "📖" }]
       : []),
     // Workshops are internal-only: admin panel access OR BGC/BCC staff email.
     // Students (current or prospective) don't see this; past workshops are
     // archival material for the org, not enrolled-learner content.
     ...(canAccessStaff
-      ? [{ href: "/dashboard/workshops", label: "Workshops", icon: Confetti }]
+      ? [{ href: "/dashboard/workshops", label: "Workshops", icon: "🎉" }]
       : []),
     ...(showTutor
-      ? [{ href: "/dashboard/tutor", label: "AI Tutor", icon: ChatsCircle }]
+      ? [{ href: "/dashboard/tutor", label: "AI Tutor", icon: "💬" }]
       : []),
     ...(isAdmin
-      ? [{ href: "/dashboard/admin", label: "Admin", icon: ShieldCheck }]
+      ? [{ href: "/dashboard/admin", label: "Admin", icon: "🛡️" }]
       : []),
     ...(canSwitch
-      ? [{ href: "/dashboard/insights", label: "Insights", icon: ChartBar }]
+      ? [{ href: "/dashboard/insights", label: "Insights", icon: "📊" }]
       : []),
   ];
 
@@ -172,7 +160,7 @@ export function Nav({
     return pathname.startsWith(href);
   };
 
-  const renderItem = ({ href, label, icon: Icon }: NavItem) => {
+  const renderItem = ({ href, label, icon }: NavItem) => {
     const active = isItemActive(href);
     return (
       <Link
@@ -187,7 +175,7 @@ export function Nav({
             : "border-l-2 border-transparent text-neutral-300 hover:bg-white/10 hover:text-white pl-[10px] pr-3"
         }`}
       >
-        <Icon size={20} weight="bold" aria-hidden />
+        <span aria-hidden>{icon}</span>
         <span className="flex-1">{label}</span>
         <LinkPending />
       </Link>
@@ -208,7 +196,7 @@ export function Nav({
           : "text-neutral-500 hover:text-neutral-300"
       }`}
     >
-      <Question size={16} weight="regular" aria-hidden />
+      <span aria-hidden>❓</span>
       <span className="flex-1">Help</span>
       <LinkPending />
     </Link>
@@ -285,7 +273,7 @@ export function Nav({
                     }`}
                   >
                     {isPast ? (
-                      <Check size={14} weight="bold" aria-hidden className="shrink-0 text-neutral-500" />
+                      <span aria-hidden className="shrink-0 text-neutral-500">✓</span>
                     ) : (
                       <span className="w-[14px] shrink-0 text-center text-[11px] tabular-nums text-neutral-500">
                         {ws.week}
@@ -428,7 +416,7 @@ export function Nav({
               aria-expanded={mobileOpen}
               className="flex min-h-[44px] min-w-[44px] items-center justify-center text-neutral-200 hover:bg-white/10 hover:text-white transition-colors"
             >
-              <List size={22} weight="bold" aria-hidden />
+              <span aria-hidden>☰</span>
             </button>
           </div>
         </div>
@@ -460,7 +448,7 @@ export function Nav({
                 aria-label="Close menu"
                 className="flex min-h-[44px] min-w-[44px] items-center justify-center text-neutral-300 hover:bg-white/10 hover:text-white transition-colors"
               >
-                <X size={22} weight="bold" aria-hidden />
+                <span aria-hidden>✕</span>
               </button>
             </div>
             <div className="flex h-full flex-col gap-6 p-4">
@@ -597,7 +585,7 @@ export function Nav({
             aria-expanded={mobileOpen}
             className="flex min-h-[44px] min-w-[44px] items-center justify-center text-neutral-200 hover:bg-white/10 hover:text-white transition-colors"
           >
-            <List size={22} weight="bold" aria-hidden />
+            <span aria-hidden>☰</span>
           </button>
         </div>
       </div>
@@ -629,7 +617,7 @@ export function Nav({
               aria-label="Close menu"
               className="flex min-h-[44px] min-w-[44px] items-center justify-center text-neutral-300 hover:bg-white/10 hover:text-white transition-colors"
             >
-              <X size={22} weight="bold" aria-hidden />
+              <span aria-hidden>✕</span>
             </button>
           </div>
           {drawerBody}

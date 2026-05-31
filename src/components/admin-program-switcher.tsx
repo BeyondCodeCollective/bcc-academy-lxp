@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { BookOpen, CaretUpDown, Check, Coffee } from "@phosphor-icons/react";
 
 type Track = { slug: string; shortName: string };
 
@@ -95,11 +94,7 @@ export function AdminProgramSwitcher({
             : "text-neutral-300 hover:bg-white/10 hover:text-white"
         }`}
       >
-        {isLunchActive ? (
-          <Coffee size={14} weight="regular" aria-hidden className="shrink-0" />
-        ) : (
-          <BookOpen size={14} weight="regular" aria-hidden className="shrink-0" />
-        )}
+        <span aria-hidden className="shrink-0">{isLunchActive ? "☕" : "📖"}</span>
         <span className="flex-1 truncate text-left">{triggerLabel}</span>
         {pendingSlug ? (
           <span
@@ -107,7 +102,7 @@ export function AdminProgramSwitcher({
             className="h-3 w-3 shrink-0 animate-spin rounded-full border border-white/30 border-t-white/80"
           />
         ) : (
-          <CaretUpDown size={12} weight="bold" aria-hidden className="shrink-0 opacity-60" />
+          <span aria-hidden className="shrink-0 opacity-60">↕</span>
         )}
       </button>
 
@@ -119,7 +114,7 @@ export function AdminProgramSwitcher({
         >
           {items.map((item) => {
             const isActive = item.slug === activeTab;
-            const Icon = item.icon === "lunch" ? Coffee : BookOpen;
+            const icon = item.icon === "lunch" ? "☕" : "📖";
             return (
               <button
                 key={item.slug}
@@ -132,10 +127,10 @@ export function AdminProgramSwitcher({
                     : "text-neutral-300 hover:bg-white/5 hover:text-white"
                 }`}
               >
-                <Icon size={14} weight="regular" aria-hidden className="shrink-0" />
+                <span aria-hidden className="shrink-0">{icon}</span>
                 <span className="flex-1 truncate">{item.label}</span>
                 {isActive && (
-                  <Check size={12} weight="bold" aria-hidden className="shrink-0 text-white" />
+                  <span aria-hidden className="shrink-0 text-white">✓</span>
                 )}
               </button>
             );

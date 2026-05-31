@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Program Builder Wizard</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #111;
+    color: #e0e0e0;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    min-height: 100vh;
+    padding: 32px 24px;
+  }
+
+  .page-header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  .page-header h1 { font-size: 14px; color: #888; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 6px; }
+  .page-header p { font-size: 22px; font-weight: 700; color: #f0f0f0; }
+
+  /* Step indicator */
+  .steps {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin-bottom: 32px;
+  }
+  .step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .step-dot {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+    flex-shrink: 0;
+    transition: all 0.2s;
+  }
+  .step-dot.active { background: #E54D2E; color: white; }
+  .step-dot.done { background: #2d5a2d; color: #5cb85c; border: 1.5px solid #5cb85c; }
+  .step-dot.pending { background: #2a2a2a; color: #555; border: 1.5px solid #333; }
+  .step-label { font-size: 12px; color: #888; }
+  .step-label.active { color: #f0f0f0; font-weight: 600; }
+  .step-connector {
+    width: 40px; height: 1px;
+    background: #333;
+    margin: 0 8px;
+  }
+
+  /* Card */
+  .card {
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 12px;
+    padding: 28px;
+    max-width: 640px;
+    margin: 0 auto 28px;
+  }
+  .card-title {
+    font-size: 17px; font-weight: 700; color: #f0f0f0;
+    margin-bottom: 4px;
+  }
+  .card-subtitle { font-size: 13px; color: #666; margin-bottom: 24px; }
+
+  /* Form fields */
+  .field { margin-bottom: 18px; }
+  .field label {
+    display: block; font-size: 12px; color: #aaa; font-weight: 600;
+    margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .field label .req { color: #E54D2E; margin-left: 2px; }
+  .field label .opt { color: #555; font-weight: 400; font-size: 11px; text-transform: none; letter-spacing: 0; margin-left: 4px; }
+  .field input, .field textarea {
+    width: 100%;
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 7px;
+    padding: 10px 14px;
+    font-size: 14px;
+    color: #e0e0e0;
+    font-family: inherit;
+    outline: none;
+  }
+  .field input:focus, .field textarea:focus { border-color: #E54D2E; }
+  .field .hint { font-size: 11px; color: #555; margin-top: 5px; }
+  .field .slug-preview {
+    margin-top: 6px; font-size: 12px; color: #666;
+    font-family: 'Geist Mono', monospace;
+    background: #0d0d0d; border: 1px solid #222; border-radius: 5px;
+    padding: 6px 10px;
+  }
+  .field .slug-preview span { color: #E54D2E; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  /* Tabs for steps */
+  .tab-switcher {
+    display: flex; gap: 8px; margin-bottom: 24px;
+    max-width: 640px; margin-left: auto; margin-right: auto;
+  }
+  .tab-btn {
+    flex: 1; padding: 8px 14px; border-radius: 7px; border: 1px solid #2a2a2a;
+    background: #1a1a1a; color: #666; font-size: 12px; font-weight: 600;
+    cursor: pointer; text-align: center;
+    transition: all 0.15s;
+  }
+  .tab-btn.active { background: #E54D2E; border-color: #E54D2E; color: white; }
+  .tab-btn:hover:not(.active) { border-color: #444; color: #aaa; }
+
+  .step-panel { display: none; }
+  .step-panel.visible { display: block; }
+
+  /* Track list */
+  .tracks-hub { margin-bottom: 0; }
+  .track-item {
+    background: #111;
+    border: 1px solid #2e2e2e;
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .track-item .track-icon {
+    width: 36px; height: 36px; border-radius: 8px;
+    background: #2a2a2a; display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  .track-item .track-meta { flex: 1; min-width: 0; }
+  .track-item .track-name { font-size: 14px; font-weight: 600; color: #e0e0e0; }
+  .track-item .track-detail { font-size: 12px; color: #666; margin-top: 2px; }
+  .track-item .track-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .btn-ghost {
+    background: transparent; border: 1px solid #333; border-radius: 5px;
+    color: #888; padding: 4px 10px; font-size: 11px; cursor: pointer;
+    font-family: inherit; font-weight: 500;
+  }
+  .btn-ghost:hover { border-color: #555; color: #ccc; }
+  .btn-ghost.danger:hover { border-color: #c0392b; color: #e74c3c; }
+
+  .add-track-btn {
+    width: 100%; padding: 12px;
+    background: transparent; border: 1px dashed #333; border-radius: 8px;
+    color: #666; font-size: 13px; cursor: pointer; font-family: inherit;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    transition: all 0.15s;
+    margin-top: 4px;
+  }
+  .add-track-btn:hover { border-color: #E54D2E; color: #E54D2E; background: rgba(229,77,46,0.04); }
+
+  /* Track inline form */
+  .track-form {
+    background: #0f0f0f;
+    border: 1px solid #2a2a2a;
+    border-radius: 10px;
+    padding: 18px;
+    margin-bottom: 10px;
+  }
+  .track-form .form-title {
+    font-size: 13px; font-weight: 700; color: #e0e0e0; margin-bottom: 14px;
+    padding-bottom: 10px; border-bottom: 1px solid #222;
+  }
+
+  /* Review section */
+  .review-section { margin-bottom: 20px; }
+  .review-section h4 {
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em;
+    color: #666; margin-bottom: 10px;
+  }
+  .review-row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 8px 0; border-bottom: 1px solid #1f1f1f; font-size: 13px;
+  }
+  .review-row:last-child { border-bottom: none; }
+  .review-row .rkey { color: #888; }
+  .review-row .rval { color: #e0e0e0; font-weight: 500; font-family: 'Geist Mono', monospace; font-size: 12px; }
+  .review-track {
+    background: #111; border: 1px solid #222; border-radius: 7px;
+    padding: 10px 14px; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 10px; font-size: 13px;
+  }
+  .review-track .rt-icon { font-size: 16px; }
+  .review-track .rt-name { color: #e0e0e0; font-weight: 600; flex: 1; }
+  .review-track .rt-meta { color: #666; font-size: 12px; }
+
+  /* Action buttons */
+  .actions {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 24px; padding-top: 20px; border-top: 1px solid #222;
+    max-width: 640px; margin-left: auto; margin-right: auto;
+  }
+  .btn-back {
+    background: transparent; border: 1px solid #333; border-radius: 7px;
+    color: #888; padding: 9px 20px; font-size: 13px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+  }
+  .btn-next {
+    background: #E54D2E; border: none; border-radius: 7px;
+    color: white; padding: 10px 24px; font-size: 13px; font-weight: 700;
+    cursor: pointer; font-family: inherit;
+  }
+  .btn-create {
+    background: #E54D2E; border: none; border-radius: 7px;
+    color: white; padding: 10px 28px; font-size: 14px; font-weight: 700;
+    cursor: pointer; font-family: inherit;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  /* Join link banner */
+  .success-banner {
+    background: #0d1f0d; border: 1px solid #2d5a2d; border-radius: 10px;
+    padding: 18px 20px; max-width: 640px; margin: 0 auto 24px;
+    display: none;
+  }
+  .success-banner.visible { display: block; }
+  .success-banner h3 { font-size: 14px; font-weight: 700; color: #5cb85c; margin-bottom: 8px; }
+  .success-banner .join-link {
+    background: #0a0a0a; border: 1px solid #1f3f1f; border-radius: 6px;
+    padding: 10px 14px; font-family: 'Geist Mono', monospace; font-size: 13px;
+    color: #7ec87e; display: flex; align-items: center; justify-content: space-between;
+  }
+  .success-banner .copy-btn {
+    background: #2d5a2d; border: none; border-radius: 5px;
+    color: #5cb85c; padding: 4px 10px; font-size: 11px; font-weight: 600;
+    cursor: pointer; font-family: inherit; flex-shrink: 0; margin-left: 12px;
+  }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Admin · Programs</h1>
+  <p>Create New Program</p>
+</div>
+
+<!-- Step switcher (acts as step indicator) -->
+<div class="tab-switcher">
+  <div class="tab-btn active" onclick="showStep(1, this)">1 · Program Info</div>
+  <div class="tab-btn" onclick="showStep(2, this)">2 · Tracks</div>
+  <div class="tab-btn" onclick="showStep(3, this)">3 · Review</div>
+</div>
+
+<!-- SUCCESS BANNER (shown on step 3 "Create" click) -->
+<div class="success-banner" id="success-banner">
+  <h3>✓ Program created!</h3>
+  <div class="join-link">
+    <span>bccacademy.io/join/salesforce-admin</span>
+    <button class="copy-btn" onclick="this.textContent='Copied!'">Copy</button>
+  </div>
+</div>
+
+<!-- STEP 1: Program Info -->
+<div class="step-panel visible" id="step-1">
+  <div class="card">
+    <div class="card-title">Program Info</div>
+    <div class="card-subtitle">Basic details about the new program</div>
+
+    <div class="field">
+      <label>Program Name <span class="req">*</span></label>
+      <input type="text" placeholder="e.g. Salesforce Admin" id="prog-name" oninput="updateSlug(this.value)" value="Salesforce Admin" />
+      <div class="slug-preview">bccacademy.io/join/<span id="slug-preview">salesforce-admin</span></div>
+    </div>
+
+    <div class="field">
+      <label>Description <span class="opt">optional</span></label>
+      <textarea rows="3" placeholder="What will students learn in this program?">Earn your Salesforce Administrator certification with hands-on training and weekly live sessions.</textarea>
+    </div>
+  </div>
+</div>
+
+<!-- STEP 2: Tracks -->
+<div class="step-panel" id="step-2">
+  <div class="card">
+    <div class="card-title">Tracks</div>
+    <div class="card-subtitle">Add one or more learning tracks to this program</div>
+
+    <div class="tracks-hub">
+      <!-- Existing track -->
+      <div class="track-item">
+        <div class="track-icon">📊</div>
+        <div class="track-meta">
+          <div class="track-name">Salesforce Admin</div>
+          <div class="track-detail">Marcus Williams · 12 weeks · 2 sessions/week</div>
+        </div>
+        <div class="track-actions">
+          <button class="btn-ghost" onclick="toggleTrackForm()">Edit</button>
+          <button class="btn-ghost danger">Remove</button>
+        </div>
+      </div>
+
+      <!-- Inline track form (edit state) -->
+      <div class="track-form" id="track-form" style="display:none;">
+        <div class="form-title">Edit Track</div>
+        <div class="field">
+          <label>Track Name <span class="req">*</span></label>
+          <input type="text" value="Salesforce Admin" />
+        </div>
+        <div class="field">
+          <label>Instructor <span class="req">*</span></label>
+          <input type="text" value="Marcus Williams" />
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Total Weeks <span class="req">*</span></label>
+            <input type="number" value="12" />
+          </div>
+          <div class="field">
+            <label>Sessions / Week <span class="req">*</span></label>
+            <input type="number" value="2" />
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:4px;">
+          <button class="btn-ghost" onclick="toggleTrackForm()">Cancel</button>
+          <button class="btn-next" style="padding:8px 16px; font-size:12px;" onclick="toggleTrackForm()">Save Track</button>
+        </div>
+      </div>
+
+      <button class="add-track-btn" onclick="toggleTrackForm()">
+        <span style="font-size:16px;">+</span> Add another track
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- STEP 3: Review -->
+<div class="step-panel" id="step-3">
+  <div class="card">
+    <div class="card-title">Review & Create</div>
+    <div class="card-subtitle">Double-check everything before creating the program</div>
+
+    <div class="review-section">
+      <h4>Program</h4>
+      <div class="review-row">
+        <span class="rkey">Name</span>
+        <span class="rval">Salesforce Admin</span>
+      </div>
+      <div class="review-row">
+        <span class="rkey">Slug</span>
+        <span class="rval">salesforce-admin</span>
+      </div>
+      <div class="review-row">
+        <span class="rkey">Join URL</span>
+        <span class="rval">bccacademy.io/join/salesforce-admin</span>
+      </div>
+      <div class="review-row">
+        <span class="rkey">Invite required</span>
+        <span class="rval">yes (default)</span>
+      </div>
+    </div>
+
+    <div class="review-section">
+      <h4>Tracks (1)</h4>
+      <div class="review-track">
+        <span class="rt-icon">📊</span>
+        <span class="rt-name">Salesforce Admin</span>
+        <span class="rt-meta">Marcus Williams · 12 wks · 2×/week</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Navigation -->
+<div class="actions" id="actions">
+  <button class="btn-back" id="back-btn" onclick="prevStep()" style="visibility:hidden;">← Back</button>
+  <button class="btn-next" id="next-btn" onclick="nextStep()">Next →</button>
+  <button class="btn-create" id="create-btn" onclick="createProgram()" style="display:none;">
+    Create Program
+  </button>
+</div>
+
+<script>
+let currentStep = 1;
+const totalSteps = 3;
+
+function showStep(n, tabEl) {
+  document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('visible'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('step-' + n).classList.add('visible');
+  if (tabEl) tabEl.classList.add('active');
+  currentStep = n;
+
+  const backBtn = document.getElementById('back-btn');
+  const nextBtn = document.getElementById('next-btn');
+  const createBtn = document.getElementById('create-btn');
+
+  backBtn.style.visibility = n === 1 ? 'hidden' : 'visible';
+  nextBtn.style.display = n === totalSteps ? 'none' : 'inline-flex';
+  createBtn.style.display = n === totalSteps ? 'inline-flex' : 'none';
+}
+
+function nextStep() {
+  if (currentStep < totalSteps) {
+    showStep(currentStep + 1, document.querySelectorAll('.tab-btn')[currentStep]);
+  }
+}
+
+function prevStep() {
+  if (currentStep > 1) {
+    showStep(currentStep - 1, document.querySelectorAll('.tab-btn')[currentStep - 2]);
+  }
+}
+
+function toggleTrackForm() {
+  const f = document.getElementById('track-form');
+  f.style.display = f.style.display === 'none' ? 'block' : 'none';
+}
+
+function updateSlug(val) {
+  const slug = val.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  document.getElementById('slug-preview').textContent = slug || 'your-program';
+}
+
+function createProgram() {
+  const banner = document.getElementById('success-banner');
+  banner.classList.add('visible');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  document.getElementById('create-btn').textContent = '✓ Created!';
+  document.getElementById('create-btn').style.background = '#2d7a2d';
+}
+</script>
+</body>
+</html>

@@ -8,19 +8,6 @@
 // fixed roster and (usually) a deliverable. Past workshops are archived
 // here for the alumni record + institutional memory.
 
-import type { ComponentType } from "react";
-import {
-  Sparkle,
-  MusicNotes,
-} from "@phosphor-icons/react/dist/ssr";
-
-type WorkshopIcon = ComponentType<{
-  size?: number;
-  weight?: "thin" | "light" | "regular" | "bold" | "fill" | "duotone";
-  color?: string;
-  className?: string;
-}>;
-
 export type WorkshopModality = "in-person" | "virtual" | "hybrid";
 export type WorkshopStatus = "past" | "upcoming";
 
@@ -46,7 +33,7 @@ export type Workshop = {
   facilitators?: string[];
   credentialName?: string;
   capstone?: { title: string; description: string };
-  icon: WorkshopIcon;
+  icon: string;
   tone: string;
 };
 
@@ -98,7 +85,7 @@ export const WORKSHOPS: Workshop[] = [
       description:
         "Groups of 2–4 fellows imagined an AI-powered application addressing a community need. Phases: define the problem, design the solution, assess the impact, present the blueprint. Pitches were delivered on the final day.",
     },
-    icon: Sparkle,
+    icon: "✨",
     tone: "#E54D2E",
   },
   {
@@ -128,7 +115,7 @@ export const WORKSHOPS: Workshop[] = [
       "Share the resulting track with a partner",
       "Hands-on intro to a digital audio workstation (DAW)",
     ],
-    icon: MusicNotes,
+    icon: "🎵",
     tone: "#7C3AED",
   },
 ];

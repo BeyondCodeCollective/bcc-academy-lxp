@@ -1,0 +1,49 @@
+<h2>Program Builder — Implementation Approaches</h2>
+<p class="subtitle">Three ways to build this. Pick the one that feels right.</p>
+
+<div class="options">
+
+  <div class="option" data-choice="minimal" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Minimal viable builder</h3>
+      <p>Single-page form at <code>/dashboard/admin/programs/new</code>. Program info + a dynamic track list on one scrollable page. No step indicators, no nav — fill it out, hit Create. Fast to build, zero ceremony. Trades polish for speed of implementation.</p>
+      <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+        <span style="background:#2a2a2a; border:1px solid #444; border-radius:4px; padding:2px 8px; font-size:11px; color:#888;">~1–2 days to build</span>
+        <span style="background:#2a2a2a; border:1px solid #444; border-radius:4px; padding:2px 8px; font-size:11px; color:#888;">No DB migrations needed yet</span>
+        <span style="background:#2a2a2a; border:1px solid #444; border-radius:4px; padding:2px 8px; font-size:11px; color:#888;">Good for internal tools</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="wizard" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Stepped hub + spoke wizard <span style="background:#E54D2E; color:white; border-radius:4px; padding:1px 7px; font-size:11px; font-weight:600; margin-left:6px;">Recommended</span></h3>
+      <p>Step 1: program info (name → slug auto-derived, description). Step 2: tracks hub — add/edit/remove tracks inline before committing. Step 3: review summary → Create. Clean step indicator, back/next nav. After creation: redirects to the new program's admin with a join-link banner.</p>
+      <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+        <span style="background:#2a2a2a; border:1px solid #444; border-radius:4px; padding:2px 8px; font-size:11px; color:#888;">~3–4 days to build</span>
+        <span style="background:#2a2a2a; border:1px solid #444; border-radius:4px; padding:2px 8px; font-size:11px; color:#888;">DB schema for programs + tracks</span>
+        <span style="background:#2a2a2a; border:1px solid #444; border-radius:4px; padding:2px 8px; font-size:11px; color:#888;">Lean fields now, upgradeable to full</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="full-cms" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Full CMS-style editor</h3>
+      <p>Wizard creates the program shell, then a rich per-track editor lets you configure weeks, sessions, prompts, and content inline — like a lightweight CMS. Programs list at <code>/dashboard/admin/programs</code> becomes a command center. Most powerful, closest to "Option C" from earlier.</p>
+      <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+        <span style="background:#2a2a2a; border:1px solid #444; border-radius:4px; padding:2px 8px; font-size:11px; color:#888;">~1–2 weeks to build</span>
+        <span style="background:#2a2a2a; border:1px solid #444; border-radius:4px; padding:2px 8px; font-size:11px; color:#888;">Full DB schema overhaul</span>
+        <span style="background:#2a2a2a; border:1px solid italic #444; border-radius:4px; padding:2px 8px; font-size:11px; color:#888;">Risk: scope creep</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:24px; padding:14px 16px; background:#1e1e1e; border-left:3px solid #E54D2E; border-radius:6px; font-size:12px; color:#aaa; font-family:'Plus Jakarta Sans',sans-serif;">
+  <strong style="color:#e0e0e0;">My recommendation: B.</strong> It's the right balance — structured enough to feel intentional, lean enough to ship fast. A is fine for a prototype but feels rough for something you'll use repeatedly. C is the endgame but too much to bite off now.
+</div>

@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { markWelcomeSeen } from "@/app/dashboard/actions";
-import { BookOpen, X } from "lucide-react";
 import type { ProgramConfig, TrackConfig } from "@/lib/programs/types";
 
 interface Props {
@@ -77,12 +76,12 @@ export function OnboardingForm({ program, visibleTracks }: Props) {
           aria-label="Dismiss welcome"
           className="absolute top-3 right-3 z-10 inline-flex h-9 w-9 items-center justify-center text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 transition-colors"
         >
-          <X size={18} />
+          ✕
         </button>
         <div className="p-6 sm:p-8">
           <div className="text-center mb-6">
             <div className="mx-auto flex h-14 w-14 items-center justify-center bg-neutral-900 mb-4">
-              <BookOpen size={28} className="text-white" />
+              📖
             </div>
             <h2 id="onboarding-title" className="text-xl font-bold text-neutral-900">
               Welcome to {program.name}

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Check } from "@phosphor-icons/react";
 import Link from "next/link";
 import { sendJoinLink } from "./actions";
 
@@ -113,7 +112,7 @@ export function JoinForm({
           />
           {isValid && (
             <div className="absolute right-4 top-1/2 -translate-y-1/2 text-black">
-              <Check size={24} weight="bold" />
+              ✓
             </div>
           )}
         </div>

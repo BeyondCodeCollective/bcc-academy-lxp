@@ -1,4 +1,3 @@
-import { PlayCircle } from "@phosphor-icons/react/dist/ssr";
 
 type Props = {
   thumbnailUrl?: string | null;
@@ -35,12 +34,12 @@ export function VideoPoster({
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-paper-tint">
-            <PlayCircle size={56} weight="light" className="text-ink-soft" />
+            <span aria-hidden className="text-5xl text-ink-soft">▶</span>
           </div>
         )}
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/25">
           <span className="flex h-12 w-12 scale-90 items-center justify-center rounded-full bg-white/0 opacity-0 backdrop-blur transition-all group-hover:scale-100 group-hover:bg-white/95 group-hover:opacity-100">
-            <PlayCircle size={28} weight="fill" className="text-ink" />
+            <span aria-hidden className="text-2xl text-ink">▶</span>
           </span>
         </div>
       </div>

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { List, X } from "@phosphor-icons/react";
 import Link from "next/link";
 
 const navLinks = [
@@ -78,7 +77,7 @@ export default function Header({ solid = false }: HeaderProps) {
           aria-label={mobileOpen ? "Close menu" : "Open menu"}
           aria-expanded={mobileOpen}
         >
-          {mobileOpen ? <X size={24} weight="bold" /> : <List size={24} weight="bold" />}
+          {mobileOpen ? "✕" : "☰"}
         </button>
       </div>
 

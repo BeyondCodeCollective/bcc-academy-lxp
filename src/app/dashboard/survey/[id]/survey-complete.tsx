@@ -1,7 +1,6 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Check } from "lucide-react";
 
 export function SurveyComplete() {
   const router = useRouter();
@@ -9,7 +8,7 @@ export function SurveyComplete() {
   return (
     <div className="border border-rule bg-surface-elevated p-8 sm:p-12 text-center">
       <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-100 mb-6">
-        <Check size={28} className="text-green-600" />
+        <span className="text-green-600 text-2xl">✓</span>
       </div>
       <h2 className="text-2xl font-bold text-neutral-900 mb-3">
         Thank you.

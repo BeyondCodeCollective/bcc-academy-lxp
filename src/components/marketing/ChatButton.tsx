@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChatCircle, X, PaperPlaneTilt } from "@phosphor-icons/react";
 
 export default function ChatButton() {
   const [isOpen, setIsOpen] = useState(false);
@@ -41,7 +40,7 @@ export default function ChatButton() {
         whileTap={{ scale: 0.95 }}
         aria-label={isOpen ? "Close chat" : "Open AI guidance counselor"}
       >
-        {isOpen ? <X size={24} weight="bold" /> : <ChatCircle size={24} weight="bold" />}
+        {isOpen ? "✕" : "💬"}
       </motion.button>
 
       {/* Chat panel */}
@@ -95,7 +94,7 @@ export default function ChatButton() {
                 disabled={!input.trim()}
                 className="w-11 h-11 flex items-center justify-center bg-cobalt text-white disabled:opacity-30 hover:bg-dark-cobalt transition-colors"
               >
-                <PaperPlaneTilt size={18} weight="bold" />
+                →
               </button>
             </form>
           </motion.div>

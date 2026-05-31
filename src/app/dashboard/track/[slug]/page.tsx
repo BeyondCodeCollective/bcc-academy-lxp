@@ -1,12 +1,5 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import {
-  ArrowLeft,
-  Clock,
-  ChalkboardTeacher,
-  Lightning,
-  ArrowRight,
-} from "@phosphor-icons/react/dist/ssr";
 import { computeCurrentWeek } from "@/lib/utils";
 import { getProgram } from "@/lib/programs/server";
 import { getTrackBySlug } from "@/lib/programs";
@@ -82,7 +75,7 @@ export default async function TrackOverviewPage({
           href="/dashboard/courses"
           className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral-500 transition-colors hover:text-neutral-900"
         >
-          <ArrowLeft size={12} weight="bold" />
+          ←
           All courses
         </Link>
         {isAdminViewer && (
@@ -152,7 +145,7 @@ export default async function TrackOverviewPage({
             className="inline-flex items-center gap-2 bg-neutral-900 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-neutral-700"
           >
             {ctaLabel}
-            <ArrowRight size={14} weight="bold" />
+            →
           </Link>
         </div>
       </header>
@@ -164,17 +157,17 @@ export default async function TrackOverviewPage({
         className="grid grid-cols-3 gap-3"
       >
         <Fact
-          icon={ChalkboardTeacher}
+          icon="🖥️"
           label="Instructor"
           value={track.instructor}
         />
         <Fact
-          icon={Clock}
+          icon="🕐"
           label="Duration"
           value={`${track.totalWeeks} weeks`}
         />
         <Fact
-          icon={Lightning}
+          icon="⚡"
           label="Cadence"
           value={
             track.sessionsPerWeek > 1
@@ -221,18 +214,18 @@ export default async function TrackOverviewPage({
 }
 
 function Fact({
-  icon: Icon,
+  icon,
   label,
   value,
 }: {
-  icon: React.ComponentType<{ size?: number; weight?: "bold"; "aria-hidden"?: boolean }>;
+  icon: string;
   label: string;
   value: string;
 }) {
   return (
     <div className="space-y-1 border border-rule bg-surface-elevated p-3">
       <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-neutral-400">
-        <Icon size={11} weight="bold" aria-hidden />
+        {icon}
         {label}
       </p>
       <p className="text-[13px] font-medium text-neutral-900">{value}</p>

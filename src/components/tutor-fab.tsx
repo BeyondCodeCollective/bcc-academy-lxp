@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MessageCircle } from "lucide-react";
 
 export function TutorFab() {
   const pathname = usePathname();
@@ -16,7 +15,7 @@ export function TutorFab() {
       className="fixed bottom-[max(1.5rem,env(safe-area-inset-bottom))] right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-neutral-900 text-white shadow-lg shadow-neutral-900/20 transition-all hover:scale-105 hover:shadow-xl hover:shadow-neutral-900/30 active:scale-95"
       aria-label="Open AI Tutor"
     >
-      <MessageCircle size={22} />
+      💬
     </Link>
   );
 }

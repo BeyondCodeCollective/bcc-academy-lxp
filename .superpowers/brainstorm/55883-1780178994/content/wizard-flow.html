@@ -1,0 +1,66 @@
+<h2>Program Builder — Wizard Flow Structure</h2>
+<p class="subtitle">How should the multi-step creation wizard be organized?</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="linear" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 20px; background: #1e1e1e; border-radius: 8px; font-family: 'Plus Jakarta Sans', sans-serif;">
+      <div style="display:flex; gap:8px; align-items:center; margin-bottom:16px;">
+        <div style="background:#E54D2E; color:white; border-radius:50%; width:26px; height:26px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0;">1</div>
+        <div style="background:#2a2a2a; border-radius:6px; padding:8px 14px; flex:1; font-size:13px; color:#e0e0e0;">Program Info <span style="color:#888; font-size:11px; margin-left:6px;">name · slug · description</span></div>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center; margin-bottom:16px;">
+        <div style="background:#333; color:#888; border-radius:50%; width:26px; height:26px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0;">2</div>
+        <div style="background:#222; border-radius:6px; padding:8px 14px; flex:1; font-size:13px; color:#888;">Track 1 <span style="color:#555; font-size:11px; margin-left:6px;">name · instructor · schedule · weeks</span></div>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center; margin-bottom:16px;">
+        <div style="background:#333; color:#888; border-radius:50%; width:26px; height:26px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0;">3</div>
+        <div style="background:#222; border-radius:6px; padding:8px 14px; flex:1; font-size:13px; color:#888;">Track 2 <span style="color:#555; font-size:11px; margin-left:6px;">(repeat per track)</span></div>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <div style="background:#333; color:#888; border-radius:50%; width:26px; height:26px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0;">✓</div>
+        <div style="background:#222; border-radius:6px; padding:8px 14px; flex:1; font-size:13px; color:#888;">Review & Create</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Linear Wizard</h3>
+      <p>Fixed steps in sequence. Program info → one step per track → review. Simple but rigid — you must know all tracks upfront before finishing.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="hub" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 20px; background: #1e1e1e; border-radius: 8px; font-family: 'Plus Jakarta Sans', sans-serif;">
+      <!-- Hub and spoke layout -->
+      <div style="display:flex; flex-direction:column; gap:10px; align-items:center;">
+        <div style="background:#E54D2E; color:white; border-radius:8px; padding:10px 20px; font-size:13px; font-weight:600; text-align:center; width:180px;">
+          Program Info
+          <div style="font-size:10px; font-weight:400; opacity:0.85; margin-top:2px;">name · slug · description</div>
+        </div>
+        <div style="color:#555; font-size:18px;">↓</div>
+        <div style="background:#2a2a2a; border-radius:8px; padding:10px 14px; width:220px; border: 1px solid #333;">
+          <div style="font-size:11px; color:#888; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px;">Tracks</div>
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <div style="background:#333; border-radius:5px; padding:7px 10px; font-size:12px; color:#e0e0e0; display:flex; justify-content:space-between; align-items:center;">
+              Track 1 <span style="background:#E54D2E; color:white; border-radius:3px; padding:1px 6px; font-size:10px;">edit</span>
+            </div>
+            <div style="background:#333; border-radius:5px; padding:7px 10px; font-size:12px; color:#e0e0e0; display:flex; justify-content:space-between; align-items:center;">
+              Track 2 <span style="background:#E54D2E; color:white; border-radius:3px; padding:1px 6px; font-size:10px;">edit</span>
+            </div>
+            <div style="background:#222; border-radius:5px; padding:7px 10px; font-size:12px; color:#555; border:1px dashed #444; text-align:center; cursor:pointer;">
+              + Add another track
+            </div>
+          </div>
+        </div>
+        <div style="color:#555; font-size:18px;">↓</div>
+        <div style="background:#2a2a2a; border-radius:8px; padding:8px 20px; font-size:13px; color:#888; text-align:center; width:180px; border:1px solid #333;">
+          Create Program
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Hub + Spoke (Recommended)</h3>
+      <p>Step 1: program info. Step 2: a "tracks" panel where you add/edit/remove tracks dynamically before committing. Add as many tracks as you need, in any order.</p>
+    </div>
+  </div>
+
+</div>
