@@ -44,26 +44,26 @@ export function CreateCourseForm() {
   if (result) {
     return (
       <div className="space-y-6">
-        <div className="rounded-lg border border-green-800 bg-green-950 p-5">
-          <p className="text-sm font-semibold text-green-400">Course created</p>
-          <div className="mt-3 flex items-center gap-3 rounded-md border border-green-900 bg-black/40 px-4 py-3">
-            <span className="flex-1 font-mono text-sm text-green-300">{result.joinUrl}</span>
+        <div className="rounded-lg border border-green-200 bg-green-50 p-5">
+          <p className="text-sm font-semibold text-green-800">Course created</p>
+          <div className="mt-3 flex items-center gap-3 rounded-md border border-green-200 bg-white px-4 py-3">
+            <span className="flex-1 font-mono text-sm text-green-700">{result.joinUrl}</span>
             <button
               type="button"
               onClick={() => navigator.clipboard.writeText(result.joinUrl)}
-              className="shrink-0 rounded bg-green-900 px-3 py-1 text-xs font-semibold text-green-300 hover:bg-green-800"
+              className="shrink-0 rounded bg-green-100 px-3 py-1 text-xs font-semibold text-green-700 hover:bg-green-200 transition-colors"
             >
               Copy link
             </button>
           </div>
-          <p className="mt-3 text-xs text-green-700">
+          <p className="mt-3 text-xs text-green-600">
             Share this link to start enrolling students. Switch to this course in the admin panel to manage it.
           </p>
         </div>
         <button
           type="button"
           onClick={() => { setResult(null); setError(null); setName(""); setInstructor(""); setTotalWeeks(""); setSessionsPerWeek(""); }}
-          className="text-sm text-neutral-500 hover:text-neutral-300"
+          className="text-sm text-neutral-500 hover:text-neutral-700 transition-colors"
         >
           Create another course
         </button>
@@ -74,7 +74,7 @@ export function CreateCourseForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       <div className="space-y-1.5">
-        <label htmlFor="name" className="block text-xs font-semibold uppercase tracking-widest text-neutral-500">
+        <label htmlFor="name" className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
           Course Name
         </label>
         <input
@@ -84,17 +84,17 @@ export function CreateCourseForm() {
           placeholder="e.g. Salesforce Admin"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-4 py-3 text-sm text-neutral-100 placeholder-neutral-600 outline-none focus:border-[#E54D2E]"
+          className="w-full rounded-md border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900 placeholder-neutral-400 outline-none focus:border-[#E54D2E] focus:ring-1 focus:ring-[#E54D2E]"
         />
         {slug && (
-          <p className="font-mono text-xs text-neutral-600">
+          <p className="font-mono text-xs text-neutral-500">
             bccacademy.io/join/<span className="text-[#E54D2E]">{slug}</span>
           </p>
         )}
       </div>
 
       <div className="space-y-1.5">
-        <label htmlFor="instructor" className="block text-xs font-semibold uppercase tracking-widest text-neutral-500">
+        <label htmlFor="instructor" className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
           Instructor
         </label>
         <input
@@ -104,13 +104,13 @@ export function CreateCourseForm() {
           placeholder="e.g. Marcus Williams"
           value={instructor}
           onChange={(e) => setInstructor(e.target.value)}
-          className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-4 py-3 text-sm text-neutral-100 placeholder-neutral-600 outline-none focus:border-[#E54D2E]"
+          className="w-full rounded-md border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900 placeholder-neutral-400 outline-none focus:border-[#E54D2E] focus:ring-1 focus:ring-[#E54D2E]"
         />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <label htmlFor="totalWeeks" className="block text-xs font-semibold uppercase tracking-widest text-neutral-500">
+          <label htmlFor="totalWeeks" className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
             Length (weeks)
           </label>
           <input
@@ -122,11 +122,11 @@ export function CreateCourseForm() {
             placeholder="12"
             value={totalWeeks}
             onChange={(e) => setTotalWeeks(e.target.value)}
-            className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-4 py-3 text-sm text-neutral-100 placeholder-neutral-600 outline-none focus:border-[#E54D2E]"
+            className="w-full rounded-md border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900 placeholder-neutral-400 outline-none focus:border-[#E54D2E] focus:ring-1 focus:ring-[#E54D2E]"
           />
         </div>
         <div className="space-y-1.5">
-          <label htmlFor="sessionsPerWeek" className="block text-xs font-semibold uppercase tracking-widest text-neutral-500">
+          <label htmlFor="sessionsPerWeek" className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
             Sessions / Week
           </label>
           <input
@@ -138,13 +138,13 @@ export function CreateCourseForm() {
             placeholder="2"
             value={sessionsPerWeek}
             onChange={(e) => setSessionsPerWeek(e.target.value)}
-            className="w-full rounded-md border border-neutral-700 bg-neutral-900 px-4 py-3 text-sm text-neutral-100 placeholder-neutral-600 outline-none focus:border-[#E54D2E]"
+            className="w-full rounded-md border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900 placeholder-neutral-400 outline-none focus:border-[#E54D2E] focus:ring-1 focus:ring-[#E54D2E]"
           />
         </div>
       </div>
 
       {error && (
-        <p className="rounded-md border border-red-900 bg-red-950 px-4 py-3 text-sm text-red-400">
+        <p className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
         </p>
       )}
