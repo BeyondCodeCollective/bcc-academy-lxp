@@ -166,14 +166,27 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
   // doesn't fully match what a real student would experience.
   const canAccessStaff =
     canAccessStaffContent(userRole, email) && !previewingSlug;
-  const programs = canSwitch
-    ? getAllPrograms().map((p) => ({
-        slug: p.slug,
-        name: p.name,
-        domain: p.domain,
-        dnsReady: p.dnsReady,
-      }))
-    : [];
+  let programs: { slug: string; name: string; domain: string; dnsReady?: boolean }[] = [];
+  if (canSwitch) {
+    programs = getAllPrograms().map((p) => ({
+      slug: p.slug,
+      name: p.name,
+      domain: p.domain,
+      dnsReady: p.dnsReady,
+    }));
+    // Add builder-created (dynamic) courses so super-admins can switch to them
+    if (isSupabaseConfigured()) {
+      const svcForPrograms = createServiceClient();
+      const { data: dynamicPrograms } = await svcForPrograms
+        .from("programs")
+        .select("slug, name")
+        .eq("is_dynamic", true)
+        .order("name");
+      for (const dp of dynamicPrograms ?? []) {
+        programs.push({ slug: dp.slug as string, name: (dp.name as string | null) ?? dp.slug as string, domain: "bccacademy.io", dnsReady: false });
+      }
+    }
+  }
 
   const showLunchLearnSidebar =
     previewingSlug === LUNCH_LEARN_PREVIEW_SLUG ||
