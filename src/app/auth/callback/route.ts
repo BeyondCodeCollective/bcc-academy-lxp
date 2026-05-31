@@ -233,7 +233,9 @@ export async function GET(request: Request) {
           { onConflict: "id", ignoreDuplicates: true }
         );
 
-        const res = redirectWithCookies(`${origin}/dashboard?setup=1`);
+        const setupParams = new URLSearchParams({ setup: "1" });
+        if (trackParam) setupParams.set("track", trackParam);
+        const res = redirectWithCookies(`${origin}/dashboard?${setupParams}`);
         const cookieOpts = { path: "/", httpOnly: false, sameSite: "lax" as const };
         res.cookies.set("program-slug", effectiveSlug, cookieOpts);
         res.cookies.set("program-override", effectiveSlug, {
@@ -260,7 +262,9 @@ export async function GET(request: Request) {
         { onConflict: "id", ignoreDuplicates: true }
       );
 
-      return redirectWithCookies(`${origin}/dashboard?setup=1`);
+      const setupParams = new URLSearchParams({ setup: "1" });
+      if (trackParam) setupParams.set("track", trackParam);
+      return redirectWithCookies(`${origin}/dashboard?${setupParams}`);
     } else {
       console.error("[auth/callback] auth error:", authError!.message);
     }
