@@ -23,9 +23,9 @@ export const dynamic = "force-dynamic";
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ setup?: string }>;
+  searchParams: Promise<{ setup?: string; track?: string }>;
 }) {
-  const { setup } = await searchParams;
+  const { setup, track: joinTrack } = await searchParams;
   const program = await getProgram();
 
   // Staff users (BGC/BCC employees, not admins) see the Lunch & Learns hub
@@ -64,7 +64,7 @@ export default async function DashboardPage({
 
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-5xl px-4 sm:px-5 py-8">
-      <DashboardContent program={program} setup={setup} />
+      <DashboardContent program={program} setup={setup} joinTrack={joinTrack} />
     </div>
   );
 }
@@ -72,9 +72,11 @@ export default async function DashboardPage({
 async function DashboardContent({
   program,
   setup,
+  joinTrack,
 }: {
   program: ProgramConfig;
   setup?: string;
+  joinTrack?: string;
 }) {
   const cookieStore = await cookies();
   const currentUser = await resolveCurrentUser(cookieStore);
@@ -105,7 +107,7 @@ async function DashboardContent({
         userId,
         currentUser.email ?? "",
         program,
-        null,
+        joinTrack ?? null,
         student?.cohort_id,
         student?.role ?? "student",
         student?.welcome_seen_at,
