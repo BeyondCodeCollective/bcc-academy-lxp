@@ -85,6 +85,7 @@ export async function createCourseAction(formData: {
       instructor: instructor.trim(),
       total_weeks: totalWeeks,
       sessions_per_week: sessionsPerWeek,
+      start_date: new Date().toISOString().slice(0, 10),
     });
 
   if (trackError) {
