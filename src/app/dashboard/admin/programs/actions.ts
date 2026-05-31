@@ -97,3 +97,92 @@ export async function createCourseAction(formData: {
     joinUrl: `https://bccacademy.io/join/catalyst?track=${slug}`,
   };
 }
+
+export async function archiveCourseAction(trackSlug: string): Promise<{ success: boolean; error?: string }> {
+  const svc = await requireSuperAdmin();
+
+  const { data: catalystRow } = await svc
+    .from("programs")
+    .select("id")
+    .eq("slug", "catalyst")
+    .single<{ id: string }>();
+  if (!catalystRow) return { success: false, error: "Could not find Catalyst program." };
+
+  const { error } = await svc
+    .from("track_overrides")
+    .update({ archived_at: new Date().toISOString() })
+    .eq("program_id", catalystRow.id)
+    .eq("track_slug", trackSlug);
+
+  if (error) {
+    console.error("[archiveCourseAction] failed:", error);
+    return { success: false, error: "Failed to archive course." };
+  }
+  return { success: true };
+}
+
+export async function unarchiveCourseAction(trackSlug: string): Promise<{ success: boolean; error?: string }> {
+  const svc = await requireSuperAdmin();
+
+  const { data: catalystRow } = await svc
+    .from("programs")
+    .select("id")
+    .eq("slug", "catalyst")
+    .single<{ id: string }>();
+  if (!catalystRow) return { success: false, error: "Could not find Catalyst program." };
+
+  const { error } = await svc
+    .from("track_overrides")
+    .update({ archived_at: null })
+    .eq("program_id", catalystRow.id)
+    .eq("track_slug", trackSlug);
+
+  if (error) {
+    console.error("[unarchiveCourseAction] failed:", error);
+    return { success: false, error: "Failed to unarchive course." };
+  }
+  return { success: true };
+}
+
+export type UpdateCourseResult =
+  | { success: true }
+  | { success: false; error: string };
+
+export async function updateCourseAction(
+  trackSlug: string,
+  formData: { name: string; instructor: string; totalWeeks: number; sessionsPerWeek: number },
+): Promise<UpdateCourseResult> {
+  const svc = await requireSuperAdmin();
+  const { name, instructor, totalWeeks, sessionsPerWeek } = formData;
+
+  if (!name.trim()) return { success: false, error: "Course name is required." };
+  if (!instructor.trim()) return { success: false, error: "Instructor name is required." };
+  if (!Number.isFinite(totalWeeks) || !Number.isInteger(totalWeeks) || totalWeeks < 1 || totalWeeks > 52)
+    return { success: false, error: "Weeks must be between 1 and 52." };
+  if (!Number.isFinite(sessionsPerWeek) || !Number.isInteger(sessionsPerWeek) || sessionsPerWeek < 1 || sessionsPerWeek > 7)
+    return { success: false, error: "Sessions per week must be between 1 and 7." };
+
+  const { data: catalystRow } = await svc
+    .from("programs")
+    .select("id")
+    .eq("slug", "catalyst")
+    .single<{ id: string }>();
+  if (!catalystRow) return { success: false, error: "Could not find Catalyst program." };
+
+  const { error } = await svc
+    .from("track_overrides")
+    .update({
+      name: name.trim(),
+      instructor: instructor.trim(),
+      total_weeks: totalWeeks,
+      sessions_per_week: sessionsPerWeek,
+    })
+    .eq("program_id", catalystRow.id)
+    .eq("track_slug", trackSlug);
+
+  if (error) {
+    console.error("[updateCourseAction] failed:", error);
+    return { success: false, error: "Failed to update course." };
+  }
+  return { success: true };
+}

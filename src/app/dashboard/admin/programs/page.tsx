@@ -21,6 +21,8 @@ export default async function ProgramsListPage() {
     programSlug: "catalyst",
     name: t.name,
     joinUrl: `https://bccacademy.io/join/catalyst?track=${t.slug}`,
+    archived: false,
+    isEditable: false,
   }));
 
   // Builder-created tracks: track_overrides rows under Catalyst not in TS config
@@ -35,7 +37,7 @@ export default async function ProgramsListPage() {
   if (catalystRow) {
     const { data: overrides } = await svc
       .from("track_overrides")
-      .select("track_slug, name")
+      .select("track_slug, name, archived_at")
       .eq("program_id", catalystRow.id)
       .order("name");
     dynamicCourses = (overrides ?? [])
@@ -45,12 +47,17 @@ export default async function ProgramsListPage() {
         programSlug: "catalyst",
         name: (o.name as string | null) ?? (o.track_slug as string),
         joinUrl: `https://bccacademy.io/join/catalyst?track=${o.track_slug}`,
+        archived: !!(o.archived_at),
+        isEditable: true,
       }));
   }
 
   const allCourses = [...tsCourses, ...dynamicCourses].sort((a, b) =>
     a.name.localeCompare(b.name)
   );
+
+  const activeCourses = allCourses.filter((c) => !c.archived);
+  const archivedCourses = allCourses.filter((c) => c.archived);
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8 space-y-6">
@@ -75,7 +82,7 @@ export default async function ProgramsListPage() {
         </Link>
       </div>
 
-      <CoursesList courses={allCourses} />
+      <CoursesList courses={activeCourses} archivedCourses={archivedCourses} />
     </div>
   );
 }
