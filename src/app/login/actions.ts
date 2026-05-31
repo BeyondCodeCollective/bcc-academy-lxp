@@ -12,12 +12,10 @@ type SendLoginLinkResult =
 /**
  * Send a magic-link sign-in email.
  *
- *   1. Email belongs to an existing student → send the magic link.
- *   2. Email is on the allowlist → send the magic link; the auth
+ *   1. Email is on the allowlist → send the magic link; the auth
  *      callback's allowlist inference routes them to the right program.
- *   3. Email is privileged (admin/staff) → send the magic link.
- *   4. Email is unknown to all three → return an error immediately
- *      instead of sending a link that would dead-end at the callback.
+ *   2. Email is privileged (admin/staff) → send the magic link.
+ *   3. Email is unknown → return an error immediately; no link sent.
  *
  * Always runs server-side end-to-end so the browser only makes one
  * short hop, not three transcontinental ones.
