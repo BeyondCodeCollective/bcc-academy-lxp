@@ -85,7 +85,9 @@ export async function sendJoinLink({
   // Vercel→Supabase server-to-server, which is one round-trip total
   // instead of two stacked).
   if (process.env.LOGIN_VIA_RESEND !== "true") {
-    const callbackUrl = `${origin}/auth/callback`;
+    const callbackParams = new URLSearchParams({ join: programSlug });
+    if (trackSlug) callbackParams.set("track", trackSlug);
+    const callbackUrl = `${origin}/auth/callback?${callbackParams}`;
     const anon = await createClient();
     const { error: otpErr } = await anon.auth.signInWithOtp({
       email: normalised,
@@ -151,7 +153,7 @@ export async function sendJoinLink({
   const anon = await createClient();
   const { error: otpErr } = await anon.auth.signInWithOtp({
     email: normalised,
-    options: { emailRedirectTo: `${origin}/auth/callback` },
+    options: { emailRedirectTo: `${origin}/auth/callback?join=${programSlug}${trackSlug ? `&track=${trackSlug}` : ""}` },
   });
   if (otpErr) {
     console.error("[join] OTP fallback failed:", otpErr);

@@ -109,7 +109,7 @@ export const forteConfig: ProgramConfig = {
           ],
           sessions: [{ title: "Will We Ever Achieve AGI?", time: "Self-paced" }],
           submissionsEnabled: false,
-          videoUrl: "https://drive.google.com/file/d/1FsTxSqdeCvOZZdHyK8PUasmW9uS4npbS/view?usp=drive_link",
+          videoUrl: "https://rgveukvuifuwtfkrbdty.supabase.co/storage/v1/object/public/session-files/forte/ai-literacy/week-1/upskill-bahamas-1.mp4",
         },
         {
           week: 2,
@@ -125,7 +125,7 @@ export const forteConfig: ProgramConfig = {
           ],
           sessions: [{ title: "Is AI Objective?", time: "Self-paced" }],
           submissionsEnabled: false,
-          videoUrl: "https://drive.google.com/file/d/1_ZYUnFD4arPmoxkbMyQ2VvXPW3uUsWHo/view?usp=drive_link",
+          videoUrl: "https://rgveukvuifuwtfkrbdty.supabase.co/storage/v1/object/public/session-files/forte/ai-literacy/week-2/upskill-bahamas-2.mp4",
         },
         {
           week: 3,
@@ -148,7 +148,7 @@ export const forteConfig: ProgramConfig = {
             "One thing you now understand about how AI responds to input that you didn't understand before today.",
             "What's the next prompt template you'd add to this toolkit? What recurring task does it serve?",
           ],
-          videoUrl: "https://drive.google.com/file/d/1cqkYXBQbUys2wlZDdvCLcl2XTe1Y2EO9/view?usp=drive_link",
+          videoUrl: "https://rgveukvuifuwtfkrbdty.supabase.co/storage/v1/object/public/session-files/forte/ai-literacy/week-3/upskill-bahamas-3.mp4",
         },
         {
           week: 4,
@@ -174,7 +174,7 @@ export const forteConfig: ProgramConfig = {
             "What did the AI get right? What did you have to correct, add, or rewrite entirely? Be specific about what the gap was.",
             "What one thing about your professional story are you most confident about? What do you want people to know?",
           ],
-          videoUrl: "https://drive.google.com/file/d/1VZxvwExXFK1MYGnOvc1aTGXvWtwvVSio/view?usp=drive_link",
+          videoUrl: "https://rgveukvuifuwtfkrbdty.supabase.co/storage/v1/object/public/session-files/forte/ai-literacy/week-4/upskill-bahamas-4.mp4",
         },
         {
           week: 5,
@@ -197,7 +197,7 @@ export const forteConfig: ProgramConfig = {
             "One principle about professional tone that you'll carry with you. Put it in your own words.",
             "What's one situation coming up where you'll use what you practiced today?",
           ],
-          videoUrl: "https://drive.google.com/file/d/1WaZ0ysQduq7BP5lY0H-I-4m_5b79FkHf/view?usp=drive_link",
+          videoUrl: "https://rgveukvuifuwtfkrbdty.supabase.co/storage/v1/object/public/session-files/forte/ai-literacy/week-5/upskill-bahamas-5.mp4",
         },
         {
           week: 6,
@@ -218,7 +218,7 @@ export const forteConfig: ProgramConfig = {
             "One task you've been avoiding that this process helped you break down into something manageable.",
             "How will you use AI for planning going forward? Be specific about when and how.",
           ],
-          videoUrl: "https://drive.google.com/file/d/1ERoB4B2YY74yuwHHzOG8zk3btGEaddNL/view?usp=drive_link",
+          videoUrl: "https://rgveukvuifuwtfkrbdty.supabase.co/storage/v1/object/public/session-files/forte/ai-literacy/week-6/upskill-bahamas-6.mp4",
         },
         {
           week: 7,
@@ -239,7 +239,7 @@ export const forteConfig: ProgramConfig = {
             "One thing you now understand about your topic that you didn't understand before starting.",
             "What's the most important thing to learn next, and how will you do it?",
           ],
-          videoUrl: "https://drive.google.com/file/d/1ch2EJsr8ntn8vfBnpFRsNI3ApbVUsyLS/view?usp=drive_link",
+          videoUrl: "https://rgveukvuifuwtfkrbdty.supabase.co/storage/v1/object/public/session-files/forte/ai-literacy/week-7/upskill-bahamas-7.mp4",
         },
         {
           week: 8,
@@ -262,7 +262,7 @@ export const forteConfig: ProgramConfig = {
             "What did AI suggest that you rejected? Why wasn't it the right fit?",
             "If you were actually going to pursue this, what's the first concrete step you'd take?",
           ],
-          videoUrl: "https://drive.google.com/file/d/1iA9giaIhV75O4AYYLaqyywqZmzlMP3Ej/view?usp=drive_link",
+          videoUrl: "https://rgveukvuifuwtfkrbdty.supabase.co/storage/v1/object/public/session-files/forte/ai-literacy/week-8/upskill-bahamas-8.mp4",
         },
         {
           week: 9,
