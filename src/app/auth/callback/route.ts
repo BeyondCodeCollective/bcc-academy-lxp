@@ -135,7 +135,12 @@ export async function GET(request: Request) {
         if (firstTrack) {
           const homeProgram = getHomeProgramForTrack(firstTrack);
           if (homeProgram) {
-            if (!joinSlug) joinSlug = homeProgram.slug;
+            // Always trust the allowlist over a stale pending-join-slug cookie.
+            // The cookie can be left over from a previous session on a different
+            // program (e.g. someone who previously visited /join/catalyst then
+            // tries to log in as a Forte student). The allowlist is the canonical
+            // source of truth for which program the student belongs to.
+            joinSlug = homeProgram.slug;
             if (!trackParam) trackParam = firstTrack;
             // Re-resolve the program config now that we have the slug
             if (hasTsConfigSlug(joinSlug)) {
