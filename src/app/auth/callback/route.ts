@@ -120,6 +120,31 @@ export async function GET(request: Request) {
       const isUnpinnedHost = !isKnownProgramHost(hostStr);
       const email = (user.email || "").toLowerCase();
 
+      // If join/track context wasn't in the URL or cookies (e.g. Supabase
+      // stripped query params from the redirect URL), fall back to the
+      // allowlist. This is the source of truth for which program/track the
+      // student belongs to and is always reliable regardless of how the
+      // magic link was opened.
+      if (!joinSlug || !trackParam) {
+        const { data: allowRows } = await admin
+          .from("allowed_signup_emails")
+          .select("track_slug")
+          .eq("email", email)
+          .limit(1);
+        const firstTrack = allowRows?.[0]?.track_slug as string | undefined;
+        if (firstTrack) {
+          const homeProgram = getHomeProgramForTrack(firstTrack);
+          if (homeProgram) {
+            if (!joinSlug) joinSlug = homeProgram.slug;
+            if (!trackParam) trackParam = firstTrack;
+            // Re-resolve the program config now that we have the slug
+            if (hasTsConfigSlug(joinSlug)) {
+              program = getProgramBySlug(joinSlug);
+            }
+          }
+        }
+      }
+
       // Programs that require invite links block new signups without
       // ?track=<slug>. Privileged admins (SUPER_ADMIN_EMAILS /
       // ADMIN_EMAILS) and internal staff (wearebgc.org / BCC staff) bypass
