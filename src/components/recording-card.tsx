@@ -62,51 +62,46 @@ export function RecordingCard({
             </span>
           )}
           {canEmbed && (
-            <span className={`text-neutral-400 transition-transform duration-200 inline-block ${open ? "rotate-180" : ""}`}>
-              ▾
+            <span className="text-xs text-neutral-400 font-medium">
+              {open ? "Hide" : "Play"}
             </span>
           )}
         </div>
       </button>
 
-      {/* Player — expands on click */}
-      <div className={`grid transition-all duration-300 ease-in-out ${open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
-        <div className="overflow-hidden">
-          <div className="border-t border-neutral-100">
-            {youtubeEmbed ? (
-              <div className="relative w-full aspect-video bg-neutral-900">
-                <iframe
-                  src={youtubeEmbed}
-                  title={title}
-                  className="absolute inset-0 w-full h-full"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              </div>
-            ) : driveEmbed ? (
-              <div className="relative w-full aspect-video bg-neutral-900">
-                <iframe
-                  src={driveEmbed}
-                  title={title}
-                  className="absolute inset-0 w-full h-full"
-                  allow="autoplay; fullscreen"
-                  allowFullScreen
-                />
-              </div>
-            ) : isVideoFile ? (
-              <div className="bg-neutral-900">
-                <video
-                  src={toVideoProxyUrl(url)}
-                  controls
-                  playsInline
-                  className="w-full max-h-[480px] object-contain"
-                  preload="metadata"
-                />
-              </div>
-            ) : null}
-          </div>
+      {open && (
+        <div className="border-t border-rule">
+          {youtubeEmbed ? (
+            <div className="relative w-full aspect-video bg-neutral-900">
+              <iframe
+                src={youtubeEmbed}
+                title={title}
+                className="absolute inset-0 w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          ) : driveEmbed ? (
+            <div className="relative w-full aspect-video bg-neutral-900">
+              <iframe
+                src={driveEmbed}
+                title={title}
+                className="absolute inset-0 w-full h-full"
+                allow="autoplay; fullscreen"
+                allowFullScreen
+              />
+            </div>
+          ) : isVideoFile ? (
+            <video
+              src={toVideoProxyUrl(url)}
+              controls
+              playsInline
+              className="w-full max-h-[480px] bg-neutral-900"
+              preload="metadata"
+            />
+          ) : null}
         </div>
-      </div>
+      )}
     </div>
   );
 }
