@@ -84,7 +84,7 @@ export function OnboardingForm({ program, visibleTracks }: Props) {
               📖
             </div>
             <h2 id="onboarding-title" className="text-xl font-bold text-neutral-900">
-              Welcome to {program.name}
+              Welcome to BCC Academy
             </h2>
             <p className="mt-2 text-sm text-neutral-500">
               Here&apos;s what you&apos;re signed up for.

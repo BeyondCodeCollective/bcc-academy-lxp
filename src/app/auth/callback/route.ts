@@ -8,13 +8,12 @@ import { getProgram, fetchDynamicProgram } from "@/lib/programs/server";
 import { getProgramBySlug, getHomeProgramForTrack, isKnownProgramHost, hasTsConfigSlug } from "@/lib/programs";
 import { determineRole, isPrivilegedEmail, isStaffEmail } from "@/lib/auth/admins";
 
-// Magic-link landing. Pin to iad1 only: Supabase is in us-west-2 and
-// even after the deferred-setup refactor the callback still issues
-// 3–5 sequential round-trips (auth token exchange + program lookup +
-// student upsert; unpinned hosts add a student SELECT and a second
-// program lookup). From fra1 each round-trip is ~310ms (transatlantic
-// + transcontinental) vs ~150ms from iad1, so iad1 nets ~300–800ms
-// even after losing fra1's user-proximity advantage. /login is fully
+// Magic-link landing. Pin to iad1 only: Supabase is in Virginia (us-east-1),
+// co-located with iad1, so DB round-trips are sub-millisecond from this region.
+// The callback still issues 3–5 sequential round-trips (auth token exchange +
+// program lookup + student upsert; unpinned hosts add a student SELECT and a
+// second program lookup). From fra1 each round-trip adds ~150ms (transatlantic)
+// vs <1ms from iad1, so pinning here saves 500ms+ per login. /login is fully
 // static (served from the CDN edge), so no region pin needed there.
 export const preferredRegion = ["iad1"];
 

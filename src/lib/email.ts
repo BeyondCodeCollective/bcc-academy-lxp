@@ -134,7 +134,7 @@ export async function sendWelcomeEmail({
         <tr>
           <td style="background:${program.colors.primary};padding:32px 24px;text-align:center;">
             <h1 style="margin:0;font-size:22px;font-weight:700;color:#ffffff;">
-              Welcome to ${program.name}
+              Welcome to BCC Academy
             </h1>
             <p style="margin:8px 0 0;font-size:14px;color:rgba(255,255,255,0.85);">
               ${program.tagline}
@@ -202,7 +202,7 @@ export async function sendWelcomeEmail({
   const { error } = await resend.emails.send({
     from: FROM_ADDRESS,
     to,
-    subject: `Welcome to ${program.name}`,
+    subject: `Welcome to BCC Academy`,
     html,
   });
 

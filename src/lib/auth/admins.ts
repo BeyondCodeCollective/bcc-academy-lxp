@@ -2,7 +2,6 @@
 // super_admin regardless of whether the Vercel env var is set. Env-var entries
 // are merged on top.
 const DEFAULT_SUPER_ADMIN_EMAILS = [
-  "youngfonz@gmail.com",
   "fonz.morris@wearebgc.org",
 ];
 
