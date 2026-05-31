@@ -120,18 +120,6 @@ export async function GET(request: Request) {
       const isUnpinnedHost = !isKnownProgramHost(hostStr);
       const email = (user.email || "").toLowerCase();
 
-      // Marketing domain — unadmitted users get a friendly redirect.
-      // Privileged emails (super_admin/admin) and internal staff fall through
-      // to the unpinned-host branch below, which routes them to Catalyst.
-      const earlyRole = determineRole(email);
-      const earlyPrivileged =
-        earlyRole === "super_admin" ||
-        earlyRole === "admin" ||
-        isStaffEmail(email);
-      if (program.slug === "marketing" && !earlyPrivileged) {
-        return redirectWithCookies(`${origin}/login?status=not-enrolled`);
-      }
-
       // Programs that require invite links block new signups without
       // ?track=<slug>. Privileged admins (SUPER_ADMIN_EMAILS /
       // ADMIN_EMAILS) and internal staff (wearebgc.org / BCC staff) bypass
