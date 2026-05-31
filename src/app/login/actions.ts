@@ -49,24 +49,27 @@ export async function sendLoginLink({
     };
   }
 
-  // If the user is on the allowlist for a track, set cookies so the track
-  // survives the magic-link redirect. This is needed because forte (and other
-  // invite-only programs) require the ?track= param even on /auth/callback.
+  // Resolve the user's home program and track from the allowlist so we can
+  // bake ?join=<slug>&track=<slug> directly into the magic link URL.
+  // Encoding it in the URL (not just a cookie) means the params survive when
+  // the user opens the link in a different browser than the one they submitted
+  // the form in — which happens constantly on mobile (Gmail app → Safari, etc).
+  let callbackJoinSlug: string | null = null;
+  let callbackTrackSlug: string | null = null;
   if (allowlistHit?.track_slug) {
     const { getHomeProgramForTrack } = await import("@/lib/programs");
     const homeProgram = getHomeProgramForTrack(allowlistHit.track_slug as string);
     if (homeProgram) {
-      const cookieStore = await import("next/headers").then((m) => m.cookies());
-      (await cookieStore).set("pending-join-slug", homeProgram.slug, {
-        path: "/",
-        maxAge: 60 * 15, // 15 minutes
-      });
-      (await cookieStore).set("pending-join-track", allowlistHit.track_slug as string, {
-        path: "/",
-        maxAge: 60 * 15,
-      });
+      callbackJoinSlug = homeProgram.slug;
+      callbackTrackSlug = allowlistHit.track_slug as string;
     }
   }
+
+  // Build the callback URL with join/track baked in when we have them.
+  const callbackBase = new URL(redirectTo);
+  if (callbackJoinSlug) callbackBase.searchParams.set("join", callbackJoinSlug);
+  if (callbackTrackSlug) callbackBase.searchParams.set("track", callbackTrackSlug);
+  const richRedirectTo = callbackBase.toString();
 
   const tryResend =
     process.env.LOGIN_VIA_RESEND === "true" && !!process.env.RESEND_API_KEY;
@@ -76,13 +79,13 @@ export async function sendLoginLink({
     const { data, error } = await svc.auth.admin.generateLink({
       type: "magiclink",
       email: trimmed,
-      options: { redirectTo },
+      options: { redirectTo: richRedirectTo },
     });
     if (!error && data?.properties?.hashed_token) {
       // Build a direct callback URL with token_hash in the query string.
       // Using action_link instead would redirect through Supabase's server,
       // which sends the session back as a #hash fragment — unreadable server-side.
-      const callbackUrl = new URL(redirectTo);
+      const callbackUrl = new URL(richRedirectTo);
       callbackUrl.searchParams.set("token_hash", data.properties.hashed_token);
       callbackUrl.searchParams.set("type", "magiclink");
       try {
@@ -111,7 +114,7 @@ export async function sendLoginLink({
   const anon = await createClient();
   const { error: otpErr } = await anon.auth.signInWithOtp({
     email: trimmed,
-    options: { emailRedirectTo: redirectTo },
+    options: { emailRedirectTo: richRedirectTo },
   });
 
   if (otpErr) {
