@@ -74,7 +74,7 @@ export function CreateCourseForm() {
         <button
           type="button"
           onClick={() => {
-            document.cookie = `program-override=${result.slug}; path=/; max-age=86400`;
+            document.cookie = `program-override=catalyst; path=/; max-age=86400`;
             window.location.href = "/dashboard/admin";
           }}
           className="flex items-center justify-center w-full rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-neutral-700 transition-colors"
@@ -125,7 +125,7 @@ export function CreateCourseForm() {
         />
         {slug && (
           <p className="font-mono text-xs text-neutral-500">
-            bccacademy.io/join/<span className="text-[#E54D2E]">{slug}</span>
+            bccacademy.io/join/catalyst?track=<span className="text-[#E54D2E]">{slug}</span>
           </p>
         )}
       </div>
