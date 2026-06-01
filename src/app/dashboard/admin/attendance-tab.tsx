@@ -673,13 +673,10 @@ function MarkPanel({
 }) {
   const trackPickerRef = useRef<HTMLDivElement>(null);
 
-  if (loading) {
-    return (
-      <div className="border border-rule bg-surface-elevated p-8 text-center text-sm text-ink-soft">
-        Loading attendance…
-      </div>
-    );
-  }
+  // Return null while loading — a placeholder card sits at a different height
+  // than the populated mark grid and causes a visible jump on mount.
+  // The fetch is fast enough that appearing immediately is better UX.
+  if (loading) return null;
 
   if (startedTracks.length === 0) {
     return (
