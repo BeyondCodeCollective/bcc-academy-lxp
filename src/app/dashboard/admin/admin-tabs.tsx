@@ -1,21 +1,19 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { addStudentAction, deleteStudentAction, updateStudentAction, updateCohortAction, saveSessionContent, assignStudentTrack, removeStudentTrack, bulkAssignTrack, exportSurveyResponses, exportPublicSurveyResponses, getAllSubmissions, addFeedback, assignInstructorTrack, removeInstructorTrack, deleteSurveyResponse, deletePublicSurveyResponse, listPublicSurveyResponses, sendInviteAction } from "./actions";
 import type { SessionResource, StudentTrackRow, SurveyStatsRow, AdminSubmissionRow, InstructorTrackRow, PublicSurveyStatsRow } from "./actions";
 import { canManageStudents, canSwitchPrograms } from "@/lib/roles";
 import { Avatar } from "@/components/avatar";
 import { computeCurrentWeek } from "@/lib/utils";
-
-const LunchLearnAdmin = dynamic(() => import("@/app/dashboard/lunch-learn/admin/admin-client").then((m) => m.LunchLearnAdmin));
-const AttendanceTab = dynamic(() => import("./attendance-tab").then((m) => m.AttendanceTab));
-const TrackInsightsSection = dynamic(() => import("@/components/track-insights-section").then((m) => m.TrackInsightsSection));
-const InsightsDashboard = dynamic(() => import("./insights/insights-dashboard").then((m) => m.InsightsDashboard));
-const TrackOverviewForm = dynamic(() => import("./track-overview-form").then((m) => m.TrackOverviewForm));
-const HorizontalBarChart = dynamic(() => import("@/components/charts/horizontal-bar-chart").then((m) => m.HorizontalBarChart));
-const DonutChart = dynamic(() => import("@/components/charts/donut-chart").then((m) => m.DonutChart));
+import { LunchLearnAdmin } from "@/app/dashboard/lunch-learn/admin/admin-client";
+import { AttendanceTab } from "./attendance-tab";
+import { TrackInsightsSection } from "@/components/track-insights-section";
+import { InsightsDashboard } from "./insights/insights-dashboard";
+import { TrackOverviewForm } from "./track-overview-form";
+import { HorizontalBarChart } from "@/components/charts/horizontal-bar-chart";
+import { DonutChart } from "@/components/charts/donut-chart";
 import type { InsightsData } from "./page";
 import type { Student } from "@/lib/types";
 import { isStorageUrl, isUploadedVideo } from "@/lib/storage-utils";
