@@ -878,9 +878,133 @@ const FORGE_POST_SURVEY_PAGES: SurveyPage[] = [
   },
 ];
 
+// ─── Security+ Application ────────────────────────────────────────────────────
+
+const SECURITY_PLUS_APPLICATION_PAGES: SurveyPage[] = [
+  {
+    title: "Your Information",
+    questions: [
+      {
+        type: "text",
+        id: "full_name",
+        label: "Full name",
+        placeholder: "e.g. Jordan Smith",
+        required: true,
+        short: true,
+      },
+    ],
+  },
+  {
+    title: "Where You Are Now",
+    subtitle: "These questions tell us about your current work life so we can build the right support around the cohort.",
+    questions: [
+      {
+        type: "text",
+        id: "work_situation",
+        label: "What is your current work situation?",
+        placeholder: "E.g., employed full-time, employed part-time, actively looking, freelancing, juggling more than one of these.",
+        required: true,
+      },
+      {
+        type: "text",
+        id: "industry",
+        label: "What industry do you currently work in (or most recently worked in)?",
+        placeholder: "E.g., technology, hospitality, government. If you've had recent shifts, list the one most relevant to where you're heading.",
+        required: true,
+      },
+      {
+        type: "text",
+        id: "tech_in_role",
+        label: "In your current or most recent role, do you work with technology directly? Briefly describe the title and work you're doing.",
+        placeholder: "This helps us understand how close you already are to a tech-adjacent role.",
+        required: true,
+      },
+      {
+        type: "text",
+        id: "used_comptia_at_work",
+        label: "In your current or most recent role, have you had to use what you've learned through the CompTIA program?",
+        placeholder: "This helps us understand how close you already are to a tech-adjacent role.",
+        required: true,
+      },
+    ],
+  },
+  {
+    title: "What's Next for You",
+    subtitle: "We want to know what direction you're moving in so the cohort can be designed to support real career outcomes.",
+    questions: [
+      {
+        type: "text",
+        id: "job_switch_plan",
+        label: "Are you looking to switch jobs or employers in the next 6–12 months?",
+        placeholder: "If yes, describe the kind of role and/or employer you're targeting. If no, what's keeping you where you are?",
+        required: true,
+      },
+      {
+        type: "text",
+        id: "security_plus_in_career",
+        label: "How do you see Security+ fitting into your career?",
+        placeholder: "A promotion in your current role, a pivot into a new field, a specific job title you're aiming for — paint us the picture.",
+        required: true,
+      },
+    ],
+  },
+  {
+    title: "Why Security+, Why Now",
+    questions: [
+      {
+        type: "text",
+        id: "why_techplus_network_plus",
+        label: "Why did you originally sign up for TECH+ and then Network+? Has anything changed about your goals since then?",
+        required: true,
+      },
+      {
+        type: "text",
+        id: "cybersecurity_interests",
+        label: "What about cybersecurity interests you most?",
+        placeholder: "E.g., SOC analyst work, incident response, governance/risk/compliance, cloud security, ethical hacking. \"Not sure yet\" is a valid answer.",
+        required: true,
+      },
+    ],
+  },
+  {
+    title: "Your Commitment",
+    subtitle: "We heard the Network+ cohort tell us the two-days-per-week schedule was tough to sustain. That feedback is shaping how we plan Security+. We also want to be upfront: this program asks for real time and energy.",
+    questions: [
+      {
+        type: "text",
+        id: "schedule_july_completion",
+        label: "What does your schedule look like from July through completion?",
+        placeholder: "Are there obligations we should know about — work, caregiving, other programs, travel, school?",
+        required: true,
+      },
+      {
+        type: "text",
+        id: "support_needed",
+        label: "What kind of support do you need from us to be successful?",
+        placeholder: "E.g., mentorship, exam prep, job placement, study group, accessibility accommodations, financial support.",
+        required: true,
+      },
+    ],
+  },
+  {
+    title: "Anything Else",
+    questions: [
+      {
+        type: "text",
+        id: "anything_else",
+        label: "Is there anything else you want us to know about you or your application? (Optional)",
+        required: false,
+      },
+    ],
+  },
+];
+
 function getSurveyPages(surveyId: string, programSlug: string): SurveyPage[] {
   if (surveyId === BCC_INTAKE_SURVEY_ID) {
     return BCC_INTAKE_PAGES;
+  }
+  if (surveyId === "security-plus-application") {
+    return SECURITY_PLUS_APPLICATION_PAGES;
   }
   if (surveyId === "mid-program-spring-2026" && programSlug === "atg") {
     return ATG_MID_PROGRAM_PAGES;
