@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BCC Academy — Platform Features 2026</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,700;12..96,800;12..96,900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --charcoal: #1a1a1a;
+      --blue: #1D59FF;
+      --blue-dark: #1448CC;
+      --neon: #E5F701;
+      --light: #f5f5f7;
+      --mid: #e8e8eb;
+      --text: #1a1a1a;
+      --muted: #6b6b7a;
+      --white: #ffffff;
+      --off-white: #FFFDF7;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      background: var(--white);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      background: var(--charcoal);
+      padding: 72px 40px 64px;
+    }
+
+    .header-inner {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .header-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--blue);
+      margin-bottom: 28px;
+    }
+
+    .header-logo {
+      margin-bottom: 32px;
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-size: clamp(28px, 4vw, 40px);
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: -0.5px;
+      color: #ffffff;
+      line-height: 1;
+    }
+
+    .header-logo .bracket {
+      color: var(--neon);
+    }
+
+    .header-eyebrow-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--neon);
+    }
+
+    .header h1 {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-size: clamp(40px, 6vw, 64px);
+      font-weight: 900;
+      color: var(--white);
+      line-height: 1.05;
+      letter-spacing: -1.5px;
+      margin-bottom: 20px;
+    }
+
+    .header h1 span {
+      color: var(--blue);
+    }
+
+    .header-desc {
+      font-size: 17px;
+      color: rgba(255,255,255,0.55);
+      max-width: 520px;
+      line-height: 1.7;
+      margin-bottom: 40px;
+    }
+
+    .header-meta {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    .header-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 100px;
+      padding: 6px 14px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.6);
+      font-weight: 500;
+    }
+
+    .header-badge strong {
+      color: rgba(255,255,255,0.9);
+      font-weight: 700;
+    }
+
+    /* ── TABLE OF CONTENTS ── */
+    .toc {
+      background: var(--light);
+      border-bottom: 1px solid var(--mid);
+      padding: 32px 40px;
+    }
+
+    .toc-inner {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .toc-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    .toc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 8px 24px;
+    }
+
+    .toc-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 500;
+      padding: 4px 0;
+      transition: color 0.15s;
+    }
+
+    .toc-item:hover { color: var(--blue); }
+
+    .toc-num {
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--blue);
+      min-width: 20px;
+      letter-spacing: 0.5px;
+      font-family: 'Bricolage Grotesque', sans-serif;
+    }
+
+    /* ── SECTIONS ── */
+    .section {
+      padding: 72px 40px;
+      border-bottom: 1px solid var(--mid);
+    }
+
+    .section:nth-child(even) {
+      background: var(--light);
+    }
+
+    .section:nth-child(odd) {
+      background: var(--white);
+    }
+
+    .section-inner {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 24px;
+      margin-bottom: 48px;
+    }
+
+    .section-num-block {
+      flex-shrink: 0;
+      width: 48px;
+      height: 48px;
+      background: var(--charcoal);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-size: 14px;
+      font-weight: 900;
+      color: var(--neon);
+      letter-spacing: 0.5px;
+      margin-top: 4px;
+    }
+
+    .section-heading {
+      flex: 1;
+    }
+
+    .section-category {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--blue);
+      margin-bottom: 6px;
+    }
+
+    .section-title {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-size: clamp(24px, 4vw, 34px);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -0.5px;
+      color: var(--charcoal);
+      margin-bottom: 10px;
+    }
+
+    .section-desc {
+      font-size: 15px;
+      color: var(--muted);
+      max-width: 540px;
+      line-height: 1.65;
+    }
+
+    /* ── FEATURE GRID ── */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2px;
+      background: var(--mid);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .feature-item {
+      background: var(--white);
+      padding: 24px 28px;
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .section:nth-child(even) .feature-item {
+      background: var(--white);
+    }
+
+    .feature-dot {
+      flex-shrink: 0;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--blue);
+      margin-top: 7px;
+    }
+
+    .feature-content { flex: 1; }
+
+    .feature-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--charcoal);
+      margin-bottom: 4px;
+      line-height: 1.3;
+    }
+
+    .feature-desc {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* ── HIGHLIGHT FEATURE (full-width) ── */
+    .feature-highlight {
+      background: var(--charcoal);
+      border-radius: 14px;
+      padding: 32px 36px;
+      margin-bottom: 2px;
+      display: flex;
+      align-items: flex-start;
+      gap: 20px;
+    }
+
+    .feature-highlight-icon {
+      flex-shrink: 0;
+      width: 40px;
+      height: 40px;
+      background: rgba(29,89,255,0.15);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .feature-highlight-content { flex: 1; }
+
+    .feature-highlight-name {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--white);
+      margin-bottom: 6px;
+    }
+
+    .feature-highlight-desc {
+      font-size: 14px;
+      color: rgba(255,255,255,0.55);
+      line-height: 1.65;
+      max-width: 600px;
+    }
+
+
+
+    /* ── GROUPED FEATURES ── */
+    .grouped-features {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .feature-group {
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1.5px solid var(--mid);
+    }
+
+    .feature-group-label {
+      background: var(--charcoal);
+      padding: 10px 20px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--neon);
+    }
+
+    .feature-group .feature-grid {
+      border-radius: 0;
+      background: transparent;
+    }
+
+    .feature-group .feature-item {
+      background: var(--white);
+    }
+
+    .section:nth-child(even) .feature-group .feature-item {
+      background: var(--white);
+    }
+
+    /* ── FOOTER ── */
+    .footer {
+      background: var(--charcoal);
+      padding: 40px;
+      text-align: center;
+    }
+
+    .footer-inner {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .footer-logo {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-size: 18px;
+      font-weight: 900;
+      color: var(--white);
+      margin-bottom: 8px;
+      letter-spacing: -0.3px;
+    }
+
+    .footer-logo span { color: var(--blue); }
+
+    .footer-note {
+      font-size: 12px;
+      color: rgba(255,255,255,0.35);
+    }
+
+    /* ── DIVIDER ── */
+    .divider {
+      width: 40px;
+      height: 3px;
+      background: var(--blue);
+      border-radius: 2px;
+      margin: 0 0 32px;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 720px) {
+      .header { padding: 48px 24px 40px; }
+      .toc { padding: 28px 24px; }
+      .section { padding: 48px 24px; }
+      .section-header { gap: 16px; }
+      .feature-grid { grid-template-columns: 1fr; }
+      .program-grid { grid-template-columns: 1fr 1fr; }
+      .pillars-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media print {
+      .header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .section { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── HEADER ── -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="header-logo">
+        BCC <span class="bracket">[</span>Academy<span class="bracket">]</span>
+      </div>
+      <div class="header-eyebrow">
+        <div class="header-eyebrow-dot"></div>
+        Platform Feature Overview
+      </div>
+      <p class="header-desc">
+        We built this from scratch. Everything here is running live for real students — no off-the-shelf LMS, no shortcuts.
+      </p>
+      <div class="header-meta">
+        <div class="header-badge">June <strong>2026</strong></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── TABLE OF CONTENTS ── -->
+  <nav class="toc">
+    <div class="toc-inner">
+      <div class="toc-label">Contents</div>
+      <div class="toc-grid">
+        <a href="#s1" class="toc-item"><span class="toc-num">01</span> Student Experience</a>
+        <a href="#s2" class="toc-item"><span class="toc-num">02</span> Curriculum & Content</a>
+        <a href="#s3" class="toc-item"><span class="toc-num">03</span> Onboarding & Surveys</a>
+        <a href="#s4" class="toc-item"><span class="toc-num">04</span> Attendance & Engagement</a>
+        <a href="#s5" class="toc-item"><span class="toc-num">05</span> Administration & Analytics</a>
+        <a href="#s6" class="toc-item"><span class="toc-num">06</span> Multi-Program Architecture</a>
+        <a href="#s7" class="toc-item"><span class="toc-num">07</span> Security & Access Control</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── SECTION 01 · STUDENT EXPERIENCE ── -->
+  <section class="section" id="s1">
+    <div class="section-inner">
+      <div class="section-header">
+        <div class="section-num-block">01</div>
+        <div class="section-heading">
+          <div class="section-category">Student-Facing</div>
+          <h2 class="section-title">Student Experience</h2>
+          <p class="section-desc">Log in and the platform already knows what you need to do next. No generic home screen — every student sees something different based on where they actually are.</p>
+        </div>
+      </div>
+
+      <div class="feature-highlight">
+        <div class="feature-highlight-icon">📊</div>
+        <div class="feature-highlight-content">
+          <div class="feature-highlight-name">Personalized Dashboard</div>
+          <div class="feature-highlight-desc">The dashboard reads the student's current state and puts the right next step front and center. Finishing onboarding, a pending survey, an active week, a new track to enroll in — whatever it is, that's what they see. No two students land on the same screen.</div>
+        </div>
+      </div>
+
+      <div class="feature-grid">
+        <div class="feature-item">
+          <div class="feature-dot"></div>
+          <div class="feature-content">
+            <div class="feature-name">Track Grid View</div>
+            <div class="feature-desc">All enrolled tracks in a grid. Students see their current week, progress per track, and can jump straight in.</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot"></div>
+          <div class="feature-content">
+            <div class="feature-name">Progress Tracking</div>
+            <div class="feature-desc">Weeks completed vs. total weeks, live. Both the student and their admins see the same numbers.</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot"></div>
+          <div class="feature-content">
+            <div class="feature-name">Self-Paced Track Mode</div>
+            <div class="feature-desc">Some tracks don't run on a cohort calendar. Weeks unlock as students work through them, not on a fixed schedule.</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot"></div>
+          <div class="feature-content">
+            <div class="feature-name">Announcement System</div>
+            <div class="feature-desc">Admins can drop an announcement and it shows up at the top of every student's dashboard.</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot"></div>
+          <div class="feature-content">
+            <div class="feature-name">Submission Workspace</div>
+            <div class="feature-desc">Each week has prompts students respond to and attach files or links. Every submission is saved and reviewable from the admin panel.</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot"></div>
+          <div class="feature-content">
+            <div class="feature-name">Weekly Reflections</div>
+            <div class="feature-desc">Students write a short reflection at the end of each week. Admins can read all of them.</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot"></div>
+          <div class="feature-content">
+            <div class="feature-name">AI Tutor Assistant</div>
+            <div class="feature-desc">Each program gets its own AI tutor with a custom prompt. It knows the curriculum, speaks in the program's voice, and every conversation counts toward the student's engagement score.</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot"></div>
+          <div class="feature-content">
+            <div class="feature-name">Workshops & Recordings Library</div>
+            <div class="feature-desc">Past sessions live in the platform too. Recordings, Lunch &amp; Learns — not buried in someone's Google Drive.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION 02 · CURRICULUM ── -->
+  <section class="section" id="s2">
+    <div class="section-inner">
+      <div class="section-header">
+        <div class="section-num-block">02</div>
+        <div class="section-heading">
+          <div class="section-category">Content Management</div>
+          <h2 class="section-title">Curriculum & Content</h2>
+          <p class="section-desc">The curriculum system handles everything from a 12-week cohort to a single workshop. You configure it; the platform handles the rest.</p>
+        </div>
+      </div>
+
+      <div class="feature-grid">
+        <div class="feature-item">
+          <div class="feature-dot"></div>
+          <div class="feature-content">
+            <div class="feature-name">Weekly Track Structure</div>
+            <div class="feature-desc">Each week has a title, description, objectives, session schedule, reflection prompts, submission prompts, and optional video links. Everything in one place.</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot"></div>
+          <div class="feature-content">
+            <div class="feature-name">Drip-Release Content Gating</div>
+            <div class="feature-desc">Weeks lock until a date you set and open automatically. Students can see what's ahead, just not get into it yet.</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot"></div>
+          <div class="feature-content">
+            <div class="feature-name">Track Types</div>
+            <div class="feature-desc">Supports both <strong>weekly</strong> (semester-style, cohort-paced) and <strong>single-event</strong> (one-off workshop or intensive) track formats within the same platform.</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot"></div>
+          <div class="feature-content">
+            <div class="feature-name">Track Phases</div>
+            <div class="feature-desc">Group weeks into phases — Foundation, Core, Workshop, Exit. Students see the arc, not just a flat list of weeks.</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot"></div>
+          <div class="feature-content">
+            <div class="feature-name">Prerequisite Enforcement</div>
+            <div class="feature-desc">Track A can be locked until Track B is finished. The platform handles the check. Nobody has to do it manually.</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot"></div>
+          <div class="feature-content">
+            <div class="feature-name">Office Hours Integration</div>
+            <div class="feature-desc">Instructors can add office hours or drop-in sessions to any track page with dates, times, and descriptions.</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot"></div>
+          <div class="feature-content">
+            <div class="feature-name">Session Video Recordings</div>
+            <div class="feature-desc">Link a recording to any week. Students who missed the live session can catch up.</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot"></div>
+          <div class="feature-content">
+            <div class="feature-name">Flexible Submission Controls</div>
+            <div class="feature-desc">Some weeks don't need a submission. You can turn it off per week so the experience stays clean for students.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION 03 · ONBOARDING & SURVEYS ── -->
+  <section class="section" id="s3">
+    <div class="section-inner">
+      <div class="section-header">
+        <div class="section-num-block">03</div>
+        <div class="section-heading">
+          <div class="section-category">Data Collection</div>
+          <h2 class="section-title">Onboarding & Surveys</h2>
+          <p class="section-desc">Students complete surveys before they access content, or at any point you need data. No chasing people down after the fact.</p>
+        </div>
+      </div>
+
+      <div class="feature-highlight">
+        <div class="feature-highlight-icon">📋</div>
+        <div class="feature-highlight-content">
+          <div class="feature-highlight-name">Survey Gating System</div>
+          <div class="feature-highlight-desc">Mark a survey as required and it blocks track access until the student completes it. It shows up on their dashboard. Demographic data, consent forms, pre-program assessments — all collected before they get to the content, without anyone having to follow up manually.</div>
+        </div>
+      </div>
+
+      <div class="feature-grid">
+        <div class="feature-item">
+          <div class="feature-dot"></div>
+          <div class="feature-content">
+            <div class="feature-name">Intake Gates</div>
+            <div class="feature-desc">Tracks can require an intake form before students get access. Each track can have its own, and you can stack them across programs.</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot"></div>
+          <div class="feature-content">
+            <div class="feature-name">Flexible Question Types</div>
+            <div class="feature-desc">Radio buttons, multi-select checkboxes, open text. Each question can be required or optional.</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot"></div>
+          <div class="feature-content">
+            <div class="feature-name">Pre &amp; Post Surveys</div>
+            <div class="feature-desc">Configure a survey that runs before the program and another that runs after. Compare the answers to see what actually changed.</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot"></div>
+          <div class="feature-content">
+            <div class="feature-name">Public Survey Tracking</div>
+            <div class="feature-desc">Surveys can run without an account. Responses from prospective students get tracked separately from enrolled ones.</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot"></div>
+          <div class="feature-content">
+            <div class="feature-name">Program-Specific Skipping</div>
+            <div class="feature-desc">Students who transfer between programs don't get asked to redo surveys they already finished.</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot"></div>
+          <div class="feature-content">
+            <div class="feature-name">Welcome Video Onboarding</div>
+            <div class="feature-desc">Each program can set a welcome video that plays when a student logs in for the first time. Presenter's name, custom message — makes it feel like someone's actually there.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION 04 · ATTENDANCE & ENGAGEMENT ── -->
+  <section class="section" id="s4">
+    <div class="section-inner">
+      <div class="section-header">
+        <div class="section-num-block">04</div>
+        <div class="section-heading">
+          <div class="section-category">Tracking & Metrics</div>
+          <h2 class="section-title">Attendance & Engagement</h2>
+          <p class="section-desc">Attendance is one signal. We track four. Admins get a score per student built from what they actually do in the platform.</p>
+        </div>
+      </div>
+
+      <div class="feature-grid">
+        <div class="feature-item">
+          <div class="feature-dot"></div>
+          <div class="feature-content">
+            <div class="feature-name">Four-Pillar Engagement Scoring</div>
+            <div class="feature-desc">Every student gets a score built from four things: showing up, submitting work, writing reflections, and using the AI tutor. Admins see one number per student, with the breakdown behind it.</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot"></div>
+          <div class="feature-content">
+            <div class="feature-name">Session-Level Attendance</div>
+            <div class="feature-desc">Tracked per session, not per week. Programs that run two sessions in one week track both separately.</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot"></div>
+          <div class="feature-content">
+            <div class="feature-name">Admin Attendance Marking</div>
+            <div class="feature-desc">Instructors mark attendance from the admin panel or via API. The record captures who marked it and when.</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot"></div>
+          <div class="feature-content">
+            <div class="feature-name">Real-Time Engagement Scores</div>
+            <div class="feature-desc">Scores update as data comes in. No exports, no batch jobs — open the tab and see where everyone stands.</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot"></div>
+          <div class="feature-content">
+            <div class="feature-name">Alumni Tracking</div>
+            <div class="feature-desc">When a student finishes, they move to alumni status. Their history stays intact and they stop showing up in the active cohort.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION 05 · ADMINISTRATION ── -->
+  <section class="section" id="s5">
+    <div class="section-inner">
+      <div class="section-header">
+        <div class="section-num-block">05</div>
+        <div class="section-heading">
+          <div class="section-category">Operations</div>
+          <h2 class="section-title">Administration & Analytics</h2>
+          <p class="section-desc">Program staff can run a cohort without filing a single ticket. Everything is in the admin panel.</p>
+        </div>
+      </div>
+
+      <div class="feature-highlight">
+        <div class="feature-highlight-icon">🗂️</div>
+        <div class="feature-highlight-content">
+          <div class="feature-highlight-name">Tabbed Admin Interface</div>
+          <div class="feature-highlight-desc">Students, Attendance, Submissions, Reflections, Engagement, Survey Insights, Tutor, Lunch &amp; Learns — each tab only loads its data when you open it. The panel stays fast no matter how large the cohort gets.</div>
+        </div>
+      </div>
+
+      <div class="feature-grid">
+        <div class="feature-item">
+          <div class="feature-dot"></div>
+          <div class="feature-content">
+            <div class="feature-name">Student Roster Management</div>
+            <div class="feature-desc">Full student list with enrollment state, track assignments, and quick actions. Everything about a student in one view.</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot"></div>
+          <div class="feature-content">
+            <div class="feature-name">Submission Review</div>
+            <div class="feature-desc">Browse and filter all submissions by track or student. See the prompt responses, attachments, and timestamps in one view.</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot"></div>
+          <div class="feature-content">
+            <div class="feature-name">Reflection Review</div>
+            <div class="feature-desc">Read all student reflections, filtered by track or student. A good way to spot who's struggling before they tell you.</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot"></div>
+          <div class="feature-content">
+            <div class="feature-name">Survey Insights & CSV Export</div>
+            <div class="feature-desc">Response counts are in the admin panel. Export everything to CSV — enrolled students and public responses alike.</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot"></div>
+          <div class="feature-content">
+            <div class="feature-name">Tutor Interaction Tracking</div>
+            <div class="feature-desc">See how many messages each student has sent to the AI tutor. Useful for spotting who's using it and who hasn't touched it.</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot"></div>
+          <div class="feature-content">
+            <div class="feature-name">Lunch & Learn Management</div>
+            <div class="feature-desc">Add and manage recorded sessions directly from the admin panel. Title, presenter, description, date, link — done.</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot"></div>
+          <div class="feature-content">
+            <div class="feature-name">Cross-Program Admin</div>
+            <div class="feature-desc">Super-admins see all programs in one view. No switching accounts, no separate dashboards.</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot"></div>
+          <div class="feature-content">
+            <div class="feature-name">Engagement Scoring Dashboard</div>
+            <div class="feature-desc">Per-student engagement scores with the full breakdown. See exactly where someone is strong and where they've gone quiet.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION 06 · MULTI-PROGRAM ── -->
+  <section class="section" id="s6">
+    <div class="section-inner">
+      <div class="section-header">
+        <div class="section-num-block">06</div>
+        <div class="section-heading">
+          <div class="section-category">Platform Architecture</div>
+          <h2 class="section-title">Multi-Program Architecture</h2>
+          <p class="section-desc">This isn't one program running on a platform. It is the platform. Multiple programs, each with its own identity, domain, and configuration — all managed from one place.</p>
+        </div>
+      </div>
+
+      <div class="grouped-features">
+
+        <div class="feature-group">
+          <div class="feature-group-label">Branding & Identity</div>
+          <div class="feature-grid">
+            <div class="feature-item">
+              <div class="feature-dot"></div>
+              <div class="feature-content">
+                <div class="feature-name">Per-Program Branding</div>
+                <div class="feature-desc">Each program has its own logo, colors, tagline, SEO settings, and Google Analytics ID. None of it requires touching the code.</div>
+              </div>
+            </div>
+            <div class="feature-item">
+              <div class="feature-dot"></div>
+              <div class="feature-content">
+                <div class="feature-name">Custom Domain Support</div>
+                <div class="feature-desc">Programs run on their own domain. Students who visit an old URL get redirected without losing their session.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="feature-group">
+          <div class="feature-group-label">Enrollment & Access</div>
+          <div class="feature-grid">
+            <div class="feature-item">
+              <div class="feature-dot"></div>
+              <div class="feature-content">
+                <div class="feature-name">Cohort Configuration</div>
+                <div class="feature-desc">Each program sets its own cohort name, start date, and total weeks. Programs run on completely different schedules with no interference.</div>
+              </div>
+            </div>
+            <div class="feature-item">
+              <div class="feature-dot"></div>
+              <div class="feature-content">
+                <div class="feature-name">Invite Link Enrollment</div>
+                <div class="feature-desc">Programs can require a track-specific invite link at signup to control exactly who gets into what.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="feature-group">
+          <div class="feature-group-label">Compliance & Safety</div>
+          <div class="feature-grid">
+            <div class="feature-item">
+              <div class="feature-dot"></div>
+              <div class="feature-content">
+                <div class="feature-name">COPPA Compliance Controls</div>
+                <div class="feature-desc">Programs serving minors can enable COPPA requirements at the program level. It's a switch, not a rebuild.</div>
+              </div>
+            </div>
+            <div class="feature-item">
+              <div class="feature-dot"></div>
+              <div class="feature-content">
+                <div class="feature-name">Program Data Isolation</div>
+                <div class="feature-desc">Student data stays in its program. Admins only see what belongs to them, even when programs share infrastructure.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION 07 · SECURITY ── -->
+  <section class="section" id="s7">
+    <div class="section-inner">
+      <div class="section-header">
+        <div class="section-num-block">07</div>
+        <div class="section-heading">
+          <div class="section-category">Trust & Safety</div>
+          <h2 class="section-title">Security & Access Control</h2>
+          <p class="section-desc">Student data is locked down by program. Access is role-based at every level. The platform doesn't cut corners here.</p>
+        </div>
+      </div>
+
+      <div class="feature-grid">
+        <div class="feature-item">
+          <div class="feature-dot"></div>
+          <div class="feature-content">
+            <div class="feature-name">Role-Based Access Control</div>
+            <div class="feature-desc">Four roles: Student, Instructor, Admin, Super-Admin. Each sees only what they're supposed to see. Students never touch admin features.</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot"></div>
+          <div class="feature-content">
+            <div class="feature-name">Program-Scoped Data Isolation</div>
+            <div class="feature-desc">Attendance records, enrollment data, submissions — all scoped to the student's program. An admin from one program cannot see another program's data.</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot"></div>
+          <div class="feature-content">
+            <div class="feature-name">Supabase Auth Foundation</div>
+            <div class="feature-desc">Login and session management run on Supabase Auth. No custom credential storage, no rolling our own auth.</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot"></div>
+          <div class="feature-content">
+            <div class="feature-name">Admin Action Audit Trail</div>
+            <div class="feature-desc">Attendance records log who marked them and when. Changes to student data have a paper trail.</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot"></div>
+          <div class="feature-content">
+            <div class="feature-name">Input Validation & Sanitization</div>
+            <div class="feature-desc">Every identifier gets validated on the server with strict format rules before anything touches the database.</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot"></div>
+          <div class="feature-content">
+            <div class="feature-name">Performance & Caching</div>
+            <div class="feature-desc">Static pages use ISR. The admin panel only loads tab data when you open it. The platform stays fast as cohorts scale.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── FOOTER ── -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-logo">BCC <span style="color:var(--neon)">[</span>Academy<span style="color:var(--neon)">]</span></div>
+      <p class="footer-note">BCC Academy Learning Experience Platform &mdash; June 2026</p>
+    </div>
+  </footer>
+
+</body>
+</html>
