@@ -3,6 +3,7 @@
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { getProgramBySlug } from "@/lib/programs";
 import { sendSignInEmail } from "@/lib/email";
+import { isPrivilegedEmail, isStaffEmail } from "@/lib/auth/admins";
 
 // Result shape for join attempts:
 //   ok        — magic-link email sent (Resend path when LOGIN_VIA_RESEND
@@ -84,7 +85,7 @@ export async function sendJoinLink({
       console.error("[join] allowlist gate failed:", countErr ?? lookupErr);
       return { ok: false, error: "Couldn't verify your email. Please try again." };
     }
-    if ((allowlistSize ?? 0) > 0 && !allowed) {
+    if ((allowlistSize ?? 0) > 0 && !allowed && !isPrivilegedEmail(normalised) && !isStaffEmail(normalised)) {
       console.warn("[join] blocked unallowlisted signup", {
         email: normalised,
         programSlug,
