@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Preview — BCC Academy Features</title>
+  <style>
+    body { margin: 0; padding: 0; background: #1a1a1a; font-family: sans-serif; }
+    .bar {
+      background: #1a1a1a;
+      border-bottom: 1px solid #333;
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .bar-label { color: rgba(255,255,255,0.5); font-size: 12px; }
+    .bar-file { color: #E54D2E; font-size: 12px; font-weight: 700; font-family: monospace; }
+    .bar-note { color: rgba(255,255,255,0.35); font-size: 11px; margin-left: auto; }
+    iframe {
+      width: 100%;
+      height: calc(100vh - 41px);
+      border: none;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="bar">
+    <span class="bar-label">Preview →</span>
+    <span class="bar-file">bcc-academy-features.html</span>
+    <span class="bar-note">Standalone file — ready to upload</span>
+  </div>
+  <iframe src="/raw/bcc-academy-features.html"></iframe>
+</body>
+</html>

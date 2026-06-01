@@ -170,12 +170,18 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   // If not authenticated and trying to access dashboard, redirect to login.
-  // Apply routes send to /login (also gate-exempt) so applicants can
-  // authenticate without hitting the site-password gate.
+  // Apply routes carry ?next= so the auth callback sends the user straight
+  // to the form after they sign in or create an account.
   if (!user && request.nextUrl.pathname.startsWith("/dashboard")) {
     const url = request.nextUrl.clone();
-    url.pathname = pathname.startsWith("/dashboard/apply/") ? "/login" : "/";
-    url.search = "";
+    if (pathname.startsWith("/dashboard/apply/")) {
+      url.pathname = "/login";
+      url.search = "";
+      url.searchParams.set("next", pathname);
+    } else {
+      url.pathname = "/";
+      url.search = "";
+    }
     return applyProgramCookies(NextResponse.redirect(url));
   }
 

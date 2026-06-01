@@ -1,0 +1,213 @@
+<style>
+  body { font-family: 'Plus Jakarta Sans', sans-serif; }
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 24px; }
+  .card { border: 2px solid transparent; border-radius: 12px; overflow: hidden; cursor: pointer; transition: border-color 0.2s; background: #fff; }
+  .card:hover { border-color: #E54D2E; }
+  .card.selected { border-color: #E54D2E; }
+  .card-preview { padding: 0; background: #f5f5f7; }
+  .card-body { padding: 16px; }
+  .card-body h3 { margin: 0 0 6px; font-size: 15px; font-weight: 700; }
+  .card-body p { margin: 0; font-size: 13px; color: #666; line-height: 1.5; }
+
+  /* Mockup A — Card Grid */
+  .mockup-a { padding: 14px; }
+  .ma-hero { background: #1a1a1a; border-radius: 8px; padding: 14px 16px; color: #fff; margin-bottom: 10px; }
+  .ma-hero-tag { font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; color: #E54D2E; font-weight: 600; margin-bottom: 4px; }
+  .ma-hero-title { font-size: 16px; font-weight: 800; margin-bottom: 2px; }
+  .ma-hero-sub { font-size: 10px; color: #aaa; }
+  .ma-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+  .ma-card { background: #fff; border-radius: 6px; padding: 10px; }
+  .ma-card-icon { width: 22px; height: 22px; background: #f5f5f7; border-radius: 5px; margin-bottom: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+  .ma-card-title { font-size: 10px; font-weight: 700; color: #1a1a1a; margin-bottom: 2px; }
+  .ma-card-desc { font-size: 8.5px; color: #888; line-height: 1.4; }
+  .ma-section-label { font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: #999; margin: 10px 0 5px; font-weight: 600; }
+
+  /* Mockup B — Marketing Sections */
+  .mockup-b { }
+  .mb-hero { background: #1a1a1a; padding: 16px; text-align: center; color: #fff; }
+  .mb-hero-pill { display: inline-block; background: rgba(229,77,46,0.15); color: #E54D2E; font-size: 8px; letter-spacing: 1.5px; text-transform: uppercase; padding: 3px 10px; border-radius: 20px; margin-bottom: 8px; font-weight: 700; }
+  .mb-hero-title { font-size: 15px; font-weight: 800; margin-bottom: 4px; }
+  .mb-hero-sub { font-size: 10px; color: #aaa; }
+  .mb-section { padding: 12px 16px; }
+  .mb-section-dark { background: #1a1a1a; padding: 12px 16px; color: #fff; }
+  .mb-section-title { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 6px; color: #E54D2E; text-transform: uppercase; font-size: 9px; letter-spacing: 1.5px; }
+  .mb-feature-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .mb-feature-item { background: rgba(255,255,255,0.07); border-radius: 6px; padding: 6px 10px; }
+  .mb-feature-item-light { background: #f5f5f7; border-radius: 6px; padding: 6px 10px; }
+  .mb-feature-name { font-size: 9px; font-weight: 700; color: #fff; }
+  .mb-feature-name-dark { font-size: 9px; font-weight: 700; color: #1a1a1a; }
+  .mb-feature-desc { font-size: 8px; color: #aaa; }
+  .mb-feature-desc-dark { font-size: 8px; color: #666; }
+
+  /* Mockup C — Structured Report */
+  .mockup-c { padding: 12px 16px; }
+  .mc-header { display: flex; align-items: center; gap: 10px; border-bottom: 2px solid #1a1a1a; padding-bottom: 10px; margin-bottom: 12px; }
+  .mc-logo { width: 28px; height: 28px; background: #1a1a1a; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #E54D2E; font-weight: 900; font-size: 12px; }
+  .mc-header-text { }
+  .mc-header-title { font-size: 12px; font-weight: 800; }
+  .mc-header-sub { font-size: 9px; color: #888; }
+  .mc-section { margin-bottom: 10px; }
+  .mc-section-num { font-size: 8px; font-weight: 700; color: #E54D2E; letter-spacing: 1px; text-transform: uppercase; }
+  .mc-section-title { font-size: 11px; font-weight: 800; margin: 2px 0 5px; }
+  .mc-items { display: flex; flex-direction: column; gap: 3px; }
+  .mc-item { display: flex; align-items: flex-start; gap: 6px; }
+  .mc-bullet { width: 4px; height: 4px; background: #E54D2E; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+  .mc-item-text { font-size: 9px; color: #444; line-height: 1.5; }
+</style>
+
+<h2>Pick a layout style for the feature showcase</h2>
+<p class="subtitle">This page will be shared with the CEO and Executive Leadership Team. Which direction fits best?</p>
+
+<div class="cards">
+
+  <!-- Option A -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-preview">
+      <div class="mockup-a">
+        <div class="ma-hero">
+          <div class="ma-hero-tag">BCC Academy · Feature Overview</div>
+          <div class="ma-hero-title">The Learning Platform</div>
+          <div class="ma-hero-sub">A complete LXP for modern cohort programs</div>
+        </div>
+        <div class="ma-section-label">Student Experience</div>
+        <div class="ma-grid">
+          <div class="ma-card">
+            <div class="ma-card-icon">📊</div>
+            <div class="ma-card-title">Dashboard</div>
+            <div class="ma-card-desc">Personalized hub with progress & announcements</div>
+          </div>
+          <div class="ma-card">
+            <div class="ma-card-icon">📅</div>
+            <div class="ma-card-title">Curriculum</div>
+            <div class="ma-card-desc">Weekly track structure with gated content</div>
+          </div>
+          <div class="ma-card">
+            <div class="ma-card-icon">✅</div>
+            <div class="ma-card-title">Attendance</div>
+            <div class="ma-card-desc">Session-level check-ins and history</div>
+          </div>
+        </div>
+        <div class="ma-section-label">Admin Tools</div>
+        <div class="ma-grid">
+          <div class="ma-card">
+            <div class="ma-card-icon">🧑‍💼</div>
+            <div class="ma-card-title">Students</div>
+            <div class="ma-card-desc">Roster, enrollment, quick actions</div>
+          </div>
+          <div class="ma-card">
+            <div class="ma-card-icon">📈</div>
+            <div class="ma-card-title">Engagement</div>
+            <div class="ma-card-desc">4-pillar scoring per student</div>
+          </div>
+          <div class="ma-card">
+            <div class="ma-card-icon">📝</div>
+            <div class="ma-card-title">Submissions</div>
+            <div class="ma-card-desc">Review & filter student work</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A · Feature Card Grid</h3>
+      <p>Icon-forward cards grouped by category. Clean, dense, and scannable — best for execs who want the full picture fast.</p>
+    </div>
+  </div>
+
+  <!-- Option B -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-preview">
+      <div class="mockup-b">
+        <div class="mb-hero">
+          <div class="mb-hero-pill">Feature Overview 2026</div>
+          <div class="mb-hero-title">BCC Academy LXP</div>
+          <div class="mb-hero-sub">Built for cohort-based learning at scale</div>
+        </div>
+        <div class="mb-section">
+          <div class="mb-section-title">Student Experience</div>
+          <div class="mb-feature-row">
+            <div class="mb-feature-item-light">
+              <div class="mb-feature-name-dark">Personalized Dashboard</div>
+              <div class="mb-feature-desc-dark">Progress, tracks & announcements</div>
+            </div>
+            <div class="mb-feature-item-light">
+              <div class="mb-feature-name-dark">Weekly Curriculum</div>
+              <div class="mb-feature-desc-dark">Drip-release with gating</div>
+            </div>
+            <div class="mb-feature-item-light">
+              <div class="mb-feature-name-dark">AI Tutor</div>
+              <div class="mb-feature-desc-dark">Program-specific assistant</div>
+            </div>
+          </div>
+        </div>
+        <div class="mb-section-dark">
+          <div class="mb-section-title">Admin & Analytics</div>
+          <div class="mb-feature-row">
+            <div class="mb-feature-item">
+              <div class="mb-feature-name">Engagement Scoring</div>
+              <div class="mb-feature-desc">4-pillar student metrics</div>
+            </div>
+            <div class="mb-feature-item">
+              <div class="mb-feature-name">Survey Insights</div>
+              <div class="mb-feature-desc">CSV export + charts</div>
+            </div>
+            <div class="mb-feature-item">
+              <div class="mb-feature-name">Attendance</div>
+              <div class="mb-feature-desc">Mark & track sessions</div>
+            </div>
+          </div>
+        </div>
+        <div class="mb-section">
+          <div class="mb-section-title">Multi-Program</div>
+          <div class="mb-feature-row">
+            <div class="mb-feature-item-light">
+              <div class="mb-feature-name-dark">ATG · Forge · Forte · Catalyst</div>
+              <div class="mb-feature-desc-dark">Unified under one platform</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B · Marketing Sections</h3>
+      <p>Alternating dark/light sections like a SaaS landing page. Narrative flow — reads like a story about the platform.</p>
+    </div>
+  </div>
+
+  <!-- Option C -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-preview">
+      <div class="mockup-c">
+        <div class="mc-header">
+          <div class="mc-logo">B</div>
+          <div class="mc-header-text">
+            <div class="mc-header-title">BCC Academy — Platform Features</div>
+            <div class="mc-header-sub">Prepared for Executive Leadership · June 2026</div>
+          </div>
+        </div>
+        <div class="mc-section">
+          <div class="mc-section-num">01 · Student Experience</div>
+          <div class="mc-section-title">Learning & Progress</div>
+          <div class="mc-items">
+            <div class="mc-item"><div class="mc-bullet"></div><div class="mc-item-text">Personalized dashboard with track progress and announcements</div></div>
+            <div class="mc-item"><div class="mc-bullet"></div><div class="mc-item-text">Weekly curriculum with drip-release gating and prerequisites</div></div>
+            <div class="mc-item"><div class="mc-bullet"></div><div class="mc-item-text">Self-paced track support with pre-recorded session access</div></div>
+          </div>
+        </div>
+        <div class="mc-section">
+          <div class="mc-section-num">02 · Administration</div>
+          <div class="mc-section-title">Ops & Analytics</div>
+          <div class="mc-items">
+            <div class="mc-item"><div class="mc-bullet"></div><div class="mc-item-text">Student roster management with enrollment actions</div></div>
+            <div class="mc-item"><div class="mc-bullet"></div><div class="mc-item-text">4-pillar engagement scoring: attendance, submissions, reflections, tutor</div></div>
+            <div class="mc-item"><div class="mc-bullet"></div><div class="mc-item-text">Survey insights with CSV export</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C · Structured Report</h3>
+      <p>Numbered sections, clean hierarchy, formal header. Reads like a polished business brief — serious and authoritative.</p>
+    </div>
+  </div>
+
+</div>

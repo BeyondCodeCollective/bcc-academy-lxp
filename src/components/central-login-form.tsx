@@ -58,7 +58,8 @@ export function CentralLoginForm({
     const origin = isLocalDev
       ? "http://localhost:3000"
       : window.location.origin;
-    const result = await sendLoginLink({ email: trimmedEmail, origin });
+    const next = new URLSearchParams(window.location.search).get("next") ?? undefined;
+    const result = await sendLoginLink({ email: trimmedEmail, origin, next });
 
     if (result.ok) {
       setSent(true);
