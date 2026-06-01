@@ -469,9 +469,9 @@ export function AdminTabs({
 
   // Load initial session content from the API for all tracks
   useEffect(() => {
-    async function loadContent(trackSlug: string) {
+    async function loadContent(track: AdminTrackConfig) {
       try {
-        const res = await fetch(`/api/session-content?track=${trackSlug}`);
+        const res = await fetch(`/api/session-content?track=${track.slug}`);
         if (!res.ok) return;
         const json = await res.json() as { rows: Array<{
           week_number: number;
@@ -503,16 +503,29 @@ export function AdminTabs({
             objectives: row.objectives ?? null,
           };
         }
-        setTrackData((prev) => ({
-          ...prev,
-          [trackSlug]: applyContentMap(prev[trackSlug] ?? [], map),
-        }));
+        setTrackData((prev) => {
+          // The home tab serializes tracks with weeks:[] to reduce payload.
+          // When the user navigates to a track tab the server re-renders with
+          // full week config — the tracks prop updates, this effect re-runs,
+          // and prev[slug] may still be [] from the initial mount. Use the
+          // current track config as the base in that case so the curriculum
+          // renders correctly without requiring a manual refresh.
+          const base = prev[track.slug]?.length ? prev[track.slug] : buildInitialWeeks(track);
+          return { ...prev, [track.slug]: applyContentMap(base, map) };
+        });
       } catch {
-        // API unavailable — silently no-op
+        // API unavailable — still rebuild weeks from config if empty so the
+        // curriculum accordion shows up even without DB content.
+        setTrackData((prev) => {
+          if (!prev[track.slug]?.length && track.weeks.length) {
+            return { ...prev, [track.slug]: buildInitialWeeks(track) };
+          }
+          return prev;
+        });
       }
     }
     for (const t of tracks) {
-      loadContent(t.slug);
+      loadContent(t);
     }
   }, [tracks]);
 
