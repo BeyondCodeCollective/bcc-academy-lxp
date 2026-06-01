@@ -20,13 +20,12 @@ const VALID_PREVIEW_SLUGS = new Set([
 ]);
 
 // Site password gate — applies only to the marketing host (bccacademy.io).
-// Exempt: the gate flow itself, public survey routes, and join pages so
-// prospective students can reach signup without the password.
-// Apply routes, /login, and /auth/ are also exempt so Security+ applicants can
-// reach the application form and authenticate without the site password. The
-// /auth/ prefix covers the magic-link callback so the token exchange completes
+// Exempt: the gate flow itself, public survey routes, join pages, and all
+// dashboard routes (authenticated users should never be blocked — the dashboard
+// enforces its own auth and redirects unauthenticated visitors to /login).
+// /login and /auth/ are also exempt so the magic-link callback can complete
 // before any gate check fires.
-const GATE_EXEMPT_PREFIXES = ["/gate", "/api/gate", "/survey/", "/join/", "/dashboard/apply/", "/login", "/auth/"];
+const GATE_EXEMPT_PREFIXES = ["/gate", "/api/gate", "/survey/", "/join/", "/dashboard", "/login", "/auth/"];
 const GATE_COOKIE = "site-access";
 const MARKETING_HOSTS = new Set(["bccacademy.io", "www.bccacademy.io"]);
 
