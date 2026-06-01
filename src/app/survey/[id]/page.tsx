@@ -8,6 +8,7 @@ import { PublicNetworkPlusSurvey } from "./public-network-plus-survey";
 import { PublicWorkshopSurvey } from "./public-workshop-survey";
 import { PublicLearnerIntake } from "./public-learner-intake";
 import { PublicPreSurvey } from "./public-pre-survey";
+import { PublicPostSurvey } from "./public-post-survey";
 
 // Public survey route. Outside /dashboard/* so the proxy/middleware does not
 // gate it — anyone who lands on catalyst.bccacademy.io/survey/network-plus-post
@@ -29,6 +30,7 @@ const SURVEY_COMPONENTS: Record<string, ComponentType<SurveyProps>> = {
   "bcc-workshop": PublicWorkshopSurvey,
   "bcc-learner-intake": PublicLearnerIntake,
   "pre-survey-spring-2026": PublicPreSurvey,
+  "post-survey-spring-2026": PublicPostSurvey,
 };
 
 export default async function PublicSurveyPage({
