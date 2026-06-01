@@ -23,52 +23,68 @@ type SendLoginLinkResult =
 export async function sendLoginLink({
   email,
   origin,
+  next,
 }: {
   email: string;
   origin: string;
+  /** Post-auth redirect path. When set to a /dashboard/apply/* route the
+   *  allowlist check is skipped so Security+ applicants without existing
+   *  accounts can still receive a magic link and create an account. */
+  next?: string;
 }): Promise<SendLoginLinkResult> {
   const trimmed = email.trim().toLowerCase();
   const redirectTo = `${origin}/auth/callback`;
   const svc = createServiceClient();
 
-  const { data: allowlistHit } = await svc
-    .from("allowed_signup_emails")
-    .select("track_slug")
-    .eq("email", trimmed)
-    .maybeSingle();
+  const isApplyFlow = !!next?.startsWith("/dashboard/apply/");
 
-  const isAdmitted =
-    !!allowlistHit ||
-    isPrivilegedEmail(trimmed) ||
-    isStaffEmail(trimmed);
-
-  if (!isAdmitted) {
-    return {
-      ok: false,
-      error: "This email isn't on our invite list. If you have an invite link from your instructor, use that to sign up.",
-    };
-  }
-
-  // Resolve the user's home program and track from the allowlist so we can
-  // bake ?join=<slug>&track=<slug> directly into the magic link URL.
-  // Encoding it in the URL (not just a cookie) means the params survive when
-  // the user opens the link in a different browser than the one they submitted
-  // the form in — which happens constantly on mobile (Gmail app → Safari, etc).
   let callbackJoinSlug: string | null = null;
   let callbackTrackSlug: string | null = null;
-  if (allowlistHit?.track_slug) {
-    const { getHomeProgramForTrack } = await import("@/lib/programs");
-    const homeProgram = getHomeProgramForTrack(allowlistHit.track_slug as string);
-    if (homeProgram) {
-      callbackJoinSlug = homeProgram.slug;
-      callbackTrackSlug = allowlistHit.track_slug as string;
+
+  if (isApplyFlow) {
+    // Apply flow: bypass the allowlist — anyone with the link can get a magic
+    // link and create an account. Enroll them under Catalyst so the auth
+    // callback creates a student row and the form submission succeeds.
+    callbackJoinSlug = "catalyst";
+  } else {
+    const { data: allowlistHit } = await svc
+      .from("allowed_signup_emails")
+      .select("track_slug")
+      .eq("email", trimmed)
+      .maybeSingle();
+
+    const isAdmitted =
+      !!allowlistHit ||
+      isPrivilegedEmail(trimmed) ||
+      isStaffEmail(trimmed);
+
+    if (!isAdmitted) {
+      return {
+        ok: false,
+        error: "This email isn't on our invite list. If you have an invite link from your instructor, use that to sign up.",
+      };
+    }
+
+    // Resolve the user's home program and track from the allowlist so we can
+    // bake ?join=<slug>&track=<slug> directly into the magic link URL.
+    // Encoding it in the URL (not just a cookie) means the params survive when
+    // the user opens the link in a different browser than the one they submitted
+    // the form in — which happens constantly on mobile (Gmail app → Safari, etc).
+    if (allowlistHit?.track_slug) {
+      const { getHomeProgramForTrack } = await import("@/lib/programs");
+      const homeProgram = getHomeProgramForTrack(allowlistHit.track_slug as string);
+      if (homeProgram) {
+        callbackJoinSlug = homeProgram.slug;
+        callbackTrackSlug = allowlistHit.track_slug as string;
+      }
     }
   }
 
-  // Build the callback URL with join/track baked in when we have them.
+  // Build the callback URL with join/track/next baked in when we have them.
   const callbackBase = new URL(redirectTo);
   if (callbackJoinSlug) callbackBase.searchParams.set("join", callbackJoinSlug);
   if (callbackTrackSlug) callbackBase.searchParams.set("track", callbackTrackSlug);
+  if (next) callbackBase.searchParams.set("next", next);
   const richRedirectTo = callbackBase.toString();
 
   const tryResend =

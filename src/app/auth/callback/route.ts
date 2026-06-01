@@ -35,6 +35,7 @@ export async function GET(request: Request) {
     : null;
   let trackParam = searchParams.get("track");
   let joinSlug = searchParams.get("join");
+  const nextParam = searchParams.get("next");
 
   if (code || token_hash) {
     const cookieStore = await cookies();
@@ -282,7 +283,13 @@ export async function GET(request: Request) {
 
         const setupParams = new URLSearchParams({ setup: "1" });
         if (trackParam) setupParams.set("track", trackParam);
-        const res = redirectWithCookies(`${origin}/dashboard?${setupParams}`);
+        // For apply flows, send the user directly to the form they came from
+        // rather than the generic dashboard setup screen.
+        const safeNext = nextParam?.startsWith("/dashboard/apply/") ? nextParam : null;
+        const redirectTarget = safeNext
+          ? `${origin}${safeNext}`
+          : `${origin}/dashboard?${setupParams}`;
+        const res = redirectWithCookies(redirectTarget);
         const cookieOpts = { path: "/", httpOnly: false, sameSite: "lax" as const };
         res.cookies.set("program-slug", effectiveSlug, cookieOpts);
         res.cookies.set("program-override", effectiveSlug, {
