@@ -22,7 +22,9 @@ const VALID_PREVIEW_SLUGS = new Set([
 // Site password gate — applies only to the marketing host (bccacademy.io).
 // Exempt: the gate flow itself, public survey routes, and join pages so
 // prospective students can reach signup without the password.
-const GATE_EXEMPT_PREFIXES = ["/gate", "/api/gate", "/survey/", "/join/"];
+// Apply routes and /login are also exempt so Security+ applicants can reach
+// the application form and authenticate without the site password.
+const GATE_EXEMPT_PREFIXES = ["/gate", "/api/gate", "/survey/", "/join/", "/dashboard/apply/", "/login"];
 const GATE_COOKIE = "site-access";
 const MARKETING_HOSTS = new Set(["bccacademy.io", "www.bccacademy.io"]);
 
@@ -167,10 +169,13 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // If not authenticated and trying to access dashboard, redirect to login
+  // If not authenticated and trying to access dashboard, redirect to login.
+  // Apply routes send to /login (also gate-exempt) so applicants can
+  // authenticate without hitting the site-password gate.
   if (!user && request.nextUrl.pathname.startsWith("/dashboard")) {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = pathname.startsWith("/dashboard/apply/") ? "/login" : "/";
+    url.search = "";
     return applyProgramCookies(NextResponse.redirect(url));
   }
 
