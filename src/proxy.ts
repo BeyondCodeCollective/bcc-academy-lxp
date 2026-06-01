@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { authCookieDomain } from "@/lib/supabase/cookie-domain";
+import { gateCookieMatches } from "@/lib/gate-cookie";
 import {
   getProgramByDomain,
   getProgramBySlug,
@@ -18,6 +19,13 @@ const VALID_PREVIEW_SLUGS = new Set([
   "catalyst",
 ]);
 
+// Site password gate — applies only to the marketing host (bccacademy.io).
+// Exempt: the gate flow itself, public survey routes, and join pages so
+// prospective students can reach signup without the password.
+const GATE_EXEMPT_PREFIXES = ["/gate", "/api/gate", "/survey/", "/join/"];
+const GATE_COOKIE = "site-access";
+const MARKETING_HOSTS = new Set(["bccacademy.io", "www.bccacademy.io"]);
+
 // Legacy program subdomains have their own login at "/" — sending /login
 // here routes the user to that program's own sign-in form. Handled at
 // the proxy so the apex /login page itself can be statically rendered
@@ -31,6 +39,26 @@ const LEGACY_LOGIN_HOSTS = new Set([
 
 export async function proxy(request: NextRequest) {
   const host = request.headers.get("host") ?? "localhost:3000";
+
+  // ── Site password gate (marketing host only) ──────────────────────────
+  const sitePassword = process.env.SITE_PASSWORD;
+  if (sitePassword && MARKETING_HOSTS.has(host)) {
+    const pathname = request.nextUrl.pathname;
+    const isExempt = GATE_EXEMPT_PREFIXES.some((p) => pathname.startsWith(p));
+    const hasAccess = gateCookieMatches(
+      request.cookies.get(GATE_COOKIE)?.value,
+      sitePassword,
+    );
+    if (!isExempt && !hasAccess) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/gate";
+      url.search = "";
+      if (pathname !== "/") {
+        url.searchParams.set("next", pathname + request.nextUrl.search);
+      }
+      return NextResponse.redirect(url);
+    }
+  }
 
   const asParam = request.nextUrl.searchParams.get("as");
   const previewOverride =
