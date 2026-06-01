@@ -25,12 +25,20 @@ export const BCC_INTAKE_EXEMPT_PROGRAMS: readonly string[] = ["atg", "forte", "c
 
 // ─── Authenticated (dashboard) ──────────────────────────────────────────────
 
+export const SECURITY_PLUS_APPLICATION_SURVEY_ID = "security-plus-application";
+
 export const PLATFORM_AUTH_SURVEYS: Record<string, SurveyConfig> = {
   [BCC_INTAKE_SURVEY_ID]: {
     id: BCC_INTAKE_SURVEY_ID,
     title: "BCC Learner Intake",
     description: "A few quick questions to help us know who we're serving.",
     required: true,
+  },
+  [SECURITY_PLUS_APPLICATION_SURVEY_ID]: {
+    id: SECURITY_PLUS_APPLICATION_SURVEY_ID,
+    title: "CompTIA Security+ Application",
+    description: "Application for the Security+ Catalyst cohort — for Network+ graduates.",
+    required: false,
   },
 };
 

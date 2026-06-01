@@ -854,6 +854,21 @@ const MID_PROGRAM_SPRING_2026: SurveyQuestion[] = [
   },
 ];
 
+const SECURITY_PLUS_APPLICATION: SurveyQuestion[] = [
+  { type: "text", id: "full_name", label: "Full name", required: true, short: true },
+  { type: "text", id: "work_situation", label: "What is your current work situation?", required: true },
+  { type: "text", id: "industry", label: "What industry do you currently work in (or most recently worked in)?", required: true },
+  { type: "text", id: "tech_in_role", label: "In your current or most recent role, do you work with technology directly?", required: true },
+  { type: "text", id: "used_comptia_at_work", label: "Have you had to use what you've learned through the CompTIA program at work?", required: true },
+  { type: "text", id: "job_switch_plan", label: "Are you looking to switch jobs or employers in the next 6–12 months?", required: true },
+  { type: "text", id: "security_plus_in_career", label: "How do you see Security+ fitting into your career?", required: true },
+  { type: "text", id: "why_techplus_network_plus", label: "Why did you originally sign up for TECH+ and then Network+? Has anything changed?", required: true },
+  { type: "text", id: "cybersecurity_interests", label: "What about cybersecurity interests you most?", required: true },
+  { type: "text", id: "schedule_july_completion", label: "What does your schedule look like from July through completion?", required: true },
+  { type: "text", id: "support_needed", label: "What kind of support do you need from us to be successful?", required: true },
+  { type: "text", id: "anything_else", label: "Anything else you want us to know about your application?", required: false },
+];
+
 const SCHEMAS: Record<string, SurveyQuestion[]> = {
   "bcc-learner-intake": BCC_LEARNER_INTAKE,
   "bcc-workshop": BCC_WORKSHOP,
@@ -861,6 +876,7 @@ const SCHEMAS: Record<string, SurveyQuestion[]> = {
   "pre-survey-spring-2026": PRE_SURVEY_SPRING_2026,
   "post-survey-spring-2026": POST_SURVEY_SPRING_2026,
   "mid-program-spring-2026": MID_PROGRAM_SPRING_2026,
+  "security-plus-application": SECURITY_PLUS_APPLICATION,
 };
 
 export function getSurveySchema(surveyId: string): SurveyQuestion[] | null {
