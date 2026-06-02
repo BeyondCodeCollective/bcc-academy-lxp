@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { startTransition, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { saveTrackOverview, type TrackOverviewPatch } from "./actions";
 
@@ -38,14 +38,17 @@ export function TrackOverviewForm({ track }: Props) {
   // Keep ref in sync so the blur handler always sends fresh values.
   latestValues.current = { name, instructor, description };
 
-  const doSave = useRef(async () => {
+  const doSave = useRef(async (shouldRefresh = false) => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     setSaveState("saving");
     try {
       const patch: TrackOverviewPatch = { ...latestValues.current };
       await saveTrackOverview(track.slug, patch);
       setSaveState("saved");
-      router.refresh();
+      // Only refresh the page when the user has explicitly left a field so
+      // the header/breadcrumb updates. Skipped during typing to avoid
+      // interrupting input mid-edit.
+      if (shouldRefresh) startTransition(() => router.refresh());
       setTimeout(() => setSaveState("idle"), 2000);
     } catch (e) {
       console.error("[TrackOverviewForm] save failed:", e);
@@ -53,22 +56,22 @@ export function TrackOverviewForm({ track }: Props) {
     }
   });
 
-  // Debounced autosave — 300ms while typing.
+  // Debounced autosave while typing — no page refresh so input stays stable.
   useEffect(() => {
     if (isFirstRun.current) {
       isFirstRun.current = false;
       return;
     }
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => doSave.current(), 300);
+    saveTimer.current = setTimeout(() => doSave.current(false), 300);
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [name, instructor, description]);
 
-  // Immediate save on blur — fires the moment you leave any field.
-  const handleBlur = () => doSave.current();
+  // Immediate save on blur — refreshes the page so header/title updates.
+  const handleBlur = () => doSave.current(true);
 
   return (
     <div className="space-y-6">
