@@ -20,9 +20,9 @@ type Props = {
  * description, and week titles. Everything else (schedule, totals, toggles,
  * icons) stays in the TS config until we deliberately plan more edit surface.
  *
- * Autosaves 800ms after the last edit. Writes go through saveTrackOverview;
- * blank text becomes null in DB (= "use TS default"). Week icons are kept on
- * the record unchanged so the few empty-state badges still render.
+ * Saves immediately on blur. Also debounces 300ms while typing (no page
+ * refresh during typing so input stays stable). Page header updates via
+ * startTransition(router.refresh()) on blur — non-blocking.
  */
 export function TrackOverviewForm({ track }: Props) {
   const router = useRouter();
