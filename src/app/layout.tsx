@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import dynamic from "next/dynamic";
 import { Geist, Bricolage_Grotesque } from "next/font/google";
 import localFont from "next/font/local";
-import { Analytics } from "@vercel/analytics/react";
+import { Analytics } from "@vercel/analytics/next";
 import { TextScaleProvider } from "@/components/text-scale-provider";
 import { GoogleAnalyticsProvider } from "@/components/google-analytics-provider";
 import "./globals.css";
