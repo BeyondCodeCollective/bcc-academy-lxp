@@ -285,7 +285,6 @@ export const forteConfig: ProgramConfig = {
             "What did AI get wrong or fabricate? How did you catch it? What would have happened if you hadn't?",
             "One thing you learned about this topic that you didn't know before.",
           ],
-          comingSoonUntil: "2026-06-01",
         },
         {
           week: 10,
@@ -306,7 +305,6 @@ export const forteConfig: ProgramConfig = {
             "What's the one skill from this entire program you'll use most in building this?",
             "What's the first thing you're going to do with what you've built here?",
           ],
-          comingSoonUntil: "2026-06-01",
         },
       ],
     },

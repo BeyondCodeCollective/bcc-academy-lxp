@@ -355,6 +355,18 @@ export default async function TrackWeekPage({
           />
         )}
 
+      {/* Video coming soon — shown when no video URL exists and no admin
+         recording has been uploaded yet. */}
+      {!weekContent.videoUrl && !hasRecording && (
+        <div className="mb-8 border border-rule bg-surface-soft px-6 py-8 flex flex-col items-center text-center gap-2">
+          <span className="text-2xl" aria-hidden>🎬</span>
+          <p className="text-sm font-semibold text-ink">Video Coming Soon</p>
+          <p className="text-xs text-ink-faint max-w-[38ch]">
+            The session recording for this week will be posted here shortly. In the meantime, dive into the activities below.
+          </p>
+        </div>
+      )}
+
       {/* Admin-uploaded session recordings */}
       {weekContent.sessions.map((session, i) => {
         const url = recordingUrls[i];
@@ -444,12 +456,14 @@ export default async function TrackWeekPage({
             Week completion
           </h2>
           <div className="space-y-2">
-            <div className="flex items-center gap-2.5">
-              <span aria-hidden className={weekProgress?.videoWatched ? "text-green-500" : "text-ink-faint/50"}>✓</span>
-              <span className={`text-sm ${weekProgress?.videoWatched ? "text-ink" : "text-ink-faint"}`}>
-                Watch the recording
-              </span>
-            </div>
+            {(weekContent.videoUrl || hasRecording) && (
+              <div className="flex items-center gap-2.5">
+                <span aria-hidden className={weekProgress?.videoWatched ? "text-green-500" : "text-ink-faint/50"}>✓</span>
+                <span className={`text-sm ${weekProgress?.videoWatched ? "text-ink" : "text-ink-faint"}`}>
+                  Watch the recording
+                </span>
+              </div>
+            )}
             <div className="flex items-center gap-2.5">
               <span aria-hidden className={weekProgress?.homeworkSubmitted ? "text-green-500" : "text-ink-faint/50"}>✓</span>
               <span className={`text-sm ${weekProgress?.homeworkSubmitted ? "text-ink" : "text-ink-faint"}`}>
