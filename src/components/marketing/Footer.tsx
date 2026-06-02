@@ -47,7 +47,7 @@ export default function Footer() {
             </Link>
             <p className="mt-4 text-sm text-white/50 leading-relaxed max-w-xs">
               Where everyone builds together. A community-based learning and
-              workforce ecosystem for ages 7 to 87.
+              workforce ecosystem for ages 7 to 77.
             </p>
             <p className="mt-6 text-xs text-white/40">
               Proudly home to{" "}

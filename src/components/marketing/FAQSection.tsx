@@ -8,7 +8,7 @@ const faqs = [
   {
     question: "What is Beyond Code Collective?",
     answer:
-      "An AI literacy and workforce ecosystem teaching applied tech skills \u2014 from prompt design and no-code automation with tools like Zapier to coding, certifications, and career-ready workflows. We give learners ages 7 to 87 lifelong access to the skills, relationships, and pathways shaping the future of work, across in-person Beyond Code Centers hubs and virtual cohorts.",
+      "An AI literacy and workforce ecosystem teaching applied tech skills \u2014 from prompt design and no-code automation with tools like Zapier to coding, certifications, and career-ready workflows. We give learners ages 7 to 77 lifelong access to the skills, relationships, and pathways shaping the future of work, across in-person Beyond Code Centers hubs and virtual cohorts.",
   },
   {
     question: "Who is this for?",
