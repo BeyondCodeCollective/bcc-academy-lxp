@@ -43,12 +43,12 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "Beyond Code Collective — Where everyone builds together",
   description:
-    "A community-based learning and workforce ecosystem giving people lifelong access to the skills, relationships, and pathways shaping the future of work. Ages 7 to 87. By us, for everyone.",
+    "A community-based learning and workforce ecosystem giving people lifelong access to the skills, relationships, and pathways shaping the future of work. Ages 7 to 77. By us, for everyone.",
   metadataBase: new URL("https://bccacademy.io"),
   openGraph: {
     title: "Beyond Code Collective",
     description:
-      "A community-based learning and workforce ecosystem for ages 7 to 87. Where everyone builds together.",
+      "A community-based learning and workforce ecosystem for ages 7 to 77. Where everyone builds together.",
     url: "https://bccacademy.io",
     siteName: "BCC Academy",
     type: "website",
@@ -57,7 +57,7 @@ export const metadata: Metadata = {
     card: "summary",
     title: "Beyond Code Collective",
     description:
-      "A community-based learning and workforce ecosystem for ages 7 to 87. Where everyone builds together.",
+      "A community-based learning and workforce ecosystem for ages 7 to 77. Where everyone builds together.",
   },
   alternates: {
     canonical: "https://bccacademy.io",
