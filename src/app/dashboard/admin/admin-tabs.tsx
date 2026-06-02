@@ -2090,12 +2090,12 @@ function PeopleTab({
                           <option value="student">Student</option>
                           <option value="instructor">Instructor</option>
                           <option value="admin">Admin</option>
-                          <option value="super-admin">Super Admin</option>
+                          <option value="super_admin">Super Admin</option>
                         </select>
                         <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400">▾</span>
                       </div>
                     </div>
-                    {cohorts.length > 0 && (
+                    {cohorts.length > 0 && s.role === "student" && (
                       <div>
                         <label className="text-[11px] font-medium uppercase tracking-wide text-neutral-500">
                           Cohort

@@ -79,6 +79,28 @@ export function SurveyDashboard({
     );
   }
 
+  // Application forms are all-text — render a person-first roster instead of
+  // aggregated charts (which are useless when every question is open-ended).
+  const isApplicationForm = schema.every((q) => q.type === "text");
+
+  if (isApplicationForm) {
+    return (
+      <ApplicantRosterDashboard
+        surveyTitle={surveyTitle}
+        schema={schema}
+        responses={responses}
+        visible={visible}
+        total={total}
+        filter={filter}
+        programs={programs}
+        programsWithData={programsWithData}
+        chrome={chrome}
+        onFilterChange={setFilter}
+        onDownloadCsv={downloadCsv}
+      />
+    );
+  }
+
   // Group questions by type for layout
   const radioQs = schema.filter((q) => q.type === "radio");
   const multiSelectQs = schema.filter((q) => q.type === "multi-select");
@@ -192,6 +214,208 @@ export function SurveyDashboard({
           </div>
         </Section>
       )}
+    </div>
+  );
+}
+
+// ─── Applicant Roster ────────────────────────────────────────────────────────
+// Used when every question in the schema is free-text (application forms).
+// Pivots from question-first (chart per question) to person-first (card per
+// applicant), since aggregating open-ended answers into charts is meaningless.
+
+function ApplicantRosterDashboard({
+  surveyTitle,
+  schema,
+  responses,
+  visible,
+  total,
+  filter,
+  programs,
+  programsWithData,
+  chrome,
+  onFilterChange,
+  onDownloadCsv,
+}: {
+  surveyTitle: string;
+  schema: SurveyQuestion[];
+  responses: BCCSurveyResponse[];
+  visible: BCCSurveyResponse[];
+  total: number;
+  filter: string;
+  programs: { slug: string; name: string }[];
+  programsWithData: { slug: string; name: string }[];
+  chrome: "standalone" | "embedded";
+  onFilterChange: (f: string) => void;
+  onDownloadCsv: () => void;
+}) {
+  const [expandedEmail, setExpandedEmail] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+
+  // Questions to show in the expanded view — skip `full_name` since it's
+  // already the card heading (the response metadata `r.full_name` covers it).
+  const answerQs = schema.filter((q) => q.id !== "full_name");
+
+  const sorted = [...visible].sort((a, b) => {
+    if (!a.completed_at && !b.completed_at) return 0;
+    if (!a.completed_at) return 1;
+    if (!b.completed_at) return -1;
+    return b.completed_at.localeCompare(a.completed_at);
+  });
+
+  const filtered = search.trim()
+    ? sorted.filter((r) =>
+        `${r.full_name} ${r.email}`.toLowerCase().includes(search.toLowerCase())
+      )
+    : sorted;
+
+  function initials(name: string) {
+    const parts = name.trim().split(/\s+/);
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+
+  return (
+    <div className="space-y-8">
+      {/* Header */}
+      <header className="flex flex-wrap items-end justify-between gap-4 pb-4 border-b border-[#E7E1D2]">
+        <div>
+          {chrome === "standalone" && (
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#6B6258] mb-2">
+              Applications
+            </p>
+          )}
+          <h2 className="text-3xl font-bold text-[#1F1B16] tracking-tight">
+            {surveyTitle}
+          </h2>
+          <p className="text-sm text-[#6B6258] mt-2 tabular-nums">
+            {total} applicant{total === 1 ? "" : "s"}
+            {filter !== "all" && (
+              <> · {programs.find((p) => p.slug === filter)?.name ?? filter}</>
+            )}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          {programsWithData.length > 1 && (
+            <div className="flex gap-1">
+              <FilterPill
+                label={`All (${responses.length})`}
+                active={filter === "all"}
+                onClick={() => onFilterChange("all")}
+              />
+              {programsWithData.map((p) => {
+                const count = responses.filter((r) => r.program_slug === p.slug).length;
+                return (
+                  <FilterPill
+                    key={p.slug}
+                    label={`${p.name} (${count})`}
+                    active={filter === p.slug}
+                    onClick={() => onFilterChange(p.slug)}
+                  />
+                );
+              })}
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={onDownloadCsv}
+            disabled={total === 0}
+            className="inline-flex items-center gap-1.5 rounded-md border border-[#E7E1D2] bg-[#FBF9F4] px-3 py-1.5 text-xs font-medium text-[#1F1B16] hover:bg-[#F2EDE0] transition-colors disabled:opacity-40"
+          >
+            ⬇️ CSV
+          </button>
+        </div>
+      </header>
+
+      {/* Search */}
+      <input
+        type="search"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search by name or email…"
+        className="w-full max-w-sm border border-[#E7E1D2] bg-[#FBF9F4] px-3 py-2 text-sm text-[#1F1B16] placeholder:text-[#9B9388] focus:border-[#1F1B16] focus:outline-none"
+      />
+
+      {/* Roster */}
+      <div className="divide-y divide-[#EFEAE0] border border-[#E7E1D2]">
+        {filtered.length === 0 && (
+          <p className="p-6 text-sm text-[#6B6258]">No applicants match your search.</p>
+        )}
+        {filtered.map((r) => {
+          const key = r.email || r.full_name;
+          const isOpen = expandedEmail === key;
+          const date = r.completed_at
+            ? new Date(r.completed_at).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })
+            : null;
+
+          return (
+            <div key={key}>
+              <button
+                type="button"
+                onClick={() => setExpandedEmail(isOpen ? null : key)}
+                className="w-full flex items-center gap-4 px-4 py-3.5 text-left hover:bg-[#F7F4EE] transition-colors"
+              >
+                {/* Initials avatar */}
+                <div
+                  className="shrink-0 h-9 w-9 rounded-full bg-[#E7E1D2] flex items-center justify-center text-[11px] font-semibold text-[#6B6258] select-none"
+                  aria-hidden
+                >
+                  {initials(r.full_name || r.email)}
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-[#1F1B16] truncate">
+                    {r.full_name || "—"}
+                  </p>
+                  <p className="text-[11px] text-[#9B9388] truncate">{r.email}</p>
+                </div>
+
+                <div className="shrink-0 flex items-center gap-3">
+                  {date && (
+                    <span className="text-[11px] text-[#9B9388] tabular-nums hidden sm:block">
+                      {date}
+                    </span>
+                  )}
+                  <span className={`text-[#9B9388] transition-transform inline-block text-xs ${isOpen ? "rotate-180" : ""}`}>
+                    ▾
+                  </span>
+                </div>
+              </button>
+
+              {isOpen && (
+                <div className="border-t border-[#EFEAE0] bg-[#FBF9F4] px-4 sm:px-6 py-5 space-y-6">
+                  {answerQs.map((q) => {
+                    const val = r.responses[q.id];
+                    const text = typeof val === "string" ? val.trim() : "";
+                    return (
+                      <div key={q.id}>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9B9388] mb-1">
+                          {q.label}
+                        </p>
+                        {text ? (
+                          <p className="text-[14px] text-[#1F1B16] leading-relaxed whitespace-pre-wrap">
+                            {text}
+                          </p>
+                        ) : (
+                          <p className="text-[13px] text-[#C4BDB0] italic">No answer</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {date && (
+                    <p className="text-[10px] text-[#9B9388] pt-2 border-t border-[#EFEAE0]">
+                      Submitted {date}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
