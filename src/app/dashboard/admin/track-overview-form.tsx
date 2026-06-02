@@ -40,37 +40,34 @@ export function TrackOverviewForm({ track }: Props) {
 
   const doSave = useRef(async (shouldRefresh = false) => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    setSaveState("saving");
+    // Optimistic — show Saved immediately so the UI feels instant.
+    setSaveState("saved");
+    if (shouldRefresh) startTransition(() => router.refresh());
+    setTimeout(() => setSaveState("idle"), 2000);
     try {
       const patch: TrackOverviewPatch = { ...latestValues.current };
       await saveTrackOverview(track.slug, patch);
-      setSaveState("saved");
-      // Only refresh the page when the user has explicitly left a field so
-      // the header/breadcrumb updates. Skipped during typing to avoid
-      // interrupting input mid-edit.
-      if (shouldRefresh) startTransition(() => router.refresh());
-      setTimeout(() => setSaveState("idle"), 2000);
     } catch (e) {
       console.error("[TrackOverviewForm] save failed:", e);
       setSaveState("error");
     }
   });
 
-  // Debounced autosave while typing — no page refresh so input stays stable.
+  // Debounced autosave while typing — 150ms, no page refresh.
   useEffect(() => {
     if (isFirstRun.current) {
       isFirstRun.current = false;
       return;
     }
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => doSave.current(false), 300);
+    saveTimer.current = setTimeout(() => doSave.current(false), 150);
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [name, instructor, description]);
 
-  // Immediate save on blur — refreshes the page so header/title updates.
+  // Immediate save on blur — refreshes page so header/title updates.
   const handleBlur = () => doSave.current(true);
 
   return (
