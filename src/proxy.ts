@@ -25,7 +25,7 @@ const VALID_PREVIEW_SLUGS = new Set([
 // enforces its own auth and redirects unauthenticated visitors to /login).
 // /login and /auth/ are also exempt so the magic-link callback can complete
 // before any gate check fires.
-const GATE_EXEMPT_PREFIXES = ["/gate", "/api/gate", "/survey/", "/join/", "/dashboard", "/login", "/auth/"];
+const GATE_EXEMPT_PREFIXES = ["/gate", "/api/gate", "/survey/", "/join/", "/apply/", "/dashboard", "/login", "/auth/"];
 const GATE_COOKIE = "site-access";
 const MARKETING_HOSTS = new Set(["bccacademy.io", "www.bccacademy.io"]);
 

@@ -13,6 +13,15 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "img.evbuc.com" },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: "/dashboard/apply/:slug",
+        destination: "/apply/:slug",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     const cspReport = [
       "default-src 'self'",

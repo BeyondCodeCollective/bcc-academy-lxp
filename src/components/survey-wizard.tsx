@@ -1026,9 +1026,13 @@ interface Props {
    *  unsubmitted progress on a shared device doesn't bleed into a new
    *  user's session. */
   userId?: string;
+  /** Custom submit handler for public (unauthenticated) forms. When provided,
+   *  called instead of saveSurveyResponse. The parent is responsible for
+   *  rendering the post-submit state. */
+  onSubmit?: (answers: Record<string, unknown>) => Promise<void>;
 }
 
-export function SurveyWizard({ surveyId, programSlug, existingResponses, userId }: Props) {
+export function SurveyWizard({ surveyId, programSlug, existingResponses, userId, onSubmit }: Props) {
   const router = useRouter();
   const storageKey = userId
     ? `survey-${surveyId}-${userId}-progress`
@@ -1126,11 +1130,15 @@ export function SurveyWizard({ surveyId, programSlug, existingResponses, userId 
     setSubmitting(true);
     setError("");
     try {
-      await saveSurveyResponse(surveyId, answers, programSlug);
-      if (typeof window !== "undefined") {
-        localStorage.removeItem(storageKey);
+      if (onSubmit) {
+        await onSubmit(answers);
+        if (typeof window !== "undefined") localStorage.removeItem(storageKey);
+        // parent handles post-submit state
+      } else {
+        await saveSurveyResponse(surveyId, answers, programSlug);
+        if (typeof window !== "undefined") localStorage.removeItem(storageKey);
+        router.refresh();
       }
-      router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to submit survey");
       setSubmitting(false);
