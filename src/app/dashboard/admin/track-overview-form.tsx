@@ -16,13 +16,10 @@ type Props = {
 };
 
 /**
- * Minimal track Overview admin form. Four fields only — name, professor,
- * description, and week titles. Everything else (schedule, totals, toggles,
- * icons) stays in the TS config until we deliberately plan more edit surface.
- *
- * Saves immediately on blur. Also debounces 300ms while typing (no page
- * refresh during typing so input stays stable). Page header updates via
- * startTransition(router.refresh()) on blur — non-blocking.
+ * Optimistic save — "✓ Saved" shows instantly on blur/type, DB write happens
+ * in the background. Error state surfaces if the write fails.
+ * Typing debounces at 150ms. Blur saves immediately + triggers a non-blocking
+ * page refresh so the header/title reflects the new value.
  */
 export function TrackOverviewForm({ track }: Props) {
   const router = useRouter();
