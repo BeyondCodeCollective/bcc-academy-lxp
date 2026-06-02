@@ -954,7 +954,7 @@ const SECURITY_PLUS_APPLICATION_PAGES: SurveyPage[] = [
       {
         type: "text",
         id: "why_techplus_network_plus",
-        label: "Why did you originally sign up for TECH+ and then Network+? Has anything changed about your goals since then?",
+        label: "Why did you originally sign up for Tech+ and then Network+? Has anything changed about your goals since then?",
         required: true,
       },
       {
