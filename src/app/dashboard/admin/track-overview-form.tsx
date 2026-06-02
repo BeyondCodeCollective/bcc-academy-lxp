@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { saveTrackOverview, type TrackOverviewPatch } from "./actions";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
@@ -24,42 +25,50 @@ type Props = {
  * the record unchanged so the few empty-state badges still render.
  */
 export function TrackOverviewForm({ track }: Props) {
+  const router = useRouter();
   const [name, setName] = useState(track.name);
   const [instructor, setInstructor] = useState(track.instructor);
   const [description, setDescription] = useState(track.description ?? "");
   const [saveState, setSaveState] = useState<SaveState>("idle");
 
-  // Debounced autosave — fires 800ms after the last edit. Skips the initial
-  // mount so we don't write back the unchanged defaults on first paint.
   const isFirstRun = useRef(true);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestValues = useRef({ name, instructor, description });
+
+  // Keep ref in sync so the blur handler always sends fresh values.
+  latestValues.current = { name, instructor, description };
+
+  const doSave = useRef(async () => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    setSaveState("saving");
+    try {
+      const patch: TrackOverviewPatch = { ...latestValues.current };
+      await saveTrackOverview(track.slug, patch);
+      setSaveState("saved");
+      router.refresh();
+      setTimeout(() => setSaveState("idle"), 2000);
+    } catch (e) {
+      console.error("[TrackOverviewForm] save failed:", e);
+      setSaveState("error");
+    }
+  });
+
+  // Debounced autosave — 300ms while typing.
   useEffect(() => {
     if (isFirstRun.current) {
       isFirstRun.current = false;
       return;
     }
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(async () => {
-      setSaveState("saving");
-      try {
-        const patch: TrackOverviewPatch = {
-          name,
-          instructor,
-          description,
-        };
-        await saveTrackOverview(track.slug, patch);
-        setSaveState("saved");
-        setTimeout(() => setSaveState("idle"), 2000);
-      } catch (e) {
-        console.error("[TrackOverviewForm] save failed:", e);
-        setSaveState("error");
-      }
-    }, 800);
+    saveTimer.current = setTimeout(() => doSave.current(), 300);
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [name, instructor, description]);
+
+  // Immediate save on blur — fires the moment you leave any field.
+  const handleBlur = () => doSave.current();
 
   return (
     <div className="space-y-6">
@@ -76,6 +85,7 @@ export function TrackOverviewForm({ track }: Props) {
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
+            onBlur={handleBlur}
             className={inputCls}
           />
         </Field>
@@ -85,6 +95,7 @@ export function TrackOverviewForm({ track }: Props) {
             type="text"
             value={instructor}
             onChange={(e) => setInstructor(e.target.value)}
+            onBlur={handleBlur}
             className={inputCls}
           />
         </Field>
@@ -96,6 +107,7 @@ export function TrackOverviewForm({ track }: Props) {
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
+            onBlur={handleBlur}
             rows={4}
             className={`${inputCls} resize-y leading-relaxed`}
           />
