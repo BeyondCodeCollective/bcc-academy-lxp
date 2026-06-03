@@ -92,26 +92,9 @@ type TrackOverrideRow = {
   reflections_enabled: boolean | null;
 };
 
-/**
- * Cross-request TTL cache so the dashboard layout skips Supabase on every
- * navigation. track_overrides change infrequently (admins editing track meta),
- * so a 60s TTL eliminates 2 DB round-trips per page click.
- */
-const _overrideStore = new Map<string, { data: Map<string, TrackOverrideRow>; ts: number }>();
-const _OVERRIDE_TTL = 60_000;
-
-/** Call after any mutation to track_overrides so the next request sees fresh data. */
-export function bustOverrideCache(programSlug: string) {
-  _overrideStore.delete(programSlug);
-  _dynamicCache.delete(programSlug);
-}
-
 // ─── Dynamic Program Resolution ──────────────────────────────────────────────
 
 type DynamicProgramRow = { id: string; slug: string; name: string | null };
-
-const _dynamicCache = new Map<string, { data: ProgramConfig | null; ts: number }>();
-const _DYNAMIC_TTL = 60_000;
 
 function buildTrackFromOverride(row: TrackOverrideRow): TrackConfig {
   const totalWeeks = row.total_weeks ?? 12;
@@ -201,9 +184,6 @@ function buildProgramFromDB(
  * is_dynamic program with that slug exists. TTL-cached like track_overrides.
  */
 export async function fetchDynamicProgram(slug: string): Promise<ProgramConfig | null> {
-  const cached = _dynamicCache.get(slug);
-  if (cached && Date.now() - cached.ts < _DYNAMIC_TTL) return cached.data;
-
   try {
     const svc = createServiceClient();
     const { data: programRow } = await svc
@@ -213,10 +193,7 @@ export async function fetchDynamicProgram(slug: string): Promise<ProgramConfig |
       .eq("is_dynamic", true)
       .maybeSingle();
 
-    if (!programRow) {
-      _dynamicCache.set(slug, { data: null, ts: Date.now() });
-      return null;
-    }
+    if (!programRow) return null;
 
     const { data: trackRows } = await svc
       .from("track_overrides")
@@ -225,17 +202,12 @@ export async function fetchDynamicProgram(slug: string): Promise<ProgramConfig |
       )
       .eq("program_id", programRow.id);
 
-    const config = buildProgramFromDB(
+    return buildProgramFromDB(
       programRow as DynamicProgramRow,
       (trackRows ?? []) as TrackOverrideRow[],
     );
-    _dynamicCache.set(slug, { data: config, ts: Date.now() });
-    return config;
   } catch (err) {
     console.warn("[fetchDynamicProgram] failed for slug=%s:", slug, err);
-    // Don't cache errors — a transient failure shouldn't make a newly-created
-    // course invisible for 60 seconds. Only successful null-results (program
-    // genuinely not found) are cached.
     return null;
   }
 }
@@ -251,10 +223,6 @@ export async function fetchDynamicProgram(slug: string): Promise<ProgramConfig |
  */
 const fetchOverrides = cache(
   async (programSlug: string): Promise<Map<string, TrackOverrideRow>> => {
-    const cached = _overrideStore.get(programSlug);
-    if (cached && Date.now() - cached.ts < _OVERRIDE_TTL) {
-      return cached.data;
-    }
     try {
       const svc = createServiceClient();
       const { data: programRow } = await svc
@@ -273,7 +241,6 @@ const fetchOverrides = cache(
       for (const row of data ?? []) {
         map.set((row as TrackOverrideRow).track_slug, row as TrackOverrideRow);
       }
-      _overrideStore.set(programSlug, { data: map, ts: Date.now() });
       return map;
     } catch (err) {
       // Don't take down the app if the table is missing (e.g. migration
