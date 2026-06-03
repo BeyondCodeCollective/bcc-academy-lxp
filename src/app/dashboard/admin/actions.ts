@@ -5,7 +5,6 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { hasCapability, canSwitchPrograms } from "@/lib/roles";
-import { bustOverrideCache } from "@/lib/programs/server";
 import type { Capability } from "@/lib/roles";
 
 async function requireCapability(capability: Capability) {
@@ -407,9 +406,6 @@ export async function saveTrackOverview(
     console.error(`[saveTrackOverview] ${trackSlug}:`, error.message);
     throw new Error(error.message);
   }
-
-  // Bust the in-memory override cache so the next request re-fetches from DB.
-  bustOverrideCache(program.slug);
 
   // Bust every page that renders track metadata so the edit propagates
   // immediately — dashboard grid, track overview, week pages, admin.
