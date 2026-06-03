@@ -422,6 +422,7 @@ export function AdminTabs({
   const defaultTab = "home";
 
   const [tab, setTab] = useState<string>(initialTab || defaultTab);
+  const [liveTrackNames, setLiveTrackNames] = useState<Record<string, { name: string; instructor: string }>>({});
 
   // Sync tab state when the URL ?tab= param changes (sidebar nav clicks).
   // Critical: when the URL switches BACK to /dashboard/admin with no ?tab=
@@ -956,10 +957,10 @@ export function AdminTabs({
           {/* Track header */}
           <header className="space-y-1.5">
             <h1 className="text-3xl font-bold text-neutral-900 tracking-tight">
-              {activeTrack.name}
+              {liveTrackNames[activeTrack.slug]?.name ?? activeTrack.name}
             </h1>
             <p className="text-xs text-neutral-500">
-              with {activeTrack.instructor} &middot;{" "}
+              with {liveTrackNames[activeTrack.slug]?.instructor ?? activeTrack.instructor} &middot;{" "}
               {activeTrack.sessionTimes.join(" & ")}
             </p>
           </header>
@@ -988,7 +989,13 @@ export function AdminTabs({
 
           {/* Sub-tab content */}
           {trackView === "overview" && (
-            <TrackOverviewForm key={activeTrack.slug} track={activeTrack} />
+            <TrackOverviewForm
+              key={activeTrack.slug}
+              track={activeTrack}
+              onLiveChange={(patch) =>
+                setLiveTrackNames((prev) => ({ ...prev, [activeTrack.slug]: patch }))
+              }
+            />
           )}
 
           {trackView === "curriculum" && (
