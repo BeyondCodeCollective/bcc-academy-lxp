@@ -38,13 +38,13 @@ export function TrackOverviewForm({ track, onLiveChange }: Props) {
 
   const doSave = useRef(async (shouldRefresh = false) => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    // Optimistic — show Saved immediately so the UI feels instant.
-    setSaveState("saved");
-    if (shouldRefresh) startTransition(() => router.refresh());
+    setSaveState("saved"); // optimistic indicator
     setTimeout(() => setSaveState("idle"), 2000);
     try {
       const patch: TrackOverviewPatch = { ...latestValues.current };
       await saveTrackOverview(track.slug, patch);
+      // Refresh AFTER the DB write + cache bust complete, not before.
+      if (shouldRefresh) startTransition(() => router.refresh());
     } catch (e) {
       console.error("[TrackOverviewForm] save failed:", e);
       setSaveState("error");
