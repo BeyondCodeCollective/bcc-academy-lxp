@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { addStudentAction, deleteStudentAction, updateStudentAction, updateCohortAction, saveSessionContent, assignStudentTrack, removeStudentTrack, bulkAssignTrack, exportSurveyResponses, exportPublicSurveyResponses, getAllSubmissions, addFeedback, assignInstructorTrack, removeInstructorTrack, deleteSurveyResponse, deletePublicSurveyResponse, listPublicSurveyResponses, sendInviteAction } from "./actions";
 import type { SessionResource, StudentTrackRow, SurveyStatsRow, AdminSubmissionRow, InstructorTrackRow, PublicSurveyStatsRow } from "./actions";
@@ -394,6 +395,7 @@ export function AdminTabs({
   insightsData?: InsightsData | null;
   alumniEnrollments?: { track_slug: string; email: string; source: string }[];
 }) {
+  const router = useRouter();
   const programSlug = initialProgramSlug;
   const isManager = canManageStudents(userRole);
   // Programs like Catalyst (apex) don't have a learner dashboard — no
@@ -423,6 +425,17 @@ export function AdminTabs({
 
   const [tab, setTab] = useState<string>(initialTab || defaultTab);
   const [liveTrackNames, setLiveTrackNames] = useState<Record<string, { name: string; instructor: string }>>({});
+
+  // When the browser restores this page from its back-forward cache (bfcache),
+  // the JS heap is frozen in time and router.refresh() on another page doesn't
+  // help. Detect restoration via pageshow and force a fresh fetch.
+  useEffect(() => {
+    const handlePageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) router.refresh();
+    };
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sync tab state when the URL ?tab= param changes (sidebar nav clicks).
   // Critical: when the URL switches BACK to /dashboard/admin with no ?tab=
