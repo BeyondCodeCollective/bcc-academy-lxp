@@ -381,7 +381,9 @@ export async function saveTrackOverview(
     updated_by: userId,
   };
   if ("name" in patch) row.name = blankToNull(patch.name);
+  // Keep short_name in sync with name unless the caller explicitly overrides it.
   if ("short_name" in patch) row.short_name = blankToNull(patch.short_name);
+  else if ("name" in patch) row.short_name = blankToNull(patch.name);
   if ("description" in patch) row.description = blankToNull(patch.description);
   if ("instructor" in patch) row.instructor = blankToNull(patch.instructor);
   if ("start_date" in patch) row.start_date = blankToNull(patch.start_date);
