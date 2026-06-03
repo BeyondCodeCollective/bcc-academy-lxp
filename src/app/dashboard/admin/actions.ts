@@ -352,17 +352,16 @@ export type TrackOverviewPatch = {
 export async function saveTrackOverview(
   trackSlug: string,
   patch: TrackOverviewPatch,
+  programSlug: string,
 ) {
   const { svc, userId } = await requireAdmin();
 
-  const { getProgram } = await import("@/lib/programs/server");
-  const program = await getProgram();
   const { data: programRow } = await svc
     .from("programs")
     .select("id")
-    .eq("slug", program.slug)
+    .eq("slug", programSlug)
     .single();
-  if (!programRow?.id) throw new Error(`Program not found: ${program.slug}`);
+  if (!programRow?.id) throw new Error(`Program not found: ${programSlug}`);
 
   // Empty-string text fields become null (= "use TS default") so admins can
   // clear an override without nuking their row. Numeric/array fields pass
@@ -413,7 +412,7 @@ export async function saveTrackOverview(
   revalidatePath(`/dashboard/track/${trackSlug}`, "page");
   revalidatePath(`/dashboard/track/${trackSlug}/[week]`, "page");
   revalidatePath("/dashboard/admin", "page");
-  revalidatePath(`/join/${program.slug}`, "page");
+  revalidatePath(`/join/${programSlug}`, "page");
 
   return { success: true };
 }

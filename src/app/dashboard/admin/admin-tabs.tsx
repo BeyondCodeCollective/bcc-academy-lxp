@@ -1005,6 +1005,7 @@ export function AdminTabs({
             <TrackOverviewForm
               key={activeTrack.slug}
               track={activeTrack}
+              programSlug={programSlug}
               onLiveChange={(patch) =>
                 setLiveTrackNames((prev) => ({ ...prev, [activeTrack.slug]: patch }))
               }

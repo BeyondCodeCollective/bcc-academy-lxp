@@ -13,6 +13,7 @@ type Props = {
     description?: string;
     instructor: string;
   };
+  programSlug: string;
   onLiveChange?: (patch: { name: string; instructor: string }) => void;
 };
 
@@ -22,7 +23,7 @@ type Props = {
  * Typing debounces at 150ms. Blur saves immediately + triggers a non-blocking
  * page refresh so the header/title reflects the new value.
  */
-export function TrackOverviewForm({ track, onLiveChange }: Props) {
+export function TrackOverviewForm({ track, programSlug, onLiveChange }: Props) {
   const router = useRouter();
   const [name, setName] = useState(track.name);
   const [instructor, setInstructor] = useState(track.instructor);
@@ -42,7 +43,7 @@ export function TrackOverviewForm({ track, onLiveChange }: Props) {
     setTimeout(() => setSaveState("idle"), 2000);
     try {
       const patch: TrackOverviewPatch = { ...latestValues.current };
-      await saveTrackOverview(track.slug, patch);
+      await saveTrackOverview(track.slug, patch, programSlug);
       // Refresh AFTER the DB write + cache bust complete, not before.
       if (shouldRefresh) startTransition(() => router.refresh());
     } catch (e) {
