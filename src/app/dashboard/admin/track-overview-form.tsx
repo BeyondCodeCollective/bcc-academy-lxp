@@ -13,6 +13,7 @@ type Props = {
     description?: string;
     instructor: string;
   };
+  onLiveChange?: (patch: { name: string; instructor: string }) => void;
 };
 
 /**
@@ -21,7 +22,7 @@ type Props = {
  * Typing debounces at 150ms. Blur saves immediately + triggers a non-blocking
  * page refresh so the header/title reflects the new value.
  */
-export function TrackOverviewForm({ track }: Props) {
+export function TrackOverviewForm({ track, onLiveChange }: Props) {
   const router = useRouter();
   const [name, setName] = useState(track.name);
   const [instructor, setInstructor] = useState(track.instructor);
@@ -81,7 +82,7 @@ export function TrackOverviewForm({ track }: Props) {
           <input
             type="text"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => { setName(e.target.value); onLiveChange?.({ name: e.target.value, instructor }); }}
             onBlur={handleBlur}
             className={inputCls}
           />
@@ -91,7 +92,7 @@ export function TrackOverviewForm({ track }: Props) {
           <input
             type="text"
             value={instructor}
-            onChange={(e) => setInstructor(e.target.value)}
+            onChange={(e) => { setInstructor(e.target.value); onLiveChange?.({ name, instructor: e.target.value }); }}
             onBlur={handleBlur}
             className={inputCls}
           />
