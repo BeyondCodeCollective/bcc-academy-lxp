@@ -762,7 +762,7 @@ export function AdminTabs({
             </h1>
             <p className="mt-1 text-sm text-neutral-500">
               {canSwitchPrograms(userRole)
-                ? "This domain doesn't have a learner dashboard. Pick a program from the sidebar to manage its tracks, or open Insights for cross-program analytics."
+                ? "This domain doesn't have a learner dashboard. Pick a program from the sidebar to manage its tracks, or open Analytics for cross-program data."
                 : "This domain doesn't have a learner dashboard. Contact a super-admin to switch programs."}
             </p>
           </header>
@@ -771,7 +771,7 @@ export function AdminTabs({
               href="/dashboard/insights"
               className="inline-flex items-center gap-2 bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800"
             >
-              View Insights
+              View Analytics
               <span aria-hidden>&rarr;</span>
             </a>
           )}
@@ -1442,7 +1442,7 @@ export function AdminTabs({
           ) : canSwitchPrograms(userRole) ? (
             <div className="border border-rule bg-surface-elevated p-8 text-center space-y-2">
               <p className="text-sm font-medium text-neutral-900">
-                Insights didn&apos;t load
+                Analytics didn&apos;t load
               </p>
               <p className="text-sm text-neutral-500">
                 Refresh the page. If it still doesn&apos;t load, the
@@ -1453,7 +1453,7 @@ export function AdminTabs({
           ) : (
             <div className="border border-rule bg-surface-elevated p-8 text-center">
               <p className="text-sm text-neutral-500">
-                Insights are only available to super-admins.
+                Analytics are only available to super-admins.
               </p>
             </div>
           )}

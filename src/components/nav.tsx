@@ -144,7 +144,7 @@ export function Nav({
       ? [{ href: "/dashboard/admin", label: "Admin", icon: "🛡️" }]
       : []),
     ...(canSwitch
-      ? [{ href: "/dashboard/insights", label: "Insights", icon: "📊" }]
+      ? [{ href: "/dashboard/insights", label: "Analytics", icon: "📊" }]
       : []),
   ];
 

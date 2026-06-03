@@ -208,7 +208,7 @@ export default async function InsightsPage() {
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
-            Insights
+            Analytics
           </h1>
           <p className="mt-1 text-sm text-neutral-500">
             Cross-program analytics for super-admins.
