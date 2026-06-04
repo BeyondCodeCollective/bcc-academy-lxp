@@ -89,6 +89,7 @@ export function Nav({
   curriculumTracks = [],
   adminTracks = [],
   lunchLearnRecordings = [],
+  showLunchLearnLink = false,
 }: {
   isAdmin: boolean;
   canAccessStaff?: boolean;
@@ -107,6 +108,7 @@ export function Nav({
   curriculumTracks?: CurriculumTrack[];
   adminTracks?: { slug: string; shortName: string }[];
   lunchLearnRecordings?: LunchLearnRecording[];
+  showLunchLearnLink?: boolean;
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -552,6 +554,18 @@ export function Nav({
         <div className="flex flex-col gap-1">
           <div className="my-1 h-px bg-white/10" aria-hidden />
           {lunchLearnNav}
+        </div>
+      )}
+
+      {variant === "student-sidebar" && showLunchLearnLink && (
+        <div className="flex flex-col gap-1">
+          <div className="my-1 h-px bg-white/10" aria-hidden />
+          <a
+            href="/dashboard/lunch-learn"
+            className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-white/60 hover:bg-white/10 hover:text-white transition-colors"
+          >
+            <span>Lunch &amp; Learns</span>
+          </a>
         </div>
       )}
 
