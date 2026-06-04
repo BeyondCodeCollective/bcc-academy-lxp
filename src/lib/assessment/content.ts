@@ -180,6 +180,7 @@ export const TRANSITION_MESSAGES = {
 
 export type ArchetypeContent = {
   name: string;
+  emoji: string;
   definition: string;
   learner: string;
   facilitator: string;
@@ -188,54 +189,63 @@ export type ArchetypeContent = {
 export const ARCHETYPE_CONTENT: Record<ArchetypeKey, ArchetypeContent> = {
   navigator: {
     name: "Navigator",
+    emoji: "🧭",
     definition: "Orients toward direction and purpose. Wants to understand where something is headed and why before acting, and keeps the goal in view when others lose it in the details.",
     learner: "You want to understand the point of something before you dive in. You think about where things are headed, not just what is in front of you, and you tend to hold onto the goal when other people get lost in the details. That sense of direction is genuinely useful. As you grow, the edge is acting before everything is fully clear, because the world rarely hands you the whole map first. Your instinct for purpose is a strong place to build from.",
     facilitator: "Leads with purpose and direction. Engages best when the why and the destination are clear, and can stall on work that feels pointless. Strength: big-picture orientation, keeping the goal in view. Growth edge: tolerating ambiguity, starting before the picture is complete. Cross-module: a Navigator who is also methodical and structured will especially want clarity up front; an adaptive one moves more easily. Coaching angle: connect tasks to the larger purpose, and practice taking first steps with incomplete information.",
   },
   developer: {
     name: "Developer",
+    emoji: "🛠️",
     definition: "Turns ideas into real, working things. Motivated by hands-on building, fixing, and visible progress on something they are making.",
     learner: "You like making things real. Ideas are fine, but you come alive when you can build, fix, or get your hands on something and watch it work. Seeing something you made come together is what keeps you going. That drive to produce is a real asset, especially in tech, where so much of the work is building. As you grow, the edge is stepping back to ask why and for whom before you build, so your skill goes toward what matters most.",
     facilitator: "Motivated by tangible output. Thrives with projects and prototypes, loses energy in long abstract discussion. Strength: making ideas real, persistence through building. Growth edge: pausing to weigh purpose and user before constructing. Cross-module: high Module 3 self-direction leans toward building their own thing; high stability-seeking prefers building inside an established team. Coaching angle: give them something to make early, tied to a clear purpose so they do not optimize the wrong thing well.",
   },
   igniter: {
     name: "Igniter",
+    emoji: "🔥",
     definition: "Provides activation energy. Starts things, takes the first step, and moves ideas from talk into action, even before the plan is fully formed.",
     learner: "You get things moving. When a group is stuck talking, you are the one who actually starts. You are willing to take the first step before everything is figured out, and that momentum is something a lot of people lack. Groups need it. As you grow, the edge is pairing your fast start with follow-through, so the things you kick off also get finished well.",
     facilitator: "Brings initiative and momentum, comfortable starting before conditions are perfect. Strength: activation, bias toward action. Growth edge: follow-through past the exciting start. Cross-module: keep Igniter (starting) separate from Module 2 pace (speed); an Igniter can be methodical once underway. High initiative with low Module 3 risk comfort can mean someone who starts boldly but strains under sustained uncertainty. Coaching angle: channel the starting energy, then build structure that supports finishing.",
   },
   connector: {
     name: "Connector",
+    emoji: "🤝",
     definition: "Bridges separate people, ideas, and resources. Notices useful links others miss and helps different parties understand each other.",
     learner: "You see connections other people miss. You notice when two people, or two ideas, should be linked, and you often make that link happen. When people are talking past each other, you are the one who helps them actually understand. That bridging instinct is rare and valuable, in tech and everywhere. As you grow, the edge is protecting time for your own focused work, because connectors can give so much to others that their own projects keep waiting.",
     facilitator: "Thinks in links and relationships across people, ideas, and resources. A natural bridge and translator. Strength: communication across difference, spotting useful links. Growth edge: protecting their own focus, not over-extending into everyone's needs. Cross-module: keep Connector (identity) separate from Module 2 social energy (work preference); a Connector can still prefer solo work. Coaching angle: use the bridging in real roles, and watch that they do not become the unpaid glue who never advances their own goals.",
   },
   systems_thinker: {
     name: "Systems Thinker",
+    emoji: "⚙️",
     definition: "Looks for patterns, causes, and structure. Wants to understand how parts fit and what is really driving a problem before choosing a solution.",
     learner: "You want to understand how things actually work. You look for the patterns and the real causes behind a problem instead of reacting to the surface, and before you pick a solution you want to know what is really going on underneath. That depth is a serious strength, especially in technical work, where the obvious answer is often the wrong one. As you grow, the edge is knowing when you have analyzed enough and it is time to decide and move.",
     facilitator: "Analyzes structure and causation, strong at root-cause work. Strength: analytical depth, pattern recognition, getting past symptoms. Growth edge: analysis paralysis, knowing when understanding is enough. Cross-module: a Systems Thinker who is also methodical especially needs permission to stop analyzing and decide. Coaching angle: value the depth, give clear decision points so analysis converts to action.",
   },
   culture_keeper: {
     name: "Culture Keeper",
+    emoji: "🌱",
     definition: "Tends the emotional climate of a group. Notices shifts in mood and energy, helps people feel included, and steadies a group when things get tense.",
     learner: "You feel the temperature of a room. You notice when the mood in a group shifts, often before anyone says anything, and you do small things to help people feel included and to keep things steady when they get tense. That care for how a group feels is a real strength, and it is the kind of thing that makes teams actually work. As you grow, the edge is tending to your own needs too, not only everyone else's, so the care you give does not run you empty.",
     facilitator: "Attends to group climate, belonging, and morale, senses mood shifts early. Strength: emotional awareness, inclusion, group stability. Growth edge: boundaries and self-care, since they often carry the group's emotional load. Cross-module: distinguish Culture Keeper (tending the collective) from Support Specialist (helping an individual) and from Module 2 social energy (preferring group work). Coaching angle: name and value the emotional labor explicitly, help them set boundaries so they do not absorb everyone's stress.",
   },
   designer: {
     name: "Designer",
+    emoji: "🎨",
     definition: "Shapes how things look, feel, and work for the person using them. Notices when something is confusing or hard to use and makes it clearer and more pleasant.",
     learner: "You notice when something is clunky, confusing, or hard to use, and it bothers you in a way it does not bother most people. You like shaping how a thing looks, feels, and works for whoever is on the other end of it. That eye for the experience is a genuine strength, and it is exactly what good design and good technology depend on. As you grow, the edge is balancing making something good with getting it in front of people, because real feedback beats endless polishing.",
     facilitator: "Focuses on usability and the craft of how a thing works for its user, notices friction and wants to fix it. Strength: user empathy, attention to experience, quality of craft. Growth edge: perfectionism, knowing when good enough is enough to ship and learn. Cross-module: separate Designer (shaping the artifact) from Connector (bridging people) and Developer (building function); a methodical Designer especially tends toward over-polishing. Coaching angle: protect the craft, give deadlines and real users so polishing becomes iteration.",
   },
   support_specialist: {
     name: "Support Specialist",
+    emoji: "🛡️",
     definition: "Helps a person get unstuck. Patient one-on-one troubleshooting, breaking things into steps, and steadying someone who is struggling.",
     learner: "You are the person others come to when they are stuck. You stay patient while someone works through something hard, and you have a way of breaking a confusing thing into small steps until it finally makes sense to them. Helping someone go from lost to capable is something you do well, and probably do often. That is a real strength, and it is the heart of a lot of good technical work. As you grow, the edge is pursuing your own learning and goals too, not only helping everyone else reach theirs.",
     facilitator: "Excels at one-on-one help, troubleshooting, and patient explanation, meeting a struggling person where they are. Strength: patience, breaking down complexity, steadying others. Growth edge: advancing their own goals, avoiding being typecast purely as helper. Cross-module: distinguish Support (helping one person) from Connector (linking many) and Culture Keeper (tending the group). Coaching angle: value the helping, and actively create space for their own advancement so the strength does not cap their growth.",
   },
   explorer: {
     name: "Explorer",
+    emoji: "🗺️",
     definition: "Driven by curiosity and openness. Tries different options, learns by experimenting, and stays interested in more than one path before committing.",
     learner: "You like to try things before you commit. You learn by experimenting and asking questions, and you are genuinely interested in more than one path, which means you want room to discover what actually fits you. That openness is a strength, especially right now, while you are figuring out where you are headed. As you grow, the edge is committing to something long enough to go deep, because the richest discoveries often come after you stop sampling and stay a while.",
     facilitator: "Curious, keeps options open, learns through experimentation, resists premature commitment. Strength: adaptability, breadth, willingness to try. Growth edge: committing and going deep rather than staying at the surface across many things. Cross-module: a flat or blended Module 1 result is common and consistent with a genuine Explorer, so do not over-pathologize it; pair with Module 3 to see what they are reaching toward. Coaching angle: honor the exploration phase, help them set a project or time boundary to practice depth without feeling trapped.",
