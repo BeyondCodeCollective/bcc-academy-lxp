@@ -114,6 +114,47 @@ export async function updateCohortAction(
   return { success: true };
 }
 
+export type CohortRow = {
+  id: string;
+  name: string;
+  display_name: string;
+  track_slug: string;
+  start_date: string | null;
+  total_weeks: number | null;
+};
+
+export async function createCohortAction(data: {
+  track_slug: string;
+  display_name: string;
+  start_date?: string | null;
+  total_weeks?: number | null;
+}): Promise<{ success: true; cohort: CohortRow }> {
+  const { svc, programId } = await requireManager();
+
+  const name = data.display_name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  const { data: cohort, error } = await svc
+    .from("cohorts")
+    .insert({
+      name,
+      display_name: data.display_name,
+      track_slug: data.track_slug,
+      start_date: data.start_date ?? null,
+      total_weeks: data.total_weeks ?? null,
+      program_id: programId,
+    })
+    .select("id, name, display_name, track_slug, start_date, total_weeks")
+    .single<CohortRow>();
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/dashboard/admin");
+  return { success: true, cohort: cohort! };
+}
+
 // Resolves a program UUID from its slug using the service client.
 // Used by actions that receive programSlug as a parameter rather than
 // resolving it from the current host.

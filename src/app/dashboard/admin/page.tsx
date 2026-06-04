@@ -56,14 +56,14 @@ export default async function AdminPage({
   // fetched as full rows only for tabs that manage individual enrollments.
   const needsStudents = isTrackTab || effectiveTab === "students" || effectiveTab === "student-work" || effectiveTab === "attendance" || effectiveTab === "home";
   const needsStudentTracks = isTrackTab || effectiveTab === "students" || effectiveTab === "student-work" || effectiveTab === "attendance" || effectiveTab === "home";
+  const isHomeTab = effectiveTab === "home";
   const needsInstructorTracks = isTrackTab || effectiveTab === "students";
-  const needsCohorts = isTrackTab || effectiveTab === "students";
+  const needsCohorts = isHomeTab || isTrackTab || effectiveTab === "students";
   const needsLunchLearns = effectiveTab === "lunch-learn";
   const needsInsightsData = effectiveTab === "insights";
-  const isHomeTab = effectiveTab === "home";
   void needsSurveyStats; // kept as a named constant for the gated query below
   let allStudents: Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id">[] = [];
-  let allCohorts: { id: string; name: string; display_name: string | null; start_date: string; total_weeks: number }[] = [];
+  let allCohorts: { id: string; name: string; display_name: string | null; track_slug: string | null; start_date: string | null; total_weeks: number | null }[] = [];
   let studentTracks: StudentTrackRow[] = [];
   let instructorTracks: InstructorTrackRow[] = [];
   let userRole = "student";
@@ -72,6 +72,7 @@ export default async function AdminPage({
   let lunchLearnRecordings: LunchLearnRow[] = [];
   let insightsData: InsightsData | null = null;
   let alumniEnrollments: { track_slug: string; email: string; source: string }[] = [];
+  let unviewedAssessments: number | null = null;
   const surveyStats: Record<string, SurveyStatsRow[]> = {};
   const surveyList = [
     ...Object.values(PLATFORM_AUTH_SURVEYS),
@@ -175,10 +176,10 @@ export default async function AdminPage({
         needsCohorts
           ? svc
               .from("cohorts")
-              .select("id, name, display_name, start_date, total_weeks")
+              .select("id, name, display_name, track_slug, start_date, total_weeks")
               .in("program_id", programIds)
               .order("created_at", { ascending: true })
-          : Promise.resolve({ data: [] as { id: string; name: string; display_name: string | null; start_date: string; total_weeks: number }[] }),
+          : Promise.resolve({ data: [] as { id: string; name: string; display_name: string | null; track_slug: string | null; start_date: string | null; total_weeks: number | null }[] }),
         needsStudentTracks
           ? isHomeTab
               ? svc
@@ -296,6 +297,15 @@ export default async function AdminPage({
       }
     }
     } // end !isDashboardlessProgram
+
+    // Unviewed assessment results — shown as a nudge on the home tab.
+    if (isHomeTab && canAccessAdminPanel(userRole)) {
+      const { count } = await svc
+        .from("assessment_results")
+        .select("*", { count: "exact", head: true })
+        .is("facilitator_viewed_at", null);
+      unviewedAssessments = count ?? 0;
+    }
 
     // Lunch & Learns recordings — only fetch when actually on that tab.
     if (canAccessAdminPanel(userRole) && needsLunchLearns) {
@@ -426,6 +436,16 @@ export default async function AdminPage({
 
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-5xl space-y-6 px-4 sm:px-5 py-8">
+      {(unviewedAssessments ?? 0) > 0 && (
+        <div className="mb-4 rounded-2xl bg-accent/10 border border-accent/20 px-5 py-3 flex items-center justify-between">
+          <p className="text-sm font-medium text-ink">
+            {unviewedAssessments} new pathway assessment{unviewedAssessments === 1 ? "" : "s"} to review
+          </p>
+          <a href="/dashboard/admin/assessments" className="text-sm font-semibold text-accent hover:underline">
+            View &rarr;
+          </a>
+        </div>
+      )}
       <AdminTabs
         cohorts={allCohorts}
         students={allStudents}
