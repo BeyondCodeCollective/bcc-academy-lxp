@@ -104,7 +104,7 @@ export const forgeConfig: ProgramConfig = {
   slug: "forge",
   name: "Beyond Code Centers",
   tagline: "Where Innovation Meets Community",
-  domain: "forge.bccacademy.io",
+  domain: "bccacademy.io",
   logo: "/forge/logo.svg",
   colors: {
     primary: "#0047AB",

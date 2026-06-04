@@ -4,7 +4,7 @@ export const atgConfig: ProgramConfig = {
   slug: "atg",
   name: "After The Game",
   tagline: "From Sports to Tech",
-  domain: "atg.bccacademy.io",
+  domain: "bccacademy.io",
   logo: "/atg/logo.svg",
   logoPng: "/atg/logo.png",
   welcomeVideo: "/atg/intro.mp4",

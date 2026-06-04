@@ -18,37 +18,22 @@ const SPECIAL_CONFIGS: Record<string, ProgramConfig> = {
 /**
  * Map hostnames to program slugs.
  *
- * With the Catalyst consolidation, all program subdomains are retired.
- * The apex (bccacademy.io) serves marketing for unauthenticated visitors;
- * the program-override cookie routes authenticated users to Catalyst.
- * Legacy subdomains redirect to the apex via DNS/Vercel config.
+ * All programs run on bccacademy.io. The apex serves marketing for
+ * unauthenticated visitors; program context is carried by the
+ * program-slug cookie (set by middleware) or the program-override
+ * cookie (super-admin switcher).
  */
 const DOMAIN_MAP: Record<string, string> = {
   "bccacademy.io": MARKETING_SLUG,
   "www.bccacademy.io": MARKETING_SLUG,
-  // Legacy subdomains — kept so existing bookmarks/links don't 404.
-  // They resolve to the Catalyst program, same as the override cookie.
-  "atg.bccacademy.io": "catalyst",
-  "forge.bccacademy.io": "catalyst",
-  "forte.bccacademy.io": "catalyst",
-  "catalyst.bccacademy.io": "catalyst",
-  "ai-fundamentals.bccacademy.io": "catalyst",
-  "ai-digital-natives.bccacademy.io": "catalyst",
-  "ai-automation.bccacademy.io": "catalyst",
 };
 
 /**
- * Returns true when the host is a recognized program subdomain.
- * Used to decide whether the override cookie should win or the URL.
- *
- * The marketing apex (`bccacademy.io`) is intentionally excluded: it
- * resolves to marketing by default, but we want the program-override
- * cookie to win there so authenticated users land in Catalyst.
+ * Always returns false — there are no program subdomains.
+ * Kept so callers (auth callback) don't need to change.
  */
-export function isKnownProgramHost(host: string): boolean {
-  const bare = host.replace(/:\d+$/, "");
-  const slug = DOMAIN_MAP[bare] ?? DOMAIN_MAP[host];
-  return slug !== undefined && slug !== MARKETING_SLUG;
+export function isKnownProgramHost(_host: string): boolean {
+  return false;
 }
 
 /**
