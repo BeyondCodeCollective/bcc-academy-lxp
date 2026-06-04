@@ -19,9 +19,10 @@ export type Cohort = {
   id: string;
   name: string;
   display_name: string | null;
-  start_date: string;
+  track_slug: string | null;
+  start_date: string | null;
   end_date: string | null;
-  total_weeks: number;
+  total_weeks: number | null;
   created_at: string;
 };
 

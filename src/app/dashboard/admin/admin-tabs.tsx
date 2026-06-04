@@ -30,9 +30,26 @@ type CohortRow = {
   id: string;
   name: string;
   display_name: string | null;
-  start_date: string;
-  total_weeks: number;
+  track_slug: string | null;
+  start_date: string | null;
+  total_weeks: number | null;
 };
+
+function trackLabel(slug: string | null): string {
+  if (!slug) return "";
+  const map: Record<string, string> = {
+    mass: "MASS",
+    techplus: "CompTIA Tech+",
+    "comptia-tech-plus": "CompTIA Tech+",
+    "network-plus": "Network+",
+    "security-plus": "Security+",
+    "ai-fundamentals": "AI Fundamentals",
+    "ai-automation": "AI Automation",
+    "game-dev": "Game Dev",
+    "ai-for-digital-natives": "AI for Digital Natives",
+  };
+  return map[slug] ?? slug;
+}
 
 type StudentRow = Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id">;
 
@@ -1950,16 +1967,16 @@ function PeopleTab({
             </div>
             {cohorts.length > 0 && (
               <div>
-                <label className="text-xs font-medium text-neutral-500">Cohort</label>
+                <label className="text-xs font-medium text-neutral-500">Group</label>
                 <div className="relative mt-1">
                   <select
                     value={addCohortId}
                     onChange={(e) => setAddCohortId(e.target.value)}
                     className="w-full appearance-none border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-2 text-sm text-neutral-700 focus:border-neutral-400 focus:outline-none"
                   >
-                    <option value="">No cohort</option>
+                    <option value="">No group</option>
                     {cohorts.map((c) => (
-                      <option key={c.id} value={c.id}>{c.display_name || c.name}</option>
+                      <option key={c.id} value={c.id}>{c.track_slug ? `${trackLabel(c.track_slug)} — ` : ""}{c.display_name || c.name}</option>
                     ))}
                   </select>
                   <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400">▾</span>
@@ -2127,7 +2144,7 @@ function PeopleTab({
                     {cohorts.length > 0 && s.role === "student" && (
                       <div>
                         <label className="text-[11px] font-medium uppercase tracking-wide text-neutral-500">
-                          Cohort
+                          Group
                         </label>
                         <div className="relative mt-1">
                           <select
@@ -2136,10 +2153,10 @@ function PeopleTab({
                             onChange={(e) => onUpdateStudent(s.id, "cohort_id", e.target.value)}
                             className="appearance-none border border-neutral-200 bg-white pl-3 pr-7 py-2 text-xs font-medium text-neutral-700 focus:border-neutral-400 focus:outline-none disabled:opacity-60"
                           >
-                            <option value="">No cohort</option>
+                            <option value="">No group</option>
                             {cohorts.map((c) => (
                               <option key={c.id} value={c.id}>
-                                {c.display_name || c.name}
+                                {c.track_slug ? `${trackLabel(c.track_slug)} — ` : ""}{c.display_name || c.name}
                               </option>
                             ))}
                           </select>

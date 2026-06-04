@@ -63,7 +63,7 @@ export default async function AdminPage({
   const isHomeTab = effectiveTab === "home";
   void needsSurveyStats; // kept as a named constant for the gated query below
   let allStudents: Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id">[] = [];
-  let allCohorts: { id: string; name: string; display_name: string | null; start_date: string; total_weeks: number }[] = [];
+  let allCohorts: { id: string; name: string; display_name: string | null; track_slug: string | null; start_date: string | null; total_weeks: number | null }[] = [];
   let studentTracks: StudentTrackRow[] = [];
   let instructorTracks: InstructorTrackRow[] = [];
   let userRole = "student";
@@ -175,10 +175,10 @@ export default async function AdminPage({
         needsCohorts
           ? svc
               .from("cohorts")
-              .select("id, name, display_name, start_date, total_weeks")
+              .select("id, name, display_name, track_slug, start_date, total_weeks")
               .in("program_id", programIds)
               .order("created_at", { ascending: true })
-          : Promise.resolve({ data: [] as { id: string; name: string; display_name: string | null; start_date: string; total_weeks: number }[] }),
+          : Promise.resolve({ data: [] as { id: string; name: string; display_name: string | null; track_slug: string | null; start_date: string | null; total_weeks: number | null }[] }),
         needsStudentTracks
           ? isHomeTab
               ? svc

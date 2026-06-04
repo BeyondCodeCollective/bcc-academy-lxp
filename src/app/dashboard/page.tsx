@@ -165,7 +165,7 @@ async function DashboardContent({
 
       if (cohort) {
         cohortName = cohort.display_name || cohort.name;
-        cohortStartDate = cohort.start_date;
+        cohortStartDate = cohort.start_date ?? cohortStartDate;
       } else if (!hasCohortId && !defaultCohortRes.data) {
         noCohort = true;
       }
