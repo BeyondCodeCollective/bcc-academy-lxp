@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSessionContext } from "@/lib/auth/session";
 import { canAccessAdminPanel } from "@/lib/roles";
-import { getProgramBySlug } from "@/lib/programs";
+import { getProgramWithOverrides } from "@/lib/programs/server";
 import { getAllowedEmails } from "./actions";
 import { AllowlistForm } from "./allowlist-form";
 import { TrackPicker } from "./track-picker";
@@ -29,7 +29,7 @@ export default async function AllowlistAdminPage({
   // Core / Workshop / Exit / Other) — much closer to the team's mental
   // model than the underlying program names, which mostly read like
   // legacy plumbing.
-  const catalyst = getProgramBySlug("catalyst");
+  const catalyst = await getProgramWithOverrides("catalyst");
   type Option = { slug: string; name: string; phase: string };
   const seen = new Set<string>();
   const options: Option[] = [];

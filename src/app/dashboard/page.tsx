@@ -400,7 +400,7 @@ async function DashboardContent({
         <SurveyCard key={survey.id} survey={survey} />
       ))}
 
-      {assessmentEnabled && !assessmentCompleted && (
+      {!isAdmin && assessmentEnabled && !assessmentCompleted && (
         <div className="rounded-2xl bg-accent/10 border border-accent/20 px-5 py-4 flex items-center justify-between gap-4">
           <div>
             <p className="font-semibold text-ink text-sm">Complete your pathway profile</p>
