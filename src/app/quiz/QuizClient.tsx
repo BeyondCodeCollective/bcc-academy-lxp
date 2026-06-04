@@ -604,7 +604,7 @@ function ResultsScreen({
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <a
-              href="https://atg.bccacademy.io"
+              href="/join/atg"
               className="group flex flex-col gap-2 p-4 bg-cobalt text-white hover:bg-dark-cobalt transition-colors"
             >
               <span className="text-[10px] font-mono uppercase tracking-wider text-white/60">Program</span>

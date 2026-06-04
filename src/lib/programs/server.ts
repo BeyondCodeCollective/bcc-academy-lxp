@@ -8,16 +8,13 @@ import { createServiceClient } from "@/lib/supabase/server";
  * Get the current program config in a server component or server action.
  *
  * Resolution order (first match wins):
- *  1. Recognized production host (e.g. atg.bccacademy.io) — URL is the
- *     strongest signal and can't be faked by a cookie.
- *  2. `program-override` cookie — set by the super-admin program switcher
- *     in the admin panel; only honored on non-production hosts.
- *  3. `x-program-slug` request header — set by middleware on every request
+ *  1. `program-override` cookie — set by the super-admin program switcher.
+ *  2. `x-program-slug` request header — set by middleware on every request
  *     so server actions (which don't receive the original URL) can read it.
- *  4. `program-slug` cookie — fallback for requests where the header hasn't
+ *  3. `program-slug` cookie — fallback for requests where the header hasn't
  *     propagated yet (e.g. first render on a cold edge node).
- *  5. Domain-based lookup on the raw host — handles unknown subdomains and
- *     local dev (falls back to the default program for the domain).
+ *  4. Domain-based lookup — bccacademy.io → marketing; everything else
+ *     (Vercel preview URLs, localhost) → catalyst.
  *
  * Track-level metadata from `track_overrides` is layered on top of the
  * static TS config (null in DB = use config default), so admins can edit

@@ -67,20 +67,8 @@ export function UserMenu({
       window.location.href = "/dashboard/admin/surveys";
       return;
     }
-    const target = programs.find((p) => p.slug === slug);
-    const productionHosts = new Set<string>([
-      "bccacademy.io",
-      "www.bccacademy.io",
-      ...programs.map((p) => p.domain),
-    ]);
-    const onProductionHost = productionHosts.has(window.location.hostname);
-    const targetDnsReady = target?.dnsReady !== false;
-    if (target && onProductionHost && targetDnsReady) {
-      window.location.href = `https://${target.domain}/dashboard`;
-    } else {
-      document.cookie = `program-override=${slug}; path=/; max-age=86400`;
-      router.push("/dashboard");
-    }
+    document.cookie = `program-override=${slug}; path=/; max-age=86400`;
+    router.push("/dashboard");
   };
   /* eslint-enable react-hooks/immutability */
 

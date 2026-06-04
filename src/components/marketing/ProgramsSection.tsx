@@ -39,7 +39,7 @@ const programs: {
     description:
       "A cohort-based program that meets athletes in transition and prepares them for where work is going. Participants build a shared digital and workforce foundation, then specialize into direct placement, portfolio building, or an entrepreneurial path aligned to their strengths.",
     cta: "Apply to ATG",
-    href: "https://atg.bccacademy.io",
+    href: "/join/atg",
     icon: "🏆",
   },
   {
