@@ -76,6 +76,9 @@ export async function completePendingSetup(
   }
 
   // 2. Resolve the set of tracks this user should be enrolled in.
+  // Admins and super_admins are not learners — skip track enrollment entirely.
+  const role = currentRole ?? determineRole(email);
+  if (role === "admin" || role === "super_admin") return;
   //
   // Two sources, OR'd together for invite-only programs:
   //   • `trackParam` — set when the user came in through a /join link with

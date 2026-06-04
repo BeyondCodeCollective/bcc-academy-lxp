@@ -212,6 +212,12 @@ export async function GET(request: Request) {
         const envRole = determineRole(email);
         const isPrivilegedByEnv = envRole === "super_admin" || envRole === "admin";
 
+        // Privileged admins are not learners — don't route them into a specific
+        // track even if the allowlist lookup found one. Without this clear, the
+        // track leaks into ?track= and deferred-setup enrolls the admin as if
+        // they were a student joining the course.
+        if (isPrivilegedByEnv) trackParam = null;
+
         // Allowlist inference: when a learner has no existing student row and
         // no explicit join slug, fall back to their per-track allowlist entries
         // to decide which program shell to drop them into. Upskill Bahamas
