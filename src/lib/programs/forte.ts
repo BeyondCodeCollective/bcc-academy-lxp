@@ -14,8 +14,8 @@ const FORTE_START_DATE = "2026-06-01";
 
 export const forteConfig: ProgramConfig = {
   slug: "forte",
-  name: "Beyond Code Centers",
-  tagline: "AI literacy for the modern world",
+  name: "Upskill Bahamas",
+  tagline: "AI literacy for the modern Bahamas",
   domain: "forte.bccacademy.io",
   // IT hasn't cut DNS over yet — until then, the program switcher uses the
   // cookie-based override so super-admins can still preview Forte content
@@ -31,7 +31,7 @@ export const forteConfig: ProgramConfig = {
   },
   defaultCohort: {
     name: "forte-cohort-1",
-    displayName: "Beyond Code Centers — Cohort 1",
+    displayName: "Upskill Bahamas — Cohort 1",
     startDate: FORTE_START_DATE,
     totalWeeks: 10,
   },
@@ -309,10 +309,10 @@ export const forteConfig: ProgramConfig = {
   requireInviteLink: true,
   coppa: { required: false },
   seo: {
-    title: "Beyond Code Centers — AI Literacy Program by Beyond Code Collective",
+    title: "Upskill Bahamas — AI Literacy Program by Beyond Code Collective",
     description:
-      "Beyond Code Centers builds confidence with the essential AI and digital skills needed to thrive in a modern, tech-enabled world. A beginner-friendly AI literacy program by Beyond Code Collective.",
-    ogTitle: "Beyond Code Centers — AI Literacy Program",
+      "Upskill Bahamas builds confidence with the essential AI and digital skills needed to thrive in a modern, tech-enabled world. A beginner-friendly AI literacy program by Beyond Code Collective.",
+    ogTitle: "Upskill Bahamas — AI Literacy Program",
     ogDescription:
       "Beginner-friendly AI literacy training — prompt design, digital identity, productivity, research, and entrepreneurship. By Beyond Code Collective.",
   },

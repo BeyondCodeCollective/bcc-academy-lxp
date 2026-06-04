@@ -7,8 +7,8 @@ import { FeatureToggles } from "./feature-toggles";
 const PROGRAM_LABELS: Record<string, string> = {
   catalyst:  "Catalyst",
   atg:       "After the Game",
-  forte:     "Beyond Code Centers",
-  forge:     "Forge",
+  forte:     "Upskill Bahamas",
+  forge:     "Beyond Code Centers",
 };
 
 export default async function FeaturesPage() {
