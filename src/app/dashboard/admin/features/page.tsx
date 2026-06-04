@@ -8,7 +8,7 @@ const PROGRAM_LABELS: Record<string, string> = {
   catalyst:  "Catalyst",
   atg:       "After the Game",
   forte:     "Beyond Code Centers",
-  forge:     "Beyond Code Centers",
+  forge:     "Forge",
 };
 
 export default async function FeaturesPage() {

@@ -102,7 +102,7 @@ const AUTOMATION_BOOTCAMP_GATE: IntakeGate = {
 
 export const forgeConfig: ProgramConfig = {
   slug: "forge",
-  name: "Beyond Code Centers",
+  name: "Forge",
   tagline: "Where Innovation Meets Community",
   domain: "forge.bccacademy.io",
   logo: "/forge/logo.svg",
