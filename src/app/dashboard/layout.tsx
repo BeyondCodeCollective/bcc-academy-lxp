@@ -201,9 +201,14 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
     // The switcher only shows TS-config programs; manage courses via /admin/courses.
   }
 
+  // Only redirect staff with no tracks to Lunch & Learns when they're on
+  // the Catalyst umbrella (no specific program context). Staff who are also
+  // enrolled learners in a specific program (forte, forge, etc.) should land
+  // on their program dashboard, not the L&L hub.
+  const isUmbrellaContext = program.slug === "catalyst" || program.slug === "bcc-academy";
   const showLunchLearnSidebar =
     previewingSlug === LUNCH_LEARN_PREVIEW_SLUG ||
-    (!isAdmin && enrolledTrackSlugs.length === 0 && !!email && isStaffEmail(email));
+    (!isAdmin && enrolledTrackSlugs.length === 0 && !!email && isStaffEmail(email) && isUmbrellaContext);
 
   const navVariant: "admin-sidebar" | "student-sidebar" | "lunch-learn-sidebar" | "topbar" = isAdmin
     ? "admin-sidebar"
