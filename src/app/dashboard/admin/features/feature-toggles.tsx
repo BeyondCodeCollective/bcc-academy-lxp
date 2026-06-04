@@ -1,14 +1,7 @@
 "use client";
 
-import { useTransition } from "react";
-import { toggleAssessment } from "./actions";
-
-type ProgramFeatures = {
-  assessment_enabled: boolean;
-  pre_survey_id: string | null;
-  post_survey_id: string | null;
-  mid_survey_id: string | null;
-};
+import { useState, useTransition } from "react";
+import { toggleAssessment, toggleTrackAssessment } from "./actions";
 
 const PROGRAM_LABELS: Record<string, string> = {
   catalyst: "Catalyst",
@@ -19,19 +12,25 @@ const PROGRAM_LABELS: Record<string, string> = {
 
 export function FeatureToggles({
   programs,
-  featuresMap,
+  programFlagsMap,
+  programTracks,
+  trackFlagsMap,
 }: {
   programs: string[];
-  featuresMap: Record<string, ProgramFeatures>;
+  programFlagsMap: Record<string, boolean>;
+  programTracks: Record<string, { slug: string; name: string }[]>;
+  trackFlagsMap: Record<string, boolean>;
 }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {programs.map((slug) => (
         <ProgramCard
           key={slug}
           slug={slug}
           label={PROGRAM_LABELS[slug] ?? slug}
-          features={featuresMap[slug]}
+          programEnabled={programFlagsMap[slug] ?? false}
+          tracks={programTracks[slug] ?? []}
+          trackFlagsMap={trackFlagsMap}
         />
       ))}
     </div>
@@ -41,24 +40,61 @@ export function FeatureToggles({
 function ProgramCard({
   slug,
   label,
-  features,
+  programEnabled,
+  tracks,
+  trackFlagsMap,
 }: {
   slug: string;
   label: string;
-  features: ProgramFeatures;
+  programEnabled: boolean;
+  tracks: { slug: string; name: string }[];
+  trackFlagsMap: Record<string, boolean>;
 }) {
+  const [expanded, setExpanded] = useState(false);
+
   return (
     <div className="rounded-2xl border border-ink/10 overflow-hidden">
-      <div className="px-5 py-3 border-b border-ink/10 bg-ink/[0.02]">
+      <div className="px-5 py-3 border-b border-ink/10 bg-ink/[0.02] flex items-center justify-between">
         <h2 className="text-sm font-semibold text-ink">{label}</h2>
+        {tracks.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="text-xs text-ink/40 hover:text-ink/60 transition-colors"
+          >
+            {expanded ? "Hide tracks" : `${tracks.length} track${tracks.length === 1 ? "" : "s"} ↓`}
+          </button>
+        )}
       </div>
-      <div className="px-5 py-4 space-y-3">
+
+      <div className="px-5 py-4 space-y-4">
+        {/* Program-level toggle — turns it on for ALL tracks in this program */}
         <ToggleRow
-          label="Pathway Assessment"
-          description="Show the 3-module learner pathway assessment in the onboarding flow"
-          enabled={features.assessment_enabled}
+          label="Pathway Assessment — all tracks"
+          description={
+            tracks.length > 0
+              ? "Turns on for every track in this program at once"
+              : "Turns on the pathway assessment for this program"
+          }
+          enabled={programEnabled}
           onToggle={(val) => toggleAssessment(slug, val)}
         />
+
+        {/* Per-track toggles */}
+        {expanded && tracks.length > 0 && (
+          <div className="space-y-3 pl-4 border-l-2 border-ink/10 pt-1">
+            <p className="text-xs text-ink/40 font-medium uppercase tracking-widest">Individual tracks</p>
+            {tracks.map((track) => (
+              <ToggleRow
+                key={track.slug}
+                label={track.name}
+                description={track.slug}
+                enabled={trackFlagsMap[track.slug] ?? false}
+                onToggle={(val) => toggleTrackAssessment(track.slug, val)}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -85,9 +121,9 @@ function ToggleRow({
 
   return (
     <div className="flex items-center justify-between gap-4">
-      <div>
-        <p className="text-sm font-medium text-ink">{label}</p>
-        <p className="text-xs text-ink/50 mt-0.5">{description}</p>
+      <div className="min-w-0">
+        <p className="text-sm font-medium text-ink truncate">{label}</p>
+        <p className="text-xs text-ink/40 mt-0.5 truncate">{description}</p>
       </div>
       <button
         type="button"

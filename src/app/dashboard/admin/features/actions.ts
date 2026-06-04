@@ -30,3 +30,14 @@ export async function toggleAssessment(programSlug: string, enabled: boolean) {
   revalidatePath("/dashboard/admin/features");
   revalidatePath("/dashboard");
 }
+
+export async function toggleTrackAssessment(trackSlug: string, enabled: boolean) {
+  const svc = await requireSuperAdmin();
+  await svc.from("track_features").upsert({
+    track_slug: trackSlug,
+    assessment_enabled: enabled,
+    updated_at: new Date().toISOString(),
+  });
+  revalidatePath("/dashboard/admin/features");
+  revalidatePath("/dashboard");
+}

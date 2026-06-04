@@ -17,7 +17,7 @@ import { getEnrolledTracks } from "@/lib/enrollment";
 import { BCC_INTAKE_SURVEY_ID, BCC_INTAKE_EXEMPT_PROGRAMS } from "@/lib/surveys/platform";
 import { isStaffEmail } from "@/lib/auth/admins";
 import { completePendingSetup } from "@/lib/auth/deferred-setup";
-import { isAssessmentEnabled } from "@/lib/assessment/features";
+import { isAssessmentEnabledForLearner } from "@/lib/assessment/features";
 
 export const dynamic = "force-dynamic";
 
@@ -230,8 +230,8 @@ async function DashboardContent({
           }
         }
 
-        // Assessment onboarding prompt — check feature flag and completion
-        assessmentEnabled = await isAssessmentEnabled(program.slug);
+        // Assessment onboarding prompt — check program OR track-level flag
+        assessmentEnabled = await isAssessmentEnabledForLearner(program.slug, enrolledTrackSlugs);
         if (assessmentEnabled) {
           const svcForAssessment = createServiceClient();
           const { count } = await svcForAssessment
