@@ -38,12 +38,14 @@ export function ResultsProfile({ result }: { result: ScoredOutput }) {
   return (
     <div className="mx-auto max-w-2xl px-5 py-12 space-y-10">
       {/* Header */}
-      <div className="space-y-2">
+      <div className="space-y-3">
         <p className="text-xs font-semibold uppercase tracking-widest text-accent">
           Your Pathway Profile
         </p>
-        <h1 className="text-2xl font-bold text-ink">
-          {showArchetypeNarrative ? archetypeContent.name : "Your Profile"}
+        <h1 className="text-4xl font-black text-ink leading-tight">
+          {showArchetypeNarrative ? (
+            <>{archetypeContent.emoji} {archetypeContent.name}</>
+          ) : "Your Profile"}
         </h1>
         <p className="text-ink/70 leading-relaxed">{archetypeSummaryText}</p>
       </div>
@@ -51,7 +53,7 @@ export function ResultsProfile({ result }: { result: ScoredOutput }) {
       {/* Section 1 — How you show up */}
       <Section
         id="archetype"
-        title="How you show up"
+        title="✨ How you show up"
         isOpen={openSection === "archetype"}
         onToggle={() => setOpenSection(openSection === "archetype" ? null : "archetype")}
       >
@@ -76,7 +78,7 @@ export function ResultsProfile({ result }: { result: ScoredOutput }) {
       {/* Section 2 — How you tend to work */}
       <Section
         id="workstyle"
-        title="How you tend to work"
+        title="🔧 How you tend to work"
         isOpen={openSection === "workstyle"}
         onToggle={() => setOpenSection(openSection === "workstyle" ? null : "workstyle")}
       >
@@ -109,7 +111,7 @@ export function ResultsProfile({ result }: { result: ScoredOutput }) {
       {/* Section 3 — What drives you */}
       <Section
         id="pathway"
-        title="What drives you"
+        title="🎯 What drives you"
         isOpen={openSection === "pathway"}
         onToggle={() => setOpenSection(openSection === "pathway" ? null : "pathway")}
       >
