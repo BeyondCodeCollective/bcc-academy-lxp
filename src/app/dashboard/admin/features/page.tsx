@@ -2,10 +2,14 @@ import { redirect } from "next/navigation";
 import { getSessionContext } from "@/lib/auth/session";
 import { canSwitchPrograms } from "@/lib/roles";
 import { createServiceClient } from "@/lib/supabase/server";
-import { getProgramBySlug, getAllPrograms } from "@/lib/programs";
 import { FeatureToggles } from "./feature-toggles";
 
-const KNOWN_PROGRAM_SLUGS = ["catalyst", "atg", "forte", "forge"];
+const PROGRAM_LABELS: Record<string, string> = {
+  catalyst:  "Catalyst",
+  atg:       "After the Game",
+  forte:     "Forte / Upskill Bahamas",
+  forge:     "Beyond Code Centers",
+};
 
 export default async function FeaturesPage() {
   const ctx = await getSessionContext();
@@ -14,57 +18,53 @@ export default async function FeaturesPage() {
 
   const svc = createServiceClient();
 
-  // Load program-level flags
-  const { data: progRows } = await svc
-    .from("program_features")
-    .select("*")
-    .in("program_slug", KNOWN_PROGRAM_SLUGS);
+  // Use the DB as the only source of truth for which tracks belong to which program.
+  // track_overrides is what the admin panel actually manages — don't use TS config here.
+  const { data: programs } = await svc
+    .from("programs")
+    .select("id, slug, name")
+    .order("slug");
 
-  // Build all track slugs across known programs (TS config + DB overrides)
-  const allTrackSlugs: string[] = [];
-  const programTracks: Record<string, { slug: string; name: string }[]> = {};
+  const programSlugs = (programs ?? []).map((p) => p.slug as string);
 
-  for (const slug of KNOWN_PROGRAM_SLUGS) {
-    const prog = getProgramBySlug(slug);
-    const tracks = (prog?.tracks ?? []).map((t) => ({ slug: t.slug, name: t.name }));
-    programTracks[slug] = tracks;
-    allTrackSlugs.push(...tracks.map((t) => t.slug));
-  }
-
-  // Also load any DB-only tracks (track_overrides) not in TS config
-  const { data: overrideTracks } = await svc
+  // Load track_overrides grouped by program
+  const { data: trackRows } = await svc
     .from("track_overrides")
-    .select("track_slug, name")
+    .select("track_slug, name, program_id")
     .is("archived_at", null);
 
-  for (const row of overrideTracks ?? []) {
-    const trackSlug = row.track_slug as string;
-    if (!allTrackSlugs.includes(trackSlug)) {
-      // Find which program this track belongs to by checking program configs
-      for (const slug of KNOWN_PROGRAM_SLUGS) {
-        const prog = getProgramBySlug(slug);
-        if (prog?.tracks.some((t) => t.slug === trackSlug)) {
-          programTracks[slug] = [
-            ...(programTracks[slug] ?? []),
-            { slug: trackSlug, name: (row.name as string) ?? trackSlug },
-          ];
-          allTrackSlugs.push(trackSlug);
-          break;
-        }
-      }
-      // If not matched to a known program, add to catalyst as fallback
-      if (!allTrackSlugs.includes(trackSlug)) {
-        programTracks["catalyst"] = [
-          ...(programTracks["catalyst"] ?? []),
-          { slug: trackSlug, name: (row.name as string) ?? trackSlug },
-        ];
-        allTrackSlugs.push(trackSlug);
-      }
+  const programIdToSlug = Object.fromEntries(
+    (programs ?? []).map((p) => [p.id as string, p.slug as string])
+  );
+
+  const programTracks: Record<string, { slug: string; name: string }[]> = {};
+  for (const slug of programSlugs) {
+    programTracks[slug] = [];
+  }
+  for (const row of trackRows ?? []) {
+    const progSlug = programIdToSlug[row.program_id as string];
+    if (progSlug) {
+      programTracks[progSlug] = [
+        ...(programTracks[progSlug] ?? []),
+        { slug: row.track_slug as string, name: (row.name as string) ?? row.track_slug as string },
+      ];
     }
   }
 
-  // Load track-level flags
-  const { data: trackRows } = allTrackSlugs.length > 0
+  // Load program-level feature flags
+  const { data: progFlagRows } = await svc
+    .from("program_features")
+    .select("program_slug, assessment_enabled")
+    .in("program_slug", programSlugs);
+
+  const programFlagsMap: Record<string, boolean> = {};
+  for (const row of progFlagRows ?? []) {
+    programFlagsMap[row.program_slug as string] = row.assessment_enabled as boolean;
+  }
+
+  // Load track-level feature flags
+  const allTrackSlugs = Object.values(programTracks).flat().map((t) => t.slug);
+  const { data: trackFlagRows } = allTrackSlugs.length > 0
     ? await svc
         .from("track_features")
         .select("track_slug, assessment_enabled")
@@ -72,14 +72,15 @@ export default async function FeaturesPage() {
     : { data: [] };
 
   const trackFlagsMap: Record<string, boolean> = {};
-  for (const row of trackRows ?? []) {
+  for (const row of trackFlagRows ?? []) {
     trackFlagsMap[row.track_slug as string] = row.assessment_enabled as boolean;
   }
 
-  const programFlagsMap: Record<string, boolean> = {};
-  for (const row of progRows ?? []) {
-    programFlagsMap[row.program_slug as string] = row.assessment_enabled as boolean;
-  }
+  // Show known programs in a sensible order; fall back to DB order for unknowns
+  const orderedSlugs = ["catalyst", "atg", "forte", "forge"].filter((s) =>
+    programSlugs.includes(s)
+  );
+  const remaining = programSlugs.filter((s) => !orderedSlugs.includes(s));
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10 space-y-8">
@@ -91,7 +92,8 @@ export default async function FeaturesPage() {
       </div>
 
       <FeatureToggles
-        programs={KNOWN_PROGRAM_SLUGS}
+        programs={[...orderedSlugs, ...remaining]}
+        programLabels={PROGRAM_LABELS}
         programFlagsMap={programFlagsMap}
         programTracks={programTracks}
         trackFlagsMap={trackFlagsMap}
