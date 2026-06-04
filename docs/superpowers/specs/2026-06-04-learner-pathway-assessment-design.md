@@ -15,19 +15,46 @@ The Catalyst Learner Pathway Alignment Tool is a 49-item self-report assessment 
 
 ---
 
+## Program feature flags
+
+The assessment (and onboarding surveys) should be configurable per program without a code deploy. A super admin can flip a switch in the admin panel to enable or disable the assessment for any program. Same pattern applies to required surveys.
+
+**New table: `program_features`**
+
+```sql
+create table program_features (
+  program_slug text primary key,
+  assessment_enabled boolean not null default false,
+  updated_at timestamptz not null default now()
+);
+
+-- Seed defaults
+insert into program_features (program_slug, assessment_enabled) values
+  ('catalyst', true),
+  ('forte',    false);
+```
+
+The assessment gate checks this table for the learner's current `program_slug`. When `assessment_enabled = false`, the assessment step is skipped entirely — the learner goes straight from demographic intake to their dashboard. Toggling it on activates the gate immediately for all new and returning learners in that program who haven't completed it yet.
+
+This is the foundation for a broader feature-flag pattern. Future flags (e.g. `pre_survey_enabled`, `cohort_survey_enabled`) follow the same shape — add a column, read it at the gate, flip it from the admin panel.
+
+**Admin toggle location:** `super_admin` panel → Program Settings → Features. A simple on/off toggle per program, no code required.
+
+---
+
 ## User journey placement
 
 ```
 /join/[slug] → register → first login
   → BCC demographic intake (required, existing)
-  → Learner pathway assessment (required, new)
+  → [if assessment_enabled] Learner pathway assessment
       → [immediate] Learner results profile
       → [immediate] New completion appears in facilitator admin panel
   → Program pre-survey (program-specific, existing)
   → Dashboard
 ```
 
-The assessment is prompted at `/dashboard/start` after the demographic intake is marked complete. Not a hard block for MVP — a clear call-to-action. One-time only per learner (no retake logic).
+The assessment is prompted at `/dashboard/start` after the demographic intake is marked complete. Not a hard block for MVP — a clear call-to-action. One-time only per learner (no retake logic). Skipped entirely if `program_features.assessment_enabled = false` for the learner's program.
 
 ---
 
@@ -321,11 +348,13 @@ Framework version: 0.3_draft
 | New | `src/lib/assessment/scoring.ts` |
 | New | `src/lib/assessment/content.ts` (all questions + prewritten language blocks) |
 | New | `src/lib/assessment/types.ts` |
+| New | `src/lib/assessment/features.ts` (reads `program_features` flag) |
 | New | `src/app/dashboard/assessment/page.tsx` |
 | New | `src/app/dashboard/assessment/actions.ts` |
 | New | `src/app/dashboard/assessment/results/page.tsx` |
 | New | `src/app/dashboard/admin/assessments/page.tsx` |
 | New | `src/app/dashboard/admin/assessments/[studentId]/page.tsx` |
+| New | `src/app/dashboard/admin/programs/[slug]/features/page.tsx` (super_admin toggle UI) |
 | Modify | `src/components/survey-fields.tsx` (add `forced-choice` type) |
 | New | `supabase/migrations/assessment_tables.sql` |
 
