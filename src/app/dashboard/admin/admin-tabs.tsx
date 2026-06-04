@@ -955,11 +955,6 @@ export function AdminTabs({
 
             {/* Groups */}
             <div className="mt-8">
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
-                  Groups
-                </h2>
-              </div>
               <GroupsPanel cohorts={cohorts} tracks={tracks} />
             </div>
 
@@ -1782,6 +1777,20 @@ function PeopleTab({
   const [addingStudent, setAddingStudent] = useState(false);
   const [addError, setAddError] = useState("");
 
+  // Inline "New group" form — add-student panel
+  const [showNewGroupFormAdd, setShowNewGroupFormAdd] = useState(false);
+  const [newGroupTrackAdd, setNewGroupTrackAdd] = useState("");
+  const [newGroupNameAdd, setNewGroupNameAdd] = useState("");
+  const [newGroupSavingAdd, setNewGroupSavingAdd] = useState(false);
+
+  // Inline "New group" form — student row edit panel
+  const [showNewGroupFormRow, setShowNewGroupFormRow] = useState<string | null>(null); // student id
+  const [newGroupTrackRow, setNewGroupTrackRow] = useState("");
+  const [newGroupNameRow, setNewGroupNameRow] = useState("");
+  const [newGroupSavingRow, setNewGroupSavingRow] = useState(false);
+
+  const router = useRouter();
+
   const filtered = students.filter((s) => {
     const matchesSearch =
       !searchQuery ||
@@ -1991,6 +2000,66 @@ function PeopleTab({
                   </select>
                   <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400">▾</span>
                 </div>
+                {!showNewGroupFormAdd ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowNewGroupFormAdd(true)}
+                    className="mt-1 text-[11px] text-neutral-400 hover:text-neutral-600 transition-colors"
+                  >
+                    + New group
+                  </button>
+                ) : (
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <select
+                      value={newGroupTrackAdd}
+                      onChange={(e) => setNewGroupTrackAdd(e.target.value)}
+                      className="border border-neutral-200 bg-neutral-50 pl-3 pr-2 py-1.5 text-xs text-neutral-700 focus:border-neutral-400 focus:outline-none"
+                    >
+                      <option value="">— select track —</option>
+                      {tracks.map((t) => (
+                        <option key={t.slug} value={t.slug}>{t.shortName || t.name}</option>
+                      ))}
+                    </select>
+                    <input
+                      type="text"
+                      value={newGroupNameAdd}
+                      onChange={(e) => setNewGroupNameAdd(e.target.value)}
+                      placeholder="e.g. Security+ · Cohort 1"
+                      className="border border-neutral-200 bg-neutral-50 pl-3 py-1.5 text-xs text-neutral-700 focus:border-neutral-400 focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      disabled={newGroupSavingAdd || !newGroupTrackAdd || !newGroupNameAdd.trim()}
+                      onClick={async () => {
+                        setNewGroupSavingAdd(true);
+                        try {
+                          await createCohortAction({
+                            track_slug: newGroupTrackAdd,
+                            display_name: newGroupNameAdd.trim(),
+                            start_date: null,
+                            total_weeks: null,
+                          });
+                          setShowNewGroupFormAdd(false);
+                          setNewGroupTrackAdd("");
+                          setNewGroupNameAdd("");
+                          router.refresh();
+                        } finally {
+                          setNewGroupSavingAdd(false);
+                        }
+                      }}
+                      className="border border-neutral-200 bg-neutral-900 px-3 py-1.5 text-xs text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
+                    >
+                      {newGroupSavingAdd ? "…" : "Create"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setShowNewGroupFormAdd(false); setNewGroupTrackAdd(""); setNewGroupNameAdd(""); }}
+                      className="text-[11px] text-neutral-400 hover:text-neutral-600 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -2172,6 +2241,71 @@ function PeopleTab({
                           </select>
                           <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400">▾</span>
                         </div>
+                        {showNewGroupFormRow !== s.id ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const slugs = getStudentTrackSlugs(s.id);
+                              setNewGroupTrackRow(slugs.length === 1 ? slugs[0] : "");
+                              setNewGroupNameRow("");
+                              setShowNewGroupFormRow(s.id);
+                            }}
+                            className="mt-1 text-[11px] text-neutral-400 hover:text-neutral-600 transition-colors"
+                          >
+                            + New group
+                          </button>
+                        ) : (
+                          <div className="mt-2 flex flex-wrap items-center gap-2">
+                            <select
+                              value={newGroupTrackRow}
+                              onChange={(e) => setNewGroupTrackRow(e.target.value)}
+                              className="border border-neutral-200 bg-neutral-50 pl-3 pr-2 py-1.5 text-xs text-neutral-700 focus:border-neutral-400 focus:outline-none"
+                            >
+                              <option value="">— select track —</option>
+                              {tracks.map((t) => (
+                                <option key={t.slug} value={t.slug}>{t.shortName || t.name}</option>
+                              ))}
+                            </select>
+                            <input
+                              type="text"
+                              value={newGroupNameRow}
+                              onChange={(e) => setNewGroupNameRow(e.target.value)}
+                              placeholder="e.g. Security+ · Cohort 1"
+                              className="border border-neutral-200 bg-neutral-50 pl-3 py-1.5 text-xs text-neutral-700 focus:border-neutral-400 focus:outline-none"
+                            />
+                            <button
+                              type="button"
+                              disabled={newGroupSavingRow || !newGroupTrackRow || !newGroupNameRow.trim()}
+                              onClick={async () => {
+                                setNewGroupSavingRow(true);
+                                try {
+                                  await createCohortAction({
+                                    track_slug: newGroupTrackRow,
+                                    display_name: newGroupNameRow.trim(),
+                                    start_date: null,
+                                    total_weeks: null,
+                                  });
+                                  setShowNewGroupFormRow(null);
+                                  setNewGroupTrackRow("");
+                                  setNewGroupNameRow("");
+                                  router.refresh();
+                                } finally {
+                                  setNewGroupSavingRow(false);
+                                }
+                              }}
+                              className="border border-neutral-200 bg-neutral-900 px-3 py-1.5 text-xs text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
+                            >
+                              {newGroupSavingRow ? "…" : "Create"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => { setShowNewGroupFormRow(null); setNewGroupTrackRow(""); setNewGroupNameRow(""); }}
+                              className="text-[11px] text-neutral-400 hover:text-neutral-600 transition-colors"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -2673,6 +2807,21 @@ function GroupsPanel({
 
   return (
     <div className="space-y-2">
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
+          Groups
+        </h2>
+        {!showForm && (
+          <button
+            type="button"
+            onClick={() => setShowForm(true)}
+            className="text-xs text-neutral-400 hover:text-neutral-700 transition-colors"
+          >
+            + New Group
+          </button>
+        )}
+      </div>
+
       {cohorts.length === 0 && !showForm && (
         <p className="text-sm text-neutral-400">
           No groups yet. Create one to organize students by track and cohort.
@@ -2775,15 +2924,6 @@ function GroupsPanel({
         </form>
       )}
 
-      {!showForm && (
-        <button
-          type="button"
-          onClick={() => setShowForm(true)}
-          className="text-xs text-neutral-400 hover:text-neutral-700 transition-colors"
-        >
-          + New Group
-        </button>
-      )}
     </div>
   );
 }
