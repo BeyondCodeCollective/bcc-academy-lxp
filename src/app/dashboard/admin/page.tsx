@@ -56,11 +56,11 @@ export default async function AdminPage({
   // fetched as full rows only for tabs that manage individual enrollments.
   const needsStudents = isTrackTab || effectiveTab === "students" || effectiveTab === "student-work" || effectiveTab === "attendance" || effectiveTab === "home";
   const needsStudentTracks = isTrackTab || effectiveTab === "students" || effectiveTab === "student-work" || effectiveTab === "attendance" || effectiveTab === "home";
+  const isHomeTab = effectiveTab === "home";
   const needsInstructorTracks = isTrackTab || effectiveTab === "students";
-  const needsCohorts = isTrackTab || effectiveTab === "students";
+  const needsCohorts = isHomeTab || isTrackTab || effectiveTab === "students";
   const needsLunchLearns = effectiveTab === "lunch-learn";
   const needsInsightsData = effectiveTab === "insights";
-  const isHomeTab = effectiveTab === "home";
   void needsSurveyStats; // kept as a named constant for the gated query below
   let allStudents: Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id">[] = [];
   let allCohorts: { id: string; name: string; display_name: string | null; track_slug: string | null; start_date: string | null; total_weeks: number | null }[] = [];

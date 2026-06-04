@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { addStudentAction, deleteStudentAction, updateStudentAction, updateCohortAction, saveSessionContent, assignStudentTrack, removeStudentTrack, bulkAssignTrack, exportSurveyResponses, exportPublicSurveyResponses, getAllSubmissions, addFeedback, assignInstructorTrack, removeInstructorTrack, deleteSurveyResponse, deletePublicSurveyResponse, listPublicSurveyResponses, sendInviteAction } from "./actions";
+import { addStudentAction, deleteStudentAction, updateStudentAction, updateCohortAction, saveSessionContent, assignStudentTrack, removeStudentTrack, bulkAssignTrack, exportSurveyResponses, exportPublicSurveyResponses, getAllSubmissions, addFeedback, assignInstructorTrack, removeInstructorTrack, deleteSurveyResponse, deletePublicSurveyResponse, listPublicSurveyResponses, sendInviteAction, createCohortAction } from "./actions";
 import type { SessionResource, StudentTrackRow, SurveyStatsRow, AdminSubmissionRow, InstructorTrackRow, PublicSurveyStatsRow } from "./actions";
 import { canManageStudents, canSwitchPrograms } from "@/lib/roles";
 import { Avatar } from "@/components/avatar";
@@ -951,6 +951,16 @@ export function AdminTabs({
                 Survey &amp; form links
               </h2>
               <SurveyLinksPanel surveyConfigs={surveyConfigs} />
+            </div>
+
+            {/* Groups */}
+            <div className="mt-8">
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
+                  Groups
+                </h2>
+              </div>
+              <GroupsPanel cohorts={cohorts} tracks={tracks} />
             </div>
 
           </div>
@@ -2619,6 +2629,164 @@ const PUBLIC_SURVEY_LINKS = [
   { id: "network-plus-post",        label: "Network+ End-of-Cohort Survey",        path: "/survey/network-plus-post" },
   { id: "security-plus-application",label: "Security+ Application",               path: "/apply/security-plus" },
 ];
+
+function GroupsPanel({
+  cohorts,
+  tracks,
+}: {
+  cohorts: CohortRow[];
+  tracks: AdminTrackConfig[];
+}) {
+  const router = useRouter();
+  const [showForm, setShowForm] = useState(false);
+  const [trackSlug, setTrackSlug] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [totalWeeks, setTotalWeeks] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!trackSlug || !displayName.trim()) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      await createCohortAction({
+        track_slug: trackSlug,
+        display_name: displayName.trim(),
+        start_date: startDate || null,
+        total_weeks: totalWeeks ? parseInt(totalWeeks, 10) : null,
+      });
+      setShowForm(false);
+      setTrackSlug("");
+      setDisplayName("");
+      setStartDate("");
+      setTotalWeeks("");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create group");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="space-y-2">
+      {cohorts.length === 0 && !showForm && (
+        <p className="text-sm text-neutral-400">
+          No groups yet. Create one to organize students by track and cohort.
+        </p>
+      )}
+
+      {cohorts.map((c) => (
+        <div
+          key={c.id}
+          className="flex items-center justify-between gap-4 border border-rule bg-surface-elevated px-4 py-3"
+        >
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-neutral-900 truncate">
+              {c.display_name || c.name}
+            </p>
+            {c.track_slug && (
+              <p className="text-[11px] text-neutral-400 truncate">
+                {trackLabel(c.track_slug)}
+              </p>
+            )}
+          </div>
+        </div>
+      ))}
+
+      {showForm && (
+        <form
+          onSubmit={handleSubmit}
+          className="border border-rule bg-surface-elevated p-4 space-y-3"
+        >
+          <p className="text-sm font-semibold text-neutral-900">New group</p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label className="text-xs font-medium text-neutral-500">Track</label>
+              <div className="relative mt-1">
+                <select
+                  required
+                  value={trackSlug}
+                  onChange={(e) => setTrackSlug(e.target.value)}
+                  className="w-full appearance-none border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-2 text-sm text-neutral-700 focus:border-neutral-400 focus:outline-none"
+                >
+                  <option value="">— select track —</option>
+                  {tracks.map((t) => (
+                    <option key={t.slug} value={t.slug}>
+                      {t.shortName || t.name}
+                    </option>
+                  ))}
+                </select>
+                <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400">▾</span>
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-neutral-500">Name</label>
+              <input
+                type="text"
+                required
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder="e.g. Security+ · Cohort 1"
+                className="mt-1 w-full border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-neutral-500">Start date (optional)</label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="mt-1 w-full border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-neutral-500">Duration in weeks (optional)</label>
+              <input
+                type="number"
+                min="1"
+                value={totalWeeks}
+                onChange={(e) => setTotalWeeks(e.target.value)}
+                placeholder="e.g. 10"
+                className="mt-1 w-full border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
+              />
+            </div>
+          </div>
+          {error && <p className="text-xs text-red-600">{error}</p>}
+          <div className="flex items-center gap-3 pt-1">
+            <button
+              type="submit"
+              disabled={submitting}
+              className="border border-neutral-200 px-3 py-2 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors disabled:opacity-50"
+            >
+              {submitting ? "Creating…" : "Create group"}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setShowForm(false); setError(null); }}
+              className="text-xs text-neutral-400 hover:text-neutral-600 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
+
+      {!showForm && (
+        <button
+          type="button"
+          onClick={() => setShowForm(true)}
+          className="text-xs text-neutral-400 hover:text-neutral-700 transition-colors"
+        >
+          + New Group
+        </button>
+      )}
+    </div>
+  );
+}
 
 function SurveyLinksPanel({ surveyConfigs }: { surveyConfigs: { id: string; title: string }[] }) {
   const [copied, setCopied] = useState<string | null>(null);
