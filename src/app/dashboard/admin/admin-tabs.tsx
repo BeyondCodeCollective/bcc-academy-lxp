@@ -394,6 +394,7 @@ export function AdminTabs({
   lunchLearnRecordings = [],
   insightsData = null,
   alumniEnrollments = [],
+  unviewedAssessments = 0,
 }: {
   cohorts: CohortRow[];
   students: StudentRow[];
@@ -411,6 +412,7 @@ export function AdminTabs({
   lunchLearnRecordings?:{ id: string; title: string; presenter: string; recording_url: string; description: string | null; recorded_at: string }[];
   insightsData?: InsightsData | null;
   alumniEnrollments?: { track_slug: string; email: string; source: string }[];
+  unviewedAssessments?: number;
 }) {
   const router = useRouter();
   const programSlug = initialProgramSlug;
@@ -937,6 +939,27 @@ export function AdminTabs({
                 Survey &amp; form links
               </h2>
               <SurveyLinksPanel surveyConfigs={surveyConfigs} />
+            </div>
+
+            {/* Pathway Assessments */}
+            <div className="mt-6">
+              <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
+                Pathway assessments
+              </h2>
+              <a
+                href="/dashboard/admin/assessments"
+                className="flex items-center justify-between rounded-xl border border-neutral-200 bg-white px-4 py-3 hover:border-neutral-400 transition-colors"
+              >
+                <span className="text-sm font-medium text-neutral-900">Learner pathway profiles</span>
+                <span className="flex items-center gap-2">
+                  {(unviewedAssessments ?? 0) > 0 && (
+                    <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-semibold text-white">
+                      {unviewedAssessments} new
+                    </span>
+                  )}
+                  <span className="text-neutral-400 text-sm">→</span>
+                </span>
+              </a>
             </div>
 
             {/* Groups */}

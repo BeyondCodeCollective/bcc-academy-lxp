@@ -436,16 +436,6 @@ export default async function AdminPage({
 
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-5xl space-y-6 px-4 sm:px-5 py-8">
-      {(unviewedAssessments ?? 0) > 0 && (
-        <div className="mb-4 rounded-2xl bg-accent/10 border border-accent/20 px-5 py-3 flex items-center justify-between">
-          <p className="text-sm font-medium text-ink">
-            {unviewedAssessments} new pathway assessment{unviewedAssessments === 1 ? "" : "s"} to review
-          </p>
-          <a href="/dashboard/admin/assessments" className="text-sm font-semibold text-accent hover:underline">
-            View &rarr;
-          </a>
-        </div>
-      )}
       <AdminTabs
         cohorts={allCohorts}
         students={allStudents}
@@ -463,6 +453,7 @@ export default async function AdminPage({
         lunchLearnRecordings={lunchLearnRecordings}
         insightsData={insightsData}
         alumniEnrollments={alumniEnrollments}
+        unviewedAssessments={unviewedAssessments ?? 0}
       />
     </div>
   );
