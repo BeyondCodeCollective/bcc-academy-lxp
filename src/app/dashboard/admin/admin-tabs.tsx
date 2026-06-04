@@ -838,34 +838,12 @@ export function AdminTabs({
                     </Link>
                   </>
                 )}
-                <Link
-                  href="/dashboard/admin?tab=students"
-                  title="All people"
-                  className="flex h-8 w-8 items-center justify-center text-neutral-400 transition-colors hover:text-neutral-900"
-                >
-                  👥
-                </Link>
-                <Link
-                  href="/dashboard/admin?tab=student-work"
-                  title="Student work"
-                  className="flex h-8 w-8 items-center justify-center text-neutral-400 transition-colors hover:text-neutral-900"
-                >
-                  📋
-                </Link>
-                <Link
-                  href="/dashboard/admin?tab=attendance"
-                  title="Attendance"
-                  className="flex h-8 w-8 items-center justify-center text-neutral-400 transition-colors hover:text-neutral-900"
-                >
-                  📊
-                </Link>
                 {isManager && (
                   <Link
                     href="/dashboard/admin/allowlist"
-                    title="Signup allowlist"
-                    className="flex h-8 w-8 items-center justify-center text-neutral-400 transition-colors hover:text-neutral-900"
+                    className="mr-2 flex items-center gap-1.5 rounded-md border border-neutral-200 px-3 py-1.5 text-xs font-semibold text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
                   >
-                    🛡️
+                    Allowlist
                   </Link>
                 )}
               </div>
