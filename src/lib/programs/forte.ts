@@ -1,11 +1,8 @@
 import type { ProgramConfig } from "./types";
 
-// Upskill Bahamas — a beginner-friendly AI literacy program for the Bahamian
-// market, served from forte.bccacademy.io. Curriculum is the 10-session
-// "AI Literacy" track below (see .context/attachments/ForteBahamas syllabus).
-//
-// NOTE: "forte" is a separate program from "forge" (Beyond Code Centers) — similar
-// names, unrelated programs.
+// Beyond Code Centers — AI literacy program served from forte.bccacademy.io.
+// Curriculum is the 10-session "AI Literacy" track below.
+// Internal slug remains "forte" for DB/routing continuity.
 //
 // Forte runs fully self-paced — every session is a pre-recorded video, no live
 // meetings. The `selfPaced: true` flag on the track unlocks per-week recordings
@@ -17,8 +14,8 @@ const FORTE_START_DATE = "2026-06-01";
 
 export const forteConfig: ProgramConfig = {
   slug: "forte",
-  name: "Upskill Bahamas",
-  tagline: "AI literacy for the modern Bahamas",
+  name: "Beyond Code Centers",
+  tagline: "AI literacy for the modern world",
   domain: "forte.bccacademy.io",
   // IT hasn't cut DNS over yet — until then, the program switcher uses the
   // cookie-based override so super-admins can still preview Forte content
@@ -34,7 +31,7 @@ export const forteConfig: ProgramConfig = {
   },
   defaultCohort: {
     name: "forte-cohort-1",
-    displayName: "Upskill Bahamas — Cohort 1",
+    displayName: "Beyond Code Centers — Cohort 1",
     startDate: FORTE_START_DATE,
     totalWeeks: 10,
   },
@@ -312,10 +309,10 @@ export const forteConfig: ProgramConfig = {
   requireInviteLink: true,
   coppa: { required: false },
   seo: {
-    title: "Upskill Bahamas — AI Literacy Program by Beyond Code Collective",
+    title: "Beyond Code Centers — AI Literacy Program by Beyond Code Collective",
     description:
-      "Upskill Bahamas builds confidence with the essential AI and digital skills needed to thrive in a modern, tech-enabled world. A beginner-friendly AI literacy program by Beyond Code Collective.",
-    ogTitle: "Upskill Bahamas — AI Literacy Program",
+      "Beyond Code Centers builds confidence with the essential AI and digital skills needed to thrive in a modern, tech-enabled world. A beginner-friendly AI literacy program by Beyond Code Collective.",
+    ogTitle: "Beyond Code Centers — AI Literacy Program",
     ogDescription:
       "Beginner-friendly AI literacy training — prompt design, digital identity, productivity, research, and entrepreneurship. By Beyond Code Collective.",
   },
