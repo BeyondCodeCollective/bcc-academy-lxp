@@ -12,15 +12,21 @@ export default async function AssessmentPage() {
 
   const svc = createServiceClient();
 
-  // Resolve enrolled track slugs for the current user
+  const program = await getProgram();
+
+  // Resolve enrolled track slugs scoped to this program only.
+  // A learner enrolled in a Catalyst track (e.g. entrepreneurship-101) must not
+  // be able to access the assessment from the Upskill Bahamas context just
+  // because that track happens to have assessment_enabled = true.
   const { data: enrollmentRows } = await svc
     .from("student_tracks")
     .select("track_slug")
     .eq("student_id", ctx.userId);
-  const enrolledTrackSlugs = (enrollmentRows ?? []).map((r) => r.track_slug as string);
+  const allEnrolledSlugs = (enrollmentRows ?? []).map((r) => r.track_slug as string);
+  const programTrackSlugs = new Set(program.tracks.map((t) => t.slug));
+  const enrolledTrackSlugs = allEnrolledSlugs.filter((s) => programTrackSlugs.has(s));
 
   // Feature gate — redirect to dashboard if assessment isn't on for this learner
-  const program = await getProgram();
   const enabled = await isAssessmentEnabledForLearner(program.slug, enrolledTrackSlugs);
   if (!enabled) redirect("/dashboard");
 
