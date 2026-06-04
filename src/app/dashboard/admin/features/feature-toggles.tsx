@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { toggleAssessment, toggleTrackAssessment } from "./actions";
 
 export function FeatureToggles({
@@ -106,11 +107,16 @@ function ToggleRow({
   enabled: boolean;
   onToggle: (val: boolean) => Promise<void>;
 }) {
+  const [optimistic, setOptimistic] = useState(enabled);
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
   const handleChange = () => {
+    const next = !optimistic;
+    setOptimistic(next);
     startTransition(async () => {
-      await onToggle(!enabled);
+      await onToggle(next);
+      router.refresh();
     });
   };
 
@@ -123,21 +129,21 @@ function ToggleRow({
       <button
         type="button"
         role="switch"
-        aria-checked={enabled}
+        aria-checked={optimistic}
         onClick={handleChange}
         disabled={isPending}
         className={`
           relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent
           transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2
           disabled:opacity-50
-          ${enabled ? "bg-accent" : "bg-ink/20"}
+          ${optimistic ? "bg-accent" : "bg-ink/20"}
         `}
       >
         <span
           className={`
             pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow
             transition-transform duration-200
-            ${enabled ? "translate-x-5" : "translate-x-0"}
+            ${optimistic ? "translate-x-5" : "translate-x-0"}
           `}
         />
       </button>
