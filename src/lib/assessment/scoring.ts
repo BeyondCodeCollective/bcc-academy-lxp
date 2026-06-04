@@ -74,7 +74,7 @@ function scoreModule1(responses: RawResponses): Pick<ScoredOutput,
     archetype_is_blended = true;
   } else if (primaryScore >= 4.0 && gap >= 0.50) {
     confidence = "high";
-    if (gap <= 0.50) {
+    if (gap < 0.75) {
       archetype_secondary = secondary;
     }
   } else if (primaryScore >= 3.50 && gap > 0.25 && gap < 0.50) {
@@ -118,6 +118,9 @@ function scoreModule2(responses: RawResponses): Pick<ScoredOutput,
 
   function tally(dimension: string): [string, "clear" | "lighter"] {
     const choices = poles[dimension];
+    if (!choices || choices.length === 0) {
+      throw new Error(`No responses recorded for dimension: ${dimension}`);
+    }
     const counts: Record<string, number> = {};
     for (const p of choices) counts[p] = (counts[p] ?? 0) + 1;
     const sorted = Object.entries(counts).sort(([, a], [, b]) => b - a);

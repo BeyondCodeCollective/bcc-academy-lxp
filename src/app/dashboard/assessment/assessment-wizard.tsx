@@ -20,10 +20,11 @@ export function AssessmentWizard({
   const router = useRouter();
   const [responses, setResponses] = useState<RawResponses>(initialResponses);
   const [stage, setStage] = useState<WizardStage>(() => {
-    if (initialModule <= 1) return "m1a";
-    if (initialModule === 2) return "m1b";
-    if (initialModule === 3) return "m2";
-    return "m3";
+    if (initialModule === 0) return "m1a";  // no progress
+    if (initialModule === 1) return "m1b";  // M1A done
+    if (initialModule === 2) return "m2";   // M1B done
+    if (initialModule === 3) return "m3";   // M2 done
+    return "m1a";  // fallback
   });
   const [transitionMsg, setTransitionMsg] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);

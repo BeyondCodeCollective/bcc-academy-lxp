@@ -25,7 +25,7 @@ export default async function AssessmentPage() {
   return (
     <div className="min-h-screen bg-paper">
       <AssessmentWizard
-        initialModule={progress?.current_module ?? 1}
+        initialModule={progress?.current_module ?? 0}
         initialResponses={(progress?.responses_so_far as Record<string, number | string>) ?? {}}
         programSlug={programSlug}
       />

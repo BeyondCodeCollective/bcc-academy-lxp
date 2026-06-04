@@ -93,6 +93,7 @@ export type DateQuestion = {
 export type ForcedChoiceQuestion = {
   type: "forced-choice";
   id: string;
+  label?: string;
   scenario: string;
   optionA: { label: string; pole: string };
   optionB: { label: string; pole: string };

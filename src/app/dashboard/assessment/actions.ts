@@ -62,7 +62,14 @@ export async function submitAssessment(
     completed_at: new Date().toISOString(),
   });
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    // Unique violation means already submitted — treat as idempotent success
+    if (error.code === "23505") {
+      revalidatePath("/dashboard/assessment/results");
+      return { success: true, scored_output };
+    }
+    throw new Error(error.message);
+  }
 
   // Clean up in-progress state
   await svc.from("assessment_progress").delete().eq("student_id", user.id);
@@ -102,7 +109,21 @@ export async function getAssessmentResult(studentId?: string) {
 }
 
 export async function markAssessmentViewed(studentId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
   const svc = createServiceClient();
+  const { data: caller } = await svc
+    .from("students")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (!caller || !["admin", "instructor", "super_admin"].includes(caller.role ?? "")) {
+    throw new Error("Unauthorized");
+  }
+
   await svc
     .from("assessment_results")
     .update({ facilitator_viewed_at: new Date().toISOString() })
