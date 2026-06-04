@@ -17,6 +17,7 @@ import { getEnrolledTracks } from "@/lib/enrollment";
 import { BCC_INTAKE_SURVEY_ID, BCC_INTAKE_EXEMPT_PROGRAMS } from "@/lib/surveys/platform";
 import { isStaffEmail } from "@/lib/auth/admins";
 import { completePendingSetup } from "@/lib/auth/deferred-setup";
+import { isAssessmentEnabled } from "@/lib/assessment/features";
 
 export const dynamic = "force-dynamic";
 
@@ -91,6 +92,8 @@ async function DashboardContent({
   let enrolledTrackSlugs: string[] = [];
   let pendingSurveys: { id: string; title: string; description: string }[] = [];
   let announcements: { id: string; message: string; track_slug: string | null; created_at: string }[] = [];
+  let assessmentEnabled = false;
+  let assessmentCompleted = false;
 
   if (!currentUser.isDemo) {
     const ctx = await getSessionContext();
@@ -225,6 +228,17 @@ async function DashboardContent({
           if (pendingSurveys.length > 0) {
             redirect(`/dashboard/survey/${pendingSurveys[0].id}`);
           }
+        }
+
+        // Assessment onboarding prompt — check feature flag and completion
+        assessmentEnabled = await isAssessmentEnabled(program.slug);
+        if (assessmentEnabled) {
+          const svcForAssessment = createServiceClient();
+          const { count } = await svcForAssessment
+            .from("assessment_results")
+            .select("*", { count: "exact", head: true })
+            .eq("student_id", userId);
+          assessmentCompleted = (count ?? 0) > 0;
         }
       }
     }
@@ -384,6 +398,21 @@ async function DashboardContent({
       {pendingSurveys.map((survey) => (
         <SurveyCard key={survey.id} survey={survey} />
       ))}
+
+      {assessmentEnabled && !assessmentCompleted && (
+        <div className="rounded-2xl bg-accent/10 border border-accent/20 px-5 py-4 flex items-center justify-between gap-4">
+          <div>
+            <p className="font-semibold text-ink text-sm">Complete your pathway profile</p>
+            <p className="text-xs text-ink/60 mt-0.5">Takes about 10–15 minutes. Helps us give you better support.</p>
+          </div>
+          <a
+            href="/dashboard/assessment"
+            className="flex-shrink-0 rounded-xl bg-accent text-white text-sm font-semibold px-4 py-2"
+          >
+            Start
+          </a>
+        </div>
+      )}
 
       {!isAdmin && (
         <section aria-label="Program progress">
