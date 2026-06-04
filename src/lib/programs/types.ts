@@ -107,6 +107,10 @@ export type OfficeHour = {
   title: string;
   /** One-paragraph description */
   description: string;
+  /** Optional live video join link (Google Meet / Zoom). Renders a Join button. */
+  joinUrl?: string;
+  /** Optional dial-in line, e.g. "(US) +1 475-239-1638 PIN: 565 653 985#" */
+  dialIn?: string;
 };
 
 export type TrackConfig = {

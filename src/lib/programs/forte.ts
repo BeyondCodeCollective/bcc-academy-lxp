@@ -45,24 +45,30 @@ export const forteConfig: ProgramConfig = {
       officeHours: [
         {
           date: "2026-06-08",
-          time: "1pm EST",
-          title: "Office Hours",
+          time: "1pm EST (10am PT)",
+          title: "AI Office Hours",
           description:
             "Drop in with your questions, experiments, and half-baked ideas — this is open space to explore how AI tools can support your work, your learning, and your next move.",
+          joinUrl: "https://meet.google.com/aig-wrbh-hcd",
+          dialIn: "(US) +1 475-239-1638 · PIN: 565 653 985#",
         },
         {
           date: "2026-06-23",
-          time: "4pm EST",
+          time: "4pm EST (1pm PT)",
           title: "Building an App Using Replit",
           description:
             "A hands-on intro to building and running code in the browser to develop your own app — no setup required, just curiosity and a willingness to try something new. Join using any device but note that a computer is best suited for this activity.",
+          joinUrl: "https://meet.google.com/bnr-zwno-cfz",
+          dialIn: "(US) +1 336-542-3786 · PIN: 646 649 442#",
         },
         {
           date: "2026-07-09",
-          time: "9am EST",
-          title: "Office Hours",
+          time: "9am EST (6am PT)",
+          title: "AI Office Hours",
           description:
             "Drop in with your questions, experiments, and half-baked ideas — this is open space to explore how AI tools can support your work, your learning, and your next move.",
+          joinUrl: "https://meet.google.com/wnz-manb-joi",
+          dialIn: "(US) +1 707-500-1969 · PIN: 700 594 598#",
         },
       ],
       type: "weekly",

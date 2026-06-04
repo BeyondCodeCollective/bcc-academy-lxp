@@ -233,6 +233,24 @@ export default async function TrackOverviewPage({
                     <p className="mt-1 text-sm leading-relaxed text-neutral-600">
                       {oh.description}
                     </p>
+                    {oh.joinUrl && (
+                      <div className="mt-3 flex flex-wrap items-center gap-3">
+                        <a
+                          href={oh.joinUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 bg-neutral-900 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-neutral-700"
+                        >
+                          Join the call
+                          →
+                        </a>
+                        {oh.dialIn && (
+                          <span className="text-xs text-neutral-500">
+                            Or dial: {oh.dialIn}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </li>
                 );
               })}
