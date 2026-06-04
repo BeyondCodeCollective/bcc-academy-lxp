@@ -840,14 +840,6 @@ export function AdminTabs({
                     </Link>
                   </>
                 )}
-                {isManager && (
-                  <Link
-                    href="/dashboard/admin/allowlist"
-                    className="mr-2 flex items-center gap-1.5 rounded-md border border-neutral-200 px-3 py-1.5 text-xs font-semibold text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
-                  >
-                    Allowlist
-                  </Link>
-                )}
               </div>
             </header>
 
