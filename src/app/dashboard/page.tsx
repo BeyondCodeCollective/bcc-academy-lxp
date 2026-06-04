@@ -38,7 +38,8 @@ export default async function DashboardPage({
   const isAdmin = canAccessAdminPanel(role);
   const previewSlugTop = await getPreviewTrackSlug(role);
   const previewingLunchLearns = previewSlugTop === LUNCH_LEARN_PREVIEW_SLUG;
-  if ((!isAdmin && isStaffEmail(email)) || previewingLunchLearns) {
+  const isUmbrellaProgram = program.slug === "catalyst" || program.slug === "bcc-academy";
+  if (previewingLunchLearns || (!isAdmin && isStaffEmail(email) && isUmbrellaProgram)) {
     const firstName = ctx?.student?.first_name || "";
     return <LunchLearnHub isAdmin={false} firstName={firstName} />;
   }
