@@ -1,12 +1,46 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { MODULE_1_ITEMS, MODULE_2_SCENARIOS, MODULE_3_ITEMS, TRANSITION_MESSAGES } from "@/lib/assessment/content";
 import { saveAssessmentProgress, submitAssessment } from "./actions";
 import type { RawResponses } from "@/lib/assessment/types";
 
 type WizardStage = "m1a" | "m1b" | "m2" | "m3" | "transitioning" | "submitting";
+
+// Fisher-Yates shuffle — returns a new array, does not mutate the source.
+function shuffle<T>(arr: readonly T[]): T[] {
+  const out = [...arr];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+const TOTAL_QUESTIONS =
+  MODULE_1_ITEMS.length + MODULE_2_SCENARIOS.length + MODULE_3_ITEMS.length;
+
+const SECTION_META = {
+  m1: {
+    eyebrow: "Module 1 of 3",
+    title: "How you tend to show up",
+    description:
+      "These questions help us understand your natural strengths — how you show up across different situations. Answer honestly; there are no right or wrong answers.",
+  },
+  m2: {
+    eyebrow: "Module 2 of 3",
+    title: "How you tend to work",
+    description:
+      "For each situation, pick the response that fits you best. Both options are valid — there's no right or wrong answer.",
+  },
+  m3: {
+    eyebrow: "Module 3 of 3",
+    title: "What drives you",
+    description:
+      "These questions are about what keeps you motivated and the kind of path that fits you right now.",
+  },
+} as const;
 
 export function AssessmentWizard({
   initialModule,
@@ -34,18 +68,41 @@ export function AssessmentWizard({
     setResponses(prev => ({ ...prev, [id]: value }));
   }, []);
 
-  const m1aItems = MODULE_1_ITEMS.slice(0, 14);
-  const m1bItems = MODULE_1_ITEMS.slice(14);
+  // Shuffle each section's questions once, stable for the lifetime of the
+  // wizard. Scoring keys off question IDs, so display order has no effect on
+  // results — this just keeps learners from pattern-matching the source order.
+  const m1Items = useMemo(() => shuffle(MODULE_1_ITEMS), []);
+  const m2Items = useMemo(() => shuffle(MODULE_2_SCENARIOS), []);
+  const m3Items = useMemo(() => shuffle(MODULE_3_ITEMS), []);
+
+  const m1aItems = m1Items.slice(0, 14);
+  const m1bItems = m1Items.slice(14);
 
   const isStageComplete = () => {
     if (stage === "m1a") return m1aItems.every(i => responses[i.id] != null);
     if (stage === "m1b") return m1bItems.every(i => responses[i.id] != null);
-    if (stage === "m2") return MODULE_2_SCENARIOS.every(s => responses[s.id] != null);
-    if (stage === "m3") return MODULE_3_ITEMS.every(i => responses[i.id] != null);
+    if (stage === "m2") return m2Items.every(s => responses[s.id] != null);
+    if (stage === "m3") return m3Items.every(i => responses[i.id] != null);
     return false;
   };
 
-  const moduleLabel = stage === "m1a" || stage === "m1b" ? "1" : stage === "m2" ? "2" : "3";
+  // Overall progress — answered out of all 49 scored items.
+  const answeredCount = useMemo(() => {
+    let n = 0;
+    for (const i of MODULE_1_ITEMS) if (responses[i.id] != null) n++;
+    for (const s of MODULE_2_SCENARIOS) if (responses[s.id] != null) n++;
+    for (const i of MODULE_3_ITEMS) if (responses[i.id] != null) n++;
+    return n;
+  }, [responses]);
+  const progressPct = Math.round((answeredCount / TOTAL_QUESTIONS) * 100);
+
+  const section =
+    stage === "m1a" || stage === "m1b" ? SECTION_META.m1
+    : stage === "m2" ? SECTION_META.m2
+    : SECTION_META.m3;
+
+  // Question-number offset so numbering is continuous across Module 1's two halves.
+  const numberOffset = stage === "m1b" ? m1aItems.length : 0;
 
   const advance = async () => {
     if (stage === "m1a") {
@@ -95,58 +152,69 @@ export function AssessmentWizard({
 
   return (
     <div className="mx-auto max-w-2xl px-5 py-10 space-y-8">
-      {/* Header */}
-      <div className="space-y-1">
+      {/* Title + overall progress */}
+      <div className="space-y-3">
+        <div className="flex items-baseline justify-between">
+          <p className="text-xs font-semibold uppercase tracking-widest text-accent">
+            Pathway Profile
+          </p>
+          <p className="text-xs font-medium text-ink/40">
+            {answeredCount} of {TOTAL_QUESTIONS} · {progressPct}%
+          </p>
+        </div>
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-ink/10">
+          <div
+            className="h-full rounded-full bg-accent transition-all duration-300"
+            style={{ width: `${progressPct}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Section header */}
+      <div className="space-y-1.5">
         <p className="text-xs font-semibold uppercase tracking-widest text-ink/40">
-          Module {moduleLabel} of 3
+          {section.eyebrow}
         </p>
-        <h1 className="text-xl font-semibold text-ink">
-          {stage === "m1a" || stage === "m1b"
-            ? "How you tend to show up"
-            : stage === "m2"
-            ? "How you tend to work"
-            : "What drives you"}
-        </h1>
-        {stage === "m2" && (
-          <p className="text-sm text-ink/60">For each situation, pick the response that fits you best. There are no right or wrong answers.</p>
-        )}
+        <h1 className="text-xl font-semibold text-ink">{section.title}</h1>
+        <p className="text-sm text-ink/60 leading-relaxed">{section.description}</p>
       </div>
 
       {/* Questions */}
       <div className="space-y-8">
-        {(stage === "m1a") && m1aItems.map((item) => (
+        {(stage === "m1a") && m1aItems.map((item, idx) => (
           <LikertRow
             key={item.id}
-            id={item.id}
+            number={idx + 1}
             text={item.text}
             value={responses[item.id] as number | undefined}
             onChange={(v) => setResponse(item.id, v)}
           />
         ))}
 
-        {(stage === "m1b") && m1bItems.map((item) => (
+        {(stage === "m1b") && m1bItems.map((item, idx) => (
           <LikertRow
             key={item.id}
-            id={item.id}
+            number={numberOffset + idx + 1}
             text={item.text}
             value={responses[item.id] as number | undefined}
             onChange={(v) => setResponse(item.id, v)}
           />
         ))}
 
-        {stage === "m2" && MODULE_2_SCENARIOS.map((scenario) => (
+        {stage === "m2" && m2Items.map((scenario, idx) => (
           <ForcedChoiceRow
             key={scenario.id}
+            number={idx + 1}
             scenario={scenario}
             value={responses[scenario.id] as string | undefined}
             onChange={(v) => setResponse(scenario.id, v)}
           />
         ))}
 
-        {stage === "m3" && MODULE_3_ITEMS.map((item) => (
+        {stage === "m3" && m3Items.map((item, idx) => (
           <LikertRow
             key={item.id}
-            id={item.id}
+            number={idx + 1}
             text={item.text}
             value={responses[item.id] as number | undefined}
             onChange={(v) => setResponse(item.id, v)}
@@ -180,16 +248,19 @@ const LIKERT_OPTIONS = [
 ];
 
 function LikertRow({
-  id, text, value, onChange,
+  number, text, value, onChange,
 }: {
-  id: string;
+  number: number;
   text: string;
   value: number | undefined;
   onChange: (v: number) => void;
 }) {
   return (
     <div className="space-y-3">
-      <p className="text-sm text-ink leading-snug">{text}</p>
+      <p className="text-sm text-ink leading-snug">
+        <span className="font-semibold text-ink/40 mr-1.5">{number}.</span>
+        {text}
+      </p>
       <div className="flex gap-2">
         {LIKERT_OPTIONS.map((opt) => (
           <button
@@ -220,15 +291,19 @@ function LikertRow({
 // ─── Forced choice row ────────────────────────────────────────────────────────
 
 function ForcedChoiceRow({
-  scenario, value, onChange,
+  number, scenario, value, onChange,
 }: {
+  number: number;
   scenario: typeof MODULE_2_SCENARIOS[number];
   value: string | undefined;
   onChange: (v: string) => void;
 }) {
   return (
     <div className="space-y-3">
-      <p className="text-sm font-medium text-ink leading-snug">{scenario.scenario}</p>
+      <p className="text-sm font-medium text-ink leading-snug">
+        <span className="font-semibold text-ink/40 mr-1.5">{number}.</span>
+        {scenario.scenario}
+      </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {(["A", "B"] as const).map((letter) => {
           const opt = letter === "A" ? scenario.optionA : scenario.optionB;
