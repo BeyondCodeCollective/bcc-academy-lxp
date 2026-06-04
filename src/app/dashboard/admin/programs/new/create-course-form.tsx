@@ -5,11 +5,20 @@ import { createCourseAction } from "../actions";
 import type { CreateCourseResult } from "../actions";
 import { toSlug } from "@/lib/programs/slug";
 
+const PHASE_OPTIONS = [
+  { value: "foundation", label: "Foundation" },
+  { value: "core",       label: "Core" },
+  { value: "workshop",   label: "Workshop" },
+  { value: "exit",       label: "Exit" },
+  { value: "other",      label: "Other" },
+];
+
 export function CreateCourseForm() {
   const [name, setName] = useState("");
   const [instructor, setInstructor] = useState("");
   const [totalWeeks, setTotalWeeks] = useState("");
   const [sessionsPerWeek, setSessionsPerWeek] = useState("");
+  const [phase, setPhase] = useState("core");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Extract<CreateCourseResult, { success: true }> | null>(null);
@@ -28,6 +37,7 @@ export function CreateCourseForm() {
         instructor,
         totalWeeks: parseInt(totalWeeks, 10),
         sessionsPerWeek: parseInt(sessionsPerWeek, 10),
+        phase,
       });
 
       if (res.success) {
@@ -178,6 +188,22 @@ export function CreateCourseForm() {
             className="w-full rounded-md border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900 placeholder-neutral-400 outline-none focus:border-[#E54D2E] focus:ring-1 focus:ring-[#E54D2E]"
           />
         </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <label htmlFor="phase" className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
+          Group
+        </label>
+        <select
+          id="phase"
+          value={phase}
+          onChange={(e) => setPhase(e.target.value)}
+          className="w-full rounded-md border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900 outline-none focus:border-[#E54D2E] focus:ring-1 focus:ring-[#E54D2E]"
+        >
+          {PHASE_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
       </div>
 
       {error && (

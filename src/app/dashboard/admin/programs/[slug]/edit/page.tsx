@@ -12,6 +12,7 @@ type OverrideRow = {
   instructor: string | null;
   total_weeks: number | null;
   sessions_per_week: number | null;
+  phase: string | null;
 };
 
 export default async function EditCoursePage({
@@ -39,7 +40,7 @@ export default async function EditCoursePage({
 
   const { data: override } = await svc
     .from("track_overrides")
-    .select("track_slug, name, instructor, total_weeks, sessions_per_week")
+    .select("track_slug, name, instructor, total_weeks, sessions_per_week, phase")
     .eq("program_id", catalystRow.id)
     .eq("track_slug", slug)
     .maybeSingle<OverrideRow>();
@@ -66,6 +67,7 @@ export default async function EditCoursePage({
           initialInstructor={override.instructor ?? ""}
           initialTotalWeeks={override.total_weeks ?? 1}
           initialSessionsPerWeek={override.sessions_per_week ?? 1}
+          initialPhase={override.phase ?? "core"}
         />
       </div>
     </div>

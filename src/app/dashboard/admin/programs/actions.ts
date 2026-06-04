@@ -34,10 +34,11 @@ export async function createCourseAction(formData: {
   instructor: string;
   totalWeeks: number;
   sessionsPerWeek: number;
+  phase?: string;
 }): Promise<CreateCourseResult> {
   const svc = await requireSuperAdmin();
 
-  const { name, instructor, totalWeeks, sessionsPerWeek } = formData;
+  const { name, instructor, totalWeeks, sessionsPerWeek, phase } = formData;
 
   if (!name.trim()) return { success: false, error: "Course name is required." };
   if (!instructor.trim()) return { success: false, error: "Instructor name is required." };
@@ -85,6 +86,7 @@ export async function createCourseAction(formData: {
       total_weeks: totalWeeks,
       sessions_per_week: sessionsPerWeek,
       start_date: new Date().toISOString().slice(0, 10),
+      phase: phase ?? "core",
     });
 
   if (trackError) {
@@ -154,10 +156,10 @@ export type UpdateCourseResult =
 
 export async function updateCourseAction(
   trackSlug: string,
-  formData: { name: string; instructor: string; totalWeeks: number; sessionsPerWeek: number },
+  formData: { name: string; instructor: string; totalWeeks: number; sessionsPerWeek: number; phase?: string },
 ): Promise<UpdateCourseResult> {
   const svc = await requireSuperAdmin();
-  const { name, instructor, totalWeeks, sessionsPerWeek } = formData;
+  const { name, instructor, totalWeeks, sessionsPerWeek, phase } = formData;
 
   if (!name.trim()) return { success: false, error: "Course name is required." };
   if (!instructor.trim()) return { success: false, error: "Instructor name is required." };
@@ -180,6 +182,7 @@ export async function updateCourseAction(
       instructor: instructor.trim(),
       total_weeks: totalWeeks,
       sessions_per_week: sessionsPerWeek,
+      ...(phase ? { phase } : {}),
     })
     .eq("program_id", catalystRow.id)
     .eq("track_slug", trackSlug);
