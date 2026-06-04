@@ -87,6 +87,7 @@ type TrackOverrideRow = {
   default_reflection_prompts: string[] | null;
   submissions_enabled: boolean | null;
   reflections_enabled: boolean | null;
+  phase: string | null;
 };
 
 // ─── Dynamic Program Resolution ──────────────────────────────────────────────
@@ -122,7 +123,7 @@ function buildTrackFromOverride(row: TrackOverrideRow): TrackConfig {
     name: row.name ?? row.track_slug,
     shortName: row.short_name ?? row.name ?? row.track_slug,
     description: row.description ?? undefined,
-    phase: "core",
+    phase: (row.phase as TrackConfig["phase"] | null) ?? "core",
     type: "weekly",
     totalWeeks,
     sessionsPerWeek,
@@ -231,7 +232,7 @@ const fetchOverrides = cache(
       const { data } = await svc
         .from("track_overrides")
         .select(
-          "track_slug, name, short_name, description, instructor, start_date, total_weeks, sessions_per_week, last_session_day_offset, session_times, week_summaries, default_reflection_prompts, submissions_enabled, reflections_enabled",
+          "track_slug, name, short_name, description, instructor, start_date, total_weeks, sessions_per_week, last_session_day_offset, session_times, week_summaries, default_reflection_prompts, submissions_enabled, reflections_enabled, phase",
         )
         .eq("program_id", programRow.id);
       const map = new Map<string, TrackOverrideRow>();
@@ -301,6 +302,7 @@ function mergeTrack(
       override.submissions_enabled ?? config.submissionsEnabled,
     reflectionsEnabled:
       override.reflections_enabled ?? config.reflectionsEnabled,
+    phase: (override.phase as TrackConfig["phase"] | null) ?? config.phase,
   };
 }
 
