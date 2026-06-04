@@ -2830,12 +2830,13 @@ function GroupsPanel({
       )}
 
       {cohorts.map((c) => (
-        <div
+        <Link
           key={c.id}
-          className="flex items-center justify-between gap-4 border border-rule bg-surface-elevated px-4 py-3"
+          href={c.track_slug ? `/dashboard/admin?tab=${c.track_slug}&view=students` : `/dashboard/admin?tab=students`}
+          className="flex items-center justify-between gap-4 border border-rule bg-surface-elevated px-4 py-3 hover:border-neutral-400 transition-colors group"
         >
           <div className="min-w-0">
-            <p className="text-sm font-medium text-neutral-900 truncate">
+            <p className="text-sm font-medium text-neutral-900 truncate group-hover:text-accent transition-colors">
               {c.display_name || c.name}
             </p>
             {c.track_slug && (
@@ -2844,7 +2845,8 @@ function GroupsPanel({
               </p>
             )}
           </div>
-        </div>
+          <span className="text-neutral-300 group-hover:text-accent transition-colors text-sm shrink-0">→</span>
+        </Link>
       ))}
 
       {showForm && (
@@ -2930,6 +2932,7 @@ function GroupsPanel({
 }
 
 function SurveyLinksPanel({ surveyConfigs }: { surveyConfigs: { id: string; title: string }[] }) {
+  const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
 
   const copy = (path: string, id: string) => {
@@ -2953,34 +2956,48 @@ function SurveyLinksPanel({ surveyConfigs }: { surveyConfigs: { id: string; titl
   ];
 
   return (
-    <div className="space-y-2">
-      {allLinks.map((s) => (
-        <div
-          key={s.id}
-          className="flex items-center justify-between gap-4 border border-rule bg-surface-elevated px-4 py-3"
-        >
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-neutral-900 truncate">{s.label}</p>
-            <p className="text-[11px] text-neutral-400 font-mono truncate">
-              {typeof window !== "undefined" ? `${window.location.origin}${s.path}` : s.path}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {s.auth && (
-              <span className="text-[10px] font-medium uppercase tracking-wide text-neutral-400 border border-neutral-200 px-1.5 py-0.5">
-                login required
-              </span>
-            )}
-            <button
-              type="button"
-              onClick={() => copy(s.path, s.id)}
-              className="text-[11px] font-medium border border-rule px-2.5 py-1.5 text-neutral-600 hover:bg-neutral-50 transition-colors"
+    <div className="border border-rule">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between px-4 py-3 bg-surface-elevated hover:bg-neutral-50 transition-colors"
+      >
+        <span className="text-sm font-medium text-neutral-700">
+          {allLinks.length} survey {allLinks.length === 1 ? "link" : "links"}
+        </span>
+        <span className="text-neutral-400 text-xs">{open ? "↑ collapse" : "↓ expand"}</span>
+      </button>
+      {open && (
+        <div className="divide-y divide-rule">
+          {allLinks.map((s) => (
+            <div
+              key={s.id}
+              className="flex items-center justify-between gap-4 px-4 py-3 bg-white"
             >
-              {copied === s.id ? "✓ Copied" : "Copy link"}
-            </button>
-          </div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-neutral-900 truncate">{s.label}</p>
+                <p className="text-[11px] text-neutral-400 font-mono truncate">
+                  {typeof window !== "undefined" ? `${window.location.origin}${s.path}` : s.path}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {s.auth && (
+                  <span className="text-[10px] font-medium uppercase tracking-wide text-neutral-400 border border-neutral-200 px-1.5 py-0.5">
+                    login required
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => copy(s.path, s.id)}
+                  className="text-[11px] font-medium border border-rule px-2.5 py-1.5 text-neutral-600 hover:bg-neutral-50 transition-colors"
+                >
+                  {copied === s.id ? "✓ Copied" : "Copy link"}
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
-      ))}
+      )}
     </div>
   );
 }
