@@ -3,20 +3,15 @@
 import { useState, useTransition } from "react";
 import { toggleAssessment, toggleTrackAssessment } from "./actions";
 
-const PROGRAM_LABELS: Record<string, string> = {
-  catalyst: "Catalyst",
-  atg:      "After the Game",
-  forte:    "Forte / Upskill Bahamas",
-  forge:    "Forge",
-};
-
 export function FeatureToggles({
   programs,
+  programLabels,
   programFlagsMap,
   programTracks,
   trackFlagsMap,
 }: {
   programs: string[];
+  programLabels: Record<string, string>;
   programFlagsMap: Record<string, boolean>;
   programTracks: Record<string, { slug: string; name: string }[]>;
   trackFlagsMap: Record<string, boolean>;
@@ -27,7 +22,7 @@ export function FeatureToggles({
         <ProgramCard
           key={slug}
           slug={slug}
-          label={PROGRAM_LABELS[slug] ?? slug}
+          label={programLabels[slug] ?? slug}
           programEnabled={programFlagsMap[slug] ?? false}
           tracks={programTracks[slug] ?? []}
           trackFlagsMap={trackFlagsMap}
