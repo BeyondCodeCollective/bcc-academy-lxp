@@ -823,12 +823,20 @@ export function AdminTabs({
               </div>
               <div className="flex items-center gap-0.5 pt-1">
                 {canSwitchPrograms(userRole) && (
-                  <Link
-                    href="/dashboard/admin/programs"
-                    className="mr-2 flex items-center gap-1.5 rounded-md border border-neutral-200 px-3 py-1.5 text-xs font-semibold text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
-                  >
-                    Manage Courses
-                  </Link>
+                  <>
+                    <Link
+                      href="/dashboard/admin/programs"
+                      className="mr-2 flex items-center gap-1.5 rounded-md border border-neutral-200 px-3 py-1.5 text-xs font-semibold text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
+                    >
+                      Manage Courses
+                    </Link>
+                    <Link
+                      href="/dashboard/admin/features"
+                      className="mr-2 flex items-center gap-1.5 rounded-md border border-neutral-200 px-3 py-1.5 text-xs font-semibold text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
+                    >
+                      Features
+                    </Link>
+                  </>
                 )}
                 <Link
                   href="/dashboard/admin?tab=students"
