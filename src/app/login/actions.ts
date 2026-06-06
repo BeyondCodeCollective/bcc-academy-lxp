@@ -36,16 +36,20 @@ export async function sendLoginLink({
   let callbackJoinSlug: string | null = null;
   let callbackTrackSlug: string | null = null;
 
-  const { data: allowlistHit } = await svc
-    .from("allowed_signup_emails")
-    .select("track_slug")
-    .eq("email", trimmed)
-    .maybeSingle();
+  const [{ data: allowlistHit }, { data: existingStudent }] = await Promise.all([
+    svc.from("allowed_signup_emails").select("track_slug").eq("email", trimmed).maybeSingle(),
+    svc.from("students").select("role").eq("email", trimmed).maybeSingle(),
+  ]);
+
+  const hasElevatedRole = ["admin", "super_admin", "instructor"].includes(
+    existingStudent?.role ?? ""
+  );
 
   const isAdmitted =
     !!allowlistHit ||
     isPrivilegedEmail(trimmed) ||
-    isStaffEmail(trimmed);
+    isStaffEmail(trimmed) ||
+    hasElevatedRole;
 
   if (!isAdmitted) {
     return {
