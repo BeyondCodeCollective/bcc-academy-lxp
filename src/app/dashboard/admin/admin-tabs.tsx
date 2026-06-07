@@ -13,8 +13,6 @@ import { AttendanceTab } from "./attendance-tab";
 import { TrackInsightsSection } from "@/components/track-insights-section";
 import { InsightsDashboard } from "./insights/insights-dashboard";
 import { TrackOverviewForm } from "./track-overview-form";
-import { HorizontalBarChart } from "@/components/charts/horizontal-bar-chart";
-import { DonutChart } from "@/components/charts/donut-chart";
 import type { InsightsData } from "./page";
 import type { Student } from "@/lib/types";
 import { isStorageUrl, isUploadedVideo } from "@/lib/storage-utils";

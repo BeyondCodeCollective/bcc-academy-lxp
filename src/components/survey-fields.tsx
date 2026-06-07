@@ -90,16 +90,6 @@ export type DateQuestion = {
   required?: boolean;
 };
 
-export type ForcedChoiceQuestion = {
-  type: "forced-choice";
-  id: string;
-  label?: string;
-  scenario: string;
-  optionA: { label: string; pole: string };
-  optionB: { label: string; pole: string };
-  required?: boolean;
-};
-
 export type SurveyQuestion =
   | RadioQuestion
   | MultiSelectQuestion
@@ -108,8 +98,7 @@ export type SurveyQuestion =
   | MonthYearQuestion
   | ConsentQuestion
   | DualLikertQuestion
-  | DateQuestion
-  | ForcedChoiceQuestion;
+  | DateQuestion;
 
 export function isPageValid(
   questions: SurveyQuestion[],
@@ -138,8 +127,6 @@ export function isPageValid(
     } else if (q.type === "month-year") {
       const my = val as { month: string; year: string } | undefined;
       if (!my || !my.month || !my.year) return false;
-    } else if (q.type === "forced-choice") {
-      if (val !== "A" && val !== "B") return false;
     } else if (q.type === "text" && q.zip) {
       if (typeof val !== "string" || !/^\d{5}$/.test(val.trim())) return false;
     } else {
@@ -187,14 +174,6 @@ export function QuestionRenderer({
       );
     case "date":
       return <DateField question={question} value={value as string} onChange={onChange} />;
-    case "forced-choice":
-      return (
-        <ForcedChoiceField
-          question={question as ForcedChoiceQuestion}
-          value={value as string | undefined}
-          onChange={(v) => onChange(v)}
-        />
-      );
   }
 }
 
@@ -639,44 +618,6 @@ function DateField({
         aria-required={question.required || undefined}
         className="w-full border border-neutral-200 bg-white px-3.5 py-3 text-sm text-neutral-900 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 focus:outline-none transition-all"
       />
-    </div>
-  );
-}
-
-function ForcedChoiceField({
-  question,
-  value,
-  onChange,
-}: {
-  question: ForcedChoiceQuestion;
-  value: string | undefined;
-  onChange: (val: string) => void;
-}) {
-  return (
-    <div className="space-y-3">
-      <p className="text-base font-medium text-ink leading-snug">{question.scenario}</p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {(["A", "B"] as const).map((letter) => {
-          const opt = letter === "A" ? question.optionA : question.optionB;
-          const selected = value === letter;
-          return (
-            <button
-              key={letter}
-              type="button"
-              onClick={() => onChange(letter)}
-              className={`
-                text-left rounded-xl border-2 px-4 py-4 text-sm leading-snug transition-all
-                ${selected
-                  ? "border-accent bg-accent/10 text-ink font-medium"
-                  : "border-ink/10 bg-white hover:border-ink/30 text-ink/80"
-                }
-              `}
-            >
-              {opt.label}
-            </button>
-          );
-        })}
-      </div>
     </div>
   );
 }
