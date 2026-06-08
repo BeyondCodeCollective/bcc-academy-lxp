@@ -61,7 +61,7 @@ export default async function TrackOverviewPage({
   }
 
   const now = new Date();
-  const started = now >= new Date(track.startDate);
+  const started = !track.startDateTbd && now >= new Date(track.startDate);
   const currentWeek = started
     ? computeCurrentWeek(track.startDate, track.totalWeeks, track.lastSessionDayOffset)
     : 0;

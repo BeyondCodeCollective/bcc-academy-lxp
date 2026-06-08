@@ -260,7 +260,7 @@ async function DashboardContent({
 
   const now = new Date();
   const trackStates = visibleTracks.map((track) => {
-    const started = now >= new Date(track.startDate);
+    const started = !track.startDateTbd && now >= new Date(track.startDate);
     const currentWeek = started
       ? computeCurrentWeek(track.startDate, track.totalWeeks, track.lastSessionDayOffset)
       : 0;
