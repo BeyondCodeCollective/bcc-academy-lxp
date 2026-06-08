@@ -887,9 +887,11 @@ export function AdminTabs({
                 const status =
                   t.type === "single-event"
                     ? "Single session"
-                    : started
-                      ? `Week ${currentWeek} of ${t.totalWeeks}`
-                      : `Starts ${start.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+                    : t.startDateTbd
+                      ? "Starts TBD"
+                      : started
+                        ? `Week ${currentWeek} of ${t.totalWeeks}`
+                        : `Starts ${start.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
                 const count = studentCountFor(t.slug);
                 return (
                   <Link

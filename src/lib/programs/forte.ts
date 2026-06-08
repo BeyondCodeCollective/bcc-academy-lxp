@@ -10,7 +10,7 @@ import type { ProgramConfig } from "./types";
 // marketing "Starts" label on the overview page (and not a real gate on
 // content). Pre-launch we keep it in the future so the overview reads "Not
 // Launched" while still letting testers and early students use the content.
-const FORTE_START_DATE = "2026-06-01";
+const FORTE_START_DATE = "2026-06-02";
 
 export const forteConfig: ProgramConfig = {
   slug: "forte",
