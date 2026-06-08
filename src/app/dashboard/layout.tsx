@@ -229,14 +229,21 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
     lunchLearnRecordings = data ?? [];
   }
 
+  // In admin preview mode pass all tracks so the sidebar can show correct
+  // weeks for any track page the admin navigates to (filtered by URL in Nav).
+  const sidebarTrackSource =
+    navVariant === "student-sidebar" && previewingSlug && canShowPreviewToggle
+      ? program.tracks
+      : program.tracks.filter((t) => enrolledTrackSlugs.includes(t.slug));
+
   const curriculumTracks =
     navVariant === "student-sidebar"
-      ? program.tracks
-          .filter((t) => enrolledTrackSlugs.includes(t.slug))
+      ? sidebarTrackSource
           .map((t) => ({
             slug: t.slug,
             shortName: t.shortName,
             startDate: t.startDate,
+            startDateTbd: t.startDateTbd,
             totalWeeks: t.totalWeeks,
             lastSessionDayOffset: t.lastSessionDayOffset,
             weekSummaries: t.weekSummaries.map((ws) => ({

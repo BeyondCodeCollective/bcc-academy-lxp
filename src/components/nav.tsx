@@ -58,6 +58,7 @@ type CurriculumTrack = {
   slug: string;
   shortName: string;
   startDate: string;
+  startDateTbd?: boolean;
   totalWeeks: number;
   lastSessionDayOffset: number;
   weekSummaries: { week: number; topic: string; icon: string }[];
@@ -233,12 +234,18 @@ export function Nav({
   // Workshops) without the curriculum block.
 
   const onTrackPage = pathname.startsWith("/dashboard/track/");
+  const urlTrackSlug = onTrackPage
+    ? pathname.replace("/dashboard/track/", "").split("/")[0]
+    : null;
+  const visibleCurriculumTracks = urlTrackSlug
+    ? curriculumTracks.filter((t) => t.slug === urlTrackSlug)
+    : curriculumTracks;
 
-  const curriculumNav = onTrackPage && curriculumTracks.length > 0 && (
+  const curriculumNav = onTrackPage && visibleCurriculumTracks.length > 0 && (
     <div className="flex flex-col gap-4">
-      {curriculumTracks.map((track) => {
+      {visibleCurriculumTracks.map((track) => {
         const now = new Date();
-        const started = now >= new Date(track.startDate);
+        const started = !track.startDateTbd && now >= new Date(track.startDate);
         const currentWeek = started
           ? computeCurrentWeek(track.startDate, track.totalWeeks, track.lastSessionDayOffset)
           : 0;
