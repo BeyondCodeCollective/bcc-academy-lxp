@@ -37,7 +37,7 @@ export async function sendSignInEmail({
     <div style="text-align:center;margin:0 0 28px;">
       <a href="${magicLink}" style="display:inline-block;padding:14px 36px;background:#1a1a1a;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:700;font-size:15px;letter-spacing:0.02em;">Confirm my account →</a>
     </div>
-    <p style="margin:0;font-size:12px;color:#999;line-height:1.5;">If you didn't request this, you can safely ignore this email. Questions? Reply here or email <a href="mailto:hello@wearebgc.org" style="color:#1a1a1a;">hello@wearebgc.org</a>.</p>
+    <p style="margin:0;font-size:12px;color:#999;line-height:1.5;">If you didn't request this, you can safely ignore this email. Questions? Reply here or email <a href="mailto:fonz.morris@wearebgc.org" style="color:#1a1a1a;">fonz.morris@wearebgc.org</a>.</p>
   </div>
 </div>`,
   });

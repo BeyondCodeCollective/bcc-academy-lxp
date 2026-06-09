@@ -286,6 +286,7 @@ export async function GET(request: Request) {
           },
           { onConflict: "id", ignoreDuplicates: true }
         );
+        await admin.from("students").update({ last_seen_at: new Date().toISOString() }).eq("id", user.id);
 
         const setupParams = new URLSearchParams({ setup: "1" });
         if (trackParam) setupParams.set("track", trackParam);
@@ -321,6 +322,7 @@ export async function GET(request: Request) {
         },
         { onConflict: "id", ignoreDuplicates: true }
       );
+      await admin.from("students").update({ last_seen_at: new Date().toISOString() }).eq("id", user.id);
 
       const setupParams = new URLSearchParams({ setup: "1" });
       if (trackParam) setupParams.set("track", trackParam);

@@ -402,7 +402,7 @@ export default async function TrackWeekPage({
       <div className="mb-2 flex justify-end">
         <ReadPageAloud title={displayTitle} description={displayDescription} objectives={displayObjectives} />
       </div>
-      <p className="mb-8 text-base leading-relaxed text-ink-soft max-w-[65ch]">
+      <p className="mb-8 text-base leading-relaxed text-ink-soft max-w-[65ch] whitespace-pre-wrap">
         {displayDescription}
       </p>
 

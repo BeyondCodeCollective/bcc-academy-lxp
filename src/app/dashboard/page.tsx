@@ -393,7 +393,7 @@ async function DashboardContent({
               ? program.tracks.find((t) => t.slug === a.track_slug)?.shortName ?? "Announcement"
               : "Announcement"}
           </p>
-          <p className="text-sm text-blue-900 leading-relaxed">{a.message}</p>
+          <p className="text-sm text-blue-900 leading-relaxed whitespace-pre-wrap">{a.message}</p>
         </div>
       ))}
 
