@@ -15,6 +15,7 @@ import { WeekKeyboardNav } from "@/components/week-keyboard-nav";
 import { getSurveyStatus } from "@/app/dashboard/actions";
 import type { WeekConfig } from "@/lib/programs/types";
 import { resolveSessionContent } from "@/lib/session-content";
+import { ReadPageAloud } from "@/components/read-page-aloud";
 
 export default async function TrackWeekPage({
   params,
@@ -398,6 +399,9 @@ export default async function TrackWeekPage({
       })}
 
       {/* Brief description */}
+      <div className="mb-2 flex justify-end">
+        <ReadPageAloud title={displayTitle} description={displayDescription} objectives={displayObjectives} />
+      </div>
       <p className="mb-8 text-base leading-relaxed text-ink-soft max-w-[65ch]">
         {displayDescription}
       </p>
