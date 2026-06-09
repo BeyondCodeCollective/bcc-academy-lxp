@@ -3,8 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { TextScaleToggle } from "@/components/text-scale-toggle";
-import { useReadAloud } from "@/components/assessment-a11y-bar";
 
 type ProgramOption = {
   slug: string;
@@ -37,7 +35,6 @@ export function UserMenu({
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const { enabled: readAloud, setEnabled: setReadAloud, stop } = useReadAloud();
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
@@ -223,34 +220,6 @@ export function UserMenu({
               </div>
             </>
           )}
-
-          {/* Accessibility */}
-          <div className="my-1 h-px bg-rule-soft" role="separator" />
-          <div className="px-3 pt-2 pb-2 space-y-2.5">
-            <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-ink-faint">
-              Accessibility
-            </p>
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-ink-soft">Text size</span>
-              <TextScaleToggle compact tone="light" />
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-ink-soft">Read aloud</span>
-              <button
-                type="button"
-                aria-pressed={readAloud}
-                onClick={() => { setReadAloud(!readAloud); if (readAloud) stop(); }}
-                className={`inline-flex items-center gap-1.5 rounded px-2 py-1 text-xs font-medium transition-colors ${
-                  readAloud
-                    ? "bg-accent text-white"
-                    : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
-                }`}
-              >
-                <span aria-hidden>{readAloud ? "🔊" : "🔇"}</span>
-                <span>{readAloud ? "On" : "Off"}</span>
-              </button>
-            </div>
-          </div>
 
           {/* Sign out */}
           <div className="my-1 h-px bg-rule-soft" role="separator" />

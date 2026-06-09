@@ -5,6 +5,8 @@ import dynamic from "next/dynamic";
 import Link, { useLinkStatus } from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { computeCurrentWeek } from "@/lib/utils";
+import { TextScaleToggle } from "@/components/text-scale-toggle";
+import { useReadAloud } from "@/components/assessment-a11y-bar";
 
 const UserMenu = dynamic(
   () => import("@/components/user-menu").then((m) => m.UserMenu),
@@ -216,9 +218,30 @@ export function Nav({
     currentProgramSlug,
   };
 
+  const { enabled: readAloud, setEnabled: setReadAloud, stop } = useReadAloud();
+
   const sidebarFooter = (
     <div className="mt-auto flex flex-col gap-1">
       {helpLink}
+      <div className="my-1 h-px bg-white/10" aria-hidden />
+      {/* Accessibility controls — always visible in sidebar */}
+      <div className="flex items-center justify-between px-2 py-1.5">
+        <TextScaleToggle compact tone="dark" />
+        <button
+          type="button"
+          aria-pressed={readAloud}
+          aria-label={readAloud ? "Turn off read aloud" : "Turn on read aloud"}
+          onClick={() => { setReadAloud(!readAloud); if (readAloud) stop(); }}
+          className={`inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors ${
+            readAloud
+              ? "bg-accent text-white"
+              : "text-neutral-400 hover:bg-white/10 hover:text-white"
+          }`}
+        >
+          <span aria-hidden>{readAloud ? "🔊" : "🔇"}</span>
+          <span>{readAloud ? "Audio on" : "Audio"}</span>
+        </button>
+      </div>
       <div className="my-1 h-px bg-white/10" aria-hidden />
       <UserMenu variant="sidebar" {...userMenuProps} />
     </div>
