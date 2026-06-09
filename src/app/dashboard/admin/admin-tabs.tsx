@@ -2829,25 +2829,28 @@ function GroupsPanel({
         </p>
       )}
 
-      {cohorts.map((c) => (
-        <Link
-          key={c.id}
-          href={c.track_slug ? `/dashboard/admin?tab=${c.track_slug}&view=students` : `/dashboard/admin?tab=students`}
-          className="flex items-center justify-between gap-4 border border-rule bg-surface-elevated px-4 py-3 hover:border-neutral-400 transition-colors group"
-        >
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-neutral-900 truncate group-hover:text-accent transition-colors">
-              {c.display_name || c.name}
-            </p>
-            {c.track_slug && (
-              <p className="text-[11px] text-neutral-400 truncate">
-                {trackLabel(c.track_slug)}
+      {cohorts.map((c) => {
+        const dest = c.track_slug
+          ? `/dashboard/admin?tab=${c.track_slug}&view=students`
+          : `/dashboard/admin?tab=students`;
+        return (
+          <Link
+            key={c.id}
+            href={dest}
+            className="flex items-center justify-between gap-4 border border-rule bg-surface-elevated px-4 py-3 hover:border-neutral-400 transition-colors group"
+          >
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-neutral-900 truncate group-hover:text-accent transition-colors">
+                {c.display_name || c.name}
               </p>
-            )}
-          </div>
-          <span className="text-neutral-300 group-hover:text-accent transition-colors text-sm shrink-0">→</span>
-        </Link>
-      ))}
+              <p className="text-[11px] text-neutral-400 truncate">
+                {c.track_slug ? trackLabel(c.track_slug) : "View students →"}
+              </p>
+            </div>
+            <span className="text-neutral-300 group-hover:text-accent transition-colors text-sm shrink-0">→</span>
+          </Link>
+        );
+      })}
 
       {showForm && (
         <form
