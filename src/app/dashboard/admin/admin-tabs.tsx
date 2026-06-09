@@ -933,20 +933,22 @@ export function AdminTabs({
               <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
                 Pathway assessments
               </h2>
-              <a
-                href="/dashboard/admin/assessments"
-                className="flex items-center justify-between rounded-xl border border-neutral-200 bg-white px-4 py-3 hover:border-neutral-400 transition-colors"
-              >
-                <span className="text-sm font-medium text-neutral-900">Learner pathway profiles</span>
-                <span className="flex items-center gap-2">
-                  {(unviewedAssessments ?? 0) > 0 && (
-                    <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-semibold text-white">
-                      {unviewedAssessments} new
-                    </span>
-                  )}
-                  <span className="text-neutral-400 text-sm">→</span>
-                </span>
-              </a>
+              <div className="border border-rule bg-surface-elevated">
+                <a
+                  href="/dashboard/admin/assessments"
+                  className="group flex items-center justify-between gap-4 px-4 py-3.5 hover:bg-neutral-50 transition-colors"
+                >
+                  <span className="text-[14px] font-semibold text-neutral-900">Learner pathway profiles</span>
+                  <span className="flex items-center gap-2 shrink-0">
+                    {(unviewedAssessments ?? 0) > 0 && (
+                      <span className="bg-accent px-2 py-0.5 text-xs font-semibold text-white">
+                        {unviewedAssessments} new
+                      </span>
+                    )}
+                    <span className="text-neutral-300 group-hover:text-neutral-500 transition-colors">→</span>
+                  </span>
+                </a>
+              </div>
             </div>
 
             {/* Groups */}
@@ -2807,7 +2809,7 @@ function GroupsPanel({
   }
 
   return (
-    <div className="space-y-2">
+    <div>
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
           Groups
@@ -2829,28 +2831,34 @@ function GroupsPanel({
         </p>
       )}
 
-      {cohorts.map((c) => {
-        const dest = c.track_slug
-          ? `/dashboard/admin?tab=${c.track_slug}&view=students`
-          : `/dashboard/admin?tab=students`;
-        return (
-          <Link
-            key={c.id}
-            href={dest}
-            className="flex items-center justify-between gap-4 border border-rule bg-surface-elevated px-4 py-3 hover:border-neutral-400 transition-colors group"
-          >
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-neutral-900 truncate group-hover:text-accent transition-colors">
-                {c.display_name || c.name}
-              </p>
-              <p className="text-[11px] text-neutral-400 truncate">
-                {c.track_slug ? trackLabel(c.track_slug) : "View students →"}
-              </p>
-            </div>
-            <span className="text-neutral-300 group-hover:text-accent transition-colors text-sm shrink-0">→</span>
-          </Link>
-        );
-      })}
+      {cohorts.length > 0 && (
+        <div className="divide-y divide-rule border border-rule bg-surface-elevated">
+          {cohorts.map((c) => {
+            const dest = c.track_slug
+              ? `/dashboard/admin?tab=${c.track_slug}&view=students`
+              : `/dashboard/admin?tab=students`;
+            return (
+              <Link
+                key={c.id}
+                href={dest}
+                className="group flex items-center gap-4 px-4 py-3.5 hover:bg-neutral-50 transition-colors"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-[14px] font-semibold text-neutral-900 truncate">
+                    {c.display_name || c.name}
+                  </p>
+                  {c.track_slug && (
+                    <p className="text-[12px] text-neutral-400 truncate">
+                      {trackLabel(c.track_slug)}
+                    </p>
+                  )}
+                </div>
+                <span className="shrink-0 text-neutral-300 group-hover:text-neutral-500 transition-colors">→</span>
+              </Link>
+            );
+          })}
+        </div>
+      )}
 
       {showForm && (
         <form
@@ -2959,26 +2967,26 @@ function SurveyLinksPanel({ surveyConfigs }: { surveyConfigs: { id: string; titl
   ];
 
   return (
-    <div className="border border-rule">
+    <div className="border border-rule bg-surface-elevated">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between px-4 py-3 bg-surface-elevated hover:bg-neutral-50 transition-colors"
+        className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-neutral-50 transition-colors"
       >
-        <span className="text-sm font-medium text-neutral-700">
+        <span className="text-[14px] font-semibold text-neutral-900">
           {allLinks.length} survey {allLinks.length === 1 ? "link" : "links"}
         </span>
         <span className="text-neutral-400 text-xs">{open ? "↑ collapse" : "↓ expand"}</span>
       </button>
       {open && (
-        <div className="divide-y divide-rule">
+        <div className="divide-y divide-rule border-t border-rule">
           {allLinks.map((s) => (
             <div
               key={s.id}
-              className="flex items-center justify-between gap-4 px-4 py-3 bg-white"
+              className="flex items-center justify-between gap-4 px-4 py-3"
             >
               <div className="min-w-0">
-                <p className="text-sm font-medium text-neutral-900 truncate">{s.label}</p>
+                <p className="text-[13px] font-medium text-neutral-900 truncate">{s.label}</p>
                 <p className="text-[11px] text-neutral-400 font-mono truncate">
                   {typeof window !== "undefined" ? `${window.location.origin}${s.path}` : s.path}
                 </p>
