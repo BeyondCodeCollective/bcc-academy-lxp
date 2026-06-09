@@ -49,7 +49,7 @@ function trackLabel(slug: string | null): string {
   return map[slug] ?? slug;
 }
 
-type StudentRow = Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id">;
+type StudentRow = Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id" | "last_seen_at">;
 
 // Track config passed from server (subset of TrackConfig)
 type AdminTrackConfig = {
@@ -2175,6 +2175,11 @@ function PeopleTab({
                     {fullName}
                   </p>
                   <p className="text-xs text-neutral-400 truncate">{s.email}</p>
+                  <p className="text-[11px] text-neutral-300 truncate">
+                    {s.last_seen_at
+                      ? `Last login: ${new Date(s.last_seen_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
+                      : "Never logged in"}
+                  </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <span className="text-[11px] text-neutral-400 tabular-nums hidden sm:block">

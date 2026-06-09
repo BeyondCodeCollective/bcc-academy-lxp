@@ -158,22 +158,11 @@ export default async function TrackOverviewPage({
           <h1 className="mt-2 text-3xl font-bold tracking-tight text-neutral-900 sm:text-4xl">
             {track.name}
           </h1>
-          {overviewCopy &&
-            overviewCopy
-              .split(/\n\n+/)
-              .map((para, i) => (
-                <p
-                  key={i}
-                  className="mt-3 text-base leading-relaxed text-neutral-600"
-                >
-                  {para.split("\n").map((line, j, arr) => (
-                    <span key={j}>
-                      {line}
-                      {j < arr.length - 1 && <br />}
-                    </span>
-                  ))}
-                </p>
-              ))}
+          {overviewCopy && (
+            <p className="mt-3 text-base leading-relaxed text-neutral-600 whitespace-pre-wrap">
+              {overviewCopy}
+            </p>
+          )}
         </div>
 
         <div>

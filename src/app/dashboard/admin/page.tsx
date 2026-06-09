@@ -62,7 +62,7 @@ export default async function AdminPage({
   const needsLunchLearns = effectiveTab === "lunch-learn";
   const needsInsightsData = effectiveTab === "insights";
   void needsSurveyStats; // kept as a named constant for the gated query below
-  let allStudents: Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id">[] = [];
+  let allStudents: Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id" | "last_seen_at">[] = [];
   let allCohorts: { id: string; name: string; display_name: string | null; track_slug: string | null; start_date: string | null; total_weeks: number | null }[] = [];
   let studentTracks: StudentTrackRow[] = [];
   let instructorTracks: InstructorTrackRow[] = [];
@@ -169,10 +169,10 @@ export default async function AdminPage({
         needsStudents
           ? svc
                   .from("students")
-                  .select("id, first_name, last_name, email, role, cohort_id")
+                  .select("id, first_name, last_name, email, role, cohort_id, last_seen_at")
                   .in("program_id", programIds)
                   .order("created_at", { ascending: true })
-          : Promise.resolve({ data: [] as Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id">[] }),
+          : Promise.resolve({ data: [] as Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id" | "last_seen_at">[] }),
         needsCohorts
           ? svc
               .from("cohorts")
@@ -246,7 +246,7 @@ export default async function AdminPage({
       myInstrTracksRes,
     ] = coreRes;
 
-    allStudents = (studentsResult.data ?? []) as Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id">[];
+    allStudents = (studentsResult.data ?? []) as Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id" | "last_seen_at">[];
     allCohorts = cohortsResult.data || [];
     studentTracks = (studentTracksRes.data ?? []) as StudentTrackRow[];
     instructorTracks = (instructorTracksRes.data ?? []) as InstructorTrackRow[];
