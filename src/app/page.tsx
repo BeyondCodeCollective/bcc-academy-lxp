@@ -27,11 +27,20 @@ export async function generateMetadata(): Promise<Metadata> {
       description: program.seo.ogDescription,
       url,
       siteName: program.name,
+      images: [
+        {
+          url: "https://bccacademy.io/images/bcc/community/community-og.webp",
+          width: 1456,
+          height: 816,
+          alt: "BCC Academy students in the classroom",
+        },
+      ],
     },
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       title: program.seo.ogTitle,
       description: program.seo.ogDescription,
+      images: ["https://bccacademy.io/images/bcc/community/community-og.webp"],
     },
     alternates: {
       canonical: url,
