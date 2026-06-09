@@ -10,7 +10,6 @@ type Props = {
   totalWeeks: number;
   sessionsPerWeek: number;
   started: boolean;
-  currentWeek: number;
   weekOneTopic: string;
 };
 
@@ -21,7 +20,6 @@ export function TrackCard({
   totalWeeks,
   sessionsPerWeek,
   started,
-  currentWeek,
   weekOneTopic,
 }: Props) {
   const tone = toneForTrack(slug);
@@ -51,7 +49,7 @@ export function TrackCard({
                 className="h-1 w-1 rounded-full animate-pulse"
                 style={{ backgroundColor: tone }}
               />
-              Wk {currentWeek}/{totalWeeks}
+              In progress
             </span>
           )}
         </div>

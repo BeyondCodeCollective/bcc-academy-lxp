@@ -48,7 +48,7 @@ export function CollapsibleTrackSection({
             {started && (
               <span className="inline-flex items-center gap-1 rounded-full bg-[#E54D2E] px-2 py-0.5 text-[10px] font-semibold text-white shrink-0">
                 <span className="h-1 w-1 rounded-full bg-white/80 animate-pulse" />
-                Wk {currentWeek}/{totalWeeks}
+                In progress
               </span>
             )}
           </div>

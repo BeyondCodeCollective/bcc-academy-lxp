@@ -277,7 +277,6 @@ async function DashboardContent({
   const completedWeeks = longestTrack ? Math.max(0, longestTrack.currentWeek - 1) : 0;
   const totalProgramWeeks = longestTrack?.track.totalWeeks ?? 8;
   const pct = Math.round((completedWeeks / totalProgramWeeks) * 100);
-  const progressWeek = longestTrack?.currentWeek ?? 1;
 
   if (noCohort) {
     return (
@@ -420,9 +419,7 @@ async function DashboardContent({
       {!isAdmin && (
         <section aria-label="Program progress">
           <div className="flex items-baseline justify-between mb-2">
-            <p className="text-sm font-semibold text-ink">
-              Week {progressWeek} of {totalProgramWeeks}
-            </p>
+            <p className="text-sm font-semibold text-ink">Progress</p>
             <span className="text-sm font-semibold tabular-nums text-ink-soft">{pct}%</span>
           </div>
           <div className="h-1.5 w-full overflow-hidden bg-rule">
@@ -449,7 +446,7 @@ async function DashboardContent({
         <TrackGrid
           tracks={trackStates
             .filter(({ track }) => track.type !== "single-event")
-            .map(({ track, started, currentWeek }) => ({
+            .map(({ track, started }) => ({
               track: {
                 slug: track.slug,
                 name: track.name,
@@ -460,7 +457,6 @@ async function DashboardContent({
                 phase: track.phase,
               },
               started,
-              currentWeek,
             }))}
         />
       )}

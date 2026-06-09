@@ -14,7 +14,6 @@ type TrackState = {
     phase?: string;
   };
   started: boolean;
-  currentWeek: number;
 };
 
 type FilterKey = "all" | "in-progress" | "upcoming";
@@ -141,7 +140,7 @@ export function TrackGrid({ tracks }: { tracks: TrackState[] }) {
                 {group.label}
               </p>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {group.items.map(({ track, started, currentWeek }) => (
+                {group.items.map(({ track, started }) => (
                   <TrackCard
                     key={track.slug}
                     slug={track.slug}
@@ -150,7 +149,7 @@ export function TrackGrid({ tracks }: { tracks: TrackState[] }) {
                     totalWeeks={track.totalWeeks}
                     sessionsPerWeek={track.sessionsPerWeek}
                     started={started}
-                    currentWeek={currentWeek}
+
                     weekOneTopic={track.weekOneTopic}
                   />
                 ))}
@@ -160,7 +159,7 @@ export function TrackGrid({ tracks }: { tracks: TrackState[] }) {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {visible.map(({ track, started, currentWeek }) => (
+          {visible.map(({ track, started }) => (
             <TrackCard
               key={track.slug}
               slug={track.slug}
@@ -169,7 +168,6 @@ export function TrackGrid({ tracks }: { tracks: TrackState[] }) {
               totalWeeks={track.totalWeeks}
               sessionsPerWeek={track.sessionsPerWeek}
               started={started}
-              currentWeek={currentWeek}
               weekOneTopic={track.weekOneTopic}
             />
           ))}
