@@ -166,7 +166,12 @@ export default async function TrackOverviewPage({
                   key={i}
                   className="mt-3 text-base leading-relaxed text-neutral-600"
                 >
-                  {para}
+                  {para.split("\n").map((line, j, arr) => (
+                    <span key={j}>
+                      {line}
+                      {j < arr.length - 1 && <br />}
+                    </span>
+                  ))}
                 </p>
               ))}
         </div>
