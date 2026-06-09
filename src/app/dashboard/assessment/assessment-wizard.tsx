@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { MODULE_1_ITEMS, MODULE_2_SCENARIOS, MODULE_3_ITEMS, TRANSITION_MESSAGES } from "@/lib/assessment/content";
 import { saveAssessmentProgress, submitAssessment } from "./actions";
+import { AssessmentA11yBar, SpeakButton, useReadAloud } from "@/components/assessment-a11y-bar";
 import type { RawResponses } from "@/lib/assessment/types";
 
 type WizardStage = "m1a" | "m1b" | "m2" | "m3" | "transitioning" | "submitting";
@@ -52,6 +53,7 @@ export function AssessmentWizard({
   programSlug: string;
 }) {
   const router = useRouter();
+  const { enabled: readAloud, setEnabled: setReadAloud, speak, stop } = useReadAloud();
   const [responses, setResponses] = useState<RawResponses>(initialResponses);
   const [stage, setStage] = useState<WizardStage>(() => {
     if (initialModule === 0) return "m1a";  // no progress
@@ -100,6 +102,12 @@ export function AssessmentWizard({
     stage === "m1a" || stage === "m1b" ? SECTION_META.m1
     : stage === "m2" ? SECTION_META.m2
     : SECTION_META.m3;
+
+  // Auto-read section intro when read-aloud is on and stage changes.
+  useEffect(() => {
+    if (!readAloud || stage === "transitioning" || stage === "submitting") return;
+    speak(`${section.title}. ${section.description}`);
+  }, [stage, readAloud]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Question-number offset so numbering is continuous across Module 1's two halves.
   const numberOffset = stage === "m1b" ? m1aItems.length : 0;
@@ -152,6 +160,7 @@ export function AssessmentWizard({
 
   return (
     <div className="mx-auto max-w-2xl px-5 py-10 space-y-8">
+      <AssessmentA11yBar enabled={readAloud} onToggle={() => { setReadAloud(!readAloud); if (readAloud) stop(); }} />
       {/* Title + overall progress */}
       <div className="space-y-3">
         <div className="flex items-baseline justify-between">
@@ -257,10 +266,13 @@ function LikertRow({
 }) {
   return (
     <div className="space-y-3">
-      <p className="text-sm text-ink leading-snug">
-        <span className="font-semibold text-ink/40 mr-1.5">{number}.</span>
-        {text}
-      </p>
+      <div className="flex items-start gap-2">
+        <p className="text-sm text-ink leading-snug flex-1">
+          <span className="font-semibold text-ink/40 mr-1.5">{number}.</span>
+          {text}
+        </p>
+        <SpeakButton text={`Question ${number}. ${text}`} />
+      </div>
       <div className="flex gap-2">
         {LIKERT_OPTIONS.map((opt) => (
           <button
@@ -300,10 +312,13 @@ function ForcedChoiceRow({
 }) {
   return (
     <div className="space-y-3">
-      <p className="text-sm font-medium text-ink leading-snug">
-        <span className="font-semibold text-ink/40 mr-1.5">{number}.</span>
-        {scenario.scenario}
-      </p>
+      <div className="flex items-start gap-2">
+        <p className="text-sm font-medium text-ink leading-snug flex-1">
+          <span className="font-semibold text-ink/40 mr-1.5">{number}.</span>
+          {scenario.scenario}
+        </p>
+        <SpeakButton text={`Question ${number}. ${scenario.scenario}. Option A: ${scenario.optionA.label}. Option B: ${scenario.optionB.label}.`} />
+      </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {(["A", "B"] as const).map((letter) => {
           const opt = letter === "A" ? scenario.optionA : scenario.optionB;
