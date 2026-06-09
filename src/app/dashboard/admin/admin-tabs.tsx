@@ -871,10 +871,9 @@ export function AdminTabs({
               )}
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="divide-y divide-rule border border-rule bg-surface-elevated">
               {tracks.map((t) => {
                 const tone = toneForTrack(t.slug);
-                const icon = iconForTrack(t.slug);
                 const start = new Date(t.startDate);
                 const started = now >= start;
                 const currentWeek = started
@@ -897,29 +896,25 @@ export function AdminTabs({
                   <Link
                     key={t.slug}
                     href={`/dashboard/admin?tab=${t.slug}`}
-                    className="group flex h-full flex-col overflow-hidden border border-rule bg-surface-elevated text-left transition-colors hover:border-neutral-300"
+                    className="group flex items-center gap-4 px-4 py-3.5 transition-colors hover:bg-neutral-50"
                   >
-                    <div
-                      aria-hidden
-                      className="relative flex aspect-video w-full items-center justify-center overflow-hidden"
-                      style={{ backgroundColor: `${tone}1A` }}
-                    >
-                      <span className="text-5xl leading-none">{icon}</span>
-                    </div>
-                    <div className="flex flex-1 flex-col p-4">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-neutral-400">
-                        {status}
-                      </p>
-                      <h3 className="mt-1.5 text-[15px] font-semibold leading-snug tracking-[-0.01em] text-neutral-900 line-clamp-2">
+                    <span
+                      className="h-2.5 w-2.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: tone }}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[14px] font-semibold text-neutral-900 leading-snug">
                         {t.shortName || t.name}
-                      </h3>
-                      <p className="mt-1 text-[12px] text-neutral-500">
-                        with {t.instructor}
                       </p>
-                      <p className="mt-auto pt-3 text-[12px] text-neutral-500">
-                        {count} {count === 1 ? "student" : "students"}
+                      <p className="text-[12px] text-neutral-400">
+                        {t.instructor}
                       </p>
                     </div>
+                    <p className="shrink-0 text-[12px] text-neutral-500">{status}</p>
+                    <p className="shrink-0 w-20 text-right text-[12px] text-neutral-400 tabular-nums">
+                      {count} {count === 1 ? "student" : "students"}
+                    </p>
+                    <span className="shrink-0 text-neutral-300 group-hover:text-neutral-500 transition-colors">→</span>
                   </Link>
                 );
               })}
