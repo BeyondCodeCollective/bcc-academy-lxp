@@ -62,9 +62,11 @@ export default async function TrackOverviewPage({
 
   const now = new Date();
   const started = !track.startDateTbd && now >= new Date(track.startDate);
-  const currentWeek = started
-    ? computeCurrentWeek(track.startDate, track.totalWeeks, track.lastSessionDayOffset)
-    : 0;
+  const currentWeek = track.selfPaced
+    ? started ? 1 : 0
+    : started
+      ? computeCurrentWeek(track.startDate, track.totalWeeks, track.lastSessionDayOffset)
+      : 0;
 
   const ctaWeek = started ? currentWeek : 1;
   const ctaLabel = started

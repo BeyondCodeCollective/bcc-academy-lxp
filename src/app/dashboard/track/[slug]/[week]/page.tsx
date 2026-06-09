@@ -105,9 +105,11 @@ export default async function TrackWeekPage({
 
   const now = new Date();
   const trackStarted = !track.startDateTbd && now >= new Date(track.startDate);
-  const currentWeek = trackStarted
-    ? computeCurrentWeek(track.startDate, track.totalWeeks, track.lastSessionDayOffset)
-    : 0;
+  const currentWeek = track.selfPaced
+    ? trackStarted ? 1 : 0
+    : trackStarted
+      ? computeCurrentWeek(track.startDate, track.totalWeeks, track.lastSessionDayOffset)
+      : 0;
 
   // Fetch session content and student progress in parallel
   const [sessionContent, weekProgress] = await Promise.all([

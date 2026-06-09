@@ -59,6 +59,7 @@ type CurriculumTrack = {
   shortName: string;
   startDate: string;
   startDateTbd?: boolean;
+  selfPaced?: boolean;
   totalWeeks: number;
   lastSessionDayOffset: number;
   weekSummaries: { week: number; topic: string; icon: string }[];
@@ -246,9 +247,11 @@ export function Nav({
       {visibleCurriculumTracks.map((track) => {
         const now = new Date();
         const started = !track.startDateTbd && now >= new Date(track.startDate);
-        const currentWeek = started
-          ? computeCurrentWeek(track.startDate, track.totalWeeks, track.lastSessionDayOffset)
-          : 0;
+        const currentWeek = track.selfPaced
+          ? started ? 1 : 0
+          : started
+            ? computeCurrentWeek(track.startDate, track.totalWeeks, track.lastSessionDayOffset)
+            : 0;
 
         return (
           <div key={track.slug}>

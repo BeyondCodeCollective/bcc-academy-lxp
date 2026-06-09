@@ -244,6 +244,7 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
             shortName: t.shortName,
             startDate: t.startDate,
             startDateTbd: t.startDateTbd,
+            selfPaced: t.selfPaced,
             totalWeeks: t.totalWeeks,
             lastSessionDayOffset: t.lastSessionDayOffset,
             weekSummaries: t.weekSummaries.map((ws) => ({
