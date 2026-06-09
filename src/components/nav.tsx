@@ -218,7 +218,7 @@ export function Nav({
     currentProgramSlug,
   };
 
-  const { enabled: readAloud, setEnabled: setReadAloud, stop } = useReadAloud();
+  const { enabled: readAloud, setEnabled: setReadAloud, speak, stop } = useReadAloud();
 
   const sidebarFooter = (
     <div className="mt-auto flex flex-col gap-1">
@@ -231,7 +231,21 @@ export function Nav({
           type="button"
           aria-pressed={readAloud}
           aria-label={readAloud ? "Turn off read aloud" : "Turn on read aloud"}
-          onClick={() => { setReadAloud(!readAloud); if (readAloud) stop(); }}
+          onClick={() => {
+            if (readAloud) {
+              setReadAloud(false);
+              stop();
+            } else {
+              setReadAloud(true);
+              const heading = document.querySelector("main h1, h1")?.textContent ?? "";
+              const body = Array.from(document.querySelectorAll("main p, main li"))
+                .slice(0, 6)
+                .map((el) => el.textContent?.trim())
+                .filter(Boolean)
+                .join(". ");
+              speak([heading, body].filter(Boolean).join(". "));
+            }
+          }}
           className={`inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors ${
             readAloud
               ? "bg-accent text-white"
