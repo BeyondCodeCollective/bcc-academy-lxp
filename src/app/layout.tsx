@@ -52,21 +52,12 @@ export const metadata: Metadata = {
     url: "https://bccacademy.io",
     siteName: "BCC Academy",
     type: "website",
-    images: [
-      {
-        url: "https://bccacademy.io/images/bcc/community/community-og.webp",
-        width: 1456,
-        height: 816,
-        alt: "BCC Academy students in the classroom",
-      },
-    ],
   },
   twitter: {
-    card: "summary_large_image",
+    card: "summary",
     title: "Beyond Code Collective",
     description:
       "A community-based learning and workforce ecosystem for ages 7 to 77. Where everyone builds together.",
-    images: ["https://bccacademy.io/images/bcc/community/community-og.webp"],
   },
   alternates: {
     canonical: "https://bccacademy.io",
