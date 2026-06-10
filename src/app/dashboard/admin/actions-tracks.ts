@@ -150,17 +150,22 @@ export type SessionContentRow = {
 export async function saveSessionContent(
   track: string,
   weekNumber: number,
-  data: SessionContentData
+  data: SessionContentData,
+  programSlug?: string
 ) {
   const { svc, userId } = await requireAdmin();
 
-  // Look up current program ID
-  const { getProgram } = await import("@/lib/programs/server");
-  const program = await getProgram();
+  // Resolve program slug — prefer explicit arg, fall back to request context
+  let slug = programSlug;
+  if (!slug) {
+    const { getProgram } = await import("@/lib/programs/server");
+    const program = await getProgram();
+    slug = program.slug;
+  }
   const { data: programRow } = await svc
     .from("programs")
     .select("id")
-    .eq("slug", program.slug)
+    .eq("slug", slug)
     .single();
 
   const row: Record<string, unknown> = {

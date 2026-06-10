@@ -605,7 +605,7 @@ export function AdminTabs({
           description: weekData.overrideDescription || null,
           objectives: objectivesArr,
           resources: allResources,
-        });
+        }, programSlug);
         setSaveStates((s) => ({ ...s, [trackSlug]: { ...s[trackSlug], [weekNum]: "saved" } }));
         setTimeout(() => setSaveStates((s) => ({ ...s, [trackSlug]: { ...s[trackSlug], [weekNum]: "idle" } })), 2000);
       } catch (err) {
