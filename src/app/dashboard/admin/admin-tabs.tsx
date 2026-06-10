@@ -2295,22 +2295,21 @@ function PeopleTab({
                       <div className="flex flex-wrap gap-1.5">
                         {tracks.map((t) => {
                           const savingKey = `${s.id}-${t.slug}`;
-                          const enrolled =
-                            s.role === "student"
-                              ? studentSlugs.includes(t.slug)
-                              : instructorSlugs.includes(t.slug);
-                          const isSaving =
-                            s.role === "student"
-                              ? enrollmentSaving === savingKey
-                              : instrTrackSaving === savingKey;
+                          const isInstructor = s.role === "instructor";
+                          const enrolled = isInstructor
+                            ? instructorSlugs.includes(t.slug)
+                            : studentSlugs.includes(t.slug);
+                          const isSaving = isInstructor
+                            ? instrTrackSaving === savingKey
+                            : enrollmentSaving === savingKey;
                           return (
                             <button
                               key={t.slug}
                               type="button"
                               onClick={() =>
-                                s.role === "student"
-                                  ? onToggleStudentTrack(s.id, t.slug)
-                                  : onToggleInstructorTrack(s.id, t.slug)
+                                isInstructor
+                                  ? onToggleInstructorTrack(s.id, t.slug)
+                                  : onToggleStudentTrack(s.id, t.slug)
                               }
                               disabled={isSaving}
                               className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors disabled:opacity-60 ${
