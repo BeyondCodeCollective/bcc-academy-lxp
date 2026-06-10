@@ -499,9 +499,19 @@ export function AdminTabs({
   }, []);
 
 
+  // Track which slugs have already been loaded so router.refresh() calls
+  // (triggered by TrackOverviewForm autosave) don't re-fetch and overwrite
+  // text the admin is actively editing.
+  const loadedSlugs = useRef<Set<string>>(new Set());
+
   // Load initial session content from the API for all tracks
   useEffect(() => {
     async function loadContent(track: AdminTrackConfig) {
+      // Only load once per slug. router.refresh() creates a new `tracks`
+      // array reference on every re-render, which would otherwise re-trigger
+      // this effect and reset in-progress edits before the 800ms save fires.
+      if (loadedSlugs.current.has(track.slug)) return;
+      loadedSlugs.current.add(track.slug);
       try {
         const res = await fetch(`/api/session-content?track=${track.slug}`);
         if (!res.ok) return;
@@ -1113,12 +1123,12 @@ export function AdminTabs({
 
                         {/* Meeting link */}
                         <div>
-                          <label className="text-xs font-medium text-neutral-500">Google Meet Link</label>
+                          <label className="text-xs font-medium text-neutral-500">Meeting Link</label>
                           <input
                             type="url"
                             value={s.meetingLink}
                             onChange={(e) => updateSession(activeTrack.slug, aw.week, s.num, { meetingLink: e.target.value })}
-                            placeholder="https://meet.google.com/..."
+                            placeholder="https://zoom.us/j/... or https://meet.google.com/..."
                             className="mt-1 w-full border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
                           />
                         </div>
@@ -1169,7 +1179,7 @@ export function AdminTabs({
                           </label>
                           {s.meetingLink && (
                             <a href={s.meetingLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-neutral-400 hover:text-neutral-900">
-                              Open Meet ↗️
+                              Open link ↗️
                             </a>
                           )}
                         </div>
