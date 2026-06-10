@@ -376,7 +376,7 @@ Guidelines:
   surveys: [
     {
       id: "mid-program-spring-2026",
-      title: "Mid-Program Check-In",
+      title: "After the Game — Mid-Program Check-In",
       description:
         "You're halfway. 15–20 minutes to help us shape the second half of ATG around what you need.",
       required: true,

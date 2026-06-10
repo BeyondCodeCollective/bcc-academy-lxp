@@ -5,8 +5,8 @@ import { useState } from "react";
 const PUBLIC_SURVEY_LINKS = [
   { id: "bcc-learner-intake",        label: "BCC Learner Intake",              path: "/survey/bcc-learner-intake" },
   { id: "bcc-workshop",              label: "Workshop Survey",                  path: "/survey/bcc-workshop" },
-  { id: "pre-survey-spring-2026",    label: "Pre-Survey (Spring 2026)",        path: "/survey/pre-survey-spring-2026" },
-  { id: "post-survey-spring-2026",   label: "Post-Survey (Spring 2026)",       path: "/survey/post-survey-spring-2026" },
+  { id: "pre-survey-spring-2026",    label: "AI Fundamentals — Pre-Program Survey",  path: "/survey/pre-survey-spring-2026" },
+  { id: "post-survey-spring-2026",   label: "AI Fundamentals — Post-Program Survey", path: "/survey/post-survey-spring-2026" },
   { id: "network-plus-post",         label: "Network+ End-of-Cohort Survey",   path: "/survey/network-plus-post" },
   { id: "security-plus-application", label: "Security+ Application",           path: "/apply/security-plus" },
 ];

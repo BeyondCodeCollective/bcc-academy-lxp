@@ -63,7 +63,7 @@ export const PLATFORM_PUBLIC_SURVEYS: Record<string, SurveyConfig> = {
   },
   [BCC_PRE_SURVEY_SPRING_2026_ID]: {
     id: BCC_PRE_SURVEY_SPRING_2026_ID,
-    title: "Pre-Survey",
+    title: "AI Fundamentals — Pre-Program Survey",
     description:
       "Help us understand your background and experience so we can better support you.",
     required: false,
