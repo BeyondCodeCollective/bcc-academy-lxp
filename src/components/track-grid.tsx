@@ -84,7 +84,7 @@ export function TrackGrid({ tracks }: { tracks: TrackState[] }) {
       .sort((a, b) => phaseRank(a.key) - phaseRank(b.key));
   }, [visible]);
 
-  const showPhaseHeaders = grouped.length > 1;
+  const showPhaseHeaders = false;
 
   const FILTERS: { key: FilterKey; label: string }[] = [
     { key: "all", label: "All" },
