@@ -9,8 +9,28 @@ type Props = {
   zoomUrl?: string;
 };
 
-export function ZoomEmbed({ sessionTitle, zoomUrl }: Props) {
-  if (!zoomUrl) return null;
+/**
+ * Embeds the Zoom Meeting SDK Component View inside an <iframe>.
+ *
+ * The SDK requires React 18 and conflicts with the app's React 19 when
+ * bundled together. Running it in an isolated iframe document avoids that
+ * conflict entirely — the SDK has its own React 18 vendor copy in /public/zoom/.
+ */
+export function ZoomEmbed({
+  meetingNumber,
+  password,
+  userName,
+  userEmail,
+  sessionTitle,
+  zoomUrl,
+}: Props) {
+  const params = new URLSearchParams({
+    mn: meetingNumber,
+    pwd: password,
+    un: userName,
+    ue: userEmail,
+  });
+  const src = `/api/zoom-frame?${params.toString()}`;
 
   return (
     <div className="mb-8">
@@ -23,27 +43,31 @@ export function ZoomEmbed({ sessionTitle, zoomUrl }: Props) {
         <span className="text-sm text-neutral-400">&middot; {sessionTitle}</span>
       </div>
 
-      {/* Join card */}
-      <div className="flex flex-col items-center justify-center gap-5 border-2 border-[#E54D2E]/20 bg-[#1a1a1a] px-6 py-12 text-center">
-        <div className="space-y-1.5">
-          <p className="text-xl font-bold text-white">{sessionTitle}</p>
-          <p className="text-sm text-neutral-400">
-            Your instructor is live right now. Click below to join!
-          </p>
-        </div>
-        <a
-          href={zoomUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2.5 bg-[#E54D2E] px-8 py-4 text-base font-bold text-white transition-colors hover:bg-[#F0613E] min-h-[56px]"
-        >
-          <span aria-hidden>🎥</span>
-          Join Live Session
-        </a>
-        <p className="text-xs text-neutral-500">
-          Opens Zoom in a new tab — make sure Zoom is installed on your device.
-        </p>
+      {/* Zoom embed — isolated iframe */}
+      <div className="relative w-full overflow-hidden bg-neutral-950" style={{ aspectRatio: "16/9", minHeight: 400 }}>
+        <iframe
+          src={src}
+          title={`Live session: ${sessionTitle}`}
+          className="absolute inset-0 w-full h-full border-0"
+          allow="camera; microphone; display-capture; autoplay; clipboard-write"
+          allowFullScreen
+        />
       </div>
+
+      {/* Fallback for environments where embed can't load */}
+      {zoomUrl && (
+        <p className="mt-2 text-center text-xs text-neutral-400">
+          Having trouble?{" "}
+          <a
+            href={zoomUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold text-[#E54D2E] hover:underline"
+          >
+            Open directly in Zoom ↗
+          </a>
+        </p>
+      )}
     </div>
   );
 }
