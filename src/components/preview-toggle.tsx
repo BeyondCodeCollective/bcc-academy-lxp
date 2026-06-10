@@ -37,7 +37,7 @@ export function PreviewToggle({
           <ul className="max-h-72 overflow-y-auto">
             {tracks.map((t) => (
               <li key={t.slug}>
-                <form action={setPreviewTrackSlug.bind(null, t.slug)}>
+                <form action={setPreviewTrackSlug.bind(null, t.slug)} onSubmit={() => setOpen(false)}>
                   <button
                     type="submit"
                     className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-xs transition-colors hover:bg-neutral-50 ${
@@ -58,6 +58,7 @@ export function PreviewToggle({
           {active && (
             <form
               action={setPreviewTrackSlug.bind(null, null)}
+              onSubmit={() => setOpen(false)}
               className="border-t border-neutral-100"
             >
               <button
