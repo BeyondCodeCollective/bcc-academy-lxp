@@ -31,6 +31,10 @@ export function resolveSessionContent(
       meetingLinks.push(dbRow?.meeting_link_2 ?? null);
       sessionStatuses.push(dbRow?.status_2 ?? "upcoming");
       recordingUrls.push(dbRow?.recording_url_2 ?? null);
+    } else if (i === 2) {
+      meetingLinks.push(dbRow?.meeting_link_3 ?? null);
+      sessionStatuses.push(dbRow?.status_3 ?? "upcoming");
+      recordingUrls.push(dbRow?.recording_url_3 ?? null);
     } else {
       meetingLinks.push(null);
       sessionStatuses.push("upcoming");

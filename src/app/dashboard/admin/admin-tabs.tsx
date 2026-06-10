@@ -107,8 +107,11 @@ type SessionContentMap = Record<number, {
   recording_url: string;
   meeting_link_2: string;
   recording_url_2: string;
+  meeting_link_3: string;
+  recording_url_3: string;
   status: string;
   status_2: string;
+  status_3: string;
   resources: SessionResource[];
   title: string | null;
   subtitle: string | null;
@@ -148,9 +151,9 @@ function applyContentMap(weeks: AdminWeek[], map: SessionContentMap): AdminWeek[
       overrideObjectives: content.objectives?.join("\n") ?? "",
       sessions: w.sessions.map((s, i) => ({
         ...s,
-        meetingLink: i === 0 ? content.meeting_link : i === 1 ? content.meeting_link_2 : s.meetingLink,
-        recordingUrl: i === 0 ? content.recording_url : i === 1 ? content.recording_url_2 : s.recordingUrl,
-        status: (i === 0 ? content.status : i === 1 ? content.status_2 : s.status) as "upcoming" | "completed",
+        meetingLink: i === 0 ? content.meeting_link : i === 1 ? content.meeting_link_2 : i === 2 ? content.meeting_link_3 : s.meetingLink,
+        recordingUrl: i === 0 ? content.recording_url : i === 1 ? content.recording_url_2 : i === 2 ? content.recording_url_3 : s.recordingUrl,
+        status: (i === 0 ? content.status : i === 1 ? content.status_2 : i === 2 ? content.status_3 : s.status) as "upcoming" | "completed",
         resources: i === 0 ? content.resources : s.resources,
       })),
     };
@@ -508,8 +511,11 @@ export function AdminTabs({
           recording_url: string | null;
           meeting_link_2: string | null;
           recording_url_2: string | null;
+          meeting_link_3: string | null;
+          recording_url_3: string | null;
           status: string | null;
           status_2: string | null;
+          status_3: string | null;
           resources: SessionResource[];
           title: string | null;
           subtitle: string | null;
@@ -523,8 +529,11 @@ export function AdminTabs({
             recording_url: row.recording_url ?? "",
             meeting_link_2: row.meeting_link_2 ?? "",
             recording_url_2: row.recording_url_2 ?? "",
+            meeting_link_3: row.meeting_link_3 ?? "",
+            recording_url_3: row.recording_url_3 ?? "",
             status: row.status ?? "upcoming",
             status_2: row.status_2 ?? "upcoming",
+            status_3: row.status_3 ?? "upcoming",
             resources: row.resources ?? [],
             title: row.title ?? null,
             subtitle: row.subtitle ?? null,
@@ -576,8 +585,11 @@ export function AdminTabs({
           recording_url: weekData.sessions[0]?.recordingUrl ?? "",
           meeting_link_2: weekData.sessions[1]?.meetingLink ?? "",
           recording_url_2: weekData.sessions[1]?.recordingUrl ?? "",
+          meeting_link_3: weekData.sessions[2]?.meetingLink ?? "",
+          recording_url_3: weekData.sessions[2]?.recordingUrl ?? "",
           status: weekData.sessions[0]?.status ?? "upcoming",
           status_2: weekData.sessions[1]?.status ?? "upcoming",
+          status_3: weekData.sessions[2]?.status ?? "upcoming",
           title: weekData.overrideTitle || null,
           subtitle: weekData.overrideSubtitle || null,
           description: weekData.overrideDescription || null,

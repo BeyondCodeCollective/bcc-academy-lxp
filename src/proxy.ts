@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { authCookieDomain } from "@/lib/supabase/cookie-domain";
-import { gateCookieMatches } from "@/lib/gate-cookie";
 import {
   getProgramByDomain,
   getProgramBySlug,
@@ -18,39 +17,8 @@ const VALID_PREVIEW_SLUGS = new Set([
   "catalyst",
 ]);
 
-// Site password gate — applies only to the marketing host (bccacademy.io).
-// Exempt: the gate flow itself, public survey routes, join pages, and all
-// dashboard routes (authenticated users should never be blocked — the dashboard
-// enforces its own auth and redirects unauthenticated visitors to /login).
-// /login and /auth/ are also exempt so the magic-link callback can complete
-// before any gate check fires.
-const GATE_EXEMPT_PREFIXES = ["/gate", "/api/gate", "/survey/", "/join/", "/apply/", "/dashboard", "/login", "/auth/", "/assessment-preview"];
-const GATE_COOKIE = "site-access";
-const MARKETING_HOSTS = new Set(["bccacademy.io", "www.bccacademy.io"]);
-
-
 export async function proxy(request: NextRequest) {
   const host = request.headers.get("host") ?? "localhost:3000";
-
-  // ── Site password gate (marketing host only) ──────────────────────────
-  const sitePassword = process.env.SITE_PASSWORD;
-  if (sitePassword && MARKETING_HOSTS.has(host)) {
-    const pathname = request.nextUrl.pathname;
-    const isExempt = GATE_EXEMPT_PREFIXES.some((p) => pathname.startsWith(p));
-    const hasAccess = gateCookieMatches(
-      request.cookies.get(GATE_COOKIE)?.value,
-      sitePassword,
-    );
-    if (!isExempt && !hasAccess) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/gate";
-      url.search = "";
-      if (pathname !== "/") {
-        url.searchParams.set("next", pathname + request.nextUrl.search);
-      }
-      return NextResponse.redirect(url);
-    }
-  }
 
   const asParam = request.nextUrl.searchParams.get("as");
   const previewOverride =
