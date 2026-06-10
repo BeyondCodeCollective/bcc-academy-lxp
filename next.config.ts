@@ -3,13 +3,6 @@ import path from "path";
 
 const nextConfig: NextConfig = {
   webpack(config) {
-    // @zoom/meetingsdk's UMD bundle references these as optional peer deps that
-    // aren't in the dependency tree. Stub them out so webpack doesn't error.
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      "@zoom/download-manager": false,
-      jszip: false,
-    };
     return config;
   },
   turbopack: {
