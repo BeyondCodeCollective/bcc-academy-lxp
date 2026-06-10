@@ -16,6 +16,9 @@ import { getSurveyStatus } from "@/app/dashboard/actions";
 import type { WeekConfig } from "@/lib/programs/types";
 import { resolveSessionContent } from "@/lib/session-content";
 import { ReadPageAloud } from "@/components/read-page-aloud";
+import { ZoomEmbed } from "@/components/zoom-embed";
+import { parseZoomLink, isZoomLink } from "@/lib/zoom";
+import { getSessionContext } from "@/lib/auth/session";
 
 export default async function TrackWeekPage({
   params,
@@ -112,10 +115,11 @@ export default async function TrackWeekPage({
       ? computeCurrentWeek(track.startDate, track.totalWeeks, track.lastSessionDayOffset)
       : 0;
 
-  // Fetch session content and student progress in parallel
-  const [sessionContent, weekProgress] = await Promise.all([
+  // Fetch session content, student progress, and current user in parallel
+  const [sessionContent, weekProgress, sessionCtx] = await Promise.all([
     isSupabaseConfigured() ? getSessionContent(trackSlug, weekNum) : null,
     isSupabaseConfigured() ? getWeekProgress(trackSlug, weekNum).catch(() => null) : null,
+    isSupabaseConfigured() ? getSessionContext().catch(() => null) : null,
   ]);
 
   const {
@@ -153,6 +157,20 @@ export default async function TrackWeekPage({
     track.selfPaced || isCurrent || isCompleted || weekNum < currentWeek;
 
   const sessionsLabel = weekContent.sessions.length === 1 ? "Session" : "Sessions";
+
+  // Zoom embed: resolve which sessions have active Zoom links
+  const zoomUserName = sessionCtx?.student
+    ? `${sessionCtx.student.first_name} ${sessionCtx.student.last_name}`.trim()
+    : "Student";
+  const zoomUserEmail = sessionCtx?.student?.email ?? sessionCtx?.userEmail ?? "";
+  const zoomSessions = weekContent.sessions
+    .map((session, i) => ({
+      index: i,
+      session,
+      parsed: meetingLinks[i] ? parseZoomLink(meetingLinks[i]!) : null,
+      isActive: sessionStatuses[i] !== "completed",
+    }))
+    .filter((s) => s.parsed !== null && s.isActive);
 
   const prevWeek = weekNum > 1 ? weekNum - 1 : null;
   const nextWeek = weekNum < track.totalWeeks ? weekNum + 1 : null;
@@ -220,7 +238,7 @@ export default async function TrackWeekPage({
                 <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
                   ✓ Session Ended
                 </span>
-              ) : meetingLinks[0] ? (
+              ) : meetingLinks[0] && !isZoomLink(meetingLinks[0]) ? (
                 <a
                   href={meetingLinks[0]!}
                   target="_blank"
@@ -229,7 +247,8 @@ export default async function TrackWeekPage({
                 >
                   Join Session
                 </a>
-              ) : headerSessionIsSelfPaced ? null : (
+              ) : meetingLinks[0] && isZoomLink(meetingLinks[0]) ? null
+              : headerSessionIsSelfPaced ? null : (
                 <span className="inline-flex items-center justify-center gap-1.5 bg-neutral-200 text-neutral-400 text-xs font-semibold px-3.5 py-2.5 min-h-[44px] cursor-not-allowed w-full sm:w-auto">
                   Link Coming Soon
                 </span>
@@ -284,6 +303,27 @@ export default async function TrackWeekPage({
         );
       })()}
 
+      {/* Zoom embeds — rendered for any session with an active Zoom meeting link.
+         The meeting ID never appears in the DOM; students join through the SDK. */}
+      {zoomSessions.length > 0 && (
+        <div className="mb-8 space-y-6">
+          {zoomSessions.map(({ index, session, parsed }) => (
+            <ZoomEmbed
+              key={index}
+              meetingNumber={parsed!.meetingNumber}
+              password={parsed!.password}
+              userName={zoomUserName}
+              userEmail={zoomUserEmail}
+              sessionTitle={
+                weekContent.sessions.length > 1
+                  ? `Session ${index + 1}: ${session.title}`
+                  : displayTitle
+              }
+            />
+          ))}
+        </div>
+      )}
+
       {/* Sessions list — only for multi-session weeks (single-session weeks
          fold their metadata into the header above). */}
       {weekContent.sessions.length > 1 && (
@@ -300,6 +340,9 @@ export default async function TrackWeekPage({
                 <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
                   ✓ Session Ended
                 </span>
+              ) : meetingLinks[i] && isZoomLink(meetingLinks[i]) ? (
+                // Zoom sessions render as a full embed panel below — no button here
+                null
               ) : meetingLinks[i] ? (
                 <a
                   href={meetingLinks[i]!}

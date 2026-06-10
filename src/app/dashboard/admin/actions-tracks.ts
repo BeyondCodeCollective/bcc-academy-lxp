@@ -108,8 +108,11 @@ export type SessionContentData = {
   recording_url?: string;
   meeting_link_2?: string;
   recording_url_2?: string;
+  meeting_link_3?: string;
+  recording_url_3?: string;
   status?: string;
   status_2?: string;
+  status_3?: string;
   resources?: SessionResource[];
   /** Instructor overrides — null means use config default */
   title?: string | null;
@@ -126,8 +129,11 @@ export type SessionContentRow = {
   recording_url: string | null;
   meeting_link_2: string | null;
   recording_url_2: string | null;
+  meeting_link_3: string | null;
+  recording_url_3: string | null;
   status: string;
   status_2: string;
+  status_3: string;
   resources: SessionResource[];
   updated_at: string;
   updated_by: string | null;
@@ -172,8 +178,11 @@ export async function saveSessionContent(
   // if the DB migration for those columns hasn't been run yet
   if (data.meeting_link_2 !== undefined) row.meeting_link_2 = data.meeting_link_2 || null;
   if (data.recording_url_2 !== undefined) row.recording_url_2 = data.recording_url_2 || null;
+  if (data.meeting_link_3 !== undefined) row.meeting_link_3 = data.meeting_link_3 || null;
+  if (data.recording_url_3 !== undefined) row.recording_url_3 = data.recording_url_3 || null;
   if (data.status !== undefined) row.status = data.status;
   if (data.status_2 !== undefined) row.status_2 = data.status_2;
+  if (data.status_3 !== undefined) row.status_3 = data.status_3;
 
   // Instructor content overrides (empty string → null = use config default)
   if (data.title !== undefined) row.title = data.title || null;
