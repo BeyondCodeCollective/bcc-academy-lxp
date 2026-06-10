@@ -22,12 +22,15 @@ export function SurveyLinksSection({ surveyConfigs }: { surveyConfigs: { id: str
     });
   };
 
-  const authLinks = surveyConfigs.map((s) => ({
-    id: s.id,
-    label: s.title,
-    path: `/dashboard/survey/${s.id}`,
-    auth: true,
-  }));
+  const authLinks = [
+    { id: "pathway-assessment", label: "Pathway Assessment", path: "/dashboard/assessment", auth: true },
+    ...surveyConfigs.map((s) => ({
+      id: s.id,
+      label: s.title,
+      path: `/dashboard/survey/${s.id}`,
+      auth: true,
+    })),
+  ];
 
   const allLinks = [
     ...PUBLIC_SURVEY_LINKS.map((s) => ({ ...s, auth: false })),
