@@ -33,8 +33,8 @@ const nextConfig: NextConfig = {
       "img-src 'self' data: blob: https://*.supabase.co https://images.pexels.com https://img.evbuc.com https://*.google-analytics.com https://*.googletagmanager.com",
       "font-src 'self' https://fonts.gstatic.com",
       "media-src 'self' https://*.supabase.co https://images.pexels.com",
-      "frame-src https://www.youtube.com https://www.youtube-nocookie.com",
-      "connect-src 'self' https://*.supabase.co https://*.resend.com https://va.vercel-scripts.com https://*.google-analytics.com https://o4506503091847168.ingest.us.sentry.io",
+      "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com",
+      "connect-src 'self' https://*.supabase.co https://*.resend.com https://va.vercel-scripts.com https://*.google-analytics.com https://o4506503091847168.ingest.us.sentry.io https://*.zoom.us wss://*.zoom.us",
       "report-uri /api/csp-report",
     ].join("; ");
 

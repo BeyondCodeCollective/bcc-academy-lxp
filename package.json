@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node scripts/copy-zoom-sdk.mjs",
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",

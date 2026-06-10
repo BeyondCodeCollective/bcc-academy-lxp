@@ -45,7 +45,7 @@ next-env.d.ts
 
 # local-only tooling output
 /graphify-out/
-/scripts/
+# /scripts/ — removed; scripts dir is used for build helpers
 .env*.local
 
 # Playwright
@@ -53,3 +53,6 @@ next-env.d.ts
 /playwright-report/
 /blob-report/
 /.playwright/
+
+# Zoom SDK static assets (copied from node_modules at build time)
+/public/zoom/
