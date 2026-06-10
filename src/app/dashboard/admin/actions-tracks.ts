@@ -183,11 +183,13 @@ export async function saveSessionContent(
   // if the DB migration for those columns hasn't been run yet
   if (data.meeting_link_2 !== undefined) row.meeting_link_2 = data.meeting_link_2 || null;
   if (data.recording_url_2 !== undefined) row.recording_url_2 = data.recording_url_2 || null;
-  if (data.meeting_link_3 !== undefined) row.meeting_link_3 = data.meeting_link_3 || null;
-  if (data.recording_url_3 !== undefined) row.recording_url_3 = data.recording_url_3 || null;
+  // Only write session-3 columns when they have real values — PostgREST schema
+  // cache may lag behind migrations and rejects unknown columns if included
+  if (data.meeting_link_3) row.meeting_link_3 = data.meeting_link_3;
+  if (data.recording_url_3) row.recording_url_3 = data.recording_url_3;
   if (data.status !== undefined) row.status = data.status;
   if (data.status_2 !== undefined) row.status_2 = data.status_2;
-  if (data.status_3 !== undefined) row.status_3 = data.status_3;
+  if (data.status_3 && data.status_3 !== "upcoming") row.status_3 = data.status_3;
 
   // Instructor content overrides (empty string → null = use config default)
   if (data.title !== undefined) row.title = data.title || null;
