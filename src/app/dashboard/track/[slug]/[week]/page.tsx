@@ -442,6 +442,41 @@ export default async function TrackWeekPage({
         );
       })}
 
+      {/* Resources — placed prominently before description so they're the
+         first thing students see after the session video/embed. */}
+      {resources.length > 0 && (
+        <section className="mb-8">
+          <h2 className="mb-3 text-sm font-bold text-ink">
+            Today&apos;s Materials
+          </h2>
+          <ul className="grid gap-3 sm:grid-cols-2">
+            {resources.map((r, i) => {
+              const isFile = r.type === "file" || isStorageUrl(r.url);
+              const isVid = isUploadedVideo(r);
+              const icon = isVid ? "▶️" : isFile ? "📄" : "🔗";
+              const action = isFile ? "Download" : "Open";
+              return (
+                <li key={i}>
+                  <a
+                    href={r.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    download={isFile ? (r.name || true) : undefined}
+                    className="flex items-center gap-4 border-2 border-rule bg-surface-soft px-4 py-4 text-sm font-semibold text-ink hover:border-[#E54D2E] hover:bg-white transition-colors group min-h-[60px]"
+                  >
+                    <span aria-hidden className="text-2xl shrink-0 leading-none">{icon}</span>
+                    <span className="flex-1 leading-snug">{r.name || r.url}</span>
+                    <span className="shrink-0 text-xs font-bold uppercase tracking-wide text-[#E54D2E] opacity-0 group-hover:opacity-100 transition-opacity">
+                      {action}
+                    </span>
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
       {/* Brief description */}
       <div className="mb-2 flex justify-end">
         <ReadPageAloud title={displayTitle} description={displayDescription} objectives={displayObjectives} />
@@ -464,40 +499,6 @@ export default async function TrackWeekPage({
           ))}
         </ul>
       </section>
-
-      {/* Resources */}
-      {resources.length > 0 && (
-        <section className="mb-8 border-t border-rule pt-6">
-          <h2 className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
-            Resources
-          </h2>
-          <ul className="space-y-1.5">
-            {resources.map((r, i) => {
-              const isFile = r.type === "file" || isStorageUrl(r.url);
-              const isVid = isUploadedVideo(r);
-              return (
-                <li key={i}>
-                  <a
-                    href={r.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    download={isFile ? (r.name || true) : undefined}
-                    className="flex items-center gap-3 border border-transparent bg-surface-soft px-3 py-2.5 text-sm font-medium text-ink hover:border-rule hover:bg-surface-elevated transition-colors group min-h-[44px]"
-                  >
-                    <span aria-hidden className="text-ink-faint group-hover:text-ink-soft shrink-0">
-                      {isVid ? "▶" : isFile ? "📄" : "🔗"}
-                    </span>
-                    <span className="flex-1 truncate">{r.name || r.url}</span>
-                    <span aria-hidden className="text-ink-faint group-hover:text-ink-soft shrink-0">
-                      {isFile ? "⬇️" : "↗️"}
-                    </span>
-                  </a>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      )}
 
       {/* Completion checklist — inline, no card. */}
       {showChecklist && (
