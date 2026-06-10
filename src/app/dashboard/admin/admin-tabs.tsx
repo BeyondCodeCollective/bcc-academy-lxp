@@ -2282,7 +2282,7 @@ function PeopleTab({
                      outlined "+" chips are tracks they're not in (click to
                      add). Previously labeled "Enrolled tracks" which made
                      the "+" chips read like current memberships. */}
-                  {(s.role === "student" || s.role === "instructor") && tracks.length > 0 && (
+                  {tracks.length > 0 && (
                     <div>
                       <div className="mb-2 flex items-baseline gap-3">
                         <p className="text-[11px] font-medium uppercase tracking-wide text-neutral-500">
