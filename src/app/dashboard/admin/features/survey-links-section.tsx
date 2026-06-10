@@ -3,11 +3,11 @@
 import { useState } from "react";
 
 const PUBLIC_SURVEY_LINKS = [
-  { id: "bcc-learner-intake",        label: "BCC Learner Intake — Walk-in",                      path: "/survey/bcc-learner-intake" },
-  { id: "bcc-workshop",              label: "Workshop Feedback — Walk-in",                        path: "/survey/bcc-workshop" },
-  { id: "pre-survey-spring-2026",    label: "AI Fundamentals — Pre-Program Survey (Walk-in)",     path: "/survey/pre-survey-spring-2026" },
-  { id: "post-survey-spring-2026",   label: "AI Fundamentals — Post-Program Survey (Walk-in)",    path: "/survey/post-survey-spring-2026" },
-  { id: "network-plus-post",         label: "CompTIA Network+ — End-of-Cohort Survey (Walk-in)",  path: "/survey/network-plus-post" },
+  { id: "bcc-learner-intake",        label: "BCC Learner Intake — No Login",                      path: "/survey/bcc-learner-intake" },
+  { id: "bcc-workshop",              label: "Workshop Feedback — No Login",                        path: "/survey/bcc-workshop" },
+  { id: "pre-survey-spring-2026",    label: "AI Fundamentals — Pre-Program Survey (No Login)",     path: "/survey/pre-survey-spring-2026" },
+  { id: "post-survey-spring-2026",   label: "AI Fundamentals — Post-Program Survey (No Login)",    path: "/survey/post-survey-spring-2026" },
+  { id: "network-plus-post",         label: "CompTIA Network+ — End-of-Cohort Survey (No Login)",  path: "/survey/network-plus-post" },
   { id: "security-plus-application", label: "CompTIA Security+ — Application",                    path: "/apply/security-plus" },
 ];
 
