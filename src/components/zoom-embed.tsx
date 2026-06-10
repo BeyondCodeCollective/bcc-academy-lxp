@@ -8,6 +8,7 @@ type Props = {
   userName: string;
   userEmail: string;
   sessionTitle: string;
+  zoomUrl?: string;
 };
 
 type EmbedStatus =
@@ -31,6 +32,7 @@ export function ZoomEmbed({
   userName,
   userEmail,
   sessionTitle,
+  zoomUrl,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -183,13 +185,27 @@ export function ZoomEmbed({
 
           {status === "error" && (
             <div className="space-y-3">
-              <p className="text-sm text-red-400">{error}</p>
-              <button
-                onClick={() => { setStatus("idle"); setError(""); }}
-                className="inline-flex items-center gap-2 border border-neutral-600 px-5 py-2.5 text-sm font-medium text-neutral-300 transition-colors hover:border-neutral-400 hover:text-white min-h-[44px]"
-              >
-                Try again
-              </button>
+              <p className="text-sm text-red-400">
+                The embedded player couldn&apos;t load. Open Zoom directly to join.
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                {zoomUrl && (
+                  <a
+                    href={zoomUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 bg-emerald-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-500 min-h-[44px]"
+                  >
+                    Open in Zoom ↗
+                  </a>
+                )}
+                <button
+                  onClick={() => { setStatus("idle"); setError(""); }}
+                  className="inline-flex items-center gap-2 border border-neutral-600 px-5 py-2.5 text-sm font-medium text-neutral-300 transition-colors hover:border-neutral-400 hover:text-white min-h-[44px]"
+                >
+                  Try again
+                </button>
+              </div>
             </div>
           )}
         </div>
