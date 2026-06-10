@@ -834,7 +834,7 @@ export function AdminTabs({
                       href="/dashboard/admin/features"
                       className="mr-2 flex items-center gap-1.5 rounded-md border border-neutral-200 px-3 py-1.5 text-xs font-semibold text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
                     >
-                      Features
+                      Tools
                     </Link>
                   </>
                 )}
@@ -918,42 +918,6 @@ export function AdminTabs({
                   </Link>
                 );
               })}
-            </div>
-
-            {/* Survey & Form Links */}
-            <div className="mt-8">
-              <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
-                Survey &amp; form links
-              </h2>
-              <SurveyLinksPanel surveyConfigs={surveyConfigs} />
-            </div>
-
-            {/* Pathway Assessments */}
-            <div className="mt-6">
-              <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
-                Pathway assessments
-              </h2>
-              <div className="border border-rule bg-surface-elevated">
-                <a
-                  href="/dashboard/admin/assessments"
-                  className="group flex items-center justify-between gap-4 px-4 py-3.5 hover:bg-neutral-50 transition-colors"
-                >
-                  <span className="text-[14px] font-semibold text-neutral-900">Learner pathway profiles</span>
-                  <span className="flex items-center gap-2 shrink-0">
-                    {(unviewedAssessments ?? 0) > 0 && (
-                      <span className="bg-accent px-2 py-0.5 text-xs font-semibold text-white">
-                        {unviewedAssessments} new
-                      </span>
-                    )}
-                    <span className="text-neutral-300 group-hover:text-neutral-500 transition-colors">→</span>
-                  </span>
-                </a>
-              </div>
-            </div>
-
-            {/* Groups */}
-            <div className="mt-8">
-              <GroupsPanel cohorts={cohorts} tracks={tracks} />
             </div>
 
           </div>

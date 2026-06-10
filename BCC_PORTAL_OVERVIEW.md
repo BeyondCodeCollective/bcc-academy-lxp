@@ -1,6 +1,6 @@
 # BCC Academy Portal — System Overview
 
-> Last updated: May 2, 2026  
+> Last updated: June 9, 2026  
 > For: BCC team — internal reference
 
 ---
@@ -224,8 +224,9 @@ Super-admins can **switch programs** from the admin panel via a dropdown — thi
 
 ---
 
-## Recent Work (April–May 2026)
+## Recent Work (April–June 2026)
 
+### April–May 2026
 - **BCC Learner Intake** — full demographic intake survey for new learners, required on first login for most programs
 - **ATG Mid-Program Survey** — dual-likert mindset/tech confidence change tracking, coaching quality, CompTIA feedback
 - **Public Learner Intake** — walk-in version of the intake, no account needed, for live events
@@ -236,3 +237,10 @@ Super-admins can **switch programs** from the admin panel via a dropdown — thi
 - **CSV export** — download any survey's responses as a flat CSV (dual-likert fields properly formatted)
 - **ZIP code validation** — enforced 5-digit format across all survey forms
 - **Audit logging** — every super_admin access to PII is recorded
+
+### June 2026
+- **Public assessment preview** — `/assessment-preview` route (no login required, exempt from site password gate) so prospective learners can preview the assessment experience
+- **Accessibility controls** — font size adjustment and read-aloud (text-to-speech) controls available platform-wide from the sidebar footer and inline on the assessment page
+- **`last_seen_at` tracking** — records when each student was last active; visible in admin People tab
+- **Admin home compact list** — replaced large track cards on the admin home with a space-efficient compact list layout
+- **OG social preview image** — BCC classroom community photo used for social media link previews
