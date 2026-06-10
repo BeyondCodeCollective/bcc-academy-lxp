@@ -3,12 +3,12 @@
 import { useState } from "react";
 
 const PUBLIC_SURVEY_LINKS = [
-  { id: "bcc-learner-intake",        label: "BCC Learner Intake",              path: "/survey/bcc-learner-intake" },
-  { id: "bcc-workshop",              label: "Workshop Survey",                  path: "/survey/bcc-workshop" },
-  { id: "pre-survey-spring-2026",    label: "AI Fundamentals — Pre-Program Survey",  path: "/survey/pre-survey-spring-2026" },
-  { id: "post-survey-spring-2026",   label: "AI Fundamentals — Post-Program Survey", path: "/survey/post-survey-spring-2026" },
-  { id: "network-plus-post",         label: "Network+ End-of-Cohort Survey",   path: "/survey/network-plus-post" },
-  { id: "security-plus-application", label: "Security+ Application",           path: "/apply/security-plus" },
+  { id: "bcc-learner-intake",        label: "BCC Learner Intake",                        path: "/survey/bcc-learner-intake" },
+  { id: "bcc-workshop",              label: "Workshop Feedback",                          path: "/survey/bcc-workshop" },
+  { id: "pre-survey-spring-2026",    label: "AI Fundamentals — Pre-Program Survey",       path: "/survey/pre-survey-spring-2026" },
+  { id: "post-survey-spring-2026",   label: "AI Fundamentals — Post-Program Survey",      path: "/survey/post-survey-spring-2026" },
+  { id: "network-plus-post",         label: "CompTIA Network+ — End-of-Cohort Survey",    path: "/survey/network-plus-post" },
+  { id: "security-plus-application", label: "CompTIA Security+ — Application",            path: "/apply/security-plus" },
 ];
 
 export function SurveyLinksSection({ surveyConfigs }: { surveyConfigs: { id: string; title: string }[] }) {
@@ -22,12 +22,15 @@ export function SurveyLinksSection({ surveyConfigs }: { surveyConfigs: { id: str
     });
   };
 
-  const authLinks = surveyConfigs.map((s) => ({
-    id: s.id,
-    label: s.title,
-    path: `/dashboard/survey/${s.id}`,
-    auth: true,
-  }));
+  const authLinks = [
+    { id: "pathway-assessment", label: "Pathway Assessment", path: "/dashboard/assessment", auth: true },
+    ...surveyConfigs.map((s) => ({
+      id: s.id,
+      label: s.title,
+      path: `/dashboard/survey/${s.id}`,
+      auth: true,
+    })),
+  ];
 
   const allLinks = [
     ...PUBLIC_SURVEY_LINKS.map((s) => ({ ...s, auth: false })),
@@ -45,11 +48,28 @@ export function SurveyLinksSection({ surveyConfigs }: { surveyConfigs: { id: str
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            {s.auth && (
+            {s.auth ? (
               <span className="text-[10px] font-medium uppercase tracking-wide text-neutral-400 border border-neutral-200 px-1.5 py-0.5">
                 login required
               </span>
+            ) : (
+              <span className="text-[10px] font-medium uppercase tracking-wide text-neutral-400 border border-neutral-200 px-1.5 py-0.5">
+                no login
+              </span>
             )}
+            <a
+              href={s.path}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Open survey"
+              className="inline-flex items-center justify-center border border-rule p-1.5 text-neutral-400 hover:bg-neutral-50 hover:text-neutral-700 transition-colors"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                <polyline points="15 3 21 3 21 9"/>
+                <line x1="10" y1="14" x2="21" y2="3"/>
+              </svg>
+            </a>
             <button
               type="button"
               onClick={() => copy(s.path, s.id)}
