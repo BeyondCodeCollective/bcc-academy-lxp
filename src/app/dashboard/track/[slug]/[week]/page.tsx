@@ -314,6 +314,7 @@ export default async function TrackWeekPage({
               password={parsed!.password}
               userName={zoomUserName}
               userEmail={zoomUserEmail}
+              zoomUrl={meetingLinks[index] ?? undefined}
               sessionTitle={
                 weekContent.sessions.length > 1
                   ? `Session ${index + 1}: ${session.title}`
@@ -403,7 +404,7 @@ export default async function TrackWeekPage({
 
       {/* Video coming soon — shown when no video URL exists and no admin
          recording has been uploaded yet. */}
-      {!weekContent.videoUrl && !hasRecording && (
+      {!weekContent.videoUrl && !hasRecording && zoomSessions.length === 0 && (
         <div className="mb-8 border border-rule bg-surface-soft px-6 py-8 flex flex-col items-center text-center gap-2">
           <span className="text-2xl" aria-hidden>🎬</span>
           <p className="text-sm font-semibold text-ink">Video Coming Soon</p>
