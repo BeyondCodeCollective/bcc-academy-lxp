@@ -78,7 +78,7 @@ export default async function FeaturesPage() {
   const { count: unviewedAssessments } = await svc
     .from("assessment_results")
     .select("*", { count: "exact", head: true })
-    .eq("viewed_by_admin", false);
+    .is("facilitator_viewed_at", null);
 
   const orderedSlugs = ["catalyst", "atg", "forte", "forge"].filter((s) =>
     programSlugs.includes(s)
