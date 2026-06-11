@@ -66,7 +66,7 @@ export default async function SurveyDashboardPage({
         </Link>
         <SurveyDashboard
           surveyId={surveyId}
-          surveyTitle={returnLabel ? `${decodeURIComponent(returnLabel)} ${survey.title}` : survey.title}
+          surveyTitle={survey.title}
           schema={schema}
           responses={responses}
           programs={programs}
