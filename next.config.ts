@@ -48,7 +48,7 @@ const nextConfig: NextConfig = {
       { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
       {
         key: "Permissions-Policy",
-        value: "camera=(), microphone=(), geolocation=(), payment=()",
+        value: "camera=(self), microphone=(self), display-capture=(self), geolocation=(), payment=()",
       },
       { key: "Content-Security-Policy-Report-Only", value: cspReport },
     ];
