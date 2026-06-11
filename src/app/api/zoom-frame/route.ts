@@ -49,12 +49,8 @@ export async function GET(req: NextRequest) {
     </div>
   </div>
 
-  <!-- React 18 + ReactDOM 18 (Zoom SDK vendor — isolated from app React 19) -->
-  <script src="/zoom/lib/vendor/react.min.js"></script>
-  <script src="/zoom/lib/vendor/react-dom.min.js"></script>
-
-  <!-- Zoom Meeting SDK Component View UMD -->
-  <script src="/zoom/zoomus-websdk-embedded.umd.min.js"></script>
+  <!-- Zoom Meeting SDK Component View — self-contained, sets window.ZoomMtgEmbedded -->
+  <script src="/zoom/zoom-meeting-embedded.min.js"></script>
 
   <script>
     (async function () {

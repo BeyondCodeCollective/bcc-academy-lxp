@@ -14,21 +14,10 @@ const dest = resolve(root, "public/zoom");
 
 mkdirSync(dest, { recursive: true });
 
-// UMD bundle (Component View)
-cpSync(`${src}/zoomus-websdk-embedded.umd.min.js`, `${dest}/zoomus-websdk-embedded.umd.min.js`);
-
-// React 18 vendor files (isolated from app React 19)
-mkdirSync(`${dest}/lib/vendor`, { recursive: true });
-cpSync(`${src}/lib/vendor/react.min.js`, `${dest}/lib/vendor/react.min.js`);
-cpSync(`${src}/lib/vendor/react-dom.min.js`, `${dest}/lib/vendor/react-dom.min.js`);
-
-// Other vendor deps the SDK needs
-const otherVendor = ["redux.min.js", "redux-thunk.min.js", "lodash.min.js"];
-for (const f of otherVendor) {
-  if (existsSync(`${src}/lib/vendor/${f}`)) {
-    cpSync(`${src}/lib/vendor/${f}`, `${dest}/lib/vendor/${f}`);
-  }
-}
+// Component View SDK — self-contained webpack bundle, sets window.ZoomMtgEmbedded
+// (zoom-meeting-embedded-ES5.min.js is the correct file; zoomus-websdk-embedded.umd.min.js
+// incorrectly exports window.ReactWidgets and is NOT the SDK entry point)
+cpSync(`${src}/zoom-meeting-embedded-ES5.min.js`, `${dest}/zoom-meeting-embedded.min.js`);
 
 // Audio assets
 cpSync(`${src}/lib/audio`, `${dest}/lib/audio`, { recursive: true });
