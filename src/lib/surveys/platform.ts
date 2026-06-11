@@ -75,4 +75,13 @@ export const PLATFORM_PUBLIC_SURVEYS: Record<string, SurveyConfig> = {
       "End-of-cohort feedback for CompTIA Network+ — Catalyst's first end-to-end pilot run.",
     required: false,
   },
+  // Collected via /apply/security-plus (custom form, not /survey/<id> — no
+  // component is registered there, so that route still 404s). Listed here so
+  // the admin Surveys views can resolve its title and surface its responses.
+  [SECURITY_PLUS_APPLICATION_SURVEY_ID]: {
+    id: SECURITY_PLUS_APPLICATION_SURVEY_ID,
+    title: "CompTIA Security+ Application",
+    description: "Application for the Security+ Catalyst cohort — for Network+ graduates.",
+    required: false,
+  },
 };

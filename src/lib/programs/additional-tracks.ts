@@ -17,7 +17,7 @@ const networkPlusTrack: TrackConfig = {
   phase: "core",
   submissionsEnabled: false,
   reflectionsEnabled: true,
-  publicSurveys: ["network-plus-post"],
+  publicSurveys: ["network-plus-post", "security-plus-application"],
   defaultReflectionPrompts: [
     "What did you learn this week?",
     "What was challenging?",
