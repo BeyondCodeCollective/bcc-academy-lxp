@@ -14,6 +14,7 @@ import { getSessionContext } from "@/lib/auth/session";
 import { getPreviewTrackSlug, LUNCH_LEARN_PREVIEW_SLUG } from "@/lib/auth/preview-mode";
 import { resolveCurrentUser } from "@/lib/current-user";
 import { getEnrolledTracks } from "@/lib/enrollment";
+import { getHomeProgramForTrack } from "@/lib/programs";
 import { BCC_INTAKE_SURVEY_ID, BCC_INTAKE_EXEMPT_PROGRAMS } from "@/lib/surveys/platform";
 import { isStaffEmail } from "@/lib/auth/admins";
 import { completePendingSetup } from "@/lib/auth/deferred-setup";
@@ -95,6 +96,15 @@ async function DashboardContent({
   let announcements: { id: string; message: string; track_slug: string | null; created_at: string }[] = [];
   let assessmentEnabled = false;
   let assessmentCompleted = false;
+  // Enrollments whose track belongs to a different program than the current
+  // session — e.g. a Forte AI Literacy student also enrolled in a Catalyst
+  // track. Rendered as a separate course list with a program switch.
+  let otherProgramCourses: {
+    trackSlug: string;
+    trackName: string;
+    instructor: string;
+    programName: string;
+  }[] = [];
 
   if (!currentUser.isDemo) {
     const ctx = await getSessionContext();
@@ -136,7 +146,7 @@ async function DashboardContent({
     if (!isAdminUser) {
       const supabase = await createClient();
 
-      const [defaultCohortRes, enrolledTracks, completedSurveysRes, announcementsRes] = await Promise.all([
+      const [defaultCohortRes, enrolledTracks, completedSurveysRes, announcementsRes, allTrackRowsRes] = await Promise.all([
         hasCohortId
           ? Promise.resolve({ data: null })
           : supabase
@@ -157,6 +167,10 @@ async function DashboardContent({
             .gt("expires_at", new Date().toISOString())
             .order("created_at", { ascending: false })
             .limit(5),
+        supabase
+            .from("student_tracks")
+            .select("track_slug")
+            .eq("student_id", userId),
       ]);
       announcements = (announcementsRes.data ?? []);
 
@@ -177,6 +191,25 @@ async function DashboardContent({
       enrolledTrackSlugs = previewSlug
         ? [previewSlug]
         : enrolledTracks.map((t) => t.slug);
+
+      if (!previewSlug) {
+        otherProgramCourses = ((allTrackRowsRes.data ?? []) as { track_slug: string }[])
+          .map((r) => r.track_slug)
+          .filter((s) => !program.tracks.some((t) => t.slug === s))
+          .map((s) => {
+            const home = getHomeProgramForTrack(s);
+            const track = home?.tracks.find((t) => t.slug === s);
+            return home && track
+              ? {
+                  trackSlug: s,
+                  trackName: track.name,
+                  instructor: track.instructor,
+                  programName: home.name,
+                }
+              : null;
+          })
+          .filter((c): c is NonNullable<typeof c> => c !== null);
+      }
 
       if (!previewSlug) {
         const completedTypes = new Set(
@@ -259,15 +292,17 @@ async function DashboardContent({
   const notEnrolled = !isAdmin && visibleTracks.length === 0;
 
   // Students enrolled in exactly one track skip the track-picker and land
-  // directly on that track — one less click. Held back only while an enabled
-  // pathway assessment is incomplete, because its prompt renders here and
-  // would otherwise never be seen. Announcements also render on the track
-  // overview page, so skipping the dashboard doesn't hide them. Admin
-  // preview mode keeps the dashboard reachable for inspection.
+  // directly on that track — one less click. Held back while an enabled
+  // pathway assessment is incomplete (its prompt renders here) or when the
+  // student also has courses in other programs (the cross-program list
+  // renders here and would otherwise never be seen). Announcements also
+  // render on the track overview page, so skipping doesn't hide them.
+  // Admin preview mode keeps the dashboard reachable for inspection.
   if (
     !isAdmin &&
     !previewSlugOuter &&
     visibleTracks.length === 1 &&
+    otherProgramCourses.length === 0 &&
     (!assessmentEnabled || assessmentCompleted)
   ) {
     redirect(`/dashboard/track/${visibleTracks[0].slug}`);
@@ -484,6 +519,42 @@ async function DashboardContent({
         .map(({ track }) => (
           <SingleEventCard key={track.slug} track={track} />
         ))}
+
+      {/* Courses from other programs — opening one switches the session's
+         program context via /dashboard/switch-program. Plain <a> (not
+         <Link>) because the switch route sets cookies; prefetching it
+         would flip the program as a side effect. */}
+      {otherProgramCourses.length > 0 && (
+        <section className="space-y-3" aria-label="Courses from your other programs">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
+            From your other programs
+          </h2>
+          <div className="divide-y divide-rule border border-rule bg-surface-elevated">
+            {otherProgramCourses.map((c) => (
+              <a
+                key={c.trackSlug}
+                href={`/dashboard/switch-program?track=${encodeURIComponent(c.trackSlug)}`}
+                className="group flex items-center justify-between gap-3 px-4 py-3.5 transition-colors hover:bg-neutral-50"
+              >
+                <div className="min-w-0">
+                  <p className="mb-0.5 text-xs font-medium uppercase tracking-[0.14em] text-neutral-400">
+                    {c.programName}
+                  </p>
+                  <p className="truncate text-sm font-semibold text-neutral-900">
+                    {c.trackName}
+                  </p>
+                  <p className="mt-0.5 text-xs text-neutral-500">
+                    with {c.instructor}
+                  </p>
+                </div>
+                <span className="shrink-0 text-xs font-medium text-neutral-400 transition-transform group-hover:translate-x-0.5">
+                  Open &rarr;
+                </span>
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
