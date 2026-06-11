@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { LearnMoreForm } from "@/components/learn-more-form";
 
 export default function HomePage() {
   return (
@@ -24,6 +25,8 @@ export default function HomePage() {
           7 → 77
         </p>
       </div>
+
+      <LearnMoreForm />
     </div>
   );
 }
