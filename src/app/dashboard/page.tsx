@@ -258,6 +258,21 @@ async function DashboardContent({
     : program.tracks.filter((t) => enrolledTrackSlugs.includes(t.slug));
   const notEnrolled = !isAdmin && visibleTracks.length === 0;
 
+  // Students enrolled in exactly one track skip the track-picker and land
+  // directly on that track — one less click. Held back only while an enabled
+  // pathway assessment is incomplete, because its prompt renders here and
+  // would otherwise never be seen. Announcements also render on the track
+  // overview page, so skipping the dashboard doesn't hide them. Admin
+  // preview mode keeps the dashboard reachable for inspection.
+  if (
+    !isAdmin &&
+    !previewSlugOuter &&
+    visibleTracks.length === 1 &&
+    (!assessmentEnabled || assessmentCompleted)
+  ) {
+    redirect(`/dashboard/track/${visibleTracks[0].slug}`);
+  }
+
   const now = new Date();
   const trackStates = visibleTracks.map((track) => {
     const started = !track.startDateTbd && now >= new Date(track.startDate);

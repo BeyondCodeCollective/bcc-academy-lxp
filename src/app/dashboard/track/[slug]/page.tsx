@@ -100,6 +100,19 @@ export default async function TrackOverviewPage({
 
   const eyebrow = started ? `Week ${currentWeek} of ${track.totalWeeks}` : "";
 
+  // Active announcements for this track (or program-wide). Mirrors the
+  // dashboard's banner — single-track students land here directly and skip
+  // the dashboard, so announcements must be visible on this page too.
+  const svcAnnouncements = createServiceClient();
+  const { data: announcementRows } = await svcAnnouncements
+    .from("announcements")
+    .select("id, message, track_slug, created_at")
+    .gt("expires_at", new Date().toISOString())
+    .or(`track_slug.eq.${slug},track_slug.is.null`)
+    .order("created_at", { ascending: false })
+    .limit(5);
+  const announcements = announcementRows ?? [];
+
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-3xl px-4 sm:px-5 py-8 space-y-8">
       <div className="flex items-center justify-between gap-3">
@@ -118,6 +131,18 @@ export default async function TrackOverviewPage({
           />
         )}
       </div>
+
+      {announcements.map((a) => (
+        <div
+          key={a.id}
+          className="border-l-2 border-blue-500 bg-blue-50 px-4 py-3 sm:px-5 sm:py-4"
+        >
+          <p className="text-xs font-medium uppercase tracking-[0.14em] text-blue-700 mb-1">
+            {a.track_slug ? track.shortName : "Announcement"}
+          </p>
+          <p className="text-sm text-blue-900 leading-relaxed whitespace-pre-wrap">{a.message}</p>
+        </div>
+      ))}
 
       {/* Hero — the tone-tinted block frames a 2×5 grid of weekly topics, so
          it doubles as the curriculum-at-a-glance and as week-level navigation.
