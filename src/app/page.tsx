@@ -17,7 +17,7 @@ export default function HomePage() {
           Human in the Lead
         </p>
         <p className="mx-auto max-w-md text-sm sm:text-base text-neutral-400">
-          Intergenerational by design — from grandkids to grandparents,
+          Intergenerational by design — from beginners to wisdom learners,
           everyone builds together.
         </p>
         <p className="font-mono text-sm text-electric-green tracking-[0.25em] uppercase">
