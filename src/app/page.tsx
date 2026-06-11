@@ -14,7 +14,11 @@ export default function HomePage() {
 
       <div className="text-center space-y-3">
         <p className="font-display text-xl sm:text-2xl md:text-3xl font-bold text-white uppercase tracking-tight">
-          Human in the Loop
+          Human in the Lead
+        </p>
+        <p className="mx-auto max-w-md text-sm sm:text-base text-neutral-400">
+          Intergenerational by design — from grandkids to grandparents,
+          everyone builds together.
         </p>
         <p className="font-mono text-sm text-electric-green tracking-[0.25em] uppercase">
           7 → 77
