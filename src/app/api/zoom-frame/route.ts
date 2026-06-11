@@ -1,15 +1,25 @@
 import { type NextRequest } from "next/server";
 
 /**
- * Returns a standalone HTML document that embeds the Zoom Meeting SDK.
- * Served inside an <iframe> so the SDK's React 18 dependency is completely
- * isolated from the app's React 19 runtime.
+ * Returns a standalone HTML document that embeds the Zoom Meeting SDK
+ * Client View (window.ZoomMtg) — the full-page web client. Served inside an
+ * <iframe> so the SDK's React 18 dependency is completely isolated from the
+ * app's React 19 runtime.
+ *
+ * Client View (not Component View) because:
+ *  - it lays out full-page like zoom.us/wc (video, chat, participants panels
+ *    all fit the frame) instead of a floating window that grows one full
+ *    video tile per participant when SharedArrayBuffer is unavailable
+ *  - its init() accepts enforceMultipleVideos, enabling gallery/speaker view
+ *    via WebCodecs without cross-origin isolation; the Component View's
+ *    init() silently drops that option in SDK 6.1.0
  *
  * Query params:
- *   mn  — meeting number
- *   pwd — meeting password
- *   un  — user display name
- *   ue  — user email
+ *   mn   — meeting number
+ *   pwd  — meeting password
+ *   un   — user display name
+ *   ue   — user email
+ *   left — render the "you left the session" screen with a rejoin link
  */
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
@@ -18,19 +28,51 @@ export async function GET(req: NextRequest) {
   const un = encodeURIComponent(searchParams.get("un") ?? "Student");
   const ue = encodeURIComponent(searchParams.get("ue") ?? "");
 
+  const headers = {
+    "Content-Type": "text/html; charset=utf-8",
+    // Allow this page to be framed by same origin only
+    "X-Frame-Options": "SAMEORIGIN",
+    // Don't cache — params include live meeting credentials
+    "Cache-Control": "no-store",
+  };
+
+  const frameUrl = `/api/zoom-frame?mn=${encodeURIComponent(mn)}&pwd=${encodeURIComponent(pwd)}&un=${un}&ue=${ue}`;
+
+  if (searchParams.get("left")) {
+    return new Response(
+      `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    html, body { height: 100%; margin: 0; background: #1a1a1a; }
+    body { display: flex; align-items: center; justify-content: center;
+      color: #fff; font-family: system-ui, sans-serif; flex-direction: column; gap: 16px; }
+    a { padding: 10px 20px; background: #E54D2E; color: #fff; text-decoration: none;
+      font-weight: 600; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <p>You left the session.</p>
+  <a href="${frameUrl}">Rejoin</a>
+</body>
+</html>`,
+      { headers }
+    );
+  }
+
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { width: 100%; height: 100%; background: #1a1a1a; }
-    #root { width: 100%; height: 100%; }
+    html, body { width: 100%; height: 100%; margin: 0; background: #1a1a1a; }
     #status {
-      display: flex; align-items: center; justify-content: center;
-      height: 100%; color: #fff; font-family: system-ui, sans-serif;
-      font-size: 14px; flex-direction: column; gap: 12px;
+      position: fixed; inset: 0; display: flex; align-items: center;
+      justify-content: center; color: #fff; font-family: system-ui, sans-serif;
+      font-size: 14px; flex-direction: column; gap: 12px; background: #1a1a1a;
+      z-index: 10;
     }
     .spinner {
       width: 28px; height: 28px; border: 3px solid rgba(255,255,255,0.2);
@@ -42,15 +84,20 @@ export async function GET(req: NextRequest) {
   </style>
 </head>
 <body>
-  <div id="root">
-    <div id="status">
-      <div class="spinner"></div>
-      <span>Connecting to session…</span>
-    </div>
+  <div id="status">
+    <div class="spinner"></div>
+    <span>Connecting to session…</span>
   </div>
 
-  <!-- Zoom Meeting SDK Component View — self-contained, sets window.ZoomMtgEmbedded -->
-  <script src="/zoom/zoom-meeting-embedded.min.js"></script>
+  <!-- Vendor globals — the SDK bundle declares these as webpack externals -->
+  <script src="/zoom/lib/vendor/react.min.js"></script>
+  <script src="/zoom/lib/vendor/react-dom.min.js"></script>
+  <script src="/zoom/lib/vendor/redux.min.js"></script>
+  <script src="/zoom/lib/vendor/redux-thunk.min.js"></script>
+  <script src="/zoom/lib/vendor/lodash.min.js"></script>
+
+  <!-- Zoom Meeting SDK Client View — sets window.ZoomMtg -->
+  <script src="/zoom/zoom-meeting.min.js"></script>
 
   <script>
     (async function () {
@@ -73,45 +120,41 @@ export async function GET(req: NextRequest) {
           const j = await sigRes.json().catch(() => ({}));
           throw new Error(j.error || "Could not get session credentials");
         }
-        const { signature, sdkKey } = await sigRes.json();
+        const { signature } = await sigRes.json();
 
-        // 2. Init the Component View client
-        const ZoomMtgEmbedded = window.ZoomMtgEmbedded;
-        const client = ZoomMtgEmbedded.createClient();
+        // 2. Init the Client View against self-hosted assets.
+        // Must be an absolute URL — the SDK constructs new URL(...) from it.
+        ZoomMtg.setZoomJSLib(location.origin + "/zoom/lib", "/av");
+        ZoomMtg.preLoadWasm();
+        ZoomMtg.prepareWebSDK();
 
-        const root = document.getElementById("root");
-        await client.init({
-          zoomAppRoot: root,
-          language: "en-US",
-          assetPath: "/zoom/lib/av",
-          customize: {
-            video: {
-              isResizable: false,
-              viewSizes: {
-                default: {
-                  width: root.clientWidth || window.innerWidth,
-                  height: window.innerHeight,
-                },
+        ZoomMtg.init({
+          leaveUrl: ${JSON.stringify(frameUrl + "&left=1")},
+          // Skip the AV preview screen — students go straight into class
+          disablePreview: true,
+          // NOTE: do not pass unknown options here — ZoomMtg.init validates
+          // keys against a whitelist and rejects the whole call on a miss
+          success: function () {
+            ZoomMtg.join({
+              signature: signature,
+              meetingNumber: ${JSON.stringify(mn)},
+              passWord: ${JSON.stringify(pwd)},
+              userName: decodeURIComponent("${un}"),
+              userEmail: decodeURIComponent("${ue}"),
+              success: function () {
+                statusEl.style.display = "none";
               },
-            },
-            toolbar: {
-              buttons: [],
-            },
+              error: function (err) {
+                console.error("[zoom-frame] join", err);
+                showError((err && err.reason) || "Could not join the session. Please try again.");
+              },
+            });
+          },
+          error: function (err) {
+            console.error("[zoom-frame] init", err);
+            showError("Could not load the session. Please try again.");
           },
         });
-
-        // 3. Join the meeting
-        statusEl.innerHTML = "<div class='spinner'></div><span>Joining…</span>";
-        await client.join({
-          signature,
-          sdkKey,
-          meetingNumber: ${JSON.stringify(mn)},
-          password: ${JSON.stringify(pwd)},
-          userName: decodeURIComponent("${un}"),
-          userEmail: decodeURIComponent("${ue}"),
-        });
-
-        statusEl.style.display = "none";
       } catch (err) {
         console.error("[zoom-frame]", err);
         showError(err.message || "Could not connect to the session. Please try again.");
@@ -121,13 +164,5 @@ export async function GET(req: NextRequest) {
 </body>
 </html>`;
 
-  return new Response(html, {
-    headers: {
-      "Content-Type": "text/html; charset=utf-8",
-      // Allow this page to be framed by same origin only
-      "X-Frame-Options": "SAMEORIGIN",
-      // Don't cache — params include live meeting credentials
-      "Cache-Control": "no-store",
-    },
-  });
+  return new Response(html, { headers });
 }

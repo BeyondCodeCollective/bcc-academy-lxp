@@ -314,7 +314,6 @@ export default async function TrackWeekPage({
               password={parsed!.password}
               userName={zoomUserName}
               userEmail={zoomUserEmail}
-              zoomUrl={meetingLinks[index] ?? undefined}
               sessionTitle={
                 weekContent.sessions.length > 1
                   ? `Session ${index + 1}: ${session.title}`
