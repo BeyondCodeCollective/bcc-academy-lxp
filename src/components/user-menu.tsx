@@ -161,7 +161,10 @@ export function UserMenu({
           aria-label="Account menu"
           className={`absolute z-40 w-72 border border-rule-soft bg-surface-elevated p-1 shadow-lg ${popoverPosition}`}
         >
-          {/* Identity header */}
+          {/* Identity header — topbar only. The sidebar trigger already
+             shows avatar + name + email right below the popover, so
+             repeating them here read as a duplicate. */}
+          {variant === "topbar" && (
           <div className="flex items-center gap-3 px-3 py-3">
             <span
               aria-hidden
@@ -187,11 +190,14 @@ export function UserMenu({
               )}
             </div>
           </div>
+          )}
 
           {/* Program switcher (super-admins) */}
           {canSwitch && programs.length > 1 && (
             <>
-              <div className="my-1 h-px bg-rule-soft" role="separator" />
+              {variant === "topbar" && (
+                <div className="my-1 h-px bg-rule-soft" role="separator" />
+              )}
               <div className="px-3 pt-2 pb-1">
                 <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-ink-faint">
                   Switch program
@@ -222,7 +228,9 @@ export function UserMenu({
           )}
 
           {/* Sign out */}
-          <div className="my-1 h-px bg-rule-soft" role="separator" />
+          {(variant === "topbar" || (canSwitch && programs.length > 1)) && (
+            <div className="my-1 h-px bg-rule-soft" role="separator" />
+          )}
           <div className="px-1 pb-1 pt-1">
             <button
               type="button"
