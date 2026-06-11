@@ -6,7 +6,6 @@ type Props = {
   userName: string;
   userEmail: string;
   sessionTitle: string;
-  zoomUrl?: string;
 };
 
 /**
@@ -25,7 +24,6 @@ export function ZoomEmbed({
   userName,
   userEmail,
   sessionTitle,
-  zoomUrl,
 }: Props) {
   const params = new URLSearchParams({
     mn: meetingNumber,
@@ -47,7 +45,7 @@ export function ZoomEmbed({
       </div>
 
       {/* Zoom embed — isolated iframe */}
-      <div className="relative w-full overflow-hidden bg-neutral-950" style={{ aspectRatio: "16/9", minHeight: 400 }}>
+      <div className="relative w-full overflow-hidden bg-neutral-950 aspect-video min-h-[440px]">
         <iframe
           src={src}
           title={`Live session: ${sessionTitle}`}
@@ -57,20 +55,6 @@ export function ZoomEmbed({
         />
       </div>
 
-      {/* Fallback for environments where embed can't load */}
-      {zoomUrl && (
-        <p className="mt-2 text-center text-xs text-neutral-400">
-          Having trouble?{" "}
-          <a
-            href={zoomUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-semibold text-[#E54D2E] hover:underline"
-          >
-            Open directly in Zoom ↗
-          </a>
-        </p>
-      )}
     </div>
   );
 }

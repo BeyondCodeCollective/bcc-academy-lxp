@@ -33,7 +33,7 @@ const nextConfig: NextConfig = {
       "img-src 'self' data: blob: https://*.supabase.co https://images.pexels.com https://img.evbuc.com https://*.google-analytics.com https://*.googletagmanager.com",
       "font-src 'self' https://fonts.gstatic.com",
       "media-src 'self' https://*.supabase.co https://images.pexels.com",
-      "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com",
+      "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://zoom.us https://*.zoom.us",
       "connect-src 'self' https://*.supabase.co https://*.resend.com https://va.vercel-scripts.com https://*.google-analytics.com https://o4506503091847168.ingest.us.sentry.io https://*.zoom.us wss://*.zoom.us",
       "report-uri /api/csp-report",
     ].join("; ");
@@ -52,7 +52,15 @@ const nextConfig: NextConfig = {
       },
       { key: "Content-Security-Policy-Report-Only", value: cspReport },
     ];
-    return [{ source: "/(.*)", headers: baseHeaders }];
+    return [
+      { source: "/(.*)", headers: baseHeaders },
+      // The Zoom embed page must be frameable by the app itself — the global
+      // DENY would block the <iframe> before the SDK ever loads
+      {
+        source: "/api/zoom-frame",
+        headers: [{ key: "X-Frame-Options", value: "SAMEORIGIN" }],
+      },
+    ];
   },
 };
 

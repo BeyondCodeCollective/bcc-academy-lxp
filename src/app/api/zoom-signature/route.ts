@@ -86,6 +86,10 @@ export async function POST(request: NextRequest) {
       iat,
       exp,
       tokenExp: exp,
+      // WebRTC video mode — enables multi-video (gallery/speaker view)
+      // without SharedArrayBuffer, which needs cross-origin isolation we
+      // can't enable inside the dashboard iframe
+      video_webrtc_mode: 1,
     })
   ).toString("base64url");
 
