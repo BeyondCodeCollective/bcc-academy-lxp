@@ -862,6 +862,8 @@ const SECURITY_PLUS_APPLICATION: SurveyQuestion[] = [
   { type: "text", id: "used_comptia_at_work", label: "Have you had to use what you've learned through the CompTIA program at work?", required: true },
   { type: "text", id: "job_switch_plan", label: "Are you looking to switch jobs or employers in the next 6–12 months?", required: true },
   { type: "text", id: "security_plus_in_career", label: "How do you see Security+ fitting into your career?", required: true },
+  { type: "radio", id: "heard_about_program", label: "How did you hear about this program?", options: ["Clark University", "Black Girls Code", "Beyond Code Collective", "Other"], required: true },
+  { type: "text", id: "heard_about_program_other", label: "If you chose Other, where did you hear about us?", required: false, short: true },
   { type: "text", id: "why_techplus_network_plus", label: "Why did you originally sign up for Tech+ and then Network+? Has anything changed?", required: true },
   { type: "text", id: "cybersecurity_interests", label: "What about cybersecurity interests you most?", required: true },
   { type: "text", id: "schedule_july_completion", label: "What does your schedule look like from July through completion?", required: true },
