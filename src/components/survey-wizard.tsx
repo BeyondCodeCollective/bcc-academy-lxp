@@ -952,6 +952,25 @@ const SECURITY_PLUS_APPLICATION_PAGES: SurveyPage[] = [
     title: "Why Security+, Why Now",
     questions: [
       {
+        type: "radio",
+        id: "heard_about_program",
+        label: "How did you hear about this program?",
+        options: [
+          "Clark University",
+          "Black Girls Code",
+          "Beyond Code Collective",
+          "Other",
+        ],
+        required: true,
+      },
+      {
+        type: "text",
+        id: "heard_about_program_other",
+        label: "If you chose Other, where did you hear about us? (Optional)",
+        required: false,
+        short: true,
+      },
+      {
         type: "text",
         id: "why_techplus_network_plus",
         label: "Why did you originally sign up for Tech+ and then Network+? Has anything changed about your goals since then?",
