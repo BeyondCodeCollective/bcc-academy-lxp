@@ -4,12 +4,12 @@ export default function HomePage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-true-black gap-10 px-6">
       <Image
-        src="/images/bcc/logos/bcc-stacked-white-official.svg"
-        alt="Beyond Code Collective"
-        width={400}
-        height={400}
+        src="/catalyst/logo.svg"
+        alt="BCC Academy"
+        width={420}
+        height={56}
         priority
-        className="w-64 sm:w-80 md:w-[400px]"
+        className="w-64 sm:w-80 md:w-[420px]"
       />
 
       <div className="text-center space-y-3">
