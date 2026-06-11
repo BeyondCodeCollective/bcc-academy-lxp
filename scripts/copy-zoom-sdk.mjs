@@ -38,6 +38,10 @@ if (existsSync(`${src}/lib/image`)) {
   cpSync(`${src}/lib/image`, `${dest}/lib/image`, { recursive: true });
 }
 
+// AV processing assets (WASM + workers) — self-hosted so we don't depend on
+// source.zoom.us CDN, which is the most common cause of embed failures
+cpSync(`${src}/lib/av`, `${dest}/lib/av`, { recursive: true });
+
 // UI chunks (CSS + lazy JS) — needed for the Component View UI to render
 cpSync(`${src}/ui`, `${dest}/ui`, { recursive: true });
 

@@ -15,6 +15,9 @@ type Props = {
  * The SDK requires React 18 and conflicts with the app's React 19 when
  * bundled together. Running it in an isolated iframe document avoids that
  * conflict entirely — the SDK has its own React 18 vendor copy in /public/zoom/.
+ *
+ * All SDK assets (WASM, workers, vendor JS) are self-hosted under /public/zoom/
+ * so there is no runtime dependency on source.zoom.us CDN.
  */
 export function ZoomEmbed({
   meetingNumber,

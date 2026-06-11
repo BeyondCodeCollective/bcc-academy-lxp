@@ -87,7 +87,7 @@ export async function GET(req: NextRequest) {
         await client.init({
           zoomAppRoot: root,
           language: "en-US",
-          assetPath: "https://source.zoom.us/6.1.0/lib/av",
+          assetPath: "/zoom/lib/av",
           customize: {
             video: {
               isResizable: false,
