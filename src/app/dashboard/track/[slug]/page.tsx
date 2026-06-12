@@ -161,7 +161,7 @@ export default async function TrackOverviewPage({
           className="relative w-full overflow-hidden p-5 sm:p-7"
           style={{ backgroundColor: `${tone}1A` }}
         >
-          <WeekCarousel weeks={weekCards} tone={tone} />
+          <WeekCarousel weeks={weekCards} tone={tone} emojiIcons={track.emojiIcons} />
           {started && (
             <div className="absolute top-3 right-3">
               <span

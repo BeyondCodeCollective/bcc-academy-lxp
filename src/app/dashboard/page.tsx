@@ -15,6 +15,7 @@ import { getPreviewTrackSlug, LUNCH_LEARN_PREVIEW_SLUG } from "@/lib/auth/previe
 import { resolveCurrentUser } from "@/lib/current-user";
 import { getEnrolledTracks } from "@/lib/enrollment";
 import { getHomeProgramForTrack } from "@/lib/programs";
+import { WeekIcon } from "@/components/week-icon";
 import { BCC_INTAKE_SURVEY_ID, BCC_INTAKE_EXEMPT_PROGRAMS } from "@/lib/surveys/platform";
 import { isStaffEmail } from "@/lib/auth/admins";
 import { completePendingSetup } from "@/lib/auth/deferred-setup";
@@ -332,7 +333,11 @@ async function DashboardContent({
         </div>
         <div className="border border-rule bg-surface-elevated p-6 sm:p-8 text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center bg-muted-bg text-2xl">
-            {program.tracks[0]?.weekSummaries[0]?.icon ?? "📚"}
+            <WeekIcon
+              icon={program.tracks[0]?.weekSummaries[0]?.icon ?? "📚"}
+              emoji={program.tracks[0]?.emojiIcons}
+              size={26}
+            />
           </div>
           <h2 className="mt-4 text-lg font-semibold text-neutral-900">
             Hang tight!
@@ -359,7 +364,11 @@ async function DashboardContent({
 
         <div className="border border-rule bg-surface-elevated p-6 sm:p-8 text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center bg-muted-bg text-2xl">
-            {firstTrack?.weekSummaries[0]?.icon ?? "🎓"}
+            <WeekIcon
+              icon={firstTrack?.weekSummaries[0]?.icon ?? "🎓"}
+              emoji={firstTrack?.emojiIcons}
+              size={26}
+            />
           </div>
           <h2 className="mt-4 text-lg font-semibold text-neutral-900">
             You&apos;re in!
@@ -380,7 +389,9 @@ async function DashboardContent({
                   key={ws.week}
                   className="flex flex-col items-center bg-muted-bg p-3 text-center"
                 >
-                  <span className="text-lg">{ws.icon}</span>
+                  <span className="text-lg">
+                    <WeekIcon icon={ws.icon} emoji={firstTrack.emojiIcons} size={20} />
+                  </span>
                   <span className="mt-1 text-[11px] font-medium text-neutral-900">
                     {ws.topic}
                   </span>

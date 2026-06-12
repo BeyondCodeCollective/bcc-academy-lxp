@@ -2,6 +2,7 @@
 
 import { useRef, useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import { weekIconForEmoji } from "@/lib/track-visual";
 
 export type WeekCardData = {
   week: number;
@@ -17,10 +18,21 @@ export type WeekCardData = {
 export function WeekCarousel({
   weeks,
   tone,
+  emojiIcons = false,
 }: {
   weeks: WeekCardData[];
   tone: string;
+  /** Kid-facing tracks render the raw emoji; default maps to Phosphor. */
+  emojiIcons?: boolean;
 }) {
+  const renderIcon = (icon: string, size: number) => {
+    const Icon = emojiIcons ? null : weekIconForEmoji(icon);
+    return Icon ? (
+      <Icon size={size} weight="duotone" color={tone} aria-hidden />
+    ) : (
+      icon
+    );
+  };
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -62,7 +74,7 @@ export function WeekCarousel({
             w.isLocked ? (
               <div key={w.week} role="listitem" className="w-full shrink-0 snap-start">
                 <div className="flex flex-col items-center justify-center bg-white/40 backdrop-blur py-8 px-4 text-center">
-                  <span className="text-5xl leading-none opacity-30">{w.icon}</span>
+                  <span className="text-5xl leading-none opacity-30">{renderIcon(w.icon, 44)}</span>
                   <span className="mt-3 text-sm font-medium text-neutral-400 leading-tight">
                     {w.topic}
                   </span>
@@ -80,7 +92,7 @@ export function WeekCarousel({
                   style={w.isCurrent ? { boxShadow: `inset 0 0 0 2px ${tone}` } : undefined}
                 >
                   <span className={`text-5xl leading-none ${w.isPast ? "opacity-60" : ""}`}>
-                    {w.icon}
+                    {renderIcon(w.icon, 44)}
                   </span>
                   <span className="mt-1.5 text-[11px] font-medium uppercase tracking-widest text-neutral-400">
                     Week {w.week}
@@ -127,7 +139,7 @@ export function WeekCarousel({
                 className="flex aspect-square cursor-not-allowed flex-col items-center justify-center bg-white/40 p-2 backdrop-blur sm:p-2.5"
               >
                 <span className="text-2xl leading-none opacity-30 sm:text-3xl">
-                  {w.icon}
+                  {renderIcon(w.icon, 28)}
                 </span>
                 <span className="mt-1.5 line-clamp-2 px-1 text-center text-[10px] font-medium leading-tight text-neutral-400 sm:text-[11px]">
                   {w.topic}
@@ -146,7 +158,7 @@ export function WeekCarousel({
                 <span
                   className={`text-2xl leading-none sm:text-3xl ${w.isPast ? "opacity-60" : ""}`}
                 >
-                  {w.icon}
+                  {renderIcon(w.icon, 28)}
                 </span>
                 <span
                   className={`mt-1.5 line-clamp-2 px-1 text-center text-[10px] font-medium leading-tight transition-colors sm:text-[11px] ${
