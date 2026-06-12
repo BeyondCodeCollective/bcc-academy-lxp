@@ -100,9 +100,7 @@ async function DashboardContent({
   // session — e.g. a Forte AI Literacy student also enrolled in a Catalyst
   // track. Rendered as a separate course list with a program switch.
   let otherProgramCourses: {
-    trackSlug: string;
-    trackName: string;
-    instructor: string;
+    track: TrackConfig;
     programName: string;
   }[] = [];
 
@@ -199,14 +197,7 @@ async function DashboardContent({
           .map((s) => {
             const home = getHomeProgramForTrack(s);
             const track = home?.tracks.find((t) => t.slug === s);
-            return home && track
-              ? {
-                  trackSlug: s,
-                  trackName: track.name,
-                  instructor: track.instructor,
-                  programName: home.name,
-                }
-              : null;
+            return home && track ? { track, programName: home.name } : null;
           })
           .filter((c): c is NonNullable<typeof c> => c !== null);
       }
@@ -410,7 +401,13 @@ async function DashboardContent({
       {needsOnboarding && (
         <OnboardingForm
           program={program}
-          visibleTracks={visibleTracks}
+          // "Here's what you're signed up for" must list ALL enrollments —
+          // including tracks from other programs — or the modal's contents
+          // change depending on which program cookie the session holds.
+          visibleTracks={[
+            ...visibleTracks,
+            ...otherProgramCourses.map((c) => c.track),
+          ]}
         />
       )}
 
@@ -420,8 +417,10 @@ async function DashboardContent({
         </h1>
         {!isAdmin && !previewSlugOuter && (
           <p className="mt-1 text-sm text-neutral-500">
-            {visibleTracks.length > 0
-              ? visibleTracks.map((t) => t.name).join(" · ")
+            {visibleTracks.length > 0 || otherProgramCourses.length > 0
+              ? [...visibleTracks, ...otherProgramCourses.map((c) => c.track)]
+                  .map((t) => t.name)
+                  .join(" · ")
               : cohortName}
           </p>
         )}
@@ -532,8 +531,8 @@ async function DashboardContent({
           <div className="divide-y divide-rule border border-rule bg-surface-elevated">
             {otherProgramCourses.map((c) => (
               <a
-                key={c.trackSlug}
-                href={`/dashboard/switch-program?track=${encodeURIComponent(c.trackSlug)}`}
+                key={c.track.slug}
+                href={`/dashboard/switch-program?track=${encodeURIComponent(c.track.slug)}`}
                 className="group flex items-center justify-between gap-3 px-4 py-3.5 transition-colors hover:bg-neutral-50"
               >
                 <div className="min-w-0">
@@ -541,10 +540,10 @@ async function DashboardContent({
                     {c.programName}
                   </p>
                   <p className="truncate text-sm font-semibold text-neutral-900">
-                    {c.trackName}
+                    {c.track.name}
                   </p>
                   <p className="mt-0.5 text-xs text-neutral-500">
-                    with {c.instructor}
+                    with {c.track.instructor}
                   </p>
                 </div>
                 <span className="shrink-0 text-xs font-medium text-neutral-400 transition-transform group-hover:translate-x-0.5">
