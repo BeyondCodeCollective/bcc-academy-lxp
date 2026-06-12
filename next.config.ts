@@ -23,6 +23,12 @@ const nextConfig: NextConfig = {
         destination: "/apply/:slug",
         permanent: true,
       },
+      // Short shareable alias for the BGC Roblox camp landing page
+      {
+        source: "/camp/roblox",
+        destination: "/camp/bgc-roblox",
+        permanent: false,
+      },
     ];
   },
   async headers() {
