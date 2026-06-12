@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { markWelcomeSeen } from "@/app/dashboard/actions";
 import { BookOpen, X } from "lucide-react";
+import { WeekIcon } from "@/components/week-icon";
 import type { ProgramConfig, TrackConfig } from "@/lib/programs/types";
 
 interface Props {
@@ -105,8 +106,12 @@ export function OnboardingForm({ program, visibleTracks }: Props) {
                 key={track.slug}
                 className="flex gap-3 border border-rule bg-surface-soft p-3.5"
               >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center bg-neutral-900 text-lg">
-                  {track.weekSummaries[0]?.icon ?? "📚"}
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center bg-neutral-900 text-lg text-white">
+                  <WeekIcon
+                    icon={track.weekSummaries[0]?.icon ?? "📚"}
+                    emoji={track.emojiIcons}
+                    size={18}
+                  />
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-neutral-900">{track.name}</p>

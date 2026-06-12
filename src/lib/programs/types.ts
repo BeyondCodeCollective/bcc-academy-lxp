@@ -159,6 +159,12 @@ export type TrackConfig = {
    */
   publicSurveys?: string[];
   /**
+   * Kid-facing tracks render week-topic icons as the raw emoji from the
+   * config/DB (playful, age-appropriate). Adult tracks (default) map them
+   * to Phosphor icons via weekIconForEmoji.
+   */
+  emojiIcons?: boolean;
+  /**
    * Self-paced tracks (every session is a pre-recorded video, no live meetings)
    * unlock per-week recordings and submissions independently of `startDate` /
    * `computeCurrentWeek`. The track overview can still read "Not Launched"

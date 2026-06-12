@@ -357,6 +357,8 @@ const robloxVirtualBootcampTrack: TrackConfig = {
   phase: "workshop",
   submissionsEnabled: false,
   reflectionsEnabled: false,
+  // Girls 10–15 — keep the playful emoji week icons instead of Phosphor
+  emojiIcons: true,
   defaultReflectionPrompts: [
     "What did you build today?",
     "What was the hardest part?",
