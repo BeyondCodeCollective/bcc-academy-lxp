@@ -256,49 +256,33 @@ export default async function TrackWeekPage({
             : null;
         return (
           <div className="mb-6">
-            <div className="flex items-center gap-3">
-              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-neutral-300 text-[13px] font-semibold tabular-nums text-neutral-600">
-                {weekContent.week}
-              </span>
-              <div className="flex-1">
-                <div className="flex items-center gap-2.5">
-                  <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400">
-                    Week {weekContent.week}
-                  </p>
-                  {(isCompleted || isCurrent) && (
-                    <span
-                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                        isCompleted
-                          ? "bg-green-50 text-green-600"
-                          : "bg-red-50 text-red-600"
-                      }`}
-                    >
-                      {isCompleted
-                        ? weekContent.sessions.length > 1 ? "Sessions Ended" : "Session Ended"
-                        : "This Week"}
-                    </span>
-                  )}
-                </div>
-                <h1 className="text-3xl font-bold text-neutral-900 tracking-tight leading-tight">
-                  {displayTitle}
-                </h1>
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-1.5 mt-2 pl-[52px]">
-              <span aria-hidden className="text-neutral-400">👥</span>
-              <span className="text-xs text-neutral-500">{track.instructor}</span>
-              <span className="text-neutral-300 mx-1">·</span>
-              <span className="text-xs text-neutral-500">{displaySubtitle}</span>
-              {headerSession && (
-                <>
-                  <span className="text-neutral-300 mx-1">·</span>
-                  <span className="text-xs text-neutral-500">{headerSession.time}</span>
-                </>
+            <div className="flex items-center gap-2.5">
+              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400">
+                Week {weekContent.week}
+              </p>
+              {(isCompleted || isCurrent) && (
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                    isCompleted
+                      ? "bg-green-50 text-green-600"
+                      : "bg-red-50 text-red-600"
+                  }`}
+                >
+                  {isCompleted
+                    ? weekContent.sessions.length > 1 ? "Sessions Ended" : "Session Ended"
+                    : "This Week"}
+                </span>
               )}
             </div>
-            {headerAction && (
-              <div className="mt-4 pl-[52px]">{headerAction}</div>
-            )}
+            <h1 className="mt-1 text-3xl font-bold text-neutral-900 tracking-tight leading-tight">
+              {displayTitle}
+            </h1>
+            <p className="mt-2 text-xs text-neutral-500">
+              {[track.instructor, displaySubtitle, headerSession?.time]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+            {headerAction && <div className="mt-4">{headerAction}</div>}
           </div>
         );
       })()}
@@ -314,10 +298,12 @@ export default async function TrackWeekPage({
               password={parsed!.password}
               userName={zoomUserName}
               userEmail={zoomUserEmail}
+              // Single-session weeks: the week title sits directly above the
+              // embed, so repeating it next to LIVE NOW reads as clutter.
               sessionTitle={
                 weekContent.sessions.length > 1
                   ? `Session ${index + 1}: ${session.title}`
-                  : displayTitle
+                  : undefined
               }
             />
           ))}

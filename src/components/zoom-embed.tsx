@@ -5,7 +5,9 @@ type Props = {
   password: string;
   userName: string;
   userEmail: string;
-  sessionTitle: string;
+  /** Shown next to LIVE NOW. Omit when the page already names the session
+   *  right above the embed (single-session weeks). */
+  sessionTitle?: string;
 };
 
 /**
@@ -41,14 +43,16 @@ export function ZoomEmbed({
         <span className="text-sm font-bold uppercase tracking-[0.14em] text-red-600">
           Live Now
         </span>
-        <span className="text-sm text-neutral-400">&middot; {sessionTitle}</span>
+        {sessionTitle && (
+          <span className="text-sm text-neutral-400">&middot; {sessionTitle}</span>
+        )}
       </div>
 
       {/* Zoom embed — isolated iframe */}
       <div className="relative w-full overflow-hidden bg-neutral-950 aspect-video min-h-[440px]">
         <iframe
           src={src}
-          title={`Live session: ${sessionTitle}`}
+          title={sessionTitle ? `Live session: ${sessionTitle}` : "Live session"}
           className="absolute inset-0 w-full h-full border-0"
           allow="camera; microphone; display-capture; autoplay; clipboard-write"
           allowFullScreen
