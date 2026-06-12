@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Check, Loader2 } from "lucide-react";
 import { saveSurveyResponse } from "@/app/dashboard/actions";
 import { useRouter } from "next/navigation";
 import type { IntakeQuestion } from "@/lib/programs/types";
@@ -85,11 +86,13 @@ export function IntakeForm({
         >
           {submitting ? (
             <>
-              … Submitting...
+              <Loader2 size={16} className="animate-spin" />
+              Submitting...
             </>
           ) : (
             <>
-              ✓ Continue to Session
+              <Check size={16} />
+              Continue to Session
             </>
           )}
         </button>

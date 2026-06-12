@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import { heroReveal, fadeInUp, staggerContainer } from "@/lib/marketing-motion";
+import { Play, Pause } from "@phosphor-icons/react";
 import { VIDEO_URLS } from "@/data/marketing/videos";
 
 // Partners with local logo files render as images; others as styled wordmarks.
@@ -107,7 +108,7 @@ export default function Hero() {
         className="absolute top-36 md:top-28 right-6 z-20 w-11 h-11 bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/20 transition-colors duration-300 max-md:hidden"
         aria-label={videoPlaying ? "Pause video" : "Play video"}
       >
-        {videoPlaying ? "⏸" : "▶"}
+        {videoPlaying ? <Pause size={16} weight="bold" /> : <Play size={16} weight="bold" />}
       </button>
 
       <motion.div

@@ -6,6 +6,16 @@ import {
   getWorkshop,
   formatWorkshopDateRange,
 } from "@/lib/workshops";
+import {
+  ArrowLeft,
+  MapPin,
+  GlobeHemisphereWest,
+  Clock,
+  Users,
+  Handshake,
+  Wrench,
+  Trophy,
+} from "@phosphor-icons/react/dist/ssr";
 
 export const dynamic = "force-dynamic";
 
@@ -22,10 +32,10 @@ export default async function WorkshopDetailPage({
   const workshop = getWorkshop(slug);
   if (!workshop) notFound();
 
-  const icon = workshop.icon;
+  const Icon = workshop.icon;
   const dateLabel = formatWorkshopDateRange(workshop);
   const ModalityIcon =
-    workshop.modality === "virtual" ? "🌐" : "📍";
+    workshop.modality === "virtual" ? GlobeHemisphereWest : MapPin;
   const modalityLabel =
     workshop.modality === "virtual"
       ? "Virtual"
@@ -39,7 +49,7 @@ export default async function WorkshopDetailPage({
         href="/dashboard/workshops"
         className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral-500 transition-colors hover:text-neutral-900"
       >
-        ←
+        <ArrowLeft size={12} weight="bold" />
         All workshops
       </Link>
 
@@ -50,7 +60,7 @@ export default async function WorkshopDetailPage({
           className="flex aspect-[16/7] w-full items-center justify-center overflow-hidden"
           style={{ backgroundColor: `${workshop.tone}1A` }}
         >
-          <span className="text-7xl leading-none">{icon}</span>
+          <Icon size={72} weight="light" color={workshop.tone} />
         </div>
 
         <div>
@@ -71,22 +81,22 @@ export default async function WorkshopDetailPage({
       {/* Quick facts strip */}
       <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Fact icon={ModalityIcon} label="Modality" value={modalityLabel} />
-        <Fact icon="📍" label="Location" value={workshop.location} />
-        <Fact icon="👥" label="Audience" value={workshop.audience} />
+        <Fact icon={MapPin} label="Location" value={workshop.location} />
+        <Fact icon={Users} label="Audience" value={workshop.audience} />
         {workshop.alumniCount !== undefined ? (
           <Fact
-            icon="🏆"
+            icon={Trophy}
             label="Alumni"
             value={`${workshop.alumniCount}`}
           />
         ) : workshop.capacity !== undefined ? (
           <Fact
-            icon="👥"
+            icon={Users}
             label="Capacity"
             value={`${workshop.capacity}`}
           />
         ) : (
-          <Fact icon="🕐" label="Duration" value={workshop.durationLabel} />
+          <Fact icon={Clock} label="Duration" value={workshop.durationLabel} />
         )}
       </dl>
 
@@ -165,7 +175,7 @@ export default async function WorkshopDetailPage({
         {workshop.tools && workshop.tools.length > 0 && (
           <section className="space-y-3">
             <h2 className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
-              🔧
+              <Wrench size={11} weight="bold" />
               Tools
             </h2>
             <ul className="flex flex-wrap gap-2">
@@ -184,7 +194,7 @@ export default async function WorkshopDetailPage({
         {workshop.partners.length > 0 && (
           <section className="space-y-3">
             <h2 className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
-              🤝
+              <Handshake size={11} weight="bold" />
               Partners
             </h2>
             <ul className="flex flex-wrap gap-2">
@@ -216,18 +226,18 @@ export default async function WorkshopDetailPage({
 }
 
 function Fact({
-  icon,
+  icon: Icon,
   label,
   value,
 }: {
-  icon: string;
+  icon: React.ComponentType<{ size?: number; weight?: "bold"; "aria-hidden"?: boolean }>;
   label: string;
   value: string;
 }) {
   return (
     <div className="space-y-1 border border-rule bg-surface-elevated p-3">
       <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-neutral-400">
-        {icon}
+        <Icon size={11} weight="bold" aria-hidden />
         {label}
       </p>
       <p className="text-[13px] font-medium text-neutral-900">{value}</p>

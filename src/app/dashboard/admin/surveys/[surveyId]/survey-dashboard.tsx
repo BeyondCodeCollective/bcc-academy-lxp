@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Download } from "lucide-react";
 import type { SurveyQuestion } from "@/components/survey-fields";
 import type { BCCSurveyResponse } from "../../actions";
 
@@ -155,7 +156,8 @@ export function SurveyDashboard({
             disabled={total === 0}
             className="inline-flex items-center gap-1.5 rounded-md border border-[#E7E1D2] bg-[#FBF9F4] px-3 py-1.5 text-xs font-medium text-[#1F1B16] hover:bg-[#F2EDE0] transition-colors disabled:opacity-40"
           >
-            ⬇️ CSV
+            <Download size={13} />
+            CSV
           </button>
         </div>
       </header>

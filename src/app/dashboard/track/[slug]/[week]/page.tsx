@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { computeCurrentWeek } from "@/lib/utils";
+import { ArrowLeft, Video, CheckCircle, Link as LinkIcon, FileText } from "lucide-react";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { getSessionContent } from "@/app/dashboard/admin/actions";
 import { isStorageUrl, isUploadedVideo } from "@/lib/storage-utils";
@@ -53,7 +54,7 @@ export default async function TrackWeekPage({
             href={`/dashboard/track/${trackSlug}`}
             className="mb-6 inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-neutral-900 transition-colors py-2"
           >
-            ←
+            <ArrowLeft size={16} />
             Back to {track.shortName}
           </Link>
           <div className="border border-neutral-200 bg-neutral-50 p-8 text-center">
@@ -91,7 +92,7 @@ export default async function TrackWeekPage({
                 href="/dashboard"
                 className="inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-neutral-900 transition-colors mb-2 py-2 px-4 sm:px-5"
               >
-                ←
+                <ArrowLeft size={16} />
                 Back to Dashboard
               </Link>
               <IntakeForm
@@ -189,7 +190,8 @@ export default async function TrackWeekPage({
           href={`/dashboard/track/${trackSlug}`}
           className="inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-neutral-900 transition-colors py-2"
         >
-          ← Back to {track.shortName}
+          <ArrowLeft size={16} />
+          Back to {track.shortName}
         </Link>
         <nav aria-label="Week navigation" className="flex items-center gap-1">
           {prevWeek ? (
@@ -197,12 +199,12 @@ export default async function TrackWeekPage({
               href={`/dashboard/track/${trackSlug}/${prevWeek}`}
               className="inline-flex items-center gap-1 border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition-colors"
             >
-              ←
+              <ArrowLeft size={12} />
               Week {prevWeek}
             </Link>
           ) : (
             <span className="inline-flex items-center gap-1 border border-neutral-100 px-3 py-1.5 text-xs font-medium text-neutral-300">
-              ←
+              <ArrowLeft size={12} />
               Week {weekNum}
             </span>
           )}
@@ -212,12 +214,12 @@ export default async function TrackWeekPage({
               className="inline-flex items-center gap-1 border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition-colors"
             >
               Week {nextWeek}
-              →
+              <ArrowLeft size={12} className="rotate-180" />
             </Link>
           ) : (
             <span className="inline-flex items-center gap-1 border border-neutral-100 px-3 py-1.5 text-xs font-medium text-neutral-300">
               Week {weekNum}
-              →
+              <ArrowLeft size={12} className="rotate-180" />
             </span>
           )}
         </nav>
@@ -236,7 +238,8 @@ export default async function TrackWeekPage({
           isSingleSession
             ? sessionStatuses[0] === "completed" ? (
                 <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
-                  ✓ Session Ended
+                  <CheckCircle size={14} />
+                  Session Ended
                 </span>
               ) : meetingLinks[0] && !isZoomLink(meetingLinks[0]) ? (
                 <a
@@ -245,11 +248,13 @@ export default async function TrackWeekPage({
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2.5 min-h-[44px] transition-colors w-full sm:w-auto"
                 >
+                  <Video size={14} />
                   Join Session
                 </a>
               ) : meetingLinks[0] && isZoomLink(meetingLinks[0]) ? null
               : headerSessionIsSelfPaced ? null : (
                 <span className="inline-flex items-center justify-center gap-1.5 bg-neutral-200 text-neutral-400 text-xs font-semibold px-3.5 py-2.5 min-h-[44px] cursor-not-allowed w-full sm:w-auto">
+                  <Video size={14} />
                   Link Coming Soon
                 </span>
               )
@@ -324,7 +329,8 @@ export default async function TrackWeekPage({
               const isSelfPaced = session.time.toLowerCase().startsWith("self-paced");
               const action = sessionStatuses[i] === "completed" ? (
                 <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
-                  ✓ Session Ended
+                  <CheckCircle size={14} />
+                  Session Ended
                 </span>
               ) : meetingLinks[i] && isZoomLink(meetingLinks[i]) ? (
                 // Zoom sessions render as a full embed panel below — no button here
@@ -336,10 +342,12 @@ export default async function TrackWeekPage({
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2.5 min-h-[44px] transition-colors w-full sm:w-auto"
                 >
+                  <Video size={14} />
                   Join Session
                 </a>
               ) : isSelfPaced ? null : (
                 <span className="inline-flex items-center justify-center gap-1.5 bg-neutral-200 text-neutral-400 text-xs font-semibold px-3.5 py-2.5 min-h-[44px] cursor-not-allowed w-full sm:w-auto">
+                  <Video size={14} />
                   Link Coming Soon
                 </span>
               );
@@ -391,7 +399,7 @@ export default async function TrackWeekPage({
          recording has been uploaded yet. */}
       {!weekContent.videoUrl && !hasRecording && zoomSessions.length === 0 && (
         <div className="mb-8 border border-rule bg-surface-soft px-6 py-8 flex flex-col items-center text-center gap-2">
-          <span className="text-2xl" aria-hidden>🎬</span>
+          <Video size={24} className="text-ink-faint" aria-hidden />
           <p className="text-sm font-semibold text-ink">Video Coming Soon</p>
           <p className="text-xs text-ink-faint max-w-[38ch]">
             The session recording for this week will be posted here shortly. In the meantime, dive into the activities below.
@@ -438,7 +446,7 @@ export default async function TrackWeekPage({
             {resources.map((r, i) => {
               const isFile = r.type === "file" || isStorageUrl(r.url);
               const isVid = isUploadedVideo(r);
-              const icon = isVid ? "▶️" : isFile ? "📄" : "🔗";
+              const Icon = isVid ? Video : isFile ? FileText : LinkIcon;
               const action = isFile ? "Download" : "Open";
               return (
                 <li key={i}>
@@ -449,7 +457,7 @@ export default async function TrackWeekPage({
                     download={isFile ? (r.name || true) : undefined}
                     className="flex items-center gap-4 border-2 border-rule bg-surface-soft px-4 py-4 text-sm font-semibold text-ink hover:border-[#E54D2E] hover:bg-white transition-colors group min-h-[60px]"
                   >
-                    <span aria-hidden className="text-2xl shrink-0 leading-none">{icon}</span>
+                    <Icon size={24} aria-hidden className="shrink-0 text-ink-faint group-hover:text-ink-soft transition-colors" />
                     <span className="flex-1 leading-snug">{r.name || r.url}</span>
                     <span className="shrink-0 text-xs font-bold uppercase tracking-wide text-[#E54D2E] opacity-0 group-hover:opacity-100 transition-opacity">
                       {action}
@@ -494,14 +502,20 @@ export default async function TrackWeekPage({
           <div className="space-y-2">
             {(weekContent.videoUrl || hasRecording) && (
               <div className="flex items-center gap-2.5">
-                <span aria-hidden className={weekProgress?.videoWatched ? "text-green-500" : "text-ink-faint/50"}>✓</span>
+                <CheckCircle
+                  size={16}
+                  className={weekProgress?.videoWatched ? "text-green-500" : "text-ink-faint/50"}
+                />
                 <span className={`text-sm ${weekProgress?.videoWatched ? "text-ink" : "text-ink-faint"}`}>
                   Watch the recording
                 </span>
               </div>
             )}
             <div className="flex items-center gap-2.5">
-              <span aria-hidden className={weekProgress?.homeworkSubmitted ? "text-green-500" : "text-ink-faint/50"}>✓</span>
+              <CheckCircle
+                size={16}
+                className={weekProgress?.homeworkSubmitted ? "text-green-500" : "text-ink-faint/50"}
+              />
               <span className={`text-sm ${weekProgress?.homeworkSubmitted ? "text-ink" : "text-ink-faint"}`}>
                 Submit your homework
               </span>

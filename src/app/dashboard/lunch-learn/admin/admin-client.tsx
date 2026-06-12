@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ArrowLeft, Trash } from "@phosphor-icons/react";
 import { createLunchLearn, deleteLunchLearn, updateLunchLearn, type LunchLearnInput } from "../actions";
 
 type Recording = {
@@ -89,7 +90,7 @@ export function LunchLearnAdmin({ recordings, embedded }: { recordings: Recordin
             href="/dashboard"
             className="inline-flex items-center gap-1.5 text-[13px] text-ink-soft hover:text-ink mb-6"
           >
-            ←
+            <ArrowLeft size={14} weight="bold" aria-hidden />
             Back to Lunch &amp; Learns
           </Link>
 
@@ -238,7 +239,7 @@ export function LunchLearnAdmin({ recordings, embedded }: { recordings: Recordin
                     aria-label="Delete recording"
                     className="p-1.5 text-ink-faint hover:bg-paper-tint-soft hover:text-red-600 disabled:opacity-50"
                   >
-                    🗑️
+                    <Trash size={14} weight="bold" aria-hidden />
                   </button>
                 </div>
               </li>

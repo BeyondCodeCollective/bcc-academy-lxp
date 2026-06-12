@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { CaretUpDown, SignOut, Check } from "@phosphor-icons/react";
 import { createClient } from "@/lib/supabase/client";
 
 type ProgramOption = {
@@ -135,7 +136,12 @@ export function UserMenu({
             </span>
           )}
         </span>
-        <span aria-hidden className="shrink-0 text-neutral-400 text-xs">↕</span>
+        <CaretUpDown
+          size={14}
+          weight="bold"
+          aria-hidden
+          className="shrink-0 text-neutral-400"
+        />
       </button>
     ) : (
       <button
@@ -218,7 +224,12 @@ export function UserMenu({
                           : "text-ink-soft hover:bg-paper-tint-soft hover:text-ink"
                       }`}
                     >
-                      <span aria-hidden className={`shrink-0 text-xs ${isCurrent ? "text-ink" : "invisible"}`}>✓</span>
+                      <Check
+                        size={14}
+                        weight="bold"
+                        aria-hidden
+                        className={`shrink-0 ${isCurrent ? "text-ink" : "text-transparent"}`}
+                      />
                       <span className="truncate">{p.name}</span>
                     </button>
                   );
@@ -238,7 +249,7 @@ export function UserMenu({
               onClick={handleSignOut}
               className="flex w-full items-center gap-2 px-2.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-paper-tint-soft hover:text-ink"
             >
-              <span aria-hidden>🚪</span>
+              <SignOut size={15} weight="bold" aria-hidden />
               <span>Sign out</span>
             </button>
           </div>

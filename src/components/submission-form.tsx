@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { submitProject } from "@/app/dashboard/track/actions";
 import type { SubmissionRow, SubmissionLink, SubmissionFile, FeedbackRow } from "@/app/dashboard/track/actions";
+import { Plus, X, Link as LinkIcon, Upload, CheckCircle, Loader2, FileText, MessageSquare, ChevronDown } from "lucide-react";
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
 
 export function SubmissionForm({
@@ -147,7 +148,7 @@ export function SubmissionForm({
         className="flex w-full items-center justify-between p-4 sm:p-6 text-left hover:bg-neutral-50 transition-colors"
       >
         <div className="flex items-center gap-2">
-          <span className="text-neutral-400">⬆️</span>
+          <Upload size={14} className="text-neutral-400" />
           <h2 className="text-xs font-semibold text-neutral-400 uppercase tracking-wide">
             {header}
           </h2>
@@ -155,10 +156,14 @@ export function SubmissionForm({
         <div className="flex items-center gap-3">
           {saved && (
             <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
-              ✅ Submitted
+              <CheckCircle size={14} />
+              Submitted
             </span>
           )}
-          <span className={`text-neutral-400 transition-transform inline-block ${open ? "rotate-180" : ""}`}>▾</span>
+          <ChevronDown
+            size={16}
+            className={`text-neutral-400 transition-transform ${open ? "rotate-180" : ""}`}
+          />
         </div>
       </button>
 
@@ -195,7 +200,10 @@ export function SubmissionForm({
             <span className="text-xs font-medium text-neutral-500">
               Attachments (optional)
             </span>
-            <span className={`text-neutral-400 transition-transform inline-block ${attachmentsOpen ? "rotate-180" : ""}`}>▾</span>
+            <ChevronDown
+              size={14}
+              className={`text-neutral-400 transition-transform ${attachmentsOpen ? "rotate-180" : ""}`}
+            />
           </button>
           {attachmentsOpen && (
             <div className="mt-3">
@@ -241,9 +249,9 @@ export function SubmissionForm({
         className="inline-flex items-center gap-2 bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
       >
         {saving ? (
-          <>… Saving...</>
+          <><Loader2 size={14} className="animate-spin" /> Saving...</>
         ) : saved ? (
-          <>✅ Update Submission</>
+          <><CheckCircle size={14} /> Update Submission</>
         ) : (
           "Submit"
         )}
@@ -253,7 +261,7 @@ export function SubmissionForm({
       {feedback.length > 0 && (
         <div className="mt-5 pt-4 border-t border-neutral-100 space-y-3">
           <div className="flex items-center gap-2">
-            <span className="text-neutral-400">💬</span>
+            <MessageSquare size={14} className="text-neutral-400" />
             <h3 className="text-xs font-semibold text-neutral-400 uppercase tracking-wide">
               Instructor Feedback
             </h3>
@@ -327,7 +335,8 @@ function AttachmentFields({
             onClick={addLink}
             className="inline-flex items-center gap-1 text-xs font-medium text-neutral-500 hover:text-neutral-900 transition-colors"
           >
-            + Add Link
+            <Plus size={12} />
+            Add Link
           </button>
         </div>
         {links.length === 0 && (
@@ -336,7 +345,7 @@ function AttachmentFields({
         <div className="space-y-2">
           {links.map((link, i) => (
             <div key={i} className="flex gap-2 items-start">
-              <span className="mt-2.5 text-neutral-400 shrink-0 text-xs">↗️</span>
+              <LinkIcon size={14} className="mt-2.5 text-neutral-400 shrink-0" />
               <input
                 type="url"
                 value={link.url}
@@ -356,7 +365,7 @@ function AttachmentFields({
                 onClick={() => removeLink(i)}
                 className="mt-2 text-neutral-300 hover:text-red-400 transition-colors shrink-0"
               >
-                ✕
+                <X size={14} />
               </button>
             </div>
           ))}
@@ -369,9 +378,9 @@ function AttachmentFields({
           <label className="text-xs font-medium text-neutral-500">Files</label>
           <label className={`inline-flex items-center gap-1 text-xs font-medium cursor-pointer transition-colors ${uploading ? "text-neutral-300" : "text-neutral-500 hover:text-neutral-900"}`}>
             {uploading ? (
-              <>… Uploading...</>
+              <><Loader2 size={12} className="animate-spin" /> Uploading...</>
             ) : (
-              <>⬆️ Upload File</>
+              <><Upload size={12} /> Upload File</>
             )}
             <input
               type="file"
@@ -391,7 +400,7 @@ function AttachmentFields({
               key={i}
               className="flex items-center gap-2 border border-neutral-100 bg-neutral-50 px-3 py-2"
             >
-              <span className="text-neutral-400 shrink-0 text-xs">📋</span>
+              <FileText size={14} className="text-neutral-400 shrink-0" />
               <a
                 href={file.url}
                 target="_blank"
@@ -405,7 +414,7 @@ function AttachmentFields({
                 onClick={() => removeFile(i)}
                 className="text-neutral-300 hover:text-red-400 transition-colors shrink-0"
               >
-                ✕
+                <X size={14} />
               </button>
             </div>
           ))}

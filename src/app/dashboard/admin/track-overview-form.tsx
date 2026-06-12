@@ -2,6 +2,7 @@
 
 import { startTransition, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Check } from "lucide-react";
 import { saveTrackOverview, type TrackOverviewPatch } from "./actions";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
@@ -147,7 +148,7 @@ function SaveIndicator({ state }: { state: SaveState }) {
   if (state === "saved") {
     return (
       <span className="inline-flex items-center gap-1 text-[11px] text-green-600">
-        ✓ Saved
+        <Check size={11} /> Saved
       </span>
     );
   }

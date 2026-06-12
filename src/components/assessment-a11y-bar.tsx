@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { SpeakerHigh, SpeakerSlash } from "@phosphor-icons/react";
 import { TextScaleToggle } from "@/components/text-scale-toggle";
 
 export function useReadAloud() {
@@ -54,7 +55,11 @@ export function AssessmentA11yBar({
             }
           `}
         >
-          <span aria-hidden>{enabled ? "🔊" : "🔇"}</span>
+          {enabled ? (
+            <SpeakerHigh size={14} weight="bold" aria-hidden />
+          ) : (
+            <SpeakerSlash size={14} weight="bold" aria-hidden />
+          )}
           <span>{enabled ? "Reading aloud" : "Read aloud"}</span>
         </button>
       )}

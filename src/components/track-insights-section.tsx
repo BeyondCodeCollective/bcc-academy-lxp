@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 
 type SurveyConfig = { id: string; title: string };
 
@@ -54,7 +55,7 @@ export function TrackInsightsSection({
             className="flex items-center justify-between px-4 py-3 hover:bg-neutral-50 transition-colors group"
           >
             <p className="text-sm font-medium text-neutral-900">{s.title}</p>
-            <span className="text-neutral-300 group-hover:text-neutral-500 transition-colors shrink-0">→</span>
+            <ArrowRight size={14} className="text-neutral-300 group-hover:text-neutral-500 transition-colors shrink-0" />
           </Link>
         );
       })}

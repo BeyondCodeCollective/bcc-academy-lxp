@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { getSessionContext } from "@/lib/auth/session";
 import { canAccessAdminPanel } from "@/lib/roles";
 import { getProgramWithOverrides } from "@/lib/programs/server";
@@ -81,7 +82,8 @@ export default async function AllowlistAdminPage({
         href="/dashboard/admin"
         className="inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-neutral-900 transition-colors mb-4"
       >
-        ← Back to Admin
+        <ArrowLeft size={16} />
+        Back to Admin
       </Link>
 
       <header className="mb-6">
