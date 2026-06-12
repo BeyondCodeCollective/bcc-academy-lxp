@@ -16,6 +16,7 @@ import { resolveCurrentUser } from "@/lib/current-user";
 import { getEnrolledTracks } from "@/lib/enrollment";
 import { getHomeProgramForTrack } from "@/lib/programs";
 import { WeekIcon } from "@/components/week-icon";
+import { BracketLabel } from "@/components/bracket-label";
 import { BCC_INTAKE_SURVEY_ID, BCC_INTAKE_EXEMPT_PROGRAMS } from "@/lib/surveys/platform";
 import { isStaffEmail } from "@/lib/auth/admins";
 import { completePendingSetup } from "@/lib/auth/deferred-setup";
@@ -482,9 +483,9 @@ async function DashboardContent({
             <p className="text-sm font-semibold text-ink">Progress</p>
             <span className="text-sm font-semibold tabular-nums text-ink-soft">{pct}%</span>
           </div>
-          <div className="h-1.5 w-full overflow-hidden bg-rule">
+          <div className="h-1.5 w-full overflow-hidden bg-true-black">
             <div
-              className="h-full bg-primary transition-all"
+              className="h-full bg-electric-green transition-all"
               style={{ width: `${pct}%` }}
             />
           </div>
@@ -536,9 +537,7 @@ async function DashboardContent({
          would flip the program as a side effect. */}
       {otherProgramCourses.length > 0 && (
         <section className="space-y-3" aria-label="Courses from your other programs">
-          <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
-            From your other programs
-          </h2>
+          <BracketLabel>From your other programs</BracketLabel>
           <div className="divide-y divide-rule border border-rule bg-surface-elevated">
             {otherProgramCourses.map((c) => (
               <a

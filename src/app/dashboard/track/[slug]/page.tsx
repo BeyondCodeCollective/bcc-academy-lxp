@@ -17,6 +17,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { CopyInviteLink } from "@/components/copy-invite-link";
 import { toneForTrack } from "@/lib/track-visual";
 import { WeekCarousel, type WeekCardData } from "@/components/week-carousel";
+import { BracketLabel } from "@/components/bracket-label";
 
 export const dynamic = "force-dynamic";
 
@@ -179,15 +180,10 @@ export default async function TrackOverviewPage({
         </div>
 
         <div>
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-neutral-400">
-            {eyebrow && (
-              <>
-                {eyebrow}
-                <span className="mx-2 text-neutral-300">·</span>
-              </>
-            )}
+          <BracketLabel>
+            {eyebrow && <>{eyebrow}<span aria-hidden className="mx-0.5 text-white/40">·</span></>}
             {track.totalWeeks}-week track
-          </p>
+          </BracketLabel>
           <h1 className="mt-2 text-3xl font-bold tracking-tight text-neutral-900 sm:text-4xl">
             {track.name}
           </h1>
@@ -201,7 +197,7 @@ export default async function TrackOverviewPage({
         <div>
           <Link
             href={`/dashboard/track/${slug}/${ctaWeek}`}
-            className="inline-flex items-center gap-2 bg-neutral-900 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-neutral-700"
+            className="inline-flex items-center gap-2 bg-true-black px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:text-electric-green"
           >
             {ctaLabel}
             <ArrowRight size={14} weight="bold" />
