@@ -511,6 +511,12 @@ export function AdminTabs({
       // array reference on every re-render, which would otherwise re-trigger
       // this effect and reset in-progress edits before the 800ms save fires.
       if (loadedSlugs.current.has(track.slug)) return;
+      // Home/insights tabs serialize tracks with weeks: [] to slim the
+      // payload. Fetching now would apply DB content onto an empty base, and
+      // the loadedSlugs guard above would then block the retry when the full
+      // config arrives — leaving the curriculum permanently blank. Defer
+      // until the track tab's server render provides the real weeks.
+      if (!track.weeks.length) return;
       loadedSlugs.current.add(track.slug);
       try {
         const res = await fetch(`/api/session-content?track=${track.slug}`);
