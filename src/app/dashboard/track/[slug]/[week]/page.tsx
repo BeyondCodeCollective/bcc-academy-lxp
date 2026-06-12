@@ -18,6 +18,7 @@ import type { WeekConfig } from "@/lib/programs/types";
 import { resolveSessionContent } from "@/lib/session-content";
 import { ReadPageAloud } from "@/components/read-page-aloud";
 import { ZoomEmbed } from "@/components/zoom-embed";
+import { BracketLabel } from "@/components/bracket-label";
 import { parseZoomLink, isZoomLink } from "@/lib/zoom";
 import { getSessionContext } from "@/lib/auth/session";
 
@@ -262,9 +263,7 @@ export default async function TrackWeekPage({
         return (
           <div className="mb-6">
             <div className="flex items-center gap-2.5">
-              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400">
-                Week {weekContent.week}
-              </p>
+              <BracketLabel>Week {weekContent.week}</BracketLabel>
               {(isCompleted || isCurrent) && (
                 <span
                   className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
