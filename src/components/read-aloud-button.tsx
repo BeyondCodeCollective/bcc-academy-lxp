@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { SpeakerHigh, Stop } from "@phosphor-icons/react";
 
 // Read-aloud uses the browser's built-in Web Speech API (speechSynthesis).
 // Zero runtime cost, works offline, voice quality depends on OS — macOS
@@ -173,9 +174,9 @@ export function ReadAloudButton({
       }`}
     >
       {speaking ? (
-        <span aria-hidden="true">⏹</span>
+        <Stop size={14} weight="fill" aria-hidden="true" />
       ) : (
-        <span aria-hidden="true">🔊</span>
+        <SpeakerHigh size={14} weight="regular" aria-hidden="true" />
       )}
       {!compact && <span>{speaking ? "Stop" : label}</span>}
     </button>

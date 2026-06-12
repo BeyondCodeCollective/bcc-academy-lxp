@@ -8,6 +8,7 @@ import {
   type Workshop,
 } from "@/lib/workshops";
 import { createServiceClient } from "@/lib/supabase/server";
+import { MapPin, GlobeHemisphereWest, Video, User } from "@phosphor-icons/react/dist/ssr";
 
 export const revalidate = 3600;
 
@@ -98,7 +99,7 @@ function LuncheonSection({ luncheons }: { luncheons: LuncheonRow[] }) {
                 className="relative flex aspect-video w-full items-center justify-center overflow-hidden"
                 style={{ backgroundColor: `${LUNCHEON_TONE}1A` }}
               >
-                <span className="text-5xl leading-none">🎬</span>
+                <Video size={56} weight="light" color={LUNCHEON_TONE} />
                 <div className="absolute top-3 right-3">
                   <span
                     className="inline-flex items-center rounded-full bg-white/95 px-2 py-0.5 text-[10px] font-semibold capitalize backdrop-blur"
@@ -120,7 +121,7 @@ function LuncheonSection({ luncheons }: { luncheons: LuncheonRow[] }) {
                 </p>
                 <div className="mt-auto flex items-center gap-3 pt-4 text-[12px] text-neutral-500">
                   <span className="inline-flex items-center gap-1">
-                    👤
+                    <User size={12} weight="bold" aria-hidden />
                     {r.presenter}
                   </span>
                 </div>
@@ -160,10 +161,10 @@ function Section({
 }
 
 function WorkshopCard({ workshop }: { workshop: Workshop }) {
-  const icon = workshop.icon;
+  const Icon = workshop.icon;
   const dateLabel = formatWorkshopDateRange(workshop);
   const ModalityIcon =
-    workshop.modality === "virtual" ? "🌐" : "📍";
+    workshop.modality === "virtual" ? GlobeHemisphereWest : MapPin;
   const modalityLabel =
     workshop.modality === "virtual"
       ? "Virtual"
@@ -181,7 +182,7 @@ function WorkshopCard({ workshop }: { workshop: Workshop }) {
         className="relative flex aspect-video w-full items-center justify-center overflow-hidden"
         style={{ backgroundColor: `${workshop.tone}1A` }}
       >
-        <span className="text-5xl leading-none">{icon}</span>
+        <Icon size={56} weight="light" color={workshop.tone} />
         <div className="absolute top-3 right-3">
           <span
             className="inline-flex items-center rounded-full bg-white/95 px-2 py-0.5 text-[10px] font-semibold capitalize backdrop-blur"
@@ -204,7 +205,7 @@ function WorkshopCard({ workshop }: { workshop: Workshop }) {
         </p>
         <div className="mt-auto flex items-center gap-3 pt-4 text-[12px] text-neutral-500">
           <span className="inline-flex items-center gap-1">
-            {ModalityIcon}
+            <ModalityIcon size={12} weight="bold" aria-hidden />
             {modalityLabel}
           </span>
           {workshop.alumniCount !== undefined && (

@@ -1,5 +1,12 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import {
+  Users,
+  Lightning,
+  GraduationCap,
+  Pulse,
+  ArrowRight,
+} from "@phosphor-icons/react/dist/ssr";
 import { getSessionContext } from "@/lib/auth/session";
 import { canSwitchPrograms } from "@/lib/roles";
 import { getAllPrograms } from "@/lib/programs";
@@ -218,7 +225,8 @@ export default async function InsightsPage() {
           href="/dashboard/admin?tab=insights"
           className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral-500 transition-colors hover:text-neutral-900"
         >
-          Survey Insights ↗️
+          Survey Insights
+          <ArrowRight size={11} weight="bold" />
         </Link>
       </header>
 
@@ -235,25 +243,25 @@ export default async function InsightsPage() {
       {/* Metric strip */}
       <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Metric
-          icon="👥"
+          icon={Users}
           label="Students"
           value={totalStudents.toLocaleString()}
           hint="enrolled, role=student"
         />
         <Metric
-          icon="⚡"
+          icon={Lightning}
           label="Active 7d"
           value={activeCount.toLocaleString()}
           hint="attendance, submission, or reflection"
         />
         <Metric
-          icon="📊"
+          icon={Pulse}
           label="Engaged ever"
           value={`${engagementPct}%`}
           hint={`${studentsEngaged.toLocaleString()} of ${totalStudents.toLocaleString()}`}
         />
         <Metric
-          icon="🎓"
+          icon={GraduationCap}
           label="Alumni"
           value={uniqueAlumni.size.toLocaleString()}
           hint="unique by email"
@@ -334,12 +342,12 @@ export default async function InsightsPage() {
 }
 
 function Metric({
-  icon,
+  icon: Icon,
   label,
   value,
   hint,
 }: {
-  icon: string;
+  icon: React.ComponentType<{ size?: number; weight?: "bold"; "aria-hidden"?: boolean }>;
   label: string;
   value: string;
   hint?: string;
@@ -347,7 +355,7 @@ function Metric({
   return (
     <div className="border border-rule bg-surface-elevated p-4">
       <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-neutral-400">
-        <span aria-hidden>{icon}</span>
+        <Icon size={11} weight="bold" aria-hidden />
         {label}
       </p>
       <p className="mt-2 text-2xl font-bold tabular-nums text-neutral-900 tracking-tight">

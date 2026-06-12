@@ -8,6 +8,11 @@ import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { getPreviewTrackSlug, LUNCH_LEARN_PREVIEW_SLUG } from "@/lib/auth/preview-mode";
 import type { TrackConfig } from "@/lib/programs/types";
+import {
+  Envelope,
+  CalendarBlank,
+} from "@phosphor-icons/react/dist/ssr";
+
 export const dynamic = "force-dynamic";
 
 export default async function HelpPage() {

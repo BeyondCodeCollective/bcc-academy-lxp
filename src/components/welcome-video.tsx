@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ChevronDown, Play } from "lucide-react";
 
 interface Props {
   videoSrc: string;
@@ -19,7 +20,7 @@ export function WelcomeVideo({ videoSrc, title, presenter }: Props) {
       >
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-neutral-900">
-            <span className="text-white ml-0.5">▶</span>
+            <Play size={14} className="text-white ml-0.5" />
           </div>
           <div className="text-left">
             <p className="text-sm font-semibold text-neutral-900">
@@ -32,7 +33,12 @@ export function WelcomeVideo({ videoSrc, title, presenter }: Props) {
             )}
           </div>
         </div>
-        <span className={`shrink-0 text-neutral-400 transition-transform duration-200 inline-block ${open ? "rotate-180" : ""}`}>▾</span>
+        <ChevronDown
+          size={18}
+          className={`shrink-0 text-neutral-400 transition-transform duration-200 ${
+            open ? "rotate-180" : ""
+          }`}
+        />
       </button>
 
       <div

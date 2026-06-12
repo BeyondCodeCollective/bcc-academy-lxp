@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { ArrowLeft } from "@phosphor-icons/react/dist/ssr";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { canAccessAdminPanel, canAccessStaffContent } from "@/lib/roles";
@@ -39,7 +40,7 @@ export default async function LunchLearnDetailPage({
         href="/dashboard"
         className="inline-flex items-center gap-1.5 text-[13px] text-ink-soft hover:text-ink mb-6"
       >
-        ←
+        <ArrowLeft size={14} weight="bold" aria-hidden />
         All recordings
       </Link>
 

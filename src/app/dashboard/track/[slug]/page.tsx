@@ -1,5 +1,13 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import {
+  Archive,
+  ArrowLeft,
+  Clock,
+  ChalkboardTeacher,
+  Lightning,
+  ArrowRight,
+} from "@phosphor-icons/react/dist/ssr";
 import { computeCurrentWeek } from "@/lib/utils";
 import { getProgram } from "@/lib/programs/server";
 import { getTrackBySlug } from "@/lib/programs";
@@ -43,7 +51,7 @@ export default async function TrackOverviewPage({
       if (overrideRow?.archived_at) {
         return (
           <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-16 text-center space-y-3">
-            <p className="text-4xl">📦</p>
+            <Archive size={40} className="mx-auto text-neutral-400" aria-hidden />
             <h1 className="text-xl font-bold text-neutral-900">This course has ended</h1>
             <p className="text-sm text-neutral-500">
               {track.name} is no longer active. Reach out to your instructor if you have questions.
@@ -120,7 +128,7 @@ export default async function TrackOverviewPage({
           href="/dashboard/courses"
           className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral-500 transition-colors hover:text-neutral-900"
         >
-          ←
+          <ArrowLeft size={12} weight="bold" />
           All courses
         </Link>
         {isAdminViewer && (
@@ -196,7 +204,7 @@ export default async function TrackOverviewPage({
             className="inline-flex items-center gap-2 bg-neutral-900 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-neutral-700"
           >
             {ctaLabel}
-            →
+            <ArrowRight size={14} weight="bold" />
           </Link>
         </div>
       </header>
@@ -208,17 +216,17 @@ export default async function TrackOverviewPage({
         className="grid grid-cols-3 gap-3"
       >
         <Fact
-          icon="🖥️"
+          icon={ChalkboardTeacher}
           label="Instructor"
           value={track.instructor}
         />
         <Fact
-          icon="🕐"
+          icon={Clock}
           label="Duration"
           value={`${track.totalWeeks} weeks`}
         />
         <Fact
-          icon="⚡"
+          icon={Lightning}
           label="Cadence"
           value={
             track.sessionsPerWeek > 1
@@ -283,18 +291,18 @@ export default async function TrackOverviewPage({
 }
 
 function Fact({
-  icon,
+  icon: Icon,
   label,
   value,
 }: {
-  icon: string;
+  icon: React.ComponentType<{ size?: number; weight?: "bold"; "aria-hidden"?: boolean }>;
   label: string;
   value: string;
 }) {
   return (
     <div className="space-y-1 border border-rule bg-surface-elevated p-3">
       <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-neutral-400">
-        {icon}
+        <Icon size={11} weight="bold" aria-hidden />
         {label}
       </p>
       <p className="text-[13px] font-medium text-neutral-900">{value}</p>

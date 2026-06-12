@@ -1,5 +1,6 @@
 "use client";
 
+import { Video } from "lucide-react";
 import { MarkVideoWatchedButton } from "@/components/mark-video-watched-button";
 import { getYouTubeEmbedUrl, VIDEO_EXTENSIONS } from "@/lib/storage-utils";
 import { toDriveEmbedUrl } from "@/lib/lunch-learns/drive";
@@ -34,7 +35,7 @@ export function RecordingCard({
       <div className="flex items-center justify-between gap-2 px-4 sm:px-5 py-3 sm:py-4 min-h-[52px]">
         <div className="flex items-center gap-3 min-w-0">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-neutral-900">
-            <span className="text-white ml-0.5 text-sm">▶</span>
+            <Video size={16} className="text-white" />
           </div>
           <div className="min-w-0 text-left">
             <p className="text-sm font-semibold text-neutral-900 truncate">{title}</p>

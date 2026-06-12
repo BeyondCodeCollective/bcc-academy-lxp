@@ -1,3 +1,25 @@
+import type { ComponentType } from "react";
+import {
+  Microphone,
+  Wrench,
+  Sparkle,
+  DeviceMobile,
+  BookOpen,
+  Cloud,
+  GameController,
+  GraduationCap,
+  Certificate,
+  Buildings,
+  Compass,
+} from "@phosphor-icons/react/dist/ssr";
+
+type IconComponent = ComponentType<{
+  size?: number;
+  weight?: "thin" | "light" | "regular" | "bold" | "fill" | "duotone";
+  color?: string;
+  className?: string;
+}>;
+
 // Curated single-tone palette per track. Matte, editorial — no rainbow.
 // Color is deterministic per slug so each track keeps its identity across
 // sessions and surfaces.
@@ -16,22 +38,22 @@ export function toneForTrack(slug: string): string {
   return TRACK_TONES[Math.abs(h) % TRACK_TONES.length];
 }
 
-// One curated emoji per track. 🧭 is the fallback for any track slug not
-// in the map.
-const ICON_FOR_SLUG: Record<string, string> = {
-  mass: "🎤",
-  techplus: "🔧",
-  "ai-fundamentals": "✨",
-  "ai-digital-natives": "📱",
-  "ai-automation-bootcamp": "✨",
-  "ai-literacy": "📖",
-  "network-plus": "☁️",
-  "endless-games-godot": "🎮",
-  "foundations-ai": "🎓",
-  "ibm-ai-fundamentals": "📜",
-  "salesforce-admin": "🏢",
+// One curated Phosphor icon per track. Compass is the fallback for any
+// track slug not in the map.
+const ICON_FOR_SLUG: Record<string, IconComponent> = {
+  mass: Microphone,
+  techplus: Wrench,
+  "ai-fundamentals": Sparkle,
+  "ai-digital-natives": DeviceMobile,
+  "ai-automation-bootcamp": Sparkle,
+  "ai-literacy": BookOpen,
+  "network-plus": Cloud,
+  "endless-games-godot": GameController,
+  "foundations-ai": GraduationCap,
+  "ibm-ai-fundamentals": Certificate,
+  "salesforce-admin": Buildings,
 };
 
-export function iconForTrack(slug: string): string {
-  return ICON_FOR_SLUG[slug] ?? "🧭";
+export function iconForTrack(slug: string): IconComponent {
+  return ICON_FOR_SLUG[slug] ?? Compass;
 }

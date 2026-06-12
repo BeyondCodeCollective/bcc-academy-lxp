@@ -6,6 +6,32 @@ import Link from "next/link";
 import { addStudentAction, deleteStudentAction, updateStudentAction, updateCohortAction, saveSessionContent, assignStudentTrack, removeStudentTrack, bulkAssignTrack, exportSurveyResponses, exportPublicSurveyResponses, getAllSubmissions, addFeedback, assignInstructorTrack, removeInstructorTrack, deleteSurveyResponse, deletePublicSurveyResponse, listPublicSurveyResponses, sendInviteAction, createCohortAction } from "./actions";
 import type { SessionResource, StudentTrackRow, SurveyStatsRow, AdminSubmissionRow, InstructorTrackRow, PublicSurveyStatsRow } from "./actions";
 import { canManageStudents, canSwitchPrograms } from "@/lib/roles";
+import {
+  Users,
+  BookOpen,
+  GraduationCap,
+  Settings,
+  Save,
+  ChevronDown,
+  Shield,
+  ExternalLink,
+  Check,
+  UserCheck,
+  Trash2,
+  UserPlus,
+  Plus,
+  X,
+  Link as LinkIcon,
+  Upload,
+  Download,
+  Loader2,
+  Video,
+  FileText,
+  ClipboardList,
+  Send,
+  MessageSquare,
+  Coffee,
+} from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import { computeCurrentWeek } from "@/lib/utils";
 import { LunchLearnAdmin } from "@/app/dashboard/lunch-learn/admin/admin-client";
@@ -18,6 +44,7 @@ import type { Student } from "@/lib/types";
 import { isStorageUrl, isUploadedVideo } from "@/lib/storage-utils";
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
 import { iconForTrack, toneForTrack } from "@/lib/track-visual";
+import { Clipboard as ClipboardListIcon, Users as UsersIcon, ChartBar as ChartBarIcon, ArrowLeft as ArrowLeftIcon } from "@phosphor-icons/react";
 
 const PLATFORM_SURVEY_TITLES: Record<string, string> = {
   "bcc-learner-intake": "BCC Learner Intake",
@@ -182,12 +209,14 @@ function UploadButton({
   week,
   accept,
   label,
+  icon: Icon,
   onUploaded,
 }: {
   track: string;
   week: number;
   accept: string;
   label: string;
+  icon: typeof Upload;
   onUploaded: (result: { url: string; name: string }) => void;
 }) {
   const [uploadState, setUploadState] = useState<UploadState>("idle");
@@ -247,9 +276,9 @@ function UploadButton({
         className="inline-flex items-center gap-1.5 rounded-md border border-neutral-200 bg-white px-2.5 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors disabled:opacity-50 min-h-[36px]"
       >
         {uploadState === "uploading" ? (
-          <>… Uploading...</>
+          <><Loader2 size={11} className="animate-spin" /> Uploading...</>
         ) : (
-          <>⬆️ {label}</>
+          <><Icon size={11} /> {label}</>
         )}
       </button>
       {uploadState === "error" && (
@@ -296,13 +325,13 @@ function ResourceEditor({
       <div className="flex items-center justify-between flex-wrap gap-2">
         <label className="text-xs font-medium text-neutral-500">Resources</label>
         <div className="flex items-center gap-1.5">
-          <UploadButton accept={FILE_ACCEPT} label="Upload File" track={track} week={week} onUploaded={handleFileUploaded} />
+          <UploadButton accept={FILE_ACCEPT} label="Upload File" icon={Upload} track={track} week={week} onUploaded={handleFileUploaded} />
           <button
             type="button"
             onClick={addLink}
             className="inline-flex items-center gap-1 rounded-md border border-neutral-200 bg-white px-2.5 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors min-h-[36px]"
           >
-            +
+            <Plus size={11} />
             Add Link
           </button>
         </div>
@@ -314,8 +343,12 @@ function ResourceEditor({
 
       {resources.map((r, i) => (
         <div key={i} className="flex gap-2 items-start">
-          <div className="mt-2 shrink-0 text-neutral-400">
-            {r.type === "file" || isStorageUrl(r.url) ? "📄" : "🔗"}
+          <div className="mt-2 shrink-0">
+            {r.type === "file" || isStorageUrl(r.url) ? (
+              <FileText size={12} className="text-neutral-400" />
+            ) : (
+              <LinkIcon size={12} className="text-neutral-400" />
+            )}
           </div>
 
           <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -347,7 +380,7 @@ function ResourceEditor({
             className="mt-2 text-neutral-300 hover:text-red-400 transition-colors shrink-0"
             title="Remove resource"
           >
-            ✕
+            <X size={14} />
           </button>
         </div>
       ))}
@@ -364,7 +397,7 @@ function SaveIndicator({ state }: { state: SaveState }) {
   if (state === "saving") return <span className="text-[11px] text-neutral-400">Saving...</span>;
   if (state === "saved") return (
     <span className="inline-flex items-center gap-1 text-[11px] text-green-600">
-      ✓ Saved
+      <Check size={11} /> Saved
     </span>
   );
   return <span className="text-[11px] text-red-500">Save failed</span>;
@@ -372,8 +405,9 @@ function SaveIndicator({ state }: { state: SaveState }) {
 
 // ─── Tab icon helper ─────────────────────────────────────────────────────────
 
-function getTrackIcon(index: number): string {
-  return ["🎓", "📖", "🎬", "📄"][index % 4];
+function getTrackIcon(index: number) {
+  const icons = [GraduationCap, BookOpen, Video, FileText];
+  return icons[index % icons.length];
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -430,9 +464,9 @@ export function AdminTabs({
     ? []
     : [
         ...tracks.map((t, i) => ({ id: t.slug, label: t.shortName, icon: getTrackIcon(i) })),
-        { id: "student-work", label: "Student Work", icon: "📋" },
-        { id: "attendance", label: "Analytics", icon: "👥" },
-        ...(isManager ? [{ id: "lunch-learn", label: "Lunch & Learn", icon: "☕" }] : []),
+        { id: "student-work", label: "Student Work", icon: ClipboardList },
+        { id: "attendance", label: "Analytics", icon: UserCheck },
+        ...(isManager ? [{ id: "lunch-learn", label: "Lunch & Learn", icon: Coffee }] : []),
       ];
 
   // Default landing is the Admin Home picker — a grid of cards that lets
@@ -875,26 +909,30 @@ export function AdminTabs({
                 href="/dashboard/admin?tab=students"
                 className="inline-flex items-center gap-2 border border-rule bg-surface-elevated px-3 py-2 text-xs font-medium text-neutral-600 transition-colors hover:border-neutral-300 hover:text-neutral-900"
               >
-                👥 All people
+                <UsersIcon size={13} weight="bold" aria-hidden />
+                All people
               </Link>
               <Link
                 href="/dashboard/admin?tab=student-work"
                 className="inline-flex items-center gap-2 border border-rule bg-surface-elevated px-3 py-2 text-xs font-medium text-neutral-600 transition-colors hover:border-neutral-300 hover:text-neutral-900"
               >
-                📋 Student work
+                <ClipboardListIcon size={13} weight="bold" aria-hidden />
+                Student work
               </Link>
               <Link
                 href="/dashboard/admin?tab=attendance"
                 className="inline-flex items-center gap-2 border border-rule bg-surface-elevated px-3 py-2 text-xs font-medium text-neutral-600 transition-colors hover:border-neutral-300 hover:text-neutral-900"
               >
-                📊 Attendance
+                <ChartBarIcon size={13} weight="bold" aria-hidden />
+                Attendance
               </Link>
               {isManager && (
                 <Link
                   href="/dashboard/admin/allowlist"
                   className="inline-flex items-center gap-2 border border-rule bg-surface-elevated px-3 py-2 text-xs font-medium text-neutral-600 transition-colors hover:border-neutral-300 hover:text-neutral-900"
                 >
-                  🛡️ Signup allowlist
+                  <Shield size={13} aria-hidden />
+                  Signup allowlist
                 </Link>
               )}
             </div>
@@ -984,7 +1022,8 @@ export function AdminTabs({
             href="/dashboard/admin"
             className="inline-flex items-center gap-1.5 text-[11px] font-medium text-neutral-400 transition-colors hover:text-neutral-700"
           >
-            ← Admin
+            <ArrowLeftIcon size={11} weight="bold" aria-hidden />
+            Admin
           </Link>
 
           {/* Track header */}
@@ -1060,7 +1099,7 @@ export function AdminTabs({
                   <div className="flex items-center gap-2">
                     <SaveIndicator state={saveStates[activeTrack.slug]?.[aw.week] ?? "idle"} />
                     <span className={`h-2 w-2 rounded-full ${aw.sessions.every((s) => s.status === "completed") ? "bg-green-500" : "bg-neutral-300"}`} />
-                    <span className={`text-neutral-400 transition-transform inline-block ${expandedWeek === aw.week ? "rotate-180" : ""}`}>▾</span>
+                    <ChevronDown size={16} className={`text-neutral-400 transition-transform ${expandedWeek === aw.week ? "rotate-180" : ""}`} />
                   </div>
                 </button>
 
@@ -1150,7 +1189,7 @@ export function AdminTabs({
                               placeholder="https://youtube.com/... or https://drive.google.com/..."
                               className="flex-1 border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
                             />
-                            <UploadButton accept={VIDEO_ACCEPT} label="Upload Recording"
+                            <UploadButton accept={VIDEO_ACCEPT} label="Upload Recording" icon={Video}
                               track={activeTrack.slug}
                               week={aw.week}
                               onUploaded={({ url }) => updateSession(activeTrack.slug, aw.week, s.num, { recordingUrl: url })}
@@ -1185,7 +1224,7 @@ export function AdminTabs({
                           </label>
                           {s.meetingLink && (
                             <a href={s.meetingLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-neutral-400 hover:text-neutral-900">
-                              Open link ↗️
+                              Open link <ExternalLink size={12} />
                             </a>
                           )}
                         </div>
@@ -1212,7 +1251,7 @@ export function AdminTabs({
                   <option value="students">Roster &amp; Attendance</option>
                   <option value="work">Submissions</option>
                 </select>
-                <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400">▾</span>
+                <ChevronDown size={13} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400" />
               </div>
             );
             return (
@@ -1305,7 +1344,8 @@ export function AdminTabs({
             href="/dashboard/admin"
             className="inline-flex items-center gap-1.5 text-[11px] font-medium text-neutral-400 transition-colors hover:text-neutral-700"
           >
-            ← Admin
+            <ArrowLeftIcon size={11} weight="bold" aria-hidden />
+            Admin
           </Link>
           <header>
             <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
@@ -1326,7 +1366,8 @@ export function AdminTabs({
             href="/dashboard/admin"
             className="inline-flex items-center gap-1.5 text-[11px] font-medium text-neutral-400 transition-colors hover:text-neutral-700"
           >
-            ← Admin
+            <ArrowLeftIcon size={11} weight="bold" aria-hidden />
+            Admin
           </Link>
           <header>
             <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
@@ -1351,7 +1392,8 @@ export function AdminTabs({
             href="/dashboard/admin"
             className="inline-flex items-center gap-1.5 text-[11px] font-medium text-neutral-400 transition-colors hover:text-neutral-700"
           >
-            ← Admin
+            <ArrowLeftIcon size={11} weight="bold" aria-hidden />
+            Admin
           </Link>
           <header>
             <h1 className="text-3xl font-bold text-neutral-900 tracking-tight">
@@ -1552,7 +1594,7 @@ function StudentWorkTab({
                 <option key={t.slug} value={t.slug}>{t.shortName}</option>
               ))}
             </select>
-            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400">▾</span>
+            <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
           </div>
         )}
 
@@ -1567,7 +1609,7 @@ function StudentWorkTab({
               <option key={i + 1} value={i + 1}>Week {i + 1}</option>
             ))}
           </select>
-          <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400">▾</span>
+          <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
         </div>
 
         <span className="text-xs text-neutral-400 ml-auto">
@@ -1577,7 +1619,7 @@ function StudentWorkTab({
 
       {loading && (
         <div className="flex items-center justify-center py-12">
-          <span className="text-neutral-400">…</span>
+          <Loader2 size={20} className="animate-spin text-neutral-400" />
         </div>
       )}
 
@@ -1604,10 +1646,10 @@ function StudentWorkTab({
                 <div className="flex items-center gap-2 shrink-0">
                   {sub.feedback_count > 0 && (
                     <span className="inline-flex items-center gap-0.5 text-[10px] text-green-600 bg-green-50 rounded-full px-1.5 py-0.5">
-                      💬 {sub.feedback_count}
+                      <MessageSquare size={10} /> {sub.feedback_count}
                     </span>
                   )}
-                  <span className={`text-neutral-400 transition-transform inline-block ${expandedId === sub.id ? "rotate-180" : ""}`}>▾</span>
+                  <ChevronDown size={14} className={`text-neutral-400 transition-transform ${expandedId === sub.id ? "rotate-180" : ""}`} />
                 </div>
               </button>
 
@@ -1645,7 +1687,7 @@ function StudentWorkTab({
                       <div className="space-y-1">
                         {sub.links.map((link, i) => (
                           <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-neutral-700 hover:text-neutral-900">
-                            <span className="shrink-0">↗️</span>
+                            <ExternalLink size={12} className="shrink-0" />
                             {link.label || link.url}
                           </a>
                         ))}
@@ -1658,7 +1700,7 @@ function StudentWorkTab({
                       <div className="space-y-1">
                         {sub.files.map((file, i) => (
                           <a key={i} href={file.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-neutral-700 hover:text-neutral-900">
-                            <span className="shrink-0">📄</span>
+                            <FileText size={12} className="shrink-0" />
                             {file.name}
                           </a>
                         ))}
@@ -1686,7 +1728,7 @@ function StudentWorkTab({
                         disabled={!feedbackText[sub.id]?.trim() || sendingFeedback === sub.id}
                         className="inline-flex items-center gap-1 bg-neutral-900 px-3 py-2 text-xs font-medium text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
                       >
-                        {sendingFeedback === sub.id ? "…" : "✉️"}
+                        {sendingFeedback === sub.id ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
                       </button>
                     </div>
                   </div>
@@ -1853,7 +1895,8 @@ function PeopleTab({
           href="/dashboard/admin"
           className="inline-flex items-center gap-1.5 text-[11px] font-medium text-neutral-400 transition-colors hover:text-neutral-700"
         >
-          ← Admin
+          <ArrowLeftIcon size={11} weight="bold" aria-hidden />
+          Admin
         </Link>
       )}
       {/* Header */}
@@ -1881,7 +1924,7 @@ function PeopleTab({
                       <option key={t.slug} value={t.slug}>{t.shortName}</option>
                     ))}
                   </select>
-                  <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400">▾</span>
+                  <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
                 </div>
                 <button
                   type="button"
@@ -1889,7 +1932,7 @@ function PeopleTab({
                   disabled={bulkSelected.size === 0 || bulkSaving}
                   className="inline-flex items-center gap-1.5 bg-neutral-900 px-3 py-2 text-xs font-medium text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
                 >
-                  {bulkSaving ? "…" : "👥"}
+                  {bulkSaving ? <Loader2 size={12} className="animate-spin" /> : <UserCheck size={12} />}
                   Assign{bulkSelected.size > 0 ? ` (${bulkSelected.size})` : ""}
                 </button>
                 <button
@@ -1907,14 +1950,16 @@ function PeopleTab({
                   onClick={() => setShowBulkAssign(true)}
                   className="inline-flex items-center gap-1.5 border border-neutral-200 px-3 py-2 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
                 >
-                  👥 Bulk assign
+                  <Users size={13} />
+                  Bulk assign
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowAddForm((v) => !v)}
                   className="inline-flex items-center gap-1.5 bg-neutral-900 px-3 py-2 text-xs font-medium text-white hover:bg-neutral-800 transition-colors"
                 >
-                  +👤 Add person
+                  <UserPlus size={13} />
+                  Add person
                 </button>
               </>
             )}
@@ -1971,7 +2016,7 @@ function PeopleTab({
                   <option value="instructor">Instructor</option>
                   <option value="admin">Admin</option>
                 </select>
-                <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400">▾</span>
+                <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
               </div>
             </div>
             {cohorts.length > 0 && (
@@ -1988,7 +2033,7 @@ function PeopleTab({
                       <option key={c.id} value={c.id}>{c.track_slug ? `${trackLabel(c.track_slug)} — ` : ""}{c.display_name || c.name}</option>
                     ))}
                   </select>
-                  <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400">▾</span>
+                  <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
                 </div>
                 {!showNewGroupFormAdd ? (
                   <button
@@ -2060,7 +2105,7 @@ function PeopleTab({
               disabled={addingStudent || !addEmail.trim()}
               className="inline-flex items-center gap-1.5 bg-neutral-900 px-4 py-2 text-xs font-medium text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
             >
-              {addingStudent ? "…" : "+"}
+              {addingStudent ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
               {addingStudent ? "Adding..." : "Add person"}
             </button>
             <button
@@ -2098,7 +2143,7 @@ function PeopleTab({
               <option value="instructor">Instructors</option>
               <option value="admin">Admins</option>
             </select>
-            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400">▾</span>
+            <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
           </div>
         )}
         {!embedded && tracks.length > 0 && (
@@ -2113,7 +2158,7 @@ function PeopleTab({
                 <option key={t.slug} value={t.slug}>{t.shortName}</option>
               ))}
             </select>
-            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400">▾</span>
+            <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
           </div>
         )}
         <span className="text-xs text-neutral-400">{filtered.length} shown</span>
@@ -2185,7 +2230,10 @@ function PeopleTab({
                   >
                     {s.role}
                   </span>
-                  <span className={`text-neutral-400 transition-transform inline-block ${isExpanded ? "rotate-180" : ""}`}>▾</span>
+                  <ChevronDown
+                    size={14}
+                    className={`text-neutral-400 transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                  />
                 </div>
               </div>
 
@@ -2212,7 +2260,7 @@ function PeopleTab({
                           <option value="admin">Admin</option>
                           <option value="super_admin">Super Admin</option>
                         </select>
-                        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400">▾</span>
+                        <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
                       </div>
                     </div>
                     {cohorts.length > 0 && s.role === "student" && (
@@ -2234,7 +2282,7 @@ function PeopleTab({
                               </option>
                             ))}
                           </select>
-                          <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400">▾</span>
+                          <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
                         </div>
                         {showNewGroupFormRow !== s.id ? (
                           <button
@@ -2346,7 +2394,13 @@ function PeopleTab({
                                   : "border border-neutral-200 bg-white text-neutral-500 hover:border-neutral-400 hover:text-neutral-700"
                               }`}
                             >
-                              {isSaving ? "…" : enrolled ? "✓" : "+"}
+                              {isSaving ? (
+                                <Loader2 size={10} className="animate-spin" />
+                              ) : enrolled ? (
+                                <Check size={10} />
+                              ) : (
+                                <Plus size={10} />
+                              )}
                               {t.shortName}
                             </button>
                           );
@@ -2406,7 +2460,8 @@ function PeopleTab({
                           onClick={() => setConfirmDeleteId(s.id)}
                           className="inline-flex items-center gap-1.5 text-xs text-neutral-400 hover:text-red-500 transition-colors"
                         >
-                          🗑️ Remove person
+                          <Trash2 size={12} />
+                          Remove person
                         </button>
                       )}
                     </div>
@@ -2499,14 +2554,16 @@ function SurveyCard({
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1 border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
         >
-          ↗️ Preview
+          <ExternalLink size={12} />
+          Preview
         </a>
         <button
           type="button"
           onClick={async () => { try { await onExport(); } catch (e) { console.error("Export failed:", e); } }}
           className="inline-flex items-center gap-1 border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
         >
-          ⬇️ Export CSV
+          <Download size={12} />
+          Export CSV
         </button>
         {localResponses.length > 0 && (
           <button
@@ -2515,7 +2572,8 @@ function SurveyCard({
             disabled={clearingAll}
             className="inline-flex items-center gap-1 border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
           >
-            🗑️ {clearingAll ? "Deleting..." : "Delete All"}
+            <Trash2 size={12} />
+            {clearingAll ? "Deleting..." : "Delete All"}
           </button>
         )}
         <button
@@ -2523,7 +2581,7 @@ function SurveyCard({
           onClick={() => setExpanded((v) => !v)}
           className="inline-flex items-center gap-1 border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
         >
-          <span className={`transition-transform inline-block ${expanded ? "rotate-180" : ""}`}>▾</span>
+          <ChevronDown size={12} className={`transition-transform ${expanded ? "rotate-180" : ""}`} />
           {expanded ? "Hide" : "Responses"}
         </button>
       </div>
@@ -2545,7 +2603,7 @@ function SurveyCard({
                 className="shrink-0 rounded p-1 text-neutral-300 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
                 title="Delete response"
               >
-                {deleting === r.id ? "…" : "🗑️"}
+                {deleting === r.id ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
               </button>
             </div>
           ))}
@@ -2624,14 +2682,16 @@ function PublicSurveyCard({
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1 border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
         >
-          ↗️ Preview
+          <ExternalLink size={12} />
+          Preview
         </a>
         <button
           type="button"
           onClick={async () => { try { await onExport(); } catch (e) { console.error("Export failed:", e); } }}
           className="inline-flex items-center gap-1 border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
         >
-          ⬇️ Export CSV
+          <Download size={12} />
+          Export CSV
         </button>
         {responseCount > 0 && (
           <button
@@ -2639,7 +2699,7 @@ function PublicSurveyCard({
             onClick={handleExpand}
             className="inline-flex items-center gap-1 border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
           >
-            {loading ? "…" : <span className={`transition-transform inline-block ${expanded ? "rotate-180" : ""}`}>▾</span>}
+            {loading ? <Loader2 size={12} className="animate-spin" /> : <ChevronDown size={12} className={`transition-transform ${expanded ? "rotate-180" : ""}`} />}
             {expanded ? "Hide" : "Responses"}
           </button>
         )}
@@ -2682,7 +2742,7 @@ function PublicSurveyCard({
                       className="inline-flex items-center gap-1 bg-blue-50 px-2 py-1 text-[11px] font-medium text-blue-700 hover:bg-blue-100 transition-colors disabled:opacity-50"
                       title="Accept & send invite email"
                     >
-                      {inviting === r.email ? "…" : "Send Invite"}
+                      {inviting === r.email ? <Loader2 size={11} className="animate-spin" /> : "Send Invite"}
                     </button>
                   )}
                   <button
@@ -2691,7 +2751,7 @@ function PublicSurveyCard({
                     className="rounded p-1 text-neutral-300 hover:text-neutral-600 hover:bg-neutral-100 transition-colors"
                     title={expandedEmail === r.email ? "Hide answers" : "View answers"}
                   >
-                    <span className={`transition-transform inline-block ${expandedEmail === r.email ? "rotate-180" : ""}`}>▾</span>
+                    <ChevronDown size={13} className={`transition-transform ${expandedEmail === r.email ? "rotate-180" : ""}`} />
                   </button>
                   <button
                     type="button"
@@ -2700,7 +2760,7 @@ function PublicSurveyCard({
                     className="rounded p-1 text-neutral-300 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
                     title="Delete response"
                   >
-                    {deleting === r.email ? "…" : "🗑️"}
+                    {deleting === r.email ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
                   </button>
                 </div>
               </div>

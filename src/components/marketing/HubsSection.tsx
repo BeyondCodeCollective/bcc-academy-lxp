@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { fadeInUp, staggerContainer } from "@/lib/marketing-motion";
+import { MapPin, ArrowRight } from "@phosphor-icons/react";
 import Image from "next/image";
 import { forgeHubs } from "@/data/marketing/hubs";
 
@@ -79,14 +80,16 @@ export default function HubsSection() {
                     {hub.name}
                   </h3>
                   <p className="mt-1 text-xs text-grey-3 font-mono flex items-center gap-1">
-                    📍 {hub.neighborhood ? `${hub.neighborhood} · ` : ""}{hub.city}, {hub.state}
+                    <MapPin size={10} weight="bold" />
+                    {hub.neighborhood ? `${hub.neighborhood} · ` : ""}{hub.city}, {hub.state}
                   </p>
                   {isActive && (
                     <a
                       href="#waitlist"
                       className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-cobalt hover:text-dark-cobalt transition-colors"
                     >
-                      Join the waitlist →
+                      Join the waitlist
+                      <ArrowRight size={12} weight="bold" />
                     </a>
                   )}
                 </div>
@@ -114,7 +117,8 @@ export default function HubsSection() {
               href="#waitlist"
               className="mt-6 inline-flex items-center gap-1.5 text-sm font-bold text-true-black hover:text-cobalt transition-colors"
             >
-              Join the waitlist →
+              Join the waitlist
+              <ArrowRight size={12} weight="bold" />
             </a>
           </motion.div>
         </motion.div>

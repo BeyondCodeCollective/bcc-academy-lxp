@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { Send } from "lucide-react";
 import { useProgram } from "@/lib/programs/context";
 
 type Message = {
@@ -160,7 +161,7 @@ export default function TutorPage() {
             disabled={loading || !input.trim()}
             className="flex h-[46px] w-[46px] shrink-0 items-center justify-center bg-neutral-900 text-white transition-colors hover:bg-neutral-800 disabled:opacity-30"
           >
-            ✉️
+            <Send size={18} />
           </button>
         </form>
         <p className="mx-auto mt-2 max-w-xl text-center text-[11px] text-neutral-500">

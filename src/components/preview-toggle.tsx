@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { setPreviewTrackSlug } from "@/app/dashboard/preview-actions";
+import { Eye, EyeOff, ChevronUp } from "lucide-react";
 
 type TrackOption = { slug: string; name: string };
 
@@ -65,7 +66,7 @@ export function PreviewToggle({
                 type="submit"
                 className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900"
               >
-                <span aria-hidden>👁</span>
+                <EyeOff size={12} />
                 Exit preview
               </button>
             </form>
@@ -83,11 +84,14 @@ export function PreviewToggle({
         }`}
         title={active ? `Previewing as ${activeName}` : "Preview as a student"}
       >
-        <span aria-hidden>👁</span>
+        <Eye size={13} />
         <span className="max-w-[160px] truncate">
           {active ? `Previewing: ${activeName}` : "Preview as student"}
         </span>
-        <span aria-hidden className={`transition-transform inline-block text-xs ${open ? "" : "rotate-180"}`}>‹</span>
+        <ChevronUp
+          size={12}
+          className={`transition-transform ${open ? "" : "rotate-180"}`}
+        />
       </button>
     </div>
   );

@@ -111,7 +111,7 @@ export default async function CoursesIndexPage() {
 
 function CourseCard({ track }: { track: TrackConfig }) {
   const tone = toneForTrack(track.slug);
-  const icon = iconForTrack(track.slug);
+  const Icon = iconForTrack(track.slug);
   const start = new Date(track.startDate);
   const now = new Date();
   const hasStarted = start <= now;
@@ -141,7 +141,7 @@ function CourseCard({ track }: { track: TrackConfig }) {
         className="relative flex aspect-video w-full items-center justify-center overflow-hidden"
         style={{ backgroundColor: `${tone}1A` }}
       >
-        <span className="text-5xl leading-none">{icon}</span>
+        <Icon size={56} weight="light" color={tone} />
         <div className="absolute top-3 right-3">
           <span
             className="inline-flex items-center rounded-full bg-white/95 px-2 py-0.5 text-[10px] font-semibold backdrop-blur"

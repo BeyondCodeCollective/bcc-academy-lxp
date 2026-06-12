@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { heroReveal, fadeInUp, staggerContainer, staggerContainerSlow } from "@/lib/marketing-motion";
+import { ShieldCheck, ChartLineUp, Rocket } from "@phosphor-icons/react";
 import VideoBackground from "@/components/marketing/VideoBackground";
 import { VIDEO_URLS } from "@/data/marketing/videos";
 
@@ -98,29 +99,30 @@ export default function ProofSection() {
                 title: "Direct Placement",
                 description:
                   "Employer-integrated pathways with industry certifications — CompTIA, Salesforce, Google, Microsoft — designed for learners who want a clear on-ramp to a specific role.",
-                icon: "🛡️",
+                icon: ShieldCheck,
               },
               {
                 title: "Portfolio Building",
                 description:
                   "Project-based learning with real deliverables. Build a body of work that speaks louder than a résumé — for freelancers, founders, and anyone who wants to lead with what they've made.",
-                icon: "📈",
+                icon: ChartLineUp,
               },
               {
                 title: "Entrepreneurial Path",
                 description:
                   "Validate an idea, build an MVP, and launch. No-code and AI tools keep the focus on creating, not coding — with mentorship from founders who've done it before.",
-                icon: "🚀",
+                icon: Rocket,
               },
             ].map((track) => {
+              const Icon = track.icon;
               return (
                 <motion.div
                   key={track.title}
                   variants={fadeInUp}
                   className="p-6 md:p-8 border-2 border-true-black/5 bg-white hover:border-cobalt/30 transition-all duration-300"
                 >
-                  <div className="w-12 h-12 flex items-center justify-center bg-cobalt/5 mb-5 text-2xl">
-                    {track.icon}
+                  <div className="w-12 h-12 flex items-center justify-center bg-cobalt/5 mb-5">
+                    <Icon size={24} weight="duotone" className="text-cobalt" />
                   </div>
                   <h3 className="text-xl font-display font-bold text-true-black uppercase mb-3">
                     {track.title}

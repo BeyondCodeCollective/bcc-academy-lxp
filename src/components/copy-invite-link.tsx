@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Link as LinkIcon, Check } from "@phosphor-icons/react";
 
 /**
  * Admin-only convenience: shows on the track overview so an admin viewing
@@ -43,7 +44,7 @@ export function CopyInviteLink({
           : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-300 hover:text-neutral-900"
       }`}
     >
-      {copied ? <span aria-hidden>✓</span> : <span aria-hidden>🔗</span>}
+      {copied ? <Check size={12} weight="bold" /> : <LinkIcon size={12} weight="bold" />}
       {copied ? "Copied invite link" : "Copy invite link"}
     </button>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { X } from "@phosphor-icons/react";
 
 type ErrorInfo = { title: string; message: string };
 
@@ -92,7 +93,7 @@ export function AuthErrorBanner() {
             aria-label="Dismiss"
             className="-mr-1 -mt-1 shrink-0 rounded-md p-1 text-white/40 transition-colors hover:bg-white/5 hover:text-white"
           >
-            <span aria-hidden>✕</span>
+            <X size={14} weight="bold" />
           </button>
         </div>
       </div>
