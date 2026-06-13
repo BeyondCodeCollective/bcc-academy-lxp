@@ -16,7 +16,6 @@ import { resolveCurrentUser } from "@/lib/current-user";
 import { getEnrolledTracks } from "@/lib/enrollment";
 import { getHomeProgramForTrack } from "@/lib/programs";
 import { WeekIcon } from "@/components/week-icon";
-import { BracketLabel } from "@/components/bracket-label";
 import { BCC_INTAKE_SURVEY_ID, BCC_INTAKE_EXEMPT_PROGRAMS } from "@/lib/surveys/platform";
 import { isStaffEmail } from "@/lib/auth/admins";
 import { completePendingSetup } from "@/lib/auth/deferred-setup";
@@ -423,46 +422,26 @@ async function DashboardContent({
         />
       )}
 
-      <header className="bg-true-black px-6 py-8 sm:px-9 sm:py-10">
-        <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.3em] text-electric-green">
-          {program.name}
-        </p>
-        <h1 className="mt-3 text-4xl sm:text-5xl font-bold tracking-tight text-white">
+      <div>
+        <h1 className="text-3xl font-bold text-neutral-900 tracking-tight">
           Welcome back, {firstName}
-          <span aria-hidden className="text-electric-green">.</span>
         </h1>
         {!isAdmin && !previewSlugOuter && (
-          <p className="mt-3 text-sm text-neutral-400">
+          <p className="mt-1 text-sm text-neutral-500">
             {visibleTracks.length > 0 || otherProgramCourses.length > 0
               ? [...visibleTracks, ...otherProgramCourses.map((c) => c.track)]
                   .map((t) => t.name)
-                  .join("  ·  ")
+                  .join(" · ")
               : cohortName}
           </p>
         )}
         {previewSlugOuter && (
-          <p className="mt-3 text-sm text-[#F0613E]">
+          <p className="mt-1 text-sm text-[#E54D2E]">
             Previewing as student enrolled in{" "}
             {program.tracks.find((t) => t.slug === previewSlugOuter)?.name}
           </p>
         )}
-        {!isAdmin && (
-          <div className="mt-7" aria-label="Program progress">
-            <div className="flex items-baseline justify-between mb-2">
-              <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.25em] text-neutral-500">
-                Progress
-              </p>
-              <span className="font-mono text-sm font-semibold tabular-nums text-electric-green">{pct}%</span>
-            </div>
-            <div className="h-1.5 w-full overflow-hidden bg-white/15">
-              <div
-                className="h-full bg-electric-green transition-all"
-                style={{ width: `${pct}%` }}
-              />
-            </div>
-          </div>
-        )}
-      </header>
+      </div>
 
       {announcements.map((a) => (
         <div
@@ -495,6 +474,21 @@ async function DashboardContent({
             Start
           </a>
         </div>
+      )}
+
+      {!isAdmin && (
+        <section aria-label="Program progress">
+          <div className="flex items-baseline justify-between mb-2">
+            <p className="text-sm font-semibold text-ink">Progress</p>
+            <span className="text-sm font-semibold tabular-nums text-ink-soft">{pct}%</span>
+          </div>
+          <div className="h-1.5 w-full overflow-hidden bg-rule">
+            <div
+              className="h-full bg-primary transition-all"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+        </section>
       )}
 
       {program.welcomeVideo && (
@@ -542,7 +536,9 @@ async function DashboardContent({
          would flip the program as a side effect. */}
       {otherProgramCourses.length > 0 && (
         <section className="space-y-3" aria-label="Courses from your other programs">
-          <BracketLabel>From your other programs</BracketLabel>
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
+            From your other programs
+          </h2>
           <div className="divide-y divide-rule border border-rule bg-surface-elevated">
             {otherProgramCourses.map((c) => (
               <a

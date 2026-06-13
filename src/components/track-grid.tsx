@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { TrackCard } from "./track-card";
-import { BracketLabel } from "./bracket-label";
 
 type TrackState = {
   track: {
@@ -96,7 +95,9 @@ export function TrackGrid({ tracks }: { tracks: TrackState[] }) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
-        <BracketLabel>Your tracks</BracketLabel>
+        <p className="text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
+          Your tracks
+        </p>
         <div className="flex items-center gap-1">
           {FILTERS.map((opt) => {
             const active = filter === opt.key;
