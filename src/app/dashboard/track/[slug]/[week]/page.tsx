@@ -278,10 +278,10 @@ export default async function TrackWeekPage({
                 </span>
               )}
             </div>
-            <h1 className="mt-1 text-3xl font-bold text-neutral-900 tracking-tight leading-tight">
+            <h1 className="mt-2 text-4xl font-bold text-neutral-900 tracking-tight leading-tight">
               {displayTitle}
             </h1>
-            <p className="mt-2 text-xs text-neutral-500">
+            <p className="mt-2.5 font-mono text-xs text-neutral-500">
               {[track.instructor, displaySubtitle, headerSession?.time]
                 .filter(Boolean)
                 .join(" · ")}

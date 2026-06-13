@@ -195,7 +195,9 @@ export function Nav({
             : "border-l-2 border-transparent text-neutral-300 hover:bg-white/10 hover:text-white pl-[10px] pr-3"
         }`}
       >
-        <Icon size={20} weight="bold" aria-hidden />
+        <span className={active ? "text-electric-green" : undefined}>
+          <Icon size={20} weight="bold" aria-hidden />
+        </span>
         <span className="flex-1">{label}</span>
         <LinkPending />
       </Link>
