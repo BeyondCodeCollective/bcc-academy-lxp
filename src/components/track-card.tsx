@@ -28,7 +28,7 @@ export function TrackCard({
   return (
     <Link
       href={`/dashboard/track/${slug}`}
-      className="group flex h-full flex-col overflow-hidden border border-true-black bg-white transition-colors hover:bg-paper-tint-soft"
+      className="group flex h-full flex-col overflow-hidden border border-rule bg-surface-soft transition-colors hover:bg-paper-tint-soft"
       style={{ borderTopColor: tone, borderTopWidth: "2px" }}
     >
       {/* Top visual — curated Phosphor icon, tone-tinted background */}
@@ -57,10 +57,10 @@ export function TrackCard({
 
       {/* Body */}
       <div className="flex flex-1 flex-col p-5">
-        <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.22em] text-ink-faint">
+        <p className="text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
           {totalWeeks}-week track
         </p>
-        <h2 className="mt-2 text-[19px] font-bold text-ink leading-snug tracking-[-0.01em]">
+        <h2 className="mt-2 text-[17px] font-semibold text-ink leading-snug tracking-[-0.01em]">
           {name}
         </h2>
         <p className="mt-1 text-[13px] text-ink-soft">
@@ -72,14 +72,10 @@ export function TrackCard({
             Begins with {weekOneTopic.toLowerCase()}.
           </p>
         )}
-        <span className="mt-auto pt-4">
-          <span className="inline-flex items-center gap-1.5 bg-true-black px-3 py-1.5 text-[11px] font-semibold text-white transition-colors group-hover:text-electric-green">
-            <span aria-hidden className="text-electric-green">[</span>
-            View track{" "}
-            <span aria-hidden className="inline-block transition-transform group-hover:translate-x-0.5">
-              &rarr;
-            </span>
-            <span aria-hidden className="text-electric-green">]</span>
+        <span className="mt-auto pt-4 text-[12px] font-medium text-ink-soft group-hover:text-ink">
+          View track{" "}
+          <span aria-hidden className="inline-block transition-transform group-hover:translate-x-0.5">
+            &rarr;
           </span>
         </span>
       </div>

@@ -191,13 +191,11 @@ export function Nav({
         onClick={() => setMobileOpen(false)}
         className={`flex min-h-[44px] items-center gap-3 py-2 text-sm font-medium transition-colors ${
           active
-            ? "border-l-2 border-electric-green bg-white/10 text-white pl-[10px] pr-3"
+            ? "border-l-2 border-primary bg-white/10 text-white pl-[10px] pr-3"
             : "border-l-2 border-transparent text-neutral-300 hover:bg-white/10 hover:text-white pl-[10px] pr-3"
         }`}
       >
-        <span className={active ? "text-electric-green" : undefined}>
-          <Icon size={20} weight="bold" aria-hidden />
-        </span>
+        <Icon size={20} weight="bold" aria-hidden />
         <span className="flex-1">{label}</span>
         <LinkPending />
       </Link>
@@ -333,7 +331,7 @@ export function Nav({
                     aria-current={isActive ? "page" : undefined}
                     className={`flex min-h-[36px] items-center gap-2.5 py-1.5 text-[13px] transition-colors ${
                       isActive
-                        ? "border-l-2 border-electric-green bg-white/10 text-white pl-[10px] pr-3"
+                        ? "border-l-2 border-primary bg-white/10 text-white pl-[10px] pr-3"
                         : isCurrent
                           ? "border-l-2 border-transparent text-white hover:bg-white/10 pl-[10px] pr-3"
                           : isFuture
@@ -384,7 +382,7 @@ export function Nav({
             aria-current={isActive ? "page" : undefined}
             className={`flex min-h-[36px] items-start gap-2.5 py-1.5 text-[13px] transition-colors ${
               isActive
-                ? "border-l-2 border-electric-green bg-white/10 text-white pl-[10px] pr-3"
+                ? "border-l-2 border-primary bg-white/10 text-white pl-[10px] pr-3"
                 : "border-l-2 border-transparent text-neutral-300 hover:bg-white/10 hover:text-white pl-[10px] pr-3"
             }`}
           >
@@ -433,7 +431,7 @@ export function Nav({
     return (
       <>
         {/* Desktop top bar */}
-        <header className="hidden md:flex sticky top-0 z-30 items-center justify-between gap-4 bg-true-black px-6 py-3">
+        <header className="hidden md:flex sticky top-0 z-30 items-center justify-between gap-4 bg-ink px-6 py-3">
           <div className="flex items-center gap-6">
             <Link href="/dashboard" className="flex items-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -472,7 +470,7 @@ export function Nav({
         </header>
 
         {/* Mobile top bar (same as sidebar variant) */}
-        <div className="md:hidden sticky top-0 z-30 flex items-center justify-between bg-true-black px-4 py-2">
+        <div className="md:hidden sticky top-0 z-30 flex items-center justify-between bg-ink px-4 py-2">
           <Link href="/dashboard" className="flex items-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={logo} alt={programName} className="h-4" />
@@ -504,7 +502,7 @@ export function Nav({
             }`}
           />
           <div
-            className={`absolute inset-y-0 left-0 w-72 max-w-[80%] bg-true-black shadow-xl transition-transform ${
+            className={`absolute inset-y-0 left-0 w-72 max-w-[80%] bg-ink shadow-xl transition-transform ${
               mobileOpen ? "translate-x-0" : "-translate-x-full"
             }`}
             role="dialog"
@@ -538,7 +536,7 @@ export function Nav({
     return (
       <>
         <aside
-          className="hidden md:flex md:fixed md:inset-y-0 md:left-0 md:z-30 md:w-60 md:flex-col bg-true-black"
+          className="hidden md:flex md:fixed md:inset-y-0 md:left-0 md:z-30 md:w-60 md:flex-col bg-ink"
           aria-label="Main navigation"
         >
           <div className="flex h-full flex-col gap-6 p-4">
@@ -548,7 +546,7 @@ export function Nav({
             </Link>
           </div>
         </aside>
-        <div className="md:hidden sticky top-0 z-30 flex items-center justify-between bg-true-black px-4 py-2">
+        <div className="md:hidden sticky top-0 z-30 flex items-center justify-between bg-ink px-4 py-2">
           <Link href="/dashboard" className="flex items-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={logo} alt={programName} className="h-4" />
@@ -646,14 +644,14 @@ export function Nav({
     <>
       {/* Desktop sidebar (md+) — fixed to viewport */}
       <aside
-        className="hidden md:flex md:fixed md:inset-y-0 md:left-0 md:z-30 md:w-60 md:flex-col bg-true-black overflow-y-auto"
+        className="hidden md:flex md:fixed md:inset-y-0 md:left-0 md:z-30 md:w-60 md:flex-col bg-ink overflow-y-auto"
         aria-label="Main navigation"
       >
         {sidebarBody}
       </aside>
 
       {/* Mobile top bar */}
-      <div className="md:hidden sticky top-0 z-30 flex items-center justify-between bg-true-black px-4 py-2">
+      <div className="md:hidden sticky top-0 z-30 flex items-center justify-between bg-ink px-4 py-2">
         <Link href="/dashboard" className="flex items-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={logo} alt={programName} className="h-4" />
@@ -685,7 +683,7 @@ export function Nav({
           }`}
         />
         <div
-          className={`absolute inset-y-0 left-0 w-72 max-w-[80%] bg-true-black shadow-xl transition-transform ${
+          className={`absolute inset-y-0 left-0 w-72 max-w-[80%] bg-ink shadow-xl transition-transform ${
             mobileOpen ? "translate-x-0" : "-translate-x-full"
           }`}
           role="dialog"

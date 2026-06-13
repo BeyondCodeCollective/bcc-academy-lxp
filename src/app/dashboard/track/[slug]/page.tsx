@@ -17,7 +17,6 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { CopyInviteLink } from "@/components/copy-invite-link";
 import { toneForTrack } from "@/lib/track-visual";
 import { WeekCarousel, type WeekCardData } from "@/components/week-carousel";
-import { BracketLabel } from "@/components/bracket-label";
 
 export const dynamic = "force-dynamic";
 
@@ -180,11 +179,16 @@ export default async function TrackOverviewPage({
         </div>
 
         <div>
-          <BracketLabel>
-            {eyebrow && <>{eyebrow}<span aria-hidden className="mx-0.5 text-white/40">·</span></>}
+          <p className="text-xs font-medium uppercase tracking-[0.18em] text-neutral-400">
+            {eyebrow && (
+              <>
+                {eyebrow}
+                <span className="mx-2 text-neutral-300">·</span>
+              </>
+            )}
             {track.totalWeeks}-week track
-          </BracketLabel>
-          <h1 className="mt-3 text-4xl font-bold tracking-tight text-neutral-900 sm:text-5xl">
+          </p>
+          <h1 className="mt-2 text-3xl font-bold tracking-tight text-neutral-900 sm:text-4xl">
             {track.name}
           </h1>
           {overviewCopy && (
@@ -197,12 +201,10 @@ export default async function TrackOverviewPage({
         <div>
           <Link
             href={`/dashboard/track/${slug}/${ctaWeek}`}
-            className="group inline-flex items-center gap-2 bg-true-black px-5 py-3 text-sm font-semibold text-white transition-colors hover:text-electric-green"
+            className="inline-flex items-center gap-2 bg-neutral-900 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-neutral-700"
           >
-            <span aria-hidden className="text-electric-green">[</span>
             {ctaLabel}
-            <ArrowRight size={14} weight="bold" className="transition-transform group-hover:translate-x-0.5" />
-            <span aria-hidden className="text-electric-green">]</span>
+            <ArrowRight size={14} weight="bold" />
           </Link>
         </div>
       </header>
