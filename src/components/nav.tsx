@@ -191,7 +191,7 @@ export function Nav({
         aria-label={label}
         aria-current={active ? "page" : undefined}
         onClick={() => setMobileOpen(false)}
-        className={`nav-item flex min-h-[44px] items-center gap-3 py-2 text-sm font-medium transition-colors focus:outline-none rounded-lg border-l-2 pl-[10px] pr-3 ${
+        className={`nav-item flex min-h-[44px] items-center gap-3 py-2 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset rounded-lg border-l-2 pl-[10px] pr-3 ${
           lightShell
             ? active
               ? "border-primary bg-primary/[0.08] text-primary"

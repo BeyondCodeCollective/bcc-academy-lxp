@@ -77,9 +77,11 @@
    content area reclaims the width — all on one transition. */
 .js-sidebar {
   transition: width 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: width;
 }
 #dashboard-main {
   transition: padding-left 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: padding-left;
 }
 .nav-collapsible {
   transition: opacity 120ms ease;
