@@ -24,7 +24,7 @@ export default function PrivacyPage() {
         <TextScaleToggle />
       </div>
       <div className="mx-auto w-full max-w-2xl px-5 pt-6 pb-12">
-        <p className="text-xs font-medium uppercase tracking-wide text-[#E54D2E]">
+        <p className="text-xs font-medium uppercase tracking-wide text-[#1D59FF]">
           {orgName}
         </p>
         <h1 className="mt-1 text-3xl font-bold text-neutral-900">
@@ -40,7 +40,7 @@ export default function PrivacyPage() {
             Your use of this platform is also governed by the{" "}
             <a
               href="https://www.wearebcc.org/en/terms"
-              className="font-medium text-[#E54D2E] underline"
+              className="font-medium text-[#1D59FF] underline"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -49,7 +49,7 @@ export default function PrivacyPage() {
             and the{" "}
             <a
               href="https://www.wearebcc.org/en/privacy"
-              className="font-medium text-[#E54D2E] underline"
+              className="font-medium text-[#1D59FF] underline"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -116,14 +116,14 @@ export default function PrivacyPage() {
               <strong>Remove my response.</strong>{" "}
               <Link
                 href="/privacy/withdraw"
-                className="font-medium text-[#E54D2E] underline"
+                className="font-medium text-[#1D59FF] underline"
               >
                 Submit a removal request
               </Link>
               , or email{" "}
               <a
                 href="mailto:privacy@bccacademy.io"
-                className="font-medium text-[#E54D2E] underline"
+                className="font-medium text-[#1D59FF] underline"
               >
                 privacy@bccacademy.io
               </a>
@@ -149,7 +149,7 @@ export default function PrivacyPage() {
             Questions? Email{" "}
             <a
               href="mailto:privacy@bccacademy.io"
-              className="font-medium text-[#E54D2E] underline"
+              className="font-medium text-[#1D59FF] underline"
             >
               privacy@bccacademy.io
             </a>

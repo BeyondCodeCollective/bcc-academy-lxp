@@ -31,7 +31,7 @@ export function TrackInsightsSection({
 
   if (all.length === 0) {
     return (
-      <p className="text-sm text-neutral-400 py-8 text-center">
+      <p className="text-sm text-ink-faint py-8 text-center">
         No surveys configured for this track.
       </p>
     );
@@ -41,7 +41,7 @@ export function TrackInsightsSection({
   const returnLabel = encodeURIComponent(trackShortName);
 
   return (
-    <div className="border border-rule bg-surface-elevated divide-y divide-neutral-100">
+    <div className="panel divide-y divide-neutral-100">
       {all.map((s) => {
         // Public surveys have no student_id — don't scope them to the track
         // or getTrackSurveyResponses will return 0. Auth surveys are scoped.
@@ -52,10 +52,10 @@ export function TrackInsightsSection({
           <Link
             key={s.id}
             href={href}
-            className="flex items-center justify-between px-4 py-3 hover:bg-neutral-50 transition-colors group"
+            className="flex items-center justify-between px-4 py-3 hover:bg-paper-tint-soft transition-colors group"
           >
-            <p className="text-sm font-medium text-neutral-900">{s.title}</p>
-            <ArrowRight size={14} className="text-neutral-300 group-hover:text-neutral-500 transition-colors shrink-0" />
+            <p className="text-sm font-medium text-ink">{s.title}</p>
+            <ArrowRight size={14} className="text-ink-faint group-hover:text-ink-soft transition-colors shrink-0" />
           </Link>
         );
       })}

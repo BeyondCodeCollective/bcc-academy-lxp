@@ -49,7 +49,7 @@ export function ReadPageAloud({ title, description, objectives }: {
       className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1.5 text-xs font-medium transition-colors ${
         speaking
           ? "bg-accent text-white"
-          : "border border-neutral-200 text-neutral-500 hover:border-neutral-400 hover:text-neutral-900"
+          : "border border-rule text-ink-soft hover:border-ink-faint hover:text-ink"
       }`}
     >
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>

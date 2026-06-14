@@ -9,6 +9,7 @@ import {
   PATHWAY_CONTENT,
 } from "@/lib/assessment/content";
 import Link from "next/link";
+import { PageHeader } from "@/components/page-header";
 
 export default async function AssessmentDetailPage({
   params,
@@ -58,12 +59,10 @@ export default async function AssessmentDetailPage({
         </Link>
       </div>
 
-      <div className="space-y-1">
-        <h1 className="text-xl font-bold text-ink">
-          {student ? `${student.first_name} ${student.last_name}` : "Student"}
-        </h1>
-        <p className="text-sm text-ink/50">{student?.email}</p>
-      </div>
+      <PageHeader
+        title={student ? `${student.first_name} ${student.last_name}` : "Student"}
+        subtitle={student?.email}
+      />
 
       {/* Module 1 — Archetype */}
       <FacilitatorSection title="Module 1 — Archetype Identity">
@@ -133,7 +132,7 @@ export default async function AssessmentDetailPage({
             );
           })}
           {scored.sustainability_risk && (
-            <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3">
+            <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3">
               <p className="text-xs font-semibold text-amber-800 mb-1">Sustainability flag</p>
               <p className="text-xs text-amber-700">Two or more work-style dimensions may create strain in a fast, unstructured track. Plan support before placement confirmation.</p>
             </div>
@@ -150,7 +149,7 @@ export default async function AssessmentDetailPage({
               { label: "Stability-seeking", value: scored.stability_seeking_avg },
               { label: "Risk comfort", value: scored.risk_comfort_avg },
             ].map(({ label, value }) => (
-              <div key={label} className="rounded-xl border border-ink/10 px-3 py-3 text-center">
+              <div key={label} className="rounded-lg border border-ink/10 px-3 py-3 text-center">
                 <p className="text-lg font-bold text-ink">{value.toFixed(2)}</p>
                 <p className="text-[10px] text-ink/40 mt-0.5">{label}</p>
               </div>
@@ -162,7 +161,7 @@ export default async function AssessmentDetailPage({
             <p className="text-sm text-ink/70 leading-relaxed">{PATHWAY_CONTENT[scored.pathway_orientation].facilitator}</p>
           </div>
           {scored.sustainability_note && (
-            <div className="rounded-xl bg-ink/5 px-4 py-3">
+            <div className="rounded-lg bg-ink/5 px-4 py-3">
               <p className="text-xs text-ink/50 leading-relaxed">High self-direction with lower risk comfort — this learner wants to build but may strain under sustained uncertainty. Plan scaffolding and a staged path.</p>
             </div>
           )}
@@ -174,7 +173,7 @@ export default async function AssessmentDetailPage({
 
 function FacilitatorSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-ink/10 overflow-hidden">
+    <div className="rounded-lg border border-ink/10 overflow-hidden">
       <div className="px-5 py-3 border-b border-ink/10 bg-ink/[0.02]">
         <h2 className="text-sm font-semibold text-ink">{title}</h2>
       </div>

@@ -19,7 +19,7 @@ interface Props {
 }
 
 const PALETTE = [
-  "#E54D2E",
+  "#1D59FF",
   "#3B82F6",
   "#F59E0B",
   "#10B981",
@@ -85,8 +85,8 @@ export function InsightsDashboard({
 
   if (sections.length === 0) {
     return (
-      <div className="border border-rule bg-surface-elevated p-8 text-center">
-        <p className="text-sm text-neutral-500">
+      <div className="panel p-8 text-center">
+        <p className="text-sm text-ink-soft">
           No survey responses yet. Once a cohort starts answering, this page
           will come alive.
         </p>
@@ -105,17 +105,17 @@ export function InsightsDashboard({
 
       {/* Response timeline */}
       <section>
-        <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400">
+        <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.14em] text-ink-faint">
           Responses — last 8 weeks
         </p>
-        <div className="border border-rule bg-surface-elevated p-4">
+        <div className="panel p-4">
           <Timeline responses={allResponses} />
         </div>
       </section>
 
       {/* Survey cards */}
       <section>
-        <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400">
+        <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.14em] text-ink-faint">
           Surveys
         </p>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -127,24 +127,24 @@ export function InsightsDashboard({
               disabled={!row.hasSchema}
               className={`group border bg-surface-elevated p-4 text-left transition-all ${
                 activeId === row.id
-                  ? "border-neutral-900 ring-1 ring-neutral-900"
+                  ? "border-ink ring-1 ring-ink"
                   : row.hasSchema
-                    ? "border-neutral-200 hover:border-neutral-300 hover:shadow-sm"
-                    : "cursor-not-allowed border-neutral-100 opacity-60"
+                    ? "border-rule hover:border-rule hover:shadow-sm"
+                    : "cursor-not-allowed border-rule-soft opacity-60"
               }`}
             >
               <div className="mb-3 flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-neutral-900">
+                  <p className="truncate text-sm font-semibold text-ink">
                     {row.title}
                   </p>
-                  <p className="mt-0.5 text-xs text-neutral-400">
+                  <p className="mt-0.5 text-xs text-ink-faint">
                     {row.lastActivity
                       ? `Last response ${timeAgo(row.lastActivity)}`
                       : "No responses yet"}
                   </p>
                 </div>
-                <p className="text-2xl font-bold tabular-nums text-neutral-900">
+                <p className="text-2xl font-bold tabular-nums text-ink">
                   {row.count}
                 </p>
               </div>
@@ -156,7 +156,7 @@ export function InsightsDashboard({
                  already tells the volume story; the bar shows the split. */}
               {row.programBreakdown.length > 0 ? (
                 <>
-                  <div className="mb-1.5 flex h-2 w-full overflow-hidden rounded-full bg-neutral-100">
+                  <div className="mb-1.5 flex h-2 w-full overflow-hidden rounded-full bg-paper-tint">
                     {row.programBreakdown.map((seg) => (
                       <div
                         key={seg.slug}
@@ -169,22 +169,22 @@ export function InsightsDashboard({
                       />
                     ))}
                   </div>
-                  <p className="text-[11px] text-neutral-500">
+                  <p className="text-[11px] text-ink-soft">
                     {row.programBreakdown.map((seg, i) => (
                       <span key={seg.slug}>
-                        {i > 0 && <span className="text-neutral-300"> · </span>}
+                        {i > 0 && <span className="text-ink-faint"> · </span>}
                         <span
                           aria-hidden
                           className="mr-1 inline-block h-1.5 w-1.5 rounded-full align-middle"
                           style={{ backgroundColor: seg.color }}
                         />
-                        {seg.name} <span className="tabular-nums text-neutral-700">{seg.count}</span>
+                        {seg.name} <span className="tabular-nums text-ink">{seg.count}</span>
                       </span>
                     ))}
                   </p>
                 </>
               ) : (
-                <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-100" />
+                <div className="h-2 w-full overflow-hidden rounded-full bg-paper-tint" />
               )}
             </button>
           ))}
@@ -195,7 +195,7 @@ export function InsightsDashboard({
       {programs.length > 1 && (
         <div className="flex flex-wrap gap-3">
           {programs.map((p) => (
-            <span key={p.slug} className="flex items-center gap-1.5 text-xs text-neutral-500">
+            <span key={p.slug} className="flex items-center gap-1.5 text-xs text-ink-soft">
               <span
                 className="inline-block h-2 w-2 rounded-full"
                 style={{ backgroundColor: colorFor(programs, p.slug) }}
@@ -227,11 +227,11 @@ export function InsightsDashboard({
 
 function StatCard({ value, label }: { value: number; label: string }) {
   return (
-    <div className="border border-rule bg-surface-elevated p-4">
-      <p className="text-3xl font-bold tabular-nums text-neutral-900">
+    <div className="panel p-4">
+      <p className="text-3xl font-bold tabular-nums text-ink">
         {value.toLocaleString()}
       </p>
-      <p className="mt-0.5 text-xs text-neutral-400">{label}</p>
+      <p className="mt-0.5 text-xs text-ink-faint">{label}</p>
     </div>
   );
 }
@@ -264,14 +264,14 @@ function Timeline({ responses }: { responses: BCCSurveyResponse[] }) {
         <div key={i} className="flex flex-1 flex-col items-center gap-1.5">
           <div className="relative w-full flex-1">
             <div
-              className="absolute inset-x-0 bottom-0 rounded-t bg-neutral-900 transition-all"
+              className="absolute inset-x-0 bottom-0 rounded-t bg-ink transition-all"
               style={{
                 height: `${(w.count / maxCount) * 100}%`,
                 minHeight: w.count > 0 ? 4 : 0,
               }}
             />
           </div>
-          <span className="text-[9px] tabular-nums text-neutral-400 whitespace-nowrap">
+          <span className="text-[9px] tabular-nums text-ink-faint whitespace-nowrap">
             {w.label}
           </span>
         </div>

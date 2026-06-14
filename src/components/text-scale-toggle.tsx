@@ -41,12 +41,12 @@ export function TextScaleToggle({
 
   const baseBtn =
     tone === "dark"
-      ? "text-neutral-300 hover:bg-white/10 hover:text-white"
-      : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900";
+      ? "text-ink-faint hover:bg-white/10 hover:text-white"
+      : "text-ink-soft hover:bg-paper-tint hover:text-ink";
   const activeBtn =
     tone === "dark"
       ? "bg-white/15 text-white"
-      : "bg-neutral-900 text-white";
+      : "bg-ink text-white";
 
   return (
     <div
@@ -61,7 +61,7 @@ export function TextScaleToggle({
       {!compact && (
         <span
           className={`px-1.5 text-xs font-medium ${
-            tone === "dark" ? "text-neutral-400" : "text-neutral-600"
+            tone === "dark" ? "text-ink-faint" : "text-ink-soft"
           }`}
         >
           Text size

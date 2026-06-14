@@ -91,8 +91,8 @@ export function AdminProgramSwitcher({
         aria-expanded={open}
         className={`flex w-full min-h-[36px] items-center gap-2.5 px-3 py-1.5 text-[13px] transition-colors ${
           activeItem
-            ? "bg-white/15 text-white"
-            : "text-neutral-300 hover:bg-white/10 hover:text-white"
+            ? "bg-primary/[0.08] text-primary"
+            : "text-ink-soft hover:bg-paper-tint hover:text-ink"
         }`}
       >
         {isLunchActive ? (
@@ -104,7 +104,7 @@ export function AdminProgramSwitcher({
         {pendingSlug ? (
           <span
             aria-hidden
-            className="h-3 w-3 shrink-0 animate-spin rounded-full border border-white/30 border-t-white/80"
+            className="h-3 w-3 shrink-0 animate-spin rounded-full border border-ink/20 border-t-ink/70"
           />
         ) : (
           <CaretUpDown size={12} weight="bold" aria-hidden className="shrink-0 opacity-60" />
@@ -115,7 +115,7 @@ export function AdminProgramSwitcher({
         <div
           role="menu"
           aria-label="Programs"
-          className="absolute left-0 right-0 top-full z-40 mt-1 border border-white/10 bg-ink py-1 shadow-lg"
+          className="absolute left-0 right-0 top-full z-40 mt-1 panel py-1 shadow-sm"
         >
           {items.map((item) => {
             const isActive = item.slug === activeTab;
@@ -128,14 +128,14 @@ export function AdminProgramSwitcher({
                 onClick={() => handleSelect(item.slug)}
                 className={`flex w-full items-center gap-2.5 px-3 py-1.5 text-left text-[13px] transition-colors ${
                   isActive
-                    ? "bg-white/10 text-white"
-                    : "text-neutral-300 hover:bg-white/5 hover:text-white"
+                    ? "bg-primary/[0.08] text-primary"
+                    : "text-ink-soft hover:bg-paper-tint-soft hover:text-ink"
                 }`}
               >
                 <Icon size={14} weight="regular" aria-hidden className="shrink-0" />
                 <span className="flex-1 truncate">{item.label}</span>
                 {isActive && (
-                  <Check size={12} weight="bold" aria-hidden className="shrink-0 text-white" />
+                  <Check size={12} weight="bold" aria-hidden className="shrink-0 text-primary" />
                 )}
               </button>
             );

@@ -238,7 +238,7 @@ export function AssessmentWizard({
       <button
         onClick={advance}
         disabled={!isStageComplete()}
-        className="w-full rounded-xl bg-accent text-white font-semibold py-3.5 text-sm transition-opacity disabled:opacity-40"
+        className="w-full rounded-lg bg-accent text-white font-semibold py-3.5 text-sm transition-opacity disabled:opacity-40"
       >
         {stage === "m3" ? "See my results" : "Continue"}
       </button>
@@ -328,7 +328,7 @@ function ForcedChoiceRow({
               type="button"
               onClick={() => onChange(letter)}
               className={`
-                text-left rounded-xl border-2 px-4 py-4 text-sm leading-snug transition-all
+                text-left rounded-lg border-2 px-4 py-4 text-sm leading-snug transition-all
                 ${value === letter
                   ? "border-accent bg-accent/10 text-ink font-medium"
                   : "border-ink/10 bg-white hover:border-ink/30 text-ink/70"

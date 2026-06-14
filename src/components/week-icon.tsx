@@ -20,5 +20,5 @@ export function WeekIcon({
 }) {
   const icn = emoji ? null : weekIconForEmoji(icon);
   if (!icn) return <>{icon}</>;
-  return createElement(icn, { size, weight: "duotone", className });
+  return createElement(icn, { size, weight: "regular", className });
 }

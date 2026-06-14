@@ -47,7 +47,7 @@ export default async function WorkshopDetailPage({
     <div className="mx-auto w-full max-w-2xl md:max-w-3xl px-4 sm:px-5 py-8 space-y-8">
       <Link
         href="/dashboard/workshops"
-        className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral-500 transition-colors hover:text-neutral-900"
+        className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-soft transition-colors hover:text-ink"
       >
         <ArrowLeft size={12} weight="bold" />
         All workshops
@@ -64,15 +64,15 @@ export default async function WorkshopDetailPage({
         </div>
 
         <div>
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-neutral-400">
+          <p className="text-xs font-medium uppercase tracking-[0.18em] text-ink-faint">
             {dateLabel}
-            <span className="mx-2 text-neutral-300">·</span>
+            <span className="mx-2 text-ink-faint">·</span>
             {workshop.durationLabel}
           </p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-neutral-900 sm:text-4xl">
+          <h1 className="mt-2 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
             {workshop.title}
           </h1>
-          <p className="mt-3 text-base leading-relaxed text-neutral-600">
+          <p className="mt-3 text-base leading-relaxed text-ink-soft">
             {workshop.tagline}
           </p>
         </div>
@@ -102,24 +102,24 @@ export default async function WorkshopDetailPage({
 
       {/* Description */}
       <section className="space-y-3">
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">
           About
         </h2>
-        <p className="text-[15px] leading-relaxed text-neutral-700">
+        <p className="text-[15px] leading-relaxed text-ink">
           {workshop.description}
         </p>
       </section>
 
       {/* Outcomes */}
       <section className="space-y-3">
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">
           What participants learned
         </h2>
         <ul className="space-y-2">
           {workshop.outcomes.map((o, i) => (
             <li
               key={i}
-              className="flex gap-3 text-[14px] leading-relaxed text-neutral-700"
+              className="flex gap-3 text-[14px] leading-relaxed text-ink"
             >
               <span
                 aria-hidden
@@ -134,14 +134,14 @@ export default async function WorkshopDetailPage({
 
       {/* Capstone */}
       {workshop.capstone && (
-        <section className="border border-rule bg-surface-elevated p-5 space-y-2">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-400">
+        <section className="panel p-5 space-y-2">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-faint">
             Capstone
           </p>
-          <h3 className="text-lg font-semibold text-neutral-900">
+          <h3 className="text-lg font-semibold text-ink">
             {workshop.capstone.title}
           </h3>
-          <p className="text-[14px] leading-relaxed text-neutral-600">
+          <p className="text-[14px] leading-relaxed text-ink-soft">
             {workshop.capstone.description}
           </p>
         </section>
@@ -150,18 +150,18 @@ export default async function WorkshopDetailPage({
       {/* Highlights */}
       {workshop.highlights && workshop.highlights.length > 0 && (
         <section className="space-y-3">
-          <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">
             Highlights
           </h2>
           <ul className="space-y-2">
             {workshop.highlights.map((h, i) => (
               <li
                 key={i}
-                className="flex gap-3 text-[14px] leading-relaxed text-neutral-700"
+                className="flex gap-3 text-[14px] leading-relaxed text-ink"
               >
                 <span
                   aria-hidden
-                  className="mt-2 h-1 w-1 shrink-0 rounded-full bg-neutral-400"
+                  className="mt-2 h-1 w-1 shrink-0 rounded-full bg-ink-faint"
                 />
                 {h}
               </li>
@@ -174,7 +174,7 @@ export default async function WorkshopDetailPage({
       <div className="grid gap-6 sm:grid-cols-2">
         {workshop.tools && workshop.tools.length > 0 && (
           <section className="space-y-3">
-            <h2 className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
+            <h2 className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">
               <Wrench size={11} weight="bold" />
               Tools
             </h2>
@@ -182,7 +182,7 @@ export default async function WorkshopDetailPage({
               {workshop.tools.map((t) => (
                 <li
                   key={t}
-                  className="rounded-full border border-neutral-200 bg-white px-2.5 py-1 text-[12px] text-neutral-700"
+                  className="rounded-full border border-rule bg-white px-2.5 py-1 text-[12px] text-ink"
                 >
                   {t}
                 </li>
@@ -193,7 +193,7 @@ export default async function WorkshopDetailPage({
 
         {workshop.partners.length > 0 && (
           <section className="space-y-3">
-            <h2 className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
+            <h2 className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">
               <Handshake size={11} weight="bold" />
               Partners
             </h2>
@@ -201,7 +201,7 @@ export default async function WorkshopDetailPage({
               {workshop.partners.map((p) => (
                 <li
                   key={p}
-                  className="rounded-full border border-neutral-200 bg-white px-2.5 py-1 text-[12px] text-neutral-700"
+                  className="rounded-full border border-rule bg-white px-2.5 py-1 text-[12px] text-ink"
                 >
                   {p}
                 </li>
@@ -213,10 +213,10 @@ export default async function WorkshopDetailPage({
 
       {workshop.credentialName && (
         <section className="border border-rule bg-surface-soft p-5">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-400">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-faint">
             Credential earned
           </p>
-          <p className="mt-1 text-[15px] font-medium text-neutral-900">
+          <p className="mt-1 text-[15px] font-medium text-ink">
             {workshop.credentialName}
           </p>
         </section>
@@ -235,12 +235,12 @@ function Fact({
   value: string;
 }) {
   return (
-    <div className="space-y-1 border border-rule bg-surface-elevated p-3">
-      <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-neutral-400">
+    <div className="space-y-1 panel p-3">
+      <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
         <Icon size={11} weight="bold" aria-hidden />
         {label}
       </p>
-      <p className="text-[13px] font-medium text-neutral-900">{value}</p>
+      <p className="text-[13px] font-medium text-ink">{value}</p>
     </div>
   );
 }

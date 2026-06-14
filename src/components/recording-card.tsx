@@ -31,15 +31,15 @@ export function RecordingCard({
     VIDEO_EXTENSIONS.some((ext) => url.toLowerCase().endsWith(ext));
 
   return (
-    <div className="mb-4 overflow-hidden border border-rule bg-surface-elevated">
+    <div className="mb-4 overflow-hidden panel">
       <div className="flex items-center justify-between gap-2 px-4 sm:px-5 py-3 sm:py-4 min-h-[52px]">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-neutral-900">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink">
             <Video size={16} className="text-white" />
           </div>
           <div className="min-w-0 text-left">
-            <p className="text-sm font-semibold text-neutral-900 truncate">{title}</p>
-            {subtitle && <p className="text-xs text-neutral-500 truncate">{subtitle}</p>}
+            <p className="text-sm font-semibold text-ink truncate">{title}</p>
+            {subtitle && <p className="text-xs text-ink-soft truncate">{subtitle}</p>}
           </div>
         </div>
         {showWatchButton && (
@@ -53,7 +53,7 @@ export function RecordingCard({
 
       <div className="border-t border-rule">
         {youtubeEmbed ? (
-          <div className="relative w-full aspect-video bg-neutral-900">
+          <div className="relative w-full aspect-video bg-ink">
             <iframe
               src={youtubeEmbed}
               title={title}
@@ -63,7 +63,7 @@ export function RecordingCard({
             />
           </div>
         ) : driveEmbed ? (
-          <div className="relative w-full aspect-video bg-neutral-900">
+          <div className="relative w-full aspect-video bg-ink">
             <iframe
               src={driveEmbed}
               title={title}
@@ -77,7 +77,7 @@ export function RecordingCard({
             src={url}
             controls
             playsInline
-            className="w-full max-h-[480px] bg-neutral-900"
+            className="w-full max-h-[480px] bg-ink"
             preload="metadata"
           />
         ) : (
@@ -86,7 +86,7 @@ export function RecordingCard({
               href={url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm text-neutral-500 underline"
+              className="text-sm text-ink-soft underline"
             >
               Open recording ↗
             </a>

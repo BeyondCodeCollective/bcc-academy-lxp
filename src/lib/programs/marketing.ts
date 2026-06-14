@@ -18,8 +18,8 @@ export const marketingConfig: ProgramConfig = {
   colors: {
     primary: "#1a1a1a",
     primaryHover: "#2a2a2a",
-    accent: "#E54D2E",
-    tagline: "#E54D2E",
+    accent: "#1D59FF",
+    tagline: "#1D59FF",
   },
   defaultCohort: {
     name: "marketing-placeholder",

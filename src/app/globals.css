@@ -11,7 +11,7 @@
   --foreground: #1a1a1a;
   --primary: #1D59FF;
   --primary-hover: #1448CC;
-  --accent: #E54D2E;
+  --accent: #1D59FF;
   --cream: #f5f5f7;
   --muted: #888888;
   --muted-bg: #ebebed;
@@ -21,12 +21,12 @@
      Survey Insights design language so the in-app shell reads as one
      coherent product instead of a stack of differently-toned screens.
      --paper aliases --background to keep the existing utility class. */
-  --paper: #f5f5f7;
+  --paper: #ffffff;
   --paper-tint: #ebebed;
   --paper-tint-soft: #f0f0f2;
   --ink: #1a1a1a;
   --ink-soft: #555555;
-  --ink-faint: #888888;
+  --ink-faint: #717177;
   --rule: #e5e5e5;
   --rule-soft: #eeeeee;
 
@@ -40,6 +40,74 @@
 @media (min-width: 768px) {
   :root {
     --nav-height: 57px;
+  }
+}
+
+/* Sidebar surface — a warm near-black gradient with a faint inner edge,
+   so the nav reads with depth instead of a flat dark-gray slab. */
+.nav-surface {
+  background: linear-gradient(176deg, #232220 0%, #181714 62%, #131210 100%);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: inset -1px 0 0 rgba(0, 0, 0, 0.4);
+}
+
+/* Light shell surfaces (Meridian-style) — the sidebar and top bar share the
+   page's warm neutral, separated only by hairlines. The thin top accent is
+   the one signature flourish: a warm gradient frame line. */
+.shell-light {
+  background: #ffffff;
+  border-right: 1px solid var(--rule);
+}
+.shell-topbar {
+  background: color-mix(in srgb, #ffffff 80%, transparent);
+  backdrop-filter: saturate(1.1) blur(8px);
+}
+
+/* Standard content surface — ONE definition for every panel/card/list so the
+   radius + border + background can't drift per component. Change it here and
+   every surface updates. Pair with utilities for padding/shadow as needed. */
+.panel {
+  border-radius: 0.5rem;
+  border: 1px solid var(--rule);
+  background-color: var(--surface-elevated);
+}
+
+/* Collapsible sidebar rail. A client toggle sets data-nav-collapsed on
+   <html>; the sidebar shrinks to an icon rail, labels fade out, and the
+   content area reclaims the width — all on one transition. */
+.js-sidebar {
+  transition: width 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+#dashboard-main {
+  transition: padding-left 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.nav-collapsible {
+  transition: opacity 120ms ease;
+}
+@media (min-width: 768px) {
+  html[data-nav-collapsed="true"] .js-sidebar {
+    width: 4.25rem;
+  }
+  html[data-nav-collapsed="true"] #dashboard-main {
+    padding-left: 4.25rem;
+  }
+  html[data-nav-collapsed="true"] .nav-collapsible {
+    pointer-events: none;
+    opacity: 0;
+    width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  html[data-nav-collapsed="true"] .nav-item {
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
+  }
+  /* Collapsed rail: center the toggle in the brand row (the program name is
+     a .nav-collapsible that fades to zero width). */
+  html[data-nav-collapsed="true"] .nav-brandrow {
+    justify-content: center;
+    padding-right: 0;
   }
 }
 
@@ -71,8 +139,8 @@
   --color-ink-faint: var(--ink-faint);
   --color-rule: var(--rule);
   --color-rule-soft: var(--rule-soft);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", var(--font-geist-sans), sans-serif;
+  --font-mono: var(--font-geist-mono), "SF Mono", Monaco, "Cascadia Code", monospace;
 }
 
 body {
@@ -87,9 +155,26 @@ input, textarea, select {
 }
 
 /* Heading font — Bricolage Grotesque. Scoped to dashboard/in-app pages;
-   the marketing-scope below overrides headings to its own display font. */
+   the marketing-scope below overrides headings to its own display font.
+   Default to tight optical tracking — Bricolage at display sizes reads
+   "set with intent" rather than browser-default. Components can still
+   override per-element. */
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-archivo), -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+/* The bigger the type, the tighter it wants to be set. h1 carries the
+   page; give it a touch more negative tracking than the scale default. */
+h1 {
+  letter-spacing: -0.03em;
+}
+
+/* Tabular figures everywhere numbers carry meaning (progress, counts,
+   durations) so digits don't jitter as values change. */
+.font-mono {
+  font-feature-settings: "tnum" 1, "zero" 1;
 }
 
 @keyframes fadeIn {

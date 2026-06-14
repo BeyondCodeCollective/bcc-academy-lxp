@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import dynamic from "next/dynamic";
-import { Geist, Bricolage_Grotesque } from "next/font/google";
+import { Geist, Geist_Mono, Bricolage_Grotesque, Archivo } from "next/font/google";
 import localFont from "next/font/local";
 import { Analytics } from "@vercel/analytics/next";
 import { TextScaleProvider } from "@/components/text-scale-provider";
@@ -16,8 +16,21 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+  display: "swap",
+});
+
 const bricolage = Bricolage_Grotesque({
   variable: "--font-bricolage",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+// Display face for headings — editorial weight/character on top of the SF body.
+const archivo = Archivo({
+  variable: "--font-archivo",
   subsets: ["latin"],
   display: "swap",
 });
@@ -72,14 +85,14 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${bricolage.variable} ${specialGothic.variable} ${gtStandard.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${bricolage.variable} ${archivo.variable} ${specialGothic.variable} ${gtStandard.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-sans">
         <TextScaleProvider />
         <GoogleAnalyticsProvider />
         <a
           href="#main-content"
-          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-neutral-900 focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#E54D2E]"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-neutral-900 focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#1D59FF]"
         >
           Skip to main content
         </a>

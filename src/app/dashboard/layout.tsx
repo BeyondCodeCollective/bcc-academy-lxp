@@ -4,6 +4,7 @@ import { cookies, headers } from "next/headers";
 import { isSupabaseConfigured, createClient, createServiceClient } from "@/lib/supabase/server";
 import { getDemoUser, DEMO_COOKIE } from "@/lib/demo-users";
 import { Nav } from "@/components/nav";
+import { DashboardTopBar } from "@/components/dashboard-topbar";
 import { TutorFab } from "@/components/tutor-fab";
 import { PreviewToggle } from "@/components/preview-toggle";
 import { getProgram } from "@/lib/programs/server";
@@ -18,16 +19,17 @@ import { isStaffEmail } from "@/lib/auth/admins";
 import { getHomeProgramForTrack } from "@/lib/programs";
 
 function NavSkeleton() {
+  // Light placeholder that matches the shell — avoids a black flash on
+  // refresh while the nav streams in.
   return (
-    <nav className="hidden md:flex md:w-60 md:flex-col md:fixed md:inset-y-0 bg-ink animate-pulse">
-      <div className="flex items-center gap-3 px-4 h-14 border-b border-white/10">
-        <div className="h-7 w-7 rounded bg-white/10" />
-        <div className="h-4 w-24 rounded bg-white/10" />
+    <nav className="hidden md:flex md:w-60 md:flex-col md:fixed md:inset-y-0 shell-light animate-pulse">
+      <div className="flex items-center gap-3 px-6 h-16">
+        <div className="h-4 w-28 rounded bg-rule" />
       </div>
-      <div className="flex-1 space-y-1 p-3">
-        <div className="h-11 rounded bg-white/10" />
-        <div className="h-11 rounded bg-white/10" />
-        <div className="h-11 rounded bg-white/10" />
+      <div className="flex-1 space-y-1.5 p-4">
+        <div className="h-11 rounded-lg bg-rule" />
+        <div className="h-11 rounded-lg bg-rule" />
+        <div className="h-11 rounded-lg bg-rule" />
       </div>
     </nav>
   );
@@ -44,9 +46,34 @@ export default async function DashboardLayout({
   const programSlug = headersList.get("x-program-slug") ?? "bcc-academy";
   const baseProgram = getProgramBySlug(programSlug);
 
+  // Skin accent follows the program the learner is actually in (the same
+  // resolver the nav uses — header-based getProgramBySlug can lag behind and
+  // return Catalyst for a Forte student). A per-track override lets a track
+  // surfaced inside another program still wear its own home program's accent.
+  const activeProgram = await getProgram();
+  const trackSlug = pathname.match(/^\/dashboard\/track\/([^/]+)/)?.[1];
+  const skinAccent =
+    (trackSlug ? getHomeProgramForTrack(trackSlug) : null)?.colors.accent ??
+    activeProgram.colors.accent;
+
   return (
     <ProgramProvider program={baseProgram}>
-      <div className="flex min-h-screen flex-col md:flex-row">
+      {/* Set the collapsed-rail attribute before paint so the sidebar width
+          doesn't flash on navigation. */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `try{if(localStorage.getItem('nav-collapsed')==='true')document.documentElement.dataset.navCollapsed='true'}catch(e){}`,
+        }}
+      />
+      <div
+        className="flex min-h-screen flex-col md:flex-row"
+        style={
+          {
+            "--primary": skinAccent,
+            "--accent": skinAccent,
+          } as React.CSSProperties
+        }
+      >
         <Suspense fallback={isSurveyPage ? null : <NavSkeleton />}>
           <NavShell isSurveyPage={isSurveyPage} />
         </Suspense>
@@ -55,6 +82,11 @@ export default async function DashboardLayout({
           className={`flex-1 bg-paper ${isSurveyPage ? "" : "md:pl-60"}`}
           style={{ fontSize: "16px" }}
         >
+          {!isSurveyPage && (
+            <Suspense fallback={null}>
+              <TopBarShell />
+            </Suspense>
+          )}
           {children}
         </main>
       </div>
@@ -282,6 +314,43 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
         showLunchLearnLink={isStaffEmail(email) && !isUmbrellaContext}
       />
     </>
+  );
+}
+
+// Light-shell top bar (Meridian-style). Rendered inside <main> so it sticks
+// above page content. Only for learner surfaces — admins keep the dark
+// sidebar with its in-nav account menu, so we render nothing for them.
+async function TopBarShell() {
+  const program = await getProgram();
+  if (!isSupabaseConfigured()) return null;
+  const ctx = await getSessionContext();
+  if (!ctx) return null;
+  const role = ctx.student?.role ?? "";
+  const previewSlug = await getPreviewTrackSlug(role);
+  const isPreviewing = !!previewSlug;
+  // Admins now share the light shell, so they get the top bar too — it carries
+  // their account menu (the dark in-sidebar UserMenu is gone on the light shell).
+
+  const canSwitch = canSwitchPrograms(role) && !isPreviewing;
+  const programs = canSwitch
+    ? getAllPrograms().map((p) => ({
+        slug: p.slug,
+        name: p.name,
+        domain: p.domain,
+        dnsReady: p.dnsReady,
+      }))
+    : [];
+
+  return (
+    <DashboardTopBar
+      firstName={ctx.student?.first_name ?? ""}
+      lastName={ctx.student?.last_name ?? ""}
+      email={ctx.student?.email ?? ctx.userEmail}
+      avatarUrl={ctx.student?.avatar_url ?? null}
+      canSwitch={canSwitch}
+      programs={programs}
+      currentProgramSlug={program.slug}
+    />
   );
 }
 

@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
     html, body { height: 100%; margin: 0; background: #1a1a1a; }
     body { display: flex; align-items: center; justify-content: center;
       color: #fff; font-family: system-ui, sans-serif; flex-direction: column; gap: 16px; }
-    a { padding: 10px 20px; background: #E54D2E; color: #fff; text-decoration: none;
+    a { padding: 10px 20px; background: #1D59FF; color: #fff; text-decoration: none;
       font-weight: 600; font-size: 14px; }
   </style>
 </head>

@@ -6,6 +6,7 @@ import { markWelcomeSeen } from "@/app/dashboard/actions";
 import { BookOpen, X } from "lucide-react";
 import { WeekIcon } from "@/components/week-icon";
 import type { ProgramConfig, TrackConfig } from "@/lib/programs/types";
+import { buttonClass } from "@/components/ui";
 
 interface Props {
   program: ProgramConfig;
@@ -83,19 +84,19 @@ export function OnboardingForm({ program, visibleTracks }: Props) {
           type="button"
           onClick={handleDismiss}
           aria-label="Dismiss welcome"
-          className="absolute top-3 right-3 z-10 inline-flex h-9 w-9 items-center justify-center text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 transition-colors"
+          className="absolute top-3 right-3 z-10 inline-flex h-9 w-9 items-center justify-center text-ink-faint hover:bg-paper-tint hover:text-ink-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2 transition-colors"
         >
           <X size={18} />
         </button>
         <div className="p-6 sm:p-8">
           <div className="text-center mb-6">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center bg-neutral-900 mb-4">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center bg-ink mb-4">
               <BookOpen size={28} className="text-white" />
             </div>
-            <h2 id="onboarding-title" className="text-xl font-bold text-neutral-900">
+            <h2 id="onboarding-title" className="text-xl font-bold text-ink">
               Welcome to BCC Academy
             </h2>
-            <p className="mt-2 text-sm text-neutral-500">
+            <p className="mt-2 text-sm text-ink-soft">
               Here&apos;s what you&apos;re signed up for.
             </p>
           </div>
@@ -106,7 +107,7 @@ export function OnboardingForm({ program, visibleTracks }: Props) {
                 key={track.slug}
                 className="flex gap-3 border border-rule bg-surface-soft p-3.5"
               >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center bg-neutral-900 text-lg text-white">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center bg-ink text-lg text-white">
                   <WeekIcon
                     icon={track.weekSummaries[0]?.icon ?? "📚"}
                     emoji={track.emojiIcons}
@@ -114,8 +115,8 @@ export function OnboardingForm({ program, visibleTracks }: Props) {
                   />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-neutral-900">{track.name}</p>
-                  <p className="text-xs text-neutral-500 mt-0.5">
+                  <p className="text-sm font-semibold text-ink">{track.name}</p>
+                  <p className="text-xs text-ink-soft mt-0.5">
                     {track.type === "single-event"
                       ? `Single event · ${track.sessionTimes[0] ?? ""} · ${track.instructor}`
                       : `${track.totalWeeks} weeks · ${track.sessionTimes.join(" & ")} · ${track.instructor}`}
@@ -125,17 +126,17 @@ export function OnboardingForm({ program, visibleTracks }: Props) {
             ))}
           </div>
 
-          <div className="space-y-2 mb-6 text-xs text-neutral-600">
+          <div className="space-y-2 mb-6 text-xs text-ink-soft">
             <div className="flex items-start gap-2">
-              <span className="mt-0.5 h-1.5 w-1.5 shrink-0 bg-neutral-400" />
+              <span className="mt-0.5 h-1.5 w-1.5 shrink-0 bg-ink-faint" />
               <span>Tap any week card to see details, objectives, and join your session</span>
             </div>
             <div className="flex items-start gap-2">
-              <span className="mt-0.5 h-1.5 w-1.5 shrink-0 bg-neutral-400" />
+              <span className="mt-0.5 h-1.5 w-1.5 shrink-0 bg-ink-faint" />
               <span>Visit <strong>Resources</strong> for instructor contacts and study materials</span>
             </div>
             <div className="flex items-start gap-2">
-              <span className="mt-0.5 h-1.5 w-1.5 shrink-0 bg-neutral-400" />
+              <span className="mt-0.5 h-1.5 w-1.5 shrink-0 bg-ink-faint" />
               <span>Session recordings appear on each week&apos;s page after class</span>
             </div>
           </div>
@@ -143,7 +144,7 @@ export function OnboardingForm({ program, visibleTracks }: Props) {
           <button
             onClick={handleFinish}
             disabled={saving}
-            className="w-full bg-neutral-900 py-3 text-sm font-semibold text-white transition-colors hover:bg-neutral-800 active:bg-neutral-700 disabled:opacity-50"
+            className={`${buttonClass("dark", "md")} w-full`}
           >
             {saving ? <Spinner /> : "Let's Go"}
           </button>

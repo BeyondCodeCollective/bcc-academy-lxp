@@ -51,7 +51,7 @@ export function AssessmentA11yBar({
             inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors
             ${enabled
               ? "bg-accent text-white"
-              : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+              : "bg-paper-tint text-ink-soft hover:bg-paper-tint"
             }
           `}
         >
@@ -82,7 +82,7 @@ export function SpeakButton({ text }: { text: string }) {
       onClick={handleClick}
       aria-label="Read question aloud"
       title="Read aloud"
-      className="shrink-0 text-neutral-300 hover:text-accent transition-colors mt-0.5"
+      className="shrink-0 text-ink-faint hover:text-accent transition-colors mt-0.5"
     >
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
         <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>

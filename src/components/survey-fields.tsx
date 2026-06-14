@@ -183,7 +183,7 @@ function linkifyEmails(text: string): React.ReactNode {
   const parts = text.split(EMAIL_RE);
   return parts.map((part, i) =>
     EMAIL_RE.test(part) ? (
-      <a key={i} href={`mailto:${part}`} className="underline hover:text-neutral-900">
+      <a key={i} href={`mailto:${part}`} className="underline hover:text-ink">
         {part}
       </a>
     ) : (
@@ -205,17 +205,17 @@ function ConsentField({
   const descId = `${checkboxId}-text`;
   return (
     <div className="border border-rule bg-surface-soft p-4">
-      <div id={descId} className="text-sm text-neutral-700 space-y-2 mb-4">
+      <div id={descId} className="text-sm text-ink space-y-2 mb-4">
         <p>{question.text}</p>
         {question.bullets && question.bullets.length > 0 && (
-          <ul className="list-disc space-y-1.5 pl-5 marker:text-neutral-400">
+          <ul className="list-disc space-y-1.5 pl-5 marker:text-ink-faint">
             {question.bullets.map((b) => (
               <li key={b}>{linkifyEmails(b)}</li>
             ))}
           </ul>
         )}
         {question.footer && (
-          <p className="pt-1 text-xs text-neutral-600">{question.footer}</p>
+          <p className="pt-1 text-xs text-ink-soft">{question.footer}</p>
         )}
       </div>
       <label htmlFor={checkboxId} className="flex items-center gap-2 cursor-pointer">
@@ -226,9 +226,9 @@ function ConsentField({
           onChange={(e) => onChange(e.target.checked)}
           aria-required={question.required || undefined}
           aria-describedby={descId}
-          className="rounded border-neutral-300 h-4 w-4"
+          className="rounded border-rule h-4 w-4"
         />
-        <span className="text-sm font-medium text-neutral-900">
+        <span className="text-sm font-medium text-ink">
           {question.confirmLabel ?? "I understand and agree to participate."}
         </span>
         {question.required && (
@@ -252,7 +252,7 @@ function RadioField({
 }) {
   return (
     <fieldset>
-      <legend className="text-sm font-medium text-neutral-900 mb-2">
+      <legend className="text-sm font-medium text-ink mb-2">
         {question.label}
         {question.required && (
           <span aria-hidden="true" className="text-red-500 ml-0.5">
@@ -266,8 +266,8 @@ function RadioField({
             key={opt}
             className={`flex items-center gap-2.5 border px-3.5 py-2.5 cursor-pointer transition-colors ${
               value === opt
-                ? "border-neutral-900 bg-neutral-900/5"
-                : "border-neutral-200 bg-white hover:border-neutral-300"
+                ? "border-ink bg-ink/5"
+                : "border-rule bg-white hover:border-ink-faint"
             }`}
           >
             <input
@@ -276,9 +276,9 @@ function RadioField({
               value={opt}
               checked={value === opt}
               onChange={() => onChange(opt)}
-              className="h-3.5 w-3.5 border-neutral-300 text-neutral-900 focus:ring-neutral-900"
+              className="h-3.5 w-3.5 border-rule text-ink focus:ring-ink-faint"
             />
-            <span className="text-sm text-neutral-700">{opt}</span>
+            <span className="text-sm text-ink">{opt}</span>
           </label>
         ))}
       </div>
@@ -307,7 +307,7 @@ function MultiSelectField({
 
   return (
     <fieldset>
-      <legend className="text-sm font-medium text-neutral-900 mb-2">
+      <legend className="text-sm font-medium text-ink mb-2">
         {question.label}
         {question.required && (
           <span aria-hidden="true" className="text-red-500 ml-0.5">
@@ -321,17 +321,17 @@ function MultiSelectField({
             key={opt}
             className={`flex items-center gap-2.5 border px-3.5 py-2.5 cursor-pointer transition-colors ${
               selected.includes(opt)
-                ? "border-neutral-900 bg-neutral-900/5"
-                : "border-neutral-200 bg-white hover:border-neutral-300"
+                ? "border-ink bg-ink/5"
+                : "border-rule bg-white hover:border-ink-faint"
             }`}
           >
             <input
               type="checkbox"
               checked={selected.includes(opt)}
               onChange={() => toggle(opt)}
-              className="h-3.5 w-3.5 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900"
+              className="h-3.5 w-3.5 rounded border-rule text-ink focus:ring-ink-faint"
             />
-            <span className="text-sm text-neutral-700">{opt}</span>
+            <span className="text-sm text-ink">{opt}</span>
           </label>
         ))}
       </div>
@@ -351,7 +351,7 @@ function TextField({
   const inputId = `text-${question.id}`;
   return (
     <div>
-      <label htmlFor={inputId} className="text-sm font-medium text-neutral-900 mb-2 block">
+      <label htmlFor={inputId} className="text-sm font-medium text-ink mb-2 block">
         {question.label}
         {question.required && (
           <span aria-hidden="true" className="text-red-500 ml-0.5">
@@ -372,7 +372,7 @@ function TextField({
           }}
           placeholder={question.placeholder}
           aria-required={question.required || undefined}
-          className="w-full border border-neutral-200 bg-white px-3.5 py-3 text-sm text-neutral-900 placeholder:text-neutral-500 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 focus:outline-none transition-all"
+          className="w-full border border-rule bg-white px-3.5 py-3 text-sm text-ink placeholder:text-ink-faint focus:border-ink focus:ring-1 focus:ring-ink-faint focus:outline-none transition-all"
         />
       ) : (
         <textarea
@@ -382,7 +382,7 @@ function TextField({
           placeholder={question.placeholder}
           rows={3}
           aria-required={question.required || undefined}
-          className="w-full border border-neutral-200 bg-white px-3.5 py-3 text-sm text-neutral-900 placeholder:text-neutral-500 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 focus:outline-none transition-all resize-none"
+          className="w-full border border-rule bg-white px-3.5 py-3 text-sm text-ink placeholder:text-ink-faint focus:border-ink focus:ring-1 focus:ring-ink-faint focus:outline-none transition-all resize-none"
         />
       )}
     </div>
@@ -411,7 +411,7 @@ function LikertField({
 
   return (
     <fieldset>
-      <legend className="text-sm font-medium text-neutral-900 mb-3">
+      <legend className="text-sm font-medium text-ink mb-3">
         {question.label}
         {question.required && (
           <span aria-hidden="true" className="text-red-500 ml-0.5">
@@ -427,9 +427,9 @@ function LikertField({
           return (
             <div
               key={stmt}
-              className="border border-rule bg-surface-elevated p-4"
+              className="panel p-4"
             >
-              <p id={groupId} className="text-sm text-neutral-800 mb-3">
+              <p id={groupId} className="text-sm text-ink mb-3">
                 {stmt}
               </p>
               <div
@@ -450,8 +450,8 @@ function LikertField({
                       onClick={() => setResponse(stmt, s)}
                       className={`h-9 w-9 rounded-full text-sm font-medium transition-colors ${
                         isSelected
-                          ? "bg-neutral-900 text-white"
-                          : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
+                          ? "bg-ink text-white"
+                          : "bg-paper-tint text-ink hover:bg-paper-tint"
                       }`}
                     >
                       {s}
@@ -462,7 +462,7 @@ function LikertField({
               {scaleAnchors && (
                 <div
                   aria-hidden="true"
-                  className="mt-1.5 flex justify-between text-[11px] text-neutral-400"
+                  className="mt-1.5 flex justify-between text-[11px] text-ink-faint"
                 >
                   <span>{scaleAnchors.low.replace(/^\d+ — /, "")}</span>
                   <span>{scaleAnchors.high.replace(/^\d+ — /, "")}</span>
@@ -495,7 +495,7 @@ function DualLikertField({
 
   return (
     <fieldset>
-      <legend className="text-sm font-medium text-neutral-900 mb-3">
+      <legend className="text-sm font-medium text-ink mb-3">
         {question.label}
         {question.required && (
           <span aria-hidden="true" className="text-red-500 ml-0.5">*</span>
@@ -507,12 +507,12 @@ function DualLikertField({
           const groupIdBefore = `${question.id}-${idx}-before`;
           const groupIdNow = `${question.id}-${idx}-now`;
           return (
-            <div key={stmt} className="border border-rule bg-surface-elevated p-4">
-              <p className="text-sm text-neutral-800 mb-4">{stmt}</p>
+            <div key={stmt} className="panel p-4">
+              <p className="text-sm text-ink mb-4">{stmt}</p>
               <div className="flex flex-col md:flex-row gap-4">
                 {/* BEFORE column */}
                 <div className="flex-1">
-                  <p id={groupIdBefore} className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500 mb-2">
+                  <p id={groupIdBefore} className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft mb-2">
                     {question.beforeLabel}
                   </p>
                   <div role="radiogroup" aria-labelledby={groupIdBefore} className="flex justify-between">
@@ -528,8 +528,8 @@ function DualLikertField({
                           onClick={() => setResponse(stmt, "before", s)}
                           className={`h-9 w-9 rounded-full text-sm font-medium transition-colors ${
                             isSelected
-                              ? "bg-neutral-900 text-white"
-                              : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
+                              ? "bg-ink text-white"
+                              : "bg-paper-tint text-ink hover:bg-paper-tint"
                           }`}
                         >
                           {s}
@@ -538,7 +538,7 @@ function DualLikertField({
                     })}
                   </div>
                   {scaleAnchors && (
-                    <div aria-hidden="true" className="mt-1.5 flex justify-between text-[11px] text-neutral-400">
+                    <div aria-hidden="true" className="mt-1.5 flex justify-between text-[11px] text-ink-faint">
                       <span>{scaleAnchors.low}</span>
                       <span>{scaleAnchors.high}</span>
                     </div>
@@ -546,12 +546,12 @@ function DualLikertField({
                 </div>
 
                 {/* Divider */}
-                <div className="hidden md:block w-px bg-neutral-200" />
-                <div className="md:hidden h-px bg-neutral-100" />
+                <div className="hidden md:block w-px bg-paper-tint" />
+                <div className="md:hidden h-px bg-paper-tint" />
 
                 {/* RIGHT NOW column */}
                 <div className="flex-1">
-                  <p id={groupIdNow} className="text-[11px] font-semibold uppercase tracking-wide text-[#E54D2E] mb-2">
+                  <p id={groupIdNow} className="text-[11px] font-semibold uppercase tracking-wide text-[#1D59FF] mb-2">
                     {question.nowLabel}
                   </p>
                   <div role="radiogroup" aria-labelledby={groupIdNow} className="flex justify-between">
@@ -567,8 +567,8 @@ function DualLikertField({
                           onClick={() => setResponse(stmt, "now", s)}
                           className={`h-9 w-9 rounded-full text-sm font-medium transition-colors ${
                             isSelected
-                              ? "bg-[#E54D2E] text-white"
-                              : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
+                              ? "bg-[#1D59FF] text-white"
+                              : "bg-paper-tint text-ink hover:bg-paper-tint"
                           }`}
                         >
                           {s}
@@ -577,7 +577,7 @@ function DualLikertField({
                     })}
                   </div>
                   {scaleAnchors && (
-                    <div aria-hidden="true" className="mt-1.5 flex justify-between text-[11px] text-neutral-400">
+                    <div aria-hidden="true" className="mt-1.5 flex justify-between text-[11px] text-ink-faint">
                       <span>{scaleAnchors.low}</span>
                       <span>{scaleAnchors.high}</span>
                     </div>
@@ -604,7 +604,7 @@ function DateField({
   const inputId = `date-${question.id}`;
   return (
     <div>
-      <label htmlFor={inputId} className="text-sm font-medium text-neutral-900 mb-2 block">
+      <label htmlFor={inputId} className="text-sm font-medium text-ink mb-2 block">
         {question.label}
         {question.required && <span aria-hidden="true" className="text-red-500 ml-0.5">*</span>}
       </label>
@@ -616,7 +616,7 @@ function DateField({
         min={question.min}
         max={question.max}
         aria-required={question.required || undefined}
-        className="w-full border border-neutral-200 bg-white px-3.5 py-3 text-sm text-neutral-900 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 focus:outline-none transition-all"
+        className="w-full border border-rule bg-white px-3.5 py-3 text-sm text-ink focus:border-ink focus:ring-1 focus:ring-ink-faint focus:outline-none transition-all"
       />
     </div>
   );
@@ -654,11 +654,11 @@ function MonthYearField({
   for (let y = maxYear; y >= minYear; y--) years.push(y);
 
   const selectClass =
-    "w-full border border-neutral-200 bg-white px-3.5 py-3 text-sm text-neutral-900 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 focus:outline-none transition-all";
+    "w-full border border-rule bg-white px-3.5 py-3 text-sm text-ink focus:border-ink focus:ring-1 focus:ring-ink-faint focus:outline-none transition-all";
 
   return (
     <div>
-      <label className="text-sm font-medium text-neutral-900 mb-2 block">
+      <label className="text-sm font-medium text-ink mb-2 block">
         {question.label}
         {question.required && <span className="text-red-500 ml-0.5">*</span>}
       </label>

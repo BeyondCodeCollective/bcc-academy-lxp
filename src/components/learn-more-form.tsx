@@ -49,7 +49,7 @@ export function LearnMoreForm() {
         onChange={(e) => setName(e.target.value)}
         placeholder="Your name"
         autoComplete="name"
-        className="w-full bg-white/5 border border-white/15 px-4 py-3 text-sm text-white placeholder:text-neutral-500 focus:border-electric-green focus:outline-none"
+        className="w-full bg-white/5 border border-white/15 px-4 py-3 text-sm text-white placeholder:text-ink-faint focus:border-electric-green focus:outline-none"
       />
       <input
         type="email"
@@ -58,7 +58,7 @@ export function LearnMoreForm() {
         onChange={(e) => setEmail(e.target.value)}
         placeholder="Email address"
         autoComplete="email"
-        className="w-full bg-white/5 border border-white/15 px-4 py-3 text-sm text-white placeholder:text-neutral-500 focus:border-electric-green focus:outline-none"
+        className="w-full bg-white/5 border border-white/15 px-4 py-3 text-sm text-white placeholder:text-ink-faint focus:border-electric-green focus:outline-none"
       />
       <button
         type="submit"

@@ -15,8 +15,9 @@ import { getSessionContext } from "@/lib/auth/session";
 import { canAccessAdminPanel } from "@/lib/roles";
 import { createServiceClient } from "@/lib/supabase/server";
 import { CopyInviteLink } from "@/components/copy-invite-link";
-import { toneForTrack } from "@/lib/track-visual";
 import { WeekCarousel, type WeekCardData } from "@/components/week-carousel";
+import { PageHeader } from "@/components/page-header";
+import { buttonClass } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -51,9 +52,9 @@ export default async function TrackOverviewPage({
       if (overrideRow?.archived_at) {
         return (
           <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-16 text-center space-y-3">
-            <Archive size={40} className="mx-auto text-neutral-400" aria-hidden />
-            <h1 className="text-xl font-bold text-neutral-900">This course has ended</h1>
-            <p className="text-sm text-neutral-500">
+            <Archive size={40} className="mx-auto text-ink-faint" aria-hidden />
+            <h1 className="text-xl font-bold text-ink">This course has ended</h1>
+            <p className="text-sm text-ink-soft">
               {track.name} is no longer active. Reach out to your instructor if you have questions.
             </p>
           </div>
@@ -84,8 +85,6 @@ export default async function TrackOverviewPage({
   // Track-level description if authored, else fall back to week 1's
   // description (every track has one written and it's already framing copy).
   const overviewCopy = track.description ?? track.weeks[0]?.description ?? "";
-
-  const tone = toneForTrack(slug);
 
   const weekCards: WeekCardData[] = track.weekSummaries.map((ws) => {
     const isCurrent = started && ws.week === currentWeek;
@@ -126,7 +125,7 @@ export default async function TrackOverviewPage({
       <div className="flex items-center justify-between gap-3">
         <Link
           href="/dashboard/courses"
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral-500 transition-colors hover:text-neutral-900"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-soft transition-colors hover:text-ink"
         >
           <ArrowLeft size={12} weight="bold" />
           All courses
@@ -157,21 +156,12 @@ export default async function TrackOverviewPage({
          Each cell links to its week page; current week is inset-ringed in the
          track tone. Replaces a previous decorative-icon hero. */}
       <header className="space-y-5">
-        <div
-          className="relative w-full overflow-hidden p-5 sm:p-7"
-          style={{ backgroundColor: `${tone}1A` }}
-        >
-          <WeekCarousel weeks={weekCards} tone={tone} emojiIcons={track.emojiIcons} />
+        <div className="relative w-full overflow-hidden panel p-5 sm:p-7">
+          <WeekCarousel weeks={weekCards} emojiIcons={track.emojiIcons} />
           {started && (
             <div className="absolute top-3 right-3">
-              <span
-                className="inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold backdrop-blur"
-                style={{ color: tone }}
-              >
-                <span
-                  className="h-1.5 w-1.5 rounded-full animate-pulse"
-                  style={{ backgroundColor: tone }}
-                />
+              <span className="inline-flex items-center gap-1.5 rounded-full panel px-2.5 py-1 text-[11px] font-semibold text-primary">
+                <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
                 In progress
               </span>
             </div>
@@ -179,20 +169,12 @@ export default async function TrackOverviewPage({
         </div>
 
         <div>
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-neutral-400">
-            {eyebrow && (
-              <>
-                {eyebrow}
-                <span className="mx-2 text-neutral-300">·</span>
-              </>
-            )}
-            {track.totalWeeks}-week track
-          </p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-neutral-900 sm:text-4xl">
-            {track.name}
-          </h1>
+          <PageHeader
+            eyebrow={`${eyebrow ? `${eyebrow} · ` : ""}${track.totalWeeks}-week track`}
+            title={track.name}
+          />
           {overviewCopy && (
-            <p className="mt-3 text-base leading-relaxed text-neutral-600 whitespace-pre-wrap">
+            <p className="mt-3 text-base leading-relaxed text-ink-soft whitespace-pre-wrap">
               {overviewCopy}
             </p>
           )}
@@ -201,7 +183,7 @@ export default async function TrackOverviewPage({
         <div>
           <Link
             href={`/dashboard/track/${slug}/${ctaWeek}`}
-            className="inline-flex items-center gap-2 bg-neutral-900 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-neutral-700"
+            className={buttonClass("dark", "md")}
           >
             {ctaLabel}
             <ArrowRight size={14} weight="bold" />
@@ -238,10 +220,10 @@ export default async function TrackOverviewPage({
 
       {track.officeHours && track.officeHours.length > 0 && (
         <section className="space-y-3">
-          <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">
             Office Hours
           </h2>
-          <ul className="divide-y divide-rule border border-rule bg-surface-elevated">
+          <ul className="divide-y divide-rule overflow-hidden panel">
             {[...track.officeHours]
               .sort((a, b) => a.date.localeCompare(b.date))
               .map((oh) => {
@@ -252,14 +234,14 @@ export default async function TrackOverviewPage({
                 return (
                   <li key={`${oh.date}-${oh.title}`} className="px-4 py-3.5">
                     <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                      <p className="text-sm font-semibold text-neutral-900">
+                      <p className="text-sm font-semibold text-ink">
                         {oh.title}
                       </p>
-                      <p className="text-xs text-neutral-500">
+                      <p className="text-xs text-ink-soft">
                         {display} · {oh.time}
                       </p>
                     </div>
-                    <p className="mt-1 text-sm leading-relaxed text-neutral-600">
+                    <p className="mt-1 text-sm leading-relaxed text-ink-soft">
                       {oh.description}
                     </p>
                     {oh.joinUrl && (
@@ -268,13 +250,13 @@ export default async function TrackOverviewPage({
                           href={oh.joinUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 bg-neutral-900 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-neutral-700"
+                          className={buttonClass("dark", "md")}
                         >
                           Join the call
                           →
                         </a>
                         {oh.dialIn && (
-                          <span className="text-xs text-neutral-500">
+                          <span className="text-xs text-ink-soft">
                             Or dial: {oh.dialIn}
                           </span>
                         )}
@@ -300,12 +282,12 @@ function Fact({
   value: string;
 }) {
   return (
-    <div className="space-y-1 border border-rule bg-surface-elevated p-3">
-      <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-neutral-400">
+    <div className="space-y-1 panel p-3">
+      <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
         <Icon size={11} weight="bold" aria-hidden />
         {label}
       </p>
-      <p className="text-[13px] font-medium text-neutral-900">{value}</p>
+      <p className="text-[13px] font-medium text-ink">{value}</p>
     </div>
   );
 }

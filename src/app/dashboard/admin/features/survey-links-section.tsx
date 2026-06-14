@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { buttonClass } from "@/components/ui";
 
 const PUBLIC_SURVEY_LINKS = [
   { id: "bcc-learner-intake",        label: "BCC Learner Intake",                        path: "/survey/bcc-learner-intake" },
@@ -38,22 +39,22 @@ export function SurveyLinksSection({ surveyConfigs }: { surveyConfigs: { id: str
   ];
 
   return (
-    <div className="divide-y divide-rule border border-rule bg-surface-elevated">
+    <div className="divide-y divide-rule overflow-hidden panel">
       {allLinks.map((s) => (
         <div key={s.id} className="flex items-center justify-between gap-4 px-4 py-3">
           <div className="min-w-0">
-            <p className="text-[13px] font-medium text-neutral-900 truncate">{s.label}</p>
-            <p className="text-[11px] text-neutral-400 font-mono truncate">
+            <p className="text-[13px] font-medium text-ink truncate">{s.label}</p>
+            <p className="text-[11px] text-ink-faint font-mono truncate">
               {typeof window !== "undefined" ? `${window.location.origin}${s.path}` : s.path}
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {s.auth ? (
-              <span className="text-[10px] font-medium uppercase tracking-wide text-neutral-400 border border-neutral-200 px-1.5 py-0.5">
+              <span className="text-[10px] font-medium uppercase tracking-wide text-ink-faint border border-rule px-1.5 py-0.5">
                 login required
               </span>
             ) : (
-              <span className="text-[10px] font-medium uppercase tracking-wide text-neutral-400 border border-neutral-200 px-1.5 py-0.5">
+              <span className="text-[10px] font-medium uppercase tracking-wide text-ink-faint border border-rule px-1.5 py-0.5">
                 no login
               </span>
             )}
@@ -62,7 +63,7 @@ export function SurveyLinksSection({ surveyConfigs }: { surveyConfigs: { id: str
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Open survey"
-              className="inline-flex items-center justify-center border border-rule p-1.5 text-neutral-400 hover:bg-neutral-50 hover:text-neutral-700 transition-colors"
+              className="inline-flex items-center justify-center border border-rule p-1.5 text-ink-faint hover:bg-paper-tint-soft hover:text-ink-soft transition-colors"
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                 <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
@@ -73,7 +74,7 @@ export function SurveyLinksSection({ surveyConfigs }: { surveyConfigs: { id: str
             <button
               type="button"
               onClick={() => copy(s.path, s.id)}
-              className="text-[11px] font-medium border border-rule px-2.5 py-1.5 text-neutral-600 hover:bg-neutral-50 transition-colors"
+              className={buttonClass("secondary", "sm")}
             >
               {copied === s.id ? "✓ Copied" : "Copy link"}
             </button>

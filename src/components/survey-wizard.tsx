@@ -1170,14 +1170,14 @@ export function SurveyWizard({ surveyId, programSlug, existingResponses, userId,
       {/* Progress bar */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-2">
-          <p className="text-sm font-medium text-neutral-900">
+          <p className="text-sm font-medium text-ink">
             Page {page + 1} of {SURVEY_PAGES.length}
           </p>
-          <p className="text-xs text-neutral-400">
+          <p className="text-xs text-ink-faint">
             {Math.round(((page + 1) / SURVEY_PAGES.length) * 100)}%
           </p>
         </div>
-        <div className="h-2 w-full overflow-hidden bg-neutral-100">
+        <div className="h-2 w-full overflow-hidden bg-paper-tint">
           <div
             className="h-full bg-primary transition-all duration-300"
             style={{
@@ -1189,11 +1189,11 @@ export function SurveyWizard({ surveyId, programSlug, existingResponses, userId,
 
       {/* Page header */}
       <div className="mb-6">
-        <h2 className="text-xl font-bold text-neutral-900">
+        <h2 className="text-xl font-bold text-ink">
           {currentPage.title}
         </h2>
         {currentPage.subtitle && (
-          <p className="mt-1 text-sm text-neutral-500">
+          <p className="mt-1 text-sm text-ink-soft">
             {currentPage.subtitle}
           </p>
         )}
@@ -1217,11 +1217,11 @@ export function SurveyWizard({ surveyId, programSlug, existingResponses, userId,
       )}
 
       {/* Navigation */}
-      <div className="flex items-center justify-between mt-8 pt-6 border-t border-neutral-200">
+      <div className="flex items-center justify-between mt-8 pt-6 border-t border-rule">
         <button
           onClick={handleBack}
           disabled={page === 0}
-          className="inline-flex items-center gap-1 border border-neutral-200 px-4 py-2.5 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-50 disabled:opacity-30 disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-1 border border-rule px-4 py-2.5 text-sm font-medium text-ink-soft transition-colors hover:bg-paper-tint-soft disabled:opacity-30 disabled:cursor-not-allowed"
         >
           <ChevronLeft size={16} />
           Back
@@ -1229,7 +1229,7 @@ export function SurveyWizard({ surveyId, programSlug, existingResponses, userId,
         <button
           onClick={handleNext}
           disabled={submitting}
-          className="inline-flex items-center gap-1 bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800 disabled:opacity-50"
+          className="inline-flex items-center gap-1 bg-ink px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-ink/90 disabled:opacity-50"
         >
           {submitting ? (
             <>

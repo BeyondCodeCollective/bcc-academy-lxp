@@ -9,6 +9,7 @@ import { getProgram } from "@/lib/programs/server";
 import { getTrackBySlug } from "@/lib/programs";
 import { getSubmission, getReflection, getFeedback, getWeekProgress } from "@/app/dashboard/track/actions";
 import { SubmissionForm } from "@/components/submission-form";
+import { PageHeader } from "@/components/page-header";
 import { RecordingCard } from "@/components/recording-card";
 import { ReflectionForm } from "@/components/reflection-form";
 import { IntakeForm } from "@/components/intake-form";
@@ -16,7 +17,6 @@ import { WeekKeyboardNav } from "@/components/week-keyboard-nav";
 import { getSurveyStatus } from "@/app/dashboard/actions";
 import type { WeekConfig } from "@/lib/programs/types";
 import { resolveSessionContent } from "@/lib/session-content";
-import { ReadPageAloud } from "@/components/read-page-aloud";
 import { ZoomEmbed } from "@/components/zoom-embed";
 import { parseZoomLink, isZoomLink } from "@/lib/zoom";
 import { getSessionContext } from "@/lib/auth/session";
@@ -52,19 +52,19 @@ export default async function TrackWeekPage({
         <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8">
           <Link
             href={`/dashboard/track/${trackSlug}`}
-            className="mb-6 inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-neutral-900 transition-colors py-2"
+            className="mb-6 inline-flex items-center gap-1.5 text-sm text-ink-faint hover:text-ink transition-colors py-2"
           >
             <ArrowLeft size={16} />
             Back to {track.shortName}
           </Link>
-          <div className="border border-neutral-200 bg-neutral-50 p-8 text-center">
-            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-400 mb-2">
+          <div className="border border-rule bg-neutral-50 p-8 text-center">
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-ink-faint mb-2">
               Week {weekContent.week}
             </p>
-            <h1 className="text-2xl font-bold tracking-tight text-neutral-900 sm:text-3xl">
+            <h1 className="text-2xl font-bold tracking-tight text-ink sm:text-3xl">
               {weekContent.title}
             </h1>
-            <p className="mt-4 text-base text-neutral-600">
+            <p className="mt-4 text-base text-ink-soft">
               This session opens on <strong>{dateLabel}</strong>.
             </p>
           </div>
@@ -90,7 +90,7 @@ export default async function TrackWeekPage({
             <div className="mx-auto w-full max-w-2xl py-4">
               <Link
                 href="/dashboard"
-                className="inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-neutral-900 transition-colors mb-2 py-2 px-4 sm:px-5"
+                className="inline-flex items-center gap-1.5 text-sm text-ink-faint hover:text-ink transition-colors mb-2 py-2 px-4 sm:px-5"
               >
                 <ArrowLeft size={16} />
                 Back to Dashboard
@@ -188,7 +188,7 @@ export default async function TrackWeekPage({
       <div className="mb-5 flex items-center justify-between gap-3">
         <Link
           href={`/dashboard/track/${trackSlug}`}
-          className="inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-neutral-900 transition-colors py-2"
+          className="inline-flex items-center gap-1.5 text-sm text-ink-faint hover:text-ink transition-colors py-2"
         >
           <ArrowLeft size={16} />
           Back to {track.shortName}
@@ -197,13 +197,13 @@ export default async function TrackWeekPage({
           {prevWeek ? (
             <Link
               href={`/dashboard/track/${trackSlug}/${prevWeek}`}
-              className="inline-flex items-center gap-1 border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition-colors"
+              className="inline-flex items-center gap-1 border border-rule px-3 py-1.5 text-xs font-medium text-ink-soft hover:bg-paper-tint-soft hover:text-ink transition-colors"
             >
               <ArrowLeft size={12} />
               Week {prevWeek}
             </Link>
           ) : (
-            <span className="inline-flex items-center gap-1 border border-neutral-100 px-3 py-1.5 text-xs font-medium text-neutral-300">
+            <span className="inline-flex items-center gap-1 border border-rule-soft px-3 py-1.5 text-xs font-medium text-ink-faint">
               <ArrowLeft size={12} />
               Week {weekNum}
             </span>
@@ -211,13 +211,13 @@ export default async function TrackWeekPage({
           {nextWeek ? (
             <Link
               href={`/dashboard/track/${trackSlug}/${nextWeek}`}
-              className="inline-flex items-center gap-1 border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition-colors"
+              className="inline-flex items-center gap-1 border border-rule px-3 py-1.5 text-xs font-medium text-ink-soft hover:bg-paper-tint-soft hover:text-ink transition-colors"
             >
               Week {nextWeek}
               <ArrowLeft size={12} className="rotate-180" />
             </Link>
           ) : (
-            <span className="inline-flex items-center gap-1 border border-neutral-100 px-3 py-1.5 text-xs font-medium text-neutral-300">
+            <span className="inline-flex items-center gap-1 border border-rule-soft px-3 py-1.5 text-xs font-medium text-ink-faint">
               Week {weekNum}
               <ArrowLeft size={12} className="rotate-180" />
             </span>
@@ -253,7 +253,7 @@ export default async function TrackWeekPage({
                 </a>
               ) : meetingLinks[0] && isZoomLink(meetingLinks[0]) ? null
               : headerSessionIsSelfPaced ? null : (
-                <span className="inline-flex items-center justify-center gap-1.5 bg-neutral-200 text-neutral-400 text-xs font-semibold px-3.5 py-2.5 min-h-[44px] cursor-not-allowed w-full sm:w-auto">
+                <span className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-rule text-ink-faint text-xs font-semibold px-3.5 py-2.5 min-h-[44px] cursor-not-allowed w-full sm:w-auto">
                   <Video size={14} />
                   Link Coming Soon
                 </span>
@@ -261,32 +261,28 @@ export default async function TrackWeekPage({
             : null;
         return (
           <div className="mb-6">
-            <div className="flex items-center gap-2.5">
-              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400">
-                Week {weekContent.week}
-              </p>
-              {(isCompleted || isCurrent) && (
-                <span
-                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                    isCompleted
-                      ? "bg-green-50 text-green-600"
-                      : "bg-red-50 text-red-600"
-                  }`}
-                >
-                  {isCompleted
-                    ? weekContent.sessions.length > 1 ? "Sessions Ended" : "Session Ended"
-                    : "This Week"}
-                </span>
-              )}
-            </div>
-            <h1 className="mt-1 text-3xl font-bold text-neutral-900 tracking-tight leading-tight">
-              {displayTitle}
-            </h1>
-            <p className="mt-2 text-xs text-neutral-500">
-              {[track.instructor, displaySubtitle, headerSession?.time]
+            <PageHeader
+              index={String(weekContent.week).padStart(2, "0")}
+              badge={
+                isCompleted || isCurrent ? (
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                      isCompleted
+                        ? "bg-green-50 text-green-600"
+                        : "bg-primary/[0.08] text-primary"
+                    }`}
+                  >
+                    {isCompleted
+                      ? weekContent.sessions.length > 1 ? "Sessions Ended" : "Session Ended"
+                      : "This Week"}
+                  </span>
+                ) : undefined
+              }
+              title={displayTitle}
+              subtitle={[track.instructor, displaySubtitle, headerSession?.time]
                 .filter(Boolean)
                 .join(" · ")}
-            </p>
+            />
             {headerAction && <div className="mt-4">{headerAction}</div>}
           </div>
         );
@@ -346,7 +342,7 @@ export default async function TrackWeekPage({
                   Join Session
                 </a>
               ) : isSelfPaced ? null : (
-                <span className="inline-flex items-center justify-center gap-1.5 bg-neutral-200 text-neutral-400 text-xs font-semibold px-3.5 py-2.5 min-h-[44px] cursor-not-allowed w-full sm:w-auto">
+                <span className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-rule text-ink-faint text-xs font-semibold px-3.5 py-2.5 min-h-[44px] cursor-not-allowed w-full sm:w-auto">
                   <Video size={14} />
                   Link Coming Soon
                 </span>
@@ -398,7 +394,7 @@ export default async function TrackWeekPage({
       {/* Video coming soon — shown when no video URL exists and no admin
          recording has been uploaded yet. */}
       {!weekContent.videoUrl && !hasRecording && zoomSessions.length === 0 && (
-        <div className="mb-8 border border-rule bg-surface-soft px-6 py-8 flex flex-col items-center text-center gap-2">
+        <div className="mb-8 flex flex-col items-center gap-2 rounded-lg border border-dashed border-rule px-6 py-8 text-center">
           <Video size={24} className="text-ink-faint" aria-hidden />
           <p className="text-sm font-semibold text-ink">Video Coming Soon</p>
           <p className="text-xs text-ink-faint max-w-[38ch]">
@@ -455,11 +451,11 @@ export default async function TrackWeekPage({
                     target="_blank"
                     rel="noopener noreferrer"
                     download={isFile ? (r.name || true) : undefined}
-                    className="flex items-center gap-4 border-2 border-rule bg-surface-soft px-4 py-4 text-sm font-semibold text-ink hover:border-[#E54D2E] hover:bg-white transition-colors group min-h-[60px]"
+                    className="group flex min-h-[60px] items-center gap-4 panel px-4 py-4 text-sm font-semibold text-ink transition-colors hover:border-primary hover:bg-paper-tint-soft"
                   >
                     <Icon size={24} aria-hidden className="shrink-0 text-ink-faint group-hover:text-ink-soft transition-colors" />
                     <span className="flex-1 leading-snug">{r.name || r.url}</span>
-                    <span className="shrink-0 text-xs font-bold uppercase tracking-wide text-[#E54D2E] opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="shrink-0 text-xs font-bold uppercase tracking-wide text-primary opacity-0 group-hover:opacity-100 transition-opacity">
                       {action}
                     </span>
                   </a>
@@ -471,9 +467,6 @@ export default async function TrackWeekPage({
       )}
 
       {/* Brief description */}
-      <div className="mb-2 flex justify-end">
-        <ReadPageAloud title={displayTitle} description={displayDescription} objectives={displayObjectives} />
-      </div>
       <p className="mb-8 text-base leading-relaxed text-ink-soft max-w-[65ch] whitespace-pre-wrap">
         {displayDescription}
       </p>

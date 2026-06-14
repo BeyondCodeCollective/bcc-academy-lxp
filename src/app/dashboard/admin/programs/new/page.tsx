@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getSessionContext } from "@/lib/auth/session";
 import { canSwitchPrograms } from "@/lib/roles";
 import { CreateCourseForm } from "./create-course-form";
+import { PageHeader } from "@/components/page-header";
 
 export default async function NewCoursePage() {
   const ctx = await getSessionContext();
@@ -14,14 +15,11 @@ export default async function NewCoursePage() {
       <div>
         <Link
           href="/dashboard/admin/programs"
-          className="inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-neutral-900 transition-colors mb-2"
+          className="inline-flex items-center gap-1.5 text-sm text-ink-faint hover:text-ink transition-colors mb-2"
         >
           ← All Courses
         </Link>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight text-neutral-900">
-          New Course
-        </h1>
-        <p className="mt-1 text-sm text-neutral-500">Takes about 30 seconds.</p>
+        <PageHeader title="New Course" subtitle="Takes about 30 seconds." />
       </div>
       <CreateCourseForm />
     </div>

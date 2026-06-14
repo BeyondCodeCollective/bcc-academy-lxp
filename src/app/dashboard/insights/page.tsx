@@ -176,11 +176,11 @@ export default async function InsightsPage() {
 
   // Donut palette pulls from the same matte editorial set used elsewhere.
   const DONUT_TONES = [
-    "#E54D2E", // vermillion
+    "#1D59FF", // vermillion
     "#1F1B16", // ink
     "#2563EB", // editorial blue
     "#15803D", // forest
-    "#B45309", // burnt amber
+    "#012966", // dark cobalt
     "#7C3AED", // plum
   ];
   const phaseSegments = phaseData.map((d, i) => ({
@@ -214,16 +214,16 @@ export default async function InsightsPage() {
     <div className="mx-auto w-full max-w-2xl md:max-w-5xl px-4 sm:px-5 py-8 space-y-8">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
+          <h1 className="text-3xl font-bold tracking-tight text-ink">
             Analytics
           </h1>
-          <p className="mt-1 text-sm text-neutral-500">
+          <p className="mt-1 text-sm text-ink-soft">
             Cross-program analytics for super-admins.
           </p>
         </div>
         <Link
           href="/dashboard/admin?tab=insights"
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral-500 transition-colors hover:text-neutral-900"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-soft transition-colors hover:text-ink"
         >
           Survey Insights
           <ArrowRight size={11} weight="bold" />
@@ -232,9 +232,9 @@ export default async function InsightsPage() {
 
       {/* Lifetime headline — the "served since launch" story that used to
          live on the Admin Overview, now centralized here. */}
-      <p className="text-2xl sm:text-[28px] leading-snug tracking-tight text-neutral-900 max-w-[55ch]">
+      <p className="text-2xl sm:text-[28px] leading-snug tracking-tight text-ink max-w-[55ch]">
         <span className="font-semibold tabular-nums">{lifetimeServed.toLocaleString()}</span>{" "}
-        <span className="text-neutral-500">
+        <span className="text-ink-soft">
           people served since launch — {totalStudents.toLocaleString()} active
           in the LXP, {uniqueAlumni.size.toLocaleString()} historical alumni.
         </span>
@@ -293,12 +293,12 @@ export default async function InsightsPage() {
       {/* Recent activity — the feed that used to live on the Admin Overview
          tab. Cross-program, latest 10 submissions + reflections. */}
       <section className="space-y-3">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">
           Recent activity
         </p>
-        <div className="divide-y divide-neutral-100 border border-rule bg-surface-elevated">
+        <div className="divide-y divide-neutral-100 overflow-hidden panel">
           {activity.length === 0 ? (
-            <p className="p-4 text-sm text-neutral-500">
+            <p className="p-4 text-sm text-ink-soft">
               No submissions or reflections yet.
             </p>
           ) : (
@@ -318,17 +318,17 @@ export default async function InsightsPage() {
                   className="flex items-center justify-between gap-3 p-3 text-sm"
                 >
                   <div className="min-w-0">
-                    <p className="truncate font-medium text-neutral-900">
+                    <p className="truncate font-medium text-ink">
                       {item.student_name}
                     </p>
-                    <p className="truncate text-xs text-neutral-500">
+                    <p className="truncate text-xs text-ink-soft">
                       {item.kind === "submission"
                         ? "Submitted homework"
                         : "Added reflection"}{" "}
                       — {item.track_slug} Week {item.week_number}
                     </p>
                   </div>
-                  <span className="shrink-0 text-xs text-neutral-400">
+                  <span className="shrink-0 text-xs text-ink-faint">
                     {ago}
                   </span>
                 </div>
@@ -353,16 +353,16 @@ function Metric({
   hint?: string;
 }) {
   return (
-    <div className="border border-rule bg-surface-elevated p-4">
-      <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-neutral-400">
+    <div className="panel p-4">
+      <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
         <Icon size={11} weight="bold" aria-hidden />
         {label}
       </p>
-      <p className="mt-2 text-2xl font-bold tabular-nums text-neutral-900 tracking-tight">
+      <p className="mt-2 text-2xl font-bold tabular-nums text-ink tracking-tight">
         {value}
       </p>
       {hint && (
-        <p className="mt-1 text-[10px] text-neutral-400 leading-relaxed">
+        <p className="mt-1 text-[10px] text-ink-faint leading-relaxed">
           {hint}
         </p>
       )}

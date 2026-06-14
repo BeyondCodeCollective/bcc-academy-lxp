@@ -33,6 +33,8 @@ import {
   Coffee,
 } from "lucide-react";
 import { Avatar } from "@/components/avatar";
+import { buttonClass, fieldInput } from "@/components/ui";
+import { PageHeader } from "@/components/page-header";
 import { computeCurrentWeek } from "@/lib/utils";
 import { LunchLearnAdmin } from "@/app/dashboard/lunch-learn/admin/admin-client";
 import { AttendanceTab } from "./attendance-tab";
@@ -273,7 +275,7 @@ function UploadButton({
         type="button"
         onClick={() => inputRef.current?.click()}
         disabled={uploadState === "uploading"}
-        className="inline-flex items-center gap-1.5 rounded-md border border-neutral-200 bg-white px-2.5 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors disabled:opacity-50 min-h-[36px]"
+        className={`${buttonClass("secondary", "sm")} min-h-[36px]`}
       >
         {uploadState === "uploading" ? (
           <><Loader2 size={11} className="animate-spin" /> Uploading...</>
@@ -323,13 +325,13 @@ function ResourceEditor({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <label className="text-xs font-medium text-neutral-500">Resources</label>
+        <label className="text-xs font-medium text-ink-soft">Resources</label>
         <div className="flex items-center gap-1.5">
           <UploadButton accept={FILE_ACCEPT} label="Upload File" icon={Upload} track={track} week={week} onUploaded={handleFileUploaded} />
           <button
             type="button"
             onClick={addLink}
-            className="inline-flex items-center gap-1 rounded-md border border-neutral-200 bg-white px-2.5 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors min-h-[36px]"
+            className={`${buttonClass("secondary", "sm")} min-h-[36px]`}
           >
             <Plus size={11} />
             Add Link
@@ -338,16 +340,16 @@ function ResourceEditor({
       </div>
 
       {resources.length === 0 && (
-        <p className="text-[11px] text-neutral-400 pl-0.5">No resources yet</p>
+        <p className="text-[11px] text-ink-faint pl-0.5">No resources yet</p>
       )}
 
       {resources.map((r, i) => (
         <div key={i} className="flex gap-2 items-start">
           <div className="mt-2 shrink-0">
             {r.type === "file" || isStorageUrl(r.url) ? (
-              <FileText size={12} className="text-neutral-400" />
+              <FileText size={12} className="text-ink-faint" />
             ) : (
-              <LinkIcon size={12} className="text-neutral-400" />
+              <LinkIcon size={12} className="text-ink-faint" />
             )}
           </div>
 
@@ -357,10 +359,10 @@ function ResourceEditor({
               value={r.name}
               onChange={(e) => updateResource(i, "name", e.target.value)}
               placeholder="Display name"
-              className="border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-900 focus:border-neutral-900 focus:outline-none"
+              className={fieldInput}
             />
             {r.type === "file" || isStorageUrl(r.url) ? (
-              <div className="border border-neutral-100 bg-muted-bg px-3 py-2 text-xs text-neutral-400 truncate">
+              <div className="border border-rule-soft bg-muted-bg px-3 py-2 text-xs text-ink-faint truncate">
                 {r.url.split("/").pop() ?? r.url}
               </div>
             ) : (
@@ -369,7 +371,7 @@ function ResourceEditor({
                 value={r.url}
                 onChange={(e) => updateResource(i, "url", e.target.value)}
                 placeholder="https://..."
-                className="border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-900 focus:border-neutral-900 focus:outline-none"
+                className={fieldInput}
               />
             )}
           </div>
@@ -377,7 +379,7 @@ function ResourceEditor({
           <button
             type="button"
             onClick={() => removeResource(i)}
-            className="mt-2 text-neutral-300 hover:text-red-400 transition-colors shrink-0"
+            className="mt-2 text-ink-faint hover:text-red-400 transition-colors shrink-0"
             title="Remove resource"
           >
             <X size={14} />
@@ -394,7 +396,7 @@ type SaveState = "idle" | "saving" | "saved" | "error";
 
 function SaveIndicator({ state }: { state: SaveState }) {
   if (state === "idle") return null;
-  if (state === "saving") return <span className="text-[11px] text-neutral-400">Saving...</span>;
+  if (state === "saving") return <span className="text-[11px] text-ink-faint">Saving...</span>;
   if (state === "saved") return (
     <span className="inline-flex items-center gap-1 text-[11px] text-green-600">
       <Check size={11} /> Saved
@@ -832,23 +834,19 @@ export function AdminTabs({
          per-track to show. Surface the next useful destinations instead. */}
       {isDashboardless && (
         <div className="space-y-4">
-          <header>
-            <p className="text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
-              Admin
-            </p>
-            <h1 className="mt-1 text-3xl font-bold tracking-tight text-neutral-900">
-              No program selected
-            </h1>
-            <p className="mt-1 text-sm text-neutral-500">
-              {canSwitchPrograms(userRole)
+          <PageHeader
+            eyebrow="Admin"
+            title="No program selected"
+            subtitle={
+              canSwitchPrograms(userRole)
                 ? "This domain doesn't have a learner dashboard. Pick a program from the sidebar to manage its tracks, or open Analytics for cross-program data."
-                : "This domain doesn't have a learner dashboard. Contact a super-admin to switch programs."}
-            </p>
-          </header>
+                : "This domain doesn't have a learner dashboard. Contact a super-admin to switch programs."
+            }
+          />
           {canSwitchPrograms(userRole) && (
             <a
               href="/dashboard/insights"
-              className="inline-flex items-center gap-2 bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800"
+              className={buttonClass("dark", "md")}
             >
               View Analytics
               <span aria-hidden>&rarr;</span>
@@ -874,54 +872,48 @@ export function AdminTabs({
 
         return (
           <div className="space-y-8">
-            <header className="flex items-start justify-between gap-4">
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
-                  Admin
-                </h1>
-                <p className="mt-1 text-sm text-neutral-500">
-                  Pick a program to manage — curriculum, roster, student work, and attendance.
-                </p>
-              </div>
-              <div className="flex items-center gap-0.5 pt-1">
-                {canSwitchPrograms(userRole) && (
+            <PageHeader
+              title="Admin"
+              subtitle="Pick a program to manage — curriculum, roster, student work, and attendance."
+              actions={
+                canSwitchPrograms(userRole) && (
                   <>
                     <Link
                       href="/dashboard/admin/programs"
-                      className="mr-2 flex items-center gap-1.5 rounded-md border border-neutral-200 px-3 py-1.5 text-xs font-semibold text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
+                      className={buttonClass("secondary", "sm")}
                     >
                       Manage Courses
                     </Link>
                     <Link
                       href="/dashboard/admin/features"
-                      className="mr-2 flex items-center gap-1.5 rounded-md border border-neutral-200 px-3 py-1.5 text-xs font-semibold text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
+                      className={buttonClass("secondary", "sm")}
                     >
                       Tools
                     </Link>
                   </>
-                )}
-              </div>
-            </header>
+                )
+              }
+            />
 
             {/* Quick-access tool strip — always visible above the program grid */}
             <div className="flex flex-wrap gap-2">
               <Link
                 href="/dashboard/admin?tab=students"
-                className="inline-flex items-center gap-2 border border-rule bg-surface-elevated px-3 py-2 text-xs font-medium text-neutral-600 transition-colors hover:border-neutral-300 hover:text-neutral-900"
+                className={buttonClass("secondary", "sm")}
               >
                 <UsersIcon size={13} weight="bold" aria-hidden />
                 All people
               </Link>
               <Link
                 href="/dashboard/admin?tab=student-work"
-                className="inline-flex items-center gap-2 border border-rule bg-surface-elevated px-3 py-2 text-xs font-medium text-neutral-600 transition-colors hover:border-neutral-300 hover:text-neutral-900"
+                className={buttonClass("secondary", "sm")}
               >
                 <ClipboardListIcon size={13} weight="bold" aria-hidden />
                 Student work
               </Link>
               <Link
                 href="/dashboard/admin?tab=attendance"
-                className="inline-flex items-center gap-2 border border-rule bg-surface-elevated px-3 py-2 text-xs font-medium text-neutral-600 transition-colors hover:border-neutral-300 hover:text-neutral-900"
+                className={buttonClass("secondary", "sm")}
               >
                 <ChartBarIcon size={13} weight="bold" aria-hidden />
                 Attendance
@@ -929,7 +921,7 @@ export function AdminTabs({
               {isManager && (
                 <Link
                   href="/dashboard/admin/allowlist"
-                  className="inline-flex items-center gap-2 border border-rule bg-surface-elevated px-3 py-2 text-xs font-medium text-neutral-600 transition-colors hover:border-neutral-300 hover:text-neutral-900"
+                  className={buttonClass("secondary", "sm")}
                 >
                   <Shield size={13} aria-hidden />
                   Signup allowlist
@@ -937,7 +929,7 @@ export function AdminTabs({
               )}
             </div>
 
-            <div className="divide-y divide-rule border border-rule bg-surface-elevated">
+            <div className="divide-y divide-rule overflow-hidden panel">
               {tracks.map((t) => {
                 const tone = toneForTrack(t.slug);
                 const start = new Date(t.startDate);
@@ -962,25 +954,25 @@ export function AdminTabs({
                   <Link
                     key={t.slug}
                     href={`/dashboard/admin?tab=${t.slug}`}
-                    className="group flex items-center gap-4 px-4 py-3.5 transition-colors hover:bg-neutral-50"
+                    className="group flex items-center gap-4 px-4 py-3.5 transition-colors hover:bg-paper-tint-soft"
                   >
                     <span
                       className="h-2.5 w-2.5 shrink-0 rounded-full"
                       style={{ backgroundColor: tone }}
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="text-[14px] font-semibold text-neutral-900 leading-snug">
+                      <p className="text-[14px] font-semibold text-ink leading-snug">
                         {t.shortName || t.name}
                       </p>
-                      <p className="text-[12px] text-neutral-400">
+                      <p className="text-[12px] text-ink-faint">
                         {t.instructor}
                       </p>
                     </div>
-                    <p className="shrink-0 text-[12px] text-neutral-500">{status}</p>
-                    <p className="shrink-0 w-20 text-right text-[12px] text-neutral-400 tabular-nums">
+                    <p className="shrink-0 text-[12px] text-ink-soft">{status}</p>
+                    <p className="shrink-0 w-20 text-right text-[12px] text-ink-faint tabular-nums">
                       {count} {count === 1 ? "student" : "students"}
                     </p>
-                    <span className="shrink-0 text-neutral-300 group-hover:text-neutral-500 transition-colors">→</span>
+                    <span className="shrink-0 text-ink-faint group-hover:text-ink-soft transition-colors">→</span>
                   </Link>
                 );
               })}
@@ -1020,25 +1012,20 @@ export function AdminTabs({
           {/* Back to Admin home */}
           <Link
             href="/dashboard/admin"
-            className="inline-flex items-center gap-1.5 text-[11px] font-medium text-neutral-400 transition-colors hover:text-neutral-700"
+            className="inline-flex items-center gap-1.5 text-[11px] font-medium text-ink-faint transition-colors hover:text-ink-soft"
           >
             <ArrowLeftIcon size={11} weight="bold" aria-hidden />
             Admin
           </Link>
 
           {/* Track header */}
-          <header className="space-y-1.5">
-            <h1 className="text-3xl font-bold text-neutral-900 tracking-tight">
-              {liveTrackNames[activeTrack.slug]?.name ?? activeTrack.name}
-            </h1>
-            <p className="text-xs text-neutral-500">
-              with {liveTrackNames[activeTrack.slug]?.instructor ?? activeTrack.instructor} &middot;{" "}
-              {activeTrack.sessionTimes.join(" & ")}
-            </p>
-          </header>
+          <PageHeader
+            title={liveTrackNames[activeTrack.slug]?.name ?? activeTrack.name}
+            subtitle={`with ${liveTrackNames[activeTrack.slug]?.instructor ?? activeTrack.instructor} · ${activeTrack.sessionTimes.join(" & ")}`}
+          />
 
           {/* Sub-tab bar within the track */}
-          <div className="flex gap-1 bg-neutral-100 p-1">
+          <div className="flex gap-1 bg-paper-tint p-1">
             {[
               { id: "overview" as const, label: "Overview" },
               { id: "curriculum" as const, label: "Curriculum" },
@@ -1050,8 +1037,8 @@ export function AdminTabs({
                 onClick={() => setTrackView(v.id)}
                 className={`flex-1 rounded-md px-3 py-2 text-xs font-medium transition-colors ${
                   trackView === v.id
-                    ? "bg-white text-neutral-900 shadow-sm"
-                    : "text-neutral-500 hover:text-neutral-700"
+                    ? "bg-white text-ink shadow-sm"
+                    : "text-ink-soft hover:text-ink-soft"
                 }`}
               >
                 {v.label}
@@ -1076,20 +1063,20 @@ export function AdminTabs({
           {activeWeeks.map((aw) => {
             const hasMultipleSessions = aw.sessions.length > 1;
             return (
-              <div key={aw.week} className="border border-rule bg-surface-elevated overflow-hidden">
+              <div key={aw.week} className="panel overflow-hidden">
                 <button
                   onClick={() => setExpandedWeek(expandedWeek === aw.week ? null : aw.week)}
-                  className="flex w-full items-center justify-between px-4 sm:px-5 py-3.5 sm:py-4 hover:bg-neutral-50 transition-colors"
+                  className="flex w-full items-center justify-between px-4 sm:px-5 py-3.5 sm:py-4 hover:bg-paper-tint-soft transition-colors"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-neutral-300 text-[11px] font-semibold tabular-nums text-neutral-600">
+                    <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-rule text-[11px] font-semibold tabular-nums text-ink-soft">
                       {aw.week}
                     </span>
                     <div className="text-left">
-                      <p className="text-sm font-semibold text-neutral-900">
+                      <p className="text-sm font-semibold text-ink">
                         {aw.title}
                       </p>
-                      <p className="text-[10px] text-neutral-400">
+                      <p className="text-[10px] text-ink-faint">
                         {aw.sessions.length} session{aw.sessions.length !== 1 ? "s" : ""}
                         {aw.sessions.some((s) => s.recordingUrl) && " · Recording set"}
                         {aw.sessions.some((s) => s.resources.length > 0) && " · Has resources"}
@@ -1099,59 +1086,59 @@ export function AdminTabs({
                   <div className="flex items-center gap-2">
                     <SaveIndicator state={saveStates[activeTrack.slug]?.[aw.week] ?? "idle"} />
                     <span className={`h-2 w-2 rounded-full ${aw.sessions.every((s) => s.status === "completed") ? "bg-green-500" : "bg-neutral-300"}`} />
-                    <ChevronDown size={16} className={`text-neutral-400 transition-transform ${expandedWeek === aw.week ? "rotate-180" : ""}`} />
+                    <ChevronDown size={16} className={`text-ink-faint transition-transform ${expandedWeek === aw.week ? "rotate-180" : ""}`} />
                   </div>
                 </button>
 
                 {expandedWeek === aw.week && (
-                  <div className="border-t border-neutral-100">
+                  <div className="border-t border-rule-soft">
                     {/* Content overrides */}
-                    <div className="px-4 sm:px-5 py-3.5 sm:py-4 space-y-3 border-b border-neutral-100">
-                      <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wide">
+                    <div className="px-4 sm:px-5 py-3.5 sm:py-4 space-y-3 border-b border-rule-soft">
+                      <p className="text-xs font-semibold text-ink-faint uppercase tracking-wide">
                         Session Content
                       </p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                          <label className="text-xs font-medium text-neutral-500">Title</label>
+                          <label className="text-xs font-medium text-ink-soft">Title</label>
                           <input
                             type="text"
                             value={aw.overrideTitle}
                             onChange={(e) => updateWeekOverride(activeTrack.slug, aw.week, { overrideTitle: e.target.value })}
                             placeholder={aw.title}
-                            className="mt-1 w-full border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-300 focus:border-neutral-900 focus:outline-none"
+                            className={`${fieldInput} mt-1`}
                           />
                         </div>
                         <div>
-                          <label className="text-xs font-medium text-neutral-500">Subtitle</label>
+                          <label className="text-xs font-medium text-ink-soft">Subtitle</label>
                           <input
                             type="text"
                             value={aw.overrideSubtitle}
                             onChange={(e) => updateWeekOverride(activeTrack.slug, aw.week, { overrideSubtitle: e.target.value })}
                             placeholder="e.g. Industry Perspectives"
-                            className="mt-1 w-full border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-300 focus:border-neutral-900 focus:outline-none"
+                            className={`${fieldInput} mt-1`}
                           />
                         </div>
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-neutral-500">Description</label>
+                        <label className="text-xs font-medium text-ink-soft">Description</label>
                         <textarea
                           value={aw.overrideDescription}
                           onChange={(e) => updateWeekOverride(activeTrack.slug, aw.week, { overrideDescription: e.target.value })}
                           placeholder="Leave blank to use the default description"
                           rows={2}
-                          className="mt-1 w-full border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-300 focus:border-neutral-900 focus:outline-none resize-none"
+                          className={`${fieldInput} mt-1 resize-none`}
                         />
                       </div>
                       <div>
-                        <label className="text-xs font-medium text-neutral-500">
-                          What You&apos;ll Cover <span className="font-normal text-neutral-300">(one per line)</span>
+                        <label className="text-xs font-medium text-ink-soft">
+                          What You&apos;ll Cover <span className="font-normal text-ink-faint">(one per line)</span>
                         </label>
                         <textarea
                           value={aw.overrideObjectives}
                           onChange={(e) => updateWeekOverride(activeTrack.slug, aw.week, { overrideObjectives: e.target.value })}
                           placeholder="Leave blank to use defaults"
                           rows={4}
-                          className="mt-1 w-full border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-300 focus:border-neutral-900 focus:outline-none resize-none"
+                          className={`${fieldInput} mt-1 resize-none`}
                         />
                       </div>
                     </div>
@@ -1161,33 +1148,33 @@ export function AdminTabs({
                     {aw.sessions.map((s) => (
                       <div key={s.num} className="px-4 sm:px-5 py-3.5 sm:py-4 space-y-3">
                         {hasMultipleSessions && (
-                          <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wide">
+                          <p className="text-xs font-semibold text-ink-faint uppercase tracking-wide">
                             Session {s.num}: {s.title}
                           </p>
                         )}
 
                         {/* Meeting link */}
                         <div>
-                          <label className="text-xs font-medium text-neutral-500">Meeting Link</label>
+                          <label className="text-xs font-medium text-ink-soft">Meeting Link</label>
                           <input
                             type="url"
                             value={s.meetingLink}
                             onChange={(e) => updateSession(activeTrack.slug, aw.week, s.num, { meetingLink: e.target.value })}
                             placeholder="https://zoom.us/j/... or https://meet.google.com/..."
-                            className="mt-1 w-full border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
+                            className={`${fieldInput} mt-1`}
                           />
                         </div>
 
                         {/* Recording — URL paste + file upload */}
                         <div>
-                          <label className="text-xs font-medium text-neutral-500">Recording</label>
+                          <label className="text-xs font-medium text-ink-soft">Recording</label>
                           <div className="mt-1 flex gap-2 items-start">
                             <input
                               type="url"
                               value={s.recordingUrl}
                               onChange={(e) => updateSession(activeTrack.slug, aw.week, s.num, { recordingUrl: e.target.value })}
                               placeholder="https://youtube.com/... or https://drive.google.com/..."
-                              className="flex-1 border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
+                              className={`${fieldInput} flex-1`}
                             />
                             <UploadButton accept={VIDEO_ACCEPT} label="Upload Recording" icon={Video}
                               track={activeTrack.slug}
@@ -1196,14 +1183,14 @@ export function AdminTabs({
                             />
                           </div>
                           {s.recordingUrl && isStorageUrl(s.recordingUrl) && (
-                            <p className="mt-1 text-[10px] text-neutral-400">
-                              Uploaded file · <a href={s.recordingUrl} target="_blank" rel="noopener noreferrer" className="underline hover:text-neutral-700">Preview</a>
+                            <p className="mt-1 text-[10px] text-ink-faint">
+                              Uploaded file · <a href={s.recordingUrl} target="_blank" rel="noopener noreferrer" className="underline hover:text-ink-soft">Preview</a>
                             </p>
                           )}
                         </div>
 
                         {/* Resources */}
-                        <div className="border border-neutral-100 bg-neutral-50 p-3">
+                        <div className="border border-rule-soft bg-neutral-50 p-3">
                           <ResourceEditor
                             resources={s.resources}
                             track={activeTrack.slug}
@@ -1218,12 +1205,12 @@ export function AdminTabs({
                               type="checkbox"
                               checked={s.status === "completed"}
                               onChange={(e) => updateSession(activeTrack.slug, aw.week, s.num, { status: e.target.checked ? "completed" : "upcoming" })}
-                              className="h-4 w-4 rounded border-neutral-300 accent-neutral-900"
+                              className="h-4 w-4 rounded border-rule accent-neutral-900"
                             />
-                            <span className="text-sm text-neutral-700">Mark as completed</span>
+                            <span className="text-sm text-ink">Mark as completed</span>
                           </label>
                           {s.meetingLink && (
-                            <a href={s.meetingLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-neutral-400 hover:text-neutral-900">
+                            <a href={s.meetingLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ink">
                               Open link <ExternalLink size={12} />
                             </a>
                           )}
@@ -1246,12 +1233,12 @@ export function AdminTabs({
                 <select
                   value={studentSubView}
                   onChange={(e) => setStudentSubView(e.target.value as "students" | "work")}
-                  className="appearance-none border border-rule bg-surface-elevated pl-3 pr-8 py-2 text-sm font-medium text-neutral-700 focus:border-neutral-400 focus:outline-none"
+                  className="appearance-none panel pl-3 pr-8 py-2 text-sm font-medium text-ink focus:border-ink-faint focus:outline-none"
                 >
                   <option value="students">Roster &amp; Attendance</option>
                   <option value="work">Submissions</option>
                 </select>
-                <ChevronDown size={13} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400" />
+                <ChevronDown size={13} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-faint" />
               </div>
             );
             return (
@@ -1342,19 +1329,15 @@ export function AdminTabs({
         <div className="space-y-6">
           <Link
             href="/dashboard/admin"
-            className="inline-flex items-center gap-1.5 text-[11px] font-medium text-neutral-400 transition-colors hover:text-neutral-700"
+            className="inline-flex items-center gap-1.5 text-[11px] font-medium text-ink-faint transition-colors hover:text-ink-soft"
           >
             <ArrowLeftIcon size={11} weight="bold" aria-hidden />
             Admin
           </Link>
-          <header>
-            <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
-              Student Work
-            </h1>
-            <p className="mt-1 text-sm text-neutral-500">
-              Review submitted work and leave feedback across all tracks
-            </p>
-          </header>
+          <PageHeader
+            title="Student Work"
+            subtitle="Review submitted work and leave feedback across all tracks"
+          />
           <StudentWorkTab tracks={tracks} programSlug={programSlug} />
         </div>
       )}
@@ -1364,19 +1347,15 @@ export function AdminTabs({
         <div className="space-y-6">
           <Link
             href="/dashboard/admin"
-            className="inline-flex items-center gap-1.5 text-[11px] font-medium text-neutral-400 transition-colors hover:text-neutral-700"
+            className="inline-flex items-center gap-1.5 text-[11px] font-medium text-ink-faint transition-colors hover:text-ink-soft"
           >
             <ArrowLeftIcon size={11} weight="bold" aria-hidden />
             Admin
           </Link>
-          <header>
-            <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
-              Attendance
-            </h1>
-            <p className="mt-1 text-sm text-neutral-500">
-              Attendance and engagement across all tracks
-            </p>
-          </header>
+          <PageHeader
+            title="Attendance"
+            subtitle="Attendance and engagement across all tracks"
+          />
           <AttendanceTab
             students={students.filter((s) => s.role === "student")}
             tracks={tracks}
@@ -1390,20 +1369,15 @@ export function AdminTabs({
         <div className="space-y-6">
           <Link
             href="/dashboard/admin"
-            className="inline-flex items-center gap-1.5 text-[11px] font-medium text-neutral-400 transition-colors hover:text-neutral-700"
+            className="inline-flex items-center gap-1.5 text-[11px] font-medium text-ink-faint transition-colors hover:text-ink-soft"
           >
             <ArrowLeftIcon size={11} weight="bold" aria-hidden />
             Admin
           </Link>
-          <header>
-            <h1 className="text-3xl font-bold text-neutral-900 tracking-tight">
-              Lunch &amp; Learns
-            </h1>
-            <p className="mt-1 text-xs text-neutral-500">
-              {lunchLearnRecordings.length} recording
-              {lunchLearnRecordings.length === 1 ? "" : "s"} for internal staff
-            </p>
-          </header>
+          <PageHeader
+            title="Lunch & Learns"
+            subtitle={`${lunchLearnRecordings.length} recording${lunchLearnRecordings.length === 1 ? "" : "s"} for internal staff`}
+          />
           <LunchLearnAdmin recordings={lunchLearnRecordings} embedded />
         </div>
       )}
@@ -1415,14 +1389,10 @@ export function AdminTabs({
          broader operational dashboard (engagement, attendance, alumni). */}
       {tab === "insights" && (
         <div className="space-y-6">
-          <header>
-            <h1 className="text-3xl font-bold text-neutral-900 tracking-tight">
-              Survey Insights
-            </h1>
-            <p className="mt-1 text-xs text-neutral-500">
-              Per-program survey management and cross-program responses
-            </p>
-          </header>
+          <PageHeader
+            title="Survey Insights"
+            subtitle="Per-program survey management and cross-program responses"
+          />
 
           {/* The "{Program} surveys" widget that used to live here pulled from
              `surveyStats` (auth-only, never populated on the Insights tab since
@@ -1432,7 +1402,7 @@ export function AdminTabs({
              component below now serves as the single source for these counts. */}
           {false && surveyConfigs.length > 0 && (
             <section className="space-y-3">
-              <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
+              <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">
                 {programSlug === "catalyst" ? "Catalyst" : "Program"} surveys
               </h2>
               {surveyConfigs.map((survey) => {
@@ -1494,19 +1464,19 @@ export function AdminTabs({
               totalResponses={insightsData.totalResponses}
             />
           ) : canSwitchPrograms(userRole) ? (
-            <div className="border border-rule bg-surface-elevated p-8 text-center space-y-2">
-              <p className="text-sm font-medium text-neutral-900">
+            <div className="panel p-8 text-center space-y-2">
+              <p className="text-sm font-medium text-ink">
                 Analytics didn&apos;t load
               </p>
-              <p className="text-sm text-neutral-500">
+              <p className="text-sm text-ink-soft">
                 Refresh the page. If it still doesn&apos;t load, the
                 cross-program survey query may have failed — check the Vercel
                 runtime logs for this request.
               </p>
             </div>
           ) : (
-            <div className="border border-rule bg-surface-elevated p-8 text-center">
-              <p className="text-sm text-neutral-500">
+            <div className="panel p-8 text-center">
+              <p className="text-sm text-ink-soft">
                 Analytics are only available to super-admins.
               </p>
             </div>
@@ -1587,14 +1557,14 @@ function StudentWorkTab({
             <select
               value={trackFilter}
               onChange={(e) => setTrackFilter(e.target.value)}
-              className="appearance-none border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-1.5 text-xs font-medium text-neutral-700 focus:border-neutral-400 focus:outline-none"
+              className="appearance-none border border-rule bg-neutral-50 pl-3 pr-7 py-1.5 text-xs font-medium text-ink focus:border-ink-faint focus:outline-none"
             >
               <option value="all">All Tracks</option>
               {tracks.map((t) => (
                 <option key={t.slug} value={t.slug}>{t.shortName}</option>
               ))}
             </select>
-            <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
+            <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-ink-faint" />
           </div>
         )}
 
@@ -1602,42 +1572,42 @@ function StudentWorkTab({
           <select
             value={weekFilter}
             onChange={(e) => setWeekFilter(e.target.value === "all" ? "all" : parseInt(e.target.value))}
-            className="appearance-none border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-1.5 text-xs font-medium text-neutral-700 focus:border-neutral-400 focus:outline-none"
+            className="appearance-none border border-rule bg-neutral-50 pl-3 pr-7 py-1.5 text-xs font-medium text-ink focus:border-ink-faint focus:outline-none"
           >
             <option value="all">All Weeks</option>
             {Array.from({ length: maxWeeks }, (_, i) => (
               <option key={i + 1} value={i + 1}>Week {i + 1}</option>
             ))}
           </select>
-          <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
+          <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-ink-faint" />
         </div>
 
-        <span className="text-xs text-neutral-400 ml-auto">
+        <span className="text-xs text-ink-faint ml-auto">
           {filteredSubmissions.length} result{filteredSubmissions.length !== 1 ? "s" : ""}
         </span>
       </div>
 
       {loading && (
         <div className="flex items-center justify-center py-12">
-          <Loader2 size={20} className="animate-spin text-neutral-400" />
+          <Loader2 size={20} className="animate-spin text-ink-faint" />
         </div>
       )}
 
       {!loading && (
         <div className="space-y-2">
           {filteredSubmissions.length === 0 && (
-            <p className="text-sm text-neutral-400 py-8 text-center">No submissions yet</p>
+            <p className="text-sm text-ink-faint py-8 text-center">No submissions yet</p>
           )}
           {filteredSubmissions.map((sub) => (
-            <div key={sub.id} className="border border-rule bg-surface-elevated overflow-hidden">
+            <div key={sub.id} className="panel overflow-hidden">
               <button
                 onClick={() => setExpandedId(expandedId === sub.id ? null : sub.id)}
-                className="flex w-full items-center justify-between px-4 py-3 hover:bg-neutral-50 transition-colors"
+                className="flex w-full items-center justify-between px-4 py-3 hover:bg-paper-tint-soft transition-colors"
               >
                 <div className="flex items-center gap-3 text-left min-w-0">
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-neutral-900">{sub.student_name}</p>
-                    <p className="text-[11px] text-neutral-400">
+                    <p className="text-sm font-medium text-ink">{sub.student_name}</p>
+                    <p className="text-[11px] text-ink-faint">
                       {tracks.find((t) => t.slug === sub.track_slug)?.shortName ?? sub.track_slug} · Week {sub.week_number}
                       {sub.submitted_at && ` · ${new Date(sub.submitted_at).toLocaleDateString()}`}
                     </p>
@@ -1649,7 +1619,7 @@ function StudentWorkTab({
                       <MessageSquare size={10} /> {sub.feedback_count}
                     </span>
                   )}
-                  <ChevronDown size={14} className={`text-neutral-400 transition-transform ${expandedId === sub.id ? "rotate-180" : ""}`} />
+                  <ChevronDown size={14} className={`text-ink-faint transition-transform ${expandedId === sub.id ? "rotate-180" : ""}`} />
                 </div>
               </button>
 
@@ -1668,25 +1638,25 @@ function StudentWorkTab({
                 );
                 const promptOrder = [...orderedKeys, ...extraKeys];
                 return (
-                <div className="border-t border-neutral-100 px-4 py-3 space-y-3">
+                <div className="border-t border-rule-soft px-4 py-3 space-y-3">
                   {promptOrder.map((prompt) => (
                     <div key={prompt}>
-                      <p className="text-[11px] font-medium text-neutral-400 mb-0.5">{prompt}</p>
-                      <p className="text-sm text-neutral-700 whitespace-pre-wrap">{responses[prompt]}</p>
+                      <p className="text-[11px] font-medium text-ink-faint mb-0.5">{prompt}</p>
+                      <p className="text-sm text-ink whitespace-pre-wrap">{responses[prompt]}</p>
                     </div>
                   ))}
                   {sub.description && (
                     <div>
-                      <p className="text-[11px] font-medium text-neutral-400 uppercase tracking-wide mb-1">Description</p>
-                      <p className="text-sm text-neutral-700">{sub.description}</p>
+                      <p className="text-[11px] font-medium text-ink-faint uppercase tracking-wide mb-1">Description</p>
+                      <p className="text-sm text-ink">{sub.description}</p>
                     </div>
                   )}
                   {sub.links.length > 0 && (
                     <div>
-                      <p className="text-[11px] font-medium text-neutral-400 uppercase tracking-wide mb-1">Links</p>
+                      <p className="text-[11px] font-medium text-ink-faint uppercase tracking-wide mb-1">Links</p>
                       <div className="space-y-1">
                         {sub.links.map((link, i) => (
-                          <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-neutral-700 hover:text-neutral-900">
+                          <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-ink hover:text-ink">
                             <ExternalLink size={12} className="shrink-0" />
                             {link.label || link.url}
                           </a>
@@ -1696,10 +1666,10 @@ function StudentWorkTab({
                   )}
                   {sub.files.length > 0 && (
                     <div>
-                      <p className="text-[11px] font-medium text-neutral-400 uppercase tracking-wide mb-1">Files</p>
+                      <p className="text-[11px] font-medium text-ink-faint uppercase tracking-wide mb-1">Files</p>
                       <div className="space-y-1">
                         {sub.files.map((file, i) => (
-                          <a key={i} href={file.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-neutral-700 hover:text-neutral-900">
+                          <a key={i} href={file.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-ink hover:text-ink">
                             <FileText size={12} className="shrink-0" />
                             {file.name}
                           </a>
@@ -1708,14 +1678,14 @@ function StudentWorkTab({
                     </div>
                   )}
                   {/* Feedback input */}
-                  <div className="pt-2 border-t border-neutral-100">
+                  <div className="pt-2 border-t border-rule-soft">
                     <div className="flex gap-2">
                       <input
                         type="text"
                         value={feedbackText[sub.id] ?? ""}
                         onChange={(e) => setFeedbackText((prev) => ({ ...prev, [sub.id]: e.target.value }))}
                         placeholder="Leave feedback..."
-                        className="flex-1 border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
+                        className={`${fieldInput} flex-1`}
                         onKeyDown={(e) => {
                           if (e.key === "Enter" && !e.shiftKey) {
                             e.preventDefault();
@@ -1726,7 +1696,7 @@ function StudentWorkTab({
                       <button
                         onClick={() => handleSendFeedback(sub.id)}
                         disabled={!feedbackText[sub.id]?.trim() || sendingFeedback === sub.id}
-                        className="inline-flex items-center gap-1 bg-neutral-900 px-3 py-2 text-xs font-medium text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
+                        className="inline-flex items-center gap-1 bg-ink px-3 py-2 text-xs font-medium text-white hover:bg-ink/90 disabled:opacity-50 transition-colors"
                       >
                         {sendingFeedback === sub.id ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
                       </button>
@@ -1893,7 +1863,7 @@ function PeopleTab({
       {!embedded && (
         <Link
           href="/dashboard/admin"
-          className="inline-flex items-center gap-1.5 text-[11px] font-medium text-neutral-400 transition-colors hover:text-neutral-700"
+          className="inline-flex items-center gap-1.5 text-[11px] font-medium text-ink-faint transition-colors hover:text-ink-soft"
         >
           <ArrowLeftIcon size={11} weight="bold" aria-hidden />
           Admin
@@ -1903,9 +1873,9 @@ function PeopleTab({
       {(!embedded || isManager) && (
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          {!embedded && <h1 className="text-3xl font-bold tracking-tight text-neutral-900">People</h1>}
+          {!embedded && <h1 className="text-3xl font-bold tracking-tight text-ink">People</h1>}
           {!embedded && (
-            <p className="mt-0.5 text-sm text-neutral-500">
+            <p className="mt-0.5 text-sm text-ink-soft">
               {studentCount} {studentCount === 1 ? "student" : "students"} · {instructorCount} {instructorCount === 1 ? "instructor" : "instructors"}
             </p>
           )}
@@ -1918,19 +1888,19 @@ function PeopleTab({
                   <select
                     value={bulkTrack}
                     onChange={(e) => setBulkTrack(e.target.value)}
-                    className="appearance-none border border-neutral-200 bg-white pl-3 pr-7 py-2 text-xs font-medium text-neutral-700 focus:border-neutral-400 focus:outline-none"
+                    className="appearance-none border border-rule bg-white pl-3 pr-7 py-2 text-xs font-medium text-ink focus:border-ink-faint focus:outline-none"
                   >
                     {tracks.map((t) => (
                       <option key={t.slug} value={t.slug}>{t.shortName}</option>
                     ))}
                   </select>
-                  <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
+                  <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-ink-faint" />
                 </div>
                 <button
                   type="button"
                   onClick={handleBulkAssign}
                   disabled={bulkSelected.size === 0 || bulkSaving}
-                  className="inline-flex items-center gap-1.5 bg-neutral-900 px-3 py-2 text-xs font-medium text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
+                  className={buttonClass("dark", "sm")}
                 >
                   {bulkSaving ? <Loader2 size={12} className="animate-spin" /> : <UserCheck size={12} />}
                   Assign{bulkSelected.size > 0 ? ` (${bulkSelected.size})` : ""}
@@ -1938,7 +1908,7 @@ function PeopleTab({
                 <button
                   type="button"
                   onClick={() => { setShowBulkAssign(false); setBulkSelected(new Set()); }}
-                  className="inline-flex items-center gap-1.5 border border-neutral-200 px-3 py-2 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+                  className={buttonClass("secondary", "sm")}
                 >
                   Cancel
                 </button>
@@ -1948,7 +1918,7 @@ function PeopleTab({
                 <button
                   type="button"
                   onClick={() => setShowBulkAssign(true)}
-                  className="inline-flex items-center gap-1.5 border border-neutral-200 px-3 py-2 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+                  className={buttonClass("secondary", "sm")}
                 >
                   <Users size={13} />
                   Bulk assign
@@ -1956,7 +1926,7 @@ function PeopleTab({
                 <button
                   type="button"
                   onClick={() => setShowAddForm((v) => !v)}
-                  className="inline-flex items-center gap-1.5 bg-neutral-900 px-3 py-2 text-xs font-medium text-white hover:bg-neutral-800 transition-colors"
+                  className={buttonClass("dark", "sm")}
                 >
                   <UserPlus size={13} />
                   Add person
@@ -1970,76 +1940,76 @@ function PeopleTab({
 
       {/* Add person form */}
       {!embedded && showAddForm && (
-        <form onSubmit={handleAddStudent} className="border border-rule bg-surface-elevated p-4 space-y-3">
-          <p className="text-sm font-semibold text-neutral-900">Add person</p>
+        <form onSubmit={handleAddStudent} className="panel p-4 space-y-3">
+          <p className="text-sm font-semibold text-ink">Add person</p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
-              <label className="text-xs font-medium text-neutral-500">First name</label>
+              <label className="text-xs font-medium text-ink-soft">First name</label>
               <input
                 type="text"
                 value={addFirstName}
                 onChange={(e) => setAddFirstName(e.target.value)}
                 placeholder="First"
-                className="mt-1 w-full border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
+                className={`${fieldInput} mt-1`}
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-neutral-500">Last name</label>
+              <label className="text-xs font-medium text-ink-soft">Last name</label>
               <input
                 type="text"
                 value={addLastName}
                 onChange={(e) => setAddLastName(e.target.value)}
                 placeholder="Last"
-                className="mt-1 w-full border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
+                className={`${fieldInput} mt-1`}
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-neutral-500">Email *</label>
+              <label className="text-xs font-medium text-ink-soft">Email *</label>
               <input
                 type="email"
                 required
                 value={addEmail}
                 onChange={(e) => setAddEmail(e.target.value)}
                 placeholder="email@example.com"
-                className="mt-1 w-full border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
+                className={`${fieldInput} mt-1`}
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-neutral-500">Role</label>
+              <label className="text-xs font-medium text-ink-soft">Role</label>
               <div className="relative mt-1">
                 <select
                   value={addRole}
                   onChange={(e) => setAddRole(e.target.value as "student" | "instructor" | "admin")}
-                  className="w-full appearance-none border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-2 text-sm text-neutral-700 focus:border-neutral-400 focus:outline-none"
+                  className="w-full appearance-none border border-rule bg-neutral-50 pl-3 pr-7 py-2 text-sm text-ink focus:border-ink-faint focus:outline-none"
                 >
                   <option value="student">Student</option>
                   <option value="instructor">Instructor</option>
                   <option value="admin">Admin</option>
                 </select>
-                <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
+                <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-ink-faint" />
               </div>
             </div>
             {cohorts.length > 0 && (
               <div>
-                <label className="text-xs font-medium text-neutral-500">Group</label>
+                <label className="text-xs font-medium text-ink-soft">Group</label>
                 <div className="relative mt-1">
                   <select
                     value={addCohortId}
                     onChange={(e) => setAddCohortId(e.target.value)}
-                    className="w-full appearance-none border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-2 text-sm text-neutral-700 focus:border-neutral-400 focus:outline-none"
+                    className="w-full appearance-none border border-rule bg-neutral-50 pl-3 pr-7 py-2 text-sm text-ink focus:border-ink-faint focus:outline-none"
                   >
                     <option value="">No group</option>
                     {cohorts.map((c) => (
                       <option key={c.id} value={c.id}>{c.track_slug ? `${trackLabel(c.track_slug)} — ` : ""}{c.display_name || c.name}</option>
                     ))}
                   </select>
-                  <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
+                  <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-ink-faint" />
                 </div>
                 {!showNewGroupFormAdd ? (
                   <button
                     type="button"
                     onClick={() => setShowNewGroupFormAdd(true)}
-                    className="mt-1 text-[11px] text-neutral-400 hover:text-neutral-600 transition-colors"
+                    className="mt-1 text-[11px] text-ink-faint hover:text-ink-soft transition-colors"
                   >
                     + New group
                   </button>
@@ -2048,7 +2018,7 @@ function PeopleTab({
                     <select
                       value={newGroupTrackAdd}
                       onChange={(e) => setNewGroupTrackAdd(e.target.value)}
-                      className="border border-neutral-200 bg-neutral-50 pl-3 pr-2 py-1.5 text-xs text-neutral-700 focus:border-neutral-400 focus:outline-none"
+                      className="border border-rule bg-neutral-50 pl-3 pr-2 py-1.5 text-xs text-ink focus:border-ink-faint focus:outline-none"
                     >
                       <option value="">— select track —</option>
                       {tracks.map((t) => (
@@ -2060,7 +2030,7 @@ function PeopleTab({
                       value={newGroupNameAdd}
                       onChange={(e) => setNewGroupNameAdd(e.target.value)}
                       placeholder="e.g. Security+ · Cohort 1"
-                      className="border border-neutral-200 bg-neutral-50 pl-3 py-1.5 text-xs text-neutral-700 focus:border-neutral-400 focus:outline-none"
+                      className="border border-rule bg-neutral-50 pl-3 py-1.5 text-xs text-ink focus:border-ink-faint focus:outline-none"
                     />
                     <button
                       type="button"
@@ -2082,14 +2052,14 @@ function PeopleTab({
                           setNewGroupSavingAdd(false);
                         }
                       }}
-                      className="border border-neutral-200 bg-neutral-900 px-3 py-1.5 text-xs text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
+                      className={buttonClass("dark", "sm")}
                     >
                       {newGroupSavingAdd ? "…" : "Create"}
                     </button>
                     <button
                       type="button"
                       onClick={() => { setShowNewGroupFormAdd(false); setNewGroupTrackAdd(""); setNewGroupNameAdd(""); }}
-                      className="text-[11px] text-neutral-400 hover:text-neutral-600 transition-colors"
+                      className="text-[11px] text-ink-faint hover:text-ink-soft transition-colors"
                     >
                       Cancel
                     </button>
@@ -2103,7 +2073,7 @@ function PeopleTab({
             <button
               type="submit"
               disabled={addingStudent || !addEmail.trim()}
-              className="inline-flex items-center gap-1.5 bg-neutral-900 px-4 py-2 text-xs font-medium text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
+              className={buttonClass("dark", "sm")}
             >
               {addingStudent ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
               {addingStudent ? "Adding..." : "Add person"}
@@ -2111,7 +2081,7 @@ function PeopleTab({
             <button
               type="button"
               onClick={() => setShowAddForm(false)}
-              className="inline-flex items-center gap-1.5 border border-neutral-200 px-4 py-2 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+              className={buttonClass("secondary", "sm")}
             >
               Cancel
             </button>
@@ -2128,7 +2098,7 @@ function PeopleTab({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by name or email…"
-            className="flex-1 min-w-[200px] border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-400 focus:outline-none"
+            className={`${fieldInput} flex-1 min-w-[200px]`}
           />
         )}
         {!embedded && (
@@ -2136,14 +2106,14 @@ function PeopleTab({
             <select
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
-              className="appearance-none border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-2 text-sm text-neutral-700 focus:border-neutral-400 focus:outline-none"
+              className="appearance-none border border-rule bg-neutral-50 pl-3 pr-7 py-2 text-sm text-ink focus:border-ink-faint focus:outline-none"
             >
               <option value="all">All roles</option>
               <option value="student">Students</option>
               <option value="instructor">Instructors</option>
               <option value="admin">Admins</option>
             </select>
-            <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
+            <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-ink-faint" />
           </div>
         )}
         {!embedded && tracks.length > 0 && (
@@ -2151,23 +2121,23 @@ function PeopleTab({
             <select
               value={trackFilter}
               onChange={(e) => setTrackFilter(e.target.value)}
-              className="appearance-none border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-2 text-sm text-neutral-700 focus:border-neutral-400 focus:outline-none"
+              className="appearance-none border border-rule bg-neutral-50 pl-3 pr-7 py-2 text-sm text-ink focus:border-ink-faint focus:outline-none"
             >
               <option value="all">All tracks</option>
               {tracks.map((t) => (
                 <option key={t.slug} value={t.slug}>{t.shortName}</option>
               ))}
             </select>
-            <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
+            <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-ink-faint" />
           </div>
         )}
-        <span className="text-xs text-neutral-400">{filtered.length} shown</span>
+        <span className="text-xs text-ink-faint">{filtered.length} shown</span>
       </div>
 
       {/* Roster */}
-      <div className="divide-y divide-neutral-100 border border-rule bg-surface-elevated">
+      <div className="divide-y divide-neutral-100 overflow-hidden panel">
         {filtered.length === 0 && (
-          <p className="p-4 text-sm text-neutral-500">No people found.</p>
+          <p className="p-4 text-sm text-ink-soft">No people found.</p>
         )}
         {filtered.map((s) => {
           const fullName =
@@ -2180,7 +2150,7 @@ function PeopleTab({
           return (
             <div key={s.id}>
               <div
-                className="flex items-center gap-3 px-4 py-3 hover:bg-neutral-50 cursor-pointer select-none"
+                className="flex items-center gap-3 px-4 py-3 hover:bg-paper-tint-soft cursor-pointer select-none"
                 onClick={() => setExpandedId(isExpanded ? null : s.id)}
               >
                 {showBulkAssign && s.role === "student" && (
@@ -2196,7 +2166,7 @@ function PeopleTab({
                         return next;
                       });
                     }}
-                    className="h-4 w-4 shrink-0 rounded border-neutral-300 accent-neutral-900"
+                    className="h-4 w-4 shrink-0 rounded border-rule accent-neutral-900"
                   />
                 )}
                 <Avatar
@@ -2205,24 +2175,24 @@ function PeopleTab({
                   size="sm"
                 />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-neutral-900 truncate">
+                  <p className="text-sm font-medium text-ink truncate">
                     {fullName}
                   </p>
-                  <p className="text-xs text-neutral-400 truncate">{s.email}</p>
-                  <p className="text-[11px] text-neutral-300 truncate">
+                  <p className="text-xs text-ink-faint truncate">{s.email}</p>
+                  <p className="text-[11px] text-ink-faint truncate">
                     {s.last_seen_at
                       ? `Last login: ${new Date(s.last_seen_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
                       : "Never logged in"}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-[11px] text-neutral-400 tabular-nums hidden sm:block">
+                  <span className="text-[11px] text-ink-faint tabular-nums hidden sm:block">
                     {trackCount} {trackCount === 1 ? "track" : "tracks"}
                   </span>
                   <span
                     className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-medium ${
                       s.role === "student"
-                        ? "bg-neutral-100 text-neutral-600"
+                        ? "bg-paper-tint text-ink-soft"
                         : s.role === "instructor"
                           ? "bg-blue-50 text-blue-700"
                           : "bg-amber-50 text-amber-700"
@@ -2232,20 +2202,20 @@ function PeopleTab({
                   </span>
                   <ChevronDown
                     size={14}
-                    className={`text-neutral-400 transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                    className={`text-ink-faint transition-transform ${isExpanded ? "rotate-180" : ""}`}
                   />
                 </div>
               </div>
 
               {isExpanded && (
                 <div
-                  className="border-t border-neutral-100 bg-neutral-50 px-4 py-4 space-y-4"
+                  className="border-t border-rule-soft bg-neutral-50 px-4 py-4 space-y-4"
                   onClick={(e) => e.stopPropagation()}
                 >
                   {/* Role + cohort */}
                   <div className="flex flex-wrap gap-3">
                     <div>
-                      <label className="text-[11px] font-medium uppercase tracking-wide text-neutral-500">
+                      <label className="text-[11px] font-medium uppercase tracking-wide text-ink-soft">
                         Role
                       </label>
                       <div className="relative mt-1">
@@ -2253,19 +2223,19 @@ function PeopleTab({
                           value={s.role}
                           disabled={studentSaving === s.id}
                           onChange={(e) => onUpdateStudent(s.id, "role", e.target.value)}
-                          className="appearance-none border border-neutral-200 bg-white pl-3 pr-7 py-2 text-xs font-medium text-neutral-700 focus:border-neutral-400 focus:outline-none disabled:opacity-60"
+                          className="appearance-none border border-rule bg-white pl-3 pr-7 py-2 text-xs font-medium text-ink focus:border-ink-faint focus:outline-none disabled:opacity-60"
                         >
                           <option value="student">Student</option>
                           <option value="instructor">Instructor</option>
                           <option value="admin">Admin</option>
                           <option value="super_admin">Super Admin</option>
                         </select>
-                        <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
+                        <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-ink-faint" />
                       </div>
                     </div>
                     {cohorts.length > 0 && s.role === "student" && (
                       <div>
-                        <label className="text-[11px] font-medium uppercase tracking-wide text-neutral-500">
+                        <label className="text-[11px] font-medium uppercase tracking-wide text-ink-soft">
                           Group
                         </label>
                         <div className="relative mt-1">
@@ -2273,7 +2243,7 @@ function PeopleTab({
                             value={s.cohort_id ?? ""}
                             disabled={studentSaving === s.id}
                             onChange={(e) => onUpdateStudent(s.id, "cohort_id", e.target.value)}
-                            className="appearance-none border border-neutral-200 bg-white pl-3 pr-7 py-2 text-xs font-medium text-neutral-700 focus:border-neutral-400 focus:outline-none disabled:opacity-60"
+                            className="appearance-none border border-rule bg-white pl-3 pr-7 py-2 text-xs font-medium text-ink focus:border-ink-faint focus:outline-none disabled:opacity-60"
                           >
                             <option value="">No group</option>
                             {cohorts.map((c) => (
@@ -2282,7 +2252,7 @@ function PeopleTab({
                               </option>
                             ))}
                           </select>
-                          <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400" />
+                          <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-ink-faint" />
                         </div>
                         {showNewGroupFormRow !== s.id ? (
                           <button
@@ -2293,7 +2263,7 @@ function PeopleTab({
                               setNewGroupNameRow("");
                               setShowNewGroupFormRow(s.id);
                             }}
-                            className="mt-1 text-[11px] text-neutral-400 hover:text-neutral-600 transition-colors"
+                            className="mt-1 text-[11px] text-ink-faint hover:text-ink-soft transition-colors"
                           >
                             + New group
                           </button>
@@ -2302,7 +2272,7 @@ function PeopleTab({
                             <select
                               value={newGroupTrackRow}
                               onChange={(e) => setNewGroupTrackRow(e.target.value)}
-                              className="border border-neutral-200 bg-neutral-50 pl-3 pr-2 py-1.5 text-xs text-neutral-700 focus:border-neutral-400 focus:outline-none"
+                              className="border border-rule bg-neutral-50 pl-3 pr-2 py-1.5 text-xs text-ink focus:border-ink-faint focus:outline-none"
                             >
                               <option value="">— select track —</option>
                               {tracks.map((t) => (
@@ -2314,7 +2284,7 @@ function PeopleTab({
                               value={newGroupNameRow}
                               onChange={(e) => setNewGroupNameRow(e.target.value)}
                               placeholder="e.g. Security+ · Cohort 1"
-                              className="border border-neutral-200 bg-neutral-50 pl-3 py-1.5 text-xs text-neutral-700 focus:border-neutral-400 focus:outline-none"
+                              className="border border-rule bg-neutral-50 pl-3 py-1.5 text-xs text-ink focus:border-ink-faint focus:outline-none"
                             />
                             <button
                               type="button"
@@ -2336,14 +2306,14 @@ function PeopleTab({
                                   setNewGroupSavingRow(false);
                                 }
                               }}
-                              className="border border-neutral-200 bg-neutral-900 px-3 py-1.5 text-xs text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
+                              className={buttonClass("dark", "sm")}
                             >
                               {newGroupSavingRow ? "…" : "Create"}
                             </button>
                             <button
                               type="button"
                               onClick={() => { setShowNewGroupFormRow(null); setNewGroupTrackRow(""); setNewGroupNameRow(""); }}
-                              className="text-[11px] text-neutral-400 hover:text-neutral-600 transition-colors"
+                              className="text-[11px] text-ink-faint hover:text-ink-soft transition-colors"
                             >
                               Cancel
                             </button>
@@ -2361,10 +2331,10 @@ function PeopleTab({
                   {tracks.length > 0 && (
                     <div>
                       <div className="mb-2 flex items-baseline gap-3">
-                        <p className="text-[11px] font-medium uppercase tracking-wide text-neutral-500">
+                        <p className="text-[11px] font-medium uppercase tracking-wide text-ink-soft">
                           {s.role === "instructor" ? "Teaching" : "Tracks"}
                         </p>
-                        <p className="text-[10px] text-neutral-400">
+                        <p className="text-[10px] text-ink-faint">
                           ✓ enrolled · + click to add
                         </p>
                       </div>
@@ -2390,8 +2360,8 @@ function PeopleTab({
                               disabled={isSaving}
                               className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors disabled:opacity-60 ${
                                 enrolled
-                                  ? "bg-neutral-900 text-white"
-                                  : "border border-neutral-200 bg-white text-neutral-500 hover:border-neutral-400 hover:text-neutral-700"
+                                  ? "bg-ink text-white"
+                                  : "border border-rule bg-white text-ink-soft hover:border-ink-faint hover:text-ink-soft"
                               }`}
                             >
                               {isSaving ? (
@@ -2411,28 +2381,28 @@ function PeopleTab({
 
                   {/* Engagement snapshot (only if scores were fetched) */}
                   {s.role === "student" && engagementScores[s.id] && (
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-neutral-500">
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-ink-soft">
                       <span>
-                        <strong className="font-semibold text-neutral-900">
+                        <strong className="font-semibold text-ink">
                           {engagementScores[s.id].total}
                         </strong>
                         /100 engagement
                       </span>
-                      <span className="text-neutral-300">·</span>
+                      <span className="text-ink-faint">·</span>
                       <span>{engagementScores[s.id].attendance} attended</span>
-                      <span className="text-neutral-300">·</span>
+                      <span className="text-ink-faint">·</span>
                       <span>{engagementScores[s.id].submissions} submitted</span>
-                      <span className="text-neutral-300">·</span>
+                      <span className="text-ink-faint">·</span>
                       <span>{engagementScores[s.id].reflections} reflected</span>
                     </div>
                   )}
 
                   {/* Remove person */}
                   {isManager && (
-                    <div className="border-t border-neutral-200 pt-3">
+                    <div className="border-t border-rule pt-3">
                       {confirmDeleteId === s.id ? (
                         <div className="flex items-center gap-2">
-                          <span className="text-xs text-neutral-500">
+                          <span className="text-xs text-ink-soft">
                             Remove {s.first_name || s.email}?
                           </span>
                           <button
@@ -2449,7 +2419,7 @@ function PeopleTab({
                           <button
                             type="button"
                             onClick={() => setConfirmDeleteId(null)}
-                            className="text-xs text-neutral-400 hover:text-neutral-600"
+                            className="text-xs text-ink-faint hover:text-ink-soft"
                           >
                             Cancel
                           </button>
@@ -2458,7 +2428,7 @@ function PeopleTab({
                         <button
                           type="button"
                           onClick={() => setConfirmDeleteId(s.id)}
-                          className="inline-flex items-center gap-1.5 text-xs text-neutral-400 hover:text-red-500 transition-colors"
+                          className="inline-flex items-center gap-1.5 text-xs text-ink-faint hover:text-red-500 transition-colors"
                         >
                           <Trash2 size={12} />
                           Remove person
@@ -2539,20 +2509,20 @@ function SurveyCard({
   }
 
   return (
-    <div className="border border-rule bg-surface-elevated p-4">
+    <div className="panel p-4">
       <div className="flex items-center justify-between mb-2">
-        <p className="text-sm font-semibold text-neutral-900">{title}</p>
-        <span className="text-xs text-neutral-400">{completed} of {totalStudents} completed</span>
+        <p className="text-sm font-semibold text-ink">{title}</p>
+        <span className="text-xs text-ink-faint">{completed} of {totalStudents} completed</span>
       </div>
-      <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-100 mb-3">
-        <div className="h-full rounded-full bg-neutral-900 transition-all" style={{ width: `${pct}%` }} />
+      <div className="h-2 w-full overflow-hidden rounded-full bg-paper-tint mb-3">
+        <div className="h-full rounded-full bg-ink transition-all" style={{ width: `${pct}%` }} />
       </div>
       <div className="flex items-center gap-2">
         <a
           href={previewHref}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+          className={buttonClass("secondary", "sm")}
         >
           <ExternalLink size={12} />
           Preview
@@ -2560,7 +2530,7 @@ function SurveyCard({
         <button
           type="button"
           onClick={async () => { try { await onExport(); } catch (e) { console.error("Export failed:", e); } }}
-          className="inline-flex items-center gap-1 border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+          className={buttonClass("secondary", "sm")}
         >
           <Download size={12} />
           Export CSV
@@ -2579,28 +2549,28 @@ function SurveyCard({
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="inline-flex items-center gap-1 border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+          className={buttonClass("secondary", "sm")}
         >
           <ChevronDown size={12} className={`transition-transform ${expanded ? "rotate-180" : ""}`} />
           {expanded ? "Hide" : "Responses"}
         </button>
       </div>
       {expanded && (
-        <div className="mt-3 border-t border-neutral-100 pt-3 space-y-1">
+        <div className="mt-3 border-t border-rule-soft pt-3 space-y-1">
           {localResponses.length === 0 && (
-            <p className="text-xs text-neutral-400 px-2">No responses yet.</p>
+            <p className="text-xs text-ink-faint px-2">No responses yet.</p>
           )}
           {localResponses.map((r) => (
-            <div key={r.id} className="flex items-center justify-between gap-2 px-2 py-1.5 hover:bg-neutral-50">
+            <div key={r.id} className="flex items-center justify-between gap-2 px-2 py-1.5 hover:bg-paper-tint-soft">
               <div className="min-w-0">
-                <p className="text-xs font-medium text-neutral-800 truncate">{r.label}</p>
-                <p className="text-[11px] text-neutral-400 truncate">{r.sublabel}</p>
+                <p className="text-xs font-medium text-ink truncate">{r.label}</p>
+                <p className="text-[11px] text-ink-faint truncate">{r.sublabel}</p>
               </div>
               <button
                 type="button"
                 onClick={() => handleDelete(r.id)}
                 disabled={deleting === r.id}
-                className="shrink-0 rounded p-1 text-neutral-300 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
+                className="shrink-0 rounded p-1 text-ink-faint hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
                 title="Delete response"
               >
                 {deleting === r.id ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
@@ -2668,11 +2638,11 @@ function PublicSurveyCard({
   }
 
   return (
-    <div className="border border-rule bg-surface-elevated p-4">
+    <div className="panel p-4">
       <div className="flex items-center justify-between mb-3">
         <div>
-          <p className="text-sm font-semibold text-neutral-900">{title}</p>
-          <p className="text-xs text-neutral-400 mt-0.5">{responseCount} response{responseCount === 1 ? "" : "s"}</p>
+          <p className="text-sm font-semibold text-ink">{title}</p>
+          <p className="text-xs text-ink-faint mt-0.5">{responseCount} response{responseCount === 1 ? "" : "s"}</p>
         </div>
       </div>
       <div className="flex items-center gap-2">
@@ -2680,7 +2650,7 @@ function PublicSurveyCard({
           href={previewHref}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+          className={buttonClass("secondary", "sm")}
         >
           <ExternalLink size={12} />
           Preview
@@ -2688,7 +2658,7 @@ function PublicSurveyCard({
         <button
           type="button"
           onClick={async () => { try { await onExport(); } catch (e) { console.error("Export failed:", e); } }}
-          className="inline-flex items-center gap-1 border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+          className={buttonClass("secondary", "sm")}
         >
           <Download size={12} />
           Export CSV
@@ -2697,7 +2667,7 @@ function PublicSurveyCard({
           <button
             type="button"
             onClick={handleExpand}
-            className="inline-flex items-center gap-1 border border-neutral-200 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors"
+            className={buttonClass("secondary", "sm")}
           >
             {loading ? <Loader2 size={12} className="animate-spin" /> : <ChevronDown size={12} className={`transition-transform ${expanded ? "rotate-180" : ""}`} />}
             {expanded ? "Hide" : "Responses"}
@@ -2705,20 +2675,20 @@ function PublicSurveyCard({
         )}
       </div>
       {expanded && (
-        <div className="mt-3 border-t border-neutral-100 pt-3 space-y-1">
+        <div className="mt-3 border-t border-rule-soft pt-3 space-y-1">
           {responses.length === 0 && !loading && (
-            <p className="text-xs text-neutral-400 px-2">No responses found.</p>
+            <p className="text-xs text-ink-faint px-2">No responses found.</p>
           )}
           {responses.map((r) => (
-            <div key={r.email} className="border border-neutral-100 overflow-hidden">
-              <div className="flex items-center justify-between gap-2 px-2 py-1.5 hover:bg-neutral-50">
+            <div key={r.email} className="border border-rule-soft overflow-hidden">
+              <div className="flex items-center justify-between gap-2 px-2 py-1.5 hover:bg-paper-tint-soft">
                 <button
                   type="button"
                   onClick={() => setExpandedEmail(expandedEmail === r.email ? null : r.email)}
                   className="flex-1 text-left min-w-0"
                 >
-                  <p className="text-xs font-medium text-neutral-800 truncate">{r.full_name}</p>
-                  <p className="text-[11px] text-neutral-400 truncate">{r.email}{r.completedAt ? ` · ${new Date(r.completedAt).toLocaleDateString()}` : ""}</p>
+                  <p className="text-xs font-medium text-ink truncate">{r.full_name}</p>
+                  <p className="text-[11px] text-ink-faint truncate">{r.email}{r.completedAt ? ` · ${new Date(r.completedAt).toLocaleDateString()}` : ""}</p>
                 </button>
                 <div className="flex items-center gap-1 shrink-0">
                   {r.invitedAt ? (
@@ -2748,7 +2718,7 @@ function PublicSurveyCard({
                   <button
                     type="button"
                     onClick={() => setExpandedEmail(expandedEmail === r.email ? null : r.email)}
-                    className="rounded p-1 text-neutral-300 hover:text-neutral-600 hover:bg-neutral-100 transition-colors"
+                    className="rounded p-1 text-ink-faint hover:text-ink-soft hover:bg-paper-tint transition-colors"
                     title={expandedEmail === r.email ? "Hide answers" : "View answers"}
                   >
                     <ChevronDown size={13} className={`transition-transform ${expandedEmail === r.email ? "rotate-180" : ""}`} />
@@ -2757,7 +2727,7 @@ function PublicSurveyCard({
                     type="button"
                     onClick={() => handleDelete(r.email)}
                     disabled={deleting === r.email}
-                    className="rounded p-1 text-neutral-300 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
+                    className="rounded p-1 text-ink-faint hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
                     title="Delete response"
                   >
                     {deleting === r.email ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
@@ -2765,15 +2735,15 @@ function PublicSurveyCard({
                 </div>
               </div>
               {expandedEmail === r.email && (
-                <div className="border-t border-neutral-100 bg-neutral-50 px-3 py-2 space-y-1.5">
+                <div className="border-t border-rule-soft bg-neutral-50 px-3 py-2 space-y-1.5">
                   {Object.entries(r.responses)
                     .filter(([, val]) => val !== null && val !== undefined && val !== "")
                     .map(([key, val]) => (
                       <div key={key}>
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-400">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint">
                           {key.replace(/_/g, " ")}
                         </p>
-                        <p className="text-xs text-neutral-700 mt-0.5">
+                        <p className="text-xs text-ink mt-0.5">
                           {formatResponseValue(val)}
                         </p>
                       </div>
@@ -2862,14 +2832,14 @@ function GroupsPanel({
   return (
     <div>
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">
           Groups
         </h2>
         {!showForm && (
           <button
             type="button"
             onClick={() => setShowForm(true)}
-            className="text-xs text-neutral-400 hover:text-neutral-700 transition-colors"
+            className="text-xs text-ink-faint hover:text-ink-soft transition-colors"
           >
             + New Group
           </button>
@@ -2877,13 +2847,13 @@ function GroupsPanel({
       </div>
 
       {cohorts.length === 0 && !showForm && (
-        <p className="text-sm text-neutral-400">
+        <p className="text-sm text-ink-faint">
           No groups yet. Create one to organize students by track and cohort.
         </p>
       )}
 
       {cohorts.length > 0 && (
-        <div className="divide-y divide-rule border border-rule bg-surface-elevated">
+        <div className="divide-y divide-rule overflow-hidden panel">
           {cohorts.map((c) => {
             const dest = c.track_slug
               ? `/dashboard/admin?tab=${c.track_slug}&view=students`
@@ -2892,19 +2862,19 @@ function GroupsPanel({
               <Link
                 key={c.id}
                 href={dest}
-                className="group flex items-center gap-4 px-4 py-3.5 hover:bg-neutral-50 transition-colors"
+                className="group flex items-center gap-4 px-4 py-3.5 hover:bg-paper-tint-soft transition-colors"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-[14px] font-semibold text-neutral-900 truncate">
+                  <p className="text-[14px] font-semibold text-ink truncate">
                     {c.display_name || c.name}
                   </p>
                   {c.track_slug && (
-                    <p className="text-[12px] text-neutral-400 truncate">
+                    <p className="text-[12px] text-ink-faint truncate">
                       {trackLabel(c.track_slug)}
                     </p>
                   )}
                 </div>
-                <span className="shrink-0 text-neutral-300 group-hover:text-neutral-500 transition-colors">→</span>
+                <span className="shrink-0 text-ink-faint group-hover:text-ink-soft transition-colors">→</span>
               </Link>
             );
           })}
@@ -2914,18 +2884,18 @@ function GroupsPanel({
       {showForm && (
         <form
           onSubmit={handleSubmit}
-          className="border border-rule bg-surface-elevated p-4 space-y-3"
+          className="panel p-4 space-y-3"
         >
-          <p className="text-sm font-semibold text-neutral-900">New group</p>
+          <p className="text-sm font-semibold text-ink">New group</p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
-              <label className="text-xs font-medium text-neutral-500">Track</label>
+              <label className="text-xs font-medium text-ink-soft">Track</label>
               <div className="relative mt-1">
                 <select
                   required
                   value={trackSlug}
                   onChange={(e) => setTrackSlug(e.target.value)}
-                  className="w-full appearance-none border border-neutral-200 bg-neutral-50 pl-3 pr-7 py-2 text-sm text-neutral-700 focus:border-neutral-400 focus:outline-none"
+                  className="w-full appearance-none border border-rule bg-neutral-50 pl-3 pr-7 py-2 text-sm text-ink focus:border-ink-faint focus:outline-none"
                 >
                   <option value="">— select track —</option>
                   {tracks.map((t) => (
@@ -2934,38 +2904,38 @@ function GroupsPanel({
                     </option>
                   ))}
                 </select>
-                <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400">▾</span>
+                <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-ink-faint">▾</span>
               </div>
             </div>
             <div>
-              <label className="text-xs font-medium text-neutral-500">Name</label>
+              <label className="text-xs font-medium text-ink-soft">Name</label>
               <input
                 type="text"
                 required
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder="e.g. Security+ · Cohort 1"
-                className="mt-1 w-full border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
+                className={`${fieldInput} mt-1`}
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-neutral-500">Start date (optional)</label>
+              <label className="text-xs font-medium text-ink-soft">Start date (optional)</label>
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="mt-1 w-full border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
+                className={`${fieldInput} mt-1`}
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-neutral-500">Duration in weeks (optional)</label>
+              <label className="text-xs font-medium text-ink-soft">Duration in weeks (optional)</label>
               <input
                 type="number"
                 min="1"
                 value={totalWeeks}
                 onChange={(e) => setTotalWeeks(e.target.value)}
                 placeholder="e.g. 10"
-                className="mt-1 w-full border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
+                className={`${fieldInput} mt-1`}
               />
             </div>
           </div>
@@ -2974,14 +2944,14 @@ function GroupsPanel({
             <button
               type="submit"
               disabled={submitting}
-              className="border border-neutral-200 px-3 py-2 text-xs font-medium text-neutral-600 hover:bg-neutral-50 transition-colors disabled:opacity-50"
+              className={buttonClass("secondary", "sm")}
             >
               {submitting ? "Creating…" : "Create group"}
             </button>
             <button
               type="button"
               onClick={() => { setShowForm(false); setError(null); }}
-              className="text-xs text-neutral-400 hover:text-neutral-600 transition-colors"
+              className="text-xs text-ink-faint hover:text-ink-soft transition-colors"
             >
               Cancel
             </button>
@@ -3018,16 +2988,16 @@ function SurveyLinksPanel({ surveyConfigs }: { surveyConfigs: { id: string; titl
   ];
 
   return (
-    <div className="border border-rule bg-surface-elevated">
+    <div className="panel">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-neutral-50 transition-colors"
+        className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-paper-tint-soft transition-colors"
       >
-        <span className="text-[14px] font-semibold text-neutral-900">
+        <span className="text-[14px] font-semibold text-ink">
           {allLinks.length} survey {allLinks.length === 1 ? "link" : "links"}
         </span>
-        <span className="text-neutral-400 text-xs">{open ? "↑ collapse" : "↓ expand"}</span>
+        <span className="text-ink-faint text-xs">{open ? "↑ collapse" : "↓ expand"}</span>
       </button>
       {open && (
         <div className="divide-y divide-rule border-t border-rule">
@@ -3037,21 +3007,21 @@ function SurveyLinksPanel({ surveyConfigs }: { surveyConfigs: { id: string; titl
               className="flex items-center justify-between gap-4 px-4 py-3"
             >
               <div className="min-w-0">
-                <p className="text-[13px] font-medium text-neutral-900 truncate">{s.label}</p>
-                <p className="text-[11px] text-neutral-400 font-mono truncate">
+                <p className="text-[13px] font-medium text-ink truncate">{s.label}</p>
+                <p className="text-[11px] text-ink-faint font-mono truncate">
                   {typeof window !== "undefined" ? `${window.location.origin}${s.path}` : s.path}
                 </p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 {s.auth && (
-                  <span className="text-[10px] font-medium uppercase tracking-wide text-neutral-400 border border-neutral-200 px-1.5 py-0.5">
+                  <span className="text-[10px] font-medium uppercase tracking-wide text-ink-faint border border-rule px-1.5 py-0.5">
                     login required
                   </span>
                 )}
                 <button
                   type="button"
                   onClick={() => copy(s.path, s.id)}
-                  className="text-[11px] font-medium border border-rule px-2.5 py-1.5 text-neutral-600 hover:bg-neutral-50 transition-colors"
+                  className={buttonClass("secondary", "sm")}
                 >
                   {copied === s.id ? "✓ Copied" : "Copy link"}
                 </button>

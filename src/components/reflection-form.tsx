@@ -4,6 +4,7 @@ import { useState } from "react";
 import { submitReflection } from "@/app/dashboard/track/actions";
 import type { ReflectionRow, FeedbackRow } from "@/app/dashboard/track/actions";
 import { PenLine, CheckCircle, Loader2, MessageSquare, ChevronDown } from "lucide-react";
+import { buttonClass } from "@/components/ui";
 
 const DEFAULT_PROMPTS = [
   "What did you learn this week?",
@@ -66,15 +67,15 @@ export function ReflectionForm({
   const hasContent = Object.values(responses).some((v) => v.trim());
 
   return (
-    <div className="border border-rule bg-surface-elevated">
+    <div className="panel">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between p-4 sm:p-6 text-left hover:bg-neutral-50 transition-colors"
+        className="flex w-full items-center justify-between p-4 sm:p-6 text-left hover:bg-paper-tint-soft transition-colors"
       >
         <div className="flex items-center gap-2">
-          <PenLine size={14} className="text-neutral-400" />
-          <h2 className="text-xs font-semibold text-neutral-400 uppercase tracking-wide">
+          <PenLine size={14} className="text-ink-faint" />
+          <h2 className="text-xs font-semibold text-ink-faint uppercase tracking-wide">
             Weekly Reflection
           </h2>
         </div>
@@ -87,7 +88,7 @@ export function ReflectionForm({
           )}
           <ChevronDown
             size={16}
-            className={`text-neutral-400 transition-transform ${open ? "rotate-180" : ""}`}
+            className={`text-ink-faint transition-transform ${open ? "rotate-180" : ""}`}
           />
         </div>
       </button>
@@ -98,14 +99,14 @@ export function ReflectionForm({
       <div className="space-y-4 mb-4">
         {activePrompts.map((prompt) => (
           <div key={prompt}>
-            <label className="text-sm font-medium text-neutral-700 mb-1.5 block">
+            <label className="text-sm font-medium text-ink mb-1.5 block">
               {prompt}
             </label>
             <textarea
               value={responses[prompt] ?? ""}
               onChange={(e) => updateResponse(prompt, e.target.value)}
               rows={2}
-              className="w-full border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900 focus:outline-none resize-none"
+              className="w-full border border-rule bg-neutral-50 px-3 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-ink focus:outline-none resize-none"
             />
           </div>
         ))}
@@ -113,7 +114,7 @@ export function ReflectionForm({
 
       {/* Free text */}
       <div className="mb-4">
-        <label className="text-sm font-medium text-neutral-700 mb-1.5 block">
+        <label className="text-sm font-medium text-ink mb-1.5 block">
           Additional thoughts (optional)
         </label>
         <textarea
@@ -121,7 +122,7 @@ export function ReflectionForm({
           onChange={(e) => updateResponse("_additional", e.target.value)}
           placeholder="Anything else on your mind..."
           rows={2}
-          className="w-full border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900 focus:outline-none resize-none"
+          className="w-full border border-rule bg-neutral-50 px-3 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-ink focus:outline-none resize-none"
         />
       </div>
 
@@ -132,7 +133,7 @@ export function ReflectionForm({
       <button
         onClick={handleSubmit}
         disabled={saving || !hasContent}
-        className="inline-flex items-center gap-2 bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
+        className={buttonClass("dark", "md")}
       >
         {saving ? (
           <><Loader2 size={14} className="animate-spin" /> Saving...</>
@@ -145,20 +146,20 @@ export function ReflectionForm({
 
       {/* Feedback from instructor */}
       {feedback.length > 0 && (
-        <div className="mt-5 pt-4 border-t border-neutral-100 space-y-3">
+        <div className="mt-5 pt-4 border-t border-rule-soft space-y-3">
           <div className="flex items-center gap-2">
-            <MessageSquare size={14} className="text-neutral-400" />
-            <h3 className="text-xs font-semibold text-neutral-400 uppercase tracking-wide">
+            <MessageSquare size={14} className="text-ink-faint" />
+            <h3 className="text-xs font-semibold text-ink-faint uppercase tracking-wide">
               Instructor Feedback
             </h3>
           </div>
           {feedback.map((fb) => (
             <div
               key={fb.id}
-              className="border border-neutral-100 bg-neutral-50 p-3"
+              className="border border-rule-soft bg-neutral-50 p-3"
             >
-              <p className="text-sm text-neutral-700">{fb.comment}</p>
-              <p className="text-[11px] text-neutral-400 mt-1">
+              <p className="text-sm text-ink">{fb.comment}</p>
+              <p className="text-[11px] text-ink-faint mt-1">
                 {fb.reviewer_name} &middot;{" "}
                 {new Date(fb.created_at).toLocaleDateString()}
               </p>

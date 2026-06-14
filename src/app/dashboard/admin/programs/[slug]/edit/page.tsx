@@ -5,6 +5,7 @@ import { canSwitchPrograms } from "@/lib/roles";
 import { getProgramBySlug } from "@/lib/programs";
 import { createServiceClient } from "@/lib/supabase/server";
 import { EditCourseForm } from "./edit-course-form";
+import { PageHeader } from "@/components/page-header";
 
 type OverrideRow = {
   track_slug: string;
@@ -52,15 +53,15 @@ export default async function EditCoursePage({
       <div>
         <Link
           href="/dashboard/admin/programs"
-          className="inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-neutral-900 transition-colors mb-4"
+          className="inline-flex items-center gap-1.5 text-sm text-ink-faint hover:text-ink transition-colors mb-4"
         >
           ← Courses
         </Link>
-        <h1 className="text-3xl font-bold tracking-tight text-neutral-900">Edit Course</h1>
-        <p className="mt-1 text-xs text-neutral-400 font-mono">{slug}</p>
+        <PageHeader title="Edit Course" />
+        <p className="mt-1 text-xs text-ink-faint font-mono">{slug}</p>
       </div>
 
-      <div className="rounded-lg border border-neutral-200 bg-white p-6">
+      <div className="rounded-lg border border-rule bg-white p-6">
         <EditCourseForm
           trackSlug={slug}
           initialName={override.name ?? ""}

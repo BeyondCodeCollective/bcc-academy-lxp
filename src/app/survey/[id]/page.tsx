@@ -56,13 +56,13 @@ export default async function PublicSurveyPage({
         <TextScaleToggle />
       </div>
       <div className="mx-auto w-full max-w-2xl px-5 pt-6 pb-6">
-        <p className="text-xs font-medium tracking-wide text-[#E54D2E] uppercase">
+        <p className="text-xs font-medium tracking-wide text-primary uppercase">
           {program.organization}
         </p>
-        <h1 className="mt-1 text-2xl font-bold text-neutral-900 sm:text-3xl">
+        <h1 className="mt-1 text-2xl font-bold text-ink sm:text-3xl">
           {survey.title}
         </h1>
-        <p className="mt-2 text-sm text-neutral-700">{survey.description}</p>
+        <p className="mt-2 text-sm text-ink">{survey.description}</p>
       </div>
       <SurveyComponent surveyId={survey.id} programSlug={program.slug} />
     </main>

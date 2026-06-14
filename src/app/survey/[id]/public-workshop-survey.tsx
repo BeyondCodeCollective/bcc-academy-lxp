@@ -208,10 +208,10 @@ function WorkshopContactPage(
   return (
     <div>
       <div className="mb-6">
-        <h2 className="text-xl font-bold text-neutral-900">
+        <h2 className="text-xl font-bold text-ink">
           About you &amp; today&apos;s workshop
         </h2>
-        <p className="mt-1 text-sm text-neutral-700">
+        <p className="mt-1 text-sm text-ink">
           So we can connect your feedback to the right workshop.
         </p>
       </div>
@@ -219,7 +219,7 @@ function WorkshopContactPage(
         <div>
           <label
             htmlFor="workshop-name"
-            className="text-sm font-medium text-neutral-900 mb-2 block"
+            className="text-sm font-medium text-ink mb-2 block"
           >
             Workshop Name
             <span aria-hidden="true" className="text-red-500 ml-0.5">
@@ -246,7 +246,7 @@ function WorkshopContactPage(
         </div>
 
         <fieldset>
-          <legend className="text-sm font-medium text-neutral-900 mb-2">
+          <legend className="text-sm font-medium text-ink mb-2">
             Workshop Location
             <span aria-hidden="true" className="text-red-500 ml-0.5">
               *
@@ -258,8 +258,8 @@ function WorkshopContactPage(
                 key={loc}
                 className={`flex items-center gap-2.5 rounded-lg border px-3.5 py-2.5 cursor-pointer transition-colors ${
                   workshopLocation === loc
-                    ? "border-neutral-900 bg-neutral-900/5"
-                    : "border-neutral-200 bg-white hover:border-neutral-300"
+                    ? "border-ink bg-ink/5"
+                    : "border-rule bg-white hover:border-ink-faint"
                 }`}
               >
                 <input
@@ -268,9 +268,9 @@ function WorkshopContactPage(
                   value={loc}
                   checked={workshopLocation === loc}
                   onChange={() => handleWorkshopLocation(loc)}
-                  className="h-3.5 w-3.5 border-neutral-300 text-neutral-900 focus:ring-neutral-900"
+                  className="h-3.5 w-3.5 border-rule text-ink focus:ring-ink-faint"
                 />
-                <span className="text-sm text-neutral-700">{loc}</span>
+                <span className="text-sm text-ink">{loc}</span>
               </label>
             ))}
           </div>
@@ -279,7 +279,7 @@ function WorkshopContactPage(
         <div>
           <label
             htmlFor="workshop-date"
-            className="text-sm font-medium text-neutral-900 mb-2 block"
+            className="text-sm font-medium text-ink mb-2 block"
           >
             Today&apos;s Date
             <span aria-hidden="true" className="text-red-500 ml-0.5">
@@ -300,7 +300,7 @@ function WorkshopContactPage(
         <div>
           <label
             htmlFor="contact-name"
-            className="text-sm font-medium text-neutral-900 mb-2 block"
+            className="text-sm font-medium text-ink mb-2 block"
           >
             Your Name
             <span aria-hidden="true" className="text-red-500 ml-0.5">
@@ -323,7 +323,7 @@ function WorkshopContactPage(
         <div>
           <label
             htmlFor="contact-email"
-            className="text-sm font-medium text-neutral-900 mb-2 block"
+            className="text-sm font-medium text-ink mb-2 block"
           >
             Email
             <span aria-hidden="true" className="text-red-500 ml-0.5">

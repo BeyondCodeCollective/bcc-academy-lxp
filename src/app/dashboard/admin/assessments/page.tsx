@@ -5,6 +5,7 @@ import { canAccessAdminPanel } from "@/lib/roles";
 import Link from "next/link";
 import type { ScoredOutput } from "@/lib/assessment/types";
 import { ARCHETYPE_CONTENT } from "@/lib/assessment/content";
+import { PageHeader } from "@/components/page-header";
 
 export default async function AssessmentsAdminPage() {
   const ctx = await getSessionContext();
@@ -34,19 +35,19 @@ export default async function AssessmentsAdminPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-5 py-10 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-ink">Pathway Assessments</h1>
-          <p className="text-sm text-ink/50 mt-0.5">Learner pathway profiles</p>
-        </div>
-        {unviewedCount > 0 && (
-          <span className="rounded-full bg-accent px-3 py-1 text-xs font-semibold text-white">
-            {unviewedCount} new
-          </span>
-        )}
-      </div>
+      <PageHeader
+        title="Pathway Assessments"
+        subtitle="Learner pathway profiles"
+        actions={
+          unviewedCount > 0 && (
+            <span className="rounded-full bg-accent px-3 py-1 text-xs font-semibold text-white">
+              {unviewedCount} new
+            </span>
+          )
+        }
+      />
 
-      <div className="rounded-2xl border border-ink/10 overflow-hidden">
+      <div className="rounded-lg border border-ink/10 overflow-hidden">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-ink/10 bg-ink/[0.02]">

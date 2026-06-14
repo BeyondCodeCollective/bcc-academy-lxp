@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { createServiceClient } from "@/lib/supabase/server";
-import { getYouTubeThumbnailUrl } from "@/lib/storage-utils";
-import { VideoPoster } from "@/components/video-poster";
+import { CatalogCard } from "@/components/catalog-card";
+import { PageHeader, Section } from "@/components/page-header";
+import { buttonClass } from "@/components/ui";
 
 type Props = {
   isAdmin: boolean;
@@ -21,29 +22,22 @@ export async function LunchLearnHub({ isAdmin, firstName }: Props) {
   const recordings = rows ?? [];
 
   return (
-    <div className="mx-auto w-full max-w-2xl md:max-w-5xl px-4 sm:px-5 py-10 md:py-14">
-      <header className="mb-10 md:mb-14 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-ink-faint mb-3">
-            Lunch &amp; Learns
-          </p>
-          <h1 className="text-3xl md:text-4xl font-semibold text-ink tracking-[-0.02em] leading-[1.05]">
-            {firstName ? `Welcome, ${firstName}` : "Internal learning sessions"}
-          </h1>
-          <p className="mt-3 text-[15px] leading-[1.6] text-ink-soft max-w-xl">
-            Recordings from the BCC team — peer-taught sessions on the tools,
-            topics, and practices we use day-to-day.
-          </p>
-        </div>
-        {isAdmin && (
-          <Link
-            href="/dashboard/admin?tab=lunch-learn"
-            className="inline-flex items-center gap-1.5 bg-ink text-paper text-[13px] font-semibold px-4 py-2.5 transition-colors hover:bg-ink-soft"
-          >
-            Add a recording
-          </Link>
-        )}
-      </header>
+    <div className="mx-auto w-full max-w-2xl md:max-w-5xl px-4 sm:px-5 py-8 space-y-10">
+      <PageHeader
+        eyebrow="Lunch & Learns"
+        title={firstName ? `Welcome, ${firstName}` : "Internal learning sessions"}
+        subtitle="Recordings from the BCC team — peer-taught sessions on the tools, topics, and practices we use day-to-day."
+        actions={
+          isAdmin ? (
+            <Link
+              href="/dashboard/admin?tab=lunch-learn"
+              className={buttonClass("dark", "md")}
+            >
+              Add a recording
+            </Link>
+          ) : undefined
+        }
+      />
 
       {recordings.length === 0 ? (
         <div className="border border-rule-soft bg-paper-tint-soft p-8 sm:p-10 text-center">
@@ -86,43 +80,28 @@ function YearGroupedRecordings({ recordings }: { recordings: Recording[] }) {
   return (
     <div className="space-y-10">
       {sections.map(([year, items]) => (
-        <section key={year} className="space-y-4">
-          <div className="flex items-baseline justify-between">
-            <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-faint">
-              {year}
-            </h2>
-            <span className="text-xs tabular-nums text-ink-faint">
-              {items.length}
-            </span>
-          </div>
+        <Section key={year} label={String(year)} count={items.length}>
           <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {items.map((r) => {
-              const thumbnail = r.recording_url
-                ? getYouTubeThumbnailUrl(r.recording_url)
-                : null;
-              const eyebrow = new Date(r.recorded_at).toLocaleDateString("en-US", {
-                month: "long",
+              const date = new Date(r.recorded_at).toLocaleDateString("en-US", {
+                month: "short",
                 day: "numeric",
+                year: "numeric",
               });
               return (
                 <li key={r.id}>
-                  <Link
+                  <CatalogCard
                     href={`/dashboard/lunch-learn/${r.id}`}
-                    className="group flex h-full flex-col overflow-hidden border border-rule-soft bg-paper transition-colors hover:border-rule hover:bg-paper-tint-soft"
-                  >
-                    <VideoPoster
-                      thumbnailUrl={thumbnail}
-                      eyebrow={eyebrow}
-                      title={r.title}
-                      subtitle={`with ${r.presenter}`}
-                      description={r.description}
-                    />
-                  </Link>
+                    eyebrow="Recording"
+                    title={r.title}
+                    byline={r.presenter ? `with ${r.presenter}` : undefined}
+                    trailing={date}
+                  />
                 </li>
               );
             })}
           </ul>
-        </section>
+        </Section>
       ))}
     </div>
   );

@@ -1,7 +1,7 @@
 type Segment = {
   label: string;
   value: number;
-  /** Hex color for the segment, e.g. "#E54D2E". */
+  /** Hex color for the segment, e.g. "#1D59FF". */
   color: string;
 };
 
@@ -36,8 +36,8 @@ export function DonutChart({ title, segments, centerValue, centerLabel }: Props)
   const displayCenter = centerValue ?? total.toLocaleString();
 
   return (
-    <div className="border border-rule bg-surface-elevated p-5">
-      <p className="mb-4 text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400">
+    <div className="panel p-5">
+      <p className="mb-4 text-[11px] font-medium uppercase tracking-[0.14em] text-ink-faint">
         {title}
       </p>
       <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
@@ -73,11 +73,11 @@ export function DonutChart({ title, segments, centerValue, centerLabel }: Props)
               ))}
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <p className="text-3xl font-bold tabular-nums text-neutral-900 tracking-tight">
+            <p className="text-3xl font-bold tabular-nums text-ink tracking-tight">
               {displayCenter}
             </p>
             {centerLabel && (
-              <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-neutral-400">
+              <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-ink-faint">
                 {centerLabel}
               </p>
             )}
@@ -93,12 +93,12 @@ export function DonutChart({ title, segments, centerValue, centerLabel }: Props)
                     className="h-2.5 w-2.5 shrink-0 rounded-sm"
                     style={{ backgroundColor: s.color }}
                   />
-                  <span className="truncate text-neutral-700">{s.label}</span>
+                  <span className="truncate text-ink">{s.label}</span>
                 </div>
-                <span className="shrink-0 tabular-nums text-neutral-500">
+                <span className="shrink-0 tabular-nums text-ink-soft">
                   {s.value.toLocaleString()}
-                  <span className="ml-1 text-neutral-300">·</span>
-                  <span className="ml-1 text-neutral-400">{pct}%</span>
+                  <span className="ml-1 text-ink-faint">·</span>
+                  <span className="ml-1 text-ink-faint">{pct}%</span>
                 </span>
               </li>
             );

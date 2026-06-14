@@ -41,7 +41,7 @@ export function CopyInviteLink({
       className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
         copied
           ? "border-green-300 bg-green-50 text-green-700"
-          : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-300 hover:text-neutral-900"
+          : "border-rule bg-white text-ink-soft hover:border-ink-faint hover:text-ink"
       }`}
     >
       {copied ? <Check size={12} weight="bold" /> : <LinkIcon size={12} weight="bold" />}

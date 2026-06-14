@@ -6,7 +6,6 @@ import Link, { useLinkStatus } from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
   House,
-  ShieldCheck,
   ChatsCircle,
   ChartBar,
   Question,
@@ -21,12 +20,13 @@ import {
 import { computeCurrentWeek } from "@/lib/utils";
 import { TextScaleToggle } from "@/components/text-scale-toggle";
 import { useReadAloud } from "@/components/assessment-a11y-bar";
+import { SidebarToggle } from "@/components/sidebar-toggle";
 
 const UserMenu = dynamic(
   () => import("@/components/user-menu").then((m) => m.UserMenu),
   {
     loading: () => (
-      <div className="h-8 w-8 shrink-0 animate-pulse rounded-full bg-white/10" />
+      <div className="h-8 w-8 shrink-0 animate-pulse rounded-full bg-paper-tint" />
     ),
   },
 );
@@ -38,7 +38,7 @@ const AdminProgramSwitcher = dynamic(
     ),
   {
     loading: () => (
-      <div className="mx-3 h-12 animate-pulse rounded bg-white/10" />
+      <div className="mx-3 h-12 animate-pulse rounded bg-paper-tint" />
     ),
   },
 );
@@ -58,7 +58,7 @@ function LinkPending() {
   return (
     <span
       aria-hidden
-      className="ml-2 inline-block h-3 w-3 shrink-0 animate-spin rounded-full border border-white/30 border-t-white/80"
+      className="ml-2 inline-block h-3 w-3 shrink-0 animate-spin rounded-full border border-ink/20 border-t-ink/70"
     />
   );
 }
@@ -132,6 +132,9 @@ export function Nav({
   const searchParams = useSearchParams();
   const activeTab = searchParams.get("tab") ?? "program";
   const [mobileOpen, setMobileOpen] = useState(false);
+  // Light shell (Meridian-style) across the whole platform — learner, admin,
+  // and lunch-learn now share the white/SF/skin look.
+  const lightShell = true;
 
   useEffect(() => {
     if (!mobileOpen) return;
@@ -143,7 +146,9 @@ export function Nav({
   }, [mobileOpen]);
 
   const items: NavItem[] = [
-    { href: "/dashboard", label: "Home", icon: House },
+    // For admins, Home IS the admin dashboard (the learner home is preview-only),
+    // so there's no separate "Admin" item — one clear landing.
+    { href: isAdmin ? "/dashboard/admin" : "/dashboard", label: "Home", icon: House },
     // Catalog (every track in the program) is admin-only. Students get their
     // own track grid on /dashboard and the curriculum sidebar when they're
     // inside a track — they don't need a browsable catalog of programs
@@ -159,9 +164,6 @@ export function Nav({
       : []),
     ...(showTutor
       ? [{ href: "/dashboard/tutor", label: "AI Tutor", icon: ChatsCircle }]
-      : []),
-    ...(isAdmin
-      ? [{ href: "/dashboard/admin", label: "Admin", icon: ShieldCheck }]
       : []),
     ...(canSwitch
       ? [{ href: "/dashboard/insights", label: "Analytics", icon: ChartBar }]
@@ -189,14 +191,18 @@ export function Nav({
         aria-label={label}
         aria-current={active ? "page" : undefined}
         onClick={() => setMobileOpen(false)}
-        className={`flex min-h-[44px] items-center gap-3 py-2 text-sm font-medium transition-colors ${
-          active
-            ? "border-l-2 border-primary bg-white/10 text-white pl-[10px] pr-3"
-            : "border-l-2 border-transparent text-neutral-300 hover:bg-white/10 hover:text-white pl-[10px] pr-3"
+        className={`nav-item flex min-h-[44px] items-center gap-3 py-2 text-sm font-medium transition-colors focus:outline-none rounded-lg border-l-2 pl-[10px] pr-3 ${
+          lightShell
+            ? active
+              ? "border-primary bg-primary/[0.08] text-primary"
+              : "border-transparent text-ink-soft hover:bg-paper-tint hover:text-ink"
+            : active
+              ? "border-primary bg-white/[0.08] text-white"
+              : "border-transparent text-ink-soft hover:bg-white/[0.06] hover:text-white"
         }`}
       >
         <Icon size={20} weight="bold" aria-hidden />
-        <span className="flex-1">{label}</span>
+        <span className="nav-collapsible flex-1">{label}</span>
         <LinkPending />
       </Link>
     );
@@ -211,9 +217,13 @@ export function Nav({
       aria-label="Help"
       aria-current={helpActive ? "page" : undefined}
       className={`flex min-h-[40px] items-center gap-2.5 px-3 py-1.5 text-[13px] transition-colors ${
-        helpActive
-          ? "text-neutral-200"
-          : "text-neutral-500 hover:text-neutral-300"
+        lightShell
+          ? helpActive
+            ? "text-ink"
+            : "text-ink-soft hover:text-ink"
+          : helpActive
+            ? "text-ink"
+            : "text-ink-faint hover:text-ink-soft"
       }`}
     >
       <Question size={16} weight="regular" aria-hidden />
@@ -235,12 +245,12 @@ export function Nav({
   const { enabled: readAloud, setEnabled: setReadAloud, speak, stop } = useReadAloud();
 
   const sidebarFooter = (
-    <div className="mt-auto flex flex-col gap-1">
+    <div className="nav-collapsible mt-auto flex flex-col gap-1">
       {helpLink}
-      <div className="my-1 h-px bg-white/10" aria-hidden />
+      <div className="my-1 h-px bg-rule" aria-hidden />
       {/* Accessibility controls — always visible in sidebar */}
       <div className="flex items-center justify-between px-2 py-1.5">
-        <TextScaleToggle compact tone="dark" />
+        <TextScaleToggle compact tone={lightShell ? "light" : "dark"} />
         <button
           type="button"
           aria-pressed={readAloud}
@@ -263,7 +273,9 @@ export function Nav({
           className={`inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors ${
             readAloud
               ? "bg-accent text-white"
-              : "text-neutral-400 hover:bg-white/10 hover:text-white"
+              : lightShell
+                ? "text-ink-soft hover:bg-paper-tint hover:text-ink"
+                : "text-ink-faint hover:bg-paper-tint hover:text-ink"
           }`}
         >
           {readAloud ? (
@@ -274,8 +286,14 @@ export function Nav({
           <span>{readAloud ? "Audio on" : "Audio"}</span>
         </button>
       </div>
-      <div className="my-1 h-px bg-white/10" aria-hidden />
-      <UserMenu variant="sidebar" {...userMenuProps} />
+      {/* The account menu lives in the top bar on the light shell, so the
+          redundant sidebar user menu is dropped there. */}
+      {!lightShell && (
+        <>
+          <div className="my-1 h-px bg-rule" aria-hidden />
+          <UserMenu variant="sidebar" {...userMenuProps} />
+        </>
+      )}
     </div>
   );
 
@@ -310,11 +328,6 @@ export function Nav({
 
         return (
           <div key={track.slug}>
-            {curriculumTracks.length > 1 && (
-              <p className="mb-1.5 px-3 text-[10px] font-medium uppercase tracking-[0.14em] text-neutral-500">
-                {track.shortName}
-              </p>
-            )}
             <div className="flex flex-col gap-0.5">
               {track.weekSummaries.map((ws) => {
                 const weekHref = `/dashboard/track/${track.slug}/${ws.week}`;
@@ -329,26 +342,26 @@ export function Nav({
                     href={weekHref}
                     onClick={() => setMobileOpen(false)}
                     aria-current={isActive ? "page" : undefined}
-                    className={`flex min-h-[36px] items-center gap-2.5 py-1.5 text-[13px] transition-colors ${
+                    className={`flex min-h-[36px] items-center gap-2.5 rounded-lg py-1.5 text-[13px] transition-colors border-l-2 pl-[10px] pr-3 ${
                       isActive
-                        ? "border-l-2 border-primary bg-white/10 text-white pl-[10px] pr-3"
+                        ? "border-primary bg-primary/[0.08] font-medium text-primary"
                         : isCurrent
-                          ? "border-l-2 border-transparent text-white hover:bg-white/10 pl-[10px] pr-3"
+                          ? "border-transparent text-ink hover:bg-paper-tint"
                           : isFuture
-                            ? "border-l-2 border-transparent text-neutral-600 hover:bg-white/5 hover:text-neutral-400 pl-[10px] pr-3"
-                            : "border-l-2 border-transparent text-neutral-400 hover:bg-white/10 hover:text-neutral-200 pl-[10px] pr-3"
+                            ? "border-transparent text-ink-faint hover:bg-paper-tint hover:text-ink-soft"
+                            : "border-transparent text-ink-soft hover:bg-paper-tint hover:text-ink"
                     }`}
                   >
                     {isPast ? (
-                      <Check size={14} weight="bold" aria-hidden className="shrink-0 text-neutral-500" />
+                      <Check size={14} weight="bold" aria-hidden className="shrink-0 text-ink-faint" />
                     ) : (
-                      <span className="w-[14px] shrink-0 text-center text-[11px] tabular-nums text-neutral-500">
+                      <span className="w-[14px] shrink-0 text-center text-[11px] tabular-nums text-ink-faint">
                         {ws.week}
                       </span>
                     )}
                     <span className="truncate">{ws.topic}</span>
                     {isCurrent && (
-                      <span className="ml-auto shrink-0 h-1.5 w-1.5 rounded-full bg-white" />
+                      <span className="ml-auto shrink-0 h-1.5 w-1.5 rounded-full bg-primary" />
                     )}
                   </Link>
                 );
@@ -364,7 +377,7 @@ export function Nav({
 
   const lunchLearnNav = lunchLearnRecordings.length > 0 && (
     <div className="flex flex-col gap-0.5">
-      <p className="mb-1 px-3 text-[10px] font-medium uppercase tracking-[0.14em] text-neutral-500">
+      <p className="mb-1 px-3 text-[10px] font-medium uppercase tracking-[0.14em] text-ink-faint">
         Recordings
       </p>
       {lunchLearnRecordings.map((r) => {
@@ -382,11 +395,11 @@ export function Nav({
             aria-current={isActive ? "page" : undefined}
             className={`flex min-h-[36px] items-start gap-2.5 py-1.5 text-[13px] transition-colors ${
               isActive
-                ? "border-l-2 border-primary bg-white/10 text-white pl-[10px] pr-3"
-                : "border-l-2 border-transparent text-neutral-300 hover:bg-white/10 hover:text-white pl-[10px] pr-3"
+                ? "rounded-lg border-l-2 border-primary bg-primary/[0.08] text-primary pl-[10px] pr-3"
+                : "rounded-lg border-l-2 border-transparent text-ink-soft hover:bg-paper-tint hover:text-ink pl-[10px] pr-3"
             }`}
           >
-            <span className="w-10 shrink-0 pt-0.5 text-[10px] tabular-nums text-neutral-500">
+            <span className="w-10 shrink-0 pt-0.5 text-[10px] tabular-nums text-ink-faint">
               {date}
             </span>
             <span className="line-clamp-2 flex-1">{r.title}</span>
@@ -409,10 +422,10 @@ export function Nav({
     pathname === "/dashboard/admin" && !searchParams.get("tab");
 
   const adminNav = variant === "admin-sidebar" && onAdminPage && !onInsightsTab && !onAdminHome && adminTracks.length > 0 && (
-    <div className="flex flex-col gap-1">
-      <div className="my-1 h-px bg-white/10" aria-hidden />
+    <div className="nav-collapsible flex flex-col gap-1">
+      <div className="my-1 h-px bg-rule" aria-hidden />
 
-      <p className="mt-1 mb-1 px-3 text-[10px] font-medium uppercase tracking-[0.14em] text-neutral-500">
+      <p className="mt-1 mb-1 px-3 text-[10px] font-medium uppercase tracking-[0.14em] text-ink-faint">
         Courses
       </p>
 
@@ -431,7 +444,7 @@ export function Nav({
     return (
       <>
         {/* Desktop top bar */}
-        <header className="hidden md:flex sticky top-0 z-30 items-center justify-between gap-4 bg-ink px-6 py-3">
+        <header className="hidden md:flex sticky top-0 z-30 items-center justify-between gap-4 shell-topbar px-6 py-3">
           <div className="flex items-center gap-6">
             <Link href="/dashboard" className="flex items-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -446,8 +459,8 @@ export function Nav({
                     href={href}
                     className={`px-3 py-1.5 text-sm font-medium transition-colors ${
                       active
-                        ? "bg-white/15 text-white"
-                        : "text-neutral-300 hover:bg-white/10 hover:text-white"
+                        ? "bg-paper-tint text-ink"
+                        : "text-ink-soft hover:bg-paper-tint hover:text-ink"
                     }`}
                   >
                     {label}
@@ -458,8 +471,8 @@ export function Nav({
                 href="/dashboard/help"
                 className={`px-3 py-1.5 text-sm transition-colors ${
                   helpActive
-                    ? "text-neutral-200"
-                    : "text-neutral-500 hover:text-neutral-300"
+                    ? "text-ink"
+                    : "text-ink-faint hover:text-ink-soft"
                 }`}
               >
                 Help
@@ -470,7 +483,7 @@ export function Nav({
         </header>
 
         {/* Mobile top bar (same as sidebar variant) */}
-        <div className="md:hidden sticky top-0 z-30 flex items-center justify-between bg-ink px-4 py-2">
+        <div className="md:hidden sticky top-0 z-30 flex items-center justify-between shell-topbar px-4 py-2">
           <Link href="/dashboard" className="flex items-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={logo} alt={programName} className="h-4" />
@@ -481,7 +494,7 @@ export function Nav({
               onClick={() => setMobileOpen(true)}
               aria-label="Open menu"
               aria-expanded={mobileOpen}
-              className="flex min-h-[44px] min-w-[44px] items-center justify-center text-neutral-200 hover:bg-white/10 hover:text-white transition-colors"
+              className="flex min-h-[44px] min-w-[44px] items-center justify-center text-ink hover:bg-paper-tint hover:text-ink transition-colors"
             >
               <List size={22} weight="bold" aria-hidden />
             </button>
@@ -502,7 +515,7 @@ export function Nav({
             }`}
           />
           <div
-            className={`absolute inset-y-0 left-0 w-72 max-w-[80%] bg-ink shadow-xl transition-transform ${
+            className={`absolute inset-y-0 left-0 w-72 max-w-[80%] shell-light shadow-xl transition-transform ${
               mobileOpen ? "translate-x-0" : "-translate-x-full"
             }`}
             role="dialog"
@@ -513,7 +526,7 @@ export function Nav({
               <button
                 onClick={() => setMobileOpen(false)}
                 aria-label="Close menu"
-                className="flex min-h-[44px] min-w-[44px] items-center justify-center text-neutral-300 hover:bg-white/10 hover:text-white transition-colors"
+                className="flex min-h-[44px] min-w-[44px] items-center justify-center text-ink-soft hover:bg-paper-tint hover:text-ink transition-colors"
               >
                 <X size={22} weight="bold" aria-hidden />
               </button>
@@ -536,7 +549,7 @@ export function Nav({
     return (
       <>
         <aside
-          className="hidden md:flex md:fixed md:inset-y-0 md:left-0 md:z-30 md:w-60 md:flex-col bg-ink"
+          className="hidden md:flex md:fixed md:inset-y-0 md:left-0 md:z-30 md:w-60 md:flex-col shell-light"
           aria-label="Main navigation"
         >
           <div className="flex h-full flex-col gap-6 p-4">
@@ -546,7 +559,7 @@ export function Nav({
             </Link>
           </div>
         </aside>
-        <div className="md:hidden sticky top-0 z-30 flex items-center justify-between bg-ink px-4 py-2">
+        <div className="md:hidden sticky top-0 z-30 flex items-center justify-between shell-topbar px-4 py-2">
           <Link href="/dashboard" className="flex items-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={logo} alt={programName} className="h-4" />
@@ -558,31 +571,48 @@ export function Nav({
 
   // ── Sidebar variants (admin-sidebar + student-sidebar) ──────────────────
 
-  const sidebarBody = (
-    <div className="flex h-full flex-col gap-6 p-4">
+  const sidebarLogo = lightShell ? (
+    <div className="nav-brandrow flex items-center justify-between gap-1 pr-1">
       <Link
         href="/dashboard"
-        className="flex items-center px-2 py-2"
+        className="flex min-w-0 items-center px-2 py-2"
         onClick={() => setMobileOpen(false)}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={logo} alt={programName} className="h-5" />
+        <span className="nav-collapsible truncate text-[15px] font-bold tracking-[-0.01em] text-ink">
+          {programName}
+        </span>
       </Link>
+      <SidebarToggle />
+    </div>
+  ) : (
+    <Link
+      href="/dashboard"
+      className="flex items-center px-2 py-2"
+      onClick={() => setMobileOpen(false)}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={logo} alt={programName} className="h-5" />
+    </Link>
+  );
+
+  const sidebarBody = (
+    <div className="flex h-full flex-col gap-6 p-4">
+      {sidebarLogo}
 
       <nav aria-label="Primary" className="flex flex-col gap-1">
         {items.map(renderItem)}
       </nav>
 
       {variant === "student-sidebar" && curriculumNav && (
-        <div className="flex flex-col gap-1">
-          <div className="my-1 h-px bg-white/10" aria-hidden />
+        <div className="nav-collapsible flex flex-col gap-1">
+          <div className="my-1 h-px bg-rule" aria-hidden />
           {curriculumNav}
         </div>
       )}
 
       {variant === "lunch-learn-sidebar" && lunchLearnNav && (
-        <div className="flex flex-col gap-1">
-          <div className="my-1 h-px bg-white/10" aria-hidden />
+        <div className="nav-collapsible flex flex-col gap-1">
+          <div className="my-1 h-px bg-rule" aria-hidden />
           {lunchLearnNav}
         </div>
       )}
@@ -609,25 +639,25 @@ export function Nav({
       </nav>
 
       {variant === "student-sidebar" && curriculumNav && (
-        <div className="flex flex-col gap-1">
-          <div className="my-1 h-px bg-white/10" aria-hidden />
+        <div className="nav-collapsible flex flex-col gap-1">
+          <div className="my-1 h-px bg-rule" aria-hidden />
           {curriculumNav}
         </div>
       )}
 
       {variant === "lunch-learn-sidebar" && lunchLearnNav && (
-        <div className="flex flex-col gap-1">
-          <div className="my-1 h-px bg-white/10" aria-hidden />
+        <div className="nav-collapsible flex flex-col gap-1">
+          <div className="my-1 h-px bg-rule" aria-hidden />
           {lunchLearnNav}
         </div>
       )}
 
       {variant === "student-sidebar" && showLunchLearnLink && (
         <div className="flex flex-col gap-1">
-          <div className="my-1 h-px bg-white/10" aria-hidden />
+          <div className="my-1 h-px bg-rule" aria-hidden />
           <a
             href="/dashboard/lunch-learn"
-            className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-white/60 hover:bg-white/10 hover:text-white transition-colors"
+            className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-ink-soft hover:bg-paper-tint hover:text-ink transition-colors"
           >
             <span>Lunch &amp; Learns</span>
           </a>
@@ -644,14 +674,14 @@ export function Nav({
     <>
       {/* Desktop sidebar (md+) — fixed to viewport */}
       <aside
-        className="hidden md:flex md:fixed md:inset-y-0 md:left-0 md:z-30 md:w-60 md:flex-col bg-ink overflow-y-auto"
+        className={`js-sidebar hidden md:flex md:fixed md:inset-y-0 md:left-0 md:z-30 md:w-60 md:flex-col overflow-y-auto ${lightShell ? "shell-light" : "nav-surface"}`}
         aria-label="Main navigation"
       >
         {sidebarBody}
       </aside>
 
       {/* Mobile top bar */}
-      <div className="md:hidden sticky top-0 z-30 flex items-center justify-between bg-ink px-4 py-2">
+      <div className="md:hidden sticky top-0 z-30 flex items-center justify-between shell-topbar px-4 py-2">
         <Link href="/dashboard" className="flex items-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={logo} alt={programName} className="h-4" />
@@ -662,7 +692,7 @@ export function Nav({
             onClick={() => setMobileOpen(true)}
             aria-label="Open menu"
             aria-expanded={mobileOpen}
-            className="flex min-h-[44px] min-w-[44px] items-center justify-center text-neutral-200 hover:bg-white/10 hover:text-white transition-colors"
+            className="flex min-h-[44px] min-w-[44px] items-center justify-center text-ink hover:bg-paper-tint hover:text-ink transition-colors"
           >
             <List size={22} weight="bold" aria-hidden />
           </button>
@@ -683,7 +713,7 @@ export function Nav({
           }`}
         />
         <div
-          className={`absolute inset-y-0 left-0 w-72 max-w-[80%] bg-ink shadow-xl transition-transform ${
+          className={`absolute inset-y-0 left-0 w-72 max-w-[80%] shell-light shadow-xl transition-transform ${
             mobileOpen ? "translate-x-0" : "-translate-x-full"
           }`}
           role="dialog"
@@ -694,7 +724,7 @@ export function Nav({
             <button
               onClick={() => setMobileOpen(false)}
               aria-label="Close menu"
-              className="flex min-h-[44px] min-w-[44px] items-center justify-center text-neutral-300 hover:bg-white/10 hover:text-white transition-colors"
+              className="flex min-h-[44px] min-w-[44px] items-center justify-center text-ink-soft hover:bg-paper-tint hover:text-ink transition-colors"
             >
               <X size={22} weight="bold" aria-hidden />
             </button>

@@ -54,10 +54,10 @@ export default async function SurveyPage({
   return (
     <div className="mx-auto w-full max-w-2xl py-4">
       <div className="mb-4 px-4 sm:px-5">
-        <h1 className="text-3xl font-bold text-neutral-900 tracking-tight">
+        <h1 className="text-3xl font-bold text-ink tracking-tight">
           {surveyConfig.title}
         </h1>
-        <p className="mt-1 text-sm text-neutral-500">
+        <p className="mt-1 text-sm text-ink-soft">
           {surveyConfig.description}
         </p>
       </div>

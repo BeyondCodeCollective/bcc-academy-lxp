@@ -5,6 +5,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { FeatureToggles } from "./feature-toggles";
 import { SurveyLinksSection } from "./survey-links-section";
 import { getProgram } from "@/lib/programs/server";
+import { PageHeader } from "@/components/page-header";
 
 const PROGRAM_LABELS: Record<string, string> = {
   catalyst:  "Catalyst",
@@ -90,16 +91,14 @@ export default async function FeaturesPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-10 space-y-12">
-      <div>
-        <h1 className="text-xl font-bold text-ink">Tools</h1>
-        <p className="text-sm text-ink/50 mt-1">
-          Links, settings, and features for managing the platform.
-        </p>
-      </div>
+      <PageHeader
+        title="Tools"
+        subtitle="Links, settings, and features for managing the platform."
+      />
 
       {/* Survey & Form Links */}
       <section className="space-y-4">
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">
           Survey &amp; form links
         </h2>
         <SurveyLinksSection surveyConfigs={surveyConfigs} />
@@ -107,17 +106,17 @@ export default async function FeaturesPage() {
 
       {/* Pathway Assessments */}
       <section className="space-y-4">
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">
           Pathway assessments
         </h2>
-        <div className="divide-y divide-rule border border-rule bg-surface-elevated">
+        <div className="divide-y divide-rule overflow-hidden panel">
           <a
             href="/dashboard/admin/assessments"
-            className="group flex items-center justify-between gap-4 px-4 py-3.5 hover:bg-neutral-50 transition-colors"
+            className="group flex items-center justify-between gap-4 px-4 py-3.5 hover:bg-paper-tint-soft transition-colors"
           >
             <div>
-              <p className="text-[14px] font-semibold text-neutral-900">Learner pathway profiles</p>
-              <p className="text-[12px] text-neutral-400">View and review submitted assessments</p>
+              <p className="text-[14px] font-semibold text-ink">Learner pathway profiles</p>
+              <p className="text-[12px] text-ink-faint">View and review submitted assessments</p>
             </div>
             <span className="flex items-center gap-2 shrink-0">
               {(unviewedAssessments ?? 0) > 0 && (
@@ -125,7 +124,7 @@ export default async function FeaturesPage() {
                   {unviewedAssessments} new
                 </span>
               )}
-              <span className="text-neutral-300 group-hover:text-neutral-500 transition-colors">→</span>
+              <span className="text-ink-faint group-hover:text-ink-soft transition-colors">→</span>
             </span>
           </a>
         </div>

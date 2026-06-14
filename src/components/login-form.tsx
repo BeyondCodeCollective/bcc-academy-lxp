@@ -110,9 +110,9 @@ export function LoginForm({ logo, programName, tagline, taglineColor, organizati
 
       <div className="relative z-10 w-full max-w-sm animate-[fadeIn_0.4s_ease-out]">
         {/* Card */}
-        <div className="overflow-hidden border border-rule bg-surface-elevated shadow-sm">
+        <div className="overflow-hidden panel shadow-sm">
           {/* Logo banner */}
-          <div className="bg-neutral-900 px-6 py-7 flex flex-col items-center gap-2.5">
+          <div className="bg-ink px-6 py-7 flex flex-col items-center gap-2.5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={logo}
@@ -134,9 +134,9 @@ export function LoginForm({ logo, programName, tagline, taglineColor, organizati
           <div className="px-6 py-8 sm:px-8">
             {sent ? (
               <div className="space-y-4 text-center">
-                <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full border border-neutral-200">
+                <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full border border-rule">
                   <svg
-                    className="h-5 w-5 text-neutral-600"
+                    className="h-5 w-5 text-ink-soft"
                     fill="none"
                     viewBox="0 0 24 24"
                     strokeWidth={1.5}
@@ -150,12 +150,12 @@ export function LoginForm({ logo, programName, tagline, taglineColor, organizati
                   </svg>
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-neutral-900">
+                  <p className="text-sm font-semibold text-ink">
                     Check your email
                   </p>
-                  <p className="mt-1 text-sm text-neutral-500">
+                  <p className="mt-1 text-sm text-ink-soft">
                     We sent a link to{" "}
-                    <span className="font-medium text-neutral-900">
+                    <span className="font-medium text-ink">
                       {email}
                     </span>
                   </p>
@@ -165,17 +165,17 @@ export function LoginForm({ logo, programName, tagline, taglineColor, organizati
                     setSent(false);
                     setEmail("");
                   }}
-                  className="text-sm font-medium text-neutral-500 hover:text-neutral-900 transition-colors"
+                  className="text-sm font-medium text-ink-soft hover:text-ink transition-colors"
                 >
                   Use a different email
                 </button>
               </div>
             ) : (
               <>
-                <h1 className="text-center text-xl font-semibold text-neutral-900">
+                <h1 className="text-center text-xl font-semibold text-ink">
                   Welcome back
                 </h1>
-                <p className="mt-1 text-center text-sm text-neutral-600">
+                <p className="mt-1 text-center text-sm text-ink-soft">
                   Sign in to your student portal
                 </p>
 
@@ -183,7 +183,7 @@ export function LoginForm({ logo, programName, tagline, taglineColor, organizati
                   <div>
                     <label
                       htmlFor="email"
-                      className="mb-1.5 block text-xs font-medium text-neutral-600"
+                      className="mb-1.5 block text-xs font-medium text-ink-soft"
                     >
                       Email address
                     </label>
@@ -195,7 +195,7 @@ export function LoginForm({ logo, programName, tagline, taglineColor, organizati
                       onChange={(e) => setEmail(e.target.value)}
                       required
                       autoComplete="email"
-                      className="w-full border border-neutral-200 bg-neutral-50 px-3.5 py-3 text-base text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900 focus:bg-white focus:ring-1 focus:ring-neutral-900 focus:outline-none transition-all"
+                      className="w-full border border-rule bg-neutral-50 px-3.5 py-3 text-base text-ink placeholder:text-ink-faint focus:border-ink focus:bg-white focus:ring-1 focus:ring-ink-faint focus:outline-none transition-all"
                     />
                   </div>
 
@@ -212,7 +212,7 @@ export function LoginForm({ logo, programName, tagline, taglineColor, organizati
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-neutral-900 px-4 py-3 text-base font-medium text-white transition-colors hover:bg-neutral-800 active:bg-neutral-950 disabled:opacity-50"
+                    className="w-full bg-ink px-4 py-3 text-base font-medium text-white transition-colors hover:bg-ink/90 active:bg-neutral-950 disabled:opacity-50"
                   >
                     {loading ? (
                       <span className="flex items-center justify-center gap-2">
@@ -242,7 +242,7 @@ export function LoginForm({ logo, programName, tagline, taglineColor, organizati
                     )}
                   </button>
 
-                  <p className="text-center text-xs text-neutral-500">
+                  <p className="text-center text-xs text-ink-soft">
                     We&apos;ll email you a magic link to sign in
                   </p>
                 </form>
@@ -251,9 +251,9 @@ export function LoginForm({ logo, programName, tagline, taglineColor, organizati
           </div>
         </div>
 
-        <p className="mt-6 text-center text-xs text-neutral-600">
+        <p className="mt-6 text-center text-xs text-ink-soft">
           &copy; {new Date().getFullYear()} {organization} &middot;{" "}
-          <a href="/privacy" className="underline underline-offset-2 hover:text-neutral-900">Privacy Policy</a>
+          <a href="/privacy" className="underline underline-offset-2 hover:text-ink">Privacy Policy</a>
         </p>
       </div>
     </main>

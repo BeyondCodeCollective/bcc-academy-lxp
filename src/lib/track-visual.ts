@@ -66,11 +66,11 @@ type IconComponent = ComponentType<{
 // Color is deterministic per slug so each track keeps its identity across
 // sessions and surfaces.
 const TRACK_TONES = [
-  "#E54D2E", // vermillion (brand)
+  "#1D59FF", // cobalt (brand)
   "#1F1B16", // ink
   "#2563EB", // editorial blue
   "#15803D", // forest
-  "#B45309", // burnt amber
+  "#012966", // dark cobalt
   "#7C3AED", // plum
 ];
 

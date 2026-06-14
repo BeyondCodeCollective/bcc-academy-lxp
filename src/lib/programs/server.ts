@@ -153,9 +153,9 @@ function buildProgramFromDB(
     dnsReady: false,
     logo: "/catalyst/logo.svg",
     colors: {
-      primary: "#E54D2E",
-      primaryHover: "#F0613E",
-      accent: "#E54D2E",
+      primary: "#1D59FF",
+      primaryHover: "#4D7CFF",
+      accent: "#1D59FF",
       tagline: "#888888",
     },
     defaultCohort: {

@@ -44,7 +44,7 @@ export function ZoomEmbed({
           Live Now
         </span>
         {sessionTitle && (
-          <span className="text-sm text-neutral-400">&middot; {sessionTitle}</span>
+          <span className="text-sm text-ink-faint">&middot; {sessionTitle}</span>
         )}
       </div>
 

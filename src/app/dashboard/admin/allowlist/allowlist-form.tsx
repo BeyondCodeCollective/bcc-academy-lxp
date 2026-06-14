@@ -3,6 +3,7 @@
 import { useState, useTransition, useRef } from "react";
 import { CheckCircle, AlertCircle, Upload, Loader2 } from "lucide-react";
 import { replaceAllowedEmails, parseEmailList } from "./actions";
+import { buttonClass } from "@/components/ui";
 
 export function AllowlistForm({
   trackSlug,
@@ -52,13 +53,13 @@ export function AllowlistForm({
         className={`flex gap-2 border-l-4 p-4 text-sm ${
           gateActive
             ? "border-emerald-400 bg-emerald-50 text-emerald-900"
-            : "border-neutral-300 bg-neutral-50 text-neutral-700"
+            : "border-rule bg-neutral-50 text-ink"
         }`}
       >
         <span
           aria-hidden
           className={`mt-0.5 h-3 w-3 shrink-0 rounded-full ${
-            gateActive ? "bg-emerald-500" : "bg-neutral-400"
+            gateActive ? "bg-emerald-500" : "bg-ink-faint"
           }`}
         />
         <p>
@@ -80,7 +81,7 @@ export function AllowlistForm({
       <div>
         <label
           htmlFor="emails"
-          className="block text-xs font-semibold uppercase tracking-wide text-neutral-500 mb-2"
+          className="block text-xs font-semibold uppercase tracking-wide text-ink-soft mb-2"
         >
           Allowed emails — one per line, or upload a CSV
         </label>
@@ -93,11 +94,11 @@ export function AllowlistForm({
             setStatus({ kind: "idle" });
           }}
           rows={14}
-          className="w-full border border-neutral-300 px-3 py-2 font-mono text-[13px] leading-relaxed focus:outline-none focus:border-neutral-900"
+          className="w-full border border-rule px-3 py-2 font-mono text-[13px] leading-relaxed focus:outline-none focus:border-ink"
           placeholder="ashley@example.com&#10;ryan@example.com&#10;…"
           spellCheck={false}
         />
-        <p className="mt-1.5 text-xs text-neutral-500">
+        <p className="mt-1.5 text-xs text-ink-soft">
           {value.split(/\r?\n/).filter((l) => l.trim().length > 0).length} line(s)
           {previewCount !== null && previewCount !== value.split(/\r?\n/).filter((l) => l.trim().length > 0).length && (
             <> · {previewCount} valid email(s) detected from CSV</>
@@ -120,7 +121,7 @@ export function AllowlistForm({
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="inline-flex items-center gap-2 border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 transition-colors"
+          className={buttonClass("secondary", "md")}
         >
           <Upload size={14} />
           Upload CSV
@@ -129,7 +130,7 @@ export function AllowlistForm({
           type="button"
           onClick={handleSave}
           disabled={isPending}
-          className="inline-flex items-center gap-2 bg-neutral-900 px-5 py-2 text-sm font-semibold text-white hover:bg-neutral-700 disabled:opacity-50 transition-colors"
+          className={buttonClass("dark", "md")}
         >
           {isPending ? (
             <>
@@ -154,7 +155,7 @@ export function AllowlistForm({
         )}
       </div>
 
-      <p className="text-xs text-neutral-500">
+      <p className="text-xs text-ink-soft">
         CSV files: if your file has a header row with an <code className="font-mono text-[11px]">email</code>{" "}
         column, only that column is picked. Otherwise the first valid email in
         each row is taken. Duplicates and non-emails are dropped automatically.

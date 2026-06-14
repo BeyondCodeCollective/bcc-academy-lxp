@@ -49,7 +49,7 @@ function ProgramCard({
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="rounded-2xl border border-ink/10 overflow-hidden">
+    <div className="rounded-lg border border-ink/10 overflow-hidden">
       <div className="px-5 py-3 border-b border-ink/10 bg-ink/[0.02] flex items-center justify-between">
         <h2 className="text-sm font-semibold text-ink">{label}</h2>
         {tracks.length > 0 && (

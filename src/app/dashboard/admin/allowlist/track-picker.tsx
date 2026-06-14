@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { fieldInput } from "@/components/ui";
 
 export function TrackPicker({
   selectedSlug,
@@ -17,7 +18,7 @@ export function TrackPicker({
       onChange={(e) => {
         router.push(`/dashboard/admin/allowlist?track=${e.target.value}`);
       }}
-      className="w-full sm:w-auto min-w-[320px] border border-neutral-300 bg-white px-3 py-2 text-sm font-medium text-neutral-900 focus:outline-none focus:border-neutral-900"
+      className={`${fieldInput} sm:w-auto min-w-[320px] font-medium`}
     >
       {groups.map((group) => (
         <optgroup key={group.label} label={group.label}>
