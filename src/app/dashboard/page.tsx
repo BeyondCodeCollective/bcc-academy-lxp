@@ -293,22 +293,30 @@ async function DashboardContent({
     : program.tracks.filter((t) => enrolledTrackSlugs.includes(t.slug));
   const notEnrolled = !isAdmin && visibleTracks.length === 0;
 
-  // One course → the course overview IS the home. Skip the bare /dashboard
-  // shell entirely and land on that track — for real students AND admin
-  // preview (previewing one track shows that student's real landing, the
-  // overview, not an empty hub). The /dashboard hub only earns its place
-  // with 2+ courses. Held back while an enabled pathway assessment is
-  // incomplete (its prompt renders here) or when the student also has
-  // courses in other programs (the cross-program list renders here and would
-  // otherwise never be seen). Announcements also render on the track
-  // overview page, so skipping doesn't hide them.
+  // One course → land straight on the live week (the session/Zoom), not the
+  // bare /dashboard shell and not the course overview. Fewest clicks from an
+  // email link: log in → you're in this week's session. Returning mid-cohort
+  // students hit the current calendar week; not-yet-started / self-paced →
+  // Week 1. The overview stays reachable via the week page's "Back to course"
+  // link + the sidebar. Applies to real students AND admin preview. The
+  // /dashboard hub only earns its place with 2+ courses. Held back while an
+  // enabled pathway assessment is incomplete (its prompt renders here) or
+  // when the student also has courses in other programs (the cross-program
+  // list renders here and would otherwise never be seen). Announcements also
+  // render on the track overview page, so skipping doesn't hide them.
   if (
     !isAdmin &&
     visibleTracks.length === 1 &&
     otherProgramCourses.length === 0 &&
     (!assessmentEnabled || assessmentCompleted)
   ) {
-    redirect(`/dashboard/track/${visibleTracks[0].slug}`);
+    const only = visibleTracks[0];
+    const started = !only.startDateTbd && new Date() >= new Date(only.startDate);
+    const week =
+      started && !only.selfPaced
+        ? computeCurrentWeek(only.startDate, only.totalWeeks, only.lastSessionDayOffset)
+        : 1;
+    redirect(`/dashboard/track/${only.slug}/${week}`);
   }
 
   const now = new Date();
