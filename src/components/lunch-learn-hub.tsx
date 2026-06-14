@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createServiceClient } from "@/lib/supabase/server";
 import { CatalogCard } from "@/components/catalog-card";
-import { PageHeader, Section } from "@/components/page-header";
+import { PageHeader } from "@/components/page-header";
 import { buttonClass } from "@/components/ui";
 
 type Props = {
@@ -80,7 +80,7 @@ function YearGroupedRecordings({ recordings }: { recordings: Recording[] }) {
   return (
     <div className="space-y-10">
       {sections.map(([year, items]) => (
-        <Section key={year} label={String(year)} count={items.length}>
+        <div key={year}>
           <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {items.map((r) => {
               const date = new Date(r.recorded_at).toLocaleDateString("en-US", {
@@ -101,7 +101,7 @@ function YearGroupedRecordings({ recordings }: { recordings: Recording[] }) {
               );
             })}
           </ul>
-        </Section>
+        </div>
       ))}
     </div>
   );
