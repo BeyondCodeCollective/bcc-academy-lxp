@@ -1,5 +1,6 @@
 import { catalystConfig } from "./catalyst";
 import { forteConfig } from "./forte";
+import { forgeConfig } from "./forge";
 import { bgcConfig } from "./bgc";
 import { marketingConfig, MARKETING_SLUG } from "./marketing";
 import type { ProgramConfig, TrackConfig } from "./types";
@@ -16,6 +17,7 @@ const PROGRAMS: Record<string, ProgramConfig> = {
 const SPECIAL_CONFIGS: Record<string, ProgramConfig> = {
   [MARKETING_SLUG]: marketingConfig,
   forte: forteConfig,
+  forge: forgeConfig,
   bgc: bgcConfig,
 };
 

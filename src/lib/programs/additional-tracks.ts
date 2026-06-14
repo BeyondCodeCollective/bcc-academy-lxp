@@ -178,81 +178,8 @@ const networkPlusTrack: TrackConfig = {
 // NOTE: Endless Games (Godot) moved to the Black Girls Code program — see
 // src/lib/programs/bgc.ts.
 
-// ── Foundations of AI & Digital Skills ───────────────────────────────────────
-
-const foundationsAITrack: TrackConfig = {
-  slug: "foundations-ai",
-  name: "Foundations of AI & Digital Skills",
-  shortName: "AI & Digital Skills",
-  type: "weekly",
-  totalWeeks: 4,
-  sessionsPerWeek: 1,
-  startDate: "2026-06-01",
-  startDateTbd: true,
-  instructor: "TBD",
-  sessionTimes: ["Day & time TBD"],
-  lastSessionDayOffset: 6,
-  phase: "core",
-  submissionsEnabled: true,
-  reflectionsEnabled: true,
-  defaultReflectionPrompts: [
-    "What did you learn this sprint?",
-    "What was challenging?",
-    "How will you apply this going forward?",
-  ],
-  weekSummaries: [
-    { week: 1, topic: "Orientation & AI Research", icon: "🧭" },
-    { week: 2, topic: "Discovery & Design", icon: "🔎" },
-    { week: 3, topic: "Core System Build", icon: "🏗️" },
-    { week: 4, topic: "AI as Interpreter", icon: "🤖" },
-  ],
-  weeks: [
-    { week: 1, title: "Orientation, Framing, and AI as Research Partner", icon: "🧭", subtitle: "Sprint 0 — Setting the Foundation", description: "Orient to the course, set up your tools, and learn how to use AI as a research partner — not a replacement for thinking.", objectives: ["Navigate course tools and collaboration platforms", "Frame AI as a research partner", "Set personal learning goals", "Complete your first AI-assisted research task"], sessions: [{ title: "Sprint 0: Orientation & AI as Research Partner", time: "TBD" }] },
-    { week: 2, title: "Discovery & Design", icon: "🔎", subtitle: "Sprint 1 — Research and Plan", description: "Apply AI-assisted research to a real problem — discover needs, define scope, and design a solution.", objectives: ["Conduct AI-assisted user research", "Define a problem statement", "Design a solution architecture", "Create a project brief"], sessions: [{ title: "Sprint 1: Discovery & Design", time: "TBD" }] },
-    { week: 3, title: "Core System Build", icon: "🏗️", subtitle: "Sprint 2 — Foundations Not Features", description: "Build the core of your system — focus on solid foundations before adding features.", objectives: ["Set up a development environment", "Build core functionality first", "Use AI for code generation and debugging", "Document your build decisions"], sessions: [{ title: "Sprint 2: Core System Build", time: "TBD" }] },
-    { week: 4, title: "AI as Interpreter, Not Authority", icon: "🤖", subtitle: "Sprint 3 — Critical AI Thinking", description: "Learn to use AI output critically — interpret, verify, and improve rather than blindly accepting.", objectives: ["Evaluate AI-generated content for accuracy", "Identify hallucinations and bias in AI output", "Develop a personal framework for AI trust", "Present your capstone project"], sessions: [{ title: "Sprint 3: AI as Interpreter", time: "TBD" }] },
-  ],
-};
-
-// ── IBM SkillsBuild: AI Fundamentals ────────────────────────────────────────
-
-const ibmSkillsBuildTrack: TrackConfig = {
-  slug: "ibm-ai-fundamentals",
-  name: "IBM SkillsBuild: AI Fundamentals",
-  shortName: "IBM AI",
-  type: "weekly",
-  totalWeeks: 6,
-  sessionsPerWeek: 1,
-  startDate: "2026-06-01",
-  startDateTbd: true,
-  instructor: "TBD",
-  sessionTimes: ["Self-paced"],
-  lastSessionDayOffset: 6,
-  phase: "core",
-  submissionsEnabled: false,
-  reflectionsEnabled: true,
-  defaultReflectionPrompts: [
-    "What did you learn this week?",
-    "How does this connect to your career goals?",
-    "What would you explore further?",
-  ],
-  weekSummaries: [
-    { week: 1, topic: "Introduction to AI", icon: "🧠" },
-    { week: 2, topic: "AI in Practice", icon: "⚙️" },
-    { week: 3, topic: "AI & Society", icon: "🌍" },
-    { week: 4, topic: "AI in the Real World", icon: "💼" },
-    { week: 5, topic: "Your Future in AI", icon: "🚀" },
-    { week: 6, topic: "Certification & Portfolio", icon: "🏅" },
-  ],
-  weeks: [
-    { week: 1, title: "Introduction to AI", icon: "🧠", subtitle: "What AI Is and How It Works", description: "Build a foundational understanding of artificial intelligence — what it is, how it learns, and where it's used today.", objectives: ["Define artificial intelligence and machine learning", "Explain how AI models are trained", "Identify AI applications in daily life", "Complete the IBM Introduction to AI module"], sessions: [{ title: "Introduction to AI", time: "Self-paced" }] },
-    { week: 2, title: "AI in Practice", icon: "⚙️", subtitle: "Tools and Techniques", description: "Get hands-on with AI tools — natural language processing, computer vision, and conversational AI.", objectives: ["Use NLP tools to analyze text", "Explore computer vision applications", "Build a simple chatbot interaction", "Complete the IBM AI in Practice module"], sessions: [{ title: "AI in Practice", time: "Self-paced" }] },
-    { week: 3, title: "AI & Society", icon: "🌍", subtitle: "Ethics, Bias, and Responsibility", description: "Examine the societal impact of AI — bias, fairness, privacy, and responsible development.", objectives: ["Identify bias in AI systems", "Discuss ethical implications of AI", "Evaluate AI fairness frameworks", "Complete the IBM AI Ethics module"], sessions: [{ title: "AI & Society", time: "Self-paced" }] },
-    { week: 4, title: "AI in the Real World", icon: "💼", subtitle: "Industry Applications", description: "Explore how AI is transforming industries — healthcare, finance, retail, and more.", objectives: ["Map AI applications across industries", "Analyze a real-world AI case study", "Evaluate ROI of AI implementations", "Complete the AI in the Real World module"], sessions: [{ title: "AI in the Real World", time: "Self-paced" }] },
-    { week: 5, title: "Your Future in AI", icon: "🚀", subtitle: "Career Paths and Skills", description: "Explore AI career paths — the jobs, the skills, and how to position yourself.", objectives: ["Identify AI job roles and requirements", "Build your LinkedIn profile for AI roles", "Practice AI storytelling and interview skills", "Map your personal AI learning path"], sessions: [{ title: "Your Future in AI", time: "Self-paced" }] },
-    { week: 6, title: "Certification & Portfolio", icon: "🏅", subtitle: "IBM Digital Credential", description: "Complete your IBM SkillsBuild AI Fundamentals credential and build your portfolio.", objectives: ["Pass the IBM AI Fundamentals assessment", "Accept your IBM digital credential", "Add the credential to your LinkedIn", "Present your AI learning journey"], sessions: [{ title: "Certification & Portfolio", time: "Self-paced" }] },
-  ],
-};
+// NOTE: "AI Literacy" (slug foundations-ai) moved to Beyond Code Centers
+// (forge.ts); IBM SkillsBuild moved to Black Girls Code (bgc.ts).
 
 // ── Salesforce Administrator ────────────────────────────────────────────────
 
@@ -303,7 +230,5 @@ const salesforceTrack: TrackConfig = {
 
 export const additionalTracks: TrackConfig[] = [
   networkPlusTrack,
-  foundationsAITrack,
-  ibmSkillsBuildTrack,
   salesforceTrack,
 ];

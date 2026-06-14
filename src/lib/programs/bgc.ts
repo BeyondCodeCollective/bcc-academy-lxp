@@ -142,6 +142,44 @@ const endlessGamesTrack: TrackConfig = {
   ],
 };
 
+const ibmSkillsBuildTrack: TrackConfig = {
+  slug: "ibm-ai-fundamentals",
+  name: "IBM SkillsBuild: AI Fundamentals",
+  shortName: "IBM AI",
+  type: "weekly",
+  totalWeeks: 6,
+  sessionsPerWeek: 1,
+  startDate: "2026-06-01",
+  startDateTbd: true,
+  instructor: "TBD",
+  sessionTimes: ["Self-paced"],
+  lastSessionDayOffset: 6,
+  phase: "core",
+  submissionsEnabled: false,
+  reflectionsEnabled: true,
+  defaultReflectionPrompts: [
+    "What did you learn this week?",
+    "How does this connect to your career goals?",
+    "What would you explore further?",
+  ],
+  weekSummaries: [
+    { week: 1, topic: "Introduction to AI", icon: "🧠" },
+    { week: 2, topic: "AI in Practice", icon: "⚙️" },
+    { week: 3, topic: "AI & Society", icon: "🌍" },
+    { week: 4, topic: "AI in the Real World", icon: "💼" },
+    { week: 5, topic: "Your Future in AI", icon: "🚀" },
+    { week: 6, topic: "Certification & Portfolio", icon: "🏅" },
+  ],
+  weeks: [
+    { week: 1, title: "Introduction to AI", icon: "🧠", subtitle: "What AI Is and How It Works", description: "Build a foundational understanding of artificial intelligence — what it is, how it learns, and where it's used today.", objectives: ["Define artificial intelligence and machine learning", "Explain how AI models are trained", "Identify AI applications in daily life", "Complete the IBM Introduction to AI module"], sessions: [{ title: "Introduction to AI", time: "Self-paced" }] },
+    { week: 2, title: "AI in Practice", icon: "⚙️", subtitle: "Tools and Techniques", description: "Get hands-on with AI tools — natural language processing, computer vision, and conversational AI.", objectives: ["Use NLP tools to analyze text", "Explore computer vision applications", "Build a simple chatbot interaction", "Complete the IBM AI in Practice module"], sessions: [{ title: "AI in Practice", time: "Self-paced" }] },
+    { week: 3, title: "AI & Society", icon: "🌍", subtitle: "Ethics, Bias, and Responsibility", description: "Examine the societal impact of AI — bias, fairness, privacy, and responsible development.", objectives: ["Identify bias in AI systems", "Discuss ethical implications of AI", "Evaluate AI fairness frameworks", "Complete the IBM AI Ethics module"], sessions: [{ title: "AI & Society", time: "Self-paced" }] },
+    { week: 4, title: "AI in the Real World", icon: "💼", subtitle: "Industry Applications", description: "Explore how AI is transforming industries — healthcare, finance, retail, and more.", objectives: ["Map AI applications across industries", "Analyze a real-world AI case study", "Evaluate ROI of AI implementations", "Complete the AI in the Real World module"], sessions: [{ title: "AI in the Real World", time: "Self-paced" }] },
+    { week: 5, title: "Your Future in AI", icon: "🚀", subtitle: "Career Paths and Skills", description: "Explore AI career paths — the jobs, the skills, and how to position yourself.", objectives: ["Identify AI job roles and requirements", "Build your LinkedIn profile for AI roles", "Practice AI storytelling and interview skills", "Map your personal AI learning path"], sessions: [{ title: "Your Future in AI", time: "Self-paced" }] },
+    { week: 6, title: "Certification & Portfolio", icon: "🏅", subtitle: "IBM Digital Credential", description: "Complete your IBM SkillsBuild AI Fundamentals credential and build your portfolio.", objectives: ["Pass the IBM AI Fundamentals assessment", "Accept your IBM digital credential", "Add the credential to your LinkedIn", "Present your AI learning journey"], sessions: [{ title: "Certification & Portfolio", time: "Self-paced" }] },
+  ],
+};
+
 export const bgcConfig: ProgramConfig = {
   slug: "bgc",
   name: "Black Girls Code",
@@ -163,7 +201,7 @@ export const bgcConfig: ProgramConfig = {
     startDate: "2026-07-07",
     totalWeeks: 3,
   },
-  tracks: [robloxVirtualBootcampTrack, endlessGamesTrack],
+  tracks: [robloxVirtualBootcampTrack, endlessGamesTrack, ibmSkillsBuildTrack],
   // Camp signups are gated on the BGC event allowlist.
   requireInviteLink: true,
   coppa: {
