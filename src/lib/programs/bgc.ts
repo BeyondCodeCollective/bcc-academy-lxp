@@ -98,6 +98,50 @@ const robloxVirtualBootcampTrack: TrackConfig = {
   ],
 };
 
+const endlessGamesTrack: TrackConfig = {
+  slug: "endless-games-godot",
+  name: "Endless Games: Core Godot",
+  shortName: "Game Dev",
+  type: "weekly",
+  totalWeeks: 9,
+  sessionsPerWeek: 1,
+  startDate: "2026-06-01",
+  startDateTbd: true,
+  instructor: "TBD",
+  sessionTimes: ["Day & time TBD"],
+  lastSessionDayOffset: 6,
+  phase: "core",
+  submissionsEnabled: true,
+  reflectionsEnabled: true,
+  defaultReflectionPrompts: [
+    "What did you build this session?",
+    "What was the trickiest part?",
+    "What would you add if you had more time?",
+  ],
+  weekSummaries: [
+    { week: 1, topic: "Getting Started", icon: "🎮" },
+    { week: 2, topic: "Scenes & Nodes", icon: "🧩" },
+    { week: 3, topic: "Player Movement", icon: "🕹️" },
+    { week: 4, topic: "Physics & Collision", icon: "💥" },
+    { week: 5, topic: "UI & Menus", icon: "📱" },
+    { week: 6, topic: "Audio & Effects", icon: "🔊" },
+    { week: 7, topic: "Level Design", icon: "🗺️" },
+    { week: 8, topic: "Polish & Debug", icon: "✨" },
+    { week: 9, topic: "Ship Your Game", icon: "🚀" },
+  ],
+  weeks: [
+    { week: 1, title: "Getting Started with Godot", icon: "🎮", subtitle: "Install, Interface, First Project", description: "Set up the Godot engine, navigate the editor, and create your first project.", objectives: ["Install and configure Godot 4", "Navigate the editor interface", "Create and run a first scene", "Understand the project file structure"], sessions: [{ title: "Getting Started with Godot", time: "TBD" }] },
+    { week: 2, title: "Scenes & Nodes", icon: "🧩", subtitle: "Building Blocks of Godot", description: "Learn Godot's scene system — how nodes compose into scenes, and scenes compose into games.", objectives: ["Create and nest scenes", "Add and configure nodes", "Use signals for communication", "Manage the scene tree"], sessions: [{ title: "Scenes & Nodes", time: "TBD" }] },
+    { week: 3, title: "Player Movement", icon: "🕹️", subtitle: "Input, Animation, Control", description: "Build a controllable character with keyboard/gamepad input and basic animations.", objectives: ["Handle player input", "Implement 2D character movement", "Add sprite animations", "Use AnimationPlayer"], sessions: [{ title: "Player Movement", time: "TBD" }] },
+    { week: 4, title: "Physics & Collision", icon: "💥", subtitle: "RigidBody, Area2D, CollisionShape", description: "Add physics and collision detection — make objects interact with each other.", objectives: ["Configure collision shapes and layers", "Use RigidBody2D and Area2D", "Detect and respond to collisions", "Implement basic enemy behavior"], sessions: [{ title: "Physics & Collision", time: "TBD" }] },
+    { week: 5, title: "UI & Menus", icon: "📱", subtitle: "HUD, Buttons, Score Display", description: "Build game UI — health bars, score counters, pause menus, and start screens.", objectives: ["Create a HUD with Control nodes", "Build a main menu and pause screen", "Display score and health", "Handle UI input events"], sessions: [{ title: "UI & Menus", time: "TBD" }] },
+    { week: 6, title: "Audio & Effects", icon: "🔊", subtitle: "Sound, Music, Particles", description: "Add audio and visual effects to bring your game to life.", objectives: ["Add sound effects and background music", "Use AudioStreamPlayer nodes", "Create particle effects", "Trigger effects from game events"], sessions: [{ title: "Audio & Effects", time: "TBD" }] },
+    { week: 7, title: "Level Design", icon: "🗺️", subtitle: "TileMaps, Layouts, Progression", description: "Design game levels using TileMaps and create meaningful progression.", objectives: ["Use TileMap for level creation", "Design level layouts with purpose", "Implement level transitions", "Add collectibles and objectives"], sessions: [{ title: "Level Design", time: "TBD" }] },
+    { week: 8, title: "Polish & Debug", icon: "✨", subtitle: "Testing, Optimization, Juice", description: "Polish your game — fix bugs, optimize performance, and add game feel.", objectives: ["Debug common Godot issues", "Add screen shake and juice effects", "Optimize for performance", "Playtest and iterate"], sessions: [{ title: "Polish & Debug", time: "TBD" }] },
+    { week: 9, title: "Ship Your Game", icon: "🚀", subtitle: "Export, Publish, Present", description: "Export your game for distribution and present your work.", objectives: ["Export for web and desktop", "Create a game page (itch.io)", "Present your game to the cohort", "Plan your next game project"], sessions: [{ title: "Ship Your Game", time: "TBD" }] },
+  ],
+};
+
 export const bgcConfig: ProgramConfig = {
   slug: "bgc",
   name: "Black Girls Code",
@@ -119,7 +163,7 @@ export const bgcConfig: ProgramConfig = {
     startDate: "2026-07-07",
     totalWeeks: 3,
   },
-  tracks: [robloxVirtualBootcampTrack],
+  tracks: [robloxVirtualBootcampTrack, endlessGamesTrack],
   // Camp signups are gated on the BGC event allowlist.
   requireInviteLink: true,
   coppa: {
