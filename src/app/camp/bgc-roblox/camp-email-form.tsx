@@ -17,6 +17,7 @@ export function CampEmailForm() {
     const result = await sendLoginLink({
       email: email.trim(),
       origin: window.location.origin,
+      joinTrack: "roblox-virtual-bootcamp",
       next: "/dashboard/track/roblox-virtual-bootcamp/1",
     });
 
