@@ -14,7 +14,8 @@ import { canAccessAdminPanel, canSwitchPrograms, canAccessStaffContent } from "@
 import { getSessionContext } from "@/lib/auth/session";
 import { getPreviewTrackSlug, LUNCH_LEARN_PREVIEW_SLUG } from "@/lib/auth/preview-mode";
 import { getEnrolledTracks } from "@/lib/enrollment";
-import { BCC_INTAKE_SURVEY_ID, BCC_INTAKE_EXEMPT_PROGRAMS } from "@/lib/surveys/platform";
+import { BCC_INTAKE_SURVEY_ID } from "@/lib/surveys/platform";
+import { isSurveyEnabledForLearner } from "@/lib/surveys/features";
 import { isStaffEmail } from "@/lib/auth/admins";
 import { getHomeProgramForTrack } from "@/lib/programs";
 
@@ -137,12 +138,10 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
     if (!isAdmin && !isSurvey && !validPreviewSlug) {
       const supabase = await createClient();
       const isStaff = isStaffEmail(email);
-      const needsIntakeCheck =
-        !BCC_INTAKE_EXEMPT_PROGRAMS.includes(program.slug) && !isStaff;
       const needsEnrollment = program.tracks.length > 0;
 
       const [intakeRes, enrolledRes, allowlistRes] = await Promise.all([
-        needsIntakeCheck
+        !isStaff
           ? supabase
               .from("survey_responses")
               .select("completed_at")
@@ -183,7 +182,16 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
           )
         : undefined;
 
-      if (needsIntakeCheck && !intakeRes.data) {
+      // Intake survey is OPT-IN — only when toggled on for this program or one
+      // of the learner's enrolled tracks (admin Features page). Off by default.
+      const surveyEnabled =
+        !isStaff &&
+        (await isSurveyEnabledForLearner(
+          program.slug,
+          (enrolledRes as { slug: string }[]).map((t) => t.slug),
+        ));
+
+      if (surveyEnabled && !intakeRes.data) {
         redirect(`/dashboard/survey/${BCC_INTAKE_SURVEY_ID}`);
       }
       if (requiredSurvey) {

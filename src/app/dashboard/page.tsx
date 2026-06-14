@@ -18,7 +18,8 @@ import { getHomeProgramForTrack } from "@/lib/programs";
 import { WeekIcon } from "@/components/week-icon";
 import { DashboardBento } from "@/components/dashboard-bento";
 import { PageHeader } from "@/components/page-header";
-import { BCC_INTAKE_SURVEY_ID, BCC_INTAKE_EXEMPT_PROGRAMS } from "@/lib/surveys/platform";
+import { BCC_INTAKE_SURVEY_ID } from "@/lib/surveys/platform";
+import { isSurveyEnabledForLearner } from "@/lib/surveys/features";
 import { isStaffEmail } from "@/lib/auth/admins";
 import { completePendingSetup } from "@/lib/auth/deferred-setup";
 import { isAssessmentEnabledForLearner } from "@/lib/assessment/features";
@@ -219,9 +220,13 @@ async function DashboardContent({
         );
         const isStaff = isStaffEmail(currentUser.email ?? null);
 
+        // Intake survey is OPT-IN — only fires when toggled on for this program
+        // or one of the learner's tracks (admin Features page), same as the
+        // pathway assessment. Off by default.
+        const surveyEnabled = await isSurveyEnabledForLearner(program.slug, enrolledTrackSlugs);
         if (
           !isStaff &&
-          !BCC_INTAKE_EXEMPT_PROGRAMS.includes(program.slug) &&
+          surveyEnabled &&
           !completedTypes.has(BCC_INTAKE_SURVEY_ID)
         ) {
           redirect(`/dashboard/survey/${BCC_INTAKE_SURVEY_ID}`);

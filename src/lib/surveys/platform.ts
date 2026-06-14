@@ -15,21 +15,10 @@ import type { SurveyConfig } from "@/lib/programs/types";
 export const BCC_INTAKE_SURVEY_ID = "bcc-learner-intake";
 const BCC_WORKSHOP_SURVEY_ID = "bcc-workshop";
 
-// Programs where the BCC Learner Intake is skipped because a program-specific
-// survey already covers the same data, or because the program is launching
-// without a pre-survey gate. Catalyst's pre-survey-spring-2026 is a strict
-// superset of the intake (same SHARED_DEMOGRAPHICS block + AI/digital
-// questions), so gating on both made learners answer the same 8 demographic
-// questions twice.
-export const BCC_INTAKE_EXEMPT_PROGRAMS: readonly string[] = [
-  "atg",
-  "forte",
-  "catalyst",
-  // New programs launch without the intake gate — esp. BGC (Roblox is ages
-  // 10–15; no auto intake survey). Surveys are opt-in for these.
-  "bgc",
-  "beyond-code-centers",
-];
+// The BCC Learner Intake is OPT-IN, toggled per program/track via
+// program_features/track_features.survey_enabled (admin Features page) — see
+// isSurveyEnabledForLearner in src/lib/surveys/features.ts. Off by default, so
+// no program gets the intake survey unless it's explicitly turned on.
 
 // ─── Authenticated (dashboard) ──────────────────────────────────────────────
 

@@ -12,6 +12,7 @@ const PROGRAM_LABELS: Record<string, string> = {
   atg:       "After the Game",
   forte:     "Upskill Bahamas",
   "beyond-code-centers": "Beyond Code Centers",
+  bgc:       "Black Girls Code",
 };
 
 export default async function FeaturesPage() {
@@ -54,25 +55,29 @@ export default async function FeaturesPage() {
 
   const { data: progFlagRows } = await svc
     .from("program_features")
-    .select("program_slug, assessment_enabled")
+    .select("program_slug, assessment_enabled, survey_enabled")
     .in("program_slug", programSlugs);
 
   const programFlagsMap: Record<string, boolean> = {};
+  const surveyProgramFlagsMap: Record<string, boolean> = {};
   for (const row of progFlagRows ?? []) {
     programFlagsMap[row.program_slug as string] = row.assessment_enabled as boolean;
+    surveyProgramFlagsMap[row.program_slug as string] = row.survey_enabled as boolean;
   }
 
   const allTrackSlugs = Object.values(programTracks).flat().map((t) => t.slug);
   const { data: trackFlagRows } = allTrackSlugs.length > 0
     ? await svc
         .from("track_features")
-        .select("track_slug, assessment_enabled")
+        .select("track_slug, assessment_enabled, survey_enabled")
         .in("track_slug", allTrackSlugs)
     : { data: [] };
 
   const trackFlagsMap: Record<string, boolean> = {};
+  const surveyTrackFlagsMap: Record<string, boolean> = {};
   for (const row of trackFlagRows ?? []) {
     trackFlagsMap[row.track_slug as string] = row.assessment_enabled as boolean;
+    surveyTrackFlagsMap[row.track_slug as string] = row.survey_enabled as boolean;
   }
 
   // Unviewed assessment count for the badge
@@ -104,10 +109,10 @@ export default async function FeaturesPage() {
         <SurveyLinksSection surveyConfigs={surveyConfigs} />
       </section>
 
-      {/* Pathway Assessments */}
+      {/* Program features (assessment + surveys, toggleable per program/track) */}
       <section className="space-y-4">
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">
-          Pathway assessments
+          Program features
         </h2>
         <div className="divide-y divide-rule overflow-hidden panel">
           <a
@@ -133,9 +138,11 @@ export default async function FeaturesPage() {
           <FeatureToggles
             programs={[...orderedSlugs, ...remaining]}
             programLabels={PROGRAM_LABELS}
-            programFlagsMap={programFlagsMap}
             programTracks={programTracks}
-            trackFlagsMap={trackFlagsMap}
+            features={[
+              { key: "assessment", label: "Pathway Assessment", programFlagsMap, trackFlagsMap },
+              { key: "survey", label: "Surveys", programFlagsMap: surveyProgramFlagsMap, trackFlagsMap: surveyTrackFlagsMap },
+            ]}
           />
         </div>
       </section>

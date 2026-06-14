@@ -41,3 +41,25 @@ export async function toggleTrackAssessment(trackSlug: string, enabled: boolean)
   revalidatePath("/dashboard/admin/features");
   revalidatePath("/dashboard");
 }
+
+export async function toggleSurvey(programSlug: string, enabled: boolean) {
+  const svc = await requireSuperAdmin();
+  await svc.from("program_features").upsert({
+    program_slug: programSlug,
+    survey_enabled: enabled,
+    updated_at: new Date().toISOString(),
+  });
+  revalidatePath("/dashboard/admin/features");
+  revalidatePath("/dashboard");
+}
+
+export async function toggleTrackSurvey(trackSlug: string, enabled: boolean) {
+  const svc = await requireSuperAdmin();
+  await svc.from("track_features").upsert({
+    track_slug: trackSlug,
+    survey_enabled: enabled,
+    updated_at: new Date().toISOString(),
+  });
+  revalidatePath("/dashboard/admin/features");
+  revalidatePath("/dashboard");
+}

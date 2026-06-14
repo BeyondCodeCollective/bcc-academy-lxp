@@ -2,20 +2,43 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { toggleAssessment, toggleTrackAssessment } from "./actions";
+import {
+  toggleAssessment,
+  toggleTrackAssessment,
+  toggleSurvey,
+  toggleTrackSurvey,
+} from "./actions";
+
+type FeatureKey = "assessment" | "survey";
+
+type Feature = {
+  key: FeatureKey;
+  label: string;
+  programFlagsMap: Record<string, boolean>;
+  trackFlagsMap: Record<string, boolean>;
+};
+
+const TOGGLERS: Record<
+  FeatureKey,
+  {
+    program: (slug: string, val: boolean) => Promise<void>;
+    track: (slug: string, val: boolean) => Promise<void>;
+  }
+> = {
+  assessment: { program: toggleAssessment, track: toggleTrackAssessment },
+  survey: { program: toggleSurvey, track: toggleTrackSurvey },
+};
 
 export function FeatureToggles({
   programs,
   programLabels,
-  programFlagsMap,
   programTracks,
-  trackFlagsMap,
+  features,
 }: {
   programs: string[];
   programLabels: Record<string, string>;
-  programFlagsMap: Record<string, boolean>;
   programTracks: Record<string, { slug: string; name: string }[]>;
-  trackFlagsMap: Record<string, boolean>;
+  features: Feature[];
 }) {
   return (
     <div className="space-y-6">
@@ -24,9 +47,8 @@ export function FeatureToggles({
           key={slug}
           slug={slug}
           label={programLabels[slug] ?? slug}
-          programEnabled={programFlagsMap[slug] ?? false}
           tracks={programTracks[slug] ?? []}
-          trackFlagsMap={trackFlagsMap}
+          features={features}
         />
       ))}
     </div>
@@ -36,15 +58,13 @@ export function FeatureToggles({
 function ProgramCard({
   slug,
   label,
-  programEnabled,
   tracks,
-  trackFlagsMap,
+  features,
 }: {
   slug: string;
   label: string;
-  programEnabled: boolean;
   tracks: { slug: string; name: string }[];
-  trackFlagsMap: Record<string, boolean>;
+  features: Feature[];
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -64,30 +84,38 @@ function ProgramCard({
       </div>
 
       <div className="px-5 py-4 space-y-4">
-        {/* Program-level toggle — turns it on for ALL tracks in this program */}
-        <ToggleRow
-          label="Pathway Assessment — all tracks"
-          description={
-            tracks.length > 0
-              ? "Turns on for every track in this program at once"
-              : "Turns on the pathway assessment for this program"
-          }
-          enabled={programEnabled}
-          onToggle={(val) => toggleAssessment(slug, val)}
-        />
+        {/* Program-level toggles — turn the feature on for ALL tracks at once */}
+        {features.map((f) => (
+          <ToggleRow
+            key={f.key}
+            label={`${f.label} — all tracks`}
+            description={
+              tracks.length > 0
+                ? "Turns on for every track in this program at once"
+                : `Turns on ${f.label.toLowerCase()} for this program`
+            }
+            enabled={f.programFlagsMap[slug] ?? false}
+            onToggle={(val) => TOGGLERS[f.key].program(slug, val)}
+          />
+        ))}
 
         {/* Per-track toggles */}
         {expanded && tracks.length > 0 && (
-          <div className="space-y-3 pl-4 border-l-2 border-ink/10 pt-1">
+          <div className="space-y-4 pl-4 border-l-2 border-ink/10 pt-1">
             <p className="text-xs text-ink/40 font-medium uppercase tracking-widest">Individual tracks</p>
             {tracks.map((track) => (
-              <ToggleRow
-                key={track.slug}
-                label={track.name}
-                description={track.slug}
-                enabled={trackFlagsMap[track.slug] ?? false}
-                onToggle={(val) => toggleTrackAssessment(track.slug, val)}
-              />
+              <div key={track.slug} className="space-y-2">
+                <p className="text-sm font-medium text-ink truncate">{track.name}</p>
+                {features.map((f) => (
+                  <ToggleRow
+                    key={f.key}
+                    label={f.label}
+                    description={track.slug}
+                    enabled={f.trackFlagsMap[track.slug] ?? false}
+                    onToggle={(val) => TOGGLERS[f.key].track(track.slug, val)}
+                  />
+                ))}
+              </div>
             ))}
           </div>
         )}
