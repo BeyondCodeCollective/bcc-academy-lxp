@@ -1,5 +1,6 @@
 import { catalystConfig } from "./catalyst";
 import { forteConfig } from "./forte";
+import { bgcConfig } from "./bgc";
 import { marketingConfig, MARKETING_SLUG } from "./marketing";
 import type { ProgramConfig, TrackConfig } from "./types";
 
@@ -7,12 +8,15 @@ const PROGRAMS: Record<string, ProgramConfig> = {
   catalyst: catalystConfig,
 };
 
-// Marketing and Forte are intentionally NOT in PROGRAMS (so they're excluded
-// from getAllPrograms and the program switcher). They're resolved separately:
-// marketing → apex domain; forte → /join/forte and auth callback only.
+// Marketing, Forte, and BGC are intentionally NOT in PROGRAMS (so they're
+// excluded from getAllPrograms and the program switcher). They're resolved
+// separately: marketing → apex domain; forte → /join/forte; bgc → /join/bgc
+// and the BGC camp landing pages. BGC (Black Girls Code) is its own org, not a
+// Catalyst track.
 const SPECIAL_CONFIGS: Record<string, ProgramConfig> = {
   [MARKETING_SLUG]: marketingConfig,
   forte: forteConfig,
+  bgc: bgcConfig,
 };
 
 /**
