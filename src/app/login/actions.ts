@@ -42,6 +42,7 @@ export async function sendLoginLink({
 
   let callbackJoinSlug: string | null = null;
   let callbackTrackSlug: string | null = null;
+  let intendedProgramName: string | null = null;
 
   const [{ data: allowRows }, { data: existingStudent }] = await Promise.all([
     svc.from("allowed_signup_emails").select("track_slug").eq("email", trimmed),
@@ -88,6 +89,7 @@ export async function sendLoginLink({
     if (homeProgram) {
       callbackJoinSlug = homeProgram.slug;
       callbackTrackSlug = intendedTrack;
+      intendedProgramName = homeProgram.name;
     }
   }
 
@@ -119,7 +121,7 @@ export async function sendLoginLink({
         await sendSignInEmail({
           to: trimmed,
           magicLink: callbackUrl.toString(),
-          programName: program.name,
+          programName: intendedProgramName ?? program.name,
         });
         console.log("[login] sign-in email sent via Resend", { email: trimmed });
         return { ok: true };

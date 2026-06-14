@@ -21,7 +21,15 @@ const BCC_WORKSHOP_SURVEY_ID = "bcc-workshop";
 // superset of the intake (same SHARED_DEMOGRAPHICS block + AI/digital
 // questions), so gating on both made learners answer the same 8 demographic
 // questions twice.
-export const BCC_INTAKE_EXEMPT_PROGRAMS: readonly string[] = ["atg", "forte", "catalyst"];
+export const BCC_INTAKE_EXEMPT_PROGRAMS: readonly string[] = [
+  "atg",
+  "forte",
+  "catalyst",
+  // New programs launch without the intake gate — esp. BGC (Roblox is ages
+  // 10–15; no auto intake survey). Surveys are opt-in for these.
+  "bgc",
+  "beyond-code-centers",
+];
 
 // ─── Authenticated (dashboard) ──────────────────────────────────────────────
 
