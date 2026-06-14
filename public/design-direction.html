@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Design Direction v4 — Crisp · Chassis + Skin</title>
+<style>
+  /* ===== SKIN — per-program variables ===== */
+  :root { --accent: #009CA6; --accent-ink: #ffffff; }
+  :root[data-skin="bahamas"]  { --accent: #008A94; --accent-ink: #fff; }
+  :root[data-skin="roblox"]   { --accent: #E5322B; --accent-ink: #fff; }
+  :root[data-skin="comptia"]  { --accent: #15663F; --accent-ink: #fff; }
+  :root[data-skin="catalyst"] { --accent: #1D59FF; --accent-ink: #fff; }
+
+  /* ===== CHASSIS — clean neutral, crisp accent, subtle 8px radius ===== */
+  :root {
+    --sf: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
+    --ink: #1d1d1f; --ink-2: #525257; --muted: #8a8a8f;
+    --bg: #ffffff;            /* white-forward — separation via hairlines, not a gray field */
+    --surface: #ffffff;
+    --rule: #ececed; --rule-2: #dcdcde;
+    --r: 8px; --r-sm: 6px;    /* subtle, not drastic */
+    --shadow: 0 1px 2px rgba(0,0,0,0.05);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-font-smoothing: antialiased; }
+  body { background: var(--bg); color: var(--ink); font-family: var(--sf); line-height: 1.5; }
+  a { color: inherit; text-decoration: none; }
+  .num { font-variant-numeric: tabular-nums; }
+  svg { display: block; }
+
+  .app { display: grid; grid-template-columns: 244px 1fr; min-height: 100vh; }
+
+  /* ===== SIDEBAR ===== */
+  .sidebar { position: sticky; top: 0; height: 100vh; background: var(--surface); border-right: 1px solid var(--rule); display: flex; flex-direction: column; padding: 18px 12px 14px; }
+  .brand { display: flex; align-items: center; gap: 9px; padding: 4px 8px 16px; }
+  .brand .mark { width: 26px; height: 26px; border-radius: 6px; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-weight: 700; font-size: 14px; flex: none; }
+  .brand .name { font-size: 15px; font-weight: 700; letter-spacing: -0.02em; flex: 1; }
+  .sb-toggle { width: 28px; height: 28px; border-radius: 6px; display: grid; place-items: center; color: var(--muted); cursor: pointer; flex: none; }
+  .sb-toggle:hover { background: #f4f4f5; color: var(--ink); }
+  .sb-toggle svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 1.8; fill: none; }
+
+  .navgroup { padding: 4px 0; }
+  .navgroup .glabel { font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); padding: 12px 10px 5px; }
+  .navitem { display: flex; align-items: center; gap: 11px; padding: 8px 10px; border-radius: var(--r-sm); font-size: 14px; font-weight: 500; color: var(--ink-2); cursor: pointer; }
+  .navitem svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 1.7; fill: none; flex: none; }
+  .navitem:hover { background: #f4f4f5; color: var(--ink); }
+  /* crisp active state: neutral pill + accent icon + bold ink text + accent edge */
+  .navitem.on { background: #f1f1f2; color: var(--ink); font-weight: 600; box-shadow: inset 2px 0 0 var(--accent); }
+  .navitem.on svg { stroke: var(--accent); }
+  .navitem .tag { margin-left: auto; font-size: 10px; font-weight: 700; color: var(--accent); }
+  .spacer { flex: 1; }
+  .pinned { border-top: 1px solid var(--rule); padding-top: 8px; margin-top: 4px; }
+
+  /* ===== MAIN ===== */
+  .main { min-width: 0; display: flex; flex-direction: column; }
+  .topbar { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--bg) 80%, transparent); backdrop-filter: saturate(180%) blur(20px); display: flex; align-items: center; gap: 12px; padding: 11px 30px; min-height: 56px; }
+  .crumb { font-size: 13.5px; font-weight: 500; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+  .crumb a { cursor: pointer; }
+  .crumb a:hover { color: var(--ink); }
+  .crumb .cur { color: var(--ink); font-weight: 600; }
+  .topbar .right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .iconbtn { width: 34px; height: 34px; border-radius: var(--r-sm); display: grid; place-items: center; color: var(--ink-2); cursor: pointer; }
+  .iconbtn:hover { background: #ececed; color: var(--ink); }
+  .iconbtn svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 1.8; fill: none; }
+  /* expanding search */
+  .search { display: flex; align-items: center; gap: 0; background: transparent; border: 1px solid transparent; border-radius: var(--r-sm); overflow: hidden; transition: all 0.22s ease; }
+  .search .iconbtn { flex: none; }
+  .search input { width: 0; opacity: 0; border: none; outline: none; background: transparent; font-family: var(--sf); font-size: 13.5px; color: var(--ink); transition: all 0.22s ease; padding: 0; }
+  .search.open { background: var(--surface); border-color: var(--rule-2); }
+  .search.open input { width: 230px; opacity: 1; padding: 0 12px 0 2px; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-size: 13px; font-weight: 600; margin-left: 4px; }
+
+  /* accessibility popover */
+  .a11y-pop { position: absolute; right: 30px; top: 52px; width: 246px; background: var(--surface); border: 1px solid var(--rule-2); border-radius: var(--r); box-shadow: 0 10px 34px rgba(0,0,0,0.13); padding: 12px 14px; z-index: 40; }
+  .a11y-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; }
+  .a11y-row + .a11y-row { border-top: 1px solid var(--rule); }
+  .a11y-l { font-size: 13.5px; font-weight: 600; }
+  .a11y-seg { display: flex; gap: 5px; }
+  .a11y-seg button { font-family: var(--sf); border: 1px solid var(--rule-2); background: var(--surface); border-radius: var(--r-sm); width: 33px; height: 31px; display: grid; place-items: center; cursor: pointer; color: var(--ink-2); font-weight: 700; line-height: 1; }
+  .a11y-seg button:nth-child(1) { font-size: 11px; }
+  .a11y-seg button:nth-child(2) { font-size: 14px; }
+  .a11y-seg button:nth-child(3) { font-size: 18px; }
+  .a11y-seg button.on { border-color: var(--accent); color: var(--accent); }
+  .a11y-toggle { font-family: var(--sf); font-size: 13px; font-weight: 600; border: 1px solid var(--rule-2); background: var(--surface); border-radius: var(--r-sm); padding: 7px 13px; cursor: pointer; color: var(--ink); }
+  .a11y-toggle.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+
+  /* collapsible nav */
+  .app { transition: grid-template-columns 0.2s ease; }
+  .app.collapsed { grid-template-columns: 66px 1fr; }
+  .app.collapsed .brand { flex-direction: column; align-items: center; gap: 10px; padding: 4px 0 14px; }
+  .app.collapsed .brand .name,
+  .app.collapsed .lbl,
+  .app.collapsed .glabel,
+  .app.collapsed .navitem .tag { display: none; }
+  .app.collapsed .navitem { justify-content: center; padding: 9px 0; }
+  .app.collapsed .navgroup { padding: 4px 0; }
+  .app.collapsed .navgroup + .navgroup { border-top: 1px solid var(--rule); margin-top: 4px; padding-top: 8px; }
+  #collapsebtn svg { transition: transform 0.2s ease; }
+  .app.collapsed #collapsebtn svg { transform: rotate(180deg); }
+
+  .content { padding: 30px 30px 70px; max-width: 920px; zoom: var(--ts, 1); }
+  .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--accent); }
+  .eyebrow.m { color: var(--muted); }
+
+  /* ----- DASHBOARD ----- */
+  .phead { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; padding-bottom: 26px; }
+  h1.title { font-size: clamp(27px, 3vw, 35px); font-weight: 700; letter-spacing: -0.025em; line-height: 1.06; margin-top: 9px; }
+  .subline { margin-top: 10px; font-size: 14.5px; color: var(--ink-2); }
+  .subline b { color: var(--ink); font-weight: 600; }
+  .headprog { text-align: right; flex: none; }
+  .headprog .p { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+  .headprog .l { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+
+  /* compact Continue bar — earns its row, minimal color */
+  .continue { display: flex; align-items: center; gap: 18px; background: var(--surface); border: 1px solid var(--rule); border-radius: var(--r); padding: 16px 18px; box-shadow: var(--shadow); }
+  .continue .badge { width: 46px; height: 46px; border-radius: var(--r-sm); background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-weight: 700; font-size: 15px; flex: none; letter-spacing: -0.02em; }
+  .continue .mid { flex: 1; min-width: 0; }
+  .continue .k { font-size: 12px; font-weight: 600; color: var(--muted); }
+  .continue .t { font-size: 16px; font-weight: 600; letter-spacing: -0.015em; margin-top: 1px; }
+  .continue .bar { height: 4px; border-radius: 99px; background: #ececed; margin-top: 9px; max-width: 260px; }
+  .continue .bar i { display: block; height: 4px; border-radius: 99px; background: var(--accent); width: 20%; }
+  .continue .go { flex: none; background: var(--accent); color: var(--accent-ink); font-size: 13.5px; font-weight: 600; padding: 10px 18px; border-radius: var(--r-sm); cursor: pointer; }
+
+  .sechead { display: flex; align-items: baseline; justify-content: space-between; margin: 34px 0 12px; }
+  .sechead h3 { font-size: 17px; font-weight: 700; letter-spacing: -0.015em; }
+  .sechead .count { font-size: 12.5px; color: var(--muted); }
+  .indexlist { background: var(--surface); border: 1px solid var(--rule); border-radius: var(--r); overflow: hidden; box-shadow: var(--shadow); }
+  .row { display: grid; grid-template-columns: 40px 1fr auto; align-items: center; gap: 16px; padding: 14px 18px; border-bottom: 1px solid var(--rule); cursor: pointer; }
+  .row:last-child { border-bottom: 0; }
+  .row:hover { background: #fafafa; }
+  .row .idx { font-size: 13.5px; font-weight: 600; color: var(--muted); }
+  .row .topic { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+  .row .sub { font-size: 12.5px; color: var(--ink-2); margin-top: 1px; }
+  /* crisp text statuses — no pastel pills */
+  .st { font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .st.prog { color: var(--accent); }
+  .st.done { color: var(--muted); display: flex; align-items: center; gap: 5px; }
+  .st.done .ck { color: #1a7f48; }
+  .st.open { color: var(--muted); }
+  .st.lock { color: #b6b6ba; }
+  /* current row: solid accent edge + accent number, no fill */
+  .row.current { box-shadow: inset 3px 0 0 var(--accent); }
+  .row.current .idx { color: var(--accent); }
+  .row.done .idx, .row.done .topic { opacity: 0.62; }
+  .row.locked { opacity: 0.55; }
+
+  /* ----- COURSE PAGE ----- */
+  .ch-head h1 { font-size: clamp(24px, 2.8vw, 32px); font-weight: 700; letter-spacing: -0.025em; line-height: 1.08; margin-top: 9px; }
+  .ch-head .sub { margin-top: 9px; font-size: 15px; color: var(--ink-2); max-width: 58ch; }
+  .video { margin-top: 22px; aspect-ratio: 16/9; border-radius: var(--r); background: linear-gradient(160deg, #2a2a2e, #161618); position: relative; display: grid; place-items: center; box-shadow: var(--shadow); }
+  .video .play { width: 60px; height: 60px; border-radius: 50%; background: var(--accent); display: grid; place-items: center; box-shadow: 0 6px 22px rgba(0,0,0,0.3); }
+  .video .play::after { content: ""; border-style: solid; border-width: 10px 0 10px 16px; border-color: transparent transparent transparent var(--accent-ink); margin-left: 4px; }
+  .video .meta { position: absolute; left: 16px; bottom: 14px; color: #fff; font-size: 12.5px; font-weight: 600; opacity: 0.92; }
+  .block { margin-top: 30px; }
+  .block > .eyebrow { display: block; margin-bottom: 12px; }
+  .obj { display: flex; gap: 14px; padding: 13px 0; border-bottom: 1px solid var(--rule); }
+  .obj:first-of-type { border-top: 1px solid var(--rule); }
+  .obj .n { width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid var(--accent); color: var(--accent); font-size: 12px; font-weight: 700; display: grid; place-items: center; flex: none; }
+  .obj p { font-size: 14.5px; padding-top: 1px; }
+  .obj p b { font-weight: 600; }
+  .deliver { margin-top: 28px; border: 1px solid var(--rule-2); border-left: 3px solid var(--accent); border-radius: var(--r); padding: 20px 22px; background: var(--surface); }
+  .deliver .tag { font-size: 12px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 0.04em; }
+  .deliver h4 { font-size: 16px; font-weight: 700; margin-top: 3px; }
+  .deliver .field { background: #fafafa; border: 1px solid var(--rule-2); border-radius: var(--r-sm); padding: 12px 14px; margin-top: 10px; font-size: 13.5px; color: var(--ink-2); }
+  .deliver .submit { margin-top: 15px; background: var(--accent); color: var(--accent-ink); font-size: 14px; font-weight: 600; padding: 10px 20px; border-radius: var(--r-sm); display: inline-block; cursor: pointer; }
+
+  /* submission form — mirrors the real SubmissionForm component */
+  .submitcard { margin-top: 28px; border: 1px solid var(--rule-2); border-radius: var(--r); background: var(--surface); overflow: hidden; }
+  .submithead { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; cursor: pointer; }
+  .submithead .sh-l { display: flex; align-items: center; gap: 9px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+  .submithead .sh-l svg { width: 15px; height: 15px; stroke: var(--muted); stroke-width: 1.8; fill: none; }
+  .submithead .chev { width: 16px; height: 16px; stroke: var(--muted); stroke-width: 1.8; fill: none; }
+  .submitbody { padding: 2px 18px 18px; border-top: 1px solid var(--rule); }
+  .qfield { margin-top: 16px; }
+  .qfield label { display: block; font-size: 13.5px; font-weight: 600; color: var(--ink); margin-bottom: 7px; }
+  .qfield textarea, .attach input { width: 100%; font-family: var(--sf); font-size: 13.5px; color: var(--ink); background: #fafafa; border: 1px solid var(--rule-2); border-radius: var(--r-sm); padding: 10px 12px; resize: none; outline: none; }
+  .qfield textarea:focus, .attach input:focus { border-color: var(--accent); }
+  .attach { margin-top: 18px; border-top: 1px solid var(--rule); padding-top: 14px; }
+  .attach-head { display: flex; align-items: center; justify-content: space-between; font-size: 12.5px; font-weight: 600; color: var(--muted); cursor: pointer; }
+  .attach-head svg { width: 14px; height: 14px; stroke: var(--muted); stroke-width: 1.8; fill: none; }
+  .mini-l { display: flex; align-items: center; justify-content: space-between; font-size: 12px; font-weight: 600; color: var(--ink-2); margin: 14px 0 7px; }
+  .mini-l .add { color: var(--accent); cursor: pointer; display: flex; align-items: center; gap: 4px; }
+  .linkrow { display: flex; gap: 8px; align-items: center; }
+  .linkrow > svg { width: 15px; height: 15px; stroke: var(--muted); stroke-width: 1.7; fill: none; flex: none; }
+  .linkrow .url { flex: 1; }
+  .linkrow .lbl2 { width: 150px; flex: none; }
+  .filerow { display: flex; align-items: center; gap: 9px; border: 1px solid var(--rule); background: #fafafa; border-radius: var(--r-sm); padding: 9px 12px; font-size: 13.5px; color: var(--ink-2); margin-top: 4px; }
+  .filerow > svg { width: 15px; height: 15px; stroke: var(--muted); stroke-width: 1.7; fill: none; flex: none; }
+  .filerow .x { margin-left: auto; color: #c4c4c8; cursor: pointer; font-size: 12px; }
+  .submit-btn { margin-top: 18px; background: var(--accent); color: var(--accent-ink); border: none; font-family: var(--sf); font-size: 14px; font-weight: 600; padding: 10px 22px; border-radius: var(--r-sm); cursor: pointer; }
+  .pager { display: flex; gap: 12px; margin-top: 30px; }
+  .pager a { flex: 1; border: 1px solid var(--rule-2); border-radius: var(--r); padding: 13px 16px; background: var(--surface); cursor: pointer; }
+  .pager .dir { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .pager .t { font-size: 14px; font-weight: 600; margin-top: 3px; }
+  .pager a.next { text-align: right; }
+  .pager a:hover { border-color: var(--accent); }
+
+  .hidden { display: none; }
+
+  /* skin switcher */
+  .switcher { position: fixed; left: 50%; transform: translateX(-50%); bottom: 20px; background: rgba(28,28,30,0.93); backdrop-filter: blur(12px); border-radius: 999px; display: flex; align-items: center; gap: 3px; padding: 6px; box-shadow: 0 8px 40px rgba(0,0,0,0.3); z-index: 60; }
+  .switcher .hint { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #9a9aa2; padding: 0 10px; }
+  .switcher button { font-family: var(--sf); font-size: 12.5px; font-weight: 600; color: #cfcfd5; background: transparent; border: none; border-radius: 999px; padding: 8px 13px; cursor: pointer; display: flex; align-items: center; gap: 7px; }
+  .switcher button .dot { width: 11px; height: 11px; border-radius: 50%; }
+  .switcher button:hover { color: #fff; }
+  .switcher button.active { color: #fff; background: rgba(255,255,255,0.13); }
+
+  @media (max-width: 760px) { .app { grid-template-columns: 1fr; } .sidebar { display: none; } }
+</style>
+</head>
+<body data-skin="bahamas">
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="brand"><div class="mark">U</div><div class="name">Upskill Bahamas</div><div class="sb-toggle" id="collapsebtn" title="Collapse nav"><svg viewBox="0 0 24 24"><path d="M14 6l-6 6 6 6"/></svg></div></div>
+    <div class="navgroup">
+      <div class="navitem on" data-go="home"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg><span class="lbl">Home</span></div>
+      <div class="navitem"><svg viewBox="0 0 24 24"><path d="M4 5h12a2 2 0 012 2v13H6a2 2 0 01-2-2z"/><path d="M8 5v15"/></svg><span class="lbl">My Courses</span></div>
+      <div class="navitem"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg><span class="lbl">Workshops</span></div>
+      <div class="navitem"><svg viewBox="0 0 24 24"><path d="M5 20V10M12 20V4M19 20v-7"/></svg><span class="lbl">Insights</span></div>
+    </div>
+    <div class="navgroup">
+      <div class="glabel">Learn</div>
+      <div class="navitem"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span class="lbl">Catalog</span></div>
+      <div class="navitem"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg><span class="lbl">Assessments</span></div>
+      <div class="navitem"><svg viewBox="0 0 24 24"><circle cx="12" cy="9" r="5"/><path d="M9 13l-1 8 4-3 4 3-1-8"/></svg><span class="lbl">Certificates</span><span class="tag">NEW</span></div>
+    </div>
+    <div class="spacer"></div>
+    <div class="navgroup pinned">
+      <div class="navitem"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 113.5 2.3c-.8.4-1 .8-1 1.7M12 17h.01"/></svg><span class="lbl">Help &amp; feedback</span></div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="crumb" id="crumb"></div>
+      <div class="right">
+        <div class="search" id="search">
+          <div class="iconbtn" id="searchbtn"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg></div>
+          <input type="text" placeholder="Search courses, sessions…" />
+        </div>
+        <div class="iconbtn" id="a11ybtn" title="Accessibility"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="7.7" r="1.2" fill="currentColor" stroke="none"/><path d="M6 10.2c1.8.9 3.7 1.2 6 1.2s4.2-.3 6-1.2M12 11.4V15M9.5 19l2.5-4 2.5 4"/></svg></div>
+        <div class="iconbtn"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg></div>
+        <div class="avatar">J</div>
+      </div>
+      <div class="a11y-pop hidden" id="a11ypop">
+        <div class="a11y-row">
+          <span class="a11y-l">Text size</span>
+          <div class="a11y-seg" id="a11yseg">
+            <button data-ts="1" class="on">A</button>
+            <button data-ts="1.15">A</button>
+            <button data-ts="1.3">A</button>
+          </div>
+        </div>
+        <div class="a11y-row">
+          <span class="a11y-l">Read aloud</span>
+          <button class="a11y-toggle" id="readbtn">▶&nbsp;Play</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div class="content" id="view-home">
+      <div class="phead">
+        <div>
+          <div class="eyebrow m">Upskill Bahamas — Cohort 1</div>
+          <h1 class="title">Welcome back, Jordan.</h1>
+          <div class="subline">Enrolled in <b>AI Literacy</b> · with <b>Ashley Morgan</b></div>
+        </div>
+        <div class="headprog">
+          <div class="p num">20%</div>
+          <div class="l">2 of 10 sessions</div>
+        </div>
+      </div>
+
+      <div class="continue" data-go="course">
+        <div class="badge num">W3</div>
+        <div class="mid">
+          <div class="k">Continue where you left off</div>
+          <div class="t">Prompt Design &amp; AI Communication</div>
+          <div class="bar"><i></i></div>
+        </div>
+        <div class="go">Resume &rarr;</div>
+      </div>
+
+      <div class="sechead"><h3>Your sessions</h3><span class="count">10 sessions · self-paced</span></div>
+      <div class="indexlist">
+        <div class="row done"><div class="idx num">01</div><div><div class="topic">What AI Is — and Who Defines It</div><div class="sub">Will We Ever Achieve AGI?</div></div><div class="st done"><span class="ck">✓</span> Done</div></div>
+        <div class="row done"><div class="idx num">02</div><div><div class="topic">Bias, Equity &amp; AI Systems</div><div class="sub">Is AI Objective?</div></div><div class="st done"><span class="ck">✓</span> Done</div></div>
+        <div class="row current" data-go="course"><div class="idx num">03</div><div><div class="topic">Prompt Design &amp; AI Communication</div><div class="sub">ROLE + TASK + CONTEXT + FORMAT</div></div><div class="st prog">In progress</div></div>
+        <div class="row"><div class="idx num">04</div><div><div class="topic">Your Professional Digital Identity</div><div class="sub">Professional bio + identity statement</div></div><div class="st open">Open</div></div>
+        <div class="row"><div class="idx num">05</div><div><div class="topic">Say It Better: Communication Toolkit</div><div class="sub">Tone, messaging, emotional intelligence</div></div><div class="st open">Open</div></div>
+        <div class="row"><div class="idx num">06</div><div><div class="topic">AI-Powered Productivity</div><div class="sub">Task breakdown, time blocking, workflow</div></div><div class="st open">Open</div></div>
+        <div class="row locked"><div class="idx num">07</div><div><div class="topic">AI as a Learning Tool</div><div class="sub">Simplification, roadmaps, better questions</div></div><div class="st lock">Locked</div></div>
+      </div>
+    </div>
+
+    <!-- COURSE PAGE -->
+    <div class="content hidden" id="view-course">
+      <div class="ch-head">
+        <div class="eyebrow">Week 03 · AI Literacy</div>
+        <h1>Prompt Design &amp; AI Communication</h1>
+        <div class="sub">The ROLE + TASK + CONTEXT + FORMAT framework — the foundational skill that makes every session after it work better.</div>
+      </div>
+      <div class="video"><div class="play"></div><div class="meta">Session video · 18 min</div></div>
+
+      <div class="block">
+        <span class="eyebrow">In this session</span>
+        <div class="obj"><div class="n">1</div><p>Build a structured prompt using all four elements, then compare it to a simple version of the same request.</p></div>
+        <div class="obj"><div class="n">2</div><p>Add one more constraint — a tone, an audience, or a word limit — and find the point of <b>diminishing returns</b>.</p></div>
+        <div class="obj"><div class="n">3</div><p>Write three reusable prompt templates for recurring tasks, each using the full structure.</p></div>
+      </div>
+
+      <div class="submitcard">
+        <div class="submithead">
+          <div class="sh-l"><svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M5 20h14"/></svg><span>Your deliverable · Personal Prompt Toolkit</span></div>
+          <svg class="chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="submitbody">
+          <div class="qfield">
+            <label>Your three prompt templates, with a note on when and why to use each.</label>
+            <textarea rows="3" placeholder="Write your response…"></textarea>
+          </div>
+          <div class="qfield">
+            <label>The best prompt you wrote today — and what specifically made it work. Name the elements.</label>
+            <textarea rows="3" placeholder="Write your response…"></textarea>
+          </div>
+          <div class="attach">
+            <div class="attach-head"><span>Attachments (optional)</span><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div>
+            <div class="mini-l"><span>Links</span><span class="add"><svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;stroke-width:2;fill:none"><path d="M12 5v14M5 12h14"/></svg>Add link</span></div>
+            <div class="linkrow"><svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 007 0l2-2a5 5 0 00-7-7l-1 1M14 11a5 5 0 00-7 0l-2 2a5 5 0 007 7l1-1"/></svg><input class="url" type="url" placeholder="https://…" /><input class="lbl2" type="text" placeholder="Label (optional)" /></div>
+            <div class="mini-l"><span>Files</span><span class="add"><svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;stroke-width:2;fill:none"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M5 20h14"/></svg>Upload file</span></div>
+            <div class="filerow"><svg viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M14 3v6h6"/></svg>prompt-toolkit.pdf<span class="x">✕</span></div>
+          </div>
+          <button class="submit-btn">Submit</button>
+        </div>
+      </div>
+
+      <div class="pager">
+        <div class="pager-a prev" style="flex:1"><a class="prev" style="display:block;border:1px solid var(--rule-2);border-radius:var(--r);padding:13px 16px;background:var(--surface);"><div class="dir">‹ Previous</div><div class="t">Bias, Equity &amp; AI Systems</div></a></div>
+        <div style="flex:1"><a class="next" style="display:block;border:1px solid var(--rule-2);border-radius:var(--r);padding:13px 16px;background:var(--surface);text-align:right;"><div class="dir">Next ›</div><div class="t">Your Professional Digital Identity</div></a></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="switcher">
+  <span class="hint">Skin&nbsp;&rarr;</span>
+  <button data-set="bahamas" class="active"><span class="dot" style="background:#008A94"></span>Bahamas</button>
+  <button data-set="catalyst"><span class="dot" style="background:#1D59FF"></span>Catalyst</button>
+  <button data-set="roblox"><span class="dot" style="background:#E5322B"></span>Roblox</button>
+  <button data-set="comptia"><span class="dot" style="background:#15663F"></span>CompTIA</button>
+</div>
+
+<script>
+  const root = document.documentElement;
+  document.querySelectorAll('.switcher button').forEach((b) => b.addEventListener('click', () => {
+    root.setAttribute('data-skin', b.dataset.set);
+    document.querySelectorAll('.switcher button').forEach((x) => x.classList.remove('active'));
+    b.classList.add('active');
+  }));
+
+  // expanding search
+  const search = document.getElementById('search');
+  const input = search.querySelector('input');
+  document.getElementById('searchbtn').addEventListener('click', () => {
+    search.classList.toggle('open');
+    if (search.classList.contains('open')) input.focus();
+  });
+  input.addEventListener('blur', () => { if (!input.value) search.classList.remove('open'); });
+
+  // navigation via clicks + breadcrumbs (no demo toggle)
+  const home = document.getElementById('view-home'), course = document.getElementById('view-course');
+  const crumb = document.getElementById('crumb');
+  function show(view) {
+    home.classList.toggle('hidden', view !== 'home');
+    course.classList.toggle('hidden', view !== 'course');
+    crumb.innerHTML = view === 'course'
+      ? '<a data-go="home">AI Literacy</a><span>›</span><span class="cur">Week 03</span>'
+      : '';
+    bindCrumb();
+    window.scrollTo(0, 0);
+  }
+  function bindCrumb() {
+    crumb.querySelectorAll('[data-go]').forEach((el) => el.addEventListener('click', () => show(el.dataset.go)));
+  }
+  document.querySelectorAll('[data-go]').forEach((el) => el.addEventListener('click', (e) => {
+    e.stopPropagation(); show(el.dataset.go);
+  }));
+  bindCrumb();
+
+  // collapsible nav
+  document.getElementById('collapsebtn').addEventListener('click', () => {
+    document.querySelector('.app').classList.toggle('collapsed');
+  });
+
+  // accessibility: text size + read aloud
+  const a11ybtn = document.getElementById('a11ybtn');
+  const a11ypop = document.getElementById('a11ypop');
+  a11ybtn.addEventListener('click', (e) => { e.stopPropagation(); a11ypop.classList.toggle('hidden'); });
+  document.addEventListener('click', (e) => {
+    if (!a11ypop.contains(e.target) && !a11ybtn.contains(e.target)) a11ypop.classList.add('hidden');
+  });
+  document.querySelectorAll('#a11yseg button').forEach((b) => b.addEventListener('click', () => {
+    root.style.setProperty('--ts', b.dataset.ts);
+    document.querySelectorAll('#a11yseg button').forEach((x) => x.classList.remove('on'));
+    b.classList.add('on');
+  }));
+  const readbtn = document.getElementById('readbtn');
+  let speaking = false;
+  function stopRead() { if (window.speechSynthesis) window.speechSynthesis.cancel(); speaking = false; readbtn.textContent = '▶ Play'; readbtn.classList.remove('on'); }
+  readbtn.addEventListener('click', () => {
+    if (!('speechSynthesis' in window)) { readbtn.textContent = 'Not supported'; return; }
+    if (speaking) { stopRead(); return; }
+    const view = course.classList.contains('hidden') ? home : course;
+    const u = new SpeechSynthesisUtterance(view.innerText);
+    u.rate = 0.98; u.onend = stopRead;
+    window.speechSynthesis.cancel(); window.speechSynthesis.speak(u);
+    speaking = true; readbtn.textContent = '■ Stop'; readbtn.classList.add('on');
+  });
+</script>
+</body>
+</html>

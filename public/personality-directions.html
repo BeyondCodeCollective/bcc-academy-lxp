@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Personality directions — past flat/clean, not AI-slop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --sf: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    --accent: #1D59FF;            /* skin — switchable */
+    --accent-ink: #fff;
+  }
+  :root[data-skin="catalyst"]{ --accent:#1D59FF; }
+  :root[data-skin="bahamas"] { --accent:#00747C; }
+  :root[data-skin="roblox"]  { --accent:#E5322B; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family: var(--sf); background:#e9e9ec; color:#16151a; -webkit-font-smoothing:antialiased; }
+
+  /* ===== demo chrome (not part of any direction) ===== */
+  .controls { position:sticky; top:0; z-index:50; display:flex; flex-wrap:wrap; align-items:center; gap:14px;
+    background:#16151a; color:#fff; padding:12px 22px; }
+  .controls .lbl { font-size:11px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:#9a9aa2; }
+  .seg { display:flex; gap:4px; }
+  .seg button { font-family:var(--sf); font-size:13px; font-weight:600; color:#cfcfd5; background:transparent;
+    border:1px solid #3a3a42; border-radius:999px; padding:7px 16px; cursor:pointer; }
+  .seg button.on { background:#fff; color:#16151a; border-color:#fff; }
+  .skins { display:flex; gap:6px; margin-left:auto; }
+  .skins button { width:22px; height:22px; border-radius:50%; border:2px solid transparent; cursor:pointer; }
+  .skins button.on { border-color:#fff; }
+  .note { max-width:880px; margin:14px auto 0; padding:0 24px; font-size:12.5px; color:#6b6b72; line-height:1.6; }
+
+  .stage { max-width:880px; margin:22px auto; padding:0 24px 60px; }
+  .screen { overflow:hidden; }
+
+  /* ============================================================
+     DIRECTION 1 — EDITORIAL (type-led)
+     ============================================================ */
+  [data-dir="editorial"] .screen { background:#fbfbfa; border:1px solid #e4e4e2; }
+  [data-dir="editorial"] .pad { padding:44px clamp(24px,5vw,56px) 52px; }
+  [data-dir="editorial"] .eyebrow { font-family:"Archivo"; font-size:12px; font-weight:700; letter-spacing:.18em;
+    text-transform:uppercase; color:#16151a; }
+  [data-dir="editorial"] .head { display:grid; grid-template-columns:auto 1fr; gap:clamp(18px,4vw,40px); align-items:start;
+    border-bottom:2px solid #16151a; padding-bottom:26px; }
+  [data-dir="editorial"] .wknum { font-family:"Archivo"; font-weight:900; font-size:clamp(64px,12vw,128px); line-height:.8;
+    letter-spacing:-.04em; color:#16151a; font-variant-numeric:tabular-nums; }
+  [data-dir="editorial"] h1 { font-family:"Archivo"; font-weight:800; font-size:clamp(34px,6vw,60px); line-height:.98;
+    letter-spacing:-.03em; margin-top:6px; }
+  [data-dir="editorial"] .meta { margin-top:14px; font-family:"Archivo"; font-size:13px; font-weight:600; letter-spacing:.04em;
+    text-transform:uppercase; color:#6b6b72; }
+  [data-dir="editorial"] .lead { margin-top:26px; font-size:20px; line-height:1.5; max-width:60ch; color:#2a2a30; }
+  [data-dir="editorial"] .lead b { background:linear-gradient(transparent 60%, color-mix(in srgb,var(--accent) 22%,#fff) 0); }
+  [data-dir="editorial"] .sec { margin-top:40px; }
+  [data-dir="editorial"] .sec-h { font-family:"Archivo"; font-size:12px; font-weight:700; letter-spacing:.16em; text-transform:uppercase;
+    color:#6b6b72; padding-bottom:12px; border-bottom:1px solid #16151a; }
+  [data-dir="editorial"] .obj { display:flex; gap:18px; padding:16px 0; border-bottom:1px solid #e4e4e2; }
+  [data-dir="editorial"] .obj .n { font-family:"Archivo"; font-weight:800; font-size:14px; color:var(--accent); width:24px; flex:none; }
+  [data-dir="editorial"] .obj p { font-size:16px; }
+  [data-dir="editorial"] .mat { display:flex; align-items:center; gap:14px; padding:16px 0; border-bottom:1px solid #e4e4e2; }
+  [data-dir="editorial"] .mat .t { font-family:"Archivo"; font-weight:700; font-size:16px; flex:1; }
+  [data-dir="editorial"] .mat .go { font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--accent); }
+  [data-dir="editorial"] .cta { margin-top:34px; display:inline-flex; align-items:center; gap:10px; background:#16151a; color:#fff;
+    font-family:"Archivo"; font-weight:700; font-size:15px; padding:14px 26px; border-radius:2px; }
+
+  /* ============================================================
+     DIRECTION 2 — WARM (texture-led)
+     ============================================================ */
+  [data-dir="warm"] .screen { background:#faf7f1; border-radius:22px; border:1px solid #ece6da;
+    box-shadow:0 1px 0 #fff inset, 0 18px 50px -28px rgba(60,46,20,.3); position:relative; }
+  [data-dir="warm"] .screen::after { content:""; position:absolute; inset:0; pointer-events:none; opacity:.5; border-radius:22px;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.045'/%3E%3C/svg%3E"); }
+  [data-dir="warm"] .pad { padding:40px clamp(24px,5vw,52px) 48px; position:relative; z-index:1; }
+  [data-dir="warm"] .eyebrow { display:inline-flex; align-items:center; gap:7px; font-size:12px; font-weight:700;
+    color:var(--accent); background:color-mix(in srgb,var(--accent) 12%,#fff); padding:6px 13px; border-radius:999px; }
+  [data-dir="warm"] h1 { font-family:"Bricolage Grotesque"; font-weight:700; font-size:clamp(34px,6vw,52px); line-height:1.04;
+    letter-spacing:-.02em; margin-top:18px; color:#2b2419; }
+  [data-dir="warm"] .meta { margin-top:10px; font-size:15px; color:#7a6f5c; }
+  [data-dir="warm"] .lead { margin-top:22px; font-size:18px; line-height:1.65; max-width:58ch; color:#4a4234; }
+  [data-dir="warm"] .lead b { color:#2b2419; font-weight:600; }
+  [data-dir="warm"] .sec { margin-top:34px; }
+  [data-dir="warm"] .sec-h { font-family:"Bricolage Grotesque"; font-size:18px; font-weight:700; color:#2b2419; margin-bottom:14px; }
+  [data-dir="warm"] .obj { display:flex; gap:13px; align-items:flex-start; padding:11px 0; }
+  [data-dir="warm"] .obj .n { width:26px; height:26px; border-radius:50%; background:color-mix(in srgb,var(--accent) 14%,#fff);
+    color:var(--accent); font-weight:700; font-size:13px; display:grid; place-items:center; flex:none; }
+  [data-dir="warm"] .obj p { font-size:16px; color:#4a4234; padding-top:2px; }
+  [data-dir="warm"] .mat { display:flex; align-items:center; gap:14px; background:#fff; border:1px solid #ece6da; border-radius:16px;
+    padding:16px 18px; margin-bottom:10px; }
+  [data-dir="warm"] .mat .ic { width:40px; height:40px; border-radius:12px; background:color-mix(in srgb,var(--accent) 12%,#fff);
+    color:var(--accent); display:grid; place-items:center; flex:none; }
+  [data-dir="warm"] .mat .t { font-weight:600; font-size:15.5px; flex:1; color:#2b2419; }
+  [data-dir="warm"] .mat .go { font-size:13px; font-weight:600; color:var(--accent); }
+  [data-dir="warm"] .cta { margin-top:30px; display:inline-flex; align-items:center; gap:10px; background:var(--accent);
+    color:var(--accent-ink); font-family:"Bricolage Grotesque"; font-weight:700; font-size:15px; padding:14px 28px; border-radius:14px; }
+
+  /* ============================================================
+     DIRECTION 3 — BOLD (color-led)
+     ============================================================ */
+  [data-dir="bold"] .screen { background:#fff; border-radius:10px; overflow:hidden; box-shadow:0 14px 44px -24px rgba(0,0,0,.4); }
+  [data-dir="bold"] .band { background:#111014; color:#fff; padding:40px clamp(24px,5vw,52px) 34px; position:relative; }
+  [data-dir="bold"] .band::before { content:""; position:absolute; left:0; top:0; bottom:0; width:6px; background:var(--accent); }
+  [data-dir="bold"] .eyebrow { display:inline-flex; align-items:center; gap:10px; font-family:"Space Grotesk"; font-size:12px;
+    font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#fff; }
+  [data-dir="bold"] .eyebrow .wk { background:var(--accent); color:var(--accent-ink); padding:3px 9px; font-weight:700; }
+  [data-dir="bold"] h1 { font-family:"Space Grotesk"; font-weight:700; font-size:clamp(36px,6.5vw,60px); line-height:1; letter-spacing:-.03em;
+    margin-top:20px; }
+  [data-dir="bold"] .meta { margin-top:14px; font-family:"Space Grotesk"; font-size:14px; color:#a9a9b2; }
+  [data-dir="bold"] .pad { padding:32px clamp(24px,5vw,52px) 48px; }
+  [data-dir="bold"] .lead { font-size:19px; line-height:1.55; max-width:58ch; color:#2a2a30; }
+  [data-dir="bold"] .lead b { color:#111014; font-weight:600; box-shadow:inset 0 -8px 0 color-mix(in srgb,var(--accent) 20%,#fff); }
+  [data-dir="bold"] .sec { margin-top:36px; }
+  [data-dir="bold"] .sec-h { font-family:"Space Grotesk"; font-size:12px; font-weight:600; letter-spacing:.14em; text-transform:uppercase;
+    color:#111014; margin-bottom:16px; display:flex; align-items:center; gap:10px; }
+  [data-dir="bold"] .sec-h::before { content:""; width:18px; height:3px; background:var(--accent); }
+  [data-dir="bold"] .obj { display:flex; gap:14px; align-items:center; padding:12px 0; border-bottom:1px solid #ededf0; }
+  [data-dir="bold"] .obj .n { width:28px; height:28px; background:var(--accent); color:var(--accent-ink); font-family:"Space Grotesk";
+    font-weight:700; font-size:13px; display:grid; place-items:center; flex:none; }
+  [data-dir="bold"] .obj p { font-size:16px; font-weight:500; }
+  [data-dir="bold"] .mat { display:flex; align-items:center; gap:14px; border:2px solid #111014; padding:15px 18px; margin-bottom:10px; }
+  [data-dir="bold"] .mat .ic { color:var(--accent); flex:none; }
+  [data-dir="bold"] .mat .t { font-family:"Space Grotesk"; font-weight:600; font-size:15.5px; flex:1; }
+  [data-dir="bold"] .mat .go { font-family:"Space Grotesk"; font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--accent); }
+  [data-dir="bold"] .cta { margin-top:32px; display:inline-flex; align-items:center; gap:10px; background:var(--accent); color:var(--accent-ink);
+    font-family:"Space Grotesk"; font-weight:700; font-size:15px; padding:14px 28px; }
+
+  .icn { width:18px; height:18px; stroke:currentColor; stroke-width:1.8; fill:none; }
+</style>
+</head>
+<body data-dir="editorial" data-skin="catalyst">
+
+  <div class="controls">
+    <span class="lbl">Personality&nbsp;&rarr;</span>
+    <div class="seg" id="dirseg">
+      <button data-dir="editorial" class="on">Editorial</button>
+      <button data-dir="warm">Warm</button>
+      <button data-dir="bold">Bold</button>
+    </div>
+    <div class="skins" id="skinseg">
+      <button data-skin="catalyst" class="on" style="background:#1D59FF"></button>
+      <button data-skin="bahamas" style="background:#00747C"></button>
+      <button data-skin="roblox" style="background:#E5322B"></button>
+    </div>
+  </div>
+  <p class="note" id="note"></p>
+
+  <div class="stage">
+    <div class="screen">
+      <div class="band">
+        <div class="head">
+          <div class="wknum" data-only="editorial">08</div>
+          <div>
+            <span class="eyebrow"><span class="wk" data-only="bold">Week 08</span><span data-hide="bold">Week 08 · MASS Wraparound</span><span data-only="bold">MASS Wraparound</span></span>
+            <h1>Networking</h1>
+            <p class="meta">Angel Aviles · Put Everything Into Practice · Tue 10–11 AM ET</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="pad">
+        <p class="lead">Networking isn't about collecting business cards — it's about <b>building real relationships that open doors</b>. This week you'll learn how to connect with intention.</p>
+
+        <div class="sec">
+          <div class="sec-h">What you'll cover</div>
+          <div class="obj"><span class="n">1</span><p>Understand the difference between transactional and relational networking</p></div>
+          <div class="obj"><span class="n">2</span><p>Build a target list of people to connect with</p></div>
+          <div class="obj"><span class="n">3</span><p>Craft outreach messages that get responses</p></div>
+          <div class="obj"><span class="n">4</span><p>Practice the art of the follow-up</p></div>
+        </div>
+
+        <div class="sec">
+          <div class="sec-h">Today's materials</div>
+          <a class="mat" href="#">
+            <span class="ic"><svg class="icn" viewBox="0 0 24 24"><path d="M10 13a5 5 0 007 0l2-2a5 5 0 00-7-7l-1 1M14 11a5 5 0 00-7 0l-2 2a5 5 0 007 7l1-1"/></svg></span>
+            <span class="t">Networking — worksheet &amp; outreach templates</span>
+            <span class="go">Open →</span>
+          </a>
+          <a class="mat" href="#">
+            <span class="ic"><svg class="icn" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V9z"/><path d="M14 3v6h6"/></svg></span>
+            <span class="t">Relationship map (PDF)</span>
+            <span class="go">Download →</span>
+          </a>
+        </div>
+
+        <a class="cta" href="#">Start this week <svg class="icn" viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const root = document.documentElement;
+  const NOTES = {
+    editorial: "EDITORIAL — character from type + structure, not decoration. Big Archivo display, a giant week number as a graphic anchor, hairline rules, accent only as a marker/underline. Reads like a serious publication. Risk: can feel austere.",
+    warm: "WARM — character from warmth + texture. Soft paper, a faint grain, friendly Bricolage type, rounded forms, accent as gentle pills/tints. Approachable, human, on-brand for 'human in the lead'. Risk: the warm paper edges toward the tan you rejected — tune the warmth.",
+    bold: "BOLD — character from color + contrast. Near-black header band with the skin accent in solid confident blocks, Space Grotesk, decisive weights. Energetic and memorable with zero gradients/glass. Risk: louder, less calm.",
+  };
+  function applyVisibility() {
+    const dir = root.getAttribute("data-dir");
+    document.querySelectorAll("[data-only]").forEach(el => el.style.display = el.getAttribute("data-only") === dir ? "" : "none");
+    document.querySelectorAll("[data-hide]").forEach(el => el.style.display = el.getAttribute("data-hide") === dir ? "none" : "");
+    document.getElementById("note").textContent = NOTES[dir];
+  }
+  document.querySelectorAll("#dirseg button").forEach(b => b.addEventListener("click", () => {
+    root.setAttribute("data-dir", b.dataset.dir);
+    document.querySelectorAll("#dirseg button").forEach(x => x.classList.remove("on")); b.classList.add("on");
+    applyVisibility();
+  }));
+  document.querySelectorAll("#skinseg button").forEach(b => b.addEventListener("click", () => {
+    root.setAttribute("data-skin", b.dataset.skin);
+    document.querySelectorAll("#skinseg button").forEach(x => x.classList.remove("on")); b.classList.add("on");
+  }));
+  applyVisibility();
+</script>
+</body>
+</html>

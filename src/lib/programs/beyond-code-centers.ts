@@ -138,12 +138,12 @@ const AUTOMATION_BOOTCAMP_GATE: IntakeGate = {
   questions: AUTOMATION_BOOTCAMP_INTAKE,
 };
 
-export const forgeConfig: ProgramConfig = {
-  slug: "forge",
+export const beyondCodeCentersConfig: ProgramConfig = {
+  slug: "beyond-code-centers",
   name: "Beyond Code Centers",
   tagline: "Where Innovation Meets Community",
   domain: "bccacademy.io",
-  logo: "/forge/logo.svg",
+  logo: "/beyond-code-centers/logo.svg",
   colors: {
     primary: "#0047AB",
     primaryHover: "#003A8C",
@@ -151,7 +151,7 @@ export const forgeConfig: ProgramConfig = {
     tagline: "#60A5FA",
   },
   defaultCohort: {
-    name: "forge-cohort-1",
+    name: "bcc-centers-cohort-1",
     displayName: "Beyond Code Centers — Cohort 1",
     startDate: "2026-04-17",
     totalWeeks: 8,

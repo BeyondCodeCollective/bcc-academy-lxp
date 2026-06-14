@@ -11,7 +11,7 @@ const PROGRAM_LABELS: Record<string, string> = {
   catalyst:  "Catalyst",
   atg:       "After the Game",
   forte:     "Upskill Bahamas",
-  forge:     "Beyond Code Centers",
+  "beyond-code-centers": "Beyond Code Centers",
 };
 
 export default async function FeaturesPage() {
@@ -81,7 +81,7 @@ export default async function FeaturesPage() {
     .select("*", { count: "exact", head: true })
     .is("facilitator_viewed_at", null);
 
-  const orderedSlugs = ["catalyst", "atg", "forte", "forge"].filter((s) =>
+  const orderedSlugs = ["catalyst", "atg", "forte", "beyond-code-centers"].filter((s) =>
     programSlugs.includes(s)
   );
   const remaining = programSlugs.filter((s) => !orderedSlugs.includes(s));
