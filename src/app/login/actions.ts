@@ -43,20 +43,27 @@ export async function sendLoginLink({
   let callbackJoinSlug: string | null = null;
   let callbackTrackSlug: string | null = null;
 
-  const [{ data: allowlistHit }, { data: existingStudent }] = await Promise.all([
-    svc.from("allowed_signup_emails").select("track_slug").eq("email", trimmed).maybeSingle(),
+  const [{ data: allowRows }, { data: existingStudent }] = await Promise.all([
+    svc.from("allowed_signup_emails").select("track_slug").eq("email", trimmed),
     svc.from("students").select("role").eq("email", trimmed).maybeSingle(),
   ]);
 
+  const allowedTracks = (allowRows ?? []).map((r) => r.track_slug as string);
   const hasElevatedRole = ["admin", "super_admin", "instructor"].includes(
     existingStudent?.role ?? ""
   );
+  const isPrivileged =
+    isPrivilegedEmail(trimmed) || isStaffEmail(trimmed) || hasElevatedRole;
 
-  const isAdmitted =
-    !!allowlistHit ||
-    isPrivilegedEmail(trimmed) ||
-    isStaffEmail(trimmed) ||
-    hasElevatedRole;
+  // Admission gate. When signing up for a SPECIFIC track (e.g. the Roblox camp
+  // passes joinTrack), the email must be on THAT track's allowlist — being on
+  // some other program's list (e.g. Upskill Bahamas) does NOT grant access to
+  // this camp. Generic logins (no joinTrack) admit any allowlisted email so a
+  // student who lost their link can still get in. Admins/staff always pass.
+  const onAllowlist = joinTrack
+    ? allowedTracks.includes(joinTrack)
+    : allowedTracks.length > 0;
+  const isAdmitted = onAllowlist || isPrivileged;
 
   if (!isAdmitted) {
     return {
@@ -74,7 +81,7 @@ export async function sendLoginLink({
   // allowlist inference. Otherwise an email that's also on another program's
   // allowlist (e.g. Upskill Bahamas) gets routed there instead of the program
   // they're actually signing up for (e.g. the Roblox camp).
-  const intendedTrack = joinTrack ?? (allowlistHit?.track_slug as string | undefined);
+  const intendedTrack = joinTrack ?? allowedTracks[0];
   if (intendedTrack) {
     const { getHomeProgramForTrack } = await import("@/lib/programs");
     const homeProgram = getHomeProgramForTrack(intendedTrack);
