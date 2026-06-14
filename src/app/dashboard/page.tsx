@@ -293,16 +293,17 @@ async function DashboardContent({
     : program.tracks.filter((t) => enrolledTrackSlugs.includes(t.slug));
   const notEnrolled = !isAdmin && visibleTracks.length === 0;
 
-  // Students enrolled in exactly one track skip the track-picker and land
-  // directly on that track — one less click. Held back while an enabled
-  // pathway assessment is incomplete (its prompt renders here) or when the
-  // student also has courses in other programs (the cross-program list
-  // renders here and would otherwise never be seen). Announcements also
-  // render on the track overview page, so skipping doesn't hide them.
-  // Admin preview mode keeps the dashboard reachable for inspection.
+  // One course → the course overview IS the home. Skip the bare /dashboard
+  // shell entirely and land on that track — for real students AND admin
+  // preview (previewing one track shows that student's real landing, the
+  // overview, not an empty hub). The /dashboard hub only earns its place
+  // with 2+ courses. Held back while an enabled pathway assessment is
+  // incomplete (its prompt renders here) or when the student also has
+  // courses in other programs (the cross-program list renders here and would
+  // otherwise never be seen). Announcements also render on the track
+  // overview page, so skipping doesn't hide them.
   if (
     !isAdmin &&
-    !previewSlugOuter &&
     visibleTracks.length === 1 &&
     otherProgramCourses.length === 0 &&
     (!assessmentEnabled || assessmentCompleted)

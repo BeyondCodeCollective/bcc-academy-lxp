@@ -163,7 +163,10 @@ export function Nav({
       ? [{ href: "/dashboard/workshops", label: "Workshops", icon: Confetti }]
       : []),
     ...(showTutor
-      ? [{ href: "/dashboard/tutor", label: "AI Tutor", icon: ChatsCircle }]
+      ? [
+          { href: "/dashboard/tutor", label: "AI Tutor", icon: ChatsCircle },
+          { href: "/dashboard/resources", label: "Resources", icon: BookOpen },
+        ]
       : []),
     ...(canSwitch
       ? [{ href: "/dashboard/insights", label: "Analytics", icon: ChartBar }]
