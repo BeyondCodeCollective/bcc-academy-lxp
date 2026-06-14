@@ -232,8 +232,6 @@ export default async function TrackWeekPage({
       {(() => {
         const isSingleSession = weekContent.sessions.length === 1;
         const headerSession = isSingleSession ? weekContent.sessions[0] : null;
-        const headerSessionIsSelfPaced =
-          !!headerSession && headerSession.time.toLowerCase().startsWith("self-paced");
         const headerAction =
           isSingleSession
             ? sessionStatuses[0] === "completed" ? (
@@ -251,13 +249,7 @@ export default async function TrackWeekPage({
                   <Video size={14} />
                   Join Session
                 </a>
-              ) : meetingLinks[0] && isZoomLink(meetingLinks[0]) ? null
-              : headerSessionIsSelfPaced ? null : (
-                <span className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-rule text-ink-faint text-xs font-semibold px-3.5 py-2.5 min-h-[44px] cursor-not-allowed w-full sm:w-auto">
-                  <Video size={14} />
-                  Link Coming Soon
-                </span>
-              )
+              ) : null
             : null;
         return (
           <div className="mb-6">
@@ -320,18 +312,12 @@ export default async function TrackWeekPage({
           </h2>
           <div className="space-y-4">
             {weekContent.sessions.map((session, i) => {
-              // Self-paced sessions never need a "Join" link — the recording
-              // is the session — so suppress the "Link Coming Soon" fallback.
-              const isSelfPaced = session.time.toLowerCase().startsWith("self-paced");
               const action = sessionStatuses[i] === "completed" ? (
                 <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
                   <CheckCircle size={14} />
                   Session Ended
                 </span>
-              ) : meetingLinks[i] && isZoomLink(meetingLinks[i]) ? (
-                // Zoom sessions render as a full embed panel below — no button here
-                null
-              ) : meetingLinks[i] ? (
+              ) : meetingLinks[i] && !isZoomLink(meetingLinks[i]) ? (
                 <a
                   href={meetingLinks[i]!}
                   target="_blank"
@@ -341,12 +327,7 @@ export default async function TrackWeekPage({
                   <Video size={14} />
                   Join Session
                 </a>
-              ) : isSelfPaced ? null : (
-                <span className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-rule text-ink-faint text-xs font-semibold px-3.5 py-2.5 min-h-[44px] cursor-not-allowed w-full sm:w-auto">
-                  <Video size={14} />
-                  Link Coming Soon
-                </span>
-              );
+              ) : null;
 
               return (
                 <div
@@ -390,18 +371,6 @@ export default async function TrackWeekPage({
             initialWatched={weekProgress?.videoWatched ?? false}
           />
         )}
-
-      {/* Video coming soon — shown when no video URL exists and no admin
-         recording has been uploaded yet. */}
-      {!weekContent.videoUrl && !hasRecording && zoomSessions.length === 0 && (
-        <div className="mb-8 flex flex-col items-center gap-2 rounded-lg border border-dashed border-rule px-6 py-8 text-center">
-          <Video size={24} className="text-ink-faint" aria-hidden />
-          <p className="text-sm font-semibold text-ink">Video Coming Soon</p>
-          <p className="text-xs text-ink-faint max-w-[38ch]">
-            The session recording for this week will be posted here shortly. In the meantime, dive into the activities below.
-          </p>
-        </div>
-      )}
 
       {/* Admin-uploaded session recordings */}
       {weekContent.sessions.map((session, i) => {

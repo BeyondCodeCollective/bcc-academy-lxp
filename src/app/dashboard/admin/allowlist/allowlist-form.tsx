@@ -3,7 +3,7 @@
 import { useState, useTransition, useRef } from "react";
 import { CheckCircle, AlertCircle, Upload, Loader2 } from "lucide-react";
 import { replaceAllowedEmails, parseEmailList } from "./actions";
-import { buttonClass } from "@/components/ui";
+import { Field, fieldInput, buttonClass } from "@/components/ui";
 
 export function AllowlistForm({
   trackSlug,
@@ -78,13 +78,7 @@ export function AllowlistForm({
         </p>
       </div>
 
-      <div>
-        <label
-          htmlFor="emails"
-          className="block text-xs font-semibold uppercase tracking-wide text-ink-soft mb-2"
-        >
-          Allowed emails — one per line, or upload a CSV
-        </label>
+      <Field label="Allowed emails — one per line, or upload a CSV">
         <textarea
           id="emails"
           value={value}
@@ -94,7 +88,7 @@ export function AllowlistForm({
             setStatus({ kind: "idle" });
           }}
           rows={14}
-          className="w-full border border-rule px-3 py-2 font-mono text-[13px] leading-relaxed focus:outline-none focus:border-ink"
+          className={`${fieldInput} font-mono text-[13px] leading-relaxed resize-y`}
           placeholder="ashley@example.com&#10;ryan@example.com&#10;…"
           spellCheck={false}
         />
@@ -104,7 +98,7 @@ export function AllowlistForm({
             <> · {previewCount} valid email(s) detected from CSV</>
           )}
         </p>
-      </div>
+      </Field>
 
       <div className="flex flex-wrap items-center gap-3">
         <input

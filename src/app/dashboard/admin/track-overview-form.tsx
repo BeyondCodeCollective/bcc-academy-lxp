@@ -4,7 +4,7 @@ import { startTransition, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
 import { saveTrackOverview, type TrackOverviewPatch } from "./actions";
-import { fieldInput } from "@/components/ui";
+import { Field, fieldInput } from "@/components/ui";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
@@ -119,26 +119,6 @@ export function TrackOverviewForm({ track, programSlug, onLiveChange }: Props) {
 }
 
 // ─── Bits ───────────────────────────────────────────────────────────────────
-
-function Field({
-  label,
-  hint,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-[11px] font-medium uppercase tracking-[0.14em] text-ink-soft">
-        {label}
-      </span>
-      {children}
-      {hint && <span className="mt-1 block text-[11px] text-ink-faint">{hint}</span>}
-    </label>
-  );
-}
 
 function SaveIndicator({ state }: { state: SaveState }) {
   if (state === "idle") return null;

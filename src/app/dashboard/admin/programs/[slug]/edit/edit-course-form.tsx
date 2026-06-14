@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { updateCourseAction } from "../../actions";
 import type { UpdateCourseResult } from "../../actions";
-import { buttonClass, fieldInput } from "@/components/ui";
+import { Field, buttonClass, fieldInput } from "@/components/ui";
 
 const PHASE_OPTIONS = [
   { value: "foundation", label: "Foundation" },
@@ -64,10 +64,7 @@ export function EditCourseForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      <div className="space-y-1.5">
-        <label htmlFor="name" className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-soft">
-          Course Name
-        </label>
+      <Field label="Course name">
         <input
           id="name"
           type="text"
@@ -76,12 +73,9 @@ export function EditCourseForm({
           onChange={(e) => setName(e.target.value)}
           className={fieldInput}
         />
-      </div>
+      </Field>
 
-      <div className="space-y-1.5">
-        <label htmlFor="instructor" className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-soft">
-          Instructor
-        </label>
+      <Field label="Instructor">
         <input
           id="instructor"
           type="text"
@@ -90,13 +84,10 @@ export function EditCourseForm({
           onChange={(e) => setInstructor(e.target.value)}
           className={fieldInput}
         />
-      </div>
+      </Field>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1.5">
-          <label htmlFor="totalWeeks" className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-soft">
-            Length (weeks)
-          </label>
+        <Field label="Length (weeks)">
           <input
             id="totalWeeks"
             type="number"
@@ -107,11 +98,8 @@ export function EditCourseForm({
             onChange={(e) => setTotalWeeks(e.target.value)}
             className={fieldInput}
           />
-        </div>
-        <div className="space-y-1.5">
-          <label htmlFor="sessionsPerWeek" className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-soft">
-            Sessions / Week
-          </label>
+        </Field>
+        <Field label="Sessions / week">
           <input
             id="sessionsPerWeek"
             type="number"
@@ -122,13 +110,10 @@ export function EditCourseForm({
             onChange={(e) => setSessionsPerWeek(e.target.value)}
             className={fieldInput}
           />
-        </div>
+        </Field>
       </div>
 
-      <div className="space-y-1.5">
-        <label htmlFor="phase" className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-soft">
-          Group
-        </label>
+      <Field label="Group">
         <select
           id="phase"
           value={phase}
@@ -139,7 +124,7 @@ export function EditCourseForm({
             <option key={o.value} value={o.value}>{o.label}</option>
           ))}
         </select>
-      </div>
+      </Field>
 
       {error && (
         <p className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">

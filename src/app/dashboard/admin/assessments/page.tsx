@@ -6,6 +6,7 @@ import Link from "next/link";
 import type { ScoredOutput } from "@/lib/assessment/types";
 import { ARCHETYPE_CONTENT } from "@/lib/assessment/content";
 import { PageHeader } from "@/components/page-header";
+import { DataTable } from "@/components/ui";
 
 export default async function AssessmentsAdminPage() {
   const ctx = await getSessionContext();
@@ -47,50 +48,38 @@ export default async function AssessmentsAdminPage() {
         }
       />
 
-      <div className="rounded-lg border border-ink/10 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-ink/10 bg-ink/[0.02]">
-              <th className="text-left px-4 py-3 font-semibold text-ink/60 text-xs uppercase tracking-wide">Student</th>
-              <th className="text-left px-4 py-3 font-semibold text-ink/60 text-xs uppercase tracking-wide">Archetype</th>
-              <th className="text-left px-4 py-3 font-semibold text-ink/60 text-xs uppercase tracking-wide">Pathway</th>
-              <th className="text-left px-4 py-3 font-semibold text-ink/60 text-xs uppercase tracking-wide">Completed</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(rows ?? []).map((row) => {
-              const student = studentMap.get(row.student_id as string);
-              const scored = row.scored_output as ScoredOutput;
-              const archetype = ARCHETYPE_CONTENT[scored.archetype_primary];
-              const isNew = !row.facilitator_viewed_at;
-              const completedDate = new Date(row.completed_at as string).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+      <DataTable columns={["Student", "Archetype", "Pathway", "Completed"]}>
+        {(rows ?? []).map((row) => {
+          const student = studentMap.get(row.student_id as string);
+          const scored = row.scored_output as ScoredOutput;
+          const archetype = ARCHETYPE_CONTENT[scored.archetype_primary];
+          const isNew = !row.facilitator_viewed_at;
+          const completedDate = new Date(row.completed_at as string).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
-              return (
-                <tr key={row.student_id as string} className="border-b border-ink/5 hover:bg-ink/[0.02] transition-colors">
-                  <td className="px-4 py-3">
-                    <Link href={`/dashboard/admin/assessments/${row.student_id}`} className="group flex items-center gap-2">
-                      {isNew && <span className="h-2 w-2 rounded-full bg-accent flex-shrink-0" />}
-                      <span className="font-medium text-ink group-hover:text-accent transition-colors">
-                        {student ? `${student.first_name} ${student.last_name}` : "Unknown"}
-                      </span>
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 text-ink/70">{archetype.name}</td>
-                  <td className="px-4 py-3 text-ink/70 capitalize">{scored.pathway_orientation}</td>
-                  <td className="px-4 py-3 text-ink/50">{completedDate}</td>
-                </tr>
-              );
-            })}
-            {!rows?.length && (
-              <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-ink/40 text-sm">
-                  No assessments completed yet.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+          return (
+            <tr key={row.student_id as string} className="hover:bg-paper-tint transition-colors">
+              <td className="px-4 py-3">
+                <Link href={`/dashboard/admin/assessments/${row.student_id}`} className="group flex items-center gap-2">
+                  {isNew && <span className="h-2 w-2 rounded-full bg-accent flex-shrink-0" />}
+                  <span className="font-medium text-ink group-hover:text-accent transition-colors">
+                    {student ? `${student.first_name} ${student.last_name}` : "Unknown"}
+                  </span>
+                </Link>
+              </td>
+              <td className="px-4 py-3 text-ink-soft">{archetype.name}</td>
+              <td className="px-4 py-3 text-ink-soft capitalize">{scored.pathway_orientation}</td>
+              <td className="px-4 py-3 text-ink-faint">{completedDate}</td>
+            </tr>
+          );
+        })}
+        {!rows?.length && (
+          <tr>
+            <td colSpan={4} className="px-4 py-8 text-center text-ink-faint text-sm">
+              No assessments completed yet.
+            </td>
+          </tr>
+        )}
+      </DataTable>
     </div>
   );
 }
