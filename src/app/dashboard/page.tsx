@@ -321,15 +321,6 @@ async function DashboardContent({
     return { track, started, currentWeek };
   });
 
-  const weeklyTracks = trackStates.filter((t) => t.track.type === "weekly");
-  const longestTrack = weeklyTracks.reduce<typeof trackStates[0] | null>(
-    (best, t) => (!best || t.track.totalWeeks > best.track.totalWeeks ? t : best),
-    null
-  );
-  const completedWeeks = longestTrack ? Math.max(0, longestTrack.currentWeek - 1) : 0;
-  const totalProgramWeeks = longestTrack?.track.totalWeeks ?? 8;
-  const pct = Math.round((completedWeeks / totalProgramWeeks) * 100);
-
   if (noCohort) {
     return (
       <div className="space-y-6">
@@ -435,7 +426,6 @@ async function DashboardContent({
         track.weekSummaries[(currentWeek || 1) - 1]?.topic ??
         track.weekSummaries[0]?.topic ??
         "",
-      weeks: track.weekSummaries.map((ws) => ({ week: ws.week, topic: ws.topic })),
     }));
   const bentoOtherCourses = otherProgramCourses.map((c) => ({
     trackSlug: c.track.slug,
@@ -529,9 +519,6 @@ async function DashboardContent({
       {bentoTracks.length > 0 ? (
         <DashboardBento
           tracks={bentoTracks}
-          pct={pct}
-          completedWeeks={completedWeeks}
-          totalProgramWeeks={totalProgramWeeks}
           otherCourses={bentoOtherCourses}
         />
       ) : (

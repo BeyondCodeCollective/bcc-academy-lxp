@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { type ComponentType } from "react";
-import { ArrowRight, ChatCircle, BookOpen, Check } from "@phosphor-icons/react/dist/ssr";
-
-type WeekItem = { week: number; topic: string };
+import { ArrowRight, ChatCircle, BookOpen } from "@phosphor-icons/react/dist/ssr";
 
 type TrackTile = {
   slug: string;
@@ -12,7 +10,6 @@ type TrackTile = {
   currentWeek: number;
   started: boolean;
   currentTopic: string;
-  weeks: WeekItem[];
 };
 
 type OtherCourse = {
@@ -23,30 +20,28 @@ type OtherCourse = {
 };
 
 /**
- * The learner home, composed in three tiers separated by space and weight
- * rather than more boxes:
- *   1. Do now      — Continue bar + session index (primary; carry a shadow)
- *   2. Explore     — other / cross-program courses (a labelled group)
- *   3. Utilities   — quick links, demoted below a rule, lighter (no shadow)
+ * The learner home — a multi-course hub, composed in tiers separated by space
+ * and weight rather than more boxes:
+ *   1. Do now      — Continue bar for the most-active course (primary; shadow)
+ *   2. Your courses — one compact card per enrolled course (progress + resume)
+ *   3. Other programs — cross-program enrollments (a labelled group)
+ *   4. Utilities   — quick links, demoted below a rule, lighter (no shadow)
+ * The per-session list lives on the track page, not here — enumerating it on
+ * the home duplicated the track overview for single-course learners.
  * White-forward and skin-driven; no dark anchor tile.
  */
 export function DashboardBento({
   tracks,
-  pct,
-  completedWeeks,
-  totalProgramWeeks,
   otherCourses,
 }: {
   tracks: TrackTile[];
-  pct: number;
-  completedWeeks: number;
-  totalProgramWeeks: number;
   otherCourses: OtherCourse[];
 }) {
   if (tracks.length === 0) return null;
-  const [hero, ...rest] = tracks;
+  const hero = tracks[0];
   const activeWeek = hero.started ? Math.max(1, hero.currentWeek) : 1;
-  const hasExplore = rest.length > 0 || otherCourses.length > 0;
+  const heroDone = hero.started ? Math.max(0, hero.currentWeek - 1) : 0;
+  const heroPct = Math.round((heroDone / hero.totalWeeks) * 100);
 
   return (
     <div>
@@ -66,7 +61,7 @@ export function DashboardBento({
             {hero.currentTopic || hero.name}
           </p>
           <div className="mt-2 hidden h-1 max-w-[260px] overflow-hidden rounded-full bg-paper-tint sm:block">
-            <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+            <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${heroPct}%` }} />
           </div>
         </div>
         <span className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white transition-transform group-hover:translate-x-0.5 sm:px-5">
@@ -75,92 +70,51 @@ export function DashboardBento({
         </span>
       </Link>
 
-      {/* ── Do now: session index (tight to the bar's tier) ────────────── */}
-      {hero.weeks.length > 0 && (
-        <section className="mt-10">
-          <div className="mb-3 flex items-baseline justify-between">
-            <h2 className="text-[17px] font-bold tracking-[-0.015em] text-ink">Your sessions</h2>
-            <span className="text-xs text-ink-faint">
-              {completedWeeks} of {totalProgramWeeks} complete
-            </span>
-          </div>
-          <div className="overflow-hidden panel shadow-sm">
-            {hero.weeks.map((w) => {
-              const status =
-                w.week === activeWeek
-                  ? "current"
-                  : hero.started && w.week < activeWeek
-                    ? "done"
-                    : "open";
-              return (
-                <Link
-                  key={w.week}
-                  href={`/dashboard/track/${hero.slug}/${w.week}`}
-                  className={`flex items-center gap-4 border-b border-l-2 border-rule px-4 py-3.5 transition-colors last:border-b-0 hover:bg-paper-tint-soft ${
-                    status === "current" ? "border-l-primary" : "border-l-transparent"
-                  }`}
-                >
-                  <span
-                    className={`w-7 shrink-0 text-[13px] font-semibold tabular-nums ${
-                      status === "current" ? "text-primary" : "text-ink-faint"
-                    }`}
-                  >
-                    {String(w.week).padStart(2, "0")}
-                  </span>
-                  <span
-                    className={`flex-1 truncate text-[15px] font-semibold tracking-[-0.01em] ${
-                      status === "done" ? "text-ink-soft" : "text-ink"
-                    }`}
-                  >
-                    {w.topic}
-                  </span>
-                  {status === "done" ? (
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-ink-faint">
-                      <Check size={13} weight="bold" className="text-emerald-600" aria-hidden />
-                      Done
+      {/* ── Your courses: one compact card each (progress + resume) ─────── */}
+      <section className="mt-10">
+        <h2 className="mb-4 text-[17px] font-bold tracking-[-0.015em] text-ink">Your courses</h2>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {tracks.map((t) => {
+            const done = t.started ? Math.max(0, t.currentWeek - 1) : 0;
+            const resumeWeek = t.started ? Math.max(1, t.currentWeek) : 1;
+            const trackPct = Math.round((done / t.totalWeeks) * 100);
+            return (
+              <Link
+                key={t.slug}
+                href={`/dashboard/track/${t.slug}/${resumeWeek}`}
+                className="group flex flex-col justify-between gap-5 panel p-5 shadow-sm transition-shadow hover:shadow-sm"
+              >
+                <div>
+                  <p className="text-base font-bold tracking-[-0.01em] text-ink">{t.name}</p>
+                  <p className="mt-0.5 text-xs text-ink-soft">with {t.instructor}</p>
+                </div>
+                <div>
+                  <div className="flex items-baseline justify-between text-xs font-semibold text-ink-faint">
+                    <span>
+                      {t.started ? `${done} of ${t.totalWeeks} complete` : `${t.totalWeeks} weeks · not started`}
                     </span>
-                  ) : status === "current" ? (
-                    <span className="text-xs font-semibold text-primary">
-                      {hero.started ? "In progress" : "Start"}
+                    <span className="inline-flex items-center gap-1 text-primary transition-transform group-hover:translate-x-0.5">
+                      {t.started ? "Resume" : "Start"}
+                      <ArrowRight size={13} weight="bold" aria-hidden />
                     </span>
-                  ) : (
-                    <span className="text-xs font-semibold text-ink-faint">Open</span>
-                  )}
-                </Link>
-              );
-            })}
-          </div>
-        </section>
-      )}
+                  </div>
+                  <div className="mt-2 h-1 overflow-hidden rounded-full bg-paper-tint">
+                    <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${trackPct}%` }} />
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
 
-      {/* ── Explore: other courses (tier break — generous, labelled) ───── */}
-      {hasExplore && (
+      {/* ── Other programs: cross-program enrollments (switch required) ─── */}
+      {otherCourses.length > 0 && (
         <section className="mt-14">
           <h2 className="mb-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
-            More to explore
+            Other programs
           </h2>
           <div className="space-y-4">
-            {rest.length > 0 && (
-              <div className="grid gap-4 sm:grid-cols-2">
-                {rest.map((t) => (
-                  <Link
-                    key={t.slug}
-                    href={`/dashboard/track/${t.slug}`}
-                    className="group flex flex-col justify-between gap-5 panel p-5 shadow-sm transition-shadow hover:shadow-sm"
-                  >
-                    <span className="text-xs font-semibold text-ink-faint">{t.totalWeeks} weeks</span>
-                    <div>
-                      <p className="text-base font-bold tracking-[-0.01em] text-ink">{t.name}</p>
-                      <span className="mt-2 inline-flex items-center gap-1.5 text-[13px] font-semibold text-primary">
-                        View course
-                        <ArrowRight size={13} weight="bold" aria-hidden />
-                      </span>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
-
             {otherCourses.map((c) => (
               <a
                 key={c.trackSlug}
