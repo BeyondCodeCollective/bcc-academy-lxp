@@ -39,6 +39,9 @@ export function DashboardBento({
 }) {
   if (tracks.length === 0) return null;
   const hero = tracks[0];
+  // The continue bar already IS the active course — list only the *others*
+  // below, so a single-course learner never sees a duplicate resume button.
+  const rest = tracks.slice(1);
   const activeWeek = hero.started ? Math.max(1, hero.currentWeek) : 1;
   const heroDone = hero.started ? Math.max(0, hero.currentWeek - 1) : 0;
   const heroPct = Math.round((heroDone / hero.totalWeeks) * 100);
@@ -70,43 +73,45 @@ export function DashboardBento({
         </span>
       </Link>
 
-      {/* ── Your courses: one compact card each (progress + resume) ─────── */}
-      <section className="mt-10">
-        <h2 className="mb-4 text-[17px] font-bold tracking-[-0.015em] text-ink">Your courses</h2>
-        <div className="grid gap-4 sm:grid-cols-2">
-          {tracks.map((t) => {
-            const done = t.started ? Math.max(0, t.currentWeek - 1) : 0;
-            const resumeWeek = t.started ? Math.max(1, t.currentWeek) : 1;
-            const trackPct = Math.round((done / t.totalWeeks) * 100);
-            return (
-              <Link
-                key={t.slug}
-                href={`/dashboard/track/${t.slug}/${resumeWeek}`}
-                className="group flex flex-col justify-between gap-5 panel p-5 shadow-sm transition-shadow hover:shadow-sm"
-              >
-                <div>
-                  <p className="text-base font-bold tracking-[-0.01em] text-ink">{t.name}</p>
-                  <p className="mt-0.5 text-xs text-ink-soft">with {t.instructor}</p>
-                </div>
-                <div>
-                  <div className="flex items-baseline justify-between text-xs font-semibold text-ink-faint">
-                    <span>
-                      {t.started ? `${done} of ${t.totalWeeks} complete` : `${t.totalWeeks} weeks · not started`}
-                    </span>
-                    <span className="inline-flex items-center gap-1 text-primary transition-transform group-hover:translate-x-0.5">
-                      {t.started ? "Resume" : "Start"}
-                      <ArrowRight size={13} weight="bold" aria-hidden />
-                    </span>
+      {/* ── Your other courses: only when there's more than one ────────── */}
+      {rest.length > 0 && (
+        <section className="mt-10">
+          <h2 className="mb-4 text-[17px] font-bold tracking-[-0.015em] text-ink">Your other courses</h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {rest.map((t) => {
+              const done = t.started ? Math.max(0, t.currentWeek - 1) : 0;
+              const resumeWeek = t.started ? Math.max(1, t.currentWeek) : 1;
+              const trackPct = Math.round((done / t.totalWeeks) * 100);
+              return (
+                <Link
+                  key={t.slug}
+                  href={`/dashboard/track/${t.slug}/${resumeWeek}`}
+                  className="group flex flex-col justify-between gap-5 panel p-5 shadow-sm transition-shadow hover:shadow-sm"
+                >
+                  <div>
+                    <p className="text-base font-bold tracking-[-0.01em] text-ink">{t.name}</p>
+                    <p className="mt-0.5 text-xs text-ink-soft">with {t.instructor}</p>
                   </div>
-                  <div className="mt-2 h-1 overflow-hidden rounded-full bg-paper-tint">
-                    <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${trackPct}%` }} />
+                  <div>
+                    <div className="flex items-baseline justify-between text-xs font-semibold text-ink-faint">
+                      <span>
+                        {t.started ? `${done} of ${t.totalWeeks} complete` : `${t.totalWeeks} weeks · not started`}
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-primary transition-transform group-hover:translate-x-0.5">
+                        {t.started ? "Resume" : "Start"}
+                        <ArrowRight size={13} weight="bold" aria-hidden />
+                      </span>
+                    </div>
+                    <div className="mt-2 h-1 overflow-hidden rounded-full bg-paper-tint">
+                      <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${trackPct}%` }} />
+                    </div>
                   </div>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      </section>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* ── Other programs: cross-program enrollments (switch required) ─── */}
       {otherCourses.length > 0 && (
