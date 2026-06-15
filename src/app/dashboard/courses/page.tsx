@@ -102,7 +102,11 @@ export default async function CoursesIndexPage() {
           <Section key={section.key} label={section.label} count={section.items.length}>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {section.items.map((track) => (
-                <CourseRow key={track.slug} track={track} />
+                <CourseRow
+                  key={track.slug}
+                  track={track}
+                  inProgram={program.tracks.some((t) => t.slug === track.slug)}
+                />
               ))}
             </div>
           </Section>
@@ -112,7 +116,7 @@ export default async function CoursesIndexPage() {
   );
 }
 
-function CourseRow({ track }: { track: TrackConfig }) {
+function CourseRow({ track, inProgram }: { track: TrackConfig; inProgram: boolean }) {
   const tone = toneForTrack(track.slug);
   const start = new Date(track.startDate);
   const hasStarted = start <= new Date();
@@ -131,7 +135,11 @@ function CourseRow({ track }: { track: TrackConfig }) {
 
   return (
     <CatalogCard
-      href={`/dashboard/track/${track.slug}`}
+      href={
+        inProgram
+          ? `/dashboard/track/${track.slug}`
+          : `/dashboard/switch-program?track=${encodeURIComponent(track.slug)}`
+      }
       tone={tone}
       iconSlug={track.slug}
       eyebrow={durationLabel}
