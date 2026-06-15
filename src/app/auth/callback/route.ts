@@ -36,6 +36,9 @@ export async function GET(request: Request) {
   let trackParam = searchParams.get("track");
   let joinSlug = searchParams.get("join");
   const nextParam = searchParams.get("next");
+  // The email the magic link was issued for — used to guard against silently
+  // falling back to a DIFFERENT account already signed in on this browser.
+  const intendedEmail = searchParams.get("email")?.toLowerCase() ?? null;
 
   if (code || token_hash) {
     const cookieStore = await cookies();
@@ -100,6 +103,15 @@ export async function GET(request: Request) {
     let authError = null;
     const fallbackToExisting = async () => {
       const { data: { user: fu } } = await supabase.auth.getUser();
+      // Never silently sign someone in as the WRONG account. If the magic link
+      // was issued for a specific email and the existing browser session
+      // belongs to someone else (e.g. you were logged in as A and clicked a
+      // link for B that failed to exchange), sign the stale session out and
+      // refuse the fallback — a clean re-login beats impersonating A as B.
+      if (fu && intendedEmail && (fu.email ?? "").toLowerCase() !== intendedEmail) {
+        await supabase.auth.signOut();
+        return false;
+      }
       if (fu) authResult = { user: fu };
       return !!fu;
     };

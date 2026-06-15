@@ -321,18 +321,7 @@ async function DashboardContent({
     otherProgramCourses.length === 0 &&
     (!assessmentEnabled || assessmentCompleted)
   ) {
-    const only = visibleTracks[0];
-    if (setup === "1") {
-      const started = !only.startDateTbd && new Date() >= new Date(only.startDate);
-      const week =
-        started && !only.selfPaced
-          ? computeCurrentWeek(only.startDate, only.totalWeeks, only.lastSessionDayOffset)
-          : 1;
-      if (only.weeks.some((w) => w.week === week)) {
-        redirect(`/dashboard/track/${only.slug}/${week}`);
-      }
-    }
-    redirect(`/dashboard/track/${only.slug}`);
+    redirect(singleCourseDestination(visibleTracks[0], setup === "1"));
   }
 
   const now = new Date();
@@ -580,6 +569,29 @@ async function DashboardContent({
   );
 }
 
+
+/**
+ * Where a single-course learner lands. ONE place for the week-vs-overview
+ * decision so the callback / dashboard / layout can't disagree.
+ *   • fromLogin (fresh email magic-link, ?setup=1) → the live week (the
+ *     session/Zoom) — fewest clicks to content. Returning mid-cohort students
+ *     hit the current calendar week; not-yet-started / self-paced → Week 1.
+ *   • any other visit (Home click, admin preview) → the course overview.
+ * Clamped to an existing week so a config mismatch can't loop /dashboard.
+ */
+function singleCourseDestination(track: TrackConfig, fromLogin: boolean): string {
+  if (fromLogin) {
+    const started = !track.startDateTbd && new Date() >= new Date(track.startDate);
+    const week =
+      started && !track.selfPaced
+        ? computeCurrentWeek(track.startDate, track.totalWeeks, track.lastSessionDayOffset)
+        : 1;
+    if (track.weeks.some((w) => w.week === week)) {
+      return `/dashboard/track/${track.slug}/${week}`;
+    }
+  }
+  return `/dashboard/track/${track.slug}`;
+}
 
 function SurveyCard({
   survey,

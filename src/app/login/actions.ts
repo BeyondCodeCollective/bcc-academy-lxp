@@ -98,6 +98,9 @@ export async function sendLoginLink({
   if (callbackJoinSlug) callbackBase.searchParams.set("join", callbackJoinSlug);
   if (callbackTrackSlug) callbackBase.searchParams.set("track", callbackTrackSlug);
   if (next) callbackBase.searchParams.set("next", next);
+  // Bake the intended email so the callback can refuse to fall back to a
+  // different account already signed in on this browser.
+  callbackBase.searchParams.set("email", trimmed);
   const richRedirectTo = callbackBase.toString();
 
   const tryResend =
