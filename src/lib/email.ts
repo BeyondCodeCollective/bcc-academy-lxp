@@ -47,6 +47,46 @@ export async function sendSignInEmail({
   }
 }
 
+/** Cohort invite — one-click link to /invite/<token> that signs the student
+ *  in on click (no expiry). Sent in bulk by the super-admin invite tool. */
+export async function sendInviteEmail({
+  to,
+  inviteLink,
+  programName,
+}: {
+  to: string;
+  inviteLink: string;
+  programName: string;
+}): Promise<void> {
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY not set — skipping invite email");
+    throw new Error("Email is not configured (RESEND_API_KEY missing)");
+  }
+  const { error } = await resend.emails.send({
+    from: FROM_ADDRESS,
+    to,
+    subject: `You're invited to ${programName}`,
+    html: `
+<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:520px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;">
+  <div style="background:#1a1a1a;padding:28px 24px;text-align:center;">
+    <p style="margin:0;font-size:24px;font-weight:700;letter-spacing:-0.02em;text-transform:uppercase;color:#ffffff;">BCC <span style="color:#E5F701;">[</span>Academy<span style="color:#E5F701;">]</span></p>
+  </div>
+  <div style="padding:32px 24px;">
+    <p style="margin:0 0 8px;font-size:22px;font-weight:700;color:#1a1a1a;">Welcome to ${programName}.</p>
+    <p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:#555;">Your spot is ready. Click the button below to open your dashboard — no password needed.</p>
+    <div style="text-align:center;margin:0 0 28px;">
+      <a href="${inviteLink}" style="display:inline-block;padding:14px 36px;background:#1a1a1a;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:700;font-size:15px;letter-spacing:0.02em;">Get started →</a>
+    </div>
+    <p style="margin:0;font-size:12px;color:#999;line-height:1.5;">If you didn't expect this, you can ignore it. Questions? Reply here or email <a href="mailto:fonz.morris@wearebgc.org" style="color:#1a1a1a;">fonz.morris@wearebgc.org</a>.</p>
+  </div>
+</div>`,
+  });
+  if (error) {
+    console.error("[email] sendInviteEmail failed:", JSON.stringify(error));
+    throw new Error("Failed to send invite email");
+  }
+}
+
 /** Confirmation email for the public-survey withdrawal flow.
  *  The action that triggers this always returns success regardless of
  *  whether the address has any data on file, so this email also doubles

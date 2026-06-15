@@ -885,6 +885,12 @@ export function AdminTabs({
                       Manage Courses
                     </Link>
                     <Link
+                      href="/dashboard/admin/invites"
+                      className={buttonClass("secondary", "sm")}
+                    >
+                      Invites
+                    </Link>
+                    <Link
                       href="/dashboard/admin/features"
                       className={buttonClass("secondary", "sm")}
                     >
