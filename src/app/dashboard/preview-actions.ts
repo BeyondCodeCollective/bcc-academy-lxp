@@ -9,18 +9,16 @@ import { PREVIEW_COOKIE } from "@/lib/auth/preview-mode";
 /**
  * Set the preview cookie to a specific track slug, or clear it. Only
  * super-admins can change preview state — other roles get a silent no-op.
+ *
+ * Preview is a transient overlay: the program skin for the previewed course
+ * is derived from this cookie at resolution time (resolveBaseProgram), so we
+ * deliberately do NOT touch the sticky program-override here. Clearing the
+ * cookie reverts the admin to their real program context automatically.
  */
-export async function setPreviewTrackSlug(
-  slug: string | null,
-  formData?: FormData,
-) {
+export async function setPreviewTrackSlug(slug: string | null) {
   const ctx = await getSessionContext();
   const role = ctx?.student?.role ?? "";
   if (!canSwitchPrograms(role)) return;
-
-  // Home program of the picked course, passed as a hidden form field (the
-  // preview menu lists courses across all programs).
-  const programSlug = (formData?.get("program") as string) || null;
 
   const cookieStore = await cookies();
   if (!slug) {
@@ -32,19 +30,6 @@ export async function setPreviewTrackSlug(
       sameSite: "lax",
       maxAge: 60 * 60 * 8, // 8 hours
     });
-    // The preview menu lists courses across every program, so the picked
-    // course may belong to a program other than the one we're currently in.
-    // Move the program context to its home program (same cookie pair + options
-    // the /switch-program route and auth callback set) so getProgram resolves
-    // the right tracks and the dashboard actually renders the previewed course.
-    if (programSlug) {
-      const opts = { path: "/", httpOnly: false, sameSite: "lax" as const };
-      cookieStore.set("program-slug", programSlug, opts);
-      cookieStore.set("program-override", programSlug, {
-        ...opts,
-        maxAge: 60 * 60 * 24 * 365,
-      });
-    }
   }
   redirect("/dashboard");
 }

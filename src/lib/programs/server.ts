@@ -1,8 +1,9 @@
 import { cache } from "react";
 import { headers, cookies } from "next/headers";
-import { getProgramBySlug, getProgramByDomain, isKnownProgramHost, hasTsConfigSlug } from "./index";
+import { getProgramBySlug, getProgramByDomain, isKnownProgramHost, hasTsConfigSlug, getHomeProgramForTrack } from "./index";
 import type { ProgramConfig, TrackConfig } from "./types";
 import { createServiceClient } from "@/lib/supabase/server";
+import { PREVIEW_COOKIE, LUNCH_LEARN_PREVIEW_SLUG } from "@/lib/auth/preview-mode";
 
 /**
  * Get the current program config in a server component or server action.
@@ -46,6 +47,23 @@ async function resolveBaseProgram(): Promise<ProgramConfig> {
     if (hasTsConfigSlug(slug)) return getProgramBySlug(slug);
     return fetchDynamicProgram(slug);
   };
+
+  // Preview overlay (super-admin "preview as student"): render the previewed
+  // course's program skin. Transient — driven by the preview cookie itself
+  // (8h, self-clearing), NOT a sticky program-override — so the context
+  // reverts the moment preview ends instead of stranding the admin in the
+  // previewed program. Only super-admins can set this cookie, so its presence
+  // is sufficient authorization. Highest priority while active.
+  const previewSlug = c.get(PREVIEW_COOKIE)?.value;
+  if (previewSlug && previewSlug !== LUNCH_LEARN_PREVIEW_SLUG) {
+    const home = getHomeProgramForTrack(previewSlug);
+    if (home) return home;
+    // Builder-created courses live as DB track_overrides under Catalyst with no
+    // TS config, so getHomeProgramForTrack can't see them. Render them in the
+    // Catalyst shell — getProgram() layers the builder track on via overrides.
+    // (Also keeps preview working even if a stale program-override is set.)
+    return getProgramBySlug("catalyst");
+  }
 
   const overrideSlug = c.get("program-override")?.value;
   if (overrideSlug) {
@@ -259,20 +277,47 @@ async function applyTrackOverrides(program: ProgramConfig): Promise<ProgramConfi
   // Dynamic programs have all track data built from DB rows already;
   // there are no TS config defaults to override.
   if (!hasTsConfigSlug(program.slug)) return program;
-  const overrides = await fetchOverrides(program.slug);
-  if (overrides.size === 0) return program;
+
+  // Catalyst is an umbrella that aggregates other programs' tracks, but each
+  // track's override lives under its HOME program (e.g. ai-literacy's override
+  // is stored under forte, not catalyst). Fetch this program's own overrides
+  // plus every aggregated track's home-program overrides, so names/dates
+  // reflect the DB on every surface (catalog, admin home, sidebar, preview) —
+  // not just the program that owns the override row.
+  const homeSlugs = new Set<string>([program.slug]);
+  for (const t of program.tracks) {
+    const home = getHomeProgramForTrack(t.slug);
+    if (home) homeSlugs.add(home.slug);
+  }
+  const overridesBySlug = new Map(
+    await Promise.all(
+      [...homeSlugs].map(
+        async (slug) => [slug, await fetchOverrides(slug)] as const,
+      ),
+    ),
+  );
+  const ownOverrides =
+    overridesBySlug.get(program.slug) ?? new Map<string, TrackOverrideRow>();
+
+  // Prefer a track's home-program override; fall back to this program's own
+  // override row (covers tracks whose override is stored under the umbrella).
+  const overrideForTrack = (slug: string): TrackOverrideRow | undefined => {
+    const home = getHomeProgramForTrack(slug);
+    const homeMap = home ? overridesBySlug.get(home.slug) : undefined;
+    return homeMap?.get(slug) ?? ownOverrides.get(slug);
+  };
 
   const existingSlugs = new Set(program.tracks.map((t) => t.slug));
   // Builder-created courses are stored as track_overrides rows under Catalyst
   // with no corresponding TS config entry. Append them as fully DB-sourced tracks.
-  const extraTracks = [...overrides.values()]
+  const extraTracks = [...ownOverrides.values()]
     .filter((o) => !existingSlugs.has(o.track_slug))
     .map(buildTrackFromOverride);
 
   return {
     ...program,
     tracks: [
-      ...program.tracks.map((t) => mergeTrack(t, overrides.get(t.slug))),
+      ...program.tracks.map((t) => mergeTrack(t, overrideForTrack(t.slug))),
       ...extraTracks,
     ],
   };
