@@ -145,10 +145,16 @@ export function Nav({
     return () => document.removeEventListener("keydown", handler);
   }, [mobileOpen]);
 
+  // For admins, Home IS the admin dashboard (the learner home is preview-only).
+  // The bare /dashboard would render the learner shell and only THEN redirect
+  // admins to /dashboard/admin — flashing the learner skeleton first. Point
+  // every brand/home link straight at the right destination to avoid that.
+  const homeHref = isAdmin ? "/dashboard/admin" : "/dashboard";
+
   const items: NavItem[] = [
     // For admins, Home IS the admin dashboard (the learner home is preview-only),
     // so there's no separate "Admin" item — one clear landing.
-    { href: isAdmin ? "/dashboard/admin" : "/dashboard", label: "Home", icon: House },
+    { href: homeHref, label: "Home", icon: House },
     // Catalog (every track in the program) is admin-only. Students get their
     // own track grid on /dashboard and the curriculum sidebar when they're
     // inside a track — they don't need a browsable catalog of programs
@@ -449,7 +455,7 @@ export function Nav({
         {/* Desktop top bar */}
         <header className="hidden md:flex sticky top-0 z-30 items-center justify-between gap-4 shell-topbar px-6 py-3">
           <div className="flex items-center gap-6">
-            <Link href="/dashboard" className="flex items-center">
+            <Link href={homeHref} className="flex items-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={logo} alt={programName} className="h-5" />
             </Link>
@@ -487,7 +493,7 @@ export function Nav({
 
         {/* Mobile top bar (same as sidebar variant) */}
         <div className="md:hidden sticky top-0 z-30 flex items-center justify-between shell-topbar px-4 py-2">
-          <Link href="/dashboard" className="flex items-center">
+          <Link href={homeHref} className="flex items-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={logo} alt={programName} className="h-4" />
           </Link>
@@ -556,14 +562,14 @@ export function Nav({
           aria-label="Main navigation"
         >
           <div className="flex h-full flex-col gap-6 p-4">
-            <Link href="/dashboard" className="flex items-center px-2 py-2">
+            <Link href={homeHref} className="flex items-center px-2 py-2">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={logo} alt={programName} className="h-5" />
             </Link>
           </div>
         </aside>
         <div className="md:hidden sticky top-0 z-30 flex items-center justify-between shell-topbar px-4 py-2">
-          <Link href="/dashboard" className="flex items-center">
+          <Link href={homeHref} className="flex items-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={logo} alt={programName} className="h-4" />
           </Link>
@@ -577,7 +583,7 @@ export function Nav({
   const sidebarLogo = lightShell ? (
     <div className="nav-brandrow flex items-center justify-between gap-1 pr-1">
       <Link
-        href="/dashboard"
+        href={homeHref}
         className="flex min-w-0 items-center px-2 py-2"
         onClick={() => setMobileOpen(false)}
       >
@@ -589,7 +595,7 @@ export function Nav({
     </div>
   ) : (
     <Link
-      href="/dashboard"
+      href={homeHref}
       className="flex items-center px-2 py-2"
       onClick={() => setMobileOpen(false)}
     >
@@ -629,7 +635,7 @@ export function Nav({
   const drawerBody = (
     <div className="flex h-full flex-col gap-6 p-4">
       <Link
-        href="/dashboard"
+        href={homeHref}
         className="flex items-center px-2 py-2"
         onClick={() => setMobileOpen(false)}
       >
@@ -685,7 +691,7 @@ export function Nav({
 
       {/* Mobile top bar */}
       <div className="md:hidden sticky top-0 z-30 flex items-center justify-between shell-topbar px-4 py-2">
-        <Link href="/dashboard" className="flex items-center">
+        <Link href={homeHref} className="flex items-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={logo} alt={programName} className="h-4" />
         </Link>
