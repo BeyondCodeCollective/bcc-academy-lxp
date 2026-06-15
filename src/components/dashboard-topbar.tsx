@@ -47,12 +47,17 @@ export function DashboardTopBar({
   currentProgramSlug: string;
 }) {
   const pathname = usePathname();
+  // Only show the section breadcrumb on detail pages, where the page's own h1
+  // is a specific title (e.g. a course name). On a section index page the h1
+  // already IS the section name, so the breadcrumb would just repeat it.
+  const isDetailPage = pathname.split("/").filter(Boolean).length > 2;
+  const label = pageLabel(pathname);
   return (
     <div className="sticky top-0 z-20 hidden md:block">
       <div className="shell-topbar flex h-14 items-center gap-3 px-4 sm:px-6">
-        {pageLabel(pathname) !== "Home" && (
+        {isDetailPage && label !== "Home" && (
           <p className="hidden shrink-0 items-baseline text-sm sm:flex">
-            <span className="text-[13px] font-semibold text-ink">{pageLabel(pathname)}</span>
+            <span className="text-[13px] font-semibold text-ink">{label}</span>
           </p>
         )}
 
