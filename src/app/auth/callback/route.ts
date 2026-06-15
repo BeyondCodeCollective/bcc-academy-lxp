@@ -109,6 +109,13 @@ export async function GET(request: Request) {
       // link for B that failed to exchange), sign the stale session out and
       // refuse the fallback — a clean re-login beats impersonating A as B.
       if (fu && intendedEmail && (fu.email ?? "").toLowerCase() !== intendedEmail) {
+        console.warn(
+          "[auth/callback] wrong-account fallback BLOCKED — magic link for",
+          intendedEmail,
+          "but existing session is",
+          (fu.email ?? "unknown").toLowerCase(),
+          "→ signing out, forcing clean re-login",
+        );
         await supabase.auth.signOut();
         return false;
       }
