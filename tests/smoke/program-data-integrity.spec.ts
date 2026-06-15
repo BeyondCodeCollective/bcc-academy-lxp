@@ -33,7 +33,7 @@ test("program-scoped data lives under each track's home program", async () => {
     const { data, error } = await svc.from(table).select(`${trackCol}, program_id`);
     expect(error, `${table}: ${error?.message}`).toBeNull();
 
-    for (const row of (data ?? []) as Record<string, string | null>[]) {
+    for (const row of (data ?? []) as unknown as Record<string, string | null>[]) {
       const track = row[trackCol];
       const programId = row.program_id;
       if (!track || !programId) continue;
