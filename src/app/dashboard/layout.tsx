@@ -8,7 +8,7 @@ import { DashboardTopBar } from "@/components/dashboard-topbar";
 import { TutorFab } from "@/components/tutor-fab";
 import { PreviewToggle } from "@/components/preview-toggle";
 import { getProgram } from "@/lib/programs/server";
-import { getProgramBySlug, getAllPrograms, isTutorAvailable } from "@/lib/programs";
+import { getProgramBySlug, getAllPrograms, getJoinablePrograms, isTutorAvailable } from "@/lib/programs";
 import { ProgramProvider } from "@/lib/programs/context";
 import { canAccessAdminPanel, canSwitchPrograms, canAccessStaffContent } from "@/lib/roles";
 import { getSessionContext } from "@/lib/auth/session";
@@ -385,17 +385,44 @@ async function Overlays({ isSurveyPage }: { isSurveyPage: boolean }) {
       ? previewSlug
       : null;
 
+  // Preview menu: every course across all programs, grouped under its home
+  // program (mirrors the Courses catalog, which already aggregates all
+  // programs). Dedup by slug — some programs aggregate others' tracks (e.g.
+  // Catalyst lists Forte's tracks), but each course should appear once, under
+  // its owning program.
+  const previewGroupMap = new Map<
+    string,
+    { programSlug: string; programName: string; tracks: { slug: string; name: string }[] }
+  >();
+  const seenTrackSlugs = new Set<string>();
+  for (const p of getJoinablePrograms()) {
+    for (const t of p.tracks) {
+      if (seenTrackSlugs.has(t.slug)) continue;
+      seenTrackSlugs.add(t.slug);
+      const home = getHomeProgramForTrack(t.slug);
+      const homeSlug = home?.slug ?? p.slug;
+      const homeName = home?.name ?? p.name;
+      const group =
+        previewGroupMap.get(homeSlug) ??
+        { programSlug: homeSlug, programName: homeName, tracks: [] };
+      group.tracks.push({ slug: t.slug, name: t.name });
+      previewGroupMap.set(homeSlug, group);
+    }
+  }
+  const previewGroups = [
+    {
+      programSlug: "",
+      programName: "",
+      tracks: [{ slug: LUNCH_LEARN_PREVIEW_SLUG, name: "Lunch & Learns" }],
+    },
+    ...Array.from(previewGroupMap.values()),
+  ];
+
   return (
     <>
       {showTutor && <TutorFab />}
       {canShowPreview && (
-        <PreviewToggle
-          previewingSlug={validPreviewSlug}
-          tracks={[
-            { slug: LUNCH_LEARN_PREVIEW_SLUG, name: "Lunch & Learns" },
-            ...program.tracks.map((t) => ({ slug: t.slug, name: t.name })),
-          ]}
-        />
+        <PreviewToggle previewingSlug={validPreviewSlug} groups={previewGroups} />
       )}
     </>
   );
