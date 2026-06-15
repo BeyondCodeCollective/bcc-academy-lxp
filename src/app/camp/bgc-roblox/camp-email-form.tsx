@@ -1,12 +1,48 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { sendLoginLink } from "@/app/login/actions";
+import { createClient } from "@/lib/supabase/client";
 
 export function CampEmailForm() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "sent" | "error">("idle");
   const [error, setError] = useState("");
+  // Shared-device guard: if someone is already signed in on this browser
+  // (common at camps), surface it so a different family doesn't accidentally
+  // sign up / land inside the previous person's account.
+  const [sessionEmail, setSessionEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    createClient()
+      .auth.getUser()
+      .then(({ data }) => setSessionEmail(data.user?.email ?? null))
+      .catch(() => setSessionEmail(null));
+  }, []);
+
+  async function handleSwitchAccount() {
+    await createClient().auth.signOut();
+    setSessionEmail(null);
+  }
+
+  const sessionBanner = sessionEmail ? (
+    <div
+      className="mb-4 flex flex-wrap items-center justify-between gap-2 border-l-4 p-3 text-sm"
+      style={{ borderColor: "#7C3AED", background: "#7C3AED10", color: "#1a1a1a" }}
+    >
+      <span>
+        Signed in as <strong>{sessionEmail}</strong>
+      </span>
+      <button
+        type="button"
+        onClick={handleSwitchAccount}
+        className="text-xs font-semibold underline"
+        style={{ color: "#7C3AED", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+      >
+        Not you? Sign out &amp; use a different email
+      </button>
+    </div>
+  ) : null;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -55,7 +91,9 @@ export function CampEmailForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
+    <>
+      {sessionBanner}
+      <form onSubmit={handleSubmit}>
       <div className="flex gap-2" style={{ flexWrap: "wrap" }}>
         <input
           type="email"
@@ -102,6 +140,7 @@ export function CampEmailForm() {
           {error}
         </p>
       )}
-    </form>
+      </form>
+    </>
   );
 }
