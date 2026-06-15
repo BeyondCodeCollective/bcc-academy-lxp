@@ -20,8 +20,9 @@
   /* Editorial palette — used by the dashboard surfaces. Matches the
      Survey Insights design language so the in-app shell reads as one
      coherent product instead of a stack of differently-toned screens.
-     --paper aliases --background to keep the existing utility class. */
-  --paper: #ffffff;
+     --paper is a barely-there neutral grey so the canvas reads with a touch of
+     depth and white `panel` cards pop on top, without going white-on-white. */
+  --paper: #fafafb;
   --paper-tint: #ebebed;
   --paper-tint-soft: #f0f0f2;
   --ink: #1a1a1a;
