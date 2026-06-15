@@ -7,7 +7,7 @@ import { Nav } from "@/components/nav";
 import { DashboardTopBar } from "@/components/dashboard-topbar";
 import { TutorFab } from "@/components/tutor-fab";
 import { PreviewToggle } from "@/components/preview-toggle";
-import { getProgram } from "@/lib/programs/server";
+import { getProgram, getProgramWithOverrides } from "@/lib/programs/server";
 import { getProgramBySlug, getAllPrograms, getJoinablePrograms, isTutorAvailable } from "@/lib/programs";
 import { ProgramProvider } from "@/lib/programs/context";
 import { canAccessAdminPanel, canSwitchPrograms, canAccessStaffContent } from "@/lib/roles";
@@ -390,22 +390,36 @@ async function Overlays({ isSurveyPage }: { isSurveyPage: boolean }) {
   // programs). Dedup by slug — some programs aggregate others' tracks (e.g.
   // Catalyst lists Forte's tracks), but each course should appear once, under
   // its owning program.
+  // Apply DB track_overrides per program — track names (and program names) are
+  // edited live in track_overrides, which is the source of truth. The raw TS
+  // config would show stale names (e.g. "AI Literacy" instead of the renamed
+  // "Foundations of AI & Digital Skills").
+  const overriddenPrograms = await Promise.all(
+    getJoinablePrograms().map((p) => getProgramWithOverrides(p.slug)),
+  );
+  const programBySlug = new Map(overriddenPrograms.map((p) => [p.slug, p] as const));
+
   const previewGroupMap = new Map<
     string,
     { programSlug: string; programName: string; tracks: { slug: string; name: string }[] }
   >();
   const seenTrackSlugs = new Set<string>();
-  for (const p of getJoinablePrograms()) {
+  for (const p of overriddenPrograms) {
     for (const t of p.tracks) {
       if (seenTrackSlugs.has(t.slug)) continue;
       seenTrackSlugs.add(t.slug);
       const home = getHomeProgramForTrack(t.slug);
       const homeSlug = home?.slug ?? p.slug;
-      const homeName = home?.name ?? p.name;
+      // Read the name + program label from the track's HOME program's
+      // override-applied config — Catalyst aggregates other programs' tracks
+      // but without their overrides, so the home program is authoritative.
+      const homeProgram = programBySlug.get(homeSlug);
+      const name = homeProgram?.tracks.find((x) => x.slug === t.slug)?.name ?? t.name;
+      const homeName = homeProgram?.name ?? home?.name ?? p.name;
       const group =
         previewGroupMap.get(homeSlug) ??
         { programSlug: homeSlug, programName: homeName, tracks: [] };
-      group.tracks.push({ slug: t.slug, name: t.name });
+      group.tracks.push({ slug: t.slug, name });
       previewGroupMap.set(homeSlug, group);
     }
   }
