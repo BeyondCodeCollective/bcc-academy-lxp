@@ -203,8 +203,12 @@ async function DashboardContent({
         : enrolledTracks.map((t) => t.slug);
 
       if (!previewSlug) {
-        otherProgramCourses = ((allTrackRowsRes.data ?? []) as { track_slug: string }[])
-          .map((r) => r.track_slug)
+        // Dedupe by track slug — defensive against any stray duplicate
+        // enrollment rows so a course never renders twice.
+        const otherSlugs = Array.from(
+          new Set((allTrackRowsRes.data ?? []).map((r) => r.track_slug as string)),
+        );
+        otherProgramCourses = otherSlugs
           .filter((s) => !program.tracks.some((t) => t.slug === s))
           .map((s) => {
             const home = getHomeProgramForTrack(s);

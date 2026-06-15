@@ -118,12 +118,11 @@ export async function completePendingSetup(
     tracksToEnroll = program.tracks;
   }
 
-  // Enroll on every sign-in (not just new users). The upsert is idempotent
-  // — onConflict (student_id, track_slug, program_id) — so re-running for a
-  // returning learner is a no-op when they're already enrolled, and a
-  // self-heal when a previous sign-in missed the enrollment step (e.g.
-  // someone allowlisted *after* their first login, or a learner who landed
-  // on the empty "You're registered!" state because of a routing gap).
+  // Enroll on every sign-in (not just new users). Idempotent upsert on
+  // (student_id, track_slug) — one enrollment per track regardless of program.
+  // Re-running is a no-op when already enrolled; it self-heals a missed
+  // enrollment AND updates program_id if the track has since moved programs
+  // (e.g. Roblox: catalyst → bgc), so no stale program-ghost row is left.
   if (tracksToEnroll.length > 0) {
     const { error: trackErr } = await admin.from("student_tracks").upsert(
       tracksToEnroll.map((t) => ({
@@ -131,7 +130,7 @@ export async function completePendingSetup(
         track_slug: t.slug,
         program_id: programId,
       })),
-      { onConflict: "student_id,track_slug,program_id" },
+      { onConflict: "student_id,track_slug" },
     );
 
     if (trackErr) {
