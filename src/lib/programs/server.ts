@@ -1,8 +1,9 @@
 import { cache } from "react";
 import { headers, cookies } from "next/headers";
-import { getProgramBySlug, getProgramByDomain, isKnownProgramHost, hasTsConfigSlug } from "./index";
+import { getProgramBySlug, getProgramByDomain, isKnownProgramHost, hasTsConfigSlug, getHomeProgramForTrack } from "./index";
 import type { ProgramConfig, TrackConfig } from "./types";
 import { createServiceClient } from "@/lib/supabase/server";
+import { PREVIEW_COOKIE, LUNCH_LEARN_PREVIEW_SLUG } from "@/lib/auth/preview-mode";
 
 /**
  * Get the current program config in a server component or server action.
@@ -46,6 +47,18 @@ async function resolveBaseProgram(): Promise<ProgramConfig> {
     if (hasTsConfigSlug(slug)) return getProgramBySlug(slug);
     return fetchDynamicProgram(slug);
   };
+
+  // Preview overlay (super-admin "preview as student"): render the previewed
+  // course's program skin. Transient — driven by the preview cookie itself
+  // (8h, self-clearing), NOT a sticky program-override — so the context
+  // reverts the moment preview ends instead of stranding the admin in the
+  // previewed program. Only super-admins can set this cookie, so its presence
+  // is sufficient authorization. Highest priority while active.
+  const previewSlug = c.get(PREVIEW_COOKIE)?.value;
+  if (previewSlug && previewSlug !== LUNCH_LEARN_PREVIEW_SLUG) {
+    const home = getHomeProgramForTrack(previewSlug);
+    if (home) return home;
+  }
 
   const overrideSlug = c.get("program-override")?.value;
   if (overrideSlug) {

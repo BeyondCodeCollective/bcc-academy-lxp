@@ -60,11 +60,6 @@ export function PreviewToggle({
                         action={setPreviewTrackSlug.bind(null, t.slug)}
                         onSubmit={() => setOpen(false)}
                       >
-                        <input
-                          type="hidden"
-                          name="program"
-                          value={group.programSlug}
-                        />
                         <button
                           type="submit"
                           className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-xs transition-colors hover:bg-paper-tint-soft ${
