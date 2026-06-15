@@ -69,7 +69,11 @@ export function UserMenu({
       return;
     }
     document.cookie = `program-override=${slug}; path=/; max-age=86400`;
-    router.push("/dashboard");
+    // Go straight to the admin panel — the program switcher is only shown to
+    // super-admins, and /dashboard immediately redirects admins to
+    // /dashboard/admin. Pushing to /dashboard first flashes the learner
+    // loading skeleton before that redirect swaps in the admin one.
+    router.push("/dashboard/admin");
   };
   /* eslint-enable react-hooks/immutability */
 
