@@ -64,6 +64,17 @@ type Recording = {
   recording_url: string;
 };
 
+// Presenter initials for the card monogram — first letter of the first two
+// name parts. Empty string when there's no presenter (the card hides it).
+function initials(name: string): string {
+  return (name ?? "")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
 function YearGroupedRecordings({ recordings }: { recordings: Recording[] }) {
   // Group by recording year so a growing archive doesn't read as one
   // unbroken wall. Sections render newest-first; within a section,
@@ -95,6 +106,8 @@ function YearGroupedRecordings({ recordings }: { recordings: Recording[] }) {
                     eyebrow="Recording"
                     title={r.title}
                     byline={r.presenter ? `with ${r.presenter}` : undefined}
+                    monogram={initials(r.presenter)}
+                    description={r.description ?? undefined}
                     trailing={date}
                   />
                 </li>

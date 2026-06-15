@@ -18,6 +18,8 @@ export function CatalogCard({
   eyebrow,
   title,
   byline,
+  monogram,
+  description,
   status,
   trailing,
 }: {
@@ -32,6 +34,10 @@ export function CatalogCard({
   eyebrow: string;
   title: string;
   byline?: string;
+  /** Initials shown in a small avatar beside the byline (e.g. the presenter). */
+  monogram?: string;
+  /** 1–2 line supporting text under the byline — fills out otherwise sparse cards. */
+  description?: string;
   /** Short word in the accent — "In progress", "Upcoming". */
   status?: string;
   /** Trailing fact in the footer — date. */
@@ -62,7 +68,28 @@ export function CatalogCard({
       <h3 className="mt-4 text-[17px] font-bold leading-snug tracking-[-0.015em] text-ink">
         {title}
       </h3>
-      {byline && <p className="mt-1.5 text-[13px] leading-relaxed text-ink-soft">{byline}</p>}
+      {(byline || monogram) && (
+        <div className="mt-1.5 flex items-center gap-2">
+          {monogram && (
+            <span
+              aria-hidden
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-paper-tint text-[10px] font-bold text-ink-soft"
+            >
+              {monogram}
+            </span>
+          )}
+          {byline && (
+            <span className="truncate text-[13px] leading-relaxed text-ink-soft">
+              {byline}
+            </span>
+          )}
+        </div>
+      )}
+      {description && (
+        <p className="mt-2.5 line-clamp-2 text-[13px] leading-relaxed text-ink-soft">
+          {description}
+        </p>
+      )}
 
       <div className="mt-auto flex items-center justify-between gap-3 pt-6">
         {trailing ? (
