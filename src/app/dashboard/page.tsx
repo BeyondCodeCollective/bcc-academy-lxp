@@ -534,6 +534,7 @@ async function DashboardContent({
         <DashboardBento
           tracks={bentoTracks}
           otherCourses={bentoOtherCourses}
+          programName={program.name}
         />
       ) : (
         trackStates.filter(({ track }) => track.type !== "single-event").length > 0 && (
