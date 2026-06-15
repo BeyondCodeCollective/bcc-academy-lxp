@@ -17,18 +17,16 @@ export type WeekCardData = {
 
 export function WeekCarousel({
   weeks,
-  tone,
   emojiIcons = false,
 }: {
   weeks: WeekCardData[];
-  tone: string;
   /** Kid-facing tracks render the raw emoji; default maps to Phosphor. */
   emojiIcons?: boolean;
 }) {
   const renderIcon = (icon: string, size: number) => {
     const Icon = emojiIcons ? null : weekIconForEmoji(icon);
     return Icon ? (
-      <Icon size={size} weight="duotone" color={tone} aria-hidden />
+      <Icon size={size} weight="regular" className="text-primary" aria-hidden />
     ) : (
       icon
     );
@@ -73,12 +71,12 @@ export function WeekCarousel({
           {weeks.map((w) =>
             w.isLocked ? (
               <div key={w.week} role="listitem" className="w-full shrink-0 snap-start">
-                <div className="flex flex-col items-center justify-center bg-white/40 backdrop-blur py-8 px-4 text-center">
+                <div className="flex flex-col items-center justify-center rounded-md bg-transparent py-8 px-4 text-center">
                   <span className="text-5xl leading-none opacity-30">{renderIcon(w.icon, 44)}</span>
-                  <span className="mt-3 text-sm font-medium text-neutral-400 leading-tight">
+                  <span className="mt-3 text-sm font-medium text-ink-faint leading-tight">
                     {w.topic}
                   </span>
-                  <span className="mt-1.5 text-xs font-semibold uppercase tracking-wide text-neutral-400">
+                  <span className="mt-1.5 text-xs font-semibold uppercase tracking-wide text-ink-faint">
                     Coming soon
                   </span>
                 </div>
@@ -88,18 +86,18 @@ export function WeekCarousel({
                 <Link
                   href={w.href!}
                   aria-label={`Week ${w.week}: ${w.topic}${w.isCurrent ? " (current week)" : ""}`}
-                  className="flex flex-col items-center justify-center bg-white/85 backdrop-blur py-8 px-4 text-center transition-colors hover:bg-white"
-                  style={w.isCurrent ? { boxShadow: `inset 0 0 0 2px ${tone}` } : undefined}
+                  className="flex flex-col items-center justify-center rounded-md bg-transparent py-8 px-4 text-center transition-colors hover:bg-paper-tint-soft"
+                  style={w.isCurrent ? { boxShadow: `inset 0 0 0 2px var(--primary)` } : undefined}
                 >
                   <span className={`text-5xl leading-none ${w.isPast ? "opacity-60" : ""}`}>
                     {renderIcon(w.icon, 44)}
                   </span>
-                  <span className="mt-1.5 text-[11px] font-medium uppercase tracking-widest text-neutral-400">
+                  <span className="mt-1.5 text-[11px] font-medium uppercase tracking-widest text-ink-faint">
                     Week {w.week}
                   </span>
                   <span
                     className={`mt-1.5 text-sm font-medium leading-tight ${
-                      w.isPast ? "text-neutral-400" : "text-neutral-700"
+                      w.isPast ? "text-ink-faint" : "text-ink"
                     }`}
                   >
                     {w.topic}
@@ -121,7 +119,7 @@ export function WeekCarousel({
                 className="h-1.5 rounded-full transition-all duration-200"
                 style={{
                   width: i === activeIndex ? "1rem" : "0.375rem",
-                  backgroundColor: i === activeIndex ? tone : "#d4d4d4",
+                  backgroundColor: i === activeIndex ? "var(--primary)" : "var(--rule)",
                 }}
               />
             ))}
@@ -136,15 +134,15 @@ export function WeekCarousel({
             {w.isLocked ? (
               <div
                 aria-label={`Week ${w.week}: ${w.topic} (coming ${w.lockedLabel})`}
-                className="flex aspect-square cursor-not-allowed flex-col items-center justify-center bg-white/40 p-2 backdrop-blur sm:p-2.5"
+                className="flex aspect-square cursor-not-allowed flex-col items-center justify-center rounded-md bg-transparent p-2 sm:p-2.5"
               >
                 <span className="text-2xl leading-none opacity-30 sm:text-3xl">
                   {renderIcon(w.icon, 28)}
                 </span>
-                <span className="mt-1.5 line-clamp-2 px-1 text-center text-[10px] font-medium leading-tight text-neutral-400 sm:text-[11px]">
+                <span className="mt-1.5 line-clamp-2 px-1 text-center text-[10px] font-medium leading-tight text-ink-faint sm:text-[11px]">
                   {w.topic}
                 </span>
-                <span className="mt-1 px-1 text-center text-[9px] font-semibold uppercase tracking-wide text-neutral-500 sm:text-[10px]">
+                <span className="mt-1 px-1 text-center text-[9px] font-semibold uppercase tracking-wide text-ink-soft sm:text-[10px]">
                   Coming soon
                 </span>
               </div>
@@ -152,8 +150,8 @@ export function WeekCarousel({
               <Link
                 href={w.href!}
                 aria-label={`Week ${w.week}: ${w.topic}${w.isCurrent ? " (current week)" : ""}`}
-                className="group flex aspect-square flex-col items-center justify-center bg-white/85 p-2 backdrop-blur transition-colors hover:bg-white sm:p-2.5"
-                style={w.isCurrent ? { boxShadow: `inset 0 0 0 2px ${tone}` } : undefined}
+                className="group flex aspect-square flex-col items-center justify-center rounded-md bg-transparent p-2 transition-colors hover:bg-paper-tint-soft sm:p-2.5"
+                style={w.isCurrent ? { boxShadow: `inset 0 0 0 2px var(--primary)` } : undefined}
               >
                 <span
                   className={`text-2xl leading-none sm:text-3xl ${w.isPast ? "opacity-60" : ""}`}
@@ -163,8 +161,8 @@ export function WeekCarousel({
                 <span
                   className={`mt-1.5 line-clamp-2 px-1 text-center text-[10px] font-medium leading-tight transition-colors sm:text-[11px] ${
                     w.isPast
-                      ? "text-neutral-400"
-                      : "text-neutral-600 group-hover:text-neutral-900"
+                      ? "text-ink-faint"
+                      : "text-ink-soft group-hover:text-ink"
                   }`}
                 >
                   {w.topic}

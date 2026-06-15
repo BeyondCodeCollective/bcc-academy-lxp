@@ -69,7 +69,11 @@ export function UserMenu({
       return;
     }
     document.cookie = `program-override=${slug}; path=/; max-age=86400`;
-    router.push("/dashboard");
+    // Go straight to the admin panel — the program switcher is only shown to
+    // super-admins, and /dashboard immediately redirects admins to
+    // /dashboard/admin. Pushing to /dashboard first flashes the learner
+    // loading skeleton before that redirect swaps in the admin one.
+    router.push("/dashboard/admin");
   };
   /* eslint-enable react-hooks/immutability */
 
@@ -93,7 +97,7 @@ export function UserMenu({
     return (
       <span
         aria-hidden
-        className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/10 font-semibold tracking-tight text-white/80 ${cls}`}
+        className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-paper-tint font-semibold tracking-tight text-ink-soft ${cls}`}
       >
         {avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -123,15 +127,15 @@ export function UserMenu({
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={open ? "Close account menu" : "Open account menu"}
-        className="flex w-full min-h-[44px] items-center gap-2.5 px-2 py-1.5 text-left transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+        className="flex w-full min-h-[44px] items-center gap-2.5 px-2 py-1.5 text-left transition-colors hover:bg-paper-tint focus:outline-none focus-visible:ring-2 focus-visible:ring-ink/15"
       >
         {avatarNode("md")}
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-medium text-white">
+          <span className="block truncate text-sm font-medium text-ink">
             {firstName} {lastName}
           </span>
           {email && (
-            <span className="block truncate text-xs text-neutral-400">
+            <span className="block truncate text-xs text-ink-faint">
               {email}
             </span>
           )}
@@ -140,7 +144,7 @@ export function UserMenu({
           size={14}
           weight="bold"
           aria-hidden
-          className="shrink-0 text-neutral-400"
+          className="shrink-0 text-ink-faint"
         />
       </button>
     ) : (
@@ -151,7 +155,7 @@ export function UserMenu({
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={open ? "Close account menu" : "Open account menu"}
-        className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full p-1 transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+        className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full p-1 transition-colors hover:bg-paper-tint focus:outline-none focus-visible:ring-2 focus-visible:ring-ink/15"
       >
         {avatarNode("sm")}
       </button>
@@ -165,7 +169,7 @@ export function UserMenu({
         <div
           role="menu"
           aria-label="Account menu"
-          className={`absolute z-40 w-72 border border-rule-soft bg-surface-elevated p-1 shadow-lg ${popoverPosition}`}
+          className={`absolute z-40 w-72 border border-rule-soft bg-surface-elevated p-1 shadow-sm ${popoverPosition}`}
         >
           {/* Identity header — topbar only. The sidebar trigger already
              shows avatar + name + email right below the popover, so

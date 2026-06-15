@@ -66,7 +66,7 @@ export async function sendWithdrawConfirmEmail(params: {
     subject: "Confirm survey response deletion",
     html: `
       <div style="font-family:-apple-system,system-ui,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#1a1a1a">
-        <p style="font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:#E54D2E;margin:0 0 12px">Beyond Code Collective</p>
+        <p style="font-size:11px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:#1D59FF;margin:0 0 12px">Beyond Code Collective</p>
         <h1 style="font-size:22px;font-weight:700;margin:0 0 12px">Confirm deletion</h1>
         <p style="font-size:14px;line-height:1.55;color:#374151;margin:0 0 16px">
           Someone requested to remove every public survey response tied to this email

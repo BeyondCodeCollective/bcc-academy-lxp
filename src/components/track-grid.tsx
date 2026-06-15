@@ -94,10 +94,11 @@ export function TrackGrid({ tracks }: { tracks: TrackState[] }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
+      <div className="flex items-center gap-4">
+        <p className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-faint">
           Your tracks
         </p>
+        <div aria-hidden className="h-px flex-1 bg-rule" />
         <div className="flex items-center gap-1">
           {FILTERS.map((opt) => {
             const active = filter === opt.key;

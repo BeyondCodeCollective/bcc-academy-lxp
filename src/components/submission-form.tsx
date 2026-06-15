@@ -5,6 +5,7 @@ import { submitProject } from "@/app/dashboard/track/actions";
 import type { SubmissionRow, SubmissionLink, SubmissionFile, FeedbackRow } from "@/app/dashboard/track/actions";
 import { Plus, X, Link as LinkIcon, Upload, CheckCircle, Loader2, FileText, MessageSquare, ChevronDown } from "lucide-react";
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
+import { buttonClass } from "@/components/ui";
 
 export function SubmissionForm({
   trackSlug,
@@ -141,15 +142,15 @@ export function SubmissionForm({
   const header = hasPrompts ? "Submit Your Project" : "Submit Your Work";
 
   return (
-    <div className="border border-rule bg-surface-elevated">
+    <div className="panel">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between p-4 sm:p-6 text-left hover:bg-neutral-50 transition-colors"
+        className="flex w-full items-center justify-between p-4 sm:p-6 text-left hover:bg-paper-tint-soft transition-colors"
       >
         <div className="flex items-center gap-2">
-          <Upload size={14} className="text-neutral-400" />
-          <h2 className="text-xs font-semibold text-neutral-400 uppercase tracking-wide">
+          <Upload size={14} className="text-ink-faint" />
+          <h2 className="text-xs font-semibold text-ink-faint uppercase tracking-wide">
             {header}
           </h2>
         </div>
@@ -162,7 +163,7 @@ export function SubmissionForm({
           )}
           <ChevronDown
             size={16}
-            className={`text-neutral-400 transition-transform ${open ? "rotate-180" : ""}`}
+            className={`text-ink-faint transition-transform ${open ? "rotate-180" : ""}`}
           />
         </div>
       </button>
@@ -175,14 +176,14 @@ export function SubmissionForm({
         <div className="space-y-4 mb-4">
           {activePrompts.map((prompt) => (
             <div key={prompt}>
-              <label className="text-sm font-medium text-neutral-700 mb-1.5 block">
+              <label className="text-sm font-medium text-ink mb-1.5 block">
                 {prompt}
               </label>
               <textarea
                 value={promptResponses[prompt] ?? ""}
                 onChange={(e) => updatePromptResponse(prompt, e.target.value)}
                 rows={3}
-                className="w-full border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900 focus:outline-none resize-none"
+                className="w-full border border-rule bg-neutral-50 px-3 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-ink focus:outline-none resize-none"
               />
             </div>
           ))}
@@ -191,18 +192,18 @@ export function SubmissionForm({
 
       {/* Attachments — collapsed by default when prompts are the focus. */}
       {hasPrompts ? (
-        <div className="mb-4 border-t border-neutral-100 pt-4">
+        <div className="mb-4 border-t border-rule-soft pt-4">
           <button
             type="button"
             onClick={() => setAttachmentsOpen((v) => !v)}
             className="flex w-full items-center justify-between text-left hover:opacity-80 transition-opacity"
           >
-            <span className="text-xs font-medium text-neutral-500">
+            <span className="text-xs font-medium text-ink-soft">
               Attachments (optional)
             </span>
             <ChevronDown
               size={14}
-              className={`text-neutral-400 transition-transform ${attachmentsOpen ? "rotate-180" : ""}`}
+              className={`text-ink-faint transition-transform ${attachmentsOpen ? "rotate-180" : ""}`}
             />
           </button>
           {attachmentsOpen && (
@@ -246,7 +247,7 @@ export function SubmissionForm({
       <button
         onClick={handleSubmit}
         disabled={saving || !hasContent}
-        className="inline-flex items-center gap-2 bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50 transition-colors"
+        className={buttonClass("dark", "md")}
       >
         {saving ? (
           <><Loader2 size={14} className="animate-spin" /> Saving...</>
@@ -259,20 +260,20 @@ export function SubmissionForm({
 
       {/* Feedback from instructor */}
       {feedback.length > 0 && (
-        <div className="mt-5 pt-4 border-t border-neutral-100 space-y-3">
+        <div className="mt-5 pt-4 border-t border-rule-soft space-y-3">
           <div className="flex items-center gap-2">
-            <MessageSquare size={14} className="text-neutral-400" />
-            <h3 className="text-xs font-semibold text-neutral-400 uppercase tracking-wide">
+            <MessageSquare size={14} className="text-ink-faint" />
+            <h3 className="text-xs font-semibold text-ink-faint uppercase tracking-wide">
               Instructor Feedback
             </h3>
           </div>
           {feedback.map((fb) => (
             <div
               key={fb.id}
-              className="border border-neutral-100 bg-neutral-50 p-3"
+              className="border border-rule-soft bg-neutral-50 p-3"
             >
-              <p className="text-sm text-neutral-700">{fb.comment}</p>
-              <p className="text-[11px] text-neutral-400 mt-1">
+              <p className="text-sm text-ink">{fb.comment}</p>
+              <p className="text-[11px] text-ink-faint mt-1">
                 {fb.reviewer_name} · {new Date(fb.created_at).toLocaleDateString()}
               </p>
             </div>
@@ -314,7 +315,7 @@ function AttachmentFields({
     <>
       {/* Description */}
       <div className="mb-4">
-        <label className="text-xs font-medium text-neutral-500 mb-1 block">
+        <label className="text-xs font-medium text-ink-soft mb-1 block">
           Description
         </label>
         <textarea
@@ -322,48 +323,48 @@ function AttachmentFields({
           onChange={(e) => setDescription(e.target.value)}
           placeholder={descriptionPlaceholder}
           rows={3}
-          className="w-full border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900 focus:outline-none resize-none"
+          className="w-full border border-rule bg-neutral-50 px-3 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-ink focus:outline-none resize-none"
         />
       </div>
 
       {/* Links */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-2">
-          <label className="text-xs font-medium text-neutral-500">Links</label>
+          <label className="text-xs font-medium text-ink-soft">Links</label>
           <button
             type="button"
             onClick={addLink}
-            className="inline-flex items-center gap-1 text-xs font-medium text-neutral-500 hover:text-neutral-900 transition-colors"
+            className="inline-flex items-center gap-1 text-xs font-medium text-ink-soft hover:text-ink transition-colors"
           >
             <Plus size={12} />
             Add Link
           </button>
         </div>
         {links.length === 0 && (
-          <p className="text-[11px] text-neutral-400">No links added yet</p>
+          <p className="text-[11px] text-ink-faint">No links added yet</p>
         )}
         <div className="space-y-2">
           {links.map((link, i) => (
             <div key={i} className="flex gap-2 items-start">
-              <LinkIcon size={14} className="mt-2.5 text-neutral-400 shrink-0" />
+              <LinkIcon size={14} className="mt-2.5 text-ink-faint shrink-0" />
               <input
                 type="url"
                 value={link.url}
                 onChange={(e) => updateLink(i, "url", e.target.value)}
                 placeholder="https://..."
-                className="flex-1 border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
+                className="flex-1 border border-rule bg-neutral-50 px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none"
               />
               <input
                 type="text"
                 value={link.label}
                 onChange={(e) => updateLink(i, "label", e.target.value)}
                 placeholder="Label (optional)"
-                className="w-32 sm:w-40 border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
+                className="w-32 sm:w-40 border border-rule bg-neutral-50 px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none"
               />
               <button
                 type="button"
                 onClick={() => removeLink(i)}
-                className="mt-2 text-neutral-300 hover:text-red-400 transition-colors shrink-0"
+                className="mt-2 text-ink-faint hover:text-red-400 transition-colors shrink-0"
               >
                 <X size={14} />
               </button>
@@ -375,8 +376,8 @@ function AttachmentFields({
       {/* Files */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-2">
-          <label className="text-xs font-medium text-neutral-500">Files</label>
-          <label className={`inline-flex items-center gap-1 text-xs font-medium cursor-pointer transition-colors ${uploading ? "text-neutral-300" : "text-neutral-500 hover:text-neutral-900"}`}>
+          <label className="text-xs font-medium text-ink-soft">Files</label>
+          <label className={`inline-flex items-center gap-1 text-xs font-medium cursor-pointer transition-colors ${uploading ? "text-ink-faint" : "text-ink-soft hover:text-ink"}`}>
             {uploading ? (
               <><Loader2 size={12} className="animate-spin" /> Uploading...</>
             ) : (
@@ -392,27 +393,27 @@ function AttachmentFields({
           </label>
         </div>
         {files.length === 0 && (
-          <p className="text-[11px] text-neutral-400">No files uploaded yet</p>
+          <p className="text-[11px] text-ink-faint">No files uploaded yet</p>
         )}
         <div className="space-y-2">
           {files.map((file, i) => (
             <div
               key={i}
-              className="flex items-center gap-2 border border-neutral-100 bg-neutral-50 px-3 py-2"
+              className="flex items-center gap-2 border border-rule-soft bg-neutral-50 px-3 py-2"
             >
-              <FileText size={14} className="text-neutral-400 shrink-0" />
+              <FileText size={14} className="text-ink-faint shrink-0" />
               <a
                 href={file.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-1 text-sm text-neutral-700 hover:text-neutral-900 truncate"
+                className="flex-1 text-sm text-ink hover:text-ink truncate"
               >
                 {file.name}
               </a>
               <button
                 type="button"
                 onClick={() => removeFile(i)}
-                className="text-neutral-300 hover:text-red-400 transition-colors shrink-0"
+                className="text-ink-faint hover:text-red-400 transition-colors shrink-0"
               >
                 <X size={14} />
               </button>

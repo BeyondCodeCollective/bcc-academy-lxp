@@ -277,7 +277,7 @@ export function AttendanceTab({ students, tracks, scopeLabel, embedded }: Attend
 
   if (tracks.length === 0) {
     return (
-      <div className="border border-rule bg-surface-elevated p-8 text-center">
+      <div className="panel p-8 text-center">
         <p className="text-sm text-ink-soft">
           No tracks configured for this view. Attendance lights up once a track
           is added.
@@ -473,7 +473,7 @@ function OverviewPanel({
     summaries.every((s) => s.expected === 0);
   if (nothingToShow) {
     return (
-      <div className="border border-rule bg-surface-elevated p-6 text-center">
+      <div className="panel p-6 text-center">
         <p className="text-sm text-ink-soft max-w-[40ch] mx-auto">
           No attendance to show yet. This will fill in once a session
           starts and someone marks attendance.
@@ -515,7 +515,7 @@ function OverviewPanel({
          "Attendance · {Track}" header already names this view, so the
          redundant inner h3 is gone too. */}
       {startedTracks.length > 0 && (
-        <section className="border border-rule bg-surface-elevated p-4 sm:p-5">
+        <section className="panel p-4 sm:p-5">
           <div className="space-y-5">
             {startedTracks.map((track) => (
               <TrackTrendRow
@@ -694,7 +694,7 @@ function MarkPanel({
 
   if (startedTracks.length === 0) {
     return (
-      <div className="border border-rule bg-surface-elevated p-8 text-center">
+      <div className="panel p-8 text-center">
         <p className="text-sm text-ink-soft">
           No tracks have started yet. Marking lights up on each track&apos;s start
           date.
@@ -832,7 +832,7 @@ function SessionTable({
   const sessionNumbers = Array.from({ length: sessionsPerWeek }, (_, i) => i + 1);
 
   return (
-    <div className="overflow-hidden border border-rule bg-surface-elevated">
+    <div className="overflow-hidden panel">
       {/* Header: per-session present count + "mark all" */}
       <div className="grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_repeat(var(--sessions),auto)_auto] gap-x-3 items-center px-4 py-2.5 bg-paper-tint-soft border-b border-rule text-[11px] font-medium uppercase tracking-[0.14em] text-ink-faint"
         style={{ ["--sessions" as string]: sessionsPerWeek }}>

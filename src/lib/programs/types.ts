@@ -213,7 +213,7 @@ export type SurveyConfig = {
 };
 
 export type ProgramConfig = {
-  /** Unique identifier: "atg" | "forge" */
+  /** Unique identifier: "catalyst" | "beyond-code-centers" | "bgc" */
   slug: string;
   /** Full program name */
   name: string;

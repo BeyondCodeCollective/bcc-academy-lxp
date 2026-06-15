@@ -1,6 +1,5 @@
 import type { ProgramConfig } from "./types";
 import { atgConfig } from "./atg";
-import { forgeConfig } from "./forge";
 import { forteConfig } from "./forte";
 import { additionalTracks } from "./additional-tracks";
 
@@ -19,8 +18,8 @@ export const catalystConfig: ProgramConfig = {
   colors: {
     primary: "#1a1a1a",
     primaryHover: "#2a2a2a",
-    accent: "#E54D2E",
-    tagline: "#E54D2E",
+    accent: "#1D59FF",
+    tagline: "#1D59FF",
   },
   defaultCohort: {
     name: "catalyst-cohort-1",
@@ -34,12 +33,9 @@ export const catalystConfig: ProgramConfig = {
       ...t,
       phase: t.slug === "mass" ? "foundation" as const : "core" as const,
     })),
-    // Core — skills training from Beyond Code Centers (formerly The Forge)
-    ...forgeConfig.tracks.map((t) => ({
-      ...t,
-      phase: (t.type === "single-event" ? "workshop" : "core") as string,
-    })),
-    // Core — Forte Bahamas AI literacy
+    // Beyond Code Centers (forge) is now its own program — its short/one-off
+    // courses no longer aggregate into Catalyst.
+    // Core — Forte Bahamas AI literacy (Foundations of AI & Digital Skills)
     ...forteConfig.tracks.map((t) => ({
       ...t,
       phase: "core" as const,

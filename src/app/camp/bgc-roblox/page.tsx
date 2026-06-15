@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { CampEmailForm } from "./camp-email-form";
+import { CampHeaderCta } from "./camp-header-cta";
 
 export const metadata: Metadata = {
   title: "BGC × BCC Academy — Roblox Virtual Bootcamp 2026",
@@ -58,13 +59,7 @@ export default function BGCRobloxCampPage() {
           >
             BCC Academy
           </span>
-          <a
-            href="/login"
-            className="text-[11px] font-medium uppercase tracking-[0.15em] transition-opacity hover:opacity-60"
-            style={{ color: "#1a1a1a44" }}
-          >
-            Sign in →
-          </a>
+          <CampHeaderCta />
         </header>
 
         {/* Main content */}

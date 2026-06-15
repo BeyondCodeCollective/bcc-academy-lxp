@@ -121,7 +121,7 @@ export function ResultsProfile({ result }: { result: ScoredOutput }) {
             {PATHWAY_CONTENT[result.pathway_orientation].learner}
           </p>
           {result.sustainability_note && (
-            <div className="rounded-xl bg-ink/5 px-4 py-4">
+            <div className="rounded-lg bg-ink/5 px-4 py-4">
               <p className="text-sm text-ink/70 leading-relaxed">{SUSTAINABILITY_NOTE}</p>
             </div>
           )}
@@ -146,7 +146,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-ink/10 overflow-hidden">
+    <div className="rounded-lg border border-ink/10 overflow-hidden">
       <button
         type="button"
         onClick={onToggle}

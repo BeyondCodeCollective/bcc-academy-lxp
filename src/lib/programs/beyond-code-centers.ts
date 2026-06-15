@@ -1,4 +1,42 @@
-import type { ProgramConfig, IntakeQuestion, IntakeGate } from "./types";
+import type { ProgramConfig, TrackConfig, IntakeQuestion, IntakeGate } from "./types";
+
+// "AI Literacy" — a 4-week sprint course. NOTE: it lives on the slug
+// `foundations-ai` (slug and display name are intentionally crossed; the live
+// 10-week "Foundations of AI & Digital Skills" / Upskill Bahamas course is on
+// slug `ai-literacy` under Catalyst — see track_overrides).
+const aiLiteracyTrack: TrackConfig = {
+  slug: "foundations-ai",
+  name: "AI Literacy",
+  shortName: "AI Literacy",
+  type: "weekly",
+  totalWeeks: 4,
+  sessionsPerWeek: 1,
+  startDate: "2026-06-01",
+  startDateTbd: true,
+  instructor: "TBD",
+  sessionTimes: ["Day & time TBD"],
+  lastSessionDayOffset: 6,
+  phase: "core",
+  submissionsEnabled: true,
+  reflectionsEnabled: true,
+  defaultReflectionPrompts: [
+    "What did you learn this sprint?",
+    "What was challenging?",
+    "How will you apply this going forward?",
+  ],
+  weekSummaries: [
+    { week: 1, topic: "Orientation & AI Research", icon: "🧭" },
+    { week: 2, topic: "Discovery & Design", icon: "🔎" },
+    { week: 3, topic: "Core System Build", icon: "🏗️" },
+    { week: 4, topic: "AI as Interpreter", icon: "🤖" },
+  ],
+  weeks: [
+    { week: 1, title: "Orientation, Framing, and AI as Research Partner", icon: "🧭", subtitle: "Sprint 0 — Setting the Foundation", description: "Orient to the course, set up your tools, and learn how to use AI as a research partner — not a replacement for thinking.", objectives: ["Navigate course tools and collaboration platforms", "Frame AI as a research partner", "Set personal learning goals", "Complete your first AI-assisted research task"], sessions: [{ title: "Sprint 0: Orientation & AI as Research Partner", time: "TBD" }] },
+    { week: 2, title: "Discovery & Design", icon: "🔎", subtitle: "Sprint 1 — Research and Plan", description: "Apply AI-assisted research to a real problem — discover needs, define scope, and design a solution.", objectives: ["Conduct AI-assisted user research", "Define a problem statement", "Design a solution architecture", "Create a project brief"], sessions: [{ title: "Sprint 1: Discovery & Design", time: "TBD" }] },
+    { week: 3, title: "Core System Build", icon: "🏗️", subtitle: "Sprint 2 — Foundations Not Features", description: "Build the core of your system — focus on solid foundations before adding features.", objectives: ["Set up a development environment", "Build core functionality first", "Use AI for code generation and debugging", "Document your build decisions"], sessions: [{ title: "Sprint 2: Core System Build", time: "TBD" }] },
+    { week: 4, title: "AI as Interpreter, Not Authority", icon: "🤖", subtitle: "Sprint 3 — Critical AI Thinking", description: "Learn to use AI output critically — interpret, verify, and improve rather than blindly accepting.", objectives: ["Evaluate AI-generated content for accuracy", "Identify hallucinations and bias in AI output", "Develop a personal framework for AI trust", "Present your capstone project"], sessions: [{ title: "Sprint 3: AI as Interpreter", time: "TBD" }] },
+  ],
+};
 
 // ─── Intake questions for single-event tracks ──────────────────────────────
 
@@ -100,12 +138,12 @@ const AUTOMATION_BOOTCAMP_GATE: IntakeGate = {
   questions: AUTOMATION_BOOTCAMP_INTAKE,
 };
 
-export const forgeConfig: ProgramConfig = {
-  slug: "forge",
+export const beyondCodeCentersConfig: ProgramConfig = {
+  slug: "beyond-code-centers",
   name: "Beyond Code Centers",
   tagline: "Where Innovation Meets Community",
   domain: "bccacademy.io",
-  logo: "/forge/logo.svg",
+  logo: "/beyond-code-centers/logo.svg",
   colors: {
     primary: "#0047AB",
     primaryHover: "#003A8C",
@@ -113,7 +151,7 @@ export const forgeConfig: ProgramConfig = {
     tagline: "#60A5FA",
   },
   defaultCohort: {
-    name: "forge-cohort-1",
+    name: "bcc-centers-cohort-1",
     displayName: "Beyond Code Centers — Cohort 1",
     startDate: "2026-04-17",
     totalWeeks: 8,
@@ -386,6 +424,7 @@ export const forgeConfig: ProgramConfig = {
         },
       ],
     },
+    aiLiteracyTrack,
   ],
   tutorConfig: {
     enabled: false,

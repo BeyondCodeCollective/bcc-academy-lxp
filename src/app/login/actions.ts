@@ -24,10 +24,17 @@ export async function sendLoginLink({
   email,
   origin,
   next,
+  joinTrack,
 }: {
   email: string;
   origin: string;
   next?: string;
+  /**
+   * Explicit track the user is signing up for, from the page they're on
+   * (e.g. the Roblox camp). Wins over allowlist inference so an email that's
+   * also on another program's allowlist isn't routed to that program.
+   */
+  joinTrack?: string;
 }): Promise<SendLoginLinkResult> {
   const trimmed = email.trim().toLowerCase();
   const redirectTo = `${origin}/auth/callback`;
@@ -35,21 +42,29 @@ export async function sendLoginLink({
 
   let callbackJoinSlug: string | null = null;
   let callbackTrackSlug: string | null = null;
+  let intendedProgramName: string | null = null;
 
-  const [{ data: allowlistHit }, { data: existingStudent }] = await Promise.all([
-    svc.from("allowed_signup_emails").select("track_slug").eq("email", trimmed).maybeSingle(),
+  const [{ data: allowRows }, { data: existingStudent }] = await Promise.all([
+    svc.from("allowed_signup_emails").select("track_slug").eq("email", trimmed),
     svc.from("students").select("role").eq("email", trimmed).maybeSingle(),
   ]);
 
+  const allowedTracks = (allowRows ?? []).map((r) => r.track_slug as string);
   const hasElevatedRole = ["admin", "super_admin", "instructor"].includes(
     existingStudent?.role ?? ""
   );
+  const isPrivileged =
+    isPrivilegedEmail(trimmed) || isStaffEmail(trimmed) || hasElevatedRole;
 
-  const isAdmitted =
-    !!allowlistHit ||
-    isPrivilegedEmail(trimmed) ||
-    isStaffEmail(trimmed) ||
-    hasElevatedRole;
+  // Admission gate. When signing up for a SPECIFIC track (e.g. the Roblox camp
+  // passes joinTrack), the email must be on THAT track's allowlist — being on
+  // some other program's list (e.g. Upskill Bahamas) does NOT grant access to
+  // this camp. Generic logins (no joinTrack) admit any allowlisted email so a
+  // student who lost their link can still get in. Admins/staff always pass.
+  const onAllowlist = joinTrack
+    ? allowedTracks.includes(joinTrack)
+    : allowedTracks.length > 0;
+  const isAdmitted = onAllowlist || isPrivileged;
 
   if (!isAdmitted) {
     return {
@@ -58,17 +73,23 @@ export async function sendLoginLink({
     };
   }
 
-  // Resolve the user's home program and track from the allowlist so we can
-  // bake ?join=<slug>&track=<slug> directly into the magic link URL.
-  // Encoding it in the URL (not just a cookie) means the params survive when
-  // the user opens the link in a different browser than the one they submitted
-  // the form in — which happens constantly on mobile (Gmail app → Safari, etc).
-  if (allowlistHit?.track_slug) {
+  // Resolve the home program + track to bake ?join=<slug>&track=<slug> into the
+  // magic link URL. Encoding it in the URL (not just a cookie) means the params
+  // survive when the user opens the link in a different browser than the one
+  // they submitted the form in — common on mobile (Gmail app → Safari, etc).
+  //
+  // Explicit intent (joinTrack, from the page they signed up on) wins over
+  // allowlist inference. Otherwise an email that's also on another program's
+  // allowlist (e.g. Upskill Bahamas) gets routed there instead of the program
+  // they're actually signing up for (e.g. the Roblox camp).
+  const intendedTrack = joinTrack ?? allowedTracks[0];
+  if (intendedTrack) {
     const { getHomeProgramForTrack } = await import("@/lib/programs");
-    const homeProgram = getHomeProgramForTrack(allowlistHit.track_slug as string);
+    const homeProgram = getHomeProgramForTrack(intendedTrack);
     if (homeProgram) {
       callbackJoinSlug = homeProgram.slug;
-      callbackTrackSlug = allowlistHit.track_slug as string;
+      callbackTrackSlug = intendedTrack;
+      intendedProgramName = homeProgram.name;
     }
   }
 
@@ -77,6 +98,9 @@ export async function sendLoginLink({
   if (callbackJoinSlug) callbackBase.searchParams.set("join", callbackJoinSlug);
   if (callbackTrackSlug) callbackBase.searchParams.set("track", callbackTrackSlug);
   if (next) callbackBase.searchParams.set("next", next);
+  // Bake the intended email so the callback can refuse to fall back to a
+  // different account already signed in on this browser.
+  callbackBase.searchParams.set("email", trimmed);
   const richRedirectTo = callbackBase.toString();
 
   const tryResend =
@@ -100,7 +124,7 @@ export async function sendLoginLink({
         await sendSignInEmail({
           to: trimmed,
           magicLink: callbackUrl.toString(),
-          programName: program.name,
+          programName: intendedProgramName ?? program.name,
         });
         console.log("[login] sign-in email sent via Resend", { email: trimmed });
         return { ok: true };

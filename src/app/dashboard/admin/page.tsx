@@ -101,7 +101,7 @@ export default async function AdminPage({
     // Cached across requests with a short TTL: program UUIDs never change,
     // so there is zero staleness risk.
     const aggregatedSlugs = program.slug === "catalyst"
-      ? ["catalyst", "atg", "forge", "forte"]
+      ? ["catalyst", "atg", "beyond-code-centers", "forte"]
       : [program.slug];
     const programRows = await getCachedProgramIds(aggregatedSlugs);
     const programIds = (programRows ?? []).map((p) => p.id as string);

@@ -1,6 +1,8 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { CatalogCard } from "@/components/catalog-card";
+import { PageHeader, Section } from "@/components/page-header";
 import { resolveCurrentUser } from "@/lib/current-user";
 import {
   getAllWorkshops,
@@ -8,7 +10,6 @@ import {
   type Workshop,
 } from "@/lib/workshops";
 import { createServiceClient } from "@/lib/supabase/server";
-import { MapPin, GlobeHemisphereWest, Video, User } from "@phosphor-icons/react/dist/ssr";
 
 export const revalidate = 3600;
 
@@ -29,21 +30,17 @@ export default async function WorkshopsIndexPage() {
 
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-5xl px-4 sm:px-5 py-8 space-y-10">
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
-          Workshops
-        </h1>
-        <p className="mt-1 text-sm text-neutral-500">
-          Virtual and in-person workshops we&rsquo;ve hosted or have coming up.
-        </p>
-      </header>
+      <PageHeader
+        title="Workshops"
+        subtitle="Virtual and in-person workshops we’ve hosted or have coming up."
+      />
 
       {upcoming.length > 0 && (
-        <Section label="Upcoming" workshops={upcoming} />
+        <WorkshopSection label="Upcoming" workshops={upcoming} />
       )}
 
       {past.length > 0 && (
-        <Section label="Past" workshops={past} />
+        <WorkshopSection label="Past" workshops={past} />
       )}
 
       {luncheons && luncheons.length > 0 && (
@@ -51,7 +48,7 @@ export default async function WorkshopsIndexPage() {
       )}
 
       {all.length === 0 && (!luncheons || luncheons.length === 0) && (
-        <p className="border border-rule bg-surface-elevated px-5 py-8 text-center text-sm text-neutral-500">
+        <p className="panel px-5 py-8 text-center text-sm text-ink-soft">
           No workshops yet.
         </p>
       )}
@@ -68,73 +65,36 @@ type LuncheonRow = {
   recording_url: string;
 };
 
-const LUNCHEON_TONE = "#E54D2E";
+const LUNCHEON_TONE = "#1D59FF";
 
 function LuncheonSection({ luncheons }: { luncheons: LuncheonRow[] }) {
   return (
-    <section className="space-y-4">
-      <div className="flex items-baseline justify-between">
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
-          Luncheons
-        </h2>
-        <span className="text-xs tabular-nums text-neutral-400">
-          {luncheons.length}
-        </span>
-      </div>
+    <Section label="Luncheons" count={luncheons.length}>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {luncheons.map((r) => {
           const date = new Date(r.recorded_at).toLocaleDateString("en-US", {
-            month: "long",
+            month: "short",
             day: "numeric",
             year: "numeric",
           });
           return (
-            <Link
+            <CatalogCard
               key={r.id}
               href={`/dashboard/lunch-learn/${r.id}`}
-              className="group flex h-full flex-col overflow-hidden border border-rule bg-surface-elevated transition-colors hover:border-neutral-300"
-            >
-              <div
-                aria-hidden
-                className="relative flex aspect-video w-full items-center justify-center overflow-hidden"
-                style={{ backgroundColor: `${LUNCHEON_TONE}1A` }}
-              >
-                <Video size={56} weight="light" color={LUNCHEON_TONE} />
-                <div className="absolute top-3 right-3">
-                  <span
-                    className="inline-flex items-center rounded-full bg-white/95 px-2 py-0.5 text-[10px] font-semibold capitalize backdrop-blur"
-                    style={{ color: LUNCHEON_TONE }}
-                  >
-                    Recording
-                  </span>
-                </div>
-              </div>
-              <div className="flex flex-1 flex-col p-5">
-                <p className="text-xs font-medium uppercase tracking-[0.14em] text-neutral-400">
-                  {date}
-                </p>
-                <h3 className="mt-2 text-[17px] font-semibold leading-snug tracking-[-0.01em] text-neutral-900 line-clamp-2">
-                  {r.title}
-                </h3>
-                <p className="mt-2 text-[13px] leading-[1.55] text-neutral-600 line-clamp-3">
-                  {r.description}
-                </p>
-                <div className="mt-auto flex items-center gap-3 pt-4 text-[12px] text-neutral-500">
-                  <span className="inline-flex items-center gap-1">
-                    <User size={12} weight="bold" aria-hidden />
-                    {r.presenter}
-                  </span>
-                </div>
-              </div>
-            </Link>
+              tone={LUNCHEON_TONE}
+              eyebrow="Recording"
+              title={r.title}
+              byline={r.presenter ? `with ${r.presenter}` : undefined}
+              trailing={date}
+            />
           );
         })}
       </div>
-    </section>
+    </Section>
   );
 }
 
-function Section({
+function WorkshopSection({
   label,
   workshops,
 }: {
@@ -142,29 +102,18 @@ function Section({
   workshops: Workshop[];
 }) {
   return (
-    <section className="space-y-4">
-      <div className="flex items-baseline justify-between">
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
-          {label}
-        </h2>
-        <span className="text-xs tabular-nums text-neutral-400">
-          {workshops.length}
-        </span>
-      </div>
+    <Section label={label} count={workshops.length}>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {workshops.map((w) => (
-          <WorkshopCard key={w.slug} workshop={w} />
+          <WorkshopRow key={w.slug} workshop={w} />
         ))}
       </div>
-    </section>
+    </Section>
   );
 }
 
-function WorkshopCard({ workshop }: { workshop: Workshop }) {
-  const Icon = workshop.icon;
+function WorkshopRow({ workshop }: { workshop: Workshop }) {
   const dateLabel = formatWorkshopDateRange(workshop);
-  const ModalityIcon =
-    workshop.modality === "virtual" ? GlobeHemisphereWest : MapPin;
   const modalityLabel =
     workshop.modality === "virtual"
       ? "Virtual"
@@ -173,48 +122,14 @@ function WorkshopCard({ workshop }: { workshop: Workshop }) {
         : "In-person";
 
   return (
-    <Link
+    <CatalogCard
       href={`/dashboard/workshops/${workshop.slug}`}
-      className="group flex h-full flex-col overflow-hidden border border-rule bg-surface-elevated transition-colors hover:border-neutral-300"
-    >
-      <div
-        aria-hidden
-        className="relative flex aspect-video w-full items-center justify-center overflow-hidden"
-        style={{ backgroundColor: `${workshop.tone}1A` }}
-      >
-        <Icon size={56} weight="light" color={workshop.tone} />
-        <div className="absolute top-3 right-3">
-          <span
-            className="inline-flex items-center rounded-full bg-white/95 px-2 py-0.5 text-[10px] font-semibold capitalize backdrop-blur"
-            style={{ color: workshop.tone }}
-          >
-            {workshop.status}
-          </span>
-        </div>
-      </div>
-
-      <div className="flex flex-1 flex-col p-5">
-        <p className="text-xs font-medium uppercase tracking-[0.14em] text-neutral-400">
-          {dateLabel}
-        </p>
-        <h3 className="mt-2 text-[17px] font-semibold leading-snug tracking-[-0.01em] text-neutral-900 line-clamp-2">
-          {workshop.shortName ?? workshop.title}
-        </h3>
-        <p className="mt-2 text-[13px] leading-[1.55] text-neutral-600 line-clamp-3">
-          {workshop.tagline}
-        </p>
-        <div className="mt-auto flex items-center gap-3 pt-4 text-[12px] text-neutral-500">
-          <span className="inline-flex items-center gap-1">
-            <ModalityIcon size={12} weight="bold" aria-hidden />
-            {modalityLabel}
-          </span>
-          {workshop.alumniCount !== undefined && (
-            <span className="tabular-nums">
-              {workshop.alumniCount} alumni
-            </span>
-          )}
-        </div>
-      </div>
-    </Link>
+      tone={workshop.tone}
+      eyebrow={`${modalityLabel}${workshop.alumniCount !== undefined ? ` · ${workshop.alumniCount} alumni` : ""}`}
+      title={workshop.shortName ?? workshop.title}
+      byline={workshop.tagline}
+      status={workshop.status}
+      trailing={dateLabel}
+    />
   );
 }

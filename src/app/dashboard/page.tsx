@@ -16,7 +16,10 @@ import { resolveCurrentUser } from "@/lib/current-user";
 import { getEnrolledTracks } from "@/lib/enrollment";
 import { getHomeProgramForTrack } from "@/lib/programs";
 import { WeekIcon } from "@/components/week-icon";
-import { BCC_INTAKE_SURVEY_ID, BCC_INTAKE_EXEMPT_PROGRAMS } from "@/lib/surveys/platform";
+import { DashboardBento } from "@/components/dashboard-bento";
+import { PageHeader } from "@/components/page-header";
+import { BCC_INTAKE_SURVEY_ID } from "@/lib/surveys/platform";
+import { isSurveyEnabledForLearner } from "@/lib/surveys/features";
 import { isStaffEmail } from "@/lib/auth/admins";
 import { completePendingSetup } from "@/lib/auth/deferred-setup";
 import { isAssessmentEnabledForLearner } from "@/lib/assessment/features";
@@ -44,6 +47,14 @@ export default async function DashboardPage({
   if (previewingLunchLearns || (!isAdmin && isStaffEmail(email) && isUmbrellaProgram)) {
     const firstName = ctx?.student?.first_name || "";
     return <LunchLearnHub isAdmin={false} firstName={firstName} />;
+  }
+
+  // Admins land on the admin panel, not the learner home — Home IS the admin
+  // dashboard for staff. The learner "Your sessions" home is for enrolled
+  // learners; admins see it by switching to student/preview mode (which sets
+  // a preview slug, so this redirect doesn't fire).
+  if (isAdmin && !previewSlugTop) {
+    redirect("/dashboard/admin");
   }
 
   // Defense-in-depth: programs with no tracks (e.g. Catalyst marketing apex)
@@ -192,8 +203,12 @@ async function DashboardContent({
         : enrolledTracks.map((t) => t.slug);
 
       if (!previewSlug) {
-        otherProgramCourses = ((allTrackRowsRes.data ?? []) as { track_slug: string }[])
-          .map((r) => r.track_slug)
+        // Dedupe by track slug — defensive against any stray duplicate
+        // enrollment rows so a course never renders twice.
+        const otherSlugs = Array.from(
+          new Set((allTrackRowsRes.data ?? []).map((r) => r.track_slug as string)),
+        );
+        otherProgramCourses = otherSlugs
           .filter((s) => !program.tracks.some((t) => t.slug === s))
           .map((s) => {
             const home = getHomeProgramForTrack(s);
@@ -209,9 +224,13 @@ async function DashboardContent({
         );
         const isStaff = isStaffEmail(currentUser.email ?? null);
 
+        // Intake survey is OPT-IN — only fires when toggled on for this program
+        // or one of the learner's tracks (admin Features page), same as the
+        // pathway assessment. Off by default.
+        const surveyEnabled = await isSurveyEnabledForLearner(program.slug, enrolledTrackSlugs);
         if (
           !isStaff &&
-          !BCC_INTAKE_EXEMPT_PROGRAMS.includes(program.slug) &&
+          surveyEnabled &&
           !completedTypes.has(BCC_INTAKE_SURVEY_ID)
         ) {
           redirect(`/dashboard/survey/${BCC_INTAKE_SURVEY_ID}`);
@@ -283,21 +302,26 @@ async function DashboardContent({
     : program.tracks.filter((t) => enrolledTrackSlugs.includes(t.slug));
   const notEnrolled = !isAdmin && visibleTracks.length === 0;
 
-  // Students enrolled in exactly one track skip the track-picker and land
-  // directly on that track — one less click. Held back while an enabled
-  // pathway assessment is incomplete (its prompt renders here) or when the
-  // student also has courses in other programs (the cross-program list
-  // renders here and would otherwise never be seen). Announcements also
-  // render on the track overview page, so skipping doesn't hide them.
-  // Admin preview mode keeps the dashboard reachable for inspection.
+  // One course → never show the bare /dashboard shell; go to that track.
+  // WHERE on the track depends on how they arrived:
+  //   • Fresh login from an email link (?setup=1) → deep-link straight to the
+  //     live week (the session/Zoom). Fewest clicks to content. Returning
+  //     mid-cohort students hit the current calendar week; not-yet-started /
+  //     self-paced → Week 1.
+  //   • Any other visit — clicking "Home", admin preview → the course
+  //     overview (the main course page).
+  // Held back while an enabled pathway assessment is incomplete (its prompt
+  // renders here) or when the student also has courses in other programs (the
+  // cross-program list renders here and would otherwise never be seen).
+  // Announcements also render on the track overview page, so skipping doesn't
+  // hide them.
   if (
     !isAdmin &&
-    !previewSlugOuter &&
     visibleTracks.length === 1 &&
     otherProgramCourses.length === 0 &&
     (!assessmentEnabled || assessmentCompleted)
   ) {
-    redirect(`/dashboard/track/${visibleTracks[0].slug}`);
+    redirect(singleCourseDestination(visibleTracks[0], setup === "1"));
   }
 
   const now = new Date();
@@ -311,27 +335,18 @@ async function DashboardContent({
     return { track, started, currentWeek };
   });
 
-  const weeklyTracks = trackStates.filter((t) => t.track.type === "weekly");
-  const longestTrack = weeklyTracks.reduce<typeof trackStates[0] | null>(
-    (best, t) => (!best || t.track.totalWeeks > best.track.totalWeeks ? t : best),
-    null
-  );
-  const completedWeeks = longestTrack ? Math.max(0, longestTrack.currentWeek - 1) : 0;
-  const totalProgramWeeks = longestTrack?.track.totalWeeks ?? 8;
-  const pct = Math.round((completedWeeks / totalProgramWeeks) * 100);
-
   if (noCohort) {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-neutral-900 tracking-tight">
+          <h1 className="text-3xl font-bold text-ink tracking-tight">
             Welcome, {firstName}
           </h1>
-          <p className="mt-1 text-sm text-neutral-700">
+          <p className="mt-1 text-sm text-ink">
             You&apos;re signed in &mdash; your cohort hasn&apos;t started yet.
           </p>
         </div>
-        <div className="border border-rule bg-surface-elevated p-6 sm:p-8 text-center">
+        <div className="panel p-6 sm:p-8 text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center bg-muted-bg text-2xl">
             <WeekIcon
               icon={program.tracks[0]?.weekSummaries[0]?.icon ?? "📚"}
@@ -339,10 +354,10 @@ async function DashboardContent({
               size={26}
             />
           </div>
-          <h2 className="mt-4 text-lg font-semibold text-neutral-900">
+          <h2 className="mt-4 text-lg font-semibold text-ink">
             Hang tight!
           </h2>
-          <p className="mt-2 text-sm text-neutral-500 max-w-sm mx-auto">
+          <p className="mt-2 text-sm text-ink-soft max-w-sm mx-auto">
             Your program cohort is being set up. You&apos;ll see your full dashboard here once it&apos;s ready.
           </p>
         </div>
@@ -356,13 +371,13 @@ async function DashboardContent({
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-neutral-900 tracking-tight">
+          <h1 className="text-3xl font-bold text-ink tracking-tight">
             Welcome, {firstName}
           </h1>
-          <p className="mt-1 text-sm text-neutral-500">{program.name}</p>
+          <p className="mt-1 text-sm text-ink-soft">{program.name}</p>
         </div>
 
-        <div className="border border-rule bg-surface-elevated p-6 sm:p-8 text-center">
+        <div className="panel p-6 sm:p-8 text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center bg-muted-bg text-2xl">
             <WeekIcon
               icon={firstTrack?.weekSummaries[0]?.icon ?? "🎓"}
@@ -370,17 +385,17 @@ async function DashboardContent({
               size={26}
             />
           </div>
-          <h2 className="mt-4 text-lg font-semibold text-neutral-900">
+          <h2 className="mt-4 text-lg font-semibold text-ink">
             You&apos;re in!
           </h2>
-          <p className="mx-auto mt-2 max-w-md text-sm text-neutral-500">
+          <p className="mx-auto mt-2 max-w-md text-sm text-ink-soft">
             Your track enrollment is being finalized. You&apos;ll see your full dashboard here shortly.
           </p>
         </div>
 
         {firstTrack && (
-          <div className="border border-rule bg-surface-elevated p-5">
-            <p className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-neutral-400">
+          <div className="panel p-5">
+            <p className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
               What you&apos;ll cover
             </p>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5">
@@ -392,10 +407,10 @@ async function DashboardContent({
                   <span className="text-lg">
                     <WeekIcon icon={ws.icon} emoji={firstTrack.emojiIcons} size={20} />
                   </span>
-                  <span className="mt-1 text-[11px] font-medium text-neutral-900">
+                  <span className="mt-1 text-[11px] font-medium text-ink">
                     {ws.topic}
                   </span>
-                  <span className="text-[10px] text-neutral-400">
+                  <span className="text-[10px] text-ink-faint">
                     Week {ws.week}
                   </span>
                 </div>
@@ -406,6 +421,32 @@ async function DashboardContent({
       </div>
     );
   }
+
+  // Bento tiles for the learner home: weekly tracks ordered started-first
+  // then by length, the active one becomes the hero.
+  const bentoTracks = trackStates
+    .filter(({ track }) => track.type !== "single-event")
+    .sort((a, b) =>
+      a.started === b.started ? b.track.totalWeeks - a.track.totalWeeks : a.started ? -1 : 1,
+    )
+    .map(({ track, started, currentWeek }) => ({
+      slug: track.slug,
+      name: track.name,
+      instructor: track.instructor,
+      totalWeeks: track.totalWeeks,
+      currentWeek: currentWeek || 1,
+      started,
+      currentTopic:
+        track.weekSummaries[(currentWeek || 1) - 1]?.topic ??
+        track.weekSummaries[0]?.topic ??
+        "",
+    }));
+  const bentoOtherCourses = otherProgramCourses.map((c) => ({
+    trackSlug: c.track.slug,
+    trackName: c.track.name,
+    instructor: c.track.instructor,
+    programName: c.programName,
+  }));
 
   return (
     <div className="space-y-8 sm:space-y-10">
@@ -423,20 +464,20 @@ async function DashboardContent({
       )}
 
       <div>
-        <h1 className="text-3xl font-bold text-neutral-900 tracking-tight">
-          Welcome back, {firstName}
-        </h1>
-        {!isAdmin && !previewSlugOuter && (
-          <p className="mt-1 text-sm text-neutral-500">
-            {visibleTracks.length > 0 || otherProgramCourses.length > 0
-              ? [...visibleTracks, ...otherProgramCourses.map((c) => c.track)]
-                  .map((t) => t.name)
-                  .join(" · ")
-              : cohortName}
-          </p>
-        )}
+        <PageHeader
+          title={`Welcome back, ${firstName}`}
+          subtitle={
+            !isAdmin && !previewSlugOuter
+              ? visibleTracks.length > 0 || otherProgramCourses.length > 0
+                ? [...visibleTracks, ...otherProgramCourses.map((c) => c.track)]
+                    .map((t) => t.name)
+                    .join(" · ")
+                : cohortName
+              : undefined
+          }
+        />
         {previewSlugOuter && (
-          <p className="mt-1 text-sm text-[#E54D2E]">
+          <p className="mt-1.5 text-sm font-medium text-primary">
             Previewing as student enrolled in{" "}
             {program.tracks.find((t) => t.slug === previewSlugOuter)?.name}
           </p>
@@ -462,33 +503,18 @@ async function DashboardContent({
       ))}
 
       {!isAdmin && assessmentEnabled && !assessmentCompleted && (
-        <div className="rounded-2xl bg-accent/10 border border-accent/20 px-5 py-4 flex items-center justify-between gap-4">
+        <div className="rounded-lg bg-accent/10 border border-accent/20 px-5 py-4 flex items-center justify-between gap-4">
           <div>
             <p className="font-semibold text-ink text-sm">Complete your pathway profile</p>
             <p className="text-xs text-ink/60 mt-0.5">Takes about 10–15 minutes. Helps us give you better support.</p>
           </div>
           <a
             href="/dashboard/assessment"
-            className="flex-shrink-0 rounded-xl bg-accent text-white text-sm font-semibold px-4 py-2"
+            className="flex-shrink-0 rounded-lg bg-accent text-white text-sm font-semibold px-4 py-2"
           >
             Start
           </a>
         </div>
-      )}
-
-      {!isAdmin && (
-        <section aria-label="Program progress">
-          <div className="flex items-baseline justify-between mb-2">
-            <p className="text-sm font-semibold text-ink">Progress</p>
-            <span className="text-sm font-semibold tabular-nums text-ink-soft">{pct}%</span>
-          </div>
-          <div className="h-1.5 w-full overflow-hidden bg-rule">
-            <div
-              className="h-full bg-primary transition-all"
-              style={{ width: `${pct}%` }}
-            />
-          </div>
-        </section>
       )}
 
       {program.welcomeVideo && (
@@ -499,27 +525,38 @@ async function DashboardContent({
         />
       )}
 
-      {/* Weekly track cards — typography-led with per-track color band.
-         Single-event tracks keep their inline row treatment since they
-         don't have weeks to navigate into. */}
-      {trackStates.filter(({ track }) => track.type !== "single-event").length > 0 && (
-        <TrackGrid
-          tracks={trackStates
-            .filter(({ track }) => track.type !== "single-event")
-            .map(({ track, started }) => ({
-              track: {
-                slug: track.slug,
-                name: track.name,
-                instructor: track.instructor,
-                totalWeeks: track.totalWeeks,
-                sessionsPerWeek: track.sessionsPerWeek,
-                weekOneTopic: track.weekSummaries[0]?.topic ?? "",
-                phase: track.phase,
-              },
-              started,
-            }))}
+      {/* Learner home: bento composition (hero course + progress + quick
+         tiles) for everyone, admins included — your personal /dashboard is
+         a learner surface. The filterable management grid lives in the admin
+         panel. Fallback to the grid only when there are no weekly tracks to
+         build a bento from (e.g. an admin not enrolled in any course). */}
+      {bentoTracks.length > 0 ? (
+        <DashboardBento
+          tracks={bentoTracks}
+          otherCourses={bentoOtherCourses}
+          programName={program.name}
         />
+      ) : (
+        trackStates.filter(({ track }) => track.type !== "single-event").length > 0 && (
+          <TrackGrid
+            tracks={trackStates
+              .filter(({ track }) => track.type !== "single-event")
+              .map(({ track, started }) => ({
+                track: {
+                  slug: track.slug,
+                  name: track.name,
+                  instructor: track.instructor,
+                  totalWeeks: track.totalWeeks,
+                  sessionsPerWeek: track.sessionsPerWeek,
+                  weekOneTopic: track.weekSummaries[0]?.topic ?? "",
+                  phase: track.phase,
+                },
+                started,
+              }))}
+          />
+        )
       )}
+
       {/* Upcoming single-event tracks only. Past events read as orphans on
          the dashboard — they have no week to navigate into and no ongoing
          action — so hide them once the event date has passed. They remain
@@ -529,46 +566,33 @@ async function DashboardContent({
         .map(({ track }) => (
           <SingleEventCard key={track.slug} track={track} />
         ))}
-
-      {/* Courses from other programs — opening one switches the session's
-         program context via /dashboard/switch-program. Plain <a> (not
-         <Link>) because the switch route sets cookies; prefetching it
-         would flip the program as a side effect. */}
-      {otherProgramCourses.length > 0 && (
-        <section className="space-y-3" aria-label="Courses from your other programs">
-          <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
-            From your other programs
-          </h2>
-          <div className="divide-y divide-rule border border-rule bg-surface-elevated">
-            {otherProgramCourses.map((c) => (
-              <a
-                key={c.track.slug}
-                href={`/dashboard/switch-program?track=${encodeURIComponent(c.track.slug)}`}
-                className="group flex items-center justify-between gap-3 px-4 py-3.5 transition-colors hover:bg-neutral-50"
-              >
-                <div className="min-w-0">
-                  <p className="mb-0.5 text-xs font-medium uppercase tracking-[0.14em] text-neutral-400">
-                    {c.programName}
-                  </p>
-                  <p className="truncate text-sm font-semibold text-neutral-900">
-                    {c.track.name}
-                  </p>
-                  <p className="mt-0.5 text-xs text-neutral-500">
-                    with {c.track.instructor}
-                  </p>
-                </div>
-                <span className="shrink-0 text-xs font-medium text-neutral-400 transition-transform group-hover:translate-x-0.5">
-                  Open &rarr;
-                </span>
-              </a>
-            ))}
-          </div>
-        </section>
-      )}
     </div>
   );
 }
 
+
+/**
+ * Where a single-course learner lands. ONE place for the week-vs-overview
+ * decision so the callback / dashboard / layout can't disagree.
+ *   • fromLogin (fresh email magic-link, ?setup=1) → the live week (the
+ *     session/Zoom) — fewest clicks to content. Returning mid-cohort students
+ *     hit the current calendar week; not-yet-started / self-paced → Week 1.
+ *   • any other visit (Home click, admin preview) → the course overview.
+ * Clamped to an existing week so a config mismatch can't loop /dashboard.
+ */
+function singleCourseDestination(track: TrackConfig, fromLogin: boolean): string {
+  if (fromLogin) {
+    const started = !track.startDateTbd && new Date() >= new Date(track.startDate);
+    const week =
+      started && !track.selfPaced
+        ? computeCurrentWeek(track.startDate, track.totalWeeks, track.lastSessionDayOffset)
+        : 1;
+    if (track.weeks.some((w) => w.week === week)) {
+      return `/dashboard/track/${track.slug}/${week}`;
+    }
+  }
+  return `/dashboard/track/${track.slug}`;
+}
 
 function SurveyCard({
   survey,
@@ -603,11 +627,11 @@ function SingleEventCard({ track }: { track: TrackConfig }) {
       className="group block"
     >
       <div className="flex items-center gap-2.5 min-w-0">
-        <h2 className="text-[15px] font-semibold text-neutral-900 leading-snug truncate">
+        <h2 className="text-[15px] font-semibold text-ink leading-snug truncate">
           {track.name}
         </h2>
       </div>
-      <p className="mt-0.5 text-[12px] text-neutral-400">
+      <p className="mt-0.5 text-[12px] text-ink-faint">
         with {track.instructor}
       </p>
     </Link>

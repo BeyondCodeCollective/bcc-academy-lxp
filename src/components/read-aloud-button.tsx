@@ -156,10 +156,10 @@ export function ReadAloudButton({
 
   if (!supported) return null;
 
-  const darkCls = "text-neutral-300 hover:bg-white/10 hover:text-white";
-  const lightCls = "border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50";
+  const darkCls = "text-ink-faint hover:bg-white/10 hover:text-white";
+  const lightCls = "border border-rule bg-white text-ink hover:bg-paper-tint-soft";
   const activeDark = speaking ? "text-white" : "";
-  const activeLight = speaking ? "bg-neutral-100" : "";
+  const activeLight = speaking ? "bg-paper-tint" : "";
 
   return (
     <button

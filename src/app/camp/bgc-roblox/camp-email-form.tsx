@@ -1,12 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { sendLoginLink } from "@/app/login/actions";
+import { createClient } from "@/lib/supabase/client";
 
 export function CampEmailForm() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "sent" | "error">("idle");
   const [error, setError] = useState("");
+  // Shared-device guard: if someone is already signed in on this browser
+  // (common at camps), surface it so a different family doesn't accidentally
+  // sign up / land inside the previous person's account.
+  const [sessionEmail, setSessionEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    createClient()
+      .auth.getUser()
+      .then(({ data }) => setSessionEmail(data.user?.email ?? null))
+      .catch(() => setSessionEmail(null));
+  }, []);
+
+  async function handleSwitchAccount() {
+    await createClient().auth.signOut();
+    setSessionEmail(null);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -17,6 +34,7 @@ export function CampEmailForm() {
     const result = await sendLoginLink({
       email: email.trim(),
       origin: window.location.origin,
+      joinTrack: "roblox-virtual-bootcamp",
       next: "/dashboard/track/roblox-virtual-bootcamp/1",
     });
 
@@ -29,6 +47,42 @@ export function CampEmailForm() {
         : result.error;
       setError(msg);
     }
+  }
+
+  // Already signed in (often a shared device): skip the signup form entirely —
+  // one clear action to continue, plus a way to switch accounts.
+  if (sessionEmail) {
+    return (
+      <div className="border-l-4 p-4" style={{ borderColor: "#7C3AED", background: "#7C3AED10" }}>
+        <p className="text-sm" style={{ color: "#1a1a1a" }}>
+          Signed in as <strong>{sessionEmail}</strong>
+        </p>
+        <div className="mt-3 flex flex-wrap items-center gap-4">
+          <a
+            href="/dashboard"
+            className="text-sm font-semibold"
+            style={{
+              padding: "11px 20px",
+              background: "#7C3AED",
+              color: "#fff",
+              minHeight: "44px",
+              display: "inline-flex",
+              alignItems: "center",
+            }}
+          >
+            Go to your portal →
+          </a>
+          <button
+            type="button"
+            onClick={handleSwitchAccount}
+            className="text-xs font-medium underline"
+            style={{ color: "#1a1a1a80", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+          >
+            Not you? Sign out &amp; use a different email
+          </button>
+        </div>
+      </div>
+    );
   }
 
   if (status === "sent") {

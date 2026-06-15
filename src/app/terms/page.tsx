@@ -16,7 +16,7 @@ export default function TermsPage() {
   return (
     <main className="min-h-screen bg-neutral-50">
       <div className="mx-auto w-full max-w-lg px-5 py-12">
-        <p className="text-xs font-medium uppercase tracking-wide text-[#E54D2E]">
+        <p className="text-xs font-medium uppercase tracking-wide text-[#1D59FF]">
           Beyond Code Collective
         </p>
         <h1 className="mt-1 text-2xl font-bold text-neutral-900">Terms of Use</h1>

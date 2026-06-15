@@ -5,6 +5,7 @@ import { Check, Loader2 } from "lucide-react";
 import { saveSurveyResponse } from "@/app/dashboard/actions";
 import { useRouter } from "next/navigation";
 import type { IntakeQuestion } from "@/lib/programs/types";
+import { buttonClass } from "@/components/ui";
 
 interface Props {
   trackSlug: string;
@@ -58,10 +59,10 @@ export function IntakeForm({
   return (
     <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-neutral-900">
+        <h1 className="text-2xl font-bold text-ink">
           Quick Registration
         </h1>
-        <p className="mt-1 text-sm text-neutral-500">
+        <p className="mt-1 text-sm text-ink-soft">
           Answer a few questions before accessing <strong>{trackName}</strong>{" "}
           content. This helps us understand who we&apos;re reaching.
         </p>
@@ -82,7 +83,7 @@ export function IntakeForm({
         <button
           type="submit"
           disabled={!isValid() || submitting}
-          className="w-full inline-flex items-center justify-center gap-2 bg-neutral-900 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed"
+          className={`${buttonClass("dark", "md")} w-full`}
         >
           {submitting ? (
             <>
@@ -151,7 +152,7 @@ function RadioField({
 }) {
   return (
     <fieldset>
-      <legend className="text-sm font-medium text-neutral-900 mb-2">
+      <legend className="text-sm font-medium text-ink mb-2">
         {question.label}
         {question.required && <span className="text-red-500 ml-0.5">*</span>}
       </legend>
@@ -161,8 +162,8 @@ function RadioField({
             key={opt}
             className={`flex items-center gap-2.5 border px-3.5 py-2.5 cursor-pointer transition-colors ${
               value === opt
-                ? "border-neutral-900 bg-neutral-900/5"
-                : "border-neutral-200 bg-white hover:border-neutral-300"
+                ? "border-ink bg-ink/5"
+                : "border-rule bg-white hover:border-ink-faint"
             }`}
           >
             <input
@@ -171,9 +172,9 @@ function RadioField({
               value={opt}
               checked={value === opt}
               onChange={() => onChange(opt)}
-              className="h-3.5 w-3.5 border-neutral-300 text-neutral-900 focus:ring-neutral-900"
+              className="h-3.5 w-3.5 border-rule text-ink focus:ring-ink-faint"
             />
-            <span className="text-sm text-neutral-700">{opt}</span>
+            <span className="text-sm text-ink">{opt}</span>
           </label>
         ))}
       </div>
@@ -202,7 +203,7 @@ function MultiSelectField({
 
   return (
     <fieldset>
-      <legend className="text-sm font-medium text-neutral-900 mb-2">
+      <legend className="text-sm font-medium text-ink mb-2">
         {question.label}
         {question.required && <span className="text-red-500 ml-0.5">*</span>}
       </legend>
@@ -212,17 +213,17 @@ function MultiSelectField({
             key={opt}
             className={`flex items-center gap-2.5 border px-3.5 py-2.5 cursor-pointer transition-colors ${
               selected.includes(opt)
-                ? "border-neutral-900 bg-neutral-900/5"
-                : "border-neutral-200 bg-white hover:border-neutral-300"
+                ? "border-ink bg-ink/5"
+                : "border-rule bg-white hover:border-ink-faint"
             }`}
           >
             <input
               type="checkbox"
               checked={selected.includes(opt)}
               onChange={() => toggle(opt)}
-              className="h-3.5 w-3.5 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900"
+              className="h-3.5 w-3.5 rounded border-rule text-ink focus:ring-ink-faint"
             />
-            <span className="text-sm text-neutral-700">{opt}</span>
+            <span className="text-sm text-ink">{opt}</span>
           </label>
         ))}
       </div>
@@ -241,7 +242,7 @@ function TextField({
 }) {
   return (
     <div>
-      <label className="text-sm font-medium text-neutral-900 mb-2 block">
+      <label className="text-sm font-medium text-ink mb-2 block">
         {question.label}
         {question.required && <span className="text-red-500 ml-0.5">*</span>}
       </label>
@@ -250,7 +251,7 @@ function TextField({
         onChange={(e) => onChange(e.target.value)}
         placeholder={question.placeholder}
         rows={3}
-        className="w-full border border-neutral-200 bg-white px-3.5 py-3 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 focus:outline-none transition-all resize-none"
+        className="w-full border border-rule bg-white px-3.5 py-3 text-sm text-ink placeholder:text-ink-faint focus:border-ink focus:ring-1 focus:ring-ink-faint focus:outline-none transition-all resize-none"
       />
     </div>
   );

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { archiveCourseAction, unarchiveCourseAction } from "./actions";
+import { buttonClass } from "@/components/ui";
 
 export type CourseRow = {
   slug: string;
@@ -24,7 +25,7 @@ function IconButton({ onClick, title, children, className = "" }: {
       type="button"
       title={title}
       onClick={onClick}
-      className={`shrink-0 flex items-center justify-center w-8 h-8 rounded-md border border-neutral-200 bg-white text-neutral-500 hover:bg-neutral-50 transition-colors ${className}`}
+      className={`shrink-0 flex items-center justify-center w-8 h-8 rounded-md border border-rule bg-white text-ink-soft hover:bg-paper-tint-soft transition-colors ${className}`}
     >
       {children}
     </button>
@@ -32,7 +33,7 @@ function IconButton({ onClick, title, children, className = "" }: {
 }
 
 function CopyIcon({ copied }: { copied: boolean }) {
-  if (copied) return <span className="text-[10px] font-semibold text-[#E54D2E]">✓</span>;
+  if (copied) return <span className="text-[10px] font-semibold text-primary">✓</span>;
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
       <rect x="4.5" y="0.5" width="9" height="9" rx="1.5" stroke="currentColor" />
@@ -89,15 +90,15 @@ function CourseItem({ course }: { course: CourseRow }) {
     return (
       <div className="flex items-center gap-3 px-4 py-4 opacity-60">
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-neutral-500">{course.name}</p>
-          <p className="font-mono text-xs text-neutral-400 mt-0.5 truncate">{course.joinUrl}</p>
+          <p className="text-sm font-semibold text-ink-soft">{course.name}</p>
+          <p className="font-mono text-xs text-ink-faint mt-0.5 truncate">{course.joinUrl}</p>
           {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
         </div>
         <button
           type="button"
           disabled={isPending}
           onClick={handleUnarchive}
-          className="shrink-0 rounded-md border border-neutral-200 bg-white px-3 py-1.5 text-xs font-semibold text-neutral-600 hover:bg-neutral-50 transition-colors disabled:opacity-50"
+          className={`${buttonClass("secondary", "sm")} shrink-0`}
         >
           {isPending ? "Restoring…" : "Unarchive"}
         </button>
@@ -109,10 +110,10 @@ function CourseItem({ course }: { course: CourseRow }) {
     <div className="group flex flex-col gap-1 px-4 py-4">
       <div className="flex items-center gap-2">
         <div onClick={openCourse} className="flex-1 min-w-0 cursor-pointer">
-          <p className="text-sm font-semibold text-neutral-900 group-hover:text-[#E54D2E] transition-colors">
+          <p className="text-sm font-semibold text-ink group-hover:text-primary transition-colors">
             {course.name}
           </p>
-          <p className="font-mono text-xs text-neutral-400 mt-0.5 truncate">{course.joinUrl}</p>
+          <p className="font-mono text-xs text-ink-faint mt-0.5 truncate">{course.joinUrl}</p>
         </div>
 
         <IconButton onClick={handleCopy} title="Copy join link">
@@ -124,7 +125,7 @@ function CourseItem({ course }: { course: CourseRow }) {
             href={`/dashboard/admin/programs/${course.slug}/edit`}
             onClick={(e) => e.stopPropagation()}
             title="Course settings"
-            className="shrink-0 flex items-center justify-center w-8 h-8 rounded-md border border-neutral-200 bg-white text-neutral-500 hover:bg-neutral-50 transition-colors"
+            className="shrink-0 flex items-center justify-center w-8 h-8 rounded-md border border-rule bg-white text-ink-soft hover:bg-paper-tint-soft transition-colors"
           >
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
               <circle cx="7" cy="7" r="2" stroke="currentColor" />
@@ -164,7 +165,7 @@ function CourseItem({ course }: { course: CourseRow }) {
           <button
             type="button"
             onClick={() => setConfirming(false)}
-            className="shrink-0 text-xs text-neutral-500 hover:text-neutral-700 transition-colors"
+            className="shrink-0 text-xs text-ink-soft hover:text-ink-soft transition-colors"
           >
             Cancel
           </button>
@@ -186,9 +187,9 @@ export function CoursesList({
 
   return (
     <div className="space-y-4">
-      <div className="divide-y divide-neutral-100 rounded-lg border border-neutral-200 bg-white overflow-hidden">
+      <div className="divide-y divide-neutral-100 rounded-lg border border-rule bg-white overflow-hidden">
         {courses.length === 0 && (
-          <p className="px-4 py-6 text-sm text-neutral-400 text-center">No active courses.</p>
+          <p className="px-4 py-6 text-sm text-ink-faint text-center">No active courses.</p>
         )}
         {courses.map((c) => (
           <CourseItem key={c.slug} course={c} />
@@ -200,12 +201,12 @@ export function CoursesList({
           <button
             type="button"
             onClick={() => setShowArchived((v) => !v)}
-            className="text-sm text-neutral-400 hover:text-neutral-700 transition-colors"
+            className="text-sm text-ink-faint hover:text-ink-soft transition-colors"
           >
             {showArchived ? "▾" : "▸"} Archived ({archivedCourses.length})
           </button>
           {showArchived && (
-            <div className="mt-2 divide-y divide-neutral-100 rounded-lg border border-neutral-200 bg-white overflow-hidden">
+            <div className="mt-2 divide-y divide-neutral-100 rounded-lg border border-rule bg-white overflow-hidden">
               {archivedCourses.map((c) => (
                 <CourseItem key={c.slug} course={c} />
               ))}

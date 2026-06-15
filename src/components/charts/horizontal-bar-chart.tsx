@@ -6,7 +6,7 @@ type Datum = {
 type Props = {
   title: string;
   data: Datum[];
-  /** Tailwind color class for the bars (e.g. "bg-[#E54D2E]"). */
+  /** Tailwind color class for the bars (e.g. "bg-[#1D59FF]"). */
   barClass?: string;
   /** Optional max value override — defaults to the largest datum. */
   max?: number;
@@ -22,7 +22,7 @@ type Props = {
 // Pure-CSS horizontal bar chart. No SVG dependency — each bar is a div
 // whose width is a percentage of the max value. Sorted descending by
 // caller. Designed to match the admin card visual system.
-export function HorizontalBarChart({ title, data, barClass = "bg-[#E54D2E]", max, unit, totalCaption }: Props) {
+export function HorizontalBarChart({ title, data, barClass = "bg-[#1D59FF]", max, unit, totalCaption }: Props) {
   const maxValue = max ?? Math.max(...data.map((d) => d.value), 1);
   const caption = totalCaption ?? {
     value: data.reduce((sum, d) => sum + d.value, 0),
@@ -30,17 +30,17 @@ export function HorizontalBarChart({ title, data, barClass = "bg-[#E54D2E]", max
   };
 
   return (
-    <div className="border border-rule bg-surface-elevated p-5">
+    <div className="panel p-5">
       <div className="mb-4 flex items-baseline justify-between gap-3">
-        <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400">
+        <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-faint">
           {title}
         </p>
-        <p className="text-[11px] tabular-nums text-neutral-400">
+        <p className="text-[11px] tabular-nums text-ink-faint">
           {caption.value.toLocaleString()} {caption.label}
         </p>
       </div>
       {data.length === 0 ? (
-        <p className="text-sm text-neutral-400">No data yet.</p>
+        <p className="text-sm text-ink-faint">No data yet.</p>
       ) : (
         <ul className="space-y-2.5">
           {data.map((d) => {
@@ -48,20 +48,20 @@ export function HorizontalBarChart({ title, data, barClass = "bg-[#E54D2E]", max
             return (
               <li key={d.label} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
                 <div className="min-w-0">
-                  <p className="mb-1 truncate text-xs font-medium text-neutral-700">
+                  <p className="mb-1 truncate text-xs font-medium text-ink">
                     {d.label}
                   </p>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-100">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-paper-tint">
                     <div
                       className={`h-full rounded-full ${barClass} transition-all`}
                       style={{ width: `${Math.max(pct, 2)}%` }}
                     />
                   </div>
                 </div>
-                <p className="shrink-0 text-sm font-semibold tabular-nums text-neutral-900">
+                <p className="shrink-0 text-sm font-semibold tabular-nums text-ink">
                   {d.value.toLocaleString()}
                   {unit && (
-                    <span className="ml-1 text-[10px] font-normal text-neutral-400">
+                    <span className="ml-1 text-[10px] font-normal text-ink-faint">
                       {unit}
                     </span>
                   )}

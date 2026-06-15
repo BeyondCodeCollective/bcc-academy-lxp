@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { updateCourseAction } from "../../actions";
 import type { UpdateCourseResult } from "../../actions";
+import { Field, buttonClass, fieldInput } from "@/components/ui";
 
 const PHASE_OPTIONS = [
   { value: "foundation", label: "Foundation" },
@@ -63,39 +64,30 @@ export function EditCourseForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      <div className="space-y-1.5">
-        <label htmlFor="name" className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
-          Course Name
-        </label>
+      <Field label="Course name">
         <input
           id="name"
           type="text"
           required
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="w-full rounded-md border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900 placeholder-neutral-400 outline-none focus:border-[#E54D2E] focus:ring-1 focus:ring-[#E54D2E]"
+          className={fieldInput}
         />
-      </div>
+      </Field>
 
-      <div className="space-y-1.5">
-        <label htmlFor="instructor" className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
-          Instructor
-        </label>
+      <Field label="Instructor">
         <input
           id="instructor"
           type="text"
           required
           value={instructor}
           onChange={(e) => setInstructor(e.target.value)}
-          className="w-full rounded-md border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900 placeholder-neutral-400 outline-none focus:border-[#E54D2E] focus:ring-1 focus:ring-[#E54D2E]"
+          className={fieldInput}
         />
-      </div>
+      </Field>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1.5">
-          <label htmlFor="totalWeeks" className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
-            Length (weeks)
-          </label>
+        <Field label="Length (weeks)">
           <input
             id="totalWeeks"
             type="number"
@@ -104,13 +96,10 @@ export function EditCourseForm({
             max={52}
             value={totalWeeks}
             onChange={(e) => setTotalWeeks(e.target.value)}
-            className="w-full rounded-md border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900 placeholder-neutral-400 outline-none focus:border-[#E54D2E] focus:ring-1 focus:ring-[#E54D2E]"
+            className={fieldInput}
           />
-        </div>
-        <div className="space-y-1.5">
-          <label htmlFor="sessionsPerWeek" className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
-            Sessions / Week
-          </label>
+        </Field>
+        <Field label="Sessions / week">
           <input
             id="sessionsPerWeek"
             type="number"
@@ -119,26 +108,23 @@ export function EditCourseForm({
             max={7}
             value={sessionsPerWeek}
             onChange={(e) => setSessionsPerWeek(e.target.value)}
-            className="w-full rounded-md border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900 placeholder-neutral-400 outline-none focus:border-[#E54D2E] focus:ring-1 focus:ring-[#E54D2E]"
+            className={fieldInput}
           />
-        </div>
+        </Field>
       </div>
 
-      <div className="space-y-1.5">
-        <label htmlFor="phase" className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
-          Group
-        </label>
+      <Field label="Group">
         <select
           id="phase"
           value={phase}
           onChange={(e) => setPhase(e.target.value)}
-          className="w-full rounded-md border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900 outline-none focus:border-[#E54D2E] focus:ring-1 focus:ring-[#E54D2E]"
+          className={fieldInput}
         >
           {PHASE_OPTIONS.map((o) => (
             <option key={o.value} value={o.value}>{o.label}</option>
           ))}
         </select>
-      </div>
+      </Field>
 
       {error && (
         <p className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -156,13 +142,13 @@ export function EditCourseForm({
         <button
           type="submit"
           disabled={pending}
-          className="flex-1 rounded-lg bg-[#E54D2E] px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-[#F0613E] disabled:opacity-60"
+          className={`${buttonClass("primary", "md")} flex-1`}
         >
           {pending ? "Saving…" : "Save Changes"}
         </button>
         <a
           href="/dashboard/admin/programs"
-          className="flex-1 flex items-center justify-center rounded-lg border border-neutral-300 bg-white px-4 py-3 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 transition-colors"
+          className={`${buttonClass("secondary", "md")} flex-1`}
         >
           Back to Courses
         </a>

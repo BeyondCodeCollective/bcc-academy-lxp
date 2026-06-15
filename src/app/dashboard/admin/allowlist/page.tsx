@@ -7,6 +7,7 @@ import { getProgramWithOverrides } from "@/lib/programs/server";
 import { getAllowedEmails } from "./actions";
 import { AllowlistForm } from "./allowlist-form";
 import { TrackPicker } from "./track-picker";
+import { PageHeader } from "@/components/page-header";
 
 export const dynamic = "force-dynamic";
 
@@ -80,20 +81,15 @@ export default async function AllowlistAdminPage({
     <div className="mx-auto w-full max-w-3xl px-4 sm:px-5 py-8">
       <Link
         href="/dashboard/admin"
-        className="inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-neutral-900 transition-colors mb-4"
+        className="inline-flex items-center gap-1.5 text-sm text-ink-faint hover:text-ink transition-colors mb-4"
       >
         <ArrowLeft size={16} />
         Back to Admin
       </Link>
 
-      <header className="mb-6">
-        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-400 mb-2">
-          Signup allowlist
-        </p>
-        <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
-          Who can sign up
-        </h1>
-        <p className="mt-3 text-sm leading-relaxed text-neutral-600 max-w-prose">
+      <div className="mb-6">
+        <PageHeader eyebrow="Signup allowlist" title="Who can sign up" />
+        <p className="mt-3 text-sm leading-relaxed text-ink-soft max-w-prose">
           Each course has its own allowlist. Pick the course, paste emails or
           upload a CSV. If the list has any entries, only those addresses can
           sign up via{" "}
@@ -103,12 +99,12 @@ export default async function AllowlistAdminPage({
           anyone can sign up to that course again. Existing students are
           unaffected.
         </p>
-      </header>
+      </div>
 
       <div className="mb-6">
         <label
           htmlFor="track-picker"
-          className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-500 mb-2"
+          className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-soft mb-2"
         >
           Course
         </label>

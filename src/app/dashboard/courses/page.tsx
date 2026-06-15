@@ -3,8 +3,11 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { resolveCurrentUser } from "@/lib/current-user";
 import { getProgram } from "@/lib/programs/server";
+import { getJoinablePrograms } from "@/lib/programs";
 import { canAccessAdminPanel } from "@/lib/roles";
-import { toneForTrack, iconForTrack } from "@/lib/track-visual";
+import { toneForTrack } from "@/lib/track-visual";
+import { CatalogCard } from "@/components/catalog-card";
+import { PageHeader, Section } from "@/components/page-header";
 import type { TrackConfig } from "@/lib/programs/types";
 
 export const dynamic = "force-dynamic";
@@ -43,11 +46,24 @@ export default async function CoursesIndexPage() {
 
   const program = await getProgram();
 
+  // This is the admin "every track offered through BCC Academy" catalog, so
+  // aggregate tracks across ALL programs — not just the current one. On the
+  // apex (the "BCC Academy" marketing shell with no tracks of its own) or any
+  // single program, scoping to program.tracks made the catalog read "No
+  // courses yet" even though courses exist under other programs.
+  const allTracks = Array.from(
+    new Map(
+      getJoinablePrograms()
+        .flatMap((p) => p.tracks)
+        .map((t) => [t.slug, t]),
+    ).values(),
+  );
+
   // Courses = multi-week cohort tracks. Single-event tracks (e.g. the
   // 2-hour AI Automation Bootcamp) belong on /dashboard/workshops, not
   // here — including them surfaced a "Workshops" phase header inside the
   // courses catalog, which conflicted with the dedicated workshops hub.
-  const cohortTracks = program.tracks.filter(
+  const cohortTracks = allTracks.filter(
     (t) => t.type !== "single-event",
   );
 
@@ -72,49 +88,38 @@ export default async function CoursesIndexPage() {
 
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-5xl px-4 sm:px-5 py-8 space-y-10">
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
-          Courses
-        </h1>
-        <p className="mt-1 text-sm text-neutral-500">
-          Every track offered through {program.name}. Open any course to see
-          the curriculum, instructor, and start date.
-        </p>
-      </header>
+      <PageHeader
+        title="Courses"
+        subtitle={`Every track offered through ${program.name}. Open any course to see the curriculum, instructor, and start date.`}
+      />
 
       {cohortTracks.length === 0 ? (
-        <p className="border border-rule bg-surface-elevated px-5 py-8 text-center text-sm text-neutral-500">
+        <p className="panel px-5 py-8 text-center text-sm text-ink-soft">
           No courses yet.
         </p>
       ) : (
         sections.map((section) => (
-          <section key={section.key} className="space-y-4">
-            <div className="flex items-baseline justify-between">
-              <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
-                {section.label}
-              </h2>
-              <span className="text-xs tabular-nums text-neutral-400">
-                {section.items.length}
-              </span>
-            </div>
+          <Section key={section.key} label={section.label} count={section.items.length}>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {section.items.map((track) => (
-                <CourseCard key={track.slug} track={track} />
+                <CourseRow
+                  key={track.slug}
+                  track={track}
+                  inProgram={program.tracks.some((t) => t.slug === track.slug)}
+                />
               ))}
             </div>
-          </section>
+          </Section>
         ))
       )}
     </div>
   );
 }
 
-function CourseCard({ track }: { track: TrackConfig }) {
+function CourseRow({ track, inProgram }: { track: TrackConfig; inProgram: boolean }) {
   const tone = toneForTrack(track.slug);
-  const Icon = iconForTrack(track.slug);
   const start = new Date(track.startDate);
-  const now = new Date();
-  const hasStarted = start <= now;
+  const hasStarted = start <= new Date();
   const startLabel = start.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
@@ -124,55 +129,28 @@ function CourseCard({ track }: { track: TrackConfig }) {
   const durationLabel =
     track.type === "single-event"
       ? "Single session"
-      : `${track.totalWeeks}-week track${
+      : `${track.totalWeeks} weeks${
           track.sessionsPerWeek > 1 ? ` · ${track.sessionsPerWeek}×/wk` : ""
         }`;
 
-  const blurb =
-    track.description || track.weekSummaries[0]?.topic || "";
-
   return (
-    <Link
-      href={`/dashboard/track/${track.slug}`}
-      className="group flex h-full flex-col overflow-hidden border border-rule bg-surface-elevated transition-colors hover:border-neutral-300"
-    >
-      <div
-        aria-hidden
-        className="relative flex aspect-video w-full items-center justify-center overflow-hidden"
-        style={{ backgroundColor: `${tone}1A` }}
-      >
-        <Icon size={56} weight="light" color={tone} />
-        <div className="absolute top-3 right-3">
-          <span
-            className="inline-flex items-center rounded-full bg-white/95 px-2 py-0.5 text-[10px] font-semibold backdrop-blur"
-            style={{ color: tone }}
-          >
-            {hasStarted ? "In progress" : "Upcoming"}
-          </span>
-        </div>
-      </div>
-
-      <div className="flex flex-1 flex-col p-5">
-        <p className="text-xs font-medium uppercase tracking-[0.14em] text-neutral-400">
-          {durationLabel}
-        </p>
-        <h3 className="mt-2 text-[17px] font-semibold leading-snug tracking-[-0.01em] text-neutral-900 line-clamp-2">
-          {track.shortName || track.name}
-        </h3>
-        <p className="mt-1 text-[13px] text-neutral-500">
-          with {track.instructor}
-        </p>
-        {blurb && (
-          <p className="mt-3 text-[13px] leading-[1.55] text-neutral-600 line-clamp-3">
-            {blurb}
-          </p>
-        )}
-        <p className="mt-auto pt-4 text-[12px] text-neutral-500">
-          {track.startDateTbd
-            ? "Starts TBD"
-            : `${hasStarted ? "Started" : "Starts"} ${startLabel}`}
-        </p>
-      </div>
-    </Link>
+    <CatalogCard
+      href={
+        inProgram
+          ? `/dashboard/track/${track.slug}`
+          : `/dashboard/switch-program?track=${encodeURIComponent(track.slug)}`
+      }
+      tone={tone}
+      iconSlug={track.slug}
+      eyebrow={durationLabel}
+      title={track.shortName || track.name}
+      byline={`with ${track.instructor}`}
+      status={hasStarted ? "In progress" : "Upcoming"}
+      trailing={
+        track.startDateTbd
+          ? "Starts TBD"
+          : `${hasStarted ? "Started" : "Starts"} ${startLabel}`
+      }
+    />
   );
 }

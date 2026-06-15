@@ -8,6 +8,7 @@ import {
   type SurveyQuestion,
 } from "@/components/survey-fields";
 import { savePublicSurveyResponse } from "./actions";
+import { buttonClass } from "@/components/ui";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -269,17 +270,17 @@ export function PublicSurveyWizard({
   if (done) {
     return (
       <div className="mx-auto w-full max-w-2xl px-5 pb-20">
-        <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#E54D2E]/10">
-            <Check className="h-6 w-6 text-[#E54D2E]" />
+        <div className="rounded-lg border border-rule bg-white p-8 text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+            <Check className="h-6 w-6 text-primary" />
           </div>
-          <h2 className="text-xl font-bold text-neutral-900">{successTitle}</h2>
-          <p className="mt-2 text-sm text-neutral-600">{successBody}</p>
-          <p className="mt-4 text-xs text-neutral-500">
+          <h2 className="text-xl font-bold text-ink">{successTitle}</h2>
+          <p className="mt-2 text-sm text-ink-soft">{successBody}</p>
+          <p className="mt-4 text-xs text-ink-soft">
             Change your mind?{" "}
             <a
               href="/privacy/withdraw"
-              className="font-medium text-neutral-700 underline hover:text-neutral-900"
+              className="font-medium text-ink underline hover:text-ink"
             >
               Remove my response
             </a>
@@ -297,10 +298,10 @@ export function PublicSurveyWizard({
       {/* Progress bar */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
-          <p className="text-sm font-medium text-neutral-900">
+          <p className="text-sm font-medium text-ink">
             Page {page + 1} of {visiblePages.length}
           </p>
-          <p className="text-xs text-neutral-600">
+          <p className="text-xs text-ink-soft">
             {Math.round(((page + 1) / visiblePages.length) * 100)}%
           </p>
         </div>
@@ -311,7 +312,7 @@ export function PublicSurveyWizard({
           aria-valuemin={1}
           aria-valuemax={visiblePages.length}
           aria-valuetext={`Page ${page + 1} of ${visiblePages.length}`}
-          className="h-2 w-full overflow-hidden rounded-full bg-neutral-100"
+          className="h-2 w-full overflow-hidden rounded-full bg-paper-tint"
         >
           <div
             className="h-full rounded-full bg-[#1a1a1a] transition-all duration-300"
@@ -376,11 +377,11 @@ export function PublicSurveyWizard({
       </p>
 
       {/* Navigation */}
-      <div className="flex items-center justify-between mt-8 pt-6 border-t border-neutral-200">
+      <div className="flex items-center justify-between mt-8 pt-6 border-t border-rule">
         <button
           onClick={handleBack}
           disabled={page === 0}
-          className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 px-4 py-2.5 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-50 disabled:opacity-30 disabled:cursor-not-allowed"
+          className={buttonClass("secondary", "md")}
         >
           <ChevronLeft size={16} />
           Back
@@ -388,7 +389,7 @@ export function PublicSurveyWizard({
         <button
           onClick={handleNext}
           disabled={submitting}
-          className="inline-flex items-center gap-1 rounded-lg bg-[#1a1a1a] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#2a2a2a] disabled:opacity-50"
+          className={buttonClass("dark", "md")}
         >
           {submitting ? (
             <><Loader2 size={16} className="animate-spin" />Submitting...</>
@@ -410,21 +411,21 @@ export function PublicSurveyWizard({
 
 function FooterLinks() {
   return (
-    <div className="mt-8 flex items-center justify-center gap-3 text-xs text-neutral-600">
+    <div className="mt-8 flex items-center justify-center gap-3 text-xs text-ink-soft">
       <a
         href="https://www.wearebcc.org/en/terms"
-        className="hover:text-neutral-600"
+        className="hover:text-ink-soft"
         target="_blank"
         rel="noopener noreferrer"
       >
         Terms
       </a>
       <span aria-hidden>·</span>
-      <a href="/privacy" className="hover:text-neutral-600">
+      <a href="/privacy" className="hover:text-ink-soft">
         Privacy
       </a>
       <span aria-hidden>·</span>
-      <a href="/privacy/withdraw" className="hover:text-neutral-600">
+      <a href="/privacy/withdraw" className="hover:text-ink-soft">
         Remove my response
       </a>
     </div>
@@ -432,7 +433,7 @@ function FooterLinks() {
 }
 
 const INPUT_CLASS =
-  "w-full rounded-xl border border-neutral-200 bg-white px-3.5 py-3 text-sm text-neutral-900 placeholder:text-neutral-500 focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900 focus:outline-none transition-all";
+  "w-full rounded-lg border border-rule bg-white px-3.5 py-3 text-sm text-ink placeholder:text-ink-faint focus:border-ink focus:ring-1 focus:ring-ink-faint focus:outline-none transition-all";
 
 export { INPUT_CLASS };
 
@@ -454,10 +455,10 @@ function DefaultContactPage({
   return (
     <div>
       <div className="mb-6">
-        <h2 className="text-xl font-bold text-neutral-900">
+        <h2 className="text-xl font-bold text-ink">
           {title ?? "Your info"}
         </h2>
-        <p className="mt-1 text-sm text-neutral-700">
+        <p className="mt-1 text-sm text-ink">
           {subtitle ??
             "So we can connect your responses to your record when the program starts."}
         </p>
@@ -466,7 +467,7 @@ function DefaultContactPage({
         <div>
           <label
             htmlFor="contact-name"
-            className="text-sm font-medium text-neutral-900 mb-2 block"
+            className="text-sm font-medium text-ink mb-2 block"
           >
             Full name
             <span aria-hidden="true" className="text-red-500 ml-0.5">
@@ -488,7 +489,7 @@ function DefaultContactPage({
         <div>
           <label
             htmlFor="contact-email"
-            className="text-sm font-medium text-neutral-900 mb-2 block"
+            className="text-sm font-medium text-ink mb-2 block"
           >
             Email
             <span aria-hidden="true" className="text-red-500 ml-0.5">
@@ -524,9 +525,9 @@ function QuestionsPageView({
   return (
     <>
       <div className="mb-6">
-        <h2 className="text-xl font-bold text-neutral-900">{page.title}</h2>
+        <h2 className="text-xl font-bold text-ink">{page.title}</h2>
         {page.subtitle && (
-          <p className="mt-1 text-sm text-neutral-700">{page.subtitle}</p>
+          <p className="mt-1 text-sm text-ink">{page.subtitle}</p>
         )}
       </div>
       <div className="space-y-6">

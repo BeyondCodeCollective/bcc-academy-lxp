@@ -99,7 +99,7 @@ export const WORKSHOPS: Workshop[] = [
         "Groups of 2–4 fellows imagined an AI-powered application addressing a community need. Phases: define the problem, design the solution, assess the impact, present the blueprint. Pitches were delivered on the final day.",
     },
     icon: Sparkle,
-    tone: "#E54D2E",
+    tone: "#1D59FF",
   },
   {
     slug: "coding-herstory",

@@ -118,7 +118,7 @@ export const careerPathways: Record<PathwayKey, CareerPathway> = {
     tagline: "Build and run the platforms everything else lives on.",
     description:
       "A pathway for builders who want depth — Linux, cloud infrastructure, automation, and the engineering practices that move modern software.",
-    accent: "#E54D2E",
+    accent: "#1D59FF",
     wefRoles: [
       "Software Developers (#4 fastest-growing)",
       "IoT Specialists (#10 fastest-growing)",

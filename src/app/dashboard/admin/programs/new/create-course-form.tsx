@@ -4,6 +4,7 @@ import { useState } from "react";
 import { createCourseAction } from "../actions";
 import type { CreateCourseResult } from "../actions";
 import { toSlug } from "@/lib/programs/slug";
+import { Field, fieldInput, buttonClass } from "@/components/ui";
 
 const PHASE_OPTIONS = [
   { value: "foundation", label: "Foundation" },
@@ -70,7 +71,7 @@ export function CreateCourseForm() {
             <button
               type="button"
               onClick={handleCopy}
-              className="w-full rounded-md bg-[#E54D2E] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#F0613E] transition-colors"
+              className={`${buttonClass("primary", "md")} w-full`}
             >
               {copied ? "Copied!" : "Copy join link"}
             </button>
@@ -87,14 +88,14 @@ export function CreateCourseForm() {
             document.cookie = `program-override=catalyst; path=/; max-age=86400`;
             window.location.href = `/dashboard/admin?tab=${result.slug}`;
           }}
-          className="flex items-center justify-center w-full rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-neutral-700 transition-colors"
+          className={`${buttonClass("dark", "md")} w-full`}
         >
           Manage this course →
         </button>
 
         <a
           href="/dashboard/admin/programs"
-          className="flex items-center justify-center w-full rounded-lg border border-neutral-300 bg-white px-4 py-2.5 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 transition-colors"
+          className={`${buttonClass("secondary", "md")} w-full`}
         >
           View all courses
         </a>
@@ -110,7 +111,7 @@ export function CreateCourseForm() {
             setSessionsPerWeek("");
             setCopied(false);
           }}
-          className="w-full text-center text-sm text-neutral-500 hover:text-neutral-700 transition-colors py-1"
+          className="w-full text-center text-sm text-ink-soft hover:text-ink-soft transition-colors py-1"
         >
           + Create another course
         </button>
@@ -120,10 +121,7 @@ export function CreateCourseForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      <div className="space-y-1.5">
-        <label htmlFor="name" className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
-          Course Name
-        </label>
+      <Field label="Course name">
         <input
           id="name"
           type="text"
@@ -131,19 +129,16 @@ export function CreateCourseForm() {
           placeholder="e.g. Salesforce Admin"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="w-full rounded-md border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900 placeholder-neutral-400 outline-none focus:border-[#E54D2E] focus:ring-1 focus:ring-[#E54D2E]"
+          className={fieldInput}
         />
         {slug && (
-          <p className="font-mono text-xs text-neutral-500">
-            bccacademy.io/join/catalyst?track=<span className="text-[#E54D2E]">{slug}</span>
+          <p className="mt-1.5 font-mono text-xs text-ink-soft">
+            bccacademy.io/join/catalyst?track=<span className="text-primary">{slug}</span>
           </p>
         )}
-      </div>
+      </Field>
 
-      <div className="space-y-1.5">
-        <label htmlFor="instructor" className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
-          Instructor
-        </label>
+      <Field label="Instructor">
         <input
           id="instructor"
           type="text"
@@ -151,15 +146,12 @@ export function CreateCourseForm() {
           placeholder="e.g. Marcus Williams"
           value={instructor}
           onChange={(e) => setInstructor(e.target.value)}
-          className="w-full rounded-md border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900 placeholder-neutral-400 outline-none focus:border-[#E54D2E] focus:ring-1 focus:ring-[#E54D2E]"
+          className={fieldInput}
         />
-      </div>
+      </Field>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1.5">
-          <label htmlFor="totalWeeks" className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
-            Length (weeks)
-          </label>
+        <Field label="Length (weeks)">
           <input
             id="totalWeeks"
             type="number"
@@ -169,13 +161,10 @@ export function CreateCourseForm() {
             placeholder="12"
             value={totalWeeks}
             onChange={(e) => setTotalWeeks(e.target.value)}
-            className="w-full rounded-md border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900 placeholder-neutral-400 outline-none focus:border-[#E54D2E] focus:ring-1 focus:ring-[#E54D2E]"
+            className={fieldInput}
           />
-        </div>
-        <div className="space-y-1.5">
-          <label htmlFor="sessionsPerWeek" className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
-            Sessions / Week
-          </label>
+        </Field>
+        <Field label="Sessions / week">
           <input
             id="sessionsPerWeek"
             type="number"
@@ -185,26 +174,23 @@ export function CreateCourseForm() {
             placeholder="2"
             value={sessionsPerWeek}
             onChange={(e) => setSessionsPerWeek(e.target.value)}
-            className="w-full rounded-md border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900 placeholder-neutral-400 outline-none focus:border-[#E54D2E] focus:ring-1 focus:ring-[#E54D2E]"
+            className={fieldInput}
           />
-        </div>
+        </Field>
       </div>
 
-      <div className="space-y-1.5">
-        <label htmlFor="phase" className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
-          Group
-        </label>
+      <Field label="Group">
         <select
           id="phase"
           value={phase}
           onChange={(e) => setPhase(e.target.value)}
-          className="w-full rounded-md border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900 outline-none focus:border-[#E54D2E] focus:ring-1 focus:ring-[#E54D2E]"
+          className={fieldInput}
         >
           {PHASE_OPTIONS.map((o) => (
             <option key={o.value} value={o.value}>{o.label}</option>
           ))}
         </select>
-      </div>
+      </Field>
 
       {error && (
         <p className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -215,7 +201,7 @@ export function CreateCourseForm() {
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-lg bg-[#E54D2E] px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-[#F0613E] disabled:opacity-60"
+        className={`${buttonClass("primary", "md")} w-full`}
       >
         {pending ? "Creating…" : "Create Course"}
       </button>

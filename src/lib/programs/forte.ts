@@ -22,8 +22,8 @@ export const forteConfig: ProgramConfig = {
   colors: {
     primary: "#1a1a1a",
     primaryHover: "#2a2a2a",
-    accent: "#E54D2E",
-    tagline: "#E54D2E",
+    accent: "#00747C",
+    tagline: "#00747C",
   },
   defaultCohort: {
     name: "forte-cohort-1",

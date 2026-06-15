@@ -15,5 +15,17 @@ export default defineConfig({
     baseURL: process.env.SMOKE_BASE_URL ?? "https://bccacademy.io",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
+    // Get past Vercel Deployment Protection on preview URLs. Set
+    // VERCEL_AUTOMATION_BYPASS_SECRET (Vercel → Settings → Deployment
+    // Protection → Protection Bypass for Automation). The cookie header makes
+    // the bypass survive the Supabase magic-link redirect back to the preview.
+    ...(process.env.VERCEL_AUTOMATION_BYPASS_SECRET
+      ? {
+          extraHTTPHeaders: {
+            "x-vercel-protection-bypass": process.env.VERCEL_AUTOMATION_BYPASS_SECRET,
+            "x-vercel-set-bypass-cookie": "true",
+          },
+        }
+      : {}),
   },
 });

@@ -4,6 +4,7 @@ import { startTransition, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
 import { saveTrackOverview, type TrackOverviewPatch } from "./actions";
+import { Field, fieldInput } from "@/components/ui";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
@@ -73,20 +74,20 @@ export function TrackOverviewForm({ track, programSlug, onLiveChange }: Props) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-400">
+        <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-faint">
           Track overview
         </p>
         <SaveIndicator state={saveState} />
       </div>
 
-      <div className="border border-rule bg-surface-elevated p-4 sm:p-5 space-y-4">
+      <div className="panel p-4 sm:p-5 space-y-4">
         <Field label="Track name">
           <input
             type="text"
             value={name}
             onChange={(e) => { setName(e.target.value); onLiveChange?.({ name: e.target.value, instructor }); }}
             onBlur={handleBlur}
-            className={inputCls}
+            className={fieldInput}
           />
         </Field>
 
@@ -96,7 +97,7 @@ export function TrackOverviewForm({ track, programSlug, onLiveChange }: Props) {
             value={instructor}
             onChange={(e) => { setInstructor(e.target.value); onLiveChange?.({ name, instructor: e.target.value }); }}
             onBlur={handleBlur}
-            className={inputCls}
+            className={fieldInput}
           />
         </Field>
 
@@ -109,7 +110,7 @@ export function TrackOverviewForm({ track, programSlug, onLiveChange }: Props) {
             onChange={(e) => setDescription(e.target.value)}
             onBlur={handleBlur}
             rows={4}
-            className={`${inputCls} resize-y leading-relaxed`}
+            className={`${fieldInput} resize-y leading-relaxed`}
           />
         </Field>
       </div>
@@ -119,32 +120,9 @@ export function TrackOverviewForm({ track, programSlug, onLiveChange }: Props) {
 
 // ─── Bits ───────────────────────────────────────────────────────────────────
 
-const inputCls =
-  "w-full rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 placeholder-neutral-400 focus:border-neutral-400 focus:outline-none focus:ring-1 focus:ring-neutral-400";
-
-function Field({
-  label,
-  hint,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-[11px] font-medium uppercase tracking-[0.14em] text-neutral-500">
-        {label}
-      </span>
-      {children}
-      {hint && <span className="mt-1 block text-[11px] text-neutral-400">{hint}</span>}
-    </label>
-  );
-}
-
 function SaveIndicator({ state }: { state: SaveState }) {
   if (state === "idle") return null;
-  if (state === "saving") return <span className="text-[11px] text-neutral-400">Saving…</span>;
+  if (state === "saving") return <span className="text-[11px] text-ink-faint">Saving…</span>;
   if (state === "saved") {
     return (
       <span className="inline-flex items-center gap-1 text-[11px] text-green-600">
