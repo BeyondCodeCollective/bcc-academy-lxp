@@ -66,6 +66,13 @@ export async function sendInviteEmail({
     from: FROM_ADDRESS,
     to,
     subject: `You're invited to ${programName}`,
+    text: `Welcome to ${programName}.
+
+Your spot is ready. Open your dashboard — no password needed:
+
+${inviteLink}
+
+If you didn't expect this, you can ignore it. Questions? Email fonz.morris@wearebgc.org.`,
     html: `
 <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:520px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;">
   <div style="background:#1a1a1a;padding:28px 24px;text-align:center;">
