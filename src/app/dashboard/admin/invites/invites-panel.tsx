@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { buttonClass } from "@/components/ui";
-import { sendCohortInvites, type SendInvitesResult } from "./actions";
+import { sendCohortInvites, sendTestInvite, type SendInvitesResult } from "./actions";
 
 type TrackRow = {
   slug: string;
@@ -16,6 +16,20 @@ export function InvitesPanel({ tracks }: { tracks: TrackRow[] }) {
   const [pending, startTransition] = useTransition();
   const [active, setActive] = useState<string | null>(null);
   const [results, setResults] = useState<Record<string, SendInvitesResult>>({});
+  const [testEmail, setTestEmail] = useState<Record<string, string>>({});
+  const [testResult, setTestResult] = useState<Record<string, SendInvitesResult>>({});
+  const [testing, setTesting] = useState<string | null>(null);
+
+  const sendTest = (slug: string) => {
+    const email = (testEmail[slug] ?? "").trim();
+    if (!email) return;
+    setTesting(slug);
+    startTransition(async () => {
+      const r = await sendTestInvite(slug, email);
+      setTestResult((prev) => ({ ...prev, [slug]: r }));
+      setTesting(null);
+    });
+  };
 
   const send = (slug: string, name: string, invited: number) => {
     if (
@@ -48,43 +62,77 @@ export function InvitesPanel({ tracks }: { tracks: TrackRow[] }) {
       {tracks.map((t) => {
         const r = results[t.slug];
         const busy = pending && active === t.slug;
+        const tr = testResult[t.slug];
+        const testBusy = pending && testing === t.slug;
         return (
-          <div key={t.slug} className="flex flex-wrap items-center gap-4 px-4 py-4">
-            <div className="min-w-0 flex-1">
-              <p className="text-[14px] font-semibold text-ink">{t.name}</p>
-              <p className="text-[12px] text-ink-faint tabular-nums">
-                {t.invited} allowlisted · {t.sent} invited · {t.opened} opened
-              </p>
-              {r && (
-                <p
-                  className={`mt-1 text-[12px] tabular-nums ${
-                    r.ok ? "text-ink-soft" : "text-primary"
-                  }`}
-                >
-                  {r.ok
-                    ? `Sent ${r.sent} · ${r.failed} failed${
-                        r.remaining
-                          ? ` · ${r.remaining} remaining — click again to continue`
-                          : ""
-                      }`
-                    : `Error: ${r.error}`}
+          <div key={t.slug} className="px-4 py-4 space-y-3">
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="min-w-0 flex-1">
+                <p className="text-[14px] font-semibold text-ink">{t.name}</p>
+                <p className="text-[12px] text-ink-faint tabular-nums">
+                  {t.invited} allowlisted · {t.sent} invited · {t.opened} opened
                 </p>
+                {r && (
+                  <p
+                    className={`mt-1 text-[12px] tabular-nums ${
+                      r.ok ? "text-ink-soft" : "text-primary"
+                    }`}
+                  >
+                    {r.ok
+                      ? `Sent ${r.sent} · ${r.failed} failed${
+                          r.remaining
+                            ? ` · ${r.remaining} remaining — click again to continue`
+                            : ""
+                        }`
+                      : `Error: ${r.error}`}
+                  </p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => send(t.slug, t.name, t.invited)}
+                disabled={busy}
+                className={buttonClass("dark", "sm")}
+              >
+                {busy
+                  ? "Sending…"
+                  : r?.remaining
+                    ? `Send remaining (${r.remaining})`
+                    : r || t.sent > 0
+                      ? "Resend / retry"
+                      : "Send invites"}
+              </button>
+            </div>
+
+            {/* Single-recipient test send — preview the live email without
+                touching the cohort. */}
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                type="email"
+                inputMode="email"
+                placeholder="your@email.com — send a test"
+                value={testEmail[t.slug] ?? ""}
+                onChange={(e) =>
+                  setTestEmail((prev) => ({ ...prev, [t.slug]: e.target.value }))
+                }
+                className="min-w-0 flex-1 rounded-md border border-rule bg-paper-tint-soft px-2.5 py-1.5 text-[13px] text-ink placeholder:text-ink-faint focus:border-ink focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={() => sendTest(t.slug)}
+                disabled={testBusy || !(testEmail[t.slug] ?? "").trim()}
+                className={buttonClass("ghost", "sm")}
+              >
+                {testBusy ? "Sending…" : "Send test"}
+              </button>
+              {tr && (
+                <span
+                  className={`text-[12px] ${tr.ok ? "text-ink-soft" : "text-primary"}`}
+                >
+                  {tr.ok ? "Test sent ✓" : `Error: ${tr.error}`}
+                </span>
               )}
             </div>
-            <button
-              type="button"
-              onClick={() => send(t.slug, t.name, t.invited)}
-              disabled={busy}
-              className={buttonClass("dark", "sm")}
-            >
-              {busy
-                ? "Sending…"
-                : r?.remaining
-                  ? `Send remaining (${r.remaining})`
-                  : r || t.sent > 0
-                    ? "Resend / retry"
-                    : "Send invites"}
-            </button>
           </div>
         );
       })}

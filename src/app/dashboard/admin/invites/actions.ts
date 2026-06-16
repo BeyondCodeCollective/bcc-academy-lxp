@@ -125,3 +125,65 @@ export async function sendCohortInvites(
   const remaining = queued.length - processed;
   return { ok: true, sent, failed, total: queued.length, remaining };
 }
+
+/**
+ * Send ONE invite to a single address — for previewing the live email without
+ * blasting the cohort. Reuses an existing token for the email+track or mints a
+ * fresh one, then sends just that message. Re-sendable (ignores 'sent' status)
+ * so you can preview repeatedly.
+ */
+export async function sendTestInvite(
+  trackSlug: string,
+  rawEmail: string,
+): Promise<SendInvitesResult> {
+  const ctx = await getSessionContext();
+  if (!canSwitchPrograms(ctx?.student?.role ?? "")) {
+    return { ok: false, error: "Not authorized" };
+  }
+  const email = rawEmail.trim().toLowerCase();
+  if (!email || !email.includes("@") || /\s/.test(email)) {
+    return { ok: false, error: "Enter a valid email address" };
+  }
+
+  const home = getHomeProgramForTrack(trackSlug);
+  const programSlug = home?.slug ?? "catalyst";
+  const programName = (await getProgramWithOverrides(programSlug)).name;
+
+  const svc = createServiceClient();
+
+  const { data: existing } = await svc
+    .from("invites")
+    .select("token")
+    .eq("track_slug", trackSlug)
+    .ilike("email", email)
+    .limit(1)
+    .maybeSingle();
+  let token = existing?.token as string | undefined;
+  if (!token) {
+    token = randomBytes(24).toString("base64url");
+    const { error: insErr } = await svc.from("invites").insert({
+      token,
+      email,
+      track_slug: trackSlug,
+      program_slug: programSlug,
+      status: "pending",
+    });
+    if (insErr) return { ok: false, error: `Could not create invite: ${insErr.message}` };
+  }
+
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "bccacademy.io";
+  const proto = h.get("x-forwarded-proto") ?? "https";
+  const inviteLink = `${proto}://${host}/invite/${token}`;
+
+  try {
+    await sendInviteEmail({ to: email, inviteLink, programName, programSlug });
+    await svc
+      .from("invites")
+      .update({ status: "sent", sent_at: new Date().toISOString(), error: null })
+      .eq("token", token);
+    return { ok: true, sent: 1, failed: 0, total: 1 };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
