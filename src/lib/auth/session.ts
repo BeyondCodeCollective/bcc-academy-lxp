@@ -1,6 +1,12 @@
 import { cache } from "react";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { determineRole } from "@/lib/auth/admins";
 import type { Cohort } from "@/lib/types";
+
+// Single source for the student columns the session needs — reused by the
+// normal read and the self-heal re-read so they never drift.
+const STUDENT_SELECT =
+  "id, email, first_name, last_name, avatar_url, role, cohort_id, onboarding_completed, welcome_seen_at, cohorts(id, name, display_name, start_date, end_date, total_weeks, created_at)";
 
 export type SessionStudent = {
   id: string;
@@ -49,17 +55,63 @@ export const getSessionContext = cache(async (): Promise<SessionContext | null> 
 
   const { data: student } = await supabase
     .from("students")
-    .select(
-      "id, email, first_name, last_name, avatar_url, role, cohort_id, onboarding_completed, welcome_seen_at, cohorts(id, name, display_name, start_date, end_date, total_weeks, created_at)"
-    )
+    .select(STUDENT_SELECT)
     .eq("id", session.user.id)
     .maybeSingle<SessionStudent>();
+
+  // Self-heal: a valid session with no profile row is a "ghost" — the user is
+  // logged in but lands nowhere ("no student record"). This can happen if the
+  // auth-callback upsert ever fails or an auth user is created out-of-band.
+  // Guarantee the invariant "authenticated ⇒ profile exists" right here, the
+  // chokepoint every dashboard surface flows through. deferred-setup refines
+  // cohort/program/enrollment afterwards; role is the email-list truth.
+  const healed = !student ? await ensureProfile(session.user.id, session.user.email) : student;
 
   const result = {
     userId: session.user.id,
     userEmail: session.user.email ?? null,
-    student: student ?? null,
+    student: healed ?? null,
   };
   _profileStore.set(userId, { data: result, ts: Date.now() });
   return result;
 });
+
+/**
+ * Create the missing students row for an authenticated user. Uses the service
+ * client (RLS would block a self-insert) and defaults the home program to
+ * Catalyst, the hub — cookies + deferred-setup correct the real program/cohort
+ * on the same request. Idempotent: ignoreDuplicates means a racing writer wins
+ * harmlessly. Returns the resulting row (or null if even the program lookup
+ * fails, leaving the caller no worse off than before).
+ */
+async function ensureProfile(
+  userId: string,
+  email: string | null | undefined,
+): Promise<SessionStudent | null> {
+  const admin = createServiceClient();
+  const { data: hub } = await admin
+    .from("programs")
+    .select("id")
+    .eq("slug", "catalyst")
+    .maybeSingle();
+  if (!hub?.id) return null;
+
+  await admin.from("students").upsert(
+    {
+      id: userId,
+      email: email ?? "",
+      first_name: "",
+      last_name: "",
+      role: determineRole(email ?? ""),
+      program_id: hub.id,
+    },
+    { onConflict: "id", ignoreDuplicates: true },
+  );
+
+  const { data } = await admin
+    .from("students")
+    .select(STUDENT_SELECT)
+    .eq("id", userId)
+    .maybeSingle<SessionStudent>();
+  return data ?? null;
+}
