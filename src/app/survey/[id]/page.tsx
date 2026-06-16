@@ -64,7 +64,7 @@ export default async function PublicSurveyPage({
       </div>
       <div className="mx-auto w-full max-w-2xl px-5 pt-6 pb-6">
         <p className="text-xs font-medium tracking-wide text-primary uppercase">
-          {program.organization}
+          {survey.organization ?? program.organization}
         </p>
         <h1 className="mt-1 text-2xl font-bold text-ink sm:text-3xl">
           {survey.title}
