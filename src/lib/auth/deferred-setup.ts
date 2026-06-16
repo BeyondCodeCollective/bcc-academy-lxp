@@ -1,3 +1,4 @@
+import { randomBytes } from "crypto";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getProgramId } from "@/lib/programs/server";
 import type { ProgramConfig } from "@/lib/programs/types";
@@ -217,11 +218,27 @@ export async function completePendingSetup(
         .map((s) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase())[0] || "there";
 
     if (tracksToEnroll.length > 0) {
+      // Durable one-click sign-in link for the welcome email — reuses the
+      // invite-token flow, so the CTA works whenever they open it. The old
+      // bare /dashboard link bounced unauthenticated clicks to /login.
+      let signInUrl = `https://${program.domain}/dashboard`;
+      const token = randomBytes(24).toString("base64url");
+      const { error: invErr } = await admin.from("invites").insert({
+        token,
+        email,
+        track_slug: tracksToEnroll[0].slug,
+        program_slug: program.slug,
+        status: "sent",
+        sent_at: new Date().toISOString(),
+      });
+      if (!invErr) signInUrl = `https://${program.domain}/invite/${token}`;
+
       void sendWelcomeEmail({
         to: email,
         firstName: derivedName,
         program,
         enrolledTracks: tracksToEnroll,
+        signInUrl,
       }).then(() =>
         admin
           .from("students")
