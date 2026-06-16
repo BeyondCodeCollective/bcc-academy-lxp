@@ -49,22 +49,73 @@ export async function sendSignInEmail({
 
 /** Cohort invite — one-click link to /invite/<token> that signs the student
  *  in on click (no expiry). Sent in bulk by the super-admin invite tool. */
-export async function sendInviteEmail({
-  to,
-  inviteLink,
-  programName,
-}: {
-  to: string;
-  inviteLink: string;
-  programName: string;
-}): Promise<void> {
-  if (!resend) {
-    console.warn("[email] RESEND_API_KEY not set — skipping invite email");
-    throw new Error("Email is not configured (RESEND_API_KEY missing)");
-  }
-  const { error } = await resend.emails.send({
-    from: FROM_ADDRESS,
-    to,
+type InviteEmailContent = { subject: string; text: string; html: string };
+
+/** Shared dark-header shell so every invite variant looks on-brand. */
+function inviteShell(bodyHtml: string): string {
+  return `
+<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:520px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;">
+  <div style="background:#1a1a1a;padding:28px 24px;text-align:center;">
+    <p style="margin:0;font-size:24px;font-weight:700;letter-spacing:-0.02em;text-transform:uppercase;color:#ffffff;">BCC <span style="color:#E5F701;">[</span>Academy<span style="color:#E5F701;">]</span></p>
+  </div>
+  <div style="padding:32px 24px;">
+${bodyHtml}
+  </div>
+</div>`;
+}
+
+function ctaButton(inviteLink: string, label: string): string {
+  return `<div style="text-align:center;margin:0 0 28px;">
+      <a href="${inviteLink}" style="display:inline-block;padding:14px 36px;background:#1a1a1a;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:700;font-size:15px;letter-spacing:0.02em;">${label}</a>
+    </div>`;
+}
+
+/** Upskill Bahamas summer-2026 campaign copy (provided by the team). The
+ *  generic per-person one-click link is injected as the CTA. */
+function forteSummerInvite(inviteLink: string): InviteEmailContent {
+  return {
+    subject: "UpSkill Bahamas: Foundation of AI & Digital Skills Summer Programming",
+    text: `Hello!
+
+ICYMI — here's a note to make sure you have all the details on an update to your Upskill Bahamas Foundation of AI & Digital Skills program!
+
+Here's the update:
+Your course content has a new home! We've moved everything into one learning portal, and brought all your existing course content with it, plus new summer sessions we're releasing just in time for the season.
+
+Everything is:
+• Self-paced
+• Completely free
+• Built to meet you where you are
+
+Access your new portal here (one click, no password needed):
+${inviteLink}
+
+If you have any trouble logging in or finding your courses, please email info@bccacademy.io and we'll help you out.
+
+We're excited for you to keep building real AI and digital skills this summer!
+
+Best,
+The Beyond Code Team`,
+    html: inviteShell(`    <p style="margin:0 0 16px;font-size:16px;color:#1a1a1a;">Hello!</p>
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#555;">ICYMI — here's a note to make sure you have all the details on an update to your <strong>Upskill Bahamas Foundation of AI &amp; Digital Skills</strong> program!</p>
+    <p style="margin:0 0 8px;font-size:15px;line-height:1.6;color:#555;"><strong>Here's the update:</strong></p>
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#555;">Your course content has a new home! We've moved everything into one learning portal, and brought all your existing course content with it, plus new summer sessions we're releasing just in time for the season.</p>
+    <p style="margin:0 0 8px;font-size:15px;line-height:1.6;color:#555;">Everything is:</p>
+    <ul style="margin:0 0 24px;padding-left:20px;font-size:15px;line-height:1.7;color:#555;">
+      <li>Self-paced</li>
+      <li>Completely free</li>
+      <li>Built to meet you where you are</li>
+    </ul>
+    ${ctaButton(inviteLink, "Access your portal →")}
+    <p style="margin:0 0 16px;font-size:13px;line-height:1.6;color:#777;">If you have any trouble logging in or finding your courses, please email <a href="mailto:info@bccacademy.io" style="color:#1a1a1a;">info@bccacademy.io</a> and we'll help you out.</p>
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#555;">We're excited for you to keep building real AI and digital skills this summer!</p>
+    <p style="margin:0;font-size:15px;line-height:1.6;color:#555;">Best,<br/>The Beyond Code Team</p>`),
+  };
+}
+
+/** Default invite copy for any program without a campaign-specific template. */
+function genericInvite(programName: string, inviteLink: string): InviteEmailContent {
+  return {
     subject: `You're invited to ${programName}`,
     text: `Welcome to ${programName}.
 
@@ -72,21 +123,42 @@ Your spot is ready. Open your dashboard — no password needed:
 
 ${inviteLink}
 
-If you didn't expect this, you can ignore it. Questions? Email fonz.morris@wearebgc.org.`,
-    html: `
-<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:520px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;">
-  <div style="background:#1a1a1a;padding:28px 24px;text-align:center;">
-    <p style="margin:0;font-size:24px;font-weight:700;letter-spacing:-0.02em;text-transform:uppercase;color:#ffffff;">BCC <span style="color:#E5F701;">[</span>Academy<span style="color:#E5F701;">]</span></p>
-  </div>
-  <div style="padding:32px 24px;">
-    <p style="margin:0 0 8px;font-size:22px;font-weight:700;color:#1a1a1a;">Welcome to ${programName}.</p>
+If you didn't expect this, you can ignore it. Questions? Email info@bccacademy.io.`,
+    html: inviteShell(`    <p style="margin:0 0 8px;font-size:22px;font-weight:700;color:#1a1a1a;">Welcome to ${programName}.</p>
     <p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:#555;">Your spot is ready. Click the button below to open your dashboard — no password needed.</p>
-    <div style="text-align:center;margin:0 0 28px;">
-      <a href="${inviteLink}" style="display:inline-block;padding:14px 36px;background:#1a1a1a;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:700;font-size:15px;letter-spacing:0.02em;">Get started →</a>
-    </div>
-    <p style="margin:0;font-size:12px;color:#999;line-height:1.5;">If you didn't expect this, you can ignore it. Questions? Reply here or email <a href="mailto:fonz.morris@wearebgc.org" style="color:#1a1a1a;">fonz.morris@wearebgc.org</a>.</p>
-  </div>
-</div>`,
+    ${ctaButton(inviteLink, "Get started →")}
+    <p style="margin:0;font-size:12px;color:#999;line-height:1.5;">If you didn't expect this, you can ignore it. Questions? Reply here or email <a href="mailto:info@bccacademy.io" style="color:#1a1a1a;">info@bccacademy.io</a>.</p>`),
+  };
+}
+
+export async function sendInviteEmail({
+  to,
+  inviteLink,
+  programName,
+  programSlug,
+}: {
+  to: string;
+  inviteLink: string;
+  programName: string;
+  /** Selects campaign-specific copy. Forte = Upskill Bahamas summer template;
+   *  anything else falls back to the generic invite. */
+  programSlug?: string;
+}): Promise<void> {
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY not set — skipping invite email");
+    throw new Error("Email is not configured (RESEND_API_KEY missing)");
+  }
+  const content =
+    programSlug === "forte"
+      ? forteSummerInvite(inviteLink)
+      : genericInvite(programName, inviteLink);
+
+  const { error } = await resend.emails.send({
+    from: FROM_ADDRESS,
+    to,
+    subject: content.subject,
+    text: content.text,
+    html: content.html,
   });
   if (error) {
     console.error("[email] sendInviteEmail failed:", JSON.stringify(error));
