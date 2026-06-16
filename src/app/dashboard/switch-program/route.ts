@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createClient, createServiceClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { getHomeProgramForTrack } from "@/lib/programs";
+import { canAccessAdminPanel } from "@/lib/roles";
 
 /**
  * GET /dashboard/switch-program?track=<slug>
@@ -26,13 +27,22 @@ export async function GET(req: NextRequest) {
   if (!user) return NextResponse.redirect(new URL("/", req.url));
 
   const svc = createServiceClient();
-  const { data: enrollment } = await svc
-    .from("student_tracks")
-    .select("track_slug")
-    .eq("student_id", user.id)
-    .eq("track_slug", track)
+  // Admins browse the full catalog and must be able to open ANY course; only
+  // students are restricted to tracks they're actually enrolled in.
+  const { data: student } = await svc
+    .from("students")
+    .select("role")
+    .eq("id", user.id)
     .maybeSingle();
-  if (!enrollment) return fallback;
+  if (!canAccessAdminPanel(student?.role ?? "")) {
+    const { data: enrollment } = await svc
+      .from("student_tracks")
+      .select("track_slug")
+      .eq("student_id", user.id)
+      .eq("track_slug", track)
+      .maybeSingle();
+    if (!enrollment) return fallback;
+  }
 
   // Same cookie pair + options the auth callback sets at login — both must
   // move, since program-override shadows program-slug in resolution order.
