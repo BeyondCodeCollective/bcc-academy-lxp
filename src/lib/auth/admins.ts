@@ -3,6 +3,7 @@
 // are merged on top.
 const DEFAULT_SUPER_ADMIN_EMAILS = [
   "fonz.morris@wearebgc.org",
+  "devin.cooper@wearebgc.org",
 ];
 
 export const SUPER_ADMIN_EMAILS = Array.from(
