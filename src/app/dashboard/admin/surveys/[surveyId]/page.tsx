@@ -56,11 +56,11 @@ export default async function SurveyDashboardPage({
   const programs = getAllPrograms().map((p) => ({ slug: p.slug, name: p.name }));
 
   return (
-    <div className="min-h-[100dvh] bg-[#F7F4EE]">
+    <div className="min-h-[100dvh] bg-paper-tint-soft">
       <div className="mx-auto w-full max-w-2xl md:max-w-5xl px-5 py-12 md:py-16">
         <Link
           href={backHref}
-          className="inline-flex text-[12px] text-[#6B6258] hover:text-[#1F1B16] transition-colors mb-8"
+          className="inline-flex text-[12px] text-ink-soft hover:text-ink transition-colors mb-8"
         >
           {backLabel}
         </Link>
