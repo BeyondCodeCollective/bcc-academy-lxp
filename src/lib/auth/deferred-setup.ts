@@ -218,20 +218,34 @@ export async function completePendingSetup(
         .map((s) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase())[0] || "there";
 
     if (tracksToEnroll.length > 0) {
-      // Durable one-click sign-in link for the welcome email — reuses the
-      // invite-token flow, so the CTA works whenever they open it. The old
-      // bare /dashboard link bounced unauthenticated clicks to /login.
+      // Durable one-click sign-in link for the welcome email — reuse the
+      // invite token they came in on (or mint one if none), so the CTA works
+      // whenever they open it. The old bare /dashboard link bounced
+      // unauthenticated clicks to /login. (Don't blindly insert — the unique
+      // (email, track) index means a bulk invitee already has a row.)
       let signInUrl = `https://${program.domain}/dashboard`;
-      const token = randomBytes(24).toString("base64url");
-      const { error: invErr } = await admin.from("invites").insert({
-        token,
-        email,
-        track_slug: tracksToEnroll[0].slug,
-        program_slug: program.slug,
-        status: "sent",
-        sent_at: new Date().toISOString(),
-      });
-      if (!invErr) signInUrl = `https://${program.domain}/invite/${token}`;
+      const welcomeTrack = tracksToEnroll[0].slug;
+      const { data: existingInvite } = await admin
+        .from("invites")
+        .select("token")
+        .eq("track_slug", welcomeTrack)
+        .ilike("email", email)
+        .limit(1)
+        .maybeSingle();
+      let inviteToken = existingInvite?.token as string | undefined;
+      if (!inviteToken) {
+        const fresh = randomBytes(24).toString("base64url");
+        const { error: invErr } = await admin.from("invites").insert({
+          token: fresh,
+          email,
+          track_slug: welcomeTrack,
+          program_slug: program.slug,
+          status: "sent",
+          sent_at: new Date().toISOString(),
+        });
+        if (!invErr) inviteToken = fresh;
+      }
+      if (inviteToken) signInUrl = `https://${program.domain}/invite/${inviteToken}`;
 
       void sendWelcomeEmail({
         to: email,
