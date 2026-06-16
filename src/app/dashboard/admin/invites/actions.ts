@@ -16,6 +16,7 @@ export type SendInvitesResult = {
   sent?: number;
   failed?: number;
   total?: number;
+  remaining?: number;
   error?: string;
 };
 
@@ -91,9 +92,18 @@ export async function sendCohortInvites(
   const proto = h.get("x-forwarded-proto") ?? "https";
   const origin = `${proto}://${host}`;
 
+  // Send within a time budget so we never hit the function timeout mid-blast.
+  // Anything not reached stays pending and is picked up on the next click
+  // (idempotent resume) — so a large cohort can't fail halfway.
+  const startedAt = Date.now();
+  const BUDGET_MS = 220_000; // well under the 300s route maxDuration
+  const queued = toSend ?? [];
   let sent = 0;
   let failed = 0;
-  for (const inv of toSend ?? []) {
+  let processed = 0;
+  for (const inv of queued) {
+    if (Date.now() - startedAt > BUDGET_MS) break;
+    processed++;
     const inviteLink = `${origin}/invite/${inv.token}`;
     try {
       await sendInviteEmail({ to: inv.email, inviteLink, programName });
@@ -112,5 +122,6 @@ export async function sendCohortInvites(
     await sleep(550); // ~2 emails/sec (Resend rate limit)
   }
 
-  return { ok: true, sent, failed, total: (toSend ?? []).length };
+  const remaining = queued.length - processed;
+  return { ok: true, sent, failed, total: queued.length, remaining };
 }

@@ -61,7 +61,11 @@ export function InvitesPanel({ tracks }: { tracks: TrackRow[] }) {
                   }`}
                 >
                   {r.ok
-                    ? `Sent ${r.sent} · ${r.failed} failed (of ${r.total})`
+                    ? `Sent ${r.sent} · ${r.failed} failed${
+                        r.remaining
+                          ? ` · ${r.remaining} remaining — click again to continue`
+                          : ""
+                      }`
                     : `Error: ${r.error}`}
                 </p>
               )}
@@ -72,7 +76,13 @@ export function InvitesPanel({ tracks }: { tracks: TrackRow[] }) {
               disabled={busy}
               className={buttonClass("dark", "sm")}
             >
-              {busy ? "Sending…" : r || t.sent > 0 ? "Resend / retry" : "Send invites"}
+              {busy
+                ? "Sending…"
+                : r?.remaining
+                  ? `Send remaining (${r.remaining})`
+                  : r || t.sent > 0
+                    ? "Resend / retry"
+                    : "Send invites"}
             </button>
           </div>
         );
