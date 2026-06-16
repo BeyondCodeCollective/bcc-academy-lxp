@@ -51,6 +51,7 @@ export const catalystConfig: ProgramConfig = {
         "Help us understand your background and experience so we can better support you.",
       required: true,
       skipForPrograms: ["forte"],
+      organization: "Beyond Code Centers",
     },
     {
       id: "post-survey-spring-2026",
@@ -58,6 +59,7 @@ export const catalystConfig: ProgramConfig = {
       description:
         "You made it — share how the program landed and where you're headed next. Takes about 5 minutes.",
       required: false,
+      organization: "Beyond Code Centers",
     },
   ],
   resourcesEnabled: false,

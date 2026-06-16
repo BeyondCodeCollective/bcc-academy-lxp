@@ -210,6 +210,11 @@ export type SurveyConfig = {
   /** Program slugs whose students should skip this survey even when they
    *  resolve to this program's dashboard (e.g. forte students on Catalyst) */
   skipForPrograms?: string[];
+  /** Brand label shown in the survey header eyebrow. Overrides the browsing
+   *  program's organization so the survey reads with its own program's brand
+   *  (e.g. an AI Fundamentals survey always shows "Beyond Code Centers", even
+   *  when opened from another program context). */
+  organization?: string;
 };
 
 export type ProgramConfig = {

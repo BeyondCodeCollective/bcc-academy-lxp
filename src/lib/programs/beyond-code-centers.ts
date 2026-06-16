@@ -449,6 +449,7 @@ Guidelines:
       title: "AI Fundamentals — Pre-Program Survey",
       description: "Help us understand your background and experience so we can better support you.",
       required: true,
+      organization: "Beyond Code Centers",
     },
     {
       id: "post-survey-spring-2026",
@@ -456,6 +457,7 @@ Guidelines:
       description:
         "You made it — share how the program landed and where you're headed next. Takes about 5 minutes.",
       required: false,
+      organization: "Beyond Code Centers",
     },
   ],
   resourcesEnabled: false,
