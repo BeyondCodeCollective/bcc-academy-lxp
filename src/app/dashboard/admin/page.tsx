@@ -8,7 +8,7 @@ import type { StudentTrackRow, SurveyStatsRow, InstructorTrackRow, PublicSurveyS
 import { getPublicSurveyStats, getDashboardSurveyStats, getDashboardAllSurveyResponses, getPublicSurveyCountsByType } from "./actions";
 import { canAccessAdminPanel, canSwitchPrograms } from "@/lib/roles";
 import { PLATFORM_AUTH_SURVEYS, PLATFORM_PUBLIC_SURVEYS } from "@/lib/surveys/platform";
-import { getAllPrograms } from "@/lib/programs";
+import { getAllPrograms, getHomeProgramForTrack } from "@/lib/programs";
 import type { SurveyConfig } from "@/lib/programs/types";
 import { getSurveySchema } from "@/lib/surveys/schemas";
 import type { SurveyQuestion } from "@/components/survey-fields";
@@ -429,10 +429,21 @@ export default async function AdminPage({
     return { ...base, weeks: [] };
   });
 
+  // Catalyst is an umbrella that aggregates other programs' tracks (Forte's
+  // ai-literacy, etc.). In the program-first admin, show only Catalyst's OWN
+  // courses here — the aggregated ones are managed under their home program.
+  const ownTracks =
+    program.slug === "catalyst"
+      ? allTracks.filter((t) => {
+          const home = getHomeProgramForTrack(t.slug);
+          return !home || home.slug === "catalyst";
+        })
+      : allTracks;
+
   // Instructors only see their assigned tracks
   const tracks = userRole === "instructor" && myInstructorTracks.length > 0
-    ? allTracks.filter((t) => myInstructorTracks.includes(t.slug))
-    : allTracks;
+    ? ownTracks.filter((t) => myInstructorTracks.includes(t.slug))
+    : ownTracks;
 
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-5xl space-y-6 px-4 sm:px-5 py-8">

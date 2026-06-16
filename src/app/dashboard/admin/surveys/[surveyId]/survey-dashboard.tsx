@@ -23,8 +23,8 @@ interface Props {
 // vermillion, no blue, no AI-gradient. Active values render in warm charcoal,
 // inactive in a warm-tinted neutral so the bars sit on cream without looking
 // sterile.
-const INK = "#1F1B16";
-const INK_DIM = "#D8D2C4";
+const INK = "var(--ink)";
+const INK_DIM = "#d1d1d6";
 
 export function SurveyDashboard({
   surveyId,
@@ -76,7 +76,24 @@ export function SurveyDashboard({
 
   if (responses.length === 0) {
     return (
-      <p className="text-sm text-[#6B6258]">No responses yet for this survey.</p>
+      <div className="space-y-6">
+        {chrome === "standalone" && (
+          <header>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
+              Survey Insights
+            </p>
+            <h2 className="mt-1 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
+              {surveyTitle}
+            </h2>
+          </header>
+        )}
+        <div className="panel px-6 py-12 text-center">
+          <p className="text-[15px] font-medium text-ink">No responses yet</p>
+          <p className="mx-auto mt-1.5 max-w-sm text-[13px] text-ink-soft">
+            Responses will appear here once people start completing this survey.
+          </p>
+        </div>
+      </div>
     );
   }
 
@@ -112,17 +129,17 @@ export function SurveyDashboard({
   return (
     <div className="space-y-10">
       {/* Header */}
-      <header className="flex flex-wrap items-end justify-between gap-4 pb-4 border-b border-[#E7E1D2]">
+      <header className="flex flex-wrap items-end justify-between gap-4 pb-4 border-b border-rule">
         <div>
           {chrome === "standalone" && (
-            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#6B6258] mb-2">
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-ink-soft mb-2">
               Survey Insights
             </p>
           )}
-          <h2 className="text-3xl font-bold text-[#1F1B16] tracking-tight">
+          <h2 className="text-3xl font-bold text-ink tracking-tight">
             {surveyTitle}
           </h2>
-          <p className="text-sm text-[#6B6258] mt-2 tabular-nums">
+          <p className="text-sm text-ink-soft mt-2 tabular-nums">
             {total} response{total === 1 ? "" : "s"}
             {filter !== "all" && (
               <> · {programs.find((p) => p.slug === filter)?.name ?? filter}</>
@@ -154,7 +171,7 @@ export function SurveyDashboard({
             type="button"
             onClick={downloadCsv}
             disabled={total === 0}
-            className="inline-flex items-center gap-1.5 rounded-md border border-[#E7E1D2] bg-[#FBF9F4] px-3 py-1.5 text-xs font-medium text-[#1F1B16] hover:bg-[#F2EDE0] transition-colors disabled:opacity-40"
+            className="inline-flex items-center gap-1.5 rounded-md border border-rule bg-paper-tint-soft px-3 py-1.5 text-xs font-medium text-ink hover:bg-paper-tint transition-colors disabled:opacity-40"
           >
             <Download size={13} />
             CSV
@@ -279,17 +296,17 @@ function ApplicantRosterDashboard({
   return (
     <div className="space-y-8">
       {/* Header */}
-      <header className="flex flex-wrap items-end justify-between gap-4 pb-4 border-b border-[#E7E1D2]">
+      <header className="flex flex-wrap items-end justify-between gap-4 pb-4 border-b border-rule">
         <div>
           {chrome === "standalone" && (
-            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#6B6258] mb-2">
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-ink-soft mb-2">
               Applications
             </p>
           )}
-          <h2 className="text-3xl font-bold text-[#1F1B16] tracking-tight">
+          <h2 className="text-3xl font-bold text-ink tracking-tight">
             {surveyTitle}
           </h2>
-          <p className="text-sm text-[#6B6258] mt-2 tabular-nums">
+          <p className="text-sm text-ink-soft mt-2 tabular-nums">
             {total} applicant{total === 1 ? "" : "s"}
             {filter !== "all" && (
               <> · {programs.find((p) => p.slug === filter)?.name ?? filter}</>
@@ -321,7 +338,7 @@ function ApplicantRosterDashboard({
             type="button"
             onClick={onDownloadCsv}
             disabled={total === 0}
-            className="inline-flex items-center gap-1.5 rounded-md border border-[#E7E1D2] bg-[#FBF9F4] px-3 py-1.5 text-xs font-medium text-[#1F1B16] hover:bg-[#F2EDE0] transition-colors disabled:opacity-40"
+            className="inline-flex items-center gap-1.5 rounded-md border border-rule bg-paper-tint-soft px-3 py-1.5 text-xs font-medium text-ink hover:bg-paper-tint transition-colors disabled:opacity-40"
           >
             ⬇️ CSV
           </button>
@@ -334,13 +351,13 @@ function ApplicantRosterDashboard({
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="Search by name or email…"
-        className="w-full max-w-sm border border-[#E7E1D2] bg-[#FBF9F4] px-3 py-2 text-sm text-[#1F1B16] placeholder:text-[#9B9388] focus:border-[#1F1B16] focus:outline-none"
+        className="w-full max-w-sm border border-rule bg-paper-tint-soft px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-ink focus:outline-none"
       />
 
       {/* Roster */}
-      <div className="divide-y divide-[#EFEAE0] border border-[#E7E1D2]">
+      <div className="divide-y divide-rule-soft border border-rule">
         {filtered.length === 0 && (
-          <p className="p-6 text-sm text-[#6B6258]">No applicants match your search.</p>
+          <p className="p-6 text-sm text-ink-soft">No applicants match your search.</p>
         )}
         {filtered.map((r) => {
           const key = r.email || r.full_name;
@@ -358,57 +375,57 @@ function ApplicantRosterDashboard({
               <button
                 type="button"
                 onClick={() => setExpandedEmail(isOpen ? null : key)}
-                className="w-full flex items-center gap-4 px-4 py-3.5 text-left hover:bg-[#F7F4EE] transition-colors"
+                className="w-full flex items-center gap-4 px-4 py-3.5 text-left hover:bg-paper-tint-soft transition-colors"
               >
                 {/* Initials avatar */}
                 <div
-                  className="shrink-0 h-9 w-9 rounded-full bg-[#E7E1D2] flex items-center justify-center text-[11px] font-semibold text-[#6B6258] select-none"
+                  className="shrink-0 h-9 w-9 rounded-full bg-paper-tint flex items-center justify-center text-[11px] font-semibold text-ink-soft select-none"
                   aria-hidden
                 >
                   {initials(r.full_name || r.email)}
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-[#1F1B16] truncate">
+                  <p className="text-sm font-medium text-ink truncate">
                     {r.full_name || "—"}
                   </p>
-                  <p className="text-[11px] text-[#9B9388] truncate">{r.email}</p>
+                  <p className="text-[11px] text-ink-faint truncate">{r.email}</p>
                 </div>
 
                 <div className="shrink-0 flex items-center gap-3">
                   {date && (
-                    <span className="text-[11px] text-[#9B9388] tabular-nums hidden sm:block">
+                    <span className="text-[11px] text-ink-faint tabular-nums hidden sm:block">
                       {date}
                     </span>
                   )}
-                  <span className={`text-[#9B9388] transition-transform inline-block text-xs ${isOpen ? "rotate-180" : ""}`}>
+                  <span className={`text-ink-faint transition-transform inline-block text-xs ${isOpen ? "rotate-180" : ""}`}>
                     ▾
                   </span>
                 </div>
               </button>
 
               {isOpen && (
-                <div className="border-t border-[#EFEAE0] bg-[#FBF9F4] px-4 sm:px-6 py-5 space-y-6">
+                <div className="border-t border-rule-soft bg-paper-tint-soft px-4 sm:px-6 py-5 space-y-6">
                   {answerQs.map((q) => {
                     const val = r.responses[q.id];
                     const text = typeof val === "string" ? val.trim() : "";
                     return (
                       <div key={q.id}>
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9B9388] mb-1">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-faint mb-1">
                           {q.label}
                         </p>
                         {text ? (
-                          <p className="text-[14px] text-[#1F1B16] leading-relaxed whitespace-pre-wrap">
+                          <p className="text-[14px] text-ink leading-relaxed whitespace-pre-wrap">
                             {text}
                           </p>
                         ) : (
-                          <p className="text-[13px] text-[#C4BDB0] italic">No answer</p>
+                          <p className="text-[13px] text-ink-faint italic">No answer</p>
                         )}
                       </div>
                     );
                   })}
                   {date && (
-                    <p className="text-[10px] text-[#9B9388] pt-2 border-t border-[#EFEAE0]">
+                    <p className="text-[10px] text-ink-faint pt-2 border-t border-rule-soft">
                       Submitted {date}
                     </p>
                   )}
@@ -437,8 +454,8 @@ function FilterPill({
       onClick={onClick}
       className={`rounded-md px-2.5 py-1 text-[11px] font-medium tabular-nums transition-colors ${
         active
-          ? "bg-[#1F1B16] text-[#F7F4EE]"
-          : "bg-transparent text-[#6B6258] hover:bg-[#F2EDE0]"
+          ? "bg-ink text-white"
+          : "bg-transparent text-ink-soft hover:bg-paper-tint"
       }`}
     >
       {label}
@@ -449,7 +466,7 @@ function FilterPill({
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>
-      <h3 className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#9B9388] mb-4">
+      <h3 className="text-[11px] font-medium uppercase tracking-[0.18em] text-ink-faint mb-4">
         {title}
       </h3>
       {children}
@@ -479,10 +496,10 @@ function RadioBlock({
 
   return (
     <div>
-      <p className="text-sm font-medium text-[#1F1B16] leading-snug">
+      <p className="text-sm font-medium text-ink leading-snug">
         {question.label}
       </p>
-      <p className="text-[11px] text-[#9B9388] mt-1 tabular-nums">
+      <p className="text-[11px] text-ink-faint mt-1 tabular-nums">
         {answered} answered
       </p>
       <div className="mt-4 space-y-2">
@@ -491,14 +508,14 @@ function RadioBlock({
           const pct = answered === 0 ? 0 : Math.round((count / answered) * 100);
           return (
             <div key={opt}>
-              <div className="flex items-baseline gap-3 text-[12px] text-[#1F1B16]">
+              <div className="flex items-baseline gap-3 text-[12px] text-ink">
                 <span className="flex-1 truncate">{opt}</span>
-                <span className="text-[#6B6258] shrink-0 tabular-nums text-[11px]">
+                <span className="text-ink-soft shrink-0 tabular-nums text-[11px]">
                   {count}
-                  <span className="text-[#9B9388]"> · {pct}%</span>
+                  <span className="text-ink-faint"> · {pct}%</span>
                 </span>
               </div>
-              <div className="h-[3px] mt-1 rounded-sm bg-[#EFEAE0] overflow-hidden">
+              <div className="h-[3px] mt-1 rounded-sm bg-paper-tint overflow-hidden">
                 <div
                   className="h-full"
                   style={{
@@ -537,10 +554,10 @@ function MultiSelectBlock({
 
   return (
     <div>
-      <p className="text-sm font-medium text-[#1F1B16] leading-snug">
+      <p className="text-sm font-medium text-ink leading-snug">
         {question.label}
       </p>
-      <p className="text-[11px] text-[#9B9388] mt-1 tabular-nums">
+      <p className="text-[11px] text-ink-faint mt-1 tabular-nums">
         {answered} answered
       </p>
       <div className="mt-4 space-y-2">
@@ -549,14 +566,14 @@ function MultiSelectBlock({
           const pct = answered === 0 ? 0 : Math.round((count / answered) * 100);
           return (
             <div key={opt}>
-              <div className="flex items-baseline gap-3 text-[12px] text-[#1F1B16]">
+              <div className="flex items-baseline gap-3 text-[12px] text-ink">
                 <span className="flex-1 truncate">{opt}</span>
-                <span className="text-[#6B6258] shrink-0 tabular-nums text-[11px]">
+                <span className="text-ink-soft shrink-0 tabular-nums text-[11px]">
                   {count}
-                  <span className="text-[#9B9388]"> · {pct}%</span>
+                  <span className="text-ink-faint"> · {pct}%</span>
                 </span>
               </div>
-              <div className="h-[3px] mt-1 rounded-sm bg-[#EFEAE0] overflow-hidden">
+              <div className="h-[3px] mt-1 rounded-sm bg-paper-tint overflow-hidden">
                 <div
                   className="h-full"
                   style={{
@@ -585,13 +602,13 @@ function LikertBlock({
 
   return (
     <div>
-      <p className="text-sm font-medium text-[#1F1B16] leading-snug">
+      <p className="text-sm font-medium text-ink leading-snug">
         {question.label}
       </p>
       {question.scaleAnchors && (
-        <p className="text-[11px] text-[#9B9388] mt-1">
+        <p className="text-[11px] text-ink-faint mt-1">
           {question.scaleAnchors.low}{" "}
-          <span className="text-[#D8D2C4]">→</span>{" "}
+          <span className="text-ink-faint">→</span>{" "}
           {question.scaleAnchors.high}
         </p>
       )}
@@ -615,13 +632,13 @@ function LikertBlock({
           return (
             <div key={stmt}>
               <div className="flex items-baseline gap-3 mb-2">
-                <p className="text-[13px] text-[#1F1B16] leading-snug flex-1">
+                <p className="text-[13px] text-ink leading-snug flex-1">
                   {stmt}
                 </p>
                 {isNumericAscending && total > 0 && (
-                  <p className="text-lg font-semibold text-[#1F1B16] shrink-0 tabular-nums">
+                  <p className="text-lg font-semibold text-ink shrink-0 tabular-nums">
                     {mean.toFixed(2)}
-                    <span className="text-[10px] text-[#9B9388] font-sans font-normal ml-1 tracking-wider uppercase">
+                    <span className="text-[10px] text-ink-faint font-sans font-normal ml-1 tracking-wider uppercase">
                       mean
                     </span>
                   </p>
@@ -633,7 +650,7 @@ function LikertBlock({
                   const pct = total === 0 ? 0 : Math.round((c / total) * 100);
                   return (
                     <div key={s} className="flex-1">
-                      <div className="h-7 bg-[#EFEAE0] flex items-end overflow-hidden">
+                      <div className="h-7 bg-paper-tint flex items-end overflow-hidden">
                         <div
                           className="w-full"
                           style={{
@@ -642,10 +659,10 @@ function LikertBlock({
                           }}
                         />
                       </div>
-                      <p className="text-[10px] text-center text-[#9B9388] mt-1 tabular-nums">
+                      <p className="text-[10px] text-center text-ink-faint mt-1 tabular-nums">
                         {s}
                       </p>
-                      <p className="text-[10px] text-center text-[#1F1B16] tabular-nums font-medium">
+                      <p className="text-[10px] text-center text-ink tabular-nums font-medium">
                         {c}
                       </p>
                     </div>
@@ -671,12 +688,12 @@ function DualLikertBlock({
 
   return (
     <div>
-      <p className="text-sm font-medium text-[#1F1B16] leading-snug">
+      <p className="text-sm font-medium text-ink leading-snug">
         {question.label}
       </p>
-      <p className="text-[11px] text-[#9B9388] mt-1">
+      <p className="text-[11px] text-ink-faint mt-1">
         {question.beforeLabel}{" "}
-        <span className="text-[#D8D2C4]">→</span>{" "}
+        <span className="text-ink-faint">→</span>{" "}
         {question.nowLabel}
       </p>
       <div className="mt-5 space-y-4">
@@ -711,15 +728,15 @@ function DualLikertBlock({
 
           return (
             <div key={stmt} className="grid grid-cols-[1fr_auto] gap-x-6 gap-y-2 items-baseline">
-              <p className="text-[13px] text-[#1F1B16] leading-snug">{stmt}</p>
+              <p className="text-[13px] text-ink leading-snug">{stmt}</p>
               {beforeN > 0 && nowN > 0 ? (
-                <p className="text-lg font-semibold text-[#1F1B16] shrink-0 tabular-nums whitespace-nowrap">
+                <p className="text-lg font-semibold text-ink shrink-0 tabular-nums whitespace-nowrap">
                   {beforeMean.toFixed(2)}
-                  <span className="text-[#9B9388] mx-1.5 font-normal">→</span>
+                  <span className="text-ink-faint mx-1.5 font-normal">→</span>
                   {nowMean.toFixed(2)}
                   <span
                     className={`ml-2 text-[11px] font-sans font-medium tabular-nums ${
-                      delta >= 0 ? "text-[#1F1B16]" : "text-[#9B9388]"
+                      delta >= 0 ? "text-ink" : "text-ink-faint"
                     }`}
                   >
                     {delta >= 0 ? "+" : ""}
@@ -727,14 +744,14 @@ function DualLikertBlock({
                   </span>
                 </p>
               ) : (
-                <span className="text-[11px] text-[#9B9388]">—</span>
+                <span className="text-[11px] text-ink-faint">—</span>
               )}
               <div className="col-span-2 space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] uppercase tracking-wider text-[#9B9388] w-12 shrink-0">
+                  <span className="text-[10px] uppercase tracking-wider text-ink-faint w-12 shrink-0">
                     Before
                   </span>
-                  <div className="flex-1 h-1.5 bg-[#EFEAE0] overflow-hidden">
+                  <div className="flex-1 h-1.5 bg-paper-tint overflow-hidden">
                     <div
                       className="h-full"
                       style={{
@@ -745,10 +762,10 @@ function DualLikertBlock({
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] uppercase tracking-wider text-[#9B9388] w-12 shrink-0">
+                  <span className="text-[10px] uppercase tracking-wider text-ink-faint w-12 shrink-0">
                     Now
                   </span>
-                  <div className="flex-1 h-1.5 bg-[#EFEAE0] overflow-hidden">
+                  <div className="flex-1 h-1.5 bg-paper-tint overflow-hidden">
                     <div
                       className="h-full"
                       style={{
@@ -783,16 +800,16 @@ function TextBlock({
     .filter((a) => typeof a.val === "string" && (a.val as string).trim().length > 0);
 
   return (
-    <div className="border-t border-[#E7E1D2] first:border-t-0">
+    <div className="border-t border-rule first:border-t-0">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-baseline justify-between gap-4 py-3 text-left hover:text-[#1F1B16] transition-colors"
+        className="w-full flex items-baseline justify-between gap-4 py-3 text-left hover:text-ink transition-colors"
       >
-        <p className="text-[13px] text-[#1F1B16] leading-snug">
+        <p className="text-[13px] text-ink leading-snug">
           {question.label}
         </p>
-        <span className="text-[11px] text-[#9B9388] shrink-0 tabular-nums">
+        <span className="text-[11px] text-ink-faint shrink-0 tabular-nums">
           {answers.length}
           <span className="ml-2 inline-block w-3 text-center">{open ? "−" : "+"}</span>
         </span>
@@ -800,14 +817,14 @@ function TextBlock({
       {open && (
         <div className="pb-4 -mt-1 space-y-4">
           {answers.length === 0 && (
-            <p className="text-[12px] text-[#9B9388] italic">No answers.</p>
+            <p className="text-[12px] text-ink-faint italic">No answers.</p>
           )}
           {answers.map((a, i) => (
-            <div key={i} className="border-l border-[#D8D2C4] pl-4">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-[#9B9388]">
+            <div key={i} className="border-l border-rule pl-4">
+              <p className="text-[10px] font-medium uppercase tracking-wider text-ink-faint">
                 {a.name}
               </p>
-              <p className="text-[13px] text-[#1F1B16] mt-1 leading-relaxed whitespace-pre-wrap">
+              <p className="text-[13px] text-ink mt-1 leading-relaxed whitespace-pre-wrap">
                 {String(a.val)}
               </p>
             </div>

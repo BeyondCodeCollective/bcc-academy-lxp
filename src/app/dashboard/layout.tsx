@@ -231,14 +231,18 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
     canAccessStaffContent(userRole, email) && !previewingSlug;
   let programs: { slug: string; name: string; domain: string; dnsReady?: boolean }[] = [];
   if (canSwitch) {
-    programs = getAllPrograms().map((p) => ({
+    // Super-admins manage every program, so the switcher lists them all —
+    // Catalyst, Upskill Bahamas (Forte), Beyond Code Centers, BGC. getAllPrograms
+    // returns only Catalyst (Forte/BCC/BGC live in SPECIAL_CONFIGS), which left
+    // super-admins with no way to switch into Upskill Bahamas et al.
+    // Builder-created courses are tracks inside Catalyst, not separate programs —
+    // manage those via /admin/courses, not the switcher.
+    programs = getJoinablePrograms().map((p) => ({
       slug: p.slug,
       name: p.name,
       domain: p.domain,
       dnsReady: p.dnsReady,
     }));
-    // Builder-created courses are now tracks inside Catalyst, not separate programs.
-    // The switcher only shows TS-config programs; manage courses via /admin/courses.
   }
 
   // Only redirect staff with no tracks to Lunch & Learns when they're on
@@ -340,8 +344,10 @@ async function TopBarShell() {
   // their account menu (the dark in-sidebar UserMenu is gone on the light shell).
 
   const canSwitch = canSwitchPrograms(role) && !isPreviewing;
+  // Super-admins manage every program — list them all (Catalyst, Upskill
+  // Bahamas, Beyond Code Centers, BGC), not just Catalyst from getAllPrograms.
   const programs = canSwitch
-    ? getAllPrograms().map((p) => ({
+    ? getJoinablePrograms().map((p) => ({
         slug: p.slug,
         name: p.name,
         domain: p.domain,
