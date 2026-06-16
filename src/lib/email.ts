@@ -137,6 +137,8 @@ type WelcomeEmailParams = {
   firstName: string;
   program: ProgramConfig;
   enrolledTracks: TrackConfig[];
+  /** Durable one-click sign-in link (e.g. /invite/<token>). */
+  signInUrl: string;
 };
 
 export async function sendWelcomeEmail({
@@ -144,6 +146,7 @@ export async function sendWelcomeEmail({
   firstName,
   program,
   enrolledTracks,
+  signInUrl,
 }: WelcomeEmailParams): Promise<void> {
   if (!resend) {
     console.warn("[email] RESEND_API_KEY not set — skipping welcome email");
@@ -166,7 +169,6 @@ export async function sendWelcomeEmail({
     .join("");
 
   const hasTutor = isTutorAvailable(program);
-  const dashboardUrl = `https://${program.domain}/dashboard`;
 
   const html = `
 <!DOCTYPE html>
@@ -179,11 +181,9 @@ export async function sendWelcomeEmail({
 
         <!-- Header -->
         <tr>
-          <td style="background:${program.colors.primary};padding:32px 24px;text-align:center;">
-            <h1 style="margin:0;font-size:22px;font-weight:700;color:#ffffff;">
-              Welcome to BCC Academy
-            </h1>
-            <p style="margin:8px 0 0;font-size:14px;color:rgba(255,255,255,0.85);">
+          <td style="background:#1a1a1a;padding:32px 24px;text-align:center;">
+            <p style="margin:0;font-size:22px;font-weight:700;letter-spacing:-0.02em;text-transform:uppercase;color:#ffffff;">BCC <span style="color:#E5F701;">[</span>Academy<span style="color:#E5F701;">]</span></p>
+            <p style="margin:10px 0 0;font-size:14px;color:rgba(255,255,255,0.7);">
               ${program.tagline}
             </p>
           </td>
@@ -209,8 +209,8 @@ export async function sendWelcomeEmail({
 
             <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 20px;">
               <tr>
-                <td style="background:${program.colors.primary};border-radius:10px;text-align:center;">
-                  <a href="${dashboardUrl}" style="display:inline-block;padding:12px 32px;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;">
+                <td style="background:#1a1a1a;border-radius:10px;text-align:center;">
+                  <a href="${signInUrl}" style="display:inline-block;padding:12px 32px;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;">
                     Go to Your Dashboard
                   </a>
                 </td>
@@ -250,6 +250,16 @@ export async function sendWelcomeEmail({
     from: FROM_ADDRESS,
     to,
     subject: `Welcome to BCC Academy`,
+    text: `Welcome to ${program.name}, ${firstName}!
+
+You're enrolled in:
+${enrolledTracks.map((t) => `- ${t.name}`).join("\n")}
+
+Open your dashboard — no password needed:
+
+${signInUrl}
+
+Questions? Reply to this email.`,
     html,
   });
 
