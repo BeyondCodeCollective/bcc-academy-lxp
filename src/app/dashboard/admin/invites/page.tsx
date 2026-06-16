@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { getSessionContext } from "@/lib/auth/session";
 import { canSwitchPrograms } from "@/lib/roles";
 import { createServiceClient } from "@/lib/supabase/server";
+import { getProgramWithOverrides } from "@/lib/programs/server";
+import { getHomeProgramForTrack } from "@/lib/programs";
 import { PageHeader } from "@/components/page-header";
 import { InvitesPanel } from "./invites-panel";
 
@@ -33,8 +35,24 @@ export default async function InvitesPage() {
     if (i.used_at) t.opened++;
     tally.set(i.track_slug as string, t);
   }
+  // Resolve display names (DB-overridden) for each track slug, from each
+  // track's home program — so the list shows "Foundations of AI & Digital
+  // Skills", not the raw "ai-literacy" slug.
+  const homeSlugs = new Set<string>();
+  for (const slug of tally.keys()) {
+    const home = getHomeProgramForTrack(slug);
+    if (home) homeSlugs.add(home.slug);
+  }
+  const overridden = await Promise.all(
+    [...homeSlugs].map((s) => getProgramWithOverrides(s)),
+  );
+  const nameBySlug = new Map<string, string>();
+  for (const p of overridden) {
+    for (const t of p.tracks) nameBySlug.set(t.slug, t.name);
+  }
+
   const tracks = Array.from(tally.entries())
-    .map(([slug, c]) => ({ slug, ...c }))
+    .map(([slug, c]) => ({ slug, name: nameBySlug.get(slug) ?? slug, ...c }))
     .sort((a, b) => b.invited - a.invited);
 
   return (

@@ -6,6 +6,7 @@ import { sendCohortInvites, type SendInvitesResult } from "./actions";
 
 type TrackRow = {
   slug: string;
+  name: string;
   invited: number;
   sent: number;
   opened: number;
@@ -16,10 +17,10 @@ export function InvitesPanel({ tracks }: { tracks: TrackRow[] }) {
   const [active, setActive] = useState<string | null>(null);
   const [results, setResults] = useState<Record<string, SendInvitesResult>>({});
 
-  const send = (slug: string, invited: number) => {
+  const send = (slug: string, name: string, invited: number) => {
     if (
       !window.confirm(
-        `Send one-click login invites to all ${invited} allowlisted students for "${slug}"?\n\nAlready-sent students are skipped; failures are retried.`,
+        `Send one-click login invites to all ${invited} allowlisted students for "${name}"?\n\nAlready-sent students are skipped; failures are retried.`,
       )
     )
       return;
@@ -50,7 +51,7 @@ export function InvitesPanel({ tracks }: { tracks: TrackRow[] }) {
         return (
           <div key={t.slug} className="flex flex-wrap items-center gap-4 px-4 py-4">
             <div className="min-w-0 flex-1">
-              <p className="text-[14px] font-semibold text-ink">{t.slug}</p>
+              <p className="text-[14px] font-semibold text-ink">{t.name}</p>
               <p className="text-[12px] text-ink-faint tabular-nums">
                 {t.invited} allowlisted · {t.sent} invited · {t.opened} opened
               </p>
@@ -72,7 +73,7 @@ export function InvitesPanel({ tracks }: { tracks: TrackRow[] }) {
             </div>
             <button
               type="button"
-              onClick={() => send(t.slug, t.invited)}
+              onClick={() => send(t.slug, t.name, t.invited)}
               disabled={busy}
               className={buttonClass("dark", "sm")}
             >
