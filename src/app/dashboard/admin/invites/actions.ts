@@ -54,18 +54,30 @@ export async function sendCohortInvites(
   );
   if (emails.length === 0) return { ok: true, sent: 0, failed: 0, total: 0 };
 
-  // 2) Insert one invite row per email; the unique (email, track) index makes
-  //    re-runs skip emails that already have an invite.
-  const rows = emails.map((email) => ({
-    token: randomBytes(24).toString("base64url"),
-    email,
-    track_slug: trackSlug,
-    program_slug: programSlug,
-    status: "pending",
-  }));
-  await svc
+  // 2) Insert one invite row per email that doesn't already have one for this
+  //    track. Explicit dedup rather than ON CONFLICT — the unique index is on
+  //    lower(email) (an expression), which ON CONFLICT column lists can't
+  //    target, so an upsert would error and silently insert nothing.
+  const { data: existingRows } = await svc
     .from("invites")
-    .upsert(rows, { onConflict: "email,track_slug", ignoreDuplicates: true });
+    .select("email")
+    .eq("track_slug", trackSlug);
+  const existing = new Set(
+    (existingRows ?? []).map((r) => (r.email as string).toLowerCase()),
+  );
+  const newRows = emails
+    .filter((email) => !existing.has(email))
+    .map((email) => ({
+      token: randomBytes(24).toString("base64url"),
+      email,
+      track_slug: trackSlug,
+      program_slug: programSlug,
+      status: "pending",
+    }));
+  if (newRows.length > 0) {
+    const { error: insErr } = await svc.from("invites").insert(newRows);
+    if (insErr) return { ok: false, error: `Could not create invites: ${insErr.message}` };
+  }
 
   // 3) Send everything not already delivered (pending + previously failed).
   const { data: toSend } = await svc
