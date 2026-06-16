@@ -106,7 +106,7 @@ export async function sendCohortInvites(
     processed++;
     const inviteLink = `${origin}/invite/${inv.token}`;
     try {
-      await sendInviteEmail({ to: inv.email, inviteLink, programName });
+      await sendInviteEmail({ to: inv.email, inviteLink, programName, programSlug });
       await svc
         .from("invites")
         .update({ status: "sent", sent_at: new Date().toISOString(), error: null })
