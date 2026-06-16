@@ -254,13 +254,17 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
     previewingSlug === LUNCH_LEARN_PREVIEW_SLUG ||
     (!isAdmin && enrolledTrackSlugs.length === 0 && !!email && isStaffEmail(email) && isUmbrellaContext);
 
+  // A student with no enrolled tracks yet (brand-new, enrollment still being
+  // finalized on this same request) used to get the "topbar" variant — a
+  // horizontal header that the flex-row + md:pl-60 shell squishes into a broken
+  // vertically-centered left column. Give them the standard fixed sidebar
+  // instead (just Home/Help until their course nav populates), which fits the
+  // layout and matches what they'll see once enrolled.
   const navVariant: "admin-sidebar" | "student-sidebar" | "lunch-learn-sidebar" | "topbar" = isAdmin
     ? "admin-sidebar"
     : showLunchLearnSidebar
       ? "lunch-learn-sidebar"
-      : enrolledTrackSlugs.length > 0
-        ? "student-sidebar"
-        : "topbar";
+      : "student-sidebar";
 
   let lunchLearnRecordings: { id: string; title: string; recorded_at: string }[] = [];
   if (navVariant === "lunch-learn-sidebar" && isSupabaseConfigured()) {
