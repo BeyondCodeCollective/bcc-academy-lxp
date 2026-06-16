@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import type { ComponentType } from "react";
 import { getProgram } from "@/lib/programs/server";
+import { getJoinablePrograms } from "@/lib/programs";
 import { PLATFORM_PUBLIC_SURVEYS } from "@/lib/surveys/platform";
 import { TextScaleToggle } from "@/components/text-scale-toggle";
 import { ReadAloudButton } from "@/components/read-aloud-button";
@@ -40,8 +41,14 @@ export default async function PublicSurveyPage({
 }) {
   const { id } = await params;
   const program = await getProgram();
+  // Resolve from the current program first, then ANY program (so a Catalyst
+  // survey link still works on the marketing apex / a different program
+  // context), then platform-wide public surveys.
   const survey =
     (program.surveys ?? []).find((s) => s.id === id) ??
+    getJoinablePrograms()
+      .flatMap((p) => p.surveys ?? [])
+      .find((s) => s.id === id) ??
     PLATFORM_PUBLIC_SURVEYS[id];
 
   if (!survey) notFound();
