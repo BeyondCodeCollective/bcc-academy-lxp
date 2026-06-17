@@ -336,7 +336,7 @@ async function DashboardContent({
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-ink tracking-tight">
-            Welcome, {firstName}
+            Welcome{firstName ? `, ${firstName}` : ""}
           </h1>
           <p className="mt-1 text-sm text-ink">
             You&apos;re signed in &mdash; your cohort hasn&apos;t started yet.
@@ -366,7 +366,7 @@ async function DashboardContent({
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-ink tracking-tight">
-            Welcome, {firstName}
+            Welcome{firstName ? `, ${firstName}` : ""}
           </h1>
           <p className="mt-1 text-sm text-ink-soft">{program.name}</p>
         </div>
@@ -424,7 +424,7 @@ async function DashboardContent({
 
       <div>
         <PageHeader
-          title={`Welcome back, ${firstName}`}
+          title={`Welcome back${firstName ? `, ${firstName}` : ""}`}
           subtitle={
             !isAdmin && !previewSlugOuter
               ? visibleTracks.length > 0 || otherProgramCourses.length > 0

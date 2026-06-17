@@ -41,7 +41,9 @@ export async function resolveCurrentUser(
 
   const { student } = ctx;
   return {
-    firstName: student?.first_name || "there",
+    // Empty when we have no real name — greetings drop the name rather than
+    // showing a placeholder like "there".
+    firstName: student?.first_name?.trim() || "",
     lastName: student?.last_name || "",
     email: student?.email ?? ctx.userEmail ?? null,
     userRole: student?.role ?? "student",
