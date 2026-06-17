@@ -74,10 +74,10 @@ function ctaButton(inviteLink: string, label: string): string {
  *  generic per-person one-click link is injected as the CTA. */
 function forteSummerInvite(inviteLink: string): InviteEmailContent {
   return {
-    subject: "UpSkill Bahamas: Foundation of AI & Digital Skills Summer Programming",
+    subject: "UpSkill Bahamas: Foundations of AI & Digital Skills Summer Programming",
     text: `Hello!
 
-ICYMI — here's a note to make sure you have all the details on an update to your Upskill Bahamas Foundation of AI & Digital Skills program!
+ICYMI — here's a note to make sure you have all the details on an update to your Upskill Bahamas Foundations of AI & Digital Skills program!
 
 Here's the update:
 Your course content has a new home! We've moved everything into one learning portal, and brought all your existing course content with it, plus new summer sessions we're releasing just in time for the season.
@@ -97,7 +97,7 @@ We're excited for you to keep building real AI and digital skills this summer!
 Best,
 The Beyond Code Team`,
     html: inviteShell(`    <p style="margin:0 0 16px;font-size:16px;color:#1a1a1a;">Hello!</p>
-    <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#555;">ICYMI — here's a note to make sure you have all the details on an update to your <strong>Upskill Bahamas Foundation of AI &amp; Digital Skills</strong> program!</p>
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#555;">ICYMI — here's a note to make sure you have all the details on an update to your <strong>Upskill Bahamas Foundations of AI &amp; Digital Skills</strong> program!</p>
     <p style="margin:0 0 8px;font-size:15px;line-height:1.6;color:#555;"><strong>Here's the update:</strong></p>
     <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#555;">Your course content has a new home! We've moved everything into one learning portal, and brought all your existing course content with it, plus new summer sessions we're releasing just in time for the season.</p>
     <p style="margin:0 0 8px;font-size:15px;line-height:1.6;color:#555;">Everything is:</p>

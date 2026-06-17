@@ -34,8 +34,8 @@ export const forteConfig: ProgramConfig = {
   tracks: [
     {
       slug: "ai-literacy",
-      name: "AI Literacy",
-      shortName: "AI Literacy",
+      name: "Foundations of AI & Digital Skills",
+      shortName: "Foundations of AI",
       description:
         "Ten self-paced sessions to build real, practical AI and digital skills you can use right away — at work, in school, or on your own projects. Each week comes with guided activities and a short written deliverable.\n\nUse whatever AI tool you like — ChatGPT, Gemini, Claude. Free versions cover everything. Keep your notes wherever works for you.",
       officeHours: [
@@ -311,12 +311,12 @@ export const forteConfig: ProgramConfig = {
   requireInviteLink: true,
   coppa: { required: false },
   seo: {
-    title: "Upskill Bahamas — AI Literacy Program by Beyond Code Collective",
+    title: "Upskill Bahamas — Foundations of AI & Digital Skills by Beyond Code Collective",
     description:
-      "Upskill Bahamas builds confidence with the essential AI and digital skills needed to thrive in a modern, tech-enabled world. A beginner-friendly AI literacy program by Beyond Code Collective.",
-    ogTitle: "Upskill Bahamas — AI Literacy Program",
+      "Upskill Bahamas builds confidence with the essential AI and digital skills needed to thrive in a modern, tech-enabled world. A beginner-friendly Foundations of AI & Digital Skills program by Beyond Code Collective.",
+    ogTitle: "Upskill Bahamas — Foundations of AI & Digital Skills",
     ogDescription:
-      "Beginner-friendly AI literacy training — prompt design, digital identity, productivity, research, and entrepreneurship. By Beyond Code Collective.",
+      "Beginner-friendly AI and digital skills training — prompt design, digital identity, productivity, research, and entrepreneurship. By Beyond Code Collective.",
   },
   organization: "Beyond Code Collective",
 };
