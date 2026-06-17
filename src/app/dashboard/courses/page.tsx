@@ -4,6 +4,7 @@ import Link from "next/link";
 import { resolveCurrentUser } from "@/lib/current-user";
 import { getProgram } from "@/lib/programs/server";
 import { getJoinablePrograms } from "@/lib/programs";
+import { getHiddenTrackSlugs } from "@/lib/programs/hidden";
 import { canAccessAdminPanel } from "@/lib/roles";
 import { toneForTrack } from "@/lib/track-visual";
 import { CatalogCard } from "@/components/catalog-card";
@@ -59,12 +60,16 @@ export default async function CoursesIndexPage() {
     ).values(),
   );
 
+  // Hidden courses are dropped from the catalog too (reversible via Manage
+  // Courses). Keeps the browse view in sync with the admin home.
+  const hidden = await getHiddenTrackSlugs();
+
   // Courses = multi-week cohort tracks. Single-event tracks (e.g. the
   // 2-hour AI Automation Bootcamp) belong on /dashboard/workshops, not
   // here — including them surfaced a "Workshops" phase header inside the
   // courses catalog, which conflicted with the dedicated workshops hub.
   const cohortTracks = allTracks.filter(
-    (t) => t.type !== "single-event",
+    (t) => t.type !== "single-event" && !hidden.has(t.slug),
   );
 
   // Group tracks by phase so the catalog reads as a taxonomy, not a flat dump.

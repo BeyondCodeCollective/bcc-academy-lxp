@@ -102,51 +102,52 @@ export async function createCourseAction(formData: {
   };
 }
 
-export async function archiveCourseAction(trackSlug: string): Promise<{ success: boolean; error?: string }> {
+// Hide / show a course. Reversible, never deletes. Backed by hidden_courses,
+// keyed by (program_slug, track_slug) so it works for BOTH hardcoded TS-config
+// tracks and DB/builder courses — no track_overrides row required.
+export async function hideCourseAction(
+  programSlug: string,
+  trackSlug: string,
+): Promise<{ success: boolean; error?: string }> {
   const svc = await requireSuperAdmin();
+  const {
+    data: { user },
+  } = await (await createClient()).auth.getUser();
 
-  const { data: catalystRow } = await svc
-    .from("programs")
-    .select("id")
-    .eq("slug", "catalyst")
-    .single<{ id: string }>();
-  if (!catalystRow) return { success: false, error: "Could not find Catalyst program." };
-
-  const { error } = await svc
-    .from("track_overrides")
-    .update({ archived_at: new Date().toISOString() })
-    .eq("program_id", catalystRow.id)
-    .eq("track_slug", trackSlug);
+  const { error } = await svc.from("hidden_courses").upsert(
+    {
+      program_slug: programSlug,
+      track_slug: trackSlug,
+      hidden_at: new Date().toISOString(),
+      hidden_by: user?.id ?? null,
+    },
+    { onConflict: "program_slug,track_slug" },
+  );
 
   if (error) {
-    console.error("[archiveCourseAction] failed:", error);
-    return { success: false, error: "Failed to archive course." };
+    console.error("[hideCourseAction] failed:", error);
+    return { success: false, error: "Failed to hide course." };
   }
-
   return { success: true };
 }
 
-export async function unarchiveCourseAction(trackSlug: string): Promise<{ success: boolean; error?: string }> {
+export async function showCourseAction(
+  _programSlug: string,
+  trackSlug: string,
+): Promise<{ success: boolean; error?: string }> {
   const svc = await requireSuperAdmin();
 
-  const { data: catalystRow } = await svc
-    .from("programs")
-    .select("id")
-    .eq("slug", "catalyst")
-    .single<{ id: string }>();
-  if (!catalystRow) return { success: false, error: "Could not find Catalyst program." };
-
+  // Un-hide everywhere — clear any hidden row for this course regardless of
+  // which program it was hidden under.
   const { error } = await svc
-    .from("track_overrides")
-    .update({ archived_at: null })
-    .eq("program_id", catalystRow.id)
+    .from("hidden_courses")
+    .delete()
     .eq("track_slug", trackSlug);
 
   if (error) {
-    console.error("[unarchiveCourseAction] failed:", error);
-    return { success: false, error: "Failed to unarchive course." };
+    console.error("[showCourseAction] failed:", error);
+    return { success: false, error: "Failed to show course." };
   }
-
   return { success: true };
 }
 
