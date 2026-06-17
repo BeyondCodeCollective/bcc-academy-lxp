@@ -891,6 +891,12 @@ export function AdminTabs({
                       Invites
                     </Link>
                     <Link
+                      href="/dashboard/admin/landing"
+                      className={buttonClass("secondary", "sm")}
+                    >
+                      Landing pages
+                    </Link>
+                    <Link
                       href="/dashboard/admin/features"
                       className={buttonClass("secondary", "sm")}
                     >
