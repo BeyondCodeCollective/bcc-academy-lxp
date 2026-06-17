@@ -139,7 +139,10 @@ export function WeekCarousel({
                 <span className="text-2xl leading-none opacity-30 sm:text-3xl">
                   {renderIcon(w.icon, 28)}
                 </span>
-                <span className="mt-1.5 line-clamp-2 px-1 text-center text-[10px] font-medium leading-tight text-ink-faint sm:text-[11px]">
+                <span className="mt-1.5 px-1 text-center text-[9px] font-medium uppercase tracking-widest text-ink-faint sm:text-[10px]">
+                  Week {w.week}
+                </span>
+                <span className="mt-0.5 line-clamp-2 px-1 text-center text-[10px] font-medium leading-tight text-ink-faint sm:text-[11px]">
                   {w.topic}
                 </span>
                 <span className="mt-1 px-1 text-center text-[9px] font-semibold uppercase tracking-wide text-ink-soft sm:text-[10px]">
@@ -158,8 +161,11 @@ export function WeekCarousel({
                 >
                   {renderIcon(w.icon, 28)}
                 </span>
+                <span className="mt-1.5 px-1 text-center text-[9px] font-medium uppercase tracking-widest text-ink-faint sm:text-[10px]">
+                  Week {w.week}
+                </span>
                 <span
-                  className={`mt-1.5 line-clamp-2 px-1 text-center text-[10px] font-medium leading-tight transition-colors sm:text-[11px] ${
+                  className={`mt-0.5 line-clamp-2 px-1 text-center text-[10px] font-medium leading-tight transition-colors sm:text-[11px] ${
                     w.isPast
                       ? "text-ink-faint"
                       : "text-ink-soft group-hover:text-ink"
