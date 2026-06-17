@@ -302,18 +302,16 @@ async function DashboardContent({
     : program.tracks.filter((t) => enrolledTrackSlugs.includes(t.slug));
   const notEnrolled = !isAdmin && visibleTracks.length === 0;
 
-  // Single-course students: where do they land?
-  //   • Fresh login from an email link (?setup=1) → stay on the dashboard home
-  //     so they orient on their portal first (invite + welcome emails both
-  //     arrive this way). Dropping a brand-new student straight into a course
-  //     week was disorienting — the home gives them a calm landing.
-  //   • Any other visit — clicking a course, returning later → the course
-  //     overview (the main course page), so there's no redundant bare shell.
+  // Single-course students never see the bare dashboard home — their course
+  // overview IS their home. Land them there consistently, every time (email
+  // login, clicking Home, returning later), so they don't get a one-time
+  // "Welcome back" shell they then never see again. The overview page is an
+  // oriented landing (curriculum-at-a-glance week grid + "Open Week N" CTA),
+  // not a deep drop into a lesson.
   // Held back while an enabled pathway assessment is incomplete (its prompt
   // renders here) or when the student also has courses in other programs (the
   // cross-program list renders here and would otherwise never be seen).
   if (
-    setup !== "1" &&
     !isAdmin &&
     visibleTracks.length === 1 &&
     otherProgramCourses.length === 0 &&
