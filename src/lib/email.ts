@@ -283,7 +283,7 @@ export async function sendWelcomeEmail({
               <tr>
                 <td style="background:#1a1a1a;border-radius:10px;text-align:center;">
                   <a href="${signInUrl}" style="display:inline-block;padding:12px 32px;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;">
-                    Go to Your Dashboard
+                    Go to Your Portal
                   </a>
                 </td>
               </tr>
