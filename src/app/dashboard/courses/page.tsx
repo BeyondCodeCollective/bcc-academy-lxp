@@ -2,8 +2,8 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { resolveCurrentUser } from "@/lib/current-user";
-import { getProgram } from "@/lib/programs/server";
-import { getJoinablePrograms } from "@/lib/programs";
+import { getProgram, getProgramWithOverrides } from "@/lib/programs/server";
+import { getJoinablePrograms, getHomeProgramForTrack } from "@/lib/programs";
 import { getHiddenTrackSlugs } from "@/lib/programs/hidden";
 import { canAccessAdminPanel } from "@/lib/roles";
 import { toneForTrack } from "@/lib/track-visual";
@@ -12,25 +12,6 @@ import { PageHeader, Section } from "@/components/page-header";
 import type { TrackConfig } from "@/lib/programs/types";
 
 export const dynamic = "force-dynamic";
-
-const PHASE_ORDER: { key: string; label: string }[] = [
-  { key: "foundation", label: "Foundation" },
-  { key: "core", label: "Core" },
-  { key: "workshop", label: "Workshops" },
-  { key: "exit", label: "Exit" },
-];
-
-function phaseLabel(key: string): string {
-  return (
-    PHASE_ORDER.find((p) => p.key === key)?.label ??
-    key.charAt(0).toUpperCase() + key.slice(1)
-  );
-}
-
-function phaseRank(key: string): number {
-  const i = PHASE_ORDER.findIndex((p) => p.key === key);
-  return i === -1 ? PHASE_ORDER.length : i;
-}
 
 export default async function CoursesIndexPage() {
   const cookieStore = await cookies();
@@ -47,49 +28,41 @@ export default async function CoursesIndexPage() {
 
   const program = await getProgram();
 
-  // This is the admin "every track offered through BCC Academy" catalog, so
-  // aggregate tracks across ALL programs — not just the current one. On the
-  // apex (the "BCC Academy" marketing shell with no tracks of its own) or any
-  // single program, scoping to program.tracks made the catalog read "No
-  // courses yet" even though courses exist under other programs.
-  const allTracks = Array.from(
-    new Map(
-      getJoinablePrograms()
-        .flatMap((p) => p.tracks)
-        .map((t) => [t.slug, t]),
-    ).values(),
-  );
-
   // Hidden courses are dropped from the catalog too (reversible via Manage
   // Courses). Keeps the browse view in sync with the admin home.
   const hidden = await getHiddenTrackSlugs();
 
-  // Courses = multi-week cohort tracks. Single-event tracks (e.g. the
-  // 2-hour AI Automation Bootcamp) belong on /dashboard/workshops, not
-  // here — including them surfaced a "Workshops" phase header inside the
-  // courses catalog, which conflicted with the dedicated workshops hub.
-  const cohortTracks = allTracks.filter(
-    (t) => t.type !== "single-event" && !hidden.has(t.slug),
+  // This is the admin "every course offered through BCC Academy" catalog, so
+  // aggregate across ALL programs — grouped by program/org (Catalyst, Upskill
+  // Bahamas, Beyond Code Centers, BGC). Each course is listed under its HOME
+  // program only (Catalyst aggregates others' tracks, so dedupe by home).
+  // Names reflect DB overrides. Single-event tracks belong on /workshops.
+  const programs = getJoinablePrograms();
+  const withOverrides = await Promise.all(
+    programs.map((p) => getProgramWithOverrides(p.slug)),
   );
 
-  // Group tracks by phase so the catalog reads as a taxonomy, not a flat dump.
-  const grouped = new Map<string, TrackConfig[]>();
-  for (const t of cohortTracks) {
-    const key = t.phase ?? "other";
-    const arr = grouped.get(key) ?? [];
-    arr.push(t);
-    grouped.set(key, arr);
-  }
-  const sections = Array.from(grouped.entries())
-    .map(([key, items]) => ({
-      key,
-      label: phaseLabel(key),
-      items: [...items].sort(
-        (a, b) =>
-          new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
-      ),
+  const sections = withOverrides
+    .map((prog) => ({
+      key: prog.slug,
+      label: prog.name,
+      items: prog.tracks
+        .filter((t) => {
+          const home = getHomeProgramForTrack(t.slug)?.slug;
+          return (
+            (!home || home === prog.slug) &&
+            t.type !== "single-event" &&
+            !hidden.has(t.slug)
+          );
+        })
+        .sort(
+          (a, b) =>
+            new Date(a.startDate).getTime() - new Date(b.startDate).getTime(),
+        ),
     }))
-    .sort((a, b) => phaseRank(a.key) - phaseRank(b.key));
+    .filter((s) => s.items.length > 0);
+
+  const cohortTracks = sections.flatMap((s) => s.items);
 
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-5xl px-4 sm:px-5 py-8 space-y-10">
