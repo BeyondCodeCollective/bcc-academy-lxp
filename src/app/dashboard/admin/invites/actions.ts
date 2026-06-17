@@ -1,7 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
-import { randomBytes } from "crypto";
+import { generateInviteToken } from "@/lib/invite-token";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { canSwitchPrograms } from "@/lib/roles";
@@ -69,7 +69,7 @@ export async function sendCohortInvites(
   const newRows = emails
     .filter((email) => !existing.has(email))
     .map((email) => ({
-      token: randomBytes(24).toString("base64url"),
+      token: generateInviteToken(),
       email,
       track_slug: trackSlug,
       program_slug: programSlug,
@@ -160,7 +160,7 @@ export async function sendTestInvite(
     .maybeSingle();
   let token = existing?.token as string | undefined;
   if (!token) {
-    token = randomBytes(24).toString("base64url");
+    token = generateInviteToken();
     const { error: insErr } = await svc.from("invites").insert({
       token,
       email,

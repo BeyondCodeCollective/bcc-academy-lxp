@@ -1,4 +1,4 @@
-import { randomBytes } from "crypto";
+import { generateInviteToken } from "@/lib/invite-token";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getProgramId } from "@/lib/programs/server";
 import type { ProgramConfig } from "@/lib/programs/types";
@@ -245,7 +245,7 @@ export async function completePendingSetup(
         .maybeSingle();
       let inviteToken = existingInvite?.token as string | undefined;
       if (!inviteToken) {
-        const fresh = randomBytes(24).toString("base64url");
+        const fresh = generateInviteToken();
         const { error: invErr } = await admin.from("invites").insert({
           token: fresh,
           email,
