@@ -8,12 +8,15 @@ import { Field, fieldInput } from "@/components/ui";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
+type WeekSummary = { week: number; topic: string; icon: string };
+
 type Props = {
   track: {
     slug: string;
     name: string;
     description?: string;
     instructor: string;
+    weekSummaries: WeekSummary[];
   };
   programSlug: string;
   onLiveChange?: (patch: { name: string; instructor: string }) => void;
@@ -30,21 +33,29 @@ export function TrackOverviewForm({ track, programSlug, onLiveChange }: Props) {
   const [name, setName] = useState(track.name);
   const [instructor, setInstructor] = useState(track.instructor);
   const [description, setDescription] = useState(track.description ?? "");
+  // Week topics — seeded from the merged weekSummaries; numbers stay fixed 1..N.
+  const [weekSummaries, setWeekSummaries] = useState<WeekSummary[]>(
+    () => track.weekSummaries.map((w) => ({ ...w })),
+  );
   const [saveState, setSaveState] = useState<SaveState>("idle");
 
   const isFirstRun = useRef(true);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const latestValues = useRef({ name, instructor, description });
+  const latestValues = useRef({ name, instructor, description, weekSummaries });
 
   // Keep ref in sync so the blur handler always sends fresh values.
-  latestValues.current = { name, instructor, description };
+  latestValues.current = { name, instructor, description, weekSummaries };
 
   const doSave = useRef(async (shouldRefresh = false) => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     setSaveState("saved"); // optimistic indicator
     setTimeout(() => setSaveState("idle"), 2000);
     try {
-      const patch: TrackOverviewPatch = { ...latestValues.current };
+      const { weekSummaries: weeks, ...rest } = latestValues.current;
+      const patch: TrackOverviewPatch = {
+        ...rest,
+        week_summaries: weeks,
+      };
       await saveTrackOverview(track.slug, patch, programSlug);
       // Refresh AFTER the DB write + cache bust complete, not before.
       if (shouldRefresh) startTransition(() => router.refresh());
@@ -66,10 +77,15 @@ export function TrackOverviewForm({ track, programSlug, onLiveChange }: Props) {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [name, instructor, description]);
+  }, [name, instructor, description, weekSummaries]);
 
   // Immediate save on blur — refreshes page so header/title updates.
   const handleBlur = () => doSave.current(true);
+
+  const updateWeek = (i: number, field: "topic" | "icon", value: string) =>
+    setWeekSummaries((prev) =>
+      prev.map((w, idx) => (idx === i ? { ...w, [field]: value } : w)),
+    );
 
   return (
     <div className="space-y-6">
@@ -114,6 +130,51 @@ export function TrackOverviewForm({ track, programSlug, onLiveChange }: Props) {
           />
         </Field>
       </div>
+
+      {weekSummaries.length > 0 && (
+        <div className="panel p-4 sm:p-5 space-y-4">
+          <div>
+            <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-faint">
+              Weeks
+            </p>
+            <p className="mt-1 text-xs text-ink-faint">
+              Topic and icon shown for each week on the track and week pages.
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            {weekSummaries.map((w, i) => (
+              <div key={w.week} className="flex items-end gap-3">
+                <span className="mb-2.5 w-14 shrink-0 text-xs font-medium text-ink-faint">
+                  Week {w.week}
+                </span>
+                <div className="w-16 shrink-0">
+                  <Field label="Icon">
+                    <input
+                      type="text"
+                      value={w.icon}
+                      onChange={(e) => updateWeek(i, "icon", e.target.value)}
+                      onBlur={handleBlur}
+                      className={`${fieldInput} text-center`}
+                    />
+                  </Field>
+                </div>
+                <div className="flex-1">
+                  <Field label="Topic">
+                    <input
+                      type="text"
+                      value={w.topic}
+                      onChange={(e) => updateWeek(i, "topic", e.target.value)}
+                      onBlur={handleBlur}
+                      className={fieldInput}
+                    />
+                  </Field>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
