@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSessionContext } from "@/lib/auth/session";
 import { canSwitchPrograms } from "@/lib/roles";
-import { getJoinablePrograms, getProgramBySlug, getHomeProgramForTrack } from "@/lib/programs";
+import { getJoinablePrograms, getHomeProgramForTrack } from "@/lib/programs";
 import { getProgramWithOverrides } from "@/lib/programs/server";
 import { getHiddenTrackSlugs } from "@/lib/programs/hidden";
 import { CoursesList } from "./courses-list";
@@ -28,10 +28,6 @@ export default async function ProgramsListPage() {
 
   const groups: ProgramGroup[] = withOverrides
     .map((prog) => {
-      // Hardcoded TS-config slugs for this program — anything NOT here is a
-      // DB/builder course and is editable.
-      const tsSlugs = new Set(getProgramBySlug(prog.slug).tracks.map((t) => t.slug));
-
       const rows: CourseRow[] = prog.tracks
         // Catalyst aggregates other programs' tracks. List each track under its
         // HOME program only, so it appears once. Builder courses (no TS home)
@@ -46,7 +42,9 @@ export default async function ProgramsListPage() {
           name: t.name,
           joinUrl: `https://bccacademy.io/join/${prog.slug}?track=${t.slug}`,
           hidden: hidden.has(t.slug),
-          isEditable: !tsSlugs.has(t.slug),
+          // Every course is editable now — saving upserts a track_overrides row
+          // even for hardcoded courses (DB-driven, no deploy needed).
+          isEditable: true,
         }));
 
       const byName = (a: CourseRow, b: CourseRow) => a.name.localeCompare(b.name);
