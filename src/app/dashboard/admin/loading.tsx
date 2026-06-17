@@ -1,12 +1,14 @@
+// Neutral admin fallback — used for the admin home AND its sub-routes (invites,
+// programs, surveys, landing, allowlist…). Header + a generic row list: most
+// admin pages are lists/tables, so this reads right without the admin-home-only
+// "quick-tool strip" that made it look wrong on every sub-page.
 export default function AdminLoading() {
-  // Mirrors the Admin Home: header + quick-tool strip + a divide-y list of
-  // track rows (NOT a card grid) — so the skeleton matches what actually loads.
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-5xl space-y-6 px-4 sm:px-5 py-8 animate-pulse">
-      {/* Header */}
+      {/* Header — title + subtitle, optional action chips */}
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <div className="h-8 w-28 rounded bg-paper-tint" />
+          <div className="h-8 w-40 rounded bg-paper-tint" />
           <div className="mt-2.5 h-3 w-72 max-w-full rounded bg-paper-tint" />
         </div>
         <div className="hidden shrink-0 gap-2 sm:flex">
@@ -15,14 +17,7 @@ export default function AdminLoading() {
         </div>
       </div>
 
-      {/* Quick-tool strip */}
-      <div className="flex flex-wrap gap-2">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-8 w-28 rounded bg-paper-tint" />
-        ))}
-      </div>
-
-      {/* Track list */}
+      {/* Generic row list */}
       <div className="divide-y divide-rule overflow-hidden panel">
         {Array.from({ length: 5 }).map((_, i) => (
           <div key={i} className="flex items-center gap-4 px-4 py-3.5">
