@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { CaretUpDown, SignOut, Check } from "@phosphor-icons/react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -34,7 +33,6 @@ export function UserMenu({
   currentProgramSlug: string;
   variant?: Variant;
 }) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -69,11 +67,12 @@ export function UserMenu({
       return;
     }
     document.cookie = `program-override=${slug}; path=/; max-age=86400`;
-    // Go straight to the admin panel — the program switcher is only shown to
-    // super-admins, and /dashboard immediately redirects admins to
-    // /dashboard/admin. Pushing to /dashboard first flashes the learner
-    // loading skeleton before that redirect swaps in the admin one.
-    router.push("/dashboard/admin");
+    // Full navigation (not router.push) — the program context is resolved
+    // server-side from the program-override cookie, and a client-side push
+    // serves the cached route without re-reading it, so the switched-to program
+    // (and the menu's checkmark) wouldn't update. A real navigation reloads with
+    // the new cookie. Straight to /dashboard/admin (super-admins land there).
+    window.location.href = "/dashboard/admin";
   };
   /* eslint-enable react-hooks/immutability */
 
