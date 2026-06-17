@@ -29,7 +29,7 @@ export async function sendSignInEmail({
     html: `
 <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:520px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;">
   <div style="background:#1a1a1a;padding:28px 24px;text-align:center;">
-    <p style="margin:0;font-size:24px;font-weight:700;letter-spacing:-0.02em;text-transform:uppercase;color:#ffffff;">BCC <span style="color:#E5F701;">[</span>Academy<span style="color:#E5F701;">]</span></p>
+    <p style="margin:0;font-size:24px;font-weight:700;letter-spacing:-0.02em;text-transform:uppercase;color:#ffffff;">${programName}</p>
   </div>
   <div style="padding:32px 24px;">
     <p style="margin:0 0 8px;font-size:22px;font-weight:700;color:#1a1a1a;">You're almost in.</p>
@@ -51,12 +51,13 @@ export async function sendSignInEmail({
  *  in on click (no expiry). Sent in bulk by the super-admin invite tool. */
 type InviteEmailContent = { subject: string; text: string; html: string };
 
-/** Shared dark-header shell so every invite variant looks on-brand. */
-function inviteShell(bodyHtml: string): string {
+/** Shared dark-header shell. The header shows the program/org brand (white-
+ *  label — BCC Academy is the infrastructure, not the brand on student email). */
+function inviteShell(brand: string, bodyHtml: string): string {
   return `
 <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:520px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;">
   <div style="background:#1a1a1a;padding:28px 24px;text-align:center;">
-    <p style="margin:0;font-size:24px;font-weight:700;letter-spacing:-0.02em;text-transform:uppercase;color:#ffffff;">BCC <span style="color:#E5F701;">[</span>Academy<span style="color:#E5F701;">]</span></p>
+    <p style="margin:0;font-size:24px;font-weight:700;letter-spacing:-0.02em;text-transform:uppercase;color:#ffffff;">${brand}</p>
   </div>
   <div style="padding:32px 24px;">
 ${bodyHtml}
@@ -72,7 +73,7 @@ function ctaButton(inviteLink: string, label: string): string {
 
 /** Upskill Bahamas summer-2026 campaign copy (provided by the team). The
  *  generic per-person one-click link is injected as the CTA. */
-function forteSummerInvite(inviteLink: string): InviteEmailContent {
+function forteSummerInvite(programName: string, inviteLink: string): InviteEmailContent {
   return {
     subject: "UpSkill Bahamas: Foundations of AI & Digital Skills Summer Programming",
     text: `Hello!
@@ -96,7 +97,7 @@ We're excited for you to keep building real AI and digital skills this summer!
 
 Best,
 The Beyond Code Team`,
-    html: inviteShell(`    <p style="margin:0 0 16px;font-size:16px;color:#1a1a1a;">Hello!</p>
+    html: inviteShell(programName, `    <p style="margin:0 0 16px;font-size:16px;color:#1a1a1a;">Hello!</p>
     <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#555;">ICYMI — here's a note to make sure you have all the details on an update to your <strong>Upskill Bahamas Foundations of AI &amp; Digital Skills</strong> program!</p>
     <p style="margin:0 0 8px;font-size:15px;line-height:1.6;color:#555;"><strong>Here's the update:</strong></p>
     <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#555;">Your course content has a new home! We've moved everything into one learning portal, and brought all your existing course content with it, plus new summer sessions we're releasing just in time for the season.</p>
@@ -124,7 +125,7 @@ Your spot is ready. Open your dashboard — no password needed:
 ${inviteLink}
 
 If you didn't expect this, you can ignore it. Questions? Email info@bccacademy.io.`,
-    html: inviteShell(`    <p style="margin:0 0 8px;font-size:22px;font-weight:700;color:#1a1a1a;">Welcome to ${programName}.</p>
+    html: inviteShell(programName, `    <p style="margin:0 0 8px;font-size:22px;font-weight:700;color:#1a1a1a;">Welcome to ${programName}.</p>
     <p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:#555;">Your spot is ready. Click the button below to open your dashboard — no password needed.</p>
     ${ctaButton(inviteLink, "Get started →")}
     <p style="margin:0;font-size:12px;color:#999;line-height:1.5;">If you didn't expect this, you can ignore it. Questions? Reply here or email <a href="mailto:info@bccacademy.io" style="color:#1a1a1a;">info@bccacademy.io</a>.</p>`),
@@ -150,7 +151,7 @@ export async function sendInviteEmail({
   }
   const content =
     programSlug === "forte"
-      ? forteSummerInvite(inviteLink)
+      ? forteSummerInvite(programName, inviteLink)
       : genericInvite(programName, inviteLink);
 
   const { error } = await resend.emails.send({
@@ -254,7 +255,7 @@ export async function sendWelcomeEmail({
         <!-- Header -->
         <tr>
           <td style="background:#1a1a1a;padding:32px 24px;text-align:center;">
-            <p style="margin:0;font-size:22px;font-weight:700;letter-spacing:-0.02em;text-transform:uppercase;color:#ffffff;">BCC <span style="color:#E5F701;">[</span>Academy<span style="color:#E5F701;">]</span></p>
+            <p style="margin:0;font-size:22px;font-weight:700;letter-spacing:-0.02em;text-transform:uppercase;color:#ffffff;">${program.name}</p>
             <p style="margin:10px 0 0;font-size:14px;color:rgba(255,255,255,0.7);">
               ${program.tagline}
             </p>
