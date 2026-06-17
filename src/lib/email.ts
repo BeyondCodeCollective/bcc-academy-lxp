@@ -33,11 +33,11 @@ export async function sendSignInEmail({
   </div>
   <div style="padding:32px 24px;">
     <p style="margin:0 0 8px;font-size:22px;font-weight:700;color:#1a1a1a;">You're almost in.</p>
-    <p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:#555;">Click the button below to confirm your email and access your dashboard. This link expires in 24 hours.</p>
+    <p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:#555;">Click the button below to sign in and open your portal. This link expires in 24 hours.</p>
     <div style="text-align:center;margin:0 0 28px;">
-      <a href="${magicLink}" style="display:inline-block;padding:14px 36px;background:#1a1a1a;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:700;font-size:15px;letter-spacing:0.02em;">Confirm my account →</a>
+      <a href="${magicLink}" style="display:inline-block;padding:14px 36px;background:#1a1a1a;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:700;font-size:15px;letter-spacing:0.02em;">Open my portal →</a>
     </div>
-    <p style="margin:0;font-size:12px;color:#999;line-height:1.5;">If you didn't request this, you can safely ignore this email. Questions? Reply here or email <a href="mailto:fonz.morris@wearebgc.org" style="color:#1a1a1a;">fonz.morris@wearebgc.org</a>.</p>
+    <p style="margin:0;font-size:12px;color:#999;line-height:1.5;">If you didn't request this, you can safely ignore this email. Questions? Reply here or email <a href="mailto:info@bccacademy.io" style="color:#1a1a1a;">info@bccacademy.io</a>.</p>
   </div>
 </div>`,
   });
