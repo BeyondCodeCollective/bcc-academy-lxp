@@ -321,7 +321,7 @@ export async function sendWelcomeEmail({
   const { error } = await resend.emails.send({
     from: FROM_ADDRESS,
     to,
-    subject: `Welcome to BCC Academy`,
+    subject: `Welcome to ${program.name}`,
     text: `Welcome to ${program.name}, ${firstName}!
 
 You're enrolled in:

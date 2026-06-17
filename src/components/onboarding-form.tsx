@@ -94,7 +94,7 @@ export function OnboardingForm({ program, visibleTracks }: Props) {
               <BookOpen size={28} className="text-white" />
             </div>
             <h2 id="onboarding-title" className="text-xl font-bold text-ink">
-              Welcome to BCC Academy
+              Welcome to {program.name}
             </h2>
             <p className="mt-2 text-sm text-ink-soft">
               Here&apos;s what you&apos;re signed up for.
