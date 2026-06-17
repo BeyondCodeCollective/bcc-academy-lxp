@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { type ComponentType } from "react";
 import { ArrowRight, ChatCircle, BookOpen } from "@phosphor-icons/react/dist/ssr";
+import { TUTOR_DISABLED_PRELAUNCH } from "@/lib/programs";
 
 type TrackTile = {
   slug: string;
@@ -77,11 +78,14 @@ export function DashboardBento({
         </div>
       </section>
 
-      {/* Utilities, demoted below a rule */}
-      <div className="mt-14 grid gap-3 border-t border-rule pt-6 sm:grid-cols-2 sm:gap-4">
-        <QuickLink href="/dashboard/tutor" label="AI Tutor" sub="Ask anything, anytime" Icon={ChatCircle} />
-        <QuickLink href="/dashboard/resources" label="Resources" sub="Materials & contacts" Icon={BookOpen} />
-      </div>
+      {/* Utilities, demoted below a rule. Hidden while the AI Tutor is disabled
+          pre-launch — the links would otherwise 404 / show a coming-soon page. */}
+      {!TUTOR_DISABLED_PRELAUNCH && (
+        <div className="mt-14 grid gap-3 border-t border-rule pt-6 sm:grid-cols-2 sm:gap-4">
+          <QuickLink href="/dashboard/tutor" label="AI Tutor" sub="Ask anything, anytime" Icon={ChatCircle} />
+          <QuickLink href="/dashboard/resources" label="Resources" sub="Materials & contacts" Icon={BookOpen} />
+        </div>
+      )}
     </div>
   );
 }
