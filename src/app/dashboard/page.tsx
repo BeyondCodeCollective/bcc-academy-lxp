@@ -302,26 +302,24 @@ async function DashboardContent({
     : program.tracks.filter((t) => enrolledTrackSlugs.includes(t.slug));
   const notEnrolled = !isAdmin && visibleTracks.length === 0;
 
-  // One course → never show the bare /dashboard shell; go to that track.
-  // WHERE on the track depends on how they arrived:
-  //   • Fresh login from an email link (?setup=1) → deep-link straight to the
-  //     live week (the session/Zoom). Fewest clicks to content. Returning
-  //     mid-cohort students hit the current calendar week; not-yet-started /
-  //     self-paced → Week 1.
-  //   • Any other visit — clicking "Home", admin preview → the course
-  //     overview (the main course page).
+  // Single-course students: where do they land?
+  //   • Fresh login from an email link (?setup=1) → stay on the dashboard home
+  //     so they orient on their portal first (invite + welcome emails both
+  //     arrive this way). Dropping a brand-new student straight into a course
+  //     week was disorienting — the home gives them a calm landing.
+  //   • Any other visit — clicking a course, returning later → the course
+  //     overview (the main course page), so there's no redundant bare shell.
   // Held back while an enabled pathway assessment is incomplete (its prompt
   // renders here) or when the student also has courses in other programs (the
   // cross-program list renders here and would otherwise never be seen).
-  // Announcements also render on the track overview page, so skipping doesn't
-  // hide them.
   if (
+    setup !== "1" &&
     !isAdmin &&
     visibleTracks.length === 1 &&
     otherProgramCourses.length === 0 &&
     (!assessmentEnabled || assessmentCompleted)
   ) {
-    redirect(singleCourseDestination(visibleTracks[0], setup === "1"));
+    redirect(singleCourseDestination(visibleTracks[0], false));
   }
 
   const now = new Date();
