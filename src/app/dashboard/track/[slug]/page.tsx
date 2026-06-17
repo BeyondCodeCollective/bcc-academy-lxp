@@ -78,9 +78,8 @@ export default async function TrackOverviewPage({
       : 0;
 
   const ctaWeek = started ? currentWeek : 1;
-  const ctaLabel = started
-    ? `Open current week — Week ${currentWeek}`
-    : "Open Week 1";
+  // Single "Week N" — the old "Open current week — Week N" said "week" twice.
+  const ctaLabel = `Open Week ${ctaWeek}`;
 
   // Track-level description if authored, else fall back to week 1's
   // description (every track has one written and it's already framing copy).
@@ -157,6 +156,9 @@ export default async function TrackOverviewPage({
          track tone. Replaces a previous decorative-icon hero. */}
       <header className="space-y-5">
         <div className="relative w-full overflow-hidden panel p-5 sm:p-7">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
+            Jump to any week
+          </p>
           <WeekCarousel weeks={weekCards} emojiIcons={track.emojiIcons} />
           {started && (
             <div className="absolute top-3 right-3">
@@ -183,10 +185,10 @@ export default async function TrackOverviewPage({
         <div>
           <Link
             href={`/dashboard/track/${slug}/${ctaWeek}`}
-            className={buttonClass("dark", "md")}
+            className={`${buttonClass("primary", "md")} w-full justify-center text-[15px] shadow-sm sm:w-auto`}
           >
             {ctaLabel}
-            <ArrowRight size={14} weight="bold" />
+            <ArrowRight size={16} weight="bold" />
           </Link>
         </div>
       </header>
