@@ -14,6 +14,7 @@ const PHASE_OPTIONS = [
 ];
 
 export function EditCourseForm({
+  programSlug,
   trackSlug,
   initialName,
   initialInstructor,
@@ -21,6 +22,7 @@ export function EditCourseForm({
   initialSessionsPerWeek,
   initialPhase,
 }: {
+  programSlug: string;
   trackSlug: string;
   initialName: string;
   initialInstructor: string;
@@ -43,7 +45,7 @@ export function EditCourseForm({
     setSaved(false);
     setPending(true);
     try {
-      const res: UpdateCourseResult = await updateCourseAction(trackSlug, {
+      const res: UpdateCourseResult = await updateCourseAction(programSlug, trackSlug, {
         name,
         instructor,
         totalWeeks: parseInt(totalWeeks, 10),

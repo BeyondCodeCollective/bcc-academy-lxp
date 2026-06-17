@@ -156,6 +156,7 @@ export type UpdateCourseResult =
   | { success: false; error: string };
 
 export async function updateCourseAction(
+  programSlug: string,
   trackSlug: string,
   formData: { name: string; instructor: string; totalWeeks: number; sessionsPerWeek: number; phase?: string },
 ): Promise<UpdateCourseResult> {
@@ -169,24 +170,30 @@ export async function updateCourseAction(
   if (!Number.isFinite(sessionsPerWeek) || !Number.isInteger(sessionsPerWeek) || sessionsPerWeek < 1 || sessionsPerWeek > 7)
     return { success: false, error: "Sessions per week must be between 1 and 7." };
 
-  const { data: catalystRow } = await svc
+  const { data: programRow } = await svc
     .from("programs")
     .select("id")
-    .eq("slug", "catalyst")
+    .eq("slug", programSlug)
     .single<{ id: string }>();
-  if (!catalystRow) return { success: false, error: "Could not find Catalyst program." };
+  if (!programRow) return { success: false, error: "Could not find that program." };
 
+  // Upsert (not update) so a hardcoded TS-config course with no override row yet
+  // gets one created on first edit — making EVERY course editable from the DB
+  // without a code deploy. Unset fields fall back to the TS config via mergeTrack.
   const { error } = await svc
     .from("track_overrides")
-    .update({
-      name: name.trim(),
-      instructor: instructor.trim(),
-      total_weeks: totalWeeks,
-      sessions_per_week: sessionsPerWeek,
-      ...(phase ? { phase } : {}),
-    })
-    .eq("program_id", catalystRow.id)
-    .eq("track_slug", trackSlug);
+    .upsert(
+      {
+        program_id: programRow.id,
+        track_slug: trackSlug,
+        name: name.trim(),
+        instructor: instructor.trim(),
+        total_weeks: totalWeeks,
+        sessions_per_week: sessionsPerWeek,
+        ...(phase ? { phase } : {}),
+      },
+      { onConflict: "program_id,track_slug" },
+    );
 
   if (error) {
     console.error("[updateCourseAction] failed:", error);
