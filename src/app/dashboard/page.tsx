@@ -366,8 +366,6 @@ async function DashboardContent({
   }
 
   if (notEnrolled) {
-    const firstTrack = program.tracks[0];
-
     return (
       <div className="space-y-6">
         <div>
@@ -377,47 +375,12 @@ async function DashboardContent({
           <p className="mt-1 text-sm text-ink-soft">{program.name}</p>
         </div>
 
-        <div className="panel p-6 sm:p-8 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center bg-muted-bg text-2xl">
-            <WeekIcon
-              icon={firstTrack?.weekSummaries[0]?.icon ?? "🎓"}
-              emoji={firstTrack?.emojiIcons}
-              size={26}
-            />
-          </div>
-          <h2 className="mt-4 text-lg font-semibold text-ink">
-            You&apos;re in!
-          </h2>
-          <p className="mx-auto mt-2 max-w-md text-sm text-ink-soft">
-            Your track enrollment is being finalized. You&apos;ll see your full dashboard here shortly.
+        <div className="panel p-6 sm:p-8">
+          <p className="text-sm text-ink">Your track is being finalized.</p>
+          <p className="mt-1 text-sm text-ink-soft">
+            You&apos;ll see your dashboard here shortly.
           </p>
         </div>
-
-        {firstTrack && (
-          <div className="panel p-5">
-            <p className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
-              What you&apos;ll cover
-            </p>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5">
-              {firstTrack.weekSummaries.slice(0, 10).map((ws) => (
-                <div
-                  key={ws.week}
-                  className="flex flex-col items-center bg-muted-bg p-3 text-center"
-                >
-                  <span className="text-lg">
-                    <WeekIcon icon={ws.icon} emoji={firstTrack.emojiIcons} size={20} />
-                  </span>
-                  <span className="mt-1 text-[11px] font-medium text-ink">
-                    {ws.topic}
-                  </span>
-                  <span className="text-[10px] text-ink-faint">
-                    Week {ws.week}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     );
   }
