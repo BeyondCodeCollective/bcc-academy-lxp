@@ -9,6 +9,7 @@ import { getPublicSurveyStats, getDashboardSurveyStats, getDashboardAllSurveyRes
 import { canAccessAdminPanel, canSwitchPrograms } from "@/lib/roles";
 import { PLATFORM_AUTH_SURVEYS, PLATFORM_PUBLIC_SURVEYS } from "@/lib/surveys/platform";
 import { getAllPrograms, getHomeProgramForTrack } from "@/lib/programs";
+import { getHiddenTrackSlugs } from "@/lib/programs/hidden";
 import type { SurveyConfig } from "@/lib/programs/types";
 import { getSurveySchema } from "@/lib/surveys/schemas";
 import type { SurveyQuestion } from "@/components/survey-fields";
@@ -440,10 +441,16 @@ export default async function AdminPage({
         })
       : allTracks;
 
+  // Drop courses the super-admin has hidden via Manage Courses — they vanish
+  // from the admin home (and catalog) but keep all data and are one click to
+  // restore. Works for hardcoded and DB courses alike.
+  const hiddenSlugs = await getHiddenTrackSlugs();
+  const visibleTracks = ownTracks.filter((t) => !hiddenSlugs.has(t.slug));
+
   // Instructors only see their assigned tracks
   const tracks = userRole === "instructor" && myInstructorTracks.length > 0
-    ? ownTracks.filter((t) => myInstructorTracks.includes(t.slug))
-    : ownTracks;
+    ? visibleTracks.filter((t) => myInstructorTracks.includes(t.slug))
+    : visibleTracks;
 
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-5xl space-y-6 px-4 sm:px-5 py-8">
