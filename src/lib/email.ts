@@ -265,7 +265,7 @@ export async function sendWelcomeEmail({
         <tr>
           <td style="padding:28px 24px;">
             <p style="margin:0 0 16px;font-size:15px;color:#1a1a1a;line-height:1.5;">
-              Hey ${firstName},
+              Hey${firstName ? ` ${firstName}` : ""},
             </p>
             <p style="margin:0 0 20px;font-size:15px;color:#1a1a1a;line-height:1.5;">
               You're all set. Here's what you're signed up for:
@@ -322,7 +322,7 @@ export async function sendWelcomeEmail({
     from: FROM_ADDRESS,
     to,
     subject: `Welcome to ${program.name}`,
-    text: `Welcome to ${program.name}, ${firstName}!
+    text: `Welcome to ${program.name}${firstName ? `, ${firstName}` : ""}!
 
 You're enrolled in:
 ${enrolledTracks.map((t) => `- ${t.name}`).join("\n")}

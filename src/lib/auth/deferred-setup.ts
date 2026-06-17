@@ -211,12 +211,6 @@ export async function completePendingSetup(
 
   // 5. Send welcome email (new users only)
   if (isNew && email) {
-    const emailPrefix = email.split("@")[0];
-    const derivedName =
-      emailPrefix
-        .split(/[._-]/)
-        .map((s) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase())[0] || "there";
-
     // Idempotency: welcome_seen_at (which flips isNew false) is only set by the
     // onboarding form, but self-paced single-course students are redirected
     // straight to their course and never see it — so isNew stays true on every
@@ -224,9 +218,12 @@ export async function completePendingSetup(
     // welcome email is sent at most once.
     const { data: priorWelcome } = await admin
       .from("students")
-      .select("welcome_email_sent_at")
+      .select("welcome_email_sent_at, first_name")
       .eq("id", userId)
       .maybeSingle();
+    // Personalize only when we have a REAL first name — never guess from the
+    // email address (avoids "Hey Pdrm4000,"). Empty → the email drops the name.
+    const welcomeName = (priorWelcome?.first_name as string | null)?.trim() || "";
 
     if (tracksToEnroll.length > 0 && !priorWelcome?.welcome_email_sent_at) {
       // Durable one-click sign-in link for the welcome email — reuse the
@@ -260,7 +257,7 @@ export async function completePendingSetup(
 
       void sendWelcomeEmail({
         to: email,
-        firstName: derivedName,
+        firstName: welcomeName,
         program,
         enrolledTracks: tracksToEnroll,
         signInUrl,
