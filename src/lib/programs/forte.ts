@@ -284,6 +284,7 @@ export const forteConfig: ProgramConfig = {
             "What did AI get wrong or fabricate? How did you catch it? What would have happened if you hadn't?",
             "One thing you learned about this topic that you didn't know before.",
           ],
+          videoUrl: "https://qrtvbclbrumsrwbugvrr.supabase.co/storage/v1/object/public/session-files/forte/ai-literacy/week-9/upskill-bahamas-9.mp4",
         },
         {
           week: 10,
@@ -304,6 +305,7 @@ export const forteConfig: ProgramConfig = {
             "What's the one skill from this entire program you'll use most in building this?",
             "What's the first thing you're going to do with what you've built here?",
           ],
+          videoUrl: "https://qrtvbclbrumsrwbugvrr.supabase.co/storage/v1/object/public/session-files/forte/ai-literacy/week-10/upskill-bahamas-10.mp4",
         },
       ],
     },
