@@ -217,7 +217,18 @@ export async function completePendingSetup(
         .split(/[._-]/)
         .map((s) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase())[0] || "there";
 
-    if (tracksToEnroll.length > 0) {
+    // Idempotency: welcome_seen_at (which flips isNew false) is only set by the
+    // onboarding form, but self-paced single-course students are redirected
+    // straight to their course and never see it — so isNew stays true on every
+    // invite-link re-click. Gate on welcome_email_sent_at (written below) so the
+    // welcome email is sent at most once.
+    const { data: priorWelcome } = await admin
+      .from("students")
+      .select("welcome_email_sent_at")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (tracksToEnroll.length > 0 && !priorWelcome?.welcome_email_sent_at) {
       // Durable one-click sign-in link for the welcome email — reuse the
       // invite token they came in on (or mint one if none), so the CTA works
       // whenever they open it. The old bare /dashboard link bounced
