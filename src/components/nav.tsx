@@ -95,6 +95,7 @@ export function Nav({
   logo,
   programName,
   showTutor = true,
+  showResources = false,
   minimal = false,
   firstName,
   lastName,
@@ -114,6 +115,7 @@ export function Nav({
   logo: string;
   programName: string;
   showTutor?: boolean;
+  showResources?: boolean;
   minimal?: boolean;
   firstName: string;
   lastName: string;
@@ -169,10 +171,12 @@ export function Nav({
       ? [{ href: "/dashboard/workshops", label: "Workshops", icon: Confetti }]
       : []),
     ...(showTutor
-      ? [
-          { href: "/dashboard/tutor", label: "AI Tutor", icon: ChatsCircle },
-          { href: "/dashboard/resources", label: "Resources", icon: BookOpen },
-        ]
+      ? [{ href: "/dashboard/tutor", label: "AI Tutor", icon: ChatsCircle }]
+      : []),
+    // Resources is independent of the AI Tutor — shown whenever the current
+    // program has any resources (admins manage them at /dashboard/admin/resources).
+    ...(showResources
+      ? [{ href: "/dashboard/resources", label: "Resources", icon: BookOpen }]
       : []),
     ...(canSwitch
       ? [{ href: "/dashboard/insights", label: "Analytics", icon: ChartBar }]

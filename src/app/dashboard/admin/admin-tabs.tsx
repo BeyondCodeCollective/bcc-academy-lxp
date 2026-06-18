@@ -900,6 +900,12 @@ export function AdminTabs({
                       Landing pages
                     </Link>
                     <Link
+                      href="/dashboard/admin/resources"
+                      className={buttonClass("secondary", "sm")}
+                    >
+                      Resources
+                    </Link>
+                    <Link
                       href="/dashboard/admin/features"
                       className={buttonClass("secondary", "sm")}
                     >

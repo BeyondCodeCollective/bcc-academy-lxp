@@ -20,6 +20,7 @@ import { BCC_INTAKE_SURVEY_ID } from "@/lib/surveys/platform";
 import { isSurveyEnabledForLearner } from "@/lib/surveys/features";
 import { isStaffEmail } from "@/lib/auth/admins";
 import { getHomeProgramForTrack } from "@/lib/programs";
+import { programHasResources } from "@/lib/resources";
 
 function NavSkeleton() {
   // Light placeholder that matches the shell — avoids a black flash on
@@ -230,6 +231,9 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
   }
 
   const showTutor = isTutorAvailable(program);
+  // Resources nav appears only when the current program actually has resources
+  // (data-driven — no empty nav item). Independent of the AI Tutor.
+  const showResources = await programHasResources(program.slug);
   // canAccessStaff gates the Workshops nav. Demote it in preview mode the
   // same way isAdmin / canSwitch are — otherwise a super-admin previewing
   // as an AI Literacy student still sees the Workshops link and the nav
@@ -322,6 +326,7 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
         logo={program.logo}
         programName={program.name}
         showTutor={showTutor}
+        showResources={showResources}
         minimal={isSurvey}
         firstName={firstName}
         lastName={lastName}
