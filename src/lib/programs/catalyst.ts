@@ -1,13 +1,12 @@
 import type { ProgramConfig } from "./types";
 import { atgConfig } from "./atg";
-import { forteConfig } from "./forte";
 import { additionalTracks } from "./additional-tracks";
 
-// Catalyst consolidates all BCC programs into one: ATG, Forge (now
-// "Beyond Code Centers"), and Forte tracks live side-by-side. Students
-// are enrolled in specific tracks via invite links or admin assignment.
-// The program-level config defines shared branding and surveys; the
-// tracks carry their own schedule, content, and phase metadata.
+// Catalyst consolidates ATG + its own additional tracks. Beyond Code Centers
+// (Forge) and Upskill Bahamas (Forte) are their OWN programs — their courses no
+// longer aggregate into Catalyst. Students are enrolled in specific tracks via
+// invite links or admin assignment. The program-level config defines shared
+// branding and surveys; the tracks carry their own schedule, content, and phase.
 
 export const catalystConfig: ProgramConfig = {
   slug: "catalyst",
@@ -33,13 +32,8 @@ export const catalystConfig: ProgramConfig = {
       ...t,
       phase: t.slug === "mass" ? "foundation" as const : "core" as const,
     })),
-    // Beyond Code Centers (forge) is now its own program — its short/one-off
-    // courses no longer aggregate into Catalyst.
-    // Core — Forte Bahamas AI literacy (Foundations of AI & Digital Skills)
-    ...forteConfig.tracks.map((t) => ({
-      ...t,
-      phase: "core" as const,
-    })),
+    // Beyond Code Centers (Forge) and Upskill Bahamas (Forte) are their own
+    // programs — their courses no longer aggregate into Catalyst.
     // Additional tracks from Circle export (Network+, Game Dev, etc.)
     ...additionalTracks,
   ],
