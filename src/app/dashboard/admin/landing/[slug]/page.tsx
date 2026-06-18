@@ -7,6 +7,7 @@ import { LandingForm } from "../landing-form";
 import type { LandingFormInitial } from "../landing-form";
 import type { ScheduleDay, LandingPartner } from "@/lib/landing-pages";
 import { DeleteLandingButton } from "../delete-landing-button";
+import { ManageMenu } from "../../manage-menu";
 
 export const dynamic = "force-dynamic";
 
@@ -55,7 +56,12 @@ export default async function EditLandingPage({
         <PageHeader
           title="Edit landing page"
           subtitle={`/camp/${initial.slug}`}
-          actions={<DeleteLandingButton slug={initial.slug} />}
+          actions={
+            <div className="flex items-center gap-2">
+              <DeleteLandingButton slug={initial.slug} />
+              <ManageMenu />
+            </div>
+          }
         />
       </div>
       <LandingForm initial={initial} originalSlug={initial.slug} />
