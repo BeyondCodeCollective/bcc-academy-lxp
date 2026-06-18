@@ -988,7 +988,7 @@ const SECURITY_PLUS_APPLICATION_PAGES: SurveyPage[] = [
   },
   {
     title: "Your Commitment",
-    subtitle: "We want to be upfront: this program asks for real time and energy.",
+    subtitle: "We want to be upfront: this program asks for real time and energy. This cohort runs approximately 12 weeks, with an estimated 6-8 hours per week including instructor-led technology sessions, coursework, coaching, and additional wraparound support.",
     questions: [
       {
         type: "text",
