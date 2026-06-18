@@ -6,6 +6,7 @@ import { FeatureToggles } from "./feature-toggles";
 import { SurveyLinksSection } from "./survey-links-section";
 import { getProgram } from "@/lib/programs/server";
 import { PageHeader } from "@/components/page-header";
+import { ManageMenu } from "../manage-menu";
 
 const PROGRAM_LABELS: Record<string, string> = {
   catalyst:  "Catalyst",
@@ -99,6 +100,7 @@ export default async function FeaturesPage() {
       <PageHeader
         title="Tools"
         subtitle="Links, settings, and features for managing the platform."
+        actions={<ManageMenu />}
       />
 
       {/* Survey & Form Links */}

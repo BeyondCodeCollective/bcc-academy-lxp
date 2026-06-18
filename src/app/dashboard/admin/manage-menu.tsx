@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Gear, CaretDown } from "@phosphor-icons/react";
 import { buttonClass } from "@/components/ui";
 
@@ -18,6 +19,7 @@ const ITEMS: { href: string; label: string }[] = [
 export function ManageMenu() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!open) return;
@@ -59,17 +61,23 @@ export function ManageMenu() {
           role="menu"
           className="absolute right-0 z-30 mt-1.5 w-52 overflow-hidden rounded-lg border border-rule bg-surface-elevated py-1 shadow-lg"
         >
-          {ITEMS.map((it) => (
-            <Link
-              key={it.href}
-              href={it.href}
-              role="menuitem"
-              onClick={() => setOpen(false)}
-              className="block px-3.5 py-2 text-sm text-ink transition-colors hover:bg-paper-tint"
-            >
-              {it.label}
-            </Link>
-          ))}
+          {ITEMS.map((it) => {
+            const active = pathname.startsWith(it.href);
+            return (
+              <Link
+                key={it.href}
+                href={it.href}
+                role="menuitem"
+                aria-current={active ? "page" : undefined}
+                onClick={() => setOpen(false)}
+                className={`block px-3.5 py-2 text-sm transition-colors hover:bg-paper-tint ${
+                  active ? "bg-paper-tint font-semibold text-ink" : "text-ink"
+                }`}
+              >
+                {it.label}
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>

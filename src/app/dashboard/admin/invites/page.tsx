@@ -5,6 +5,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { getProgramWithOverrides } from "@/lib/programs/server";
 import { getHomeProgramForTrack } from "@/lib/programs";
 import { PageHeader } from "@/components/page-header";
+import { ManageMenu } from "../manage-menu";
 import { InvitesPanel } from "./invites-panel";
 
 // Bulk send paces at ~2/sec; give it room for a few hundred recipients.
@@ -60,6 +61,7 @@ export default async function InvitesPage() {
       <PageHeader
         title="Invites"
         subtitle="Send one-click login invites to allowlisted students. Each gets a link that signs them in — no password, and it never expires until they're in."
+        actions={<ManageMenu />}
       />
       <InvitesPanel tracks={tracks} />
     </div>
