@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { canSwitchPrograms } from "@/lib/roles";
 import { PageHeader } from "@/components/page-header";
+import { ManageMenu } from "../manage-menu";
 import { buttonClass, DataTable } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -34,12 +35,15 @@ export default async function LandingPagesListPage() {
           title="Landing pages"
           subtitle="Marketing landing pages served from /camp/<slug>. Create or edit any page here — changes go live with no code deploy."
           actions={
-            <Link
-              href="/dashboard/admin/landing/new"
-              className={`${buttonClass("primary", "md")} shrink-0 mt-1`}
-            >
-              New landing page
-            </Link>
+            <div className="flex items-center gap-2">
+              <ManageMenu />
+              <Link
+                href="/dashboard/admin/landing/new"
+                className={`${buttonClass("primary", "md")} shrink-0`}
+              >
+                New landing page
+              </Link>
+            </div>
           }
         />
       </div>

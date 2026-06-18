@@ -5,6 +5,7 @@ import { getProgram } from "@/lib/programs/server";
 import { fetchResourcesForProgram } from "@/lib/resources";
 import { PageHeader } from "@/components/page-header";
 import { ResourcesEditor } from "./resources-editor";
+import { ManageMenu } from "../manage-menu";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,7 @@ export default async function AdminResourcesPage() {
       <PageHeader
         title="Resources"
         subtitle={`Manage the resources learners see on the ${program.name} Resources page.`}
+        actions={<ManageMenu />}
       />
       <ResourcesEditor
         programSlug={program.slug}

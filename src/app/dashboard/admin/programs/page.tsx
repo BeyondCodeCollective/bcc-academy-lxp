@@ -8,6 +8,7 @@ import { getHiddenTrackSlugs } from "@/lib/programs/hidden";
 import { CoursesList } from "./courses-list";
 import type { CourseRow, ProgramGroup } from "./courses-list";
 import { PageHeader } from "@/components/page-header";
+import { ManageMenu } from "../manage-menu";
 import { buttonClass } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -64,12 +65,15 @@ export default async function ProgramsListPage() {
           title="Courses"
           subtitle="Every course across all programs. Click a course to manage it, copy its join link, or hide it from the admin and catalog (reversible — nothing is deleted)."
           actions={
-            <Link
-              href="/dashboard/admin/programs/new"
-              className={`${buttonClass("primary", "md")} shrink-0 mt-1`}
-            >
-              New Course
-            </Link>
+            <div className="flex items-center gap-2">
+              <ManageMenu />
+              <Link
+                href="/dashboard/admin/programs/new"
+                className={`${buttonClass("primary", "md")} shrink-0`}
+              >
+                New Course
+              </Link>
+            </div>
           }
         />
       </div>
