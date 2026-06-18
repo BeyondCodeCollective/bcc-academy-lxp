@@ -5,8 +5,7 @@ import { ArrowLeft, Video, CheckCircle, Link as LinkIcon, FileText } from "lucid
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { getSessionContent } from "@/app/dashboard/admin/actions";
 import { isStorageUrl, isUploadedVideo } from "@/lib/storage-utils";
-import { getProgram } from "@/lib/programs/server";
-import { getTrackBySlug } from "@/lib/programs";
+import { resolveTrackProgram } from "@/lib/programs/server";
 import { getSubmission, getReflection, getFeedback, getWeekProgress } from "@/app/dashboard/track/actions";
 import { SubmissionForm } from "@/components/submission-form";
 import { PageHeader } from "@/components/page-header";
@@ -29,9 +28,9 @@ export default async function TrackWeekPage({
   const { slug: trackSlug, week: weekStr } = await params;
   const weekNum = parseInt(weekStr, 10);
 
-  const program = await getProgram();
-  const track = getTrackBySlug(program, trackSlug);
-  if (!track) redirect("/dashboard");
+  const resolved = await resolveTrackProgram(trackSlug);
+  if (!resolved) redirect("/dashboard");
+  const { program, track } = resolved;
 
   const weekContent = track.weeks.find((w) => w.week === weekNum);
   if (!weekContent) redirect("/dashboard");

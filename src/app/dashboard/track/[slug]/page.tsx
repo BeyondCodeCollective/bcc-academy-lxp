@@ -8,8 +8,7 @@ import {
   ArrowRight,
 } from "@phosphor-icons/react/dist/ssr";
 import { computeCurrentWeek } from "@/lib/utils";
-import { getProgram } from "@/lib/programs/server";
-import { getTrackBySlug } from "@/lib/programs";
+import { resolveTrackProgram } from "@/lib/programs/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { canAccessAdminPanel } from "@/lib/roles";
 import { createServiceClient } from "@/lib/supabase/server";
@@ -26,9 +25,9 @@ export default async function TrackOverviewPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const program = await getProgram();
-  const track = getTrackBySlug(program, slug);
-  if (!track) redirect("/dashboard");
+  const resolved = await resolveTrackProgram(slug);
+  if (!resolved) redirect("/dashboard");
+  const { program, track } = resolved;
 
   const ctx = await getSessionContext();
   const isAdminViewer = canAccessAdminPanel(ctx?.student?.role ?? "");

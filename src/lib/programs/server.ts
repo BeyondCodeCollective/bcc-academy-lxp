@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { headers, cookies } from "next/headers";
-import { getProgramBySlug, getProgramByDomain, isKnownProgramHost, hasTsConfigSlug, getHomeProgramForTrack } from "./index";
+import { getProgramBySlug, getProgramByDomain, isKnownProgramHost, hasTsConfigSlug, getHomeProgramForTrack, getTrackBySlug } from "./index";
 import type { ProgramConfig, TrackConfig } from "./types";
 import { createServiceClient } from "@/lib/supabase/server";
 import { PREVIEW_COOKIE, LUNCH_LEARN_PREVIEW_SLUG } from "@/lib/auth/preview-mode";
@@ -30,6 +30,31 @@ import { PREVIEW_COOKIE, LUNCH_LEARN_PREVIEW_SLUG } from "@/lib/auth/preview-mod
 export async function getProgram(): Promise<ProgramConfig> {
   const base = await resolveBaseProgram();
   return applyTrackOverrides(base);
+}
+
+/**
+ * Resolve a track and the program it should render under. Tries the current
+ * (domain/cookie-resolved) program first; if the slug isn't there — which
+ * happens whenever a course lives in a different program than the one the host
+ * pins you to (e.g. the bccacademy.io apex, or a BGC course while you're in
+ * Upskill Bahamas) — it falls back to the track's home program so the course
+ * opens instead of bouncing to /dashboard. Returns null only when no program
+ * anywhere owns the slug.
+ */
+export async function resolveTrackProgram(
+  slug: string,
+): Promise<{ program: ProgramConfig; track: TrackConfig } | null> {
+  const current = await getProgram();
+  const inCurrent = getTrackBySlug(current, slug);
+  if (inCurrent) return { program: current, track: inCurrent };
+
+  const home = getHomeProgramForTrack(slug);
+  if (home && home.slug !== current.slug) {
+    const withOverrides = await getProgramWithOverrides(home.slug);
+    const track = getTrackBySlug(withOverrides, slug);
+    if (track) return { program: withOverrides, track };
+  }
+  return null;
 }
 
 /** The legacy synchronous resolution — TS config only, no DB. */

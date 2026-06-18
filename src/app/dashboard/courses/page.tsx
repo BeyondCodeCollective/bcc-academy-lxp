@@ -32,11 +32,13 @@ export default async function CoursesIndexPage() {
   // Courses). Keeps the browse view in sync with the admin home.
   const hidden = await getHiddenTrackSlugs();
 
-  // This is the admin "every course offered through BCC Academy" catalog, so
-  // aggregate across ALL programs — grouped by program/org (Catalyst, Upskill
-  // Bahamas, Beyond Code Centers, BGC). Each course is listed under its HOME
-  // program only (Catalyst aggregates others' tracks, so dedupe by home).
-  // Names reflect DB overrides. Single-event tracks belong on /workshops.
+  // Catalog is scoped to the CURRENT program — `program.tracks` already
+  // reflects it (Catalyst, the umbrella, aggregates its sub-programs' tracks; a
+  // specific program like Upskill Bahamas shows only its own). We still group
+  // by home program/org for a clean per-org layout, but only courses that
+  // belong to the program you're in appear. Names reflect DB overrides;
+  // single-event tracks belong on /workshops.
+  const currentSlugs = new Set(program.tracks.map((t) => t.slug));
   const programs = getJoinablePrograms();
   const withOverrides = await Promise.all(
     programs.map((p) => getProgramWithOverrides(p.slug)),
@@ -52,7 +54,8 @@ export default async function CoursesIndexPage() {
           return (
             (!home || home === prog.slug) &&
             t.type !== "single-event" &&
-            !hidden.has(t.slug)
+            !hidden.has(t.slug) &&
+            currentSlugs.has(t.slug)
           );
         })
         .sort(
