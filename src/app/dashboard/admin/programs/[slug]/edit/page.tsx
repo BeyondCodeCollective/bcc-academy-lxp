@@ -5,6 +5,7 @@ import { getHomeProgramForTrack } from "@/lib/programs";
 import { getProgramWithOverrides } from "@/lib/programs/server";
 import { EditCourseForm } from "./edit-course-form";
 import { PageHeader } from "@/components/page-header";
+import { ManageMenu } from "../../../manage-menu";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +33,7 @@ export default async function EditCoursePage({
   return (
     <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8 space-y-6">
       <div>
-        <PageHeader title="Edit Course" />
+        <PageHeader title="Edit Course" actions={<ManageMenu />} />
         <p className="mt-1 text-xs text-ink-faint font-mono">
           {track.name} · {programSlug}
         </p>
