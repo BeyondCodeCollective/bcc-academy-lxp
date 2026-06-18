@@ -43,6 +43,8 @@ import { InsightsDashboard } from "./insights/insights-dashboard";
 import { TrackOverviewForm } from "./track-overview-form";
 import { OfficeHoursEditor } from "./office-hours-editor";
 import { ManageMenu } from "./manage-menu";
+import { PendingPeopleSection, StatusPill } from "./pending-people";
+import type { PendingPerson } from "@/lib/people-hub";
 import type { OfficeHour } from "@/lib/programs/types";
 import type { InsightsData } from "./page";
 import type { Student } from "@/lib/types";
@@ -434,6 +436,7 @@ export function AdminTabs({
   initialTrackView,
   lunchLearnRecordings = [],
   insightsData = null,
+  pendingPeople = [],
   alumniEnrollments = [],
   unviewedAssessments = 0,
 }: {
@@ -452,6 +455,7 @@ export function AdminTabs({
   initialTrackView?: string;
   lunchLearnRecordings?:{ id: string; title: string; presenter: string; recording_url: string; description: string | null; recorded_at: string }[];
   insightsData?: InsightsData | null;
+  pendingPeople?: PendingPerson[];
   alumniEnrollments?: { track_slug: string; email: string; source: string }[];
   unviewedAssessments?: number;
 }) {
@@ -1318,6 +1322,7 @@ export function AdminTabs({
           onToggleStudentTrack={toggleTrackEnrollment}
           onToggleInstructorTrack={toggleInstructorTrack}
           onStudentAdded={(s) => setStudents((prev) => [...prev, s])}
+          pendingPeople={pendingPeople}
         />
       )}
 
@@ -1744,6 +1749,7 @@ function PeopleTab({
   initialTrackFilter,
   embedded,
   viewSwitcher,
+  pendingPeople = [],
 }: {
   students: StudentRow[];
   cohorts: CohortRow[];
@@ -1764,6 +1770,7 @@ function PeopleTab({
   initialTrackFilter?: string;
   embedded?: boolean;
   viewSwitcher?: React.ReactNode;
+  pendingPeople?: PendingPerson[];
 }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState(embedded ? "student" : "all");
@@ -2138,6 +2145,13 @@ function PeopleTab({
         <span className="text-xs text-ink-faint">{filtered.length} shown</span>
       </div>
 
+      {/* Pending — allowlisted/invited people with no account yet (front of
+         the pipeline), shown above the roster so every stage is in one place. */}
+      <PendingPeopleSection
+        pending={pendingPeople}
+        trackNames={Object.fromEntries(tracks.map((t) => [t.slug, t.shortName || t.name]))}
+      />
+
       {/* Roster */}
       <div className="divide-y divide-neutral-100 overflow-hidden panel">
         {filtered.length === 0 && (
@@ -2193,6 +2207,9 @@ function PeopleTab({
                   <span className="text-[11px] text-ink-faint tabular-nums hidden sm:block">
                     {trackCount} {trackCount === 1 ? "track" : "tracks"}
                   </span>
+                  {s.role === "student" && (
+                    <StatusPill status={s.last_seen_at ? "active" : "joined"} />
+                  )}
                   <span
                     className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-medium ${
                       s.role === "student"
