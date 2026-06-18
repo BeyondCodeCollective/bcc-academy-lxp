@@ -81,3 +81,46 @@ export async function replaceAllowedEmails(
   revalidatePath("/dashboard/admin/allowlist");
   return { ok: true, count: emails.length };
 }
+
+/**
+ * Remove a single email from the allowlist (and clear any not-yet-used invites)
+ * for the given courses. Used by the People hub's Pending list to take someone
+ * off before they've created an account.
+ */
+export async function removePendingPerson(
+  email: string,
+  trackSlugs: string[],
+): Promise<{ ok: boolean; error?: string }> {
+  const ctx = await getSessionContext();
+  if (!ctx || !canAccessAdminPanel(ctx.student?.role ?? "")) {
+    return { ok: false, error: "Not authorized" };
+  }
+  const e = email.trim().toLowerCase();
+  if (!e || trackSlugs.length === 0) return { ok: false, error: "Nothing to remove" };
+  const svc = createServiceClient();
+
+  const [allowErr, inviteErr] = await Promise.all([
+    svc
+      .from("allowed_signup_emails")
+      .delete()
+      .eq("email", e)
+      .in("track_slug", trackSlugs)
+      .then((r) => r.error),
+    // Only clear unused invites — a used invite means they already have an
+    // account, so they're no longer "pending" and shouldn't be touched here.
+    svc
+      .from("invites")
+      .delete()
+      .eq("email", e)
+      .in("track_slug", trackSlugs)
+      .is("used_at", null)
+      .then((r) => r.error),
+  ]);
+  if (allowErr || inviteErr) {
+    console.error("[allowlist] removePendingPerson failed", { email: e, allowErr, inviteErr });
+    return { ok: false, error: (allowErr ?? inviteErr)!.message };
+  }
+
+  revalidatePath("/dashboard/admin");
+  return { ok: true };
+}
