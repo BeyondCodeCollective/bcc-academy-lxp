@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Download } from "lucide-react";
 import type { SurveyQuestion } from "@/components/survey-fields";
 import type { BCCSurveyResponse } from "../../actions";
+import { aggregateDualLikert, aggregateLikertMeans } from "@/lib/surveys/aggregate";
 
 interface Props {
   surveyId: string;
@@ -599,6 +600,10 @@ function LikertBlock({
 }) {
   const scaleNums = question.scale.map((s) => Number(s));
   const isNumericAscending = scaleNums.every((n) => !Number.isNaN(n));
+  // Means come from the shared aggregator so this dashboard and the admin
+  // Outcomes analytics never disagree on a number; the per-value counts below
+  // are histogram-only and stay local.
+  const meanStats = aggregateLikertMeans(question, visible);
 
   return (
     <div>
@@ -613,21 +618,18 @@ function LikertBlock({
         </p>
       )}
       <div className="mt-5 space-y-5">
-        {question.statements.map((stmt) => {
+        {question.statements.map((stmt, i) => {
           const counts = new Map<string, number>();
           let total = 0;
-          let sum = 0;
           for (const r of visible) {
             const block = r.responses[question.id] as Record<string, unknown> | undefined;
             const v = block?.[stmt];
             if (typeof v === "string" && v.length > 0) {
               counts.set(v, (counts.get(v) ?? 0) + 1);
               total++;
-              const n = Number(v);
-              if (!Number.isNaN(n)) sum += n;
             }
           }
-          const mean = total === 0 ? 0 : sum / total;
+          const mean = meanStats[i].mean;
 
           return (
             <div key={stmt}>
@@ -697,39 +699,14 @@ function DualLikertBlock({
         {question.nowLabel}
       </p>
       <div className="mt-5 space-y-4">
-        {question.statements.map((stmt) => {
-          let beforeSum = 0;
-          let beforeN = 0;
-          let nowSum = 0;
-          let nowN = 0;
-          for (const r of visible) {
-            const block = r.responses[question.id] as
-              | Record<string, { before?: string; now?: string }>
-              | undefined;
-            const pair = block?.[stmt];
-            if (pair) {
-              const b = Number(pair.before);
-              if (!Number.isNaN(b)) {
-                beforeSum += b;
-                beforeN++;
-              }
-              const n = Number(pair.now);
-              if (!Number.isNaN(n)) {
-                nowSum += n;
-                nowN++;
-              }
-            }
-          }
-          const beforeMean = beforeN === 0 ? 0 : beforeSum / beforeN;
-          const nowMean = nowN === 0 ? 0 : nowSum / nowN;
-          const delta = nowMean - beforeMean;
+        {aggregateDualLikert(question, visible).map(({ statement: stmt, before: beforeMean, now: nowMean, delta, n }) => {
           const beforePct = (beforeMean / scaleMax) * 100;
           const nowPct = (nowMean / scaleMax) * 100;
 
           return (
             <div key={stmt} className="grid grid-cols-[1fr_auto] gap-x-6 gap-y-2 items-baseline">
               <p className="text-[13px] text-ink leading-snug">{stmt}</p>
-              {beforeN > 0 && nowN > 0 ? (
+              {n > 0 ? (
                 <p className="text-lg font-semibold text-ink shrink-0 tabular-nums whitespace-nowrap">
                   {beforeMean.toFixed(2)}
                   <span className="text-ink-faint mx-1.5 font-normal">→</span>

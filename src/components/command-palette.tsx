@@ -12,14 +12,24 @@ import {
   Compass,
 } from "@phosphor-icons/react";
 
-type Destination = {
+type Item = {
   label: string;
   href: string;
   hint: string;
   Icon: typeof House;
+  /** Extra text matched against the query but not shown (subtitle, objectives…). */
+  keywords?: string;
 };
 
-const DESTINATIONS: Destination[] = [
+/** A searchable content entry passed in from the server (course or lesson). */
+export type SearchItem = {
+  label: string;
+  href: string;
+  hint: string;
+  keywords?: string;
+};
+
+const DESTINATIONS: Item[] = [
   { label: "Home", href: "/dashboard", hint: "Your dashboard", Icon: House },
   { label: "Courses", href: "/dashboard/courses", hint: "Browse the catalog", Icon: BookOpen },
   { label: "Workshops", href: "/dashboard/workshops", hint: "Events & recordings", Icon: Confetti },
@@ -27,12 +37,15 @@ const DESTINATIONS: Destination[] = [
   { label: "Resources", href: "/dashboard/resources", hint: "Materials & contacts", Icon: Compass },
 ];
 
+const MAX_RESULTS = 30;
+
 /**
- * ⌘K command palette behind the top-bar search. Opens on click or ⌘K/Ctrl+K,
- * filters destinations as you type, arrow-keys + Enter to navigate. Course
- * search can layer on later by passing enrolled courses as extra items.
+ * ⌘K command palette behind the top-bar search. Opens on click or ⌘K/Ctrl+K.
+ * Empty query shows the quick-nav destinations; typing searches across all
+ * course + lesson content (title, hint, and hidden keywords). Arrow-keys +
+ * Enter to navigate.
  */
-export function CommandPalette({ courses = [] }: { courses?: { name: string; slug: string }[] }) {
+export function CommandPalette({ items: content = [] }: { items?: SearchItem[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -40,19 +53,24 @@ export function CommandPalette({ courses = [] }: { courses?: { name: string; slu
   const inputRef = useRef<HTMLInputElement>(null);
 
   const items = useMemo(() => {
-    const all: Destination[] = [
-      ...DESTINATIONS,
-      ...courses.map((c) => ({
-        label: c.name,
-        href: `/dashboard/track/${c.slug}`,
-        hint: "Course",
-        Icon: BookOpen,
-      })),
-    ];
     const q = query.trim().toLowerCase();
-    if (!q) return all;
-    return all.filter((d) => d.label.toLowerCase().includes(q) || d.hint.toLowerCase().includes(q));
-  }, [query, courses]);
+    // No query → just the quick-nav shortcuts, not the whole catalog.
+    if (!q) return DESTINATIONS;
+    const pool: Item[] = [
+      ...DESTINATIONS,
+      ...content.map((c) => ({ ...c, Icon: BookOpen as typeof House })),
+    ];
+    // Token AND-match: every word in the query must appear somewhere in the
+    // item's text, in any order. So "what is ai" matches a lesson titled
+    // "Introduction to AI" with subtitle "What AI Is and How It Works".
+    const tokens = q.split(/\s+/).filter(Boolean);
+    return pool
+      .filter((d) => {
+        const hay = `${d.label} ${d.hint} ${d.keywords ?? ""}`.toLowerCase();
+        return tokens.every((t) => hay.includes(t));
+      })
+      .slice(0, MAX_RESULTS);
+  }, [query, content]);
 
   const openPalette = () => {
     setQuery("");

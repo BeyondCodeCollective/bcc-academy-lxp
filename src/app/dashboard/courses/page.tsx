@@ -118,6 +118,10 @@ function CourseRow({ track, inProgram }: { track: TrackConfig; inProgram: boolea
           ? `/dashboard/track/${track.slug}`
           : `/dashboard/switch-program?track=${encodeURIComponent(track.slug)}`
       }
+      // Courses in the current program get an Edit shortcut into the per-track
+      // admin view. Out-of-program tracks have no admin tab here (you'd switch
+      // programs first), so the card just opens the view route.
+      editHref={inProgram ? `/dashboard/admin?tab=${track.slug}` : undefined}
       tone={tone}
       iconSlug={track.slug}
       eyebrow={durationLabel}

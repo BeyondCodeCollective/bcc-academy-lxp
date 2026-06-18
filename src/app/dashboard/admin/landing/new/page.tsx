@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { getSessionContext } from "@/lib/auth/session";
 import { canSwitchPrograms } from "@/lib/roles";
 import { PageHeader } from "@/components/page-header";
@@ -34,12 +33,6 @@ export default async function NewLandingPage() {
   return (
     <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8 space-y-6">
       <div>
-        <Link
-          href="/dashboard/admin/landing"
-          className="inline-flex items-center gap-1.5 text-sm text-ink-faint hover:text-ink transition-colors mb-4"
-        >
-          ← Landing pages
-        </Link>
         <PageHeader title="New landing page" subtitle="Starts unpublished — flip Published on when it's ready to go live." />
       </div>
       <LandingForm initial={EMPTY} />

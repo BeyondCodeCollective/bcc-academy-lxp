@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import {
   Archive,
-  ArrowLeft,
   Clock,
   ChalkboardTeacher,
   Lightning,
@@ -121,22 +120,15 @@ export default async function TrackOverviewPage({
 
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-3xl px-4 sm:px-5 py-8 space-y-8">
-      <div className="flex items-center justify-between gap-3">
-        <Link
-          href="/dashboard/courses"
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-soft transition-colors hover:text-ink"
-        >
-          <ArrowLeft size={12} weight="bold" />
-          All courses
-        </Link>
-        {isAdminViewer && (
+      {isAdminViewer && (
+        <div className="flex justify-end">
           <CopyInviteLink
             programSlug={program.slug}
             trackSlug={slug}
             fallbackDomain={program.domain}
           />
-        )}
-      </div>
+        </div>
+      )}
 
       {announcements.map((a) => (
         <div

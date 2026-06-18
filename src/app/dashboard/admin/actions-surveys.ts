@@ -766,25 +766,34 @@ export async function getDashboardSurveyResponses(
 // that was firing one getDashboardSurveyResponses call per survey.
 export async function getDashboardAllSurveyResponses(
   surveyTypes: string[],
+  // When provided, scopes both tables to these program ids in SQL. Omit for the
+  // BCC-wide view (admin survey insights); the per-program Outcomes analytics
+  // passes its resolved scope so it never overfetches other programs' rows.
+  programIds?: string[],
 ): Promise<Record<string, BCCSurveyResponse[]>> {
   if (surveyTypes.length === 0) return {};
   const { svc, userId } = await requireSuperAdmin();
 
+  let publicQuery = svc
+    .from("public_survey_responses")
+    .select("survey_type, email, full_name, responses, completed_at, programs(slug, name)")
+    .in("survey_type", surveyTypes)
+    .is("withdrawn_at", null);
+  let authQuery = svc
+    .from("survey_responses")
+    .select(
+      "survey_type, responses, completed_at, program_id, programs(slug, name), students(first_name, last_name, email)",
+    )
+    .in("survey_type", surveyTypes)
+    .not("completed_at", "is", null);
+  if (programIds) {
+    publicQuery = publicQuery.in("program_id", programIds);
+    authQuery = authQuery.in("program_id", programIds);
+  }
+
   const [publicRes, authRes] = await Promise.all([
-    svc
-      .from("public_survey_responses")
-      .select("survey_type, email, full_name, responses, completed_at, programs(slug, name)")
-      .in("survey_type", surveyTypes)
-      .is("withdrawn_at", null)
-      .order("completed_at", { ascending: false }),
-    svc
-      .from("survey_responses")
-      .select(
-        "survey_type, responses, completed_at, program_id, programs(slug, name), students(first_name, last_name, email)",
-      )
-      .in("survey_type", surveyTypes)
-      .not("completed_at", "is", null)
-      .order("completed_at", { ascending: false }),
+    publicQuery.order("completed_at", { ascending: false }),
+    authQuery.order("completed_at", { ascending: false }),
   ]);
 
   logAdminAccess(svc, {

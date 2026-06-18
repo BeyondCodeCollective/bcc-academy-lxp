@@ -5,6 +5,8 @@ import { isSupabaseConfigured, createClient, createServiceClient } from "@/lib/s
 import { getDemoUser, DEMO_COOKIE } from "@/lib/demo-users";
 import { Nav } from "@/components/nav";
 import { DashboardTopBar } from "@/components/dashboard-topbar";
+import { Breadcrumbs } from "@/components/breadcrumbs";
+import { getDashboardIndex } from "@/lib/dashboard-index";
 import { TutorFab } from "@/components/tutor-fab";
 import { PreviewToggle } from "@/components/preview-toggle";
 import { getProgram, getProgramWithOverrides } from "@/lib/programs/server";
@@ -86,6 +88,11 @@ export default async function DashboardLayout({
           {!isSurveyPage && (
             <Suspense fallback={null}>
               <TopBarShell />
+            </Suspense>
+          )}
+          {!isSurveyPage && (
+            <Suspense fallback={null}>
+              <BreadcrumbBar />
             </Suspense>
           )}
           {children}
@@ -335,6 +342,16 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
 
 // Light-shell top bar (Meridian-style). Rendered inside <main> so it sticks
 // above page content. Only for learner surfaces — admins keep the dark
+// Breadcrumb trail, rendered on all viewports above page content. Resolves
+// dynamic route segments to real names via the shared dashboard index. The
+// trail itself is computed client-side (usePathname) so it stays correct across
+// client navigations even though this server wrapper renders once.
+async function BreadcrumbBar() {
+  if (!isSupabaseConfigured()) return null;
+  const { labels } = await getDashboardIndex();
+  return <Breadcrumbs labels={labels} />;
+}
+
 // sidebar with its in-nav account menu, so we render nothing for them.
 async function TopBarShell() {
   const program = await getProgram();
@@ -359,6 +376,10 @@ async function TopBarShell() {
       }))
     : [];
 
+  // ⌘K search index (courses, lessons, workshops, recordings) — shared,
+  // request-cached source also used by the breadcrumb trail.
+  const { searchItems } = await getDashboardIndex();
+
   return (
     <DashboardTopBar
       firstName={ctx.student?.first_name ?? ""}
@@ -368,6 +389,7 @@ async function TopBarShell() {
       canSwitch={canSwitch}
       programs={programs}
       currentProgramSlug={program.slug}
+      searchItems={searchItems}
     />
   );
 }

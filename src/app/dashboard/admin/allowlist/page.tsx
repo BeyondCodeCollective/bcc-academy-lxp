@@ -1,6 +1,4 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { getSessionContext } from "@/lib/auth/session";
 import { canAccessAdminPanel } from "@/lib/roles";
 import { getProgramWithOverrides } from "@/lib/programs/server";
@@ -79,14 +77,6 @@ export default async function AllowlistAdminPage({
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 sm:px-5 py-8">
-      <Link
-        href="/dashboard/admin"
-        className="inline-flex items-center gap-1.5 text-sm text-ink-faint hover:text-ink transition-colors mb-4"
-      >
-        <ArrowLeft size={16} />
-        Back to Admin
-      </Link>
-
       <div className="mb-6">
         <PageHeader eyebrow="Signup allowlist" title="Who can sign up" />
         <p className="mt-3 text-sm leading-relaxed text-ink-soft max-w-prose">

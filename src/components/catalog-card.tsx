@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createElement } from "react";
-import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
+import { ArrowRight, PencilSimple } from "@phosphor-icons/react/dist/ssr";
 import { iconForTrack } from "@/lib/track-visual";
 
 /**
@@ -14,6 +14,7 @@ import { iconForTrack } from "@/lib/track-visual";
 export function CatalogCard({
   href,
   external,
+  editHref,
   iconSlug,
   eyebrow,
   title,
@@ -26,6 +27,13 @@ export function CatalogCard({
   href: string;
   /** Plain <a> instead of <Link> — for cookie-setting routes. */
   external?: boolean;
+  /**
+   * When set, an "Edit" affordance is shown for admins. The card body still
+   * opens `href` (the student/view route); Edit links here (the admin manage
+   * view). Rendered with the stretched-link pattern so the two targets don't
+   * nest anchors.
+   */
+  editHref?: string;
   /** Deprecated — per-track tint replaced by the single skin accent. Ignored. */
   tone?: string;
   /** When set, a small inline track icon precedes the eyebrow. */
@@ -97,15 +105,50 @@ export function CatalogCard({
         ) : (
           <span />
         )}
-        <ArrowRight
-          size={16}
-          weight="bold"
-          aria-hidden
-          className="shrink-0 text-ink-faint transition-all group-hover:translate-x-0.5 group-hover:text-ink"
-        />
+        <span className="flex shrink-0 items-center gap-2">
+          {editHref && (
+            <Link
+              href={editHref}
+              className="relative z-10 inline-flex items-center gap-1 rounded-full border border-rule px-2.5 py-1 text-[11px] font-semibold text-ink-soft transition-colors hover:border-ink hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary)]"
+            >
+              <PencilSimple size={12} weight="bold" aria-hidden />
+              Edit
+            </Link>
+          )}
+          <ArrowRight
+            size={16}
+            weight="bold"
+            aria-hidden
+            className="text-ink-faint transition-all group-hover:translate-x-0.5 group-hover:text-ink"
+          />
+        </span>
       </div>
     </>
   );
+
+  // With an Edit affordance, the primary link is "stretched" over the whole
+  // card (absolute overlay) so the card body opens `href` while the Edit
+  // button stays independently clickable — no nested anchors.
+  if (editHref) {
+    return (
+      <div className={`${cls} relative`}>
+        {body}
+        {external ? (
+          <a
+            href={href}
+            aria-label={`Open ${title}`}
+            className="absolute inset-0 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary)]"
+          />
+        ) : (
+          <Link
+            href={href}
+            aria-label={`Open ${title}`}
+            className="absolute inset-0 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary)]"
+          />
+        )}
+      </div>
+    );
+  }
 
   return external ? (
     <a href={href} className={cls}>

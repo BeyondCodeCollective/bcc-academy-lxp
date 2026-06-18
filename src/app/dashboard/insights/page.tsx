@@ -9,12 +9,20 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import { getSessionContext } from "@/lib/auth/session";
 import { canSwitchPrograms } from "@/lib/roles";
-import { getAllPrograms } from "@/lib/programs";
+import { getProgram } from "@/lib/programs/server";
+import { resolveProgramScope } from "@/lib/programs/scope";
 import { HorizontalBarChart } from "@/components/charts/horizontal-bar-chart";
 import { DonutChart } from "@/components/charts/donut-chart";
 import { fetchAllInsightsData } from "@/lib/insights-data";
+import { OutcomesDashboard } from "@/app/dashboard/admin/outcomes/outcomes-dashboard";
+import { fetchOutcomesData } from "@/lib/analytics/outcomes";
+import { fetchProgressData } from "@/lib/analytics/progress";
+import { fetchAcquisitionData } from "@/lib/analytics/acquisition";
 
-export const revalidate = 120;
+// Program context comes from a cookie/header (super-admin switcher), so the URL
+// is identical across programs — the page must re-render per request or a cached
+// render would show one program's data for all of them.
+export const dynamic = "force-dynamic";
 
 // Super-admin analytics dashboard. Cross-program metrics computed from
 // students / attendance / submissions / reflections / alumni_enrollments.
@@ -27,19 +35,34 @@ export default async function InsightsPage() {
   const role = ctx.student?.role ?? "";
   if (!canSwitchPrograms(role)) redirect("/dashboard");
 
-  const {
-    allStudents,
-    studentTracks,
-    alumni,
-    recentSubmissions,
-    recentReflections,
-    activeAttendance,
-    activeSubmissions,
-    activeReflections,
-    engagedAttendance,
-    engagedSubmissions,
-    engagedReflections,
-  } = await fetchAllInsightsData();
+  // Scope everything to the program in context (domain / super-admin switcher).
+  // Catalyst aggregates its underlying programs; other programs scope to self.
+  const program = await getProgram();
+  const scope = await resolveProgramScope(program.slug);
+
+  const [
+    {
+      allStudents,
+      studentTracks,
+      alumni,
+      recentSubmissions,
+      recentReflections,
+      activeAttendance,
+      activeSubmissions,
+      activeReflections,
+      engagedAttendance,
+      engagedSubmissions,
+      engagedReflections,
+    },
+    outcomes,
+    progress,
+    acquisition,
+  ] = await Promise.all([
+    fetchAllInsightsData(scope),
+    fetchOutcomesData(scope),
+    fetchProgressData(scope),
+    fetchAcquisitionData(scope),
+  ]);
 
   const namesById = new Map(
     allStudents.map((s) => [
@@ -117,13 +140,12 @@ export default async function InsightsPage() {
   // Catalyst is the umbrella now, so "students by program" would always be
   // a single-segment donut. The meaningful axis is **phase** — Foundation
   // (e.g. MASS), Core (technical tracks), Workshops (single-event), Exit.
-  const allCatalystTracks = getAllPrograms().find((p) => p.slug === "catalyst")
-    ?.tracks ?? [];
+  const scopedTracks = program.tracks ?? [];
   const trackNameBySlug = new Map(
-    allCatalystTracks.map((t) => [t.slug, t.shortName || t.name]),
+    scopedTracks.map((t) => [t.slug, t.shortName || t.name]),
   );
   const phaseBySlug = new Map(
-    allCatalystTracks.map((t) => [t.slug, t.phase ?? "other"]),
+    scopedTracks.map((t) => [t.slug, t.phase ?? "other"]),
   );
 
   // Per-track student counts (distinct students). Used for the track bar
@@ -218,7 +240,9 @@ export default async function InsightsPage() {
             Analytics
           </h1>
           <p className="mt-1 text-sm text-ink-soft">
-            Cross-program analytics for super-admins.
+            {program.slug === "catalyst"
+              ? "Across all Catalyst programs."
+              : `${program.name} — learning, completion, and engagement.`}
           </p>
         </div>
         <Link
@@ -267,6 +291,11 @@ export default async function InsightsPage() {
           hint="unique by email"
         />
       </dl>
+
+      {/* Learning outcomes, completion, and acquisition/risk — the analytics
+         that turn this page from headcounts into the "are they learning,
+         finishing, and engaged?" story. */}
+      <OutcomesDashboard data={{ outcomes, progress, acquisition }} />
 
       {/* Phase breakdown — only when the donut would actually segment. */}
       {showPhaseDonut && (
