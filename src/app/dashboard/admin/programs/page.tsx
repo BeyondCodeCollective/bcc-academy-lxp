@@ -66,13 +66,13 @@ export default async function ProgramsListPage() {
           subtitle="Every course across all programs. Click a course to manage it, copy its join link, or hide it from the admin and catalog (reversible — nothing is deleted)."
           actions={
             <div className="flex items-center gap-2">
-              <ManageMenu />
               <Link
                 href="/dashboard/admin/programs/new"
                 className={`${buttonClass("primary", "md")} shrink-0`}
               >
                 New Course
               </Link>
+              <ManageMenu />
             </div>
           }
         />
