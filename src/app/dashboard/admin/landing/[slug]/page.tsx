@@ -1,5 +1,4 @@
 import { redirect, notFound } from "next/navigation";
-import Link from "next/link";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { canSwitchPrograms } from "@/lib/roles";
