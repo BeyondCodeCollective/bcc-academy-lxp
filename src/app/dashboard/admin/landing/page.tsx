@@ -36,13 +36,13 @@ export default async function LandingPagesListPage() {
           subtitle="Marketing landing pages served from /camp/<slug>. Create or edit any page here — changes go live with no code deploy."
           actions={
             <div className="flex items-center gap-2">
-              <ManageMenu />
               <Link
                 href="/dashboard/admin/landing/new"
                 className={`${buttonClass("primary", "md")} shrink-0`}
               >
                 New landing page
               </Link>
+              <ManageMenu />
             </div>
           }
         />

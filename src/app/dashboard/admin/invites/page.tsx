@@ -2,8 +2,7 @@ import { redirect } from "next/navigation";
 import { getSessionContext } from "@/lib/auth/session";
 import { canAccessAdminPanel } from "@/lib/roles";
 import { createServiceClient } from "@/lib/supabase/server";
-import { getProgramWithOverrides } from "@/lib/programs/server";
-import { getJoinablePrograms } from "@/lib/programs";
+import { getProgram } from "@/lib/programs/server";
 import { PageHeader } from "@/components/page-header";
 import { ManageMenu } from "../manage-menu";
 import { TrackPicker } from "../allowlist/track-picker";
@@ -38,21 +37,17 @@ export default async function AddPeoplePage({
   }
   const { track: trackParam } = await searchParams;
 
-  // Every course across every program (Catalyst + Upskill Bahamas + Beyond Code
-  // Centers + BGC), deduped by slug — so courses Catalyst no longer aggregates
-  // (Upskill Bahamas, BGC) are still pickable here.
-  const withOverrides = await Promise.all(
-    getJoinablePrograms().map((p) => getProgramWithOverrides(p.slug)),
-  );
+  // Scope to the CURRENT program only — an admin in BGC manages BGC's courses,
+  // not every program's. getProgram() resolves the active program (domain /
+  // super-admin switcher) with DB overrides applied.
+  const program = await getProgram();
   type Option = { slug: string; name: string; phase: string };
   const seen = new Set<string>();
   const options: Option[] = [];
-  for (const prog of withOverrides) {
-    for (const t of prog.tracks) {
-      if (seen.has(t.slug)) continue;
-      seen.add(t.slug);
-      options.push({ slug: t.slug, name: t.shortName || t.name, phase: t.phase ?? "other" });
-    }
+  for (const t of program.tracks) {
+    if (seen.has(t.slug)) continue;
+    seen.add(t.slug);
+    options.push({ slug: t.slug, name: t.shortName || t.name, phase: t.phase ?? "other" });
   }
 
   const grouped = new Map<string, { slug: string; name: string }[]>();
