@@ -41,6 +41,8 @@ import { AttendanceTab } from "./attendance-tab";
 import { TrackInsightsSection } from "@/components/track-insights-section";
 import { InsightsDashboard } from "./insights/insights-dashboard";
 import { TrackOverviewForm } from "./track-overview-form";
+import { OfficeHoursEditor } from "./office-hours-editor";
+import type { OfficeHour } from "@/lib/programs/types";
 import type { InsightsData } from "./page";
 import type { Student } from "@/lib/types";
 import { isStorageUrl, isUploadedVideo } from "@/lib/storage-utils";
@@ -98,6 +100,7 @@ type AdminTrackConfig = {
   defaultReflectionPrompts?: string[];
   submissionsEnabled?: boolean;
   reflectionsEnabled?: boolean;
+  officeHours?: OfficeHour[];
   weeks: {
     week: number;
     title: string;
@@ -1060,14 +1063,22 @@ export function AdminTabs({
 
           {/* Sub-tab content */}
           {trackView === "overview" && (
-            <TrackOverviewForm
-              key={activeTrack.slug}
-              track={activeTrack}
-              programSlug={programSlug}
-              onLiveChange={(patch) =>
-                setLiveTrackNames((prev) => ({ ...prev, [activeTrack.slug]: patch }))
-              }
-            />
+            <div className="space-y-8">
+              <TrackOverviewForm
+                key={activeTrack.slug}
+                track={activeTrack}
+                programSlug={programSlug}
+                onLiveChange={(patch) =>
+                  setLiveTrackNames((prev) => ({ ...prev, [activeTrack.slug]: patch }))
+                }
+              />
+              <OfficeHoursEditor
+                key={`oh-${activeTrack.slug}`}
+                trackSlug={activeTrack.slug}
+                programSlug={programSlug}
+                initial={activeTrack.officeHours ?? []}
+              />
+            </div>
           )}
 
           {trackView === "curriculum" && (

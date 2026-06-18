@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { requireAdmin, requireManager, programIdFromSlug } from "./actions-shared";
+import type { OfficeHour } from "@/lib/programs/types";
 
 // ─── Track Enrollment ─────────────────────────────────────────────────────────
 
@@ -290,6 +291,7 @@ export type TrackOverviewPatch = {
   default_reflection_prompts?: string[] | null;
   submissions_enabled?: boolean | null;
   reflections_enabled?: boolean | null;
+  office_hours?: OfficeHour[] | null;
 };
 
 export async function saveTrackOverview(
@@ -340,6 +342,7 @@ export async function saveTrackOverview(
     row.submissions_enabled = patch.submissions_enabled;
   if ("reflections_enabled" in patch)
     row.reflections_enabled = patch.reflections_enabled;
+  if ("office_hours" in patch) row.office_hours = patch.office_hours;
 
   const { error } = await svc.from("track_overrides").upsert(row, {
     onConflict: "program_id,track_slug",
