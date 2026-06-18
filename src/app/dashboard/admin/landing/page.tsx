@@ -30,12 +30,6 @@ export default async function LandingPagesListPage() {
   return (
     <div className="mx-auto w-full max-w-3xl px-4 sm:px-5 py-8 space-y-6">
       <div>
-        <Link
-          href="/dashboard/admin"
-          className="inline-flex items-center gap-1.5 text-sm text-ink-faint hover:text-ink transition-colors mb-4"
-        >
-          ← Admin
-        </Link>
         <PageHeader
           title="Landing pages"
           subtitle="Marketing landing pages served from /camp/<slug>. Create or edit any page here — changes go live with no code deploy."

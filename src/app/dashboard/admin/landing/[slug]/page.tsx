@@ -53,12 +53,6 @@ export default async function EditLandingPage({
   return (
     <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8 space-y-6">
       <div>
-        <Link
-          href="/dashboard/admin/landing"
-          className="inline-flex items-center gap-1.5 text-sm text-ink-faint hover:text-ink transition-colors mb-4"
-        >
-          ← Landing pages
-        </Link>
         <PageHeader
           title="Edit landing page"
           subtitle={`/camp/${initial.slug}`}

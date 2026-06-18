@@ -60,12 +60,6 @@ export default async function ProgramsListPage() {
   return (
     <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8 space-y-6">
       <div>
-        <Link
-          href="/dashboard/admin"
-          className="inline-flex items-center gap-1.5 text-sm text-ink-faint hover:text-ink transition-colors mb-4"
-        >
-          ← Admin
-        </Link>
         <PageHeader
           title="Courses"
           subtitle="Every course across all programs. Click a course to manage it, copy its join link, or hide it from the admin and catalog (reversible — nothing is deleted)."

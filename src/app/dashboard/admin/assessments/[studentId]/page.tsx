@@ -8,7 +8,6 @@ import {
   WORK_STYLE_CONTENT,
   PATHWAY_CONTENT,
 } from "@/lib/assessment/content";
-import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 
 export default async function AssessmentDetailPage({
@@ -53,12 +52,6 @@ export default async function AssessmentDetailPage({
 
   return (
     <div className="mx-auto max-w-2xl px-5 py-10 space-y-8">
-      <div className="flex items-center gap-3">
-        <Link href="/dashboard/admin/assessments" className="text-sm text-ink/40 hover:text-ink transition-colors">
-          ← Assessments
-        </Link>
-      </div>
-
       <PageHeader
         title={student ? `${student.first_name} ${student.last_name}` : "Student"}
         subtitle={student?.email}

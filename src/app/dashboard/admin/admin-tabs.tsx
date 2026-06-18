@@ -874,7 +874,7 @@ export function AdminTabs({
           <div className="space-y-8">
             <PageHeader
               title="Admin"
-              subtitle="Pick a program to manage — curriculum, roster, student work, and attendance."
+              subtitle="Pick a course to manage — curriculum, roster, student work, and attendance."
               actions={
                 canSwitchPrograms(userRole) && (
                   <>

@@ -1,13 +1,11 @@
 import { cookies } from "next/headers";
 import { redirect, notFound } from "next/navigation";
-import Link from "next/link";
 import { resolveCurrentUser } from "@/lib/current-user";
 import {
   getWorkshop,
   formatWorkshopDateRange,
 } from "@/lib/workshops";
 import {
-  ArrowLeft,
   MapPin,
   GlobeHemisphereWest,
   Clock,
@@ -45,13 +43,6 @@ export default async function WorkshopDetailPage({
 
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-3xl px-4 sm:px-5 py-8 space-y-8">
-      <Link
-        href="/dashboard/workshops"
-        className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-soft transition-colors hover:text-ink"
-      >
-        <ArrowLeft size={12} weight="bold" />
-        All workshops
-      </Link>
 
       {/* Hero — icon tile + title + tagline */}
       <header className="space-y-5">

@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft } from "@phosphor-icons/react/dist/ssr";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { canAccessAdminPanel, canAccessStaffContent } from "@/lib/roles";
@@ -36,14 +35,6 @@ export default async function LunchLearnDetailPage({
 
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-4xl px-4 sm:px-5 py-10 md:py-14">
-      <Link
-        href="/dashboard"
-        className="inline-flex items-center gap-1.5 text-[13px] text-ink-soft hover:text-ink mb-6"
-      >
-        <ArrowLeft size={14} weight="bold" aria-hidden />
-        All recordings
-      </Link>
-
       <header className="mb-8">
         <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-ink-faint mb-3">
           {new Date(recording.recorded_at).toLocaleDateString("en-US", {
