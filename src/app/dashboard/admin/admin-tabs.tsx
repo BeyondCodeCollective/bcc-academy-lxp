@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { addStudentAction, deleteStudentAction, updateStudentAction, updateCohortAction, saveSessionContent, assignStudentTrack, removeStudentTrack, bulkAssignTrack, exportSurveyResponses, exportPublicSurveyResponses, getAllSubmissions, addFeedback, assignInstructorTrack, removeInstructorTrack, deleteSurveyResponse, deletePublicSurveyResponse, listPublicSurveyResponses, sendInviteAction, createCohortAction } from "./actions";
+import { deleteStudentAction, updateStudentAction, updateCohortAction, saveSessionContent, assignStudentTrack, removeStudentTrack, bulkAssignTrack, exportSurveyResponses, exportPublicSurveyResponses, getAllSubmissions, addFeedback, assignInstructorTrack, removeInstructorTrack, deleteSurveyResponse, deletePublicSurveyResponse, listPublicSurveyResponses, sendInviteAction, createCohortAction } from "./actions";
 import type { SessionResource, StudentTrackRow, SurveyStatsRow, AdminSubmissionRow, InstructorTrackRow, PublicSurveyStatsRow } from "./actions";
 import { canManageStudents, canSwitchPrograms } from "@/lib/roles";
 import {
@@ -13,7 +13,6 @@ import {
   Settings,
   Save,
   ChevronDown,
-  Shield,
   ExternalLink,
   Check,
   UserCheck,
@@ -45,6 +44,7 @@ import { OfficeHoursEditor } from "./office-hours-editor";
 import { ManageMenu } from "./manage-menu";
 import { PendingPeopleSection, StatusPill } from "./pending-people";
 import type { PendingPerson } from "@/lib/people-hub";
+import { AddPeoplePanel } from "./add-people-panel";
 import type { OfficeHour } from "@/lib/programs/types";
 import type { InsightsData } from "./page";
 import type { Student } from "@/lib/types";
@@ -911,15 +911,6 @@ export function AdminTabs({
                 <ChartBarIcon size={13} weight="bold" aria-hidden />
                 Attendance
               </Link>
-              {isManager && (
-                <Link
-                  href="/dashboard/admin/invites"
-                  className={buttonClass("secondary", "sm")}
-                >
-                  <Shield size={13} aria-hidden />
-                  Add people
-                </Link>
-              )}
             </div>
 
             <div className="divide-y divide-rule overflow-hidden panel">
@@ -1782,20 +1773,6 @@ function PeopleTab({
   const [bulkTrack, setBulkTrack] = useState(tracks[0]?.slug ?? "");
   const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
   const [bulkSaving, setBulkSaving] = useState(false);
-  const [addFirstName, setAddFirstName] = useState("");
-  const [addLastName, setAddLastName] = useState("");
-  const [addEmail, setAddEmail] = useState("");
-  const [addRole, setAddRole] = useState<"student" | "instructor" | "admin">("student");
-  const [addCohortId, setAddCohortId] = useState("");
-  const [addingStudent, setAddingStudent] = useState(false);
-  const [addError, setAddError] = useState("");
-
-  // Inline "New group" form — add-student panel
-  const [showNewGroupFormAdd, setShowNewGroupFormAdd] = useState(false);
-  const [newGroupTrackAdd, setNewGroupTrackAdd] = useState("");
-  const [newGroupNameAdd, setNewGroupNameAdd] = useState("");
-  const [newGroupSavingAdd, setNewGroupSavingAdd] = useState(false);
-
   // Inline "New group" form — student row edit panel
   const [showNewGroupFormRow, setShowNewGroupFormRow] = useState<string | null>(null); // student id
   const [newGroupTrackRow, setNewGroupTrackRow] = useState("");
@@ -1838,32 +1815,6 @@ function PeopleTab({
       console.error("Bulk assign failed:", e);
     }
     setBulkSaving(false);
-  }
-
-  async function handleAddStudent(e: React.FormEvent) {
-    e.preventDefault();
-    if (!addEmail.trim()) return;
-    setAddingStudent(true);
-    setAddError("");
-    try {
-      const result = await addStudentAction({
-        email: addEmail.trim(),
-        first_name: addFirstName.trim(),
-        last_name: addLastName.trim(),
-        role: addRole,
-        cohort_id: addCohortId || null,
-      });
-      onStudentAdded(result.student as StudentRow);
-      setAddFirstName("");
-      setAddLastName("");
-      setAddEmail("");
-      setAddRole("student");
-      setAddCohortId("");
-      setShowAddForm(false);
-    } catch (err) {
-      setAddError(err instanceof Error ? err.message : "Failed to add person");
-    }
-    setAddingStudent(false);
   }
 
   const studentCount = students.filter((s) => s.role === "student").length;
@@ -1940,7 +1891,7 @@ function PeopleTab({
                   className={buttonClass("dark", "sm")}
                 >
                   <UserPlus size={13} />
-                  Add person
+                  Add people
                 </button>
               </>
             )}
@@ -1949,155 +1900,14 @@ function PeopleTab({
       </div>
       )}
 
-      {/* Add person form */}
+      {/* Add people — one panel, two modes (invite by email / add directly). */}
       {!embedded && showAddForm && (
-        <form onSubmit={handleAddStudent} className="panel p-4 space-y-3">
-          <p className="text-sm font-semibold text-ink">Add person</p>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div>
-              <label className="text-xs font-medium text-ink-soft">First name</label>
-              <input
-                type="text"
-                value={addFirstName}
-                onChange={(e) => setAddFirstName(e.target.value)}
-                placeholder="First"
-                className={`${fieldInput} mt-1`}
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-ink-soft">Last name</label>
-              <input
-                type="text"
-                value={addLastName}
-                onChange={(e) => setAddLastName(e.target.value)}
-                placeholder="Last"
-                className={`${fieldInput} mt-1`}
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-ink-soft">Email *</label>
-              <input
-                type="email"
-                required
-                value={addEmail}
-                onChange={(e) => setAddEmail(e.target.value)}
-                placeholder="email@example.com"
-                className={`${fieldInput} mt-1`}
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-ink-soft">Role</label>
-              <div className="relative mt-1">
-                <select
-                  value={addRole}
-                  onChange={(e) => setAddRole(e.target.value as "student" | "instructor" | "admin")}
-                  className="w-full appearance-none border border-rule bg-neutral-50 pl-3 pr-7 py-2 text-sm text-ink focus:border-ink-faint focus:outline-none"
-                >
-                  <option value="student">Student</option>
-                  <option value="instructor">Instructor</option>
-                  <option value="admin">Admin</option>
-                </select>
-                <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-ink-faint" />
-              </div>
-            </div>
-            {cohorts.length > 0 && (
-              <div>
-                <label className="text-xs font-medium text-ink-soft">Group</label>
-                <div className="relative mt-1">
-                  <select
-                    value={addCohortId}
-                    onChange={(e) => setAddCohortId(e.target.value)}
-                    className="w-full appearance-none border border-rule bg-neutral-50 pl-3 pr-7 py-2 text-sm text-ink focus:border-ink-faint focus:outline-none"
-                  >
-                    <option value="">No group</option>
-                    {cohorts.map((c) => (
-                      <option key={c.id} value={c.id}>{c.track_slug ? `${trackLabel(c.track_slug)} — ` : ""}{c.display_name || c.name}</option>
-                    ))}
-                  </select>
-                  <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-ink-faint" />
-                </div>
-                {!showNewGroupFormAdd ? (
-                  <button
-                    type="button"
-                    onClick={() => setShowNewGroupFormAdd(true)}
-                    className="mt-1 text-[11px] text-ink-faint hover:text-ink-soft transition-colors"
-                  >
-                    + New group
-                  </button>
-                ) : (
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <select
-                      value={newGroupTrackAdd}
-                      onChange={(e) => setNewGroupTrackAdd(e.target.value)}
-                      className="border border-rule bg-neutral-50 pl-3 pr-2 py-1.5 text-xs text-ink focus:border-ink-faint focus:outline-none"
-                    >
-                      <option value="">— select track —</option>
-                      {tracks.map((t) => (
-                        <option key={t.slug} value={t.slug}>{t.shortName || t.name}</option>
-                      ))}
-                    </select>
-                    <input
-                      type="text"
-                      value={newGroupNameAdd}
-                      onChange={(e) => setNewGroupNameAdd(e.target.value)}
-                      placeholder="e.g. Security+ · Cohort 1"
-                      className="border border-rule bg-neutral-50 pl-3 py-1.5 text-xs text-ink focus:border-ink-faint focus:outline-none"
-                    />
-                    <button
-                      type="button"
-                      disabled={newGroupSavingAdd || !newGroupTrackAdd || !newGroupNameAdd.trim()}
-                      onClick={async () => {
-                        setNewGroupSavingAdd(true);
-                        try {
-                          await createCohortAction({
-                            track_slug: newGroupTrackAdd,
-                            display_name: newGroupNameAdd.trim(),
-                            start_date: null,
-                            total_weeks: null,
-                          });
-                          setShowNewGroupFormAdd(false);
-                          setNewGroupTrackAdd("");
-                          setNewGroupNameAdd("");
-                          router.refresh();
-                        } finally {
-                          setNewGroupSavingAdd(false);
-                        }
-                      }}
-                      className={buttonClass("dark", "sm")}
-                    >
-                      {newGroupSavingAdd ? "…" : "Create"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setShowNewGroupFormAdd(false); setNewGroupTrackAdd(""); setNewGroupNameAdd(""); }}
-                      className="text-[11px] text-ink-faint hover:text-ink-soft transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-          {addError && <p className="text-xs text-red-500">{addError}</p>}
-          <div className="flex items-center gap-2">
-            <button
-              type="submit"
-              disabled={addingStudent || !addEmail.trim()}
-              className={buttonClass("dark", "sm")}
-            >
-              {addingStudent ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
-              {addingStudent ? "Adding..." : "Add person"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowAddForm(false)}
-              className={buttonClass("secondary", "sm")}
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
+        <AddPeoplePanel
+          tracks={tracks}
+          programSlug={programSlug}
+          onStudentAdded={onStudentAdded}
+          onClose={() => setShowAddForm(false)}
+        />
       )}
 
       {/* Filters */}
