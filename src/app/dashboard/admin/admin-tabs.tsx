@@ -42,6 +42,7 @@ import { TrackInsightsSection } from "@/components/track-insights-section";
 import { InsightsDashboard } from "./insights/insights-dashboard";
 import { TrackOverviewForm } from "./track-overview-form";
 import { OfficeHoursEditor } from "./office-hours-editor";
+import { ManageMenu } from "./manage-menu";
 import type { OfficeHour } from "@/lib/programs/types";
 import type { InsightsData } from "./page";
 import type { Student } from "@/lib/types";
@@ -879,40 +880,7 @@ export function AdminTabs({
               title="Admin"
               subtitle="Pick a course to manage — curriculum, roster, student work, and attendance."
               actions={
-                canSwitchPrograms(userRole) && (
-                  <>
-                    <Link
-                      href="/dashboard/admin/programs"
-                      className={buttonClass("secondary", "sm")}
-                    >
-                      Manage Courses
-                    </Link>
-                    <Link
-                      href="/dashboard/admin/invites"
-                      className={buttonClass("secondary", "sm")}
-                    >
-                      Invites
-                    </Link>
-                    <Link
-                      href="/dashboard/admin/landing"
-                      className={buttonClass("secondary", "sm")}
-                    >
-                      Landing pages
-                    </Link>
-                    <Link
-                      href="/dashboard/admin/resources"
-                      className={buttonClass("secondary", "sm")}
-                    >
-                      Resources
-                    </Link>
-                    <Link
-                      href="/dashboard/admin/features"
-                      className={buttonClass("secondary", "sm")}
-                    >
-                      Tools
-                    </Link>
-                  </>
-                )
+                canSwitchPrograms(userRole) && <ManageMenu />
               }
             />
 
