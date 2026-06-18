@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Loader2 } from "lucide-react";
 import { buttonClass, fieldInput } from "@/components/ui";
 import { addStudentAction, assignStudentTrack } from "./actions";
@@ -94,14 +94,56 @@ function InviteByEmail({ tracks }: { tracks: Track[] }) {
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // How many emails are already on this course's allowlist (for the bulk
+  // "send to everyone" button). Refetched whenever the course changes.
+  const [listCount, setListCount] = useState<number | null>(null);
 
-  const submit = () => {
+  useEffect(() => {
+    let cancelled = false;
+    if (!course) return;
+    getAllowedEmails(course)
+      .then((r) => {
+        if (!cancelled) setListCount(r.emails?.length ?? 0);
+      })
+      .catch(() => {
+        if (!cancelled) setListCount(0);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [course]);
+
+  // Send to everyone already on the allowlist — no pasting needed. Idempotent
+  // (skips already-sent), retries failures, resumable.
+  const sendToAll = () => {
+    if (!course) return;
+    setResult(null);
+    setError(null);
+    startTransition(async () => {
+      try {
+        const sent = await sendCohortInvites(course);
+        if (sent.ok) {
+          setResult(
+            `${sent.sent} sent${sent.failed ? `, ${sent.failed} failed` : ""}${
+              sent.remaining ? ` · ${sent.remaining} remaining — click again to continue` : ""
+            }.`,
+          );
+        } else {
+          setError(sent.error ?? "Failed to send invites.");
+        }
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Failed to send invites.");
+      }
+    });
+  };
+
+  // Append the pasted emails to the allowlist, then bulk-send.
+  const addAndSend = () => {
     if (!course || !emails.trim()) return;
     setResult(null);
     setError(null);
     startTransition(async () => {
       try {
-        // Append to the course's allowlist (merge with current), then invite.
         const current = await getAllowedEmails(course);
         const merged = [...(current.emails ?? []), ...emails.split(/[\n,]/)]
           .map((e) => e.trim())
@@ -112,6 +154,7 @@ function InviteByEmail({ tracks }: { tracks: Track[] }) {
         if (sent.ok) {
           setResult(`Allowlisted + invited. ${sent.sent} sent${sent.failed ? `, ${sent.failed} failed` : ""}.`);
           setEmails("");
+          setListCount(merged.split("\n").filter(Boolean).length);
         } else {
           setError(sent.error ?? "Failed to send invites.");
         }
@@ -122,12 +165,16 @@ function InviteByEmail({ tracks }: { tracks: Track[] }) {
   };
 
   return (
-    <div className="space-y-3">
-      <p className="text-[12px] text-ink-soft">
-        Allowlist these emails for a course and send each a one-click login link.
-      </p>
+    <div className="space-y-4">
       <Field label="Course">
-        <select value={course} onChange={(e) => setCourse(e.target.value)} className={fieldInput}>
+        <select
+          value={course}
+          onChange={(e) => {
+            setListCount(null);
+            setCourse(e.target.value);
+          }}
+          className={fieldInput}
+        >
           {tracks.map((t) => (
             <option key={t.slug} value={t.slug}>
               {t.shortName || t.name}
@@ -135,11 +182,30 @@ function InviteByEmail({ tracks }: { tracks: Track[] }) {
           ))}
         </select>
       </Field>
-      <Field label="Emails (one per line, or comma-separated)">
+
+      {/* Bulk send to the existing allowlist — the "send day" action. */}
+      <div className="flex flex-wrap items-center gap-3 rounded-md border border-rule bg-paper-tint-soft px-3 py-2.5">
+        <span className="text-[13px] text-ink">
+          <span className="font-semibold tabular-nums">{listCount ?? "…"}</span>{" "}
+          {listCount === 1 ? "person" : "people"} on the allowlist
+        </span>
+        <button
+          type="button"
+          onClick={sendToAll}
+          disabled={pending || !course || !listCount}
+          className={`${buttonClass("dark", "sm")} ml-auto`}
+        >
+          {pending ? <Loader2 size={12} className="animate-spin" /> : null}
+          {pending ? "Sending…" : `Send invites to all${listCount ? ` ${listCount}` : ""}`}
+        </button>
+      </div>
+
+      {/* Add new people to the list, then send. */}
+      <Field label="Add more emails (one per line, or comma-separated)">
         <textarea
           value={emails}
           onChange={(e) => setEmails(e.target.value)}
-          rows={5}
+          rows={4}
           placeholder="alice@example.com&#10;bob@example.com"
           className={fieldInput}
         />
@@ -147,12 +213,11 @@ function InviteByEmail({ tracks }: { tracks: Track[] }) {
       <div className="flex items-center gap-3">
         <button
           type="button"
-          onClick={submit}
+          onClick={addAndSend}
           disabled={pending || !emails.trim() || !course}
-          className={buttonClass("dark", "sm")}
+          className={buttonClass("secondary", "sm")}
         >
-          {pending ? <Loader2 size={12} className="animate-spin" /> : null}
-          {pending ? "Sending…" : "Allowlist + send invites"}
+          {pending ? "Working…" : "Allowlist + invite these"}
         </button>
         {result && <span className="text-[12px] text-ink-soft">{result}</span>}
         {error && <span className="text-[12px] text-red-600">{error}</span>}

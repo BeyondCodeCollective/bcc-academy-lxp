@@ -1,8 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { Trash2 } from "lucide-react";
 import { buttonClass } from "@/components/ui";
 import { sendTestInvite } from "./invites/actions";
+import { removePendingPerson } from "./allowlist/actions";
 import type { PendingPerson } from "@/lib/people-hub";
 
 type Props = {
@@ -15,8 +18,10 @@ type Props = {
 // account yet — the front of the pipeline, shown above the roster so admins see
 // everyone at every stage in one place. Per-row Send invite / Resend.
 export function PendingPeopleSection({ pending, trackNames }: Props) {
+  const router = useRouter();
   const [, startTransition] = useTransition();
   const [state, setState] = useState<Record<string, "sending" | "sent" | "error">>({});
+  const [removing, setRemoving] = useState<Record<string, boolean>>({});
 
   if (pending.length === 0) return null;
 
@@ -26,6 +31,21 @@ export function PendingPeopleSection({ pending, trackNames }: Props) {
     startTransition(async () => {
       const r = await sendTestInvite(trackSlug, email);
       setState((m) => ({ ...m, [email]: r.ok ? "sent" : "error" }));
+    });
+  };
+
+  const remove = (email: string, trackSlugs: string[]) => {
+    if (!window.confirm(`Remove ${email} from the allowlist (and cancel any unused invite)?`)) {
+      return;
+    }
+    setRemoving((m) => ({ ...m, [email]: true }));
+    startTransition(async () => {
+      const r = await removePendingPerson(email, trackSlugs);
+      if (r.ok) {
+        router.refresh();
+      } else {
+        setRemoving((m) => ({ ...m, [email]: false }));
+      }
     });
   };
 
@@ -51,7 +71,7 @@ export function PendingPeopleSection({ pending, trackNames }: Props) {
               <button
                 type="button"
                 onClick={() => send(p.email, trackSlug)}
-                disabled={st === "sending" || !trackSlug}
+                disabled={st === "sending" || !trackSlug || removing[p.email]}
                 className={buttonClass("secondary", "sm")}
               >
                 {st === "sending"
@@ -63,6 +83,15 @@ export function PendingPeopleSection({ pending, trackNames }: Props) {
                       : p.inviteSent
                         ? "Resend"
                         : "Send invite"}
+              </button>
+              <button
+                type="button"
+                onClick={() => remove(p.email, p.trackSlugs)}
+                disabled={removing[p.email]}
+                aria-label={`Remove ${p.email}`}
+                className="shrink-0 rounded-md p-1.5 text-ink-faint transition-colors hover:bg-paper-tint hover:text-red-600 disabled:opacity-40"
+              >
+                <Trash2 size={14} aria-hidden />
               </button>
             </div>
           );
