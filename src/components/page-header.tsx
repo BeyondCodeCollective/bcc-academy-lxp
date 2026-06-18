@@ -14,6 +14,7 @@ export function PageHeader({
   title,
   subtitle,
   actions,
+  noWrap,
 }: {
   eyebrow?: string;
   /** Optional status pill rendered beside the eyebrow (e.g. "This Week"). */
@@ -23,10 +24,15 @@ export function PageHeader({
   title: string;
   subtitle?: string;
   actions?: ReactNode;
+  /** Keep actions pinned top-right (let the title text wrap) instead of dropping
+   *  the action group below the title when the row runs out of room. */
+  noWrap?: boolean;
 }) {
   const hasEyebrow = !!eyebrow || !!badge;
   return (
-    <header className="flex flex-wrap items-start justify-between gap-4">
+    <header
+      className={`flex items-start justify-between gap-4 ${noWrap ? "flex-nowrap" : "flex-wrap"}`}
+    >
       <div className="flex min-w-0 items-start gap-4 sm:gap-5">
         {index && (
           <span

@@ -34,6 +34,7 @@ export default async function LandingPagesListPage() {
         <PageHeader
           title="Landing pages"
           subtitle="Marketing landing pages served from /camp/<slug>. Create or edit any page here — changes go live with no code deploy."
+          noWrap
           actions={
             <div className="flex items-center gap-2">
               <Link
