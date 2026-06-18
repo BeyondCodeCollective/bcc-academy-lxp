@@ -257,25 +257,51 @@ function Timeline({ responses }: { responses: BCCSurveyResponse[] }) {
   }, [responses]);
 
   const maxCount = Math.max(...weeks.map((w) => w.count), 1);
+  const total = weeks.reduce((sum, w) => sum + w.count, 0);
+  const peak = weeks.reduce((best, w) => (w.count > best.count ? w : best), weeks[0]);
+
+  if (total === 0) {
+    return (
+      <p className="py-6 text-center text-sm text-ink-faint">
+        No responses in the last 8 weeks.
+      </p>
+    );
+  }
 
   return (
-    <div className="flex items-end gap-2" style={{ height: 96 }}>
-      {weeks.map((w, i) => (
-        <div key={i} className="flex flex-1 flex-col items-center gap-1.5">
-          <div className="relative w-full flex-1">
-            <div
-              className="absolute inset-x-0 bottom-0 rounded-t bg-ink transition-all"
-              style={{
-                height: `${(w.count / maxCount) * 100}%`,
-                minHeight: w.count > 0 ? 4 : 0,
-              }}
-            />
+    <div>
+      <div className="flex items-end gap-2" style={{ height: 96 }}>
+        {weeks.map((w, i) => (
+          <div key={i} className="flex flex-1 flex-col items-center gap-1">
+            {/* The count is the data — without it the bars are unreadable. */}
+            <span className="text-[10px] font-semibold tabular-nums text-ink">
+              {w.count > 0 ? w.count : ""}
+            </span>
+            <div className="relative w-full flex-1">
+              <div
+                className="absolute inset-x-0 bottom-0 rounded-t bg-ink transition-all"
+                style={{
+                  height: `${(w.count / maxCount) * 100}%`,
+                  minHeight: w.count > 0 ? 4 : 0,
+                }}
+              />
+            </div>
+            <span className="text-[9px] tabular-nums text-ink-faint whitespace-nowrap">
+              {w.label}
+            </span>
           </div>
-          <span className="text-[9px] tabular-nums text-ink-faint whitespace-nowrap">
-            {w.label}
-          </span>
-        </div>
-      ))}
+        ))}
+      </div>
+      <p className="mt-3 text-[11px] text-ink-faint">
+        <span className="tabular-nums text-ink-soft">{total}</span> response
+        {total === 1 ? "" : "s"} in the last 8 weeks
+        {peak.count > 0 && (
+          <>
+            {" · busiest week of "}
+            <span className="tabular-nums text-ink-soft">{peak.count}</span> on {peak.label}
+          </>
+        )}
+      </p>
     </div>
   );
 }
