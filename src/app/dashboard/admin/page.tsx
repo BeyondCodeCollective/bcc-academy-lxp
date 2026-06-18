@@ -101,8 +101,10 @@ export default async function AdminPage({
     //
     // Cached across requests with a short TTL: program UUIDs never change,
     // so there is zero staleness risk.
+    // Upskill Bahamas (forte) is its own program — its students/data are NOT
+    // aggregated into Catalyst. ATG + Beyond Code Centers still are.
     const aggregatedSlugs = program.slug === "catalyst"
-      ? ["catalyst", "atg", "beyond-code-centers", "forte"]
+      ? ["catalyst", "atg", "beyond-code-centers"]
       : [program.slug];
     const programRows = await getCachedProgramIds(aggregatedSlugs);
     const programIds = (programRows ?? []).map((p) => p.id as string);

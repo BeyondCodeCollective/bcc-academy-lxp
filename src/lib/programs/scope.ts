@@ -9,7 +9,8 @@
 
 import { createServiceClient } from "@/lib/supabase/server";
 
-const CATALYST_AGGREGATE = ["catalyst", "atg", "beyond-code-centers", "forte"];
+// Upskill Bahamas (forte) is its own program — not aggregated into Catalyst.
+const CATALYST_AGGREGATE = ["catalyst", "atg", "beyond-code-centers"];
 
 export type ProgramScope = { slugs: string[]; ids: string[] };
 
