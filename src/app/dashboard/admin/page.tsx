@@ -13,6 +13,7 @@ import { getHiddenTrackSlugs } from "@/lib/programs/hidden";
 import type { SurveyConfig } from "@/lib/programs/types";
 import { getSurveySchema } from "@/lib/surveys/schemas";
 import type { SurveyQuestion } from "@/components/survey-fields";
+import { fetchPendingPeople, type PendingPerson } from "@/lib/people-hub";
 
 export type InsightsData = {
   sections: {
@@ -73,6 +74,7 @@ export default async function AdminPage({
   let lunchLearnRecordings: LunchLearnRow[] = [];
   let insightsData: InsightsData | null = null;
   let alumniEnrollments: { track_slug: string; email: string; source: string }[] = [];
+  let pendingPeople: PendingPerson[] = [];
   let unviewedAssessments: number | null = null;
   const surveyStats: Record<string, SurveyStatsRow[]> = {};
   const surveyList = [
@@ -256,6 +258,18 @@ export default async function AdminPage({
     myInstructorTracks = ((myInstrTracksRes.data ?? []) as { track_slug: string }[]).map(
       (r) => r.track_slug
     );
+
+    // People hub: allowlisted/invited emails with no account yet, for the
+    // current program's tracks. Only on the People tab.
+    if (effectiveTab === "students") {
+      const studentEmails = new Set(
+        allStudents.map((s) => (s.email ?? "").toLowerCase()).filter(Boolean),
+      );
+      pendingPeople = await fetchPendingPeople(
+        program.tracks.map((t) => t.slug),
+        studentEmails,
+      );
+    }
     // Bucket the single survey_responses fetch by survey_type.
     if (needsSurveyStats) {
       const allRows = (surveyResponsesRes.data ?? []) as SurveyStatsRow[];
@@ -473,6 +487,7 @@ export default async function AdminPage({
         initialTrackView={initialTrackView}
         lunchLearnRecordings={lunchLearnRecordings}
         insightsData={insightsData}
+        pendingPeople={pendingPeople}
         alumniEnrollments={alumniEnrollments}
         unviewedAssessments={unviewedAssessments ?? 0}
       />
