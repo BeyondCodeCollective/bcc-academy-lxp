@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { fieldInput } from "@/components/ui";
 
 export function TrackPicker({
@@ -11,12 +11,14 @@ export function TrackPicker({
   groups: { label: string; options: { slug: string; name: string }[] }[];
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   return (
     <select
       id="track-picker"
       value={selectedSlug}
       onChange={(e) => {
-        router.push(`/dashboard/admin/allowlist?track=${e.target.value}`);
+        // Stay on the hosting page (Add People), just swap the ?track param.
+        router.push(`${pathname}?track=${e.target.value}`);
       }}
       className={`${fieldInput} sm:w-auto min-w-[320px] font-medium`}
     >

@@ -909,11 +909,11 @@ export function AdminTabs({
               </Link>
               {isManager && (
                 <Link
-                  href="/dashboard/admin/allowlist"
+                  href="/dashboard/admin/invites"
                   className={buttonClass("secondary", "sm")}
                 >
                   <Shield size={13} aria-hidden />
-                  Signup allowlist
+                  Add people
                 </Link>
               )}
             </div>
