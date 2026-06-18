@@ -988,7 +988,7 @@ const SECURITY_PLUS_APPLICATION_PAGES: SurveyPage[] = [
   },
   {
     title: "Your Commitment",
-    subtitle: "We heard the Network+ cohort tell us the two-days-per-week schedule was tough to sustain. That feedback is shaping how we plan Security+. We also want to be upfront: this program asks for real time and energy.",
+    subtitle: "We want to be upfront: this program asks for real time and energy.",
     questions: [
       {
         type: "text",
