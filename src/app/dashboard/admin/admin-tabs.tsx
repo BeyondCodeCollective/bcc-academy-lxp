@@ -1401,6 +1401,13 @@ export function AdminTabs({
          broader operational dashboard (engagement, attendance, alumni). */}
       {tab === "insights" && (
         <div className="space-y-6">
+          <Link
+            href="/dashboard/admin"
+            className="inline-flex items-center gap-1.5 text-[11px] font-medium text-ink-faint transition-colors hover:text-ink-soft"
+          >
+            <ArrowLeftIcon size={11} weight="bold" aria-hidden />
+            Admin
+          </Link>
           <PageHeader
             title="Survey Insights"
             subtitle="Per-program survey management and cross-program responses"
