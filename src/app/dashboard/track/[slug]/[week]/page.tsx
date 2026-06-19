@@ -13,6 +13,7 @@ import { RecordingCard } from "@/components/recording-card";
 import { ReflectionForm } from "@/components/reflection-form";
 import { IntakeForm } from "@/components/intake-form";
 import { WeekKeyboardNav } from "@/components/week-keyboard-nav";
+import { WeekNavPortal } from "@/components/week-nav-portal";
 import { getSurveyStatus } from "@/app/dashboard/actions";
 import type { WeekConfig } from "@/lib/programs/types";
 import { resolveSessionContent } from "@/lib/session-content";
@@ -176,36 +177,15 @@ export default async function TrackWeekPage({
   const nextWeek = weekNum < track.totalWeeks ? weekNum + 1 : null;
 
   return (
-    <div className="mx-auto w-full max-w-2xl md:max-w-5xl px-4 sm:px-5 py-8">
+    <div className="mx-auto w-full max-w-2xl md:max-w-5xl px-4 sm:px-5 pt-4 pb-8">
       <WeekKeyboardNav
         prevHref={prevWeek ? `/dashboard/track/${trackSlug}/${prevWeek}` : null}
         nextHref={nextWeek ? `/dashboard/track/${trackSlug}/${nextWeek}` : null}
       />
-      {/* Prev/next week nav. The "up to course" path lives in the breadcrumb
-         (the course crumb), so there's no separate "Back to {track}" link —
-         that would be a second control to the same place. */}
-      <div className="mb-5 flex items-center justify-end gap-3">
-        <nav aria-label="Week navigation" className="flex items-center gap-1">
-          {prevWeek && (
-            <Link
-              href={`/dashboard/track/${trackSlug}/${prevWeek}`}
-              className="inline-flex items-center gap-1 border border-rule px-3 py-1.5 text-xs font-medium text-ink-soft hover:bg-paper-tint-soft hover:text-ink transition-colors"
-            >
-              <ArrowLeft size={12} />
-              Week {prevWeek}
-            </Link>
-          )}
-          {nextWeek && (
-            <Link
-              href={`/dashboard/track/${trackSlug}/${nextWeek}`}
-              className="inline-flex items-center gap-1 border border-rule px-3 py-1.5 text-xs font-medium text-ink-soft hover:bg-paper-tint-soft hover:text-ink transition-colors"
-            >
-              Week {nextWeek}
-              <ArrowLeft size={12} className="rotate-180" />
-            </Link>
-          )}
-        </nav>
-      </div>
+      {/* Prev/next week nav renders into the breadcrumb row (#breadcrumb-actions)
+         so it shares that line instead of stacking below. The "up to course"
+         path is the breadcrumb's course crumb. */}
+      <WeekNavPortal trackSlug={trackSlug} weekNum={weekNum} totalWeeks={track.totalWeeks} />
 
       {/* Compact header. For single-session weeks the session title equals
          the week title, so we fold session metadata (time + Join action)

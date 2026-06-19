@@ -128,23 +128,29 @@ export function Breadcrumbs({
       aria-label="Breadcrumb"
       className="mx-auto w-full max-w-2xl md:max-w-5xl px-4 pt-5 sm:px-5"
     >
-      <ol className="flex flex-wrap items-center gap-1 text-[12px] text-ink-faint">
-        {trail.map((c, i) => {
-          const isLast = i === trail.length - 1;
-          return (
-            <li key={`${c.label}-${i}`} className="flex items-center gap-1">
-              {i > 0 && <CaretRight size={11} weight="bold" className="text-ink-faint/60" aria-hidden />}
-              {c.href && !isLast ? (
-                <Link href={c.href} className="transition-colors hover:text-ink">
-                  {c.label}
-                </Link>
-              ) : (
-                <span className={isLast ? "font-medium text-ink-soft" : undefined}>{c.label}</span>
-              )}
-            </li>
-          );
-        })}
-      </ol>
+      {/* Breadcrumb on the left; pages inject row actions (e.g. the week
+         prev/next nav) into #breadcrumb-actions on the right so they share this
+         line instead of stacking below. */}
+      <div className="flex items-center justify-between gap-3">
+        <ol className="flex flex-wrap items-center gap-1 text-[12px] text-ink-faint">
+          {trail.map((c, i) => {
+            const isLast = i === trail.length - 1;
+            return (
+              <li key={`${c.label}-${i}`} className="flex items-center gap-1">
+                {i > 0 && <CaretRight size={11} weight="bold" className="text-ink-faint/60" aria-hidden />}
+                {c.href && !isLast ? (
+                  <Link href={c.href} className="transition-colors hover:text-ink">
+                    {c.label}
+                  </Link>
+                ) : (
+                  <span className={isLast ? "font-medium text-ink-soft" : undefined}>{c.label}</span>
+                )}
+              </li>
+            );
+          })}
+        </ol>
+        <div id="breadcrumb-actions" className="flex shrink-0 items-center gap-1" />
+      </div>
     </nav>
   );
 }
