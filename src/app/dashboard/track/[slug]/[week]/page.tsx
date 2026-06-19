@@ -186,7 +186,7 @@ export default async function TrackWeekPage({
          that would be a second control to the same place. */}
       <div className="mb-5 flex items-center justify-end gap-3">
         <nav aria-label="Week navigation" className="flex items-center gap-1">
-          {prevWeek ? (
+          {prevWeek && (
             <Link
               href={`/dashboard/track/${trackSlug}/${prevWeek}`}
               className="inline-flex items-center gap-1 border border-rule px-3 py-1.5 text-xs font-medium text-ink-soft hover:bg-paper-tint-soft hover:text-ink transition-colors"
@@ -194,13 +194,8 @@ export default async function TrackWeekPage({
               <ArrowLeft size={12} />
               Week {prevWeek}
             </Link>
-          ) : (
-            <span className="inline-flex items-center gap-1 border border-rule-soft px-3 py-1.5 text-xs font-medium text-ink-faint">
-              <ArrowLeft size={12} />
-              Week {weekNum}
-            </span>
           )}
-          {nextWeek ? (
+          {nextWeek && (
             <Link
               href={`/dashboard/track/${trackSlug}/${nextWeek}`}
               className="inline-flex items-center gap-1 border border-rule px-3 py-1.5 text-xs font-medium text-ink-soft hover:bg-paper-tint-soft hover:text-ink transition-colors"
@@ -208,11 +203,6 @@ export default async function TrackWeekPage({
               Week {nextWeek}
               <ArrowLeft size={12} className="rotate-180" />
             </Link>
-          ) : (
-            <span className="inline-flex items-center gap-1 border border-rule-soft px-3 py-1.5 text-xs font-medium text-ink-faint">
-              Week {weekNum}
-              <ArrowLeft size={12} className="rotate-180" />
-            </span>
           )}
         </nav>
       </div>
