@@ -420,6 +420,7 @@ export default async function AdminPage({
       description: t.description,
       type: t.type,
       totalWeeks: t.totalWeeks,
+      selfPaced: t.selfPaced,
       sessionsPerWeek: t.sessionsPerWeek,
       instructor: t.instructor,
       sessionTimes: t.sessionTimes,
