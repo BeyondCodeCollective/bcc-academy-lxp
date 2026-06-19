@@ -28,6 +28,8 @@ type AttendanceTabProps = {
   scopeLabel?: string;
   /** When true: hides the header/title, defaults straight to mark view. */
   embedded?: boolean;
+  /** Optional Roster/Attendance/Submissions switcher, shown when embedded. */
+  viewSwitcher?: React.ReactNode;
 };
 
 type View = "overview" | "mark";
@@ -50,7 +52,7 @@ const STATUS_LABEL: Record<string, { label: string; bg: string; text: string }> 
   disengaged: { label: "Disengaged", bg: "bg-red-50", text: "text-red-700" },
 };
 
-export function AttendanceTab({ students, tracks, scopeLabel, embedded }: AttendanceTabProps) {
+export function AttendanceTab({ students, tracks, scopeLabel, embedded, viewSwitcher }: AttendanceTabProps) {
   const startedTracks = useMemo(
     () => tracks.filter((t) => new Date() >= new Date(t.startDate)),
     [tracks]
@@ -288,6 +290,9 @@ export function AttendanceTab({ students, tracks, scopeLabel, embedded }: Attend
 
   return (
     <div className="space-y-6">
+      {embedded && viewSwitcher && (
+        <div className="flex flex-wrap items-center gap-2">{viewSwitcher}</div>
+      )}
       {!embedded && (
         <Header
           scopeLabel={scopeLabel}
