@@ -30,6 +30,8 @@ import {
   Send,
   MessageSquare,
   Coffee,
+  Eye,
+  ArrowRight,
 } from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import { buttonClass, fieldInput } from "@/components/ui";
@@ -939,29 +941,50 @@ export function AdminTabs({
                           : `Starts ${start.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
                 const count = studentCountFor(t.slug);
                 return (
-                  <Link
+                  <div
                     key={t.slug}
-                    href={`/dashboard/admin?tab=${t.slug}`}
-                    className="group flex items-center gap-4 px-4 py-3.5 transition-colors hover:bg-paper-tint-soft"
+                    className="group flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-paper-tint-soft"
                   >
-                    <span
-                      className="h-2.5 w-2.5 shrink-0 rounded-full"
-                      style={{ backgroundColor: tone }}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[14px] font-semibold text-ink leading-snug">
-                        {t.shortName || t.name}
+                    {/* Whole left region → Manage (the primary action). */}
+                    <Link
+                      href={`/dashboard/admin?tab=${t.slug}`}
+                      className="flex min-w-0 flex-1 items-center gap-4"
+                    >
+                      <span
+                        className="h-2.5 w-2.5 shrink-0 rounded-full"
+                        style={{ backgroundColor: tone }}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[14px] font-semibold text-ink leading-snug">
+                          {t.shortName || t.name}
+                        </p>
+                        <p className="text-[12px] text-ink-faint">
+                          {t.instructor}
+                        </p>
+                      </div>
+                      <p className="hidden shrink-0 text-[12px] text-ink-soft sm:block">{status}</p>
+                      <p className="shrink-0 w-20 text-right text-[12px] text-ink-faint tabular-nums">
+                        {count} {count === 1 ? "student" : "students"}
                       </p>
-                      <p className="text-[12px] text-ink-faint">
-                        {t.instructor}
-                      </p>
-                    </div>
-                    <p className="shrink-0 text-[12px] text-ink-soft">{status}</p>
-                    <p className="shrink-0 w-20 text-right text-[12px] text-ink-faint tabular-nums">
-                      {count} {count === 1 ? "student" : "students"}
-                    </p>
-                    <span className="shrink-0 text-ink-faint group-hover:text-ink-soft transition-colors">→</span>
-                  </Link>
+                    </Link>
+                    {/* Second action: open the student-facing course view. */}
+                    <Link
+                      href={`/dashboard/track/${t.slug}`}
+                      title="Open student view"
+                      aria-label={`Open student view of ${t.shortName || t.name}`}
+                      className="shrink-0 rounded-md p-1.5 text-ink-faint transition-colors hover:bg-paper-tint hover:text-ink"
+                    >
+                      <Eye size={15} aria-hidden />
+                    </Link>
+                    {/* Primary action: manage. */}
+                    <Link
+                      href={`/dashboard/admin?tab=${t.slug}`}
+                      aria-label={`Manage ${t.shortName || t.name}`}
+                      className="shrink-0 rounded-md p-1.5 text-ink-faint transition-colors hover:bg-paper-tint hover:text-ink group-hover:text-ink-soft"
+                    >
+                      <ArrowRight size={15} aria-hidden />
+                    </Link>
+                  </div>
                 );
               })}
             </div>

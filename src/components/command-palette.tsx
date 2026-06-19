@@ -31,7 +31,6 @@ export type SearchItem = {
 
 const DESTINATIONS: Item[] = [
   { label: "Home", href: "/dashboard", hint: "Your dashboard", Icon: House },
-  { label: "Courses", href: "/dashboard/courses", hint: "Browse the catalog", Icon: BookOpen },
   { label: "Workshops", href: "/dashboard/workshops", hint: "Events & recordings", Icon: Confetti },
   { label: "AI Tutor", href: "/dashboard/tutor", hint: "Ask anything", Icon: ChatsCircle },
   { label: "Resources", href: "/dashboard/resources", hint: "Materials & contacts", Icon: Compass },
