@@ -64,6 +64,7 @@ export default async function ProgramsListPage() {
         <PageHeader
           title="Courses"
           subtitle="Every course across all programs. Click a course to manage it, copy its join link, or hide it from the admin and catalog (reversible — nothing is deleted)."
+          noWrap
           actions={
             <div className="flex items-center gap-2">
               <Link
