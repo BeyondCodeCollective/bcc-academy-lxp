@@ -3,8 +3,9 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { buttonClass } from "@/components/ui";
-import { sendTestInvite } from "./invites/actions";
+import { sendTestInvite, sendCohortInvites } from "./invites/actions";
 import { removePendingPerson } from "./allowlist/actions";
 import type { PendingPerson } from "@/lib/people-hub";
 
@@ -19,11 +20,55 @@ type Props = {
 // everyone at every stage in one place. Per-row Send invite / Resend.
 export function PendingPeopleSection({ pending, trackNames }: Props) {
   const router = useRouter();
-  const [, startTransition] = useTransition();
+  const [isPending, startTransition] = useTransition();
   const [state, setState] = useState<Record<string, "sending" | "sent" | "error">>({});
   const [removing, setRemoving] = useState<Record<string, boolean>>({});
+  const [sendingAll, setSendingAll] = useState(false);
+  const [allResult, setAllResult] = useState<string | null>(null);
 
   if (pending.length === 0) return null;
+
+  // Distinct courses represented in the pending list — "Send all invites"
+  // sends one cohort batch per course (idempotent: skips already-invited).
+  const allTracks = [...new Set(pending.flatMap((p) => p.trackSlugs))].filter(Boolean);
+
+  const sendAll = () => {
+    if (allTracks.length === 0) return;
+    if (
+      !window.confirm(
+        "Send invites to everyone on the allowlist who hasn't been invited yet?",
+      )
+    ) {
+      return;
+    }
+    setSendingAll(true);
+    setAllResult(null);
+    startTransition(async () => {
+      let sent = 0;
+      let failed = 0;
+      let remaining = 0;
+      let err: string | null = null;
+      for (const t of allTracks) {
+        const r = await sendCohortInvites(t);
+        if (r.ok) {
+          sent += r.sent ?? 0;
+          failed += r.failed ?? 0;
+          remaining += r.remaining ?? 0;
+        } else {
+          err = r.error ?? "Failed to send invites.";
+        }
+      }
+      setSendingAll(false);
+      setAllResult(
+        err
+          ? err
+          : `${sent} sent${failed ? `, ${failed} failed` : ""}${
+              remaining ? ` · ${remaining} remaining — click again to continue` : ""
+            }.`,
+      );
+      router.refresh();
+    });
+  };
 
   const send = (email: string, trackSlug: string) => {
     if (!trackSlug) return;
@@ -51,9 +96,21 @@ export function PendingPeopleSection({ pending, trackNames }: Props) {
 
   return (
     <section className="space-y-2">
-      <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-faint">
-        Pending — invited or allowlisted, no account yet ({pending.length})
-      </p>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-faint">
+          Pending — invited or allowlisted, no account yet ({pending.length})
+        </p>
+        <button
+          type="button"
+          onClick={sendAll}
+          disabled={isPending || allTracks.length === 0}
+          className={buttonClass("dark", "sm")}
+        >
+          {sendingAll ? <Loader2 size={12} className="animate-spin" /> : null}
+          {sendingAll ? "Sending…" : "Send all invites"}
+        </button>
+      </div>
+      {allResult && <p className="text-[12px] text-ink-soft">{allResult}</p>}
       <div className="divide-y divide-rule-soft overflow-hidden panel">
         {pending.map((p) => {
           const st = state[p.email];
