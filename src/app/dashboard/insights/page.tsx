@@ -9,6 +9,7 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import { getSessionContext } from "@/lib/auth/session";
 import { canSwitchPrograms } from "@/lib/roles";
+import { isPreviewingAsStudent } from "@/lib/auth/preview-mode";
 import { getProgram } from "@/lib/programs/server";
 import { resolveProgramScope } from "@/lib/programs/scope";
 import { HorizontalBarChart } from "@/components/charts/horizontal-bar-chart";
@@ -34,6 +35,8 @@ export default async function InsightsPage() {
   if (!ctx) redirect("/");
   const role = ctx.student?.role ?? "";
   if (!canSwitchPrograms(role)) redirect("/dashboard");
+  // Previewing as a student → no cross-program analytics.
+  if (await isPreviewingAsStudent(role)) redirect("/dashboard");
 
   // Scope everything to the program in context (domain / super-admin switcher).
   // Catalyst aggregates its underlying programs; other programs scope to self.

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { canAccessAdminPanel } from "@/lib/roles";
+import { isPreviewingAsStudent } from "@/lib/auth/preview-mode";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -22,7 +23,11 @@ export async function getAllowedEmails(
   trackSlug: string,
 ): Promise<{ ok: boolean; emails: string[]; error?: string }> {
   const ctx = await getSessionContext();
-  if (!ctx || !canAccessAdminPanel(ctx.student?.role ?? "")) {
+  if (
+    !ctx ||
+    !canAccessAdminPanel(ctx.student?.role ?? "") ||
+    (await isPreviewingAsStudent(ctx.student?.role ?? ""))
+  ) {
     return { ok: false, emails: [], error: "Not authorized" };
   }
   const svc = createServiceClient();
@@ -48,7 +53,11 @@ export async function getAllowlistAudience(
   trackSlug: string,
 ): Promise<{ ok: boolean; pending: number; joined: number; total: number; error?: string }> {
   const ctx = await getSessionContext();
-  if (!ctx || !canAccessAdminPanel(ctx.student?.role ?? "")) {
+  if (
+    !ctx ||
+    !canAccessAdminPanel(ctx.student?.role ?? "") ||
+    (await isPreviewingAsStudent(ctx.student?.role ?? ""))
+  ) {
     return { ok: false, pending: 0, joined: 0, total: 0, error: "Not authorized" };
   }
   const svc = createServiceClient();
@@ -78,7 +87,11 @@ export async function replaceAllowedEmails(
   rawCsvOrList: string,
 ): Promise<{ ok: boolean; count: number; error?: string }> {
   const ctx = await getSessionContext();
-  if (!ctx || !canAccessAdminPanel(ctx.student?.role ?? "")) {
+  if (
+    !ctx ||
+    !canAccessAdminPanel(ctx.student?.role ?? "") ||
+    (await isPreviewingAsStudent(ctx.student?.role ?? ""))
+  ) {
     return { ok: false, count: 0, error: "Not authorized" };
   }
   const emails = await parseEmailList(rawCsvOrList);
@@ -122,7 +135,11 @@ export async function removePendingPerson(
   trackSlugs: string[],
 ): Promise<{ ok: boolean; error?: string }> {
   const ctx = await getSessionContext();
-  if (!ctx || !canAccessAdminPanel(ctx.student?.role ?? "")) {
+  if (
+    !ctx ||
+    !canAccessAdminPanel(ctx.student?.role ?? "") ||
+    (await isPreviewingAsStudent(ctx.student?.role ?? ""))
+  ) {
     return { ok: false, error: "Not authorized" };
   }
   const e = email.trim().toLowerCase();

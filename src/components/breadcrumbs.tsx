@@ -41,11 +41,16 @@ function humanize(seg: string): string {
  * names; anything missing falls back to a humanized slug. The last crumb is the
  * current page (rendered without a link).
  */
-export function buildTrail(pathname: string, labels: Record<string, string>): Crumb[] {
+export function buildTrail(
+  pathname: string,
+  labels: Record<string, string>,
+  isAdmin = false,
+): Crumb[] {
   const path = pathname.replace(/\/+$/, "");
   if (!path.startsWith("/dashboard") || path === "/dashboard") return [];
 
-  const home: Crumb = { label: "Home", href: "/dashboard" };
+  // For admins, Home IS the admin hub; students/previewing land on /dashboard.
+  const home: Crumb = { label: "Home", href: isAdmin ? "/dashboard/admin" : "/dashboard" };
   const seg = path.split("/").filter(Boolean); // ["dashboard", ...]
   const rest = seg.slice(1);
   const nameFor = (href: string) => labels[href];
@@ -72,9 +77,11 @@ export function buildTrail(pathname: string, labels: Record<string, string>): Cr
 
   const top = rest[0];
 
-  // ── Courses (track + legacy mass/techplus week routes) ───────────────────
+  // ── Course (track + legacy mass/techplus week routes) ────────────────────
+  // No "Courses" crumb — the standalone catalog page was removed; the parent of
+  // a course is just Home (the admin hub for admins, the dashboard otherwise).
   if (top === "track" || top === "mass" || top === "techplus") {
-    const out: Crumb[] = [home, { label: "Courses", href: "/dashboard/courses" }];
+    const out: Crumb[] = [home];
     const slug = top === "track" ? rest[1] : top;
     const courseHref = `/dashboard/track/${slug}`;
     const courseLabel = nameFor(courseHref) ?? humanize(slug);
@@ -98,9 +105,15 @@ export function buildTrail(pathname: string, labels: Record<string, string>): Cr
   return [home, { label: sectionLabel, href: sectionHref }, { label: leafLabel }];
 }
 
-export function Breadcrumbs({ labels = {} }: { labels?: Record<string, string> }) {
+export function Breadcrumbs({
+  labels = {},
+  isAdmin = false,
+}: {
+  labels?: Record<string, string>;
+  isAdmin?: boolean;
+}) {
   const pathname = usePathname();
-  const trail = buildTrail(pathname, labels);
+  const trail = buildTrail(pathname, labels, isAdmin);
   if (trail.length < 2) return null; // nothing meaningful to show (e.g. Home)
 
   return (

@@ -354,7 +354,12 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
 async function BreadcrumbBar() {
   if (!isSupabaseConfigured()) return null;
   const { labels } = await getDashboardIndex();
-  return <Breadcrumbs labels={labels} />;
+  // Preview-aware: a super-admin previewing as a student is NOT treated as admin,
+  // so the "Home" crumb points at the student dashboard, not the admin hub.
+  const ctx = await getSessionContext();
+  const role = ctx?.student?.role ?? "";
+  const isAdmin = canAccessAdminPanel(role) && !(await getPreviewTrackSlug(role));
+  return <Breadcrumbs labels={labels} isAdmin={isAdmin} />;
 }
 
 // sidebar with its in-nav account menu, so we render nothing for them.
