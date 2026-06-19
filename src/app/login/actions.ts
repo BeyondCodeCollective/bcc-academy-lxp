@@ -103,8 +103,11 @@ export async function sendLoginLink({
   callbackBase.searchParams.set("email", trimmed);
   const richRedirectTo = callbackBase.toString();
 
+  // Default ON now that mail.bccacademy.io is verified in Resend — sign-in
+  // emails come from the BCC domain. Set LOGIN_VIA_RESEND=false to force the
+  // Supabase OTP path. Safe either way: any Resend failure falls through to OTP.
   const tryResend =
-    process.env.LOGIN_VIA_RESEND === "true" && !!process.env.RESEND_API_KEY;
+    process.env.LOGIN_VIA_RESEND !== "false" && !!process.env.RESEND_API_KEY;
 
   if (tryResend) {
     const program = await getProgram();

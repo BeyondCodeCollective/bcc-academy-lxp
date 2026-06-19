@@ -97,14 +97,13 @@ export async function sendJoinLink({
 
   // Allowlist passed. Now send the magic link.
   //
-  // Resend path is gated behind LOGIN_VIA_RESEND (same env flag that
-  // controls the apex login). When it's off — current state, since
-  // mail.bccacademy.io isn't DNS-verified yet — we run signInWithOtp
-  // SERVER-SIDE here instead of asking the client to do it. From an EU
+  // Resend is the default now that mail.bccacademy.io is verified (same env
+  // flag as the apex login). Only when it's explicitly disabled, or there's no
+  // Resend key, do we run signInWithOtp SERVER-SIDE here instead. From an EU
   // user that saves one Portugal→Supabase round-trip (now Portugal→
   // Vercel→Supabase server-to-server, which is one round-trip total
   // instead of two stacked).
-  if (process.env.LOGIN_VIA_RESEND !== "true") {
+  if (process.env.LOGIN_VIA_RESEND === "false" || !process.env.RESEND_API_KEY) {
     const callbackParams = new URLSearchParams({ join: programSlug });
     if (trackSlug) callbackParams.set("track", trackSlug);
     const callbackUrl = `${origin}/auth/callback?${callbackParams}`;
