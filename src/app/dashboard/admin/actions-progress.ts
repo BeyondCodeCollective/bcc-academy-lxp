@@ -3,6 +3,7 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { canAccessAdminPanel } from "@/lib/roles";
+import { isPreviewingAsStudent } from "@/lib/auth/preview-mode";
 
 export type TrackProgress = {
   /** student id → week numbers where the recording was marked watched. */
@@ -19,7 +20,11 @@ export type TrackProgress = {
  */
 export async function getTrackProgress(trackSlug: string): Promise<TrackProgress> {
   const ctx = await getSessionContext();
-  if (!ctx || !canAccessAdminPanel(ctx.student?.role ?? "")) {
+  if (
+    !ctx ||
+    !canAccessAdminPanel(ctx.student?.role ?? "") ||
+    (await isPreviewingAsStudent(ctx.student?.role ?? ""))
+  ) {
     return { watched: {}, submitted: {} };
   }
   const svc = createServiceClient();

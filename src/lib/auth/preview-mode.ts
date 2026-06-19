@@ -22,4 +22,13 @@ export async function getPreviewTrackSlug(role: string): Promise<string | null> 
   return value && value.length > 0 ? value : null;
 }
 
+/**
+ * True when a super-admin is actively previewing as a student. Access gates
+ * (admin pages + server actions) use this to treat the previewer as a student,
+ * so preview mode is a real restriction, not just hidden chrome.
+ */
+export async function isPreviewingAsStudent(role: string): Promise<boolean> {
+  return (await getPreviewTrackSlug(role)) !== null;
+}
+
 

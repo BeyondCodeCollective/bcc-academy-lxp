@@ -5,6 +5,7 @@ import { generateInviteToken } from "@/lib/invite-token";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { canSwitchPrograms } from "@/lib/roles";
+import { isPreviewingAsStudent } from "@/lib/auth/preview-mode";
 import { getHomeProgramForTrack } from "@/lib/programs";
 import { getProgramWithOverrides } from "@/lib/programs/server";
 import { sendInviteEmail } from "@/lib/email";
@@ -30,7 +31,10 @@ export async function sendCohortInvites(
   trackSlug: string,
 ): Promise<SendInvitesResult> {
   const ctx = await getSessionContext();
-  if (!canSwitchPrograms(ctx?.student?.role ?? "")) {
+  if (
+    !canSwitchPrograms(ctx?.student?.role ?? "") ||
+    (await isPreviewingAsStudent(ctx?.student?.role ?? ""))
+  ) {
     return { ok: false, error: "Not authorized" };
   }
 
@@ -145,7 +149,10 @@ export async function sendTestInvite(
   rawEmail: string,
 ): Promise<SendInvitesResult> {
   const ctx = await getSessionContext();
-  if (!canSwitchPrograms(ctx?.student?.role ?? "")) {
+  if (
+    !canSwitchPrograms(ctx?.student?.role ?? "") ||
+    (await isPreviewingAsStudent(ctx?.student?.role ?? ""))
+  ) {
     return { ok: false, error: "Not authorized" };
   }
   const email = rawEmail.trim().toLowerCase();

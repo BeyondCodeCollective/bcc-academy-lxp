@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { hasCapability, canSwitchPrograms } from "@/lib/roles";
 import type { Capability } from "@/lib/roles";
+import { isPreviewingAsStudent } from "@/lib/auth/preview-mode";
 
 export async function requireCapability(capability: Capability) {
   const supabase = await createClient();
@@ -20,6 +21,11 @@ export async function requireCapability(capability: Capability) {
 
   const role = student?.role ?? "";
   if (!hasCapability(role, capability)) throw new Error("Not authorized");
+  // A super-admin previewing as a student is treated as a student — block
+  // admin mutations until they exit preview.
+  if (await isPreviewingAsStudent(role)) {
+    throw new Error("Exit student preview to make changes.");
+  }
   return { svc, userId: user.id, role, programId: student?.program_id ?? null };
 }
 
