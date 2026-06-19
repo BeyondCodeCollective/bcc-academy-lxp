@@ -151,7 +151,21 @@ export function Nav({
   // The bare /dashboard would render the learner shell and only THEN redirect
   // admins to /dashboard/admin — flashing the learner skeleton first. Point
   // every brand/home link straight at the right destination to avoid that.
-  const homeHref = isAdmin ? "/dashboard/admin" : "/dashboard";
+  //
+  // Same reasoning for single-course students (e.g. Upskill Bahamas): their
+  // one course overview IS their home, so /dashboard is a pure redirect hop —
+  // it flashes the neutral dashboard skeleton, then the track-overview skeleton
+  // a beat later (two different designs in a row). Point Home straight at the
+  // course so only its own skeleton ever shows.
+  const singleCourseSlug =
+    variant === "student-sidebar" && curriculumTracks.length === 1
+      ? curriculumTracks[0].slug
+      : null;
+  const homeHref = isAdmin
+    ? "/dashboard/admin"
+    : singleCourseSlug
+      ? `/dashboard/track/${singleCourseSlug}`
+      : "/dashboard";
 
   const items: NavItem[] = [
     // For admins, Home IS the admin dashboard (the learner home is preview-only),
