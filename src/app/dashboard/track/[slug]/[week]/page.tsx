@@ -181,17 +181,10 @@ export default async function TrackWeekPage({
         prevHref={prevWeek ? `/dashboard/track/${trackSlug}/${prevWeek}` : null}
         nextHref={nextWeek ? `/dashboard/track/${trackSlug}/${nextWeek}` : null}
       />
-      {/* Top nav: back to track overview + prev/next week. The overview itself
-         has a "Back to Dashboard" link, so the breadcrumb is Dashboard →
-         {track} overview → Week N. */}
-      <div className="mb-5 flex items-center justify-between gap-3">
-        <Link
-          href={`/dashboard/track/${trackSlug}`}
-          className="inline-flex items-center gap-1.5 text-sm text-ink-faint hover:text-ink transition-colors py-2"
-        >
-          <ArrowLeft size={16} />
-          Back to {track.shortName}
-        </Link>
+      {/* Prev/next week nav. The "up to course" path lives in the breadcrumb
+         (the course crumb), so there's no separate "Back to {track}" link —
+         that would be a second control to the same place. */}
+      <div className="mb-5 flex items-center justify-end gap-3">
         <nav aria-label="Week navigation" className="flex items-center gap-1">
           {prevWeek ? (
             <Link
