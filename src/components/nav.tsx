@@ -157,13 +157,9 @@ export function Nav({
     // For admins, Home IS the admin dashboard (the learner home is preview-only),
     // so there's no separate "Admin" item — one clear landing.
     { href: homeHref, label: "Home", icon: House },
-    // Catalog (every track in the program) is admin-only. Students get their
-    // own track grid on /dashboard and the curriculum sidebar when they're
-    // inside a track — they don't need a browsable catalog of programs
-    // they aren't enrolled in.
-    ...(isAdmin
-      ? [{ href: "/dashboard/courses", label: "Courses", icon: BookOpen }]
-      : []),
+    // No separate "Courses" item: for admins, Home IS the course hub — it lists
+    // every track with Manage + Open-student-view actions per course, so a
+    // second admin-only catalog page was redundant (collapsed into Home).
     // Workshops are internal-only: admin panel access OR BGC/BCC staff email.
     // Students (current or prospective) don't see this; past workshops are
     // archival material for the org, not enrolled-learner content.
