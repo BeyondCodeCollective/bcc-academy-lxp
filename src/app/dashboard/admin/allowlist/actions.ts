@@ -106,14 +106,15 @@ export async function removePendingPerson(
       .eq("email", e)
       .in("track_slug", trackSlugs)
       .then((r) => r.error),
-    // Only clear unused invites — a used invite means they already have an
-    // account, so they're no longer "pending" and shouldn't be touched here.
+    // Clear the invite regardless of used_at. The Pending list already excludes
+    // anyone with a student account, so a row here = no account; a stale "used"
+    // invite (clicked but never finished signup) must be removable too — that's
+    // exactly the kind the admin wants to clear off the list.
     svc
       .from("invites")
       .delete()
       .eq("email", e)
       .in("track_slug", trackSlugs)
-      .is("used_at", null)
       .then((r) => r.error),
   ]);
   if (allowErr || inviteErr) {
