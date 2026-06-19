@@ -161,7 +161,7 @@ export default async function TrackOverviewPage({
           {started && (
             <div className="absolute top-3 right-3">
               <span className="inline-flex items-center gap-1.5 rounded-full panel px-2.5 py-1 text-[11px] font-semibold text-primary">
-                <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                <span className="h-1.5 w-1.5 rounded-full bg-highlight animate-pulse" />
                 In progress
               </span>
             </div>
