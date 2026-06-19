@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { Loader2 } from "lucide-react";
 import { buttonClass, fieldInput } from "@/components/ui";
 import { addStudentAction, assignStudentTrack } from "./actions";
-import { getAllowedEmails, replaceAllowedEmails } from "./allowlist/actions";
+import { getAllowedEmails, replaceAllowedEmails, getAllowlistAudience } from "./allowlist/actions";
 import { sendCohortInvites } from "./invites/actions";
 import type { Student } from "@/lib/types";
 
@@ -94,19 +94,20 @@ function InviteByEmail({ tracks }: { tracks: Track[] }) {
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  // How many emails are already on this course's allowlist (for the bulk
-  // "send to everyone" button). Refetched whenever the course changes.
-  const [listCount, setListCount] = useState<number | null>(null);
+  // Allowlist audience for this course: how many still need to sign up vs.
+  // already joined. The bulk-send number tracks `pending`, not the raw list —
+  // people with accounts shouldn't be re-invited. Refetched on course change.
+  const [audience, setAudience] = useState<{ pending: number; joined: number } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     if (!course) return;
-    getAllowedEmails(course)
+    getAllowlistAudience(course)
       .then((r) => {
-        if (!cancelled) setListCount(r.emails?.length ?? 0);
+        if (!cancelled) setAudience({ pending: r.pending, joined: r.joined });
       })
       .catch(() => {
-        if (!cancelled) setListCount(0);
+        if (!cancelled) setAudience({ pending: 0, joined: 0 });
       });
     return () => {
       cancelled = true;
@@ -154,7 +155,8 @@ function InviteByEmail({ tracks }: { tracks: Track[] }) {
         if (sent.ok) {
           setResult(`Allowlisted + invited. ${sent.sent} sent${sent.failed ? `, ${sent.failed} failed` : ""}.`);
           setEmails("");
-          setListCount(merged.split("\n").filter(Boolean).length);
+          const a = await getAllowlistAudience(course);
+          setAudience({ pending: a.pending, joined: a.joined });
         } else {
           setError(sent.error ?? "Failed to send invites.");
         }
@@ -170,7 +172,7 @@ function InviteByEmail({ tracks }: { tracks: Track[] }) {
         <select
           value={course}
           onChange={(e) => {
-            setListCount(null);
+            setAudience(null);
             setCourse(e.target.value);
           }}
           className={fieldInput}
@@ -183,20 +185,27 @@ function InviteByEmail({ tracks }: { tracks: Track[] }) {
         </select>
       </Field>
 
-      {/* Bulk send to the existing allowlist — the "send day" action. */}
+      {/* Bulk send — the "send day" action. The number is the people who still
+         need to sign up (no account yet); those who've joined are skipped. */}
       <div className="flex flex-wrap items-center gap-3 rounded-md border border-rule bg-paper-tint-soft px-3 py-2.5">
         <span className="text-[13px] text-ink">
-          <span className="font-semibold tabular-nums">{listCount ?? "…"}</span>{" "}
-          {listCount === 1 ? "person" : "people"} on the allowlist
+          <span className="font-semibold tabular-nums">{audience?.pending ?? "…"}</span>{" "}
+          still need to sign up
+          {audience && audience.joined > 0 && (
+            <span className="text-ink-faint">
+              {" · "}
+              <span className="tabular-nums">{audience.joined}</span> joined
+            </span>
+          )}
         </span>
         <button
           type="button"
           onClick={sendToAll}
-          disabled={pending || !course || !listCount}
+          disabled={pending || !course || !audience?.pending}
           className={`${buttonClass("dark", "sm")} ml-auto`}
         >
           {pending ? <Loader2 size={12} className="animate-spin" /> : null}
-          {pending ? "Sending…" : `Send invites to all${listCount ? ` ${listCount}` : ""}`}
+          {pending ? "Sending…" : `Send invites to all${audience?.pending ? ` ${audience.pending}` : ""}`}
         </button>
       </div>
 
