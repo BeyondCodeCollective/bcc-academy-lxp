@@ -217,10 +217,10 @@ export function Nav({
         className={`nav-item flex min-h-[44px] items-center gap-3 py-2 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset rounded-lg border-l-2 pl-[10px] pr-3 ${
           lightShell
             ? active
-              ? "border-highlight bg-primary/[0.08] text-primary"
+              ? "border-primary bg-primary/[0.08] text-primary"
               : "border-transparent text-ink-soft hover:bg-paper-tint hover:text-ink"
             : active
-              ? "border-highlight bg-white/[0.08] text-white"
+              ? "border-primary bg-white/[0.08] text-white"
               : "border-transparent text-ink-soft hover:bg-white/[0.06] hover:text-white"
         }`}
       >
