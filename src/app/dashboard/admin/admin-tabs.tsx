@@ -518,7 +518,7 @@ export function AdminTabs({
   const [trackView, setTrackView] = useState<
     "overview" | "curriculum" | "students" | "surveys"
   >((initialTrackView as "overview" | "curriculum" | "students" | "surveys") ?? "overview");
-  const [studentSubView, setStudentSubView] = useState<"students" | "work">("students");
+  const [studentSubView, setStudentSubView] = useState<"students" | "attendance" | "work">("students");
   const [studentSaving, setStudentSaving] = useState<string | null>(null);
 
   // Track data: keyed by track slug
@@ -1221,16 +1221,29 @@ export function AdminTabs({
         </div>
       )}
 
-          {/* Students tab — roster, work, and attendance scoped to this track */}
+          {/* Students tab — Roster / Attendance / Submissions as peer views you
+             switch between (never stacked, so the people list isn't duplicated).
+             Self-paced courses have no weekly sessions, so Attendance is hidden
+             for them. */}
           {trackView === "students" && (() => {
+            // Self-paced tracks don't take weekly attendance — drop the option,
+            // and never leave the view stuck on a hidden Attendance.
+            const showAttendance = !activeTrack.selfPaced;
+            const subView =
+              studentSubView === "attendance" && !showAttendance
+                ? "students"
+                : studentSubView;
             const viewSwitcher = (
               <div className="relative">
                 <select
-                  value={studentSubView}
-                  onChange={(e) => setStudentSubView(e.target.value as "students" | "work")}
+                  value={subView}
+                  onChange={(e) =>
+                    setStudentSubView(e.target.value as "students" | "attendance" | "work")
+                  }
                   className="appearance-none panel pl-3 pr-8 py-2 text-sm font-medium text-ink focus:border-ink-faint focus:outline-none"
                 >
-                  <option value="students">Roster &amp; Attendance</option>
+                  <option value="students">Roster</option>
+                  {showAttendance && <option value="attendance">Attendance</option>}
                   <option value="work">Submissions</option>
                 </select>
                 <ChevronDown size={13} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-faint" />
@@ -1238,39 +1251,41 @@ export function AdminTabs({
             );
             return (
               <div className="space-y-4">
-                {studentSubView === "students" && (
-                  <div className="space-y-8">
-                    <PeopleTab
-                      students={students}
-                      cohorts={cohorts}
-                      tracks={tracks}
-                      enrollments={enrollments}
-                      instrTracks={instrTracks}
-                      engagementScores={engagementScores}
-                      isManager={isManager}
-                      programSlug={programSlug}
-                      enrollmentSaving={enrollmentSaving}
-                      instrTrackSaving={instrTrackSaving}
-                      studentSaving={studentSaving}
-                      onUpdateStudent={updateStudent}
-                      onDeleteStudent={deleteStudent}
-                      onToggleStudentTrack={toggleTrackEnrollment}
-                      onToggleInstructorTrack={toggleInstructorTrack}
-                      onStudentAdded={(s) => setStudents((prev) => [...prev, s])}
-                      initialTrackFilter={activeTrack.slug}
-                      embedded
-                      viewSwitcher={viewSwitcher}
-                    />
-                    <AttendanceTab
-                      students={trackStudents.filter((s) => s.role === "student")}
-                      tracks={[activeTrack]}
-                      scopeLabel={activeTrack.shortName}
-                      embedded
-                    />
-                  </div>
+                {subView === "students" && (
+                  <PeopleTab
+                    students={students}
+                    cohorts={cohorts}
+                    tracks={tracks}
+                    enrollments={enrollments}
+                    instrTracks={instrTracks}
+                    engagementScores={engagementScores}
+                    isManager={isManager}
+                    programSlug={programSlug}
+                    enrollmentSaving={enrollmentSaving}
+                    instrTrackSaving={instrTrackSaving}
+                    studentSaving={studentSaving}
+                    onUpdateStudent={updateStudent}
+                    onDeleteStudent={deleteStudent}
+                    onToggleStudentTrack={toggleTrackEnrollment}
+                    onToggleInstructorTrack={toggleInstructorTrack}
+                    onStudentAdded={(s) => setStudents((prev) => [...prev, s])}
+                    initialTrackFilter={activeTrack.slug}
+                    embedded
+                    viewSwitcher={viewSwitcher}
+                  />
                 )}
 
-                {studentSubView === "work" && (
+                {subView === "attendance" && (
+                  <AttendanceTab
+                    students={trackStudents.filter((s) => s.role === "student")}
+                    tracks={[activeTrack]}
+                    scopeLabel={activeTrack.shortName}
+                    embedded
+                    viewSwitcher={viewSwitcher}
+                  />
+                )}
+
+                {subView === "work" && (
                   <StudentWorkTab
                     tracks={[activeTrack]}
                     programSlug={programSlug}
