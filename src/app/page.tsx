@@ -1,22 +1,13 @@
 import Image from "next/image";
 import { LearnMoreForm } from "@/components/learn-more-form";
-import { VIDEO_URLS } from "@/data/marketing/videos";
+import { HeroVideo } from "@/components/hero-video";
 
 export default function HomePage() {
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-true-black px-6">
       {/* BCC hero clip behind everything, with a dark overlay so the logo and
          copy stay legible. bg-true-black is the fallback while the video loads. */}
-      <video
-        autoPlay
-        muted
-        loop
-        playsInline
-        aria-hidden
-        className="absolute inset-0 h-full w-full object-cover"
-      >
-        <source src={VIDEO_URLS.hero} type="video/mp4" />
-      </video>
+      <HeroVideo />
       <div className="absolute inset-0 bg-true-black/70" aria-hidden />
 
       <div className="relative z-10 flex flex-col items-center gap-10">
