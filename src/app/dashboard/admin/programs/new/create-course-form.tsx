@@ -88,7 +88,7 @@ export function CreateCourseForm() {
             document.cookie = `program-override=catalyst; path=/; max-age=86400`;
             window.location.href = `/dashboard/admin?tab=${result.slug}`;
           }}
-          className={`${buttonClass("dark", "md")} w-full`}
+          className={`${buttonClass("primary", "md")} w-full`}
         >
           Manage this course →
         </button>

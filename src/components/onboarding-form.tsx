@@ -144,7 +144,7 @@ export function OnboardingForm({ program, visibleTracks }: Props) {
           <button
             onClick={handleFinish}
             disabled={saving}
-            className={`${buttonClass("dark", "md")} w-full`}
+            className={`${buttonClass("primary", "md")} w-full`}
           >
             {saving ? <Spinner /> : "Let's Go"}
           </button>

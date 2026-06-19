@@ -31,7 +31,7 @@ export async function LunchLearnHub({ isAdmin, firstName }: Props) {
           isAdmin ? (
             <Link
               href="/dashboard/admin?tab=lunch-learn"
-              className={buttonClass("dark", "md")}
+              className={buttonClass("primary", "md")}
             >
               Add a recording
             </Link>

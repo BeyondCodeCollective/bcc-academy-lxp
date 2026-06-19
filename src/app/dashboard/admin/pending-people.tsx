@@ -104,7 +104,7 @@ export function PendingPeopleSection({ pending, trackNames }: Props) {
           type="button"
           onClick={sendAll}
           disabled={isPending || allTracks.length === 0}
-          className={buttonClass("dark", "sm")}
+          className={buttonClass("primary", "sm")}
         >
           {sendingAll ? <Loader2 size={12} className="animate-spin" /> : null}
           {sendingAll ? "Sending…" : "Send all invites"}

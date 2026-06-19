@@ -92,7 +92,7 @@ export function InvitesPanel({ tracks }: { tracks: TrackRow[] }) {
                 type="button"
                 onClick={() => send(t.slug, t.name, t.invited)}
                 disabled={busy}
-                className={buttonClass("dark", "sm")}
+                className={buttonClass("primary", "sm")}
               >
                 {busy
                   ? "Sending…"

@@ -247,7 +247,7 @@ export function SubmissionForm({
       <button
         onClick={handleSubmit}
         disabled={saving || !hasContent}
-        className={buttonClass("dark", "md")}
+        className={buttonClass("primary", "md")}
       >
         {saving ? (
           <><Loader2 size={14} className="animate-spin" /> Saving...</>

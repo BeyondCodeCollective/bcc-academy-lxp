@@ -389,7 +389,7 @@ export function PublicSurveyWizard({
         <button
           onClick={handleNext}
           disabled={submitting}
-          className={buttonClass("dark", "md")}
+          className={buttonClass("primary", "md")}
         >
           {submitting ? (
             <><Loader2 size={16} className="animate-spin" />Submitting...</>

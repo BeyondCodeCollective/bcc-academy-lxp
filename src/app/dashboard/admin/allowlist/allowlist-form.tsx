@@ -124,7 +124,7 @@ export function AllowlistForm({
           type="button"
           onClick={handleSave}
           disabled={isPending}
-          className={buttonClass("dark", "md")}
+          className={buttonClass("primary", "md")}
         >
           {isPending ? (
             <>

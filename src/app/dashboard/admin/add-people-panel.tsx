@@ -202,7 +202,7 @@ function InviteByEmail({ tracks }: { tracks: Track[] }) {
           type="button"
           onClick={sendToAll}
           disabled={pending || !course || !audience?.pending}
-          className={`${buttonClass("dark", "sm")} ml-auto`}
+          className={`${buttonClass("primary", "sm")} ml-auto`}
         >
           {pending ? <Loader2 size={12} className="animate-spin" /> : null}
           {pending ? "Sending…" : `Send invites to all${audience?.pending ? ` ${audience.pending}` : ""}`}
@@ -321,7 +321,7 @@ function AddDirectly({
         </Field>
       </div>
       <div className="flex items-center gap-3">
-        <button type="submit" disabled={pending || !email.trim()} className={buttonClass("dark", "sm")}>
+        <button type="submit" disabled={pending || !email.trim()} className={buttonClass("primary", "sm")}>
           {pending ? <Loader2 size={12} className="animate-spin" /> : null}
           {pending ? "Adding…" : "Add person"}
         </button>
