@@ -78,10 +78,12 @@ export function buildTrail(
   const top = rest[0];
 
   // ── Course (track + legacy mass/techplus week routes) ────────────────────
-  // No "Courses" crumb — the standalone catalog page was removed; the parent of
-  // a course is just Home (the admin hub for admins, the dashboard otherwise).
+  // No "Courses" crumb — the catalog page was removed. For learners the course
+  // IS their home (a single-course student's /dashboard redirects to it), so
+  // showing both "Home" and the course is redundant — start the trail at the
+  // course. Admins keep Home (the admin hub is a genuinely different place).
   if (top === "track" || top === "mass" || top === "techplus") {
-    const out: Crumb[] = [home];
+    const out: Crumb[] = isAdmin ? [home] : [];
     const slug = top === "track" ? rest[1] : top;
     const courseHref = `/dashboard/track/${slug}`;
     const courseLabel = nameFor(courseHref) ?? humanize(slug);
