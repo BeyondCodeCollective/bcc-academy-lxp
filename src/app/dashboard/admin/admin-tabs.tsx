@@ -93,6 +93,7 @@ type AdminTrackConfig = {
   description?: string;
   type?: string;
   totalWeeks: number;
+  selfPaced?: boolean;
   sessionsPerWeek: number;
   instructor: string;
   sessionTimes: string[];
@@ -930,9 +931,11 @@ export function AdminTabs({
                     ? "Single session"
                     : t.startDateTbd
                       ? "Starts TBD"
-                      : started
-                        ? `Week ${currentWeek} of ${t.totalWeeks}`
-                        : `Starts ${start.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+                      : t.selfPaced
+                        ? `Self-paced · ${t.totalWeeks} weeks`
+                        : started
+                          ? `Week ${currentWeek} of ${t.totalWeeks}`
+                          : `Starts ${start.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
                 const count = studentCountFor(t.slug);
                 return (
                   <Link

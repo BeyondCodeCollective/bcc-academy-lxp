@@ -102,7 +102,14 @@ export default async function TrackOverviewPage({
     };
   });
 
-  const eyebrow = started ? `Week ${currentWeek} of ${track.totalWeeks}` : "";
+  // Self-paced courses have no fixed weekly schedule, so a ticking "Week N of M"
+  // is misleading — show "Self-paced · N weeks" instead. Otherwise lead with the
+  // live week (once started) then the track length.
+  const eyebrow = track.selfPaced
+    ? `Self-paced · ${track.totalWeeks} weeks`
+    : started
+      ? `Week ${currentWeek} of ${track.totalWeeks} · ${track.totalWeeks}-week track`
+      : `${track.totalWeeks}-week track`;
 
   // Active announcements for this track (or program-wide). Mirrors the
   // dashboard's banner — single-track students land here directly and skip
@@ -163,7 +170,7 @@ export default async function TrackOverviewPage({
 
         <div>
           <PageHeader
-            eyebrow={`${eyebrow ? `${eyebrow} · ` : ""}${track.totalWeeks}-week track`}
+            eyebrow={eyebrow}
             title={track.name}
           />
           {overviewCopy && (
