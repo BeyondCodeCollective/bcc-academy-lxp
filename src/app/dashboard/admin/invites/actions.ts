@@ -41,18 +41,22 @@ export async function sendCohortInvites(
 
   const svc = createServiceClient();
 
-  // 1) Allowlisted emails for this track.
-  const { data: allow } = await svc
-    .from("allowed_signup_emails")
-    .select("email")
-    .eq("track_slug", trackSlug);
+  // 1) Allowlisted emails for this track, minus anyone who already has an
+  //    account — they're enrolled, so re-inviting them is noise.
+  const [{ data: allow }, { data: accts }] = await Promise.all([
+    svc.from("allowed_signup_emails").select("email").eq("track_slug", trackSlug),
+    svc.from("students").select("email"),
+  ]);
+  const haveAccount = new Set(
+    (accts ?? []).map((r) => (r.email as string)?.toLowerCase()).filter(Boolean),
+  );
   const emails = Array.from(
     new Set(
       (allow ?? [])
         .map((r) => (r.email as string)?.toLowerCase())
         .filter(Boolean),
     ),
-  );
+  ).filter((email) => !haveAccount.has(email));
   if (emails.length === 0) return { ok: true, sent: 0, failed: 0, total: 0 };
 
   // 2) Insert one invite row per email that doesn't already have one for this
@@ -80,12 +84,16 @@ export async function sendCohortInvites(
     if (insErr) return { ok: false, error: `Could not create invites: ${insErr.message}` };
   }
 
-  // 3) Send everything not already delivered (pending + previously failed).
-  const { data: toSend } = await svc
+  // 3) Send everything not already delivered (pending + previously failed),
+  //    skipping any invite whose email has since created an account.
+  const { data: toSendRaw } = await svc
     .from("invites")
     .select("token, email")
     .eq("track_slug", trackSlug)
     .neq("status", "sent");
+  const toSend = (toSendRaw ?? []).filter(
+    (inv) => !haveAccount.has((inv.email as string)?.toLowerCase()),
+  );
 
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "bccacademy.io";

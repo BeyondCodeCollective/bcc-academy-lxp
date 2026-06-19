@@ -39,6 +39,36 @@ export async function getAllowedEmails(
 }
 
 /**
+ * Allowlist audience for the bulk-invite UI: how many allowlisted emails still
+ * need to sign up (no account yet) vs. have already joined. The "send to
+ * everyone" number should reflect `pending`, not the raw list size — re-inviting
+ * people who already have accounts is noise.
+ */
+export async function getAllowlistAudience(
+  trackSlug: string,
+): Promise<{ ok: boolean; pending: number; joined: number; total: number; error?: string }> {
+  const ctx = await getSessionContext();
+  if (!ctx || !canAccessAdminPanel(ctx.student?.role ?? "")) {
+    return { ok: false, pending: 0, joined: 0, total: 0, error: "Not authorized" };
+  }
+  const svc = createServiceClient();
+  const [{ data: allow }, { data: accts }] = await Promise.all([
+    svc.from("allowed_signup_emails").select("email").eq("track_slug", trackSlug),
+    svc.from("students").select("email"),
+  ]);
+  const haveAccount = new Set(
+    (accts ?? []).map((r) => (r.email as string)?.toLowerCase()).filter(Boolean),
+  );
+  const emails = [
+    ...new Set(
+      (allow ?? []).map((r) => (r.email as string)?.toLowerCase()).filter(Boolean),
+    ),
+  ];
+  const joined = emails.filter((e) => haveAccount.has(e)).length;
+  return { ok: true, pending: emails.length - joined, joined, total: emails.length };
+}
+
+/**
  * Replace the entire allowlist for one track with the given emails. Atomic
  * delete-then-insert: saving an empty list clears the allowlist for that
  * track. Returns the count of accepted emails so the UI can confirm.
