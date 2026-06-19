@@ -37,6 +37,7 @@ import { PageHeader } from "@/components/page-header";
 import { computeCurrentWeek } from "@/lib/utils";
 import { LunchLearnAdmin } from "@/app/dashboard/lunch-learn/admin/admin-client";
 import { AttendanceTab } from "./attendance-tab";
+import { ProgressTab } from "./progress-tab";
 import { TrackInsightsSection } from "@/components/track-insights-section";
 import { InsightsDashboard } from "./insights/insights-dashboard";
 import { TrackOverviewForm } from "./track-overview-form";
@@ -518,7 +519,7 @@ export function AdminTabs({
   const [trackView, setTrackView] = useState<
     "overview" | "curriculum" | "students" | "surveys"
   >((initialTrackView as "overview" | "curriculum" | "students" | "surveys") ?? "overview");
-  const [studentSubView, setStudentSubView] = useState<"students" | "attendance" | "work">("students");
+  const [studentSubView, setStudentSubView] = useState<"students" | "attendance" | "progress" | "work">("students");
   const [studentSaving, setStudentSaving] = useState<string | null>(null);
 
   // Track data: keyed by track slug
@@ -1221,16 +1222,18 @@ export function AdminTabs({
         </div>
       )}
 
-          {/* Students tab — Roster / Attendance / Submissions as peer views you
-             switch between (never stacked, so the people list isn't duplicated).
-             Self-paced courses have no weekly sessions, so Attendance is hidden
-             for them. */}
+          {/* Students tab — peer views you switch between (never stacked, so the
+             people list isn't duplicated). Cohort courses get Attendance (live
+             sessions); self-paced courses get Progress instead (watched +
+             uploaded), since there's no class to attend. */}
           {trackView === "students" && (() => {
-            // Self-paced tracks don't take weekly attendance — drop the option,
-            // and never leave the view stuck on a hidden Attendance.
+            // Attendance only for cohort courses; Progress only for self-paced.
+            // Never leave the view stuck on an option that's hidden for this track.
             const showAttendance = !activeTrack.selfPaced;
+            const showProgress = !!activeTrack.selfPaced;
             const subView =
-              studentSubView === "attendance" && !showAttendance
+              (studentSubView === "attendance" && !showAttendance) ||
+              (studentSubView === "progress" && !showProgress)
                 ? "students"
                 : studentSubView;
             const viewSwitcher = (
@@ -1238,12 +1241,15 @@ export function AdminTabs({
                 <select
                   value={subView}
                   onChange={(e) =>
-                    setStudentSubView(e.target.value as "students" | "attendance" | "work")
+                    setStudentSubView(
+                      e.target.value as "students" | "attendance" | "progress" | "work",
+                    )
                   }
                   className="appearance-none panel pl-3 pr-8 py-2 text-sm font-medium text-ink focus:border-ink-faint focus:outline-none"
                 >
                   <option value="students">Roster</option>
                   {showAttendance && <option value="attendance">Attendance</option>}
+                  {showProgress && <option value="progress">Progress</option>}
                   <option value="work">Submissions</option>
                 </select>
                 <ChevronDown size={13} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-faint" />
@@ -1281,6 +1287,15 @@ export function AdminTabs({
                     tracks={[activeTrack]}
                     scopeLabel={activeTrack.shortName}
                     embedded
+                    viewSwitcher={viewSwitcher}
+                  />
+                )}
+
+                {subView === "progress" && (
+                  <ProgressTab
+                    students={trackStudents.filter((s) => s.role === "student")}
+                    trackSlug={activeTrack.slug}
+                    totalWeeks={activeTrack.totalWeeks}
                     viewSwitcher={viewSwitcher}
                   />
                 )}
