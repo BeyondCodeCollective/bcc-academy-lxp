@@ -91,8 +91,13 @@ export function buildTrail(
     if (!weekSeg) return [...out, { label: courseLabel }];
     const weekHref = top === "track" ? path : `/dashboard/${top}/${weekSeg}`;
     const weekLabel = nameFor(weekHref) ?? `Week ${weekSeg}`;
-    // Link the course crumb only if it's a real /dashboard/track page.
-    out.push({ label: courseLabel, href: nameFor(courseHref) ? courseHref : undefined });
+    // A /dashboard/track/{slug} overview always exists, so always link the
+    // course crumb — it's the learner's way back to the course (their home).
+    // Legacy mass/techplus only have an overview when we have a resolved name.
+    out.push({
+      label: courseLabel,
+      href: top === "track" || nameFor(courseHref) ? courseHref : undefined,
+    });
     return [...out, { label: weekLabel }];
   }
 
