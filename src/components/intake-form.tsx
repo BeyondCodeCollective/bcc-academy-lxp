@@ -83,7 +83,7 @@ export function IntakeForm({
         <button
           type="submit"
           disabled={!isValid() || submitting}
-          className={`${buttonClass("dark", "md")} w-full`}
+          className={`${buttonClass("primary", "md")} w-full`}
         >
           {submitting ? (
             <>

@@ -1918,7 +1918,7 @@ function PeopleTab({
                   type="button"
                   onClick={handleBulkAssign}
                   disabled={bulkSelected.size === 0 || bulkSaving}
-                  className={buttonClass("dark", "sm")}
+                  className={buttonClass("primary", "sm")}
                 >
                   {bulkSaving ? <Loader2 size={12} className="animate-spin" /> : <UserCheck size={12} />}
                   Assign{bulkSelected.size > 0 ? ` (${bulkSelected.size})` : ""}
@@ -1944,7 +1944,7 @@ function PeopleTab({
                 <button
                   type="button"
                   onClick={() => setShowAddForm((v) => !v)}
-                  className={buttonClass("dark", "sm")}
+                  className={buttonClass("primary", "sm")}
                 >
                   <UserPlus size={13} />
                   Add people
@@ -2193,7 +2193,7 @@ function PeopleTab({
                                   setNewGroupSavingRow(false);
                                 }
                               }}
-                              className={buttonClass("dark", "sm")}
+                              className={buttonClass("primary", "sm")}
                             >
                               {newGroupSavingRow ? "…" : "Create"}
                             </button>
