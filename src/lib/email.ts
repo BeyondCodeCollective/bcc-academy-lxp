@@ -340,3 +340,44 @@ Questions? Reply to this email.`,
     console.error("[email] welcome send failed:", error);
   }
 }
+
+/**
+ * Internal heads-up when someone fills the homepage "Learn More" form. Goes to
+ * SIGNUP_NOTIFY_EMAIL (default info@bccacademy.io); reply-to is the signup's own
+ * address so the team can respond directly. Self-contained try/catch — a failed
+ * notification must never break the visitor's signup.
+ */
+export async function sendSignupNotification(input: {
+  name: string;
+  email: string;
+  programName: string;
+  source?: string;
+}): Promise<void> {
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY not set — skipping signup notification");
+    return;
+  }
+  const to = process.env.SIGNUP_NOTIFY_EMAIL ?? "info@bccacademy.io";
+  const esc = (s: string) =>
+    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  try {
+    await resend.emails.send({
+      from: FROM_ADDRESS,
+      to,
+      replyTo: input.email,
+      subject: `New ${input.programName} sign-up: ${input.name || input.email}`,
+      html: `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:15px;line-height:1.6;color:#1a1a1a;">
+  <p style="margin:0 0 12px;font-weight:700;">New &ldquo;Learn More&rdquo; sign-up</p>
+  <p style="margin:0 0 4px;"><strong>Name:</strong> ${esc(input.name) || "—"}</p>
+  <p style="margin:0 0 4px;"><strong>Email:</strong> ${esc(input.email)}</p>
+  <p style="margin:0 0 4px;"><strong>Source:</strong> ${esc(input.source ?? "homepage")}</p>
+  <p style="margin:12px 0 0;font-size:12px;color:#999;">Saved to public_survey_responses (${esc(input.programName)}). Reply to this email to reach them directly.</p>
+</div>`,
+    });
+  } catch (e) {
+    console.error(
+      "[email] sendSignupNotification failed:",
+      e instanceof Error ? e.message : String(e),
+    );
+  }
+}
