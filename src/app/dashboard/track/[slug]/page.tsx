@@ -15,7 +15,15 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { CopyInviteLink } from "@/components/copy-invite-link";
 import { WeekCarousel, type WeekCardData } from "@/components/week-carousel";
 import { PageHeader } from "@/components/page-header";
+import { UpNext } from "@/components/up-next";
 import { buttonClass } from "@/components/ui";
+import { getTrackProgressMap } from "@/app/dashboard/track/actions";
+import {
+  isSequentialGated,
+  highestUnlockedWeek,
+  actionWeek,
+  buildUpNextItems,
+} from "@/lib/track-gating";
 
 export const dynamic = "force-dynamic";
 
@@ -83,13 +91,43 @@ export default async function TrackOverviewPage({
   // description (every track has one written and it's already framing copy).
   const overviewCopy = track.description ?? track.weeks[0]?.description ?? "";
 
+  // Sequential gating (opt-in, self-paced only) + Up Next feed both read the
+  // student's per-week progress. Admins preview the whole track, so they're
+  // never gated and don't get a personal to-do list.
+  const progress = isAdminViewer
+    ? { watched: [], submitted: [], reflected: [] }
+    : await getTrackProgressMap(slug).catch(() => ({
+        watched: [],
+        submitted: [],
+        reflected: [],
+      }));
+  const watchedSet = new Set(progress.watched);
+  const submittedSet = new Set(progress.submitted);
+  const reflectedSet = new Set(progress.reflected);
+  const gated = !isAdminViewer && started && isSequentialGated(track);
+  const unlockedThrough = gated
+    ? highestUnlockedWeek(track, watchedSet, submittedSet)
+    : track.totalWeeks;
+
+  const upNextItems = isAdminViewer
+    ? []
+    : buildUpNextItems(track, {
+        actionWeek: actionWeek(track, started, currentWeek, watchedSet, submittedSet),
+        watched: watchedSet,
+        submitted: submittedSet,
+        reflected: reflectedSet,
+        now,
+      });
+
   const weekCards: WeekCardData[] = track.weekSummaries.map((ws) => {
     const isCurrent = started && ws.week === currentWeek;
     const isPast = started && ws.week < currentWeek;
     const weekConfig = track.weeks.find((w) => w.week === ws.week);
     const comingSoonUntil = weekConfig?.comingSoonUntil;
-    const isLocked = !!comingSoonUntil && now < new Date(comingSoonUntil);
-    const lockedLabel = isLocked ? "soon" : null;
+    const comingSoonLocked = !!comingSoonUntil && now < new Date(comingSoonUntil);
+    const sequentialLocked = gated && ws.week > unlockedThrough;
+    const isLocked = comingSoonLocked || sequentialLocked;
+    const lockedLabel = comingSoonLocked ? "Coming soon" : sequentialLocked ? "Locked" : null;
     return {
       week: ws.week,
       topic: ws.topic,
@@ -190,6 +228,8 @@ export default async function TrackOverviewPage({
           </Link>
         </div>
       </header>
+
+      <UpNext items={upNextItems} />
 
       {/* Quick facts strip — mirrors workshop detail. Self-paced tracks
          skip the start-date card (it reads as stale once a self-paced

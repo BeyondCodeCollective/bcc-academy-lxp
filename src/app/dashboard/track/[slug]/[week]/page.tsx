@@ -6,7 +6,9 @@ import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { getSessionContent } from "@/app/dashboard/admin/actions";
 import { isStorageUrl, isUploadedVideo } from "@/lib/storage-utils";
 import { resolveTrackProgram } from "@/lib/programs/server";
-import { getSubmission, getReflection, getFeedback, getWeekProgress } from "@/app/dashboard/track/actions";
+import { getSubmission, getReflection, getFeedback, getWeekProgress, getTrackProgressMap } from "@/app/dashboard/track/actions";
+import { isSequentialGated, highestUnlockedWeek } from "@/lib/track-gating";
+import { canAccessAdminPanel } from "@/lib/roles";
 import { SubmissionForm } from "@/components/submission-form";
 import { PageHeader } from "@/components/page-header";
 import { RecordingCard } from "@/components/recording-card";
@@ -117,11 +119,49 @@ export default async function TrackWeekPage({
       : 0;
 
   // Fetch session content, student progress, and current user in parallel
-  const [sessionContent, weekProgress, sessionCtx] = await Promise.all([
+  const [sessionContent, weekProgress, sessionCtx, progressMap] = await Promise.all([
     isSupabaseConfigured() ? getSessionContent(trackSlug, weekNum) : null,
     isSupabaseConfigured() ? getWeekProgress(trackSlug, weekNum).catch(() => null) : null,
     isSupabaseConfigured() ? getSessionContext().catch(() => null) : null,
+    isSupabaseConfigured() && isSequentialGated(track)
+      ? getTrackProgressMap(trackSlug).catch(() => null)
+      : null,
   ]);
+
+  // Sequential gating (opt-in, self-paced only): a locked week renders a
+  // placeholder regardless of how the student arrived. Admins preview freely.
+  const isAdminViewer = canAccessAdminPanel(sessionCtx?.student?.role ?? "");
+  if (progressMap && trackStarted && !isAdminViewer) {
+    const unlockedThrough = highestUnlockedWeek(
+      track,
+      new Set(progressMap.watched),
+      new Set(progressMap.submitted),
+    );
+    if (weekNum > unlockedThrough) {
+      return (
+        <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8">
+          <Link
+            href={`/dashboard/track/${trackSlug}`}
+            className="mb-6 inline-flex items-center gap-1.5 text-sm text-ink-faint hover:text-ink transition-colors py-2"
+          >
+            <ArrowLeft size={16} />
+            Back to {track.shortName}
+          </Link>
+          <div className="border border-rule bg-neutral-50 p-8 text-center">
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-ink-faint mb-2">
+              Week {weekContent.week}
+            </p>
+            <h1 className="text-2xl font-bold tracking-tight text-ink sm:text-3xl">
+              {weekContent.title}
+            </h1>
+            <p className="mt-4 text-base text-ink-soft">
+              Finish <strong>Week {unlockedThrough}</strong> to unlock this week.
+            </p>
+          </div>
+        </div>
+      );
+    }
+  }
 
   const {
     title: displayTitle,

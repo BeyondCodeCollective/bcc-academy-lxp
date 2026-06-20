@@ -3,6 +3,7 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "./actions-shared";
+import { notifyAnnouncement, notifyFeedback } from "@/lib/notifications";
 
 // ─── Submissions & Reflections (Admin) ──────────────────────────────────────
 
@@ -163,6 +164,15 @@ export async function createAnnouncement(data: {
   });
 
   if (error) throw new Error(error.message);
+
+  // Fire-and-forget: email enrolled students (who haven't opted out). Never
+  // let a delivery hiccup fail the instructor's post.
+  void notifyAnnouncement({
+    programId: programRow.id,
+    trackSlug: data.trackSlug || null,
+    message: data.message,
+  });
+
   revalidatePath("/dashboard");
   return { success: true };
 }
@@ -284,5 +294,12 @@ export async function addFeedback(data: {
   });
 
   if (error) throw new Error(error.message);
+
+  // Fire-and-forget: email the student whose work this is (unless opted out).
+  void notifyFeedback({
+    submissionId: data.submissionId ?? null,
+    reflectionId: data.reflectionId ?? null,
+  });
+
   return { success: true };
 }

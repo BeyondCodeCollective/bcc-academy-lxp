@@ -214,6 +214,45 @@ export async function getWeekProgress(
   return { videoWatched, homeworkSubmitted, completed: videoWatched && homeworkSubmitted };
 }
 
+/**
+ * All completed week numbers for the current user on one track — watched
+ * videos, submitted homework, submitted reflections — in three batch queries.
+ * Powers sequential gating and the Up Next feed without an N-per-week fan-out.
+ */
+export async function getTrackProgressMap(
+  trackSlug: string,
+): Promise<{ watched: number[]; submitted: number[]; reflected: number[] }> {
+  const userId = await requireAuth();
+  const svc = createServiceClient();
+
+  const [wp, subs, refl] = await Promise.all([
+    svc
+      .from("week_progress")
+      .select("week_number")
+      .eq("user_id", userId)
+      .eq("track_slug", trackSlug)
+      .not("video_watched_at", "is", null),
+    svc
+      .from("submissions")
+      .select("week_number")
+      .eq("student_id", userId)
+      .eq("track_slug", trackSlug)
+      .not("submitted_at", "is", null),
+    svc
+      .from("reflections")
+      .select("week_number")
+      .eq("student_id", userId)
+      .eq("track_slug", trackSlug)
+      .not("submitted_at", "is", null),
+  ]);
+
+  return {
+    watched: (wp.data ?? []).map((r) => r.week_number as number),
+    submitted: (subs.data ?? []).map((r) => r.week_number as number),
+    reflected: (refl.data ?? []).map((r) => r.week_number as number),
+  };
+}
+
 export async function markVideoWatched(trackSlug: string, weekNumber: number) {
   const [userId, programId] = await Promise.all([requireAuth(), getProgramId()]);
   const svc = createServiceClient();
