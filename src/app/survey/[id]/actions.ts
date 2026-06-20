@@ -1,6 +1,7 @@
 "use server";
 
 import { createServiceClient } from "@/lib/supabase/server";
+import { sendSignupNotification } from "@/lib/email";
 
 // Public (unauthenticated) survey submission.
 // Writes to public_survey_responses; uniqueness on (program_id, survey_type,
@@ -53,9 +54,9 @@ export async function savePublicSurveyResponse(input: {
 
   const { data: programRow, error: programErr } = await svc
     .from("programs")
-    .select("id")
+    .select("id, name")
     .eq("slug", lookupSlug)
-    .single();
+    .single<{ id: string; name: string | null }>();
 
   if (programErr || !programRow?.id) {
     return { ok: false, error: "Program not found." };
@@ -88,6 +89,17 @@ export async function savePublicSurveyResponse(input: {
       message: upsertErr.message,
     });
     return { ok: false, error: "Could not save your response. Please try again." };
+  }
+
+  // Heads-up email for homepage "Learn More" sign-ups (other public surveys
+  // don't notify). Awaited but self-catching — never fails the visitor's save.
+  if (input.surveyType === "learn-more") {
+    await sendSignupNotification({
+      name: fullName,
+      email,
+      programName: programRow.name ?? lookupSlug,
+      source: typeof scrubbedResponses.source === "string" ? scrubbedResponses.source : undefined,
+    });
   }
 
   return { ok: true };
