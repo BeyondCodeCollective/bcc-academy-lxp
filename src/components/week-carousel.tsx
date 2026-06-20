@@ -77,7 +77,7 @@ export function WeekCarousel({
                     {w.topic}
                   </span>
                   <span className="mt-1.5 text-xs font-semibold uppercase tracking-wide text-ink-faint">
-                    Coming soon
+                    {w.lockedLabel ?? "Coming soon"}
                   </span>
                 </div>
               </div>
@@ -133,7 +133,7 @@ export function WeekCarousel({
           <li key={w.week}>
             {w.isLocked ? (
               <div
-                aria-label={`Week ${w.week}: ${w.topic} (coming ${w.lockedLabel})`}
+                aria-label={`Week ${w.week}: ${w.topic} (${w.lockedLabel ?? "coming soon"})`}
                 className="flex aspect-square cursor-not-allowed flex-col items-center justify-center rounded-md bg-transparent p-2 sm:p-2.5"
               >
                 <span className="text-2xl leading-none opacity-30 sm:text-3xl">
@@ -146,7 +146,7 @@ export function WeekCarousel({
                   {w.topic}
                 </span>
                 <span className="mt-1 px-1 text-center text-[9px] font-semibold uppercase tracking-wide text-ink-soft sm:text-[10px]">
-                  Coming soon
+                  {w.lockedLabel ?? "Coming soon"}
                 </span>
               </div>
             ) : (

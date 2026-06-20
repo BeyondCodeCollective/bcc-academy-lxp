@@ -172,6 +172,14 @@ export type TrackConfig = {
    * page can already watch and submit.
    */
   selfPaced?: boolean;
+  /**
+   * Opt-in sequential gating for self-paced tracks. When true (and `selfPaced`
+   * is also true), a week stays locked until the previous week is complete —
+   * "complete" meaning the same bar the week page uses (video watched, plus
+   * homework submitted when that week has submissions enabled). Week 1 is
+   * always open. Has NO effect on cohort (weekly) tracks, which gate by date.
+   */
+  sequentialGating?: boolean;
   /** Whether weekly reflections are enabled for this track (defaults to true) */
   reflectionsEnabled?: boolean;
   /** Declarative gates evaluated before showing track content. */

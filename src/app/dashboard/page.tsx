@@ -17,6 +17,9 @@ import { getEnrolledTracks } from "@/lib/enrollment";
 import { getHomeProgramForTrack } from "@/lib/programs";
 import { WeekIcon } from "@/components/week-icon";
 import { DashboardBento } from "@/components/dashboard-bento";
+import { UpNext } from "@/components/up-next";
+import { getTrackProgressMap } from "@/app/dashboard/track/actions";
+import { actionWeek, buildUpNextItems } from "@/lib/track-gating";
 import { PageHeader } from "@/components/page-header";
 import { BCC_INTAKE_SURVEY_ID } from "@/lib/surveys/platform";
 import { isSurveyEnabledForLearner } from "@/lib/surveys/features";
@@ -407,6 +410,38 @@ async function DashboardContent({
     programName: c.programName,
   }));
 
+  // Up Next — pending watch/submit/reflect tasks and the next office hour,
+  // aggregated across the learner's courses (course name shown on each item).
+  // Capped so it stays a glanceable nudge, not a full task manager.
+  const upNextItems = isAdmin
+    ? []
+    : (
+        await Promise.all(
+          trackStates
+            .filter(({ track }) => track.type !== "single-event")
+            .map(async ({ track, started, currentWeek }) => {
+              const p = await getTrackProgressMap(track.slug).catch(() => ({
+                watched: [],
+                submitted: [],
+                reflected: [],
+              }));
+              const watched = new Set(p.watched);
+              const submitted = new Set(p.submitted);
+              const reflected = new Set(p.reflected);
+              return buildUpNextItems(track, {
+                actionWeek: actionWeek(track, started, currentWeek, watched, submitted),
+                watched,
+                submitted,
+                reflected,
+                now,
+                includeTrackName: true,
+              });
+            }),
+        )
+      )
+        .flat()
+        .slice(0, 5);
+
   return (
     <div className="space-y-8 sm:space-y-10">
       {needsOnboarding && (
@@ -483,6 +518,8 @@ async function DashboardContent({
           presenter={program.welcomeVideoPresenter}
         />
       )}
+
+      <UpNext items={upNextItems} />
 
       {/* Learner home: bento composition (hero course + progress + quick
          tiles) for everyone, admins included — your personal /dashboard is

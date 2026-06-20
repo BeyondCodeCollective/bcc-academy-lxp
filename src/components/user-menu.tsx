@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CaretUpDown, SignOut, Check } from "@phosphor-icons/react";
+import { CaretUpDown, SignOut, Check, GearSix } from "@phosphor-icons/react";
 import { createClient } from "@/lib/supabase/client";
 
 type ProgramOption = {
@@ -241,11 +241,20 @@ export function UserMenu({
             </>
           )}
 
-          {/* Sign out */}
+          {/* Settings + Sign out */}
           {(variant === "topbar" || (canSwitch && programs.length > 1)) && (
             <div className="my-1 h-px bg-rule-soft" role="separator" />
           )}
           <div className="px-1 pb-1 pt-1">
+            <a
+              href="/dashboard/settings"
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className="flex w-full items-center gap-2 px-2.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-paper-tint-soft hover:text-ink"
+            >
+              <GearSix size={15} weight="bold" aria-hidden />
+              <span>Settings</span>
+            </a>
             <button
               type="button"
               role="menuitem"

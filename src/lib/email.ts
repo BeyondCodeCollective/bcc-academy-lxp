@@ -341,6 +341,88 @@ Questions? Reply to this email.`,
   }
 }
 
+/** Notification email — a new announcement was posted to a track the student
+ *  is enrolled in. Gated upstream by notification_preferences.announcements. */
+export async function sendAnnouncementEmail({
+  to,
+  programName,
+  trackName,
+  message,
+  portalUrl,
+}: {
+  to: string;
+  programName: string;
+  trackName: string;
+  message: string;
+  portalUrl: string;
+}): Promise<void> {
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY not set — skipping announcement email");
+    return;
+  }
+  const esc = (s: string) =>
+    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const { error } = await resend.emails.send({
+    from: FROM_ADDRESS,
+    to,
+    subject: `New announcement · ${trackName}`,
+    text: `New announcement in ${trackName}:\n\n${message}\n\nOpen your portal: ${portalUrl}`,
+    html: inviteShell(
+      programName,
+      `    <p style="margin:0 0 6px;font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#999;">${esc(trackName)}</p>
+    <p style="margin:0 0 16px;font-size:20px;font-weight:700;color:#1a1a1a;">New announcement</p>
+    <p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:#444;white-space:pre-line;">${esc(message)}</p>
+    ${ctaButton(portalUrl, "Open my portal →")}
+    <p style="margin:0;font-size:12px;color:#999;line-height:1.5;">You're getting this because announcements are on in your notification settings. Turn them off any time in your portal under Settings.</p>`,
+    ),
+  });
+  if (error) {
+    console.error("[email] sendAnnouncementEmail failed:", JSON.stringify(error));
+    throw new Error("Failed to send announcement email");
+  }
+}
+
+/** Notification email — an instructor left feedback on the student's work.
+ *  Gated upstream by notification_preferences.feedback. */
+export async function sendFeedbackEmail({
+  to,
+  programName,
+  trackName,
+  weekNumber,
+  portalUrl,
+}: {
+  to: string;
+  programName: string;
+  trackName: string;
+  weekNumber: number;
+  portalUrl: string;
+}): Promise<void> {
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY not set — skipping feedback email");
+    return;
+  }
+  const esc = (s: string) =>
+    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const { error } = await resend.emails.send({
+    from: FROM_ADDRESS,
+    to,
+    subject: `Your instructor left feedback · ${trackName} · Week ${weekNumber}`,
+    text: `Your instructor left feedback on your Week ${weekNumber} work in ${trackName}.\n\nRead it in your portal: ${portalUrl}`,
+    html: inviteShell(
+      programName,
+      `    <p style="margin:0 0 6px;font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#999;">${esc(trackName)} · Week ${weekNumber}</p>
+    <p style="margin:0 0 16px;font-size:20px;font-weight:700;color:#1a1a1a;">You've got new feedback</p>
+    <p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:#444;">Your instructor reviewed your work and left a note. Open your portal to read it.</p>
+    ${ctaButton(portalUrl, "Read feedback →")}
+    <p style="margin:0;font-size:12px;color:#999;line-height:1.5;">You're getting this because feedback alerts are on in your notification settings. Turn them off any time in your portal under Settings.</p>`,
+    ),
+  });
+  if (error) {
+    console.error("[email] sendFeedbackEmail failed:", JSON.stringify(error));
+    throw new Error("Failed to send feedback email");
+  }
+}
+
 /**
  * Internal heads-up when someone fills the homepage "Learn More" form. Goes to
  * SIGNUP_NOTIFY_EMAIL (default info@bccacademy.io); reply-to is the signup's own
