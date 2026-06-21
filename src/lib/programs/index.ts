@@ -127,9 +127,13 @@ export type { ProgramConfig, TrackConfig, WeekConfig, SessionInfo } from "./type
 // ready to re-enable per-program tutor configs. While true: the
 // /dashboard/tutor route 404s, /api/tutor refuses requests, the dashboard
 // nav hides the link, and the welcome email omits the tutor blurb.
-export const TUTOR_DISABLED_PRELAUNCH = true;
+export const TUTOR_DISABLED_PRELAUNCH = false;
 
 export function isTutorAvailable(program: ProgramConfig): boolean {
   if (TUTOR_DISABLED_PRELAUNCH) return false;
-  return program.tutorConfig?.enabled !== false;
+  // Opt-in: a program only gets the tutor if it explicitly enables it with a
+  // tutorConfig. This keeps the unguarded generic prompt from reaching programs
+  // that haven't been given (and tested with) their own system prompt — only
+  // Forte/Upskill Bahamas is enabled today.
+  return program.tutorConfig?.enabled === true;
 }

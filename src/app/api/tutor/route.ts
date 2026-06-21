@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
+import { generateText } from "ai";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { getProgram } from "@/lib/programs/server";
 import { isTutorAvailable } from "@/lib/programs";
@@ -11,7 +11,10 @@ import type { TrackConfig, WeekConfig } from "@/lib/programs/types";
 // bounce off it mid-session.
 const DAILY_MESSAGE_LIMIT = 30;
 
-const MODEL = "claude-haiku-4-5-20251001";
+// Routed through the Vercel AI Gateway via the AI SDK's plain "provider/model"
+// string. On Vercel the gateway authenticates automatically (OIDC); locally it
+// needs AI_GATEWAY_API_KEY. Swapping models later is a one-line change here.
+const MODEL = "google/gemini-2.5-flash";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -33,13 +36,6 @@ export async function POST(request: Request) {
   const { messages } = (await request.json()) as {
     messages: { role: string; content: string }[];
   };
-
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return NextResponse.json({
-      reply:
-        "The AI Tutor is being set up — check back soon! In the meantime, feel free to explore the course materials in the Resources section.",
-    });
-  }
 
   const svc = createServiceClient();
 
@@ -123,22 +119,39 @@ export async function POST(request: Request) {
 
   const systemPrompt = baseSystemPrompt + contextBlock;
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-  const response = await client.messages.create({
-    model: MODEL,
-    max_tokens: 1024,
-    system: systemPrompt,
-    messages: messages.map((m) => ({
-      role: m.role as "user" | "assistant",
-      content: m.content,
-    })),
-  });
+  let result;
+  try {
+    result = await generateText({
+      model: MODEL,
+      maxOutputTokens: 1024,
+      // Gemini 2.5 Flash is a reasoning model and burns most of its output
+      // budget "thinking" before replying — wasteful for a chat tutor and it
+      // can truncate answers. Disable thinking so the full reply comes through
+      // faster and cheaper.
+      providerOptions: { google: { thinkingConfig: { thinkingBudget: 0 } } },
+      system: systemPrompt,
+      messages: messages.map((m) => ({
+        role: m.role as "user" | "assistant",
+        content: m.content,
+      })),
+    });
+  } catch (err) {
+    // Model call failed (timeout, rate limit, gateway/provider outage). Log it
+    // so we can see breakage in Vercel logs, and degrade gracefully — never
+    // 500 at a student mid-question.
+    console.error("[tutor] model call failed", err);
+    return NextResponse.json(
+      {
+        reply:
+          "I'm having trouble reaching my brain right now — give it a moment and try again. Your course materials in Resources are always available in the meantime.",
+      },
+      { status: 503 },
+    );
+  }
 
   const reply =
-    response.content[0].type === "text"
-      ? response.content[0].text
-      : "I had trouble generating a response. Could you try rephrasing your question?";
+    result.text.trim() ||
+    "I had trouble generating a response. Could you try rephrasing your question?";
 
   // Log exchange — never block the reply on a log failure.
   if (studentRow?.program_id) {
@@ -147,8 +160,8 @@ export async function POST(request: Request) {
       program_id: studentRow.program_id,
       track_slug: activeTrack?.slug ?? null,
       week_number: currentWeekNumber,
-      input_tokens: response.usage?.input_tokens ?? null,
-      output_tokens: response.usage?.output_tokens ?? null,
+      input_tokens: result.usage?.inputTokens ?? null,
+      output_tokens: result.usage?.outputTokens ?? null,
       model: MODEL,
     });
   }
