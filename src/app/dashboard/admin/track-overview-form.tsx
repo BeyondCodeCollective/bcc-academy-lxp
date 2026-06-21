@@ -17,6 +17,8 @@ type Props = {
     description?: string;
     instructor: string;
     weekSummaries: WeekSummary[];
+    selfPaced?: boolean;
+    sequentialGating?: boolean;
   };
   programSlug: string;
   onLiveChange?: (patch: { name: string; instructor: string }) => void;
@@ -37,24 +39,26 @@ export function TrackOverviewForm({ track, programSlug, onLiveChange }: Props) {
   const [weekSummaries, setWeekSummaries] = useState<WeekSummary[]>(
     () => track.weekSummaries.map((w) => ({ ...w })),
   );
+  const [sequentialGating, setSequentialGating] = useState(!!track.sequentialGating);
   const [saveState, setSaveState] = useState<SaveState>("idle");
 
   const isFirstRun = useRef(true);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const latestValues = useRef({ name, instructor, description, weekSummaries });
+  const latestValues = useRef({ name, instructor, description, weekSummaries, sequentialGating });
 
   // Keep ref in sync so the blur handler always sends fresh values.
-  latestValues.current = { name, instructor, description, weekSummaries };
+  latestValues.current = { name, instructor, description, weekSummaries, sequentialGating };
 
   const doSave = useRef(async (shouldRefresh = false) => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     setSaveState("saved"); // optimistic indicator
     setTimeout(() => setSaveState("idle"), 2000);
     try {
-      const { weekSummaries: weeks, ...rest } = latestValues.current;
+      const { weekSummaries: weeks, sequentialGating: gating, ...rest } = latestValues.current;
       const patch: TrackOverviewPatch = {
         ...rest,
         week_summaries: weeks,
+        sequential_gating: gating,
       };
       await saveTrackOverview(track.slug, patch, programSlug);
       // Refresh AFTER the DB write + cache bust complete, not before.
@@ -86,6 +90,14 @@ export function TrackOverviewForm({ track, programSlug, onLiveChange }: Props) {
     setWeekSummaries((prev) =>
       prev.map((w, idx) => (idx === i ? { ...w, [field]: value } : w)),
     );
+
+  // Boolean toggles save immediately (no debounce) and refresh so the
+  // student-facing gating reflects the change right away.
+  const toggleGating = (next: boolean) => {
+    setSequentialGating(next);
+    latestValues.current = { ...latestValues.current, sequentialGating: next };
+    doSave.current(true);
+  };
 
   return (
     <div className="space-y-6">
@@ -130,6 +142,28 @@ export function TrackOverviewForm({ track, programSlug, onLiveChange }: Props) {
           />
         </Field>
       </div>
+
+      {track.selfPaced && (
+        <div className="panel p-4 sm:p-5">
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              checked={sequentialGating}
+              onChange={(e) => toggleGating(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0"
+            />
+            <span>
+              <span className="block text-sm font-medium text-ink">
+                Require weeks in order
+              </span>
+              <span className="mt-0.5 block text-xs text-ink-faint">
+                Students must finish each week before the next unlocks. Applies to
+                self-paced courses only.
+              </span>
+            </span>
+          </label>
+        </div>
+      )}
 
       {weekSummaries.length > 0 && (
         <div className="panel p-4 sm:p-5 space-y-4">

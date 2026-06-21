@@ -431,6 +431,7 @@ export default async function AdminPage({
       defaultReflectionPrompts: t.defaultReflectionPrompts,
       submissionsEnabled: t.submissionsEnabled,
       reflectionsEnabled: t.reflectionsEnabled,
+      sequentialGating: t.sequentialGating,
       officeHours: t.officeHours ?? [],
     };
     if (needsFullTrackConfig) {
