@@ -107,6 +107,7 @@ type AdminTrackConfig = {
   defaultReflectionPrompts?: string[];
   submissionsEnabled?: boolean;
   reflectionsEnabled?: boolean;
+  sequentialGating?: boolean;
   officeHours?: OfficeHour[];
   weeks: {
     week: number;

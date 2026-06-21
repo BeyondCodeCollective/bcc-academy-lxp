@@ -130,6 +130,7 @@ type TrackOverrideRow = {
   default_reflection_prompts: string[] | null;
   submissions_enabled: boolean | null;
   reflections_enabled: boolean | null;
+  sequential_gating: boolean | null;
   phase: string | null;
   office_hours: OfficeHour[] | null;
 };
@@ -181,6 +182,7 @@ function buildTrackFromOverride(row: TrackOverrideRow): TrackConfig {
     defaultReflectionPrompts: (row.default_reflection_prompts as string[] | null) ?? [],
     submissionsEnabled: row.submissions_enabled ?? true,
     reflectionsEnabled: row.reflections_enabled ?? true,
+    sequentialGating: row.sequential_gating ?? undefined,
     officeHours: (row.office_hours as OfficeHour[] | null) ?? undefined,
   };
 }
@@ -241,7 +243,7 @@ export async function fetchDynamicProgram(slug: string): Promise<ProgramConfig |
     const { data: trackRows } = await svc
       .from("track_overrides")
       .select(
-        "track_slug, name, short_name, description, instructor, start_date, total_weeks, sessions_per_week, last_session_day_offset, session_times, week_summaries, default_reflection_prompts, submissions_enabled, reflections_enabled",
+        "track_slug, name, short_name, description, instructor, start_date, total_weeks, sessions_per_week, last_session_day_offset, session_times, week_summaries, default_reflection_prompts, submissions_enabled, reflections_enabled, sequential_gating",
       )
       .eq("program_id", programRow.id);
 
@@ -277,7 +279,7 @@ const fetchOverrides = cache(
       const { data } = await svc
         .from("track_overrides")
         .select(
-          "track_slug, name, short_name, description, instructor, start_date, total_weeks, sessions_per_week, last_session_day_offset, session_times, week_summaries, default_reflection_prompts, submissions_enabled, reflections_enabled, phase, office_hours",
+          "track_slug, name, short_name, description, instructor, start_date, total_weeks, sessions_per_week, last_session_day_offset, session_times, week_summaries, default_reflection_prompts, submissions_enabled, reflections_enabled, sequential_gating, phase, office_hours",
         )
         .eq("program_id", programRow.id);
       const map = new Map<string, TrackOverrideRow>();
@@ -374,6 +376,7 @@ function mergeTrack(
       override.submissions_enabled ?? config.submissionsEnabled,
     reflectionsEnabled:
       override.reflections_enabled ?? config.reflectionsEnabled,
+    sequentialGating: override.sequential_gating ?? config.sequentialGating,
     phase: (override.phase as TrackConfig["phase"] | null) ?? config.phase,
     officeHours: override.office_hours ?? config.officeHours,
   };
