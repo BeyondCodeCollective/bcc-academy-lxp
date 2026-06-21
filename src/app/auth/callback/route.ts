@@ -307,23 +307,35 @@ export async function GET(request: Request) {
         );
         await admin.from("students").update({ last_seen_at: new Date().toISOString() }).eq("id", user.id);
 
-        const setupParams = new URLSearchParams({ setup: "1" });
-        if (trackParam) setupParams.set("track", trackParam);
+        const cookieOpts = { path: "/", httpOnly: false, sameSite: "lax" as const };
+        const withProgramCookies = (r: NextResponse) => {
+          r.cookies.set("program-slug", effectiveSlug, cookieOpts);
+          r.cookies.set("program-override", effectiveSlug, { ...cookieOpts, maxAge: 60 * 60 * 24 * 365 });
+          return r;
+        };
+
         // For apply flows, send the user directly to the form they came from
         // rather than the generic dashboard setup screen.
         const safeNext = nextParam?.startsWith("/dashboard/apply/") ? nextParam : null;
-        const redirectTarget = safeNext
-          ? `${origin}${safeNext}`
-          : `${origin}/dashboard?${setupParams}`;
-        const res = redirectWithCookies(redirectTarget);
-        const cookieOpts = { path: "/", httpOnly: false, sameSite: "lax" as const };
-        res.cookies.set("program-slug", effectiveSlug, cookieOpts);
-        res.cookies.set("program-override", effectiveSlug, {
-          ...cookieOpts,
-          maxAge: 60 * 60 * 24 * 365,
-        });
 
-        return res;
+        // Single-course learners go straight to their one course, so the only
+        // loading skeleton shown is that course's — no dashboard→course double
+        // flash. New students (0 enrollments yet; setup creates them) and
+        // admins/staff fall through to the normal dashboard.
+        if (!safeNext && !canBypassInviteGate) {
+          const { data: enr } = await admin
+            .from("student_tracks")
+            .select("track_slug")
+            .eq("student_id", user.id);
+          if (enr && enr.length === 1) {
+            return withProgramCookies(redirectWithCookies(`${origin}/dashboard/track/${enr[0].track_slug}`));
+          }
+        }
+
+        const setupParams = new URLSearchParams({ setup: "1" });
+        if (trackParam) setupParams.set("track", trackParam);
+        const redirectTarget = safeNext ? `${origin}${safeNext}` : `${origin}/dashboard?${setupParams}`;
+        return withProgramCookies(redirectWithCookies(redirectTarget));
       }
 
       // Pinned host (program subdomain): simple upsert + redirect.
@@ -342,6 +354,18 @@ export async function GET(request: Request) {
         { onConflict: "id", ignoreDuplicates: true }
       );
       await admin.from("students").update({ last_seen_at: new Date().toISOString() }).eq("id", user.id);
+
+      // Single-course learners → straight to their course (no dashboard→course
+      // skeleton flash). New students / admins / staff fall through to setup.
+      if (!canBypassInviteGate) {
+        const { data: enr } = await admin
+          .from("student_tracks")
+          .select("track_slug")
+          .eq("student_id", user.id);
+        if (enr && enr.length === 1) {
+          return redirectWithCookies(`${origin}/dashboard/track/${enr[0].track_slug}`);
+        }
+      }
 
       const setupParams = new URLSearchParams({ setup: "1" });
       if (trackParam) setupParams.set("track", trackParam);
