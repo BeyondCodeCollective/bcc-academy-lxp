@@ -64,7 +64,12 @@ export async function sendLoginLink({
   const onAllowlist = joinTrack
     ? allowedTracks.includes(joinTrack)
     : allowedTracks.length > 0;
-  const isAdmitted = onAllowlist || isPrivileged;
+  // An existing student can always request a login link for their OWN account,
+  // even if their email was never added to allowed_signup_emails (direct admin
+  // add, seeding, migration). Scoped to generic logins — track-specific camp
+  // signups (joinTrack) stay allowlist-strict so an existing student of one
+  // program can't slip into a different camp.
+  const isAdmitted = onAllowlist || isPrivileged || (!joinTrack && !!existingStudent);
 
   if (!isAdmitted) {
     return {
