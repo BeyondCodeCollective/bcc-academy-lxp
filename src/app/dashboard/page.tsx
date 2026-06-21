@@ -17,9 +17,8 @@ import { getEnrolledTracks } from "@/lib/enrollment";
 import { getHomeProgramForTrack } from "@/lib/programs";
 import { WeekIcon } from "@/components/week-icon";
 import { DashboardBento } from "@/components/dashboard-bento";
-import { UpNext } from "@/components/up-next";
-import { getTrackProgressMap } from "@/app/dashboard/track/actions";
-import { actionWeek, buildUpNextItems } from "@/lib/track-gating";
+import { getWhatsNew, type FeedItem } from "@/lib/whats-new";
+import { WhatsNew } from "@/components/whats-new";
 import { PageHeader } from "@/components/page-header";
 import { BCC_INTAKE_SURVEY_ID } from "@/lib/surveys/platform";
 import { isSurveyEnabledForLearner } from "@/lib/surveys/features";
@@ -108,7 +107,6 @@ async function DashboardContent({
   let needsOnboarding = false;
   let enrolledTrackSlugs: string[] = [];
   let pendingSurveys: { id: string; title: string; description: string }[] = [];
-  let announcements: { id: string; message: string; track_slug: string | null; created_at: string }[] = [];
   let assessmentEnabled = false;
   let assessmentCompleted = false;
   // Enrollments whose track belongs to a different program than the current
@@ -118,12 +116,16 @@ async function DashboardContent({
     track: TrackConfig;
     programName: string;
   }[] = [];
+  // Logged-in user id, hoisted for the "What's New" feed (built below, after
+  // tracks resolve). Null for demo sessions.
+  let feedUserId: string | null = null;
 
   if (!currentUser.isDemo) {
     const ctx = await getSessionContext();
     if (!ctx) redirect("/");
 
     const { userId, student } = ctx;
+    feedUserId = userId;
 
     // Deferred setup: cohort, track enrollment, survey claims, welcome email
     // runs on first dashboard paint after login instead of blocking the callback.
@@ -159,7 +161,7 @@ async function DashboardContent({
     if (!isAdminUser) {
       const supabase = await createClient();
 
-      const [defaultCohortRes, enrolledTracks, completedSurveysRes, announcementsRes, allTrackRowsRes] = await Promise.all([
+      const [defaultCohortRes, enrolledTracks, completedSurveysRes, allTrackRowsRes] = await Promise.all([
         hasCohortId
           ? Promise.resolve({ data: null })
           : supabase
@@ -175,17 +177,10 @@ async function DashboardContent({
             .eq("student_id", userId)
             .not("completed_at", "is", null),
         supabase
-            .from("announcements")
-            .select("id, message, track_slug, created_at")
-            .gt("expires_at", new Date().toISOString())
-            .order("created_at", { ascending: false })
-            .limit(5),
-        supabase
             .from("student_tracks")
             .select("track_slug")
             .eq("student_id", userId),
       ]);
-      announcements = (announcementsRes.data ?? []);
 
       if (!hasCohortId && defaultCohortRes.data) {
         void supabase
@@ -334,6 +329,29 @@ async function DashboardContent({
     return { track, started, currentWeek };
   });
 
+  // "What's New" feed — announcements + instructor feedback + upcoming office
+  // hours, consolidated across the learner's courses (replaces the old
+  // announcement banners). Admins get the regular management surfaces instead.
+  const feedTracks = [...visibleTracks, ...otherProgramCourses.map((c) => c.track)];
+  let whatsNew: FeedItem[] = [];
+  if (!isAdmin && feedUserId && feedTracks.length > 0) {
+    const svcFeed = createServiceClient();
+    const { data: progRow } = await svcFeed
+      .from("programs")
+      .select("id")
+      .eq("slug", program.slug)
+      .maybeSingle<{ id: string }>();
+    if (progRow) {
+      whatsNew = await getWhatsNew({
+        userId: feedUserId,
+        programId: progRow.id,
+        tracks: feedTracks,
+        includeTrackName: true,
+        now,
+      }).catch(() => []);
+    }
+  }
+
   if (noCohort) {
     return (
       <div className="space-y-6">
@@ -410,38 +428,6 @@ async function DashboardContent({
     programName: c.programName,
   }));
 
-  // Up Next — pending watch/submit/reflect tasks and the next office hour,
-  // aggregated across the learner's courses (course name shown on each item).
-  // Capped so it stays a glanceable nudge, not a full task manager.
-  const upNextItems = isAdmin
-    ? []
-    : (
-        await Promise.all(
-          trackStates
-            .filter(({ track }) => track.type !== "single-event")
-            .map(async ({ track, started, currentWeek }) => {
-              const p = await getTrackProgressMap(track.slug).catch(() => ({
-                watched: [],
-                submitted: [],
-                reflected: [],
-              }));
-              const watched = new Set(p.watched);
-              const submitted = new Set(p.submitted);
-              const reflected = new Set(p.reflected);
-              return buildUpNextItems(track, {
-                actionWeek: actionWeek(track, started, currentWeek, watched, submitted),
-                watched,
-                submitted,
-                reflected,
-                now,
-                includeTrackName: true,
-              });
-            }),
-        )
-      )
-        .flat()
-        .slice(0, 5);
-
   return (
     <div className="space-y-8 sm:space-y-10">
       {needsOnboarding && (
@@ -478,19 +464,8 @@ async function DashboardContent({
         )}
       </div>
 
-      {announcements.map((a) => (
-        <div
-          key={a.id}
-          className="border-l-2 border-blue-500 bg-blue-50 px-4 py-3 sm:px-5 sm:py-4"
-        >
-          <p className="text-xs font-medium uppercase tracking-[0.14em] text-blue-700 mb-1">
-            {a.track_slug
-              ? program.tracks.find((t) => t.slug === a.track_slug)?.shortName ?? "Announcement"
-              : "Announcement"}
-          </p>
-          <p className="text-sm text-blue-900 leading-relaxed whitespace-pre-wrap">{a.message}</p>
-        </div>
-      ))}
+      <WhatsNew items={whatsNew} />
+
 
       {pendingSurveys.map((survey) => (
         <SurveyCard key={survey.id} survey={survey} />
@@ -518,8 +493,6 @@ async function DashboardContent({
           presenter={program.welcomeVideoPresenter}
         />
       )}
-
-      <UpNext items={upNextItems} />
 
       {/* Learner home: bento composition (hero course + progress + quick
          tiles) for everyone, admins included — your personal /dashboard is
