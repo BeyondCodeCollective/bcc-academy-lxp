@@ -19,8 +19,6 @@ import { buttonClass } from "@/components/ui";
 import { getTrackProgressMap } from "@/app/dashboard/track/actions";
 import { isSequentialGated, highestUnlockedWeek } from "@/lib/track-gating";
 import { buildGoogleCalendarUrl } from "@/lib/gcal";
-import { getWhatsNew } from "@/lib/whats-new";
-import { WhatsNew } from "@/components/whats-new";
 
 export const dynamic = "force-dynamic";
 
@@ -131,26 +129,6 @@ export default async function TrackOverviewPage({
       ? `Week ${currentWeek} of ${track.totalWeeks} · ${track.totalWeeks}-week track`
       : `${track.totalWeeks}-week track`;
 
-  // "What's New" feed — announcements + instructor feedback + upcoming office
-  // hours in one stream (replaces the old standalone announcement banner).
-  // Single-track students land here directly and skip the dashboard, so this
-  // is where their updates surface.
-  const svcFeed = createServiceClient();
-  const { data: programRowForFeed } = await svcFeed
-    .from("programs")
-    .select("id")
-    .eq("slug", program.slug)
-    .maybeSingle<{ id: string }>();
-  const whatsNew =
-    ctx?.userId && programRowForFeed
-      ? await getWhatsNew({
-          userId: ctx.userId,
-          programId: programRowForFeed.id,
-          tracks: [track],
-          now,
-        }).catch(() => [])
-      : [];
-
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-3xl px-4 sm:px-5 py-8 space-y-8">
       {isAdminViewer && (
@@ -162,9 +140,6 @@ export default async function TrackOverviewPage({
           />
         </div>
       )}
-
-      <WhatsNew items={whatsNew} />
-
 
       {/* Hero — the tone-tinted block frames a 2×5 grid of weekly topics, so
          it doubles as the curriculum-at-a-glance and as week-level navigation.
