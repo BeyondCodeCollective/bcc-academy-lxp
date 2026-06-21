@@ -15,15 +15,12 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { CopyInviteLink } from "@/components/copy-invite-link";
 import { WeekCarousel, type WeekCardData } from "@/components/week-carousel";
 import { PageHeader } from "@/components/page-header";
-import { UpNext } from "@/components/up-next";
 import { buttonClass } from "@/components/ui";
 import { getTrackProgressMap } from "@/app/dashboard/track/actions";
-import {
-  isSequentialGated,
-  highestUnlockedWeek,
-  actionWeek,
-  buildUpNextItems,
-} from "@/lib/track-gating";
+import { isSequentialGated, highestUnlockedWeek } from "@/lib/track-gating";
+import { buildGoogleCalendarUrl } from "@/lib/gcal";
+import { getWhatsNew } from "@/lib/whats-new";
+import { WhatsNew } from "@/components/whats-new";
 
 export const dynamic = "force-dynamic";
 
@@ -91,33 +88,18 @@ export default async function TrackOverviewPage({
   // description (every track has one written and it's already framing copy).
   const overviewCopy = track.description ?? track.weeks[0]?.description ?? "";
 
-  // Sequential gating (opt-in, self-paced only) + Up Next feed both read the
-  // student's per-week progress. Admins preview the whole track, so they're
-  // never gated and don't get a personal to-do list.
-  const progress = isAdminViewer
-    ? { watched: [], submitted: [], reflected: [] }
-    : await getTrackProgressMap(slug).catch(() => ({
-        watched: [],
-        submitted: [],
-        reflected: [],
-      }));
+  // Sequential gating (opt-in, self-paced only) reads the student's per-week
+  // progress. Admins preview the whole track, so they're never gated. Only
+  // query progress when gating is actually active.
+  const gated = !isAdminViewer && started && isSequentialGated(track);
+  const progress = gated
+    ? await getTrackProgressMap(slug).catch(() => ({ watched: [], submitted: [] }))
+    : { watched: [], submitted: [] };
   const watchedSet = new Set(progress.watched);
   const submittedSet = new Set(progress.submitted);
-  const reflectedSet = new Set(progress.reflected);
-  const gated = !isAdminViewer && started && isSequentialGated(track);
   const unlockedThrough = gated
     ? highestUnlockedWeek(track, watchedSet, submittedSet)
     : track.totalWeeks;
-
-  const upNextItems = isAdminViewer
-    ? []
-    : buildUpNextItems(track, {
-        actionWeek: actionWeek(track, started, currentWeek, watchedSet, submittedSet),
-        watched: watchedSet,
-        submitted: submittedSet,
-        reflected: reflectedSet,
-        now,
-      });
 
   const weekCards: WeekCardData[] = track.weekSummaries.map((ws) => {
     const isCurrent = started && ws.week === currentWeek;
@@ -149,18 +131,25 @@ export default async function TrackOverviewPage({
       ? `Week ${currentWeek} of ${track.totalWeeks} · ${track.totalWeeks}-week track`
       : `${track.totalWeeks}-week track`;
 
-  // Active announcements for this track (or program-wide). Mirrors the
-  // dashboard's banner — single-track students land here directly and skip
-  // the dashboard, so announcements must be visible on this page too.
-  const svcAnnouncements = createServiceClient();
-  const { data: announcementRows } = await svcAnnouncements
-    .from("announcements")
-    .select("id, message, track_slug, created_at")
-    .gt("expires_at", new Date().toISOString())
-    .or(`track_slug.eq.${slug},track_slug.is.null`)
-    .order("created_at", { ascending: false })
-    .limit(5);
-  const announcements = announcementRows ?? [];
+  // "What's New" feed — announcements + instructor feedback + upcoming office
+  // hours in one stream (replaces the old standalone announcement banner).
+  // Single-track students land here directly and skip the dashboard, so this
+  // is where their updates surface.
+  const svcFeed = createServiceClient();
+  const { data: programRowForFeed } = await svcFeed
+    .from("programs")
+    .select("id")
+    .eq("slug", program.slug)
+    .maybeSingle<{ id: string }>();
+  const whatsNew =
+    ctx?.userId && programRowForFeed
+      ? await getWhatsNew({
+          userId: ctx.userId,
+          programId: programRowForFeed.id,
+          tracks: [track],
+          now,
+        }).catch(() => [])
+      : [];
 
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-3xl px-4 sm:px-5 py-8 space-y-8">
@@ -174,17 +163,8 @@ export default async function TrackOverviewPage({
         </div>
       )}
 
-      {announcements.map((a) => (
-        <div
-          key={a.id}
-          className="border-l-2 border-blue-500 bg-blue-50 px-4 py-3 sm:px-5 sm:py-4"
-        >
-          <p className="text-xs font-medium uppercase tracking-[0.14em] text-blue-700 mb-1">
-            {a.track_slug ? track.shortName : "Announcement"}
-          </p>
-          <p className="text-sm text-blue-900 leading-relaxed whitespace-pre-wrap">{a.message}</p>
-        </div>
-      ))}
+      <WhatsNew items={whatsNew} />
+
 
       {/* Hero — the tone-tinted block frames a 2×5 grid of weekly topics, so
          it doubles as the curriculum-at-a-glance and as week-level navigation.
@@ -228,8 +208,6 @@ export default async function TrackOverviewPage({
           </Link>
         </div>
       </header>
-
-      <UpNext items={upNextItems} />
 
       {/* Quick facts strip — mirrors workshop detail. Self-paced tracks
          skip the start-date card (it reads as stale once a self-paced
@@ -284,8 +262,8 @@ export default async function TrackOverviewPage({
                     <p className="mt-1 text-sm leading-relaxed text-ink-soft">
                       {oh.description}
                     </p>
-                    {oh.joinUrl && (
-                      <div className="mt-3 flex flex-wrap items-center gap-3">
+                    <div className="mt-3 flex flex-wrap items-center gap-3">
+                      {oh.joinUrl && (
                         <a
                           href={oh.joinUrl}
                           target="_blank"
@@ -295,13 +273,32 @@ export default async function TrackOverviewPage({
                           Join the call
                           →
                         </a>
-                        {oh.dialIn && (
-                          <span className="text-xs text-ink-soft">
-                            Or dial: {oh.dialIn}
-                          </span>
-                        )}
-                      </div>
-                    )}
+                      )}
+                      <a
+                        href={buildGoogleCalendarUrl({
+                          title: oh.title,
+                          date: oh.date,
+                          details: [
+                            oh.time,
+                            oh.description,
+                            oh.dialIn ? `Dial-in: ${oh.dialIn}` : "",
+                          ]
+                            .filter(Boolean)
+                            .join("\n\n"),
+                          location: oh.joinUrl,
+                        })}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={buttonClass("secondary", "md")}
+                      >
+                        Add to Google Calendar
+                      </a>
+                      {oh.dialIn && (
+                        <span className="text-xs text-ink-soft">
+                          Or dial: {oh.dialIn}
+                        </span>
+                      )}
+                    </div>
                   </li>
                 );
               })}
