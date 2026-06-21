@@ -124,6 +124,11 @@ export async function POST(request: Request) {
     result = await generateText({
       model: MODEL,
       maxOutputTokens: 1024,
+      // Gemini 2.5 Flash is a reasoning model and burns most of its output
+      // budget "thinking" before replying — wasteful for a chat tutor and it
+      // can truncate answers. Disable thinking so the full reply comes through
+      // faster and cheaper.
+      providerOptions: { google: { thinkingConfig: { thinkingBudget: 0 } } },
       system: systemPrompt,
       messages: messages.map((m) => ({
         role: m.role as "user" | "assistant",
