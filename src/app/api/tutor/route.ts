@@ -125,19 +125,35 @@ export async function POST(request: Request) {
 
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-  const response = await client.messages.create({
-    model: MODEL,
-    max_tokens: 1024,
-    system: systemPrompt,
-    messages: messages.map((m) => ({
-      role: m.role as "user" | "assistant",
-      content: m.content,
-    })),
-  });
+  let response;
+  try {
+    response = await client.messages.create({
+      model: MODEL,
+      max_tokens: 1024,
+      system: systemPrompt,
+      messages: messages.map((m) => ({
+        role: m.role as "user" | "assistant",
+        content: m.content,
+      })),
+    });
+  } catch (err) {
+    // Model call failed (timeout, rate limit, provider outage). Log it so we
+    // can see breakage in Vercel logs, and degrade gracefully — never 500 at
+    // a student mid-question.
+    console.error("[tutor] model call failed", err);
+    return NextResponse.json(
+      {
+        reply:
+          "I'm having trouble reaching my brain right now — give it a moment and try again. Your course materials in Resources are always available in the meantime.",
+      },
+      { status: 503 },
+    );
+  }
 
+  const firstBlock = response.content[0];
   const reply =
-    response.content[0].type === "text"
-      ? response.content[0].text
+    firstBlock?.type === "text"
+      ? firstBlock.text
       : "I had trouble generating a response. Could you try rephrasing your question?";
 
   // Log exchange — never block the reply on a log failure.
