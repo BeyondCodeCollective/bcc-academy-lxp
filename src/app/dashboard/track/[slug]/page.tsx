@@ -19,6 +19,8 @@ import { buttonClass } from "@/components/ui";
 import { getTrackProgressMap } from "@/app/dashboard/track/actions";
 import { isSequentialGated, highestUnlockedWeek } from "@/lib/track-gating";
 import { buildGoogleCalendarUrl } from "@/lib/gcal";
+import { MyProgressCard } from "@/components/my-progress-card";
+import { getLearnerProgress } from "@/lib/learner-progress";
 
 export const dynamic = "force-dynamic";
 
@@ -129,6 +131,14 @@ export default async function TrackOverviewPage({
       ? `Week ${currentWeek} of ${track.totalWeeks} · ${track.totalWeeks}-week track`
       : `${track.totalWeeks}-week track`;
 
+  // Engagement card for actual learners — single-course students land here
+  // instead of the dashboard home, so this is where their streak lives. Scoped
+  // to this course; admins/previewers don't get it (it'd show their own data).
+  const learnerProgress =
+    !isAdminViewer && ctx?.userId
+      ? await getLearnerProgress(ctx.userId, [slug], now).catch(() => null)
+      : null;
+
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-3xl px-4 sm:px-5 py-8 space-y-8">
       {isAdminViewer && (
@@ -183,6 +193,8 @@ export default async function TrackOverviewPage({
           </Link>
         </div>
       </header>
+
+      {learnerProgress && <MyProgressCard {...learnerProgress} />}
 
       {/* Quick facts strip — mirrors workshop detail. Self-paced tracks
          skip the start-date card (it reads as stale once a self-paced
