@@ -86,7 +86,7 @@ function trackLabel(slug: string | null): string {
   return map[slug] ?? slug;
 }
 
-type StudentRow = Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id" | "last_seen_at">;
+type StudentRow = Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id" | "last_seen_at" | "last_activity_at">;
 
 // Track config passed from server (subset of TrackConfig)
 type AdminTrackConfig = {
@@ -2074,7 +2074,9 @@ function PeopleTab({
                   </p>
                   <p className="text-xs text-ink-faint truncate">{s.email}</p>
                   <p className="text-[11px] text-ink-faint truncate">
-                    {s.last_seen_at
+                    {s.last_activity_at
+                      ? `Last active: ${new Date(s.last_activity_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
+                      : s.last_seen_at
                       ? `Last login: ${new Date(s.last_seen_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
                       : "Never logged in"}
                   </p>
@@ -2084,7 +2086,7 @@ function PeopleTab({
                     {trackCount} {trackCount === 1 ? "track" : "tracks"}
                   </span>
                   {s.role === "student" && (
-                    <StatusPill status={s.last_seen_at ? "active" : "joined"} />
+                    <StatusPill status={(s.last_activity_at ?? s.last_seen_at) ? "active" : "joined"} />
                   )}
                   <span
                     className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-medium ${

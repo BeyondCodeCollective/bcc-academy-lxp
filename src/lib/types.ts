@@ -14,6 +14,7 @@ export type Student = {
   onboarding_completed: boolean;
   created_at: string;
   last_seen_at: string | null;
+  last_activity_at: string | null;
 };
 
 export type Cohort = {
