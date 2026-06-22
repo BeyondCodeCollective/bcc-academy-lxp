@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { deleteStudentAction, updateStudentAction, updateCohortAction, saveSessionContent, assignStudentTrack, removeStudentTrack, bulkAssignTrack, exportSurveyResponses, exportPublicSurveyResponses, getAllSubmissions, addFeedback, assignInstructorTrack, removeInstructorTrack, deleteSurveyResponse, deletePublicSurveyResponse, listPublicSurveyResponses, sendInviteAction, createCohortAction } from "./actions";
 import type { SessionResource, StudentTrackRow, SurveyStatsRow, AdminSubmissionRow, InstructorTrackRow, PublicSurveyStatsRow } from "./actions";
-import { canManageStudents, canSwitchPrograms } from "@/lib/roles";
+import { canManageStudents, canSwitchPrograms, canViewInsights } from "@/lib/roles";
 import {
   Users,
   BookOpen,
@@ -54,7 +54,7 @@ import type { Student } from "@/lib/types";
 import { isStorageUrl, isUploadedVideo } from "@/lib/storage-utils";
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
 import { iconForTrack, toneForTrack } from "@/lib/track-visual";
-import { Clipboard as ClipboardListIcon, Users as UsersIcon, ChartBar as ChartBarIcon, ArrowLeft as ArrowLeftIcon } from "@phosphor-icons/react";
+import { Clipboard as ClipboardListIcon, Users as UsersIcon, ChartBar as ChartBarIcon, ChartPie as ChartPieIcon, ArrowLeft as ArrowLeftIcon } from "@phosphor-icons/react";
 
 const PLATFORM_SURVEY_TITLES: Record<string, string> = {
   "bcc-learner-intake": "BCC Learner Intake",
@@ -916,6 +916,15 @@ export function AdminTabs({
                 <ChartBarIcon size={13} weight="bold" aria-hidden />
                 Attendance
               </Link>
+              {canViewInsights(userRole) && (
+                <Link
+                  href="/dashboard/admin?tab=insights"
+                  className={buttonClass("secondary", "sm")}
+                >
+                  <ChartPieIcon size={13} weight="bold" aria-hidden />
+                  Survey insights
+                </Link>
+              )}
             </div>
 
             <div className="divide-y divide-rule overflow-hidden panel">
@@ -1520,21 +1529,21 @@ export function AdminTabs({
               programs={insightsData.programs}
               totalResponses={insightsData.totalResponses}
             />
-          ) : canSwitchPrograms(userRole) ? (
+          ) : canViewInsights(userRole) ? (
             <div className="panel p-8 text-center space-y-2">
               <p className="text-sm font-medium text-ink">
                 Analytics didn&apos;t load
               </p>
               <p className="text-sm text-ink-soft">
-                Refresh the page. If it still doesn&apos;t load, the
-                cross-program survey query may have failed — check the Vercel
-                runtime logs for this request.
+                Refresh the page. If it still doesn&apos;t load, the survey
+                query may have failed — check the Vercel runtime logs for this
+                request.
               </p>
             </div>
           ) : (
             <div className="panel p-8 text-center">
               <p className="text-sm text-ink-soft">
-                Analytics are only available to super-admins.
+                Analytics are only available to admins.
               </p>
             </div>
           )}

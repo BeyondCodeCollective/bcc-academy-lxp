@@ -6,7 +6,7 @@ import type { Student } from "@/lib/types";
 import { getProgram } from "@/lib/programs/server";
 import type { StudentTrackRow, SurveyStatsRow, InstructorTrackRow, PublicSurveyStatsRow, BCCSurveyResponse } from "./actions";
 import { getPublicSurveyStats, getDashboardSurveyStats, getDashboardAllSurveyResponses, getPublicSurveyCountsByType } from "./actions";
-import { canAccessAdminPanel, canSwitchPrograms } from "@/lib/roles";
+import { canAccessAdminPanel, canSwitchPrograms, canViewInsights } from "@/lib/roles";
 import { PLATFORM_AUTH_SURVEYS, PLATFORM_PUBLIC_SURVEYS } from "@/lib/surveys/platform";
 import { getAllPrograms, getHomeProgramForTrack } from "@/lib/programs";
 import { getHiddenTrackSlugs } from "@/lib/programs/hidden";
@@ -114,12 +114,11 @@ export default async function AdminPage({
 
     if (!canAccessAdminPanel(userRole)) redirect("/dashboard");
 
-    // The cross-program Survey Insights tab is super-admin-only by content
-    // (renders nothing useful for a regular admin), so bounce non-super-admins
-    // off ?tab=insights entirely instead of showing them the "Insights are
-    // only available to super-admins" empty state. Per-track Surveys sub-tabs
-    // are the regular-admin surface for survey data.
-    if (effectiveTab === "insights" && !canSwitchPrograms(userRole)) {
+    // Survey Insights is open to any admin, but program admins see only their
+    // own program's data (scoped server-side in the actions below); super-admins
+    // get the BCC-wide view. Instructors have no insights access, so bounce them
+    // off ?tab=insights entirely rather than showing an empty state.
+    if (effectiveTab === "insights" && !canViewInsights(userRole)) {
       redirect("/dashboard/admin");
     }
 
@@ -333,16 +332,19 @@ export default async function AdminPage({
       lunchLearnRecordings = (llRows ?? []) as LunchLearnRow[];
     }
 
-    // Insights data — super-admins only, AND only when on the insights tab.
-    // Previously fired on every admin nav (~10 extra queries cross-program);
-    // now skipped unless ?tab=insights.
-    if (needsInsightsData && !canSwitchPrograms(userRole)) {
-      // Diagnostic: a user landed on ?tab=insights but isn't being treated as
-      // super-admin. Captures the actual role string we resolved so we can
-      // tell legitimate non-super-admin hits from a role-lookup mismatch.
+    // Insights data — any admin (program-scoped) or super-admin (BCC-wide),
+    // AND only when on the insights tab. Previously fired on every admin nav
+    // (~10 extra queries cross-program); now skipped unless ?tab=insights.
+    if (needsInsightsData && !canViewInsights(userRole)) {
+      // Diagnostic: a user landed on ?tab=insights without insights access.
+      // Captures the actual role string we resolved so we can tell a legitimate
+      // instructor hit from a role-lookup mismatch.
       console.warn("[admin/insights] skipping fetch — role=%s, userId=%s", userRole, userId);
     }
-    if (canSwitchPrograms(userRole) && needsInsightsData) {
+    if (canViewInsights(userRole) && needsInsightsData) {
+      // Program admins are hard-scoped to their own program inside the actions;
+      // super-admins get every program. The stats/responses queries enforce
+      // this server-side regardless of what we pass here.
       const stats = await getDashboardSurveyStats();
       const programSurveys: SurveyConfig[] = getAllPrograms().flatMap(
         (p) => p.surveys ?? [],
@@ -370,9 +372,16 @@ export default async function AdminPage({
         responses: allResponses[survey.id] ?? [],
       }));
 
+      // Super-admins see every program in the breakdown legend; a program admin
+      // only sees the programs that make up their own scope (Catalyst = its
+      // aggregated slugs, every other program = just itself).
+      const visiblePrograms = canSwitchPrograms(userRole)
+        ? getAllPrograms()
+        : getAllPrograms().filter((p) => aggregatedSlugs.includes(p.slug));
+
       insightsData = {
         sections,
-        programs: getAllPrograms().map((p) => ({ slug: p.slug, name: p.name })),
+        programs: visiblePrograms.map((p) => ({ slug: p.slug, name: p.name })),
         totalResponses: sections.reduce((sum, s) => sum + s.responses.length, 0),
       };
     }
