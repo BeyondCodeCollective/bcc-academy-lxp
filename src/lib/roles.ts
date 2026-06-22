@@ -8,11 +8,13 @@ export type Role = "student" | "instructor" | "admin" | "super_admin";
 export type Capability =
   | "access_admin_panel"   // see the admin UI
   | "manage_students"      // add, update, delete students; manage cohorts
+  | "view_insights"        // see the Survey Insights dashboard (scoped to own program for admins)
   | "switch_programs";     // use the super-admin program switcher
 
 const ROLE_CAPABILITIES: Record<Capability, Role[]> = {
   access_admin_panel: ["instructor", "admin", "super_admin"],
   manage_students:    ["admin", "super_admin"],
+  view_insights:      ["admin", "super_admin"],
   switch_programs:    ["super_admin"],
 };
 
@@ -28,6 +30,10 @@ export function canAccessAdminPanel(role: string): boolean {
 
 export function canManageStudents(role: string): boolean {
   return hasCapability(role, "manage_students");
+}
+
+export function canViewInsights(role: string): boolean {
+  return hasCapability(role, "view_insights");
 }
 
 export function canSwitchPrograms(role: string): boolean {

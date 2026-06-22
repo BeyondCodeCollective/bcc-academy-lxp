@@ -2,7 +2,25 @@
 
 import { createServiceClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { requireAdmin, requireManager, requireSuperAdmin, logAdminAccess } from "./actions-shared";
+import { requireAdmin, requireManager, requireSuperAdmin, requireCapability, logAdminAccess } from "./actions-shared";
+import { canSwitchPrograms } from "@/lib/roles";
+import { getProgram } from "@/lib/programs/server";
+import { resolveProgramScope } from "@/lib/programs/scope";
+
+// Resolves the program_id scope for an insights query. Super-admins get the
+// BCC-wide view (no scope — undefined) unless they pass an explicit one;
+// everyone else is hard-scoped to their CURRENT program server-side. Client
+// input is ignored for non-super-admins, so a program admin can never reach
+// across orgs by omitting or forging the programIds argument.
+async function resolveInsightsScope(
+  role: string,
+  requested?: string[],
+): Promise<string[] | undefined> {
+  if (canSwitchPrograms(role)) return requested;
+  const program = await getProgram();
+  const { ids } = await resolveProgramScope(program.slug);
+  return ids;
+}
 
 // ─── Survey Stats ─────────────────────────────────────────────────────────────
 
@@ -623,19 +641,26 @@ export async function getBCCSurveyResponses(
 // type that has any responses in either table — so program-bound auth surveys
 // like mid-program-spring-2026 and pre-survey-spring-2026 show up.
 
-export async function getDashboardSurveyStats(): Promise<BCCSurveyStat[]> {
-  const { svc, userId } = await requireSuperAdmin();
+export async function getDashboardSurveyStats(
+  programIds?: string[],
+): Promise<BCCSurveyStat[]> {
+  const { svc, userId, role } = await requireCapability("view_insights");
+  const scopeIds = await resolveInsightsScope(role, programIds);
 
-  const [publicRes, authRes] = await Promise.all([
-    svc
-      .from("public_survey_responses")
-      .select("survey_type, program_id, programs(slug, name)")
-      .is("withdrawn_at", null),
-    svc
-      .from("survey_responses")
-      .select("survey_type, program_id, programs(slug, name)")
-      .not("completed_at", "is", null),
-  ]);
+  let publicQuery = svc
+    .from("public_survey_responses")
+    .select("survey_type, program_id, programs(slug, name)")
+    .is("withdrawn_at", null);
+  let authQuery = svc
+    .from("survey_responses")
+    .select("survey_type, program_id, programs(slug, name)")
+    .not("completed_at", "is", null);
+  if (scopeIds) {
+    publicQuery = publicQuery.in("program_id", scopeIds);
+    authQuery = authQuery.in("program_id", scopeIds);
+  }
+
+  const [publicRes, authRes] = await Promise.all([publicQuery, authQuery]);
 
   logAdminAccess(svc, {
     actorUserId: userId,
@@ -766,13 +791,16 @@ export async function getDashboardSurveyResponses(
 // that was firing one getDashboardSurveyResponses call per survey.
 export async function getDashboardAllSurveyResponses(
   surveyTypes: string[],
-  // When provided, scopes both tables to these program ids in SQL. Omit for the
-  // BCC-wide view (admin survey insights); the per-program Outcomes analytics
-  // passes its resolved scope so it never overfetches other programs' rows.
+  // For super-admins, scopes both tables to these program ids when provided
+  // (omit for the BCC-wide view); the per-program Outcomes analytics passes its
+  // resolved scope so it never overfetches other programs' rows. For program
+  // admins this argument is IGNORED — resolveInsightsScope hard-scopes them to
+  // their own program server-side so they can't reach across orgs.
   programIds?: string[],
 ): Promise<Record<string, BCCSurveyResponse[]>> {
   if (surveyTypes.length === 0) return {};
-  const { svc, userId } = await requireSuperAdmin();
+  const { svc, userId, role } = await requireCapability("view_insights");
+  const scopeIds = await resolveInsightsScope(role, programIds);
 
   let publicQuery = svc
     .from("public_survey_responses")
@@ -786,9 +814,9 @@ export async function getDashboardAllSurveyResponses(
     )
     .in("survey_type", surveyTypes)
     .not("completed_at", "is", null);
-  if (programIds) {
-    publicQuery = publicQuery.in("program_id", programIds);
-    authQuery = authQuery.in("program_id", programIds);
+  if (scopeIds) {
+    publicQuery = publicQuery.in("program_id", scopeIds);
+    authQuery = authQuery.in("program_id", scopeIds);
   }
 
   const [publicRes, authRes] = await Promise.all([
