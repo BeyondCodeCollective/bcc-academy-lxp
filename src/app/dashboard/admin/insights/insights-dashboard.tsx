@@ -5,6 +5,7 @@ import { SurveyDashboard } from "../surveys/[surveyId]/survey-dashboard";
 import type { SurveyQuestion } from "@/components/survey-fields";
 import type { BCCSurveyResponse } from "../actions";
 import type { SurveyConfig } from "@/lib/programs/types";
+import { StatCard } from "@/components/stats/stat-card";
 
 interface Section {
   survey: SurveyConfig;
@@ -18,13 +19,15 @@ interface Props {
   totalResponses: number;
 }
 
+// Program breakdown stays in the cobalt family — distinguishable by lightness,
+// not by hue. No amber/purple/pink rainbow; the brand is one accent.
 const PALETTE = [
-  "#1D59FF",
-  "#3B82F6",
-  "#F59E0B",
-  "#10B981",
-  "#8B5CF6",
-  "#EC4899",
+  "#1D59FF", // cobalt — primary
+  "#7CA0FF", // cobalt light
+  "#1A2B6B", // deep navy
+  "#4B5FA8", // muted indigo
+  "#A7B6D9", // slate
+  "#C9D4F0", // pale cobalt
 ];
 
 function colorFor(
@@ -98,9 +101,9 @@ export function InsightsDashboard({
     <div className="space-y-10">
       {/* Hero stats */}
       <div className="grid grid-cols-3 gap-3">
-        <StatCard value={totalResponses} label="Responses" />
-        <StatCard value={uniqueRespondents} label="Respondents" />
-        <StatCard value={sections.length} label="Surveys" />
+        <StatCard value={totalResponses.toLocaleString()} label="Responses" />
+        <StatCard value={uniqueRespondents.toLocaleString()} label="Respondents" />
+        <StatCard value={sections.length.toLocaleString()} label="Surveys" />
       </div>
 
       {/* Response timeline */}
@@ -225,17 +228,6 @@ export function InsightsDashboard({
 
 // ── Sub-components ──────────────────────────────────────────────────────────
 
-function StatCard({ value, label }: { value: number; label: string }) {
-  return (
-    <div className="panel p-4">
-      <p className="text-3xl font-bold tabular-nums text-ink">
-        {value.toLocaleString()}
-      </p>
-      <p className="mt-0.5 text-xs text-ink-faint">{label}</p>
-    </div>
-  );
-}
-
 function Timeline({ responses }: { responses: BCCSurveyResponse[] }) {
   const weeks = useMemo(() => {
     const now = new Date();
@@ -279,10 +271,11 @@ function Timeline({ responses }: { responses: BCCSurveyResponse[] }) {
             </span>
             <div className="relative w-full flex-1">
               <div
-                className="absolute inset-x-0 bottom-0 rounded-t bg-ink transition-all"
+                className="absolute inset-x-0 bottom-0 rounded-t transition-all"
                 style={{
                   height: `${(w.count / maxCount) * 100}%`,
                   minHeight: w.count > 0 ? 4 : 0,
+                  backgroundColor: "var(--primary)",
                 }}
               />
             </div>

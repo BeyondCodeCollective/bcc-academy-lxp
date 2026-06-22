@@ -17,6 +17,8 @@ import { getEnrolledTracks } from "@/lib/enrollment";
 import { getHomeProgramForTrack } from "@/lib/programs";
 import { WeekIcon } from "@/components/week-icon";
 import { DashboardBento } from "@/components/dashboard-bento";
+import { MyProgressCard, type MyProgressCardProps } from "@/components/my-progress-card";
+import { getLearnerProgress } from "@/lib/learner-progress";
 import { getWhatsNew, type FeedItem } from "@/lib/whats-new";
 import { WhatsNew } from "@/components/whats-new";
 import { PageHeader } from "@/components/page-header";
@@ -106,6 +108,7 @@ async function DashboardContent({
   let noCohort = false;
   let needsOnboarding = false;
   let enrolledTrackSlugs: string[] = [];
+  let learnerProgress: MyProgressCardProps | null = null;
   let pendingSurveys: { id: string; title: string; description: string }[] = [];
   let assessmentEnabled = false;
   let assessmentCompleted = false;
@@ -318,6 +321,20 @@ async function DashboardContent({
     redirect(singleCourseDestination(visibleTracks[0], false));
   }
 
+  // Real engagement card — streak + lessons watched + last active, across every
+  // course the learner is enrolled in. Fetched only once we know the home will
+  // actually render (past the single-course redirect) and never in
+  // preview-as-student, where the data would be the admin's own activity.
+  if (feedUserId && !isAdmin && !previewSlugOuter) {
+    const progressSlugs = Array.from(
+      new Set([
+        ...enrolledTrackSlugs,
+        ...otherProgramCourses.map((c) => c.track.slug),
+      ]),
+    );
+    learnerProgress = await getLearnerProgress(feedUserId, progressSlugs);
+  }
+
   const now = new Date();
   const trackStates = visibleTracks.map((track) => {
     const started = !track.startDateTbd && now >= new Date(track.startDate);
@@ -466,6 +483,7 @@ async function DashboardContent({
 
       <WhatsNew items={whatsNew} />
 
+      {learnerProgress && <MyProgressCard {...learnerProgress} />}
 
       {pendingSurveys.map((survey) => (
         <SurveyCard key={survey.id} survey={survey} />
