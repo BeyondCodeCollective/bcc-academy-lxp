@@ -10,7 +10,7 @@ import type { Student } from "@/lib/types";
 
 type StudentRow = Pick<
   Student,
-  "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id" | "last_seen_at"
+  "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id" | "last_seen_at" | "last_activity_at"
 >;
 
 type Track = { slug: string; name: string; shortName: string };

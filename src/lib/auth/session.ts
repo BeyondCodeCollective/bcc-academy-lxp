@@ -73,6 +73,19 @@ export const getSessionContext = cache(async (): Promise<SessionContext | null> 
     student: healed ?? null,
   };
   _profileStore.set(userId, { data: result, ts: Date.now() });
+
+  // Bump last_activity_at so admins can distinguish active learners from
+  // bouncers — unlike last_seen_at (written only on login in the auth
+  // callback), this advances as the learner navigates the dashboard. We only
+  // reach here on a cache miss, so this fires at most once per _PROFILE_TTL
+  // (60s) per user. Fire-and-forget via the service client; never block.
+  if (healed) {
+    void createServiceClient()
+      .from("students")
+      .update({ last_activity_at: new Date().toISOString() })
+      .eq("id", userId);
+  }
+
   return result;
 });
 
