@@ -17,6 +17,7 @@ const EMPTY: LandingFormInitial = {
   formLabel: "",
   trackSlug: "",
   eventbriteEventId: "",
+  embedHeight: null,
   schedule: [],
   secondaryCtaLabel: "",
   secondaryCtaUrl: "",

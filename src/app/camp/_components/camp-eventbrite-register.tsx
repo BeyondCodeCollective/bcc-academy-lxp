@@ -24,12 +24,16 @@ type EBWidgets = {
 export function CampEventbriteRegister({
   eventId,
   accent,
+  height,
 }: {
   eventId: string;
   accent: string;
+  /** Per-page embed height override (px). Defaults to 520. */
+  height?: number | null;
 }) {
   const [status, setStatus] = useState<"idle" | "processing" | "sent">("idle");
   const containerId = `eb-checkout-${eventId}`;
+  const embedHeight = height && height > 0 ? height : 520;
 
   useEffect(() => {
     let cancelled = false;
@@ -108,7 +112,7 @@ export function CampEventbriteRegister({
          without an inner scrollbar. The iframe is cross-origin so we can't
          measure its content height — a generous fixed min-height is the lever
          we DO control (the iframe element's own size). */}
-      <style>{`#${containerId}, #${containerId} iframe { width: 100%; min-height: 520px; border: 0; }`}</style>
+      <style>{`#${containerId}, #${containerId} iframe { width: 100%; min-height: ${embedHeight}px; border: 0; }`}</style>
       {status === "processing" && (
         <p className="mb-3 text-sm font-medium" style={{ color: accent }}>
           Setting up your spot…

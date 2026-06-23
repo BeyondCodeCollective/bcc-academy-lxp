@@ -17,6 +17,8 @@ export type LandingPage = {
   trackSlug: string | null;
   /** Eventbrite event embedded on this page. NULL = use the email-magic-link form. */
   eventbriteEventId: string | null;
+  /** Inline embed height override in px. NULL = component default (520). */
+  embedHeight: number | null;
   schedule: ScheduleDay[];
   secondaryCtaLabel: string | null;
   secondaryCtaUrl: string | null;
@@ -49,6 +51,7 @@ export async function getLandingPage(slug: string): Promise<LandingPage | null> 
     formLabel: (data.form_label as string | null) ?? null,
     trackSlug: (data.track_slug as string | null) ?? null,
     eventbriteEventId: (data.eventbrite_event_id as string | null) ?? null,
+    embedHeight: (data.embed_height as number | null) ?? null,
     schedule: (data.schedule as ScheduleDay[] | null) ?? [],
     secondaryCtaLabel: (data.secondary_cta_label as string | null) ?? null,
     secondaryCtaUrl: (data.secondary_cta_url as string | null) ?? null,
