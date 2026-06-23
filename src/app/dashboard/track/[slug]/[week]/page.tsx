@@ -38,6 +38,16 @@ export default async function TrackWeekPage({
   const weekContent = track.weeks.find((w) => w.week === weekNum);
   if (!weekContent) redirect("/dashboard");
 
+  // Curriculum lock: before launch, non-admins can't open lessons by direct URL
+  // either — bounce them to the holding page (countdown). Mirrors the overview's
+  // pre-start gate so registration never exposes content early.
+  const gateCtx = await getSessionContext();
+  const gateIsAdmin = canAccessAdminPanel(gateCtx?.student?.role ?? "");
+  const hasStarted = !track.startDateTbd && new Date() >= new Date(track.startDate);
+  if (!gateIsAdmin && !hasStarted) {
+    redirect(`/dashboard/track/${trackSlug}`);
+  }
+
   // Coming-soon guard. If the week has a `comingSoonUntil` date still in the
   // future, render a placeholder regardless of how the student got here —
   // direct URL, link, etc. The overview grid renders these cells as

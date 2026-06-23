@@ -15,6 +15,8 @@ export type LandingPage = {
   accent: string;
   formLabel: string | null;
   trackSlug: string | null;
+  /** Eventbrite event embedded on this page. NULL = use the email-magic-link form. */
+  eventbriteEventId: string | null;
   schedule: ScheduleDay[];
   secondaryCtaLabel: string | null;
   secondaryCtaUrl: string | null;
@@ -46,6 +48,7 @@ export async function getLandingPage(slug: string): Promise<LandingPage | null> 
     accent: (data.accent as string) ?? "#1a1a1a",
     formLabel: (data.form_label as string | null) ?? null,
     trackSlug: (data.track_slug as string | null) ?? null,
+    eventbriteEventId: (data.eventbrite_event_id as string | null) ?? null,
     schedule: (data.schedule as ScheduleDay[] | null) ?? [],
     secondaryCtaLabel: (data.secondary_cta_label as string | null) ?? null,
     secondaryCtaUrl: (data.secondary_cta_url as string | null) ?? null,
@@ -54,5 +57,25 @@ export async function getLandingPage(slug: string): Promise<LandingPage | null> 
     footerText: (data.footer_text as string | null) ?? null,
     metaTitle: (data.meta_title as string | null) ?? null,
     metaDescription: (data.meta_description as string | null) ?? null,
+  };
+}
+
+/** Reverse lookup: which published landing page embeds this Eventbrite event.
+ *  The order.placed webhook only knows the event id, so this maps it back to the
+ *  page's track. Returns the slug + track, or null if no page is wired to it. */
+export async function getLandingByEventbriteId(
+  eventbriteEventId: string,
+): Promise<{ slug: string; trackSlug: string | null } | null> {
+  const svc = createServiceClient();
+  const { data } = await svc
+    .from("landing_pages")
+    .select("slug, track_slug")
+    .eq("eventbrite_event_id", eventbriteEventId)
+    .eq("published", true)
+    .maybeSingle();
+  if (!data) return null;
+  return {
+    slug: data.slug as string,
+    trackSlug: (data.track_slug as string | null) ?? null,
   };
 }

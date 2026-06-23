@@ -121,6 +121,88 @@ function normalize(eb: EventbriteEvent): Event {
   };
 }
 
+// ── Order resolution (registration funnel) ───────────────────────────────
+// The embedded checkout widget hands us only an order ID client-side (no PII),
+// and the order.placed webhook is likewise a thin pointer — both resolve the
+// buyer's email through this server-side call. Reuses EVENTBRITE_API_TOKEN (the
+// same private token already used for the org event feed above). Never expose it
+// to the browser.
+
+export type EventbriteOrder = {
+  orderId: string;
+  email: string;
+  /** Buyer's display name from the attendee profile, if present. */
+  name: string | null;
+  eventId: string;
+  eventName: string | null;
+  /** ISO 8601 UTC, e.g. "2026-07-09T18:00:00Z". Null if the event has no set time. */
+  eventStartUtc: string | null;
+  eventEndUtc: string | null;
+  /** Local wall-clock start ("2026-07-09T14:00:00") + IANA tz, for human display. */
+  eventStartLocal: string | null;
+  eventTimezone: string | null;
+  /** "placed", "refunded", etc. */
+  status: string;
+};
+
+/** Pull the order id out of the webhook payload's api_url
+ *  (".../orders/1234567890/"). Returns null if it doesn't match. */
+export function orderIdFromApiUrl(apiUrl: string | undefined): string | null {
+  if (!apiUrl) return null;
+  const m = apiUrl.match(/orders\/(\d+)/);
+  return m ? m[1] : null;
+}
+
+/** Resolve a full order (buyer email + which event they registered for). Returns
+ *  null on any failure — callers treat that as "couldn't provision, skip". */
+export async function fetchEventbriteOrder(
+  orderId: string,
+): Promise<EventbriteOrder | null> {
+  const token = process.env.EVENTBRITE_API_TOKEN;
+  if (!token) {
+    console.error("[eventbrite] EVENTBRITE_API_TOKEN not set — cannot resolve order");
+    return null;
+  }
+
+  const url = `https://www.eventbriteapi.com/v3/orders/${orderId}/?expand=attendees,event`;
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+  } catch (e) {
+    console.error("[eventbrite] order fetch threw", orderId, e);
+    return null;
+  }
+  if (!res.ok) {
+    console.error("[eventbrite] order fetch failed", orderId, res.status);
+    return null;
+  }
+
+  const data = (await res.json()) as Record<string, unknown>;
+  const attendees = Array.isArray(data.attendees)
+    ? (data.attendees as Array<Record<string, unknown>>)
+    : [];
+  const profile = (attendees[0]?.profile ?? {}) as Record<string, unknown>;
+  const event = (data.event ?? {}) as Record<string, unknown>;
+  const start = event.start as { utc?: string; local?: string; timezone?: string } | undefined;
+  const end = event.end as { utc?: string } | undefined;
+
+  return {
+    orderId: String(data.id ?? orderId),
+    email: String(data.email ?? profile.email ?? "").trim().toLowerCase(),
+    name: (profile.name as string | undefined)?.trim() || null,
+    eventId: String(data.event_id ?? event.id ?? ""),
+    eventName: (event.name as { text?: string } | undefined)?.text ?? null,
+    eventStartUtc: start?.utc ?? null,
+    eventEndUtc: end?.utc ?? null,
+    eventStartLocal: start?.local ?? null,
+    eventTimezone: start?.timezone ?? null,
+    status: String(data.status ?? "placed"),
+  };
+}
+
 export async function getEvents(): Promise<Event[]> {
   const token = process.env.EVENTBRITE_API_TOKEN;
   if (!token) return fallbackEvents;

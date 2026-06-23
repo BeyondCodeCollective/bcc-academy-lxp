@@ -16,6 +16,7 @@ const EMPTY: LandingFormInitial = {
   accent: "#E54D2E",
   formLabel: "",
   trackSlug: "",
+  eventbriteEventId: "",
   schedule: [],
   secondaryCtaLabel: "",
   secondaryCtaUrl: "",

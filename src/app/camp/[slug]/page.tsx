@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getLandingPage } from "@/lib/landing-pages";
 import { CampEmailForm } from "../_components/camp-email-form";
+import { CampEventbriteRegister } from "../_components/camp-eventbrite-register";
 import { CampHeaderCta } from "../_components/camp-header-cta";
 
 export const dynamic = "force-dynamic";
@@ -99,7 +100,14 @@ export default async function CampLandingPage({
                   {page.formLabel}
                 </p>
               )}
-              <CampEmailForm accent={accent} trackSlug={page.trackSlug} />
+              {page.eventbriteEventId ? (
+                <CampEventbriteRegister
+                  eventId={page.eventbriteEventId}
+                  accent={accent}
+                />
+              ) : (
+                <CampEmailForm accent={accent} trackSlug={page.trackSlug} />
+              )}
             </div>
 
             {/* Schedule */}
