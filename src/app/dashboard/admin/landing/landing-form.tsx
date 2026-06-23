@@ -51,6 +51,9 @@ export function LandingForm({
   const [formLabel, setFormLabel] = useState(initial.formLabel);
   const [trackSlug, setTrackSlug] = useState(initial.trackSlug);
   const [eventbriteEventId, setEventbriteEventId] = useState(initial.eventbriteEventId);
+  const [embedHeight, setEmbedHeight] = useState(
+    initial.embedHeight != null ? String(initial.embedHeight) : "",
+  );
   const [schedule, setSchedule] = useState<ScheduleDay[]>(
     initial.schedule.length ? initial.schedule : [],
   );
@@ -105,6 +108,7 @@ export function LandingForm({
           formLabel,
           trackSlug,
           eventbriteEventId,
+          embedHeight: embedHeight.trim() ? Number(embedHeight) : null,
           schedule,
           secondaryCtaLabel,
           secondaryCtaUrl,
@@ -262,6 +266,20 @@ export function LandingForm({
             value={eventbriteEventId}
             onChange={(e) => setEventbriteEventId(e.target.value)}
             className={`${fieldInput} font-mono`}
+          />
+        </Field>
+
+        <Field
+          label="Embed height (px)"
+          hint="optional — height of the inline Eventbrite form. Blank = default (520). Tune to fit without scroll or wasted space."
+        >
+          <input
+            type="number"
+            min={200}
+            placeholder="520"
+            value={embedHeight}
+            onChange={(e) => setEmbedHeight(e.target.value)}
+            className={`${fieldInput} max-w-[140px] font-mono`}
           />
         </Field>
       </Panel>

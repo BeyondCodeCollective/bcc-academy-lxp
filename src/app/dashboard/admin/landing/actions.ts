@@ -39,6 +39,7 @@ export type LandingPageInput = {
   formLabel: string;
   trackSlug: string;
   eventbriteEventId: string;
+  embedHeight: number | null;
   schedule: ScheduleDay[];
   secondaryCtaLabel: string;
   secondaryCtaUrl: string;
@@ -121,6 +122,7 @@ export async function saveLandingPageAction(
     form_label: trimToNull(input.formLabel),
     track_slug: trimToNull(input.trackSlug),
     eventbrite_event_id: trimToNull(input.eventbriteEventId),
+    embed_height: input.embedHeight && input.embedHeight > 0 ? input.embedHeight : null,
     schedule,
     secondary_cta_label: trimToNull(input.secondaryCtaLabel),
     secondary_cta_url: trimToNull(input.secondaryCtaUrl),

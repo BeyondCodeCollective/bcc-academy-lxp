@@ -41,6 +41,7 @@ export default async function EditLandingPage({
     formLabel: (data.form_label as string | null) ?? "",
     trackSlug: (data.track_slug as string | null) ?? "",
     eventbriteEventId: (data.eventbrite_event_id as string | null) ?? "",
+    embedHeight: (data.embed_height as number | null) ?? null,
     schedule: (data.schedule as ScheduleDay[] | null) ?? [],
     secondaryCtaLabel: (data.secondary_cta_label as string | null) ?? "",
     secondaryCtaUrl: (data.secondary_cta_url as string | null) ?? "",
