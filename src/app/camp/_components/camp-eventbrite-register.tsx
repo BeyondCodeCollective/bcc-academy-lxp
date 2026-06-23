@@ -3,19 +3,20 @@
 import { useEffect, useState } from "react";
 import Script from "next/script";
 
-// Embedded Eventbrite registration for a camp page. The widget hands us only an
-// order id on completion; we POST it to /api/eventbrite/claim, which provisions
-// the portal account and returns the durable /invite/<token> URL — we redirect
-// there, landing the registrant on the holding page in the same session. If the
-// claim hiccups, the order.placed webhook still provisions + emails them, so we
-// show a reassuring "check your email" fallback rather than an error.
+// Inline Eventbrite registration for a camp page. Renders Eventbrite's checkout
+// form directly in the page (no modal overlay, no separate "register" button —
+// the visitor fills the form once and submits it). On completion the widget
+// hands us an order id; we POST it to /api/eventbrite/claim, which provisions the
+// portal account and returns the durable /invite/<token> URL — we redirect there,
+// landing the registrant on the holding page in the same session. If the claim
+// hiccups, the order.placed webhook still provisions + emails them, so we show a
+// reassuring "check your email" fallback rather than an error.
 
 type EBWidgets = {
   createWidget: (opts: {
     widgetType: "checkout";
     eventId: string;
-    modal: boolean;
-    modalTriggerElementId: string;
+    iframeContainerId: string;
     onOrderComplete?: (event: { orderId?: string }) => void;
   }) => void;
 };
@@ -23,14 +24,12 @@ type EBWidgets = {
 export function CampEventbriteRegister({
   eventId,
   accent,
-  ctaLabel,
 }: {
   eventId: string;
   accent: string;
-  ctaLabel?: string | null;
 }) {
   const [status, setStatus] = useState<"idle" | "processing" | "sent">("idle");
-  const triggerId = `eb-register-${eventId}`;
+  const containerId = `eb-checkout-${eventId}`;
 
   useEffect(() => {
     let cancelled = false;
@@ -42,8 +41,7 @@ export function CampEventbriteRegister({
         eb.createWidget({
           widgetType: "checkout",
           eventId,
-          modal: true,
-          modalTriggerElementId: triggerId,
+          iframeContainerId: containerId,
           onOrderComplete: (event) => {
             void handleOrderComplete(event?.orderId);
           },
@@ -57,7 +55,7 @@ export function CampEventbriteRegister({
     return () => {
       cancelled = true;
     };
-  }, [eventId, triggerId]);
+  }, [eventId, containerId]);
 
   async function handleOrderComplete(orderId?: string) {
     setStatus("processing");
@@ -106,25 +104,13 @@ export function CampEventbriteRegister({
         src="https://www.eventbrite.com/static/widgets/eb_widgets.js"
         strategy="lazyOnload"
       />
-      <button
-        type="button"
-        id={triggerId}
-        disabled={status === "processing"}
-        className="text-sm font-semibold transition-opacity"
-        style={{
-          width: "100%",
-          padding: "13px 20px",
-          background: accent,
-          color: "#fff",
-          border: "none",
-          cursor: status === "processing" ? "wait" : "pointer",
-          minHeight: "48px",
-          letterSpacing: "0.01em",
-          opacity: status === "processing" ? 0.7 : 1,
-        }}
-      >
-        {status === "processing" ? "Setting up your spot…" : (ctaLabel || "Register now →")}
-      </button>
+      {status === "processing" && (
+        <p className="mb-3 text-sm font-medium" style={{ color: accent }}>
+          Setting up your spot…
+        </p>
+      )}
+      {/* Eventbrite renders its checkout form inline here (auto-sizes). */}
+      <div id={containerId} style={{ width: "100%", minHeight: 420 }} />
     </>
   );
 }
