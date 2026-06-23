@@ -33,7 +33,7 @@ export default async function LandingPagesListPage() {
       <div>
         <PageHeader
           title="Landing pages"
-          subtitle="Marketing landing pages served from /camp/<slug>. Create or edit any page here — changes go live with no code deploy."
+          subtitle="Marketing landing pages served from /bcc/<slug>. Create or edit any page here — changes go live with no code deploy."
           noWrap
           actions={
             <div className="flex items-center gap-2">
@@ -62,7 +62,7 @@ export default async function LandingPagesListPage() {
             <tr key={r.slug} className="text-ink">
               <td className="px-4 py-3 align-top">
                 <Link
-                  href={`/camp/${r.slug}`}
+                  href={`/bcc/${r.slug}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-mono text-sm font-semibold text-ink hover:text-primary"

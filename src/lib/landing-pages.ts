@@ -29,7 +29,7 @@ export type LandingPage = {
   metaDescription: string | null;
 };
 
-/** Loads a published marketing landing page by slug (the /camp/[slug] template
+/** Loads a published marketing landing page by slug (the /bcc/[slug] template
  *  reads this). Returns null if the slug doesn't exist or isn't published. */
 export async function getLandingPage(slug: string): Promise<LandingPage | null> {
   const svc = createServiceClient();

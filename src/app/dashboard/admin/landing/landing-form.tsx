@@ -151,7 +151,7 @@ export function LandingForm({
           />
           {previewSlug && (
             <p className="mt-1.5 font-mono text-xs text-ink-soft">
-              bccacademy.io/camp/<span className="text-primary">{previewSlug}</span>
+              bccacademy.io/bcc/<span className="text-primary">{previewSlug}</span>
             </p>
           )}
         </Field>
@@ -519,7 +519,7 @@ export function LandingForm({
         </button>
         {isEdit && previewSlug && (
           <a
-            href={`/camp/${previewSlug}`}
+            href={`/bcc/${previewSlug}`}
             target="_blank"
             rel="noopener noreferrer"
             className={buttonClass("secondary", "md")}
