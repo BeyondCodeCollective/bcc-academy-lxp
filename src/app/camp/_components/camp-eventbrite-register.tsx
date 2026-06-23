@@ -104,13 +104,17 @@ export function CampEventbriteRegister({
         src="https://www.eventbrite.com/static/widgets/eb_widgets.js"
         strategy="lazyOnload"
       />
+      {/* Force the inline Eventbrite iframe tall enough that its form fits
+         without an inner scrollbar. The iframe is cross-origin so we can't
+         measure its content height — a generous fixed min-height is the lever
+         we DO control (the iframe element's own size). */}
+      <style>{`#${containerId}, #${containerId} iframe { width: 100%; min-height: 920px; border: 0; }`}</style>
       {status === "processing" && (
         <p className="mb-3 text-sm font-medium" style={{ color: accent }}>
           Setting up your spot…
         </p>
       )}
-      {/* Eventbrite renders its checkout form inline here (auto-sizes). */}
-      <div id={containerId} style={{ width: "100%", minHeight: 420 }} />
+      <div id={containerId} style={{ width: "100%" }} />
     </>
   );
 }
