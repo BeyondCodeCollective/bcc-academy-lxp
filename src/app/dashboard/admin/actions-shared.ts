@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { hasCapability, canSwitchPrograms } from "@/lib/roles";
 import type { Capability } from "@/lib/roles";
+import { isMasterEmail } from "@/lib/auth/admins";
 import { isPreviewingAsStudent } from "@/lib/auth/preview-mode";
 
 export async function requireCapability(capability: Capability) {
@@ -15,12 +16,16 @@ export async function requireCapability(capability: Capability) {
   const svc = createServiceClient();
   const { data: student } = await svc
     .from("students")
-    .select("role, program_id")
+    .select("role, program_id, email")
     .eq("id", user.id)
-    .single<{ role: string; program_id: string | null }>();
+    .single<{ role: string; program_id: string | null; email: string | null }>();
 
   const role = student?.role ?? "";
-  if (!hasCapability(role, capability)) throw new Error("Not authorized");
+  // The master (owner) is the top tier and bypasses every capability check.
+  // super_admin is cross-program VIEW-only, so management capabilities resolve
+  // through an admin role or the master email — not super_admin.
+  const isMaster = isMasterEmail(student?.email);
+  if (!isMaster && !hasCapability(role, capability)) throw new Error("Not authorized");
   // A super-admin previewing as a student is treated as a student — block
   // admin mutations until they exit preview.
   if (await isPreviewingAsStudent(role)) {

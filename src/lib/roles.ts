@@ -13,7 +13,10 @@ export type Capability =
 
 const ROLE_CAPABILITIES: Record<Capability, Role[]> = {
   access_admin_panel: ["instructor", "admin", "super_admin"],
-  manage_students:    ["admin", "super_admin"],
+  // Managing people (students, cohorts, role assignment) is for a PROGRAM admin
+  // — not super_admin, which is cross-program VIEW/oversight only. The master
+  // (email-gated owner) bypasses every capability in requireCapability().
+  manage_students:    ["admin"],
   view_insights:      ["admin", "super_admin"],
   switch_programs:    ["super_admin"],
 };
