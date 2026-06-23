@@ -88,7 +88,7 @@ export function AssessmentWizard({
     return false;
   };
 
-  // Overall progress — answered out of all 49 scored items.
+  // Overall progress — answered out of all scored items across the three modules.
   const answeredCount = useMemo(() => {
     let n = 0;
     for (const i of MODULE_1_ITEMS) if (responses[i.id] != null) n++;

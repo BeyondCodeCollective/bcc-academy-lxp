@@ -1,15 +1,16 @@
 // src/lib/assessment/types.ts
 
+// Final Module 1 set (v2, June 2026): seven archetypes. Explorer and Igniter
+// were removed from scored Module 1; Culture Keeper was renamed Guardian
+// (construct: participation protection + group recovery, not mood/harmony).
 export type ArchetypeKey =
   | "navigator"
   | "developer"
-  | "igniter"
-  | "connector"
   | "systems_thinker"
-  | "culture_keeper"
   | "designer"
+  | "connector"
   | "support_specialist"
-  | "explorer";
+  | "guardian";
 
 export type ArchetypeConfidence =
   | "high"

@@ -11,47 +11,52 @@ export const LIKERT_LABELS = [
   "Strongly agree",
 ] as const;
 
-// ─── Module 1: Archetype identity (27 items) ─────────────────────────────────
+// ─── Module 1: Archetype identity (v2 — 28 items, 7 archetypes × 4) ──────────
+// Full rewrite, June 2026. Each archetype has 4 items in a fixed pattern:
+// (1) everyday action, (2) group/work action, (3) line divider vs. nearest
+// neighbor, (4) cost item — chosen despite a real tradeoff. Items display in
+// randomized order. Do not reword M1-GRD-04 ("I may speak up" hedge is
+// intentional).
 
 export type M1Item = { id: string; text: string; archetype: ArchetypeKey };
 
 export const MODULE_1_ITEMS: M1Item[] = [
-  // Navigator
-  { id: "M1-NAV-01", text: "I like understanding the bigger purpose before I start working on something.", archetype: "navigator" },
-  { id: "M1-NAV-02", text: "I often think about where a project or idea is headed.", archetype: "navigator" },
-  { id: "M1-NAV-03", text: "I often think about what the goal is and what step comes next, even when working on my own.", archetype: "navigator" },
-  // Developer
-  { id: "M1-DEV-01", text: "I like turning ideas into something real that people can use, test, or improve.", archetype: "developer" },
-  { id: "M1-DEV-02", text: "I enjoy hands-on tasks where I can build, fix, or figure something out.", archetype: "developer" },
-  { id: "M1-DEV-03", text: "I feel motivated when I can see something I am building or fixing come together.", archetype: "developer" },
-  // Igniter
-  { id: "M1-IGN-01", text: "When something needs to get started, I am usually willing to take the first step.", archetype: "igniter" },
-  { id: "M1-IGN-02", text: "I like helping ideas move from talking into action.", archetype: "igniter" },
-  { id: "M1-IGN-03", text: "I am willing to get started even when the plan is not fully figured out yet.", archetype: "igniter" },
-  // Connector
-  { id: "M1-CON-01", text: "I often notice when people, ideas, or resources need to be connected.", archetype: "connector" },
-  { id: "M1-CON-02", text: "When I see two people or ideas that should connect, I often help make that link happen.", archetype: "connector" },
-  { id: "M1-CON-03", text: "When two people are talking past each other, I often step in to help them understand each other.", archetype: "connector" },
-  // Systems Thinker
-  { id: "M1-SYS-01", text: "I often look for the patterns or causes behind a problem.", archetype: "systems_thinker" },
-  { id: "M1-SYS-02", text: "I like figuring out how the different parts of something fit together.", archetype: "systems_thinker" },
-  { id: "M1-SYS-03", text: "Before choosing a solution, I often want to understand what is really causing the issue.", archetype: "systems_thinker" },
-  // Culture Keeper
-  { id: "M1-CUL-01", text: "I notice when the mood or energy in a group changes.", archetype: "culture_keeper" },
-  { id: "M1-CUL-02", text: "I often do small things to help people feel included.", archetype: "culture_keeper" },
-  { id: "M1-CUL-03", text: "When a group feels tense, I often try to help things feel calmer.", archetype: "culture_keeper" },
-  // Designer
-  { id: "M1-DES-01", text: "I like making things easier and more pleasant to use.", archetype: "designer" },
-  { id: "M1-DES-02", text: "I notice when something feels confusing, hard to use, or poorly organized.", archetype: "designer" },
-  { id: "M1-DES-03", text: "I enjoy shaping how something looks, feels, sounds, or works for the person using it.", archetype: "designer" },
-  // Support Specialist
-  { id: "M1-SUP-01", text: "I usually stay patient when I am helping someone work through a problem.", archetype: "support_specialist" },
-  { id: "M1-SUP-02", text: "I like helping people feel less stuck, confused, or overwhelmed.", archetype: "support_specialist" },
-  { id: "M1-SUP-03", text: "When I explain something, I often break it into small steps so it is easier to follow.", archetype: "support_specialist" },
-  // Explorer
-  { id: "M1-EXP-01", text: "I like trying different options before deciding what direction fits me best.", archetype: "explorer" },
-  { id: "M1-EXP-02", text: "I learn a lot by trying things out and asking questions.", archetype: "explorer" },
-  { id: "M1-EXP-03", text: "I am interested in more than one path and like having room to discover what fits.", archetype: "explorer" },
+  // Navigator — divider neighbor: Systems Thinker
+  { id: "M1-NAV-01", text: "When a group starts working on something together, I'm usually the one who says what we're actually trying to get done before we split up the work.", archetype: "navigator" },
+  { id: "M1-NAV-02", text: "When plans change, my first move is to get clear on the new goal before anyone decides what to do next.", archetype: "navigator" },
+  { id: "M1-NAV-03", text: `When something a group is working on isn't coming out right, my first question is usually "is this even what we're supposed to be making?" rather than "which part went wrong?"`, archetype: "navigator" },
+  { id: "M1-NAV-04", text: "When my friends are all hyped to do something but nobody's said what the plan actually is, I'll be the one to ask, even if it kills the vibe a little.", archetype: "navigator" },
+  // Developer — divider neighbor: Systems Thinker
+  { id: "M1-DEV-01", text: "At home or in my free time, I'm usually the one who builds things, sets things up, or makes something work the way I want it to.", archetype: "developer" },
+  { id: "M1-DEV-02", text: "When a group has an idea, I'm usually the one who starts making a rough version so everyone has something real to look at.", archetype: "developer" },
+  { id: "M1-DEV-03", text: "When something breaks, I care more about getting it working again than figuring out the full story of why it broke.", archetype: "developer" },
+  { id: "M1-DEV-04", text: "When something I made doesn't work, I'll take it apart and redo it, even if it means starting over after hours of work.", archetype: "developer" },
+  // Systems Thinker — divider neighbor: Developer
+  { id: "M1-SYS-01", text: "When I take on something new, like a game, a job, or a skill, I start by figuring out how the pieces connect instead of jumping straight in.", archetype: "systems_thinker" },
+  { id: "M1-SYS-02", text: "When my group is making a plan, I'm usually the one asking what happens to the other parts if we change this one.", archetype: "systems_thinker" },
+  { id: "M1-SYS-03", text: "I'd rather understand exactly why something broke than just get it running again.", archetype: "systems_thinker" },
+  { id: "M1-SYS-04", text: "When everyone wants the quick fix, I'm willing to slow the group down to find the real cause, even if people get impatient with me.", archetype: "systems_thinker" },
+  // Designer/Creator — divider neighbor: Connector
+  { id: "M1-DES-01", text: "When I care about something, I end up making something about it: a video, a playlist, a post, a drawing, or a story that shows people why it matters.", archetype: "designer" },
+  { id: "M1-DES-02", text: "When a group has a complicated idea, I'm the one who turns it into something people can actually understand, like an example, a visual, or a story.", archetype: "designer" },
+  { id: "M1-DES-03", text: "When something needs explaining, my instinct is to create the thing that explains it, not to find the right person to explain it.", archetype: "designer" },
+  { id: "M1-DES-04", text: "I share things I make even when I'm nervous about how people will react.", archetype: "designer" },
+  // Connector — divider neighbors: Support Specialist and Guardian
+  { id: "M1-CON-01", text: "When a friend needs something, I usually know someone who can help, and I actually make the introduction.", archetype: "connector" },
+  { id: "M1-CON-02", text: "When two people keep misunderstanding each other, I step in and put what each one means into words the other can hear.", archetype: "connector" },
+  { id: "M1-CON-03", text: "When someone's stuck, my first move is to connect them with the person or resource that can help, rather than walk them through it myself.", archetype: "connector" },
+  { id: "M1-CON-04", text: "At school, work, or in my community, I'll connect people from different groups even when it's awkward to be the one reaching across.", archetype: "connector" },
+  // Support Specialist — divider neighbor: Guardian
+  { id: "M1-SUP-01", text: "When someone in my family can't figure out something on their phone or computer, I sit with them and go through it step by step.", archetype: "support_specialist" },
+  { id: "M1-SUP-02", text: "When a teammate is stuck, I break the problem into smaller steps so they can get moving again.", archetype: "support_specialist" },
+  { id: "M1-SUP-03", text: "When things go wrong, I focus on the one person who's struggling more than on whether the whole group is holding together.", archetype: "support_specialist" },
+  { id: "M1-SUP-04", text: "I'll stay with someone who's struggling until they get it, even when it would be faster to just do it for them.", archetype: "support_specialist" },
+  // Guardian (formerly Culture Keeper) — divider neighbors: Support Specialist and Connector
+  { id: "M1-GRD-01", text: "When someone new joins my class, team, or friend group, I'm one of the people who catches them up and pulls them into what's happening.", archetype: "guardian" },
+  { id: "M1-GRD-02", text: "After a group argument or a rough moment, I'm usually the one who helps everyone reset so we can keep going.", archetype: "guardian" },
+  { id: "M1-GRD-03", text: "I pay more attention to whether the whole group is still okay together than to any one person's progress.", archetype: "guardian" },
+  // M1-GRD-04: preserved verbatim — the "I may speak up" hedge is intentional.
+  { id: "M1-GRD-04", text: "In my family, when someone is being left out or talked over, I may speak up even if it feels uncomfortable.", archetype: "guardian" },
 ];
 
 // ─── Module 2: Work style scenarios (12 forced-choice) ───────────────────────
@@ -181,8 +186,18 @@ export const TRANSITION_MESSAGES = {
 export type ArchetypeContent = {
   name: string;
   emoji: string;
+  /** Short tagline shown under the result header. */
   definition: string;
-  learner: string;
+  /** "Your strengths" — the learner-facing strengths paragraph. */
+  strengths: string;
+  /** Career pathways by stage. Stages are NOT ages — a career changer can
+      enter laterally. */
+  pathways: { entry: string; mid: string; established: string };
+  /** "Future thinking" — where the pattern is headed as AI reshapes work. */
+  future: string;
+  /** "The honest part" — no-overclaiming note in learner voice. */
+  honest: string;
+  /** Facilitator/coaching note (admin view only). */
   facilitator: string;
 };
 
@@ -190,75 +205,118 @@ export const ARCHETYPE_CONTENT: Record<ArchetypeKey, ArchetypeContent> = {
   navigator: {
     name: "Navigator",
     emoji: "🧭",
-    definition: "Orients toward direction and purpose. Wants to understand where something is headed and why before acting, and keeps the goal in view when others lose it in the details.",
-    learner: "You want to understand the point of something before you dive in. You think about where things are headed, not just what is in front of you, and you tend to hold onto the goal when other people get lost in the details. That sense of direction is genuinely useful. As you grow, the edge is acting before everything is fully clear, because the world rarely hands you the whole map first. Your instinct for purpose is a strong place to build from.",
+    definition: "You keep the work pointed at the right goal.",
+    strengths: "You are the person who asks what we are actually trying to do here, and that question saves teams more time and money than almost any other skill. You notice when a group is drifting, when effort is going toward the wrong target, and when a plan changed but the goal got lost. You hold the destination in your head while everyone else is in the details. At a family party, you are the one who remembers it is grandma's birthday, not a club night. On a tech team, you are the one who catches the team building something nobody asked for.",
+    pathways: {
+      entry: "Project coordinator, program coordinator, junior business analyst, product operations associate, scrum team roles. These are the jobs where someone tracks scope, timelines, and what is actually being delivered.",
+      mid: "Project manager, scrum master, business analyst, product owner, program manager. Certifications like CAPM, PMP, and CSM are real, recognized steps on this road.",
+      established: "Product manager, senior program manager, portfolio and strategy roles, PMO leadership. Product management is the purest Navigator job in tech.",
+    },
+    future: `As AI does more of the building, the person who keeps asking "is this the right thing to build" becomes more valuable, not less. AI product roles, AI implementation coordination, and product operations are growing fields that need exactly this pattern.`,
+    honest: "People are rarely hired directly into a product or project management role. The Navigator pattern shows up inside a first role. The coordinator who flags scope drift is the one who gets pulled toward bigger rooms. Your job in your first role is to let this strength show.",
     facilitator: "Leads with purpose and direction. Engages best when the why and the destination are clear, and can stall on work that feels pointless. Strength: big-picture orientation, keeping the goal in view. Growth edge: tolerating ambiguity, starting before the picture is complete. Cross-module: a Navigator who is also methodical and structured will especially want clarity up front; an adaptive one moves more easily. Coaching angle: connect tasks to the larger purpose, and practice taking first steps with incomplete information.",
   },
   developer: {
     name: "Developer",
     emoji: "🛠️",
-    definition: "Turns ideas into real, working things. Motivated by hands-on building, fixing, and visible progress on something they are making.",
-    learner: "You like making things real. Ideas are fine, but you come alive when you can build, fix, or get your hands on something and watch it work. Seeing something you made come together is what keeps you going. That drive to produce is a real asset, especially in tech, where so much of the work is building. As you grow, the edge is stepping back to ask why and for whom before you build, so your skill goes toward what matters most.",
+    definition: "You turn ideas into working things.",
+    strengths: "You make things real. While others are still talking, you have a rough version on the table that everyone can react to. You fix what is broken, you test what is uncertain, and you are willing to take something apart and rebuild it when it does not work. That willingness to start over is rarer than people think. At home you are the one who fixes the thing instead of waiting for someone else. On a team you are the reason the idea became an actual product.",
+    pathways: {
+      entry: "Junior developer, QA tester, IT support technician, web development assistant, automation assistant, low-code and no-code builder roles. These are the jobs where someone builds, tests, and fixes.",
+      mid: "Software developer, QA engineer, automation engineer, DevOps roles, systems administrator.",
+      established: "Senior engineer, technical lead, software architect, engineering manager.",
+    },
+    future: "AI is making builders faster, not unnecessary. AI-assisted development, automation building, and AI integration work all still need someone with the builder's judgment: knowing when something actually works, when it is good enough to ship, and when it needs to be torn down and redone. The tools change. The pattern does not.",
+    honest: "First builds are rarely impressive, and that is the point. Developers grow by shipping small things that work and stacking them. Every senior engineer started with something humble that functioned.",
     facilitator: "Motivated by tangible output. Thrives with projects and prototypes, loses energy in long abstract discussion. Strength: making ideas real, persistence through building. Growth edge: pausing to weigh purpose and user before constructing. Cross-module: high Module 3 self-direction leans toward building their own thing; high stability-seeking prefers building inside an established team. Coaching angle: give them something to make early, tied to a clear purpose so they do not optimize the wrong thing well.",
-  },
-  igniter: {
-    name: "Igniter",
-    emoji: "🔥",
-    definition: "Provides activation energy. Starts things, takes the first step, and moves ideas from talk into action, even before the plan is fully formed.",
-    learner: "You get things moving. When a group is stuck talking, you are the one who actually starts. You are willing to take the first step before everything is figured out, and that momentum is something a lot of people lack. Groups need it. As you grow, the edge is pairing your fast start with follow-through, so the things you kick off also get finished well.",
-    facilitator: "Brings initiative and momentum, comfortable starting before conditions are perfect. Strength: activation, bias toward action. Growth edge: follow-through past the exciting start. Cross-module: keep Igniter (starting) separate from Module 2 pace (speed); an Igniter can be methodical once underway. High initiative with low Module 3 risk comfort can mean someone who starts boldly but strains under sustained uncertainty. Coaching angle: channel the starting energy, then build structure that supports finishing.",
-  },
-  connector: {
-    name: "Connector",
-    emoji: "🤝",
-    definition: "Bridges separate people, ideas, and resources. Notices useful links others miss and helps different parties understand each other.",
-    learner: "You see connections other people miss. You notice when two people, or two ideas, should be linked, and you often make that link happen. When people are talking past each other, you are the one who helps them actually understand. That bridging instinct is rare and valuable, in tech and everywhere. As you grow, the edge is protecting time for your own focused work, because connectors can give so much to others that their own projects keep waiting.",
-    facilitator: "Thinks in links and relationships across people, ideas, and resources. A natural bridge and translator. Strength: communication across difference, spotting useful links. Growth edge: protecting their own focus, not over-extending into everyone's needs. Cross-module: keep Connector (identity) separate from Module 2 social energy (work preference); a Connector can still prefer solo work. Coaching angle: use the bridging in real roles, and watch that they do not become the unpaid glue who never advances their own goals.",
   },
   systems_thinker: {
     name: "Systems Thinker",
     emoji: "⚙️",
-    definition: "Looks for patterns, causes, and structure. Wants to understand how parts fit and what is really driving a problem before choosing a solution.",
-    learner: "You want to understand how things actually work. You look for the patterns and the real causes behind a problem instead of reacting to the surface, and before you pick a solution you want to know what is really going on underneath. That depth is a serious strength, especially in technical work, where the obvious answer is often the wrong one. As you grow, the edge is knowing when you have analyzed enough and it is time to decide and move.",
+    definition: "You find the real cause, not just the quick fix.",
+    strengths: "You see how the parts affect each other. When the same problem keeps coming back, you are the one who figures out what keeps causing it instead of patching it every time. You are willing to slow a group down to find the truth, and that patience prevents the expensive repeat failures that quick fixes create. At a party you are the one who knows that if dinner is at 7 and the cake takes 2 hours, someone has to start by 4. On a tech team, you are the one who finds why it broke, not just that it broke.",
+    pathways: {
+      entry: "Junior data analyst, QA analyst, security operations analyst, network operations roles, technical support with a troubleshooting focus.",
+      mid: "Systems analyst, cybersecurity analyst, data analyst, network engineer, process improvement roles.",
+      established: "Security architect, systems architect, data architect, operations leadership.",
+    },
+    future: "The more complex systems get, the more valuable the person who understands how the pieces interact. AI oversight, AI security, and roles that analyze how automated systems behave are built for this pattern. Someone has to understand what the machine is actually doing and why. That someone thinks like you.",
+    honest: "Early roles will sometimes reward speed over depth, and that can feel like the job is fighting your instincts. It is not. Teams learn fast who actually understands the system, and that person becomes hard to replace.",
     facilitator: "Analyzes structure and causation, strong at root-cause work. Strength: analytical depth, pattern recognition, getting past symptoms. Growth edge: analysis paralysis, knowing when understanding is enough. Cross-module: a Systems Thinker who is also methodical especially needs permission to stop analyzing and decide. Coaching angle: value the depth, give clear decision points so analysis converts to action.",
   },
-  culture_keeper: {
-    name: "Culture Keeper",
-    emoji: "🌱",
-    definition: "Tends the emotional climate of a group. Notices shifts in mood and energy, helps people feel included, and steadies a group when things get tense.",
-    learner: "You feel the temperature of a room. You notice when the mood in a group shifts, often before anyone says anything, and you do small things to help people feel included and to keep things steady when they get tense. That care for how a group feels is a real strength, and it is the kind of thing that makes teams actually work. As you grow, the edge is tending to your own needs too, not only everyone else's, so the care you give does not run you empty.",
-    facilitator: "Attends to group climate, belonging, and morale, senses mood shifts early. Strength: emotional awareness, inclusion, group stability. Growth edge: boundaries and self-care, since they often carry the group's emotional load. Cross-module: distinguish Culture Keeper (tending the collective) from Support Specialist (helping an individual) and from Module 2 social energy (preferring group work). Coaching angle: name and value the emotional labor explicitly, help them set boundaries so they do not absorb everyone's stress.",
-  },
   designer: {
-    name: "Designer",
+    name: "Designer/Creator",
     emoji: "🎨",
-    definition: "Shapes how things look, feel, and work for the person using them. Notices when something is confusing or hard to use and makes it clearer and more pleasant.",
-    learner: "You notice when something is clunky, confusing, or hard to use, and it bothers you in a way it does not bother most people. You like shaping how a thing looks, feels, and works for whoever is on the other end of it. That eye for the experience is a genuine strength, and it is exactly what good design and good technology depend on. As you grow, the edge is balancing making something good with getting it in front of people, because real feedback beats endless polishing.",
-    facilitator: "Focuses on usability and the craft of how a thing works for its user, notices friction and wants to fix it. Strength: user empathy, attention to experience, quality of craft. Growth edge: perfectionism, knowing when good enough is enough to ship and learn. Cross-module: separate Designer (shaping the artifact) from Connector (bridging people) and Developer (building function); a methodical Designer especially tends toward over-polishing. Coaching angle: protect the craft, give deadlines and real users so polishing becomes iteration.",
+    definition: "You make ideas land.",
+    strengths: "You turn ideas into something people can understand and feel: a story, a visual, an example, a video, a presentation, a message. When a group has something complicated to share, you are the one who shapes it so it actually connects. And you share what you make even when you are nervous about how people will react, which is a form of courage most people never build. The work you have been doing for free your whole life, making things that move people, is work companies pay for.",
+    pathways: {
+      entry: "Content coordinator, social media coordinator, junior content designer, marketing assistant, media production assistant.",
+      mid: "Content designer, technical writer, UX writer, instructional designer, digital media producer, brand and content strategist.",
+      established: "Creative director, content strategy lead, head of product education, developer relations lead.",
+    },
+    future: "AI can generate content, but it cannot decide what an audience needs to feel, and it cannot give work a real voice. The people who direct AI media tools, who shape product storytelling, and who make new technology understandable to regular people are the next generation of this pathway. Every AI company on earth currently struggles to explain itself. That is a Designer/Creator job opening.",
+    honest: `Creative paths can start scrappy, and early roles may not carry the word "creative" in the title. The pattern shows up anyway: the assistant whose deck everyone borrows, the coordinator whose posts perform. Make things, share them, and let the work introduce you.`,
+    facilitator: "Focuses on usability and the craft of how a thing works for its user, notices friction and wants to fix it. Strength: user empathy, attention to experience, quality of craft. Growth edge: perfectionism, knowing when good enough is enough to ship and learn. Cross-module: separate Designer/Creator (shaping the artifact) from Connector (bridging people) and Developer (building function); a methodical one especially tends toward over-polishing. Coaching angle: protect the craft, give deadlines and real users so polishing becomes iteration.",
+  },
+  connector: {
+    name: "Connector",
+    emoji: "🤝",
+    definition: "You link the people, ideas, and resources that need each other.",
+    strengths: "You know who can help, and you actually make the introduction. When two people are talking past each other, you put what each one means into words the other can hear. You reach across groups even when it is awkward to be the one reaching, and that social courage is what makes networks real instead of theoretical. At a party you are the reason the two friend groups merged instead of splitting the room. At work you are the reason the client and the dev team finally understood each other.",
+    pathways: {
+      entry: "Customer success associate, community coordinator, sales development representative, partnerships assistant, recruiting coordinator.",
+      mid: "Customer success manager, community manager, partnerships manager, account manager, technical recruiter.",
+      established: "Director of partnerships, head of community, business development leadership, customer success leadership.",
+    },
+    future: "As AI handles more routine communication, the human work of trust, translation, and relationship grows in value. Companies rolling out new technology need people who can stand between the technical world and the human one and make both sides feel understood. AI adoption, partnership ecosystems, and community-driven growth are all Connector territory.",
+    honest: "Connector value can be invisible on a resume because the result shows up in other people's wins. Learn to tell the story of what your connections produced. The introduction that saved a deal is your work. Claim it.",
+    facilitator: "Thinks in links and relationships across people, ideas, and resources. A natural bridge and translator. Strength: communication across difference, spotting useful links. Growth edge: protecting their own focus, not over-extending into everyone's needs. Cross-module: keep Connector (identity) separate from Module 2 social energy (work preference); a Connector can still prefer solo work. Coaching angle: use the bridging in real roles, and watch that they do not become the unpaid glue who never advances their own goals.",
   },
   support_specialist: {
     name: "Support Specialist",
-    emoji: "🛡️",
-    definition: "Helps a person get unstuck. Patient one-on-one troubleshooting, breaking things into steps, and steadying someone who is struggling.",
-    learner: "You are the person others come to when they are stuck. You stay patient while someone works through something hard, and you have a way of breaking a confusing thing into small steps until it finally makes sense to them. Helping someone go from lost to capable is something you do well, and probably do often. That is a real strength, and it is the heart of a lot of good technical work. As you grow, the edge is pursuing your own learning and goals too, not only helping everyone else reach theirs.",
-    facilitator: "Excels at one-on-one help, troubleshooting, and patient explanation, meeting a struggling person where they are. Strength: patience, breaking down complexity, steadying others. Growth edge: advancing their own goals, avoiding being typecast purely as helper. Cross-module: distinguish Support (helping one person) from Connector (linking many) and Culture Keeper (tending the group). Coaching angle: value the helping, and actively create space for their own advancement so the strength does not cap their growth.",
+    emoji: "🛟",
+    definition: "You get people unstuck.",
+    strengths: "You stay patient when someone is confused, and you break big problems into steps small enough to actually take. You will sit with someone until they get it, even when it would be faster to do it for them, and that restraint is the difference between helping someone once and teaching them forever. In your family you are the one who walks people through their phone or computer without making them feel small. On a team you are the one people are not afraid to ask.",
+    pathways: {
+      entry: "Help desk technician, IT support specialist, customer support specialist, technical support roles. These are also among the most reliable doors into all of tech.",
+      mid: "Support engineer, implementation and onboarding specialist, training specialist, IT administrator, solutions support.",
+      established: "Support team lead, solutions engineer, customer experience leadership, head of training and enablement.",
+    },
+    future: "Every new technology creates a wave of confused humans, and AI is the biggest wave yet. The people who help others actually use these tools, who sit between powerful technology and the person staring at it, are going to be needed everywhere. Patience plus technical fluency is about to be one of the most employable combinations in the economy.",
+    honest: `Support roles are sometimes talked about as "just" a starting point. Ignore that. They are where you learn how technology fails real people, and that knowledge powers every senior role on this pathway. Some of the best engineers, trainers, and leaders in tech started by answering the phone.`,
+    facilitator: "Excels at one-on-one help, troubleshooting, and patient explanation, meeting a struggling person where they are. Strength: patience, breaking down complexity, steadying others. Growth edge: advancing their own goals, avoiding being typecast purely as helper. Cross-module: distinguish Support (helping one person) from Connector (linking many) and Guardian (tending the whole group). Coaching angle: value the helping, and actively create space for their own advancement so the strength does not cap their growth.",
   },
-  explorer: {
-    name: "Explorer",
-    emoji: "🗺️",
-    definition: "Driven by curiosity and openness. Tries different options, learns by experimenting, and stays interested in more than one path before committing.",
-    learner: "You like to try things before you commit. You learn by experimenting and asking questions, and you are genuinely interested in more than one path, which means you want room to discover what actually fits you. That openness is a strength, especially right now, while you are figuring out where you are headed. As you grow, the edge is committing to something long enough to go deep, because the richest discoveries often come after you stop sampling and stay a while.",
-    facilitator: "Curious, keeps options open, learns through experimentation, resists premature commitment. Strength: adaptability, breadth, willingness to try. Growth edge: committing and going deep rather than staying at the surface across many things. Cross-module: a flat or blended Module 1 result is common and consistent with a genuine Explorer, so do not over-pathologize it; pair with Module 3 to see what they are reaching toward. Coaching angle: honor the exploration phase, help them set a project or time boundary to practice depth without feeling trapped.",
+  guardian: {
+    name: "Guardian",
+    emoji: "🛡️",
+    definition: "You protect the group's ability to participate, trust, and recover.",
+    strengths: "You notice when someone is being left out, talked over, or pushed to the edges, and you are willing to do something about it even when it costs you comfort. You help groups recover after rough moments so the work and the relationships survive. This is not about being nice. It is about protecting the conditions that let everyone do their best work, and you do it when it is hardest: when speaking up has a price. Companies lose people, money, and trust when nobody does this work. You do it instinctively.",
+    pathways: {
+      entry: "Peer leader roles, HR coordinator, onboarding assistant, community programs assistant, people operations assistant.",
+      mid: "Training and development specialist (a field the Bureau of Labor Statistics projects to keep growing), people operations specialist, employee experience roles, community health and outreach roles, learning program coordinator.",
+      established: "HR manager, learning and development leadership, organizational development roles, head of people.",
+    },
+    future: "Workplaces are about to go through years of change as AI reshapes how teams work, and change is exactly when groups fracture. The people who keep teams intact through transitions, who manage adoption, onboarding, and trust, are doing work that gets more critical as everything else speeds up. Change and adoption support is a real, paid, growing role, and it is this pattern professionalized.",
+    honest: "This strength is the most underestimated one in the room because it looks like personality instead of skill. It is a skill, it maps to real careers, and the cost you pay to use it, the discomfort of speaking up, is precisely what makes it valuable. Most people see what you see and stay silent.",
+    facilitator: "Protects the group's ability to participate, trust, and recover (formerly Culture Keeper — the construct is participation protection and group recovery, NOT mood or niceness). Acts when someone is left out, talked over, or pushed out, and helps the group reset after rough moments. Strength: inclusion, group recovery, willingness to speak up at a personal cost. Growth edge: not carrying the group's repair work alone. Cross-module: distinguish Guardian (protecting the collective's ability to function) from Support Specialist (helping one struggling person) and Connector (linking people). Coaching angle: name it as a skill that maps to people-ops, training, and change/adoption roles; protect them from absorbing every conflict.",
   },
 };
 
 // ─── Low-confidence / special-case learner language ──────────────────────────
 
+// Opportunity-framed blocks for profiles without a single clear lean. None use
+// numeric, "low confidence", or facilitator-flag language — those stay in the
+// facilitator-facing materials.
 export const SPECIAL_CASE_LANGUAGE = {
-  low_confidence: "Your strengths are still taking shape. This is normal, especially when you are exploring new environments. Beyond Code Collective coaches and instructors will help you build on what is already showing up.",
-  broad_high: "Your responses show strengths across many areas. This often means you adapt to different situations or bring range. Beyond Code Collective coaches and instructors will help you identify where to focus first.",
-  flat: "Your pattern is showing range across several strengths. This is a starting point for a coaching conversation, not a final picture.",
-  closing: "This is a snapshot of how you tend to show up right now. It is a starting point, not a fixed label, and not a limit on what you can become.",
+  // Broad strengths — high across many archetypes.
+  broad_high: "Your responses show strengths across many areas, and that is worth saying plainly: you bring range. People with range adapt to new situations, pick things up across domains, and often end up in roles that touch many parts of a team. Range is also a real hiring advantage in smaller companies and growing teams, where one person wears several hats. The opportunity in front of you is focus: not because you lack direction, but because you get to choose where to point all of this first. Beyond Code Collective coaches and instructors will help you pick a starting lane, knowing you have more than one available.",
+  // Blended profile — two strengths close together.
+  blended: "Your results show a blended strengths pattern. More than one strength describes how you contribute, and the combination is the interesting part. Many of the best roles in tech live exactly where two patterns meet: the builder who can explain, the connector who understands systems, the navigator who keeps people whole. As you move through the program, notice which one shows up first when things get real. That is information, and your blend is a feature, not a tie to break.",
+  // Still taking shape — flat or low pattern (shared copy).
+  low_confidence: "Your strengths are still taking shape, and here is the part that matters: that is normal, especially when you are stepping into a new environment, and it usually means your strongest patterns have not had their stage yet. Plenty of people discover what they are best at by doing new and challenging work, not by reflecting on the past, and that is exactly what this program is. You are not behind. You are at the part of the story where it gets discovered. Beyond Code Collective coaches and instructors will be watching for what shows up and will help you name it when it does.",
+  flat: "Your strengths are still taking shape, and here is the part that matters: that is normal, especially when you are stepping into a new environment, and it usually means your strongest patterns have not had their stage yet. Plenty of people discover what they are best at by doing new and challenging work, not by reflecting on the past, and that is exactly what this program is. You are not behind. You are at the part of the story where it gets discovered. Beyond Code Collective coaches and instructors will be watching for what shows up and will help you name it when it does.",
+  // Balancing real life with possibility — universal closing for every result.
+  closing: "Whatever your results show today, two things are true at once. First, your life right now is real: your responsibilities, your finances, your timing all matter, and no profile gets to ignore them. Second, this profile is a snapshot, not a ceiling. It describes how you contribute today so you and the people supporting you can make smart next moves, starting from your real life and pointed at what is possible from here.",
 };
 
 // ─── Work style language ──────────────────────────────────────────────────────
