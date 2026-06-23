@@ -14,12 +14,21 @@ const PHASE_OPTIONS = [
   { value: "other",      label: "Other" },
 ];
 
+// Programs that surface on the bccacademy.io hub. Must match COURSE_PROGRAM_SLUGS
+// in ../actions.ts.
+const PROGRAM_OPTIONS = [
+  { value: "catalyst",            label: "Catalyst" },
+  { value: "beyond-code-centers", label: "Beyond Code Centers" },
+  { value: "atg",                 label: "After The Game (ATG)" },
+];
+
 export function CreateCourseForm() {
   const [name, setName] = useState("");
   const [instructor, setInstructor] = useState("");
   const [totalWeeks, setTotalWeeks] = useState("");
   const [sessionsPerWeek, setSessionsPerWeek] = useState("");
   const [phase, setPhase] = useState("core");
+  const [program, setProgram] = useState("catalyst");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Extract<CreateCourseResult, { success: true }> | null>(null);
@@ -39,6 +48,7 @@ export function CreateCourseForm() {
         totalWeeks: parseInt(totalWeeks, 10),
         sessionsPerWeek: parseInt(sessionsPerWeek, 10),
         phase,
+        programSlug: program,
       });
 
       if (res.success) {
@@ -85,7 +95,7 @@ export function CreateCourseForm() {
         <button
           type="button"
           onClick={() => {
-            document.cookie = `program-override=catalyst; path=/; max-age=86400`;
+            document.cookie = `program-override=${program}; path=/; max-age=86400`;
             window.location.href = `/dashboard/admin?tab=${result.slug}`;
           }}
           className={`${buttonClass("primary", "md")} w-full`}
@@ -133,9 +143,22 @@ export function CreateCourseForm() {
         />
         {slug && (
           <p className="mt-1.5 font-mono text-xs text-ink-soft">
-            bccacademy.io/join/catalyst?track=<span className="text-primary">{slug}</span>
+            bccacademy.io/join/{program}?track=<span className="text-primary">{slug}</span>
           </p>
         )}
+      </Field>
+
+      <Field label="Program" hint="which program this course belongs to">
+        <select
+          id="program"
+          value={program}
+          onChange={(e) => setProgram(e.target.value)}
+          className={fieldInput}
+        >
+          {PROGRAM_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
       </Field>
 
       <Field label="Instructor">
