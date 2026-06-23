@@ -29,57 +29,67 @@ export type CreateCourseResult =
   | { success: true; slug: string; joinUrl: string }
   | { success: false; error: string };
 
+// Programs a builder course can be filed under. All three resolve on the
+// bccacademy.io hub: Catalyst directly, ATG + Beyond Code Centers via the hub
+// aggregation (applyTrackOverrides). Other programs (forte, bgc) run on their
+// own domains, so a course there wouldn't surface on the hub — excluded here.
+const COURSE_PROGRAM_SLUGS = ["catalyst", "beyond-code-centers", "atg"] as const;
+
 export async function createCourseAction(formData: {
   name: string;
   instructor: string;
   totalWeeks: number;
   sessionsPerWeek: number;
   phase?: string;
+  /** Program the course is filed under. Defaults to Catalyst (the umbrella). */
+  programSlug?: string;
 }): Promise<CreateCourseResult> {
   const svc = await requireSuperAdmin();
 
   const { name, instructor, totalWeeks, sessionsPerWeek, phase } = formData;
+  const programSlug = formData.programSlug ?? "catalyst";
 
   if (!name.trim()) return { success: false, error: "Course name is required." };
   if (!instructor.trim()) return { success: false, error: "Instructor name is required." };
   if (!Number.isFinite(totalWeeks) || !Number.isInteger(totalWeeks) || totalWeeks < 1 || totalWeeks > 52) return { success: false, error: "Weeks must be between 1 and 52." };
   if (!Number.isFinite(sessionsPerWeek) || !Number.isInteger(sessionsPerWeek) || sessionsPerWeek < 1 || sessionsPerWeek > 7) return { success: false, error: "Sessions per week must be between 1 and 7." };
+  if (!(COURSE_PROGRAM_SLUGS as readonly string[]).includes(programSlug)) {
+    return { success: false, error: "Invalid program." };
+  }
 
   const slug = toSlug(name);
   if (!slug) return { success: false, error: "Could not derive a valid slug from the course name." };
 
-  // All builder courses live as tracks under Catalyst (no standalone program row).
-  const { data: catalystRow } = await svc
+  const { data: programRow } = await svc
     .from("programs")
     .select("id")
-    .eq("slug", "catalyst")
+    .eq("slug", programSlug)
     .single<{ id: string }>();
-  if (!catalystRow) {
-    return { success: false, error: "Could not find the Catalyst program. Please contact an engineer." };
+  if (!programRow) {
+    return { success: false, error: `Could not find the ${programSlug} program. Please contact an engineer.` };
   }
 
-  // Uniqueness check: TS config tracks in Catalyst
-  const catalystTracks = getProgramBySlug("catalyst").tracks;
-  if (catalystTracks.some((t) => t.slug === slug)) {
+  // Uniqueness check: TS config tracks in the chosen program
+  const programTracks = getProgramBySlug(programSlug).tracks;
+  if (programTracks.some((t) => t.slug === slug)) {
     return { success: false, error: `A course with this name already exists (slug: ${slug}).` };
   }
 
-  // Uniqueness check: existing track_overrides rows under Catalyst
+  // Uniqueness check: existing track_overrides rows under the chosen program
   const { data: existing } = await svc
     .from("track_overrides")
     .select("track_slug")
-    .eq("program_id", catalystRow.id)
+    .eq("program_id", programRow.id)
     .eq("track_slug", slug)
     .maybeSingle();
   if (existing) {
     return { success: false, error: `A course with this name already exists (slug: ${slug}).` };
   }
 
-  // Insert track_overrides row under Catalyst
   const { error: trackError } = await svc
     .from("track_overrides")
     .insert({
-      program_id: catalystRow.id,
+      program_id: programRow.id,
       track_slug: slug,
       name: name.trim(),
       instructor: instructor.trim(),
@@ -94,11 +104,10 @@ export async function createCourseAction(formData: {
     return { success: false, error: "Failed to create course. Please try again." };
   }
 
-
   return {
     success: true,
     slug,
-    joinUrl: `https://bccacademy.io/join/catalyst?track=${slug}`,
+    joinUrl: `https://bccacademy.io/join/${programSlug}?track=${slug}`,
   };
 }
 

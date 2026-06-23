@@ -337,11 +337,29 @@ async function applyTrackOverrides(program: ProgramConfig): Promise<ProgramConfi
   };
 
   const existingSlugs = new Set(program.tracks.map((t) => t.slug));
-  // Builder-created courses are stored as track_overrides rows under Catalyst
-  // with no corresponding TS config entry. Append them as fully DB-sourced tracks.
-  const extraTracks = [...ownOverrides.values()]
-    .filter((o) => !existingSlugs.has(o.track_slug))
-    .map(buildTrackFromOverride);
+  // Builder-created courses are track_overrides rows with NO TS config entry.
+  // Append them as fully DB-sourced tracks. We only append genuine builder
+  // courses (getHomeProgramForTrack === null) — overrides for TS-config tracks
+  // are merged above, not appended, so their config isn't stripped.
+  const seen = new Set(existingSlugs);
+  const extraTracks: TrackConfig[] = [];
+  const collectBuilders = (map: Map<string, TrackOverrideRow>) => {
+    for (const o of map.values()) {
+      if (seen.has(o.track_slug)) continue;
+      if (getHomeProgramForTrack(o.track_slug)) continue; // TS-config track, skip
+      seen.add(o.track_slug);
+      extraTracks.push(buildTrackFromOverride(o));
+    }
+  };
+  collectBuilders(ownOverrides);
+  // Catalyst is the hub: also surface builder courses filed under its aggregated
+  // sub-programs (ATG, Beyond Code Centers) so they resolve on bccacademy.io.
+  // No-op until a course is actually filed under a sub-program.
+  if (program.slug === "catalyst") {
+    for (const subSlug of ["atg", "beyond-code-centers"]) {
+      collectBuilders(overridesBySlug.get(subSlug) ?? (await fetchOverrides(subSlug)));
+    }
+  }
 
   return {
     ...program,
