@@ -50,6 +50,46 @@ export function canManageRoles(email: string | null | undefined): boolean {
   return isMasterEmail(email);
 }
 
+// ── Role assignment (who may grant which role) ──────────────────────────────
+// Tier ordering. `master` is NOT a DB role — it's email-gated (canManageRoles)
+// and outranks everything; a master may grant up to super_admin.
+export const ROLE_RANK: Record<Role, number> = {
+  student: 0,
+  instructor: 1,
+  admin: 2,
+  super_admin: 3,
+};
+
+const ASSIGNABLE_DB_ROLES: Role[] = ["student", "instructor", "admin", "super_admin"];
+
+// The roles an actor may grant to OTHER people. Rule: only a tier strictly below
+// your own — except a master, who may also grant super_admin (the only one who
+// can). Instructors/students manage no roles.
+export function assignableRoles(actorRole: string, isMaster: boolean): Role[] {
+  if (isMaster) return [...ASSIGNABLE_DB_ROLES];
+  if (!hasCapability(actorRole, "manage_students")) return []; // admin+ only
+  const rank = ROLE_RANK[actorRole as Role] ?? 0;
+  return ASSIGNABLE_DB_ROLES.filter((r) => ROLE_RANK[r] < rank);
+}
+
+// Full guard for a single role change. Validates: it's a real role, the actor is
+// allowed to grant it, and the actor isn't modifying someone already at or above
+// their own tier (a master outranks all DB roles). Self-changes are blocked by
+// the caller (it needs the acting user's own id).
+export function canAssignRole(
+  actorRole: string,
+  isMaster: boolean,
+  targetCurrentRole: string,
+  newRole: string,
+): boolean {
+  if (!ASSIGNABLE_DB_ROLES.includes(newRole as Role)) return false;
+  if (!assignableRoles(actorRole, isMaster).includes(newRole as Role)) return false;
+  if (isMaster) return true;
+  const actorRank = ROLE_RANK[actorRole as Role] ?? -1;
+  const targetRank = ROLE_RANK[targetCurrentRole as Role] ?? 99;
+  return targetRank < actorRank; // can't touch a peer or anyone above you
+}
+
 // Lunch & Learns access. Internal-only content: staff (BGC/BCC employees) and
 // anyone with admin panel access. Staff are NOT admins — they're regular
 // students whose email matches the staff allowlist (src/lib/auth/admins.ts).
