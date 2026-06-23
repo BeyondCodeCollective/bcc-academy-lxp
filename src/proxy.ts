@@ -66,8 +66,7 @@ export async function proxy(request: NextRequest) {
   // Auth check only runs for routes whose redirect rules depend on it:
   // /dashboard/* (kick unauth'd users out) and "/" (kick auth'd users to
   // their dashboard). Everywhere else, skip the Supabase Auth network
-  // round-trip — broadening the matcher to cover the password gate would
-  // otherwise add ~100–300ms to every marketing page.
+  // round-trip — running it on every marketing page would add ~100–300ms.
   const pathname = request.nextUrl.pathname;
   const needsAuthCheck =
     pathname === "/" || pathname.startsWith("/dashboard");
@@ -147,14 +146,11 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Run on every route except Next.js internals and static asset files.
-  // The previous narrow matcher (["/", "/dashboard/:path*"]) meant the
-  // pre-launch site-password gate never fired on /quiz, /pathways/*,
-  // /privacy, /terms, /login, /certificate, /survey/*, etc. — anyone
-  // could bypass the gate by guessing a path. The auth-redirect branches
-  // at the bottom of `proxy()` are guarded by explicit path checks so
-  // broadening the matcher does not change auth behavior; the Supabase
-  // auth round-trip is short-circuited for routes that don't need it.
+  // Run on every route except Next.js internals and static asset files, so
+  // program cookies (x-program-slug etc.) are applied across the whole site.
+  // The auth-redirect branches at the bottom of `proxy()` are guarded by
+  // explicit path checks, and the Supabase auth round-trip is short-circuited
+  // for routes that don't need it, so the broad matcher adds no auth latency.
   matcher: [
     "/((?!_next/static|_next/image|favicon.ico|icon|robots.txt|sitemap.xml|.*\\.[\\w]+$).*)",
   ],
