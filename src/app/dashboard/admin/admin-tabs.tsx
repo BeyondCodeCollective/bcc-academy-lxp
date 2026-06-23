@@ -890,6 +890,26 @@ export function AdminTabs({
             (e) => e.track_slug === slug && studentRoleIds.has(e.student_id),
           ).length;
         const now = new Date();
+        // Cross-course triage: "N active this week" per course, from the
+        // last_activity_at already loaded (no extra queries). Only worth the
+        // extra number on a multi-course home — a 1–2 course picker keeps the
+        // plain enrolled count.
+        const showActive = tracks.length >= 3;
+        const weekAgo = now.getTime() - 7 * 86_400_000;
+        const activeStudentIds = new Set(
+          students
+            .filter(
+              (s) =>
+                s.role === "student" &&
+                s.last_activity_at &&
+                new Date(s.last_activity_at).getTime() >= weekAgo,
+            )
+            .map((s) => s.id),
+        );
+        const activeCountFor = (slug: string) =>
+          enrollments.filter(
+            (e) => e.track_slug === slug && activeStudentIds.has(e.student_id),
+          ).length;
 
         return (
           <div className="space-y-8">
@@ -981,9 +1001,16 @@ export function AdminTabs({
                         </p>
                       </div>
                       <p className="hidden shrink-0 text-[12px] text-ink-soft sm:block">{status}</p>
-                      <p className="shrink-0 w-20 text-right text-[12px] text-ink-faint tabular-nums">
-                        {count} {count === 1 ? "student" : "students"}
-                      </p>
+                      {showActive ? (
+                        <p className="shrink-0 w-24 text-right text-[12px] tabular-nums">
+                          <span className="font-semibold text-primary">{activeCountFor(t.slug)}</span>
+                          <span className="text-ink-faint"> / {count} active</span>
+                        </p>
+                      ) : (
+                        <p className="shrink-0 w-20 text-right text-[12px] text-ink-faint tabular-nums">
+                          {count} {count === 1 ? "student" : "students"}
+                        </p>
+                      )}
                     </Link>
                     {/* Second action: open the student-facing course view. */}
                     <Link
