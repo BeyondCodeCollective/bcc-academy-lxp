@@ -14,6 +14,8 @@ import type { SurveyConfig } from "@/lib/programs/types";
 import { getSurveySchema } from "@/lib/surveys/schemas";
 import type { SurveyQuestion } from "@/components/survey-fields";
 import { fetchPendingPeople, type PendingPerson } from "@/lib/people-hub";
+import { getCourseEngagement } from "@/lib/course-engagement";
+import type { CourseEngagementProps } from "@/components/stats/course-engagement";
 
 export type InsightsData = {
   sections: {
@@ -73,6 +75,7 @@ export default async function AdminPage({
   let publicSurveyStats: PublicSurveyStatsRow[] = [];
   let lunchLearnRecordings: LunchLearnRow[] = [];
   let insightsData: InsightsData | null = null;
+  let courseEngagement: CourseEngagementProps | null = null;
   let alumniEnrollments: { track_slug: string; email: string; source: string }[] = [];
   let pendingPeople: PendingPerson[] = [];
   let unviewedAssessments: number | null = null;
@@ -385,6 +388,18 @@ export default async function AdminPage({
         totalResponses: sections.reduce((sum, s) => sum + s.responses.length, 0),
       };
     }
+
+    // Per-course engagement snapshot for the open course tab — the admin
+    // feedback loop on the learner streak cards. Only the active course's
+    // aggregates are fetched.
+    if (isTrackTab) {
+      const t = program.tracks.find((tk) => tk.slug === effectiveTab);
+      if (t) {
+        courseEngagement = await getCourseEngagement(t.name, t.slug, programIds).catch(
+          () => null,
+        );
+      }
+    }
   }
 
   const surveyConfigs = (program.surveys ?? []).map((s) => ({
@@ -498,6 +513,7 @@ export default async function AdminPage({
         initialTrackView={initialTrackView}
         lunchLearnRecordings={lunchLearnRecordings}
         insightsData={insightsData}
+        courseEngagement={courseEngagement}
         pendingPeople={pendingPeople}
         alumniEnrollments={alumniEnrollments}
         unviewedAssessments={unviewedAssessments ?? 0}

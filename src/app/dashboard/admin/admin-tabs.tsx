@@ -41,6 +41,7 @@ import { LunchLearnAdmin } from "@/app/dashboard/lunch-learn/admin/admin-client"
 import { AttendanceTab } from "./attendance-tab";
 import { ProgressTab } from "./progress-tab";
 import { TrackInsightsSection } from "@/components/track-insights-section";
+import { CourseEngagement, type CourseEngagementProps } from "@/components/stats/course-engagement";
 import { InsightsDashboard } from "./insights/insights-dashboard";
 import { TrackOverviewForm } from "./track-overview-form";
 import { OfficeHoursEditor } from "./office-hours-editor";
@@ -441,6 +442,7 @@ export function AdminTabs({
   initialTrackView,
   lunchLearnRecordings = [],
   insightsData = null,
+  courseEngagement = null,
   pendingPeople = [],
   alumniEnrollments = [],
   unviewedAssessments = 0,
@@ -460,6 +462,7 @@ export function AdminTabs({
   initialTrackView?: string;
   lunchLearnRecordings?:{ id: string; title: string; presenter: string; recording_url: string; description: string | null; recorded_at: string }[];
   insightsData?: InsightsData | null;
+  courseEngagement?: CourseEngagementProps | null;
   pendingPeople?: PendingPerson[];
   alumniEnrollments?: { track_slug: string; email: string; source: string }[];
   unviewedAssessments?: number;
@@ -1070,6 +1073,7 @@ export function AdminTabs({
           {/* Sub-tab content */}
           {trackView === "overview" && (
             <div className="space-y-8">
+              {courseEngagement && <CourseEngagement {...courseEngagement} />}
               <TrackOverviewForm
                 key={activeTrack.slug}
                 track={activeTrack}

@@ -29,11 +29,15 @@ const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 export function StreakHeatmap({
   days,
   showLegend = true,
+  legendStreak = true,
 }: {
   /** Chronological, oldest → newest. Length a multiple of 7, each group of
       7 aligned Sun→Sat (one column). */
   days: ProgressDay[];
   showLegend?: boolean;
+  /** Show the "current streak" key. Off for cohort-aggregate heatmaps where a
+      single learner's streak ring has no meaning. */
+  legendStreak?: boolean;
 }) {
   const weeks: ProgressDay[][] = [];
   for (let i = 0; i < days.length; i += 7) weeks.push(days.slice(i, i + 7));
@@ -75,13 +79,17 @@ export function StreakHeatmap({
 
       {showLegend && (
         <div className="mt-3 flex items-center justify-between text-[10px] text-ink-faint">
-          <span className="inline-flex items-center gap-1">
-            <span
-              className="h-3 w-3 rounded-[3px]"
-              style={{ boxShadow: "inset 0 0 0 1.5px var(--highlight)" }}
-            />
-            Current streak
-          </span>
+          {legendStreak ? (
+            <span className="inline-flex items-center gap-1">
+              <span
+                className="h-3 w-3 rounded-[3px]"
+                style={{ boxShadow: "inset 0 0 0 1.5px var(--highlight)" }}
+              />
+              Current streak
+            </span>
+          ) : (
+            <span />
+          )}
           <span className="inline-flex items-center gap-1">
             Less
             {([0, 1, 2, 3, 4] as HeatLevel[]).map((l) => (
