@@ -12,13 +12,11 @@ function scoreModule1(responses: RawResponses): Pick<ScoredOutput,
   const sums: Record<ArchetypeKey, { total: number; count: number }> = {
     navigator: { total: 0, count: 0 },
     developer: { total: 0, count: 0 },
-    igniter: { total: 0, count: 0 },
-    connector: { total: 0, count: 0 },
     systems_thinker: { total: 0, count: 0 },
-    culture_keeper: { total: 0, count: 0 },
     designer: { total: 0, count: 0 },
+    connector: { total: 0, count: 0 },
     support_specialist: { total: 0, count: 0 },
-    explorer: { total: 0, count: 0 },
+    guardian: { total: 0, count: 0 },
   };
 
   for (const item of MODULE_1_ITEMS) {

@@ -13,7 +13,7 @@ import {
 } from "@/lib/assessment/content";
 
 export function ResultsProfile({ result }: { result: ScoredOutput }) {
-  const [openSection, setOpenSection] = useState<string | null>("archetype");
+  const [openSection, setOpenSection] = useState<string | null>("strengths");
 
   const archetypeContent = ARCHETYPE_CONTENT[result.archetype_primary];
   const secondaryContent = result.archetype_secondary
@@ -50,30 +50,81 @@ export function ResultsProfile({ result }: { result: ScoredOutput }) {
         <p className="text-ink/70 leading-relaxed">{archetypeSummaryText}</p>
       </div>
 
-      {/* Section 1 — How you show up */}
-      <Section
-        id="archetype"
-        title="✨ How you show up"
-        isOpen={openSection === "archetype"}
-        onToggle={() => setOpenSection(openSection === "archetype" ? null : "archetype")}
-      >
-        {showArchetypeNarrative ? (
-          <div className="space-y-4">
-            <p className="text-ink/80 leading-relaxed">{archetypeContent.learner}</p>
-            {result.archetype_is_blended && secondaryContent && (
-              <>
-                <hr className="border-ink/10" />
-                <p className="text-xs font-semibold uppercase tracking-widest text-ink/40">
-                  {secondaryContent.name}
-                </p>
-                <p className="text-ink/80 leading-relaxed">{secondaryContent.learner}</p>
-              </>
-            )}
-          </div>
-        ) : (
+      {showArchetypeNarrative ? (
+        <>
+          {/* Your strengths */}
+          <Section
+            id="strengths"
+            title="✨ Your strengths"
+            isOpen={openSection === "strengths"}
+            onToggle={() => setOpenSection(openSection === "strengths" ? null : "strengths")}
+          >
+            <div className="space-y-4">
+              <p className="text-ink/80 leading-relaxed">{archetypeContent.strengths}</p>
+              {result.archetype_is_blended && secondaryContent && (
+                <>
+                  <hr className="border-ink/10" />
+                  <p className="text-xs font-semibold uppercase tracking-widest text-ink/40">
+                    Also strong: {secondaryContent.name}
+                  </p>
+                  <p className="text-ink/80 leading-relaxed">{secondaryContent.strengths}</p>
+                  <p className="text-sm text-ink/60 italic leading-relaxed">
+                    {SPECIAL_CASE_LANGUAGE.blended}
+                  </p>
+                </>
+              )}
+            </div>
+          </Section>
+
+          {/* Where this can take you — Module 1 career pathways */}
+          <Section
+            id="pathways"
+            title="🚀 Where this can take you"
+            isOpen={openSection === "pathways"}
+            onToggle={() => setOpenSection(openSection === "pathways" ? null : "pathways")}
+          >
+            <div className="space-y-5">
+              {[
+                { label: "Entry points", text: archetypeContent.pathways.entry },
+                { label: "Mid-career", text: archetypeContent.pathways.mid },
+                { label: "Established roles", text: archetypeContent.pathways.established },
+              ].map(({ label, text }) => (
+                <div key={label} className="space-y-1">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-accent">{label}</p>
+                  <p className="text-sm text-ink/75 leading-relaxed">{text}</p>
+                </div>
+              ))}
+              <div className="rounded-lg bg-ink/5 px-4 py-4">
+                <p className="text-xs font-semibold uppercase tracking-widest text-ink/40 mb-1">Looking ahead</p>
+                <p className="text-sm text-ink/70 leading-relaxed">{archetypeContent.future}</p>
+              </div>
+              <p className="text-[11px] text-ink/40 italic leading-relaxed">
+                Stages describe how the work grows, not your age — you can enter at any point.
+              </p>
+            </div>
+          </Section>
+
+          {/* The honest part */}
+          <Section
+            id="honest"
+            title="💬 The honest part"
+            isOpen={openSection === "honest"}
+            onToggle={() => setOpenSection(openSection === "honest" ? null : "honest")}
+          >
+            <p className="text-ink/80 leading-relaxed">{archetypeContent.honest}</p>
+          </Section>
+        </>
+      ) : (
+        /* No single clear lean — show the opportunity-framed block only. */
+        <Section
+          id="strengths"
+          title="✨ Your strengths"
+          isOpen={openSection === "strengths"}
+          onToggle={() => setOpenSection(openSection === "strengths" ? null : "strengths")}
+        >
           <p className="text-ink/70 leading-relaxed">{archetypeSummaryText}</p>
-        )}
-      </Section>
+        </Section>
+      )}
 
       {/* Section 2 — How you tend to work */}
       <Section
