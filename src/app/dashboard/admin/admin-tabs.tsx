@@ -437,6 +437,7 @@ export function AdminTabs({
   surveyConfigs,
   trackPublicSurveys = [],
   userRole = "admin",
+  isMaster = false,
   assignableRoles = [],
   engagementScores = {},
   initialTab,
@@ -458,6 +459,7 @@ export function AdminTabs({
   surveyConfigs: { id: string; title: string }[];
   trackPublicSurveys?: { id: string; title: string; count: number }[];
   userRole?: string;
+  isMaster?: boolean;
   assignableRoles?: string[];
   engagementScores?: Record<string, { total: number; attendance: number; submissions: number; reflections: number; tutorMessages: number }>;
   initialTab?: string;
@@ -471,7 +473,8 @@ export function AdminTabs({
 }) {
   const router = useRouter();
   const programSlug = initialProgramSlug;
-  const isManager = canManageStudents(userRole);
+  // super_admin is view-only; people management is for program admins + master.
+  const isManager = canManageStudents(userRole) || isMaster;
   // Programs like Catalyst (apex) don't have a learner dashboard — no
   // tracks, no cohorts. They render a single empty-state pointer to
   // Survey Insights via the `insights` tab.

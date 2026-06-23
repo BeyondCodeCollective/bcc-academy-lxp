@@ -511,6 +511,7 @@ export default async function AdminPage({
         surveyConfigs={surveyConfigs}
         trackPublicSurveys={trackPublicSurveys}
         userRole={userRole}
+        isMaster={isMasterEmail(actorEmail)}
         assignableRoles={assignableRoles(userRole, isMasterEmail(actorEmail))}
         engagementScores={engagementScores}
         initialTab={initialTab}
