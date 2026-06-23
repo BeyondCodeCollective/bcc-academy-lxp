@@ -21,6 +21,28 @@ export const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "")
   .map((e) => e.trim().toLowerCase())
   .filter(Boolean);
 
+// The "master" tier — the platform owner(s). One rung ABOVE super_admin: the
+// only addresses allowed to manage other people's roles/credentials (see
+// canManageRoles in roles.ts). Deliberately gated by EMAIL, not a DB role, so it
+// can't be self-granted by editing the students table and no super-admin can
+// hand it out. Masters keep their normal role (super_admin) for everything else.
+const DEFAULT_MASTER_EMAILS = ["fonz.morris@wearebgc.org"];
+
+export const MASTER_EMAILS = Array.from(
+  new Set([
+    ...DEFAULT_MASTER_EMAILS.map((e) => e.toLowerCase()),
+    ...(process.env.MASTER_EMAILS || "")
+      .split(",")
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean),
+  ]),
+);
+
+export function isMasterEmail(email: string | null | undefined): boolean {
+  if (!email) return false;
+  return MASTER_EMAILS.includes(email.toLowerCase());
+}
+
 export function determineRole(
   email: string,
 ): "super_admin" | "admin" | "student" {
