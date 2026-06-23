@@ -6,7 +6,8 @@ import type { Student } from "@/lib/types";
 import { getProgram } from "@/lib/programs/server";
 import type { StudentTrackRow, SurveyStatsRow, InstructorTrackRow, PublicSurveyStatsRow, BCCSurveyResponse } from "./actions";
 import { getPublicSurveyStats, getDashboardSurveyStats, getDashboardAllSurveyResponses, getPublicSurveyCountsByType } from "./actions";
-import { canAccessAdminPanel, canSwitchPrograms, canViewInsights } from "@/lib/roles";
+import { canAccessAdminPanel, canSwitchPrograms, canViewInsights, assignableRoles } from "@/lib/roles";
+import { isMasterEmail } from "@/lib/auth/admins";
 import { PLATFORM_AUTH_SURVEYS, PLATFORM_PUBLIC_SURVEYS } from "@/lib/surveys/platform";
 import { getAllPrograms, getHomeProgramForTrack } from "@/lib/programs";
 import { getHiddenTrackSlugs } from "@/lib/programs/hidden";
@@ -71,6 +72,7 @@ export default async function AdminPage({
   let studentTracks: StudentTrackRow[] = [];
   let instructorTracks: InstructorTrackRow[] = [];
   let userRole = "student";
+  let actorEmail: string | null = null;
   let myInstructorTracks: string[] = [];
   let publicSurveyStats: PublicSurveyStatsRow[] = [];
   let lunchLearnRecordings: LunchLearnRow[] = [];
@@ -93,6 +95,7 @@ export default async function AdminPage({
     if (!ctx) redirect("/");
     const userId = ctx.userId;
     userRole = ctx.student?.role ?? "student";
+    actorEmail = ctx.student?.email ?? ctx.userEmail ?? null;
 
     const svc = createServiceClient();
 
@@ -508,6 +511,7 @@ export default async function AdminPage({
         surveyConfigs={surveyConfigs}
         trackPublicSurveys={trackPublicSurveys}
         userRole={userRole}
+        assignableRoles={assignableRoles(userRole, isMasterEmail(actorEmail))}
         engagementScores={engagementScores}
         initialTab={initialTab}
         initialTrackView={initialTrackView}

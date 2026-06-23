@@ -437,6 +437,7 @@ export function AdminTabs({
   surveyConfigs,
   trackPublicSurveys = [],
   userRole = "admin",
+  assignableRoles = [],
   engagementScores = {},
   initialTab,
   initialTrackView,
@@ -457,6 +458,7 @@ export function AdminTabs({
   surveyConfigs: { id: string; title: string }[];
   trackPublicSurveys?: { id: string; title: string; count: number }[];
   userRole?: string;
+  assignableRoles?: string[];
   engagementScores?: Record<string, { total: number; attendance: number; submissions: number; reflections: number; tutorMessages: number }>;
   initialTab?: string;
   initialTrackView?: string;
@@ -1303,6 +1305,7 @@ export function AdminTabs({
                     instrTracks={instrTracks}
                     engagementScores={engagementScores}
                     isManager={isManager}
+                    assignableRoles={assignableRoles}
                     programSlug={programSlug}
                     enrollmentSaving={enrollmentSaving}
                     instrTrackSaving={instrTrackSaving}
@@ -1374,6 +1377,7 @@ export function AdminTabs({
           instrTracks={instrTracks}
           engagementScores={engagementScores}
           isManager={isManager}
+          assignableRoles={assignableRoles}
           programSlug={programSlug}
           enrollmentSaving={enrollmentSaving}
           instrTrackSaving={instrTrackSaving}
@@ -1811,6 +1815,7 @@ function PeopleTab({
   embedded,
   viewSwitcher,
   pendingPeople = [],
+  assignableRoles = [],
 }: {
   students: StudentRow[];
   cohorts: CohortRow[];
@@ -1819,6 +1824,7 @@ function PeopleTab({
   instrTracks: InstructorTrackRow[];
   engagementScores: Record<string, { total: number; attendance: number; submissions: number; reflections: number; tutorMessages: number }>;
   isManager: boolean;
+  assignableRoles?: string[];
   programSlug: string;
   enrollmentSaving: string | null;
   instrTrackSaving: string | null;
@@ -1975,6 +1981,7 @@ function PeopleTab({
         <AddPeoplePanel
           tracks={tracks}
           programSlug={programSlug}
+          assignableRoles={assignableRoles}
           onStudentAdded={onStudentAdded}
           onClose={() => setShowAddForm(false)}
         />
@@ -2122,16 +2129,25 @@ function PeopleTab({
                         Role
                       </label>
                       <div className="relative mt-1">
+                        {/* Only roles the actor may grant are shown; the select
+                           is disabled for anyone they don't outrank (the server
+                           enforces the same rule in updateStudentAction). */}
                         <select
                           value={s.role}
-                          disabled={studentSaving === s.id}
+                          disabled={studentSaving === s.id || !assignableRoles.includes(s.role)}
                           onChange={(e) => onUpdateStudent(s.id, "role", e.target.value)}
                           className="appearance-none border border-rule bg-white pl-3 pr-7 py-2 text-xs font-medium text-ink focus:border-ink-faint focus:outline-none disabled:opacity-60"
                         >
-                          <option value="student">Student</option>
-                          <option value="instructor">Instructor</option>
-                          <option value="admin">Admin</option>
-                          <option value="super_admin">Super Admin</option>
+                          {([
+                            ["student", "Student"],
+                            ["instructor", "Instructor"],
+                            ["admin", "Admin"],
+                            ["super_admin", "Super Admin"],
+                          ] as const)
+                            .filter(([value]) => assignableRoles.includes(value) || value === s.role)
+                            .map(([value, label]) => (
+                              <option key={value} value={value}>{label}</option>
+                            ))}
                         </select>
                         <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-ink-faint" />
                       </div>

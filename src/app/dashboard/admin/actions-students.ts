@@ -2,6 +2,18 @@
 
 import { revalidatePath } from "next/cache";
 import { requireManager } from "./actions-shared";
+import { assignableRoles, canAssignRole } from "@/lib/roles";
+import { isMasterEmail } from "@/lib/auth/admins";
+
+// Whether the acting user is a master (the only tier that may grant super_admin).
+// requireManager doesn't return the email, so resolve it once here.
+async function resolveActor(
+  svc: Awaited<ReturnType<typeof requireManager>>["svc"],
+  userId: string,
+) {
+  const { data } = await svc.from("students").select("email").eq("id", userId).maybeSingle<{ email: string | null }>();
+  return { isMaster: isMasterEmail(data?.email) };
+}
 
 export type CohortRow = {
   id: string;
@@ -27,7 +39,24 @@ export async function updateStudentAction(
   field: "role" | "cohort_id",
   value: string
 ) {
-  const { svc } = await requireManager();
+  const { svc, userId, role: actorRole } = await requireManager();
+
+  // Role changes are privilege-sensitive: enforce the tier hierarchy so an
+  // admin can't escalate anyone (incl. themselves) to a role at or above their
+  // own. Only a master may grant super_admin. cohort_id changes are unaffected.
+  if (field === "role") {
+    if (studentId === userId) throw new Error("You can't change your own role.");
+    const { isMaster } = await resolveActor(svc, userId);
+    const { data: target } = await svc
+      .from("students")
+      .select("role")
+      .eq("id", studentId)
+      .maybeSingle<{ role: string }>();
+    if (!canAssignRole(actorRole, isMaster, target?.role ?? "", value)) {
+      throw new Error("You don't have permission to assign that role.");
+    }
+  }
+
   const { error } = await svc
     .from("students")
     .update({ [field]: value })
@@ -40,12 +69,19 @@ export async function addStudentAction(data: {
   email: string;
   first_name: string;
   last_name: string;
-  role: "student" | "instructor" | "admin";
+  role: "student" | "instructor" | "admin" | "super_admin";
   cohort_id: string | null;
 }) {
-  const { svc, programId } = await requireManager();
+  const { svc, programId, userId, role: actorRole } = await requireManager();
   if (!programId) {
     throw new Error("Calling admin has no program — refusing to create student");
+  }
+
+  // Can't create someone at a tier you're not allowed to grant (e.g. an admin
+  // minting another admin). Same hierarchy as role changes.
+  const { isMaster } = await resolveActor(svc, userId);
+  if (!assignableRoles(actorRole, isMaster).includes(data.role)) {
+    throw new Error("You don't have permission to create a user with that role.");
   }
 
   // Create auth user (sends magic link invite)

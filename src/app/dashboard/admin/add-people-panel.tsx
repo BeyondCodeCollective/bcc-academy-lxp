@@ -18,6 +18,8 @@ type Track = { slug: string; name: string; shortName: string };
 type Props = {
   tracks: Track[];
   programSlug: string;
+  // Roles the current actor may grant (tier-gated; the server enforces it too).
+  assignableRoles?: string[];
   onStudentAdded: (s: StudentRow) => void;
   onClose: () => void;
 };
@@ -28,7 +30,7 @@ type Props = {
 //  • Add directly — create the account immediately (a known instructor/admin).
 // Replaces both the standalone Add People page and the roster's old Add person
 // form so there's exactly one entry point.
-export function AddPeoplePanel({ tracks, programSlug, onStudentAdded, onClose }: Props) {
+export function AddPeoplePanel({ tracks, programSlug, assignableRoles = [], onStudentAdded, onClose }: Props) {
   const [mode, setMode] = useState<"invite" | "direct">("invite");
 
   return (
@@ -57,6 +59,7 @@ export function AddPeoplePanel({ tracks, programSlug, onStudentAdded, onClose }:
         <AddDirectly
           tracks={tracks}
           programSlug={programSlug}
+          assignableRoles={assignableRoles}
           onStudentAdded={onStudentAdded}
         />
       )}
@@ -240,16 +243,27 @@ function InviteByEmail({ tracks }: { tracks: Track[] }) {
 function AddDirectly({
   tracks,
   programSlug,
+  assignableRoles = [],
   onStudentAdded,
 }: {
   tracks: Track[];
   programSlug: string;
+  assignableRoles?: string[];
   onStudentAdded: (s: StudentRow) => void;
 }) {
+  // Only roles the actor may grant appear; default to student when available.
+  const roleOptions = ([
+    ["student", "Student"],
+    ["instructor", "Instructor"],
+    ["admin", "Admin"],
+    ["super_admin", "Super Admin"],
+  ] as const).filter(([value]) => assignableRoles.includes(value));
+  const defaultRole = roleOptions.some(([v]) => v === "student") ? "student" : (roleOptions[0]?.[0] ?? "student");
+
   const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [role, setRole] = useState<"student" | "instructor" | "admin">("student");
+  const [role, setRole] = useState<string>(defaultRole);
   const [course, setCourse] = useState("");
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -266,7 +280,7 @@ function AddDirectly({
           email: email.trim(),
           first_name: firstName.trim(),
           last_name: lastName.trim(),
-          role,
+          role: role as "student" | "instructor" | "admin" | "super_admin",
           cohort_id: null,
         });
         const student = result.student as StudentRow;
@@ -275,7 +289,7 @@ function AddDirectly({
         setEmail("");
         setFirstName("");
         setLastName("");
-        setRole("student");
+        setRole(defaultRole);
         setCourse("");
         setDone(true);
       } catch (err) {
@@ -303,10 +317,10 @@ function AddDirectly({
       </Field>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label="Role">
-          <select value={role} onChange={(e) => setRole(e.target.value as typeof role)} className={fieldInput}>
-            <option value="student">Student</option>
-            <option value="instructor">Instructor</option>
-            <option value="admin">Admin</option>
+          <select value={role} onChange={(e) => setRole(e.target.value)} className={fieldInput}>
+            {roleOptions.map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
           </select>
         </Field>
         <Field label="Course (optional)">
