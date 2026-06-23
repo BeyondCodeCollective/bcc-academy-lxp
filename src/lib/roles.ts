@@ -1,4 +1,4 @@
-import { isStaffEmail } from "@/lib/auth/admins";
+import { isStaffEmail, isMasterEmail } from "@/lib/auth/admins";
 
 export type Role = "student" | "instructor" | "admin" | "super_admin";
 
@@ -38,6 +38,16 @@ export function canViewInsights(role: string): boolean {
 
 export function canSwitchPrograms(role: string): boolean {
   return hasCapability(role, "switch_programs");
+}
+
+// Role/credential management — the "master" tier ONLY (the platform owner).
+// This is the one rung above super_admin: the power to change another person's
+// role or revoke an admin/super-admin. Gated by EMAIL (see isMasterEmail), not a
+// DB role, so it can never be self-granted by editing the students table and no
+// super-admin holds it. Reserve every future "change someone's role" surface
+// behind this — super-admins manage learners; only a master manages super-admins.
+export function canManageRoles(email: string | null | undefined): boolean {
+  return isMasterEmail(email);
 }
 
 // Lunch & Learns access. Internal-only content: staff (BGC/BCC employees) and
