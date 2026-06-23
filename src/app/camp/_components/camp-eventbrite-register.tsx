@@ -108,7 +108,7 @@ export function CampEventbriteRegister({
          without an inner scrollbar. The iframe is cross-origin so we can't
          measure its content height — a generous fixed min-height is the lever
          we DO control (the iframe element's own size). */}
-      <style>{`#${containerId}, #${containerId} iframe { width: 100%; min-height: 600px; border: 0; }`}</style>
+      <style>{`#${containerId}, #${containerId} iframe { width: 100%; min-height: 520px; border: 0; }`}</style>
       {status === "processing" && (
         <p className="mb-3 text-sm font-medium" style={{ color: accent }}>
           Setting up your spot…
