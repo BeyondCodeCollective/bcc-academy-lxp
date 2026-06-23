@@ -2,6 +2,7 @@
 
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
+import { getHomeProgramForTrack } from "@/lib/programs";
 import { revalidatePath } from "next/cache";
 
 export async function completeOnboarding(data: {
@@ -107,13 +108,37 @@ export async function saveSurveyResponse(
     programId = programRow.id;
   }
 
+  // Auth-derived cohort: tag the response with the student's enrolled track so
+  // results group by cohort in Survey Insights. Stored in `program_variant` —
+  // the same field public surveys use — so cohort is one consistent signal
+  // across every survey. Only derived when the survey didn't already collect it.
+  const svc = createServiceClient();
+  let enriched = responses;
+  if (!responses.program_variant) {
+    const { data: enr } = await svc
+      .from("student_tracks")
+      .select("track_slug")
+      .eq("student_id", user.id);
+    const trackSlugs = (enr ?? []).map((e) => e.track_slug as string);
+    if (trackSlugs.length > 0) {
+      // Prefer a track whose home program matches the current context; else the
+      // single enrollment; else the first.
+      const chosen =
+        trackSlugs.find((s) => getHomeProgramForTrack(s)?.slug === programSlug) ??
+        trackSlugs[0];
+      const home = getHomeProgramForTrack(chosen);
+      const trackName = home?.tracks.find((t) => t.slug === chosen)?.name ?? chosen;
+      enriched = { ...responses, program_variant: trackName, _cohort_track: chosen };
+    }
+  }
+
   // RLS allows a student to upsert their own survey_responses row, so the
   // regular auth client works here — no service role key required.
   const { error } = await supabase.from("survey_responses").upsert(
     {
       student_id: user.id,
       survey_type: surveyType,
-      responses,
+      responses: enriched,
       completed_at: new Date().toISOString(),
       program_id: programId,
       updated_at: new Date().toISOString(),
@@ -142,7 +167,6 @@ export async function saveSurveyResponse(
     lastName = parts.slice(1).join(" ") || null;
   }
   if (firstName || lastName) {
-    const svc = createServiceClient();
     await svc.from("students").update({
       ...(firstName && { first_name: firstName }),
       ...(lastName && { last_name: lastName }),
