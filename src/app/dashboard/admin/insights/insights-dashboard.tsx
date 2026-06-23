@@ -38,13 +38,39 @@ function colorFor(
   return idx >= 0 ? PALETTE[idx % PALETTE.length] : "#6B7280";
 }
 
+// Cohort = the program/track the respondent belongs to. Auth surveys stamp it
+// from the student's enrollment (program_variant / _cohort_track); public
+// surveys carry the respondent-selected program_variant. "Untagged" when
+// neither is present (older responses from before cohort capture).
+function cohortOf(r: BCCSurveyResponse): string {
+  const raw = (r.responses?.program_variant ?? r.responses?._cohort_track) as unknown;
+  return typeof raw === "string" && raw.trim() ? raw.trim() : "Untagged";
+}
+
+function cohortColor(name: string, cohorts: string[]): string {
+  if (name === "Untagged") return "#C9D4F0";
+  const idx = cohorts.filter((c) => c !== "Untagged").indexOf(name);
+  return idx >= 0 ? PALETTE[idx % PALETTE.length] : "#6B7280";
+}
+
 export function InsightsDashboard({
   sections,
   programs,
   totalResponses,
 }: Props) {
 
-  const ledger = useMemo(() => buildLedger(sections, programs), [sections, programs]);
+  // Distinct cohorts across all responses — the dimension people actually search
+  // by. Tagged cohorts first (alphabetical), "Untagged" last.
+  const allCohorts = useMemo(() => {
+    const set = new Set<string>();
+    for (const s of sections) for (const r of s.responses) set.add(cohortOf(r));
+    return Array.from(set).sort((a, b) =>
+      a === "Untagged" ? 1 : b === "Untagged" ? -1 : a.localeCompare(b),
+    );
+  }, [sections]);
+  const [cohortFilter, setCohortFilter] = useState<string>("all");
+
+  const ledger = useMemo(() => buildLedger(sections, allCohorts), [sections, allCohorts]);
   const uniqueRespondents = useMemo(() => {
     const emails = new Set<string>();
     for (const s of sections) {
@@ -106,6 +132,27 @@ export function InsightsDashboard({
         <StatCard value={sections.length.toLocaleString()} label="Surveys" />
       </div>
 
+      {/* Cohort filter — scope the survey detail to one cohort (the thing people
+         search by, e.g. "Digital Natives"). Hidden until there's more than one. */}
+      {allCohorts.length > 1 && (
+        <div className="flex items-center gap-2">
+          <label htmlFor="cohort-filter" className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-faint">
+            Cohort
+          </label>
+          <select
+            id="cohort-filter"
+            value={cohortFilter}
+            onChange={(e) => setCohortFilter(e.target.value)}
+            className="border border-rule bg-white px-2.5 py-1.5 text-sm text-ink focus:border-ink-faint focus:outline-none"
+          >
+            <option value="all">All cohorts</option>
+            {allCohorts.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {/* Response timeline */}
       <section>
         <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.14em] text-ink-faint">
@@ -152,17 +199,15 @@ export function InsightsDashboard({
                 </p>
               </div>
 
-              {/* Per-program breakdown. Single bar with a clear inline
-                 legend underneath — previous design had two bars (one
-                 "volume vs largest survey", one "split by program") and no
-                 key, so neither was readable. The count to the right
-                 already tells the volume story; the bar shows the split. */}
-              {row.programBreakdown.length > 0 ? (
+              {/* Per-cohort breakdown — who actually took it (Digital Natives,
+                 AI Fundamentals, …), not the umbrella program. Single bar with
+                 an inline key; the count to the right tells volume. */}
+              {row.cohortBreakdown.length > 0 ? (
                 <>
                   <div className="mb-1.5 flex h-2 w-full overflow-hidden rounded-full bg-paper-tint">
-                    {row.programBreakdown.map((seg) => (
+                    {row.cohortBreakdown.map((seg) => (
                       <div
-                        key={seg.slug}
+                        key={seg.name}
                         style={{
                           width: `${(seg.count / row.count) * 100}%`,
                           backgroundColor: seg.color,
@@ -173,8 +218,8 @@ export function InsightsDashboard({
                     ))}
                   </div>
                   <p className="text-[11px] text-ink-soft">
-                    {row.programBreakdown.map((seg, i) => (
-                      <span key={seg.slug}>
+                    {row.cohortBreakdown.map((seg, i) => (
+                      <span key={seg.name}>
                         {i > 0 && <span className="text-ink-faint"> · </span>}
                         <span
                           aria-hidden
@@ -212,11 +257,23 @@ export function InsightsDashboard({
       {/* Detail view */}
       {active && active.schema && (
         <section className="pt-2">
+          {cohortFilter !== "all" && (
+            <p className="mb-3 text-[12px] text-ink-soft">
+              Showing <span className="font-semibold text-ink">{cohortFilter}</span> only —{" "}
+              <button type="button" onClick={() => setCohortFilter("all")} className="underline hover:text-ink">
+                clear
+              </button>
+            </p>
+          )}
           <SurveyDashboard
             surveyId={active.survey.id}
             surveyTitle={active.survey.title}
             schema={active.schema}
-            responses={active.responses}
+            responses={
+              cohortFilter === "all"
+                ? active.responses
+                : active.responses.filter((r) => cohortOf(r) === cohortFilter)
+            }
             programs={programs}
             chrome="embedded"
           />
@@ -307,25 +364,22 @@ interface LedgerRow {
   count: number;
   lastActivity: string | null;
   hasSchema: boolean;
-  programBreakdown: { slug: string; name: string; count: number; color: string }[];
+  cohortBreakdown: { name: string; count: number; color: string }[];
 }
 
 function buildLedger(
   sections: Section[],
-  programs: { slug: string; name: string }[],
+  allCohorts: string[],
 ): LedgerRow[] {
   return sections
     .map((s) => {
-      const byProgram = new Map<string, number>();
+      const byCohort = new Map<string, number>();
       for (const r of s.responses) {
-        byProgram.set(r.program_slug, (byProgram.get(r.program_slug) ?? 0) + 1);
+        const c = cohortOf(r);
+        byCohort.set(c, (byCohort.get(c) ?? 0) + 1);
       }
-      const programBreakdown = Array.from(byProgram.entries())
-        .map(([slug, count]) => {
-          const name =
-            programs.find((p) => p.slug === slug)?.name ?? slug;
-          return { slug, name, count, color: colorFor(programs, slug) };
-        })
+      const cohortBreakdown = Array.from(byCohort.entries())
+        .map(([name, count]) => ({ name, count, color: cohortColor(name, allCohorts) }))
         .sort((a, b) => b.count - a.count);
 
       const last = s.responses.reduce<string | null>((max, r) => {
@@ -340,7 +394,7 @@ function buildLedger(
         count: s.responses.length,
         lastActivity: last,
         hasSchema: !!s.schema,
-        programBreakdown,
+        cohortBreakdown,
       };
     })
     .sort((a, b) => {
