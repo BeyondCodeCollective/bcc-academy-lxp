@@ -459,6 +459,16 @@ Guidelines:
       required: false,
       organization: "Beyond Code Centers",
     },
+    {
+      // Same survey instrument as ATG's mid-program check-in (shared survey_type,
+      // responses separated by program_id). Surfaces on the Tools page survey links.
+      id: "mid-program-spring-2026",
+      title: "Mid-Program Check-In",
+      description:
+        "You're halfway. A quick check-in to help us shape the second half around what you need.",
+      required: false,
+      organization: "Beyond Code Centers",
+    },
   ],
   resourcesEnabled: false,
   requireInviteLink: true,
