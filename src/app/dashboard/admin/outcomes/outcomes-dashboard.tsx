@@ -6,6 +6,7 @@ import { FunnelChart } from "@/components/charts/funnel-chart";
 import type { OutcomesData } from "@/lib/analytics/outcomes";
 import type { ProgressData } from "@/lib/analytics/progress";
 import type { AcquisitionData } from "@/lib/analytics/acquisition";
+import { COBALT_FAMILY as PALETTE } from "@/components/stats/palette";
 
 export type OutcomesDashboardData = {
   outcomes: OutcomesData;
@@ -13,9 +14,9 @@ export type OutcomesDashboardData = {
   acquisition: AcquisitionData;
 };
 
-// Shared with the per-program survey breakdown palette so colors stay
-// consistent across the admin analytics surfaces.
-const PALETTE = ["#1D59FF", "#3B82F6", "#F59E0B", "#10B981", "#8B5CF6", "#EC4899", "#6B7280"];
+// Categorical segments use the shared cobalt family (one hue, no rainbow) —
+// imported as PALETTE at the top. Semantic status colors (on-track/at-risk/
+// disengaged below) stay green/amber/grey — meaning a monochrome ramp would lose.
 
 export function OutcomesDashboard({ data }: { data: OutcomesDashboardData }) {
   const { outcomes, progress, acquisition } = data;
@@ -122,7 +123,7 @@ function ProgressSection({ progress }: { progress: ProgressData }) {
             data={completionData}
             unit="%"
             max={100}
-            barClass="bg-ink"
+            barClass="bg-[#1D59FF]"
             totalCaption={{ value: completionData.length, label: "tracks" }}
           />
         ) : (
@@ -171,7 +172,7 @@ function AcquisitionSection({ acquisition }: { acquisition: AcquisitionData }) {
         <FunnelChart
           title="Activation funnel"
           stages={acquisition.activationFunnel}
-          barClass="bg-ink"
+          barClass="bg-[#1D59FF]"
         />
         <FunnelChart
           title="Invite acceptance"

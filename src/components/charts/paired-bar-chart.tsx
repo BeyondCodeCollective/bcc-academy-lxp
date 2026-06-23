@@ -3,7 +3,9 @@
 // dashboard can reuse the exact same look. "Before" reads dim, "now" reads in
 // full ink, with the delta called out.
 
-const INK = "var(--ink)";
+// Before → after: "before" reads dim neutral, "now" reads in cobalt — grey →
+// brand color shows the improvement (single-hue, on-brand).
+const NOW = "var(--primary)";
 const INK_DIM = "#d1d1d6";
 
 export type PairedRow = {
@@ -55,7 +57,7 @@ export function PairedBarChart({ title, beforeLabel, nowLabel, scaleMax, rows }:
               </p>
               <div className="col-span-2 space-y-1">
                 <Bar label="Before" pct={beforePct} color={INK_DIM} />
-                <Bar label="Now" pct={nowPct} color={INK} />
+                <Bar label="Now" pct={nowPct} color={NOW} />
               </div>
             </div>
           );

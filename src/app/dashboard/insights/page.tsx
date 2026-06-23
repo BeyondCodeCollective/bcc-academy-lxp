@@ -1,12 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import {
-  Users,
-  Lightning,
-  GraduationCap,
-  Pulse,
-  ArrowRight,
-} from "@phosphor-icons/react/dist/ssr";
+import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import { getSessionContext } from "@/lib/auth/session";
 import { canSwitchPrograms } from "@/lib/roles";
 import { isPreviewingAsStudent } from "@/lib/auth/preview-mode";
@@ -19,6 +13,8 @@ import { OutcomesDashboard } from "@/app/dashboard/admin/outcomes/outcomes-dashb
 import { fetchOutcomesData } from "@/lib/analytics/outcomes";
 import { fetchProgressData } from "@/lib/analytics/progress";
 import { fetchAcquisitionData } from "@/lib/analytics/acquisition";
+import { StatCard } from "@/components/stats/stat-card";
+import { COBALT_FAMILY } from "@/components/stats/palette";
 
 // Program context comes from a cookie/header (super-admin switcher), so the URL
 // is identical across programs — the page must re-render per request or a cached
@@ -199,19 +195,11 @@ export default async function InsightsPage() {
       return (ai === -1 ? PHASE_ORDER.length : ai) - (bi === -1 ? PHASE_ORDER.length : bi);
     });
 
-  // Donut palette pulls from the same matte editorial set used elsewhere.
-  const DONUT_TONES = [
-    "#1D59FF", // vermillion
-    "#1F1B16", // ink
-    "#2563EB", // editorial blue
-    "#15803D", // forest
-    "#012966", // dark cobalt
-    "#7C3AED", // plum
-  ];
+  // Phases are categorical — distinguished by cobalt lightness, not by hue.
   const phaseSegments = phaseData.map((d, i) => ({
     label: PHASE_LABELS[d.key] ?? d.key,
     value: d.value,
-    color: DONUT_TONES[i % DONUT_TONES.length],
+    color: COBALT_FAMILY[i % COBALT_FAMILY.length],
   }));
   // Only render the donut when it's actually informative (2+ phases). With
   // one segment it collapses to a thick ring that adds noise without insight.
@@ -268,32 +256,28 @@ export default async function InsightsPage() {
       </p>
 
       {/* Metric strip */}
-      <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Metric
-          icon={Users}
-          label="Students"
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard
           value={totalStudents.toLocaleString()}
-          hint="enrolled, role=student"
+          label="Students"
+          hint="enrolled"
         />
-        <Metric
-          icon={Lightning}
-          label="Active 7d"
+        <StatCard
           value={activeCount.toLocaleString()}
+          label="Active 7d"
           hint="attendance, submission, or reflection"
         />
-        <Metric
-          icon={Pulse}
-          label="Engaged ever"
+        <StatCard
           value={`${engagementPct}%`}
+          label="Engaged ever"
           hint={`${studentsEngaged.toLocaleString()} of ${totalStudents.toLocaleString()}`}
         />
-        <Metric
-          icon={GraduationCap}
-          label="Alumni"
+        <StatCard
           value={uniqueAlumni.size.toLocaleString()}
+          label="Alumni"
           hint="unique by email"
         />
-      </dl>
+      </div>
 
       {/* Learning outcomes, completion, and acquisition/risk — the analytics
          that turn this page from headcounts into the "are they learning,
@@ -314,7 +298,7 @@ export default async function InsightsPage() {
       <HorizontalBarChart
         title="Students per track"
         data={trackData}
-        barClass="bg-[#1F1B16]"
+        barClass="bg-[#1D59FF]"
         unit="students"
         totalCaption={{
           value: trackPairs.size,
@@ -373,31 +357,3 @@ export default async function InsightsPage() {
   );
 }
 
-function Metric({
-  icon: Icon,
-  label,
-  value,
-  hint,
-}: {
-  icon: React.ComponentType<{ size?: number; weight?: "bold"; "aria-hidden"?: boolean }>;
-  label: string;
-  value: string;
-  hint?: string;
-}) {
-  return (
-    <div className="panel p-4">
-      <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
-        <Icon size={11} weight="bold" aria-hidden />
-        {label}
-      </p>
-      <p className="mt-2 text-2xl font-bold tabular-nums text-ink tracking-tight">
-        {value}
-      </p>
-      {hint && (
-        <p className="mt-1 text-[10px] text-ink-faint leading-relaxed">
-          {hint}
-        </p>
-      )}
-    </div>
-  );
-}
