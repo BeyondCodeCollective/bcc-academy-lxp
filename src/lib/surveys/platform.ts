@@ -15,6 +15,17 @@ import type { SurveyConfig } from "@/lib/programs/types";
 export const BCC_INTAKE_SURVEY_ID = "bcc-learner-intake";
 const BCC_WORKSHOP_SURVEY_ID = "bcc-workshop";
 
+/** A learner skips a program survey when EVERY course they're enrolled in opts
+ *  out via the survey's skipForTracks. Empty enrollment never skips, so this
+ *  can't accidentally suppress the survey for a cohort learner mid-enrollment. */
+export function surveySkippedForTracks(
+  skipForTracks: string[] | undefined,
+  enrolledTrackSlugs: string[],
+): boolean {
+  if (!skipForTracks?.length || enrolledTrackSlugs.length === 0) return false;
+  return enrolledTrackSlugs.every((t) => skipForTracks.includes(t));
+}
+
 // The BCC Learner Intake is OPT-IN, toggled per program/track via
 // program_features/track_features.survey_enabled (admin Features page) — see
 // isSurveyEnabledForLearner in src/lib/surveys/features.ts. Off by default, so

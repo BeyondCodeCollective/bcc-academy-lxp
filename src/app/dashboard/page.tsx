@@ -22,7 +22,7 @@ import { getLearnerProgress } from "@/lib/learner-progress";
 import { getWhatsNew, type FeedItem } from "@/lib/whats-new";
 import { WhatsNew } from "@/components/whats-new";
 import { PageHeader } from "@/components/page-header";
-import { BCC_INTAKE_SURVEY_ID } from "@/lib/surveys/platform";
+import { BCC_INTAKE_SURVEY_ID, surveySkippedForTracks } from "@/lib/surveys/platform";
 import { isSurveyEnabledForLearner } from "@/lib/surveys/features";
 import { isStaffEmail } from "@/lib/auth/admins";
 import { completePendingSetup } from "@/lib/auth/deferred-setup";
@@ -267,6 +267,7 @@ async function DashboardContent({
             .filter((s) => {
               if (!s.required || completedTypes.has(s.id)) return false;
               if (s.skipForPrograms?.some((p) => enrolledHomePrograms.has(p))) return false;
+              if (surveySkippedForTracks(s.skipForTracks, enrolledTrackSlugs)) return false;
               return true;
             })
             .map((s) => ({ id: s.id, title: s.title, description: s.description }));

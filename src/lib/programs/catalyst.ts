@@ -45,6 +45,9 @@ export const catalystConfig: ProgramConfig = {
         "Help us understand your background and experience so we can better support you.",
       required: true,
       skipForPrograms: ["forte"],
+      // Event/workshop courses land registrants on a holding page, not a cohort
+      // pre-survey. Game On registrants skip this.
+      skipForTracks: ["game-on"],
       organization: "Beyond Code Centers",
     },
     {

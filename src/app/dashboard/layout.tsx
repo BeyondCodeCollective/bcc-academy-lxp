@@ -16,7 +16,7 @@ import { canAccessAdminPanel, canSwitchPrograms, canAccessStaffContent } from "@
 import { getSessionContext } from "@/lib/auth/session";
 import { getPreviewTrackSlug, LUNCH_LEARN_PREVIEW_SLUG } from "@/lib/auth/preview-mode";
 import { getEnrolledTracks } from "@/lib/enrollment";
-import { BCC_INTAKE_SURVEY_ID } from "@/lib/surveys/platform";
+import { BCC_INTAKE_SURVEY_ID, surveySkippedForTracks } from "@/lib/surveys/platform";
 import { isSurveyEnabledForLearner } from "@/lib/surveys/features";
 import { isStaffEmail } from "@/lib/auth/admins";
 import { getHomeProgramForTrack } from "@/lib/programs";
@@ -184,9 +184,13 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
         if (h) homePrograms.add(h);
       }
 
+      const enrolledSlugs = (enrolledRes as { slug: string }[]).map((t) => t.slug);
       const requiredSurvey = !isStaff
         ? program.surveys?.find(
-            (s) => s.required && !s.skipForPrograms?.some((p) => homePrograms.has(p)),
+            (s) =>
+              s.required &&
+              !s.skipForPrograms?.some((p) => homePrograms.has(p)) &&
+              !surveySkippedForTracks(s.skipForTracks, enrolledSlugs),
           )
         : undefined;
 

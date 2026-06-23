@@ -218,6 +218,11 @@ export type SurveyConfig = {
   /** Program slugs whose students should skip this survey even when they
    *  resolve to this program's dashboard (e.g. forte students on Catalyst) */
   skipForPrograms?: string[];
+  /** Track slugs that opt OUT of this survey. A learner skips the survey when
+   *  every course they're enrolled in is on this list — e.g. an event/workshop
+   *  course (Game On) whose registrants land on a holding page, not a cohort
+   *  that should fill out a pre-program survey. */
+  skipForTracks?: string[];
   /** Brand label shown in the survey header eyebrow. Overrides the browsing
    *  program's organization so the survey reads with its own program's brand
    *  (e.g. an AI Fundamentals survey always shows "Beyond Code Centers", even
