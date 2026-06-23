@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 import type { ProgramConfig, TrackConfig } from "@/lib/programs/types";
 import { isTutorAvailable } from "@/lib/programs";
+import { buildGoogleCalendarUrl } from "@/lib/gcal";
 
 const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
@@ -164,6 +165,144 @@ export async function sendInviteEmail({
   if (error) {
     console.error("[email] sendInviteEmail failed:", JSON.stringify(error));
     throw new Error("Failed to send invite email");
+  }
+}
+
+/** Human-readable "when" for an event, in its own timezone with a tz label
+ *  (e.g. "Thursday, July 9 · 2:00 PM EDT"). Falls back to UTC if no tz. */
+function formatEventWhen(startUtc: string | null, timezone: string | null): string | null {
+  if (!startUtc) return null;
+  try {
+    const d = new Date(startUtc);
+    const date = d.toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      timeZone: timezone ?? "UTC",
+    });
+    const time = d.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      timeZoneName: "short",
+      timeZone: timezone ?? "UTC",
+    });
+    return `${date} · ${time}`;
+  } catch {
+    return null;
+  }
+}
+
+/** Google Calendar + downloadable .ics links for the registration emails. */
+function eventCalendarLinks(opts: {
+  origin: string;
+  title: string;
+  startUtc: string | null;
+  endUtc: string | null;
+  details: string;
+}): { google: string; ics: string } | null {
+  if (!opts.startUtc) return null;
+  // Default to a 1-hour block when Eventbrite gives no end time.
+  const endUtc =
+    opts.endUtc ?? new Date(Date.parse(opts.startUtc) + 3_600_000).toISOString();
+  const google = buildGoogleCalendarUrl({
+    title: opts.title,
+    date: opts.startUtc.slice(0, 10),
+    startUtc: opts.startUtc,
+    endUtc,
+    details: opts.details,
+  });
+  const ics =
+    `${opts.origin}/api/calendar/event?` +
+    new URLSearchParams({
+      title: opts.title,
+      start: opts.startUtc,
+      end: endUtc,
+      details: opts.details,
+    }).toString();
+  return { google, ics };
+}
+
+/**
+ * Registration confirmation — sent the moment someone registers for an event via
+ * the embedded Eventbrite checkout. Carries the DURABLE one-click portal link
+ * (/invite/<token>, no expiry — their permanent door back in) plus Add-to-iCal
+ * and Add-to-Google-Calendar links. The portal lands them on the holding page;
+ * the curriculum stays locked until the start date.
+ */
+export async function sendEventConfirmationEmail({
+  to,
+  firstName,
+  programName,
+  eventName,
+  eventStartUtc,
+  eventEndUtc,
+  eventTimezone,
+  inviteLink,
+  origin,
+}: {
+  to: string;
+  firstName: string;
+  programName: string;
+  eventName: string;
+  eventStartUtc: string | null;
+  eventEndUtc: string | null;
+  /** Local wall-clock start; accepted for parity with the resolver but display
+   *  is derived from eventStartUtc + eventTimezone (correct in any locale). */
+  eventStartLocal?: string | null;
+  eventTimezone: string | null;
+  inviteLink: string;
+  origin: string;
+}): Promise<void> {
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY not set — skipping event confirmation email");
+    return;
+  }
+  const esc = (s: string) =>
+    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+  const when = formatEventWhen(eventStartUtc, eventTimezone);
+  const cal = eventCalendarLinks({
+    origin,
+    title: eventName,
+    startUtc: eventStartUtc,
+    endUtc: eventEndUtc,
+    details: `Your spot for ${eventName}. Enter the portal: ${inviteLink}`,
+  });
+
+  const calRow = cal
+    ? `<p style="margin:0 0 8px;font-size:12px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#999;">Add to your calendar</p>
+    <div style="margin:0 0 28px;">
+      <a href="${cal.google}" style="display:inline-block;margin:0 8px 8px 0;padding:9px 16px;border:1px solid #e0e0e0;border-radius:8px;color:#1a1a1a;text-decoration:none;font-weight:600;font-size:13px;">Google Calendar</a>
+      <a href="${cal.ics}" style="display:inline-block;margin:0 8px 8px 0;padding:9px 16px;border:1px solid #e0e0e0;border-radius:8px;color:#1a1a1a;text-decoration:none;font-weight:600;font-size:13px;">Apple / iCal</a>
+    </div>`
+    : "";
+
+  const { error } = await resend.emails.send({
+    from: FROM_ADDRESS,
+    to,
+    subject: `You're registered — ${eventName}`,
+    text: `You're registered for ${eventName}.${when ? `\n\nWhen: ${when}` : ""}
+
+Your portal is ready. Open it any time with this link (no password needed):
+${inviteLink}
+
+You'll see a countdown to kickoff — come back here when we start.${cal ? `\n\nAdd to Google Calendar: ${cal.google}\nAdd to Apple/iCal: ${cal.ics}` : ""}
+
+Questions? Reply to this email or contact info@bccacademy.io.`,
+    html: inviteShell(
+      programName,
+      `    <p style="margin:0 0 6px;font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#16a34a;">✓ You're registered</p>
+    <p style="margin:0 0 6px;font-size:22px;font-weight:700;color:#1a1a1a;">${esc(eventName)}</p>
+    ${when ? `<p style="margin:0 0 20px;font-size:14px;color:#666;">${esc(when)}</p>` : ""}
+    <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#444;">Hey${firstName ? ` ${esc(firstName)}` : ""}, your spot is saved and your portal is ready. Head in below — you'll see a countdown to kickoff. This link is your permanent door back in, so keep this email.</p>
+    ${ctaButton(inviteLink, "Enter your portal →")}
+    ${calRow}
+    <p style="margin:0;font-size:12px;color:#999;line-height:1.5;">Questions? Reply here or email <a href="mailto:info@bccacademy.io" style="color:#1a1a1a;">info@bccacademy.io</a>.</p>`,
+    ),
+  });
+  if (error) {
+    console.error("[email] sendEventConfirmationEmail failed:", JSON.stringify(error));
+    throw new Error("Failed to send event confirmation email");
   }
 }
 

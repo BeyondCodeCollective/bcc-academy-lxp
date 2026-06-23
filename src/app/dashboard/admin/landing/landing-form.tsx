@@ -50,6 +50,7 @@ export function LandingForm({
   const [accent, setAccent] = useState(initial.accent);
   const [formLabel, setFormLabel] = useState(initial.formLabel);
   const [trackSlug, setTrackSlug] = useState(initial.trackSlug);
+  const [eventbriteEventId, setEventbriteEventId] = useState(initial.eventbriteEventId);
   const [schedule, setSchedule] = useState<ScheduleDay[]>(
     initial.schedule.length ? initial.schedule : [],
   );
@@ -103,6 +104,7 @@ export function LandingForm({
           accent,
           formLabel,
           trackSlug,
+          eventbriteEventId,
           schedule,
           secondaryCtaLabel,
           secondaryCtaUrl,
@@ -246,6 +248,19 @@ export function LandingForm({
             placeholder="roblox-camp"
             value={trackSlug}
             onChange={(e) => setTrackSlug(e.target.value)}
+            className={`${fieldInput} font-mono`}
+          />
+        </Field>
+
+        <Field
+          label="Eventbrite event ID"
+          hint="optional — when set, the page embeds Eventbrite registration instead of the email form. Registrants are auto-provisioned into the track above."
+        >
+          <input
+            type="text"
+            placeholder="1234567890123"
+            value={eventbriteEventId}
+            onChange={(e) => setEventbriteEventId(e.target.value)}
             className={`${fieldInput} font-mono`}
           />
         </Field>

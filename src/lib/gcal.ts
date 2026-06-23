@@ -9,22 +9,36 @@
  */
 export function buildGoogleCalendarUrl(opts: {
   title: string;
-  /** ISO date, YYYY-MM-DD */
+  /** ISO date, YYYY-MM-DD. Used when no precise time is known (all-day). */
   date: string;
+  /** ISO 8601 UTC start, e.g. "2026-07-09T18:00:00Z". When provided (with
+   *  endUtc), emits a timed event instead of an all-day one. */
+  startUtc?: string | null;
+  endUtc?: string | null;
   details?: string;
   location?: string;
 }): string {
-  const start = opts.date.replace(/-/g, "");
-  // All-day events use an exclusive end date, so the marker is the next day.
-  const end = addOneDay(start);
+  let dates: string;
+  if (opts.startUtc && opts.endUtc) {
+    dates = `${toGcalUtc(opts.startUtc)}/${toGcalUtc(opts.endUtc)}`;
+  } else {
+    const start = opts.date.replace(/-/g, "");
+    // All-day events use an exclusive end date, so the marker is the next day.
+    dates = `${start}/${addOneDay(start)}`;
+  }
   const params = new URLSearchParams({
     action: "TEMPLATE",
     text: opts.title,
-    dates: `${start}/${end}`,
+    dates,
   });
   if (opts.details) params.set("details", opts.details);
   if (opts.location) params.set("location", opts.location);
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
+/** ISO 8601 → Google/iCal UTC basic format: "2026-07-09T18:00:00Z" → "20260709T180000Z". */
+export function toGcalUtc(iso: string): string {
+  return new Date(iso).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
 }
 
 /** "20260709" → "20260710" (UTC date math). */

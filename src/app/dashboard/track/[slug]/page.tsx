@@ -21,6 +21,8 @@ import { isSequentialGated, highestUnlockedWeek } from "@/lib/track-gating";
 import { buildGoogleCalendarUrl } from "@/lib/gcal";
 import { MyProgressCard } from "@/components/my-progress-card";
 import { getLearnerProgress } from "@/lib/learner-progress";
+import { LaunchCountdown } from "@/components/launch-countdown";
+import { CalendarCheck } from "@phosphor-icons/react/dist/ssr";
 
 export const dynamic = "force-dynamic";
 
@@ -66,14 +68,63 @@ export default async function TrackOverviewPage({
     }
   }
 
+  const now = new Date();
+  const started = !track.startDateTbd && now >= new Date(track.startDate);
+
+  // Holding page + curriculum lock. Before launch, a registered student sees a
+  // confirmation + countdown — not the lessons. Registration earns a seat, not
+  // the curriculum. Admins/previewers bypass so they can build ahead of launch.
+  // Runs BEFORE the single-event redirect so a not-yet-started single-event
+  // track shows the holding view here instead of bouncing to its session page.
+  if (!isAdminViewer && !started) {
+    const launchLabel = track.startDateTbd
+      ? null
+      : new Date(track.startDate).toLocaleDateString("en-US", {
+          weekday: "long",
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+        });
+    return (
+      <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-12 space-y-8">
+        <div className="space-y-3 text-center">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-highlight/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-highlight">
+            <CalendarCheck size={13} weight="bold" aria-hidden />
+            You&apos;re registered
+          </span>
+          <PageHeader eyebrow="Your seat is saved" title={track.name} />
+          <p className="text-base leading-relaxed text-ink-soft">
+            This is your home base — come back here any time. Your lessons unlock
+            the moment we kick off.
+          </p>
+        </div>
+
+        <div className="panel p-6 sm:p-8 flex flex-col items-center gap-5 text-center">
+          {launchLabel ? (
+            <>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-faint">
+                Kicks off in
+              </p>
+              <LaunchCountdown targetIso={new Date(track.startDate).toISOString()} />
+              <p className="text-sm font-medium text-ink">{launchLabel}</p>
+            </>
+          ) : (
+            <p className="text-sm text-ink-soft">
+              We&apos;re finalizing the start date — we&apos;ll email you the
+              moment it&apos;s set. Keep an eye on your inbox.
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   // Single-event tracks don't have weeks to scrub — send them straight to
   // the session page (same destination the dashboard card used to use).
   if (track.type === "single-event") {
     redirect(`/dashboard/track/${slug}/1`);
   }
 
-  const now = new Date();
-  const started = !track.startDateTbd && now >= new Date(track.startDate);
   const currentWeek = track.selfPaced
     ? started ? 1 : 0
     : started

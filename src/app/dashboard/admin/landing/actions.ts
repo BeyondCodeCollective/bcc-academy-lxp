@@ -38,6 +38,7 @@ export type LandingPageInput = {
   accent: string;
   formLabel: string;
   trackSlug: string;
+  eventbriteEventId: string;
   schedule: ScheduleDay[];
   secondaryCtaLabel: string;
   secondaryCtaUrl: string;
@@ -119,6 +120,7 @@ export async function saveLandingPageAction(
     accent: accent || "#1a1a1a",
     form_label: trimToNull(input.formLabel),
     track_slug: trimToNull(input.trackSlug),
+    eventbrite_event_id: trimToNull(input.eventbriteEventId),
     schedule,
     secondary_cta_label: trimToNull(input.secondaryCtaLabel),
     secondary_cta_url: trimToNull(input.secondaryCtaUrl),
