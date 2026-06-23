@@ -152,11 +152,11 @@ export async function saveLandingPageAction(
     if (delError) {
       console.error("[saveLandingPageAction] old-slug cleanup failed:", delError);
     }
-    revalidatePath(`/camp/${originalSlug}`);
+    revalidatePath(`/bcc/${originalSlug}`);
   }
 
   revalidatePath("/dashboard/admin/landing");
-  revalidatePath(`/camp/${slug}`);
+  revalidatePath(`/bcc/${slug}`);
   return { success: true, slug };
 }
 
@@ -170,6 +170,6 @@ export async function deleteLandingPageAction(
     return { success: false, error: "Failed to delete landing page." };
   }
   revalidatePath("/dashboard/admin/landing");
-  revalidatePath(`/camp/${slug}`);
+  revalidatePath(`/bcc/${slug}`);
   return { success: true };
 }

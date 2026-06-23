@@ -57,7 +57,7 @@ export default async function EditLandingPage({
       <div>
         <PageHeader
           title="Edit landing page"
-          subtitle={`/camp/${initial.slug}`}
+          subtitle={`/bcc/${initial.slug}`}
           actions={
             <div className="flex items-center gap-2">
               <DeleteLandingButton slug={initial.slug} />

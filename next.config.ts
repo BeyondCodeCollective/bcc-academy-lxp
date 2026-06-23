@@ -23,10 +23,21 @@ const nextConfig: NextConfig = {
         destination: "/apply/:slug",
         permanent: true,
       },
-      // Short shareable alias for the BGC Roblox camp landing page
+      // Short shareable alias for the BGC Roblox landing page
+      {
+        source: "/bcc/roblox",
+        destination: "/bcc/bgc-roblox",
+        permanent: false,
+      },
+      // Landing pages moved from /camp/* to /bcc/* — keep old links alive.
       {
         source: "/camp/roblox",
-        destination: "/camp/bgc-roblox",
+        destination: "/bcc/bgc-roblox",
+        permanent: false,
+      },
+      {
+        source: "/camp/:slug",
+        destination: "/bcc/:slug",
         permanent: false,
       },
     ];
