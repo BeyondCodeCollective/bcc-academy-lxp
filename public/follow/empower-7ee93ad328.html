@@ -1,0 +1,700 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Empower Every Team · BGC × BCC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0b0d12;--cream:#f5f3ef;--muted:#a8a39a;--muted2:#6b6760;
+    --line:#23262f;--accent:#FFB020;
+    --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+    --serif:'Cormorant Garamond','EB Garamond','Georgia',ui-serif,serif;
+    --sans:'Inter',ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;background:var(--ink);color:var(--cream);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow:hidden}
+  .deck{position:relative;width:100vw;height:100vh;overflow:hidden}
+  .slide{position:absolute;inset:0;padding:clamp(28px,4.2vw,72px);display:flex;flex-direction:column;
+    opacity:0;transform:translateX(38px);pointer-events:none;transition:opacity .5s ease,transform .5s ease;overflow-y:auto}
+  .slide.active{opacity:1;transform:translateX(0);pointer-events:auto}
+  .slide.prev{transform:translateX(-38px)}
+  .t-a{background:var(--ink)}.t-b{background:#0d0f16}.t-c{background:#08090f}
+  .t-cream{background:#efe9dd;color:#16181f;--cream:#16181f;--ink:#efe9dd;--muted:#6f6a60;--muted2:#8a857a;--line:#d8d1c2;--accent:#B26A00}
+
+  .topbar,.bottombar{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center;color:var(--muted);flex:none}
+  .topbar{margin-bottom:auto}
+  .bottombar{margin-top:auto;padding-top:22px}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);display:flex;gap:1.1em;flex-wrap:wrap;align-items:center}
+  .eyebrow .slash{color:var(--accent)}
+  .stage{display:flex;flex-direction:column;justify-content:center;flex:1 1 auto;min-height:0;padding:clamp(8px,1.8vh,22px) 0;max-width:1520px}
+
+  h1.lede{font-family:var(--serif);font-weight:500;font-size:clamp(42px,7.4vw,140px);line-height:.98;letter-spacing:-.015em;margin-top:12px}
+  h1.lede em{font-style:italic;color:var(--accent)}
+  h1.lede .w{font-style:italic;color:var(--cream)}
+  .kicker{font-family:var(--serif);font-style:italic;font-size:clamp(20px,2.2vw,34px);max-width:1000px;margin-top:20px;line-height:1.35;color:var(--muted)}
+  .kicker em{color:var(--accent);font-style:italic}
+  .body{font-family:var(--serif);font-size:clamp(20px,1.8vw,29px);line-height:1.4;max-width:1120px;margin-top:20px}
+  .body em{color:var(--accent);font-style:italic}
+  .lead-sans{font-family:var(--sans);font-size:clamp(14px,1.2vw,17px);line-height:1.55;color:var(--muted);max-width:1040px;margin-top:16px}
+  .lead-sans em{color:var(--cream);font-style:normal;font-weight:600}
+
+  .brandrow{display:inline-flex;align-items:center;gap:14px;margin-bottom:clamp(12px,2vh,22px);font-family:var(--mono);font-weight:700;text-transform:uppercase;letter-spacing:.08em;font-size:clamp(12px,1.2vw,17px);color:var(--cream)}
+
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:clamp(28px,4vw,72px);margin-top:clamp(22px,3vh,40px);max-width:1340px}
+  .split .col+.col{border-left:1px solid var(--line);padding-left:clamp(26px,3.2vw,58px)}
+  .split .h{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:14px;display:block}
+  .split h2{font-family:var(--serif);font-weight:500;font-size:clamp(26px,2.6vw,42px);line-height:1.04;letter-spacing:-.01em}
+  .split h2 .w{font-style:italic;color:var(--accent)}
+  .split ol,.split ul{margin-top:14px;display:flex;flex-direction:column;gap:10px;list-style:none;counter-reset:s}
+  .split li{font-family:var(--sans);font-size:clamp(13.5px,1.1vw,16px);line-height:1.42;color:var(--cream);padding-left:20px;position:relative}
+  .split ul li:before{content:"";position:absolute;left:0;top:9px;width:6px;height:6px;border-radius:99px;background:var(--accent)}
+  .split ol li{counter-increment:s;padding-left:28px}
+  .split ol li:before{content:counter(s);position:absolute;left:0;top:1px;font-family:var(--mono);font-size:11px;color:var(--accent);font-weight:500;border:1px solid var(--line);border-radius:99px;width:18px;height:18px;display:flex;align-items:center;justify-content:center}
+  .split li .muted{color:var(--muted)}
+
+  .manifesto{margin-top:clamp(22px,3vh,40px);border-top:1px solid var(--line);max-width:1300px}
+  .principle{display:grid;grid-template-columns:auto 1fr;gap:clamp(18px,2.6vw,48px);align-items:baseline;padding:clamp(12px,1.9vh,24px) 0;border-bottom:1px solid var(--line)}
+  .principle .n{font-family:var(--serif);font-style:italic;font-weight:500;font-size:clamp(28px,3.2vw,52px);color:var(--accent);line-height:1}
+  .principle .t{font-family:var(--serif);font-weight:500;font-size:clamp(24px,2.2vw,40px);line-height:1.02;letter-spacing:-.01em}
+  .principle .d{font-family:var(--sans);font-size:clamp(13.5px,1.1vw,16px);line-height:1.45;color:var(--muted);margin-top:6px;max-width:840px}
+
+  .index{margin-top:clamp(14px,2vh,26px);border-top:1px solid var(--line);max-width:1520px}
+  .index .row{display:grid;grid-template-columns:auto minmax(0,.85fr) minmax(0,1.25fr);gap:clamp(14px,2.4vw,42px);align-items:baseline;padding:clamp(8px,1.2vh,15px) 0;border-bottom:1px solid var(--line)}
+  .index .row.bridge{border-bottom-color:var(--accent)}
+  .index .row .num{font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:var(--accent)}
+  .index .row .k{font-family:var(--serif);font-weight:500;font-size:clamp(19px,1.8vw,30px);line-height:1.05;letter-spacing:-.01em}
+  .index .row .v{font-family:var(--sans);font-size:clamp(12.5px,1.02vw,15px);line-height:1.4;color:var(--muted)}
+  .index .row .v em{color:var(--cream);font-style:normal;font-weight:600}
+  .index .row .v .bdg{font-family:var(--mono);font-size:.72em;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+
+  .figs{display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(18px,2.6vw,48px);margin-top:clamp(20px,3vh,40px);max-width:1400px}
+  .fig{display:flex;flex-direction:column;gap:5px;padding-top:14px;border-top:1.5px dotted rgba(245,243,239,.24)}
+  .fig .n{font-family:var(--serif);font-style:italic;font-weight:500;font-size:clamp(40px,4.8vw,76px);line-height:.88;color:var(--cream)}
+  .fig .l{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+  .fig .s{font-family:var(--sans);font-size:12.5px;color:var(--muted);line-height:1.4;margin-top:3px}
+
+  .bigquote{max-width:1320px;margin-top:clamp(8px,2vh,22px);position:relative}
+  .bigquote .qm{font-family:var(--serif);font-style:italic;color:var(--accent);font-size:clamp(90px,13vw,210px);line-height:.5;display:block;height:.42em}
+  .bigquote p{font-family:var(--serif);font-weight:500;font-size:clamp(34px,5.6vw,98px);line-height:1.05;letter-spacing:-.015em;color:var(--cream)}
+  .bigquote p em{font-style:italic;color:var(--accent)}
+  .bigquote .qby{font-family:var(--mono);font-size:clamp(11px,1.1vw,14px);letter-spacing:.16em;text-transform:uppercase;color:var(--cream);margin-top:clamp(22px,3.4vh,40px)}
+
+  .tenx{font-family:var(--serif);font-style:italic;font-weight:500;font-size:clamp(110px,20vw,300px);line-height:.76;color:var(--accent);letter-spacing:-.02em}
+
+  .score{margin-top:clamp(16px,2.4vh,30px);border-top:1px solid var(--line);max-width:1240px}
+  .srow{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.7fr) auto minmax(0,1fr);gap:clamp(12px,2.2vw,40px);align-items:baseline;padding:clamp(10px,1.6vh,20px) 0;border-bottom:1px solid var(--line)}
+  .srow .sl{font-family:var(--serif);font-weight:500;font-size:clamp(20px,2.1vw,34px);line-height:1;letter-spacing:-.01em}
+  .srow .sf{font-family:var(--sans);font-size:clamp(12px,1.05vw,15px);color:var(--muted2);text-decoration:line-through;text-decoration-color:rgba(140,135,125,.5)}
+  .srow .sa{font-family:var(--serif);color:var(--accent);font-size:clamp(16px,1.7vw,26px)}
+  .srow .st{font-family:var(--serif);font-style:italic;font-weight:500;font-size:clamp(20px,2.1vw,34px);color:var(--accent);line-height:1;text-align:right}
+
+  .phases{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(24px,3.6vw,64px);margin-top:clamp(22px,3vh,42px);max-width:1400px}
+  .phase{display:flex;flex-direction:column;gap:9px;padding-top:16px;border-top:1.5px dotted rgba(245,243,239,.24)}
+  .phase .ph{font-family:var(--serif);font-weight:500;font-size:clamp(24px,2.2vw,38px);line-height:1}
+  .phase .pw{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+  .phase ul{list-style:none;margin-top:6px;display:flex;flex-direction:column;gap:8px}
+  .phase ul li{font-family:var(--sans);font-size:clamp(13.5px,1.1vw,16px);line-height:1.38;color:var(--cream);padding-left:16px;position:relative}
+  .phase ul li:before{content:"";position:absolute;left:0;top:9px;width:5px;height:5px;border-radius:99px;background:var(--accent)}
+  .target{font-family:var(--mono);font-size:clamp(10.5px,1vw,12.5px);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:clamp(18px,2.6vh,30px)}
+  .target b{color:var(--accent);font-weight:500}
+
+  .show-title{font-family:var(--serif);font-weight:500;letter-spacing:-.015em;line-height:.92;font-size:clamp(58px,10.5vw,176px)}
+  .show-title .hl{color:var(--accent);font-style:italic}
+  .host-strip{display:flex;align-items:center;gap:18px;margin-top:28px;padding:13px 19px;border:1px solid var(--line);border-radius:99px;max-width:max-content}
+  .host-strip .ph{width:52px;height:52px;border-radius:50%;background-size:cover;background-position:center;background-color:#1b1e28;border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-style:italic;color:var(--accent)}
+  .host-strip .role{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+  .host-strip .name{font-family:var(--serif);font-size:23px;line-height:1.1}
+  .host-strip .name em{color:var(--accent);font-style:italic}
+
+  .arch{margin-top:clamp(18px,2.6vh,38px);max-width:1180px}
+  .arch .towers{display:grid;grid-template-columns:1fr 1fr;gap:clamp(16px,2.6vw,40px)}
+  .arch .tower{border:1px solid var(--line);border-top:1.5px dotted rgba(245,243,239,.3);border-radius:0;padding:clamp(16px,2vw,28px);background:linear-gradient(160deg,rgba(245,243,239,0.05),transparent)}
+  .arch .tower .tlabel{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+  .arch .tower h3{font-family:var(--serif);font-weight:500;font-size:clamp(24px,2.6vw,42px);line-height:1.02;margin-top:6px}
+  .arch .tower p{font-family:var(--sans);font-size:clamp(12px,1.05vw,15px);color:var(--muted);line-height:1.4;margin-top:8px}
+  .arch .conns{height:clamp(24px,3.2vh,40px);display:flex;justify-content:space-around;padding:0 14%}
+  .arch .conns span{width:0;border-left:2px dotted var(--accent);opacity:.65;position:relative}
+  .arch .conns span:after{content:"▼";position:absolute;bottom:-3px;left:50%;transform:translateX(-50%);color:var(--accent);font-size:11px;line-height:1}
+  .arch .foundation{border:1px solid var(--line);border-top:1.5px dotted rgba(255,176,32,.55);border-radius:0;padding:clamp(11px,1.5vw,18px) clamp(16px,2vw,26px);background:linear-gradient(160deg,rgba(245,243,239,0.035),transparent);display:flex;align-items:baseline;gap:clamp(12px,2vw,26px);flex-wrap:wrap}
+  .arch .foundation .flabel{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);flex:none}
+  .arch .foundation h3{font-family:var(--serif);font-weight:500;font-size:clamp(19px,2vw,30px);line-height:1;flex:none}
+  .arch .foundation p{font-family:var(--sans);font-size:clamp(12px,1.05vw,15px);color:var(--muted);line-height:1.4}
+  .arch .foundation p b{color:var(--cream);font-weight:600}
+  @media(max-width:880px){.arch .towers{grid-template-columns:1fr}.arch .conns{height:18px}.arch .conns span:last-child{display:none}}
+  .lxpnext{margin-top:clamp(13px,2vh,22px);max-width:1180px}
+  .lxpnext .lh{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:9px;margin-bottom:11px}
+  .lxprow{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(12px,2.2vw,30px)}
+  .lxpitem{padding-top:10px;border-top:1.5px dotted rgba(245,243,239,.24)}
+  .lxpitem b{font-family:var(--serif);font-weight:500;font-size:clamp(16px,1.7vw,25px);color:var(--cream);display:block;line-height:1.08}
+  .lxpitem span{font-family:var(--sans);font-size:clamp(11.5px,1vw,13.5px);color:var(--muted);line-height:1.35;display:block;margin-top:4px}
+  .lxpitem .tag{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;color:var(--accent)}
+  @media(max-width:880px){.lxprow{grid-template-columns:1fr}}
+
+  .layer{display:grid;grid-template-columns:clamp(86px,10vw,140px) 1fr;align-items:center;gap:clamp(12px,2vw,28px);border:1px dotted rgba(245,243,239,.22);border-radius:0;padding:clamp(11px,1.5vw,20px) clamp(15px,2vw,26px);background:linear-gradient(160deg,rgba(245,243,239,0.04),transparent)}
+  .layer .ll{font-family:var(--mono);font-size:clamp(10px,1.05vw,13px);letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+  .layer .lt{font-family:var(--serif);font-size:clamp(17px,1.9vw,30px);color:var(--cream);line-height:1.12}
+  .layer .lt small{color:var(--muted);font-family:var(--sans);font-size:.56em;letter-spacing:0}
+  .osys{margin-top:clamp(16px,2.4vh,30px);max-width:1200px;position:relative;border:1.5px dotted var(--accent);background:rgba(255,176,32,.06);padding:clamp(14px,1.9vw,26px);overflow:hidden}
+  .osys .wraplabel{font-family:var(--mono);font-size:clamp(10px,1.05vw,13px);letter-spacing:.16em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:10px;margin-bottom:clamp(12px,1.6vw,18px)}
+  .osys .wraplabel b{color:var(--cream);font-weight:700}
+  .osys .wrappulse{position:absolute;top:0;left:-90px;width:80px;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);animation:flow 3.4s linear infinite}
+  .osys .core{display:flex;flex-direction:column;gap:clamp(7px,1vw,11px)}
+  .osys .core .layer{background:linear-gradient(160deg,rgba(245,243,239,0.06),transparent)}
+
+  .teams{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(10px,1.5vw,18px);margin-top:clamp(16px,2.4vh,30px);max-width:1440px}
+  .tcard{border:1px dotted rgba(245,243,239,.26);border-radius:0;padding:clamp(13px,1.6vw,22px);display:flex;flex-direction:column;gap:6px;background:linear-gradient(160deg,rgba(245,243,239,0.045),transparent);
+    opacity:0;transform:translateY(16px);transition:opacity .5s cubic-bezier(.2,.7,.2,1),transform .5s cubic-bezier(.2,.7,.2,1)}
+  .slide.active .tcard{opacity:1;transform:none}
+  .slide.active .tcard:nth-child(1){transition-delay:.10s}.slide.active .tcard:nth-child(2){transition-delay:.16s}.slide.active .tcard:nth-child(3){transition-delay:.22s}
+  .slide.active .tcard:nth-child(4){transition-delay:.28s}.slide.active .tcard:nth-child(5){transition-delay:.34s}
+  .tcard .tg{font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--accent)}
+  .tcard .tt{font-family:var(--serif);font-weight:500;font-size:clamp(20px,2vw,31px);line-height:1.02}
+  .tcard .td{font-family:var(--sans);font-size:clamp(12px,1.02vw,14.5px);color:var(--muted);line-height:1.4}
+  .tcard .to{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted2);margin-top:auto;padding-top:9px}
+  .tcard .to b{color:var(--accent);font-weight:500}
+  @media(max-width:880px){.teams{grid-template-columns:1fr 1fr}}
+
+  .boardwrap{margin-top:clamp(16px,2.4vh,30px);max-width:1420px;border:1.5px dotted var(--accent);background:rgba(255,176,32,.06);padding:clamp(13px,1.7vw,24px)}
+  .boardhead{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:clamp(11px,1.5vw,18px)}
+  .board{display:grid;grid-template-columns:repeat(5,1fr);gap:clamp(9px,1.6vw,22px)}
+  .kpi{border-top:1.5px dotted rgba(245,243,239,.26);padding-top:11px;display:flex;flex-direction:column;gap:3px}
+  .kpi .kn{font-family:var(--serif);font-style:italic;font-weight:500;font-size:clamp(28px,3.4vw,54px);color:var(--cream);line-height:.88}
+  .kpi .kl{font-family:var(--sans);font-size:clamp(10.5px,.95vw,12.5px);color:var(--muted);line-height:1.3}
+  @media(max-width:880px){.board{grid-template-columns:1fr 1fr}}
+
+  .example{border:1.5px dashed rgba(245,243,239,.3);border-radius:0;min-height:clamp(120px,20vh,180px);display:flex;align-items:center;justify-content:center;overflow:hidden;background:repeating-linear-gradient(45deg,rgba(245,243,239,0.02),rgba(245,243,239,0.02) 10px,transparent 10px,transparent 20px)}
+  .example .exlabel{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);text-align:center;line-height:1.7;padding:18px}
+
+  .costs{margin-top:8px;border-top:1px solid var(--line)}
+  .costrow{display:grid;grid-template-columns:1fr auto;gap:18px;align-items:baseline;padding:clamp(5px,.9vh,10px) 0;border-bottom:1px solid var(--line)}
+  .costrow .cn{font-family:var(--sans);font-size:clamp(13px,1.05vw,15.5px);color:var(--cream)}
+  .costrow .cn small{color:var(--muted);font-size:.82em}
+  .costrow .cp{font-family:var(--mono);font-size:clamp(11.5px,1vw,13.5px);color:var(--accent);letter-spacing:.01em;white-space:nowrap}
+  .costrow.total{border-bottom:none;padding-top:11px}
+  .costrow.total .cn{font-family:var(--serif);font-size:clamp(18px,1.7vw,26px)}
+  .costrow.total .cp{font-family:var(--serif);font-style:italic;font-size:clamp(19px,1.8vw,28px);color:var(--accent)}
+
+  .row,.principle,.fig,.phase,.srow,.qc{opacity:0;transform:translateY(16px);transition:opacity .55s cubic-bezier(.2,.7,.2,1),transform .55s cubic-bezier(.2,.7,.2,1)}
+  .slide.active .row,.slide.active .principle,.slide.active .fig,.slide.active .phase,.slide.active .srow,.slide.active .qc{opacity:1;transform:none}
+  .slide.active .row:nth-child(1),.slide.active .principle:nth-child(1),.slide.active .fig:nth-child(1),.slide.active .phase:nth-child(1),.slide.active .srow:nth-child(1),.slide.active .qc:nth-child(1){transition-delay:.10s}
+  .slide.active .row:nth-child(2),.slide.active .principle:nth-child(2),.slide.active .fig:nth-child(2),.slide.active .phase:nth-child(2),.slide.active .srow:nth-child(2),.slide.active .qc:nth-child(2){transition-delay:.17s}
+  .slide.active .row:nth-child(3),.slide.active .principle:nth-child(3),.slide.active .fig:nth-child(3),.slide.active .phase:nth-child(3),.slide.active .srow:nth-child(3),.slide.active .qc:nth-child(3){transition-delay:.24s}
+  .slide.active .row:nth-child(4),.slide.active .principle:nth-child(4),.slide.active .fig:nth-child(4),.slide.active .phase:nth-child(4),.slide.active .srow:nth-child(4),.slide.active .qc:nth-child(4){transition-delay:.31s}
+  .slide.active .row:nth-child(5),.slide.active .principle:nth-child(5),.slide.active .srow:nth-child(5){transition-delay:.38s}
+  .slide.active .row:nth-child(6){transition-delay:.45s}
+  .slide.active .row:nth-child(7){transition-delay:.52s}
+  .costrow{opacity:0;transform:translateY(12px);transition:opacity .5s ease,transform .5s ease}
+  .slide.active .costrow{opacity:1;transform:none}
+  .slide.active .costrow:nth-child(1){transition-delay:.07s}.slide.active .costrow:nth-child(2){transition-delay:.12s}.slide.active .costrow:nth-child(3){transition-delay:.17s}.slide.active .costrow:nth-child(4){transition-delay:.22s}
+  .slide.active .costrow:nth-child(5){transition-delay:.27s}.slide.active .costrow:nth-child(6){transition-delay:.32s}.slide.active .costrow:nth-child(7){transition-delay:.37s}.slide.active .costrow:nth-child(8){transition-delay:.42s}.slide.active .costrow:nth-child(9){transition-delay:.47s}
+
+  .wins{display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(10px,1.4vw,18px);margin-top:clamp(16px,2.4vh,32px);max-width:1400px}
+  .win{border:1px dotted rgba(245,243,239,.26);border-radius:0;padding:clamp(13px,1.6vw,22px);display:flex;flex-direction:column;gap:5px;background:linear-gradient(160deg,rgba(245,243,239,0.045),transparent);
+    opacity:0;transform:translateY(16px);transition:opacity .5s cubic-bezier(.2,.7,.2,1),transform .5s cubic-bezier(.2,.7,.2,1)}
+  .slide.active .win{opacity:1;transform:none}
+  .slide.active .win:nth-child(1){transition-delay:.10s}.slide.active .win:nth-child(2){transition-delay:.16s}.slide.active .win:nth-child(3){transition-delay:.22s}
+  .slide.active .win:nth-child(4){transition-delay:.28s}.slide.active .win:nth-child(5){transition-delay:.34s}.slide.active .win:nth-child(6){transition-delay:.40s}
+  .slide.active .win:nth-child(7){transition-delay:.46s}.slide.active .win:nth-child(8){transition-delay:.52s}
+  .win .wm{font-family:var(--mono);font-weight:700;text-transform:uppercase;letter-spacing:.06em;font-size:clamp(11px,1.1vw,15px);color:var(--cream)}
+  .win .wn{font-family:var(--serif);font-style:italic;font-weight:500;font-size:clamp(26px,3vw,46px);line-height:.92;color:var(--accent)}
+  .win .wd{font-family:var(--sans);font-size:clamp(10.5px,.95vw,12.5px);color:var(--muted);line-height:1.3}
+  @media(max-width:880px){.wins{grid-template-columns:1fr 1fr}}
+
+  .quad{margin-top:clamp(18px,2.6vh,36px);display:grid;grid-template-columns:1fr 1fr;max-width:1240px;border-top:1px solid var(--line);border-left:1px solid var(--line)}
+  .qc{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:clamp(16px,2.2vw,34px)}
+  .qc .qn{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent)}
+  .qc .qt{font-family:var(--serif);font-weight:500;font-size:clamp(22px,2.4vw,38px);line-height:1.02;margin-top:8px;letter-spacing:-.01em}
+  .qc .qd{font-family:var(--sans);font-size:clamp(12.5px,1.05vw,15.5px);color:var(--muted);line-height:1.44;margin-top:10px;max-width:40ch}
+  @media(max-width:880px){.quad{grid-template-columns:1fr}}
+
+  .pipe{position:relative;margin-top:clamp(26px,4.5vh,58px);max-width:1340px}
+  .pipe .line{position:absolute;top:22px;left:9px;right:9px;height:2px;background:var(--line);overflow:hidden;border-radius:2px}
+  .pipe .line .pulse{position:absolute;top:-3px;left:-80px;width:72px;height:8px;border-radius:99px;background:linear-gradient(90deg,transparent,var(--accent),transparent);animation:flow 3s linear infinite}
+  @keyframes flow{from{left:-80px}to{left:100%}}
+  .pipe .stages{display:grid;grid-template-columns:repeat(5,1fr);gap:clamp(8px,1.6vw,24px);position:relative}
+  .pipe .stg{position:relative;padding-top:46px}
+  .pipe .stg:before{content:"";position:absolute;top:14px;left:0;width:18px;height:18px;border-radius:99px;background:var(--ink);border:2px solid var(--accent);z-index:2}
+  .pipe .si{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--accent);display:block;margin-bottom:4px}
+  .pipe .stg h3{font-family:var(--serif);font-weight:500;font-size:clamp(18px,1.7vw,27px);line-height:1.05;letter-spacing:-.01em}
+  .pipe .stg p{font-family:var(--sans);font-size:clamp(12px,1vw,14px);color:var(--muted);line-height:1.35;margin-top:4px}
+
+  @media(prefers-reduced-motion:reduce){
+    .row,.principle,.fig,.phase,.srow,.qc,.costrow,.win,.tcard{opacity:1;transform:none;transition:none}
+    .pipe .line .pulse,.osys .wrappulse{animation:none}
+  }
+
+  .nav{position:fixed;right:24px;bottom:24px;display:flex;gap:8px;align-items:center;z-index:50;font-family:var(--mono);font-size:11px;letter-spacing:.2em;color:var(--muted);background:rgba(11,13,18,.7);backdrop-filter:blur(8px);padding:6px 12px;border-radius:99px;border:1px solid var(--line)}
+  .nav button{background:transparent;border:1px solid var(--line);color:var(--cream);width:28px;height:28px;border-radius:99px;cursor:pointer;font-family:var(--mono);transition:border-color .2s,color .2s}
+  .nav button:hover{border-color:var(--accent);color:var(--accent)}
+  .dots{position:fixed;left:24px;bottom:28px;display:flex;gap:7px;z-index:50;max-width:55vw;flex-wrap:wrap}
+  .dot{width:6px;height:6px;border-radius:99px;background:rgba(255,255,255,.18);cursor:pointer;transition:background .2s,width .2s}
+  .dot.active{background:var(--accent);width:22px}
+  .progress{position:fixed;top:0;left:0;height:2px;background:var(--accent);z-index:60;transition:width .4s ease;width:0}
+
+  @media (max-width:880px){
+    .split,.phases,.figs{grid-template-columns:1fr}.figs{grid-template-columns:1fr 1fr}
+    .split .col+.col{border-left:none;padding-left:0;border-top:1px solid var(--line);padding-top:22px}
+    .index .row{grid-template-columns:auto 1fr}.index .row .v{grid-column:2}
+    .srow{grid-template-columns:1fr auto;row-gap:4px}.srow .sf,.srow .sa{display:none}.srow .st{grid-column:2}
+    .board{grid-template-columns:1fr 1fr}
+    .pipe .stages{grid-template-columns:1fr 1fr}.pipe .line{display:none}.pipe .stg{padding-top:0}.pipe .stg:before{position:static;display:block;margin-bottom:8px}
+  }
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+  <!-- 01 COVER -->
+  <section class="slide active t-c" data-slide="1">
+    <div class="topbar"><span>BGC/BCC Brand Strategy Conference · Los Angeles · 2026.06.22</span><span>×</span></div>
+    <div class="stage">
+      <div class="show-title">Empower <span class="hl">every team.</span></div>
+      <p class="kicker">Where I'm taking us — <em>every team doing more, shipping faster, and raising more</em> for the mission.</p>
+      <div class="host-strip">
+        <div class="ph" data-src="https://avatars.slack-edge.com/2026-02-22/10553012845619_661bcdbb6f9a7bbecbe5_original.png">F</div>
+        <div><div class="role">Presented by</div><div class="name">Fonz <em>Morris</em></div></div>
+      </div>
+    </div>
+    <div class="bottombar"><span>EMPOWER EVERY TEAM</span><span>SWIPE →</span></div>
+  </section>
+
+  <!-- 02 OPENING QUOTE (cream) -->
+  <section class="slide t-cream" data-slide="2">
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 02 THE MOMENT <span>WHY NOW</span></span><span>×</span></div>
+    <div class="stage">
+      <div class="eyebrow"><span class="slash">//</span><span>what the right tools unlock</span></div>
+      <div class="bigquote">
+        <span class="qm">&ldquo;</span>
+        <p style="font-size:clamp(26px,3.9vw,64px)">Give ordinary people the right tools, and they will design and build the most <em>extraordinary things.</em></p>
+        <div class="qby">Neil Gershenfeld · MIT</div>
+      </div>
+    </div>
+    <div class="bottombar"><span>02 / 22</span><span>NEXT · THE MOMENTUM</span></div>
+  </section>
+
+  <!-- 03 MOMENTUM -->
+  <section class="slide t-b" data-slide="3">
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 03 THE MOMENTUM <span>WE'RE ALREADY WINNING</span></span><span>×</span></div>
+    <div class="stage">
+      <div class="eyebrow"><span class="slash">//</span><span>we've got motion — let's keep going</span></div>
+      <h1 class="lede" style="font-size:clamp(34px,5.4vw,92px)">We've got <em>momentum.</em></h1>
+      <div class="wins">
+        <div class="win"><span class="wm">ADP</span><span class="wn">$100K</span><span class="wd">Camp activation — NYC + ATL</span></div>
+        <div class="win"><span class="wm">NBA</span><span class="wn">Grant</span><span class="wd">Major funding partner</span></div>
+        <div class="win"><span class="wm">Google</span><span class="wn">Ad Grant</span><span class="wd">Nonprofit ads, approved</span></div>
+        <div class="win"><span class="wm">TikTok</span><span class="wn">$25K</span><span class="wd">Ad credits (Halo)</span></div>
+        <div class="win"><span class="wm">YouTube Kids</span><span class="wn">Code Along S5</span><span class="wd">Landed in the YouTube Kids app</span></div>
+        <div class="win"><span class="wm">Halo Awards</span><span class="wn">Winner</span><span class="wd">2026 recognition</span></div>
+        <div class="win"><span class="wm">Beyond the Game</span><span class="wn">Cohort ✓</span><span class="wd">MASS Training + CompTIA Tech+ wrapped</span></div>
+        <div class="win"><span class="wm">Catalyst</span><span class="wn">Security+</span><span class="wd">3rd CompTIA session — applications open</span></div>
+      </div>
+      <p class="lead-sans">And we did all of it the hard way — buried in manual work, on tools that don't talk to each other. The point isn't to celebrate and coast. <em>We've got the motion — now we keep going and pour fuel on it.</em></p>
+    </div>
+    <div class="bottombar"><span>03 / 22</span><span>NEXT · THE PORTFOLIO</span></div>
+  </section>
+
+  <!-- 04 PORTFOLIO -->
+  <section class="slide t-a" data-slide="4">
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 04 THE PORTFOLIO <span>WHAT THE SYSTEM HAS TO RUN</span></span><span>×</span></div>
+    <div class="stage">
+      <div class="eyebrow"><span class="slash">//</span><span>two companies · one shared platform</span></div>
+      <h1 class="lede" style="font-size:clamp(33px,5vw,82px)">Two companies. <em>One platform.</em></h1>
+      <div class="arch">
+        <div class="towers">
+          <div class="tower"><span class="tlabel">Company 01 · Nonprofit</span><h3>Black Girls Code</h3><p>Camps · Workshops · Code Club · Earn &amp; Learn · College &amp; Careers</p></div>
+          <div class="tower"><span class="tlabel">Company 02 · Growth engine</span><h3>Beyond Code Collective</h3><p>Catalyst · Beyond the Game · Beyond Code Centers · Beyond the Music</p></div>
+        </div>
+        <div class="conns"><span></span><span></span></div>
+        <div class="foundation"><span class="flabel">Shared layer</span><h3>The LXP</h3><p>The learning experience platform that powers <b>both companies</b> <span style="opacity:.7">— BCC Academy.</span></p></div>
+      </div>
+      <div class="lxpnext">
+        <span class="lh"><span style="color:var(--accent)">◆</span> Coming up on the LXP — both orgs</span>
+        <div class="lxprow">
+          <div class="lxpitem"><span class="tag">BGC</span><b>Roblox mini camp</b><span>We're supporting the upcoming camp on the platform.</span></div>
+          <div class="lxpitem"><span class="tag">BCC</span><b>Two virtual programs</b><span>Both launching on the LXP.</span></div>
+          <div class="lxpitem"><span class="tag">BOTH · LIVE</span><b>Surveys, already running</b><span>We're using it for surveys right now.</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="bottombar"><span>04 / 22</span><span>NEXT · UNDER BGC</span></div>
+  </section>
+
+  <!-- 05 UNDER BGC -->
+  <section class="slide t-c" data-slide="5">
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 05 UNDER BGC <span>THE SCOPE, PART ONE</span></span><span>×</span></div>
+    <div class="stage">
+      <div class="brandrow"><span>Black Girls Code</span></div>
+      <div style="display:flex;align-items:baseline;gap:clamp(14px,2.6vw,40px);flex-wrap:wrap">
+        <span class="tenx" style="font-size:clamp(72px,14vw,210px)">7</span>
+        <h1 class="lede" style="font-size:clamp(28px,3.6vw,58px);margin-top:0;max-width:11ch">programs, <em>year-round.</em></h1>
+      </div>
+      <div class="index">
+        <div class="row"><span class="num">01</span><span class="k">Camps &amp; Bootcamps</span><span class="v">June–Aug · 1-week, ages 7–18 · <em>filling up fast</em> · + virtual bootcamps.</span></div>
+        <div class="row"><span class="num">02</span><span class="k">Technical &amp; Discovery Workshops</span><span class="v">Sept–June · virtual + in-person · <em>ages 7–17</em> · incl. Code a Story.</span></div>
+        <div class="row"><span class="num">03</span><span class="k">Code Club</span><span class="v">Afterschool · 6–9 weeks · <em>we train the instructors.</em></span></div>
+        <div class="row"><span class="num">04</span><span class="k">Community Events</span><span class="v">Year-round partnership events — <em>ATL, Ayden &amp; beyond.</em></span></div>
+        <div class="row"><span class="num">05</span><span class="k">Expert Courses</span><span class="v">Virtual · weekly for a month · <em>incentivized.</em></span></div>
+        <div class="row"><span class="num">06</span><span class="k">Earn &amp; Learn</span><span class="v">Detroit skills-building <em>+ fellowships.</em></span></div>
+        <div class="row"><span class="num">07</span><span class="k">College &amp; Careers (18+)</span><span class="v">Lunch &amp; Learns + forums — <em>the next step.</em></span></div>
+      </div>
+      <p class="lead-sans">The goal: all 7 running on <em>the LXP by 2027</em> — one platform behind every BGC program, so we deliver, track, and improve them as one.</p>
+    </div>
+    <div class="bottombar"><span>05 / 22</span><span>NEXT · UNDER BCC</span></div>
+  </section>
+
+  <!-- 06 UNDER BCC -->
+  <section class="slide t-a" data-slide="6">
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 06 UNDER BCC <span>THE SCOPE, PART TWO</span></span><span>×</span></div>
+    <div class="stage">
+      <div class="brandrow"><span>Beyond Code Collective</span></div>
+      <h1 class="lede" style="font-size:clamp(34px,5.4vw,90px)">The next-gen <em>brands.</em></h1>
+      <div class="index">
+        <div class="row"><span class="num">01</span><span class="k">Catalyst</span><span class="v">The accelerator track — <em>from learner to builder.</em></span></div>
+        <div class="row"><span class="num">02</span><span class="k">Beyond the Game</span><span class="v">Athletes into tech — <em>the next chapter.</em></span></div>
+        <div class="row"><span class="num">03</span><span class="k">Beyond Code Centers</span><span class="v">Physical learning centers — <em>the IRL footprint.</em></span></div>
+        <div class="row"><span class="num">04</span><span class="k">Beyond the Music</span><span class="v">Music execs into tech — <em>the next career.</em></span></div>
+        <div class="row bridge"><span class="num">↔</span><span class="k">BCC Academy</span><span class="v"><span class="bdg">shared</span> — the academy that <em>serves BGC + BCC both.</em></span></div>
+      </div>
+      <p class="lead-sans">All four plug into <em>the LXP</em> — the shared platform underneath BCC. The way we scale them: automate the grind, standardize the work, and <em>uplift the people who run them</em> — better tools, not fewer humans.</p>
+    </div>
+    <div class="bottombar"><span>06 / 22</span><span>NEXT · THE PROBLEM</span></div>
+  </section>
+
+  <!-- 07 THE PROBLEM -->
+  <section class="slide t-b" data-slide="7">
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 07 THE PROBLEM <span>THE COST OF THE OLD WAY</span></span><span>×</span></div>
+    <div class="stage">
+      <div class="eyebrow"><span class="slash">//</span><span>winning despite the setup, not because of it</span></div>
+      <h1 class="lede" style="font-size:clamp(38px,6vw,104px)">The old way is <em>expensive.</em></h1>
+      <div class="quad">
+        <div class="qc"><div class="qn">01 · HUMAN ERROR</div><div class="qt">Manual work breeds mistakes</div><div class="qd">Repetitive, by-hand work means slips — wrong account, off-brand posts, a figure keyed wrong. One slip can cost the brand.</div></div>
+        <div class="qc"><div class="qn">02 · COST</div><div class="qt">Output capped by headcount</div><div class="qd">More reach today means more hours or another hire — budget we'd rather put into programs and the kids.</div></div>
+        <div class="qc"><div class="qn">03 · SPEED</div><div class="qt">Everything is slow</div><div class="qd">3-day turnarounds, blank-page starts, work stuck waiting on one person to free up.</div></div>
+        <div class="qc"><div class="qn">04 · SCALE</div><div class="qt">Processes that don't scale</div><div class="qd">Hand-keyed data across 12+ disconnected tools. What creaks with one org simply breaks with two.</div></div>
+      </div>
+      <p class="lead-sans">Every win so far came the hard way. <em>Imagine the run we go on when that friction is gone.</em></p>
+    </div>
+    <div class="bottombar"><span>07 / 22</span><span>NEXT · THE GOAL</span></div>
+  </section>
+
+  <!-- 08 THE GOAL (cream) -->
+  <section class="slide t-cream" data-slide="8">
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 08 THE GOAL <span>BY 2027</span></span><span>×</span></div>
+    <div class="stage">
+      <div class="eyebrow"><span class="slash">//</span><span>the goal · same team · by 2027</span></div>
+      <div style="display:flex;align-items:baseline;gap:clamp(16px,2.6vw,40px);flex-wrap:wrap">
+        <span class="tenx" style="font-size:clamp(60px,10vw,150px)">10×</span>
+        <h1 class="lede" style="font-size:clamp(28px,3.6vw,58px);margin-top:0;max-width:13ch">the work — <em>from the same team.</em></h1>
+      </div>
+      <div class="score">
+        <div class="srow"><span class="sl">Turnaround</span><span class="sf">3 days</span><span class="sa">→</span><span class="st">same-day</span></div>
+        <div class="srow"><span class="sl">Brand output</span><span class="sf">today's volume</span><span class="sa">→</span><span class="st">5× per week</span></div>
+        <div class="srow"><span class="sl">Manual hours</span><span class="sf">buried in them</span><span class="sa">→</span><span class="st">25+ saved / wk</span></div>
+        <div class="srow"><span class="sl">Program data</span><span class="sf">hand-keyed</span><span class="sa">→</span><span class="st">always current</span></div>
+      </div>
+      <p class="lead-sans">One goal, by 2027: <em>the same people delivering far more.</em> Here's proof it's real —</p>
+    </div>
+    <div class="bottombar"><span>08 / 22</span><span>NEXT · THE OPERATING SYSTEM</span></div>
+  </section>
+
+  <!-- 09 OPERATING SYSTEM -->
+  <section class="slide t-a" data-slide="9">
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 09 THE OPERATING SYSTEM <span>OUR STACK, CONNECTED</span></span><span>×</span></div>
+    <div class="stage">
+      <div class="eyebrow"><span class="slash">//</span><span>the tools we already use · one flow · directed by us</span></div>
+      <h1 class="lede" style="font-size:clamp(32px,5vw,84px)">The right tool for every job — <em>wired together.</em></h1>
+      <div class="osys">
+        <span class="wrappulse"></span>
+        <div class="wraplabel"><span style="color:var(--accent)">◆</span> Connect · <b>MCP + Claude</b> — agents help run every layer, directed by us</div>
+        <div class="core">
+          <div class="layer"><span class="ll">Create</span><div class="lt">Figma · Canva · Adobe CC · CapCut <small>— on-brand assets, fast</small></div></div>
+          <div class="layer"><span class="ll">Build</span><div class="lt">Claude Code · Vercel · GitHub <small>— ship the portals &amp; tools</small></div></div>
+          <div class="layer"><span class="ll">Operate</span><div class="lt">Notion · Slack · Zapier <small>— the second brain &amp; automation</small></div></div>
+          <div class="layer"><span class="ll">Data</span><div class="lt">Salesforce · Google Sheets · Looker Studio <small>— one source of truth</small></div></div>
+        </div>
+      </div>
+      <p class="lead-sans">Claude doesn't replace the tools — it <em>wraps around all of them.</em> Agents help run each layer; people stay in charge. That's the whole idea.</p>
+    </div>
+    <div class="bottombar"><span>09 / 22</span><span>NEXT · PROOF</span></div>
+  </section>
+
+  <!-- 10 PROOF -->
+  <section class="slide t-c" data-slide="10">
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 10 PROOF <span>ONE WORKFLOW, TIMED</span></span><span>×</span></div>
+    <div class="stage">
+      <div class="eyebrow"><span class="slash">//</span><span>not a theory — the same camp day, two ways</span></div>
+      <h1 class="lede" style="font-size:clamp(34px,5.4vw,90px)">Where the <em>10×</em> comes from.</h1>
+      <div class="split">
+        <div class="col"><span class="h">Today</span><h2>~2 days · <span class="w">1 asset.</span></h2>
+          <ol><li>Footage waits for an editor to free up.</li><li>One recap, cut by hand over two days.</li><li>Posts late, to a single channel.</li><li class="muted">Net: 1 asset · 1 platform · days later.</li></ol></div>
+        <div class="col"><span class="h">With the system</span><h2>~1 afternoon · <span class="w">8 assets.</span></h2>
+          <ol><li>Footage in → Opus Pro + Claude pull 6 moments &amp; captions.</li><li>CapCut drops them on the locked template.</li><li>Reels + TikTok + Shorts same day (human approves) + a donor email.</li><li class="muted">Net: ~8 on-brand assets · 4 channels · same day.</li></ol></div>
+      </div>
+      <p class="lead-sans">Same footage. <em>~8 assets in a tenth of the time</em> — that's where the 10× comes from, on one real workflow.</p>
+    </div>
+    <div class="bottombar"><span>10 / 22</span><span>NEXT · HOW THE WORK GETS MADE</span></div>
+  </section>
+
+  <!-- 11 HOW THE WORK GETS MADE -->
+  <section class="slide t-a" data-slide="11">
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 11 HOW THE WORK GETS MADE <span>TEMPLATE → DRAFT → SHIP</span></span><span>×</span></div>
+    <div class="stage">
+      <div class="eyebrow"><span class="slash">//</span><span>no blank pages · automation does the grind</span></div>
+      <h1 class="lede" style="font-size:clamp(33px,5.2vw,86px)">A request becomes a <em>draft</em> — by itself.</h1>
+      <p class="lead-sans" style="margin-top:12px">No one starts from a blank page. Every recurring asset is <em>locked once as a template</em> (Canva, indexed in Notion) — a blank page took ~2 hrs; from a template it's ~5 min. Then the pipeline takes over:</p>
+      <div class="pipe">
+        <div class="line"><span class="pulse"></span></div>
+        <div class="stages">
+          <div class="stg"><span class="si">01 · IN</span><h3>Request</h3><p>Notion intake form</p></div>
+          <div class="stg"><span class="si">02 · ROUTE</span><h3>Auto-routed</h3><p>right team, logged</p></div>
+          <div class="stg"><span class="si">03 · DRAFT</span><h3>Claude drafts</h3><p>on Ashley's trained style</p></div>
+          <div class="stg"><span class="si">04 · REFINE</span><h3>Human polishes</h3><p>an 80% draft</p></div>
+          <div class="stg"><span class="si">05 · SHIP</span><h3>Ship + log</h3><p>captured for data</p></div>
+        </div>
+      </div>
+      <p class="lead-sans">The blank page was the bottleneck. Start from an on-brand draft and the <em>3-day turnaround becomes same-day.</em></p>
+    </div>
+    <div class="bottombar"><span>11 / 22</span><span>NEXT · THE BACKLOG</span></div>
+  </section>
+
+  <!-- 12 THE BACKLOG IS REPEATABLE -->
+  <section class="slide t-c" data-slide="12">
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 12 THE BACKLOG <span>SMARTER &amp; FASTER</span></span><span>×</span></div>
+    <div class="stage">
+      <div class="eyebrow"><span class="slash">//</span><span>30+ open requests right now — but it's the same few jobs</span></div>
+      <h1 class="lede" style="font-size:clamp(34px,5.2vw,86px)">Most of the work is the <em>same work.</em></h1>
+      <div class="index">
+        <div class="row"><span class="num">01</span><span class="k">Event / workshop promos</span><span class="v">Forge ATL series — Design Your World, Game On, Vibe Coding, Digital Storytelling… <em>one promo template.</em></span></div>
+        <div class="row"><span class="num">02</span><span class="k">Code Along carousels</span><span class="v">S5 Batches 2, 3, 4 — <em>one carousel template, batched.</em></span></div>
+        <div class="row"><span class="num">03</span><span class="k">Article-in-the-news social</span><span class="v">WSJ, Daily Memphian… <em>one "we're in the press" template.</em></span></div>
+        <div class="row"><span class="num">04</span><span class="k">Program &amp; camp recaps</span><span class="v">Camp recap hero — <em>reusable per city.</em></span></div>
+        <div class="row"><span class="num">05</span><span class="k">Highlight carousels &amp; reels</span><span class="v">Interns, Sweet 16, Cyberdeck — <em>one highlight template.</em></span></div>
+        <div class="row"><span class="num">06</span><span class="k">Merch &amp; apparel</span><span class="v">BCC apparel, SWAG *ALL — <em>self-serve from templates.</em></span></div>
+      </div>
+      <p class="lead-sans">30+ open requests collapse into <em>~6 repeatable templates.</em> Lock each once, let Claude fill it, and batch them — that's how we clear the backlog <em>smarter and faster</em> instead of rebuilding every time.</p>
+    </div>
+    <div class="bottombar"><span>12 / 22</span><span>NEXT · AGENTS PER TEAM</span></div>
+  </section>
+
+  <!-- 13 AGENTS PER TEAM -->
+  <section class="slide t-b" data-slide="13">
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 13 AGENTS PER TEAM <span>UPLIFT, DON'T REPLACE</span></span><span>×</span></div>
+    <div class="stage">
+      <div class="eyebrow"><span class="slash">//</span><span>an agent on every team's load · a human on every call</span></div>
+      <h1 class="lede" style="font-size:clamp(32px,5vw,80px)">Uplift the people who <em>run the work.</em></h1>
+      <div class="teams">
+        <div class="tcard"><span class="tg">MKTG</span><span class="tt">Marketing</span><span class="td">Content, clips &amp; on-brand assets drafted from intake.</span><span class="to">Human owns <b>brand + the final yes</b></span></div>
+        <div class="tcard"><span class="tg">PROG</span><span class="tt">Programs</span><span class="td">Rosters, parent comms, camp logistics, survey insights → Salesforce.</span><span class="to">Human owns <b>the relationships</b></span></div>
+        <div class="tcard"><span class="tg">DEV</span><span class="tt">Development</span><span class="td">Grant research, draft proposals, partner briefs, pipeline.</span><span class="to">Human owns <b>the ask</b></span></div>
+        <div class="tcard"><span class="tg">PROD</span><span class="tt">Product &amp; Data</span><span class="td">Claude + Code build portals, pipelines &amp; dashboards.</span><span class="to">Human owns <b>the architecture</b></span></div>
+        <div class="tcard"><span class="tg">EXEC</span><span class="tt">Leadership</span><span class="td">Daily brief, board prep, the week summarized.</span><span class="to">Human owns <b>strategy + decisions</b></span></div>
+      </div>
+      <p class="lead-sans">Not fewer people — <em>each program running at full strength</em> because the person on it finally has the leverage.</p>
+    </div>
+    <div class="bottombar"><span>13 / 22</span><span>NEXT · MARKETING vs PRODUCTION</span></div>
+  </section>
+
+  <!-- 14 MARKETING vs PRODUCTION -->
+  <section class="slide t-c" data-slide="14">
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 14 MARKETING vs PRODUCTION <span>TWO FUNCTIONS, NOT ONE</span></span><span>×</span></div>
+    <div class="stage">
+      <div class="eyebrow"><span class="slash">//</span><span>right now we're one production team — we need both</span></div>
+      <h1 class="lede" style="font-size:clamp(34px,5.2vw,86px)">Marketing decides. <em>Production delivers.</em></h1>
+      <div class="split">
+        <div class="col"><span class="h">Marketing · sets direction</span><h2>The <span class="w">story &amp; the strategy.</span></h2>
+          <ul><li>Brand storytelling &amp; fundraising — the bigger initiatives (Keeny).</li><li>Decides what we say, why, and which campaigns move the mission.</li><li>Owns the direction the whole org rallies behind.</li></ul></div>
+        <div class="col"><span class="h">Production · executes</span><h2>The <span class="w">content &amp; the output.</span></h2>
+          <ul><li>Captures &amp; creates everything we shoot (Marc).</li><li>Templatizes &amp; ships on-brand (Ashley) — a constant stream into the pipeline (Joel).</li><li>Surfaces the moments — a camper's story — back up to Marketing.</li></ul></div>
+      </div>
+      <p class="lead-sans">Think Netflix: one global brand team sets the story, each show has its own manager funneling up. Or Soho: a big idea from the center, local teams execute bottom-up. <em>Marketing sets the story; Production makes it real, at volume.</em></p>
+    </div>
+    <div class="bottombar"><span>14 / 22</span><span>NEXT · THE DATA LAYER</span></div>
+  </section>
+
+  <!-- 15 DATA LAYER -->
+  <section class="slide t-a" data-slide="15">
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 15 THE DATA LAYER <span>THE IMPACT BOARD</span></span><span>×</span></div>
+    <div class="stage">
+      <div class="eyebrow"><span class="slash">//</span><span>the numbers are scattered — why we need one source of truth</span></div>
+      <h1 class="lede" style="font-size:clamp(34px,5.2vw,86px)">The only dashboard <em>Cristina needs.</em></h1>
+      <div class="boardwrap">
+        <div class="boardhead"><span>◆ The Impact Board · always-on</span><span>auto-synced</span></div>
+        <div class="board">
+          <div class="kpi"><span class="kn">1,240</span><span class="kl">Girls served · YTD</span></div>
+          <div class="kpi"><span class="kn">87%</span><span class="kl">Camp completion</span></div>
+          <div class="kpi"><span class="kn">2.1M</span><span class="kl">Social reach · 30d</span></div>
+          <div class="kpi"><span class="kn">430</span><span class="kl">New signups · 30d</span></div>
+          <div class="kpi"><span class="kn">$340K</span><span class="kl">Raised · YTD</span></div>
+        </div>
+      </div>
+      <p class="lead-sans"><em>Why the org needs this:</em> these numbers live across four different tools and get hand-keyed, so when a funder or the board asks "how many girls did we serve?" we lose days hunting. <em>Salesforce stays our system of record</em> — the Impact Board is the live view on top of it (native Salesforce dashboards, or a free Looker Studio layer), pulling programs, social &amp; signups together. Any number for any ask, <em>one click away.</em> <span style="opacity:.7">(Figures illustrative.)</span></p>
+    </div>
+    <div class="bottombar"><span>15 / 22</span><span>NEXT · ECOMMERCE</span></div>
+  </section>
+
+  <!-- 16 ECOMMERCE -->
+  <section class="slide t-c" data-slide="16">
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 16 ECOMMERCE <span>MERCH + STORE</span></span><span>×</span></div>
+    <div class="stage">
+      <div class="eyebrow"><span class="slash">//</span><span>the brand can sell — let it</span></div>
+      <h1 class="lede" style="font-size:clamp(36px,5.6vw,96px)">Turn the brand into <em>product.</em></h1>
+      <div class="split">
+        <div class="col"><span class="h">Merch · SwagPro</span><h2>Self-serve, <span class="w">no queue.</span></h2>
+          <ul><li>Development ships on-brand merch <em>without an approval queue.</em></li><li>Brand-locked templates do the guarding — on-brand by default.</li><li>From idea to ordered in minutes, not weeks.</li></ul></div>
+        <div class="col"><span class="h">Store · Shopify</span><h2>Revived &amp; <span class="w">wired in.</span></h2>
+          <ul><li>Relaunch the store as a real <em>revenue + brand channel.</em></li><li>Refreshed, restocked, on-brand storefront.</li><li>Sales flow straight into the data layer.</li></ul></div>
+      </div>
+      <p class="lead-sans">Merch and the store are the same muscle: <em>the brand, packaged and sold</em> — every order also a billboard.</p>
+    </div>
+    <div class="bottombar"><span>16 / 22</span><span>NEXT · PAID MEDIA</span></div>
+  </section>
+
+  <!-- 17 PAID MEDIA -->
+  <section class="slide t-b" data-slide="17">
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 17 PAID MEDIA <span>META + GOOGLE, SMARTER</span></span><span>×</span></div>
+    <div class="stage">
+      <div class="eyebrow"><span class="slash">//</span><span>every ad dollar working harder</span></div>
+      <h1 class="lede" style="font-size:clamp(34px,5.2vw,86px)">Ads that <em>run themselves smarter.</em></h1>
+      <div class="pipe">
+        <div class="line"><span class="pulse"></span></div>
+        <div class="stages">
+          <div class="stg"><span class="si">01 · WHO</span><h3>Audience</h3><p>data layer → who to reach</p></div>
+          <div class="stg"><span class="si">02 · MAKE</span><h3>Creative</h3><p>AI drafts ad variants on-brand</p></div>
+          <div class="stg"><span class="si">03 · LAUNCH</span><h3>Run</h3><p>Meta + Google Ad Grant</p></div>
+          <div class="stg"><span class="si">04 · READ</span><h3>Measure</h3><p>what's converting, live</p></div>
+          <div class="stg"><span class="si">05 · TUNE</span><h3>Optimize</h3><p>shift budget to winners</p></div>
+        </div>
+      </div>
+      <p class="lead-sans">We already have the <em>Google Ad Grant</em> and TikTok credits. With AI sharpening creative, targeting &amp; budget, <em>every dollar (and every free impression) works harder</em> — a human still owns the spend.</p>
+    </div>
+    <div class="bottombar"><span>17 / 22</span><span>NEXT · THE CONTENT ENGINE</span></div>
+  </section>
+
+  <!-- 18 THE CONTENT ENGINE -->
+  <section class="slide t-a" data-slide="18">
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 18 THE CONTENT ENGINE <span>FLOOD THE MARKET</span></span><span>×</span></div>
+    <div class="stage">
+      <div class="eyebrow"><span class="slash">//</span><span>more virtual content · everywhere · this is the future</span></div>
+      <h1 class="lede" style="font-size:clamp(34px,5.4vw,90px)">Flood the market with <em>virtual content.</em></h1>
+      <div class="teams">
+        <div class="tcard"><span class="tg">STREAM</span><span class="tt">Live + YouTube</span><span class="td">Stream virtual programming through the LXP and out to YouTube — live once, on-demand forever. (Code Along S5 is already in YouTube Kids.)</span><span class="to">Reach <b>at scale</b></span></div>
+        <div class="tcard"><span class="tg">MICRO</span><span class="tt">Our own micro-content</span><span class="td">Tools like ElevenLabs + AI spin up shorts, voiceover &amp; clips — so we publish daily, not occasionally.</span><span class="to">Volume <b>on tap</b></span></div>
+        <div class="tcard"><span class="tg">LIVE · AMA</span><span class="tt">10 &amp; 10 — instructor AMAs</span><span class="td">Mica's 10 &amp; 10: live instructor AMAs — real faces, real-time, then chopped into clips that feed everything else.</span><span class="to">Connection <b>+ reuse</b></span></div>
+      </div>
+      <p class="lead-sans">We can finally do this because the tooling makes it cheap: <em>Opus Pro + CapCut + the intake pipeline</em> turn one shoot into dozens of on-brand cuts across YouTube, Reels, TikTok and the LXP. Better processes, smarter tools — so we go from a few posts a week to a <em>constant stream.</em> Brand cache compounds, and so does fundraising.</p>
+    </div>
+    <div class="bottombar"><span>18 / 22</span><span>NEXT · PEOPLE LEAD</span></div>
+  </section>
+
+  <!-- 19 PEOPLE LEAD / BRAND & SAFETY -->
+  <section class="slide t-c" data-slide="19">
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 19 PEOPLE LEAD <span>BRAND &amp; SAFETY</span></span><span>×</span></div>
+    <div class="stage">
+      <div class="eyebrow"><span class="slash">//</span><span>this is not "go 100% AI"</span></div>
+      <h1 class="lede" style="font-size:clamp(40px,6.2vw,112px)">People lead. The brand stays <em>safe.</em></h1>
+      <p class="body">Our position is simple: <em>human-led, AI-amplified, data-safe.</em> AI takes the grind; people own the judgment, the brand, and the final yes. A human approves before anything ships, and student &amp; donor data stays protected — COPPA-bound, never exposed.</p>
+      <p class="lead-sans">We're not handing the org to AI. We're protecting the brand and the kids' trust <em>while we move faster.</em></p>
+    </div>
+    <div class="bottombar"><span>19 / 22</span><span>NEXT · THE INVESTMENT</span></div>
+  </section>
+
+  <!-- 20 THE INVESTMENT -->
+  <section class="slide t-a" data-slide="20">
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 20 THE INVESTMENT <span>COST &amp; RETURN</span></span><span>×</span></div>
+    <div class="stage">
+      <div class="eyebrow"><span class="slash">//</span><span>real seat math · ~30-person org · monthly · estimates</span></div>
+      <h1 class="lede" style="font-size:clamp(34px,5.2vw,84px)">A small bet. <em>Outsized return.</em></h1>
+      <div class="split">
+        <div class="col"><span class="h">Real seat math — per month</span>
+          <div class="costs">
+            <div class="costrow"><span class="cn">Claude Pro <small>· 25 × $20</small></span><span class="cp">$500</span></div>
+            <div class="costrow"><span class="cn">Claude Max <small>· 5 power users × $100</small></span><span class="cp">$500</span></div>
+            <div class="costrow"><span class="cn">ChatGPT <small>· copy · 6 × $20</small></span><span class="cp">$120</span></div>
+            <div class="costrow"><span class="cn">Adobe Creative Cloud <small>· 6 × $60</small></span><span class="cp">$360</span></div>
+            <div class="costrow"><span class="cn">Figma + Canva <small>· 12 × ~$30</small></span><span class="cp">$360</span></div>
+            <div class="costrow"><span class="cn">Sprout Social <small>· social · 2 seats</small></span><span class="cp">$500</span></div>
+            <div class="costrow"><span class="cn">CapCut · Opus Pro · Zapier · Mailchimp</span><span class="cp">~$160</span></div>
+            <div class="costrow"><span class="cn">Notion · Slack · Google · Looker <small>· run / free</small></span><span class="cp">~$0</span></div>
+            <div class="costrow total"><span class="cn">Org-wide · ~30 people</span><span class="cp">≈ $2.5K / mo</span></div>
+          </div>
+        </div>
+        <div class="col"><span class="h">Start small, then scale</span><h2>Pilot first: <span class="w">≈ $1.5K / mo.</span></h2>
+          <ul><li>Stand it up with the core marketing + production team (~10) — <em>small, measurable, reversible.</em></li><li>Everyone gets the $20 base; only the few power users we name get $100 Max.</li><li>25+ hrs/wk back · 5× brand output → stronger grant &amp; donor asks.</li><li><em>One additional grant covers the year — many times over.</em></li><li><span class="muted">Estimates — confirm seats. (Marc's wishlist: a raw-video transfer tool like MASV.)</span></li></ul></div>
+      </div>
+    </div>
+    <div class="bottombar"><span>20 / 22</span><span>NEXT · THE PLAN</span></div>
+  </section>
+
+  <!-- 21 ROADMAP -->
+  <section class="slide t-b" data-slide="21">
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 21 THE PLAN <span>NOW · NEXT · LATER</span></span><span>×</span></div>
+    <div class="stage">
+      <div class="eyebrow"><span class="slash">//</span><span>how we get there</span></div>
+      <h1 class="lede" style="font-size:clamp(40px,6.4vw,108px)">Now. Next. <em>Later.</em></h1>
+      <div class="phases">
+        <div class="phase"><div class="ph">Now</div><div class="pw">0–30 days</div><ul><li>Ratify the stance</li><li>One workflow, proven (camp recap)</li><li>Asset library v1 (Figma + Canva)</li><li>Push the Notion intake form</li></ul></div>
+        <div class="phase"><div class="ph">Next</div><div class="pw">30–90 days</div><ul><li>Intake → Claude draft engine live</li><li>Content engine (Opus Pro + CapCut)</li><li>MCP → Salesforce + Notion</li><li>Impact Board v1 (Looker Studio)</li></ul></div>
+        <div class="phase"><div class="ph">Later</div><div class="pw">90 days +</div><ul><li>Agents across all teams</li><li>Product builds via Claude Code</li><li>Ecommerce + paid media engine</li><li>Org-wide standard</li></ul></div>
+      </div>
+      <div class="target">Targets — <b>same-day</b> turnaround · <b>5×</b> brand output · <b>25+ hrs</b> saved / wk · program data <b>always current</b></div>
+    </div>
+    <div class="bottombar"><span>21 / 22</span><span>NEXT · THE ASK</span></div>
+  </section>
+
+  <!-- 22 ASK + CLOSE (cream) -->
+  <section class="slide t-cream" data-slide="22">
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 22 THE ASK <span>+ CLOSE</span></span><span>×</span></div>
+    <div class="stage">
+      <div class="eyebrow"><span class="slash">//</span><span>what I need from this room</span></div>
+      <h1 class="lede" style="font-size:clamp(42px,6.8vw,120px)">Three <em>decisions.</em></h1>
+      <div class="manifesto">
+        <div class="principle"><span class="n">01</span><div><div class="t">Adopt the stance</div><div class="d">Human-led, AI-amplified, data-safe — our official position.</div></div></div>
+        <div class="principle"><span class="n">02</span><div><div class="t">Fund the pilot — ≈ $1.5K / mo</div><div class="d">The core team's stack first — small, measurable, reversible. Scale org-wide (~$2.5K) from there.</div></div></div>
+        <div class="principle"><span class="n">03</span><div><div class="t">Name one workflow each</div><div class="d">Every lead picks the painful one. We prove the lift in 30 days, then scale.</div></div></div>
+      </div>
+      <p class="body">I'm building the system that lets a small team run a big house — <em>and raise more</em> for the kids we exist to serve. It's go time.</p>
+    </div>
+    <div class="bottombar"><span>22 / 22 · END</span><span>EMPOWER EVERY TEAM</span></div>
+  </section>
+
+</div>
+<div class="dots" id="dots"></div>
+<div class="nav"><button id="prev" aria-label="Previous">‹</button><span id="counter">01 / 22</span><button id="next" aria-label="Next">›</button></div>
+
+<script>
+  const slides=[...document.querySelectorAll('.slide')];
+  const dots=document.getElementById('dots');
+  const counter=document.getElementById('counter');
+  const progress=document.getElementById('progress');
+  let i=0;
+  slides.forEach((_,idx)=>{const d=document.createElement('div');d.className='dot'+(idx===0?' active':'');d.addEventListener('click',()=>go(idx));dots.appendChild(d);});
+  const pad=n=>String(n).padStart(2,'0');
+  function go(n){
+    n=Math.max(0,Math.min(slides.length-1,n));
+    if(n<i) slides[i].classList.add('prev'); else slides[i].classList.remove('prev');
+    i=n;
+    slides.forEach((s,idx)=>{s.classList.toggle('active',idx===i);if(idx!==i)s.classList.remove('prev')});
+    [...dots.children].forEach((d,idx)=>d.classList.toggle('active',idx===i));
+    counter.textContent=pad(i+1)+' / '+pad(slides.length);
+    progress.style.width=((i+1)/slides.length*100)+'%';
+  }
+  document.getElementById('prev').addEventListener('click',()=>go(i-1));
+  document.getElementById('next').addEventListener('click',()=>go(i+1));
+  document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){e.preventDefault();go(i+1)}
+    if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();go(i-1)}
+    if(e.key==='Home') go(0); if(e.key==='End') go(slides.length-1);
+  });
+  let tx=0;
+  document.addEventListener('touchstart',e=>{tx=e.changedTouches[0].clientX},{passive:true});
+  document.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-tx;if(Math.abs(dx)>40){go(dx<0?i+1:i-1)}},{passive:true});
+  document.querySelectorAll('[data-src]').forEach(el=>{const s=el.getAttribute('data-src');const im=new Image();im.onload=()=>{el.style.backgroundImage=`url(${s})`;el.textContent=''};im.src=s;});
+  progress.style.width=(1/slides.length*100)+'%';
+</script>
+</body>
+</html>
