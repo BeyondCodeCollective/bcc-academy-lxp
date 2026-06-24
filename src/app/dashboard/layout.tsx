@@ -185,12 +185,21 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
       }
 
       const enrolledSlugs = (enrolledRes as { slug: string }[]).map((t) => t.slug);
+      // Skip check uses enrolled + allowlist tracks: a just-registered learner's
+      // enrollment may not have completed yet (deferred setup runs on the
+      // dashboard PAGE, after this layout gate), but their allowlist already
+      // reflects the course they signed up for — so an event-course registrant
+      // (e.g. game-on) is recognized and skips the cohort pre-survey on arrival.
+      const allowlistSlugs = (
+        (allowlistRes as { data: { track_slug: string }[] | null }).data ?? []
+      ).map((r) => r.track_slug);
+      const surveyTrackSlugs = [...enrolledSlugs, ...allowlistSlugs];
       const requiredSurvey = !isStaff
         ? program.surveys?.find(
             (s) =>
               s.required &&
               !s.skipForPrograms?.some((p) => homePrograms.has(p)) &&
-              !surveySkippedForTracks(s.skipForTracks, enrolledSlugs),
+              !surveySkippedForTracks(s.skipForTracks, surveyTrackSlugs),
           )
         : undefined;
 
