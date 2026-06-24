@@ -29,8 +29,9 @@ export type ProcessOrderResult =
 export async function processEventbriteOrder(
   orderId: string,
   origin: string,
+  retries = 0,
 ): Promise<ProcessOrderResult> {
-  const order = await fetchEventbriteOrder(orderId);
+  const order = await fetchEventbriteOrder(orderId, retries);
   if (!order) return { ok: false, error: "Could not resolve Eventbrite order" };
   if (!order.email) return { ok: false, error: "Order has no buyer email" };
 

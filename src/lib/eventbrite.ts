@@ -157,6 +157,7 @@ export function orderIdFromApiUrl(apiUrl: string | undefined): string | null {
  *  null on any failure — callers treat that as "couldn't provision, skip". */
 export async function fetchEventbriteOrder(
   orderId: string,
+  retries = 0,
 ): Promise<EventbriteOrder | null> {
   const token = process.env.EVENTBRITE_API_TOKEN;
   if (!token) {
@@ -165,42 +166,55 @@ export async function fetchEventbriteOrder(
   }
 
   const url = `https://www.eventbriteapi.com/v3/orders/${orderId}/?expand=attendees,event`;
-  let res: Response;
-  try {
-    res = await fetch(url, {
-      headers: { Authorization: `Bearer ${token}` },
-      cache: "no-store",
-    });
-  } catch (e) {
-    console.error("[eventbrite] order fetch threw", orderId, e);
-    return null;
-  }
-  if (!res.ok) {
-    console.error("[eventbrite] order fetch failed", orderId, res.status);
-    return null;
-  }
+  // An order isn't immediately queryable the instant checkout completes — the
+  // claim route hits this ~0s after onOrderComplete and Eventbrite returns 400
+  // ("no such order yet"). Retry with a short backoff; the order resolves within
+  // a few seconds (the order.placed webhook, ~2s later, proves it's available).
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, 1500));
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+      });
+    } catch (e) {
+      console.error("[eventbrite] order fetch threw", orderId, e);
+      continue;
+    }
+    if (!res.ok) {
+      console.error(
+        "[eventbrite] order fetch failed",
+        orderId,
+        res.status,
+        `(attempt ${attempt + 1}/${retries + 1})`,
+      );
+      continue;
+    }
 
-  const data = (await res.json()) as Record<string, unknown>;
-  const attendees = Array.isArray(data.attendees)
-    ? (data.attendees as Array<Record<string, unknown>>)
-    : [];
-  const profile = (attendees[0]?.profile ?? {}) as Record<string, unknown>;
-  const event = (data.event ?? {}) as Record<string, unknown>;
-  const start = event.start as { utc?: string; local?: string; timezone?: string } | undefined;
-  const end = event.end as { utc?: string } | undefined;
+    const data = (await res.json()) as Record<string, unknown>;
+    const attendees = Array.isArray(data.attendees)
+      ? (data.attendees as Array<Record<string, unknown>>)
+      : [];
+    const profile = (attendees[0]?.profile ?? {}) as Record<string, unknown>;
+    const event = (data.event ?? {}) as Record<string, unknown>;
+    const start = event.start as { utc?: string; local?: string; timezone?: string } | undefined;
+    const end = event.end as { utc?: string } | undefined;
 
-  return {
-    orderId: String(data.id ?? orderId),
-    email: String(data.email ?? profile.email ?? "").trim().toLowerCase(),
-    name: (profile.name as string | undefined)?.trim() || null,
-    eventId: String(data.event_id ?? event.id ?? ""),
-    eventName: (event.name as { text?: string } | undefined)?.text ?? null,
-    eventStartUtc: start?.utc ?? null,
-    eventEndUtc: end?.utc ?? null,
-    eventStartLocal: start?.local ?? null,
-    eventTimezone: start?.timezone ?? null,
-    status: String(data.status ?? "placed"),
-  };
+    return {
+      orderId: String(data.id ?? orderId),
+      email: String(data.email ?? profile.email ?? "").trim().toLowerCase(),
+      name: (profile.name as string | undefined)?.trim() || null,
+      eventId: String(data.event_id ?? event.id ?? ""),
+      eventName: (event.name as { text?: string } | undefined)?.text ?? null,
+      eventStartUtc: start?.utc ?? null,
+      eventEndUtc: end?.utc ?? null,
+      eventStartLocal: start?.local ?? null,
+      eventTimezone: start?.timezone ?? null,
+      status: String(data.status ?? "placed"),
+    };
+  }
+  return null;
 }
 
 export async function getEvents(): Promise<Event[]> {
