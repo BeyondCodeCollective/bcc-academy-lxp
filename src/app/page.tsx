@@ -39,7 +39,7 @@ export default function HomePage() {
            deck. White card so the code reads cleanly against the dark hero.
            Remove this block when the session is over. */}
         <a
-          href="/follow/empower-7ee93ad328.html"
+          href="/empower"
           target="_blank"
           rel="noopener noreferrer"
           className="group flex flex-col items-center gap-2.5 rounded-2xl bg-white p-5 shadow-2xl transition-transform hover:scale-[1.02]"
