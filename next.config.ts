@@ -42,6 +42,12 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async rewrites() {
+    return [
+      // Friendly URL for the BGC × BCC operating-system follow-along deck.
+      { source: "/empower", destination: "/follow/empower-7ee93ad328.html" },
+    ];
+  },
   async headers() {
     const cspReport = [
       "default-src 'self'",
