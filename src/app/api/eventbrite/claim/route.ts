@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { processEventbriteOrder } from "@/lib/eventbrite-funnel";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 // Fast path. The camp page's embedded checkout fires onOrderComplete with the
 // order id; the browser POSTs it here. We provision the account synchronously
@@ -16,6 +17,17 @@ function resolveOrigin(req: NextRequest): string {
 }
 
 export async function POST(req: NextRequest) {
+  // Each claim does ~9s of Eventbrite lookups (the retry loop) — rate-limit per
+  // IP so a script can't amplify that into a quota/DoS hit. A real registrant
+  // calls this once (maybe a retry), so 8/min is generous.
+  const limited = rateLimit({ key: getClientIp(req), scope: "eb-claim", max: 8, windowMs: 60_000 });
+  if (!limited.ok) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      { status: 429, headers: { "Retry-After": String(limited.retryAfter) } },
+    );
+  }
+
   let orderId: string | undefined;
   try {
     const body = (await req.json()) as { orderId?: string };
