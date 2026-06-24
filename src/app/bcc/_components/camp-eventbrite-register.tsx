@@ -3,22 +3,21 @@
 import { useEffect, useState } from "react";
 import Script from "next/script";
 
-// Eventbrite registration for a BCC landing page, MODAL mode.
+// Inline Eventbrite registration for a BCC landing page (no overlay).
 //
-// We use the modal (not inline) deliberately: the inline embed does NOT reliably
-// fire onOrderComplete, and that callback is the ONLY client signal that lets us
-// auto-redirect the registrant into the portal. The modal fires it reliably. On
-// completion we POST the order id to /api/eventbrite/claim, which provisions the
-// portal account and returns the durable /invite/<token> URL — we redirect there,
-// landing them on the holding page in the same session. The order.placed webhook
-// is the backstop (provisions + emails) if the browser never makes the call.
+// onOrderComplete fires reliably for the inline embed too (verified in prod
+// logs — earlier "inline doesn't fire" was wrong; the real bug was the claim
+// failing). On completion we POST the order id to /api/eventbrite/claim, which
+// retries the Eventbrite lookup for a few seconds (the order isn't queryable the
+// instant checkout finishes) and returns the durable /invite/<token> URL — we
+// redirect there, landing the registrant on the holding page. The order.placed
+// webhook is the backstop that provisions + emails if the call never happens.
 
 type EBWidgets = {
   createWidget: (opts: {
     widgetType: "checkout";
     eventId: string;
-    modal: boolean;
-    modalTriggerElementId: string;
+    iframeContainerId: string;
     onOrderComplete?: (event: { orderId?: string }) => void;
   }) => void;
 };
@@ -26,14 +25,16 @@ type EBWidgets = {
 export function CampEventbriteRegister({
   eventId,
   accent,
-  ctaLabel,
+  height,
 }: {
   eventId: string;
   accent: string;
-  ctaLabel?: string | null;
+  /** Inline embed height override (px). Defaults to 520. */
+  height?: number | null;
 }) {
   const [status, setStatus] = useState<"idle" | "processing" | "sent">("idle");
-  const triggerId = `eb-register-${eventId}`;
+  const containerId = `eb-checkout-${eventId}`;
+  const embedHeight = height && height > 0 ? height : 520;
 
   useEffect(() => {
     let cancelled = false;
@@ -45,8 +46,7 @@ export function CampEventbriteRegister({
         eb.createWidget({
           widgetType: "checkout",
           eventId,
-          modal: true,
-          modalTriggerElementId: triggerId,
+          iframeContainerId: containerId,
           onOrderComplete: (event) => {
             void handleOrderComplete(event?.orderId);
           },
@@ -60,7 +60,7 @@ export function CampEventbriteRegister({
     return () => {
       cancelled = true;
     };
-  }, [eventId, triggerId]);
+  }, [eventId, containerId]);
 
   async function handleOrderComplete(orderId?: string) {
     setStatus("processing");
@@ -85,6 +85,24 @@ export function CampEventbriteRegister({
     }
   }
 
+  // While claim resolves the order (a few seconds) we replace the embed with a
+  // clear "taking you in" state, then redirect.
+  if (status === "processing") {
+    return (
+      <div
+        className="border-l-4 p-4"
+        style={{ borderColor: accent, background: `${accent}10` }}
+      >
+        <p className="text-sm font-semibold" style={{ color: "#1a1a1a" }}>
+          You&apos;re in 🎉
+        </p>
+        <p className="mt-1 text-sm" style={{ color: "#1a1a1a80" }}>
+          Taking you into your portal…
+        </p>
+      </div>
+    );
+  }
+
   if (status === "sent") {
     return (
       <div className="border-l-4 p-4" style={{ borderColor: accent, background: `${accent}10` }}>
@@ -106,33 +124,8 @@ export function CampEventbriteRegister({
         src="https://www.eventbrite.com/static/widgets/eb_widgets.js"
         strategy="lazyOnload"
       />
-      <button
-        type="button"
-        id={triggerId}
-        disabled={status === "processing"}
-        onClick={() => {
-          // Fallback if the SDK failed to load (ad-blocker / network): open the
-          // event on Eventbrite directly so registration is never a dead button.
-          const eb = (window as unknown as { EBWidgets?: EBWidgets }).EBWidgets;
-          if (!eb) window.open(`https://www.eventbrite.com/e/${eventId}`, "_blank", "noopener,noreferrer");
-        }}
-        className="text-sm font-semibold transition-opacity"
-        style={{
-          width: "100%",
-          padding: "14px 20px",
-          background: accent,
-          color: "#fff",
-          border: "none",
-          cursor: status === "processing" ? "wait" : "pointer",
-          minHeight: "50px",
-          letterSpacing: "0.01em",
-          opacity: status === "processing" ? 0.7 : 1,
-        }}
-      >
-        {status === "processing" ? "Setting up your spot…" : (ctaLabel || "Register now →")}
-      </button>
-      {/* What happens next, so it's never a mystery: we auto-redirect into the
-         portal on completion, and the emailed access link is the backstop. */}
+      <style>{`#${containerId}, #${containerId} iframe { width: 100%; min-height: ${embedHeight}px; border: 0; }`}</style>
+      <div id={containerId} style={{ width: "100%" }} />
       <p className="mt-3 text-xs leading-relaxed" style={{ color: "#1a1a1a70" }}>
         We&apos;ll take you straight into your portal after you register. Your
         one-click access link is also emailed to you.

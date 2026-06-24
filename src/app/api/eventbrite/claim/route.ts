@@ -28,7 +28,10 @@ export async function POST(req: NextRequest) {
   }
 
   const origin = resolveOrigin(req);
-  const result = await processEventbriteOrder(orderId, origin);
+  // The claim fires the instant checkout completes, before Eventbrite has the
+  // order queryable — retry the lookup for ~9s so the in-session redirect works
+  // instead of falling through to the (slower) email path.
+  const result = await processEventbriteOrder(orderId, origin, 6);
   if (!result.ok) {
     console.error("[eventbrite/claim] could not process order", orderId, result.error);
     return NextResponse.json({ error: result.error }, { status: 422 });
