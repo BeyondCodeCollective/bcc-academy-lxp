@@ -4,6 +4,9 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/server";
+import { getProgram } from "@/lib/programs/server";
+import { getLearnerAccess } from "@/lib/auth/active-enrollment";
+import { isStaffEmail } from "@/lib/auth/admins";
 
 /**
  * POST /api/zoom-signature
@@ -40,6 +43,17 @@ export async function POST(request: NextRequest) {
 
   if (!student) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // Pending registrants (enrolled only in a not-yet-started course) can't join
+  // meetings yet — mirror the tutor + dashboard confinement. Staff exempt.
+  const program = await getProgram();
+  const access = await getLearnerAccess(svc, user.id, program);
+  if (access.pendingOnly && !isStaffEmail(user.email)) {
+    return NextResponse.json(
+      { error: "Your course hasn't started yet." },
+      { status: 403 },
+    );
   }
 
   // ── Zoom credentials check ────────────────────────────────────────────────
