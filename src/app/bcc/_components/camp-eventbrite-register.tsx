@@ -119,6 +119,14 @@ export function CampEventbriteRegister({
         </p>
       )}
       <div id={containerId} style={{ width: "100%" }} />
+      {/* Persistent next-step so there's never a dead end: if Eventbrite's
+         onOrderComplete callback fires we auto-redirect into the portal; if it
+         doesn't, the registrant still knows to use the emailed access link. */}
+      <p className="mt-3 text-xs leading-relaxed" style={{ color: "#1a1a1a70" }}>
+        After you register, we&apos;ll take you straight into your portal. Your
+        one-click access link is also emailed to you — check your inbox (and spam)
+        if this page doesn&apos;t move on its own.
+      </p>
     </>
   );
 }
