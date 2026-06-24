@@ -251,6 +251,10 @@ async function DashboardContent({
               .filter((s): s is string => !!s),
           );
 
+          // Allowlist tracks too: a just-registered learner's enrollment may not
+          // have completed yet, but their allowlist reflects what they signed up
+          // for — so an event-course registrant (game-on) skips the cohort survey.
+          const allowlistTrackSlugs: string[] = [];
           if (currentUser.email) {
             const svc = createServiceClient();
             const { data: allowRows } = await svc
@@ -258,16 +262,18 @@ async function DashboardContent({
               .select("track_slug")
               .eq("email", currentUser.email.toLowerCase());
             for (const row of allowRows ?? []) {
+              allowlistTrackSlugs.push(row.track_slug as string);
               const home = getHomeProgramForTrack(row.track_slug as string)?.slug;
               if (home) enrolledHomePrograms.add(home);
             }
           }
+          const surveyTrackSlugs = [...enrolledTrackSlugs, ...allowlistTrackSlugs];
 
           pendingSurveys = program.surveys
             .filter((s) => {
               if (!s.required || completedTypes.has(s.id)) return false;
               if (s.skipForPrograms?.some((p) => enrolledHomePrograms.has(p))) return false;
-              if (surveySkippedForTracks(s.skipForTracks, enrolledTrackSlugs)) return false;
+              if (surveySkippedForTracks(s.skipForTracks, surveyTrackSlugs)) return false;
               return true;
             })
             .map((s) => ({ id: s.id, title: s.title, description: s.description }));
