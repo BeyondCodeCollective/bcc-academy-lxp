@@ -104,7 +104,6 @@ export default async function CampLandingPage({
                 <CampEventbriteRegister
                   eventId={page.eventbriteEventId}
                   accent={accent}
-                  height={page.embedHeight}
                 />
               ) : (
                 <CampEmailForm accent={accent} trackSlug={page.trackSlug} />
