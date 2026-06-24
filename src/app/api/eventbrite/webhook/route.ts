@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { timingSafeEqual } from "crypto";
 import { processEventbriteOrder } from "@/lib/eventbrite-funnel";
 import { orderIdFromApiUrl } from "@/lib/eventbrite";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 // order.placed backstop. Fires server-side the moment someone registers, even if
 // their browser closed before the claim route ran. Payload is thin — just an
@@ -9,9 +11,14 @@ import { orderIdFromApiUrl } from "@/lib/eventbrite";
 // on conditions we can't fix (unmapped event, transient resolve failure); those
 // are logged, and the next genuine order still gets processed.
 //
-// Optional hardening: register the payload URL with ?key=<EVENTBRITE_WEBHOOK_SECRET>
-// and we reject anything missing it. Left off, the endpoint is still low-risk —
-// it only acts on real order ids that resolve through our private token.
+// Hardening (see docs/eventbrite-webhook.md to activate):
+//   1. Set EVENTBRITE_WEBHOOK_SECRET in the env.
+//   2. Register the Eventbrite payload URL as `…/api/eventbrite/webhook?key=<secret>`
+//      (or send it as an `x-webhook-secret` header).
+// When the secret is set we reject anything that doesn't present it (constant-time
+// compare). Left UNSET, the endpoint is still low-risk — it only acts on real
+// order ids that resolve through our private token — so default behavior is open
+// to avoid breaking a webhook whose URL hasn't been updated yet.
 
 export const dynamic = "force-dynamic";
 
@@ -21,10 +28,32 @@ function resolveOrigin(req: NextRequest): string {
   return host ? `${proto}://${host}` : "https://bccacademy.io";
 }
 
+/** Constant-time equality (avoids leaking the secret via timing). */
+function safeEqual(a: string, b: string): boolean {
+  const ab = Buffer.from(a);
+  const bb = Buffer.from(b);
+  if (ab.length !== bb.length) return false;
+  return timingSafeEqual(ab, bb);
+}
+
 export async function POST(req: NextRequest) {
+  // Rate-limit per IP. Genuine Eventbrite webhooks come from a small set of IPs
+  // at modest volume, so 120/min is generous while still capping a spammer.
+  const limited = rateLimit({ key: getClientIp(req), scope: "eb-webhook", max: 120, windowMs: 60_000 });
+  if (!limited.ok) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      { status: 429, headers: { "Retry-After": String(limited.retryAfter) } },
+    );
+  }
+
   const secret = process.env.EVENTBRITE_WEBHOOK_SECRET;
-  if (secret && req.nextUrl.searchParams.get("key") !== secret) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (secret) {
+    const presented =
+      req.nextUrl.searchParams.get("key") ?? req.headers.get("x-webhook-secret") ?? "";
+    if (!safeEqual(presented, secret)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
   }
 
   let payload: { api_url?: string; config?: { action?: string } };
