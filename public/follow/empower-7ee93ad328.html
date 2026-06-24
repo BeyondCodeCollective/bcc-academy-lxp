@@ -24,7 +24,7 @@
   @font-face{font-family:'Goga';src:url('/fonts/goga/Goga-Bold.woff2') format('woff2');font-weight:700;font-style:normal;font-display:swap}
   :root{
     --ink:#0b0d12;--cream:#f5f3ef;--muted:#a8a39a;--muted2:#6b6760;
-    --line:#23262f;--accent:#FFB020;
+    --line:#23262f;--accent:#1D59FF;
     --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
     --serif:'Patika','Cormorant Garamond','Georgia',ui-serif,serif;
     --sans:'Goga','Inter',ui-sans-serif,system-ui,sans-serif;
@@ -39,7 +39,7 @@
   .slide.active{opacity:1;transform:translateX(0);pointer-events:auto}
   .slide.prev{transform:translateX(-38px)}
   .t-a{background:var(--ink)}.t-b{background:#0d0f16}.t-c{background:#08090f}
-  .t-cream{background:#efe9dd;color:#16181f;--cream:#16181f;--ink:#efe9dd;--muted:#6f6a60;--muted2:#8a857a;--line:#d8d1c2;--accent:#B26A00}
+  .t-cream{background:#efe9dd;color:#16181f;--cream:#16181f;--ink:#efe9dd;--muted:#6f6a60;--muted2:#8a857a;--line:#d8d1c2;--accent:#1D59FF}
 
   .topbar,.bottombar{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center;color:var(--muted);flex:none}
   .topbar{margin-bottom:auto}
@@ -135,7 +135,7 @@
   .arch .conns{height:clamp(24px,3.2vh,40px);display:flex;justify-content:space-around;padding:0 14%}
   .arch .conns span{width:0;border-left:2px dotted var(--accent);opacity:.65;position:relative}
   .arch .conns span:after{content:"▼";position:absolute;bottom:-3px;left:50%;transform:translateX(-50%);color:var(--accent);font-size:11px;line-height:1}
-  .arch .foundation{border:1px solid var(--line);border-top:1.5px dotted rgba(255,176,32,.55);border-radius:0;padding:clamp(11px,1.5vw,18px) clamp(16px,2vw,26px);background:linear-gradient(160deg,rgba(245,243,239,0.035),transparent);display:flex;align-items:baseline;gap:clamp(12px,2vw,26px);flex-wrap:wrap}
+  .arch .foundation{border:1px solid var(--line);border-top:1.5px dotted rgba(29,89,255,.55);border-radius:0;padding:clamp(11px,1.5vw,18px) clamp(16px,2vw,26px);background:linear-gradient(160deg,rgba(245,243,239,0.035),transparent);display:flex;align-items:baseline;gap:clamp(12px,2vw,26px);flex-wrap:wrap}
   .arch .foundation .flabel{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);flex:none}
   .arch .foundation h3{font-family:var(--serif);font-weight:500;font-size:clamp(19px,2vw,30px);line-height:1;flex:none}
   .arch .foundation p{font-family:var(--sans);font-size:clamp(12px,1.05vw,15px);color:var(--muted);line-height:1.4}
@@ -154,7 +154,7 @@
   .layer .ll{font-family:var(--mono);font-size:clamp(10px,1.05vw,13px);letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
   .layer .lt{font-family:var(--serif);font-size:clamp(17px,1.9vw,30px);color:var(--cream);line-height:1.12}
   .layer .lt small{color:var(--muted);font-family:var(--sans);font-size:.56em;letter-spacing:0}
-  .osys{margin-top:clamp(16px,2.4vh,30px);max-width:1200px;position:relative;border:1.5px dotted var(--accent);background:rgba(255,176,32,.06);padding:clamp(14px,1.9vw,26px);overflow:hidden}
+  .osys{margin-top:clamp(16px,2.4vh,30px);max-width:1200px;position:relative;border:1.5px dotted var(--accent);background:rgba(29,89,255,.06);padding:clamp(14px,1.9vw,26px);overflow:hidden}
   .osys .wraplabel{font-family:var(--mono);font-size:clamp(10px,1.05vw,13px);letter-spacing:.16em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:10px;margin-bottom:clamp(12px,1.6vw,18px)}
   .osys .wraplabel b{color:var(--cream);font-weight:700}
   .osys .wrappulse{position:absolute;top:0;left:-90px;width:80px;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);animation:flow 3.4s linear infinite}
@@ -174,7 +174,7 @@
   .tcard .to b{color:var(--accent);font-weight:500}
   @media(max-width:880px){.teams{grid-template-columns:1fr 1fr}}
 
-  .boardwrap{margin-top:clamp(16px,2.4vh,30px);max-width:1420px;border:1.5px dotted var(--accent);background:rgba(255,176,32,.06);padding:clamp(13px,1.7vw,24px)}
+  .boardwrap{margin-top:clamp(16px,2.4vh,30px);max-width:1420px;border:1.5px dotted var(--accent);background:rgba(29,89,255,.06);padding:clamp(13px,1.7vw,24px)}
   .boardhead{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:clamp(11px,1.5vw,18px)}
   .board{display:grid;grid-template-columns:repeat(5,1fr);gap:clamp(9px,1.6vw,22px)}
   .kpi{border-top:1.5px dotted rgba(245,243,239,.26);padding-top:11px;display:flex;flex-direction:column;gap:3px}
