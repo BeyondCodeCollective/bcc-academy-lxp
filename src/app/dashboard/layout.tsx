@@ -16,6 +16,7 @@ import { canAccessAdminPanel, canSwitchPrograms, canAccessStaffContent } from "@
 import { getSessionContext } from "@/lib/auth/session";
 import { getPreviewTrackSlug, LUNCH_LEARN_PREVIEW_SLUG } from "@/lib/auth/preview-mode";
 import { getEnrolledTracks } from "@/lib/enrollment";
+import { getLearnerAccess } from "@/lib/auth/active-enrollment";
 import { BCC_INTAKE_SURVEY_ID, surveySkippedForTracks } from "@/lib/surveys/platform";
 import { isSurveyEnabledForLearner } from "@/lib/surveys/features";
 import { isStaffEmail } from "@/lib/auth/admins";
@@ -59,6 +60,37 @@ export default async function DashboardLayout({
   const skinAccent =
     (trackSlug ? getHomeProgramForTrack(trackSlug) : null)?.colors.accent ??
     activeProgram.colors.accent;
+
+  // SECURITY: confine pending registrants to their holding page. A learner whose
+  // ONLY enrollment is a not-yet-started course (an event registrant) must not
+  // reach program content — Workshops, Resources, AI Tutor, etc. This runs in the
+  // layout BODY (not the streamed NavShell), so a direct URL is redirected before
+  // any page content streams to the client. Track + survey + settings pages are
+  // always allowed (the holding page itself lives under /dashboard/track); admins,
+  // staff, and active learners (with a started course) pass through untouched.
+  const confineExemptPath = isSurveyPage || pathname.startsWith("/dashboard/settings");
+  if (isSupabaseConfigured() && !confineExemptPath) {
+    const ctx = await getSessionContext();
+    if (ctx) {
+      const exempt =
+        canAccessAdminPanel(ctx.student?.role ?? "") ||
+        isStaffEmail(ctx.student?.email ?? ctx.userEmail);
+      if (!exempt) {
+        const supabase = await createClient();
+        const access = await getLearnerAccess(supabase, ctx.userId, activeProgram);
+        if (access.pendingOnly && access.pendingSlug) {
+          // Only their OWN pending track's holding page is allowed. Program pages
+          // AND any other track bounce back to it — so a pending registrant can't
+          // type their way into a started course or program content either.
+          const reqTrack = pathname.match(/^\/dashboard\/track\/([^/]+)/)?.[1];
+          const isOwnTrack = !!reqTrack && access.enrolled.some((t) => t.slug === reqTrack);
+          if (!isOwnTrack) {
+            redirect(`/dashboard/track/${access.pendingSlug}`);
+          }
+        }
+      }
+    }
+  }
 
   return (
     <ProgramProvider program={baseProgram}>
@@ -403,6 +435,15 @@ async function TopBarShell() {
   // request-cached source also used by the breadcrumb trail.
   const { searchItems } = await getDashboardIndex();
 
+  // Pending registrants are confined to their holding page (see the layout-body
+  // gate). Mirror that in search so it doesn't surface program pages they can't
+  // reach — clicking would just bounce them, so don't show them at all.
+  let confined = false;
+  if (!canAccessAdminPanel(role) && !isStaffEmail(ctx.student?.email ?? ctx.userEmail)) {
+    const supabase = await createClient();
+    confined = (await getLearnerAccess(supabase, ctx.userId, program)).pendingOnly;
+  }
+
   return (
     <DashboardTopBar
       firstName={ctx.student?.first_name ?? ""}
@@ -412,7 +453,8 @@ async function TopBarShell() {
       canSwitch={canSwitch}
       programs={programs}
       currentProgramSlug={program.slug}
-      searchItems={searchItems}
+      searchItems={confined ? [] : searchItems}
+      confined={confined}
     />
   );
 }

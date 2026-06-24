@@ -44,7 +44,15 @@ const MAX_RESULTS = 30;
  * course + lesson content (title, hint, and hidden keywords). Arrow-keys +
  * Enter to navigate.
  */
-export function CommandPalette({ items: content = [] }: { items?: SearchItem[] }) {
+export function CommandPalette({
+  items: content = [],
+  confined = false,
+}: {
+  items?: SearchItem[];
+  /** Pending registrant — confined to the holding page, so search only offers
+   *  Home (everything else would just bounce them). */
+  confined?: boolean;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -52,12 +60,16 @@ export function CommandPalette({ items: content = [] }: { items?: SearchItem[] }
   const inputRef = useRef<HTMLInputElement>(null);
 
   const items = useMemo(() => {
+    // Confined learners can't reach Workshops / Tutor / Resources or the catalog.
+    const destinations = confined
+      ? DESTINATIONS.filter((d) => d.href === "/dashboard")
+      : DESTINATIONS;
     const q = query.trim().toLowerCase();
     // No query → just the quick-nav shortcuts, not the whole catalog.
-    if (!q) return DESTINATIONS;
+    if (!q) return destinations;
     const pool: Item[] = [
-      ...DESTINATIONS,
-      ...content.map((c) => ({ ...c, Icon: BookOpen as typeof House })),
+      ...destinations,
+      ...(confined ? [] : content.map((c) => ({ ...c, Icon: BookOpen as typeof House }))),
     ];
     // Token AND-match: every word in the query must appear somewhere in the
     // item's text, in any order. So "what is ai" matches a lesson titled
@@ -69,7 +81,7 @@ export function CommandPalette({ items: content = [] }: { items?: SearchItem[] }
         return tokens.every((t) => hay.includes(t));
       })
       .slice(0, MAX_RESULTS);
-  }, [query, content]);
+  }, [query, content, confined]);
 
   const openPalette = () => {
     setQuery("");
