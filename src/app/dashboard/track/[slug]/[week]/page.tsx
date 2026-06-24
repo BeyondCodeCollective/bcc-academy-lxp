@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { computeCurrentWeek } from "@/lib/utils";
 import { ArrowLeft, Video, CheckCircle, Link as LinkIcon, FileText } from "lucide-react";
-import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { isSupabaseConfigured, createServiceClient } from "@/lib/supabase/server";
 import { getSessionContent } from "@/app/dashboard/admin/actions";
 import { isStorageUrl, isUploadedVideo } from "@/lib/storage-utils";
 import { resolveTrackProgram } from "@/lib/programs/server";
@@ -43,6 +43,17 @@ export default async function TrackWeekPage({
   // pre-start gate so registration never exposes content early.
   const gateCtx = await getSessionContext();
   const gateIsAdmin = canAccessAdminPanel(gateCtx?.student?.role ?? "");
+  // Enrollment gate: only an enrolled learner (or admin) can open this track's
+  // lessons by URL — no peeking into a course you didn't join.
+  if (!gateIsAdmin && gateCtx?.userId) {
+    const { data: enr } = await createServiceClient()
+      .from("student_tracks")
+      .select("track_slug")
+      .eq("student_id", gateCtx.userId)
+      .eq("track_slug", trackSlug)
+      .maybeSingle();
+    if (!enr) redirect("/dashboard");
+  }
   const hasStarted = !track.startDateTbd && new Date() >= new Date(track.startDate);
   if (!gateIsAdmin && !hasStarted) {
     redirect(`/dashboard/track/${trackSlug}`);

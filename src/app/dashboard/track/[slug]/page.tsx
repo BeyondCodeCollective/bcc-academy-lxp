@@ -39,6 +39,20 @@ export default async function TrackOverviewPage({
   const ctx = await getSessionContext();
   const isAdminViewer = canAccessAdminPanel(ctx?.student?.role ?? "");
 
+  // Enrollment gate: a non-admin learner can only open a track they're enrolled
+  // in — no viewing another course's curriculum by typing the URL. (Pending
+  // registrants are already confined to their own holding page by the layout;
+  // this additionally stops ACTIVE learners from reaching other started tracks.)
+  if (!isAdminViewer && ctx?.userId) {
+    const { data: enr } = await createServiceClient()
+      .from("student_tracks")
+      .select("track_slug")
+      .eq("student_id", ctx.userId)
+      .eq("track_slug", slug)
+      .maybeSingle();
+    if (!enr) redirect("/dashboard");
+  }
+
   // Archived gate: non-admin students cannot view archived builder-created courses.
   if (!isAdminViewer) {
     const svc = createServiceClient();
