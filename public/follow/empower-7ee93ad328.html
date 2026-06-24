@@ -45,7 +45,7 @@
   .topbar{margin-bottom:auto}
   .bottombar{margin-top:auto;padding-top:22px}
   .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);display:flex;gap:1.1em;flex-wrap:wrap;align-items:center}
-  .eyebrow .slash{color:var(--accent2)}
+  .eyebrow .slash{color:var(--accent2)}.sn{color:var(--accent2);font-weight:700}
   .stage{display:flex;flex-direction:column;justify-content:center;flex:1 1 auto;min-height:0;padding:clamp(8px,1.8vh,22px) 0;max-width:1520px}
 
   h1.lede{font-family:var(--serif);font-weight:500;font-size:clamp(42px,7.4vw,140px);line-height:.98;letter-spacing:-.015em;margin-top:12px}
@@ -99,14 +99,14 @@
   .bigquote p em{font-style:italic;color:var(--accent)}
   .bigquote .qby{font-family:var(--mono);font-size:clamp(11px,1.1vw,14px);letter-spacing:.16em;text-transform:uppercase;color:var(--cream);margin-top:clamp(22px,3.4vh,40px)}
 
-  .tenx{font-family:var(--serif);font-style:italic;font-weight:500;font-size:clamp(110px,20vw,300px);line-height:.76;color:var(--accent);letter-spacing:-.02em}
+  .tenx{font-family:var(--serif);font-style:italic;font-weight:500;font-size:clamp(110px,20vw,300px);line-height:.76;color:var(--accent2);letter-spacing:-.02em}
 
   .score{margin-top:clamp(16px,2.4vh,30px);border-top:1px solid var(--line);max-width:1240px}
   .srow{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.7fr) auto minmax(0,1fr);gap:clamp(12px,2.2vw,40px);align-items:baseline;padding:clamp(10px,1.6vh,20px) 0;border-bottom:1px solid var(--line)}
   .srow .sl{font-family:var(--serif);font-weight:500;font-size:clamp(20px,2.1vw,34px);line-height:1;letter-spacing:-.01em}
   .srow .sf{font-family:var(--sans);font-size:clamp(12px,1.05vw,15px);color:var(--muted2);text-decoration:line-through;text-decoration-color:rgba(140,135,125,.5)}
   .srow .sa{font-family:var(--serif);color:var(--accent);font-size:clamp(16px,1.7vw,26px)}
-  .srow .st{font-family:var(--serif);font-style:italic;font-weight:500;font-size:clamp(20px,2.1vw,34px);color:var(--accent);line-height:1;text-align:right}
+  .srow .st{font-family:var(--serif);font-style:italic;font-weight:500;font-size:clamp(20px,2.1vw,34px);color:var(--accent2);line-height:1;text-align:right}
 
   .phases{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(24px,3.6vw,64px);margin-top:clamp(22px,3vh,42px);max-width:1400px}
   .phase{display:flex;flex-direction:column;gap:9px;padding-top:16px;border-top:1.5px dotted rgba(245,243,239,.24)}
@@ -178,7 +178,7 @@
   .boardhead{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:clamp(11px,1.5vw,18px)}
   .board{display:grid;grid-template-columns:repeat(5,1fr);gap:clamp(9px,1.6vw,22px)}
   .kpi{border-top:1.5px dotted rgba(245,243,239,.26);padding-top:11px;display:flex;flex-direction:column;gap:3px}
-  .kpi .kn{font-family:var(--serif);font-style:italic;font-weight:500;font-size:clamp(28px,3.4vw,54px);color:var(--cream);line-height:.88}
+  .kpi .kn{font-family:var(--serif);font-style:italic;font-weight:500;font-size:clamp(28px,3.4vw,54px);color:var(--accent2);line-height:.88}
   .kpi .kl{font-family:var(--sans);font-size:clamp(10.5px,.95vw,12.5px);color:var(--muted);line-height:1.3}
   @media(max-width:880px){.board{grid-template-columns:1fr 1fr}}
 
@@ -216,7 +216,7 @@
   .slide.active .win:nth-child(4){transition-delay:.28s}.slide.active .win:nth-child(5){transition-delay:.34s}.slide.active .win:nth-child(6){transition-delay:.40s}
   .slide.active .win:nth-child(7){transition-delay:.46s}.slide.active .win:nth-child(8){transition-delay:.52s}
   .win .wm{font-family:var(--mono);font-weight:700;text-transform:uppercase;letter-spacing:.06em;font-size:clamp(11px,1.1vw,15px);color:var(--cream)}
-  .win .wn{font-family:var(--serif);font-style:italic;font-weight:500;font-size:clamp(26px,3vw,46px);line-height:.92;color:var(--accent)}
+  .win .wn{font-family:var(--serif);font-style:italic;font-weight:500;font-size:clamp(26px,3vw,46px);line-height:.92;color:var(--accent2)}
   .win .wd{font-family:var(--sans);font-size:clamp(10.5px,.95vw,12.5px);color:var(--muted);line-height:1.3}
   @media(max-width:880px){.wins{grid-template-columns:1fr 1fr}}
 
@@ -248,8 +248,8 @@
   .nav button:hover{border-color:var(--accent);color:var(--accent)}
   .dots{position:fixed;left:24px;bottom:28px;display:flex;gap:7px;z-index:50;max-width:55vw;flex-wrap:wrap}
   .dot{width:6px;height:6px;border-radius:99px;background:rgba(255,255,255,.18);cursor:pointer;transition:background .2s,width .2s}
-  .dot.active{background:var(--accent2);width:22px}
-  .progress{position:fixed;top:0;left:0;height:2px;background:var(--accent2);z-index:60;transition:width .4s ease;width:0}
+  .dot.active{background:var(--accent);width:22px}
+  .progress{position:fixed;top:0;left:0;height:2px;background:var(--accent);z-index:60;transition:width .4s ease;width:0}
 
   @media (max-width:880px){
     .split,.phases,.figs{grid-template-columns:1fr}.figs{grid-template-columns:1fr 1fr}
@@ -282,7 +282,7 @@
 
   <!-- 02 OPENING QUOTE (cream) -->
   <section class="slide t-cream" data-slide="2">
-    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 02 THE MOMENT <span>WHY NOW</span></span><span>×</span></div>
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> <span class="sn">02</span> THE MOMENT <span>WHY NOW</span></span><span>×</span></div>
     <div class="stage">
       <div class="eyebrow"><span class="slash">//</span><span>what the right tools unlock</span></div>
       <div class="bigquote">
@@ -296,7 +296,7 @@
 
   <!-- 03 MOMENTUM -->
   <section class="slide t-b" data-slide="3">
-    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 03 THE MOMENTUM <span>WE'RE ALREADY WINNING</span></span><span>×</span></div>
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> <span class="sn">03</span> THE MOMENTUM <span>WE'RE ALREADY WINNING</span></span><span>×</span></div>
     <div class="stage">
       <div class="eyebrow"><span class="slash">//</span><span>we've got motion — let's keep going</span></div>
       <h1 class="lede" style="font-size:clamp(34px,5.4vw,92px)">We've got <em>momentum.</em></h1>
@@ -317,7 +317,7 @@
 
   <!-- 04 PORTFOLIO -->
   <section class="slide t-a" data-slide="4">
-    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 04 THE PORTFOLIO <span>WHAT THE SYSTEM HAS TO RUN</span></span><span>×</span></div>
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> <span class="sn">04</span> THE PORTFOLIO <span>WHAT THE SYSTEM HAS TO RUN</span></span><span>×</span></div>
     <div class="stage">
       <div class="eyebrow"><span class="slash">//</span><span>two companies · one shared platform</span></div>
       <h1 class="lede" style="font-size:clamp(33px,5vw,82px)">Two companies. <em>One platform.</em></h1>
@@ -343,7 +343,7 @@
 
   <!-- 05 UNDER BGC -->
   <section class="slide t-c" data-slide="5">
-    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 05 UNDER BGC <span>THE SCOPE, PART ONE</span></span><span>×</span></div>
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> <span class="sn">05</span> UNDER BGC <span>THE SCOPE, PART ONE</span></span><span>×</span></div>
     <div class="stage">
       <div class="brandrow"><span>Black Girls Code</span></div>
       <div style="display:flex;align-items:baseline;gap:clamp(14px,2.6vw,40px);flex-wrap:wrap">
@@ -366,7 +366,7 @@
 
   <!-- 06 UNDER BCC -->
   <section class="slide t-a" data-slide="6">
-    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 06 UNDER BCC <span>THE SCOPE, PART TWO</span></span><span>×</span></div>
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> <span class="sn">06</span> UNDER BCC <span>THE SCOPE, PART TWO</span></span><span>×</span></div>
     <div class="stage">
       <div class="brandrow"><span>Beyond Code Collective</span></div>
       <h1 class="lede" style="font-size:clamp(34px,5.4vw,90px)">The next-gen <em>brands.</em></h1>
@@ -384,7 +384,7 @@
 
   <!-- 07 THE PROBLEM -->
   <section class="slide t-b" data-slide="7">
-    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 07 THE PROBLEM <span>THE COST OF THE OLD WAY</span></span><span>×</span></div>
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> <span class="sn">07</span> THE PROBLEM <span>THE COST OF THE OLD WAY</span></span><span>×</span></div>
     <div class="stage">
       <div class="eyebrow"><span class="slash">//</span><span>winning despite the setup, not because of it</span></div>
       <h1 class="lede" style="font-size:clamp(38px,6vw,104px)">The old way is <em>expensive.</em></h1>
@@ -401,7 +401,7 @@
 
   <!-- 08 THE GOAL (cream) -->
   <section class="slide t-cream" data-slide="8">
-    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 08 THE GOAL <span>BY 2027</span></span><span>×</span></div>
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> <span class="sn">08</span> THE GOAL <span>BY 2027</span></span><span>×</span></div>
     <div class="stage">
       <div class="eyebrow"><span class="slash">//</span><span>the goal · same team · by 2027</span></div>
       <div style="display:flex;align-items:baseline;gap:clamp(16px,2.6vw,40px);flex-wrap:wrap">
@@ -421,7 +421,7 @@
 
   <!-- 09 OPERATING SYSTEM -->
   <section class="slide t-a" data-slide="9">
-    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 09 THE OPERATING SYSTEM <span>OUR STACK, CONNECTED</span></span><span>×</span></div>
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> <span class="sn">09</span> THE OPERATING SYSTEM <span>OUR STACK, CONNECTED</span></span><span>×</span></div>
     <div class="stage">
       <div class="eyebrow"><span class="slash">//</span><span>the tools we already use · one flow · directed by us</span></div>
       <h1 class="lede" style="font-size:clamp(32px,5vw,84px)">The right tool for every job — <em>wired together.</em></h1>
@@ -442,7 +442,7 @@
 
   <!-- 10 PROOF -->
   <section class="slide t-c" data-slide="10">
-    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 10 PROOF <span>ONE WORKFLOW, TIMED</span></span><span>×</span></div>
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> <span class="sn">10</span> PROOF <span>ONE WORKFLOW, TIMED</span></span><span>×</span></div>
     <div class="stage">
       <div class="eyebrow"><span class="slash">//</span><span>not a theory — the same camp day, two ways</span></div>
       <h1 class="lede" style="font-size:clamp(34px,5.4vw,90px)">Where the <em>10×</em> comes from.</h1>
@@ -459,7 +459,7 @@
 
   <!-- 11 HOW THE WORK GETS MADE -->
   <section class="slide t-a" data-slide="11">
-    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 11 HOW THE WORK GETS MADE <span>TEMPLATE → DRAFT → SHIP</span></span><span>×</span></div>
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> <span class="sn">11</span> HOW THE WORK GETS MADE <span>TEMPLATE → DRAFT → SHIP</span></span><span>×</span></div>
     <div class="stage">
       <div class="eyebrow"><span class="slash">//</span><span>no blank pages · automation does the grind</span></div>
       <h1 class="lede" style="font-size:clamp(33px,5.2vw,86px)">A request becomes a <em>draft</em> — by itself.</h1>
@@ -481,7 +481,7 @@
 
   <!-- 12 THE BACKLOG IS REPEATABLE -->
   <section class="slide t-c" data-slide="12">
-    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 12 THE BACKLOG <span>SMARTER &amp; FASTER</span></span><span>×</span></div>
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> <span class="sn">12</span> THE BACKLOG <span>SMARTER &amp; FASTER</span></span><span>×</span></div>
     <div class="stage">
       <div class="eyebrow"><span class="slash">//</span><span>30+ open requests right now — but it's the same few jobs</span></div>
       <h1 class="lede" style="font-size:clamp(34px,5.2vw,86px)">Most of the work is the <em>same work.</em></h1>
@@ -500,7 +500,7 @@
 
   <!-- 13 AGENTS PER TEAM -->
   <section class="slide t-b" data-slide="13">
-    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 13 AGENTS PER TEAM <span>UPLIFT, DON'T REPLACE</span></span><span>×</span></div>
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> <span class="sn">13</span> AGENTS PER TEAM <span>UPLIFT, DON'T REPLACE</span></span><span>×</span></div>
     <div class="stage">
       <div class="eyebrow"><span class="slash">//</span><span>an agent on every team's load · a human on every call</span></div>
       <h1 class="lede" style="font-size:clamp(32px,5vw,80px)">Uplift the people who <em>run the work.</em></h1>
@@ -518,7 +518,7 @@
 
   <!-- 14 MARKETING vs PRODUCTION -->
   <section class="slide t-c" data-slide="14">
-    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 14 MARKETING vs PRODUCTION <span>TWO FUNCTIONS, NOT ONE</span></span><span>×</span></div>
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> <span class="sn">14</span> MARKETING vs PRODUCTION <span>TWO FUNCTIONS, NOT ONE</span></span><span>×</span></div>
     <div class="stage">
       <div class="eyebrow"><span class="slash">//</span><span>right now we're one production team — we need both</span></div>
       <h1 class="lede" style="font-size:clamp(34px,5.2vw,86px)">Marketing decides. <em>Production delivers.</em></h1>
@@ -535,7 +535,7 @@
 
   <!-- 15 THE DEVELOPMENT ENGINE -->
   <section class="slide t-b" data-slide="15">
-    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 15 DEVELOPMENT <span>GRANTS · VOLUNTEERS · SURVEYS</span></span><span>×</span></div>
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> <span class="sn">15</span> DEVELOPMENT <span>GRANTS · VOLUNTEERS · SURVEYS</span></span><span>×</span></div>
     <div class="stage">
       <div class="eyebrow"><span class="slash">//</span><span>the fundraising engine — raise more with less lift</span></div>
       <h1 class="lede" style="font-size:clamp(34px,5.2vw,86px)">Raise more, <em>with less lift.</em></h1>
@@ -551,7 +551,7 @@
 
   <!-- 16 DATA LAYER -->
   <section class="slide t-a" data-slide="16">
-    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 16 THE DATA LAYER <span>THE IMPACT BOARD</span></span><span>×</span></div>
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> <span class="sn">16</span> THE DATA LAYER <span>THE IMPACT BOARD</span></span><span>×</span></div>
     <div class="stage">
       <div class="eyebrow"><span class="slash">//</span><span>the numbers are scattered — why we need one source of truth</span></div>
       <h1 class="lede" style="font-size:clamp(34px,5.2vw,86px)">The only dashboard <em>Cristina needs.</em></h1>
@@ -572,7 +572,7 @@
 
   <!-- 17 ECOMMERCE -->
   <section class="slide t-c" data-slide="17">
-    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 17 ECOMMERCE <span>MERCH + STORE</span></span><span>×</span></div>
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> <span class="sn">17</span> ECOMMERCE <span>MERCH + STORE</span></span><span>×</span></div>
     <div class="stage">
       <div class="eyebrow"><span class="slash">//</span><span>the brand can sell — let it</span></div>
       <h1 class="lede" style="font-size:clamp(36px,5.6vw,96px)">Turn the brand into <em>product.</em></h1>
@@ -589,7 +589,7 @@
 
   <!-- 18 PAID MEDIA -->
   <section class="slide t-b" data-slide="18">
-    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 18 PAID MEDIA <span>META + GOOGLE, SMARTER</span></span><span>×</span></div>
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> <span class="sn">18</span> PAID MEDIA <span>META + GOOGLE, SMARTER</span></span><span>×</span></div>
     <div class="stage">
       <div class="eyebrow"><span class="slash">//</span><span>every ad dollar working harder</span></div>
       <h1 class="lede" style="font-size:clamp(34px,5.2vw,86px)">Ads that <em>run themselves smarter.</em></h1>
@@ -610,7 +610,7 @@
 
   <!-- 19 THE CONTENT ENGINE -->
   <section class="slide t-a" data-slide="19">
-    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 19 THE CONTENT ENGINE <span>FLOOD THE MARKET</span></span><span>×</span></div>
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> <span class="sn">19</span> THE CONTENT ENGINE <span>FLOOD THE MARKET</span></span><span>×</span></div>
     <div class="stage">
       <div class="eyebrow"><span class="slash">//</span><span>more virtual content · everywhere · this is the future</span></div>
       <h1 class="lede" style="font-size:clamp(34px,5.4vw,90px)">Flood the market with <em>virtual content.</em></h1>
@@ -626,7 +626,7 @@
 
   <!-- 20 PEOPLE LEAD / BRAND & SAFETY -->
   <section class="slide t-c" data-slide="20">
-    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 20 PEOPLE LEAD <span>BRAND &amp; SAFETY</span></span><span>×</span></div>
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> <span class="sn">20</span> PEOPLE LEAD <span>BRAND &amp; SAFETY</span></span><span>×</span></div>
     <div class="stage">
       <div class="eyebrow"><span class="slash">//</span><span>this is not "go 100% AI"</span></div>
       <h1 class="lede" style="font-size:clamp(40px,6.2vw,112px)">People lead. The brand stays <em>safe.</em></h1>
@@ -638,7 +638,7 @@
 
   <!-- 21 THE INVESTMENT -->
   <section class="slide t-a" data-slide="21">
-    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 21 THE INVESTMENT <span>COST &amp; RETURN</span></span><span>×</span></div>
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> <span class="sn">21</span> THE INVESTMENT <span>COST &amp; RETURN</span></span><span>×</span></div>
     <div class="stage">
       <div class="eyebrow"><span class="slash">//</span><span>real seat math · ~30-person org · monthly · estimates</span></div>
       <h1 class="lede" style="font-size:clamp(34px,5.2vw,84px)">A small bet. <em>Outsized return.</em></h1>
@@ -665,7 +665,7 @@
 
   <!-- 22 ROADMAP -->
   <section class="slide t-b" data-slide="22">
-    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 22 THE PLAN <span>NOW · NEXT · LATER</span></span><span>×</span></div>
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> <span class="sn">22</span> THE PLAN <span>NOW · NEXT · LATER</span></span><span>×</span></div>
     <div class="stage">
       <div class="eyebrow"><span class="slash">//</span><span>how we get there</span></div>
       <h1 class="lede" style="font-size:clamp(40px,6.4vw,108px)">Now. Next. <em>Later.</em></h1>
@@ -681,7 +681,7 @@
 
   <!-- 23 ASK + CLOSE (cream) -->
   <section class="slide t-cream" data-slide="23">
-    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> 23 THE ASK <span>+ CLOSE</span></span><span>×</span></div>
+    <div class="topbar"><span class="eyebrow"><span class="slash">//</span> <span class="sn">23</span> THE ASK <span>+ CLOSE</span></span><span>×</span></div>
     <div class="stage">
       <div class="eyebrow"><span class="slash">//</span><span>what I need from this room</span></div>
       <h1 class="lede" style="font-size:clamp(42px,6.8vw,120px)">Three <em>decisions.</em></h1>
