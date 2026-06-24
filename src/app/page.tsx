@@ -34,6 +34,28 @@ export default function HomePage() {
         </div>
 
         <LearnMoreForm />
+
+        {/* Follow-along QR — scans to the (unlisted) BGC × BCC operating-system
+           deck. White card so the code reads cleanly against the dark hero.
+           Remove this block when the session is over. */}
+        <a
+          href="/follow/empower-7ee93ad328.html"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group flex flex-col items-center gap-2.5 rounded-2xl bg-white p-5 shadow-2xl transition-transform hover:scale-[1.02]"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/follow/qr.svg"
+            alt="Scan to follow along"
+            width={150}
+            height={150}
+            className="h-[150px] w-[150px]"
+          />
+          <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-true-black">
+            Scan to follow along
+          </span>
+        </a>
       </div>
     </div>
   );
