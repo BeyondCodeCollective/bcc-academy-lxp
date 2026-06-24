@@ -63,6 +63,28 @@ export async function getLandingPage(slug: string): Promise<LandingPage | null> 
   };
 }
 
+/** The hero image + accent from the landing page that feeds a track, so the
+ *  in-portal holding page can echo the page the learner just registered on.
+ *  Returns null if no published landing page points at this track. */
+export async function getLandingHeroForTrack(
+  trackSlug: string,
+): Promise<{ heroImageUrl: string | null; accent: string } | null> {
+  const svc = createServiceClient();
+  const { data } = await svc
+    .from("landing_pages")
+    .select("hero_image_url, accent")
+    .eq("track_slug", trackSlug)
+    .eq("published", true)
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!data) return null;
+  return {
+    heroImageUrl: (data.hero_image_url as string | null) ?? null,
+    accent: (data.accent as string | null) ?? "#1D59FF",
+  };
+}
+
 /** Reverse lookup: which published landing page embeds this Eventbrite event.
  *  The order.placed webhook only knows the event id, so this maps it back to the
  *  page's track. Returns the slug + track, or null if no page is wired to it. */
