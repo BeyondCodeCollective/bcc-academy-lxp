@@ -3,6 +3,8 @@ import { generateText } from "ai";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { getProgram } from "@/lib/programs/server";
 import { isTutorAvailable } from "@/lib/programs";
+import { getLearnerAccess } from "@/lib/auth/active-enrollment";
+import { isStaffEmail } from "@/lib/auth/admins";
 import { computeCurrentWeek } from "@/lib/utils";
 import type { TrackConfig, WeekConfig } from "@/lib/programs/types";
 
@@ -31,6 +33,17 @@ export async function POST(request: Request) {
     return NextResponse.json({
       reply: "The AI Tutor is not available for this program.",
     });
+  }
+
+  // SECURITY: a pending registrant (enrolled only in a not-yet-started course)
+  // can't use the tutor until their course begins. The dashboard layout confines
+  // them, but the API is a separate entry point — guard it directly. Staff exempt.
+  const access = await getLearnerAccess(supabase, user.id, program);
+  if (access.pendingOnly && !isStaffEmail(user.email)) {
+    return NextResponse.json(
+      { reply: "Your course hasn't started yet — the AI Tutor unlocks the day it begins." },
+      { status: 403 },
+    );
   }
 
   const { messages } = (await request.json()) as {

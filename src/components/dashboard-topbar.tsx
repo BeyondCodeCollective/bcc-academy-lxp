@@ -21,6 +21,7 @@ export function DashboardTopBar({
   programs,
   currentProgramSlug,
   searchItems = [],
+  confined = false,
 }: {
   firstName: string;
   lastName: string;
@@ -30,6 +31,8 @@ export function DashboardTopBar({
   programs: ProgramOption[];
   currentProgramSlug: string;
   searchItems?: SearchItem[];
+  /** Pending registrant — hide program destinations from search. */
+  confined?: boolean;
 }) {
   // Breadcrumbs moved to a dedicated <Breadcrumbs> bar below the top bar (it
   // renders a full trail on all viewports). The top bar now just hosts search
@@ -38,7 +41,7 @@ export function DashboardTopBar({
     <div className="sticky top-0 z-20 hidden md:block">
       <div className="shell-topbar flex h-14 items-center gap-3 px-4 sm:px-6">
         {/* Working ⌘K command palette. */}
-        <CommandPalette items={searchItems} />
+        <CommandPalette items={searchItems} confined={confined} />
 
         <div className="flex shrink-0 items-center gap-1">
           <button
