@@ -247,7 +247,10 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
       if (surveyEnabled && !intakeRes.data) {
         redirect(`/dashboard/survey/${BCC_INTAKE_SURVEY_ID}`);
       }
-      if (requiredSurvey) {
+      // Required cohort surveys are OPT-IN too — only fire when the program/track
+      // has survey_enabled toggled on (admin Tools/Features page). Off by default;
+      // no more hardcoded auto-survey for new users.
+      if (requiredSurvey && surveyEnabled) {
         const { data: surveyDone } = await supabase
           .from("survey_responses")
           .select("completed_at")
