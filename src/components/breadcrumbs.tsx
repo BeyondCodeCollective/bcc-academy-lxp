@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { CaretRight } from "@phosphor-icons/react";
 
 type Crumb = { label: string; href?: string };
@@ -45,6 +45,7 @@ export function buildTrail(
   pathname: string,
   labels: Record<string, string>,
   isAdmin = false,
+  returnTo: string | null = null,
 ): Crumb[] {
   const path = pathname.replace(/\/+$/, "");
   if (!path.startsWith("/dashboard") || path === "/dashboard") return [];
@@ -76,6 +77,13 @@ export function buildTrail(
   }
 
   const top = rest[0];
+
+  // Survey opened from an onboarding checklist (carries ?return): the ONLY way
+  // out is back to that checklist — no Home/Section links, so a learner mid-
+  // checklist can't wander into pages they shouldn't reach yet.
+  if (top === "survey" && returnTo) {
+    return [{ label: "Back to checklist", href: returnTo }, { label: nameFor(path) ?? "Survey" }];
+  }
 
   // ── Course (track + legacy mass/techplus week routes) ────────────────────
   // No "Courses" crumb — the catalog page was removed. For learners the course
@@ -120,7 +128,8 @@ export function Breadcrumbs({
   isAdmin?: boolean;
 }) {
   const pathname = usePathname();
-  const trail = buildTrail(pathname, labels, isAdmin);
+  const searchParams = useSearchParams();
+  const trail = buildTrail(pathname, labels, isAdmin, searchParams.get("return"));
   if (trail.length < 2) return null; // nothing meaningful to show (e.g. Home)
 
   return (

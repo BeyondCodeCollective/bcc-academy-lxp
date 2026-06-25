@@ -62,31 +62,13 @@ export function OnboardingChecklist({
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8 space-y-6">
-      {/* Hero */}
-      <div className="relative overflow-hidden rounded-2xl border border-rule">
-        <div
-          aria-hidden
-          className="absolute inset-0"
-          style={{ background: "linear-gradient(135deg, #1D59FF, #1a1a1a)" }}
-        />
-        <div className="relative p-6 sm:p-8">
-          <span
-            className="mb-4 inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-[#1a1a1a]"
-            style={{ background: "#E5F701" }}
-          >
-            You&apos;re accepted
-          </span>
-          <h1
-            className="font-bold leading-[1.05] tracking-tight text-white"
-            style={{ fontFamily: "var(--font-bricolage)", fontSize: "clamp(26px, 4.5vw, 38px)" }}
-          >
-            {title}
-          </h1>
-          <p className="mt-2 max-w-lg text-sm leading-relaxed text-white/85">{intro}</p>
-          <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70">
-            {doneCount} of {items.length} complete
-          </p>
-        </div>
+      {/* Header — short and flat, no gradient */}
+      <div>
+        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-primary">
+          You&apos;re accepted · {doneCount} of {items.length} complete
+        </p>
+        <h1 className="mt-1.5 text-xl font-bold tracking-tight text-ink sm:text-2xl">{title}</h1>
+        <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-ink-soft">{intro}</p>
       </div>
 
       {/* Checklist */}
@@ -123,7 +105,10 @@ export function OnboardingChecklist({
                         <ArrowRight size={15} weight="bold" />
                       </button>
                     ) : item.href ? (
-                      <Link href={item.href} className={buttonClass("primary", "md")}>
+                      <Link
+                        href={`${item.href}?return=${encodeURIComponent(`/dashboard/track/${trackSlug}`)}`}
+                        className={buttonClass("primary", "md")}
+                      >
                         {item.kind === "survey" ? "Start" : "Open"}
                         <ArrowRight size={15} weight="bold" />
                       </Link>
