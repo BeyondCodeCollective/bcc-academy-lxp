@@ -197,13 +197,16 @@ export async function GET(request: Request) {
         // leave trackParam null). Do one final direct lookup before rejecting: if the
         // email is genuinely on the list, recover the track and continue rather than
         // bouncing a legitimate student.
-        const { data: finalCheck } = await admin
+        // limit(1) not maybeSingle: a learner allowlisted for >1 track makes
+        // maybeSingle throw, which would false-reject a legitimate student.
+        const { data: finalRows } = await admin
           .from("allowed_signup_emails")
           .select("track_slug")
           .eq("email", email)
-          .maybeSingle();
-        if (finalCheck?.track_slug) {
-          trackParam = finalCheck.track_slug as string;
+          .limit(1);
+        const finalTrack = finalRows?.[0]?.track_slug as string | undefined;
+        if (finalTrack) {
+          trackParam = finalTrack;
           if (!joinSlug) {
             let hpSlug = getHomeProgramForTrack(trackParam)?.slug ?? null;
             if (!hpSlug) {
