@@ -315,8 +315,14 @@ export async function GET(request: Request) {
         };
 
         // For apply flows, send the user directly to the form they came from
-        // rather than the generic dashboard setup screen.
-        const safeNext = nextParam?.startsWith("/dashboard/apply/") ? nextParam : null;
+        // rather than the generic dashboard setup screen. Privileged admins are
+        // exempt: a stale `next` (a restored /login?next=… URL or an old magic
+        // link) must never pull an admin into a public application form — they
+        // sign in to run the dashboard, so fall through to /dashboard/admin.
+        const safeNext =
+          nextParam?.startsWith("/dashboard/apply/") && !isPrivilegedByEnv
+            ? nextParam
+            : null;
 
         // Single-course learners go straight to their one course, so the only
         // loading skeleton shown is that course's — no dashboard→course double
