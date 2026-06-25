@@ -17,6 +17,7 @@ import { getSessionContext } from "@/lib/auth/session";
 import { getPreviewTrackSlug, LUNCH_LEARN_PREVIEW_SLUG } from "@/lib/auth/preview-mode";
 import { getEnrolledTracks } from "@/lib/enrollment";
 import { getLearnerAccess } from "@/lib/auth/active-enrollment";
+import { getOnboardingChecklist, getOnboardingStatus } from "@/lib/onboarding/checklists";
 import { BCC_INTAKE_SURVEY_ID, surveySkippedForTracks } from "@/lib/surveys/platform";
 import { isSurveyEnabledForLearner } from "@/lib/surveys/features";
 import { isStaffEmail } from "@/lib/auth/admins";
@@ -86,6 +87,21 @@ export default async function DashboardLayout({
           const isOwnTrack = !!reqTrack && access.enrolled.some((t) => t.slug === reqTrack);
           if (!isOwnTrack) {
             redirect(`/dashboard/track/${access.pendingSlug}`);
+          }
+        }
+        // Confine onboarding-checklist learners (e.g. the Cybersecurity
+        // acceptance checklist) to that checklist until every item is done — no
+        // wandering into other dashboard pages via the back button. Survey +
+        // settings pages are exempt above, so they can still complete items.
+        if (!access.pendingOnly) {
+          for (const t of access.enrolled) {
+            if (!getOnboardingChecklist(t.slug)) continue;
+            const status = await getOnboardingStatus(supabase, ctx.userId, t.slug);
+            if (status && !status.allComplete) {
+              const reqTrack = pathname.match(/^\/dashboard\/track\/([^/]+)/)?.[1];
+              if (reqTrack !== t.slug) redirect(`/dashboard/track/${t.slug}`);
+              break;
+            }
           }
         }
       }
