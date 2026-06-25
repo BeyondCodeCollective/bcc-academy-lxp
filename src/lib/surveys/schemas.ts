@@ -871,8 +871,127 @@ const SECURITY_PLUS_APPLICATION: SurveyQuestion[] = [
   { type: "text", id: "anything_else", label: "Anything else you want us to know about your application?", required: false },
 ];
 
+// ─── comptia-security-pre (Security+ cohort Pre-Program Survey) ──────────────
+const COMPTIA_SECURITY_PRE: SurveyQuestion[] = [
+  {
+    type: "multi-select",
+    id: "acknowledgment",
+    label: "Acknowledgment — by completing this survey you agree to let Beyond Code Collective use your anonymous responses for program reporting and improvement.",
+    options: ["I understand and agree to participate."],
+    required: true,
+  },
+  // A few basics
+  { type: "text", id: "full_name", label: "Full name", required: true },
+  { type: "text", id: "email", label: "Email address", required: true },
+  {
+    type: "multi-select",
+    id: "employment_status",
+    label: "What is your current employment status? Select all that apply.",
+    options: ["Employed full-time", "Employed part-time", "Unemployed", "Looking for work", "Student", "Other"],
+    required: true,
+  },
+  { type: "text", id: "industry", label: "What industry do you currently work in, or most recently worked in?", required: true },
+  // Part 1 — Tech Confidence
+  {
+    type: "likert",
+    id: "tech_confidence",
+    label: "Tech Confidence — mark how much you agree right now. There are no right or wrong answers.",
+    scale: LIKERT_1_5,
+    scaleAnchors: { low: "1 — Strongly Disagree", high: "5 — Strongly Agree" },
+    statements: [
+      "I feel confident in my ability to learn technical material.",
+      "I see myself succeeding in a tech career.",
+      "I belong in the tech industry.",
+      "I can talk about my technical skills with someone who works in tech.",
+      "I know how to keep learning tech skills on my own.",
+      "When I face a hard challenge, I stay with it instead of giving up.",
+    ],
+    required: true,
+  },
+  // Part 2 — Security+ Knowledge Baseline
+  {
+    type: "likert",
+    id: "security_baseline",
+    label: "Security+ Knowledge Baseline — how familiar are you with each right now? You are not expected to know all of this yet. Not graded.",
+    scale: LIKERT_1_5,
+    scaleAnchors: { low: "1 — No familiarity", high: "5 — I can apply it" },
+    statements: [
+      "Network security fundamentals (firewalls, ports, protocols)",
+      "Threat types and attack vectors (phishing, malware, ransomware)",
+      "Identity and access management (authentication, authorization)",
+      "Risk management and compliance frameworks",
+      "Cryptography and PKI basics",
+      "Incident response and security operations",
+      "Cloud security concepts",
+    ],
+    required: true,
+  },
+  {
+    type: "radio",
+    id: "network_plus_status",
+    label: "Have you studied for or taken the CompTIA Network+ exam?",
+    options: ["Yes — passed", "Yes — studied but not yet tested", "No, but I have equivalent experience", "No prior exposure"],
+    required: true,
+  },
+  { type: "text", id: "cyber_challenge", label: "What have you found most challenging about cybersecurity concepts so far? (If this is your first time, what do you expect might be hard?)", required: true },
+  // Part 3 — Career Direction
+  {
+    type: "likert",
+    id: "career_direction",
+    label: "Career Direction",
+    scale: LIKERT_1_5,
+    scaleAnchors: { low: "1 — Strongly Disagree", high: "5 — Strongly Agree" },
+    statements: [
+      "I can clearly describe the career path or type of role I am working toward.",
+      "I can tell my professional story — who I am, what I have done, where I am headed.",
+      "When I think about my next career steps, I know what to do first.",
+      "I feel confident reaching out to someone I do not know to ask for a conversation or opportunity.",
+      "I believe I belong in the career space I am working toward.",
+    ],
+    required: true,
+  },
+  { type: "text", id: "target_role", label: "Do you know what role or type of work you are aiming for after this program? Examples: SOC analyst, IT support, security engineer, GRC, cloud security, federal/government IT. \"Not sure yet\" is valid.", required: true },
+  { type: "text", id: "success_definition", label: "What does success look like for you when this program ends?", required: true },
+  // Part 4 — Mindset and Professional Identity
+  {
+    type: "likert",
+    id: "mindset_identity",
+    label: "Mindset and Professional Identity — how you see yourself as a professional right now (connects to the MASS coaching with Angel).",
+    scale: LIKERT_1_5,
+    scaleAnchors: { low: "1 — Strongly Disagree", high: "5 — Strongly Agree" },
+    statements: [
+      "I have a clear sense of my professional identity and what I bring to the table.",
+      "I can talk about my value and accomplishments without downplaying them.",
+      "When I hit a setback, I know how to reflect, adjust, and keep moving.",
+      "I feel comfortable asking for help or support when I need it.",
+      "I see a version of myself thriving in a professional environment.",
+    ],
+    required: true,
+  },
+  { type: "text", id: "mindset_focus", label: "Is there anything about your mindset, habits, or professional identity you want to work on during this program?", required: false },
+  // Part 5 — Community and Connection
+  {
+    type: "likert",
+    id: "community_connection",
+    label: "Community and Connection — how connected you feel to professional networks right now (connects to the Community component with Stephanie).",
+    scale: LIKERT_1_5,
+    scaleAnchors: { low: "1 — Strongly Disagree", high: "5 — Strongly Agree" },
+    statements: [
+      "I have a professional network I can draw on for advice or opportunities.",
+      "I feel connected to a community of people working in or toward tech careers.",
+      "I know how to build professional relationships in spaces I am new to.",
+      "I am comfortable showing up in spaces — events, groups, platforms — where I do not yet know people.",
+    ],
+    required: true,
+  },
+  { type: "text", id: "community_meaning", label: "What does community mean to you in the context of your career?", required: false },
+  // Last
+  { type: "text", id: "most_need", label: "What is the one thing you most need from this program to be successful?", required: true },
+];
+
 const SCHEMAS: Record<string, SurveyQuestion[]> = {
   "bcc-learner-intake": BCC_LEARNER_INTAKE,
+  "comptia-security-pre": COMPTIA_SECURITY_PRE,
   "bcc-workshop": BCC_WORKSHOP,
   "network-plus-post": NETWORK_PLUS_POST,
   "pre-survey-spring-2026": PRE_SURVEY_SPRING_2026,
