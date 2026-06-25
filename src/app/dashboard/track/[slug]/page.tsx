@@ -23,6 +23,8 @@ import { MyProgressCard } from "@/components/my-progress-card";
 import { getLearnerProgress } from "@/lib/learner-progress";
 import { HoldingView } from "@/components/holding-view";
 import { getLandingHeroForTrack } from "@/lib/landing-pages";
+import { getOnboardingChecklist, getOnboardingStatus } from "@/lib/onboarding/checklists";
+import { OnboardingChecklist } from "@/components/onboarding-checklist";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +53,42 @@ export default async function TrackOverviewPage({
       .eq("track_slug", slug)
       .maybeSingle();
     if (!enr) redirect("/dashboard");
+  }
+
+  // Acceptance checklist gate: on a checklist-gated track (e.g. the Cybersecurity
+  // cohort), an accepted learner must complete their acceptance materials —
+  // Intake Form, Participation Agreement, Pre-Survey — before reaching the
+  // course. Start-date independent; admins/previewers bypass. Items a learner
+  // already completed (read from survey_responses) auto-check.
+  const checklist = getOnboardingChecklist(slug);
+  if (checklist && !isAdminViewer && ctx?.userId) {
+    const status = await getOnboardingStatus(createServiceClient(), ctx.userId, slug);
+    if (status) {
+      const studentName = [ctx.student?.first_name, ctx.student?.last_name]
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+      const itemViews = checklist.items.map((it) => ({
+        id: it.id,
+        label: it.label,
+        description: it.description,
+        kind: it.kind,
+        href: it.href,
+        completed: status.items.find((s) => s.id === it.id)?.completed ?? false,
+      }));
+      return (
+        <OnboardingChecklist
+          title={checklist.title}
+          intro={checklist.intro}
+          items={itemViews}
+          allComplete={status.allComplete}
+          trackSlug={slug}
+          programSlug={program.slug}
+          cohort={checklist.cohort}
+          defaultName={studentName || undefined}
+        />
+      );
+    }
   }
 
   // Archived gate: non-admin students cannot view archived builder-created courses.
