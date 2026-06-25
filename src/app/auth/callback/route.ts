@@ -7,6 +7,7 @@ import { authCookieDomain } from "@/lib/supabase/cookie-domain";
 import { getProgram, fetchDynamicProgram } from "@/lib/programs/server";
 import { getProgramBySlug, getHomeProgramForTrack, isKnownProgramHost, hasTsConfigSlug } from "@/lib/programs";
 import { determineRole, isPrivilegedEmail, isStaffEmail } from "@/lib/auth/admins";
+import { subscribeToNewsletter } from "@/lib/mailchimp";
 
 // Magic-link landing. Pin to iad1 only: Supabase is in Virginia (us-east-1),
 // co-located with iad1, so DB round-trips are sub-millisecond from this region.
@@ -153,14 +154,25 @@ export async function GET(request: Request) {
           .limit(1);
         const firstTrack = allowRows?.[0]?.track_slug as string | undefined;
         if (firstTrack) {
-          const homeProgram = getHomeProgramForTrack(firstTrack);
-          if (homeProgram) {
+          // TS-config tracks resolve in-memory; Course-Builder (DB) tracks live
+          // only in track_overrides, so getHomeProgramForTrack can't see them.
+          // Fall back to a DB lookup for the track's program in that case.
+          let homeSlug = getHomeProgramForTrack(firstTrack)?.slug ?? null;
+          if (!homeSlug) {
+            const { data: ov } = await admin
+              .from("track_overrides")
+              .select("programs(slug)")
+              .eq("track_slug", firstTrack)
+              .maybeSingle();
+            homeSlug = (ov?.programs as unknown as { slug: string } | null)?.slug ?? null;
+          }
+          if (homeSlug) {
             // Always trust the allowlist over a stale pending-join-slug cookie.
             // The cookie can be left over from a previous session on a different
             // program (e.g. someone who previously visited /join/catalyst then
             // tries to log in as a Forte student). The allowlist is the canonical
             // source of truth for which program the student belongs to.
-            joinSlug = homeProgram.slug;
+            joinSlug = homeSlug;
             if (!trackParam) trackParam = firstTrack;
             // Re-resolve the program config now that we have the slug
             if (hasTsConfigSlug(joinSlug)) {
@@ -193,9 +205,17 @@ export async function GET(request: Request) {
         if (finalCheck?.track_slug) {
           trackParam = finalCheck.track_slug as string;
           if (!joinSlug) {
-            const hp = getHomeProgramForTrack(trackParam);
-            if (hp) {
-              joinSlug = hp.slug;
+            let hpSlug = getHomeProgramForTrack(trackParam)?.slug ?? null;
+            if (!hpSlug) {
+              const { data: ov } = await admin
+                .from("track_overrides")
+                .select("programs(slug)")
+                .eq("track_slug", trackParam)
+                .maybeSingle();
+              hpSlug = (ov?.programs as unknown as { slug: string } | null)?.slug ?? null;
+            }
+            if (hpSlug) {
+              joinSlug = hpSlug;
               if (hasTsConfigSlug(joinSlug)) program = getProgramBySlug(joinSlug);
             }
           }
@@ -306,6 +326,13 @@ export async function GET(request: Request) {
           { onConflict: "id", ignoreDuplicates: true }
         );
         await admin.from("students").update({ last_seen_at: new Date().toISOString() }).eq("id", user.id);
+
+        // First-time signup → add to the Mailchimp newsletter (auto-subscribe).
+        // Only on `!existing` so we don't fire on every login. Name is blank at
+        // this stage; sendWelcomeEmail re-syncs it once onboarding captures it.
+        if (!existing) {
+          void subscribeToNewsletter({ email, programSlug: effectiveSlug });
+        }
 
         const cookieOpts = { path: "/", httpOnly: false, sameSite: "lax" as const };
         const withProgramCookies = (r: NextResponse) => {
