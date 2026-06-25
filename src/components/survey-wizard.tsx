@@ -1019,7 +1019,209 @@ const SECURITY_PLUS_APPLICATION_PAGES: SurveyPage[] = [
   },
 ];
 
+// ─── CompTIA Security+ — Pre-Program Survey ─────────────────────────────────
+const SECURITY_PLUS_PRE_PAGES: SurveyPage[] = [
+  {
+    title: "Welcome",
+    subtitle:
+      "This survey is not a test. We want to understand where you are right now — your confidence, your goals, and what you need from this program — so we can support you from the start. Your answers are private and used only to improve the program and report our impact.",
+    questions: [
+      {
+        type: "consent",
+        id: "acknowledgment",
+        label: "Acknowledgment",
+        text: "By completing this survey, you agree to allow Beyond Code Collective to use your anonymous responses for program reporting and improvement.",
+        bullets: ["Your answers stay private — used only to improve the program and report our impact."],
+        confirmLabel: "I understand and agree to participate.",
+        required: true,
+      },
+    ],
+  },
+  {
+    title: "A few basics",
+    questions: [
+      { type: "text", id: "full_name", label: "Full name", placeholder: "e.g. Jordan Smith", required: true, short: true },
+      { type: "text", id: "email", label: "Email address", placeholder: "you@example.com", required: true, short: true },
+      {
+        type: "multi-select",
+        id: "employment_status",
+        label: "What is your current employment status? Select all that apply.",
+        options: ["Employed full-time", "Employed part-time", "Unemployed", "Looking for work", "Student", "Other"],
+        required: true,
+      },
+      { type: "text", id: "industry", label: "What industry do you currently work in, or most recently worked in?", placeholder: "e.g. Retail, Healthcare, Logistics…", required: true, short: true },
+    ],
+  },
+  {
+    title: "Tech Confidence",
+    subtitle:
+      "Mark how much you agree right now. There are no right or wrong answers — this is your honest starting point. We will ask these again at mid-program and at the end to measure your growth.",
+    questions: [
+      {
+        type: "likert",
+        id: "tech_confidence",
+        label: "Tech Confidence",
+        scale: ["1", "2", "3", "4", "5"],
+        scaleAnchors: { low: "1 — Strongly Disagree", high: "5 — Strongly Agree" },
+        statements: [
+          "I feel confident in my ability to learn technical material.",
+          "I see myself succeeding in a tech career.",
+          "I belong in the tech industry.",
+          "I can talk about my technical skills with someone who works in tech.",
+          "I know how to keep learning tech skills on my own.",
+          "When I face a hard challenge, I stay with it instead of giving up.",
+        ],
+        required: true,
+      },
+    ],
+  },
+  {
+    title: "Security+ Knowledge Baseline",
+    subtitle:
+      "How familiar are you with each of these right now? You are not expected to know all of this yet. Be honest — this is not graded.",
+    questions: [
+      {
+        type: "likert",
+        id: "security_baseline",
+        label: "Security+ Knowledge Baseline",
+        scale: ["1", "2", "3", "4", "5"],
+        scaleAnchors: { low: "1 — No familiarity", high: "5 — I can apply it" },
+        statements: [
+          "Network security fundamentals (firewalls, ports, protocols)",
+          "Threat types and attack vectors (phishing, malware, ransomware)",
+          "Identity and access management (authentication, authorization)",
+          "Risk management and compliance frameworks",
+          "Cryptography and PKI basics",
+          "Incident response and security operations",
+          "Cloud security concepts",
+        ],
+        required: true,
+      },
+      {
+        type: "radio",
+        id: "network_plus_status",
+        label: "Have you studied for or taken the CompTIA Network+ exam?",
+        options: ["Yes — passed", "Yes — studied but not yet tested", "No, but I have equivalent experience", "No prior exposure"],
+        required: true,
+      },
+      {
+        type: "text",
+        id: "cyber_challenge",
+        label: "What have you found most challenging about cybersecurity concepts so far? If this is your first time, what do you expect might be hard?",
+        placeholder: "Share your thoughts…",
+        required: true,
+      },
+    ],
+  },
+  {
+    title: "Career Direction",
+    questions: [
+      {
+        type: "likert",
+        id: "career_direction",
+        label: "Career Direction",
+        scale: ["1", "2", "3", "4", "5"],
+        scaleAnchors: { low: "1 — Strongly Disagree", high: "5 — Strongly Agree" },
+        statements: [
+          "I can clearly describe the career path or type of role I am working toward.",
+          "I can tell my professional story — who I am, what I have done, where I am headed.",
+          "When I think about my next career steps, I know what to do first.",
+          "I feel confident reaching out to someone I do not know to ask for a conversation or opportunity.",
+          "I believe I belong in the career space I am working toward.",
+        ],
+        required: true,
+      },
+      {
+        type: "text",
+        id: "target_role",
+        label: "Do you know what role or type of work you are aiming for after this program? Examples: SOC analyst, IT support, security engineer, GRC, cloud security, federal/government IT. \"Not sure yet\" is a valid answer.",
+        placeholder: "Share your thoughts…",
+        required: true,
+      },
+      {
+        type: "text",
+        id: "success_definition",
+        label: "What does success look like for you when this program ends?",
+        placeholder: "Share your thoughts…",
+        required: true,
+      },
+    ],
+  },
+  {
+    title: "Mindset & Professional Identity",
+    subtitle:
+      "This is about how you see yourself as a professional right now. It connects to the MASS (Mindset and Soft Skills) coaching component led by Angel.",
+    questions: [
+      {
+        type: "likert",
+        id: "mindset_identity",
+        label: "Mindset & Professional Identity",
+        scale: ["1", "2", "3", "4", "5"],
+        scaleAnchors: { low: "1 — Strongly Disagree", high: "5 — Strongly Agree" },
+        statements: [
+          "I have a clear sense of my professional identity and what I bring to the table.",
+          "I can talk about my value and accomplishments without downplaying them.",
+          "When I hit a setback, I know how to reflect, adjust, and keep moving.",
+          "I feel comfortable asking for help or support when I need it.",
+          "I see a version of myself thriving in a professional environment.",
+        ],
+        required: true,
+      },
+      {
+        type: "text",
+        id: "mindset_focus",
+        label: "Is there anything about your mindset, habits, or professional identity you want to work on during this program?",
+        placeholder: "Optional",
+        required: false,
+      },
+    ],
+  },
+  {
+    title: "Community & Connection",
+    subtitle:
+      "This is about how connected you feel to professional networks and communities right now. It connects to the Community component led by Stephanie.",
+    questions: [
+      {
+        type: "likert",
+        id: "community_connection",
+        label: "Community & Connection",
+        scale: ["1", "2", "3", "4", "5"],
+        scaleAnchors: { low: "1 — Strongly Disagree", high: "5 — Strongly Agree" },
+        statements: [
+          "I have a professional network I can draw on for advice or opportunities.",
+          "I feel connected to a community of people working in or toward tech careers.",
+          "I know how to build professional relationships in spaces I am new to.",
+          "I am comfortable showing up in spaces — events, groups, platforms — where I do not yet know people.",
+        ],
+        required: true,
+      },
+      {
+        type: "text",
+        id: "community_meaning",
+        label: "What does community mean to you in the context of your career?",
+        placeholder: "Optional",
+        required: false,
+      },
+    ],
+  },
+  {
+    title: "Last question",
+    questions: [
+      {
+        type: "text",
+        id: "most_need",
+        label: "What is the one thing you most need from this program to be successful?",
+        placeholder: "Share your thoughts…",
+        required: true,
+      },
+    ],
+  },
+];
+
 function getSurveyPages(surveyId: string, programSlug: string): SurveyPage[] {
+  if (surveyId === "comptia-security-pre") {
+    return SECURITY_PLUS_PRE_PAGES;
+  }
   if (surveyId === BCC_INTAKE_SURVEY_ID) {
     return BCC_INTAKE_PAGES;
   }
@@ -1042,6 +1244,8 @@ interface Props {
   surveyId: string;
   programSlug: string;
   existingResponses?: Record<string, unknown> | null;
+  /** Pre-filled answers (e.g. name/email from the account) — fully editable. */
+  initialAnswers?: Record<string, unknown>;
   /** Logged-in user id. Used to scope localStorage so a previous user's
    *  unsubmitted progress on a shared device doesn't bleed into a new
    *  user's session. */
@@ -1052,7 +1256,7 @@ interface Props {
   onSubmit?: (answers: Record<string, unknown>) => Promise<void>;
 }
 
-export function SurveyWizard({ surveyId, programSlug, existingResponses, userId, onSubmit }: Props) {
+export function SurveyWizard({ surveyId, programSlug, existingResponses, userId, onSubmit, initialAnswers }: Props) {
   const router = useRouter();
   const storageKey = userId
     ? `survey-${surveyId}-${userId}-progress`
@@ -1069,7 +1273,9 @@ export function SurveyWizard({ surveyId, programSlug, existingResponses, userId,
         } catch { /* ignore */ }
       }
     }
-    return {};
+    // No saved/existing answers yet → seed with any server-provided prefill
+    // (account name/email, mapped intake fields). Fully editable by the learner.
+    return initialAnswers ?? {};
   });
 
   const [page, setPage] = useState(() => {
