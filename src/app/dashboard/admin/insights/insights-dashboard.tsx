@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { SurveyDashboard } from "../surveys/[surveyId]/survey-dashboard";
 import type { SurveyQuestion } from "@/components/survey-fields";
 import type { BCCSurveyResponse } from "../actions";
@@ -101,6 +101,35 @@ export function InsightsDashboard({
     cohortFilter === "all"
       ? sections.length
       : visibleSections.filter((s) => s.responses.length > 0).length;
+  // One figure PER SURVEY for the cohort view, so a pre-survey, a post-survey
+  // and an intake form are never summed into one meaningless "Responses" total.
+  const perSurveyStats = useMemo(
+    () =>
+      visibleSections
+        .filter((s) => s.responses.length > 0)
+        .map((s) => ({ id: s.survey.id, title: s.survey.title, count: s.responses.length }))
+        .sort((a, b) => b.count - a.count),
+    [visibleSections],
+  );
+
+  // Cohort is deep-linkable via ?cohort=… so one URL opens straight on a cohort
+  // (e.g. sharing the Digital Natives view). Read once on mount.
+  const cohortInit = useRef(false);
+  useEffect(() => {
+    if (cohortInit.current || typeof window === "undefined") return;
+    cohortInit.current = true;
+    const c = new URLSearchParams(window.location.search).get("cohort");
+    if (c && allCohorts.includes(c)) setCohortFilter(c);
+  }, [allCohorts]);
+
+  function changeCohort(value: string) {
+    setCohortFilter(value);
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    if (value === "all") url.searchParams.delete("cohort");
+    else url.searchParams.set("cohort", value);
+    history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+  }
 
   const initialId =
     ledger.find((row) => row.hasSchema)?.id ?? ledger[0]?.id ?? null;
@@ -146,12 +175,30 @@ export function InsightsDashboard({
 
   return (
     <div className="space-y-10">
-      {/* Hero stats */}
-      <div className="grid grid-cols-3 gap-3">
-        <StatCard value={shownResponses.toLocaleString()} label="Responses" />
-        <StatCard value={uniqueRespondents.toLocaleString()} label="Respondents" />
-        <StatCard value={shownSurveys.toLocaleString()} label="Surveys" />
-      </div>
+      {/* Hero — across all cohorts, a roll-up overview. Inside one cohort, a
+         figure PER SURVEY instead, because summing a pre-survey + post-survey +
+         intake form into a single number means nothing. */}
+      {cohortFilter === "all" ? (
+        <div className="grid grid-cols-3 gap-3">
+          <StatCard value={shownResponses.toLocaleString()} label="Responses" />
+          <StatCard value={uniqueRespondents.toLocaleString()} label="Respondents" />
+          <StatCard value={shownSurveys.toLocaleString()} label="Surveys" />
+        </div>
+      ) : (
+        <div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {perSurveyStats.map((s) => (
+              <StatCard key={s.id} value={s.count.toLocaleString()} label={s.title} />
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-ink-faint">
+            {cohortFilter} — {uniqueRespondents.toLocaleString()}{" "}
+            {uniqueRespondents === 1 ? "person" : "people"} across {shownSurveys}{" "}
+            survey{shownSurveys === 1 ? "" : "s"}. Each card is a separate survey,
+            not a combined total.
+          </p>
+        </div>
+      )}
 
       {/* Cohort filter — scope the survey detail to one cohort (the thing people
          search by, e.g. "Digital Natives"). Hidden until there's more than one. */}
@@ -163,7 +210,7 @@ export function InsightsDashboard({
           <select
             id="cohort-filter"
             value={cohortFilter}
-            onChange={(e) => setCohortFilter(e.target.value)}
+            onChange={(e) => changeCohort(e.target.value)}
             className="border border-rule bg-white px-2.5 py-1.5 text-sm text-ink focus:border-ink-faint focus:outline-none"
           >
             <option value="all">All cohorts</option>
@@ -281,7 +328,7 @@ export function InsightsDashboard({
           {cohortFilter !== "all" && (
             <p className="mb-3 text-[12px] text-ink-soft">
               Showing <span className="font-semibold text-ink">{cohortFilter}</span> only —{" "}
-              <button type="button" onClick={() => setCohortFilter("all")} className="underline hover:text-ink">
+              <button type="button" onClick={() => changeCohort("all")} className="underline hover:text-ink">
                 clear
               </button>
             </p>
