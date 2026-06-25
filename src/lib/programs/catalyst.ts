@@ -46,8 +46,10 @@ export const catalystConfig: ProgramConfig = {
       required: true,
       skipForPrograms: ["forte"],
       // Event/workshop courses land registrants on a holding page, not a cohort
-      // pre-survey. Game On registrants skip this.
-      skipForTracks: ["game-on"],
+      // pre-survey. Game On registrants skip this. comptia-security learners take
+      // the pre-survey as an item inside their acceptance checklist, so it must
+      // not force-redirect them away from that checklist on login.
+      skipForTracks: ["game-on", "comptia-security"],
       organization: "Beyond Code Centers",
     },
     {
