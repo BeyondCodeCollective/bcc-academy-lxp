@@ -3,6 +3,7 @@
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { getHomeProgramForTrack } from "@/lib/programs";
+import { BCC_TRACK_VARIANT_LABELS } from "@/lib/surveys/cohort-labels";
 import { revalidatePath } from "next/cache";
 
 export async function completeOnboarding(data: {
@@ -127,7 +128,12 @@ export async function saveSurveyResponse(
         trackSlugs.find((s) => getHomeProgramForTrack(s)?.slug === programSlug) ??
         trackSlugs[0];
       const home = getHomeProgramForTrack(chosen);
-      const trackName = home?.tracks.find((t) => t.slug === chosen)?.name ?? chosen;
+      // Canonical variant label first so this matches public-survey buckets;
+      // fall back to the track's display name, then the slug.
+      const trackName =
+        BCC_TRACK_VARIANT_LABELS[chosen] ??
+        home?.tracks.find((t) => t.slug === chosen)?.name ??
+        chosen;
       enriched = { ...responses, program_variant: trackName, _cohort_track: chosen };
     }
   }

@@ -56,7 +56,6 @@ function cohortColor(name: string, cohorts: string[]): string {
 export function InsightsDashboard({
   sections,
   programs,
-  totalResponses,
 }: Props) {
 
   // Distinct cohorts across all responses — the dimension people actually search
@@ -70,16 +69,38 @@ export function InsightsDashboard({
   }, [sections]);
   const [cohortFilter, setCohortFilter] = useState<string>("all");
 
-  const ledger = useMemo(() => buildLedger(sections, allCohorts), [sections, allCohorts]);
+  // Selecting a cohort scopes the WHOLE page — hero stats, timeline, and the
+  // survey cards — not just the detail panel. Anything narrower reads as "the
+  // filter does nothing" because the big numbers up top never move.
+  const visibleSections = useMemo(
+    () =>
+      cohortFilter === "all"
+        ? sections
+        : sections.map((s) => ({
+            ...s,
+            responses: s.responses.filter((r) => cohortOf(r) === cohortFilter),
+          })),
+    [sections, cohortFilter],
+  );
+
+  const ledger = useMemo(() => buildLedger(visibleSections, allCohorts), [visibleSections, allCohorts]);
   const uniqueRespondents = useMemo(() => {
     const emails = new Set<string>();
-    for (const s of sections) {
+    for (const s of visibleSections) {
       for (const r of s.responses) {
         if (r.email) emails.add(r.email.toLowerCase());
       }
     }
     return emails.size;
-  }, [sections]);
+  }, [visibleSections]);
+  const shownResponses = useMemo(
+    () => visibleSections.reduce((n, s) => n + s.responses.length, 0),
+    [visibleSections],
+  );
+  const shownSurveys =
+    cohortFilter === "all"
+      ? sections.length
+      : visibleSections.filter((s) => s.responses.length > 0).length;
 
   const initialId =
     ledger.find((row) => row.hasSchema)?.id ?? ledger[0]?.id ?? null;
@@ -106,10 +127,10 @@ export function InsightsDashboard({
     }
   }
 
-  const active = sections.find((s) => s.survey.id === activeId) ?? null;
+  const active = visibleSections.find((s) => s.survey.id === activeId) ?? null;
   const allResponses = useMemo(
-    () => sections.flatMap((s) => s.responses),
-    [sections],
+    () => visibleSections.flatMap((s) => s.responses),
+    [visibleSections],
   );
 
   if (sections.length === 0) {
@@ -127,9 +148,9 @@ export function InsightsDashboard({
     <div className="space-y-10">
       {/* Hero stats */}
       <div className="grid grid-cols-3 gap-3">
-        <StatCard value={totalResponses.toLocaleString()} label="Responses" />
+        <StatCard value={shownResponses.toLocaleString()} label="Responses" />
         <StatCard value={uniqueRespondents.toLocaleString()} label="Respondents" />
-        <StatCard value={sections.length.toLocaleString()} label="Surveys" />
+        <StatCard value={shownSurveys.toLocaleString()} label="Surveys" />
       </div>
 
       {/* Cohort filter — scope the survey detail to one cohort (the thing people
@@ -269,11 +290,7 @@ export function InsightsDashboard({
             surveyId={active.survey.id}
             surveyTitle={active.survey.title}
             schema={active.schema}
-            responses={
-              cohortFilter === "all"
-                ? active.responses
-                : active.responses.filter((r) => cohortOf(r) === cohortFilter)
-            }
+            responses={active.responses}
             programs={programs}
             chrome="embedded"
           />

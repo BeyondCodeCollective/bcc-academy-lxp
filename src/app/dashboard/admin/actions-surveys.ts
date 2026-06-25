@@ -6,6 +6,7 @@ import { requireAdmin, requireManager, requireSuperAdmin, requireCapability, log
 import { canSwitchPrograms } from "@/lib/roles";
 import { getProgram } from "@/lib/programs/server";
 import { resolveProgramScope } from "@/lib/programs/scope";
+import { deriveCohortLabel } from "@/lib/surveys/cohort-labels";
 
 // Resolves the program_id scope for an insights query. Super-admins get the
 // BCC-wide view (no scope — undefined) unless they pass an explicit one;
@@ -810,7 +811,7 @@ export async function getDashboardAllSurveyResponses(
   let authQuery = svc
     .from("survey_responses")
     .select(
-      "survey_type, responses, completed_at, program_id, programs(slug, name), students(first_name, last_name, email)",
+      "survey_type, student_id, responses, completed_at, program_id, programs(slug, name), students(first_name, last_name, email)",
     )
     .in("survey_type", surveyTypes)
     .not("completed_at", "is", null);
@@ -852,14 +853,47 @@ export async function getDashboardAllSurveyResponses(
 
   const authData = authRes.data as {
     survey_type: string;
+    student_id: string;
     responses: Record<string, unknown>;
     completed_at: string | null;
     programs: { slug: string; name: string } | { slug: string; name: string }[] | null;
     students: { first_name: string; last_name: string; email: string } | null;
   }[] | null;
 
+  // Read-time cohort fallback. Submission stamps `program_variant` from the
+  // student's enrollment, but that misses anyone who took a survey BEFORE being
+  // enrolled in a track (their tag was never written). Rather than rely on that
+  // one moment, re-derive the cohort from current enrollment for any auth
+  // response still missing a tag, so Survey Insights groups them correctly.
+  const untaggedStudentIds = [
+    ...new Set(
+      (authData ?? [])
+        .filter((r) => !r.responses?.program_variant && !r.responses?._cohort_track)
+        .map((r) => r.student_id)
+        .filter(Boolean),
+    ),
+  ];
+  const tracksByStudent = new Map<string, string[]>();
+  if (untaggedStudentIds.length > 0) {
+    const { data: trackRows } = await svc
+      .from("student_tracks")
+      .select("student_id, track_slug, created_at")
+      .in("student_id", untaggedStudentIds)
+      .order("created_at");
+    for (const t of (trackRows ?? []) as { student_id: string; track_slug: string }[]) {
+      const list = tracksByStudent.get(t.student_id) ?? [];
+      list.push(t.track_slug);
+      tracksByStudent.set(t.student_id, list);
+    }
+  }
+
   for (const row of authData ?? []) {
     const p = (Array.isArray(row.programs) ? row.programs[0] : row.programs) as { slug: string; name: string } | null;
+    let responses = row.responses;
+    if (!responses?.program_variant && !responses?._cohort_track) {
+      const label = deriveCohortLabel(tracksByStudent.get(row.student_id) ?? [], p?.slug ?? "");
+      if (label) responses = { ...responses, program_variant: label };
+    }
     (byType[row.survey_type] ??= []).push({
       survey_type: row.survey_type,
       full_name: row.students ? `${row.students.first_name} ${row.students.last_name}` : "Unknown",
@@ -867,7 +901,7 @@ export async function getDashboardAllSurveyResponses(
       program_slug: p?.slug ?? "",
       program_name: p?.name ?? "",
       completed_at: row.completed_at,
-      responses: row.responses,
+      responses,
       source: "authenticated",
     });
   }
