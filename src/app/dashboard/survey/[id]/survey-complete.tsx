@@ -1,10 +1,15 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Check } from "lucide-react";
 
 export function SurveyComplete() {
   const router = useRouter();
+  // When the survey was opened from an onboarding checklist it carries
+  // ?return=<checklist>; send the learner back there, not the generic dashboard.
+  const returnTo = useSearchParams().get("return");
+  const dest = returnTo && returnTo.startsWith("/dashboard/") ? returnTo : "/dashboard";
+  const label = dest === "/dashboard" ? "Back to Dashboard" : "Back to checklist";
 
   return (
     <div className="panel p-8 sm:p-12 text-center">
