@@ -278,7 +278,9 @@ async function DashboardContent({
             })
             .map((s) => ({ id: s.id, title: s.title, description: s.description }));
 
-          if (pendingSurveys.length > 0) {
+          // Opt-in: only auto-redirect to a required cohort survey when the
+          // program/track has survey_enabled on (Tools/Features page). Off by default.
+          if (pendingSurveys.length > 0 && surveyEnabled) {
             redirect(`/dashboard/survey/${pendingSurveys[0].id}`);
           }
         }
