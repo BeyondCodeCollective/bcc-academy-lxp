@@ -48,6 +48,13 @@ export const PLATFORM_AUTH_SURVEYS: Record<string, SurveyConfig> = {
     description: "Application for the Security+ Catalyst cohort — for Network+ graduates.",
     required: false,
   },
+  "comptia-security-pre": {
+    id: "comptia-security-pre",
+    title: "CompTIA Security+ — Pre-Program Survey",
+    description:
+      "Your confidence, goals, and what you need from the program — so we can support you from the start. Private; used only to improve the program and report impact.",
+    required: false,
+  },
 };
 
 // ─── Public (no login) ──────────────────────────────────────────────────────

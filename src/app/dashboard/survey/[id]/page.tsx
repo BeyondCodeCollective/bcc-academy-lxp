@@ -20,6 +20,7 @@ export default async function SurveyPage({
 
   let existingResponses: Record<string, unknown> | null = null;
   let userId: string | undefined;
+  let initialAnswers: Record<string, unknown> | undefined;
 
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
@@ -49,6 +50,43 @@ export default async function SurveyPage({
     }
 
     existingResponses = (data?.responses as Record<string, unknown>) ?? null;
+
+    // Pre-fill the Security+ pre-survey from the account + a prior intake so
+    // learners don't re-type what we already know. Only seed when they haven't
+    // started this survey yet; every field stays fully editable.
+    if (surveyId === "comptia-security-pre" && !existingResponses) {
+      const seed: Record<string, unknown> = {};
+      const { data: student } = await supabase
+        .from("students")
+        .select("first_name, last_name, email")
+        .eq("id", session.user.id)
+        .maybeSingle();
+      if (student) {
+        const name = [student.first_name, student.last_name].filter(Boolean).join(" ").trim();
+        if (name) seed.full_name = name;
+        if (student.email) seed.email = student.email;
+      }
+      // Employment: reuse the intake answer, keeping only options this survey
+      // also offers (the intake adds a couple we don't — drop those rather than
+      // force a bad mapping).
+      const { data: intake } = await supabase
+        .from("survey_responses")
+        .select("responses")
+        .eq("student_id", session.user.id)
+        .eq("survey_type", "bcc-learner-intake")
+        .not("completed_at", "is", null)
+        .maybeSingle();
+      const intakeEmp = (intake?.responses as Record<string, unknown> | null)?.employment_status;
+      if (Array.isArray(intakeEmp)) {
+        const allowed = new Set([
+          "Employed full-time", "Employed part-time", "Unemployed",
+          "Looking for work", "Student", "Other",
+        ]);
+        const mapped = intakeEmp.filter((v): v is string => typeof v === "string" && allowed.has(v));
+        if (mapped.length) seed.employment_status = mapped;
+      }
+      if (Object.keys(seed).length) initialAnswers = seed;
+    }
   }
 
   return (
@@ -66,6 +104,7 @@ export default async function SurveyPage({
         programSlug={program.slug}
         existingResponses={existingResponses}
         userId={userId}
+        initialAnswers={initialAnswers}
       />
     </div>
   );
