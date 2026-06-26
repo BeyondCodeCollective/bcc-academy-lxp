@@ -42,6 +42,11 @@ export type LikertQuestion = {
   /** Anchor labels shown inline above each statement's scale row so
    *  respondents don't have to remember which end is high/low. */
   scaleAnchors?: { low: string; high: string };
+  /** Optional label for EACH scale point (length should equal `scale`). When
+   *  set, a short label renders under every point instead of just the low/high
+   *  endpoint anchors — for scales where each number means something distinct
+   *  (e.g. 1 = No familiarity … 5 = I can apply it). */
+  pointLabels?: string[];
   required?: boolean;
 };
 
@@ -404,7 +409,7 @@ function LikertField({
     onChange({ ...responses, [statement]: scaleValue });
   }
 
-  const { scaleAnchors } = question;
+  const { scaleAnchors, pointLabels } = question;
   const scaleHint = scaleAnchors
     ? `Scale: ${scaleAnchors.low} to ${scaleAnchors.high}.`
     : "";
@@ -436,30 +441,40 @@ function LikertField({
                 role="radiogroup"
                 aria-labelledby={groupId}
                 aria-required={question.required || undefined}
-                className="flex justify-between"
+                className="flex justify-between gap-1"
               >
-                {question.scale.map((s) => {
+                {question.scale.map((s, i) => {
                   const isSelected = selected === s;
+                  const ptLabel = pointLabels?.[i];
                   return (
-                    <button
-                      key={s}
-                      type="button"
-                      role="radio"
-                      aria-checked={isSelected}
-                      aria-label={`${s} of ${question.scale.length}${scaleHint ? `. ${scaleHint}` : ""}`}
-                      onClick={() => setResponse(stmt, s)}
-                      className={`h-9 w-9 rounded-full text-sm font-medium transition-colors ${
-                        isSelected
-                          ? "bg-ink text-white"
-                          : "bg-paper-tint text-ink hover:bg-paper-tint"
-                      }`}
-                    >
-                      {s}
-                    </button>
+                    <div key={s} className="flex flex-1 flex-col items-center gap-1">
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={isSelected}
+                        aria-label={`${s} of ${question.scale.length}${ptLabel ? `: ${ptLabel}` : ""}${scaleHint ? `. ${scaleHint}` : ""}`}
+                        onClick={() => setResponse(stmt, s)}
+                        className={`h-9 w-9 shrink-0 rounded-full text-sm font-medium transition-colors ${
+                          isSelected
+                            ? "bg-ink text-white"
+                            : "bg-paper-tint text-ink hover:bg-paper-tint"
+                        }`}
+                      >
+                        {s}
+                      </button>
+                      {ptLabel && (
+                        <span
+                          aria-hidden="true"
+                          className="text-center text-[10px] leading-tight text-ink-faint"
+                        >
+                          {ptLabel}
+                        </span>
+                      )}
+                    </div>
                   );
                 })}
               </div>
-              {scaleAnchors && (
+              {scaleAnchors && !pointLabels && (
                 <div
                   aria-hidden="true"
                   className="mt-1.5 flex justify-between text-[11px] text-ink-faint"

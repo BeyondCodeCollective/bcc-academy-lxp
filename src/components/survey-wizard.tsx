@@ -1086,6 +1086,7 @@ const SECURITY_PLUS_PRE_PAGES: SurveyPage[] = [
         label: "Security+ Knowledge Baseline",
         scale: ["1", "2", "3", "4", "5"],
         scaleAnchors: { low: "1 — No familiarity", high: "5 — I can apply it" },
+        pointLabels: ["No familiarity", "Heard of it", "Understand the basics", "Can explain it", "Can apply it"],
         statements: [
           "Network security fundamentals (firewalls, ports, protocols)",
           "Threat types and attack vectors (phishing, malware, ransomware)",
