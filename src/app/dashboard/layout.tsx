@@ -23,6 +23,8 @@ import { isSurveyEnabledForLearner } from "@/lib/surveys/features";
 import { isStaffEmail } from "@/lib/auth/admins";
 import { getHomeProgramForTrack } from "@/lib/programs";
 import { programHasResources } from "@/lib/resources";
+import { MARKETING_SLUG } from "@/lib/programs/marketing";
+import type { ProgramConfig } from "@/lib/programs/types";
 
 function NavSkeleton() {
   // Light placeholder that matches the shell — avoids a black flash on
@@ -41,6 +43,42 @@ function NavSkeleton() {
   );
 }
 
+// A logged-in learner enrolled in a real program (e.g. a Catalyst Course-Builder
+// track like comptia-security) can land on the bccacademy.io apex — which
+// resolves to `marketing` ("BCC Academy") — whenever their program-override
+// cookie is missing or stale, showing the wrong brand + an empty learner shell.
+// Resolve their program from ENROLLMENT instead, so they always wear their
+// actual program's brand regardless of the cookie. Only kicks in on the apex
+// (marketing) for a logged-in learner with enrollments; everything else is a
+// no-op. (Can't refresh the cookie here — layouts can't set cookies.)
+async function resolveLearnerBrand(resolved: ProgramConfig): Promise<ProgramConfig> {
+  if (resolved.slug !== MARKETING_SLUG) return resolved;
+  const ctx = await getSessionContext();
+  if (!ctx?.userId) return resolved;
+  const svc = createServiceClient();
+  const { data: rows } = await svc
+    .from("student_tracks")
+    .select("track_slug")
+    .eq("student_id", ctx.userId);
+  for (const row of rows ?? []) {
+    const slug = (row as { track_slug: string }).track_slug;
+    let homeSlug = getHomeProgramForTrack(slug)?.slug ?? null;
+    if (!homeSlug) {
+      // DB-driven (Course Builder) track — not in TS config; look up its program.
+      const { data: ov } = await svc
+        .from("track_overrides")
+        .select("programs(slug)")
+        .eq("track_slug", slug)
+        .maybeSingle();
+      homeSlug = (ov?.programs as unknown as { slug: string } | null)?.slug ?? null;
+    }
+    if (homeSlug && homeSlug !== MARKETING_SLUG) {
+      return getProgramWithOverrides(homeSlug);
+    }
+  }
+  return resolved;
+}
+
 export default async function DashboardLayout({
   children,
 }: {
@@ -50,7 +88,7 @@ export default async function DashboardLayout({
   const pathname = headersList.get("x-pathname") ?? "";
   const isSurveyPage = pathname.startsWith("/dashboard/survey");
   const programSlug = headersList.get("x-program-slug") ?? "bcc-academy";
-  const baseProgram = getProgramBySlug(programSlug);
+  const baseProgram = await resolveLearnerBrand(getProgramBySlug(programSlug));
 
   // Skin accent follows the program the learner is actually in (the same
   // resolver the nav uses — header-based getProgramBySlug can lag behind and
@@ -155,7 +193,7 @@ export default async function DashboardLayout({
 }
 
 async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
-  const program = await getProgram();
+  const program = await resolveLearnerBrand(await getProgram());
 
   let isAdmin = false;
   let canSwitch = false;
