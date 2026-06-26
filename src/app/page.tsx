@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { LearnMoreForm } from "@/components/learn-more-form";
 import { HeroVideo } from "@/components/hero-video";
 
@@ -9,6 +10,15 @@ export default function HomePage() {
          copy stay legible. bg-true-black is the fallback while the video loads. */}
       <HeroVideo />
       <div className="absolute inset-0 bg-true-black/70" aria-hidden />
+
+      {/* Sign in — so people can just go to bccacademy.io and get into the
+         portal without needing to know the /login URL. */}
+      <Link
+        href="/login"
+        className="absolute right-5 top-5 z-20 inline-flex items-center rounded-full border border-white/25 bg-white/5 px-4 py-2 text-sm font-semibold text-white backdrop-blur transition-colors hover:border-electric-green hover:text-electric-green sm:right-6 sm:top-6"
+      >
+        Sign in
+      </Link>
 
       <div className="relative z-10 flex flex-col items-center gap-10">
         <Image
@@ -34,6 +44,16 @@ export default function HomePage() {
         </div>
 
         <LearnMoreForm />
+
+        <p className="text-sm text-neutral-400">
+          Already enrolled?{" "}
+          <Link
+            href="/login"
+            className="font-semibold text-white underline-offset-4 transition-colors hover:text-electric-green hover:underline"
+          >
+            Sign in
+          </Link>
+        </p>
       </div>
     </div>
   );
