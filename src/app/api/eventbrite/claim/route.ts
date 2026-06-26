@@ -2,11 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { processEventbriteOrder } from "@/lib/eventbrite-funnel";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
-// Fast path. The camp page's embedded checkout fires onOrderComplete with the
-// order id; the browser POSTs it here. We provision the account synchronously
-// and hand back the durable /invite/<token> URL, which the client redirects to —
-// zero-click, same session, straight onto the holding page. The order.placed
-// webhook is the backstop if the browser never makes this call.
+// The camp page's embedded checkout fires onOrderComplete with the order id;
+// the browser POSTs it here so we provision the account synchronously (allowlist
+// + invite token + confirmation email) the instant checkout completes, rather
+// than waiting on the order.placed webhook.
+//
+// SECURITY: we deliberately do NOT return the /invite/<token> login URL. That
+// token mints a magic link that logs the visitor in AS the order's buyer, and
+// this endpoint is keyed only on an attacker-suppliable, enumerable order id —
+// returning it turned the route into an account-takeover oracle. The invite
+// link is delivered solely via the confirmation email sent to the buyer's own
+// address (the only party that proves ownership of that inbox).
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +55,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: result.error }, { status: 422 });
   }
 
-  return NextResponse.json({
-    redirectUrl: `${origin}/invite/${result.inviteToken}`,
-  });
+  // Provisioned + email sent. Never echo the invite token (see SECURITY note
+  // above) — the buyer logs in via the link in their own inbox.
+  return NextResponse.json({ ok: true });
 }
