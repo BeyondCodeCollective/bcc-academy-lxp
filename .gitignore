@@ -53,6 +53,8 @@ next-env.d.ts
 /playwright-report/
 /blob-report/
 /.playwright/
+# Scraper browser profiles — contain Cookies/Login Data; never commit
+**/.playwright-state/
 
 # Zoom SDK static assets (copied from node_modules at build time)
 /public/zoom/

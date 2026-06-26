@@ -280,17 +280,32 @@ export async function getFeedback(
   submissionId?: string,
   reflectionId?: string
 ): Promise<FeedbackRow[]> {
-  await requireAuth();
+  const userId = await requireAuth();
   const svc = createServiceClient();
 
+  // Ownership gate: feedback is private to the student whose work it's on. The
+  // service client bypasses RLS, so verify the parent submission/reflection
+  // belongs to the caller before returning anyone's instructor comments (IDOR).
   let query = svc
     .from("submission_feedback")
     .select("*, students!submission_feedback_reviewer_id_fkey(first_name, last_name)")
     .order("created_at");
 
   if (submissionId) {
+    const { data: parent } = await svc
+      .from("submissions")
+      .select("student_id")
+      .eq("id", submissionId)
+      .maybeSingle<{ student_id: string }>();
+    if (parent?.student_id !== userId) return [];
     query = query.eq("submission_id", submissionId);
   } else if (reflectionId) {
+    const { data: parent } = await svc
+      .from("reflections")
+      .select("student_id")
+      .eq("id", reflectionId)
+      .maybeSingle<{ student_id: string }>();
+    if (parent?.student_id !== userId) return [];
     query = query.eq("reflection_id", reflectionId);
   } else {
     return [];

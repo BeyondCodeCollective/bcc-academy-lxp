@@ -81,10 +81,19 @@ export async function POST(request: NextRequest) {
   const arrayBuffer = await file.arrayBuffer();
   const uint8Array = new Uint8Array(arrayBuffer);
 
+  // Stored-XSS guard: the bucket is public, so a file served with an active
+  // content type (HTML/SVG/XML/JS) would execute on the Supabase storage origin.
+  // The service client bypasses the bucket's MIME allowlist, so neutralize here:
+  // force any active type to octet-stream (downloads instead of rendering).
+  const rawType = file.type || "application/octet-stream";
+  const contentType = /html|svg|xml|javascript|ecmascript/i.test(rawType)
+    ? "application/octet-stream"
+    : rawType;
+
   const { error: uploadError } = await svc.storage
     .from("session-files")
     .upload(storagePath, uint8Array, {
-      contentType: file.type || "application/octet-stream",
+      contentType,
       upsert: false,
     });
 
