@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
-import { canAccessAdminPanel } from "@/lib/roles";
+import { createClient, createServiceClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { canAccessAdminPanel, canSwitchPrograms } from "@/lib/roles";
 
 // POST: admin marks attendance for a student
 export async function POST(request: NextRequest) {
@@ -149,15 +149,29 @@ export async function GET(request: NextRequest) {
 
   const { data: currentStudent } = await supabase
     .from("students")
-    .select("role")
+    .select("role, program_id")
     .eq("id", session.user.id)
-    .single<{ role: string }>();
+    .single<{ role: string; program_id: string | null }>();
 
   let query = supabase
     .from("attendance")
     .select("id, student_id, track, week_number, session_number, checked_in_at, marked_by");
 
-  if (canAccessAdminPanel(currentStudent?.role ?? "")) {
+  const role = currentStudent?.role ?? "";
+  if (canAccessAdminPanel(role)) {
+    // Cross-tenant scope: attendance has no program_id, so a non-super admin is
+    // restricted to attendance rows for students in their own program. Without
+    // this, passing another program's student_id leaked their records.
+    if (!canSwitchPrograms(role)) {
+      const svc = createServiceClient();
+      const { data: progStudents } = await svc
+        .from("students")
+        .select("id")
+        .eq("program_id", currentStudent?.program_id ?? "");
+      const ids = (progStudents ?? []).map((s) => s.id as string);
+      // Empty sentinel guarantees no cross-program rows leak if the list is empty.
+      query = query.in("student_id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]);
+    }
     if (track) query = query.eq("track", track);
     if (studentId) query = query.eq("student_id", studentId);
   } else {

@@ -1,6 +1,5 @@
 "use server";
 
-import { createServiceClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "./actions-shared";
 import { notifyAnnouncement, notifyFeedback } from "@/lib/notifications";
@@ -186,7 +185,9 @@ export async function deleteAnnouncement(announcementId: string) {
 }
 
 export async function getActiveAnnouncements(programSlug: string) {
-  const svc = createServiceClient();
+  // Gate this exported "use server" action — it reads via the service client and
+  // previously had no auth check (any caller could invoke it).
+  const { svc } = await requireAdmin();
   const { data: programRow } = await svc
     .from("programs")
     .select("id")

@@ -73,7 +73,12 @@ const nextConfig: NextConfig = {
         key: "Permissions-Policy",
         value: "camera=(self), microphone=(self), display-capture=(self), geolocation=(), payment=()",
       },
-      { key: "Content-Security-Policy-Report-Only", value: cspReport },
+      // Enforced (was Report-Only). The allowlist above was validated against
+      // the report stream, so enforcing now blocks XSS exfiltration/resource
+      // injection rather than only reporting it. Follow-up: drop 'unsafe-inline'
+      // / 'unsafe-eval' from script-src by nonce-ing the GA + Zoom inline
+      // scripts — that's the remaining gap for full script-injection defense.
+      { key: "Content-Security-Policy", value: cspReport },
     ];
     return [
       { source: "/(.*)", headers: baseHeaders },
