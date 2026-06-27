@@ -1,0 +1,11 @@
+-- Security fix (P0): eventbrite_orders had RLS disabled in the public schema.
+-- Supabase exposes every public-schema table through PostgREST, so with RLS off
+-- the `anon` role (whose key ships in the browser bundle) could SELECT the table
+-- and read every registrant's email + durable invite_token — then visit
+-- /invite/<token> to log in as that person (mass account takeover).
+--
+-- Enabling RLS with NO policies makes it deny-by-default for anon/authenticated,
+-- matching `invites` and `public_survey_responses`. The funnel + order.placed
+-- webhook use the service-role client, which bypasses RLS, so the app is
+-- unaffected. Applied to production on 2026-06-25.
+alter table public.eventbrite_orders enable row level security;

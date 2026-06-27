@@ -3,7 +3,7 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { requireAdmin, requireManager, programIdFromSlug } from "./actions-shared";
+import { requireAdmin, requireManager, resolveProgramForActor } from "./actions-shared";
 import { getSessionContext } from "@/lib/auth/session";
 import type { OfficeHour } from "@/lib/programs/types";
 
@@ -18,9 +18,10 @@ export type StudentTrackRow = {
 };
 
 export async function getStudentTracks(programSlug: string): Promise<StudentTrackRow[]> {
-  const svc = createServiceClient();
+  const actor = await requireAdmin();
+  const { svc } = actor;
   let programId: string;
-  try { programId = await programIdFromSlug(svc, programSlug); }
+  try { programId = await resolveProgramForActor(actor, svc, programSlug); }
   catch { return []; }
 
   const { data, error } = await svc
@@ -41,8 +42,9 @@ export async function assignStudentTrack(
   trackSlug: string,
   programSlug: string
 ) {
-  const { svc } = await requireAdmin();
-  const programId = await programIdFromSlug(svc, programSlug);
+  const actor = await requireAdmin();
+  const { svc } = actor;
+  const programId = await resolveProgramForActor(actor, svc, programSlug);
 
   const { error } = await svc.from("student_tracks").upsert(
     { student_id: studentId, track_slug: trackSlug, program_id: programId },
@@ -59,8 +61,9 @@ export async function removeStudentTrack(
   trackSlug: string,
   programSlug: string
 ) {
-  const { svc } = await requireAdmin();
-  const programId = await programIdFromSlug(svc, programSlug);
+  const actor = await requireAdmin();
+  const { svc } = actor;
+  const programId = await resolveProgramForActor(actor, svc, programSlug);
 
   const { error } = await svc
     .from("student_tracks")
@@ -79,8 +82,9 @@ export async function bulkAssignTrack(
   trackSlug: string,
   programSlug: string
 ) {
-  const { svc } = await requireAdmin();
-  const programId = await programIdFromSlug(svc, programSlug);
+  const actor = await requireAdmin();
+  const { svc } = actor;
+  const programId = await resolveProgramForActor(actor, svc, programSlug);
 
   const rows = studentIds.map((sid) => ({
     student_id: sid,
@@ -155,7 +159,8 @@ export async function saveSessionContent(
   data: SessionContentData,
   programSlug?: string
 ) {
-  const { svc, userId } = await requireAdmin();
+  const actor = await requireAdmin();
+  const { svc, userId } = actor;
 
   // Resolve program slug — prefer explicit arg, fall back to request context
   let slug = programSlug;
@@ -164,16 +169,12 @@ export async function saveSessionContent(
     const program = await getProgram();
     slug = program.slug;
   }
-  const { data: programRow } = await svc
-    .from("programs")
-    .select("id")
-    .eq("slug", slug)
-    .single();
+  const programId = await resolveProgramForActor(actor, svc, slug);
 
   const row: Record<string, unknown> = {
     track,
     week_number: weekNumber,
-    program_id: programRow?.id,
+    program_id: programId,
     meeting_link: data.meeting_link ?? null,
     recording_url: data.recording_url ?? null,
     resources: data.resources ?? [],
@@ -311,14 +312,10 @@ export async function saveTrackOverview(
   patch: TrackOverviewPatch,
   programSlug: string,
 ) {
-  const { svc, userId } = await requireAdmin();
+  const actor = await requireAdmin();
+  const { svc, userId } = actor;
 
-  const { data: programRow } = await svc
-    .from("programs")
-    .select("id")
-    .eq("slug", programSlug)
-    .single();
-  if (!programRow?.id) throw new Error(`Program not found: ${programSlug}`);
+  const programId = await resolveProgramForActor(actor, svc, programSlug);
 
   // Empty-string text fields become null (= "use TS default") so admins can
   // clear an override without nuking their row. Numeric/array fields pass
@@ -330,7 +327,7 @@ export async function saveTrackOverview(
   };
 
   const row: Record<string, unknown> = {
-    program_id: programRow.id,
+    program_id: programId,
     track_slug: trackSlug,
     updated_at: new Date().toISOString(),
     updated_by: userId,
@@ -388,19 +385,16 @@ export type InstructorTrackRow = {
 };
 
 export async function getInstructorTracks(programSlug: string): Promise<InstructorTrackRow[]> {
-  const svc = createServiceClient();
-  const { data: programRow } = await svc
-    .from("programs")
-    .select("id")
-    .eq("slug", programSlug)
-    .single();
-
-  if (!programRow) return [];
+  const actor = await requireAdmin();
+  const { svc } = actor;
+  let programId: string;
+  try { programId = await resolveProgramForActor(actor, svc, programSlug); }
+  catch { return []; }
 
   const { data, error } = await svc
     .from("instructor_tracks")
     .select("*")
-    .eq("program_id", programRow.id)
+    .eq("program_id", programId)
     .order("created_at");
 
   if (error) {
@@ -415,21 +409,16 @@ export async function assignInstructorTrack(
   trackSlug: string,
   programSlug: string
 ) {
-  const { svc } = await requireManager();
+  const actor = await requireManager();
+  const { svc } = actor;
 
-  const { data: programRow } = await svc
-    .from("programs")
-    .select("id")
-    .eq("slug", programSlug)
-    .single();
-
-  if (!programRow) throw new Error("Program not found");
+  const programId = await resolveProgramForActor(actor, svc, programSlug);
 
   const { error } = await svc.from("instructor_tracks").upsert(
     {
       student_id: studentId,
       track_slug: trackSlug,
-      program_id: programRow.id,
+      program_id: programId,
     },
     { onConflict: "student_id,track_slug,program_id" }
   );
@@ -444,22 +433,17 @@ export async function removeInstructorTrack(
   trackSlug: string,
   programSlug: string
 ) {
-  const { svc } = await requireManager();
+  const actor = await requireManager();
+  const { svc } = actor;
 
-  const { data: programRow } = await svc
-    .from("programs")
-    .select("id")
-    .eq("slug", programSlug)
-    .single();
-
-  if (!programRow) throw new Error("Program not found");
+  const programId = await resolveProgramForActor(actor, svc, programSlug);
 
   const { error } = await svc
     .from("instructor_tracks")
     .delete()
     .eq("student_id", studentId)
     .eq("track_slug", trackSlug)
-    .eq("program_id", programRow.id);
+    .eq("program_id", programId);
 
   if (error) throw new Error(error.message);
   revalidatePath("/dashboard/admin");

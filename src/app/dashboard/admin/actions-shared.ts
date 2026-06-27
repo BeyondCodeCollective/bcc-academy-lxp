@@ -31,7 +31,7 @@ export async function requireCapability(capability: Capability) {
   if (await isPreviewingAsStudent(role)) {
     throw new Error("Exit student preview to make changes.");
   }
-  return { svc, userId: user.id, role, programId: student?.program_id ?? null };
+  return { svc, userId: user.id, role, programId: student?.program_id ?? null, isMaster };
 }
 
 // Shorthand aliases used by domain files.
@@ -93,4 +93,47 @@ export async function programIdFromSlug(
     .single();
   if (error || !data) throw new Error(`Program not found: ${slug}`);
   return data.id;
+}
+
+// Authorization context returned by requireCapability/requireAdmin/requireManager.
+type ActorContext = { role: string; programId: string | null; isMaster?: boolean };
+
+// Resolves a client-supplied programSlug to its UUID AND enforces that the actor
+// is allowed to act on it. Capability checks (requireAdmin etc.) only prove the
+// actor holds a role SOMEWHERE — they do not bind the action to the actor's own
+// program. Without this, a program-A admin/instructor could pass programSlug="b"
+// and read or mutate another tenant's data (the service client bypasses RLS, so
+// there is no second line of defense). super_admins (switch_programs) legitimately
+// operate across programs and are allowed through.
+export async function resolveProgramForActor(
+  actor: ActorContext,
+  svc: ReturnType<typeof createServiceClient>,
+  programSlug: string,
+): Promise<string> {
+  const targetId = await programIdFromSlug(svc, programSlug);
+  // super_admins (switch_programs) and the master owner legitimately operate
+  // across programs.
+  if (canSwitchPrograms(actor.role) || actor.isMaster) return targetId;
+  if (!actor.programId || targetId !== actor.programId) {
+    throw new Error("Not authorized for this program");
+  }
+  return targetId;
+}
+
+// Same boundary for actions keyed on a studentId rather than a programSlug:
+// confirm the target student belongs to the actor's program (super_admins pass).
+export async function assertStudentInActorProgram(
+  actor: ActorContext,
+  svc: ReturnType<typeof createServiceClient>,
+  studentId: string,
+): Promise<void> {
+  if (canSwitchPrograms(actor.role) || actor.isMaster) return;
+  const { data } = await svc
+    .from("students")
+    .select("program_id")
+    .eq("id", studentId)
+    .maybeSingle<{ program_id: string | null }>();
+  if (!data || !actor.programId || data.program_id !== actor.programId) {
+    throw new Error("Not authorized for this student");
+  }
 }

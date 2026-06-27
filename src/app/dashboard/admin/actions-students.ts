@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireManager } from "./actions-shared";
+import { requireManager, assertStudentInActorProgram } from "./actions-shared";
 import { assignableRoles, canAssignRole } from "@/lib/roles";
 import { isMasterEmail } from "@/lib/auth/admins";
 
@@ -25,7 +25,11 @@ export type CohortRow = {
 };
 
 export async function deleteStudentAction(studentId: string) {
-  const { svc } = await requireManager();
+  const actor = await requireManager();
+  const { svc } = actor;
+  // Stay within the actor's program — a program admin can't delete another
+  // tenant's student by passing a foreign id (the service client bypasses RLS).
+  await assertStudentInActorProgram(actor, svc, studentId);
   await svc.from("attendance").delete().eq("student_id", studentId);
   const { error } = await svc.from("students").delete().eq("id", studentId);
   if (error) throw new Error(error.message);
@@ -39,7 +43,10 @@ export async function updateStudentAction(
   field: "role" | "cohort_id",
   value: string
 ) {
-  const { svc, userId, role: actorRole } = await requireManager();
+  const actor = await requireManager();
+  const { svc, userId, role: actorRole } = actor;
+  // Stay within the actor's program before any role/cohort mutation.
+  await assertStudentInActorProgram(actor, svc, studentId);
 
   // Role changes are privilege-sensitive: enforce the tier hierarchy so an
   // admin can't escalate anyone (incl. themselves) to a role at or above their

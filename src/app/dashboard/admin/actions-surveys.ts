@@ -1,8 +1,7 @@
 "use server";
 
-import { createServiceClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { requireAdmin, requireManager, requireSuperAdmin, requireCapability, logAdminAccess } from "./actions-shared";
+import { requireAdmin, requireManager, requireSuperAdmin, requireCapability, logAdminAccess, resolveProgramForActor } from "./actions-shared";
 import { canSwitchPrograms } from "@/lib/roles";
 import { getProgram } from "@/lib/programs/server";
 import { resolveProgramScope } from "@/lib/programs/scope";
@@ -35,19 +34,14 @@ export async function getSurveyStats(
   programSlug: string,
   surveyType: string
 ): Promise<SurveyStatsRow[]> {
-  const svc = createServiceClient();
-  const { data: programRow } = await svc
-    .from("programs")
-    .select("id")
-    .eq("slug", programSlug)
-    .single();
-
-  if (!programRow) return [];
+  const actor = await requireAdmin();
+  const { svc } = actor;
+  const programId = await resolveProgramForActor(actor, svc, programSlug);
 
   const { data, error } = await svc
     .from("survey_responses")
     .select("student_id, survey_type, completed_at")
-    .eq("program_id", programRow.id)
+    .eq("program_id", programId)
     .eq("survey_type", surveyType);
 
   if (error) {
@@ -61,20 +55,15 @@ export async function exportSurveyResponses(
   programSlug: string,
   surveyType: string
 ): Promise<{ student_name: string; email: string; responses: Record<string, unknown>; completed_at: string | null }[]> {
-  const { svc } = await requireAdmin();
+  const actor = await requireAdmin();
+  const { svc } = actor;
 
-  const { data: programRow } = await svc
-    .from("programs")
-    .select("id")
-    .eq("slug", programSlug)
-    .single();
-
-  if (!programRow) return [];
+  const programId = await resolveProgramForActor(actor, svc, programSlug);
 
   const { data, error } = await svc
     .from("survey_responses")
     .select("student_id, responses, completed_at, students(first_name, last_name, email)")
-    .eq("program_id", programRow.id)
+    .eq("program_id", programId)
     .eq("survey_type", surveyType)
     .not("completed_at", "is", null);
 
@@ -279,20 +268,15 @@ export async function listPublicSurveyResponses(
   programSlug: string,
   surveyType: string,
 ): Promise<PublicSurveyResponseRow[]> {
-  const { svc } = await requireAdmin();
+  const actor = await requireAdmin();
+  const { svc } = actor;
 
-  const { data: programRow } = await svc
-    .from("programs")
-    .select("id")
-    .eq("slug", programSlug)
-    .single();
-
-  if (!programRow) return [];
+  const programId = await resolveProgramForActor(actor, svc, programSlug);
 
   const { data, error } = await svc
     .from("public_survey_responses")
     .select("email, full_name, completed_at, invited_at, responses")
-    .eq("program_id", programRow.id)
+    .eq("program_id", programId)
     .eq("survey_type", surveyType)
     .order("completed_at", { ascending: false });
 
@@ -308,7 +292,12 @@ export async function sendInviteAction(
   programSlug: string,
   surveyType: string,
 ): Promise<{ success: boolean; error?: string }> {
-  const { svc, userId } = await requireManager();
+  const actor = await requireManager();
+  const { svc, userId } = actor;
+
+  // Enforce the actor administers this program BEFORE we send any "you're
+  // accepted to <program>" email or touch its survey rows.
+  const programId = await resolveProgramForActor(actor, svc, programSlug);
 
   const { getProgramBySlug } = await import("@/lib/programs");
   const program = getProgramBySlug(programSlug);
@@ -394,24 +383,16 @@ export async function sendInviteAction(
     return { success: false, error: "Failed to send email" };
   }
 
-  const { data: programRow } = await svc
-    .from("programs")
-    .select("id")
-    .eq("slug", programSlug)
-    .single();
-
-  if (programRow) {
-    await svc
-      .from("public_survey_responses")
-      .update({ invited_at: new Date().toISOString() })
-      .eq("email", email)
-      .eq("survey_type", surveyType)
-      .eq("program_id", programRow.id);
-  }
+  await svc
+    .from("public_survey_responses")
+    .update({ invited_at: new Date().toISOString() })
+    .eq("email", email)
+    .eq("survey_type", surveyType)
+    .eq("program_id", programId);
 
   logAdminAccess(svc, {
     actorUserId: userId,
-    programId: programRow?.id ?? null,
+    programId: programId,
     action: "send_invite",
     resource: "public_survey_responses",
     metadata: { email, programSlug, surveyType },
@@ -426,22 +407,17 @@ export async function deleteSurveyResponse(
   surveyType: string,
   programSlug: string,
 ): Promise<{ ok: boolean; error?: string }> {
-  const { svc } = await requireAdmin();
+  const actor = await requireAdmin();
+  const { svc } = actor;
 
-  const { data: programRow } = await svc
-    .from("programs")
-    .select("id")
-    .eq("slug", programSlug)
-    .single();
-
-  if (!programRow) return { ok: false, error: "Program not found" };
+  const programId = await resolveProgramForActor(actor, svc, programSlug);
 
   const { error } = await svc
     .from("survey_responses")
     .delete()
     .eq("student_id", studentId)
     .eq("survey_type", surveyType)
-    .eq("program_id", programRow.id);
+    .eq("program_id", programId);
 
   if (error) return { ok: false, error: error.message };
 
@@ -454,22 +430,17 @@ export async function deletePublicSurveyResponse(
   surveyType: string,
   programSlug: string,
 ): Promise<{ ok: boolean; error?: string }> {
-  const { svc } = await requireAdmin();
+  const actor = await requireAdmin();
+  const { svc } = actor;
 
-  const { data: programRow } = await svc
-    .from("programs")
-    .select("id")
-    .eq("slug", programSlug)
-    .single();
-
-  if (!programRow) return { ok: false, error: "Program not found" };
+  const programId = await resolveProgramForActor(actor, svc, programSlug);
 
   const { error } = await svc
     .from("public_survey_responses")
     .delete()
     .eq("email", email)
     .eq("survey_type", surveyType)
-    .eq("program_id", programRow.id);
+    .eq("program_id", programId);
 
   if (error) return { ok: false, error: error.message };
 
@@ -925,7 +896,8 @@ export async function getTrackSurveyResponses(
   surveyType: string,
   trackSlug: string,
 ): Promise<BCCSurveyResponse[]> {
-  const { svc, userId } = await requireAdmin();
+  const actor = await requireAdmin();
+  const { svc, userId } = actor;
 
   const { data: enrollmentRows } = await svc
     .from("student_tracks")
@@ -935,7 +907,7 @@ export async function getTrackSurveyResponses(
   const enrolledIds = (enrollmentRows ?? []).map((r) => r.student_id);
   if (enrolledIds.length === 0) return [];
 
-  const { data } = await svc
+  let query = svc
     .from("survey_responses")
     .select(
       "responses, completed_at, program_id, programs(slug, name), students(first_name, last_name, email)",
@@ -944,6 +916,15 @@ export async function getTrackSurveyResponses(
     .in("student_id", enrolledIds)
     .not("completed_at", "is", null)
     .order("completed_at", { ascending: false });
+
+  // Non-super-admins see only their own program's responses, even if the track
+  // id resolves to another tenant's cohort.
+  if (!canSwitchPrograms(actor.role)) {
+    if (!actor.programId) return [];
+    query = query.eq("program_id", actor.programId);
+  }
+
+  const { data } = await query;
 
   logAdminAccess(svc, {
     actorUserId: userId,

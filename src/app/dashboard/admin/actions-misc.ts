@@ -2,7 +2,7 @@
 
 import { createServiceClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { requireAdmin } from "./actions-shared";
+import { requireAdmin, resolveProgramForActor } from "./actions-shared";
 import { notifyAnnouncement, notifyFeedback } from "@/lib/notifications";
 
 // ─── Submissions & Reflections (Admin) ──────────────────────────────────────
@@ -38,20 +38,15 @@ export async function getAllSubmissions(
   programSlug: string,
   trackSlug?: string
 ): Promise<AdminSubmissionRow[]> {
-  const { svc } = await requireAdmin();
+  const actor = await requireAdmin();
+  const { svc } = actor;
 
-  const { data: programRow } = await svc
-    .from("programs")
-    .select("id")
-    .eq("slug", programSlug)
-    .single();
-
-  if (!programRow) return [];
+  const programId = await resolveProgramForActor(actor, svc, programSlug);
 
   let query = svc
     .from("submissions")
     .select("*, students!submissions_student_id_fkey(first_name, last_name, email), submission_feedback(id)")
-    .eq("program_id", programRow.id)
+    .eq("program_id", programId)
     .not("submitted_at", "is", null)
     .order("week_number")
     .order("submitted_at", { ascending: false });
@@ -91,20 +86,15 @@ export async function getAllReflections(
   programSlug: string,
   trackSlug?: string
 ): Promise<AdminReflectionRow[]> {
-  const { svc } = await requireAdmin();
+  const actor = await requireAdmin();
+  const { svc } = actor;
 
-  const { data: programRow } = await svc
-    .from("programs")
-    .select("id")
-    .eq("slug", programSlug)
-    .single();
-
-  if (!programRow) return [];
+  const programId = await resolveProgramForActor(actor, svc, programSlug);
 
   let query = svc
     .from("reflections")
     .select("*, students!reflections_student_id_fkey(first_name, last_name, email), submission_feedback(id)")
-    .eq("program_id", programRow.id)
+    .eq("program_id", programId)
     .not("submitted_at", "is", null)
     .order("week_number")
     .order("submitted_at", { ascending: false });
@@ -145,18 +135,13 @@ export async function createAnnouncement(data: {
   message: string;
   expiresAt: string;
 }) {
-  const { svc, userId } = await requireAdmin();
+  const actor = await requireAdmin();
+  const { svc, userId } = actor;
 
-  const { data: programRow } = await svc
-    .from("programs")
-    .select("id")
-    .eq("slug", data.programSlug)
-    .single();
-
-  if (!programRow) throw new Error("Program not found");
+  const programId = await resolveProgramForActor(actor, svc, data.programSlug);
 
   const { error } = await svc.from("announcements").insert({
-    program_id: programRow.id,
+    program_id: programId,
     track_slug: data.trackSlug || null,
     instructor_id: userId,
     message: data.message,
@@ -168,7 +153,7 @@ export async function createAnnouncement(data: {
   // Fire-and-forget: email enrolled students (who haven't opted out). Never
   // let a delivery hiccup fail the instructor's post.
   void notifyAnnouncement({
-    programId: programRow.id,
+    programId: programId,
     trackSlug: data.trackSlug || null,
     message: data.message,
   });
@@ -216,15 +201,10 @@ export async function grantCompletion(
   trackSlug: string,
   programSlug: string
 ) {
-  const { svc } = await requireAdmin();
+  const actor = await requireAdmin();
+  const { svc } = actor;
 
-  const { data: programRow } = await svc
-    .from("programs")
-    .select("id")
-    .eq("slug", programSlug)
-    .single();
-
-  if (!programRow) throw new Error("Program not found");
+  const programId = await resolveProgramForActor(actor, svc, programSlug);
 
   const { data: completion, error } = await svc
     .from("track_completions")
@@ -232,7 +212,7 @@ export async function grantCompletion(
       {
         student_id: studentId,
         track_slug: trackSlug,
-        program_id: programRow.id,
+        program_id: programId,
       },
       { onConflict: "student_id,track_slug,program_id" }
     )
@@ -250,22 +230,17 @@ export async function revokeCompletion(
   trackSlug: string,
   programSlug: string
 ) {
-  const { svc } = await requireAdmin();
+  const actor = await requireAdmin();
+  const { svc } = actor;
 
-  const { data: programRow } = await svc
-    .from("programs")
-    .select("id")
-    .eq("slug", programSlug)
-    .single();
-
-  if (!programRow) throw new Error("Program not found");
+  const programId = await resolveProgramForActor(actor, svc, programSlug);
 
   const { error } = await svc
     .from("track_completions")
     .delete()
     .eq("student_id", studentId)
     .eq("track_slug", trackSlug)
-    .eq("program_id", programRow.id);
+    .eq("program_id", programId);
 
   if (error) throw new Error(error.message);
 

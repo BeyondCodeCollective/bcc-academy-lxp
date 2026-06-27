@@ -8,10 +8,11 @@ import Script from "next/script";
 // onOrderComplete fires reliably for the inline embed too (verified in prod
 // logs — earlier "inline doesn't fire" was wrong; the real bug was the claim
 // failing). On completion we POST the order id to /api/eventbrite/claim, which
-// retries the Eventbrite lookup for a few seconds (the order isn't queryable the
-// instant checkout finishes) and returns the durable /invite/<token> URL — we
-// redirect there, landing the registrant on the holding page. The order.placed
-// webhook is the backstop that provisions + emails if the call never happens.
+// provisions the account and emails the registrant their /invite/<token> login
+// link. We deliberately do NOT auto-redirect into the portal: the login link is
+// account-takeover-sensitive and is delivered only to the buyer's own inbox
+// (see the SECURITY note in the claim route). The order.placed webhook is the
+// backstop that provisions + emails if the call never happens.
 
 type EBWidgets = {
   createWidget: (opts: {
@@ -69,24 +70,22 @@ export function CampEventbriteRegister({
       return;
     }
     try {
-      const res = await fetch("/api/eventbrite/claim", {
+      // Fire-and-confirm: the claim provisions the account and emails the login
+      // link. We intentionally don't read a redirect URL back (none is returned)
+      // — the registrant logs in from their inbox.
+      await fetch("/api/eventbrite/claim", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ orderId }),
       });
-      const data = (await res.json()) as { redirectUrl?: string };
-      if (res.ok && data.redirectUrl) {
-        window.location.href = data.redirectUrl;
-        return;
-      }
       setStatus("sent");
     } catch {
       setStatus("sent");
     }
   }
 
-  // While claim resolves the order (a few seconds) we replace the embed with a
-  // clear "taking you in" state, then redirect.
+  // While the claim provisions the account (a few seconds) we replace the embed
+  // with a clear confirmation state, then show the "check your email" message.
   if (status === "processing") {
     return (
       <div
@@ -97,7 +96,7 @@ export function CampEventbriteRegister({
           You&apos;re in 🎉
         </p>
         <p className="mt-1 text-sm" style={{ color: "#1a1a1a80" }}>
-          Taking you into your portal…
+          Setting up your portal access…
         </p>
       </div>
     );
@@ -127,8 +126,8 @@ export function CampEventbriteRegister({
       <style>{`#${containerId}, #${containerId} iframe { width: 100%; min-height: ${embedHeight}px; border: 0; }`}</style>
       <div id={containerId} style={{ width: "100%" }} />
       <p className="mt-3 text-xs leading-relaxed" style={{ color: "#1a1a1a70" }}>
-        We&apos;ll take you straight into your portal after you register. Your
-        one-click access link is also emailed to you.
+        After you register, we&apos;ll email your one-click access link — your
+        door into the portal any time.
       </p>
     </>
   );
