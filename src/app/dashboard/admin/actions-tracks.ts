@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { requireAdmin, requireManager, programIdFromSlug } from "./actions-shared";
+import { getSessionContext } from "@/lib/auth/session";
 import type { OfficeHour } from "@/lib/programs/types";
 
 // ─── Track Enrollment ─────────────────────────────────────────────────────────
@@ -225,6 +226,12 @@ export async function getSessionContent(
   track: string,
   weekNumber: number
 ): Promise<SessionContentRow | null> {
+  // Auth gate: this is an exported "use server" action, so it's invokable
+  // directly (not just via the authed page/route that wrap it). Without this,
+  // an unauthenticated caller could harvest every meeting/recording link for
+  // the program. getSessionContext() is the React-cached session — no extra
+  // round-trip for the legit callers, who are already authenticated.
+  if (!(await getSessionContext())) return null;
   const { getProgramId } = await import("@/lib/programs/server");
   const programId = await getProgramId();
   const svc = createServiceClient();
@@ -251,6 +258,10 @@ export async function getSessionContent(
 export async function getAllSessionContent(
   track: string
 ): Promise<SessionContentRow[]> {
+  // Auth gate — see getSessionContent above. Both legit callers (the admin
+  // panel and /api/session-content) already authenticate; this stops direct
+  // unauthenticated invocation of the action from harvesting links.
+  if (!(await getSessionContext())) return [];
   const { getProgramId } = await import("@/lib/programs/server");
   const programId = await getProgramId();
   const svc = createServiceClient();
