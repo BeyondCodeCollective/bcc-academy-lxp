@@ -23,8 +23,13 @@ import { type NextRequest } from "next/server";
  */
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
-  const mn = searchParams.get("mn") ?? "";
-  const pwd = searchParams.get("pwd") ?? "";
+  // Reflected XSS guard: mn/pwd are interpolated into an inline <script> below
+  // via JSON.stringify, which does NOT neutralize a "</script>" sequence. Strip
+  // both to safe charsets so a crafted value can't break out of the script
+  // context. A Zoom meeting number is digits only (matches /api/zoom-signature);
+  // a passcode is alphanumeric plus the handful of symbols Zoom permits.
+  const mn = (searchParams.get("mn") ?? "").replace(/\D/g, "");
+  const pwd = (searchParams.get("pwd") ?? "").replace(/[^A-Za-z0-9@\-_*.]/g, "");
   const un = encodeURIComponent(searchParams.get("un") ?? "Student");
   const ue = encodeURIComponent(searchParams.get("ue") ?? "");
 

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { CatalogCard } from "@/components/catalog-card";
 import { PageHeader, Section } from "@/components/page-header";
 import { resolveCurrentUser } from "@/lib/current-user";
+import { canAccessStaffContent } from "@/lib/roles";
 import {
   getAllWorkshops,
   formatWorkshopDateRange,
@@ -22,11 +23,21 @@ export default async function WorkshopsIndexPage() {
   const upcoming = all.filter((w) => w.status === "upcoming");
   const past = all.filter((w) => w.status === "past");
 
+  // Lunch & Learns are internal staff-only content. The index must apply the
+  // same gate as the detail page — the service client below bypasses RLS, so
+  // without this any signed-in student would see every recording link.
+  const canSeeLuncheons = canAccessStaffContent(
+    currentUser.userRole,
+    currentUser.email,
+  );
+
   const svc = createServiceClient();
-  const { data: luncheons } = await svc
-    .from("lunch_learns")
-    .select("id, title, presenter, recorded_at, description, recording_url")
-    .order("recorded_at", { ascending: false });
+  const { data: luncheons } = canSeeLuncheons
+    ? await svc
+        .from("lunch_learns")
+        .select("id, title, presenter, recorded_at, description, recording_url")
+        .order("recorded_at", { ascending: false })
+    : { data: null };
 
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-5xl px-4 sm:px-5 py-8 space-y-10">
