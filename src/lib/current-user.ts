@@ -18,7 +18,10 @@ export type CurrentUser = {
 export async function resolveCurrentUser(
   cookieStore: ReadonlyRequestCookies,
 ): Promise<CurrentUser | null> {
-  if (!isSupabaseConfigured()) {
+  // The demo path trusts a plaintext-email cookie, so it must never be reachable
+  // in production — gate on NODE_ENV too, not just on Supabase being unconfigured
+  // (a prod deploy that lost its Supabase env must NOT silently fall back to it).
+  if (!isSupabaseConfigured() && process.env.NODE_ENV !== "production") {
     const demoEmail = cookieStore.get(DEMO_COOKIE)?.value;
     let firstName = "there";
     let lastName = "";

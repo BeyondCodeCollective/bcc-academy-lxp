@@ -45,7 +45,11 @@ export async function GET(request: Request) {
   // function returns — Vercel doesn't guarantee dangling promises run.
   let euOk: boolean | null = null;
   try {
-    const host = request.headers.get("host") ?? process.env.VERCEL_PROJECT_PRODUCTION_URL ?? "";
+    // SSRF guard: only ever fan out to our own known hosts. A spoofed `Host`
+    // header must not make the server issue a request to an arbitrary origin.
+    const rawHost = request.headers.get("host") ?? "";
+    const trusted = /(^|\.)bccacademy\.io$|\.vercel\.app$|^localhost(:\d+)?$/.test(rawHost);
+    const host = trusted ? rawHost : (process.env.VERCEL_PROJECT_PRODUCTION_URL ?? "");
     if (host) {
       const protocol = host.startsWith("localhost") ? "http" : "https";
       const res = await fetch(`${protocol}://${host}/api/warm-eu`, {

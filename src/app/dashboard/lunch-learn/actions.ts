@@ -1,29 +1,11 @@
 "use server";
 
-import { createServiceClient, createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { hasCapability } from "@/lib/roles";
-import type { Capability } from "@/lib/roles";
+import { requireAdmin } from "@/app/dashboard/admin/actions-shared";
 
-async function requireCapability(capability: Capability) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/");
-
-  const svc = createServiceClient();
-  const { data: student } = await svc
-    .from("students")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  const role = student?.role ?? "";
-  if (!hasCapability(role, capability)) throw new Error("Not authorized");
-  return { svc, userId: user.id, role };
-}
+// Use the shared requireAdmin so these mutations inherit the preview-as-student
+// block (the previous local guard skipped it, letting a super-admin in preview
+// mode still write Lunch & Learns — a real-restriction violation).
 
 export type LunchLearnInput = {
   title: string;
@@ -34,7 +16,7 @@ export type LunchLearnInput = {
 };
 
 export async function createLunchLearn(input: LunchLearnInput) {
-  const { svc, userId } = await requireCapability("access_admin_panel");
+  const { svc, userId } = await requireAdmin();
   const { error } = await svc.from("lunch_learns").insert({
     ...input,
     description: input.description || null,
@@ -47,7 +29,7 @@ export async function createLunchLearn(input: LunchLearnInput) {
 }
 
 export async function updateLunchLearn(id: string, input: LunchLearnInput) {
-  const { svc } = await requireCapability("access_admin_panel");
+  const { svc } = await requireAdmin();
   const { error } = await svc
     .from("lunch_learns")
     .update({
@@ -63,7 +45,7 @@ export async function updateLunchLearn(id: string, input: LunchLearnInput) {
 }
 
 export async function deleteLunchLearn(id: string) {
-  const { svc } = await requireCapability("access_admin_panel");
+  const { svc } = await requireAdmin();
   const { error } = await svc.from("lunch_learns").delete().eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath("/dashboard");

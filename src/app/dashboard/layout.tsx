@@ -319,6 +319,9 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
       }
     }
   } else {
+    // Demo fallback trusts a plaintext-email cookie — never allow it in prod,
+    // even if Supabase env somehow went missing on a production deploy.
+    if (process.env.NODE_ENV === "production") redirect("/");
     const cookieStore = await cookies();
     const demoEmail = cookieStore.get(DEMO_COOKIE)?.value;
     if (!demoEmail) redirect("/");
