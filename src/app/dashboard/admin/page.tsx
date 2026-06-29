@@ -351,10 +351,13 @@ export default async function AdminPage({
       console.warn("[admin/insights] skipping fetch — role=%s, userId=%s", userRole, userId);
     }
     if (canViewInsights(userRole) && needsInsightsData) {
-      // Program admins are hard-scoped to their own program inside the actions;
-      // super-admins get every program. The stats/responses queries enforce
-      // this server-side regardless of what we pass here.
-      const stats = await getDashboardSurveyStats();
+      // Scope Survey Insights to the CURRENT program for everyone (incl.
+      // super-admins) by passing the resolved program ids. Without this,
+      // super-admins got a cross-program firehose and the cohort dropdown
+      // listed every program's cohorts — confusing on a single-program view
+      // like Upskill. The BCC-wide operational dashboard lives at
+      // /dashboard/insights, which is already program-scoped separately.
+      const stats = await getDashboardSurveyStats(programIds);
       const programSurveys: SurveyConfig[] = getAllPrograms().flatMap(
         (p) => p.surveys ?? [],
       );
@@ -374,6 +377,7 @@ export default async function AdminPage({
       // calls — two DB round-trips total regardless of how many surveys exist.
       const allResponses = await getDashboardAllSurveyResponses(
         surveysWithData.map((s) => s.id),
+        programIds,
       );
       const sections = surveysWithData.map((survey) => ({
         survey,
@@ -384,9 +388,11 @@ export default async function AdminPage({
       // Super-admins see every program in the breakdown legend; a program admin
       // only sees the programs that make up their own scope (Catalyst = its
       // aggregated slugs, every other program = just itself).
-      const visiblePrograms = canSwitchPrograms(userRole)
-        ? getAllPrograms()
-        : getAllPrograms().filter((p) => aggregatedSlugs.includes(p.slug));
+      // Scoped to the current program (its aggregate) for everyone, so the
+      // breakdown legend matches the now program-scoped data above.
+      const visiblePrograms = getAllPrograms().filter((p) =>
+        aggregatedSlugs.includes(p.slug),
+      );
 
       insightsData = {
         sections,
