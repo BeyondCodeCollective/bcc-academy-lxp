@@ -116,6 +116,15 @@ export async function sendLoginLink({
 
   if (tryResend) {
     const program = await getProgram();
+    // Magic links only verify for users that already exist. A first-time
+    // signup (allowlisted, no account yet) would make generateLink fail and
+    // fall through to Supabase's unreliable built-in OTP email — the link
+    // often never arrives. Pre-create the account (idempotent: ignore
+    // "already registered"); email_confirm marks it ready so the freshly
+    // minted link verifies. Same trick as /invite/<token>.
+    await svc.auth.admin
+      .createUser({ email: trimmed, email_confirm: true })
+      .catch(() => {});
     const { data, error } = await svc.auth.admin.generateLink({
       type: "magiclink",
       email: trimmed,
