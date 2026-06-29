@@ -8,6 +8,7 @@ import { getProgram, fetchDynamicProgram } from "@/lib/programs/server";
 import { getProgramBySlug, getHomeProgramForTrack, isKnownProgramHost, hasTsConfigSlug } from "@/lib/programs";
 import { determineRole, isPrivilegedEmail, isStaffEmail } from "@/lib/auth/admins";
 import { subscribeToNewsletter } from "@/lib/mailchimp";
+import { logActivityEvent } from "@/lib/analytics/log-event";
 
 // Magic-link landing. Pin to iad1 only: Supabase is in Virginia (us-east-1),
 // co-located with iad1, so DB round-trips are sub-millisecond from this region.
@@ -329,6 +330,7 @@ export async function GET(request: Request) {
           { onConflict: "id", ignoreDuplicates: true }
         );
         await admin.from("students").update({ last_seen_at: new Date().toISOString() }).eq("id", user.id);
+        void logActivityEvent({ userId: user.id, eventType: "login", programId: effectiveProgramRow?.id ?? programId });
 
         // First-time signup → add to the Mailchimp newsletter (auto-subscribe).
         // Only on `!existing` so we don't fire on every login. Name is blank at
@@ -384,6 +386,7 @@ export async function GET(request: Request) {
         { onConflict: "id", ignoreDuplicates: true }
       );
       await admin.from("students").update({ last_seen_at: new Date().toISOString() }).eq("id", user.id);
+      void logActivityEvent({ userId: user.id, eventType: "login", programId });
 
       // Single-course learners → straight to their course (no dashboard→course
       // skeleton flash). New students / admins / staff fall through to setup.
