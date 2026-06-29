@@ -444,7 +444,7 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
         curriculumTracks={curriculumTracks}
         adminTracks={adminTracks}
         lunchLearnRecordings={lunchLearnRecordings}
-        showLunchLearnLink={isStaffEmail(email) && !isUmbrellaContext}
+        showLunchLearnLink={isStaffEmail(email) && program.slug === "bgc"}
       />
     </>
   );

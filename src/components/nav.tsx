@@ -455,7 +455,7 @@ export function Nav({
       <AdminProgramSwitcher
         tracks={adminTracks}
         activeTab={activeTab}
-        showLunchLearn={canAccessStaff && isAdmin}
+        showLunchLearn={canAccessStaff && isAdmin && currentProgramSlug === "bgc"}
         onNavigate={() => setMobileOpen(false)}
       />
     </div>
