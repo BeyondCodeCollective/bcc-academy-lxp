@@ -361,10 +361,10 @@ function Header({
     <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <p className="text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
-          Attendance{scopeLabel ? ` · ${scopeLabel}` : ""}
+          {scopeLabel || "Attendance"}
         </p>
         <h2 className="mt-1 text-2xl font-bold text-ink tracking-tight">
-          {view === "overview" ? "Who's showing up" : "Mark attendance"}
+          {view === "overview" ? "Who's showing up" : "Mark check-ins"}
         </h2>
       </div>
       <div className="flex items-center gap-1.5">
