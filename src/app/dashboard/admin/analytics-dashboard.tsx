@@ -7,9 +7,14 @@ import type { EngagementAnalytics } from "./actions-analytics";
 // switcher (Forte shows Upskill, Catalyst shows Catalyst, etc.).
 export function AnalyticsDashboard({ data }: { data: EngagementAnalytics }) {
   const { funnel, learners } = data;
-  const max = Math.max(funnel.invited, 1);
-  const pct = (v: number) =>
-    funnel.invited ? Math.round((v / funnel.invited) * 100) : 0;
+  // Scale bars to the largest stage — not "invited" — so a program with no
+  // allowlist invites (students added directly, e.g. Beyond Code Centers) still
+  // renders correctly instead of the activated bar overflowing past an empty
+  // invited bar. Percentages are funnel conversion vs the invited top, shown
+  // only when invited > 0 ("% of 0" is meaningless).
+  const max = Math.max(funnel.invited, funnel.activated, funnel.engaged, 1);
+  const pct = (v: number): number | null =>
+    funnel.invited > 0 ? Math.round((v / funnel.invited) * 100) : null;
 
   const bars = [
     { label: "Invited (received access)", value: funnel.invited, color: "bg-[#1D59FF]" },
@@ -31,7 +36,9 @@ export function AnalyticsDashboard({ data }: { data: EngagementAnalytics }) {
             </div>
             <div className="w-20 shrink-0 text-right text-sm font-bold text-ink">
               {b.value}
-              <span className="ml-1 text-xs font-medium text-ink-faint">{pct(b.value)}%</span>
+              {pct(b.value) !== null && (
+                <span className="ml-1 text-xs font-medium text-ink-faint">{pct(b.value)}%</span>
+              )}
             </div>
           </div>
         ))}
