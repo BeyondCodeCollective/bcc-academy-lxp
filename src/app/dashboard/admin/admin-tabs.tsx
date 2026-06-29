@@ -43,6 +43,8 @@ import { ProgressTab } from "./progress-tab";
 import { TrackInsightsSection } from "@/components/track-insights-section";
 import { CourseEngagement, type CourseEngagementProps } from "@/components/stats/course-engagement";
 import { InsightsDashboard } from "./insights/insights-dashboard";
+import { AnalyticsDashboard } from "./analytics-dashboard";
+import type { EngagementAnalytics } from "./actions-analytics";
 import { TrackOverviewForm } from "./track-overview-form";
 import { OfficeHoursEditor } from "./office-hours-editor";
 import { ManageMenu } from "./manage-menu";
@@ -444,6 +446,7 @@ export function AdminTabs({
   initialTrackView,
   lunchLearnRecordings = [],
   insightsData = null,
+  analyticsData = null,
   courseEngagement = null,
   pendingPeople = [],
   alumniEnrollments = [],
@@ -466,6 +469,7 @@ export function AdminTabs({
   initialTrackView?: string;
   lunchLearnRecordings?:{ id: string; title: string; presenter: string; recording_url: string; description: string | null; recorded_at: string }[];
   insightsData?: InsightsData | null;
+  analyticsData?: EngagementAnalytics | null;
   courseEngagement?: CourseEngagementProps | null;
   pendingPeople?: PendingPerson[];
   alumniEnrollments?: { track_slug: string; email: string; source: string }[];
@@ -951,6 +955,15 @@ export function AdminTabs({
                 >
                   <ChartPieIcon size={13} weight="bold" aria-hidden />
                   Survey insights
+                </Link>
+              )}
+              {canViewInsights(userRole) && (
+                <Link
+                  href="/dashboard/admin?tab=analytics"
+                  className={buttonClass("secondary", "sm")}
+                >
+                  <ChartBarIcon size={13} weight="bold" aria-hidden />
+                  Analytics
                 </Link>
               )}
             </div>
@@ -1476,6 +1489,34 @@ export function AdminTabs({
             subtitle={`${lunchLearnRecordings.length} recording${lunchLearnRecordings.length === 1 ? "" : "s"} for internal staff`}
           />
           <LunchLearnAdmin recordings={lunchLearnRecordings} embedded />
+        </div>
+      )}
+
+      {/* Engagement Analytics — program-level activation funnel + per-learner
+         activity. Scoped to the current program (the action enforces it), so it
+         follows the program switcher rather than showing every program. */}
+      {tab === "analytics" && (
+        <div className="space-y-6">
+          <Link
+            href="/dashboard/admin"
+            className="inline-flex items-center gap-1.5 text-[11px] font-medium text-ink-faint transition-colors hover:text-ink-soft"
+          >
+            <ArrowLeftIcon size={11} weight="bold" aria-hidden />
+            Admin
+          </Link>
+          <PageHeader
+            title="Engagement Analytics"
+            subtitle={
+              analyticsData
+                ? `${analyticsData.programName} — activation funnel & per-learner activity`
+                : "Activation funnel & per-learner activity"
+            }
+          />
+          {analyticsData ? (
+            <AnalyticsDashboard data={analyticsData} />
+          ) : (
+            <p className="text-sm text-ink-faint">No analytics available for this program.</p>
+          )}
         </div>
       )}
 

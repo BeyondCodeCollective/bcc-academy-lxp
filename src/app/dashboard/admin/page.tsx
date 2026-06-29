@@ -16,6 +16,7 @@ import { getSurveySchema } from "@/lib/surveys/schemas";
 import type { SurveyQuestion } from "@/components/survey-fields";
 import { fetchPendingPeople, type PendingPerson } from "@/lib/people-hub";
 import { getCourseEngagement } from "@/lib/course-engagement";
+import { getEngagementAnalytics, type EngagementAnalytics } from "./actions-analytics";
 import type { CourseEngagementProps } from "@/components/stats/course-engagement";
 
 export type InsightsData = {
@@ -66,6 +67,7 @@ export default async function AdminPage({
   const needsCohorts = isHomeTab || isTrackTab || effectiveTab === "students";
   const needsLunchLearns = effectiveTab === "lunch-learn";
   const needsInsightsData = effectiveTab === "insights";
+  const needsAnalyticsData = effectiveTab === "analytics";
   void needsSurveyStats; // kept as a named constant for the gated query below
   let allStudents: Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id" | "last_seen_at" | "last_activity_at">[] = [];
   let allCohorts: { id: string; name: string; display_name: string | null; track_slug: string | null; start_date: string | null; total_weeks: number | null }[] = [];
@@ -77,6 +79,7 @@ export default async function AdminPage({
   let publicSurveyStats: PublicSurveyStatsRow[] = [];
   let lunchLearnRecordings: LunchLearnRow[] = [];
   let insightsData: InsightsData | null = null;
+  let analyticsData: EngagementAnalytics | null = null;
   let courseEngagement: CourseEngagementProps | null = null;
   let alumniEnrollments: { track_slug: string; email: string; source: string }[] = [];
   let pendingPeople: PendingPerson[] = [];
@@ -348,10 +351,13 @@ export default async function AdminPage({
       console.warn("[admin/insights] skipping fetch — role=%s, userId=%s", userRole, userId);
     }
     if (canViewInsights(userRole) && needsInsightsData) {
-      // Program admins are hard-scoped to their own program inside the actions;
-      // super-admins get every program. The stats/responses queries enforce
-      // this server-side regardless of what we pass here.
-      const stats = await getDashboardSurveyStats();
+      // Scope Survey Insights to the CURRENT program for everyone (incl.
+      // super-admins) by passing the resolved program ids. Without this,
+      // super-admins got a cross-program firehose and the cohort dropdown
+      // listed every program's cohorts — confusing on a single-program view
+      // like Upskill. The BCC-wide operational dashboard lives at
+      // /dashboard/insights, which is already program-scoped separately.
+      const stats = await getDashboardSurveyStats(programIds);
       const programSurveys: SurveyConfig[] = getAllPrograms().flatMap(
         (p) => p.surveys ?? [],
       );
@@ -371,6 +377,7 @@ export default async function AdminPage({
       // calls — two DB round-trips total regardless of how many surveys exist.
       const allResponses = await getDashboardAllSurveyResponses(
         surveysWithData.map((s) => s.id),
+        programIds,
       );
       const sections = surveysWithData.map((survey) => ({
         survey,
@@ -381,15 +388,23 @@ export default async function AdminPage({
       // Super-admins see every program in the breakdown legend; a program admin
       // only sees the programs that make up their own scope (Catalyst = its
       // aggregated slugs, every other program = just itself).
-      const visiblePrograms = canSwitchPrograms(userRole)
-        ? getAllPrograms()
-        : getAllPrograms().filter((p) => aggregatedSlugs.includes(p.slug));
+      // Scoped to the current program (its aggregate) for everyone, so the
+      // breakdown legend matches the now program-scoped data above.
+      const visiblePrograms = getAllPrograms().filter((p) =>
+        aggregatedSlugs.includes(p.slug),
+      );
 
       insightsData = {
         sections,
         programs: visiblePrograms.map((p) => ({ slug: p.slug, name: p.name })),
         totalResponses: sections.reduce((sum, s) => sum + s.responses.length, 0),
       };
+    }
+
+    // Program-level engagement analytics — scoped to the CURRENT program for
+    // every role (the action enforces this), so it tracks the program switcher.
+    if (canViewInsights(userRole) && needsAnalyticsData) {
+      analyticsData = await getEngagementAnalytics().catch(() => null);
     }
 
     // Per-course engagement snapshot for the open course tab — the admin
@@ -518,6 +533,7 @@ export default async function AdminPage({
         initialTrackView={initialTrackView}
         lunchLearnRecordings={lunchLearnRecordings}
         insightsData={insightsData}
+        analyticsData={analyticsData}
         courseEngagement={courseEngagement}
         pendingPeople={pendingPeople}
         alumniEnrollments={alumniEnrollments}
