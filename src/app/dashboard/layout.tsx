@@ -4,6 +4,7 @@ import { cookies, headers } from "next/headers";
 import { isSupabaseConfigured, createClient, createServiceClient } from "@/lib/supabase/server";
 import { getDemoUser, DEMO_COOKIE } from "@/lib/demo-users";
 import { Nav } from "@/components/nav";
+import { ActivityBeacon } from "@/components/activity-beacon";
 import { DashboardTopBar } from "@/components/dashboard-topbar";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { getDashboardIndex } from "@/lib/dashboard-index";
@@ -155,6 +156,7 @@ export default async function DashboardLayout({
           __html: `try{if(localStorage.getItem('nav-collapsed')==='true')document.documentElement.dataset.navCollapsed='true'}catch(e){}`,
         }}
       />
+      <ActivityBeacon />
       <div
         className="flex min-h-screen flex-col md:flex-row"
         style={
