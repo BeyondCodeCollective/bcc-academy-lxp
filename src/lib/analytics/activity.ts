@@ -1,8 +1,8 @@
 // The platform's liveness signal: did a learner *do the work*? It's the union
-// of attendance + submissions + reflections, and it's the one place that
-// reconciles the schema quirk where attendance names its columns
-// `track`/`checked_in_at` while submissions and reflections use
-// `track_slug`/`submitted_at`.
+// of attendance + submissions + reflections + self-paced video progress, and
+// it's the one place that reconciles the schema quirks across those tables
+// (attendance uses `track`/`checked_in_at`; submissions/reflections use
+// `track_slug`/`submitted_at`; week_progress uses `user_id`/`video_watched_at`).
 //
 // Wrapped in React's `cache` so the per-request analytics fetchers (progress,
 // acquisition) that all need this union share a single fetch — the page resolves
@@ -27,10 +27,14 @@ export const getLearnerActivity = cache(
     const svc = createServiceClient();
     const ids = scope.ids;
 
-    const [attRes, subRes, reflRes] = await Promise.all([
+    const [attRes, subRes, reflRes, progRes] = await Promise.all([
       svc.from("attendance").select("student_id, track, week_number, checked_in_at").in("program_id", ids),
       svc.from("submissions").select("student_id, track_slug, week_number, submitted_at").in("program_id", ids),
       svc.from("reflections").select("student_id, track_slug, week_number, submitted_at").in("program_id", ids),
+      // Self-paced video tracks (e.g. Upskill's ai-literacy) produce no
+      // attendance / submissions / reflections — a watched lesson video is
+      // their only liveness signal, so fold week_progress into the union too.
+      svc.from("week_progress").select("user_id, track_slug, week_number, video_watched_at").in("program_id", ids).not("video_watched_at", "is", null),
     ]);
 
     const att = (attRes.data ?? []) as {
@@ -51,6 +55,12 @@ export const getLearnerActivity = cache(
       week_number: number | null;
       submitted_at: string | null;
     }[];
+    const prog = (progRes.data ?? []) as {
+      user_id: string;
+      track_slug: string;
+      week_number: number | null;
+      video_watched_at: string | null;
+    }[];
 
     return [
       ...att.map((r) => ({
@@ -70,6 +80,12 @@ export const getLearnerActivity = cache(
         slug: r.track_slug,
         week: r.week_number,
         at: r.submitted_at,
+      })),
+      ...prog.map((r) => ({
+        student_id: r.user_id,
+        slug: r.track_slug,
+        week: r.week_number,
+        at: r.video_watched_at,
       })),
     ];
   },
