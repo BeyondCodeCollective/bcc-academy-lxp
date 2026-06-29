@@ -157,11 +157,6 @@ export function InsightsDashboard({
   }
 
   const active = visibleSections.find((s) => s.survey.id === activeId) ?? null;
-  const allResponses = useMemo(
-    () => visibleSections.flatMap((s) => s.responses),
-    [visibleSections],
-  );
-
   if (sections.length === 0) {
     return (
       <div className="panel p-8 text-center">
@@ -220,16 +215,6 @@ export function InsightsDashboard({
           </select>
         </div>
       )}
-
-      {/* Response timeline */}
-      <section>
-        <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.14em] text-ink-faint">
-          Responses — last 8 weeks
-        </p>
-        <div className="panel p-4">
-          <Timeline responses={allResponses} />
-        </div>
-      </section>
 
       {/* Survey cards */}
       <section>
@@ -349,76 +334,6 @@ export function InsightsDashboard({
 
 // ── Sub-components ──────────────────────────────────────────────────────────
 
-function Timeline({ responses }: { responses: BCCSurveyResponse[] }) {
-  const weeks = useMemo(() => {
-    const now = new Date();
-    const result: { label: string; count: number }[] = [];
-    for (let i = 7; i >= 0; i--) {
-      const weekEnd = new Date(now);
-      weekEnd.setDate(weekEnd.getDate() - i * 7);
-      const weekStart = new Date(weekEnd);
-      weekStart.setDate(weekStart.getDate() - 7);
-      const count = responses.filter((r) => {
-        if (!r.completed_at) return false;
-        const d = new Date(r.completed_at);
-        return d >= weekStart && d < weekEnd;
-      }).length;
-      const mon = weekEnd.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-      result.push({ label: mon, count });
-    }
-    return result;
-  }, [responses]);
-
-  const maxCount = Math.max(...weeks.map((w) => w.count), 1);
-  const total = weeks.reduce((sum, w) => sum + w.count, 0);
-  const peak = weeks.reduce((best, w) => (w.count > best.count ? w : best), weeks[0]);
-
-  if (total === 0) {
-    return (
-      <p className="py-6 text-center text-sm text-ink-faint">
-        No responses in the last 8 weeks.
-      </p>
-    );
-  }
-
-  return (
-    <div>
-      <div className="flex items-end gap-2" style={{ height: 96 }}>
-        {weeks.map((w, i) => (
-          <div key={i} className="flex flex-1 flex-col items-center gap-1">
-            {/* The count is the data — without it the bars are unreadable. */}
-            <span className="text-[10px] font-semibold tabular-nums text-ink">
-              {w.count > 0 ? w.count : ""}
-            </span>
-            <div className="relative w-full flex-1">
-              <div
-                className="absolute inset-x-0 bottom-0 rounded-t transition-all"
-                style={{
-                  height: `${(w.count / maxCount) * 100}%`,
-                  minHeight: w.count > 0 ? 4 : 0,
-                  backgroundColor: "var(--primary)",
-                }}
-              />
-            </div>
-            <span className="text-[9px] tabular-nums text-ink-faint whitespace-nowrap">
-              {w.label}
-            </span>
-          </div>
-        ))}
-      </div>
-      <p className="mt-3 text-[11px] text-ink-faint">
-        <span className="tabular-nums text-ink-soft">{total}</span> response
-        {total === 1 ? "" : "s"} in the last 8 weeks
-        {peak.count > 0 && (
-          <>
-            {" · busiest week of "}
-            <span className="tabular-nums text-ink-soft">{peak.count}</span> on {peak.label}
-          </>
-        )}
-      </p>
-    </div>
-  );
-}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
