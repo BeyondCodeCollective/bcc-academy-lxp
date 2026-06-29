@@ -7,41 +7,36 @@ import type { EngagementAnalytics } from "./actions-analytics";
 // switcher (Forte shows Upskill, Catalyst shows Catalyst, etc.).
 export function AnalyticsDashboard({ data }: { data: EngagementAnalytics }) {
   const { funnel, learners } = data;
-  // Scale bars to the largest stage — not "invited" — so a program with no
-  // allowlist invites (students added directly, e.g. Beyond Code Centers) still
-  // renders correctly instead of the activated bar overflowing past an empty
-  // invited bar. Percentages are funnel conversion vs the invited top, shown
-  // only when invited > 0 ("% of 0" is meaningless).
-  const max = Math.max(funnel.invited, funnel.activated, funnel.engaged, 1);
+  // Funnel conversion vs the "invited" top — shown only when invited > 0
+  // ("% of 0" is meaningless, e.g. Beyond Code Centers, where students were
+  // added directly rather than via an allowlist).
   const pct = (v: number): number | null =>
     funnel.invited > 0 ? Math.round((v / funnel.invited) * 100) : null;
 
-  const bars = [
-    { label: "Invited (received access)", value: funnel.invited, color: "bg-[#1D59FF]" },
-    { label: "Created account & signed in", value: funnel.activated, color: "bg-[#4D7DFF]" },
-    { label: "Engaged (watched · attended · submitted)", value: funnel.engaged, color: "bg-[#E5454A]" },
+  const cards = [
+    { label: "Invited", sublabel: "received access", value: funnel.invited, showPct: false },
+    { label: "Created account", sublabel: "& signed in", value: funnel.activated, showPct: true },
+    { label: "Engaged", sublabel: "watched · attended · submitted", value: funnel.engaged, showPct: true },
   ];
 
   return (
     <div className="space-y-8">
-      <section className="space-y-3">
-        {bars.map((b) => (
-          <div key={b.label} className="flex items-center gap-3">
-            <div className="w-60 shrink-0 text-sm font-medium text-ink-soft">{b.label}</div>
-            <div className="relative h-9 flex-1 overflow-hidden rounded-lg bg-surface">
-              <div
-                className={`h-full rounded-lg ${b.color}`}
-                style={{ width: `${b.value > 0 ? Math.max((b.value / max) * 100, 2) : 0}%` }}
-              />
+      <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {cards.map((c) => {
+          const p = c.showPct ? pct(c.value) : null;
+          return (
+            <div key={c.label} className="rounded-xl border border-rule bg-white p-5">
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-bold tracking-tight text-ink">{c.value}</span>
+                {p !== null && (
+                  <span className="text-xs font-medium text-ink-faint">{p}% of invited</span>
+                )}
+              </div>
+              <div className="mt-1 text-sm font-semibold text-ink">{c.label}</div>
+              <div className="text-xs text-ink-faint">{c.sublabel}</div>
             </div>
-            <div className="w-20 shrink-0 text-right text-sm font-bold text-ink">
-              {b.value}
-              {pct(b.value) !== null && (
-                <span className="ml-1 text-xs font-medium text-ink-faint">{pct(b.value)}%</span>
-              )}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </section>
 
       <section className="space-y-2">
