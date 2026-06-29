@@ -16,6 +16,7 @@ import { getSurveySchema } from "@/lib/surveys/schemas";
 import type { SurveyQuestion } from "@/components/survey-fields";
 import { fetchPendingPeople, type PendingPerson } from "@/lib/people-hub";
 import { getCourseEngagement } from "@/lib/course-engagement";
+import { getEngagementAnalytics, type EngagementAnalytics } from "./actions-analytics";
 import type { CourseEngagementProps } from "@/components/stats/course-engagement";
 
 export type InsightsData = {
@@ -66,6 +67,7 @@ export default async function AdminPage({
   const needsCohorts = isHomeTab || isTrackTab || effectiveTab === "students";
   const needsLunchLearns = effectiveTab === "lunch-learn";
   const needsInsightsData = effectiveTab === "insights";
+  const needsAnalyticsData = effectiveTab === "analytics";
   void needsSurveyStats; // kept as a named constant for the gated query below
   let allStudents: Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id" | "last_seen_at" | "last_activity_at">[] = [];
   let allCohorts: { id: string; name: string; display_name: string | null; track_slug: string | null; start_date: string | null; total_weeks: number | null }[] = [];
@@ -77,6 +79,7 @@ export default async function AdminPage({
   let publicSurveyStats: PublicSurveyStatsRow[] = [];
   let lunchLearnRecordings: LunchLearnRow[] = [];
   let insightsData: InsightsData | null = null;
+  let analyticsData: EngagementAnalytics | null = null;
   let courseEngagement: CourseEngagementProps | null = null;
   let alumniEnrollments: { track_slug: string; email: string; source: string }[] = [];
   let pendingPeople: PendingPerson[] = [];
@@ -392,6 +395,12 @@ export default async function AdminPage({
       };
     }
 
+    // Program-level engagement analytics — scoped to the CURRENT program for
+    // every role (the action enforces this), so it tracks the program switcher.
+    if (canViewInsights(userRole) && needsAnalyticsData) {
+      analyticsData = await getEngagementAnalytics().catch(() => null);
+    }
+
     // Per-course engagement snapshot for the open course tab — the admin
     // feedback loop on the learner streak cards. Only the active course's
     // aggregates are fetched.
@@ -518,6 +527,7 @@ export default async function AdminPage({
         initialTrackView={initialTrackView}
         lunchLearnRecordings={lunchLearnRecordings}
         insightsData={insightsData}
+        analyticsData={analyticsData}
         courseEngagement={courseEngagement}
         pendingPeople={pendingPeople}
         alumniEnrollments={alumniEnrollments}
