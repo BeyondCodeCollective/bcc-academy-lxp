@@ -1,9 +1,10 @@
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { CatalogCard } from "@/components/catalog-card";
 import { PageHeader, Section } from "@/components/page-header";
 import { resolveCurrentUser } from "@/lib/current-user";
+import { getProgram } from "@/lib/programs/server";
 import { canAccessStaffContent } from "@/lib/roles";
 import {
   getAllWorkshops,
@@ -18,6 +19,12 @@ export default async function WorkshopsIndexPage() {
   const cookieStore = await cookies();
   const currentUser = await resolveCurrentUser(cookieStore);
   if (!currentUser) redirect("/");
+
+  // Workshops + Lunch & Learns are BGC-internal content. Deny (404) outside the
+  // BGC program so a staff/admin viewing Upskill Bahamas (Forte) or any other
+  // program can't reach it by URL. The nav link is BGC-gated to match.
+  const program = await getProgram();
+  if (program.slug !== "bgc") notFound();
 
   const all = getAllWorkshops();
   const upcoming = all.filter((w) => w.status === "upcoming");

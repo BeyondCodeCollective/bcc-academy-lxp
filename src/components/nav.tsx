@@ -174,10 +174,10 @@ export function Nav({
     // No separate "Courses" item: for admins, Home IS the course hub — it lists
     // every track with Manage + Open-student-view actions per course, so a
     // second admin-only catalog page was redundant (collapsed into Home).
-    // Workshops are internal-only: admin panel access OR BGC/BCC staff email.
-    // Students (current or prospective) don't see this; past workshops are
-    // archival material for the org, not enrolled-learner content.
-    ...(canAccessStaff
+    // Workshops are BGC-internal staff content — only shown to staff while in
+    // the BGC program (the page itself 404s outside BGC to close the URL hole).
+    // Students never see this; it's not enrolled-learner content.
+    ...(canAccessStaff && currentProgramSlug === "bgc"
       ? [{ href: "/dashboard/workshops", label: "Workshops", icon: Confetti }]
       : []),
     ...(showTutor
