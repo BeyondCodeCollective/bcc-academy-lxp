@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect, notFound } from "next/navigation";
 import { resolveCurrentUser } from "@/lib/current-user";
+import { getProgram } from "@/lib/programs/server";
 import {
   getWorkshop,
   formatWorkshopDateRange,
@@ -25,6 +26,10 @@ export default async function WorkshopDetailPage({
   const cookieStore = await cookies();
   const currentUser = await resolveCurrentUser(cookieStore);
   if (!currentUser) redirect("/");
+
+  // BGC-internal: deny (404) outside the BGC program (see workshops index).
+  const program = await getProgram();
+  if (program.slug !== "bgc") notFound();
 
   const { slug } = await params;
   const workshop = getWorkshop(slug);
