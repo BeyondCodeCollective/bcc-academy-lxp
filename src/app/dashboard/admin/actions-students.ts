@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireManager, assertStudentInActorProgram } from "./actions-shared";
 import { assignableRoles, canAssignRole } from "@/lib/roles";
 import { isMasterEmail } from "@/lib/auth/admins";
+import { subscribeToNewsletter } from "@/lib/mailchimp";
 
 // Whether the acting user is a master (the only tier that may grant super_admin).
 // requireManager doesn't return the email, so resolve it once here.
@@ -114,6 +115,25 @@ export async function addStudentAction(data: {
   });
 
   if (studentError) throw new Error(studentError.message);
+
+  // Auto-subscribe staff-enrolled students to the Mailchimp newsletter. The
+  // program allowlist (Catalyst / Beyond Code Centers / Forte) is enforced
+  // inside subscribeToNewsletter, so we just resolve the calling admin's slug.
+  if (data.role === "student") {
+    const { data: prog } = await svc
+      .from("programs")
+      .select("slug")
+      .eq("id", programId)
+      .maybeSingle();
+    if (prog?.slug) {
+      void subscribeToNewsletter({
+        email: data.email,
+        firstName: data.first_name,
+        lastName: data.last_name,
+        programSlug: prog.slug,
+      });
+    }
+  }
 
   return {
     success: true,

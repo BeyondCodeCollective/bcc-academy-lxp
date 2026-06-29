@@ -2,6 +2,7 @@ import { Resend } from "resend";
 import type { ProgramConfig, TrackConfig } from "@/lib/programs/types";
 import { isTutorAvailable } from "@/lib/programs";
 import { buildGoogleCalendarUrl } from "@/lib/gcal";
+import { subscribeToNewsletter } from "@/lib/mailchimp";
 
 const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
@@ -360,6 +361,10 @@ export async function sendWelcomeEmail({
   enrolledTracks,
   signInUrl,
 }: WelcomeEmailParams): Promise<void> {
+  // Backfill the newsletter subscriber's name now that onboarding has captured
+  // it (signup subscribed them with a blank name). Idempotent + program-gated.
+  void subscribeToNewsletter({ email: to, firstName, programSlug: program.slug });
+
   if (!resend) {
     console.warn("[email] RESEND_API_KEY not set — skipping welcome email");
     return;
