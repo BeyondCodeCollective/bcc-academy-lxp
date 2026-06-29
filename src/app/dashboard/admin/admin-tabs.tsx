@@ -57,7 +57,7 @@ import type { Student } from "@/lib/types";
 import { isStorageUrl, isUploadedVideo } from "@/lib/storage-utils";
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
 import { iconForTrack, toneForTrack } from "@/lib/track-visual";
-import { Clipboard as ClipboardListIcon, Users as UsersIcon, ChartBar as ChartBarIcon, ChartPie as ChartPieIcon, ArrowLeft as ArrowLeftIcon } from "@phosphor-icons/react";
+import { Clipboard as ClipboardListIcon, Users as UsersIcon, ChartBar as ChartBarIcon, ChartPie as ChartPieIcon, ChartLineUp as ChartLineUpIcon, ArrowLeft as ArrowLeftIcon } from "@phosphor-icons/react";
 
 const PLATFORM_SURVEY_TITLES: Record<string, string> = {
   "bcc-learner-intake": "BCC Learner Intake",
@@ -925,47 +925,27 @@ export function AdminTabs({
               }
             />
 
-            {/* Quick-access tool strip — always visible above the program grid */}
-            <div className="flex flex-wrap gap-2">
-              <Link
-                href="/dashboard/admin?tab=students"
-                className={buttonClass("secondary", "sm")}
-              >
-                <UsersIcon size={13} weight="bold" aria-hidden />
-                All people
-              </Link>
-              <Link
-                href="/dashboard/admin?tab=student-work"
-                className={buttonClass("secondary", "sm")}
-              >
-                <ClipboardListIcon size={13} weight="bold" aria-hidden />
-                Student work
-              </Link>
-              <Link
-                href="/dashboard/admin?tab=attendance"
-                className={buttonClass("secondary", "sm")}
-              >
-                <ChartBarIcon size={13} weight="bold" aria-hidden />
-                Attendance
-              </Link>
-              {canViewInsights(userRole) && (
-                <Link
-                  href="/dashboard/admin?tab=insights"
-                  className={buttonClass("secondary", "sm")}
-                >
-                  <ChartPieIcon size={13} weight="bold" aria-hidden />
-                  Survey insights
-                </Link>
-              )}
-              {canViewInsights(userRole) && (
-                <Link
-                  href="/dashboard/admin?tab=analytics"
-                  className={buttonClass("secondary", "sm")}
-                >
-                  <ChartBarIcon size={13} weight="bold" aria-hidden />
-                  Analytics
-                </Link>
-              )}
+            {/* Quick-access tabs — underline style scales better than a row of
+                pills as more sections are added. */}
+            <div className="flex flex-wrap items-center gap-x-1 border-b border-rule">
+              {[
+                { href: "/dashboard/admin?tab=students", label: "All people", Icon: UsersIcon, show: true },
+                { href: "/dashboard/admin?tab=student-work", label: "Student work", Icon: ClipboardListIcon, show: true },
+                { href: "/dashboard/admin?tab=attendance", label: "Attendance", Icon: ChartBarIcon, show: true },
+                { href: "/dashboard/admin?tab=insights", label: "Survey insights", Icon: ChartPieIcon, show: canViewInsights(userRole) },
+                { href: "/dashboard/admin?tab=analytics", label: "Engagement", Icon: ChartLineUpIcon, show: canViewInsights(userRole) },
+              ]
+                .filter((t) => t.show)
+                .map(({ href, label, Icon }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className="-mb-px inline-flex items-center gap-1.5 border-b-2 border-transparent px-3 py-2.5 text-sm font-medium text-ink-soft transition-colors hover:border-ink-faint hover:text-ink"
+                  >
+                    <Icon size={14} weight="bold" aria-hidden />
+                    {label}
+                  </Link>
+                ))}
             </div>
 
             <div className="divide-y divide-rule overflow-hidden panel">
@@ -1505,7 +1485,7 @@ export function AdminTabs({
             Admin
           </Link>
           <PageHeader
-            title="Engagement Analytics"
+            title="Engagement"
             subtitle={
               analyticsData
                 ? `${analyticsData.programName} — activation funnel & per-learner activity`
