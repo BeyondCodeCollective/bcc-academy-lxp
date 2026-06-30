@@ -197,7 +197,7 @@ export function CentralLoginForm({
             : "bg-white/10 text-white/30 cursor-not-allowed"
         }`}
       >
-        {loading ? "Sending..." : "Let's Go →"}
+        {loading ? "Sending..." : compact ? "Sign in" : "Let's Go →"}
       </button>
 
       <p className={`text-white/40 uppercase tracking-wider ${compact ? "text-[11px]" : "text-xs"}`}>
