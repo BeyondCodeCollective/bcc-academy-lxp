@@ -1929,7 +1929,13 @@ function PeopleTab({
     return instrTracks.filter((e) => e.student_id === instructorId).map((e) => e.track_slug);
   }
   function getTrackCount(studentId: string) {
-    return enrollments.filter((e) => e.student_id === studentId).length;
+    // The expanded card shows TEACHING (instructor_tracks) for instructors and
+    // TRACKS (student_tracks enrollments) for everyone else — count from the
+    // same source so the roster badge matches what you see when you expand.
+    const isInstructor =
+      students.find((s) => s.id === studentId)?.role === "instructor";
+    const rows = isInstructor ? instrTracks : enrollments;
+    return rows.filter((e) => e.student_id === studentId).length;
   }
 
   async function handleBulkAssign() {
