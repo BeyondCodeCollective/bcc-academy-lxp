@@ -66,7 +66,7 @@ export function LearnMoreForm() {
         disabled={pending}
         className="w-full bg-electric-green px-4 py-3 text-sm font-bold uppercase tracking-wide text-true-black transition-opacity hover:opacity-90 disabled:opacity-50"
       >
-        {pending ? "Signing up…" : "Sign up to learn more"}
+        {pending ? "Adding you…" : "Keep me posted"}
       </button>
       {error && <p className="text-center text-xs text-red-400">{error}</p>}
     </form>
