@@ -185,6 +185,21 @@ export default async function DashboardLayout({
             </Suspense>
           )}
           {children}
+          {!isSurveyPage && (
+            <footer className="border-t border-rule px-6 py-6 text-xs text-ink-soft">
+              <div className="flex flex-col items-center gap-1 sm:flex-row sm:justify-between">
+                <p>© 2026 Beyond Code Collective</p>
+                <nav className="flex items-center gap-4">
+                  <a href="/privacy" className="hover:text-ink">
+                    Privacy
+                  </a>
+                  <a href="/terms" className="hover:text-ink">
+                    Terms
+                  </a>
+                </nav>
+              </div>
+            </footer>
+          )}
         </main>
       </div>
       <Suspense fallback={null}>
