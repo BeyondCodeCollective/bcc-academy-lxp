@@ -4,9 +4,10 @@ import { useState, useTransition } from "react";
 import { savePublicSurveyResponse } from "@/app/survey/[id]/actions";
 
 /**
- * Minimal "learn more" signup on the marketing homepage. Stores into
- * public_survey_responses (survey_type: learn-more) under Catalyst —
- * same plumbing as the public application forms, no login required.
+ * Minimal "learn more" signup on the marketing homepage. Newsletter lead, not a
+ * survey: savePublicSurveyResponse routes survey_type "learn-more" to Mailchimp
+ * (+ a staff heads-up email) and does NOT store it in public_survey_responses,
+ * so it never shows up in the portal / Survey Insights.
  */
 export function LearnMoreForm() {
   const [name, setName] = useState("");

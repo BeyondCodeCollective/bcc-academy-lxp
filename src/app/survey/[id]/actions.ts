@@ -2,6 +2,7 @@
 
 import { createServiceClient } from "@/lib/supabase/server";
 import { sendSignupNotification } from "@/lib/email";
+import { subscribeToNewsletter } from "@/lib/mailchimp";
 
 // Public (unauthenticated) survey submission.
 // Writes to public_survey_responses; uniqueness on (program_id, survey_type,
@@ -62,6 +63,27 @@ export async function savePublicSurveyResponse(input: {
     return { ok: false, error: "Program not found." };
   }
 
+  // "Learn More" homepage signups are newsletter leads, not survey responses.
+  // Route them to Mailchimp (+ a staff heads-up) and do NOT write them to
+  // public_survey_responses, so they live only in Mailchimp and never surface
+  // in the portal / Survey Insights.
+  if (input.surveyType === "learn-more") {
+    const [firstName, ...rest] = fullName.split(/\s+/);
+    await subscribeToNewsletter({
+      email,
+      firstName: firstName || undefined,
+      lastName: rest.join(" ") || undefined,
+      programSlug: lookupSlug,
+    });
+    await sendSignupNotification({
+      name: fullName,
+      email,
+      programName: programRow.name ?? lookupSlug,
+      source: typeof scrubbedResponses.source === "string" ? scrubbedResponses.source : undefined,
+    });
+    return { ok: true };
+  }
+
   const nowIso = new Date().toISOString();
 
   const { error: upsertErr } = await svc
@@ -89,17 +111,6 @@ export async function savePublicSurveyResponse(input: {
       message: upsertErr.message,
     });
     return { ok: false, error: "Could not save your response. Please try again." };
-  }
-
-  // Heads-up email for homepage "Learn More" sign-ups (other public surveys
-  // don't notify). Awaited but self-catching — never fails the visitor's save.
-  if (input.surveyType === "learn-more") {
-    await sendSignupNotification({
-      name: fullName,
-      email,
-      programName: programRow.name ?? lookupSlug,
-      source: typeof scrubbedResponses.source === "string" ? scrubbedResponses.source : undefined,
-    });
   }
 
   return { ok: true };

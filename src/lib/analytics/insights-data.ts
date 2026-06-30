@@ -37,7 +37,12 @@ export async function buildInsightsData(
     return { sections: [], programs: [], totalResponses: 0 };
   }
 
-  const stats = await getDashboardSurveyStats(programIds);
+  // Lead-capture forms (e.g. the homepage "Learn More" signup) aren't surveys —
+  // keep them out of Survey Insights so the numbers reflect real responses.
+  const EXCLUDED_FROM_INSIGHTS = new Set(["learn-more"]);
+  const stats = (await getDashboardSurveyStats(programIds)).filter(
+    (r) => !EXCLUDED_FROM_INSIGHTS.has(r.survey_type),
+  );
 
   const programSurveys: SurveyConfig[] = getAllPrograms().flatMap(
     (p) => p.surveys ?? [],
