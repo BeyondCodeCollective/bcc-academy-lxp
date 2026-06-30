@@ -43,15 +43,23 @@ export default function HomePage() {
           </p>
         </div>
 
-        <LearnMoreForm />
+        {/* Updates capture for prospects — NOT account creation. The "Keep me
+           posted" framing + heading keep visitors from mistaking it for student
+           sign-in (which lives in the explicit link below + the top-right pill). */}
+        <div className="flex w-full max-w-sm flex-col items-center gap-3">
+          <p className="font-mono text-xs uppercase tracking-[0.2em] text-neutral-400">
+            New here? Get program updates
+          </p>
+          <LearnMoreForm />
+        </div>
 
         <p className="text-sm text-neutral-400">
-          Already enrolled?{" "}
+          Already a student?{" "}
           <Link
             href="/login"
             className="font-semibold text-white underline-offset-4 transition-colors hover:text-electric-green hover:underline"
           >
-            Sign in
+            Sign in &rarr;
           </Link>
         </p>
       </div>
