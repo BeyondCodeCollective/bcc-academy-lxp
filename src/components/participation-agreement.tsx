@@ -7,7 +7,9 @@ import { buttonClass } from "@/components/ui";
 import { signParticipationAgreement } from "@/lib/onboarding/actions";
 
 // Catalyst Program Participation Agreement — Cybersecurity Final Version.
-const SECTIONS: { n: string; heading: string; lede: string; points: string[] }[] = [
+type Point = string | { text: string; bold: true };
+
+const SECTIONS: { n: string; heading: string; lede: string; points: Point[] }[] = [
   {
     n: "1",
     heading: "My Time Commitment",
@@ -36,6 +38,10 @@ const SECTIONS: { n: string; heading: string; lede: string; points: string[] }[]
     points: [
       "I will complete assigned readings, exercises, and pre-session work before each live session.",
       "I will engage actively during sessions — contributing questions, perspectives, and feedback.",
+      {
+        text: "I will join calls with camera on whenever possible to directly engage with my instructors and peers.",
+        bold: true,
+      },
       "I will complete my track's capstone deliverable or final project as part of fulfilling the program.",
       "I will ask for help early if I fall behind, knowing that support is available.",
     ],
@@ -163,12 +169,16 @@ export function ParticipationAgreementModal({
                 </h3>
                 <p className="mt-1 text-[13px] leading-relaxed text-ink-soft">{s.lede}</p>
                 <ul className="mt-2 space-y-1.5">
-                  {s.points.map((p, i) => (
-                    <li key={i} className="flex gap-2 text-[13px] leading-relaxed text-ink-soft">
-                      <span aria-hidden className="mt-1.5 h-1 w-1 flex-none rounded-full bg-primary" />
-                      <span>{p}</span>
-                    </li>
-                  ))}
+                  {s.points.map((p, i) => {
+                    const text = typeof p === "string" ? p : p.text;
+                    const bold = typeof p === "object" && p.bold;
+                    return (
+                      <li key={i} className="flex gap-2 text-[13px] leading-relaxed text-ink-soft">
+                        <span aria-hidden className="mt-1.5 h-1 w-1 flex-none rounded-full bg-primary" />
+                        <span className={bold ? "font-bold text-ink" : undefined}>{text}</span>
+                      </li>
+                    );
+                  })}
                 </ul>
               </section>
             ))}
