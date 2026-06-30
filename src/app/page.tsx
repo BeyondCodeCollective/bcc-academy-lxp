@@ -48,9 +48,21 @@ export default function HomePage() {
                 Sign in to your dashboard
               </p>
               <p className="mt-1 text-sm text-neutral-300">
-                Pick up your courses where you left off.
+                Pick up right where you left off.
               </p>
             </div>
+            <ul className="space-y-2.5 text-sm text-neutral-300">
+              {[
+                "Your courses & progress",
+                "Live sessions & office hours",
+                "Certificates & resources",
+              ].map((item) => (
+                <li key={item} className="flex items-center gap-2.5">
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-electric-green" />
+                  {item}
+                </li>
+              ))}
+            </ul>
             <Link
               href="/login"
               className="mt-auto inline-flex w-full items-center justify-center bg-electric-green px-4 py-3 text-sm font-bold uppercase tracking-wide text-true-black transition-opacity hover:opacity-90"
