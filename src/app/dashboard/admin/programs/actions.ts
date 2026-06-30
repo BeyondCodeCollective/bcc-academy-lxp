@@ -213,6 +213,11 @@ export async function updateCourseAction(
         program_id: programRow.id,
         track_slug: trackSlug,
         name: name.trim(),
+        // Keep short_name in sync with name. The edit form only exposes one
+        // name field, but several surfaces (admin home picker, track tabs,
+        // bulk-assign dropdowns) render short_name — without this a rename only
+        // updates the title and the old name lingers everywhere short_name shows.
+        short_name: name.trim(),
         instructor: instructor.trim(),
         total_weeks: totalWeeks,
         sessions_per_week: sessionsPerWeek,
