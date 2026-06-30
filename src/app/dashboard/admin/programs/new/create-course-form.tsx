@@ -19,7 +19,7 @@ const PHASE_OPTIONS = [
 const PROGRAM_OPTIONS = [
   { value: "catalyst",            label: "Catalyst" },
   { value: "beyond-code-centers", label: "Beyond Code Centers" },
-  { value: "atg",                 label: "After The Game (ATG)" },
+  { value: "atg",                 label: "Beyond the Game" },
 ];
 
 export function CreateCourseForm() {

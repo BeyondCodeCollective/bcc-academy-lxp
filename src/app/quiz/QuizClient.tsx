@@ -633,7 +633,7 @@ function ResultsScreen({
               className="group flex flex-col gap-2 p-4 bg-cobalt text-white hover:bg-dark-cobalt transition-colors"
             >
               <span className="text-[10px] font-mono uppercase tracking-wider text-white/60">Program</span>
-              <span className="font-bold text-sm">After The Game</span>
+              <span className="font-bold text-sm">Beyond the Game</span>
               <span className="text-xs text-white/70 leading-snug">Tech careers for athletes in transition</span>
               <span className="mt-auto text-xs font-bold text-electric-green group-hover:underline">Apply →</span>
             </a>

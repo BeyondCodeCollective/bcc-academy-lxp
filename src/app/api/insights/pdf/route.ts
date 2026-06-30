@@ -23,12 +23,9 @@ export async function GET(req: NextRequest) {
   }
 
   const program = await getProgram();
-  // Same scope rule as the admin Insights page: Catalyst aggregates ATG +
-  // Beyond Code Centers; every other program is just itself.
-  const aggregatedSlugs =
-    program.slug === "catalyst"
-      ? ["catalyst", "atg", "beyond-code-centers"]
-      : [program.slug];
+  // Same scope rule as the admin Insights page: every program is standalone and
+  // scopes to its own id (no more Catalyst aggregation).
+  const aggregatedSlugs = [program.slug];
   const { data: programRows } = await svc
     .from("programs")
     .select("id, slug")

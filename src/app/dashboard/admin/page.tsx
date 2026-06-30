@@ -102,21 +102,12 @@ export default async function AdminPage({
 
     const svc = createServiceClient();
 
-    // Program ID lookup. Catalyst is an "umbrella" program — its track list
-    // is spread from ATG / BCC Centers / Upskill Bahamas configs, but the
-    // students enrolled in those tracks are stored with the source program's
-    // ID (e.g. a MASS enrollee from /join/atg has program_id = atg). Filtering
-    // by catalyst.id alone returns 0 across the board. For Catalyst we
-    // aggregate IDs from every underlying program plus Catalyst itself; for
-    // any other program we keep the single-program scope.
-    //
-    // Cached across requests with a short TTL: program UUIDs never change,
-    // so there is zero staleness risk.
-    // Upskill Bahamas (forte) is its own program — its students/data are NOT
-    // aggregated into Catalyst. ATG + Beyond Code Centers still are.
-    const aggregatedSlugs = program.slug === "catalyst"
-      ? ["catalyst", "atg", "beyond-code-centers"]
-      : [program.slug];
+    // Program ID lookup. Every program is standalone — Catalyst, Beyond the
+    // Game (atg), Beyond Code Centers, and Forte each scope to their own
+    // program id; students/data live under that id. Cached across requests
+    // with a short TTL: program UUIDs never change, so there is zero staleness
+    // risk.
+    const aggregatedSlugs = [program.slug];
     const programRows = await getCachedProgramIds(aggregatedSlugs);
     const programIds = (programRows ?? []).map((p) => p.id as string);
     const programId = programRows?.find((p) => p.slug === program.slug)?.id;

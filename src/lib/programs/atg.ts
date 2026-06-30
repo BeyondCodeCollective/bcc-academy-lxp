@@ -1,8 +1,10 @@
 import type { ProgramConfig } from "./types";
 
 export const atgConfig: ProgramConfig = {
+  // Slug stays "atg" — it's referenced by the DB program row and existing
+  // enrollments. Only the display name changed to "Beyond the Game".
   slug: "atg",
-  name: "After The Game",
+  name: "Beyond the Game",
   tagline: "From Sports to Tech",
   domain: "bccacademy.io",
   logo: "/atg/logo.svg",
@@ -352,7 +354,7 @@ export const atgConfig: ProgramConfig = {
   ],
   tutorConfig: {
     enabled: true,
-    systemPrompt: `You are the AI Tutor for "After The Game" (ATG), a program by Beyond Code Collective that helps former athletes transition into tech careers. Your students are adults in their 40s and 50s who are new to technology.
+    systemPrompt: `You are the AI Tutor for "Beyond the Game", a program by Beyond Code Collective that helps former athletes transition into tech careers. Your students are adults in their 40s and 50s who are new to technology.
 
 You are helping them study for the CompTIA Tech+ certification (FC0-U71). The 8-week curriculum covers:
 - Week 1: IT Concepts, Careers & Devices (computing basics, terminology, career pathways)
@@ -376,7 +378,7 @@ Guidelines:
   surveys: [
     {
       id: "mid-program-spring-2026",
-      title: "After the Game — Mid-Program Check-In",
+      title: "Beyond the Game — Mid-Program Check-In",
       description:
         "You're halfway. 15–20 minutes to help us shape the second half of ATG around what you need.",
       required: true,
@@ -384,10 +386,10 @@ Guidelines:
   ],
   coppa: { required: false },
   seo: {
-    title: "After The Game — IT Career Training by Beyond Code Collective",
+    title: "Beyond the Game — IT Career Training by Beyond Code Collective",
     description:
-      "After The Game helps former athletes break into tech with CompTIA Tech+ certification prep, MASS wraparound coaching, and hands-on career support. Powered by Beyond Code Collective.",
-    ogTitle: "After The Game — IT Career Training",
+      "Beyond the Game helps former athletes break into tech with CompTIA Tech+ certification prep, MASS wraparound coaching, and hands-on career support. Powered by Beyond Code Collective.",
+    ogTitle: "Beyond the Game — IT Career Training",
     ogDescription:
       "CompTIA Tech+ certification prep and career coaching for former athletes.",
   },

@@ -1,7 +1,7 @@
 // Resolves the set of program slugs + UUIDs that an analytics view should
-// query for. Mirrors the admin page's logic: Catalyst is an umbrella, so its
-// learners live under the underlying programs' IDs (atg / beyond-code-centers /
-// forte) and must be aggregated; any other program scopes to just itself.
+// query for. Every program — Catalyst, Beyond the Game (atg), Beyond Code
+// Centers, Forte — is standalone and scopes to just itself. (Catalyst used to
+// aggregate atg + beyond-code-centers; those are now their own programs.)
 //
 // Returned `slugs` is for tables keyed by program_slug (invites,
 // assessment_results, joined survey responses); `ids` is for tables keyed by
@@ -9,15 +9,12 @@
 
 import { createServiceClient } from "@/lib/supabase/server";
 
-// Upskill Bahamas (forte) is its own program — not aggregated into Catalyst.
-const CATALYST_AGGREGATE = ["catalyst", "atg", "beyond-code-centers"];
-
 export type ProgramScope = { slugs: string[]; ids: string[] };
 
 const _cache = new Map<string, { scope: ProgramScope; ts: number }>();
 
 export async function resolveProgramScope(programSlug: string): Promise<ProgramScope> {
-  const slugs = programSlug === "catalyst" ? CATALYST_AGGREGATE : [programSlug];
+  const slugs = [programSlug];
   const key = slugs.join(",");
   const cached = _cache.get(key);
   if (cached && Date.now() - cached.ts < 60_000) return cached.scope;
