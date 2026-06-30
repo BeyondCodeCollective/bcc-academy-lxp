@@ -987,7 +987,7 @@ export function AdminTabs({
                       />
                       <div className="min-w-0 flex-1">
                         <p className="text-[14px] font-semibold text-ink leading-snug">
-                          {t.shortName || t.name}
+                          {t.name}
                         </p>
                         <p className="text-[12px] text-ink-faint">
                           {t.instructor}
@@ -1009,7 +1009,7 @@ export function AdminTabs({
                     <Link
                       href={`/dashboard/track/${t.slug}`}
                       title="Open student view"
-                      aria-label={`Open student view of ${t.shortName || t.name}`}
+                      aria-label={`Open student view of ${t.name}`}
                       className="shrink-0 rounded-md p-1.5 text-ink-faint transition-colors hover:bg-paper-tint hover:text-ink"
                     >
                       <Eye size={15} aria-hidden />
@@ -1017,7 +1017,7 @@ export function AdminTabs({
                     {/* Primary action: manage. */}
                     <Link
                       href={`/dashboard/admin?tab=${t.slug}`}
-                      aria-label={`Manage ${t.shortName || t.name}`}
+                      aria-label={`Manage ${t.name}`}
                       className="shrink-0 rounded-md p-1.5 text-ink-faint transition-colors hover:bg-paper-tint hover:text-ink group-hover:text-ink-soft"
                     >
                       <ArrowRight size={15} aria-hidden />
