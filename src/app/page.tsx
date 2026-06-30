@@ -1,17 +1,27 @@
 import Image from "next/image";
-import Link from "next/link";
-import { LearnMoreForm } from "@/components/learn-more-form";
+import { ApexEntry } from "@/components/apex-entry";
 import { HeroVideo } from "@/components/hero-video";
+import { getJoinablePrograms } from "@/lib/programs";
 
 export default function HomePage() {
+  // Same program list the /login page surfaces on the "No account found" CTA.
+  const loginPrograms = getJoinablePrograms()
+    .filter((p) => p.tracks.length > 0)
+    .map((p) => ({
+      slug: p.slug,
+      name: p.name,
+      defaultTrack:
+        p.requireInviteLink === true && p.tracks[0] ? p.tracks[0].slug : null,
+    }));
+
   return (
-    <div className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-true-black px-6 py-16">
+    <div className="relative min-h-screen flex flex-col overflow-hidden bg-true-black px-6">
       {/* BCC hero clip behind everything (plays on desktop AND mobile), with a
          dark overlay so the logo and copy stay legible. */}
       <HeroVideo />
       <div className="absolute inset-0 bg-true-black/70" aria-hidden />
 
-      <div className="relative z-10 flex w-full max-w-2xl flex-col items-center gap-10">
+      <div className="relative z-10 flex w-full max-w-2xl mx-auto flex-1 flex-col items-center justify-center gap-10 py-16">
         <Image
           src="/catalyst/logo.svg"
           alt="BCC Academy"
@@ -34,60 +44,21 @@ export default function HomePage() {
           </p>
         </div>
 
-        {/* Two-door fork — students sign in, newcomers subscribe. Each path has
-           its own clearly-labeled action, so the newsletter form can't be
-           mistaken for student sign-in. */}
-        <div className="grid w-full gap-4 sm:grid-cols-2 sm:items-stretch">
-          {/* Returning students */}
-          <div className="flex flex-col gap-4 rounded-2xl border border-white/20 bg-white/5 p-6 backdrop-blur">
-            <div>
-              <p className="font-mono text-xs uppercase tracking-[0.2em] text-electric-green">
-                I&apos;m a student
-              </p>
-              <p className="mt-1 font-display text-lg font-bold text-white">
-                Sign in to your dashboard
-              </p>
-              <p className="mt-1 text-sm text-neutral-300">
-                Pick up right where you left off.
-              </p>
-            </div>
-            <ul className="space-y-2.5 text-sm text-neutral-300">
-              {[
-                "Your courses & progress",
-                "Live sessions & office hours",
-                "Certificates & resources",
-              ].map((item) => (
-                <li key={item} className="flex items-center gap-2.5">
-                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-electric-green" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-            <Link
-              href="/login"
-              className="mt-auto inline-flex w-full items-center justify-center bg-electric-green px-4 py-3 text-sm font-bold uppercase tracking-wide text-true-black transition-opacity hover:opacity-90"
-            >
-              Sign in &rarr;
-            </Link>
-          </div>
-
-          {/* Newcomers — newsletter signup */}
-          <div className="flex flex-col gap-4 rounded-2xl border border-white/20 bg-white/5 p-6 backdrop-blur">
-            <div>
-              <p className="font-mono text-xs uppercase tracking-[0.2em] text-electric-green">
-                New here?
-              </p>
-              <p className="mt-1 font-display text-lg font-bold text-white">
-                Sign up for our newsletter
-              </p>
-              <p className="mt-1 text-sm text-neutral-300">
-                Programs, events, and ways to get involved.
-              </p>
-            </div>
-            <LearnMoreForm />
-          </div>
-        </div>
+        {/* Pick a path → reveal only the matching form (sign-in or newsletter). */}
+        <ApexEntry programs={loginPrograms} />
       </div>
+
+      <footer className="relative z-10 flex flex-col items-center gap-1 pb-6 text-center text-xs text-neutral-400 sm:flex-row sm:justify-center sm:gap-4">
+        <p>© 2026 Beyond Code Collective</p>
+        <nav className="flex items-center gap-4">
+          <a href="/privacy" className="underline-offset-2 hover:text-white hover:underline">
+            Privacy
+          </a>
+          <a href="/terms" className="underline-offset-2 hover:text-white hover:underline">
+            Terms
+          </a>
+        </nav>
+      </footer>
     </div>
   );
 }
