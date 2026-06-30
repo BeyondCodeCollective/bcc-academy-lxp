@@ -1,17 +1,19 @@
 // Outcomes & Learning analytics — "are they actually learning?"
 //
-// Confidence/mindset shift is derived from survey responses two ways, both of
-// which live entirely inside a single response row (no cross-survey join, so
-// no student-id pairing needed):
+// Confidence/mindset shift is derived from survey responses three ways:
 //   1. dual-likert questions  → before/now captured in one question
 //   2. a pair of likert questions in the SAME survey that share an identical
 //      statement list (e.g. network-plus-post's confidence_before / _now)
+//   3. a CROSS-survey pre→post pair (e.g. pre-survey-spring-2026 vs
+//      post-survey-spring-2026) sharing a Likert id + statement list. This is a
+//      cohort-level shift (pre-respondents' mean vs post-respondents' mean), not
+//      a per-student paired delta — the public surveys carry no reliable
+//      identity to join on.
 //
-// Cross-survey pre→post pairing (e.g. pre-survey-spring-2026 vs
-// post-survey-spring-2026) is intentionally NOT done here: those surveys use
-// inverted scale anchors ("1 — Strongly Agree" … "5 — Strongly Disagree"), so a
-// naive post−pre delta would read backwards. Until that's reconciled, we only
-// surface the conventionally-oriented, single-row sources above.
+// Scale reconciliation: the spring-2026 instruments use INVERTED anchors
+// ("1 — Strongly Agree" … "5 — Strongly Disagree"), so a lower number means more
+// confidence and a naive post−pre delta reads backwards. orient() flips inverted
+// means so higher always = more agreement/confidence before any delta is taken.
 
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSurveySchema } from "@/lib/surveys/schemas";
@@ -100,8 +102,97 @@ function scaleMaxOf(scale: string[]): number {
   return Number.isNaN(last) ? scale.length : last;
 }
 
+function scaleMinOf(scale: string[]): number {
+  const first = Number(scale[0]);
+  return Number.isNaN(first) ? 1 : first;
+}
+
 type LikertQ = Extract<SurveyQuestion, { type: "likert" }>;
 type DualLikertQ = Extract<SurveyQuestion, { type: "dual-likert" }>;
+
+// Cross-survey pre→post pairs: two separate surveys that reuse a Likert id +
+// statement list. Same-survey pairs are found structurally (shiftSchema); these
+// can't be, so they're declared explicitly.
+const CROSS_SURVEY_PAIRS: { before: string; after: string }[] = [
+  { before: "pre-survey-spring-2026", after: "post-survey-spring-2026" },
+];
+
+// An inverted Likert reads the LOW number as agreement ("1 — Strongly Agree").
+// We detect it from the anchors: the low end mentions "agree" but not "disagree".
+function isInvertedLikert(q: LikertQ): boolean {
+  const low = q.scaleAnchors?.low ?? "";
+  return /agree/i.test(low) && !/disagree/i.test(low);
+}
+
+// Reorient a mean so higher always = more agreement/confidence. Conventional
+// scales pass through; inverted scales flip around the midpoint. mean === 0 is
+// the "no data" sentinel from aggregateLikertMeans, so leave it untouched.
+function orient(mean: number, q: LikertQ): number {
+  if (mean === 0 || !isInvertedLikert(q)) return mean;
+  return scaleMinOf(q.scale) + scaleMaxOf(q.scale) - mean;
+}
+
+/**
+ * Build before→now shift groups by pairing a Likert question across two surveys
+ * (pre vs post). Each matched statement compares the pre-respondents' mean to
+ * the post-respondents' mean, both reoriented so a positive delta = real gain.
+ */
+function crossSurveyGroups(
+  pair: { before: string; after: string },
+  beforeResponses: BCCSurveyResponse[],
+  afterResponses: BCCSurveyResponse[],
+): ShiftGroup[] {
+  const beforeSchema = getSurveySchema(pair.before);
+  const afterSchema = getSurveySchema(pair.after);
+  if (!beforeSchema || !afterSchema) return [];
+
+  const beforeById = new Map(
+    beforeSchema
+      .filter((q): q is LikertQ => q.type === "likert")
+      .map((q) => [q.id, q] as const),
+  );
+
+  const out: ShiftGroup[] = [];
+  for (const after of afterSchema) {
+    if (after.type !== "likert") continue;
+    const before = beforeById.get(after.id);
+    // Pair only when both sides share the id AND the exact statement list, so
+    // a reworded post-survey can't silently mis-pair against the pre-survey.
+    if (!before || JSON.stringify(before.statements) !== JSON.stringify(after.statements)) {
+      continue;
+    }
+    const beforeMeans = aggregateLikertMeans(before, beforeResponses);
+    const afterMeans = aggregateLikertMeans(after, afterResponses);
+    const rows: ShiftRow[] = after.statements
+      .map((stmt, i) => {
+        const b = beforeMeans[i];
+        const a = afterMeans[i];
+        const n = Math.min(b.n, a.n);
+        if (n === 0) return null;
+        const oBefore = orient(b.mean, before);
+        const oNow = orient(a.mean, after);
+        return {
+          statement: stmt,
+          before: oBefore,
+          now: oNow,
+          delta: oNow - oBefore,
+          n,
+        };
+      })
+      .filter((r): r is ShiftRow => r !== null);
+    if (rows.length === 0) continue;
+    out.push({
+      surveyId: pair.after,
+      surveyTitle: `${titleFor(pair.before)} → ${titleFor(pair.after)}`,
+      label: after.label,
+      beforeLabel: "Before (pre-survey)",
+      nowLabel: "After (post-survey)",
+      scaleMax: scaleMaxOf(after.scale),
+      rows,
+    });
+  }
+  return out;
+}
 
 /**
  * The single definition of "what in this survey carries a before→now shift":
@@ -227,17 +318,21 @@ async function fetchComposition(scope: ProgramScope): Promise<{
  * getDashboardAllSurveyResponses, which enforces that.
  */
 export async function fetchOutcomesData(scope: ProgramScope): Promise<OutcomesData> {
-  // Only fetch responses for surveys whose schema actually carries shift data.
+  // Only fetch responses for surveys whose schema actually carries shift data —
+  // plus the surveys named in the cross-survey pairs (which carry shift only when
+  // paired, so surveyCarriesShift can't detect them on their own).
   const shiftSurveyIds = candidateSurveyIds().filter((id) => {
     const schema = getSurveySchema(id);
     return schema ? surveyCarriesShift(schema) : false;
   });
+  const crossIds = CROSS_SURVEY_PAIRS.flatMap((p) => [p.before, p.after]);
+  const fetchIds = Array.from(new Set([...shiftSurveyIds, ...crossIds]));
 
   const [responsesByType, composition] = await Promise.all([
-    shiftSurveyIds.length > 0
+    fetchIds.length > 0
       ? // Scope the response fetch to this program in SQL — no BCC-wide overfetch,
         // and no chance of leaking another program's rows through a missed filter.
-        getDashboardAllSurveyResponses(shiftSurveyIds, scope.ids)
+        getDashboardAllSurveyResponses(fetchIds, scope.ids)
       : Promise.resolve({} as Record<string, BCCSurveyResponse[]>),
     fetchComposition(scope),
   ]);
@@ -248,6 +343,13 @@ export async function fetchOutcomesData(scope: ProgramScope): Promise<OutcomesDa
     const responses = responsesByType[id] ?? [];
     if (!schema || responses.length === 0) continue;
     groups.push(...groupsFromSurvey(id, schema, responses));
+  }
+  // Cross-survey pre→post pairs (cohort-level, scale-reconciled).
+  for (const pair of CROSS_SURVEY_PAIRS) {
+    const before = responsesByType[pair.before] ?? [];
+    const after = responsesByType[pair.after] ?? [];
+    if (before.length === 0 || after.length === 0) continue;
+    groups.push(...crossSurveyGroups(pair, before, after));
   }
   // Surface the biggest movers first.
   groups.sort((a, b) => avgOf(b.rows) - avgOf(a.rows));

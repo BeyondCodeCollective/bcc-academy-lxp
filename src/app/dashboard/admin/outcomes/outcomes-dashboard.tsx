@@ -34,15 +34,20 @@ export function OutcomesDashboard({ data }: { data: OutcomesDashboardData }) {
 
 function OutcomesSection({ outcomes }: { outcomes: OutcomesData }) {
   const hasShift = outcomes.groups.length > 0;
+  // Sign-aware headline — a flat or slightly-negative average must not render
+  // "rose +-0.03". Below ±0.05 on a 1–5 scale is noise, so call it steady.
+  const d = outcomes.avgDelta;
+  const shiftHeadline =
+    d >= 0.05
+      ? `Confidence rose +${d.toFixed(2)} on average`
+      : d <= -0.05
+        ? `Confidence dipped ${d.toFixed(2)} on average`
+        : "Confidence held about steady";
   return (
     <section className="space-y-5">
       <SectionHeader
         eyebrow="Outcomes & Learning"
-        headline={
-          hasShift
-            ? `Confidence rose +${outcomes.avgDelta.toFixed(2)} on average`
-            : "Learning gain"
-        }
+        headline={hasShift ? shiftHeadline : "Learning gain"}
         sub={
           hasShift
             ? `Across ${outcomes.statementCount} measures · up to ${outcomes.respondents} learners reporting before & after`
