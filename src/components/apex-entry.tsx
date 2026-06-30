@@ -4,90 +4,74 @@ import { useState } from "react";
 import { CentralLoginForm } from "@/components/central-login-form";
 import { LearnMoreForm } from "@/components/learn-more-form";
 
-type Mode = "choose" | "student" | "new";
-
 /**
- * Homepage entry. Rather than show a sign-in form AND a newsletter form side by
- * side (which made visitors mis-pick), present two buttons and reveal only the
- * form that matches their intent. One decision, then one form.
+ * Homepage entry. A segmented toggle picks intent (sign in vs. join the list)
+ * and only the matching form shows — no two competing forms, no redirect.
  */
 export function ApexEntry({
   programs,
 }: {
   programs: { slug: string; name: string; defaultTrack: string | null }[];
 }) {
-  const [mode, setMode] = useState<Mode>("choose");
+  const [tab, setTab] = useState<"signin" | "join">("signin");
 
-  if (mode !== "choose") {
-    const isStudent = mode === "student";
-    return (
-      <div className="w-full max-w-sm space-y-5">
-        <button
-          type="button"
-          onClick={() => setMode("choose")}
-          className="inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-[0.15em] text-neutral-400 transition-colors hover:text-white"
-        >
-          <span aria-hidden>&larr;</span> Back
-        </button>
-
-        <div>
-          <p className="font-mono text-xs uppercase tracking-[0.2em] text-electric-green">
-            {isStudent ? "I'm a student" : "New here?"}
-          </p>
-          <p className="mt-1 font-display text-xl font-bold text-white">
-            {isStudent ? "Sign in to your dashboard" : "Sign up for our newsletter"}
-          </p>
-          <p className="mt-1 text-sm text-neutral-300">
-            {isStudent
-              ? "Enter your email — we'll send you a sign-in link."
-              : "Programs, events, and ways to get involved."}
-          </p>
-        </div>
-
-        {isStudent ? (
-          <CentralLoginForm compact programs={programs} />
-        ) : (
-          <LearnMoreForm />
-        )}
-      </div>
-    );
-  }
+  const seg = (active: boolean) =>
+    `rounded-full px-5 py-2 text-xs font-bold uppercase tracking-[0.12em] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-electric-green ${
+      active ? "bg-electric-green text-true-black" : "text-white/45 hover:text-white"
+    }`;
 
   return (
-    <div className="grid w-full max-w-md gap-3 sm:grid-cols-2">
-      <button
-        type="button"
-        onClick={() => setMode("student")}
-        className="group flex flex-col gap-1.5 rounded-2xl border border-white/20 bg-white/5 p-6 text-left backdrop-blur transition-colors hover:border-electric-green"
+    <div className="w-full max-w-sm">
+      <div
+        role="tablist"
+        aria-label="Sign in or join"
+        className="mb-9 inline-flex rounded-full border border-white/12 bg-white/[0.03] p-1"
       >
-        <span className="font-mono text-xs uppercase tracking-[0.2em] text-electric-green">
-          I&apos;m a student
-        </span>
-        <span className="font-display text-lg font-bold text-white">Sign in</span>
-        <span className="inline-flex items-center text-sm text-neutral-300 transition-colors group-hover:text-white">
-          Get to your dashboard
-          <span className="ml-2 transition-transform group-hover:translate-x-1" aria-hidden>
-            &rarr;
-          </span>
-        </span>
-      </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === "signin"}
+          onClick={() => setTab("signin")}
+          className={seg(tab === "signin")}
+        >
+          Sign in
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === "join"}
+          onClick={() => setTab("join")}
+          className={seg(tab === "join")}
+        >
+          New here
+        </button>
+      </div>
 
-      <button
-        type="button"
-        onClick={() => setMode("new")}
-        className="group flex flex-col gap-1.5 rounded-2xl border border-white/20 bg-white/5 p-6 text-left backdrop-blur transition-colors hover:border-electric-green"
-      >
-        <span className="font-mono text-xs uppercase tracking-[0.2em] text-electric-green">
-          I&apos;m new here
-        </span>
-        <span className="font-display text-lg font-bold text-white">Get started</span>
-        <span className="inline-flex items-center text-sm text-neutral-300 transition-colors group-hover:text-white">
-          Programs &amp; newsletter
-          <span className="ml-2 transition-transform group-hover:translate-x-1" aria-hidden>
-            &rarr;
-          </span>
-        </span>
-      </button>
+      {tab === "signin" ? (
+        <div className="space-y-5">
+          <div>
+            <h2 className="font-display text-4xl font-bold uppercase leading-[0.9] tracking-tight sm:text-5xl">
+              Welcome back.
+            </h2>
+            <p className="mt-2 text-sm text-white/55">
+              Sign in to pick up right where you left off.
+            </p>
+          </div>
+          <CentralLoginForm compact programs={programs} />
+        </div>
+      ) : (
+        <div className="space-y-5">
+          <div>
+            <h2 className="font-display text-4xl font-bold uppercase leading-[0.9] tracking-tight sm:text-5xl">
+              Stay in the loop.
+            </h2>
+            <p className="mt-2 text-sm text-white/55">
+              Programs, events, and ways to get involved — straight to your inbox.
+            </p>
+          </div>
+          <LearnMoreForm />
+        </div>
+      )}
     </div>
   );
 }
