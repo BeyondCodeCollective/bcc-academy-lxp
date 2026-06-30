@@ -228,6 +228,21 @@ export function InsightsDashboard({
         <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.14em] text-ink-faint">
           Surveys
         </p>
+        {cohortFilter !== "all" && visibleLedger.length === 0 ? (
+          <div className="border border-rule bg-surface-elevated p-6 text-center">
+            <p className="text-sm text-ink-soft">
+              No responses for{" "}
+              <span className="font-semibold text-ink">{cohortFilter}</span> yet.{" "}
+              <button
+                type="button"
+                onClick={() => changeCohort("all")}
+                className="underline hover:text-ink"
+              >
+                View all cohorts
+              </button>
+            </p>
+          </div>
+        ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {visibleLedger.map((row) => (
             <button
@@ -297,6 +312,7 @@ export function InsightsDashboard({
             </button>
           ))}
         </div>
+        )}
       </section>
 
       {/* Program legend */}

@@ -1,12 +1,25 @@
 "use client";
 
-import type { EngagementAnalytics } from "./actions-analytics";
+import { useMemo, useState } from "react";
+import type { EngagementAnalytics, EngagementLearner } from "./actions-analytics";
 
 // Program-level engagement: the activation funnel + a per-learner activity
 // table. Scoped server-side to the current program, so it reflects the program
 // switcher (Forte shows Upskill, Catalyst shows Catalyst, etc.).
 export function AnalyticsDashboard({ data }: { data: EngagementAnalytics }) {
   const { funnel, learners } = data;
+  // Name/email filter — the table runs to hundreds of rows (175+ at Upskill
+  // scale), so an unfiltered wall is unusable. Match is case-insensitive across
+  // both name and email.
+  const [query, setQuery] = useState("");
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return learners;
+    return learners.filter(
+      (l) =>
+        l.name.toLowerCase().includes(q) || l.email.toLowerCase().includes(q),
+    );
+  }, [learners, query]);
   // Funnel conversion vs the "invited" top — shown only when invited > 0
   // ("% of 0" is meaningless, e.g. Beyond Code Centers, where students were
   // added directly rather than via an allowlist).
@@ -42,9 +55,28 @@ export function AnalyticsDashboard({ data }: { data: EngagementAnalytics }) {
       </section>
 
       <section className="space-y-2">
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">
-          Per-learner activity ({learners.length})
-        </h2>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">
+            Per-learner activity ({query.trim() ? `${filtered.length} of ${learners.length}` : learners.length})
+          </h2>
+          <div className="flex items-center gap-2">
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Filter by name or email…"
+              className="w-48 border border-rule bg-white px-2.5 py-1.5 text-sm text-ink placeholder:text-ink-faint focus:border-ink-faint focus:outline-none sm:w-64"
+            />
+            <button
+              type="button"
+              onClick={() => downloadCsv(filtered, data.programName)}
+              disabled={filtered.length === 0}
+              className="border border-rule bg-white px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:border-ink-faint disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Export CSV
+            </button>
+          </div>
+        </div>
         <div className="overflow-x-auto rounded-lg border border-rule">
           <table className="w-full text-sm">
             <thead>
@@ -53,11 +85,13 @@ export function AnalyticsDashboard({ data }: { data: EngagementAnalytics }) {
                 <th className="px-3 py-2 font-semibold">Signed up</th>
                 <th className="px-3 py-2 font-semibold">Last active</th>
                 <th className="px-3 py-2 text-center font-semibold">Videos</th>
+                <th className="px-3 py-2 text-center font-semibold">Attended</th>
+                <th className="px-3 py-2 text-center font-semibold">Submitted</th>
                 <th className="px-3 py-2 text-center font-semibold">Surveys</th>
               </tr>
             </thead>
             <tbody>
-              {learners.map((l) => (
+              {filtered.map((l) => (
                 <tr
                   key={l.email}
                   className={`border-b border-rule/60 last:border-0 ${l.videosWatched > 0 ? "bg-[#f3f8ff]" : ""}`}
@@ -69,13 +103,17 @@ export function AnalyticsDashboard({ data }: { data: EngagementAnalytics }) {
                   <td className="px-3 py-2 text-ink-soft">{l.signedUp ?? "—"}</td>
                   <td className="px-3 py-2 text-ink-soft">{l.lastActive ?? "—"}</td>
                   <td className="px-3 py-2 text-center text-ink">{l.videosWatched}</td>
+                  <td className="px-3 py-2 text-center text-ink">{l.attended}</td>
+                  <td className="px-3 py-2 text-center text-ink">{l.submitted}</td>
                   <td className="px-3 py-2 text-center text-ink">{l.surveys}</td>
                 </tr>
               ))}
-              {learners.length === 0 && (
+              {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-3 py-8 text-center text-ink-faint">
-                    No learners in this program yet.
+                  <td colSpan={7} className="px-3 py-8 text-center text-ink-faint">
+                    {learners.length === 0
+                      ? "No learners in this program yet."
+                      : "No learners match that filter."}
                   </td>
                 </tr>
               )}
@@ -90,4 +128,26 @@ export function AnalyticsDashboard({ data }: { data: EngagementAnalytics }) {
       </section>
     </div>
   );
+}
+
+// Client-side CSV of the (filtered) learner rows — lets staff hand off
+// engagement data without re-running the export scripts. Quotes every field so
+// commas/quotes in names don't break columns.
+function downloadCsv(learners: EngagementLearner[], programName: string) {
+  const header = ["Name", "Email", "Signed up", "Last active", "Videos", "Attended", "Submitted", "Surveys"];
+  const esc = (v: string | number | null) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const rows = learners.map((l) =>
+    [l.name, l.email, l.signedUp, l.lastActive, l.videosWatched, l.attended, l.submitted, l.surveys]
+      .map(esc)
+      .join(","),
+  );
+  const csv = [header.map(esc).join(","), ...rows].join("\n");
+  const slug = programName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${slug || "program"}-engagement.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
