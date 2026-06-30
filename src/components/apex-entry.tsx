@@ -62,7 +62,7 @@ export function ApexEntry({
         <button
           type="button"
           onClick={() => setMode("join")}
-          className="w-full border border-electric-green/50 px-4 py-3 text-sm font-bold uppercase tracking-wide text-electric-green outline-none transition-colors hover:bg-electric-green hover:text-true-black focus-visible:bg-electric-green focus-visible:text-true-black"
+          className="w-full border border-white/20 px-4 py-3 text-sm font-bold uppercase tracking-wide text-white/80 outline-none transition-colors hover:border-white/45 hover:bg-white/[0.04] hover:text-white focus-visible:border-white/45 focus-visible:text-white"
         >
           Join our newsletter &rarr;
         </button>
