@@ -5,8 +5,8 @@ import { CentralLoginForm } from "@/components/central-login-form";
 import { LearnMoreForm } from "@/components/learn-more-form";
 
 /**
- * Homepage entry. A segmented toggle picks intent (sign in vs. join the list)
- * and only the matching form shows — no two competing forms, no redirect.
+ * Homepage entry. Editorial underline tabs pick intent (sign in vs. join the
+ * list); only the matching form shows — no two competing forms, no redirect.
  */
 export function ApexEntry({
   programs,
@@ -15,24 +15,22 @@ export function ApexEntry({
 }) {
   const [tab, setTab] = useState<"signin" | "join">("signin");
 
-  const seg = (active: boolean) =>
-    `rounded-full px-5 py-2 text-xs font-bold uppercase tracking-[0.12em] outline-none transition-colors focus-visible:ring-2 focus-visible:ring-electric-green ${
-      active ? "bg-electric-green text-true-black" : "text-white/45 hover:text-white"
+  const tabCls = (active: boolean) =>
+    `-mb-px border-b-2 pb-3 text-sm font-bold uppercase tracking-[0.14em] outline-none transition-colors focus-visible:text-white ${
+      active
+        ? "border-electric-green text-white"
+        : "border-transparent text-white/35 hover:text-white/70"
     }`;
 
   return (
     <div className="w-full max-w-sm">
-      <div
-        role="tablist"
-        aria-label="Sign in or join"
-        className="mb-9 inline-flex rounded-full border border-white/12 bg-white/[0.03] p-1"
-      >
+      <div role="tablist" aria-label="Sign in or join" className="mb-9 flex gap-8 border-b border-white/10">
         <button
           type="button"
           role="tab"
           aria-selected={tab === "signin"}
           onClick={() => setTab("signin")}
-          className={seg(tab === "signin")}
+          className={tabCls(tab === "signin")}
         >
           Sign in
         </button>
@@ -41,7 +39,7 @@ export function ApexEntry({
           role="tab"
           aria-selected={tab === "join"}
           onClick={() => setTab("join")}
-          className={seg(tab === "join")}
+          className={tabCls(tab === "join")}
         >
           New here
         </button>
@@ -49,26 +47,23 @@ export function ApexEntry({
 
       {tab === "signin" ? (
         <div className="space-y-5">
-          <div>
-            <h2 className="font-display text-4xl font-bold uppercase leading-[0.9] tracking-tight sm:text-5xl">
-              Welcome back.
-            </h2>
-            <p className="mt-2 text-sm text-white/55">
-              Sign in to pick up right where you left off.
-            </p>
-          </div>
+          <h2 className="font-display text-[clamp(2.25rem,5vw,3.25rem)] font-bold uppercase leading-[0.86] tracking-tight">
+            Welcome
+            <br />
+            back.
+          </h2>
           <CentralLoginForm compact programs={programs} />
         </div>
       ) : (
         <div className="space-y-5">
-          <div>
-            <h2 className="font-display text-4xl font-bold uppercase leading-[0.9] tracking-tight sm:text-5xl">
-              Stay in the loop.
-            </h2>
-            <p className="mt-2 text-sm text-white/55">
-              Programs, events, and ways to get involved — straight to your inbox.
-            </p>
-          </div>
+          <h2 className="font-display text-[clamp(2.25rem,5vw,3.25rem)] font-bold uppercase leading-[0.86] tracking-tight">
+            Stay in
+            <br />
+            the loop.
+          </h2>
+          <p className="text-sm text-white/55">
+            Programs, events, and ways to get involved — straight to your inbox.
+          </p>
           <LearnMoreForm />
         </div>
       )}
