@@ -202,26 +202,37 @@ export function InsightsDashboard({
         </div>
       )}
 
-      {/* Cohort filter — scope the survey detail to one cohort (the thing people
-         search by, e.g. "Digital Natives"). Hidden until there's more than one. */}
-      {allCohorts.length > 1 && (
-        <div className="flex items-center gap-2">
-          <label htmlFor="cohort-filter" className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-faint">
-            Cohort
-          </label>
-          <select
-            id="cohort-filter"
-            value={cohortFilter}
-            onChange={(e) => changeCohort(e.target.value)}
-            className="border border-rule bg-white px-2.5 py-1.5 text-sm text-ink focus:border-ink-faint focus:outline-none"
-          >
-            <option value="all">All cohorts</option>
-            {allCohorts.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
-        </div>
-      )}
+      {/* Cohort filter (scope the page to one cohort) + PDF export of the
+         current scope. Export always shows; the filter only when there's more
+         than one cohort. */}
+      <div className="flex items-center justify-between gap-2">
+        {allCohorts.length > 1 ? (
+          <div className="flex items-center gap-2">
+            <label htmlFor="cohort-filter" className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-faint">
+              Cohort
+            </label>
+            <select
+              id="cohort-filter"
+              value={cohortFilter}
+              onChange={(e) => changeCohort(e.target.value)}
+              className="border border-rule bg-white px-2.5 py-1.5 text-sm text-ink focus:border-ink-faint focus:outline-none"
+            >
+              <option value="all">All cohorts</option>
+              {allCohorts.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+        ) : (
+          <span />
+        )}
+        <a
+          href={`/api/insights/pdf${cohortFilter !== "all" ? `?cohort=${encodeURIComponent(cohortFilter)}` : ""}`}
+          className="border border-rule bg-white px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:border-ink-faint"
+        >
+          Export PDF
+        </a>
+      </div>
 
       {/* Survey cards */}
       <section>

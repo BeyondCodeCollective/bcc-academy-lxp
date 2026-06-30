@@ -5,14 +5,14 @@ import { AdminTabs } from "./admin-tabs";
 import type { Student } from "@/lib/types";
 import { getProgram } from "@/lib/programs/server";
 import type { StudentTrackRow, SurveyStatsRow, InstructorTrackRow, PublicSurveyStatsRow, BCCSurveyResponse } from "./actions";
-import { getPublicSurveyStats, getDashboardSurveyStats, getDashboardAllSurveyResponses, getPublicSurveyCountsByType } from "./actions";
+import { getPublicSurveyStats, getPublicSurveyCountsByType } from "./actions";
 import { canAccessAdminPanel, canSwitchPrograms, canViewInsights, assignableRoles } from "@/lib/roles";
 import { isMasterEmail } from "@/lib/auth/admins";
 import { PLATFORM_AUTH_SURVEYS, PLATFORM_PUBLIC_SURVEYS } from "@/lib/surveys/platform";
-import { getAllPrograms, getHomeProgramForTrack } from "@/lib/programs";
+import { getHomeProgramForTrack } from "@/lib/programs";
 import { getHiddenTrackSlugs } from "@/lib/programs/hidden";
 import type { SurveyConfig } from "@/lib/programs/types";
-import { getSurveySchema } from "@/lib/surveys/schemas";
+import { buildInsightsData } from "@/lib/analytics/insights-data";
 import type { SurveyQuestion } from "@/components/survey-fields";
 import { fetchPendingPeople, type PendingPerson } from "@/lib/people-hub";
 import { getCourseEngagement } from "@/lib/course-engagement";
@@ -352,72 +352,11 @@ export default async function AdminPage({
     }
     if (canViewInsights(userRole) && needsInsightsData) {
       // Scope Survey Insights to the CURRENT program for everyone (incl.
-      // super-admins) by passing the resolved program ids. Without this,
-      // super-admins got a cross-program firehose and the cohort dropdown
-      // listed every program's cohorts — confusing on a single-program view
-      // like Upskill. The BCC-wide operational dashboard lives at
-      // /dashboard/insights, which is already program-scoped separately.
-      const stats = await getDashboardSurveyStats(programIds);
-      const programSurveys: SurveyConfig[] = getAllPrograms().flatMap(
-        (p) => p.surveys ?? [],
-      );
-      const allSurveysById = new Map<string, SurveyConfig>();
-      for (const s of [
-        ...Object.values(PLATFORM_AUTH_SURVEYS),
-        ...Object.values(PLATFORM_PUBLIC_SURVEYS),
-        ...programSurveys,
-      ]) {
-        if (!allSurveysById.has(s.id)) allSurveysById.set(s.id, s);
-      }
-      const configuredWithData = Array.from(allSurveysById.values()).filter(
-        (s) => stats.some((r) => r.survey_type === s.id),
-      );
-      // Also surface surveys that have responses but NO config entry — otherwise
-      // Insights silently HID real data (e.g. post-survey-spring-2026 held the AI
-      // for Digital Natives outcomes but never appeared). Synthesize a minimal
-      // config from the raw survey_type; getSurveySchema still resolves a real
-      // schema when one exists, so these render in full.
-      const configuredIds = new Set(configuredWithData.map((s) => s.id));
-      const orphanSurveys: SurveyConfig[] = Array.from(
-        new Set(stats.map((r) => r.survey_type)),
-      )
-        .filter((id) => !configuredIds.has(id))
-        .map((id) => ({
-          id,
-          title: id.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
-          description: "",
-          required: false,
-        }));
-      const surveysWithData = [...configuredWithData, ...orphanSurveys].sort(
-        (a, b) => a.title.localeCompare(b.title),
-      );
-
-      // Single batched fetch replaces N individual getDashboardSurveyResponses
-      // calls — two DB round-trips total regardless of how many surveys exist.
-      const allResponses = await getDashboardAllSurveyResponses(
-        surveysWithData.map((s) => s.id),
-        programIds,
-      );
-      const sections = surveysWithData.map((survey) => ({
-        survey,
-        schema: getSurveySchema(survey.id),
-        responses: allResponses[survey.id] ?? [],
-      }));
-
-      // Super-admins see every program in the breakdown legend; a program admin
-      // only sees the programs that make up their own scope (Catalyst = its
-      // aggregated slugs, every other program = just itself).
-      // Scoped to the current program (its aggregate) for everyone, so the
-      // breakdown legend matches the now program-scoped data above.
-      const visiblePrograms = getAllPrograms().filter((p) =>
-        aggregatedSlugs.includes(p.slug),
-      );
-
-      insightsData = {
-        sections,
-        programs: visiblePrograms.map((p) => ({ slug: p.slug, name: p.name })),
-        totalResponses: sections.reduce((sum, s) => sum + s.responses.length, 0),
-      };
+      // super-admins) via the resolved program ids — no cross-program firehose,
+      // and the cohort dropdown only lists this program's cohorts. The BCC-wide
+      // operational dashboard at /dashboard/insights is scoped separately.
+      // Same assembly the PDF export route uses, so screen + PDF never drift.
+      insightsData = await buildInsightsData(programIds, aggregatedSlugs);
     }
 
     // Program-level engagement analytics — scoped to the CURRENT program for
