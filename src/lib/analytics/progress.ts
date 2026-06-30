@@ -69,28 +69,45 @@ export async function fetchProgressData(scope: ProgramScope): Promise<ProgressDa
     furthest.set(key, Math.max(furthest.get(key) ?? 0, a.week));
   }
 
-  // Enrollment dates, for time-to-completion.
+  // Enrollment dates, for time-to-completion. Enrolled students are a SET per
+  // track (a duplicate student_tracks row must not double-count "enrolled").
   const enrolledAt = new Map<string, string>(); // `${student}|${slug}` → created_at
-  const enrolledByTrack = new Map<string, string[]>(); // slug → student_ids
+  const enrolledByTrack = new Map<string, Set<string>>(); // slug → student_ids
   for (const e of enrollments) {
     const key = `${e.student_id}|${e.track_slug}`;
     if (e.created_at) enrolledAt.set(key, e.created_at);
-    const list = enrolledByTrack.get(e.track_slug) ?? [];
-    list.push(e.student_id);
-    enrolledByTrack.set(e.track_slug, list);
+    let set = enrolledByTrack.get(e.track_slug);
+    if (!set) {
+      set = new Set();
+      enrolledByTrack.set(e.track_slug, set);
+    }
+    set.add(e.student_id);
   }
 
-  const completedByTrack = new Map<string, number>();
+  // Completers are a SET of distinct students per track too. A track_completions
+  // row can exist for a student no longer enrolled (or be duplicated), so we
+  // only count completers who are actually in the enrolled set — otherwise
+  // completed could exceed enrolled and the rate reads >100%.
+  const completedByTrack = new Map<string, Set<string>>();
   for (const c of completions) {
-    completedByTrack.set(c.track_slug, (completedByTrack.get(c.track_slug) ?? 0) + 1);
+    let set = completedByTrack.get(c.track_slug);
+    if (!set) {
+      set = new Set();
+      completedByTrack.set(c.track_slug, set);
+    }
+    set.add(c.student_id);
   }
 
   const tracks: TrackProgress[] = [];
-  for (const [slug, students] of enrolledByTrack.entries()) {
+  for (const [slug, studentSet] of enrolledByTrack.entries()) {
     const m = meta.get(slug);
     const totalWeeks = m?.totalWeeks ?? 8;
+    const students = [...studentSet];
     const enrolled = students.length;
-    const completed = completedByTrack.get(slug) ?? 0;
+    const completers = completedByTrack.get(slug);
+    const completed = completers
+      ? students.filter((sid) => completers.has(sid)).length
+      : 0;
     const dropoff: number[] = [];
     for (let week = 1; week <= totalWeeks; week++) {
       const reached = students.filter(
@@ -119,8 +136,11 @@ export async function fetchProgressData(scope: ProgramScope): Promise<ProgressDa
     if (ms >= 0) days.push(ms / 86_400_000);
   }
 
-  const totalEnrolled = enrollments.length;
-  const totalCompleted = completions.length;
+  // Totals derive from the per-track rollup so the headline reconciles with the
+  // per-track table and can't exceed 100% (counting raw completions.length vs
+  // enrollments.length let stray/duplicate completion rows push it over).
+  const totalEnrolled = tracks.reduce((n, t) => n + t.enrolled, 0);
+  const totalCompleted = tracks.reduce((n, t) => n + t.completed, 0);
 
   return {
     tracks,

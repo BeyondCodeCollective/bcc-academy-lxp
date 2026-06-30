@@ -1444,12 +1444,13 @@ export function AdminTabs({
           </Link>
           <PageHeader
             title="Attendance"
-            subtitle="Engagement across all tracks and cohorts"
+            subtitle="Check-ins across all tracks and cohorts"
           />
           <AttendanceTab
             students={students.filter((s) => s.role === "student")}
             tracks={tracks}
             scopeLabel="All tracks"
+            hideTitle
           />
         </div>
       )}
