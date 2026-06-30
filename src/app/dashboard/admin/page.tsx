@@ -369,9 +369,28 @@ export default async function AdminPage({
       ]) {
         if (!allSurveysById.has(s.id)) allSurveysById.set(s.id, s);
       }
-      const surveysWithData = Array.from(allSurveysById.values())
-        .filter((s) => stats.some((r) => r.survey_type === s.id))
-        .sort((a, b) => a.title.localeCompare(b.title));
+      const configuredWithData = Array.from(allSurveysById.values()).filter(
+        (s) => stats.some((r) => r.survey_type === s.id),
+      );
+      // Also surface surveys that have responses but NO config entry — otherwise
+      // Insights silently HID real data (e.g. post-survey-spring-2026 held the AI
+      // for Digital Natives outcomes but never appeared). Synthesize a minimal
+      // config from the raw survey_type; getSurveySchema still resolves a real
+      // schema when one exists, so these render in full.
+      const configuredIds = new Set(configuredWithData.map((s) => s.id));
+      const orphanSurveys: SurveyConfig[] = Array.from(
+        new Set(stats.map((r) => r.survey_type)),
+      )
+        .filter((id) => !configuredIds.has(id))
+        .map((id) => ({
+          id,
+          title: id.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+          description: "",
+          required: false,
+        }));
+      const surveysWithData = [...configuredWithData, ...orphanSurveys].sort(
+        (a, b) => a.title.localeCompare(b.title),
+      );
 
       // Single batched fetch replaces N individual getDashboardSurveyResponses
       // calls — two DB round-trips total regardless of how many surveys exist.
