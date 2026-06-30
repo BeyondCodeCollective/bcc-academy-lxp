@@ -6,8 +6,8 @@ import { HeroVideo } from "@/components/hero-video";
 export default function HomePage() {
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-true-black px-6 py-16">
-      {/* BCC hero clip behind everything, with a dark overlay so the logo and
-         copy stay legible. bg-true-black is the fallback while the video loads. */}
+      {/* BCC hero clip behind everything (plays on desktop AND mobile), with a
+         dark overlay so the logo and copy stay legible. */}
       <HeroVideo />
       <div className="absolute inset-0 bg-true-black/70" aria-hidden />
 
@@ -34,56 +34,47 @@ export default function HomePage() {
           </p>
         </div>
 
-        {/* Two-door fork — visitors self-sort into "student" vs "new" before
-           touching any input, so the updates list can't be mistaken for student
-           sign-in. Replaces the single email form + redundant sign-in links. */}
-        <div className="grid w-full gap-4 sm:grid-cols-2">
-          <Link
-            href="/login"
-            className="group flex flex-col gap-2 rounded-2xl border border-white/20 bg-white/5 p-6 text-left backdrop-blur transition-colors hover:border-electric-green"
-          >
-            <span className="font-mono text-xs uppercase tracking-[0.2em] text-electric-green">
-              I&apos;m a student
-            </span>
-            <span className="font-display text-lg font-bold text-white">
-              Sign in to your dashboard
-            </span>
-            <span className="mt-1 inline-flex items-center text-sm text-neutral-300 transition-colors group-hover:text-white">
-              Continue your courses
-              <span className="ml-2 transition-transform group-hover:translate-x-1">&rarr;</span>
-            </span>
-          </Link>
+        {/* Two-door fork — students sign in, newcomers subscribe. Each path has
+           its own clearly-labeled action, so the newsletter form can't be
+           mistaken for student sign-in. */}
+        <div className="grid w-full gap-4 sm:grid-cols-2 sm:items-stretch">
+          {/* Returning students */}
+          <div className="flex flex-col gap-4 rounded-2xl border border-white/20 bg-white/5 p-6 backdrop-blur">
+            <div>
+              <p className="font-mono text-xs uppercase tracking-[0.2em] text-electric-green">
+                I&apos;m a student
+              </p>
+              <p className="mt-1 font-display text-lg font-bold text-white">
+                Sign in to your dashboard
+              </p>
+              <p className="mt-1 text-sm text-neutral-300">
+                Pick up your courses where you left off.
+              </p>
+            </div>
+            <Link
+              href="/login"
+              className="mt-auto inline-flex w-full items-center justify-center bg-electric-green px-4 py-3 text-sm font-bold uppercase tracking-wide text-true-black transition-opacity hover:opacity-90"
+            >
+              Sign in &rarr;
+            </Link>
+          </div>
 
-          <Link
-            href="/quiz"
-            className="group flex flex-col gap-2 rounded-2xl border border-white/20 bg-white/5 p-6 text-left backdrop-blur transition-colors hover:border-electric-green"
-          >
-            <span className="font-mono text-xs uppercase tracking-[0.2em] text-electric-green">
-              I&apos;m new here
-            </span>
-            <span className="font-display text-lg font-bold text-white">
-              Find your path
-            </span>
-            <span className="mt-1 inline-flex items-center text-sm text-neutral-300 transition-colors group-hover:text-white">
-              Take the 2-minute career quiz
-              <span className="ml-2 transition-transform group-hover:translate-x-1">&rarr;</span>
-            </span>
-          </Link>
-        </div>
-
-        {/* Updates capture, demoted behind a native disclosure so it never
-           competes with the two doors. No client JS. */}
-        <details className="group w-full max-w-sm text-center">
-          <summary className="cursor-pointer list-none text-sm text-neutral-400 transition-colors hover:text-white">
-            Not ready to start? {" "}
-            <span className="font-semibold text-white group-open:hidden">
-              Get program updates &rarr;
-            </span>
-          </summary>
-          <div className="mt-4 flex flex-col items-center">
+          {/* Newcomers — newsletter signup */}
+          <div className="flex flex-col gap-4 rounded-2xl border border-white/20 bg-white/5 p-6 backdrop-blur">
+            <div>
+              <p className="font-mono text-xs uppercase tracking-[0.2em] text-electric-green">
+                New here?
+              </p>
+              <p className="mt-1 font-display text-lg font-bold text-white">
+                Sign up for our newsletter
+              </p>
+              <p className="mt-1 text-sm text-neutral-300">
+                Programs, events, and ways to get involved.
+              </p>
+            </div>
             <LearnMoreForm />
           </div>
-        </details>
+        </div>
       </div>
     </div>
   );
