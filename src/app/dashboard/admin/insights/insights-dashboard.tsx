@@ -84,6 +84,13 @@ export function InsightsDashboard({
   );
 
   const ledger = useMemo(() => buildLedger(visibleSections, allCohorts), [visibleSections, allCohorts]);
+  // Tie the survey grid to the cohort dropdown: when a cohort is selected, only
+  // show surveys that actually have responses for it (otherwise the grid is a
+  // wall of every survey, most with 0, which makes finding the cohort's data hard).
+  const visibleLedger = useMemo(
+    () => (cohortFilter === "all" ? ledger : ledger.filter((row) => row.count > 0)),
+    [ledger, cohortFilter],
+  );
   const uniqueRespondents = useMemo(() => {
     const emails = new Set<string>();
     for (const s of visibleSections) {
@@ -132,7 +139,7 @@ export function InsightsDashboard({
   }
 
   const initialId =
-    ledger.find((row) => row.hasSchema)?.id ?? ledger[0]?.id ?? null;
+    visibleLedger.find((row) => row.hasSchema)?.id ?? visibleLedger[0]?.id ?? null;
   const [activeId, setActiveId] = useState<string | null>(initialId);
 
   useEffect(() => {
@@ -222,7 +229,7 @@ export function InsightsDashboard({
           Surveys
         </p>
         <div className="grid gap-3 sm:grid-cols-2">
-          {ledger.map((row) => (
+          {visibleLedger.map((row) => (
             <button
               key={row.id}
               type="button"
