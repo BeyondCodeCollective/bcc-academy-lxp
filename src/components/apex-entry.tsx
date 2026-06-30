@@ -50,16 +50,23 @@ export function ApexEntry({
         back.
       </h2>
       <CentralLoginForm compact programs={programs} />
-      <p className="border-t border-white/10 pt-5 text-sm text-white/50">
-        New to BCC?{" "}
+
+      <div className="space-y-4 pt-1">
+        <div className="flex items-center gap-3">
+          <span className="h-px flex-1 bg-white/10" aria-hidden />
+          <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-white/40">
+            New to BCC?
+          </span>
+          <span className="h-px flex-1 bg-white/10" aria-hidden />
+        </div>
         <button
           type="button"
           onClick={() => setMode("join")}
-          className="font-semibold text-electric-green underline-offset-4 outline-none transition-colors hover:underline focus-visible:underline"
+          className="w-full border border-electric-green/50 px-4 py-3 text-sm font-bold uppercase tracking-wide text-electric-green outline-none transition-colors hover:bg-electric-green hover:text-true-black focus-visible:bg-electric-green focus-visible:text-true-black"
         >
           Join our newsletter &rarr;
         </button>
-      </p>
+      </div>
     </div>
   );
 }
