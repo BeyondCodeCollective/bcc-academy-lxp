@@ -129,6 +129,11 @@ export function InsightsDashboard({
     if (cohortInit.current || typeof window === "undefined") return;
     cohortInit.current = true;
     const c = new URLSearchParams(window.location.search).get("cohort");
+    // Syncing initial state from the URL must happen after mount, not via a lazy
+    // useState initializer — the server can't read window, so doing it in render
+    // would hydration-mismatch. This is the legitimate "read external system on
+    // mount" case the rule's perf guard doesn't apply to.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (c && allCohorts.includes(c)) setCohortFilter(c);
   }, [allCohorts]);
 
@@ -149,6 +154,9 @@ export function InsightsDashboard({
     if (typeof window === "undefined") return;
     const fromHash = window.location.hash.slice(1);
     if (fromHash && ledger.some((row) => row.id === fromHash)) {
+      // Same as above: reading location.hash is a post-mount external sync, not
+      // a render-time value the server could produce.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveId(fromHash);
     }
     function onHashChange() {

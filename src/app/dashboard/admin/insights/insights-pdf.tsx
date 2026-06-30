@@ -10,6 +10,7 @@ import {
 } from "@react-pdf/renderer";
 import type { InsightsData, InsightsSection } from "@/lib/analytics/insights-data";
 import type { BCCSurveyResponse } from "@/app/dashboard/admin/actions-surveys";
+import { normalizeCohortLabel } from "@/lib/surveys/cohort-labels";
 
 // Cohort family — single cobalt hue, distinguished by lightness (no rainbow),
 // mirroring the on-screen Insights palette.
@@ -19,10 +20,11 @@ const INK_SOFT = "#52525B";
 const INK_FAINT = "#9CA3AF";
 const RULE = "#E4E4E7";
 
-// Read a response's cohort the same way the on-screen dashboard does.
+// Read a response's cohort the same way the on-screen dashboard does — including
+// normalizeCohortLabel, so the PDF and the screen bucket cohorts identically.
 function cohortOf(r: BCCSurveyResponse): string {
   const raw = (r.responses?.program_variant ?? r.responses?._cohort_track) as unknown;
-  return typeof raw === "string" && raw.trim() ? raw.trim() : "Untagged";
+  return typeof raw === "string" && raw.trim() ? normalizeCohortLabel(raw) : "Untagged";
 }
 
 const styles = StyleSheet.create({

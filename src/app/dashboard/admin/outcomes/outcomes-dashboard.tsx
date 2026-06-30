@@ -66,6 +66,12 @@ function OutcomesSection({ outcomes }: { outcomes: OutcomesData }) {
                 scaleMax={g.scaleMax}
                 rows={g.rows}
               />
+              {g.isCrossSurvey && (
+                <p className="text-[11px] text-ink-faint">
+                  Cohort-level: compares pre-survey respondents to post-survey
+                  respondents, not the same individuals paired.
+                </p>
+              )}
             </div>
           ))}
         </div>

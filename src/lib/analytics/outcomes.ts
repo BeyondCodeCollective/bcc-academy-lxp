@@ -43,6 +43,9 @@ export type ShiftGroup = {
   /** Top of the scale, for bar normalization (e.g. 5). */
   scaleMax: number;
   rows: ShiftRow[];
+  /** True for cross-survey pre→post pairs — a cohort-level comparison (pre vs
+   *  post respondents), not the same individuals paired. */
+  isCrossSurvey?: boolean;
 };
 
 export type CompositionSegment = { label: string; value: number };
@@ -189,6 +192,7 @@ function crossSurveyGroups(
       nowLabel: "After (post-survey)",
       scaleMax: scaleMaxOf(after.scale),
       rows,
+      isCrossSurvey: true,
     });
   }
   return out;
