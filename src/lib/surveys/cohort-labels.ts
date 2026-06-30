@@ -10,7 +10,18 @@ import { getHomeProgramForTrack } from "@/lib/programs";
 export const BCC_TRACK_VARIANT_LABELS: Record<string, string> = {
   "ai-fundamentals": "AI Fundamentals",
   "ai-digital-natives": "AI Fundamentals for Digital Natives",
+  "comptia-security": "Comptia Security+",
 };
+
+// Collapse a raw cohort value (a stored program_variant / _cohort_track, which
+// may be a slug OR an already-human label) to its canonical label. Used at READ
+// time in Survey Insights so a slug bucket ("comptia-security") and a label
+// bucket ("Comptia Security+") never split one cohort in two. Unknown values
+// pass through trimmed.
+export function normalizeCohortLabel(raw: string): string {
+  const trimmed = raw.trim();
+  return BCC_TRACK_VARIANT_LABELS[trimmed] ?? trimmed;
+}
 
 // Resolve a cohort label from a student's track enrollments, preferring a
 // track whose home program matches `programSlug` (mirrors how submission picks

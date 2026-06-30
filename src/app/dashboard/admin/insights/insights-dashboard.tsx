@@ -6,6 +6,7 @@ import type { SurveyQuestion } from "@/components/survey-fields";
 import type { BCCSurveyResponse } from "../actions";
 import type { SurveyConfig } from "@/lib/programs/types";
 import { StatCard } from "@/components/stats/stat-card";
+import { normalizeCohortLabel } from "@/lib/surveys/cohort-labels";
 
 interface Section {
   survey: SurveyConfig;
@@ -44,7 +45,9 @@ function colorFor(
 // neither is present (older responses from before cohort capture).
 function cohortOf(r: BCCSurveyResponse): string {
   const raw = (r.responses?.program_variant ?? r.responses?._cohort_track) as unknown;
-  return typeof raw === "string" && raw.trim() ? raw.trim() : "Untagged";
+  // Normalize so a slug ("comptia-security") and its label ("Comptia Security+")
+  // collapse to one cohort bucket instead of splitting.
+  return typeof raw === "string" && raw.trim() ? normalizeCohortLabel(raw) : "Untagged";
 }
 
 function cohortColor(name: string, cohorts: string[]): string {
