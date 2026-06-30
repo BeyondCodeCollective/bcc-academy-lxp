@@ -17,7 +17,7 @@ export function ApexEntry({
   const [mode, setMode] = useState<"signin" | "join">("signin");
 
   const headingCls =
-    "font-display text-[clamp(2.25rem,5vw,3.25rem)] font-bold uppercase leading-[0.86] tracking-tight";
+    "font-display text-[clamp(1.75rem,4.5vw,3.25rem)] font-bold uppercase leading-[0.9] tracking-tight";
 
   if (mode === "join") {
     return (
@@ -45,9 +45,9 @@ export function ApexEntry({
   return (
     <div className="w-full max-w-sm space-y-5">
       <h2 className={headingCls}>
-        Welcome
+        Continue
         <br />
-        back.
+        learning.
       </h2>
       <CentralLoginForm compact programs={programs} />
 
