@@ -173,7 +173,7 @@ export function CentralLoginForm({
           autoFocus={!compact}
           className={
             compact
-              ? "w-full border border-white/15 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-neutral-500 focus:border-electric-green focus:outline-none"
+              ? "w-full border border-electric-green/70 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-neutral-500 focus:border-electric-green focus:outline-none"
               : "w-full bg-white text-black placeholder-gray-400 px-5 py-4 text-lg focus:outline-none focus:ring-2 focus:ring-electric-green border-0"
           }
         />
