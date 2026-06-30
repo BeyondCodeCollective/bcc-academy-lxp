@@ -30,6 +30,9 @@ type AttendanceTabProps = {
   embedded?: boolean;
   /** Optional Roster/Attendance/Submissions switcher, shown when embedded. */
   viewSwitcher?: React.ReactNode;
+  /** When true: keep the view toggle + controls but drop the title block —
+   * the parent already renders a PageHeader, so showing both is a double header. */
+  hideTitle?: boolean;
 };
 
 type View = "overview" | "mark";
@@ -52,7 +55,7 @@ const STATUS_LABEL: Record<string, { label: string; bg: string; text: string }> 
   disengaged: { label: "Disengaged", bg: "bg-red-50", text: "text-red-700" },
 };
 
-export function AttendanceTab({ students, tracks, scopeLabel, embedded, viewSwitcher }: AttendanceTabProps) {
+export function AttendanceTab({ students, tracks, scopeLabel, embedded, viewSwitcher, hideTitle }: AttendanceTabProps) {
   const startedTracks = useMemo(
     () => tracks.filter((t) => new Date() >= new Date(t.startDate)),
     [tracks]
@@ -302,6 +305,7 @@ export function AttendanceTab({ students, tracks, scopeLabel, embedded, viewSwit
           onRefresh={() => void fetchRecords(true)}
           onExport={exportCSV}
           hasData={summaries.length > 0}
+          hideTitle={hideTitle}
         />
       )}
 
@@ -348,6 +352,7 @@ function Header({
   onRefresh,
   onExport,
   hasData,
+  hideTitle,
 }: {
   scopeLabel?: string;
   view: View;
@@ -356,17 +361,20 @@ function Header({
   onRefresh: () => void;
   onExport: () => void;
   hasData: boolean;
+  hideTitle?: boolean;
 }) {
   return (
-    <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <p className="text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
-          {scopeLabel || "Attendance"}
-        </p>
-        <h2 className="mt-1 text-2xl font-bold text-ink tracking-tight">
-          {view === "overview" ? "Who's showing up" : "Mark check-ins"}
-        </h2>
-      </div>
+    <header className={`flex flex-col gap-3 sm:flex-row sm:items-end ${hideTitle ? "sm:justify-end" : "sm:justify-between"}`}>
+      {!hideTitle && (
+        <div>
+          <p className="text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
+            {scopeLabel || "Attendance"}
+          </p>
+          <h2 className="mt-1 text-2xl font-bold text-ink tracking-tight">
+            {view === "overview" ? "Who's showing up" : "Mark check-ins"}
+          </h2>
+        </div>
+      )}
       <div className="flex items-center gap-1.5">
         <div
           role="tablist"
@@ -444,16 +452,19 @@ function OverviewPanel({
     return {
       attended,
       expected,
-      rate: expected > 0 ? Math.round((attended / expected) * 100) : 100,
+      // null (not 100) when nothing's been expected yet — a "100% of 0 sessions"
+      // claim is a leak, not a fact. The prose below omits the rate clause then.
+      rate: expected > 0 ? Math.round((attended / expected) * 100) : null,
     };
   }, [summaries]);
 
+  // The full risk list — no silent cap. The earlier .slice(0, 8) also made the
+  // "{n} need a check-in" prose under-report (it counted the truncated list).
   const atRisk = useMemo(
     () =>
       summaries
         .filter((s) => s.status !== "on-track")
-        .sort((a, b) => b.consecutiveMisses - a.consecutiveMisses || a.rate - b.rate)
-        .slice(0, 8),
+        .sort((a, b) => b.consecutiveMisses - a.consecutiveMisses || a.rate - b.rate),
     [summaries]
   );
 
@@ -498,13 +509,20 @@ function OverviewPanel({
         <span className="font-semibold tabular-nums text-ink">
           {startedTracks.length.toLocaleString()}
         </span>{" "}
-        active track{startedTracks.length === 1 ? "" : "s"}. Overall attendance{" "}
-        <span className="font-semibold tabular-nums text-ink">{totals.rate}%</span>{" "}
-        across{" "}
-        <span className="font-semibold tabular-nums text-ink">
-          {totals.expected.toLocaleString()}
-        </span>{" "}
-        expected session{totals.expected === 1 ? "" : "s"}.
+        active track{startedTracks.length === 1 ? "" : "s"}.{" "}
+        {totals.rate !== null ? (
+          <>
+            Overall attendance{" "}
+            <span className="font-semibold tabular-nums text-ink">{totals.rate}%</span>{" "}
+            across{" "}
+            <span className="font-semibold tabular-nums text-ink">
+              {totals.expected.toLocaleString()}
+            </span>{" "}
+            expected session{totals.expected === 1 ? "" : "s"}.
+          </>
+        ) : (
+          <>No sessions have taken place yet.</>
+        )}
         {atRisk.length > 0 && (
           <>
             {" "}
