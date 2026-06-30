@@ -48,7 +48,10 @@ export async function assignStudentTrack(
 
   const { error } = await svc.from("student_tracks").upsert(
     { student_id: studentId, track_slug: trackSlug, program_id: programId },
-    { onConflict: "student_id,track_slug,program_id" }
+    // student_tracks is UNIQUE(student_id, track_slug) — program_id is NOT part
+    // of the constraint, so the conflict target must match it exactly or the
+    // upsert throws "no unique or exclusion constraint matching the ON CONFLICT".
+    { onConflict: "student_id,track_slug" }
   );
 
   if (error) throw new Error(error.message);
@@ -94,7 +97,7 @@ export async function bulkAssignTrack(
 
   const { error } = await svc
     .from("student_tracks")
-    .upsert(rows, { onConflict: "student_id,track_slug,program_id" });
+    .upsert(rows, { onConflict: "student_id,track_slug" });
 
   if (error) throw new Error(error.message);
   revalidatePath("/dashboard", "page");
