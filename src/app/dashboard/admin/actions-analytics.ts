@@ -56,10 +56,13 @@ export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
   // Empty .in([]) is safe (returns no rows), so no need to guard each call.
   const [videoRows, attendanceRows, submissionRows, surveyRows, allowRows] =
     await Promise.all([
-      svc.from("week_progress").select("user_id").in("user_id", studentIds),
+      // Only a WATCHED video counts — a week_progress row can exist without
+      // video_watched_at. (Matches getLearnerActivity; otherwise Engagement is
+      // inflated and disagrees with the BCC-wide analytics.)
+      svc.from("week_progress").select("user_id").in("user_id", studentIds).not("video_watched_at", "is", null),
       svc.from("attendance").select("student_id").in("student_id", studentIds),
       svc.from("submissions").select("student_id").in("student_id", studentIds),
-      svc.from("survey_responses").select("student_id").in("student_id", studentIds),
+      svc.from("survey_responses").select("student_id").in("student_id", studentIds).not("completed_at", "is", null),
       svc.from("allowed_signup_emails").select("email").in("track_slug", trackSlugs),
     ]);
 

@@ -10,8 +10,10 @@ export function AnalyticsDashboard({ data }: { data: EngagementAnalytics }) {
   // Funnel conversion vs the "invited" top — shown only when invited > 0
   // ("% of 0" is meaningless, e.g. Beyond Code Centers, where students were
   // added directly rather than via an allowlist).
+  // Capped at 100: when students are added directly (not via the allowlist),
+  // activated/engaged can exceed "invited", which would otherwise read ">100%".
   const pct = (v: number): number | null =>
-    funnel.invited > 0 ? Math.round((v / funnel.invited) * 100) : null;
+    funnel.invited > 0 ? Math.min(100, Math.round((v / funnel.invited) * 100)) : null;
 
   const cards = [
     { label: "Invited", sublabel: "received access", value: funnel.invited, showPct: false },
