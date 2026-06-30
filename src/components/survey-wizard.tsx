@@ -533,7 +533,7 @@ const ATG_MID_PROGRAM_PAGES: SurveyPage[] = [
   {
     title: "Where you started, where you are now",
     subtitle:
-      "For each statement, rate yourself twice — once for BEFORE After the Game started (4 weeks ago) and once for RIGHT NOW.",
+      "For each statement, rate yourself twice — once for BEFORE Beyond the Game started (4 weeks ago) and once for RIGHT NOW.",
     questions: [
       {
         type: "dual-likert",
@@ -697,7 +697,7 @@ const ATG_MID_PROGRAM_PAGES: SurveyPage[] = [
       {
         type: "text",
         id: "success_end_of_program",
-        label: "What does success look like for you when After the Game ends?",
+        label: "What does success look like for you when Beyond the Game ends?",
         placeholder: "Be as specific as you can.",
         required: true,
       },

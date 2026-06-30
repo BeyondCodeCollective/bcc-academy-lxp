@@ -1,4 +1,5 @@
 import { catalystConfig } from "./catalyst";
+import { atgConfig } from "./atg";
 import { forteConfig } from "./forte";
 import { beyondCodeCentersConfig } from "./beyond-code-centers";
 import { bgcConfig } from "./bgc";
@@ -14,8 +15,13 @@ const PROGRAMS: Record<string, ProgramConfig> = {
 // separately: marketing → apex domain; forte → /join/forte; bgc → /join/bgc
 // and the BGC camp landing pages. BGC (Black Girls Code) is its own org, not a
 // Catalyst track.
+//
+// Beyond the Game (slug `atg`) and Beyond Code Centers are standalone programs
+// — their tracks no longer aggregate into Catalyst. Registered here so they're
+// switchable and own their tracks via getHomeProgramForTrack.
 const SPECIAL_CONFIGS: Record<string, ProgramConfig> = {
   [MARKETING_SLUG]: marketingConfig,
+  atg: atgConfig,
   forte: forteConfig,
   "beyond-code-centers": beyondCodeCentersConfig,
   bgc: bgcConfig,

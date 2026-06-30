@@ -307,12 +307,11 @@ async function applyTrackOverrides(program: ProgramConfig): Promise<ProgramConfi
   // there are no TS config defaults to override.
   if (!hasTsConfigSlug(program.slug)) return program;
 
-  // Catalyst is an umbrella that aggregates other programs' tracks, but each
-  // track's override lives under its HOME program (e.g. ai-literacy's override
-  // is stored under forte, not catalyst). Fetch this program's own overrides
-  // plus every aggregated track's home-program overrides, so names/dates
-  // reflect the DB on every surface (catalog, admin home, sidebar, preview) —
-  // not just the program that owns the override row.
+  // A track's override may live under a different HOME program than the one
+  // currently rendering it (e.g. ai-literacy's override is stored under forte).
+  // Fetch this program's own overrides plus every listed track's home-program
+  // overrides, so names/dates reflect the DB on every surface (catalog, admin
+  // home, sidebar, preview) — not just the program that owns the override row.
   const homeSlugs = new Set<string>([program.slug]);
   for (const t of program.tracks) {
     const home = getHomeProgramForTrack(t.slug);
@@ -352,14 +351,6 @@ async function applyTrackOverrides(program: ProgramConfig): Promise<ProgramConfi
     }
   };
   collectBuilders(ownOverrides);
-  // Catalyst is the hub: also surface builder courses filed under its aggregated
-  // sub-programs (ATG, Beyond Code Centers) so they resolve on bccacademy.io.
-  // No-op until a course is actually filed under a sub-program.
-  if (program.slug === "catalyst") {
-    for (const subSlug of ["atg", "beyond-code-centers"]) {
-      collectBuilders(overridesBySlug.get(subSlug) ?? (await fetchOverrides(subSlug)));
-    }
-  }
 
   return {
     ...program,

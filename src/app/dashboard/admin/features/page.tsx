@@ -10,7 +10,7 @@ import { ManageMenu } from "../manage-menu";
 
 const PROGRAM_LABELS: Record<string, string> = {
   catalyst:  "Catalyst",
-  atg:       "After the Game",
+  atg:       "Beyond the Game",
   forte:     "Upskill Bahamas",
   "beyond-code-centers": "Beyond Code Centers",
   bgc:       "Black Girls Code",

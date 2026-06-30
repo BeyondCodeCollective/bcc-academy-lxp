@@ -837,7 +837,7 @@ const MID_PROGRAM_SPRING_2026: SurveyQuestion[] = [
   {
     type: "text",
     id: "success_end_of_program",
-    label: "What does success look like for you when After the Game ends?",
+    label: "What does success look like for you when Beyond the Game ends?",
     required: true,
   },
   {

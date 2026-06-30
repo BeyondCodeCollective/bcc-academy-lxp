@@ -1,10 +1,9 @@
 import type { ProgramConfig } from "./types";
-import { atgConfig } from "./atg";
 import { additionalTracks } from "./additional-tracks";
 
-// Catalyst consolidates ATG + its own additional tracks. Beyond Code Centers
-// (Forge) and Upskill Bahamas (Forte) are their OWN programs — their courses no
-// longer aggregate into Catalyst. Students are enrolled in specific tracks via
+// Catalyst is its own program. Beyond the Game (slug `atg`), Beyond Code
+// Centers, and Upskill Bahamas (Forte) are their OWN programs — their courses
+// do NOT aggregate into Catalyst. Students are enrolled in specific tracks via
 // invite links or admin assignment. The program-level config defines shared
 // branding and surveys; the tracks carry their own schedule, content, and phase.
 
@@ -27,14 +26,9 @@ export const catalystConfig: ProgramConfig = {
     totalWeeks: 10,
   },
   tracks: [
-    // Foundation — shared across all Catalyst participants
-    ...atgConfig.tracks.map((t) => ({
-      ...t,
-      phase: t.slug === "mass" ? "foundation" as const : "core" as const,
-    })),
-    // Beyond Code Centers (Forge) and Upskill Bahamas (Forte) are their own
-    // programs — their courses no longer aggregate into Catalyst.
-    // Additional tracks from Circle export (Network+, Game Dev, etc.)
+    // Catalyst's own tracks (Network+, Salesforce, …). Security+ lives as a DB
+    // track_override. Beyond the Game's MASS/Tech+ and Beyond Code Centers' AI
+    // tracks belong to those programs, not here.
     ...additionalTracks,
   ],
   surveys: [

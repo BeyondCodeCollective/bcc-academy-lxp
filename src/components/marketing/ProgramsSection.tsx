@@ -42,11 +42,11 @@ const programs: {
   },
   {
     id: "atg",
-    label: "After The Game",
+    label: "Beyond the Game",
     tagline: "Tech careers for athletes in transition.",
     description:
       "A cohort-based program that meets athletes in transition and prepares them for where work is going. Participants build a shared digital and workforce foundation, then specialize into direct placement, portfolio building, or an entrepreneurial path aligned to their strengths.",
-    cta: "Apply to ATG",
+    cta: "Apply to Beyond the Game",
     href: "/join/atg",
     icon: Trophy,
   },
