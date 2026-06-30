@@ -15,6 +15,8 @@ export type EngagementLearner = {
   signedUp: string | null;
   lastActive: string | null;
   videosWatched: number;
+  attended: number;
+  submitted: number;
   surveys: number;
 };
 
@@ -74,6 +76,17 @@ export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
   for (const r of (surveyRows.data ?? []) as { student_id: string }[]) {
     surveysByStudent.set(r.student_id, (surveysByStudent.get(r.student_id) ?? 0) + 1);
   }
+  // Per-learner attendance + submissions, so the table can show WHY someone is
+  // counted "engaged" when they have 0 videos (engaged = watched OR attended OR
+  // submitted). Without these columns the funnel total looks contradictory.
+  const attendanceByUser = new Map<string, number>();
+  for (const r of (attendanceRows.data ?? []) as { student_id: string }[]) {
+    attendanceByUser.set(r.student_id, (attendanceByUser.get(r.student_id) ?? 0) + 1);
+  }
+  const submissionsByUser = new Map<string, number>();
+  for (const r of (submissionRows.data ?? []) as { student_id: string }[]) {
+    submissionsByUser.set(r.student_id, (submissionsByUser.get(r.student_id) ?? 0) + 1);
+  }
 
   const engaged = new Set<string>();
   for (const r of (videoRows.data ?? []) as { user_id: string }[]) engaged.add(r.user_id);
@@ -93,6 +106,8 @@ export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
       signedUp: s.created_at ? s.created_at.slice(0, 10) : null,
       lastActive: s.last_seen_at ? s.last_seen_at.slice(0, 10) : null,
       videosWatched: videosByUser.get(s.id) ?? 0,
+      attended: attendanceByUser.get(s.id) ?? 0,
+      submitted: submissionsByUser.get(s.id) ?? 0,
       surveys: surveysByStudent.get(s.id) ?? 0,
     }))
     .sort(
