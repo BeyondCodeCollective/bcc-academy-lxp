@@ -4,90 +4,69 @@ import { useState } from "react";
 import { CentralLoginForm } from "@/components/central-login-form";
 import { LearnMoreForm } from "@/components/learn-more-form";
 
-type Mode = "choose" | "student" | "new";
-
 /**
- * Homepage entry. Rather than show a sign-in form AND a newsletter form side by
- * side (which made visitors mis-pick), present two buttons and reveal only the
- * form that matches their intent. One decision, then one form.
+ * Homepage entry. Sign-in is the default and primary action (the portal's main
+ * job); newcomers reach the newsletter via a plain text link — the familiar
+ * "sign in / create account" pattern, not a toggle people have to decode.
  */
 export function ApexEntry({
   programs,
 }: {
   programs: { slug: string; name: string; defaultTrack: string | null }[];
 }) {
-  const [mode, setMode] = useState<Mode>("choose");
+  const [mode, setMode] = useState<"signin" | "join">("signin");
 
-  if (mode !== "choose") {
-    const isStudent = mode === "student";
+  const headingCls =
+    "font-display text-[clamp(2.25rem,5vw,3.25rem)] font-bold uppercase leading-[0.86] tracking-tight";
+
+  if (mode === "join") {
     return (
       <div className="w-full max-w-sm space-y-5">
+        <h2 className={headingCls}>
+          Stay in
+          <br />
+          the loop.
+        </h2>
+        <p className="text-sm text-white/55">
+          Programs, events, and ways to get involved — straight to your inbox.
+        </p>
+        <LearnMoreForm />
         <button
           type="button"
-          onClick={() => setMode("choose")}
-          className="inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-[0.15em] text-neutral-400 transition-colors hover:text-white"
+          onClick={() => setMode("signin")}
+          className="text-sm text-white/45 outline-none transition-colors hover:text-white focus-visible:text-white"
         >
-          <span aria-hidden>&larr;</span> Back
+          <span aria-hidden>&larr;</span> Back to sign in
         </button>
-
-        <div>
-          <p className="font-mono text-xs uppercase tracking-[0.2em] text-electric-green">
-            {isStudent ? "I'm a student" : "New here?"}
-          </p>
-          <p className="mt-1 font-display text-xl font-bold text-white">
-            {isStudent ? "Sign in to your dashboard" : "Sign up for our newsletter"}
-          </p>
-          <p className="mt-1 text-sm text-neutral-300">
-            {isStudent
-              ? "Enter your email — we'll send you a sign-in link."
-              : "Programs, events, and ways to get involved."}
-          </p>
-        </div>
-
-        {isStudent ? (
-          <CentralLoginForm compact programs={programs} />
-        ) : (
-          <LearnMoreForm />
-        )}
       </div>
     );
   }
 
   return (
-    <div className="grid w-full max-w-md gap-3 sm:grid-cols-2">
-      <button
-        type="button"
-        onClick={() => setMode("student")}
-        className="group flex flex-col gap-1.5 rounded-2xl border border-white/20 bg-white/5 p-6 text-left backdrop-blur transition-colors hover:border-electric-green"
-      >
-        <span className="font-mono text-xs uppercase tracking-[0.2em] text-electric-green">
-          I&apos;m a student
-        </span>
-        <span className="font-display text-lg font-bold text-white">Sign in</span>
-        <span className="inline-flex items-center text-sm text-neutral-300 transition-colors group-hover:text-white">
-          Get to your dashboard
-          <span className="ml-2 transition-transform group-hover:translate-x-1" aria-hidden>
-            &rarr;
-          </span>
-        </span>
-      </button>
+    <div className="w-full max-w-sm space-y-5">
+      <h2 className={headingCls}>
+        Welcome
+        <br />
+        back.
+      </h2>
+      <CentralLoginForm compact programs={programs} />
 
-      <button
-        type="button"
-        onClick={() => setMode("new")}
-        className="group flex flex-col gap-1.5 rounded-2xl border border-white/20 bg-white/5 p-6 text-left backdrop-blur transition-colors hover:border-electric-green"
-      >
-        <span className="font-mono text-xs uppercase tracking-[0.2em] text-electric-green">
-          I&apos;m new here
-        </span>
-        <span className="font-display text-lg font-bold text-white">Get started</span>
-        <span className="inline-flex items-center text-sm text-neutral-300 transition-colors group-hover:text-white">
-          Programs &amp; newsletter
-          <span className="ml-2 transition-transform group-hover:translate-x-1" aria-hidden>
-            &rarr;
+      <div className="space-y-4 pt-1">
+        <div className="flex items-center gap-3">
+          <span className="h-px flex-1 bg-white/10" aria-hidden />
+          <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-white/40">
+            New to BCC?
           </span>
-        </span>
-      </button>
+          <span className="h-px flex-1 bg-white/10" aria-hidden />
+        </div>
+        <button
+          type="button"
+          onClick={() => setMode("join")}
+          className="w-full border border-white/20 px-4 py-3 text-sm font-bold uppercase tracking-wide text-white/80 outline-none transition-colors hover:border-white/45 hover:bg-white/[0.04] hover:text-white focus-visible:border-white/45 focus-visible:text-white"
+        >
+          Join our newsletter &rarr;
+        </button>
+      </div>
     </div>
   );
 }
