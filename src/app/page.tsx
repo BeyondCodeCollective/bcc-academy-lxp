@@ -5,22 +5,13 @@ import { HeroVideo } from "@/components/hero-video";
 
 export default function HomePage() {
   return (
-    <div className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-true-black px-6">
-      {/* BCC hero clip behind everything, with a dark overlay so the logo and
-         copy stay legible. bg-true-black is the fallback while the video loads. */}
+    <div className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-true-black px-6 py-16">
+      {/* BCC hero clip behind everything (plays on desktop AND mobile), with a
+         dark overlay so the logo and copy stay legible. */}
       <HeroVideo />
       <div className="absolute inset-0 bg-true-black/70" aria-hidden />
 
-      {/* Sign in — so people can just go to bccacademy.io and get into the
-         portal without needing to know the /login URL. */}
-      <Link
-        href="/login"
-        className="absolute right-5 top-5 z-20 inline-flex items-center rounded-full border border-white/25 bg-white/5 px-4 py-2 text-sm font-semibold text-white backdrop-blur transition-colors hover:border-electric-green hover:text-electric-green sm:right-6 sm:top-6"
-      >
-        Sign in
-      </Link>
-
-      <div className="relative z-10 flex flex-col items-center gap-10">
+      <div className="relative z-10 flex w-full max-w-2xl flex-col items-center gap-10">
         <Image
           src="/catalyst/logo.svg"
           alt="BCC Academy"
@@ -43,25 +34,59 @@ export default function HomePage() {
           </p>
         </div>
 
-        {/* Updates capture for prospects — NOT account creation. The "Keep me
-           posted" framing + heading keep visitors from mistaking it for student
-           sign-in (which lives in the explicit link below + the top-right pill). */}
-        <div className="flex w-full max-w-sm flex-col items-center gap-3">
-          <p className="font-mono text-xs uppercase tracking-[0.2em] text-neutral-400">
-            New here? Get program updates
-          </p>
-          <LearnMoreForm />
-        </div>
+        {/* Two-door fork — students sign in, newcomers subscribe. Each path has
+           its own clearly-labeled action, so the newsletter form can't be
+           mistaken for student sign-in. */}
+        <div className="grid w-full gap-4 sm:grid-cols-2 sm:items-stretch">
+          {/* Returning students */}
+          <div className="flex flex-col gap-4 rounded-2xl border border-white/20 bg-white/5 p-6 backdrop-blur">
+            <div>
+              <p className="font-mono text-xs uppercase tracking-[0.2em] text-electric-green">
+                I&apos;m a student
+              </p>
+              <p className="mt-1 font-display text-lg font-bold text-white">
+                Sign in to your dashboard
+              </p>
+              <p className="mt-1 text-sm text-neutral-300">
+                Pick up right where you left off.
+              </p>
+            </div>
+            <ul className="space-y-2.5 text-sm text-neutral-300">
+              {[
+                "Your courses & progress",
+                "Live sessions & office hours",
+                "Certificates & resources",
+              ].map((item) => (
+                <li key={item} className="flex items-center gap-2.5">
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-electric-green" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <Link
+              href="/login"
+              className="mt-auto inline-flex w-full items-center justify-center bg-electric-green px-4 py-3 text-sm font-bold uppercase tracking-wide text-true-black transition-opacity hover:opacity-90"
+            >
+              Sign in &rarr;
+            </Link>
+          </div>
 
-        <p className="text-sm text-neutral-400">
-          Already a student?{" "}
-          <Link
-            href="/login"
-            className="font-semibold text-white underline-offset-4 transition-colors hover:text-electric-green hover:underline"
-          >
-            Sign in &rarr;
-          </Link>
-        </p>
+          {/* Newcomers — newsletter signup */}
+          <div className="flex flex-col gap-4 rounded-2xl border border-white/20 bg-white/5 p-6 backdrop-blur">
+            <div>
+              <p className="font-mono text-xs uppercase tracking-[0.2em] text-electric-green">
+                New here?
+              </p>
+              <p className="mt-1 font-display text-lg font-bold text-white">
+                Sign up for our newsletter
+              </p>
+              <p className="mt-1 text-sm text-neutral-300">
+                Programs, events, and ways to get involved.
+              </p>
+            </div>
+            <LearnMoreForm />
+          </div>
+        </div>
       </div>
     </div>
   );
