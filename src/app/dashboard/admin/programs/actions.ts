@@ -3,9 +3,23 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { hasCapability } from "@/lib/roles";
 import { getProgramBySlug } from "@/lib/programs";
 import { toSlug } from "@/lib/programs/slug";
+
+// Bust every cached surface that lists or renders course metadata so edits made
+// in Manage Courses (rename, hide/show, create) show up immediately. Without
+// this the admin home serves a stale render — the edit persists to the DB but
+// the cached page keeps the old name until the route cache expires.
+function revalidateCourseSurfaces(trackSlug?: string) {
+  revalidatePath("/dashboard", "page");
+  revalidatePath("/dashboard/admin", "page");
+  if (trackSlug) {
+    revalidatePath(`/dashboard/track/${trackSlug}`, "page");
+    revalidatePath(`/dashboard/track/${trackSlug}/[week]`, "page");
+  }
+}
 
 async function requireSuperAdmin() {
   const supabase = await createClient();
@@ -104,6 +118,7 @@ export async function createCourseAction(formData: {
     return { success: false, error: "Failed to create course. Please try again." };
   }
 
+  revalidateCourseSurfaces(slug);
   return {
     success: true,
     slug,
@@ -137,6 +152,7 @@ export async function hideCourseAction(
     console.error("[hideCourseAction] failed:", error);
     return { success: false, error: "Failed to hide course." };
   }
+  revalidateCourseSurfaces(trackSlug);
   return { success: true };
 }
 
@@ -157,6 +173,7 @@ export async function showCourseAction(
     console.error("[showCourseAction] failed:", error);
     return { success: false, error: "Failed to show course." };
   }
+  revalidateCourseSurfaces(trackSlug);
   return { success: true };
 }
 
@@ -209,5 +226,6 @@ export async function updateCourseAction(
     return { success: false, error: "Failed to update course." };
   }
 
+  revalidateCourseSurfaces(trackSlug);
   return { success: true };
 }

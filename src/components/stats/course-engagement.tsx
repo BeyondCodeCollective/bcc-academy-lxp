@@ -26,7 +26,6 @@ export type CourseEngagementProps = {
 };
 
 export function CourseEngagement({
-  courseName,
   totalLearners,
   activeThisWeek,
   lessonsWatched,
@@ -38,12 +37,9 @@ export function CourseEngagement({
 
   return (
     <section className="space-y-5">
-      <div className="flex items-baseline justify-between gap-3">
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">
-          Engagement
-        </h2>
-        <span className="text-xs text-ink-faint">{courseName}</span>
-      </div>
+      <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">
+        Engagement
+      </h2>
 
       {/* Hero stat row */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
