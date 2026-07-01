@@ -178,8 +178,8 @@ const networkPlusTrack: TrackConfig = {
 // NOTE: Endless Games (Godot) moved to the Black Girls Code program — see
 // src/lib/programs/bgc.ts.
 
-// NOTE: "AI Literacy" (slug foundations-ai) moved to Beyond Code Centers
-// (forge.ts); IBM SkillsBuild moved to Black Girls Code (bgc.ts).
+// NOTE: "AI Literacy" (slug foundations-ai) is in Beyond Code Centers
+// (beyond-code-centers.ts); IBM SkillsBuild moved to Black Girls Code (bgc.ts).
 
 // ── Salesforce Administrator ────────────────────────────────────────────────
 
