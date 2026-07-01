@@ -44,13 +44,19 @@ export async function POST(request: NextRequest) {
 
   // Program-scope check. The attendance row carries no program_id, so RLS
   // can't enforce cross-tenant separation here — verify in app code.
+  // IMPORTANT: Both IDs must be non-null and match. The comparison `null !== null`
+  // evaluates to false, which would incorrectly allow cross-tenant access.
   const { data: targetStudent } = await supabase
     .from("students")
     .select("id, program_id")
     .eq("id", student_id)
     .single<{ id: string; program_id: string | null }>();
 
-  if (!targetStudent || targetStudent.program_id !== currentStudent.program_id) {
+  const currentProgramId = currentStudent.program_id;
+  const targetProgramId = targetStudent?.program_id;
+
+  // Both must have non-null program_ids and they must match
+  if (!currentProgramId || !targetProgramId || currentProgramId !== targetProgramId) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -103,13 +109,18 @@ export async function DELETE(request: NextRequest) {
   }
 
   // Program-scope check (same reason as POST — attendance has no program_id).
+  // IMPORTANT: Both IDs must be non-null and match. `null !== null` is false.
   const { data: targetStudent } = await supabase
     .from("students")
     .select("program_id")
     .eq("id", student_id)
     .single<{ program_id: string | null }>();
 
-  if (!targetStudent || targetStudent.program_id !== currentStudent?.program_id) {
+  const currentProgramId = currentStudent?.program_id;
+  const targetProgramId = targetStudent?.program_id;
+
+  // Both must have non-null program_ids and they must match
+  if (!currentProgramId || !targetProgramId || currentProgramId !== targetProgramId) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
