@@ -1132,7 +1132,7 @@ export function AdminTabs({
                     </span>
                     <div className="text-left">
                       <p className="text-sm font-semibold text-ink">
-                        {aw.title}
+                        {aw.overrideTitle || aw.title}
                       </p>
                       <p className="text-[10px] text-ink-faint">
                         {aw.sessions.length} session{aw.sessions.length !== 1 ? "s" : ""}

@@ -215,9 +215,13 @@ export async function saveSessionContent(
     throw new Error(error.message);
   }
 
-  // Bust cached pages so students see the new meeting link / recording immediately
+  // Bust cached pages so students see the new meeting link / recording / title
+  // immediately — the week page, the track overview (week cards read the title
+  // override), the dashboard, and the admin tab that shows the week list.
   revalidatePath(`/dashboard/track/${track}/${weekNumber}`, "page");
+  revalidatePath(`/dashboard/track/${track}`, "page");
   revalidatePath("/dashboard", "page");
+  revalidatePath("/dashboard/admin", "page");
 
   return { success: true };
 }

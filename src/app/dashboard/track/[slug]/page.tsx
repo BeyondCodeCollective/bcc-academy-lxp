@@ -17,6 +17,7 @@ import { WeekCarousel, type WeekCardData } from "@/components/week-carousel";
 import { PageHeader } from "@/components/page-header";
 import { buttonClass } from "@/components/ui";
 import { getTrackProgressMap } from "@/app/dashboard/track/actions";
+import { getAllSessionContent } from "@/app/dashboard/admin/actions-tracks";
 import { isSequentialGated, highestUnlockedWeek } from "@/lib/track-gating";
 import { buildGoogleCalendarUrl } from "@/lib/gcal";
 import { MyProgressCard } from "@/components/my-progress-card";
@@ -172,6 +173,15 @@ export default async function TrackOverviewPage({
     ? highestUnlockedWeek(track, watchedSet, submittedSet)
     : track.totalWeeks;
 
+  // DB session-content titles are the source of truth: an admin-edited week
+  // title overrides the hardcoded config topic here too, so nothing leaks
+  // through from the TS config once it's been edited in the admin panel.
+  const sessionOverrides = await getAllSessionContent(slug).catch(() => []);
+  const titleByWeek = new Map<number, string>();
+  for (const row of sessionOverrides) {
+    if (row.title) titleByWeek.set(row.week_number, row.title);
+  }
+
   const weekCards: WeekCardData[] = track.weekSummaries.map((ws) => {
     const isCurrent = started && ws.week === currentWeek;
     const isPast = started && ws.week < currentWeek;
@@ -183,7 +193,7 @@ export default async function TrackOverviewPage({
     const lockedLabel = comingSoonLocked ? "Coming soon" : sequentialLocked ? "Locked" : null;
     return {
       week: ws.week,
-      topic: ws.topic,
+      topic: titleByWeek.get(ws.week) ?? ws.topic,
       icon: ws.icon,
       href: isLocked ? null : `/dashboard/track/${slug}/${ws.week}`,
       isCurrent,
