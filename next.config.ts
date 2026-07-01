@@ -62,10 +62,17 @@ const nextConfig: NextConfig = {
   async headers() {
     const cspReport = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://va.vercel-scripts.com https://www.googletagmanager.com",
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      "img-src 'self' data: blob: https://*.supabase.co https://images.pexels.com https://img.evbuc.com https://*.google-analytics.com https://*.googletagmanager.com",
-      "font-src 'self' https://fonts.gstatic.com",
+      // *.zoom.us in script-src: the Meeting SDK lazy-loads feature modules
+      // (whiteboard, etc.) from Zoom's static hosts at runtime
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://va.vercel-scripts.com https://www.googletagmanager.com https://*.zoom.us",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.zoom.us",
+      "img-src 'self' data: blob: https://*.supabase.co https://images.pexels.com https://img.evbuc.com https://*.google-analytics.com https://*.googletagmanager.com https://*.zoom.us",
+      // The Zoom Meeting SDK spawns its audio/video pipeline as blob: workers.
+      // Without an explicit worker-src the browser falls back to script-src
+      // (no blob:) and silently kills them — join() then never calls back and
+      // the embed hangs on "Connecting to session…" forever.
+      "worker-src 'self' blob:",
+      "font-src 'self' data: https://fonts.gstatic.com",
       "media-src 'self' https://*.supabase.co https://images.pexels.com https://videos.pexels.com",
       "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://zoom.us https://*.zoom.us",
       "connect-src 'self' https://*.supabase.co https://*.resend.com https://va.vercel-scripts.com https://*.google-analytics.com https://o4506503091847168.ingest.us.sentry.io https://zoom.us https://*.zoom.us wss://*.zoom.us",

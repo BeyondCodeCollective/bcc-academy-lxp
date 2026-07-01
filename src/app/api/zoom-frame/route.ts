@@ -140,10 +140,12 @@ export async function GET(req: NextRequest) {
           throw new Error("Could not load session assets. Please try again.");
         }
 
-        // Guard: init sometimes never callbacks on asset/network failure.
+        // Guard: init/join sometimes never callback on asset/network/CSP
+        // failure — cleared only once join resolves, so a silent join hang
+        // still surfaces an error instead of an endless spinner.
         const initTimeout = setTimeout(() => {
           showError("Session timed out while loading. Please refresh and try again.");
-        }, 15000);
+        }, 30000);
 
         ZoomMtg.init({
           leaveUrl: ${JSON.stringify(frameUrl + "&left=1")},
@@ -152,7 +154,6 @@ export async function GET(req: NextRequest) {
           // NOTE: do not pass unknown options here — ZoomMtg.init validates
           // keys against a whitelist and rejects the whole call on a miss
           success: function () {
-            clearTimeout(initTimeout);
             ZoomMtg.join({
               signature: signature,
               meetingNumber: ${JSON.stringify(mn)},
@@ -160,9 +161,11 @@ export async function GET(req: NextRequest) {
               userName: decodeURIComponent("${un}"),
               userEmail: decodeURIComponent("${ue}"),
               success: function () {
+                clearTimeout(initTimeout);
                 statusEl.style.display = "none";
               },
               error: function (err) {
+                clearTimeout(initTimeout);
                 console.error("[zoom-frame] join", err);
                 showError((err && err.reason) || "Could not join the session. Please try again.");
               },
