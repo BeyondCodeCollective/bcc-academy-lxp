@@ -40,6 +40,17 @@ const nextConfig: NextConfig = {
         destination: "/bcc/:slug",
         permanent: false,
       },
+      // Old feature HTML page → new help center
+      {
+        source: "/bcc-academy-features.html",
+        destination: "/help",
+        permanent: true,
+      },
+      {
+        source: "/bcc-academy-features",
+        destination: "/help",
+        permanent: true,
+      },
     ];
   },
   async rewrites() {
