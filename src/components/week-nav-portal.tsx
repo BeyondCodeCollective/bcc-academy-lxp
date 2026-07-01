@@ -13,10 +13,12 @@ export function WeekNavPortal({
   trackSlug,
   weekNum,
   totalWeeks,
+  unitLabel = "Week",
 }: {
   trackSlug: string;
   weekNum: number;
   totalWeeks: number;
+  unitLabel?: string;
 }) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -37,12 +39,12 @@ export function WeekNavPortal({
       {prevWeek && (
         <Link href={`/dashboard/track/${trackSlug}/${prevWeek}`} className={cls}>
           <ArrowLeft size={12} />
-          Week {prevWeek}
+          {unitLabel} {prevWeek}
         </Link>
       )}
       {nextWeek && (
         <Link href={`/dashboard/track/${trackSlug}/${nextWeek}`} className={cls}>
-          Week {nextWeek}
+          {unitLabel} {nextWeek}
           <ArrowLeft size={12} className="rotate-180" />
         </Link>
       )}

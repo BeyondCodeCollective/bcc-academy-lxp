@@ -123,6 +123,7 @@ type TrackOverrideRow = {
   instructor: string | null;
   start_date: string | null;
   total_weeks: number | null;
+  unit_label: string | null;
   sessions_per_week: number | null;
   last_session_day_offset: number | null;
   session_times: string[] | null;
@@ -171,6 +172,7 @@ function buildTrackFromOverride(row: TrackOverrideRow): TrackConfig {
     phase: (row.phase as TrackConfig["phase"] | null) ?? "core",
     type: "weekly",
     totalWeeks,
+    unitLabel: row.unit_label ?? "Week",
     sessionsPerWeek,
     startDate: row.start_date ?? new Date().toISOString().slice(0, 10),
     startDateTbd: false,
@@ -243,7 +245,7 @@ export async function fetchDynamicProgram(slug: string): Promise<ProgramConfig |
     const { data: trackRows } = await svc
       .from("track_overrides")
       .select(
-        "track_slug, name, short_name, description, instructor, start_date, total_weeks, sessions_per_week, last_session_day_offset, session_times, week_summaries, default_reflection_prompts, submissions_enabled, reflections_enabled, sequential_gating",
+        "track_slug, name, short_name, description, instructor, start_date, total_weeks, unit_label, sessions_per_week, last_session_day_offset, session_times, week_summaries, default_reflection_prompts, submissions_enabled, reflections_enabled, sequential_gating",
       )
       .eq("program_id", programRow.id);
 
@@ -279,7 +281,7 @@ const fetchOverrides = cache(
       const { data } = await svc
         .from("track_overrides")
         .select(
-          "track_slug, name, short_name, description, instructor, start_date, total_weeks, sessions_per_week, last_session_day_offset, session_times, week_summaries, default_reflection_prompts, submissions_enabled, reflections_enabled, sequential_gating, phase, office_hours",
+          "track_slug, name, short_name, description, instructor, start_date, total_weeks, unit_label, sessions_per_week, last_session_day_offset, session_times, week_summaries, default_reflection_prompts, submissions_enabled, reflections_enabled, sequential_gating, phase, office_hours",
         )
         .eq("program_id", programRow.id);
       const map = new Map<string, TrackOverrideRow>();
@@ -374,6 +376,7 @@ function mergeTrack(
     instructor: override.instructor ?? config.instructor,
     startDate: override.start_date ?? config.startDate,
     totalWeeks: override.total_weeks ?? config.totalWeeks,
+    unitLabel: override.unit_label ?? config.unitLabel,
     sessionsPerWeek: override.sessions_per_week ?? config.sessionsPerWeek,
     lastSessionDayOffset:
       override.last_session_day_offset ?? config.lastSessionDayOffset,
