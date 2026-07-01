@@ -237,12 +237,20 @@ export function InsightsDashboard({
         ) : (
           <span />
         )}
-        <a
-          href={`/api/insights/pdf${cohortFilter !== "all" ? `?cohort=${encodeURIComponent(cohortFilter)}` : ""}`}
-          className="border border-rule bg-white px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:border-ink-faint"
-        >
-          Export PDF
-        </a>
+        <div className="flex items-center gap-2">
+          <a
+            href={`/api/insights/csv${cohortFilter !== "all" ? `?cohort=${encodeURIComponent(cohortFilter)}` : ""}`}
+            className="border border-rule bg-white px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:border-ink-faint"
+          >
+            Export CSV
+          </a>
+          <a
+            href={`/api/insights/pdf${cohortFilter !== "all" ? `?cohort=${encodeURIComponent(cohortFilter)}` : ""}`}
+            className="border border-rule bg-white px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:border-ink-faint"
+          >
+            Export PDF
+          </a>
+        </div>
       </div>
 
       {/* Survey cards */}
@@ -366,13 +374,22 @@ export function InsightsDashboard({
             ) : (
               <span />
             )}
-            {/* Per-question detailed PDF for THIS survey, honoring the cohort filter. */}
-            <a
-              href={`/api/insights/pdf?detailed=1&survey=${encodeURIComponent(active.survey.id)}${cohortFilter !== "all" ? `&cohort=${encodeURIComponent(cohortFilter)}` : ""}`}
-              className="shrink-0 border border-rule bg-white px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:border-ink-faint"
-            >
-              Detailed report ↓
-            </a>
+            <div className="flex items-center gap-2">
+              {/* CSV export — raw data for your team */}
+              <a
+                href={`/api/insights/csv?survey=${encodeURIComponent(active.survey.id)}${cohortFilter !== "all" ? `&cohort=${encodeURIComponent(cohortFilter)}` : ""}`}
+                className="shrink-0 border border-rule bg-white px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:border-ink-faint"
+              >
+                Export CSV
+              </a>
+              {/* Per-question detailed PDF for THIS survey, honoring the cohort filter. */}
+              <a
+                href={`/api/insights/pdf?detailed=1&survey=${encodeURIComponent(active.survey.id)}${cohortFilter !== "all" ? `&cohort=${encodeURIComponent(cohortFilter)}` : ""}`}
+                className="shrink-0 border border-rule bg-white px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:border-ink-faint"
+              >
+                Detailed report ↓
+              </a>
+            </div>
           </div>
           <SurveyDashboard
             surveyId={active.survey.id}
