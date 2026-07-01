@@ -1,16 +1,23 @@
 import type { Metadata } from "next";
-import { Bricolage_Grotesque, Plus_Jakarta_Sans } from "next/font/google";
+import { Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "../globals.css";
 
-const bricolage = Bricolage_Grotesque({
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
   subsets: ["latin"],
-  variable: "--font-bricolage",
   display: "swap",
 });
 
-const jakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  variable: "--font-jakarta",
+const specialGothic = localFont({
+  src: "../../fonts/SpecialGothic-Variable.subset.woff2",
+  variable: "--font-special-gothic",
+  display: "swap",
+});
+
+const gtStandard = localFont({
+  src: "../../fonts/GT-Standard-Regular.subset.woff2",
+  variable: "--font-gt-standard",
   display: "swap",
 });
 
@@ -25,8 +32,8 @@ export default function HelpLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${bricolage.variable} ${jakarta.variable}`}>
-      <body className="font-sans antialiased bg-white text-ink">{children}</body>
+    <html lang="en" className={`${geistMono.variable} ${specialGothic.variable} ${gtStandard.variable}`}>
+      <body className="font-body antialiased bg-off-white text-true-black">{children}</body>
     </html>
   );
 }

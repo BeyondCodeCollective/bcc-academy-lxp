@@ -1723,8 +1723,7 @@ export default function HelpCenter() {
             <div>
               <Link
                 href="/"
-                className="text-2xl font-bold tracking-tight"
-                style={{ fontFamily: "var(--font-bricolage)" }}
+                className="font-display text-2xl font-bold tracking-tight"
               >
                 BCC <span className="text-[#E5F701]">[</span>Academy
                 <span className="text-[#E5F701]">]</span>
@@ -1838,8 +1837,7 @@ export default function HelpCenter() {
 
                 {/* Title */}
                 <h1
-                  className="text-3xl font-bold text-ink mb-3"
-                  style={{ fontFamily: "var(--font-bricolage)" }}
+                  className="font-display text-3xl font-bold text-ink mb-3"
                 >
                   {activeArticleData.title}
                 </h1>
