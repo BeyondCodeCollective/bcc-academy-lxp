@@ -127,6 +127,12 @@ export type TrackConfig = {
   description?: string;
   type: TrackType;
   totalWeeks: number;
+  /**
+   * Singular label for one unit of the track, shown wherever the UI says
+   * "Week N" (carousel, week pages, nav, CTAs, admin editor). Defaults to
+   * "Week"; a 3-day bootcamp sets "Day". DB-editable via track_overrides.
+   */
+  unitLabel?: string;
   sessionsPerWeek: number;
   startDate: string;
   /**

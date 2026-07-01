@@ -96,6 +96,7 @@ type AdminTrackConfig = {
   slug: string;
   name: string;
   shortName: string;
+  unitLabel?: string;
   description?: string;
   type?: string;
   totalWeeks: number;
@@ -966,9 +967,9 @@ export function AdminTabs({
                     : t.startDateTbd
                       ? "Starts TBD"
                       : t.selfPaced
-                        ? `Self-paced · ${t.totalWeeks} weeks`
+                        ? `Self-paced · ${t.totalWeeks} ${(t.unitLabel || "Week").toLowerCase()}s`
                         : started
-                          ? `Week ${currentWeek} of ${t.totalWeeks}`
+                          ? `${t.unitLabel || "Week"} ${currentWeek} of ${t.totalWeeks}`
                           : `Starts ${start.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
                 const count = studentCountFor(t.slug);
                 return (
@@ -1734,7 +1735,7 @@ function StudentWorkTab({
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-ink">{sub.student_name}</p>
                     <p className="text-[11px] text-ink-faint">
-                      {tracks.find((t) => t.slug === sub.track_slug)?.shortName ?? sub.track_slug} · Week {sub.week_number}
+                      {(() => { const st = tracks.find((t) => t.slug === sub.track_slug); return `${st?.shortName ?? sub.track_slug} · ${st?.unitLabel || "Week"} ${sub.week_number}`; })()}
                       {sub.submitted_at && ` · ${new Date(sub.submitted_at).toLocaleDateString()}`}
                     </p>
                   </div>

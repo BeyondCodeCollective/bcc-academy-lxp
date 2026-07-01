@@ -17,6 +17,7 @@ type Props = {
     description?: string;
     instructor: string;
     weekSummaries: WeekSummary[];
+    unitLabel?: string;
     selfPaced?: boolean;
     sequentialGating?: boolean;
   };
@@ -40,25 +41,28 @@ export function TrackOverviewForm({ track, programSlug, onLiveChange }: Props) {
     () => track.weekSummaries.map((w) => ({ ...w })),
   );
   const [sequentialGating, setSequentialGating] = useState(!!track.sequentialGating);
+  // Singular unit label ("Week", "Day", "Session", …). Blank falls back to "Week".
+  const [unitLabel, setUnitLabel] = useState(track.unitLabel ?? "Week");
   const [saveState, setSaveState] = useState<SaveState>("idle");
 
   const isFirstRun = useRef(true);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const latestValues = useRef({ name, instructor, description, weekSummaries, sequentialGating });
+  const latestValues = useRef({ name, instructor, description, weekSummaries, sequentialGating, unitLabel });
 
   // Keep ref in sync so the blur handler always sends fresh values.
-  latestValues.current = { name, instructor, description, weekSummaries, sequentialGating };
+  latestValues.current = { name, instructor, description, weekSummaries, sequentialGating, unitLabel };
 
   const doSave = useRef(async (shouldRefresh = false) => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     setSaveState("saved"); // optimistic indicator
     setTimeout(() => setSaveState("idle"), 2000);
     try {
-      const { weekSummaries: weeks, sequentialGating: gating, ...rest } = latestValues.current;
+      const { weekSummaries: weeks, sequentialGating: gating, unitLabel: unit, ...rest } = latestValues.current;
       const patch: TrackOverviewPatch = {
         ...rest,
         week_summaries: weeks,
         sequential_gating: gating,
+        unit_label: unit,
       };
       await saveTrackOverview(track.slug, patch, programSlug);
       // Refresh AFTER the DB write + cache bust complete, not before.
@@ -81,7 +85,7 @@ export function TrackOverviewForm({ track, programSlug, onLiveChange }: Props) {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [name, instructor, description, weekSummaries]);
+  }, [name, instructor, description, weekSummaries, unitLabel]);
 
   // Immediate save on blur — refreshes page so header/title updates.
   const handleBlur = () => doSave.current(true);
@@ -167,20 +171,34 @@ export function TrackOverviewForm({ track, programSlug, onLiveChange }: Props) {
 
       {weekSummaries.length > 0 && (
         <div className="panel p-4 sm:p-5 space-y-4">
-          <div>
-            <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-faint">
-              Weeks
-            </p>
-            <p className="mt-1 text-xs text-ink-faint">
-              Topic and icon shown for each week on the track and week pages.
-            </p>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-faint">
+                {(unitLabel || "Week")}s
+              </p>
+              <p className="mt-1 text-xs text-ink-faint">
+                Topic and icon shown for each {(unitLabel || "Week").toLowerCase()} on the track and {(unitLabel || "Week").toLowerCase()} pages.
+              </p>
+            </div>
+            <div className="w-28 shrink-0">
+              <Field label="Unit label">
+                <input
+                  type="text"
+                  value={unitLabel}
+                  onChange={(e) => setUnitLabel(e.target.value)}
+                  onBlur={handleBlur}
+                  placeholder="Week"
+                  className={fieldInput}
+                />
+              </Field>
+            </div>
           </div>
 
           <div className="space-y-3">
             {weekSummaries.map((w, i) => (
               <div key={w.week} className="flex items-end gap-3">
                 <span className="mb-2.5 w-14 shrink-0 text-xs font-medium text-ink-faint">
-                  Week {w.week}
+                  {(unitLabel || "Week")} {w.week}
                 </span>
                 <div className="w-16 shrink-0">
                   <Field label="Icon">

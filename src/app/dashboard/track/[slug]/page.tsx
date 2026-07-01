@@ -153,8 +153,11 @@ export default async function TrackOverviewPage({
       : 0;
 
   const ctaWeek = started ? currentWeek : 1;
+  // Per-track unit label ("Week" default, "Day" for a bootcamp, …).
+  const unit = track.unitLabel || "Week";
+  const unitLower = unit.toLowerCase();
   // Single "Week N" — the old "Open current week — Week N" said "week" twice.
-  const ctaLabel = `Open Week ${ctaWeek}`;
+  const ctaLabel = `Open ${unit} ${ctaWeek}`;
 
   // Track-level description if authored, else fall back to week 1's
   // description (every track has one written and it's already framing copy).
@@ -207,10 +210,10 @@ export default async function TrackOverviewPage({
   // is misleading — show "Self-paced · N weeks" instead. Otherwise lead with the
   // live week (once started) then the track length.
   const eyebrow = track.selfPaced
-    ? `Self-paced · ${track.totalWeeks} weeks`
+    ? `Self-paced · ${track.totalWeeks} ${unitLower}s`
     : started
-      ? `Week ${currentWeek} of ${track.totalWeeks} · ${track.totalWeeks}-week track`
-      : `${track.totalWeeks}-week track`;
+      ? `${unit} ${currentWeek} of ${track.totalWeeks} · ${track.totalWeeks}-${unitLower} track`
+      : `${track.totalWeeks}-${unitLower} track`;
 
   // Engagement card for actual learners — single-course students land here
   // instead of the dashboard home, so this is where their streak lives. Scoped
@@ -239,9 +242,9 @@ export default async function TrackOverviewPage({
       <header className="space-y-5">
         <div className="relative w-full overflow-hidden panel p-5 sm:p-7">
           <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
-            Jump to any week
+            Jump to any {unitLower}
           </p>
-          <WeekCarousel weeks={weekCards} emojiIcons={track.emojiIcons} />
+          <WeekCarousel weeks={weekCards} emojiIcons={track.emojiIcons} unitLabel={unit} />
           {started && (
             <div className="absolute top-3 right-3">
               <span className="inline-flex items-center gap-1.5 rounded-full panel px-2.5 py-1 text-[11px] font-semibold text-primary">
@@ -291,7 +294,7 @@ export default async function TrackOverviewPage({
         <Fact
           icon={Clock}
           label="Duration"
-          value={`${track.totalWeeks} weeks`}
+          value={`${track.totalWeeks} ${unitLower}s`}
         />
         <Fact
           icon={Lightning}

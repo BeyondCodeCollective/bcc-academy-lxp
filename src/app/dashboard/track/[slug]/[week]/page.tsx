@@ -38,6 +38,9 @@ export default async function TrackWeekPage({
   const weekContent = track.weeks.find((w) => w.week === weekNum);
   if (!weekContent) redirect("/dashboard");
 
+  // Per-track unit label ("Week" default, "Day" for a bootcamp, …).
+  const unit = track.unitLabel || "Week";
+
   // Curriculum lock: before launch, non-admins can't open lessons by direct URL
   // either — bounce them to the holding page (countdown). Mirrors the overview's
   // pre-start gate so registration never exposes content early.
@@ -82,7 +85,7 @@ export default async function TrackWeekPage({
           </Link>
           <div className="border border-rule bg-neutral-50 p-8 text-center">
             <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-ink-faint mb-2">
-              Week {weekContent.week}
+              {unit} {weekContent.week}
             </p>
             <h1 className="text-2xl font-bold tracking-tight text-ink sm:text-3xl">
               {weekContent.title}
@@ -170,13 +173,13 @@ export default async function TrackWeekPage({
           </Link>
           <div className="border border-rule bg-neutral-50 p-8 text-center">
             <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-ink-faint mb-2">
-              Week {weekContent.week}
+              {unit} {weekContent.week}
             </p>
             <h1 className="text-2xl font-bold tracking-tight text-ink sm:text-3xl">
               {weekContent.title}
             </h1>
             <p className="mt-4 text-base text-ink-soft">
-              Finish <strong>Week {unlockedThrough}</strong> to unlock this week.
+              Finish <strong>{unit} {unlockedThrough}</strong> to unlock this {unit.toLowerCase()}.
             </p>
           </div>
         </div>
@@ -246,7 +249,7 @@ export default async function TrackWeekPage({
       {/* Prev/next week nav renders into the breadcrumb row (#breadcrumb-actions)
          so it shares that line instead of stacking below. The "up to course"
          path is the breadcrumb's course crumb. */}
-      <WeekNavPortal trackSlug={trackSlug} weekNum={weekNum} totalWeeks={track.totalWeeks} />
+      <WeekNavPortal trackSlug={trackSlug} weekNum={weekNum} totalWeeks={track.totalWeeks} unitLabel={unit} />
 
       {/* Compact header. For single-session weeks the session title equals
          the week title, so we fold session metadata (time + Join action)

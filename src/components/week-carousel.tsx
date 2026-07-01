@@ -18,10 +18,13 @@ export type WeekCardData = {
 export function WeekCarousel({
   weeks,
   emojiIcons = false,
+  unitLabel = "Week",
 }: {
   weeks: WeekCardData[];
   /** Kid-facing tracks render the raw emoji; default maps to Phosphor. */
   emojiIcons?: boolean;
+  /** Singular unit label ("Week", "Day", …) for the per-card label. */
+  unitLabel?: string;
 }) {
   const renderIcon = (icon: string, size: number) => {
     const Icon = emojiIcons ? null : weekIconForEmoji(icon);
@@ -64,7 +67,7 @@ export function WeekCarousel({
           ref={scrollRef}
           onScroll={handleScroll}
           role="list"
-          aria-label="Week navigation"
+          aria-label={`${unitLabel} navigation`}
           className="flex overflow-x-scroll snap-x snap-mandatory"
           style={{ scrollbarWidth: "none" }}
         >
@@ -85,7 +88,7 @@ export function WeekCarousel({
               <div key={w.week} role="listitem" className="w-full shrink-0 snap-start">
                 <Link
                   href={w.href!}
-                  aria-label={`Week ${w.week}: ${w.topic}${w.isCurrent ? " (current week)" : ""}`}
+                  aria-label={`${unitLabel} ${w.week}: ${w.topic}${w.isCurrent ? " (current week)" : ""}`}
                   className="flex flex-col items-center justify-center rounded-md bg-transparent py-8 px-4 text-center transition-colors hover:bg-paper-tint-soft"
                   style={w.isCurrent ? { boxShadow: `inset 0 0 0 2px var(--primary)` } : undefined}
                 >
@@ -93,7 +96,7 @@ export function WeekCarousel({
                     {renderIcon(w.icon, 44)}
                   </span>
                   <span className="mt-1.5 text-[11px] font-medium uppercase tracking-widest text-ink-faint">
-                    Week {w.week}
+                    {unitLabel} {w.week}
                   </span>
                   <span
                     className={`mt-1.5 text-sm font-medium leading-tight ${
@@ -114,7 +117,7 @@ export function WeekCarousel({
               <button
                 key={i}
                 type="button"
-                aria-label={`Go to week ${weeks[i].week}`}
+                aria-label={`Go to ${unitLabel.toLowerCase()} ${weeks[i].week}`}
                 onClick={() => scrollTo(i)}
                 className="h-1.5 rounded-full transition-all duration-200"
                 style={{
@@ -133,14 +136,14 @@ export function WeekCarousel({
           <li key={w.week}>
             {w.isLocked ? (
               <div
-                aria-label={`Week ${w.week}: ${w.topic} (${w.lockedLabel ?? "coming soon"})`}
+                aria-label={`${unitLabel} ${w.week}: ${w.topic} (${w.lockedLabel ?? "coming soon"})`}
                 className="flex aspect-square cursor-not-allowed flex-col items-center justify-center rounded-md bg-transparent p-2 sm:p-2.5"
               >
                 <span className="text-2xl leading-none opacity-30 sm:text-3xl">
                   {renderIcon(w.icon, 28)}
                 </span>
                 <span className="mt-1.5 px-1 text-center text-[9px] font-medium uppercase tracking-widest text-ink-faint sm:text-[10px]">
-                  Week {w.week}
+                    {unitLabel} {w.week}
                 </span>
                 <span className="mt-0.5 line-clamp-2 px-1 text-center text-[10px] font-medium leading-tight text-ink-faint sm:text-[11px]">
                   {w.topic}
@@ -152,7 +155,7 @@ export function WeekCarousel({
             ) : (
               <Link
                 href={w.href!}
-                aria-label={`Week ${w.week}: ${w.topic}${w.isCurrent ? " (current week)" : ""}`}
+                aria-label={`${unitLabel} ${w.week}: ${w.topic}${w.isCurrent ? " (current week)" : ""}`}
                 className="group flex aspect-square flex-col items-center justify-center rounded-md bg-transparent p-2 transition-colors hover:bg-paper-tint-soft sm:p-2.5"
                 style={w.isCurrent ? { boxShadow: `inset 0 0 0 2px var(--primary)` } : undefined}
               >
@@ -162,7 +165,7 @@ export function WeekCarousel({
                   {renderIcon(w.icon, 28)}
                 </span>
                 <span className="mt-1.5 px-1 text-center text-[9px] font-medium uppercase tracking-widest text-ink-faint sm:text-[10px]">
-                  Week {w.week}
+                    {unitLabel} {w.week}
                 </span>
                 <span
                   className={`mt-0.5 line-clamp-2 px-1 text-center text-[10px] font-medium leading-tight transition-colors sm:text-[11px] ${
