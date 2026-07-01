@@ -12,6 +12,7 @@ const ITEMS: { href: string; label: string }[] = [
   { href: "/dashboard/admin/programs", label: "Manage courses" },
   { href: "/dashboard/admin/landing", label: "Landing pages" },
   { href: "/dashboard/admin/registrations", label: "Registrations" },
+  { href: "/dashboard/admin/agreements", label: "Participation agreements" },
   { href: "/dashboard/admin/resources", label: "Resources" },
   { href: "/dashboard/admin/features", label: "Tools" },
 ];
