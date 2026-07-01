@@ -130,8 +130,20 @@ export async function GET(req: NextRequest) {
         // 2. Init the Client View against self-hosted assets.
         // Must be an absolute URL — the SDK constructs new URL(...) from it.
         ZoomMtg.setZoomJSLib(location.origin + "/zoom/lib", "/av");
-        ZoomMtg.preLoadWasm();
-        ZoomMtg.prepareWebSDK();
+
+        // Guard: if WASM/AV assets fail to load, fail fast instead of hanging
+        try {
+          ZoomMtg.preLoadWasm();
+          ZoomMtg.prepareWebSDK();
+        } catch (preloadErr) {
+          console.error("[zoom-frame] preload", preloadErr);
+          throw new Error("Could not load session assets. Please try again.");
+        }
+
+        // Guard: init sometimes never callbacks on asset/network failure.
+        const initTimeout = setTimeout(() => {
+          showError("Session timed out while loading. Please refresh and try again.");
+        }, 15000);
 
         ZoomMtg.init({
           leaveUrl: ${JSON.stringify(frameUrl + "&left=1")},
@@ -140,6 +152,7 @@ export async function GET(req: NextRequest) {
           // NOTE: do not pass unknown options here — ZoomMtg.init validates
           // keys against a whitelist and rejects the whole call on a miss
           success: function () {
+            clearTimeout(initTimeout);
             ZoomMtg.join({
               signature: signature,
               meetingNumber: ${JSON.stringify(mn)},
@@ -156,8 +169,9 @@ export async function GET(req: NextRequest) {
             });
           },
           error: function (err) {
+            clearTimeout(initTimeout);
             console.error("[zoom-frame] init", err);
-            showError("Could not load the session. Please try again.");
+            showError((err && err.reason) || "Could not load the session. Please try again.");
           },
         });
       } catch (err) {
