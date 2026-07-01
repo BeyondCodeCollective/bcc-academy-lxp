@@ -31,14 +31,26 @@ export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
   const program = await getProgram();
   const scope = await resolveProgramScope(program.slug);
   const ids = scope.ids;
-  const trackSlugs = program.tracks.map((t) => t.slug);
-
   const empty: EngagementAnalytics = {
     programName: program.name,
     funnel: { invited: 0, activated: 0, engaged: 0 },
     learners: [],
   };
   if (ids.length === 0) return empty;
+
+  // Resolve track slugs from actual enrollments — program.tracks misses DB-only
+  // tracks (track_overrides / builder courses), causing the allowlist query to
+  // under-count invites for courses that exist in the DB but not the TS config.
+  const { data: enrolledTrackRows } = await svc
+    .from("student_tracks")
+    .select("track_slug")
+    .in("program_id", ids);
+  const trackSlugs = Array.from(
+    new Set([
+      ...program.tracks.map((t) => t.slug),
+      ...(enrolledTrackRows ?? []).map((r: { track_slug: string }) => r.track_slug),
+    ])
+  );
 
   const { data: students } = await svc
     .from("students")
