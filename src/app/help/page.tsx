@@ -123,13 +123,6 @@ const SECTIONS: Section[] = [
         content: <ReadingReflections />,
         role: ["instructor"],
       },
-      {
-        id: "posting-announcements",
-        title: "Posting Announcements",
-        description: "Communicate with your cohort",
-        content: <PostingAnnouncements />,
-        role: ["instructor"],
-      },
     ],
   },
   {
@@ -278,7 +271,7 @@ function WhatIsBccAcademy() {
         </li>
         <li className="flex gap-3">
           <span className="w-2 h-2 rounded-full bg-primary mt-2 shrink-0" />
-          <span><strong>Instructors</strong> — take attendance, review submissions, post announcements</span>
+          <span><strong>Instructors</strong> — take attendance, review submissions, view student progress</span>
         </li>
         <li className="flex gap-3">
           <span className="w-2 h-2 rounded-full bg-primary mt-2 shrink-0" />
@@ -385,7 +378,7 @@ function DashboardOverview() {
         </div>
         <div className="bg-surface rounded-lg p-4">
           <p className="font-bold text-ink mb-1">What's New feed</p>
-          <p className="text-sm text-muted">Announcements, instructor feedback, and upcoming office hours in one place.</p>
+          <p className="text-sm text-muted">Instructor feedback and upcoming office hours in one place.</p>
         </div>
       </div>
 
@@ -660,7 +653,7 @@ function InstructorOverview() {
         </div>
         <div className="flex items-center gap-3 bg-surface rounded-lg p-3">
           <span className="w-2 h-2 rounded-full bg-primary" />
-          <span className="text-muted">Post announcements to your cohort</span>
+          <span className="text-muted">Track and support student progress</span>
         </div>
         <div className="flex items-center gap-3 bg-surface rounded-lg p-3">
           <span className="w-2 h-2 rounded-full bg-primary" />
@@ -823,58 +816,6 @@ function ReadingReflections() {
           Students who skip reflections will show lower engagement even if they attend and submit work.
         </p>
       </div>
-    </>
-  );
-}
-
-function PostingAnnouncements() {
-  return (
-    <>
-      <p className="text-lg text-muted mb-6">
-        Announcements appear in students' "What's New" feeds and on the relevant track pages.
-        Use them for reminders, updates, or shoutouts.
-      </p>
-
-      <h3 className="text-xl font-bold text-ink mb-3">Creating an announcement</h3>
-      <ol className="space-y-4 mb-6">
-        <li className="flex gap-4">
-          <span className="w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold shrink-0">1</span>
-          <div>
-            <p className="font-medium text-ink">Navigate to your track</p>
-            <p className="text-sm text-muted">From the admin home, click "Manage" on the relevant track</p>
-          </div>
-        </li>
-        <li className="flex gap-4">
-          <span className="w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold shrink-0">2</span>
-          <div>
-            <p className="font-medium text-ink">Find the Announcements section</p>
-            <p className="text-sm text-muted">Usually in the track settings or a dedicated tab</p>
-          </div>
-        </li>
-        <li className="flex gap-4">
-          <span className="w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold shrink-0">3</span>
-          <div>
-            <p className="font-medium text-ink">Write and post</p>
-            <p className="text-sm text-muted">Add your title and message, then publish</p>
-          </div>
-        </li>
-      </ol>
-
-      <h3 className="text-xl font-bold text-ink mb-3">Where announcements appear</h3>
-      <ul className="space-y-2 mb-6">
-        <li className="flex gap-3">
-          <span className="w-2 h-2 rounded-full bg-primary mt-2 shrink-0" />
-          <span className="text-muted">Student dashboard "What's New" feed</span>
-        </li>
-        <li className="flex gap-3">
-          <span className="w-2 h-2 rounded-full bg-primary mt-2 shrink-0" />
-          <span className="text-muted">The relevant track page</span>
-        </li>
-        <li className="flex gap-3">
-          <span className="w-2 h-2 rounded-full bg-primary mt-2 shrink-0" />
-          <span className="text-muted">Email notifications (if students have them enabled)</span>
-        </li>
-      </ul>
     </>
   );
 }
@@ -1543,7 +1484,7 @@ function RolesAndPermissions() {
         </div>
         <div className="border-l-4 border-blue-400 pl-4">
           <p className="font-bold text-ink">Instructor</p>
-          <p className="text-muted text-sm">Everything Student can do, plus: admin panel for assigned tracks, attendance, submission review, announcements</p>
+          <p className="text-muted text-sm">Everything Student can do, plus: admin panel for assigned tracks, attendance, submission review, student progress</p>
         </div>
         <div className="border-l-4 border-primary pl-4">
           <p className="font-bold text-ink">Admin</p>
