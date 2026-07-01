@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { fadeInUp, staggerContainer } from "@/lib/marketing-motion";
 import { MapPin, ArrowRight } from "@phosphor-icons/react";
 import Image from "next/image";
-import { forgeHubs } from "@/data/marketing/hubs";
+import { beyondCodeCenters } from "@/data/marketing/hubs";
 
 export default function HubsSection() {
   return (
@@ -41,7 +41,7 @@ export default function HubsSection() {
           variants={staggerContainer}
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
         >
-          {forgeHubs.map((hub) => {
+          {beyondCodeCenters.map((hub) => {
             const isActive = hub.status === "active";
             return (
               <motion.div

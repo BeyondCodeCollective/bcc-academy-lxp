@@ -31,11 +31,22 @@ export async function deleteStudentAction(studentId: string) {
   // Stay within the actor's program — a program admin can't delete another
   // tenant's student by passing a foreign id (the service client bypasses RLS).
   await assertStudentInActorProgram(actor, svc, studentId);
-  await svc.from("attendance").delete().eq("student_id", studentId);
+
+  // Delete attendance records first (no foreign key to auth)
+  const { error: attendanceError } = await svc.from("attendance").delete().eq("student_id", studentId);
+  if (attendanceError) throw new Error(`Failed to delete attendance: ${attendanceError.message}`);
+
+  // Delete auth user first so re-registration is possible if DB delete fails
+  const { error: authError } = await svc.auth.admin.deleteUser(studentId);
+  // Log but don't throw on auth errors - user might already be deleted
+  if (authError) {
+    console.error("Auth delete failed (may already be deleted):", authError);
+  }
+
+  // Finally delete the student record (this is the source of truth)
   const { error } = await svc.from("students").delete().eq("id", studentId);
   if (error) throw new Error(error.message);
-  // Also remove from auth so they can re-register cleanly
-  await svc.auth.admin.deleteUser(studentId);
+
   return { success: true };
 }
 
@@ -114,7 +125,14 @@ export async function addStudentAction(data: {
     program_id: programId,
   });
 
-  if (studentError) throw new Error(studentError.message);
+  if (studentError) {
+    // Rollback: delete auth user if student insert fails to avoid ghost account
+    // We can't await this - don't block on cleanup, but log the error
+    svc.auth.admin.deleteUser(authUser.user.id).catch((e) => {
+      console.error("Failed to cleanup auth user after student insert failure:", e);
+    });
+    throw new Error(studentError.message);
+  }
 
   // Auto-subscribe staff-enrolled students to the Mailchimp newsletter. The
   // program allowlist (Catalyst / Beyond Code Centers / Forte) is enforced

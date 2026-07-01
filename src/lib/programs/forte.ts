@@ -17,7 +17,6 @@ export const forteConfig: ProgramConfig = {
   name: "Upskill Bahamas",
   tagline: "AI literacy for the modern Bahamas",
   domain: "bccacademy.io",
-  // TODO(branding): placeholder wordmark — swap in real Forte branding.
   logo: "/forte/logo.svg",
   colors: {
     primary: "#1a1a1a",

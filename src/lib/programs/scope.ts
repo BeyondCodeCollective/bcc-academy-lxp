@@ -14,7 +14,12 @@ export type ProgramScope = { slugs: string[]; ids: string[] };
 const _cache = new Map<string, { scope: ProgramScope; ts: number }>();
 
 export async function resolveProgramScope(programSlug: string): Promise<ProgramScope> {
-  const slugs = [programSlug];
+  // The apex (bccacademy.io) resolves to the "marketing" pseudo-program, which
+  // has NO row in the programs table — scoping analytics to it returns zero ids
+  // and renders an empty program view. Map it to Catalyst, the umbrella that
+  // owns the apex intake data (same mapping as dashboard/actions.ts and the
+  // public-survey action).
+  const slugs = [programSlug === "marketing" ? "catalyst" : programSlug];
   const key = slugs.join(",");
   const cached = _cache.get(key);
   if (cached && Date.now() - cached.ts < 60_000) return cached.scope;

@@ -3,11 +3,7 @@ import { Resend } from "resend";
 import { careers, type PersonalityKey } from "@/data/marketing/quiz";
 import { careerPathways } from "@/data/marketing/careerPathways";
 
-// TODO(email-design): the placeholder HTML below is functional but not
-// brand-quality. Hold off on sending until the designed template lands.
-// To re-enable: flip QUIZ_RESULTS_EMAIL_ENABLED to true and swap in the
-// new template. The wiring (validation, Resend client, fire-and-forget
-// from the client) is already in place — just unblock the send.
+// Quiz results email is disabled pending email template design.
 const QUIZ_RESULTS_EMAIL_ENABLED = false;
 
 const resend = process.env.RESEND_API_KEY

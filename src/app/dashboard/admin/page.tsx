@@ -107,7 +107,7 @@ export default async function AdminPage({
     // program id; students/data live under that id. Cached across requests
     // with a short TTL: program UUIDs never change, so there is zero staleness
     // risk.
-    const aggregatedSlugs = [program.slug];
+    const aggregatedSlugs = [program.slug === "marketing" ? "catalyst" : program.slug];
     const programRows = await getCachedProgramIds(aggregatedSlugs);
     const programIds = (programRows ?? []).map((p) => p.id as string);
     const programId = programRows?.find((p) => p.slug === program.slug)?.id;
@@ -377,25 +377,31 @@ export default async function AdminPage({
   // Public surveys tied to a track (e.g. network-plus-post → Network+).
   // Fetched only when an admin is viewing a track-scoped tab — keeps the
   // home/people/etc tabs unaffected by the extra query.
-  const activeTrack = isTrackTab
-    ? program.tracks.find((t) => t.slug === effectiveTab)
-    : undefined;
-  const activeTrackPublicSurveyIds = activeTrack?.publicSurveys ?? [];
-  const publicSurveyCounts = activeTrackPublicSurveyIds.length > 0
-    ? await getPublicSurveyCountsByType(activeTrackPublicSurveyIds).catch((e) => {
-        console.error("getPublicSurveyCountsByType failed:", e);
-        return [] as { survey_type: string; count: number }[];
-      })
-    : [];
-  const trackPublicSurveys = activeTrackPublicSurveyIds.map((id) => {
-    const cfg = PLATFORM_PUBLIC_SURVEYS[id];
-    const stat = publicSurveyCounts.find((r) => r.survey_type === id);
-    return {
-      id,
-      title: cfg?.title ?? id,
-      count: stat?.count ?? 0,
-    };
-  });
+  let activeTrack: typeof program.tracks[0] | undefined;
+  let activeTrackPublicSurveyIds: string[] = [];
+  let trackPublicSurveys: { id: string; title: string; count: number }[] = [];
+
+  if (isSupabaseConfigured()) {
+    activeTrack = isTrackTab
+      ? program.tracks.find((t) => t.slug === effectiveTab)
+      : undefined;
+    activeTrackPublicSurveyIds = activeTrack?.publicSurveys ?? [];
+    const publicSurveyCounts = activeTrackPublicSurveyIds.length > 0
+      ? await getPublicSurveyCountsByType(activeTrackPublicSurveyIds).catch((e) => {
+          console.error("getPublicSurveyCountsByType failed:", e);
+          return [] as { survey_type: string; count: number }[];
+        })
+      : [];
+    trackPublicSurveys = activeTrackPublicSurveyIds.map((id) => {
+      const cfg = PLATFORM_PUBLIC_SURVEYS[id];
+      const stat = publicSurveyCounts.find((r) => r.survey_type === id);
+      return {
+        id,
+        title: cfg?.title ?? id,
+        count: stat?.count ?? 0,
+      };
+    });
+  }
 
   // Serialize track configs for the client component. Home/insights/lunch-learn
   // tabs only show track cards (basic metadata + enrollment counts), not the

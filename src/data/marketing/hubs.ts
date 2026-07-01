@@ -1,6 +1,6 @@
 export type HubStatus = "active" | "coming-soon";
 
-export interface ForgeHub {
+export interface BeyondCodeCenter {
   id: string;
   name: string;
   city: string;
@@ -10,7 +10,7 @@ export interface ForgeHub {
   image: string;
 }
 
-export const forgeHubs: ForgeHub[] = [
+export const beyondCodeCenters: BeyondCodeCenter[] = [
   {
     id: "atl",
     name: "Beyond Code Centers ATL",

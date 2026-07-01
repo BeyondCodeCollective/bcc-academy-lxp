@@ -24,8 +24,10 @@ export async function GET(req: NextRequest) {
 
   const program = await getProgram();
   // Same scope rule as the admin Insights page: every program is standalone and
-  // scopes to its own id (no more Catalyst aggregation).
-  const aggregatedSlugs = [program.slug];
+  // scopes to its own id. The apex "marketing" pseudo-program has no DB row, so
+  // map it to Catalyst (the umbrella that owns the apex data) — otherwise the
+  // export is empty.
+  const aggregatedSlugs = [program.slug === "marketing" ? "catalyst" : program.slug];
   const { data: programRows } = await svc
     .from("programs")
     .select("id, slug")
