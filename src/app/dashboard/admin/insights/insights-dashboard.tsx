@@ -355,14 +355,25 @@ export function InsightsDashboard({
       {/* Detail view */}
       {active && active.schema && (
         <section className="pt-2">
-          {cohortFilter !== "all" && (
-            <p className="mb-3 text-[12px] text-ink-soft">
-              Showing <span className="font-semibold text-ink">{cohortFilter}</span> only —{" "}
-              <button type="button" onClick={() => changeCohort("all")} className="underline hover:text-ink">
-                clear
-              </button>
-            </p>
-          )}
+          <div className="mb-3 flex items-center justify-between gap-2">
+            {cohortFilter !== "all" ? (
+              <p className="text-[12px] text-ink-soft">
+                Showing <span className="font-semibold text-ink">{cohortFilter}</span> only —{" "}
+                <button type="button" onClick={() => changeCohort("all")} className="underline hover:text-ink">
+                  clear
+                </button>
+              </p>
+            ) : (
+              <span />
+            )}
+            {/* Per-question detailed PDF for THIS survey, honoring the cohort filter. */}
+            <a
+              href={`/api/insights/pdf?detailed=1&survey=${encodeURIComponent(active.survey.id)}${cohortFilter !== "all" ? `&cohort=${encodeURIComponent(cohortFilter)}` : ""}`}
+              className="shrink-0 border border-rule bg-white px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:border-ink-faint"
+            >
+              Detailed report ↓
+            </a>
+          </div>
           <SurveyDashboard
             surveyId={active.survey.id}
             surveyTitle={active.survey.title}

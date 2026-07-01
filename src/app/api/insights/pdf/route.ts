@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { requireCapability } from "@/app/dashboard/admin/actions-shared";
 import { getProgram } from "@/lib/programs/server";
 import { buildInsightsData } from "@/lib/analytics/insights-data";
-import { renderInsightsPdf } from "@/app/dashboard/admin/insights/insights-pdf";
+import { renderInsightsPdf, renderDetailedSurveyPdf } from "@/app/dashboard/admin/insights/insights-pdf";
 
 // Server-generated Survey Insights PDF. Node runtime (react-pdf needs Node);
 // always dynamic since it depends on the caller's session + live data.
@@ -37,11 +37,39 @@ export async function GET(req: NextRequest) {
   const data = await buildInsightsData(programIds, aggregatedSlugs);
 
   const cohort = req.nextUrl.searchParams.get("cohort") || "all";
+  const detailed = req.nextUrl.searchParams.get("detailed") === "1";
+  const surveyId = req.nextUrl.searchParams.get("survey");
   const generatedAt = new Date().toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
     day: "numeric",
   });
+
+  const kebab = (v: string) =>
+    v.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const slug = kebab(program.name) || "program";
+  const cohortSlug = cohort === "all" ? "" : "-" + kebab(cohort);
+
+  // Detailed per-question report for a single survey.
+  if (detailed && surveyId) {
+    const section = data.sections.find((s) => s.survey.id === surveyId);
+    if (!section) {
+      return new NextResponse("Survey not found for this program.", { status: 404 });
+    }
+    const buffer = await renderDetailedSurveyPdf({
+      section,
+      cohort,
+      programName: program.name,
+      generatedAt,
+    });
+    return new NextResponse(new Uint8Array(buffer), {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="${slug}-${kebab(section.survey.title)}-detailed${cohortSlug}.pdf"`,
+        "Cache-Control": "no-store",
+      },
+    });
+  }
 
   const buffer = await renderInsightsPdf({
     data,
@@ -49,14 +77,6 @@ export async function GET(req: NextRequest) {
     programName: program.name,
     generatedAt,
   });
-
-  const slug =
-    program.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") ||
-    "program";
-  const cohortSlug =
-    cohort === "all"
-      ? ""
-      : "-" + cohort.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
   return new NextResponse(new Uint8Array(buffer), {
     headers: {
