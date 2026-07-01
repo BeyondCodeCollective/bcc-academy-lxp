@@ -108,7 +108,12 @@ export default async function DashboardLayout({
   // any page content streams to the client. Track + survey + settings pages are
   // always allowed (the holding page itself lives under /dashboard/track); admins,
   // staff, and active learners (with a started course) pass through untouched.
-  const confineExemptPath = isSurveyPage || pathname.startsWith("/dashboard/settings");
+  const confineExemptPath =
+    isSurveyPage ||
+    pathname.startsWith("/dashboard/settings") ||
+    // The standalone participation-agreement page is a shareable sign-here link
+    // (does its own auth check) — never bounce a learner off it to another gate.
+    pathname.startsWith("/dashboard/agreement");
   if (isSupabaseConfigured() && !confineExemptPath) {
     const ctx = await getSessionContext();
     if (ctx) {
