@@ -3,8 +3,7 @@ import Link from "next/link";
 import { TextScaleToggle } from "@/components/text-scale-toggle";
 import { ReadAloudButton } from "@/components/read-aloud-button";
 
-// Portal-wide privacy notice. Draft copy — finalize with legal/funder review
-// before announcing at scale. Everything below is designed to be edited
+// Portal-wide privacy notice. Everything below is designed to be edited
 // in place (no CMS). It covers the whole BCC Learning Platform: accounts,
 // enrollment, dashboard activity, surveys, and the newsletter — not just
 // surveys. The short consent text shown inside a survey is the summary;
@@ -30,11 +29,10 @@ export default function PrivacyPage() {
           {orgName}
         </p>
         <h1 className="mt-1 text-3xl font-bold text-neutral-900">
-          Privacy Notice — Draft
+          Privacy Notice
         </h1>
         <p className="mt-2 text-sm text-neutral-500">
-          This notice is under legal review. The practices described below
-          reflect how the platform is built today. It applies to the entire
+          This notice describes how we handle your data across the entire
           BCC Learning Platform — your account, the programs you enroll in,
           your dashboard activity, surveys, and our newsletter.
         </p>
@@ -227,7 +225,7 @@ export default function PrivacyPage() {
         </Section>
 
         <p className="mt-12 text-xs text-neutral-400">
-          Last updated: draft pending legal review.
+          Last updated: June 30, 2026.
         </p>
       </div>
     </main>
