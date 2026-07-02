@@ -146,11 +146,25 @@ export default async function TrackOverviewPage({
     redirect(`/dashboard/track/${slug}/1`);
   }
 
-  const currentWeek = track.selfPaced
+  const computedWeek = track.selfPaced
     ? started ? 1 : 0
     : started
       ? computeCurrentWeek(track.startDate, track.totalWeeks, track.lastSessionDayOffset)
       : 0;
+  // On a day-gated cohort track (weeks are days with `comingSoonUntil` dates,
+  // e.g. the Roblox bootcamp) `computeCurrentWeek` stays at 1 for the whole
+  // camp, so the ring/CTA would point at Day 1 on Day 2. The latest day whose
+  // unlock date has passed is the real "current" unit. Self-paced drip
+  // releases keep their own pacing.
+  const dateUnlockedThrough = track.selfPaced
+    ? 0
+    : Math.max(
+        0,
+        ...track.weeks
+          .filter((w) => w.comingSoonUntil && now >= new Date(w.comingSoonUntil))
+          .map((w) => w.week),
+      );
+  const currentWeek = Math.max(computedWeek, dateUnlockedThrough);
 
   const ctaWeek = started ? currentWeek : 1;
   // Per-track unit label ("Week" default, "Day" for a bootcamp, …).
@@ -190,7 +204,10 @@ export default async function TrackOverviewPage({
     const isPast = started && ws.week < currentWeek;
     const weekConfig = track.weeks.find((w) => w.week === ws.week);
     const comingSoonUntil = weekConfig?.comingSoonUntil;
-    const comingSoonLocked = !!comingSoonUntil && now < new Date(comingSoonUntil);
+    // Admins bypass (mirrors the week page guard) so instructors can prep
+    // future sessions from the overview too.
+    const comingSoonLocked =
+      !isAdminViewer && !!comingSoonUntil && now < new Date(comingSoonUntil);
     const sequentialLocked = gated && ws.week > unlockedThrough;
     const isLocked = comingSoonLocked || sequentialLocked;
     const lockedLabel = comingSoonLocked ? "Coming soon" : sequentialLocked ? "Locked" : null;

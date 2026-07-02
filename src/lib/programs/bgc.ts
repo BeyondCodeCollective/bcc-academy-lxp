@@ -60,6 +60,9 @@ const robloxVirtualBootcampTrack: TrackConfig = {
       title: "Script It With Lua",
       icon: "💻",
       subtitle: "Day 2 — Lua Scripting Basics",
+      // Day-of gating: students can't open a future day. Unlocks at
+      // midnight ET (04:00 UTC in July) on the day of the session.
+      comingSoonUntil: "2026-07-08T04:00:00Z",
       description:
         "Write your first Lua scripts to make your game interactive. Add a leaderboard, coins to collect, and a door that opens when a player touches it.",
       objectives: [
@@ -80,6 +83,7 @@ const robloxVirtualBootcampTrack: TrackConfig = {
       title: "Publish & Showcase",
       icon: "🚀",
       subtitle: "Day 3 — Polish, Publish & Show Your Work",
+      comingSoonUntil: "2026-07-09T04:00:00Z",
       description:
         "Add finishing touches to your game, publish it to Roblox so anyone can play, and present your creation to the group.",
       objectives: [

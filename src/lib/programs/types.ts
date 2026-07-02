@@ -89,11 +89,14 @@ export type WeekConfig = {
    */
   videoUrl?: string;
   /**
-   * ISO date (YYYY-MM-DD). While `now < comingSoonUntil`, the week renders
-   * as a greyed, non-clickable cell on the track overview with a
+   * ISO date (YYYY-MM-DD, or a full ISO timestamp for an exact unlock
+   * moment — a bare date unlocks at midnight UTC, i.e. the prior evening
+   * in the US). While `now < comingSoonUntil`, the week renders as a
+   * greyed, non-clickable cell on the track overview with a
    * "Coming {date}" label, and direct navigation to the week page falls
    * back to a placeholder. Used to drip-release weeks while the rest of a
-   * self-paced track is already live.
+   * self-paced track is already live, or to gate a bootcamp day-by-day.
+   * Admins bypass so instructors can prep future sessions.
    */
   comingSoonUntil?: string;
 };
