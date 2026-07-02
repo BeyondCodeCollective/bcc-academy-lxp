@@ -63,8 +63,12 @@ const nextConfig: NextConfig = {
     const cspReport = [
       "default-src 'self'",
       // *.zoom.us in script-src: the Meeting SDK lazy-loads feature modules
-      // (whiteboard, etc.) from Zoom's static hosts at runtime
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://va.vercel-scripts.com https://www.googletagmanager.com https://*.zoom.us",
+      // (whiteboard, etc.) from Zoom's static hosts at runtime.
+      // blob: in script-src: the SDK bootstraps its media pipeline by injecting
+      // <script src="blob:..."> elements and importScripts(blob:) inside its
+      // workers — worker-src blob: alone only allows spawning the workers, not
+      // these script loads, so join() still hung after #610.
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: https://va.vercel-scripts.com https://www.googletagmanager.com https://*.zoom.us",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.zoom.us",
       "img-src 'self' data: blob: https://*.supabase.co https://images.pexels.com https://img.evbuc.com https://*.google-analytics.com https://*.googletagmanager.com https://*.zoom.us",
       // The Zoom Meeting SDK spawns its audio/video pipeline as blob: workers.
