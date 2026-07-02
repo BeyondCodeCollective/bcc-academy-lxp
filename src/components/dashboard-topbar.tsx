@@ -22,6 +22,7 @@ export function DashboardTopBar({
   currentProgramSlug,
   searchItems = [],
   confined = false,
+  hideSearch = false,
 }: {
   firstName: string;
   lastName: string;
@@ -33,6 +34,8 @@ export function DashboardTopBar({
   searchItems?: SearchItem[];
   /** Pending registrant — hide program destinations from search. */
   confined?: boolean;
+  /** Single-course event programs (e.g. BGC camps) — no search at all. */
+  hideSearch?: boolean;
 }) {
   // Breadcrumbs moved to a dedicated <Breadcrumbs> bar below the top bar (it
   // renders a full trail on all viewports). The top bar now just hosts search
@@ -40,8 +43,13 @@ export function DashboardTopBar({
   return (
     <div className="sticky top-0 z-20 hidden md:block">
       <div className="shell-topbar flex h-14 items-center gap-3 px-4 sm:px-6">
-        {/* Working ⌘K command palette. */}
-        <CommandPalette items={searchItems} confined={confined} />
+        {/* Working ⌘K command palette. Camp programs drop it entirely — the
+            spacer keeps the bell/account menu pinned right. */}
+        {hideSearch ? (
+          <div className="flex-1" aria-hidden />
+        ) : (
+          <CommandPalette items={searchItems} confined={confined} />
+        )}
 
         <div className="flex shrink-0 items-center gap-1">
           <button

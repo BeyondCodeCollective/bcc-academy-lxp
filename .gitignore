@@ -45,6 +45,8 @@ next-env.d.ts
 
 # local-only tooling output
 /graphify-out/
+# campaign participant lists + send logs (PII — never commit)
+/scripts/*.local.*
 # /scripts/ — removed; scripts dir is used for build helpers
 .env*.local
 

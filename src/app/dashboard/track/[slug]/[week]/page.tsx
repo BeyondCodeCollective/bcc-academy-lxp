@@ -66,7 +66,8 @@ export default async function TrackWeekPage({
   // future, render a placeholder regardless of how the student got here —
   // direct URL, link, etc. The overview grid renders these cells as
   // non-clickable, but this catches anyone who hits the URL directly.
-  if (weekContent.comingSoonUntil) {
+  // Admins bypass so instructors can prep future sessions.
+  if (weekContent.comingSoonUntil && !gateIsAdmin) {
     const unlockDate = new Date(weekContent.comingSoonUntil);
     if (new Date() < unlockDate) {
       const dateLabel = unlockDate.toLocaleDateString("en-US", {
@@ -218,15 +219,24 @@ export default async function TrackWeekPage({
   // week regardless of `currentWeek` — the date gate only matches cohort-style
   // tracks. Without this, a self-paced track with a future `startDate` would
   // render videos and forms invisibly until launch day.
+  // A week explicitly date-gated via `comingSoonUntil` unlocks the moment its
+  // date passes: on a day-gated bootcamp `computeCurrentWeek` stays at 1 for
+  // the whole camp (weeks are days), so without this Day 2 would be reachable
+  // on July 8 but its video would stay hidden.
+  const comingSoonPassed =
+    !!weekContent.comingSoonUntil && now >= new Date(weekContent.comingSoonUntil);
   const unlocked =
-    track.selfPaced || isCurrent || isCompleted || weekNum < currentWeek;
+    track.selfPaced || isCurrent || isCompleted || weekNum < currentWeek || comingSoonPassed;
 
   const sessionsLabel = weekContent.sessions.length === 1 ? "Session" : "Sessions";
 
-  // Zoom embed: resolve which sessions have active Zoom links
-  const zoomUserName = sessionCtx?.student
-    ? `${sessionCtx.student.first_name} ${sessionCtx.student.last_name}`.trim()
-    : "Student";
+  // Zoom embed: resolve which sessions have active Zoom links.
+  // `|| "Student"` matters: invite-created accounts start with EMPTY names and
+  // the Zoom SDK hard-fails the join ("userName is empty") on a blank name.
+  const zoomUserName =
+    (sessionCtx?.student
+      ? `${sessionCtx.student.first_name} ${sessionCtx.student.last_name}`.trim()
+      : "") || "Student";
   const zoomUserEmail = sessionCtx?.student?.email ?? sessionCtx?.userEmail ?? "";
   const zoomSessions = weekContent.sessions
     .map((session, i) => ({
