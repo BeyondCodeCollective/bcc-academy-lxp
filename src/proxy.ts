@@ -113,11 +113,16 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   // If not authenticated and trying to access dashboard, redirect to login.
-  // Apply routes carry ?next= so the auth callback sends the user straight
-  // to the form after they sign in or create an account.
+  // Apply routes and the shareable participation-agreement link carry ?next=
+  // so the auth callback sends the user straight to the destination after
+  // they sign in — without it, a shared /dashboard/agreement link dropped
+  // its destination here and post-login routing landed on their course.
   if (!user && request.nextUrl.pathname.startsWith("/dashboard")) {
     const url = request.nextUrl.clone();
-    if (pathname.startsWith("/dashboard/apply/")) {
+    if (
+      pathname.startsWith("/dashboard/apply/") ||
+      pathname.startsWith("/dashboard/agreement")
+    ) {
       url.pathname = "/login";
       url.search = "";
       url.searchParams.set("next", pathname);

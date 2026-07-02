@@ -348,9 +348,14 @@ export async function GET(request: Request) {
           return r;
         };
 
-        // For apply flows, send the user directly to the form they came from
-        // rather than the generic dashboard setup screen.
-        const safeNext = nextParam?.startsWith("/dashboard/apply/") ? nextParam : null;
+        // For apply flows and the shareable participation-agreement link, send
+        // the user directly to the page they came from rather than the generic
+        // dashboard setup screen (or their single course).
+        const safeNext =
+          nextParam?.startsWith("/dashboard/apply/") ||
+          nextParam?.startsWith("/dashboard/agreement")
+            ? nextParam
+            : null;
 
         // Single-course learners go straight to their one course, so the only
         // loading skeleton shown is that course's — no dashboard→course double
