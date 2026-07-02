@@ -7,14 +7,13 @@ import { WelcomeVideo } from "@/components/welcome-video";
 import { OnboardingForm } from "@/components/onboarding-form";
 import { LunchLearnHub } from "@/components/lunch-learn-hub";
 import { TrackGrid } from "@/components/track-grid";
-import { getProgram } from "@/lib/programs/server";
+import { getProgram, getProgramWithOverrides, resolveHomeProgramSlug } from "@/lib/programs/server";
 import type { ProgramConfig, TrackConfig } from "@/lib/programs/types";
 import { canAccessAdminPanel } from "@/lib/roles";
 import { getSessionContext } from "@/lib/auth/session";
 import { getPreviewTrackSlug, LUNCH_LEARN_PREVIEW_SLUG } from "@/lib/auth/preview-mode";
 import { resolveCurrentUser } from "@/lib/current-user";
 import { getEnrolledTracks } from "@/lib/enrollment";
-import { getHomeProgramForTrack } from "@/lib/programs";
 import { WeekIcon } from "@/components/week-icon";
 import { DashboardBento } from "@/components/dashboard-bento";
 import { MyProgressCard, type MyProgressCardProps } from "@/components/my-progress-card";
@@ -209,14 +208,24 @@ async function DashboardContent({
         const otherSlugs = Array.from(
           new Set((allTrackRowsRes.data ?? []).map((r) => r.track_slug as string)),
         );
-        otherProgramCourses = otherSlugs
-          .filter((s) => !program.tracks.some((t) => t.slug === s))
-          .map((s) => {
-            const home = getHomeProgramForTrack(s);
-            const track = home?.tracks.find((t) => t.slug === s);
-            return home && track ? { track, programName: home.name } : null;
-          })
-          .filter((c): c is NonNullable<typeof c> => c !== null);
+        // DB-aware home-program resolution: Course-Builder tracks (e.g.
+        // comptia-security) have no TS config entry, so a config-only lookup
+        // dropped them here — a learner whose session resolved the wrong
+        // program (stale program-override cookie) then saw the "track is
+        // being finalized" shell instead of their course.
+        otherProgramCourses = (
+          await Promise.all(
+            otherSlugs
+              .filter((s) => !program.tracks.some((t) => t.slug === s))
+              .map(async (s) => {
+                const homeSlug = await resolveHomeProgramSlug(s);
+                if (!homeSlug) return null;
+                const home = await getProgramWithOverrides(homeSlug);
+                const track = home.tracks.find((t) => t.slug === s);
+                return track ? { track, programName: home.name } : null;
+              }),
+          )
+        ).filter((c): c is NonNullable<typeof c> => c !== null);
       }
 
       if (!previewSlug) {
@@ -310,7 +319,22 @@ async function DashboardContent({
   const visibleTracks = isAdmin
     ? program.tracks
     : program.tracks.filter((t) => enrolledTrackSlugs.includes(t.slug));
-  const notEnrolled = !isAdmin && visibleTracks.length === 0;
+  // A learner whose only course lives under a different program than the
+  // session resolved (stale program-override cookie — e.g. after browsing
+  // another program's pages in the same browser) shouldn't see an empty
+  // shell. Route them through switch-program, which repoints the program
+  // cookies at their course's home program and lands on the course —
+  // self-healing the stale cookie for every later visit.
+  if (!isAdmin && visibleTracks.length === 0 && otherProgramCourses.length === 1) {
+    redirect(
+      `/dashboard/switch-program?track=${encodeURIComponent(otherProgramCourses[0].track.slug)}`,
+    );
+  }
+
+  // "Track is being finalized" only when the learner truly has no courses
+  // anywhere — cross-program courses render as a course list below.
+  const notEnrolled =
+    !isAdmin && visibleTracks.length === 0 && otherProgramCourses.length === 0;
 
   // Single-course students never see the bare dashboard home — their course
   // overview IS their home. Land them there consistently, every time (email

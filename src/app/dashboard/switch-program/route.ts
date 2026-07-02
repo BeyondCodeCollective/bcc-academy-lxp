@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createClient, createServiceClient, isSupabaseConfigured } from "@/lib/supabase/server";
-import { getHomeProgramForTrack } from "@/lib/programs";
+import { resolveHomeProgramSlug } from "@/lib/programs/server";
 import { canAccessAdminPanel } from "@/lib/roles";
 
 /**
@@ -16,9 +16,12 @@ import { canAccessAdminPanel } from "@/lib/roles";
  */
 export async function GET(req: NextRequest) {
   const track = req.nextUrl.searchParams.get("track") ?? "";
-  const home = track ? getHomeProgramForTrack(track) : undefined;
+  // DB-aware resolution: Course-Builder tracks (e.g. comptia-security) have no
+  // TS config entry, so a config-only lookup would no-op the switch and strand
+  // the learner on whatever program their stale override cookie points at.
+  const homeSlug = track ? await resolveHomeProgramSlug(track) : null;
   const fallback = NextResponse.redirect(new URL("/dashboard", req.url));
-  if (!track || !home || !isSupabaseConfigured()) return fallback;
+  if (!track || !homeSlug || !isSupabaseConfigured()) return fallback;
 
   const supabase = await createClient();
   const {
@@ -48,8 +51,8 @@ export async function GET(req: NextRequest) {
   // move, since program-override shadows program-slug in resolution order.
   const res = NextResponse.redirect(new URL(`/dashboard/track/${track}`, req.url));
   const cookieOpts = { path: "/", httpOnly: false, sameSite: "lax" as const };
-  res.cookies.set("program-slug", home.slug, cookieOpts);
-  res.cookies.set("program-override", home.slug, {
+  res.cookies.set("program-slug", homeSlug, cookieOpts);
+  res.cookies.set("program-override", homeSlug, {
     ...cookieOpts,
     maxAge: 60 * 60 * 24 * 365,
   });
