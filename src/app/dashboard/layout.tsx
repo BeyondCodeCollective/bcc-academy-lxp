@@ -521,10 +521,16 @@ async function TopBarShell() {
   // gate). Mirror that in search so it doesn't surface program pages they can't
   // reach — clicking would just bounce them, so don't show them at all.
   let confined = false;
-  if (!canAccessAdminPanel(role) && !isStaffEmail(ctx.student?.email ?? ctx.userEmail)) {
+  const isLearner =
+    !canAccessAdminPanel(role) && !isStaffEmail(ctx.student?.email ?? ctx.userEmail);
+  if (isLearner) {
     const supabase = await createClient();
     confined = (await getLearnerAccess(supabase, ctx.userId, program)).pendingOnly;
   }
+
+  // Camp learners (BGC) live in exactly one course — global search only
+  // surfaces places they can't go, so drop it for them entirely.
+  const hideSearch = isLearner && program.slug === "bgc";
 
   return (
     <DashboardTopBar
@@ -537,6 +543,7 @@ async function TopBarShell() {
       currentProgramSlug={program.slug}
       searchItems={confined ? [] : searchItems}
       confined={confined}
+      hideSearch={hideSearch}
     />
   );
 }

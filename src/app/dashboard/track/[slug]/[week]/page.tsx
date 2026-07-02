@@ -230,10 +230,13 @@ export default async function TrackWeekPage({
 
   const sessionsLabel = weekContent.sessions.length === 1 ? "Session" : "Sessions";
 
-  // Zoom embed: resolve which sessions have active Zoom links
-  const zoomUserName = sessionCtx?.student
-    ? `${sessionCtx.student.first_name} ${sessionCtx.student.last_name}`.trim()
-    : "Student";
+  // Zoom embed: resolve which sessions have active Zoom links.
+  // `|| "Student"` matters: invite-created accounts start with EMPTY names and
+  // the Zoom SDK hard-fails the join ("userName is empty") on a blank name.
+  const zoomUserName =
+    (sessionCtx?.student
+      ? `${sessionCtx.student.first_name} ${sessionCtx.student.last_name}`.trim()
+      : "") || "Student";
   const zoomUserEmail = sessionCtx?.student?.email ?? sessionCtx?.userEmail ?? "";
   const zoomSessions = weekContent.sessions
     .map((session, i) => ({

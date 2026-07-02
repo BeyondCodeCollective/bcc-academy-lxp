@@ -1,6 +1,5 @@
 import { generateInviteToken } from "@/lib/invite-token";
 import { createServiceClient } from "@/lib/supabase/server";
-import { getProgramId } from "@/lib/programs/server";
 import type { ProgramConfig } from "@/lib/programs/types";
 import { BCC_INTAKE_SURVEY_ID } from "@/lib/surveys/platform";
 import { BCC_INTAKE_QUESTION_IDS } from "@/lib/surveys/schemas";
@@ -30,8 +29,20 @@ export async function completePendingSetup(
 ): Promise<void> {
   const admin = createServiceClient();
 
-  // Use the cached per-request program UUID instead of a fresh query
-  const programId = await getProgramId();
+  // Resolve the program UUID from the config we were HANDED, not from the
+  // request context (getProgramId). The auth callback runs on the apex host
+  // where the request context resolves to "marketing" — using it there would
+  // enroll the student under the wrong program.
+  const { data: programRow } = await admin
+    .from("programs")
+    .select("id")
+    .eq("slug", program.slug)
+    .maybeSingle();
+  const programId = programRow?.id;
+  if (!programId) {
+    console.error("[deferred-setup] no programs row for slug:", program.slug);
+    return;
+  }
 
   const isNew = !welcomeSeenAt;
 

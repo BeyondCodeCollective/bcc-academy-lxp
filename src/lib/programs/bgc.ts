@@ -17,7 +17,7 @@ const robloxVirtualBootcampTrack: TrackConfig = {
   sessionsPerWeek: 1,
   startDate: "2026-07-07",
   instructor: "TBD",
-  sessionTimes: ["Mon–Wed · July 7–9 · Time TBD"],
+  sessionTimes: ["Tue–Thu · July 7–9 · 9:00 AM EST"],
   lastSessionDayOffset: 2,
   phase: "workshop",
   submissionsEnabled: false,

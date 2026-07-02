@@ -5,7 +5,9 @@ import { cookies } from "next/headers";
 import { createServiceClient } from "@/lib/supabase/server";
 import { authCookieDomain } from "@/lib/supabase/cookie-domain";
 import { getProgram, fetchDynamicProgram } from "@/lib/programs/server";
-import { getProgramBySlug, getHomeProgramForTrack, isKnownProgramHost, hasTsConfigSlug } from "@/lib/programs";
+import { getProgramBySlug, getHomeProgramForTrack, getTrackBySlug, isKnownProgramHost, hasTsConfigSlug } from "@/lib/programs";
+import { courseLandingPath } from "@/lib/enrollment";
+import { completePendingSetup } from "@/lib/auth/deferred-setup";
 import { determineRole, isPrivilegedEmail, isStaffEmail } from "@/lib/auth/admins";
 import { subscribeToNewsletter } from "@/lib/mailchimp";
 import { logActivityEvent } from "@/lib/analytics/log-event";
@@ -244,7 +246,7 @@ export async function GET(request: Request) {
         // routes them to the right dashboard.
         const { data: existing } = await admin
           .from("students")
-          .select("id, role, programs(slug)")
+          .select("id, role, cohort_id, welcome_seen_at, programs(slug)")
           .eq("id", user.id)
           .maybeSingle();
 
@@ -352,15 +354,42 @@ export async function GET(request: Request) {
 
         // Single-course learners go straight to their one course, so the only
         // loading skeleton shown is that course's — no dashboard→course double
-        // flash. New students (0 enrollments yet; setup creates them) and
-        // admins/staff fall through to the normal dashboard.
+        // flash. Admins/staff fall through to the normal dashboard.
         if (!safeNext && !canBypassInviteGate) {
           const { data: enr } = await admin
             .from("student_tracks")
             .select("track_slug")
             .eq("student_id", user.id);
           if (enr && enr.length === 1) {
-            return withProgramCookies(redirectWithCookies(`${origin}/dashboard/track/${enr[0].track_slug}`));
+            const enrolledCfg = getTrackBySlug(effectiveProgram, enr[0].track_slug);
+            const dest = enrolledCfg
+              ? courseLandingPath(enrolledCfg)
+              : `/dashboard/track/${enr[0].track_slug}`;
+            return withProgramCookies(redirectWithCookies(`${origin}${dest}`));
+          }
+
+          // First invite click: enrollment used to be deferred to the first
+          // dashboard paint, which could render its empty "track is being
+          // finalized" home before the freshly-inserted enrollment was
+          // readable. When we KNOW the track they're joining, run the
+          // (idempotent) setup right here and land them directly in the
+          // course — the generic dashboard never flashes.
+          const joinTrackCfg = trackParam
+            ? getTrackBySlug(effectiveProgram, trackParam)
+            : undefined;
+          if ((enr ?? []).length === 0 && joinTrackCfg) {
+            await completePendingSetup(
+              user.id,
+              email,
+              effectiveProgram,
+              trackParam,
+              (existing?.cohort_id as string | null) ?? null,
+              envRole,
+              (existing?.welcome_seen_at as string | null) ?? null,
+            );
+            return withProgramCookies(
+              redirectWithCookies(`${origin}${courseLandingPath(joinTrackCfg)}`),
+            );
           }
         }
 
