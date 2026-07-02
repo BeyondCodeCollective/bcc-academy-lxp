@@ -146,6 +146,14 @@ export type TrackConfig = {
    * placeholder start so the catalog doesn't make a promise.
    */
   startDateTbd?: boolean;
+  /**
+   * Exact first-session start as a full ISO timestamp (e.g.
+   * "2026-07-07T13:00:00Z" for 9:00 AM EDT). Drives the holding-page
+   * countdown and its add-to-calendar times. Without it those fall back to
+   * arbitrary defaults derived from `startDate` (noon-UTC countdown, 9am-UTC
+   * calendar entry) — fine for self-paced, wrong for a live event.
+   */
+  kickoffTimeUtc?: string;
   instructor: string;
   /** Human-readable schedule: ["Tuesday 10-11am ET"] */
   sessionTimes: string[];

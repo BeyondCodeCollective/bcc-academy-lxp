@@ -36,14 +36,28 @@ export function HoldingView({
     : null;
 
   const calDetails = `Your spot for ${track.name}. We'll see you there!`;
+  // Live events carry their exact first-session time (kickoffTimeUtc); the
+  // date-derived fallbacks are arbitrary and only acceptable for self-paced.
+  const kickoffIso = track.kickoffTimeUtc ?? null;
   const googleCalUrl = hasDate
-    ? buildGoogleCalendarUrl({ title: track.name, date: startDate, details: calDetails })
+    ? buildGoogleCalendarUrl({
+        title: track.name,
+        date: startDate,
+        details: calDetails,
+        ...(kickoffIso
+          ? {
+              startUtc: kickoffIso,
+              // 1-hour block by convention when the session length is unknown.
+              endUtc: new Date(Date.parse(kickoffIso) + 3_600_000).toISOString(),
+            }
+          : {}),
+      })
     : null;
   const icsUrl = hasDate
     ? `/api/calendar/event?` +
       new URLSearchParams({
         title: track.name,
-        start: `${startDate}T09:00:00Z`,
+        start: kickoffIso ?? `${startDate}T09:00:00Z`,
         details: calDetails,
       }).toString()
     : null;
@@ -103,7 +117,7 @@ export function HoldingView({
         </p>
         {hasDate ? (
           <LaunchCountdown
-            targetIso={new Date(`${startDate}T12:00:00`).toISOString()}
+            targetIso={kickoffIso ?? new Date(`${startDate}T12:00:00`).toISOString()}
             accent={accent}
           />
         ) : (
@@ -114,14 +128,29 @@ export function HoldingView({
         )}
       </div>
 
-      {/* Quick facts */}
+      {/* Quick facts — unit-aware: a day-based bootcamp reads "3 days · Daily",
+          a weekly track keeps the week/workshop phrasing. */}
       <dl className="grid grid-cols-3 gap-3">
         <Fact icon={ChalkboardTeacher} label="Instructor" value={track.instructor || "TBA"} />
-        <Fact icon={Clock} label="Length" value={`${track.totalWeeks} ${track.totalWeeks === 1 ? "session" : "weeks"}`} />
+        <Fact
+          icon={Clock}
+          label="Length"
+          value={
+            track.totalWeeks === 1
+              ? "1 session"
+              : `${track.totalWeeks} ${(track.unitLabel || "week").toLowerCase()}s`
+          }
+        />
         <Fact
           icon={Lightning}
           label="Cadence"
-          value={track.sessionsPerWeek > 1 ? `${track.sessionsPerWeek}×/week` : "Workshop"}
+          value={
+            (track.unitLabel || "").toLowerCase() === "day"
+              ? "Daily"
+              : track.sessionsPerWeek > 1
+                ? `${track.sessionsPerWeek}×/week`
+                : "Workshop"
+          }
         />
       </dl>
 

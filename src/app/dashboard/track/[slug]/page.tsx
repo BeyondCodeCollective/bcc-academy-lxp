@@ -317,9 +317,11 @@ export default async function TrackOverviewPage({
           icon={Lightning}
           label="Cadence"
           value={
-            track.sessionsPerWeek > 1
-              ? `${track.sessionsPerWeek}×/week`
-              : "1×/week"
+            unitLower === "day"
+              ? "Daily"
+              : track.sessionsPerWeek > 1
+                ? `${track.sessionsPerWeek}×/week`
+                : "1×/week"
           }
         />
       </dl>
