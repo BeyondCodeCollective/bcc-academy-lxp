@@ -39,7 +39,7 @@ const robloxVirtualBootcampTrack: TrackConfig = {
       week: 1,
       title: "Build Your First World",
       icon: "🌍",
-      subtitle: "Day 1 · July 7 — Roblox Studio & 3D Design",
+      subtitle: "Day 1 — Roblox Studio & 3D Design",
       description:
         "Get oriented in Roblox Studio and build your first 3D game world. Learn how to place parts, use the toolbox, and set up a playable environment.",
       objectives: [
@@ -59,7 +59,7 @@ const robloxVirtualBootcampTrack: TrackConfig = {
       week: 2,
       title: "Script It With Lua",
       icon: "💻",
-      subtitle: "Day 2 · July 8 — Lua Scripting Basics",
+      subtitle: "Day 2 — Lua Scripting Basics",
       description:
         "Write your first Lua scripts to make your game interactive. Add a leaderboard, coins to collect, and a door that opens when a player touches it.",
       objectives: [
@@ -79,7 +79,7 @@ const robloxVirtualBootcampTrack: TrackConfig = {
       week: 3,
       title: "Publish & Showcase",
       icon: "🚀",
-      subtitle: "Day 3 · July 9 — Polish, Publish & Show Your Work",
+      subtitle: "Day 3 — Polish, Publish & Show Your Work",
       description:
         "Add finishing touches to your game, publish it to Roblox so anyone can play, and present your creation to the group.",
       objectives: [
