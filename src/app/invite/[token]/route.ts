@@ -31,6 +31,15 @@ export async function GET(
   callbackUrl.searchParams.set("join", invite.program_slug);
   callbackUrl.searchParams.set("track", invite.track_slug);
 
+  // Optional post-login destination (e.g. the participation-agreement page,
+  // for one-click "please sign" emails). Whitelisted to the same paths the
+  // auth callback's safeNext accepts — arbitrary values are dropped here so
+  // the emailed link can't be repurposed as an open redirect.
+  const nextParam = req.nextUrl.searchParams.get("next");
+  if (nextParam?.startsWith("/dashboard/agreement")) {
+    callbackUrl.searchParams.set("next", nextParam);
+  }
+
   // Magic links only verify for users that already exist — but most invitees
   // are brand new (allowlisted, never signed up). Create the account first
   // (idempotent: ignore "already registered"); email_confirm marks it ready so

@@ -529,8 +529,13 @@ async function TopBarShell() {
   }
 
   // Camp learners (BGC) live in exactly one course — global search only
-  // surfaces places they can't go, so drop it for them entirely.
-  const hideSearch = isLearner && program.slug === "bgc";
+  // surfaces places they can't go, so drop it for them entirely. The
+  // standalone agreement page is a focused sign-here surface (often reached
+  // by a shared link) — search is noise there for everyone.
+  const topBarPathname = (await headers()).get("x-pathname") ?? "";
+  const hideSearch =
+    (isLearner && program.slug === "bgc") ||
+    topBarPathname.startsWith("/dashboard/agreement");
 
   return (
     <DashboardTopBar
