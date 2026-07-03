@@ -17,7 +17,7 @@ export default async function QuizPage() {
     // question↔question). Nesting separates the two concerns:
     // marketing-scope still provides typography, and the inner div owns
     // the always-black backdrop the quiz crossfades against.
-    <div className="marketing-scope">
+    <div className="marketing-scope scope-archivo">
       <div className="bg-black min-h-[100dvh]">
         <QuizClient />
       </div>

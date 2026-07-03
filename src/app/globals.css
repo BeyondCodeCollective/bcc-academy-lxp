@@ -279,6 +279,16 @@ h1 {
   font-family: var(--font-display);
 }
 
+/* Archivo override for marketing-scope pages that should read as product,
+   not campaign — currently the quiz. Re-points the scope's font variables so
+   both the h1–h6 rule above and `font-display` utility classes resolve to
+   Archivo/system instead of Special Gothic/GT Standard. The homepage keeps
+   the campaign faces. */
+.scope-archivo {
+  --font-display: var(--font-archivo), -apple-system, "SF Pro Display", "Helvetica Neue", sans-serif;
+  --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", var(--font-geist-sans), sans-serif;
+}
+
 .marketing-scope ::selection {
   background: var(--color-cobalt);
   color: #FFFFFF;
