@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { Geist_Mono } from "next/font/google";
-import localFont from "next/font/local";
+import { Geist_Mono, Archivo } from "next/font/google";
 import "../globals.css";
 
 const geistMono = Geist_Mono({
@@ -9,15 +8,9 @@ const geistMono = Geist_Mono({
   display: "swap",
 });
 
-const specialGothic = localFont({
-  src: "../../fonts/SpecialGothic-Variable.subset.woff2",
-  variable: "--font-special-gothic",
-  display: "swap",
-});
-
-const gtStandard = localFont({
-  src: "../../fonts/GT-Standard-Regular.subset.woff2",
-  variable: "--font-gt-standard",
+const archivo = Archivo({
+  variable: "--font-archivo",
+  subsets: ["latin"],
   display: "swap",
 });
 
@@ -32,7 +25,7 @@ export default function HelpLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${geistMono.variable} ${specialGothic.variable} ${gtStandard.variable}`}>
+    <html lang="en" className={`${geistMono.variable} ${archivo.variable}`}>
       <body className="font-body antialiased bg-off-white text-true-black">{children}</body>
     </html>
   );
