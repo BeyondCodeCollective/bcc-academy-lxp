@@ -1,16 +1,25 @@
 ---
 name: BCC Academy
 description: Digital Learning Ecosystem — BCC as infrastructure, human in the lead
+# BCC Academy palette — as implemented in globals.css. NOT the fonz.sh
+# personal palette: vermillion coral (#E54D2E / #F0613E) belongs to
+# fonz.sh and must never appear on BCC Academy surfaces.
 colors:
-  primary: "#1a1a1a"
-  accent: "#E54D2E"
-  accent-dark: "#F0613E"
-  surface-light: "#f5f5f7"
-  surface-dark: "#1a1a1a"
-  on-dark: "#ffffff"
-  on-light: "#1a1a1a"
-  card: "#ffffff"
-  error: "#E54D2E"
+  primary: "#1D59FF" # BCC cobalt — CTAs, active states, links
+  primary-hover: "#1448CC"
+  highlight: "#E5F701" # electric green — live/active accents; filled shapes only, never text on white
+  background: "#f5f5f7" # page body
+  paper: "#fafafb" # dashboard canvas
+  surface-elevated: "#ffffff" # panel cards
+  surface-soft: "#f0f0f2"
+  ink: "#1a1a1a" # text + dark surfaces (never pure #000)
+  ink-soft: "#555555"
+  ink-faint: "#717177"
+  rule: "#e5e5e5" # hairlines
+  program-bgc: "#7C3AED" # Black Girls Code program accent (per-program theming)
+  never:
+    - "#E54D2E — fonz.sh coral, not BCC"
+    - "#F0613E — fonz.sh coral (dark variant), not BCC"
 typography:
   # Two type worlds by design (June 2026 platform pass): Bricolage carries
   # the brand on marketing/landing surfaces (+ the holding-page hero, which
@@ -53,31 +62,31 @@ spacing:
   2xl: 96px
 components:
   button-primary:
-    backgroundColor: "{colors.accent}"
-    textColor: "{colors.on-dark}"
+    backgroundColor: "{colors.primary}"
+    textColor: "#ffffff"
     typography: "{typography.label}"
     rounded: full
     padding: 12px 24px
-  button-primary-dark:
-    backgroundColor: "{colors.accent-dark}"
-    textColor: "{colors.on-dark}"
+  button-dark:
+    backgroundColor: "{colors.ink}"
+    textColor: "#ffffff"
     typography: "{typography.label}"
     rounded: full
     padding: 12px 24px
   button-secondary:
     backgroundColor: transparent
-    textColor: "{colors.on-light}"
+    textColor: "{colors.ink}"
     typography: "{typography.label}"
     rounded: full
     padding: 12px 24px
   card:
-    backgroundColor: "{colors.card}"
-    textColor: "{colors.on-light}"
-    rounded: "{rounded.xl}"
+    backgroundColor: "{colors.surface-elevated}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.lg}"
     padding: 24px
   input:
-    backgroundColor: "{colors.card}"
-    textColor: "{colors.on-light}"
+    backgroundColor: "{colors.surface-elevated}"
+    textColor: "{colors.ink}"
     rounded: "{rounded.md}"
     padding: 12px 16px
 ---
@@ -94,16 +103,16 @@ This design system is shared across BCC (Beyond Code Collective) and BGC (Black 
 
 ## Colors
 
-- **Primary / Surface-dark** (`#1a1a1a`): Dark section backgrounds and body text on light. Matte charcoal — never pure black `#000`.
-- **Accent** (`#E54D2E`): CTAs, active states, progress, key interactive elements. Warm vermillion coral. Used sparingly — one dominant action per screen.
-- **Accent-dark** (`#F0613E`): Accent variant for dark backgrounds to maintain contrast.
-- **Surface-light** (`#f5f5f7`): Light section backgrounds — alternates with dark for visual rhythm.
-- **Card** (`#ffffff`): Cards placed on light backgrounds only. White, no border.
-- **On-dark** (`#ffffff`): Text and icons on dark surfaces.
-- **On-light** (`#1a1a1a`): Text and icons on light surfaces.
-- **Error** (`#E54D2E`): Validation errors and destructive action states.
+BCC Academy's implemented palette (see `globals.css` — the single source of truth):
 
-Never use blue as an accent. Never use rainbow or purple-pink-blue AI gradients.
+- **Primary / BCC cobalt** (`#1D59FF`, hover `#1448CC`): CTAs, active states, links, focus rings. The one interactive accent.
+- **Highlight / electric green** (`#E5F701`): live/active moments (LIVE badges, "You're in"). Loud — filled shapes and borders only, never text on white.
+- **Ink** (`#1a1a1a` / soft `#555555` / faint `#717177`): text hierarchy and dark surfaces. Matte charcoal — never pure black `#000`.
+- **Background** (`#f5f5f7`) / **Paper** (`#fafafb`): page body and dashboard canvas — barely-there neutrals so white panels pop.
+- **Surface-elevated** (`#ffffff`): panel cards, separated by hairline rules (`#e5e5e5`), not shadows.
+- **Program accents**: each org themes its own shell (Black Girls Code `#7C3AED` purple). Program accents live in program config, never hardcoded in shared components.
+
+**Never on BCC Academy surfaces:** vermillion coral `#E54D2E` / `#F0613E` — that is the fonz.sh personal-site palette, not this platform's. Never rainbow or purple-pink-blue AI gradients.
 
 ## Typography
 
@@ -169,8 +178,8 @@ Consistent rounding is a signal of quality. Never mix sharp and rounded corners 
 ## Components
 
 ### Buttons
-- **Primary** (light bg): `#E54D2E` fill, white text, `rounded-full`, Bricolage Grotesque or Plus Jakarta Sans Medium
-- **Primary** (dark bg): `#F0613E` fill, white text, `rounded-full`
+- **Primary**: `#1D59FF` fill, white text (hover `#1448CC`)
+- **Dark**: `#1a1a1a` fill, white text — the app's default strong button (`buttonClass("dark")`)
 - **Secondary**: transparent fill, `#1a1a1a` border + text on light; white border + text on dark
 - **Ghost**: no border, text only, hover adds light background
 - Minimum tap target: 44px height
@@ -183,37 +192,37 @@ Consistent rounding is a signal of quality. Never mix sharp and rounded corners 
 
 ### Navigation
 - Dark nav bar (`#1a1a1a` background), white text
-- One accent element per nav — the CTA button uses `#E54D2E`
-- Active nav items: subtle underline or background tint, never blue
+- One accent element per nav — active/live states may use the `#E5F701` highlight as a filled shape
+- Active nav items: subtle underline or background tint
 - No heavy borders or colored backgrounds on nav links
 
 ### Forms & Inputs
 - Background: white or `#f5f5f7`
-- Border: 1px `#d1d5db`, focus ring `#E54D2E`
-- Labels: Plus Jakarta Sans, 14px, Medium, `#1a1a1a`
+- Border: 1px `#e5e5e5`, focus ring `#1D59FF`
+- Labels: 14px, Medium, `#1a1a1a`
 - Placeholder: `#9ca3af`
-- Error state: `#E54D2E` border + error text below input
+- Error state: red-600 border + error text below input
 
 ### Progress & Status
-- Progress bar fill: `#E54D2E` on `#f5f5f7` track
-- Completion states: use `#E54D2E` tint, not green
+- Progress bar fill: `#1D59FF` on `#f0f0f2` track
+- Completion states: green-50/green-600 chip (see the Certificates + attendance patterns)
 - Status badges: muted background, text conveys state — avoid traffic-light colors (red/yellow/green)
 
 ### Event Cards (Lunch & Learns / Workshops)
 - Same card rules as above
-- Event type label: Plus Jakarta Sans, 12px, Medium, uppercase, `#E54D2E`
+- Event type label: 12px, Medium, uppercase, `#1D59FF`
 - Date/time: Plus Jakarta Sans, 14px, `#6b7280`
 - Title: Bricolage Grotesque, 20px, Semi-bold
 
 ## Do's and Don'ts
 
-- **Do** use `#E54D2E` for the single most important action on each screen
+- **Do** use `#1D59FF` for the single most important action on each screen
 - **Do** alternate dark/light sections for visual rhythm on marketing and landing pages
 - **Do** use Bricolage Grotesque on marketing/landing surfaces and Archivo for in-app headings — Bricolage is the brand voice, Archivo is the product voice
 - **Do** keep cards white on `#f5f5f7` — contrast replaces borders
 - **Do** use matte surfaces throughout
 - **Don't** use pure black (`#000`) — always use `#1a1a1a`
-- **Don't** use blue as an accent color anywhere — not links, not buttons, not highlights
+- **Don't** use vermillion coral `#E54D2E`/`#F0613E` anywhere — that is fonz.sh branding, not BCC Academy
 - **Don't** use rainbow gradients or purple-blue-pink AI aesthetics
 - **Don't** add decorative elements without a functional purpose
 - **Don't** use Inter, Roboto, or Open Sans
