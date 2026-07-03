@@ -125,12 +125,27 @@ export default async function TrackOverviewPage({
   const now = new Date();
   const started = !track.startDateTbd && now >= new Date(track.startDate);
 
+  // Certificate of completion — issued by an admin when the student finishes.
+  // Checked before the holding gate: a completed student is DONE with the
+  // course, so a "hasn't started yet" countdown makes no sense for them —
+  // they land on the overview with their certificate card instead.
+  let certificateId: string | null = null;
+  if (!isAdminViewer && ctx?.userId) {
+    const { data: completion } = await createServiceClient()
+      .from("track_completions")
+      .select("certificate_id")
+      .eq("student_id", ctx.userId)
+      .eq("track_slug", slug)
+      .maybeSingle();
+    certificateId = (completion?.certificate_id as string | null) ?? null;
+  }
+
   // Holding page + curriculum lock. Before launch, a registered student sees a
   // confirmation + countdown — not the lessons. Registration earns a seat, not
   // the curriculum. Admins/previewers bypass so they can build ahead of launch.
   // Runs BEFORE the single-event redirect so a not-yet-started single-event
   // track shows the holding view here instead of bouncing to its session page.
-  if (!isAdminViewer && !started) {
+  if (!isAdminViewer && !started && !certificateId) {
     const landingHero = await getLandingHeroForTrack(slug).catch(() => null);
     return (
       <HoldingView
@@ -240,20 +255,6 @@ export default async function TrackOverviewPage({
     !isAdminViewer && ctx?.userId
       ? await getLearnerProgress(ctx.userId, [slug], now).catch(() => null)
       : null;
-
-  // Certificate of completion — issued by an admin when the student finishes.
-  // When one exists, the overview celebrates it and links the PUBLIC
-  // certificate page (shareable, no login).
-  let certificateId: string | null = null;
-  if (!isAdminViewer && ctx?.userId) {
-    const { data: completion } = await createServiceClient()
-      .from("track_completions")
-      .select("certificate_id")
-      .eq("student_id", ctx.userId)
-      .eq("track_slug", slug)
-      .maybeSingle();
-    certificateId = (completion?.certificate_id as string | null) ?? null;
-  }
 
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-3xl px-4 sm:px-5 py-8 space-y-8">
