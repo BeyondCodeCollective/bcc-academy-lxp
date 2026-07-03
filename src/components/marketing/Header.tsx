@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { List, X } from "@phosphor-icons/react";
 import Link from "next/link";
+import { BrandWordmark } from "@/components/marketing/BrandWordmark";
 
 const navLinks = [
   { label: "Programs", href: "#programs" },
@@ -42,11 +43,7 @@ export default function Header({ solid = false }: HeaderProps) {
     >
 
       <div className="mx-auto max-w-7xl px-6 flex items-center justify-between h-20">
-        <Link href="/" className="flex items-center group">
-          <span className="font-display text-2xl md:text-3xl font-bold text-white uppercase tracking-tight leading-none">
-            BCC <span className="text-electric-green">[</span>Academy<span className="text-electric-green">]</span>
-          </span>
-        </Link>
+        <BrandWordmark />
 
         <nav className="hidden lg:flex items-center gap-8" aria-label="Main navigation">
           {navLinks.map((link) => (
