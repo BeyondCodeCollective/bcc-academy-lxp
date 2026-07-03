@@ -29,7 +29,12 @@ export async function GET(
 
   const callbackUrl = new URL(`${origin}/auth/callback`);
   callbackUrl.searchParams.set("join", invite.program_slug);
-  callbackUrl.searchParams.set("track", invite.track_slug);
+  // Agreement-only invites store an empty track_slug — omit the param so the
+  // callback skips enrollment entirely (an empty value is treated the same,
+  // but omitting it is explicit).
+  if (invite.track_slug) {
+    callbackUrl.searchParams.set("track", invite.track_slug);
+  }
 
   // Optional post-login destination (e.g. the participation-agreement page,
   // for one-click "please sign" emails). Whitelisted to the same paths the
