@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import dynamic from "next/dynamic";
-import { Geist, Geist_Mono, Bricolage_Grotesque, Archivo } from "next/font/google";
+import { Geist, Geist_Mono, Archivo } from "next/font/google";
 import localFont from "next/font/local";
 import { Analytics } from "@vercel/analytics/next";
 import { TextScaleProvider } from "@/components/text-scale-provider";
@@ -18,12 +18,6 @@ const geistSans = Geist({
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const bricolage = Bricolage_Grotesque({
-  variable: "--font-bricolage",
   subsets: ["latin"],
   display: "swap",
 });
@@ -85,7 +79,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${bricolage.variable} ${archivo.variable} ${specialGothic.variable} ${gtStandard.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${archivo.variable} ${specialGothic.variable} ${gtStandard.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-sans">
         <TextScaleProvider />

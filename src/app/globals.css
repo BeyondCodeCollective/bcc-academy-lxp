@@ -160,12 +160,11 @@ input, textarea, select {
   font-size: max(16px, 1rem);
 }
 
-/* In-app heading font — Archivo. Scoped to dashboard/in-app pages;
-   the marketing-scope below overrides headings to its own display font,
-   and the pre-launch holding hero opts into Bricolage per-element to echo
-   the landing page the learner registered on. Default to tight optical
-   tracking — display sizes read "set with intent" rather than
-   browser-default. Components can still override per-element. */
+/* Heading font — Archivo, everywhere in the product (the one display
+   face; Bricolage was removed July 2026 — headings match the admin).
+   The marketing-scope below overrides headings to its own display font.
+   Default to tight optical tracking — display sizes read "set with
+   intent" rather than browser-default. */
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-archivo), -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
   letter-spacing: -0.02em;

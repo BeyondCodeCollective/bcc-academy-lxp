@@ -46,7 +46,7 @@ export default async function CampLandingPage({
         >
           <span
             className="text-[11px] font-bold uppercase tracking-[0.2em]"
-            style={{ color: "#1a1a1a55", fontFamily: "var(--font-bricolage)" }}
+            style={{ color: "#1a1a1a55" }}
           >
             {page.headerLabel}
           </span>
@@ -68,7 +68,6 @@ export default async function CampLandingPage({
             <h1
               className="font-bold leading-[1.0] tracking-tight"
               style={{
-                fontFamily: "var(--font-bricolage)",
                 fontSize: "clamp(34px, 4vw, 48px)",
                 color: "#1a1a1a",
               }}
