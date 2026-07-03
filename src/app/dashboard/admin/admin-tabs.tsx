@@ -40,6 +40,7 @@ import { computeCurrentWeek } from "@/lib/utils";
 import { LunchLearnAdmin } from "@/app/dashboard/lunch-learn/admin/admin-client";
 import { AttendanceTab } from "./attendance-tab";
 import { ProgressTab } from "./progress-tab";
+import { CertificatesPanel } from "./certificates-panel";
 import { TrackInsightsSection } from "@/components/track-insights-section";
 import { CourseEngagement, type CourseEngagementProps } from "@/components/stats/course-engagement";
 import { InsightsDashboard } from "./insights/insights-dashboard";
@@ -535,7 +536,7 @@ export function AdminTabs({
   const [trackView, setTrackView] = useState<
     "overview" | "curriculum" | "students" | "surveys"
   >((initialTrackView as "overview" | "curriculum" | "students" | "surveys") ?? "overview");
-  const [studentSubView, setStudentSubView] = useState<"students" | "attendance" | "progress" | "work">("students");
+  const [studentSubView, setStudentSubView] = useState<"students" | "attendance" | "progress" | "work" | "certificates">("students");
   const [studentSaving, setStudentSaving] = useState<string | null>(null);
 
   // Track data: keyed by track slug
@@ -1305,7 +1306,7 @@ export function AdminTabs({
                   value={subView}
                   onChange={(e) =>
                     setStudentSubView(
-                      e.target.value as "students" | "attendance" | "progress" | "work",
+                      e.target.value as "students" | "attendance" | "progress" | "work" | "certificates",
                     )
                   }
                   className="appearance-none panel pl-3 pr-8 py-2 text-sm font-medium text-ink focus:border-ink-faint focus:outline-none"
@@ -1314,6 +1315,7 @@ export function AdminTabs({
                   {showAttendance && <option value="attendance">Attendance</option>}
                   {showProgress && <option value="progress">Progress</option>}
                   <option value="work">Submissions</option>
+                  <option value="certificates">Certificates</option>
                 </select>
                 <ChevronDown size={13} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-faint" />
               </div>
@@ -1367,6 +1369,15 @@ export function AdminTabs({
                 {subView === "work" && (
                   <StudentWorkTab
                     tracks={[activeTrack]}
+                    programSlug={programSlug}
+                    viewSwitcher={viewSwitcher}
+                  />
+                )}
+
+                {subView === "certificates" && (
+                  <CertificatesPanel
+                    students={trackStudents.filter((s) => s.role === "student")}
+                    trackSlug={activeTrack.slug}
                     programSlug={programSlug}
                     viewSwitcher={viewSwitcher}
                   />

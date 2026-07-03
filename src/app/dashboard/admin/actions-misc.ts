@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin, resolveProgramForActor } from "./actions-shared";
 import { notifyAnnouncement, notifyFeedback } from "@/lib/notifications";
+import { sendCertificateEmail } from "@/lib/email";
+import { getProgramBySlug, getTrackBySlug } from "@/lib/programs";
 
 // ─── Submissions & Reflections (Admin) ──────────────────────────────────────
 
@@ -224,6 +226,199 @@ export async function grantCompletion(
 
   revalidatePath("/dashboard");
   return { success: true, certificateId: completion?.certificate_id };
+}
+
+export type TrackCompletionRow = {
+  student_id: string;
+  certificate_id: string;
+  completed_at: string;
+};
+
+/** All issued certificates for a track — drives the admin Certificates view. */
+export async function getTrackCompletions(
+  trackSlug: string,
+  programSlug: string,
+): Promise<TrackCompletionRow[]> {
+  const actor = await requireAdmin();
+  const { svc } = actor;
+  const programId = await resolveProgramForActor(actor, svc, programSlug);
+
+  const { data, error } = await svc
+    .from("track_completions")
+    .select("student_id, certificate_id, completed_at")
+    .eq("track_slug", trackSlug)
+    .eq("program_id", programId);
+  if (error) throw new Error(error.message);
+  return (data ?? []) as TrackCompletionRow[];
+}
+
+const CERT_EMAIL_PACE_MS = 550; // ~2/sec — Resend rate limit
+const sleepMs = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** The name/email bits the certificate email needs, or null when the student
+ *  row is missing (deleted between render and click). */
+async function certEmailContext(
+  svc: Awaited<ReturnType<typeof requireAdmin>>["svc"],
+  studentId: string,
+  trackSlug: string,
+  programSlug: string,
+) {
+  const { data: student } = await svc
+    .from("students")
+    .select("first_name, email")
+    .eq("id", studentId)
+    .maybeSingle();
+  if (!student?.email) return null;
+  const program = getProgramBySlug(programSlug);
+  const track = getTrackBySlug(program, trackSlug);
+  return {
+    to: student.email as string,
+    firstName: (student.first_name as string | null) ?? "",
+    programName: program.name,
+    courseName: track?.certificateName ?? track?.name ?? trackSlug,
+    domain: program.domain,
+  };
+}
+
+export type IssueCertificateResult = {
+  success: boolean;
+  certificateId?: string;
+  /** True when the certificate already existed before this call. */
+  alreadyIssued?: boolean;
+  emailed?: boolean;
+  error?: string;
+};
+
+/**
+ * Issue a certificate to one student: create the completion row (idempotent —
+ * re-issuing returns the existing certificate) and email the family the
+ * public certificate link. The email is only sent when the certificate is
+ * NEWLY issued, so clicking twice can't double-send; use
+ * resendCertificateEmail for an explicit re-send.
+ */
+export async function issueCertificate(
+  studentId: string,
+  trackSlug: string,
+  programSlug: string,
+  opts?: { skipEmail?: boolean },
+): Promise<IssueCertificateResult> {
+  const actor = await requireAdmin();
+  const { svc } = actor;
+  const programId = await resolveProgramForActor(actor, svc, programSlug);
+
+  const { data: existing } = await svc
+    .from("track_completions")
+    .select("certificate_id")
+    .eq("student_id", studentId)
+    .eq("track_slug", trackSlug)
+    .eq("program_id", programId)
+    .maybeSingle();
+  if (existing?.certificate_id) {
+    return { success: true, certificateId: existing.certificate_id, alreadyIssued: true, emailed: false };
+  }
+
+  const { data: created, error } = await svc
+    .from("track_completions")
+    .insert({ student_id: studentId, track_slug: trackSlug, program_id: programId })
+    .select("certificate_id")
+    .single();
+  if (error) return { success: false, error: error.message };
+
+  let emailed = false;
+  if (!opts?.skipEmail) {
+    try {
+      const ctx = await certEmailContext(svc, studentId, trackSlug, programSlug);
+      if (ctx) {
+        const { domain, ...email } = ctx;
+        await sendCertificateEmail({
+          ...email,
+          certificateUrl: `https://${domain}/certificate/${created.certificate_id}`,
+        });
+        emailed = true;
+      }
+    } catch (e) {
+      // The certificate exists either way — surface the email failure so the
+      // admin can hit "Email again" rather than silently losing it.
+      console.error("[certificates] email failed:", e instanceof Error ? e.message : String(e));
+    }
+  }
+
+  revalidatePath("/dashboard");
+  return { success: true, certificateId: created.certificate_id, alreadyIssued: false, emailed };
+}
+
+/**
+ * Issue certificates to a whole roster (the end-of-camp move: "everyone who
+ * finished gets their certificate"). Skips students who already have one,
+ * paces the emails for Resend, and reports per-student results so a partial
+ * failure is visible and retryable.
+ */
+export async function issueCertificatesBulk(
+  studentIds: string[],
+  trackSlug: string,
+  programSlug: string,
+): Promise<{
+  issued: number;
+  skipped: number;
+  emailed: number;
+  failed: { studentId: string; error: string }[];
+}> {
+  // Authz once up front (each issueCertificate call re-checks; this just
+  // fails fast before any work).
+  await requireAdmin();
+
+  let issued = 0, skipped = 0, emailed = 0;
+  const failed: { studentId: string; error: string }[] = [];
+  for (const studentId of studentIds) {
+    const res = await issueCertificate(studentId, trackSlug, programSlug);
+    if (!res.success) {
+      failed.push({ studentId, error: res.error ?? "unknown" });
+      continue;
+    }
+    if (res.alreadyIssued) skipped++;
+    else {
+      issued++;
+      if (res.emailed) {
+        emailed++;
+        await sleepMs(CERT_EMAIL_PACE_MS);
+      }
+    }
+  }
+  return { issued, skipped, emailed, failed };
+}
+
+/** Explicit re-send of the certificate email (e.g. it bounced or was lost). */
+export async function resendCertificateEmail(
+  studentId: string,
+  trackSlug: string,
+  programSlug: string,
+): Promise<{ success: boolean; error?: string }> {
+  const actor = await requireAdmin();
+  const { svc } = actor;
+  const programId = await resolveProgramForActor(actor, svc, programSlug);
+
+  const { data: completion } = await svc
+    .from("track_completions")
+    .select("certificate_id")
+    .eq("student_id", studentId)
+    .eq("track_slug", trackSlug)
+    .eq("program_id", programId)
+    .maybeSingle();
+  if (!completion?.certificate_id) {
+    return { success: false, error: "No certificate issued for this student yet" };
+  }
+  const ctx = await certEmailContext(svc, studentId, trackSlug, programSlug);
+  if (!ctx) return { success: false, error: "Student record not found" };
+  try {
+    const { domain, ...email } = ctx;
+    await sendCertificateEmail({
+      ...email,
+      certificateUrl: `https://${domain}/certificate/${completion.certificate_id}`,
+    });
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : String(e) };
+  }
 }
 
 export async function revokeCompletion(
