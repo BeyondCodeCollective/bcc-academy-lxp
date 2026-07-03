@@ -12,21 +12,27 @@ colors:
   card: "#ffffff"
   error: "#E54D2E"
 typography:
-  display:
+  # Two type worlds by design (June 2026 platform pass): Bricolage carries
+  # the brand on marketing/landing surfaces (+ the holding-page hero, which
+  # echoes the landing page); Archivo carries in-app headings; body is the
+  # SF/system stack with Geist as webfont fallback. Plus Jakarta Sans was
+  # retired in that pass and is no longer loaded.
+  display: # marketing/landing pages + pre-launch holding hero
     fontFamily: Bricolage Grotesque
     fontWeight: 700
     lineHeight: 1.1
-  heading:
-    fontFamily: Bricolage Grotesque
+  heading: # in-app h1–h6 (set globally in globals.css)
+    fontFamily: Archivo
     fontWeight: 600
     lineHeight: 1.2
+    letterSpacing: -0.02em
   body:
-    fontFamily: Plus Jakarta Sans
+    fontFamily: -apple-system, SF Pro Text, Geist, sans-serif
     fontSize: 16px
     fontWeight: 400
     lineHeight: 1.6
   label:
-    fontFamily: Plus Jakarta Sans
+    fontFamily: -apple-system, SF Pro Text, Geist, sans-serif
     fontSize: 14px
     fontWeight: 500
   mono:
@@ -101,24 +107,35 @@ Never use blue as an accent. Never use rainbow or purple-pink-blue AI gradients.
 
 ## Typography
 
-Three families, each with a clear role. Never use Inter, Roboto, or Open Sans.
+Two type worlds, each with a clear role — this is the system as implemented
+since the June 2026 platform-wide design pass. Never use Inter, Roboto, or
+Open Sans. (Plus Jakarta Sans was retired in that pass and is no longer
+loaded; older references to it are historical.)
 
-- **Bricolage Grotesque** — Display and all headings. Carries the brand voice: bold, contemporary, human. Load via `next/font/google`.
-- **Plus Jakarta Sans** — Body text, UI labels, navigation, forms, everything functional. Readable at every size.
-- **Geist Mono** — Code blocks, technical content, data values only.
+- **Bricolage Grotesque** — the *marketing* display face: public landing
+  pages (`/bcc/*`) and the pre-launch holding-page hero, which deliberately
+  echoes the landing page the learner registered on. Carries the brand
+  voice: bold, contemporary, human. Load via `next/font/google`.
+- **Archivo** — the *in-app* heading face: every h1–h6 across the dashboard
+  and admin, applied globally in `globals.css` with -0.02em tracking.
+  Editorial weight on top of the system body.
+- **SF / system stack** (`-apple-system…`, Geist as webfont fallback) —
+  body text, UI labels, navigation, forms, everything functional.
+- **Geist Mono** — code blocks, IDs, and tabular numbers (countdowns,
+  stats) only.
 
 **Scale:**
 
 | Role | Size | Weight | Family |
 |---|---|---|---|
-| Display / Hero | 56–96px | Extra Bold (800) | Bricolage Grotesque |
-| H1 | 40–48px | Bold (700) | Bricolage Grotesque |
-| H2 | 28–36px | Semi-bold (600) | Bricolage Grotesque |
-| H3 | 20–24px | Semi-bold (600) | Bricolage Grotesque |
-| Body | 16px | Regular (400) | Plus Jakarta Sans |
-| Label / Small | 14px | Medium (500) | Plus Jakarta Sans |
-| Caption | 12px | Medium (500) | Plus Jakarta Sans |
-| Code | 14px | Regular (400) | Geist Mono |
+| Display / Hero (marketing + holding hero) | 56–96px | Extra Bold (800) | Bricolage Grotesque |
+| H1 (in-app) | 40–48px | Bold (700) | Archivo |
+| H2 (in-app) | 28–36px | Semi-bold (600) | Archivo |
+| H3 (in-app) | 20–24px | Semi-bold (600) | Archivo |
+| Body | 16px | Regular (400) | SF / system stack |
+| Label / Small | 14px | Medium (500) | SF / system stack |
+| Caption | 12px | Medium (500) | SF / system stack |
+| Code / tabular numbers | 14px | Regular (400) | Geist Mono |
 
 ## Layout
 
@@ -192,7 +209,7 @@ Consistent rounding is a signal of quality. Never mix sharp and rounded corners 
 
 - **Do** use `#E54D2E` for the single most important action on each screen
 - **Do** alternate dark/light sections for visual rhythm on marketing and landing pages
-- **Do** use Bricolage Grotesque for all headings — it is the brand voice
+- **Do** use Bricolage Grotesque on marketing/landing surfaces and Archivo for in-app headings — Bricolage is the brand voice, Archivo is the product voice
 - **Do** keep cards white on `#f5f5f7` — contrast replaces borders
 - **Do** use matte surfaces throughout
 - **Don't** use pure black (`#000`) — always use `#1a1a1a`
