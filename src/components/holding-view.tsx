@@ -98,7 +98,7 @@ export function HoldingView({
           </span>
           <h1
             className="font-bold leading-[1.02] tracking-tight text-white"
-            style={{ fontFamily: "var(--font-bricolage)", fontSize: "clamp(30px, 5vw, 46px)" }}
+            style={{ fontSize: "clamp(30px, 5vw, 46px)" }}
           >
             {track.name}
           </h1>

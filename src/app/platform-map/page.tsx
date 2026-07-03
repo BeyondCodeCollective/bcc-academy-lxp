@@ -108,12 +108,7 @@ export default async function PlatformMapPage() {
           >
             BCC Academy · The Platform Map
           </p>
-          {/* Display hero — Bricolage per DESIGN.md (marketing/presentation
-              surfaces), on the BCC palette. */}
-          <h1
-            className="mt-3 text-5xl font-extrabold leading-[1.02] tracking-tight text-ink sm:text-6xl"
-            style={{ fontFamily: "var(--font-bricolage)" }}
-          >
+          <h1 className="mt-3 text-5xl font-bold leading-[1.02] tracking-tight text-ink sm:text-6xl">
             One platform.
             <br />
             Fifty-five pages.
@@ -136,10 +131,7 @@ export default async function PlatformMapPage() {
         <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {ZONES.map((zone) => (
             <section key={zone.name} className="panel min-w-0 p-5 pb-3.5">
-              <h2
-                className="flex items-baseline justify-between gap-2 text-[17px] font-bold tracking-tight text-ink"
-                style={{ fontFamily: "var(--font-bricolage)" }}
-              >
+              <h2 className="flex items-baseline justify-between gap-2 text-[17px] font-bold tracking-tight text-ink">
                 {zone.name}
                 <span
                   className="text-[11px] font-normal text-ink-faint tabular-nums"
