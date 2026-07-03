@@ -11,6 +11,11 @@
 //   node scripts/send-agreement-request.mjs --track game-on --list scripts/agreement-recipients.local.csv --dry-run
 //   node scripts/send-agreement-request.mjs --track game-on --list scripts/agreement-recipients.local.csv --send
 //
+// Agreement-only (no course enrollment on click): --track none
+// The invite row stores an empty track_slug; the auth callback treats an
+// empty track as "don't enroll", so the click creates the account and signs
+// the agreement — nothing else.
+//
 // The CSV needs an email somewhere on each line (header rows ignored); any
 // other fields on the line are treated as the student's name. Run --dry-run
 // first to eyeball the parsed rows. Progress is checkpointed to
@@ -138,10 +143,14 @@ async function provisionName(email, first, last) {
 
 /** Allowlist + reuse-or-mint the durable invite token. */
 async function provision(email, trackSlug) {
-  const { error: allowErr } = await svc
-    .from("allowed_signup_emails")
-    .upsert({ email, track_slug: trackSlug }, { onConflict: "email,track_slug", ignoreDuplicates: true });
-  if (allowErr) throw new Error(`allowlist: ${allowErr.message}`);
+  // Agreement-only invites (empty track) skip the allowlist: an allowlist row
+  // would make the callback's allowlist-inference re-attach a course.
+  if (trackSlug) {
+    const { error: allowErr } = await svc
+      .from("allowed_signup_emails")
+      .upsert({ email, track_slug: trackSlug }, { onConflict: "email,track_slug", ignoreDuplicates: true });
+    if (allowErr) throw new Error(`allowlist: ${allowErr.message}`);
+  }
 
   const { data: existing } = await svc
     .from("invites")
@@ -214,11 +223,14 @@ const flag = (name) => {
   return ix >= 0 ? (args[ix + 1]?.startsWith("--") ? true : args[ix + 1] ?? true) : null;
 };
 
-const trackSlug = flag("track");
-if (!trackSlug || trackSlug === true) {
-  console.error("Required: --track <slug> (the course these students belong to)");
+const trackFlag = flag("track");
+if (!trackFlag || trackFlag === true) {
+  console.error("Required: --track <slug> (the course these students belong to, or `none` for agreement-only)");
   process.exit(1);
 }
+// `none` → empty track_slug: the click creates the account + signs the
+// agreement without enrolling in any course.
+const trackSlug = trackFlag === "none" ? "" : trackFlag;
 
 const testEmail = flag("test");
 const listPath = flag("list");
@@ -237,7 +249,7 @@ if (recipients.length === 0) {
 }
 
 // Verify the track exists under the program before touching anything.
-{
+if (trackSlug) {
   const pid = await getProgramId();
   const { data: trackRow } = await svc
     .from("track_overrides")
@@ -252,7 +264,7 @@ if (recipients.length === 0) {
 
 const results = existsSync(RESULTS_FILE) ? JSON.parse(readFileSync(RESULTS_FILE, "utf8")) : {};
 
-console.log(`${recipients.length} recipient(s) · track=${trackSlug} · ${dryRun ? "DRY RUN" : doSend || testEmail ? "SENDING" : "no --send/--dry-run flag; defaulting to DRY RUN"}\n`);
+console.log(`${recipients.length} recipient(s) · track=${trackSlug || "none (agreement only)"} · ${dryRun ? "DRY RUN" : doSend || testEmail ? "SENDING" : "no --send/--dry-run flag; defaulting to DRY RUN"}\n`);
 
 for (const { email, first, last } of recipients) {
   if (results[email]?.sent) {
