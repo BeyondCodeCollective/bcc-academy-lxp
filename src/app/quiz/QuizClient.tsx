@@ -597,6 +597,13 @@ function ResultsScreen({
               );
             })}
           </ol>
+          <a
+            href={`/pathways/${pathway.key}`}
+            className="mt-1 inline-flex items-center gap-1 text-sm font-semibold"
+            style={{ color: pathway.accent }}
+          >
+            Explore the full {pathway.shortName} pathway &rarr;
+          </a>
         </motion.div>
 
         {/* Day to day */}

@@ -31,9 +31,9 @@ const ZONES: Zone[] = [
       { name: "Homepage", route: "/", href: "/" },
       { name: "Campaign landing pages", route: "/bcc/[slug]", href: "/bcc/bgc-roblox" },
       { name: "Career quiz", route: "/quiz", href: "/quiz" },
-      // No live link: /pathways/* renders only in the logged-out marketing
-      // context (a signed-in admin's program cookie 404s it), and career
-      // pathways (cybersecurity ladder etc.) exist only inside quiz results.
+      { name: "Career pathways — cert ladders & salaries", route: "/pathways/[slug]", href: "/pathways/cybersecurity" },
+      // Age-stage pages render only in the logged-out marketing context
+      // (a signed-in admin's program cookie 404s them) — no live link.
       { name: "Age-stage pathways", route: "/pathways/[slug]", href: null },
       { name: "Public surveys", route: "/survey/[id]", href: "/survey/bcc-learner-intake" },
       { name: "Public certificates", route: "/certificate/[id]", href: null },
@@ -93,7 +93,7 @@ const ZONES: Zone[] = [
   },
 ];
 
-const totalPages = 55;
+const totalPages = 56;
 
 export default async function PlatformMapPage() {
   const ctx = await getSessionContext();
@@ -114,7 +114,7 @@ export default async function PlatformMapPage() {
           <h1 className="mt-3 text-5xl font-bold leading-[1.02] tracking-tight text-ink sm:text-6xl">
             One platform.
             <br />
-            Fifty-five pages.
+            Fifty-six pages.
           </h1>
           <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-ink-soft">
             Everything live in production today, built October to July. Every row is a

@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { pathways } from "@/data/marketing/pathways";
+import { careerPathways, type PathwayKey } from "@/data/marketing/careerPathways";
 import { getProgram } from "@/lib/programs/server";
+import { CareerPathwayView } from "./career-pathway-view";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +17,13 @@ interface PathwayPageProps {
 
 export async function generateMetadata({ params }: PathwayPageProps) {
   const { slug } = await params;
+  const career = careerPathways[slug as PathwayKey];
+  if (career) {
+    return {
+      title: `${career.name} — Career Pathway — BCC Academy`,
+      description: career.description,
+    };
+  }
   const pathway = pathways.find((p) => p.id === slug);
   if (!pathway) return { title: "Pathway Not Found" };
 
@@ -25,15 +34,25 @@ export async function generateMetadata({ params }: PathwayPageProps) {
 }
 
 export default async function PathwayPage({ params }: PathwayPageProps) {
+  const { slug } = await params;
+
+  // Career pathways (cybersecurity, cloud-devops, data-ai, enterprise-systems)
+  // are the cert-ladder / salary-progression pages. Public content with no
+  // program-context gate — signed-in visitors (an admin giving a demo, a
+  // logged-in parent) must see them too.
+  const career = careerPathways[slug as PathwayKey];
+  if (career) {
+    return <CareerPathwayView pathway={career} />;
+  }
+
   const program = await getProgram();
-  // Pathway pages only live on the apex marketing domain. Subdomain
-  // dashboards (atg/forge/catalyst) 404 on /pathways/* so program
-  // students don't accidentally land in the marketing funnel.
+  // Age-stage pathway pages only live in the logged-out marketing context.
+  // Program contexts 404 on them so students don't accidentally land in the
+  // marketing funnel.
   if (program.slug !== "marketing") {
     notFound();
   }
 
-  const { slug } = await params;
   const pathway = pathways.find((p) => p.id === slug);
 
   if (!pathway) {
