@@ -6,6 +6,7 @@ import {
   ChalkboardTeacher,
   Lightning,
   ArrowRight,
+  Medal,
 } from "@phosphor-icons/react/dist/ssr";
 import { computeCurrentWeek } from "@/lib/utils";
 import { resolveTrackProgram } from "@/lib/programs/server";
@@ -240,6 +241,20 @@ export default async function TrackOverviewPage({
       ? await getLearnerProgress(ctx.userId, [slug], now).catch(() => null)
       : null;
 
+  // Certificate of completion — issued by an admin when the student finishes.
+  // When one exists, the overview celebrates it and links the PUBLIC
+  // certificate page (shareable, no login).
+  let certificateId: string | null = null;
+  if (!isAdminViewer && ctx?.userId) {
+    const { data: completion } = await createServiceClient()
+      .from("track_completions")
+      .select("certificate_id")
+      .eq("student_id", ctx.userId)
+      .eq("track_slug", slug)
+      .maybeSingle();
+    certificateId = (completion?.certificate_id as string | null) ?? null;
+  }
+
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-3xl px-4 sm:px-5 py-8 space-y-8">
       {isAdminViewer && (
@@ -250,6 +265,34 @@ export default async function TrackOverviewPage({
             fallbackDomain={program.domain}
           />
         </div>
+      )}
+
+      {/* Certificate earned — links the public, shareable certificate page. */}
+      {certificateId && (
+        <a
+          href={`/certificate/${certificateId}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group flex items-center gap-4 panel p-4 sm:p-5 transition-colors hover:border-ink-faint"
+        >
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-green-50 text-green-600">
+            <Medal size={22} weight="fill" aria-hidden />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-bold text-ink">
+              You earned your Certificate of Completion! 🎉
+            </span>
+            <span className="block text-xs text-ink-soft">
+              View, print, or share your official certificate — the link works anywhere,
+              no login needed.
+            </span>
+          </span>
+          <ArrowRight
+            size={16}
+            className="shrink-0 text-ink-faint transition-transform group-hover:translate-x-0.5"
+            aria-hidden
+          />
+        </a>
       )}
 
       {/* Hero — the tone-tinted block frames a 2×5 grid of weekly topics, so

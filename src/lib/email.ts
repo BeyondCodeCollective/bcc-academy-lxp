@@ -169,6 +169,62 @@ export async function sendInviteEmail({
   }
 }
 
+/**
+ * Certificate email — sent when an admin issues a certificate of completion.
+ * Carries the PUBLIC certificate link (/certificate/<id>, no login) so the
+ * family can view, print, and share it. Program-branded like every other
+ * student email (white-label: the org is the brand, not BCC Academy).
+ */
+export async function sendCertificateEmail({
+  to,
+  firstName,
+  programName,
+  courseName,
+  certificateUrl,
+}: {
+  to: string;
+  firstName: string;
+  programName: string;
+  courseName: string;
+  certificateUrl: string;
+}): Promise<void> {
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY not set — skipping certificate email");
+    throw new Error("Email is not configured (RESEND_API_KEY missing)");
+  }
+  const esc = (s: string) =>
+    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const name = firstName.trim();
+  const { error } = await resend.emails.send({
+    from: FROM_ADDRESS,
+    to,
+    subject: `🎉 Certificate of Completion — ${courseName}`,
+    text: `Congratulations${name ? `, ${name}` : ""}!
+
+You completed ${courseName} — and your official certificate is ready.
+
+View, print, or share it here (no login needed):
+${certificateUrl}
+
+This link is permanent, so it can go on a resume or LinkedIn profile — anyone who clicks it sees the verified certificate.
+
+We're proud of you!
+${programName}`,
+    html: inviteShell(
+      programName,
+      `    <p style="margin:0 0 6px;font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#16a34a;">🎉 Certificate earned</p>
+    <p style="margin:0 0 8px;font-size:22px;font-weight:700;color:#1a1a1a;">Congratulations${name ? `, ${esc(name)}` : ""}!</p>
+    <p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:#555;">You completed <strong>${esc(courseName)}</strong> — and your official certificate is ready. View it, print it, or share it with the button below. No login needed.</p>
+    ${ctaButton(certificateUrl, "View my certificate →")}
+    <p style="margin:0;font-size:12px;color:#999;line-height:1.5;">This link is permanent — it can go on a resume or LinkedIn profile, and anyone who clicks it sees the verified certificate. Questions? Reply here or email <a href="mailto:info@bccacademy.io" style="color:#1a1a1a;">info@bccacademy.io</a>.</p>`,
+    ),
+  });
+  if (error) {
+    console.error("[email] sendCertificateEmail failed:", JSON.stringify(error));
+    throw new Error("Failed to send certificate email");
+  }
+}
+
 /** Human-readable "when" for an event, in its own timezone with a tz label
  *  (e.g. "Thursday, July 9 · 2:00 PM EDT"). Falls back to UTC if no tz. */
 function formatEventWhen(startUtc: string | null, timezone: string | null): string | null {
