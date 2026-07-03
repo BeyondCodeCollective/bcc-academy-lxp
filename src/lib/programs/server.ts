@@ -304,6 +304,28 @@ export async function getProgramWithOverrides(slug: string): Promise<ProgramConf
   return applyTrackOverrides(base);
 }
 
+/**
+ * Home program slug for a track — TS config first, then the DB for
+ * builder-created courses (their only record is a track_overrides row under
+ * the owning program, invisible to getHomeProgramForTrack). Null when no
+ * program anywhere owns the slug.
+ */
+export async function resolveHomeProgramSlug(trackSlug: string): Promise<string | null> {
+  const home = getHomeProgramForTrack(trackSlug);
+  if (home) return home.slug;
+  try {
+    const svc = createServiceClient();
+    const { data } = await svc
+      .from("track_overrides")
+      .select("programs(slug)")
+      .eq("track_slug", trackSlug)
+      .maybeSingle();
+    return (data?.programs as unknown as { slug: string } | null)?.slug ?? null;
+  } catch {
+    return null;
+  }
+}
+
 async function applyTrackOverrides(program: ProgramConfig): Promise<ProgramConfig> {
   // Dynamic programs have all track data built from DB rows already;
   // there are no TS config defaults to override.
