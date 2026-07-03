@@ -99,54 +99,48 @@ export default async function PlatformMapPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#1a1a1a] text-[rgba(255,251,248,0.92)]">
+    <div className="min-h-screen bg-paper text-ink">
       <div className="mx-auto max-w-6xl px-7 pb-24 pt-16">
         <header>
           <p
-            className="text-xs uppercase tracking-[0.18em] text-[#F0613E]"
+            className="text-xs uppercase tracking-[0.18em] text-primary"
             style={{ fontFamily: "var(--font-geist-mono)" }}
           >
             BCC Academy · The Platform Map
           </p>
-          <h1
-            className="mt-3 text-5xl font-extrabold leading-[1.02] tracking-tight text-white sm:text-6xl"
-            style={{ fontFamily: "var(--font-bricolage)" }}
-          >
+          <h1 className="mt-3 text-5xl font-extrabold leading-[1.02] tracking-tight text-ink sm:text-6xl">
             One platform.
             <br />
             Fifty-five pages.
           </h1>
-          <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-[rgba(255,249,245,0.6)]">
+          <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-ink-soft">
             Everything live in production today, built October to July. Every row is a
             door — click it to open the real page.
           </p>
           <div
-            className="mb-11 mt-6 flex flex-wrap gap-x-9 gap-y-2 text-[12.5px] tracking-[0.08em] text-[rgba(255,249,245,0.6)] tabular-nums"
+            className="mb-11 mt-6 flex flex-wrap gap-x-9 gap-y-2 text-[12.5px] tracking-[0.08em] text-ink-soft tabular-nums"
             style={{ fontFamily: "var(--font-geist-mono)" }}
           >
-            <span><b className="font-normal text-white">{totalPages}</b> PAGES</span>
-            <span><b className="font-normal text-white">5</b> PROGRAMS</span>
-            <span><b className="font-normal text-white">4</b> AREAS</span>
-            <span><b className="font-normal text-white">1</b> PLATFORM</span>
+            <span><b className="font-semibold text-ink">{totalPages}</b> PAGES</span>
+            <span><b className="font-semibold text-ink">5</b> PROGRAMS</span>
+            <span><b className="font-semibold text-ink">4</b> AREAS</span>
+            <span><b className="font-semibold text-ink">1</b> PLATFORM</span>
           </div>
         </header>
 
         <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {ZONES.map((zone) => (
-            <section key={zone.name} className="min-w-0 rounded-2xl bg-[#242120] p-5 pb-3.5">
-              <h2
-                className="flex items-baseline justify-between gap-2 text-[17px] font-bold tracking-tight text-white"
-                style={{ fontFamily: "var(--font-bricolage)" }}
-              >
+            <section key={zone.name} className="panel min-w-0 p-5 pb-3.5">
+              <h2 className="flex items-baseline justify-between gap-2 text-[17px] font-bold tracking-tight text-ink">
                 {zone.name}
                 <span
-                  className="text-[11px] font-normal text-[rgba(255,249,245,0.32)] tabular-nums"
+                  className="text-[11px] font-normal text-ink-faint tabular-nums"
                   style={{ fontFamily: "var(--font-geist-mono)" }}
                 >
                   {zone.pages.length} pages
                 </span>
               </h2>
-              <p className="mb-3 mt-1 text-[12.5px] text-[rgba(255,249,245,0.32)]">
+              <p className="mb-3 mt-1 text-[12.5px] text-ink-faint">
                 {zone.blurb}
               </p>
               <ul>
@@ -155,7 +149,7 @@ export default async function PlatformMapPage() {
                     <>
                       <span className="min-w-0">{page.name}</span>
                       <span
-                        className="ml-auto max-w-[46%] overflow-hidden text-ellipsis whitespace-nowrap text-[11px] text-[rgba(255,249,245,0.32)]"
+                        className="ml-auto max-w-[46%] overflow-hidden text-ellipsis whitespace-nowrap text-[11px] text-ink-faint"
                         style={{ fontFamily: "var(--font-geist-mono)" }}
                       >
                         {page.route}
@@ -164,13 +158,13 @@ export default async function PlatformMapPage() {
                     </>
                   );
                   return (
-                    <li key={page.name} className="border-t border-[rgba(255,249,245,0.07)]">
+                    <li key={page.name} className="border-t border-rule-soft">
                       {page.href ? (
                         <a
                           href={page.href}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="-mx-1.5 flex items-baseline gap-2.5 rounded-lg px-1.5 py-2 text-[13.5px] transition-colors hover:bg-[rgba(255,251,248,0.06)]"
+                          className="-mx-1.5 flex items-baseline gap-2.5 rounded-lg px-1.5 py-2 text-[13.5px] transition-colors hover:bg-paper-tint-soft"
                         >
                           {inner}
                         </a>
@@ -188,7 +182,7 @@ export default async function PlatformMapPage() {
         </div>
 
         <footer
-          className="mt-14 text-[11.5px] uppercase tracking-[0.12em] text-[rgba(255,249,245,0.32)]"
+          className="mt-14 text-[11.5px] uppercase tracking-[0.12em] text-ink-faint"
           style={{ fontFamily: "var(--font-geist-mono)" }}
         >
           bccacademy.io · links open the live product in a new tab
