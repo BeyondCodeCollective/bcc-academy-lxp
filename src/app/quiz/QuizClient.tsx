@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { BrandWordmark } from "@/components/marketing/BrandWordmark";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -78,7 +79,7 @@ function HomeScreen({ onSelectAge }: { onSelectAge: (age: AgeGroup) => void }) {
     <div className="h-[100dvh] flex">
       <div className="w-full lg:w-1/2 h-full bg-black flex flex-col">
         <header className="flex items-center justify-between px-4 md:px-12 py-6 md:py-8">
-          <div className="font-display text-white text-sm md:text-base tracking-tight">BCC Academy</div>
+          <BrandWordmark className="text-lg md:text-xl" />
           <Link href="/" className="text-white/80 text-sm hover:text-white transition-colors">
             Back to Home
           </Link>
@@ -181,7 +182,7 @@ function LeadCaptureScreen({
     <div className="h-[100dvh] flex">
       <div className="w-full lg:w-1/2 h-full bg-black flex flex-col">
         <header className="flex items-center justify-between px-4 md:px-12 py-6 md:py-8">
-          <div className="font-display text-white text-sm md:text-base tracking-tight">BCC Academy</div>
+          <BrandWordmark className="text-lg md:text-xl" />
         </header>
 
         <div className="flex-1 flex items-center px-4 md:px-12 lg:px-16 pb-6">
