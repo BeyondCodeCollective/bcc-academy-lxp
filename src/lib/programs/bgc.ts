@@ -14,8 +14,15 @@ const robloxVirtualBootcampTrack: TrackConfig = {
     "A 3-day virtual bootcamp for girls ages 10–15, in partnership with Black Girls Code. Students build a real game in Roblox Studio using Lua scripting — from world design to publishing.\n\nNo prior coding experience required. Each session builds directly on the last: design, script, and ship.",
   type: "weekly",
   totalWeeks: 3,
+  // 3 consecutive days, not weeks — every "Week N" surface renders "Day N"
+  // (already live via the track_overrides.unit_label row; mirrored here so
+  // config is the source of truth).
+  unitLabel: "Day",
   sessionsPerWeek: 1,
   startDate: "2026-07-07",
+  // 9:00 AM Eastern on July 7 — drives the holding-page countdown and its
+  // add-to-calendar entries (without this they'd default to wrong times).
+  kickoffTimeUtc: "2026-07-07T13:00:00Z",
   instructor: "TBD",
   sessionTimes: ["Tue–Thu · July 7–9 · 9:00 AM EST"],
   lastSessionDayOffset: 2,

@@ -9,7 +9,7 @@
 
 import { cache } from "react";
 import { createServiceClient } from "@/lib/supabase/server";
-import { getAllPrograms } from "@/lib/programs";
+import { getAllPrograms, getJoinablePrograms } from "@/lib/programs";
 import { getAllWorkshops } from "@/lib/workshops";
 import { PLATFORM_AUTH_SURVEYS, PLATFORM_PUBLIC_SURVEYS } from "@/lib/surveys/platform";
 import type { SearchItem } from "@/components/command-palette";
@@ -56,6 +56,22 @@ export const getDashboardIndex = cache(async (): Promise<DashboardIndex> => {
     }
   }
 
+  // Labels-only pass for programs OUTSIDE getAllPrograms (the special configs:
+  // BGC, Forte, ATG, Beyond Code Centers). Their course/week routes must still
+  // resolve in the breadcrumb trail — without this a BGC camper's crumb fell
+  // back to a humanized slug + "Week N". They stay out of ⌘K searchItems,
+  // which is scoped to the switchable program list.
+  for (const p of getJoinablePrograms()) {
+    for (const t of p.tracks) {
+      const tHref = `/dashboard/track/${t.slug}`;
+      labels[tHref] ??= t.name;
+      labels[`/dashboard/admin/programs/${t.slug}/edit`] ??= t.name;
+      for (const w of t.weeks ?? []) {
+        labels[`${tHref}/${w.week}`] ??= w.title;
+      }
+    }
+  }
+
   // Workshops (config).
   for (const w of getAllWorkshops()) {
     const href = `/dashboard/workshops/${w.slug}`;
@@ -78,10 +94,16 @@ export const getDashboardIndex = cache(async (): Promise<DashboardIndex> => {
   // index simply omits them if the queries fail.
   try {
     const svc = createServiceClient();
-    const [rec, land] = await Promise.all([
+    const [rec, land, sessions] = await Promise.all([
       svc.from("lunch_learns").select("id, title, presenter, description"),
       svc.from("landing_pages").select("slug, headline"),
+      svc.from("session_content").select("track, week_number, title").not("title", "is", null),
     ]);
+    // Admin-edited session titles override the config week titles so the
+    // breadcrumb matches what the page actually displays.
+    for (const s of sessions.data ?? []) {
+      if (s.title) labels[`/dashboard/track/${s.track}/${s.week_number}`] = s.title as string;
+    }
     for (const r of rec.data ?? []) {
       const href = `/dashboard/lunch-learn/${r.id}`;
       searchItems.push({

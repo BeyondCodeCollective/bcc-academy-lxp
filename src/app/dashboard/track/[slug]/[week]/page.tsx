@@ -302,7 +302,7 @@ export default async function TrackWeekPage({
                   >
                     {isCompleted
                       ? weekContent.sessions.length > 1 ? "Sessions Ended" : "Session Ended"
-                      : "This Week"}
+                      : unit.toLowerCase() === "day" ? "Today" : `This ${unit}`}
                   </span>
                 ) : undefined
               }
