@@ -8,7 +8,10 @@ import type { ProgramConfig, TrackConfig } from "./types";
 
 const robloxVirtualBootcampTrack: TrackConfig = {
   slug: "roblox-virtual-bootcamp",
-  name: "BGC × BCC Academy: Roblox Virtual Bootcamp",
+  // Student-facing name is just the course — no partnership prefix. The org
+  // brand (Black Girls Code) is carried by the program shell, emails, and
+  // certificate header, never stuttered into the course title.
+  name: "Roblox Virtual Bootcamp",
   shortName: "Roblox Bootcamp",
   certificateName: "Roblox Virtual Bootcamp",
   description:
