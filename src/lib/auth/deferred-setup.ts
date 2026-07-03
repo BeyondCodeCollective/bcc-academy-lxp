@@ -246,38 +246,53 @@ export async function completePendingSetup(
       const welcomeTrack = tracksToEnroll[0].slug;
       const { data: existingInvite } = await admin
         .from("invites")
-        .select("token")
+        .select("token, status")
         .eq("track_slug", welcomeTrack)
         .ilike("email", email)
         .limit(1)
         .maybeSingle();
-      let inviteToken = existingInvite?.token as string | undefined;
-      if (!inviteToken) {
-        const fresh = generateInviteToken();
-        const { error: invErr } = await admin.from("invites").insert({
-          token: fresh,
-          email,
-          track_slug: welcomeTrack,
-          program_slug: program.slug,
-          status: "sent",
-          sent_at: new Date().toISOString(),
-        });
-        if (!invErr) inviteToken = fresh;
-      }
-      if (inviteToken) signInUrl = `https://${program.domain}/invite/${inviteToken}`;
 
-      void sendWelcomeEmail({
-        to: email,
-        firstName: welcomeName,
-        program,
-        enrolledTracks: tracksToEnroll,
-        signInUrl,
-      }).then(() =>
-        admin
+      // A student whose durable one-click link was ALREADY delivered by email
+      // (Eventbrite confirmation, bulk invite blast, campaign send — the
+      // invites row is marked "sent") doesn't need a welcome email: its job —
+      // the permanent way back in — is done, and it would land seconds after
+      // they clicked that very link ("I'm in the portal, why are you emailing
+      // me?"). The form-join flow, whose only prior email was an ephemeral
+      // magic link, still gets it. Mark it handled so this is decided once.
+      if (existingInvite?.status === "sent") {
+        await admin
           .from("students")
           .update({ welcome_email_sent_at: new Date().toISOString() })
-          .eq("id", userId),
-      );
+          .eq("id", userId);
+      } else {
+        let inviteToken = existingInvite?.token as string | undefined;
+        if (!inviteToken) {
+          const fresh = generateInviteToken();
+          const { error: invErr } = await admin.from("invites").insert({
+            token: fresh,
+            email,
+            track_slug: welcomeTrack,
+            program_slug: program.slug,
+            status: "sent",
+            sent_at: new Date().toISOString(),
+          });
+          if (!invErr) inviteToken = fresh;
+        }
+        if (inviteToken) signInUrl = `https://${program.domain}/invite/${inviteToken}`;
+
+        void sendWelcomeEmail({
+          to: email,
+          firstName: welcomeName,
+          program,
+          enrolledTracks: tracksToEnroll,
+          signInUrl,
+        }).then(() =>
+          admin
+            .from("students")
+            .update({ welcome_email_sent_at: new Date().toISOString() })
+            .eq("id", userId),
+        );
+      }
     }
   }
 
