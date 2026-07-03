@@ -8,6 +8,8 @@ import { OnboardingForm } from "@/components/onboarding-form";
 import { LunchLearnHub } from "@/components/lunch-learn-hub";
 import { TrackGrid } from "@/components/track-grid";
 import { getProgram, getProgramWithOverrides, resolveHomeProgramSlug } from "@/lib/programs/server";
+import { buttonClass } from "@/components/ui";
+import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import type { ProgramConfig, TrackConfig } from "@/lib/programs/types";
 import { canAccessAdminPanel } from "@/lib/roles";
 import { getSessionContext } from "@/lib/auth/session";
@@ -433,6 +435,21 @@ async function DashboardContent({
   }
 
   if (notEnrolled) {
+    // Actionable welcome instead of the old "Your track is being finalized"
+    // shell, which read like an error and confused unenrolled users — e.g.
+    // agreement-only invitees who signed in with no course yet. Give them the
+    // one thing they may still need to do (sign the agreement) and an honest
+    // account of where their courses are.
+    let agreementSigned = false;
+    if (feedUserId && program.slug === "catalyst") {
+      const { data: agr } = await createServiceClient()
+        .from("survey_responses")
+        .select("completed_at")
+        .eq("student_id", feedUserId)
+        .eq("survey_type", "catalyst-participation-agreement")
+        .maybeSingle();
+      agreementSigned = !!agr?.completed_at;
+    }
     return (
       <div className="space-y-6">
         <div>
@@ -442,10 +459,36 @@ async function DashboardContent({
           <p className="mt-1 text-sm text-ink-soft">{program.name}</p>
         </div>
 
+        {!agreementSigned && program.slug === "catalyst" && (
+          <div className="panel p-6 sm:p-8">
+            <h2 className="text-lg font-semibold text-ink">Participation Agreement</h2>
+            <p className="mt-2 text-sm text-ink-soft">
+              Review and sign your participation agreement — it takes about two
+              minutes.
+            </p>
+            <Link
+              href="/dashboard/agreement"
+              className={`${buttonClass("primary", "md")} mt-4`}
+            >
+              Review &amp; Sign
+              <ArrowRight size={16} weight="bold" />
+            </Link>
+          </div>
+        )}
+
         <div className="panel p-6 sm:p-8">
-          <p className="text-sm text-ink">Your track is being finalized.</p>
+          <p className="text-sm font-medium text-ink">
+            {agreementSigned
+              ? "You're all set — no courses assigned yet."
+              : "No courses assigned yet."}
+          </p>
           <p className="mt-1 text-sm text-ink-soft">
-            You&apos;ll see your dashboard here shortly.
+            When your program team enrolls you in a course, it will appear
+            here. Questions?{" "}
+            <Link href="/dashboard/help" className="underline hover:text-ink">
+              Visit the help center
+            </Link>{" "}
+            or email info@bccacademy.io.
           </p>
         </div>
       </div>

@@ -40,6 +40,14 @@ export async function GET(request: Request) {
   let trackParam = searchParams.get("track");
   let joinSlug = searchParams.get("join");
   const nextParam = searchParams.get("next");
+  // Preserve a safe destination across failure redirects to /login: the login
+  // form reads ?next=, so a student who has to manually re-request a sign-in
+  // link after a failed exchange still lands where the original link pointed
+  // (e.g. the participation agreement) instead of the default dashboard.
+  const nextQS =
+    nextParam?.startsWith("/dashboard/apply/") || nextParam?.startsWith("/dashboard/agreement")
+      ? `&next=${encodeURIComponent(nextParam)}`
+      : "";
   // The email the magic link was issued for — used to guard against silently
   // falling back to a DIFFERENT account already signed in on this browser.
   const intendedEmail = searchParams.get("email")?.toLowerCase() ?? null;
@@ -226,8 +234,19 @@ export async function GET(request: Request) {
             }
           }
         } else {
-          await supabase.auth.signOut();
-          return NextResponse.redirect(`${origin}/login?error=invite`);
+          // Track-less (agreement-only) invites carry no allowlist entry, but
+          // an admin-minted invites row is just as authoritative — accept it
+          // before rejecting the signup. Without this, the invite gate silently
+          // signed agreement-only invitees out to /login?error=invite.
+          const { data: invRows } = await admin
+            .from("invites")
+            .select("token")
+            .ilike("email", email)
+            .limit(1);
+          if (!invRows?.length) {
+            await supabase.auth.signOut();
+            return NextResponse.redirect(`${origin}/login?error=invite${nextQS}`);
+          }
         }
       }
 
@@ -442,5 +461,5 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.redirect(`${origin}/login?error=auth`);
+  return NextResponse.redirect(`${origin}/login?error=auth${nextQS}`);
 }
