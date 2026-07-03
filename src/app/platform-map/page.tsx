@@ -31,7 +31,10 @@ const ZONES: Zone[] = [
       { name: "Homepage", route: "/", href: "/" },
       { name: "Campaign landing pages", route: "/bcc/[slug]", href: "/bcc/bgc-roblox" },
       { name: "Career quiz", route: "/quiz", href: "/quiz" },
-      { name: "Career pathways", route: "/pathways/[slug]", href: "/pathways/cybersecurity" },
+      // No live link: /pathways/* renders only in the logged-out marketing
+      // context (a signed-in admin's program cookie 404s it), and career
+      // pathways (cybersecurity ladder etc.) exist only inside quiz results.
+      { name: "Age-stage pathways", route: "/pathways/[slug]", href: null },
       { name: "Public surveys", route: "/survey/[id]", href: "/survey/bcc-learner-intake" },
       { name: "Public certificates", route: "/certificate/[id]", href: null },
       { name: "Help center", route: "/help", href: "/help" },
