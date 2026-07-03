@@ -10,6 +10,7 @@ const robloxVirtualBootcampTrack: TrackConfig = {
   slug: "roblox-virtual-bootcamp",
   name: "BGC × BCC Academy: Roblox Virtual Bootcamp",
   shortName: "Roblox Bootcamp",
+  certificateName: "Roblox Virtual Bootcamp",
   description:
     "A 3-day virtual bootcamp for girls ages 10–15, in partnership with Black Girls Code. Students build a real game in Roblox Studio using Lua scripting — from world design to publishing.\n\nNo prior coding experience required. Each session builds directly on the last: design, script, and ship.",
   type: "weekly",

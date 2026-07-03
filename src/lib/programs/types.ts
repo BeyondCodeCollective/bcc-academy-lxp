@@ -124,6 +124,14 @@ export type TrackConfig = {
   /** Short label for dashboard cards */
   shortName: string;
   /**
+   * Name printed on the certificate of completion. Use when the display
+   * `name` carries partnership branding that reads wrong on a credential
+   * (e.g. "BGC × BCC Academy: Roblox Virtual Bootcamp" → certificate says
+   * "Roblox Virtual Bootcamp"; the issuing org is already in the header).
+   * Falls back to `name`.
+   */
+  certificateName?: string;
+  /**
    * Track overview shown on the track landing page. Split on blank lines
    * (`\n\n`) by the renderer to support multi-paragraph welcome copy.
    */
