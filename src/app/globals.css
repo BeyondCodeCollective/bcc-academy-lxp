@@ -255,8 +255,10 @@ h1 {
   --color-charcoal: #2F2F2F;
 
   /* Marketing typography variables. Set on <html> in layout.tsx. */
-  --font-display: var(--font-special-gothic), "Special Gothic", "Impact", "Arial Narrow", sans-serif;
-  --font-body: var(--font-gt-standard), "GT Standard", system-ui, sans-serif;
+  /* One type system product-wide (July 2026): marketing surfaces use the
+     same faces as the admin. Special Gothic + GT Standard retired. */
+  --font-display: var(--font-archivo), -apple-system, "SF Pro Display", "Helvetica Neue", sans-serif;
+  --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", var(--font-geist-sans), sans-serif;
 }
 
 /* Marketing wrapper — applies marketing background, body font, and
@@ -277,16 +279,6 @@ h1 {
 .marketing-scope h5,
 .marketing-scope h6 {
   font-family: var(--font-display);
-}
-
-/* Archivo override for marketing-scope pages that should read as product,
-   not campaign — currently the quiz. Re-points the scope's font variables so
-   both the h1–h6 rule above and `font-display` utility classes resolve to
-   Archivo/system instead of Special Gothic/GT Standard. The homepage keeps
-   the campaign faces. */
-.scope-archivo {
-  --font-display: var(--font-archivo), -apple-system, "SF Pro Display", "Helvetica Neue", sans-serif;
-  --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", var(--font-geist-sans), sans-serif;
 }
 
 .marketing-scope ::selection {

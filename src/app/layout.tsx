@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import dynamic from "next/dynamic";
 import { Geist, Geist_Mono, Archivo } from "next/font/google";
-import localFont from "next/font/local";
 import { Analytics } from "@vercel/analytics/next";
 import { TextScaleProvider } from "@/components/text-scale-provider";
 import { GoogleAnalyticsProvider } from "@/components/google-analytics-provider";
@@ -26,18 +25,6 @@ const geistMono = Geist_Mono({
 const archivo = Archivo({
   variable: "--font-archivo",
   subsets: ["latin"],
-  display: "swap",
-});
-
-const specialGothic = localFont({
-  src: "../fonts/SpecialGothic-Variable.subset.woff2",
-  variable: "--font-special-gothic",
-  display: "swap",
-});
-
-const gtStandard = localFont({
-  src: "../fonts/GT-Standard-Regular.subset.woff2",
-  variable: "--font-gt-standard",
   display: "swap",
 });
 
@@ -79,7 +66,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${archivo.variable} ${specialGothic.variable} ${gtStandard.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${archivo.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-sans">
         <TextScaleProvider />
