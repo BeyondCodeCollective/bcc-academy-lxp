@@ -549,6 +549,7 @@ async function TopBarShell() {
       searchItems={confined ? [] : searchItems}
       confined={confined}
       hideSearch={hideSearch}
+      tutorAvailable={isTutorAvailable(program)}
     />
   );
 }

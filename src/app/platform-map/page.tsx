@@ -60,7 +60,9 @@ const ZONES: Zone[] = [
       { name: "Learner home", route: "/dashboard", href: "/dashboard" },
       { name: "Course overview + holding page", route: "/track/[slug]", href: "/dashboard/track/roblox-virtual-bootcamp" },
       { name: "Classroom — video, Zoom, work", route: "/track/[slug]/[week]", href: "/dashboard/track/roblox-virtual-bootcamp/1" },
-      { name: "AI Tutor", route: "/tutor", href: "/dashboard/tutor" },
+      // Tutor is per-program opt-in (Forte/Upskill Bahamas only) — the route
+      // 404s in other program contexts, so no live link from the map.
+      { name: "AI Tutor — Upskill Bahamas only", route: "/tutor", href: null },
       { name: "Course catalog", route: "/courses", href: "/dashboard/courses" },
       { name: "Workshops hub + detail", route: "/workshops", href: "/dashboard/workshops" },
       { name: "Lunch & Learn hub + player", route: "/lunch-learn", href: "/dashboard/lunch-learn" },

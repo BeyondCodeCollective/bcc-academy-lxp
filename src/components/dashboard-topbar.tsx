@@ -23,6 +23,7 @@ export function DashboardTopBar({
   searchItems = [],
   confined = false,
   hideSearch = false,
+  tutorAvailable = false,
 }: {
   firstName: string;
   lastName: string;
@@ -36,6 +37,8 @@ export function DashboardTopBar({
   confined?: boolean;
   /** Single-course event programs (e.g. BGC camps) — no search at all. */
   hideSearch?: boolean;
+  /** Whether this program has the AI Tutor (Forte only today). */
+  tutorAvailable?: boolean;
 }) {
   // Breadcrumbs moved to a dedicated <Breadcrumbs> bar below the top bar (it
   // renders a full trail on all viewports). The top bar now just hosts search
@@ -48,7 +51,7 @@ export function DashboardTopBar({
         {hideSearch ? (
           <div className="flex-1" aria-hidden />
         ) : (
-          <CommandPalette items={searchItems} confined={confined} />
+          <CommandPalette items={searchItems} confined={confined} tutorAvailable={tutorAvailable} />
         )}
 
         <div className="flex shrink-0 items-center gap-1">
