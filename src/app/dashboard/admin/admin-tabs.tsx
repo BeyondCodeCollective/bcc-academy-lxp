@@ -84,7 +84,10 @@ function AdminTopTabs({
 }) {
   const tabs = [
     { id: "courses", label: "Courses", href: "/dashboard/admin", Icon: GraduationCapIcon },
-    { id: "students", label: "All people", href: "/dashboard/admin?tab=students", Icon: UsersIcon },
+    // "People", not "All people" — a tab names a place, not a filter. (Same
+    // term Canvas uses for its roster tab; the view holds staff too, so
+    // "Students" would be inaccurate.)
+    { id: "students", label: "People", href: "/dashboard/admin?tab=students", Icon: UsersIcon },
     { id: "student-work", label: "Student work", href: "/dashboard/admin?tab=student-work", Icon: ClipboardListIcon },
     { id: "analytics", label: "Analytics", href: "/dashboard/admin?tab=attendance", Icon: ChartLineUpIcon },
   ] as const;
