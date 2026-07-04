@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { SurveyDashboard } from "../surveys/[surveyId]/survey-dashboard";
 import type { SurveyQuestion } from "@/components/survey-fields";
 import type { BCCSurveyResponse } from "../actions";
@@ -274,16 +275,27 @@ export function InsightsDashboard({
           </div>
         ) : (
         <div className="grid gap-3 sm:grid-cols-2">
-          {visibleLedger.map((row) => (
-            <button
+          {visibleLedger.map((row) => {
+            // Agreements aren't question surveys (no schema → no chart to
+            // open), but they DO have a home: the Agreements screen. Their
+            // card links there instead of sitting greyed-out and dead.
+            const isAgreement = /agreement/i.test(row.id);
+            const Card: React.ElementType = isAgreement ? Link : "button";
+            const cardProps = isAgreement
+              ? { href: "/dashboard/admin/agreements" }
+              : {
+                  type: "button" as const,
+                  onClick: () => row.hasSchema && selectSurvey(row.id),
+                  disabled: !row.hasSchema,
+                };
+            return (
+            <Card
               key={row.id}
-              type="button"
-              onClick={() => row.hasSchema && selectSurvey(row.id)}
-              disabled={!row.hasSchema}
+              {...cardProps}
               className={`group border bg-surface-elevated p-4 text-left transition-all ${
                 activeId === row.id
                   ? "border-ink ring-1 ring-ink"
-                  : row.hasSchema
+                  : row.hasSchema || isAgreement
                     ? "border-rule hover:border-rule hover:shadow-sm"
                     : "cursor-not-allowed border-rule-soft opacity-60"
               }`}
@@ -339,8 +351,14 @@ export function InsightsDashboard({
               ) : (
                 <div className="h-2 w-full overflow-hidden rounded-full bg-paper-tint" />
               )}
-            </button>
-          ))}
+              {isAgreement && (
+                <p className="mt-1 text-[11px] font-medium text-primary">
+                  Who has signed &rarr;
+                </p>
+              )}
+            </Card>
+            );
+          })}
         </div>
         )}
       </section>

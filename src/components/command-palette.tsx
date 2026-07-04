@@ -48,6 +48,7 @@ export function CommandPalette({
   items: content = [],
   confined = false,
   tutorAvailable = false,
+  workshopsAvailable = false,
 }: {
   items?: SearchItem[];
   /** Pending registrant — confined to the holding page, so search only offers
@@ -56,6 +57,8 @@ export function CommandPalette({
   /** The AI Tutor is per-program opt-in (Forte only today) — its /dashboard/
    *  tutor route 404s everywhere else, so search must not offer it there. */
   tutorAvailable?: boolean;
+  /** Workshops are BGC-internal (the route 404s outside the BGC program). */
+  workshopsAvailable?: boolean;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -69,7 +72,9 @@ export function CommandPalette({
       confined
         ? DESTINATIONS.filter((d) => d.href === "/dashboard")
         : DESTINATIONS
-    ).filter((d) => d.href !== "/dashboard/tutor" || tutorAvailable);
+    )
+      .filter((d) => d.href !== "/dashboard/tutor" || tutorAvailable)
+      .filter((d) => d.href !== "/dashboard/workshops" || workshopsAvailable);
     const q = query.trim().toLowerCase();
     // No query → just the quick-nav shortcuts, not the whole catalog.
     if (!q) return destinations;

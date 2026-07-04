@@ -546,10 +546,19 @@ async function TopBarShell() {
       canSwitch={canSwitch}
       programs={programs}
       currentProgramSlug={program.slug}
-      searchItems={confined ? [] : searchItems}
+      searchItems={
+        confined
+          ? []
+          : // Workshop lessons are BGC-internal content — outside BGC their
+            // pages 404, so they must not surface as search results either.
+            program.slug === "bgc"
+            ? searchItems
+            : searchItems.filter((i) => !i.href.startsWith("/dashboard/workshops"))
+      }
       confined={confined}
       hideSearch={hideSearch}
       tutorAvailable={isTutorAvailable(program)}
+      workshopsAvailable={program.slug === "bgc"}
     />
   );
 }
