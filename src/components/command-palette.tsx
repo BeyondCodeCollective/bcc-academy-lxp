@@ -47,11 +47,15 @@ const MAX_RESULTS = 30;
 export function CommandPalette({
   items: content = [],
   confined = false,
+  tutorAvailable = false,
 }: {
   items?: SearchItem[];
   /** Pending registrant — confined to the holding page, so search only offers
    *  Home (everything else would just bounce them). */
   confined?: boolean;
+  /** The AI Tutor is per-program opt-in (Forte only today) — its /dashboard/
+   *  tutor route 404s everywhere else, so search must not offer it there. */
+  tutorAvailable?: boolean;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -61,9 +65,11 @@ export function CommandPalette({
 
   const items = useMemo(() => {
     // Confined learners can't reach Workshops / Tutor / Resources or the catalog.
-    const destinations = confined
-      ? DESTINATIONS.filter((d) => d.href === "/dashboard")
-      : DESTINATIONS;
+    const destinations = (
+      confined
+        ? DESTINATIONS.filter((d) => d.href === "/dashboard")
+        : DESTINATIONS
+    ).filter((d) => d.href !== "/dashboard/tutor" || tutorAvailable);
     const q = query.trim().toLowerCase();
     // No query → just the quick-nav shortcuts, not the whole catalog.
     if (!q) return destinations;
@@ -81,7 +87,7 @@ export function CommandPalette({
         return tokens.every((t) => hay.includes(t));
       })
       .slice(0, MAX_RESULTS);
-  }, [query, content, confined]);
+  }, [query, content, confined, tutorAvailable]);
 
   const openPalette = () => {
     setQuery("");
