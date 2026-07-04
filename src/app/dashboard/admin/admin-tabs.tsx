@@ -74,10 +74,13 @@ function AdminTopTabs({
   current,
   sub,
   showInsights,
+  actions,
 }: {
   current: "courses" | "students" | "student-work" | "analytics";
   sub?: "attendance" | "insights" | "analytics";
   showInsights: boolean;
+  /** Right-aligned on the tab row (e.g. the Manage menu on Courses). */
+  actions?: React.ReactNode;
 }) {
   const tabs = [
     { id: "courses", label: "Courses", href: "/dashboard/admin", Icon: GraduationCapIcon },
@@ -93,6 +96,7 @@ function AdminTopTabs({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-x-1 border-b border-rule">
+        {actions && <span className="order-last ml-auto pb-1.5">{actions}</span>}
         {tabs.map(({ id, label, href, Icon }) => (
           <Link
             key={id}
@@ -985,14 +989,11 @@ export function AdminTabs({
 
         return (
           <div className="space-y-8">
-            <PageHeader
-              title="Admin"
-              actions={
-                canSwitchPrograms(userRole) && <ManageMenu />
-              }
+            <AdminTopTabs
+              current="courses"
+              showInsights={canViewInsights(userRole)}
+              actions={canSwitchPrograms(userRole) && <ManageMenu />}
             />
-
-            <AdminTopTabs current="courses" showInsights={canViewInsights(userRole)} />
 
             <div className="divide-y divide-rule overflow-hidden panel">
               {tracks.map((t) => {
