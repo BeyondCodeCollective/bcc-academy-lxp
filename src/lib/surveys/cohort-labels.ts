@@ -23,6 +23,18 @@ export function normalizeCohortLabel(raw: string): string {
   return BCC_TRACK_VARIANT_LABELS[trimmed] ?? trimmed;
 }
 
+// Surveys that belong to exactly ONE cohort by construction — an application
+// or agreement for a specific course can't be any other cohort. Used as the
+// last rung of the read-time tagging chain (enrollment → allowlist → this),
+// so responses from people with no enrollment yet (public applicants, invited
+// signers) still land in the right bucket instead of "Untagged".
+export const SURVEY_COHORT_DEFAULTS: Record<string, string> = {
+  "security-plus-application": "Comptia Security+",
+  "comptia-security-agreement": "Comptia Security+",
+  "comptia-security-pre": "Comptia Security+",
+  "network-plus-post": "CompTIA Network+",
+};
+
 // Resolve a cohort label from a student's track enrollments, preferring a
 // track whose home program matches `programSlug` (mirrors how submission picks
 // the relevant track). Canonical variant labels win so auth + public responses
