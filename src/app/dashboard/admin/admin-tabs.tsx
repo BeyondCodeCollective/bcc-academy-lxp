@@ -58,12 +58,78 @@ import type { Student } from "@/lib/types";
 import { isStorageUrl, isUploadedVideo } from "@/lib/storage-utils";
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
 import { iconForTrack, toneForTrack } from "@/lib/track-visual";
-import { Clipboard as ClipboardListIcon, Users as UsersIcon, ChartBar as ChartBarIcon, ChartPie as ChartPieIcon, ChartLineUp as ChartLineUpIcon, ArrowLeft as ArrowLeftIcon } from "@phosphor-icons/react";
+import { Clipboard as ClipboardListIcon, Users as UsersIcon, ChartBar as ChartBarIcon, ChartPie as ChartPieIcon, ChartLineUp as ChartLineUpIcon, ArrowLeft as ArrowLeftIcon, GraduationCap as GraduationCapIcon } from "@phosphor-icons/react";
 
 const PLATFORM_SURVEY_TITLES: Record<string, string> = {
   "bcc-learner-intake": "BCC Learner Intake",
   "bcc-workshop": "Workshop Survey",
 };
+
+// ── Top-level admin tabs ──────────────────────────────────────────────────
+// Four honest tabs — exactly one is always active, so the bar reads as real
+// navigation instead of a row of quiet links. Attendance / Survey insights /
+// Engagement group under Analytics as segmented sub-views ("how are we
+// doing" is one kind of work). Old ?tab= URLs all keep working.
+function AdminTopTabs({
+  current,
+  sub,
+  showInsights,
+}: {
+  current: "courses" | "students" | "student-work" | "analytics";
+  sub?: "attendance" | "insights" | "analytics";
+  showInsights: boolean;
+}) {
+  const tabs = [
+    { id: "courses", label: "Courses", href: "/dashboard/admin", Icon: GraduationCapIcon },
+    { id: "students", label: "All people", href: "/dashboard/admin?tab=students", Icon: UsersIcon },
+    { id: "student-work", label: "Student work", href: "/dashboard/admin?tab=student-work", Icon: ClipboardListIcon },
+    { id: "analytics", label: "Analytics", href: "/dashboard/admin?tab=attendance", Icon: ChartLineUpIcon },
+  ] as const;
+  const segments = [
+    { id: "attendance", label: "Attendance", href: "/dashboard/admin?tab=attendance", show: true },
+    { id: "insights", label: "Survey insights", href: "/dashboard/admin?tab=insights", show: showInsights },
+    { id: "analytics", label: "Engagement", href: "/dashboard/admin?tab=analytics", show: showInsights },
+  ];
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-x-1 border-b border-rule">
+        {tabs.map(({ id, label, href, Icon }) => (
+          <Link
+            key={id}
+            href={href}
+            aria-current={current === id ? "page" : undefined}
+            className={`-mb-px inline-flex items-center gap-1.5 border-b-2 px-3 py-2.5 text-sm transition-colors ${
+              current === id
+                ? "border-primary font-semibold text-primary"
+                : "border-transparent font-medium text-ink-soft hover:border-ink-faint hover:text-ink"
+            }`}
+          >
+            <Icon size={14} weight="bold" aria-hidden />
+            {label}
+          </Link>
+        ))}
+      </div>
+      {current === "analytics" && (
+        <div className="inline-flex gap-1 rounded-lg bg-paper-tint p-1">
+          {segments
+            .filter((t) => t.show)
+            .map((t) => (
+              <Link
+                key={t.id}
+                href={t.href}
+                aria-current={sub === t.id ? "page" : undefined}
+                className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                  sub === t.id ? "bg-white text-ink shadow-sm" : "text-ink-soft hover:text-ink"
+                }`}
+              >
+                {t.label}
+              </Link>
+            ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 type CohortRow = {
   id: string;
@@ -921,34 +987,12 @@ export function AdminTabs({
           <div className="space-y-8">
             <PageHeader
               title="Admin"
-              subtitle="Pick a course to manage — curriculum, roster, student work, and attendance."
               actions={
                 canSwitchPrograms(userRole) && <ManageMenu />
               }
             />
 
-            {/* Quick-access tabs — underline style scales better than a row of
-                pills as more sections are added. */}
-            <div className="flex flex-wrap items-center gap-x-1 border-b border-rule">
-              {[
-                { href: "/dashboard/admin?tab=students", label: "All people", Icon: UsersIcon, show: true },
-                { href: "/dashboard/admin?tab=student-work", label: "Student work", Icon: ClipboardListIcon, show: true },
-                { href: "/dashboard/admin?tab=attendance", label: "Attendance", Icon: ChartBarIcon, show: true },
-                { href: "/dashboard/admin?tab=insights", label: "Survey insights", Icon: ChartPieIcon, show: canViewInsights(userRole) },
-                { href: "/dashboard/admin?tab=analytics", label: "Engagement", Icon: ChartLineUpIcon, show: canViewInsights(userRole) },
-              ]
-                .filter((t) => t.show)
-                .map(({ href, label, Icon }) => (
-                  <Link
-                    key={href}
-                    href={href}
-                    className="-mb-px inline-flex items-center gap-1.5 border-b-2 border-transparent px-3 py-2.5 text-sm font-medium text-ink-soft transition-colors hover:border-ink-faint hover:text-ink"
-                  >
-                    <Icon size={14} weight="bold" aria-hidden />
-                    {label}
-                  </Link>
-                ))}
-            </div>
+            <AdminTopTabs current="courses" showInsights={canViewInsights(userRole)} />
 
             <div className="divide-y divide-rule overflow-hidden panel">
               {tracks.map((t) => {
@@ -1404,6 +1448,8 @@ export function AdminTabs({
 
       {/* People — compact cross-track roster */}
       {tab === "students" && (
+        <div className="space-y-6">
+        <AdminTopTabs current="students" showInsights={canViewInsights(userRole)} />
         <PeopleTab
           students={students}
           cohorts={cohorts}
@@ -1424,18 +1470,13 @@ export function AdminTabs({
           onStudentAdded={(s) => setStudents((prev) => [...prev, s])}
           pendingPeople={pendingPeople}
         />
+        </div>
       )}
 
       {/* Standalone Student Work (from sidebar, all tracks) */}
       {tab === "student-work" && (
         <div className="space-y-6">
-          <Link
-            href="/dashboard/admin"
-            className="inline-flex items-center gap-1.5 text-[11px] font-medium text-ink-faint transition-colors hover:text-ink-soft"
-          >
-            <ArrowLeftIcon size={11} weight="bold" aria-hidden />
-            Admin
-          </Link>
+          <AdminTopTabs current="student-work" showInsights={canViewInsights(userRole)} />
           <PageHeader
             title="Student Work"
             subtitle="Review submitted work and leave feedback across all tracks"
@@ -1447,13 +1488,7 @@ export function AdminTabs({
       {/* Standalone Analytics (from sidebar, all tracks) */}
       {tab === "attendance" && (
         <div className="space-y-6">
-          <Link
-            href="/dashboard/admin"
-            className="inline-flex items-center gap-1.5 text-[11px] font-medium text-ink-faint transition-colors hover:text-ink-soft"
-          >
-            <ArrowLeftIcon size={11} weight="bold" aria-hidden />
-            Admin
-          </Link>
+          <AdminTopTabs current="analytics" sub="attendance" showInsights={canViewInsights(userRole)} />
           <PageHeader
             title="Attendance"
             subtitle="Check-ins across all tracks and cohorts"
@@ -1490,13 +1525,7 @@ export function AdminTabs({
          follows the program switcher rather than showing every program. */}
       {tab === "analytics" && (
         <div className="space-y-6">
-          <Link
-            href="/dashboard/admin"
-            className="inline-flex items-center gap-1.5 text-[11px] font-medium text-ink-faint transition-colors hover:text-ink-soft"
-          >
-            <ArrowLeftIcon size={11} weight="bold" aria-hidden />
-            Admin
-          </Link>
+          <AdminTopTabs current="analytics" sub="analytics" showInsights={canViewInsights(userRole)} />
           <PageHeader
             title="Engagement"
             subtitle={
@@ -1520,13 +1549,7 @@ export function AdminTabs({
          broader operational dashboard (engagement, attendance, alumni). */}
       {tab === "insights" && (
         <div className="space-y-6">
-          <Link
-            href="/dashboard/admin"
-            className="inline-flex items-center gap-1.5 text-[11px] font-medium text-ink-faint transition-colors hover:text-ink-soft"
-          >
-            <ArrowLeftIcon size={11} weight="bold" aria-hidden />
-            Admin
-          </Link>
+          <AdminTopTabs current="analytics" sub="insights" showInsights={canViewInsights(userRole)} />
           <PageHeader
             title="Survey Insights"
             subtitle="Per-program survey management and cross-program responses"
