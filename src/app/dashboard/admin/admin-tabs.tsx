@@ -1477,10 +1477,6 @@ export function AdminTabs({
       {tab === "student-work" && (
         <div className="space-y-6">
           <AdminTopTabs current="student-work" showInsights={canViewInsights(userRole)} />
-          <PageHeader
-            title="Student Work"
-            subtitle="Review submitted work and leave feedback across all tracks"
-          />
           <StudentWorkTab tracks={tracks} programSlug={programSlug} />
         </div>
       )}
@@ -1489,10 +1485,6 @@ export function AdminTabs({
       {tab === "attendance" && (
         <div className="space-y-6">
           <AdminTopTabs current="analytics" sub="attendance" showInsights={canViewInsights(userRole)} />
-          <PageHeader
-            title="Attendance"
-            subtitle="Check-ins across all tracks and cohorts"
-          />
           <AttendanceTab
             students={students.filter((s) => s.role === "student")}
             tracks={tracks}
@@ -1526,14 +1518,10 @@ export function AdminTabs({
       {tab === "analytics" && (
         <div className="space-y-6">
           <AdminTopTabs current="analytics" sub="analytics" showInsights={canViewInsights(userRole)} />
-          <PageHeader
-            title="Engagement"
-            subtitle={
-              analyticsData
-                ? `${analyticsData.programName} — activation funnel & per-learner activity`
-                : "Activation funnel & per-learner activity"
-            }
-          />
+          {/* Program context only — the lit Engagement segment is the title. */}
+          {analyticsData && (
+            <p className="text-sm text-ink-soft">{analyticsData.programName} — activation funnel &amp; per-learner activity</p>
+          )}
           {analyticsData ? (
             <AnalyticsDashboard data={analyticsData} />
           ) : (
@@ -1550,10 +1538,6 @@ export function AdminTabs({
       {tab === "insights" && (
         <div className="space-y-6">
           <AdminTopTabs current="analytics" sub="insights" showInsights={canViewInsights(userRole)} />
-          <PageHeader
-            title="Survey Insights"
-            subtitle="Per-program survey management and cross-program responses"
-          />
 
           {/* The "{Program} surveys" widget that used to live here pulled from
              `surveyStats` (auth-only, never populated on the Insights tab since
@@ -2004,7 +1988,6 @@ function PeopleTab({
       {(!embedded || isManager) && (
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          {!embedded && <h1 className="text-3xl font-bold tracking-tight text-ink">People</h1>}
           {!embedded && (
             <p className="mt-0.5 text-sm text-ink-soft">
               {studentCount} {studentCount === 1 ? "student" : "students"} · {instructorCount} {instructorCount === 1 ? "instructor" : "instructors"}
