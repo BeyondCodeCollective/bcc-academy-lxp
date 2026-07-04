@@ -5,7 +5,7 @@ import { requireAdmin, requireManager, requireSuperAdmin, requireCapability, log
 import { canSwitchPrograms } from "@/lib/roles";
 import { getProgram } from "@/lib/programs/server";
 import { resolveProgramScope } from "@/lib/programs/scope";
-import { deriveCohortLabel } from "@/lib/surveys/cohort-labels";
+import { deriveCohortLabel, SURVEY_COHORT_DEFAULTS } from "@/lib/surveys/cohort-labels";
 
 // Resolves the program_id scope for an insights query. Super-admins get the
 // BCC-wide view (no scope — undefined) unless they pass an explicit one;
@@ -838,6 +838,13 @@ export async function getDashboardAllSurveyResponses(
   for (const row of publicRes.data ?? []) {
     const surveyType = (row as { survey_type: string }).survey_type;
     const p = (Array.isArray(row.programs) ? row.programs[0] : row.programs) as { slug: string; name: string } | null;
+    // Cohort-specific surveys (applications, agreements, course post-surveys)
+    // tag their public responses by survey type — an anonymous Security+
+    // application can't belong to any other cohort.
+    let responses = (row as { responses: Record<string, unknown> }).responses;
+    if (!responses?.program_variant && !responses?._cohort_track && SURVEY_COHORT_DEFAULTS[surveyType]) {
+      responses = { ...responses, program_variant: SURVEY_COHORT_DEFAULTS[surveyType] };
+    }
     (byType[surveyType] ??= []).push({
       survey_type: surveyType,
       full_name: (row as { full_name: string }).full_name,
@@ -845,7 +852,7 @@ export async function getDashboardAllSurveyResponses(
       program_slug: p?.slug ?? "",
       program_name: p?.name ?? "",
       completed_at: (row as { completed_at: string | null }).completed_at,
-      responses: (row as { responses: Record<string, unknown> }).responses,
+      responses,
       source: "public",
     });
   }
@@ -886,11 +893,50 @@ export async function getDashboardAllSurveyResponses(
     }
   }
 
+  // Second rung: signers with NO enrollment yet (e.g. someone signing the
+  // standalone participation agreement before joining a course) still have an
+  // allowlist row saying which course they belong to — derive from that.
+  const stillUntaggedEmails = [
+    ...new Set(
+      (authData ?? [])
+        .filter(
+          (r) =>
+            !r.responses?.program_variant &&
+            !r.responses?._cohort_track &&
+            (tracksByStudent.get(r.student_id) ?? []).length === 0 &&
+            r.students?.email,
+        )
+        .map((r) => r.students!.email.toLowerCase()),
+    ),
+  ];
+  const allowTracksByEmail = new Map<string, string[]>();
+  if (stillUntaggedEmails.length > 0) {
+    const { data: allowRows } = await svc
+      .from("allowed_signup_emails")
+      .select("email, track_slug")
+      .in("email", stillUntaggedEmails);
+    for (const a of (allowRows ?? []) as { email: string; track_slug: string }[]) {
+      const key = a.email.toLowerCase();
+      const list = allowTracksByEmail.get(key) ?? [];
+      list.push(a.track_slug);
+      allowTracksByEmail.set(key, list);
+    }
+  }
+
   for (const row of authData ?? []) {
     const p = (Array.isArray(row.programs) ? row.programs[0] : row.programs) as { slug: string; name: string } | null;
     let responses = row.responses;
     if (!responses?.program_variant && !responses?._cohort_track) {
-      const label = deriveCohortLabel(tracksByStudent.get(row.student_id) ?? [], p?.slug ?? "");
+      // Tagging chain: enrollment → allowlist → survey-type default. Every
+      // rung is derived from context the platform already knows — "Untagged"
+      // should only remain possible for a genuinely context-free response.
+      const label =
+        deriveCohortLabel(tracksByStudent.get(row.student_id) ?? [], p?.slug ?? "") ??
+        deriveCohortLabel(
+          allowTracksByEmail.get(row.students?.email?.toLowerCase() ?? "") ?? [],
+          p?.slug ?? "",
+        ) ??
+        SURVEY_COHORT_DEFAULTS[row.survey_type];
       if (label) responses = { ...responses, program_variant: label };
     }
     (byType[row.survey_type] ??= []).push({
