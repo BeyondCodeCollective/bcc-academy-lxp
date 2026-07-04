@@ -68,7 +68,11 @@ const nextConfig: NextConfig = {
       // <script src="blob:..."> elements and importScripts(blob:) inside its
       // workers — worker-src blob: alone only allows spawning the workers, not
       // these script loads, so join() still hung after #610.
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: https://va.vercel-scripts.com https://www.googletagmanager.com https://*.zoom.us",
+      // www.eventbrite.com in script/frame/connect: the embedded checkout on
+      // campaign landing pages loads eb_widgets.js and mounts the checkout
+      // iframe from there. img.evbuc.com below was allowlisted all along —
+      // these three were missed when CSP went enforced, killing the embed.
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: https://va.vercel-scripts.com https://www.googletagmanager.com https://*.zoom.us https://www.eventbrite.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.zoom.us",
       "img-src 'self' data: blob: https://*.supabase.co https://images.pexels.com https://img.evbuc.com https://*.google-analytics.com https://*.googletagmanager.com https://*.zoom.us",
       // The Zoom Meeting SDK spawns its audio/video pipeline as blob: workers.
@@ -78,8 +82,8 @@ const nextConfig: NextConfig = {
       "worker-src 'self' blob:",
       "font-src 'self' data: https://fonts.gstatic.com",
       "media-src 'self' https://*.supabase.co https://images.pexels.com https://videos.pexels.com",
-      "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://zoom.us https://*.zoom.us",
-      "connect-src 'self' https://*.supabase.co https://*.resend.com https://va.vercel-scripts.com https://*.google-analytics.com https://o4506503091847168.ingest.us.sentry.io https://zoom.us https://*.zoom.us wss://*.zoom.us",
+      "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://zoom.us https://*.zoom.us https://www.eventbrite.com",
+      "connect-src 'self' https://*.supabase.co https://*.resend.com https://va.vercel-scripts.com https://*.google-analytics.com https://o4506503091847168.ingest.us.sentry.io https://zoom.us https://*.zoom.us wss://*.zoom.us https://www.eventbrite.com",
       "report-uri /api/csp-report",
     ].join("; ");
 
