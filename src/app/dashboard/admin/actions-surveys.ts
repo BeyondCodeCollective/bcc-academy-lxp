@@ -469,6 +469,9 @@ export type BCCSurveyStat = {
   source: "public" | "authenticated";
 };
 
+// ⚠ Counts here are RAW per-source tallies and include claimed public twins
+// (see dedupeClaimedResponses). Safe only for existence checks — do NOT
+// display these counts; render counts from the deduped response arrays.
 export async function getBCCSurveyStats(): Promise<BCCSurveyStat[]> {
   const { svc, userId } = await requireSuperAdmin();
 
@@ -600,11 +603,33 @@ export async function getBCCSurveyResponses(
     };
   });
 
-  return [...publicRows, ...authRows].sort((a, b) => {
+  return dedupeClaimedResponses([...publicRows, ...authRows]).sort((a, b) => {
     if (!a.completed_at) return 1;
     if (!b.completed_at) return -1;
     return new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime();
   });
+}
+
+// ─── Claimed-response dedupe ─────────────────────────────────────────────────
+// When a public responder later creates an account, deferred-setup COPIES
+// their public response into survey_responses (the "claim"). Counting both
+// rows double-counts every applicant who ever logged in — 16 real Security+
+// applications displayed as 32. One person + one survey = one response: when
+// an authenticated row exists for the same (email, survey_type), drop the
+// public twin. Keep the authenticated copy — it carries the student link and
+// cohort tagging.
+function dedupeClaimedResponses(rows: BCCSurveyResponse[]): BCCSurveyResponse[] {
+  const authKeys = new Set(
+    rows
+      .filter((r) => r.source === "authenticated" && r.email)
+      .map((r) => `${r.email.toLowerCase()}::${r.survey_type}`),
+  );
+  return rows.filter(
+    (r) =>
+      r.source !== "public" ||
+      !r.email ||
+      !authKeys.has(`${r.email.toLowerCase()}::${r.survey_type}`),
+  );
 }
 
 // ─── Dashboard: all surveys, all sources ─────────────────────────────────────
@@ -613,6 +638,9 @@ export async function getBCCSurveyResponses(
 // type that has any responses in either table — so program-bound auth surveys
 // like mid-program-spring-2026 and pre-survey-spring-2026 show up.
 
+// ⚠ Counts here are RAW per-source tallies and include claimed public twins
+// (see dedupeClaimedResponses). Safe only for existence checks — do NOT
+// display these counts; render counts from the deduped response arrays.
 export async function getDashboardSurveyStats(
   programIds?: string[],
 ): Promise<BCCSurveyStat[]> {
@@ -751,7 +779,7 @@ export async function getDashboardSurveyResponses(
     };
   });
 
-  return [...publicRows, ...authRows].sort((a, b) => {
+  return dedupeClaimedResponses([...publicRows, ...authRows]).sort((a, b) => {
     if (!a.completed_at) return 1;
     if (!b.completed_at) return -1;
     return new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime();
@@ -878,6 +906,7 @@ export async function getDashboardAllSurveyResponses(
   }
 
   for (const t of surveyTypes) {
+    byType[t] = dedupeClaimedResponses(byType[t]);
     byType[t].sort((a, b) => {
       if (!a.completed_at) return 1;
       if (!b.completed_at) return -1;
