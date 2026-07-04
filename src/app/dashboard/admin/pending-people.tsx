@@ -104,7 +104,10 @@ export function PendingPeopleSection({ pending, trackNames }: Props) {
           type="button"
           onClick={sendAll}
           disabled={isPending || allTracks.length === 0}
-          className={buttonClass("primary", "sm")}
+          // Secondary on purpose: "Add people" is this screen's ONE primary
+          // action; a second cobalt button at a different weight reads as two
+          // competing calls-to-action.
+          className={buttonClass("secondary", "sm")}
         >
           {sendingAll ? <Loader2 size={12} className="animate-spin" /> : null}
           {sendingAll ? "Sending…" : "Send all invites"}
