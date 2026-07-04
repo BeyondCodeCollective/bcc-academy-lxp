@@ -1,6 +1,5 @@
 "use client";
 
-import { Bell } from "@phosphor-icons/react";
 import { UserMenu } from "@/components/user-menu";
 import { CommandPalette, type SearchItem } from "@/components/command-palette";
 
@@ -58,13 +57,9 @@ export function DashboardTopBar({
         )}
 
         <div className="flex shrink-0 items-center gap-1">
-          <button
-            type="button"
-            aria-label="Notifications"
-            className="relative flex h-9 w-9 items-center justify-center rounded-lg text-ink-soft transition-colors hover:bg-paper-tint hover:text-ink"
-          >
-            <Bell size={18} weight="bold" aria-hidden />
-          </button>
+          {/* No bell: it was a handler-less placeholder. A notifications
+             dropdown (announcements + feedback, the data already exists)
+             can bring it back WITH behavior. */}
           <UserMenu
             variant="topbar"
             firstName={firstName}
