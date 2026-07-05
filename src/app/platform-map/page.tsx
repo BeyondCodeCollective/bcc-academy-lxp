@@ -25,7 +25,7 @@ type Zone = { name: string; blurb: string; pages: PageRow[] };
 
 const ZONES: Zone[] = [
   {
-    name: "Public",
+    name: "Marketing site",
     blurb: "No login. Where students and funders meet us.",
     pages: [
       { name: "Homepage", route: "/", href: "/" },
@@ -36,10 +36,7 @@ const ZONES: Zone[] = [
       // (a signed-in admin's program cookie 404s them) — no live link.
       { name: "Age-stage pathways", route: "/pathways/[slug]", href: null },
       { name: "Public surveys", route: "/survey/[id]", href: "/survey/bcc-learner-intake" },
-      { name: "Public certificates", route: "/certificate/[id]", href: null },
       { name: "Help center", route: "/help", href: "/help" },
-      { name: "Privacy + data deletion", route: "/privacy", href: "/privacy" },
-      { name: "Terms", route: "/terms", href: "/terms" },
     ],
   },
   {
@@ -47,6 +44,7 @@ const ZONES: Zone[] = [
     blurb: "Every door is passwordless.",
     pages: [
       { name: "Security+ application", route: "/apply/security-plus", href: "/apply/security-plus" },
+      { name: "Embedded Eventbrite checkout", route: "/bcc/game-on", href: "/bcc/game-on" },
       { name: "Program join links", route: "/join/[slug]", href: "/join/bgc" },
       { name: "Magic-link login", route: "/login", href: "/login" },
       { name: "One-click invite login", route: "/invite/<token>", href: null },
@@ -54,20 +52,16 @@ const ZONES: Zone[] = [
     ],
   },
   {
-    name: "Student portal",
-    blurb: "Per-program branding; a camper sees only her world.",
+    name: "Learner portal",
+    blurb: "One chassis, five brands — Catalyst, BGC, Upskill Bahamas, Beyond the Game, Beyond Code Centers each get their own shell.",
     pages: [
       { name: "Learner home", route: "/dashboard", href: "/dashboard" },
       { name: "Course overview + holding page", route: "/track/[slug]", href: "/dashboard/track/roblox-virtual-bootcamp" },
       { name: "Classroom — video, Zoom, work", route: "/track/[slug]/[week]", href: "/dashboard/track/roblox-virtual-bootcamp/1" },
-      // Tutor is per-program opt-in (Forte/Upskill Bahamas only) — the route
-      // 404s in other program contexts, so no live link from the map.
+      // Tutor is per-program opt-in (Upskill Bahamas only) — 404s elsewhere.
       { name: "AI Tutor — Upskill Bahamas only", route: "/tutor", href: null },
       { name: "Course catalog", route: "/courses", href: "/dashboard/courses" },
-      { name: "Workshops hub + detail", route: "/workshops", href: "/dashboard/workshops" },
-      { name: "Lunch & Learn hub + player", route: "/lunch-learn", href: "/dashboard/lunch-learn" },
       { name: "Pathway assessment + results", route: "/assessment", href: "/dashboard/assessment" },
-      { name: "Participation agreement", route: "/agreement", href: "/dashboard/agreement" },
       { name: "In-portal surveys", route: "/survey/[id]", href: "/dashboard/survey/comptia-security-pre" },
       { name: "My analytics", route: "/insights", href: "/dashboard/insights" },
       { name: "Onboarding · guide · help", route: "/start · /guide", href: "/dashboard/start" },
@@ -75,11 +69,23 @@ const ZONES: Zone[] = [
     ],
   },
   {
+    name: "Staff surfaces",
+    blurb: "For the people who run programs but don't administer the platform.",
+    pages: [
+      // BGC-internal — these 404 outside the BGC program context.
+      { name: "Lunch & Learn hub + player", route: "/lunch-learn", href: null },
+      { name: "Lunch & Learn manager", route: "/lunch-learn/admin", href: null },
+      { name: "Workshops hub + detail — BGC only", route: "/workshops", href: null },
+      { name: "Instructor-scoped admin (their courses only)", route: "role-scoped /admin", href: null },
+      { name: "Preview-as-student mode", route: "super-admin toggle", href: null },
+    ],
+  },
+  {
     name: "Admin engine",
     blurb: "Staff run every program from here — no engineers.",
     pages: [
       { name: "Admin home — courses, people, attendance", route: "/admin", href: "/dashboard/admin" },
-      { name: "Survey Insights + CSV", route: "/admin/insights", href: "/dashboard/admin/insights" },
+      { name: "Survey Insights + CSV/PDF", route: "/admin/insights", href: "/dashboard/admin/insights" },
       { name: "Engagement funnel", route: "?tab=analytics", href: "/dashboard/admin?tab=analytics" },
       { name: "Eventbrite registrations", route: "/admin/registrations", href: "/dashboard/admin/registrations" },
       { name: "Bulk one-click invites", route: "/admin/invites", href: "/dashboard/admin/invites" },
@@ -89,8 +95,20 @@ const ZONES: Zone[] = [
       { name: "Allowlist", route: "/admin/allowlist", href: "/dashboard/admin/allowlist" },
       { name: "Survey manager + viewer", route: "/admin/surveys", href: "/dashboard/admin/surveys" },
       { name: "Assessment results", route: "/admin/assessments", href: "/dashboard/admin/assessments" },
-      { name: "Participation agreements", route: "/admin/agreements", href: "/dashboard/admin/agreements" },
       { name: "Feature toggles · Resources", route: "/admin/features", href: "/dashboard/admin/features" },
+    ],
+  },
+  {
+    name: "Compliance & credentials",
+    blurb: "Small in page count, disproportionate in what it protects and proves.",
+    pages: [
+      { name: "Public certificates — verifiable, no login", route: "/certificate/[id]", href: null },
+      { name: "Participation agreement signing", route: "/dashboard/agreement", href: "/dashboard/agreement" },
+      { name: "Agreements admin — who signed, by cohort", route: "/admin/agreements", href: "/dashboard/admin/agreements" },
+      { name: "Privacy + self-serve data deletion", route: "/privacy/withdraw", href: "/privacy" },
+      { name: "Terms", route: "/terms", href: "/terms" },
+      { name: "COPPA gating (BGC camps)", route: "program config", href: null },
+      { name: "Admin PII access audit log", route: "admin_access_log", href: null },
     ],
   },
   {
@@ -105,7 +123,6 @@ const ZONES: Zone[] = [
       { name: "AI Tutor backend", route: "/api/tutor", href: null },
       { name: "Calendar generation (Google + iCal)", route: "/api/calendar/event", href: null },
       { name: "Insights exports — CSV + PDF", route: "/api/insights/*", href: null },
-      { name: "Admin PII access audit log", route: "admin_access_log", href: null },
     ],
   },
 ];
@@ -143,7 +160,7 @@ export default async function PlatformMapPage() {
           >
             <span><b className="font-semibold text-ink">{totalPages}</b> PAGES</span>
             <span><b className="font-semibold text-ink">5</b> PROGRAMS</span>
-            <span><b className="font-semibold text-ink">5</b> AREAS</span>
+            <span><b className="font-semibold text-ink">7</b> AREAS</span>
             <span><b className="font-semibold text-ink">1</b> PLATFORM</span>
           </div>
         </header>
