@@ -93,6 +93,21 @@ const ZONES: Zone[] = [
       { name: "Feature toggles · Resources", route: "/admin/features", href: "/dashboard/admin/features" },
     ],
   },
+  {
+    name: "Platform services",
+    blurb: "The machinery you can't see — it's why the pages you can see are trustworthy.",
+    pages: [
+      { name: "Eventbrite funnel — webhook + instant account claim", route: "/api/eventbrite/*", href: null },
+      { name: "Zoom session security — signed SDK joins, no exposed links", route: "/api/zoom-signature · /zoom-frame", href: null },
+      { name: "Email engine — invites, reminders, certificates (Resend)", route: "lib/email", href: null },
+      { name: "Cron jobs — daily activity snapshots", route: "/api/cron/*", href: null },
+      { name: "CSP enforcement + violation report sink", route: "/api/csp-report", href: null },
+      { name: "AI Tutor backend", route: "/api/tutor", href: null },
+      { name: "Calendar generation (Google + iCal)", route: "/api/calendar/event", href: null },
+      { name: "Insights exports — CSV + PDF", route: "/api/insights/*", href: null },
+      { name: "Admin PII access audit log", route: "admin_access_log", href: null },
+    ],
+  },
 ];
 
 const totalPages = 56;
@@ -128,7 +143,7 @@ export default async function PlatformMapPage() {
           >
             <span><b className="font-semibold text-ink">{totalPages}</b> PAGES</span>
             <span><b className="font-semibold text-ink">5</b> PROGRAMS</span>
-            <span><b className="font-semibold text-ink">4</b> AREAS</span>
+            <span><b className="font-semibold text-ink">5</b> AREAS</span>
             <span><b className="font-semibold text-ink">1</b> PLATFORM</span>
           </div>
         </header>
@@ -142,7 +157,7 @@ export default async function PlatformMapPage() {
                   className="text-[11px] font-normal text-ink-faint tabular-nums"
                   style={{ fontFamily: "var(--font-geist-mono)" }}
                 >
-                  {zone.pages.length} pages
+                  {zone.pages.length} {zone.name === "Platform services" ? "services" : "pages"}
                 </span>
               </h2>
               <p className="mb-3 mt-1 text-[12.5px] text-ink-faint">
