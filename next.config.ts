@@ -83,7 +83,11 @@ const nextConfig: NextConfig = {
       "font-src 'self' data: https://fonts.gstatic.com",
       "media-src 'self' https://*.supabase.co https://images.pexels.com https://videos.pexels.com",
       "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://zoom.us https://*.zoom.us https://www.eventbrite.com",
-      "connect-src 'self' https://*.supabase.co https://*.resend.com https://va.vercel-scripts.com https://*.google-analytics.com https://o4506503091847168.ingest.us.sentry.io https://zoom.us https://*.zoom.us wss://*.zoom.us https://www.eventbrite.com",
+      // www.google.com in connect-src: GA4 dual-sends events to
+      // google.com/g/collect (consent-mode pings) alongside
+      // *.google-analytics.com — the sweep's CSP tripwire caught these
+      // being dropped on most dashboard pages.
+      "connect-src 'self' https://*.supabase.co https://*.resend.com https://va.vercel-scripts.com https://*.google-analytics.com https://o4506503091847168.ingest.us.sentry.io https://zoom.us https://*.zoom.us wss://*.zoom.us https://www.eventbrite.com https://www.google.com",
       "report-uri /api/csp-report",
     ].join("; ");
 
