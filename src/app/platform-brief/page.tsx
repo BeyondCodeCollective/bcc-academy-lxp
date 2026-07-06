@@ -435,7 +435,10 @@ export default async function PlatformBriefPage() {
           style={{ fontFamily: "var(--font-geist-mono)" }}
         >
           <span>Internal — prepared for board &amp; team</span>
-          <span>bccacademy.io/platform-brief</span>
+          <span className="flex flex-wrap gap-x-8 gap-y-2">
+            <a href="/platform-map" className="hover:text-ink-soft">↳ The platform map</a>
+            <a href="/platform-features" className="hover:text-ink-soft">↳ The feature set</a>
+          </span>
         </footer>
       </div>
     </div>
