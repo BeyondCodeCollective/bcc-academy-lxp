@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { useRouter } from "next/navigation";
 import { BadgeCheck } from "lucide-react";
 import { completeOnboarding } from "@/app/dashboard/actions";
 import { Field, fieldInput, buttonClass } from "@/components/ui";
@@ -16,7 +15,6 @@ import { Field, fieldInput, buttonClass } from "@/components/ui";
 const emptySubscribe = () => () => {};
 
 export function NameCaptureOverlay({ campMode }: { campMode: boolean }) {
-  const router = useRouter();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [saving, setSaving] = useState(false);
@@ -51,7 +49,11 @@ export function NameCaptureOverlay({ campMode }: { campMode: boolean }) {
     try {
       await completeOnboarding({ first_name: first, last_name: last });
       setDone(true);
-      router.refresh();
+      // Full reload, not router.refresh(): the soft refresh doesn't reliably
+      // repaint the top-bar avatar, and a save that produces no visible
+      // change reads as a failure. This modal runs once per account — pay
+      // the reload.
+      window.location.reload();
     } catch {
       setError("Couldn't save right now — please try again.");
       setSaving(false);
