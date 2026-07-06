@@ -13,7 +13,7 @@ import { test, expect } from '@playwright/test';
  * Run in UI mode: pnpm playwright test tests/comprehensive-user-flows.spec.ts --ui
  */
 
-const BASE_URL = process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:3000';
+const BASE_URL = process.env.SMOKE_BASE_URL || process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:3000';
 
 // Test user scenarios
 const TEST_USERS = {
