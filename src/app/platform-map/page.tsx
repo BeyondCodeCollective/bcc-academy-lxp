@@ -219,10 +219,12 @@ export default async function PlatformMapPage() {
         </div>
 
         <footer
-          className="mt-14 text-[11.5px] uppercase tracking-[0.12em] text-ink-faint"
+          className="mt-14 flex flex-wrap gap-x-8 gap-y-2 text-[11.5px] uppercase tracking-[0.12em] text-ink-faint"
           style={{ fontFamily: "var(--font-geist-mono)" }}
         >
-          bccacademy.io · links open the live product in a new tab
+          <span>bccacademy.io · links open the live product in a new tab</span>
+          <a href="/platform-features" className="hover:text-ink-soft">↳ The feature set</a>
+          <a href="/platform-brief" className="hover:text-ink-soft">↳ The strategy brief</a>
         </footer>
       </div>
     </div>
