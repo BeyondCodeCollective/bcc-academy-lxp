@@ -9,6 +9,7 @@ import { DashboardTopBar } from "@/components/dashboard-topbar";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { getDashboardIndex } from "@/lib/dashboard-index";
 import { TutorFab } from "@/components/tutor-fab";
+import { NameCaptureOverlay } from "@/components/name-capture-overlay";
 import { PreviewToggle } from "@/components/preview-toggle";
 import { getProgram, getProgramWithOverrides } from "@/lib/programs/server";
 import { getProgramBySlug, getAllPrograms, getJoinablePrograms, isTutorAvailable } from "@/lib/programs";
@@ -577,6 +578,17 @@ async function Overlays({ isSurveyPage }: { isSurveyPage: boolean }) {
   if (!ctx) return null;
 
   const role = ctx.student?.role ?? "";
+
+  // Learner accounts created from an email alone (bulk invites, Eventbrite
+  // claims) have no name — but the certificate and the Zoom join both print
+  // it. Block once, ask once: the overlay never renders again after save.
+  const needsName =
+    !!ctx.student &&
+    !canAccessAdminPanel(role) &&
+    !isStaffEmail(ctx.student.email ?? ctx.userEmail) &&
+    !(ctx.student.first_name ?? "").trim() &&
+    !(ctx.student.last_name ?? "").trim();
+
   const canShowPreview = canSwitchPrograms(role);
   const previewSlug = await getPreviewTrackSlug(role);
   const validPreviewSlug =
@@ -635,6 +647,7 @@ async function Overlays({ isSurveyPage }: { isSurveyPage: boolean }) {
 
   return (
     <>
+      {needsName && <NameCaptureOverlay campMode={program.slug === "bgc"} />}
       {showTutor && <TutorFab />}
       {canShowPreview && (
         <PreviewToggle previewingSlug={validPreviewSlug} groups={previewGroups} />
