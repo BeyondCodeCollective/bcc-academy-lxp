@@ -1,4 +1,5 @@
 import { CentralLoginForm } from "@/components/central-login-form";
+import { InviteLinkNotice } from "@/components/invite-link-notice";
 import { SignIn } from "@phosphor-icons/react/dist/ssr";
 import Image from "next/image";
 import Link from "next/link";
@@ -28,6 +29,8 @@ export default function CentralLoginPage() {
             <p className="text-electric-green text-xs font-mono uppercase tracking-[0.3em] mb-3">
               [ Student Portal ]
             </p>
+
+            <InviteLinkNotice />
 
             <CentralLoginForm
               programs={getJoinablePrograms()
