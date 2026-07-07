@@ -272,6 +272,13 @@ export type ProgramConfig = {
   dnsReady?: boolean;
   /** Path to logo in /public (e.g. "/atg/logo.svg") */
   logo: string;
+  /**
+   * Optional logo for LIGHT backgrounds (the dashboard shell is white).
+   * The default `logo` is tuned for dark surfaces (login banner, marketing
+   * hero) — white/cream marks that vanish on the white nav. Set this to a
+   * dark-ink variant so the nav logo stays visible. Falls back to `logo`.
+   */
+  logoLight?: string;
   /** Optional PNG logo for contexts that need it */
   logoPng?: string;
   /** Optional welcome video path */

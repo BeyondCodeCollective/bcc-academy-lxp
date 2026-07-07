@@ -15,6 +15,7 @@ export const marketingConfig: ProgramConfig = {
   tagline: "Where everyone builds together.",
   domain: "bccacademy.io",
   logo: "/images/bcc/logos/bcc-logo-horizontal-white.png",
+  logoLight: "/images/bcc/logos/bcc-horizontal-ink.svg",
   colors: {
     primary: "#1a1a1a",
     primaryHover: "#2a2a2a",

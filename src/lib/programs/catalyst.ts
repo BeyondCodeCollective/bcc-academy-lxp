@@ -13,6 +13,7 @@ export const catalystConfig: ProgramConfig = {
   tagline: "Workforce development powered by Beyond Code Collective",
   domain: "bccacademy.io",
   logo: "/catalyst/logo.svg",
+  logoLight: "/images/bcc/logos/bcc-horizontal-ink.svg",
   colors: {
     primary: "#1a1a1a",
     primaryHover: "#2a2a2a",

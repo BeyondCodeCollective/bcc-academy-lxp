@@ -451,7 +451,7 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
       <Nav
         isAdmin={isAdmin}
         canAccessStaff={canAccessStaff}
-        logo={program.logo}
+        logo={program.logoLight ?? program.logo}
         programName={program.name}
         showTutor={showTutor}
         showResources={showResources}

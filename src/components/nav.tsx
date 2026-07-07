@@ -471,7 +471,7 @@ export function Nav({
           <div className="flex items-center gap-6">
             <Link href={homeHref} className="flex items-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={logo} alt={programName} className="h-5" />
+              <img src={logo} alt={programName} className="h-6 w-auto" />
             </Link>
             <nav className="flex items-center gap-1" aria-label="Primary">
               {items.map(({ href, label }) => {
@@ -509,7 +509,7 @@ export function Nav({
         <div className="md:hidden sticky top-0 z-30 flex items-center justify-between shell-topbar px-4 py-2">
           <Link href={homeHref} className="flex items-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={logo} alt={programName} className="h-4" />
+            <img src={logo} alt={programName} className="h-7 w-auto" />
           </Link>
           <div className="flex items-center gap-1">
             <UserMenu variant="topbar" {...userMenuProps} />
@@ -578,14 +578,14 @@ export function Nav({
           <div className="flex h-full flex-col gap-6 p-4">
             <Link href={homeHref} className="flex items-center px-2 py-2">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={logo} alt={programName} className="h-5" />
+              <img src={logo} alt={programName} className="h-6 w-auto" />
             </Link>
           </div>
         </aside>
         <div className="md:hidden sticky top-0 z-30 flex items-center justify-between shell-topbar px-4 py-2">
           <Link href={homeHref} className="flex items-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={logo} alt={programName} className="h-4" />
+            <img src={logo} alt={programName} className="h-7 w-auto" />
           </Link>
         </div>
       </>
@@ -614,7 +614,7 @@ export function Nav({
       onClick={() => setMobileOpen(false)}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={logo} alt={programName} className="h-5" />
+      <img src={logo} alt={programName} className="h-6 w-auto" />
     </Link>
   );
 
@@ -654,7 +654,7 @@ export function Nav({
         onClick={() => setMobileOpen(false)}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={logo} alt={programName} className="h-5" />
+        <img src={logo} alt={programName} className="h-6 w-auto" />
       </Link>
 
       <nav aria-label="Primary" className="flex flex-col gap-1">
@@ -707,7 +707,7 @@ export function Nav({
       <div className="md:hidden sticky top-0 z-30 flex items-center justify-between shell-topbar px-4 py-2">
         <Link href={homeHref} className="flex items-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={logo} alt={programName} className="h-4" />
+          <img src={logo} alt={programName} className="h-7 w-auto" />
         </Link>
         <div className="flex items-center gap-1">
           <UserMenu variant="topbar" {...userMenuProps} />
