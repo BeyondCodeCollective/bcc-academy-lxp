@@ -18,8 +18,8 @@ function Notice() {
       <p className="font-semibold mb-1">That sign-in link didn&apos;t work.</p>
       <p>
         No worries — open the <strong>newest</strong> email from us and tap the
-        button again. It creates a fresh link every time. Still stuck? Reply to
-        the email and we&apos;ll get you in.
+        button again. It creates a fresh link every time. Still stuck? Enter
+        your email below and we&apos;ll send you a new sign-in link.
       </p>
     </div>
   );
