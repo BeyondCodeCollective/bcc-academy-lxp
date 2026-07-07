@@ -201,6 +201,7 @@ function buildProgramFromDB(
     domain: "bccacademy.io",
     dnsReady: false,
     logo: "/catalyst/logo.svg",
+    logoLight: "/images/bcc/logos/bcc-horizontal-ink.svg",
     colors: {
       primary: "#1D59FF",
       primaryHover: "#4D7CFF",
