@@ -5,6 +5,15 @@ import { PrintButton } from "./print-button";
 
 export const dynamic = "force-dynamic";
 
+// Course-Builder tracks (e.g. comptia-security) live only in the DB, so they
+// have no static TrackConfig and thus no `certificateName`. Without this the
+// certificate would print the raw slug ("comptia-security"). Keyed by slug →
+// the official credential name, with correct trademark capitalization.
+const DB_TRACK_CREDENTIAL_NAMES: Record<string, string> = {
+  "comptia-security": "CompTIA Security+",
+  "comptia-network": "CompTIA Network+",
+};
+
 export default async function CertificatePage({
   params,
 }: {
@@ -42,7 +51,10 @@ export default async function CertificatePage({
   // Certificates print the credential name, not the partnership-branded
   // display name — the issuing org is already in the header.
   const trackName =
-    trackConfig?.certificateName ?? trackConfig?.name ?? completion.track_slug;
+    trackConfig?.certificateName ??
+    trackConfig?.name ??
+    DB_TRACK_CREDENTIAL_NAMES[completion.track_slug] ??
+    completion.track_slug;
   const studentName = student
     ? `${student.first_name} ${student.last_name}`
     : "Student";
