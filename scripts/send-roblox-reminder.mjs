@@ -66,7 +66,7 @@ function emailText(inviteLink) {
 
 We hope this email finds you well!
 
-Just a quick reminder that the Roblox Virtual Summer Bootcamp kicks off TOMORROW (Tuesday, July 7) at 9:00 AM EST!
+Just a quick reminder that the Roblox Virtual Summer Bootcamp kicks off TOMORROW (Tuesday, July 7) at 10:00 AM EST!
 
 The bootcamp runs three days — Tuesday through Thursday, July 7–9 — at the same time each day. We're so excited to code with your student!
 
@@ -76,14 +76,14 @@ The bootcamp runs three days — Tuesday through Thursday, July 7–9 — at the
 This helps instructors support all students and keeps activities running smoothly.
 
 ✅ One-Click Login (NEW!):
-This year students join right from their personal camp portal — no Zoom links or meeting IDs needed. Your student's personal login link is below: one click signs them in (no password) and their name is set automatically for attendance. The same link works all three days, so keep this email handy!
+This year students join right from their personal camp portal — no Zoom links or meeting IDs needed. Your student's personal login link is below: one click signs them in (no password). Once they join the classroom, instructors will walk them through setting their display name for attendance. The same link works all three days, so keep this email handy!
 
 ✅ Cameras ON:
 Students should have their cameras on throughout the workshop to engage with peers and instructors. 🎥
 
 📅 Event Details:
 
-🕕 When: Tuesday–Thursday, July 7–9 · 9:00 AM EST daily
+🕕 When: Tuesday–Thursday, July 7–9 · 10:00 AM EST daily
 
 💻 Where: your student's personal portal link (works all 3 days):
 ${inviteLink}
@@ -103,16 +103,16 @@ function emailHtml(inviteLink) {
   <div style="padding:32px 24px;">
     <p style="margin:0 0 16px;font-size:16px;color:#1a1a1a;">Hi!</p>
     <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#555;">We hope this email finds you well!</p>
-    <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#555;">Just a quick reminder that the <strong>Roblox Virtual Summer Bootcamp</strong> kicks off <strong>TOMORROW (Tuesday, July 7) at 9:00 AM EST</strong>! The bootcamp runs three days — Tuesday through Thursday, July 7–9 — at the same time each day.</p>
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#555;">Just a quick reminder that the <strong>Roblox Virtual Summer Bootcamp</strong> kicks off <strong>TOMORROW (Tuesday, July 7) at 10:00 AM EST</strong>! The bootcamp runs three days — Tuesday through Thursday, July 7–9 — at the same time each day.</p>
     <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#555;">We're so excited to code with your student!</p>
 
     <p style="margin:0 0 12px;font-size:15px;font-weight:700;color:#1a1a1a;">🔔 Important Reminders:</p>
     <p style="margin:0 0 12px;font-size:15px;line-height:1.6;color:#555;">✅ <strong>Arrive ON TIME:</strong><br/>This helps instructors support all students and keeps activities running smoothly.</p>
-    <p style="margin:0 0 12px;font-size:15px;line-height:1.6;color:#555;">✅ <strong>One-Click Login (NEW!):</strong><br/>This year students join right from their personal camp portal — no Zoom links or meeting IDs needed. The button below signs your student in with one click (no password), and their name is set automatically for attendance. The same link works all three days, so keep this email handy!</p>
+    <p style="margin:0 0 12px;font-size:15px;line-height:1.6;color:#555;">✅ <strong>One-Click Login (NEW!):</strong><br/>This year students join right from their personal camp portal — no Zoom links or meeting IDs needed. The button below signs your student in with one click (no password). Once they join the classroom, instructors will walk them through setting their display name for attendance. The same link works all three days, so keep this email handy!</p>
     <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#555;">✅ <strong>Cameras ON:</strong><br/>Students should have their cameras on throughout the workshop to engage with peers and instructors. 🎥</p>
 
     <p style="margin:0 0 12px;font-size:15px;font-weight:700;color:#1a1a1a;">📅 Event Details:</p>
-    <p style="margin:0 0 6px;font-size:15px;line-height:1.6;color:#555;">🕕 <strong>When:</strong> Tuesday–Thursday, July 7–9 · 9:00 AM EST daily</p>
+    <p style="margin:0 0 6px;font-size:15px;line-height:1.6;color:#555;">🕕 <strong>When:</strong> Tuesday–Thursday, July 7–9 · 10:00 AM EST daily</p>
     <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#555;">💻 <strong>Where:</strong> your student's personal portal — one click below:</p>
     <div style="text-align:center;margin:0 0 28px;">
       <a href="${inviteLink}" style="display:inline-block;padding:14px 36px;background:#1a1a1a;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:700;font-size:15px;letter-spacing:0.02em;">Enter the Bootcamp →</a>
