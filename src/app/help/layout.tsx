@@ -26,7 +26,7 @@ export default function HelpLayout({
 }) {
   return (
     <html lang="en" className={`${geistMono.variable} ${archivo.variable}`}>
-      <body className="font-body antialiased bg-off-white text-true-black">{children}</body>
+      <body className="font-body antialiased bg-paper text-ink">{children}</body>
     </html>
   );
 }

@@ -1714,34 +1714,46 @@ export default function HelpCenter() {
       ? currentSection?.articles[currentIndex + 1]
       : null;
 
+  const articleCount = SECTIONS.reduce((n, s) => n + s.articles.length, 0);
+
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header */}
-      <header className="bg-charcoal text-white">
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <Link
-                href="/"
-                className="font-display text-2xl font-bold tracking-tight"
-              >
-                BCC <span className="text-[#E5F701]">[</span>Academy
-                <span className="text-[#E5F701]">]</span>
-              </Link>
-              <span className="mx-3 text-white/30">|</span>
-              <span className="text-white/60">Help Center</span>
-            </div>
-            <Link
-              href="/dashboard"
-              className="text-sm text-white/70 hover:text-white transition-colors"
+    <div className="min-h-screen bg-paper text-ink">
+      {/* Masthead — same treatment as /platform-map · /platform-features ·
+          /platform-brief so the internal pages read as one family. */}
+      <header className="mx-auto max-w-7xl px-6 pt-16">
+        <div className="flex items-start justify-between gap-6">
+          <div>
+            <p
+              className="text-xs uppercase tracking-[0.18em] text-primary"
+              style={{ fontFamily: "var(--font-geist-mono)" }}
             >
-              Go to Dashboard →
-            </Link>
+              BCC Academy · Help Center
+            </p>
+            <h1 className="mt-3 text-5xl font-bold leading-[1.02] tracking-tight text-ink sm:text-6xl">
+              How everything
+              <br />
+              works.
+            </h1>
           </div>
+          <Link
+            href="/dashboard"
+            className="mt-2 shrink-0 text-sm text-ink-soft transition-colors hover:text-ink"
+          >
+            Go to Dashboard →
+          </Link>
+        </div>
+        <div
+          className="mt-6 flex flex-wrap gap-x-9 gap-y-2 text-[12.5px] tracking-[0.08em] text-ink-soft tabular-nums"
+          style={{ fontFamily: "var(--font-geist-mono)" }}
+        >
+          <span><b className="font-semibold text-ink">{articleCount}</b> ARTICLES</span>
+          <span><b className="font-semibold text-ink">{SECTIONS.length}</b> SECTIONS</span>
+          <span><b className="font-semibold text-ink">4</b> ROLES</span>
+          <span><b className="font-semibold text-ink">1</b> PLATFORM</span>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-6 py-10">
         <div className="flex gap-8">
           {/* Sidebar */}
           <aside className="w-72 shrink-0">
@@ -1752,17 +1764,18 @@ export default function HelpCenter() {
                 placeholder="Search articles..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-4 py-2.5 bg-surface border border-rule rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                className="w-full rounded-lg border border-rule bg-white px-4 py-2.5 text-sm transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
 
             {/* Navigation */}
-            <nav className="space-y-2">
+            <nav className="space-y-3">
               {filteredSections.map((section) => (
                 <div key={section.id}>
                   <button
                     onClick={() => toggleSection(section.id)}
-                    className="w-full flex items-center justify-between px-3 py-2 text-sm font-semibold text-ink hover:bg-surface rounded-lg transition-colors"
+                    className="w-full flex items-center justify-between px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-soft hover:text-ink transition-colors"
+                    style={{ fontFamily: "var(--font-geist-mono)" }}
                   >
                     {section.title}
                     <svg
@@ -1835,12 +1848,10 @@ export default function HelpCenter() {
                   <span className="text-ink">{activeArticleData.title}</span>
                 </div>
 
-                {/* Title */}
-                <h1
-                  className="font-display text-3xl font-bold text-ink mb-3"
-                >
+                {/* Title (h2 — the masthead owns the page h1) */}
+                <h2 className="font-display text-3xl font-bold tracking-tight text-ink mb-3">
                   {activeArticleData.title}
-                </h1>
+                </h2>
                 <p className="text-lg text-muted mb-8">
                   {activeArticleData.description}
                 </p>
@@ -1895,22 +1906,23 @@ export default function HelpCenter() {
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className="bg-charcoal text-white mt-20">
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          <div className="flex items-center justify-between">
-            <p className="text-white/50 text-sm">
-              BCC Academy Learning Experience Platform
-            </p>
-            <div className="flex gap-6 text-sm">
-              <Link href="/privacy" className="text-white/50 hover:text-white transition-colors">
-                Privacy
-              </Link>
-              <Link href="/terms" className="text-white/50 hover:text-white transition-colors">
-                Terms
-              </Link>
-            </div>
-          </div>
+      {/* Footer — family mono footer, wordmark left, legal right */}
+      <footer className="mx-auto max-w-7xl px-6 pb-16">
+        <div
+          className="mt-20 flex flex-wrap items-baseline justify-between gap-3 border-t border-rule-soft pt-5 text-[11.5px] uppercase tracking-[0.12em] text-ink-faint"
+          style={{ fontFamily: "var(--font-geist-mono)" }}
+        >
+          <Link
+            href="/"
+            className="font-display text-sm font-bold normal-case tracking-tight text-ink"
+          >
+            BCC <span className="text-primary">[</span>Academy
+            <span className="text-primary">]</span>
+          </Link>
+          <span className="flex gap-x-8">
+            <Link href="/privacy" className="hover:text-ink-soft">Privacy</Link>
+            <Link href="/terms" className="hover:text-ink-soft">Terms</Link>
+          </span>
         </div>
       </footer>
     </div>
