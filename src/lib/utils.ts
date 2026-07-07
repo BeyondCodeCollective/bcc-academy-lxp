@@ -1,3 +1,5 @@
+import type { TrackConfig } from "@/lib/programs/types";
+
 /**
  * Compute the current week number (1-based) from a cohort start date.
  * Returns a value clamped between 1 and totalWeeks.
@@ -20,6 +22,37 @@ export function computeCurrentWeek(
   if (diffDays <= lastSessionDayOffset) return Math.max(1, Math.min(1, totalWeeks));
   const week = Math.floor((diffDays - lastSessionDayOffset - 1) / 7) + 2;
   return Math.max(1, Math.min(week, totalWeeks));
+}
+
+/**
+ * The "current" unit (Week or Day) for a track, 0 before it starts.
+ *
+ * `computeCurrentWeek` advances on a 7-day cycle, so on a DAY-gated cohort
+ * (weeks-are-days, e.g. the Roblox bootcamp with `unitLabel: "Day"`) it stays
+ * pinned at 1 for the whole camp — Day 2 and Day 3 would never become
+ * "current". The real signal there is per-unit `comingSoonUntil` unlock dates:
+ * the latest unit whose date has passed is the current one. This single helper
+ * is the source of truth for the redirect landing page, the classroom page,
+ * AND the track overview so they can never disagree about which day it is.
+ */
+export function resolveCurrentUnit(track: TrackConfig, now: Date = new Date()): number {
+  const started = !track.startDateTbd && now >= new Date(track.startDate);
+  const computed = track.selfPaced
+    ? started
+      ? 1
+      : 0
+    : started
+      ? computeCurrentWeek(track.startDate, track.totalWeeks, track.lastSessionDayOffset)
+      : 0;
+  const dateUnlockedThrough = track.selfPaced
+    ? 0
+    : Math.max(
+        0,
+        ...track.weeks
+          .filter((w) => w.comingSoonUntil && now >= new Date(w.comingSoonUntil))
+          .map((w) => w.week),
+      );
+  return Math.max(computed, dateUnlockedThrough);
 }
 
 /**

@@ -36,13 +36,10 @@ function parseAuthError(): ErrorInfo | null {
     };
   }
 
-  if (queryError === "invite") {
-    return {
-      title: "Invitation required",
-      message:
-        "Please use the invite link your instructor shared to sign up.",
-    };
-  }
+  // ?error=invite is handled by the dedicated <InviteLinkNotice> on the login
+  // page (friendlier, family-facing copy). Skip it here so the two banners
+  // don't both fire — and so this effect doesn't strip ?error before that
+  // component reads it.
 
   if (queryError === "auth") {
     return {

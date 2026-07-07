@@ -8,7 +8,7 @@ import {
   ArrowRight,
   Medal,
 } from "@phosphor-icons/react/dist/ssr";
-import { computeCurrentWeek } from "@/lib/utils";
+import { resolveCurrentUnit } from "@/lib/utils";
 import { resolveTrackProgram } from "@/lib/programs/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { canAccessAdminPanel } from "@/lib/roles";
@@ -162,25 +162,10 @@ export default async function TrackOverviewPage({
     redirect(`/dashboard/track/${slug}/1`);
   }
 
-  const computedWeek = track.selfPaced
-    ? started ? 1 : 0
-    : started
-      ? computeCurrentWeek(track.startDate, track.totalWeeks, track.lastSessionDayOffset)
-      : 0;
-  // On a day-gated cohort track (weeks are days with `comingSoonUntil` dates,
-  // e.g. the Roblox bootcamp) `computeCurrentWeek` stays at 1 for the whole
-  // camp, so the ring/CTA would point at Day 1 on Day 2. The latest day whose
-  // unlock date has passed is the real "current" unit. Self-paced drip
-  // releases keep their own pacing.
-  const dateUnlockedThrough = track.selfPaced
-    ? 0
-    : Math.max(
-        0,
-        ...track.weeks
-          .filter((w) => w.comingSoonUntil && now >= new Date(w.comingSoonUntil))
-          .map((w) => w.week),
-      );
-  const currentWeek = Math.max(computedWeek, dateUnlockedThrough);
+  // Day-gated camps advance by `comingSoonUntil` unlock date, not the 7-day
+  // cycle. Shared with the redirect landing path + the classroom page so all
+  // three always agree on which Day is current.
+  const currentWeek = resolveCurrentUnit(track, now);
 
   const ctaWeek = started ? currentWeek : 1;
   // Per-track unit label ("Week" default, "Day" for a bootcamp, …).

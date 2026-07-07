@@ -90,6 +90,16 @@ export const getSessionContext = cache(async (): Promise<SessionContext | null> 
 });
 
 /**
+ * Drop a user's cached profile so the next getSessionContext re-reads the
+ * students table. Call after mutating your own row (e.g. saving your name)
+ * so a page reload doesn't see stale data for up to _PROFILE_TTL — without
+ * this, the name-capture modal reappears blank right after "Continue".
+ */
+export function bustProfileCache(userId: string): void {
+  _profileStore.delete(userId);
+}
+
+/**
  * Create the missing students row for an authenticated user. Uses the service
  * client (RLS would block a self-insert) and defaults the home program to
  * Catalyst, the hub — cookies + deferred-setup correct the real program/cohort

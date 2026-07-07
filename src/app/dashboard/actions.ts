@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { getSessionContext } from "@/lib/auth/session";
+import { getSessionContext, bustProfileCache } from "@/lib/auth/session";
 import { getHomeProgramForTrack } from "@/lib/programs";
 import { BCC_TRACK_VARIANT_LABELS } from "@/lib/surveys/cohort-labels";
 import { revalidatePath } from "next/cache";
@@ -30,6 +30,9 @@ export async function completeOnboarding(data: {
 
   if (error) throw new Error(error.message);
 
+  // Drop the cached (blank-name) profile so the reload after the name modal
+  // sees the saved name — otherwise the modal reappears empty for up to 60s.
+  bustProfileCache(user.id);
   revalidatePath("/dashboard");
   return { success: true };
 }
@@ -178,6 +181,7 @@ export async function saveSurveyResponse(
       ...(lastName && { last_name: lastName }),
       onboarding_completed: true,
     }).eq("id", user.id);
+    bustProfileCache(user.id);
   }
 
   revalidatePath("/dashboard");

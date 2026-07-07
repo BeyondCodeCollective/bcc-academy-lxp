@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ProgramConfig, TrackConfig } from "@/lib/programs/types";
-import { computeCurrentWeek } from "@/lib/utils";
+import { resolveCurrentUnit } from "@/lib/utils";
 
 // Returns the tracks a student is enrolled in, joined with program config.
 // Source of truth for "which tracks can this student see?" — combines
@@ -25,11 +25,10 @@ export async function getEnrolledTracks(
 // week 1 before the start, and the overview as the safe fallback for slugs
 // with no matching week content.
 export function courseLandingPath(track: TrackConfig): string {
-  const started = !track.startDateTbd && new Date() >= new Date(track.startDate);
-  const week =
-    started && !track.selfPaced
-      ? computeCurrentWeek(track.startDate, track.totalWeeks, track.lastSessionDayOffset)
-      : 1;
+  // resolveCurrentUnit accounts for day-gated camps (returns Day 2 on
+  // Wednesday, Day 3 on Thursday) where computeCurrentWeek would pin at Day 1.
+  // 0 before the track starts → land on unit 1's page.
+  const week = Math.max(1, resolveCurrentUnit(track));
   if (track.weeks.some((w) => w.week === week)) {
     return `/dashboard/track/${track.slug}/${week}`;
   }
