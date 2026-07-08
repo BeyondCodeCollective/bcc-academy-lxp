@@ -101,6 +101,9 @@ export type WeekConfig = {
   comingSoonUntil?: string;
 };
 
+/** Existing entries with no `type` predate this field — treat as "office-hours". */
+export type ScheduleItemType = "office-hours" | "mass" | "speaker" | "event";
+
 export type OfficeHour = {
   /** ISO date (yyyy-mm-dd) — used for sort + day-of-week label */
   date: string;
@@ -114,6 +117,8 @@ export type OfficeHour = {
   joinUrl?: string;
   /** Optional dial-in line, e.g. "(US) +1 475-239-1638 PIN: 565 653 985#" */
   dialIn?: string;
+  /** Category shown as a small label on the schedule row. Defaults to "office-hours". */
+  type?: ScheduleItemType;
 };
 
 export type TrackConfig = {

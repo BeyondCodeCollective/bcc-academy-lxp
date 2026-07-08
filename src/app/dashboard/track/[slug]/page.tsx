@@ -18,6 +18,14 @@ import { WeekCarousel, type WeekCardData } from "@/components/week-carousel";
 import { PageHeader } from "@/components/page-header";
 import { buttonClass } from "@/components/ui";
 import { getTrackProgressMap } from "@/app/dashboard/track/actions";
+import type { ScheduleItemType } from "@/lib/programs/types";
+
+const SCHEDULE_TYPE_LABEL: Record<ScheduleItemType, string> = {
+  "office-hours": "Office Hours",
+  mass: "MASS",
+  speaker: "Guest Speaker",
+  event: "Event",
+};
 import { getAllSessionContent } from "@/app/dashboard/admin/actions-tracks";
 import { isSequentialGated, highestUnlockedWeek } from "@/lib/track-gating";
 import { buildGoogleCalendarUrl } from "@/lib/gcal";
@@ -358,7 +366,7 @@ export default async function TrackOverviewPage({
       {track.officeHours && track.officeHours.length > 0 && (
         <section className="space-y-3">
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">
-            Office Hours
+            Schedule
           </h2>
           <ul className="divide-y divide-rule overflow-hidden panel">
             {[...track.officeHours]
@@ -370,7 +378,10 @@ export default async function TrackOverviewPage({
                 );
                 return (
                   <li key={`${oh.date}-${oh.title}`} className="px-4 py-3.5">
-                    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span className="inline-flex items-center rounded-full bg-paper-tint px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-soft">
+                        {SCHEDULE_TYPE_LABEL[oh.type ?? "office-hours"]}
+                      </span>
                       <p className="text-sm font-semibold text-ink">
                         {oh.title}
                       </p>
