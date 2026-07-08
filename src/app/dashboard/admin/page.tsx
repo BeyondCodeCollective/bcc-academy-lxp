@@ -16,6 +16,7 @@ import { buildInsightsData } from "@/lib/analytics/insights-data";
 import type { SurveyQuestion } from "@/components/survey-fields";
 import { fetchPendingPeople, type PendingPerson } from "@/lib/people-hub";
 import { getCourseEngagement } from "@/lib/course-engagement";
+import { resolveCurrentUnit } from "@/lib/utils";
 import { getEngagementAnalytics, type EngagementAnalytics } from "./actions-analytics";
 import type { CourseEngagementProps } from "@/components/stats/course-engagement";
 
@@ -417,6 +418,11 @@ export default async function AdminPage({
       description: t.description,
       type: t.type,
       totalWeeks: t.totalWeeks,
+      // Correct current unit for day-gated camps (advances by comingSoonUntil,
+      // not the 7-day cycle). Computed here where the full config with weeks[]
+      // is available; the admin tabs/attendance default to it instead of
+      // computeCurrentWeek, which pins at Day 1 all camp.
+      currentUnit: resolveCurrentUnit(t),
       unitLabel: t.unitLabel,
       selfPaced: t.selfPaced,
       sessionsPerWeek: t.sessionsPerWeek,

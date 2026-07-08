@@ -74,11 +74,13 @@ export function AttendanceTab({ students, tracks, scopeLabel, embedded, viewSwit
   const [markWeek, setMarkWeek] = useState<number>(() => {
     const initial = startedTracks[0] ?? tracks[0];
     if (!initial) return 1;
-    const cw = computeCurrentWeek(
-      initial.startDate,
-      initial.totalWeeks,
-      initial.lastSessionDayOffset
-    );
+    const cw =
+      initial.currentUnit ??
+      computeCurrentWeek(
+        initial.startDate,
+        initial.totalWeeks,
+        initial.lastSessionDayOffset
+      );
     return Math.max(1, Math.min(cw, initial.totalWeeks));
   });
   const [savingKeys, setSavingKeys] = useState<Set<string>>(new Set());
@@ -108,7 +110,9 @@ export function AttendanceTab({ students, tracks, scopeLabel, embedded, viewSwit
       setExplicitTrackSlug(slug);
       const t = tracks.find((x) => x.slug === slug);
       if (t) {
-        const cw = computeCurrentWeek(t.startDate, t.totalWeeks, t.lastSessionDayOffset);
+        const cw =
+          t.currentUnit ??
+          computeCurrentWeek(t.startDate, t.totalWeeks, t.lastSessionDayOffset);
         setMarkWeek(Math.max(1, Math.min(cw, t.totalWeeks)));
       }
     },
