@@ -18,17 +18,10 @@ import { WeekCarousel, type WeekCardData } from "@/components/week-carousel";
 import { PageHeader } from "@/components/page-header";
 import { buttonClass } from "@/components/ui";
 import { getTrackProgressMap } from "@/app/dashboard/track/actions";
-import type { OfficeHour, ScheduleItemType } from "@/lib/programs/types";
-
-const SCHEDULE_TYPE_LABEL: Record<ScheduleItemType, string> = {
-  "office-hours": "Office Hours",
-  mass: "MASS",
-  speaker: "Guest Speaker",
-  event: "Event",
-};
+import { addDays } from "@/lib/ical";
+import { TrackCalendar, type CalendarEvent } from "@/components/track-calendar";
 import { getAllSessionContent } from "@/app/dashboard/admin/actions-tracks";
 import { isSequentialGated, highestUnlockedWeek } from "@/lib/track-gating";
-import { buildGoogleCalendarUrl } from "@/lib/gcal";
 import { MyProgressCard } from "@/components/my-progress-card";
 import { getLearnerProgress } from "@/lib/learner-progress";
 import { HoldingView } from "@/components/holding-view";
@@ -249,31 +242,31 @@ export default async function TrackOverviewPage({
       ? await getLearnerProgress(ctx.userId, [slug], now).catch(() => null)
       : null;
 
-  // ── Schedule ──────────────────────────────────────────────────────────────
-  // The extras layered on top of the weekly curriculum (the sessions live in
-  // the grid above): office-hours / MASS / guest-speaker / event items an admin
-  // adds, shown as a chronological feed grouped by calendar month.
-  const scheduleItems = [...(track.officeHours ?? [])].sort((a, b) =>
-    a.date.localeCompare(b.date),
-  );
-
-  const scheduleMonths: { key: string; label: string; items: OfficeHour[] }[] = [];
-  for (const item of scheduleItems) {
-    const key = item.date.slice(0, 7);
-    let group = scheduleMonths.find((g) => g.key === key);
-    if (!group) {
-      group = {
-        key,
-        label: new Date(`${item.date}T12:00:00`).toLocaleDateString("en-US", {
-          month: "long",
-          year: "numeric",
-        }),
-        items: [],
-      };
-      scheduleMonths.push(group);
-    }
-    group.items.push(item);
-  }
+  // ── Calendar ──────────────────────────────────────────────────────────────
+  // Month-grid calendar of everything on this track: the weekly sessions dated
+  // from the syllabus (start date + N weeks — same math as the subscribable
+  // calendar feed) plus any office-hours / MASS / guest-speaker / event items
+  // an admin adds. Sessions only appear once the track has a real start date.
+  const calendarEvents: CalendarEvent[] = [
+    ...(!track.startDateTbd && track.startDate
+      ? track.weekSummaries.map(
+          (ws): CalendarEvent => ({
+            date: addDays(track.startDate, (ws.week - 1) * 7),
+            type: "session",
+            title: titleByWeek.get(ws.week) ?? ws.topic,
+            href: `/dashboard/track/${slug}/${ws.week}`,
+          }),
+        )
+      : []),
+    ...(track.officeHours ?? []).map(
+      (item): CalendarEvent => ({
+        date: item.date,
+        type: item.type ?? "office-hours",
+        title: item.title,
+        time: item.time || undefined,
+      }),
+    ),
+  ];
   const todayISO = now.toISOString().slice(0, 10);
 
   return (
@@ -390,93 +383,12 @@ export default async function TrackOverviewPage({
         />
       </dl>
 
-      {scheduleMonths.length > 0 && (
+      {calendarEvents.length > 0 && (
         <section className="space-y-4">
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">
-            Schedule
+            Calendar
           </h2>
-          <div className="space-y-6">
-            {scheduleMonths.map((month) => (
-              <div key={month.key} className="space-y-2">
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-faint">
-                  {month.label}
-                </h3>
-                <ul className="divide-y divide-rule overflow-hidden panel">
-                  {month.items.map((item) => {
-                    const d = new Date(`${item.date}T12:00:00`);
-                    const day = d.getDate();
-                    const weekday = d.toLocaleDateString("en-US", { weekday: "short" });
-                    const isPast = item.date < todayISO;
-                    return (
-                      <li
-                        key={`${item.date}-${item.title}`}
-                        className={`flex gap-4 px-4 py-3.5 ${isPast ? "opacity-60" : ""}`}
-                      >
-                        <div className="w-9 shrink-0 text-center leading-tight">
-                          <div className="text-lg font-bold tabular-nums text-ink">{day}</div>
-                          <div className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint">
-                            {weekday}
-                          </div>
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                            <span className="inline-flex items-center rounded-full bg-paper-tint px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-soft">
-                              {SCHEDULE_TYPE_LABEL[item.type ?? "office-hours"]}
-                            </span>
-                            <p className="text-sm font-semibold text-ink">{item.title}</p>
-                            {item.time && (
-                              <span className="text-xs text-ink-soft">{item.time}</span>
-                            )}
-                          </div>
-                          {item.description && (
-                            <p className="mt-1 text-sm leading-relaxed text-ink-soft">
-                              {item.description}
-                            </p>
-                          )}
-                          <div className="mt-2 flex flex-wrap items-center gap-3">
-                            {item.joinUrl && (
-                              <a
-                                href={item.joinUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className={buttonClass("dark", "sm")}
-                              >
-                                Join the call →
-                              </a>
-                            )}
-                            <a
-                              href={buildGoogleCalendarUrl({
-                                title: item.title,
-                                date: item.date,
-                                details: [
-                                  item.time,
-                                  item.description,
-                                  item.dialIn ? `Dial-in: ${item.dialIn}` : "",
-                                ]
-                                  .filter(Boolean)
-                                  .join("\n\n"),
-                                location: item.joinUrl,
-                              })}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className={buttonClass("secondary", "sm")}
-                            >
-                              Add to Google Calendar
-                            </a>
-                            {item.dialIn && (
-                              <span className="text-xs text-ink-soft">
-                                Or dial: {item.dialIn}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            ))}
-          </div>
+          <TrackCalendar events={calendarEvents} todayISO={todayISO} />
         </section>
       )}
     </div>
