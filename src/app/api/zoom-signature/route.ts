@@ -70,15 +70,46 @@ export async function POST(request: NextRequest) {
 
   // ── Parse request ─────────────────────────────────────────────────────────
   let meetingNumber: string;
+  let trackSlug = "";
+  let weekNumber = 0;
+  let sessionNumber = 1;
   try {
     const body = await request.json();
     meetingNumber = String(body.meetingNumber ?? "").replace(/\D/g, "");
     if (!meetingNumber) throw new Error("missing meetingNumber");
+    // Optional attendance context — used to auto-record presence below.
+    const rawTrack = String(body.trackSlug ?? "");
+    if (/^[a-z0-9-]{1,64}$/.test(rawTrack)) trackSlug = rawTrack;
+    weekNumber = Number.parseInt(String(body.weekNumber ?? ""), 10) || 0;
+    sessionNumber = Number.parseInt(String(body.sessionNumber ?? ""), 10) || 1;
   } catch {
     return NextResponse.json(
       { error: "meetingNumber required" },
       { status: 400 }
     );
+  }
+
+  // ── Auto-attendance ───────────────────────────────────────────────────────
+  // A real, enrolled learner joining the live session marks their own presence.
+  // Best-effort and non-blocking: never fail or delay the join if this write
+  // errors. Staff (instructors/admins) are skipped so they don't pollute the
+  // learner attendance count. Idempotent per (student, track, week, session).
+  if (trackSlug && weekNumber && !isStaffEmail(user.email)) {
+    void svc
+      .from("attendance")
+      .upsert(
+        {
+          student_id: user.id,
+          track: trackSlug,
+          week_number: weekNumber,
+          session_number: sessionNumber,
+          marked_by: user.id,
+        },
+        { onConflict: "student_id,track,week_number,session_number", ignoreDuplicates: true },
+      )
+      .then(({ error }) => {
+        if (error) console.error("[zoom-signature] auto-attendance failed:", error.message);
+      });
   }
 
   // ── Generate JWT signature ────────────────────────────────────────────────
