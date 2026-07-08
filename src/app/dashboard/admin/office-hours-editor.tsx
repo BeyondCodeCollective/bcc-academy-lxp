@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2 } from "lucide-react";
 import { saveTrackOverview } from "./actions-tracks";
-import type { OfficeHour } from "@/lib/programs/types";
+import type { OfficeHour, ScheduleItemType } from "@/lib/programs/types";
 import { fieldInput, buttonClass } from "@/components/ui";
 
 type Props = {
@@ -20,7 +20,15 @@ const BLANK: OfficeHour = {
   description: "",
   joinUrl: "",
   dialIn: "",
+  type: "office-hours",
 };
+
+const TYPE_OPTIONS: { value: ScheduleItemType; label: string }[] = [
+  { value: "office-hours", label: "Office Hours" },
+  { value: "mass", label: "MASS" },
+  { value: "speaker", label: "Guest Speaker" },
+  { value: "event", label: "Event" },
+];
 
 // Editable office hours / live sessions for a course. Saves the whole list as
 // the `office_hours` override on track_overrides (empty list = none shown,
@@ -48,6 +56,7 @@ export function OfficeHoursEditor({ trackSlug, programSlug, initial }: Props) {
         time: r.time.trim(),
         title: r.title.trim(),
         description: r.description.trim(),
+        type: r.type ?? "office-hours",
         ...(r.joinUrl?.trim() ? { joinUrl: r.joinUrl.trim() } : {}),
         ...(r.dialIn?.trim() ? { dialIn: r.dialIn.trim() } : {}),
       }));
@@ -67,11 +76,12 @@ export function OfficeHoursEditor({ trackSlug, programSlug, initial }: Props) {
       <div className="flex items-end justify-between gap-3">
         <div>
           <h3 className="text-[11px] font-medium uppercase tracking-[0.18em] text-ink-faint">
-            Office hours &amp; live sessions
+            Schedule
           </h3>
           <p className="mt-1 text-[12px] text-ink-soft">
-            Shown on the course overview. Add drop-in office hours or live class
-            times — each with a date, time, join link, and dial-in.
+            Shown on the course overview. Add office hours, guest speakers, or
+            any other one-off session — each with a date, time, join link, and
+            dial-in.
           </p>
         </div>
         <button type="button" onClick={add} className={buttonClass("secondary", "sm")}>
@@ -88,7 +98,21 @@ export function OfficeHoursEditor({ trackSlug, programSlug, initial }: Props) {
           {rows.map((r, i) => (
             <div key={i} className="panel space-y-3 p-4">
               <div className="flex items-start gap-3">
-                <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-3">
+                <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
+                  <label className="block">
+                    <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-ink-faint">Type</span>
+                    <select
+                      value={r.type ?? "office-hours"}
+                      onChange={(e) => update(i, "type", e.target.value)}
+                      className={fieldInput}
+                    >
+                      {TYPE_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                   <label className="block">
                     <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-ink-faint">Date</span>
                     <input type="date" value={r.date} onChange={(e) => update(i, "date", e.target.value)} className={fieldInput} />
@@ -137,7 +161,7 @@ export function OfficeHoursEditor({ trackSlug, programSlug, initial }: Props) {
           disabled={state === "saving"}
           className={buttonClass("primary", "sm")}
         >
-          {state === "saving" ? "Saving…" : "Save office hours"}
+          {state === "saving" ? "Saving…" : "Save schedule"}
         </button>
         {state === "saved" && <span className="text-[12px] text-ink-soft">Saved ✓</span>}
         {state === "error" && <span className="text-[12px] text-red-600">Couldn’t save — try again.</span>}
