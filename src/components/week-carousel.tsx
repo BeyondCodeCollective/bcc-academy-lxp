@@ -2,6 +2,7 @@
 
 import { useRef, useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import { CaretLeft, CaretRight } from "@phosphor-icons/react";
 import { weekIconForEmoji } from "@/lib/track-visual";
 
 export type WeekCardData = {
@@ -51,9 +52,21 @@ export function WeekCarousel({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Desktop rail: scroll the current session into view on load so a learner
-  // mid-course doesn't land staring at session 1.
+  // Desktop rail: arrow buttons + edge fades tell learners it scrolls, and the
+  // current session is scrolled into view on load so someone mid-course doesn't
+  // land staring at session 1.
   const desktopRailRef = useRef<HTMLOListElement>(null);
+  const [railEdges, setRailEdges] = useState({ atStart: true, atEnd: true });
+  const updateRailEdges = useCallback(() => {
+    const el = desktopRailRef.current;
+    if (!el) return;
+    const max = el.scrollWidth - el.clientWidth - 2;
+    setRailEdges({ atStart: el.scrollLeft <= 2, atEnd: el.scrollLeft >= max });
+  }, []);
+  const scrollRailBy = useCallback((dir: 1 | -1) => {
+    const el = desktopRailRef.current;
+    if (el) el.scrollBy({ left: dir * el.clientWidth * 0.8, behavior: "smooth" });
+  }, []);
   useEffect(() => {
     const idx = weeks.findIndex((w) => w.isCurrent);
     const rail = desktopRailRef.current;
@@ -61,6 +74,9 @@ export function WeekCarousel({
       const card = rail.children[idx] as HTMLElement | undefined;
       if (card) rail.scrollLeft = Math.max(0, card.offsetLeft - 16);
     }
+    updateRailEdges();
+    window.addEventListener("resize", updateRailEdges);
+    return () => window.removeEventListener("resize", updateRailEdges);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -152,10 +168,48 @@ export function WeekCarousel({
          larger cards; short tracks (camps) keep the original at-a-glance grid
          so their look is unchanged. */}
       {weeks.length > DENSE_THRESHOLD ? (
+      <div className="relative hidden sm:block">
+        {/* Scroll affordances: edge fade + a click-to-scroll arrow on each
+            side that shows only when there's more that way. */}
+        {!railEdges.atStart && (
+          <>
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-12"
+              style={{ background: "linear-gradient(to right, var(--surface-elevated), transparent)" }}
+            />
+            <button
+              type="button"
+              aria-label={`Previous ${unitLabel.toLowerCase()}s`}
+              onClick={() => scrollRailBy(-1)}
+              className="absolute left-0 top-[46%] z-[2] flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-rule bg-surface-elevated text-ink shadow-md transition-colors hover:bg-paper-tint"
+            >
+              <CaretLeft size={16} weight="bold" aria-hidden />
+            </button>
+          </>
+        )}
+        {!railEdges.atEnd && (
+          <>
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-12"
+              style={{ background: "linear-gradient(to left, var(--surface-elevated), transparent)" }}
+            />
+            <button
+              type="button"
+              aria-label={`Next ${unitLabel.toLowerCase()}s`}
+              onClick={() => scrollRailBy(1)}
+              className="absolute right-0 top-[46%] z-[2] flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-rule bg-surface-elevated text-ink shadow-md transition-colors hover:bg-paper-tint"
+            >
+              <CaretRight size={16} weight="bold" aria-hidden />
+            </button>
+          </>
+        )}
       <ol
         ref={desktopRailRef}
+        onScroll={updateRailEdges}
         aria-label={`${unitLabel} navigation`}
-        className="hidden gap-3 overflow-x-auto pb-2 sm:flex [scrollbar-width:thin]"
+        className="flex gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         style={{ scrollSnapType: "x mandatory" }}
       >
         {weeks.map((w) => {
@@ -223,6 +277,7 @@ export function WeekCarousel({
           );
         })}
       </ol>
+      </div>
       ) : (
         <ol className="hidden gap-2 sm:grid sm:grid-cols-3 sm:gap-3 md:grid-cols-5">
           {weeks.map((w) => (
