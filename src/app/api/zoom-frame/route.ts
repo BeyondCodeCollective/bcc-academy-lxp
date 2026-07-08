@@ -32,6 +32,11 @@ export async function GET(req: NextRequest) {
   const pwd = (searchParams.get("pwd") ?? "").replace(/[^A-Za-z0-9@\-_*.]/g, "");
   const un = encodeURIComponent(searchParams.get("un") ?? "Student");
   const ue = encodeURIComponent(searchParams.get("ue") ?? "");
+  // Attendance context — sanitized to safe charsets since they're interpolated
+  // into the inline <script> below (same reflected-XSS guard as mn/pwd).
+  const ts = (searchParams.get("ts") ?? "").replace(/[^a-z0-9-]/g, "").slice(0, 64);
+  const wk = (searchParams.get("wk") ?? "").replace(/\D/g, "").slice(0, 4);
+  const sn = (searchParams.get("sn") ?? "").replace(/\D/g, "").slice(0, 4);
 
   const headers = {
     "Content-Type": "text/html; charset=utf-8",
@@ -119,7 +124,12 @@ export async function GET(req: NextRequest) {
         const sigRes = await fetch("/api/zoom-signature", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ meetingNumber: ${JSON.stringify(mn)} }),
+          body: JSON.stringify({
+            meetingNumber: ${JSON.stringify(mn)},
+            trackSlug: ${JSON.stringify(ts)},
+            weekNumber: ${JSON.stringify(wk)},
+            sessionNumber: ${JSON.stringify(sn)},
+          }),
         });
         if (!sigRes.ok) {
           const j = await sigRes.json().catch(() => ({}));

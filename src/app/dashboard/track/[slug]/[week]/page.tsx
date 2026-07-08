@@ -325,6 +325,9 @@ export default async function TrackWeekPage({
               password={parsed!.password}
               userName={zoomUserName}
               userEmail={zoomUserEmail}
+              trackSlug={trackSlug}
+              weekNumber={weekNum}
+              sessionNumber={index + 1}
               // Single-session weeks: the week title sits directly above the
               // embed, so repeating it next to LIVE NOW reads as clutter.
               sessionTitle={

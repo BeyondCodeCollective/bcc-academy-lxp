@@ -8,6 +8,10 @@ type Props = {
   /** Shown next to LIVE NOW. Omit when the page already names the session
    *  right above the embed (single-session weeks). */
   sessionTitle?: string;
+  /** Attendance context — joining records the learner present for this session. */
+  trackSlug?: string;
+  weekNumber?: number;
+  sessionNumber?: number;
 };
 
 /**
@@ -26,6 +30,9 @@ export function ZoomEmbed({
   userName,
   userEmail,
   sessionTitle,
+  trackSlug,
+  weekNumber,
+  sessionNumber,
 }: Props) {
   const params = new URLSearchParams({
     mn: meetingNumber,
@@ -33,6 +40,11 @@ export function ZoomEmbed({
     un: userName,
     ue: userEmail,
   });
+  // Attendance context flows to the frame → signature request, which records
+  // the learner present when they join.
+  if (trackSlug) params.set("ts", trackSlug);
+  if (weekNumber) params.set("wk", String(weekNumber));
+  if (sessionNumber) params.set("sn", String(sessionNumber));
   const src = `/api/zoom-frame?${params.toString()}`;
 
   return (
