@@ -18,7 +18,8 @@ import { WeekCarousel, type WeekCardData } from "@/components/week-carousel";
 import { PageHeader } from "@/components/page-header";
 import { buttonClass } from "@/components/ui";
 import { getTrackProgressMap } from "@/app/dashboard/track/actions";
-import type { ScheduleItemType } from "@/lib/programs/types";
+import { addDays } from "@/lib/ical";
+import type { OfficeHour, ScheduleItemType } from "@/lib/programs/types";
 
 const SCHEDULE_TYPE_LABEL: Record<ScheduleItemType, string> = {
   "office-hours": "Office Hours",
@@ -249,6 +250,55 @@ export default async function TrackOverviewPage({
       ? await getLearnerProgress(ctx.userId, [slug], now).catch(() => null)
       : null;
 
+  // ── Schedule agenda ───────────────────────────────────────────────────────
+  // One chronological feed of everything on this track: the weekly sessions
+  // dated from the syllabus (start date + N weeks — same math as the
+  // subscribable calendar feed) plus any office-hours / MASS / guest-speaker /
+  // event items an admin has added. Sessions only appear once the track has a
+  // real (non-TBD) start date. Grouped by calendar month for scanning.
+  type AgendaEntry =
+    | { kind: "session"; date: string; week: number; title: string }
+    | { kind: "item"; date: string; item: OfficeHour };
+
+  const agenda: AgendaEntry[] = [
+    ...(!track.startDateTbd && track.startDate
+      ? track.weekSummaries.map(
+          (ws): AgendaEntry => ({
+            kind: "session",
+            date: addDays(track.startDate, (ws.week - 1) * 7),
+            week: ws.week,
+            title: titleByWeek.get(ws.week) ?? ws.topic,
+          }),
+        )
+      : []),
+    ...(track.officeHours ?? []).map(
+      (item): AgendaEntry => ({ kind: "item", date: item.date, item }),
+    ),
+  ].sort((a, b) => a.date.localeCompare(b.date));
+
+  const agendaMonths: { key: string; label: string; entries: AgendaEntry[] }[] = [];
+  for (const entry of agenda) {
+    const key = entry.date.slice(0, 7);
+    let group = agendaMonths.find((g) => g.key === key);
+    if (!group) {
+      group = {
+        key,
+        label: new Date(`${entry.date}T12:00:00`).toLocaleDateString("en-US", {
+          month: "long",
+          year: "numeric",
+        }),
+        entries: [],
+      };
+      agendaMonths.push(group);
+    }
+    group.entries.push(entry);
+  }
+  const todayISO = now.toISOString().slice(0, 10);
+  const sessionTime =
+    track.sessionTimes?.[0] && track.sessionTimes[0] !== "Self-paced"
+      ? track.sessionTimes[0]
+      : "";
+
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-3xl px-4 sm:px-5 py-8 space-y-8">
       {isAdminViewer && (
@@ -363,76 +413,116 @@ export default async function TrackOverviewPage({
         />
       </dl>
 
-      {track.officeHours && track.officeHours.length > 0 && (
-        <section className="space-y-3">
+      {agendaMonths.length > 0 && (
+        <section className="space-y-4">
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">
             Schedule
           </h2>
-          <ul className="divide-y divide-rule overflow-hidden panel">
-            {[...track.officeHours]
-              .sort((a, b) => a.date.localeCompare(b.date))
-              .map((oh) => {
-                const display = new Date(`${oh.date}T12:00:00`).toLocaleDateString(
-                  "en-US",
-                  { weekday: "long", month: "long", day: "numeric" },
-                );
-                return (
-                  <li key={`${oh.date}-${oh.title}`} className="px-4 py-3.5">
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <span className="inline-flex items-center rounded-full bg-paper-tint px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-soft">
-                        {SCHEDULE_TYPE_LABEL[oh.type ?? "office-hours"]}
-                      </span>
-                      <p className="text-sm font-semibold text-ink">
-                        {oh.title}
-                      </p>
-                      <p className="text-xs text-ink-soft">
-                        {display} · {oh.time}
-                      </p>
-                    </div>
-                    <p className="mt-1 text-sm leading-relaxed text-ink-soft">
-                      {oh.description}
-                    </p>
-                    <div className="mt-3 flex flex-wrap items-center gap-3">
-                      {oh.joinUrl && (
-                        <a
-                          href={oh.joinUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={buttonClass("dark", "md")}
-                        >
-                          Join the call
-                          →
-                        </a>
-                      )}
-                      <a
-                        href={buildGoogleCalendarUrl({
-                          title: oh.title,
-                          date: oh.date,
-                          details: [
-                            oh.time,
-                            oh.description,
-                            oh.dialIn ? `Dial-in: ${oh.dialIn}` : "",
-                          ]
-                            .filter(Boolean)
-                            .join("\n\n"),
-                          location: oh.joinUrl,
-                        })}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={buttonClass("secondary", "md")}
+          <div className="space-y-6">
+            {agendaMonths.map((month) => (
+              <div key={month.key} className="space-y-2">
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-faint">
+                  {month.label}
+                </h3>
+                <ul className="divide-y divide-rule overflow-hidden panel">
+                  {month.entries.map((entry) => {
+                    const d = new Date(`${entry.date}T12:00:00`);
+                    const day = d.getDate();
+                    const weekday = d.toLocaleDateString("en-US", { weekday: "short" });
+                    const isPast = entry.date < todayISO;
+                    return (
+                      <li
+                        key={
+                          entry.kind === "session"
+                            ? `s-${entry.week}`
+                            : `i-${entry.date}-${entry.item.title}`
+                        }
+                        className={`flex gap-4 px-4 py-3.5 ${isPast ? "opacity-60" : ""}`}
                       >
-                        Add to Google Calendar
-                      </a>
-                      {oh.dialIn && (
-                        <span className="text-xs text-ink-soft">
-                          Or dial: {oh.dialIn}
-                        </span>
-                      )}
-                    </div>
-                  </li>
-                );
-              })}
-          </ul>
+                        <div className="w-9 shrink-0 text-center leading-tight">
+                          <div className="text-lg font-bold tabular-nums text-ink">{day}</div>
+                          <div className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint">
+                            {weekday}
+                          </div>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          {entry.kind === "session" ? (
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                              <span className="inline-flex items-center rounded-full bg-paper-tint px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-soft">
+                                Session
+                              </span>
+                              <a
+                                href={`/dashboard/track/${slug}/${entry.week}`}
+                                className="text-sm font-semibold text-ink hover:underline"
+                              >
+                                {entry.title}
+                              </a>
+                              {sessionTime && (
+                                <span className="text-xs text-ink-soft">{sessionTime}</span>
+                              )}
+                            </div>
+                          ) : (
+                            <>
+                              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                <span className="inline-flex items-center rounded-full bg-paper-tint px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-soft">
+                                  {SCHEDULE_TYPE_LABEL[entry.item.type ?? "office-hours"]}
+                                </span>
+                                <p className="text-sm font-semibold text-ink">{entry.item.title}</p>
+                                {entry.item.time && (
+                                  <span className="text-xs text-ink-soft">{entry.item.time}</span>
+                                )}
+                              </div>
+                              {entry.item.description && (
+                                <p className="mt-1 text-sm leading-relaxed text-ink-soft">
+                                  {entry.item.description}
+                                </p>
+                              )}
+                              <div className="mt-2 flex flex-wrap items-center gap-3">
+                                {entry.item.joinUrl && (
+                                  <a
+                                    href={entry.item.joinUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={buttonClass("dark", "sm")}
+                                  >
+                                    Join the call →
+                                  </a>
+                                )}
+                                <a
+                                  href={buildGoogleCalendarUrl({
+                                    title: entry.item.title,
+                                    date: entry.item.date,
+                                    details: [
+                                      entry.item.time,
+                                      entry.item.description,
+                                      entry.item.dialIn ? `Dial-in: ${entry.item.dialIn}` : "",
+                                    ]
+                                      .filter(Boolean)
+                                      .join("\n\n"),
+                                    location: entry.item.joinUrl,
+                                  })}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className={buttonClass("secondary", "sm")}
+                                >
+                                  Add to Google Calendar
+                                </a>
+                                {entry.item.dialIn && (
+                                  <span className="text-xs text-ink-soft">
+                                    Or dial: {entry.item.dialIn}
+                                  </span>
+                                )}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
+          </div>
         </section>
       )}
     </div>
