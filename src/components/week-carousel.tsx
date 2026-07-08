@@ -15,6 +15,11 @@ export type WeekCardData = {
   lockedLabel: string | null;
 };
 
+// Above this many units the at-a-glance grid crams into tiny tiles with
+// clipped titles (a cert track runs 16–24 sessions). Long tracks switch to a
+// horizontal scroll rail of larger cards; short tracks (camps) keep the grid.
+const DENSE_THRESHOLD = 8;
+
 export function WeekCarousel({
   weeks,
   emojiIcons = false,
@@ -42,6 +47,19 @@ export function WeekCarousel({
     if (idx > 0 && scrollRef.current) {
       scrollRef.current.scrollLeft = idx * scrollRef.current.clientWidth;
       setActiveIndex(idx);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Desktop rail: scroll the current session into view on load so a learner
+  // mid-course doesn't land staring at session 1.
+  const desktopRailRef = useRef<HTMLOListElement>(null);
+  useEffect(() => {
+    const idx = weeks.findIndex((w) => w.isCurrent);
+    const rail = desktopRailRef.current;
+    if (idx > 0 && rail) {
+      const card = rail.children[idx] as HTMLElement | undefined;
+      if (card) rail.scrollLeft = Math.max(0, card.offsetLeft - 16);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -130,57 +148,131 @@ export function WeekCarousel({
         )}
       </div>
 
-      {/* Desktop: original grid layout */}
-      <ol className="hidden sm:grid sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-3">
-        {weeks.map((w) => (
-          <li key={w.week}>
-            {w.isLocked ? (
-              <div
-                aria-label={`${unitLabel} ${w.week}: ${w.topic} (${w.lockedLabel ?? "coming soon"})`}
-                className="flex aspect-square cursor-not-allowed flex-col items-center justify-center rounded-md bg-transparent p-2 sm:p-2.5"
+      {/* Desktop. Long tracks (cert cohorts) get a horizontal scroll rail of
+         larger cards; short tracks (camps) keep the original at-a-glance grid
+         so their look is unchanged. */}
+      {weeks.length > DENSE_THRESHOLD ? (
+      <ol
+        ref={desktopRailRef}
+        aria-label={`${unitLabel} navigation`}
+        className="hidden gap-3 overflow-x-auto pb-2 sm:flex [scrollbar-width:thin]"
+        style={{ scrollSnapType: "x mandatory" }}
+      >
+        {weeks.map((w) => {
+          const inner = (
+            <>
+              <span className={`text-4xl leading-none ${w.isPast ? "opacity-60" : ""}`}>
+                {renderIcon(w.icon, 36)}
+              </span>
+              <span className="mt-3 text-[10px] font-medium uppercase tracking-widest text-ink-faint">
+                {unitLabel} {w.week}
+              </span>
+              <span
+                className={`mt-1 line-clamp-3 text-[13px] font-semibold leading-snug ${
+                  w.isPast || w.isLocked ? "text-ink-faint" : "text-ink"
+                }`}
               >
-                <span className="text-2xl leading-none opacity-30 sm:text-3xl">
-                  {renderIcon(w.icon, 28)}
-                </span>
-                <span className="mt-1.5 px-1 text-center text-[9px] font-medium uppercase tracking-widest text-ink-faint sm:text-[10px]">
-                    {unitLabel} {w.week}
-                </span>
-                <span className="mt-0.5 line-clamp-2 px-1 text-center text-[10px] font-medium leading-tight text-ink-faint sm:text-[11px]">
-                  {w.topic}
-                </span>
-                <span className="mt-1 px-1 text-center text-[9px] font-semibold uppercase tracking-wide text-ink-soft sm:text-[10px]">
+                {w.topic}
+              </span>
+              {w.isLocked ? (
+                <span className="mt-auto pt-2.5 text-[10px] font-semibold uppercase tracking-wide text-ink-faint">
                   {w.lockedLabel ?? "Coming soon"}
                 </span>
-              </div>
-            ) : (
-              <Link
-                href={w.href!}
-                aria-label={`${unitLabel} ${w.week}: ${w.topic}${w.isCurrent ? " (current week)" : ""}`}
-                className="group flex aspect-square flex-col items-center justify-center rounded-md bg-transparent p-2 transition-colors hover:bg-paper-tint-soft sm:p-2.5"
-                style={w.isCurrent ? { boxShadow: `inset 0 0 0 2px var(--primary)` } : undefined}
-              >
-                <span
-                  className={`text-2xl leading-none sm:text-3xl ${w.isPast ? "opacity-60" : ""}`}
+              ) : w.isCurrent ? (
+                <span className="mt-auto pt-2.5 text-[10px] font-bold uppercase tracking-wide text-primary">
+                  ● Current
+                </span>
+              ) : w.isPast ? (
+                <span className="mt-auto pt-2.5 text-[10px] font-semibold uppercase tracking-wide text-ink-faint">
+                  ✓ Done
+                </span>
+              ) : null}
+            </>
+          );
+          const cardBase =
+            "flex h-full min-h-[152px] flex-col items-center rounded-xl border p-4 text-center";
+          return (
+            <li key={w.week} className="w-[168px] shrink-0 snap-start">
+              {w.isLocked ? (
+                <div
+                  aria-label={`${unitLabel} ${w.week}: ${w.topic} (${w.lockedLabel ?? "coming soon"})`}
+                  className={`${cardBase} cursor-not-allowed border-rule-soft opacity-60`}
                 >
-                  {renderIcon(w.icon, 28)}
-                </span>
-                <span className="mt-1.5 px-1 text-center text-[9px] font-medium uppercase tracking-widest text-ink-faint sm:text-[10px]">
-                    {unitLabel} {w.week}
-                </span>
-                <span
-                  className={`mt-0.5 line-clamp-2 px-1 text-center text-[10px] font-medium leading-tight transition-colors sm:text-[11px] ${
-                    w.isPast
-                      ? "text-ink-faint"
-                      : "text-ink-soft group-hover:text-ink"
+                  {inner}
+                </div>
+              ) : (
+                <Link
+                  href={w.href!}
+                  aria-label={`${unitLabel} ${w.week}: ${w.topic}${w.isCurrent ? " (current)" : ""}`}
+                  className={`group ${cardBase} transition-colors hover:bg-paper-tint-soft ${
+                    w.isCurrent ? "border-primary" : "border-rule-soft"
                   }`}
+                  style={
+                    w.isCurrent
+                      ? {
+                          boxShadow: "inset 0 0 0 1px var(--primary)",
+                          backgroundColor: "color-mix(in srgb, var(--primary) 4%, transparent)",
+                        }
+                      : undefined
+                  }
                 >
-                  {w.topic}
-                </span>
-              </Link>
-            )}
-          </li>
-        ))}
+                  {inner}
+                </Link>
+              )}
+            </li>
+          );
+        })}
       </ol>
+      ) : (
+        <ol className="hidden gap-2 sm:grid sm:grid-cols-3 sm:gap-3 md:grid-cols-5">
+          {weeks.map((w) => (
+            <li key={w.week}>
+              {w.isLocked ? (
+                <div
+                  aria-label={`${unitLabel} ${w.week}: ${w.topic} (${w.lockedLabel ?? "coming soon"})`}
+                  className="flex aspect-square cursor-not-allowed flex-col items-center justify-center rounded-md bg-transparent p-2 sm:p-2.5"
+                >
+                  <span className="text-2xl leading-none opacity-30 sm:text-3xl">
+                    {renderIcon(w.icon, 28)}
+                  </span>
+                  <span className="mt-1.5 px-1 text-center text-[9px] font-medium uppercase tracking-widest text-ink-faint sm:text-[10px]">
+                    {unitLabel} {w.week}
+                  </span>
+                  <span className="mt-0.5 line-clamp-2 px-1 text-center text-[10px] font-medium leading-tight text-ink-faint sm:text-[11px]">
+                    {w.topic}
+                  </span>
+                  <span className="mt-1 px-1 text-center text-[9px] font-semibold uppercase tracking-wide text-ink-soft sm:text-[10px]">
+                    {w.lockedLabel ?? "Coming soon"}
+                  </span>
+                </div>
+              ) : (
+                <Link
+                  href={w.href!}
+                  aria-label={`${unitLabel} ${w.week}: ${w.topic}${w.isCurrent ? " (current week)" : ""}`}
+                  className="group flex aspect-square flex-col items-center justify-center rounded-md bg-transparent p-2 transition-colors hover:bg-paper-tint-soft sm:p-2.5"
+                  style={w.isCurrent ? { boxShadow: `inset 0 0 0 2px var(--primary)` } : undefined}
+                >
+                  <span
+                    className={`text-2xl leading-none sm:text-3xl ${w.isPast ? "opacity-60" : ""}`}
+                  >
+                    {renderIcon(w.icon, 28)}
+                  </span>
+                  <span className="mt-1.5 px-1 text-center text-[9px] font-medium uppercase tracking-widest text-ink-faint sm:text-[10px]">
+                    {unitLabel} {w.week}
+                  </span>
+                  <span
+                    className={`mt-0.5 line-clamp-2 px-1 text-center text-[10px] font-medium leading-tight transition-colors sm:text-[11px] ${
+                      w.isPast ? "text-ink-faint" : "text-ink-soft group-hover:text-ink"
+                    }`}
+                  >
+                    {w.topic}
+                  </span>
+                </Link>
+              )}
+            </li>
+          ))}
+        </ol>
+      )}
     </>
   );
 }
