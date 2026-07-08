@@ -174,6 +174,9 @@ type AdminTrackConfig = {
   description?: string;
   type?: string;
   totalWeeks: number;
+  /** Server-resolved current unit (day-gated camps advance by date, not the
+   *  7-day cycle). Falls back to computeCurrentWeek when absent. */
+  currentUnit?: number;
   selfPaced?: boolean;
   sessionsPerWeek: number;
   instructor: string;
@@ -1095,7 +1098,8 @@ export function AdminTabs({
         const notStarted = new Date(activeTrack.startDate).getTime() > Date.now();
         const currentWeek = notStarted
           ? 0
-          : computeCurrentWeek(
+          : activeTrack.currentUnit ??
+            computeCurrentWeek(
               activeTrack.startDate,
               activeTrack.totalWeeks,
               activeTrack.lastSessionDayOffset,

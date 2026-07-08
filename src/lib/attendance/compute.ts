@@ -32,6 +32,9 @@ export type TrackLike = {
   sessionsPerWeek: number;
   startDate: string;
   lastSessionDayOffset: number;
+  /** Server-resolved current unit (handles day-gated camps). Falls back to
+   *  computeCurrentWeek when absent. */
+  currentUnit?: number;
 };
 
 export type ExpectedSession = {
