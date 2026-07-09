@@ -15,7 +15,7 @@ import type { SurveyConfig } from "@/lib/programs/types";
 import { buildInsightsData } from "@/lib/analytics/insights-data";
 import type { SurveyQuestion } from "@/components/survey-fields";
 import { fetchPendingPeople, type PendingPerson } from "@/lib/people-hub";
-import { getCourseEngagement } from "@/lib/course-engagement";
+import { getCourseEngagement, getCourseRosterStats } from "@/lib/course-engagement";
 import { resolveCurrentUnit } from "@/lib/utils";
 import { getEngagementAnalytics, type EngagementAnalytics } from "./actions-analytics";
 import type { CourseEngagementProps } from "@/components/stats/course-engagement";
@@ -82,6 +82,7 @@ export default async function AdminPage({
   let insightsData: InsightsData | null = null;
   let analyticsData: EngagementAnalytics | null = null;
   let courseEngagement: CourseEngagementProps | null = null;
+  let courseStats: Record<string, { total: number; active: number }> = {};
   let alumniEnrollments: { track_slug: string; email: string; source: string }[] = [];
   let pendingPeople: PendingPerson[] = [];
   let unviewedAssessments: number | null = null;
@@ -357,6 +358,17 @@ export default async function AdminPage({
       analyticsData = await getEngagementAnalytics().catch(() => null);
     }
 
+    // Enrolled + active per course for the course-picker list. Computed here
+    // rather than on the client, which only has program-scoped students and a
+    // browsing timestamp: that undercounts the roster (learners whose
+    // students.program_id points at another program) and reports a live Zoom
+    // camp as "0 active". Same signals as getCourseEngagement, so the list and
+    // the course Overview agree.
+    courseStats = await getCourseRosterStats(
+      program.tracks.map((t) => t.slug),
+      programIds,
+    ).catch(() => ({}));
+
     // Per-course engagement snapshot for the open course tab — the admin
     // feedback loop on the learner streak cards. Only the active course's
     // aggregates are fetched.
@@ -493,6 +505,7 @@ export default async function AdminPage({
         isMaster={isMasterEmail(actorEmail)}
         assignableRoles={assignableRoles(userRole, isMasterEmail(actorEmail))}
         engagementScores={engagementScores}
+        courseStats={courseStats}
         initialTab={initialTab}
         initialTrackView={initialTrackView}
         lunchLearnRecordings={lunchLearnRecordings}

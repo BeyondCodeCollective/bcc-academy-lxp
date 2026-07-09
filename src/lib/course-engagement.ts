@@ -13,6 +13,113 @@ function dayKey(iso: string | Date): string {
   return (typeof iso === "string" ? new Date(iso) : iso).toISOString().slice(0, 10);
 }
 
+/** Enrolled-learner and active-learner counts per track, for the course list. */
+export type CourseRosterStat = { total: number; active: number };
+
+/**
+ * Per-track {total, active} for every course in the list, using the SAME
+ * activity signals as getCourseEngagement so the list and the course Overview
+ * can never disagree.
+ *
+ * Two bugs this exists to avoid:
+ *  • Counting only `students.last_activity_at` calls a Zoom camp "0 active"
+ *    — those learners attend live and never browse the dashboard.
+ *  • Scoping learners by `students.program_id` drops anyone enrolled in this
+ *    program's track whose own row belongs to another program.
+ * Membership comes from `student_tracks` (the enrollment), role from a lookup
+ * keyed on the enrolled ids rather than on program.
+ */
+export async function getCourseRosterStats(
+  trackSlugs: string[],
+  programIds: string[],
+  now: Date = new Date(),
+): Promise<Record<string, CourseRosterStat>> {
+  const empty: Record<string, CourseRosterStat> = {};
+  if (trackSlugs.length === 0 || programIds.length === 0) return empty;
+
+  const svc = createServiceClient();
+
+  const { data: enroll } = await svc
+    .from("student_tracks")
+    .select("student_id, track_slug")
+    .in("track_slug", trackSlugs)
+    .in("program_id", programIds);
+  const enrollments = enroll ?? [];
+  const enrolledIds = Array.from(new Set(enrollments.map((e) => e.student_id)));
+  if (enrolledIds.length === 0) return empty;
+
+  // Role by id, NOT by program — an enrolled learner may sit under another
+  // program's row and would otherwise vanish from the count.
+  const { data: studentRows } = await svc
+    .from("students")
+    .select("id, role, last_activity_at")
+    .in("id", enrolledIds);
+  const learners = (studentRows ?? []).filter((s) => s.role === "student");
+  const learnerIds = learners.map((s) => s.id);
+  if (learnerIds.length === 0) return empty;
+
+  const since = new Date(now.getTime() - 7 * MS_PER_DAY).toISOString();
+  const [watchedRes, subRes, tutorRes, attRes] = await Promise.all([
+    svc
+      .from("week_progress")
+      .select("user_id, track_slug")
+      .in("track_slug", trackSlugs)
+      .in("user_id", learnerIds)
+      .gte("video_watched_at", since),
+    svc
+      .from("submissions")
+      .select("student_id, track_slug")
+      .in("track_slug", trackSlugs)
+      .in("student_id", learnerIds)
+      .gte("submitted_at", since),
+    svc
+      .from("tutor_messages")
+      .select("student_id")
+      .in("student_id", learnerIds)
+      .gte("created_at", since),
+    svc
+      .from("attendance")
+      .select("student_id, track")
+      .in("track", trackSlugs)
+      .in("student_id", learnerIds)
+      .gte("checked_in_at", since),
+  ]);
+
+  // Track-scoped signals mark a learner active in THAT track. Tutor chat and
+  // browsing aren't track-scoped, so they mark the learner active everywhere
+  // they're enrolled — same as the Overview's per-track union.
+  const activeInTrack = new Map<string, Set<string>>();
+  const mark = (slug: string, id: string) => {
+    if (!activeInTrack.has(slug)) activeInTrack.set(slug, new Set());
+    activeInTrack.get(slug)!.add(id);
+  };
+  for (const r of watchedRes.data ?? []) mark(r.track_slug, r.user_id);
+  for (const r of subRes.data ?? []) mark(r.track_slug, r.student_id);
+  for (const r of attRes.data ?? []) mark(r.track, r.student_id);
+
+  const weekAgo = now.getTime() - 7 * MS_PER_DAY;
+  const activeAnywhere = new Set<string>((tutorRes.data ?? []).map((r) => r.student_id));
+  for (const s of learners) {
+    if (s.last_activity_at && new Date(s.last_activity_at).getTime() >= weekAgo) {
+      activeAnywhere.add(s.id);
+    }
+  }
+
+  const learnerIdSet = new Set(learnerIds);
+  const stats: Record<string, CourseRosterStat> = {};
+  for (const slug of trackSlugs) {
+    const ids = new Set(
+      enrollments.filter((e) => e.track_slug === slug && learnerIdSet.has(e.student_id))
+        .map((e) => e.student_id),
+    );
+    const inTrack = activeInTrack.get(slug) ?? new Set<string>();
+    let active = 0;
+    for (const id of ids) if (inTrack.has(id) || activeAnywhere.has(id)) active += 1;
+    stats[slug] = { total: ids.size, active };
+  }
+  return stats;
+}
+
 /** What a track can actually measure. A camp with no videos and no submissions
  *  would otherwise render two tiles that are structurally pinned at zero. */
 export type TrackCapabilities = {

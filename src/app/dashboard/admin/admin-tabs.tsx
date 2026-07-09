@@ -520,6 +520,7 @@ export function AdminTabs({
   isMaster = false,
   assignableRoles = [],
   engagementScores = {},
+  courseStats = {},
   initialTab,
   initialTrackView,
   lunchLearnRecordings = [],
@@ -543,6 +544,8 @@ export function AdminTabs({
   isMaster?: boolean;
   assignableRoles?: string[];
   engagementScores?: Record<string, { total: number; attendance: number; submissions: number; reflections: number; tutorMessages: number }>;
+  /** Server-computed enrolled/active per track. See getCourseRosterStats. */
+  courseStats?: Record<string, { total: number; active: number }>;
   initialTab?: string;
   initialTrackView?: string;
   lunchLearnRecordings?:{ id: string; title: string; presenter: string; recording_url: string; description: string | null; recorded_at: string }[];
@@ -967,13 +970,19 @@ export function AdminTabs({
         const studentRoleIds = new Set(
           students.filter((s) => s.role === "student").map((s) => s.id),
         );
+        // `courseStats` is server-computed: it resolves role by enrolled id
+        // rather than by program (so learners whose students.program_id points
+        // elsewhere still count), and unions attendance / submissions / lessons
+        // / tutor chat / browsing for "active" (so a live Zoom camp isn't 0).
+        // The client-side fallbacks below are the old, narrower answers, used
+        // only when the server didn't supply stats.
         const studentCountFor = (slug: string) =>
+          courseStats[slug]?.total ??
           enrollments.filter(
             (e) => e.track_slug === slug && studentRoleIds.has(e.student_id),
           ).length;
         const now = new Date();
-        // Cross-course triage: "N active this week" per course, from the
-        // last_activity_at already loaded (no extra queries). Only worth the
+        // Cross-course triage: "N active this week" per course. Only worth the
         // extra number on a multi-course home — a 1–2 course picker keeps the
         // plain enrolled count.
         const showActive = tracks.length >= 3;
@@ -989,6 +998,7 @@ export function AdminTabs({
             .map((s) => s.id),
         );
         const activeCountFor = (slug: string) =>
+          courseStats[slug]?.active ??
           enrollments.filter(
             (e) => e.track_slug === slug && activeStudentIds.has(e.student_id),
           ).length;
