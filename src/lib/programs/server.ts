@@ -143,6 +143,12 @@ type DynamicProgramRow = { id: string; slug: string; name: string | null };
 function buildTrackFromOverride(row: TrackOverrideRow): TrackConfig {
   const totalWeeks = row.total_weeks ?? 12;
   const sessionsPerWeek = row.sessions_per_week ?? 2;
+  const unitLabel = row.unit_label ?? "Week";
+  // When a track is modeled as individual sessions (unit_label "Session", e.g.
+  // Security+/Network+), each unit IS one session — so it has exactly one.
+  // `sessions_per_week` there is the weekly meeting cadence, not sessions per
+  // unit. Week-modeled tracks keep the per-week session count.
+  const sessionsPerUnit = unitLabel === "Session" ? 1 : sessionsPerWeek;
   const weekSummaries = (row.week_summaries as { week: number; topic: string; icon: string }[] | null) ?? [];
 
   // Generate a WeekConfig for each week so the admin curriculum editor
@@ -157,7 +163,7 @@ function buildTrackFromOverride(row: TrackOverrideRow): TrackConfig {
       subtitle: "",
       description: "",
       objectives: [] as string[],
-      sessions: Array.from({ length: sessionsPerWeek }, (_, j) => ({
+      sessions: Array.from({ length: sessionsPerUnit }, (_, j) => ({
         title: `Session ${j + 1}`,
         time: "",
       })),
@@ -172,7 +178,7 @@ function buildTrackFromOverride(row: TrackOverrideRow): TrackConfig {
     phase: (row.phase as TrackConfig["phase"] | null) ?? "core",
     type: "weekly",
     totalWeeks,
-    unitLabel: row.unit_label ?? "Week",
+    unitLabel,
     sessionsPerWeek,
     startDate: row.start_date ?? new Date().toISOString().slice(0, 10),
     startDateTbd: false,
