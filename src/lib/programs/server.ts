@@ -127,7 +127,7 @@ type TrackOverrideRow = {
   sessions_per_week: number | null;
   last_session_day_offset: number | null;
   session_times: string[] | null;
-  week_summaries: { week: number; topic: string; icon: string }[] | null;
+  week_summaries: { week: number; topic: string; icon: string; date?: string; label?: string }[] | null;
   default_reflection_prompts: string[] | null;
   submissions_enabled: boolean | null;
   reflections_enabled: boolean | null;
@@ -150,7 +150,9 @@ function buildTrackFromOverride(row: TrackOverrideRow): TrackConfig {
   // unit. Week-modeled tracks keep the per-week session count.
   const sessionsPerUnit = unitLabel === "Session" ? 1 : sessionsPerWeek;
   const weekSummaries =
-    (row.week_summaries as { week: number; topic: string; icon: string; date?: string }[] | null) ?? [];
+    (row.week_summaries as
+      | { week: number; topic: string; icon: string; date?: string; label?: string }[]
+      | null) ?? [];
 
   // Generate a WeekConfig for each week so the admin curriculum editor
   // renders week tabs just like it does for TS-config courses.

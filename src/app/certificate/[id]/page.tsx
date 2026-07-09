@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getProgramBySlug } from "@/lib/programs";
+import { numberedUnitCount } from "@/lib/programs/unit-display";
 import { PrintButton } from "./print-button";
 
 export const dynamic = "force-dynamic";
@@ -180,7 +181,7 @@ export default async function CertificatePage({
             </p>
             {trackConfig && (
               <p className="mt-1 text-sm text-neutral-500">
-                {trackConfig.totalWeeks}-{unitLower} program
+                {numberedUnitCount(trackConfig.weekSummaries, trackConfig.totalWeeks)}-{unitLower} program
                 {instructor ? <> · {instructor}</> : null}
               </p>
             )}

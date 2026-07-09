@@ -181,8 +181,12 @@ export type TrackConfig = {
    * authoritative for the calendar, the ICS feed, and the current unit; when
    * absent those fall back to `startDate + 7×(week−1)`. Unlike
    * `WeekConfig.comingSoonUntil` this does NOT gate access — it only dates.
+   *
+   * `label` marks the unit as an EXTRA (a kickoff, an exam day): it renders as
+   * that label instead of "Session N", consumes no unit number, and is excluded
+   * from the unit total. See `lib/programs/unit-display.ts`.
    */
-  weekSummaries: { week: number; topic: string; icon: string; date?: string }[];
+  weekSummaries: { week: number; topic: string; icon: string; date?: string; label?: string }[];
   /** Full week content for the track detail pages */
   weeks: WeekConfig[];
   /** Default reflection prompts used when a week doesn't specify custom ones */

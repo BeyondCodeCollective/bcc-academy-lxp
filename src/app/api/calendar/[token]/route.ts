@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { getHomeProgramForTrack, getTrackBySlug } from "@/lib/programs";
 import { getProgramWithOverrides } from "@/lib/programs/server";
+import { unitDisplayMap, unitText } from "@/lib/programs/unit-display";
 import {
   buildCalendar,
   icalTimestamp,
@@ -73,6 +74,7 @@ export async function GET(
       ]
         .filter(Boolean)
         .join("\n");
+      const display = unitDisplayMap(track.weekSummaries, track.unitLabel ?? "Week");
       for (const ws of track.weekSummaries) {
         events.push({
           // uid stays `-week-` even for Session tracks: it keys the event in
@@ -80,7 +82,7 @@ export async function GET(
           // duplicate every event rather than move it.
           uid: `${slug}-week-${ws.week}`,
           date: ws.date ?? addDays(track.startDate, (ws.week - 1) * 7),
-          summary: `${track.shortName} · ${track.unitLabel ?? "Week"} ${ws.week}: ${ws.topic}`,
+          summary: `${track.shortName} · ${unitText(display, ws.week, track.unitLabel ?? "Week")}: ${ws.topic}`,
           description: scheduleNote || undefined,
         });
       }
