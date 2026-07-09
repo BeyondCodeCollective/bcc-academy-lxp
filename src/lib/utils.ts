@@ -37,13 +37,26 @@ export function computeCurrentWeek(
  */
 export function resolveCurrentUnit(track: TrackConfig, now: Date = new Date()): number {
   const started = !track.startDateTbd && now >= new Date(track.startDate);
+  // A syllabus that dates its units (Security+ meets Tue/Thu and skips a week)
+  // is authoritative: the current unit is the last one whose date has passed.
+  // The 7-day cycle can't express that cadence, so don't let it vote.
+  const dateScheduledThrough = track.startDateTbd
+    ? 0
+    : Math.max(
+        0,
+        ...track.weekSummaries
+          .filter((ws) => ws.date && now >= new Date(ws.date))
+          .map((ws) => ws.week),
+      );
   const computed = track.selfPaced
     ? started
       ? 1
       : 0
-    : started
-      ? computeCurrentWeek(track.startDate, track.totalWeeks, track.lastSessionDayOffset)
-      : 0;
+    : dateScheduledThrough > 0
+      ? dateScheduledThrough
+      : started
+        ? computeCurrentWeek(track.startDate, track.totalWeeks, track.lastSessionDayOffset)
+        : 0;
   const dateUnlockedThrough = track.selfPaced
     ? 0
     : Math.max(
