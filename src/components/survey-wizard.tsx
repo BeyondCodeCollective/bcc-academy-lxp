@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import {
   QuestionRenderer,
   isPageValid as validatePage,
+  US_STATES,
   type SurveyQuestion,
 } from "@/components/survey-fields";
 
@@ -1093,18 +1094,20 @@ const HOME_FOR_SUMMER_APPLICATION_PAGES: SurveyPage[] = [
         short: true,
       },
       {
-        type: "radio",
-        id: "location",
-        label: "Where are you currently located?",
-        options: ["Florida", "Georgia", "Other"],
+        type: "select",
+        id: "state",
+        label: "State",
+        options: US_STATES,
+        placeholder: "Select your state",
         required: true,
       },
       {
         type: "text",
-        id: "location_other",
-        label: "If you chose Other, where are you located? (Optional)",
-        required: false,
-        short: true,
+        id: "zip_code",
+        label: "ZIP code",
+        placeholder: "e.g. 33101",
+        zip: true,
+        required: true,
       },
       {
         type: "radio",

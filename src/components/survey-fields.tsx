@@ -95,6 +95,28 @@ export type DateQuestion = {
   required?: boolean;
 };
 
+export type SelectQuestion = {
+  type: "select";
+  id: string;
+  label: string;
+  options: string[];
+  placeholder?: string;
+  required?: boolean;
+};
+
+/** US states + DC, for the `select` state dropdown. */
+export const US_STATES: string[] = [
+  "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado",
+  "Connecticut", "Delaware", "District of Columbia", "Florida", "Georgia",
+  "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky",
+  "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota",
+  "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire",
+  "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota",
+  "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina",
+  "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia",
+  "Washington", "West Virginia", "Wisconsin", "Wyoming",
+];
+
 export type SurveyQuestion =
   | RadioQuestion
   | MultiSelectQuestion
@@ -103,7 +125,8 @@ export type SurveyQuestion =
   | MonthYearQuestion
   | ConsentQuestion
   | DualLikertQuestion
-  | DateQuestion;
+  | DateQuestion
+  | SelectQuestion;
 
 export function isPageValid(
   questions: SurveyQuestion[],
@@ -179,6 +202,8 @@ export function QuestionRenderer({
       );
     case "date":
       return <DateField question={question} value={value as string} onChange={onChange} />;
+    case "select":
+      return <SelectField question={question} value={value as string} onChange={onChange} />;
   }
 }
 
@@ -341,6 +366,46 @@ function MultiSelectField({
         ))}
       </div>
     </fieldset>
+  );
+}
+
+function SelectField({
+  question,
+  value,
+  onChange,
+}: {
+  question: SelectQuestion;
+  value: string | undefined;
+  onChange: (val: string) => void;
+}) {
+  const inputId = `select-${question.id}`;
+  return (
+    <div>
+      <label htmlFor={inputId} className="text-sm font-medium text-ink mb-2 block">
+        {question.label}
+        {question.required && (
+          <span aria-hidden="true" className="text-red-500 ml-0.5">
+            *
+          </span>
+        )}
+      </label>
+      <select
+        id={inputId}
+        value={value ?? ""}
+        onChange={(e) => onChange(e.target.value)}
+        aria-required={question.required || undefined}
+        className="w-full border border-rule bg-white px-3.5 py-3 text-sm text-ink focus:border-ink focus:ring-1 focus:ring-ink-faint focus:outline-none transition-all"
+      >
+        <option value="" disabled>
+          {question.placeholder ?? "Select…"}
+        </option>
+        {question.options.map((opt) => (
+          <option key={opt} value={opt}>
+            {opt}
+          </option>
+        ))}
+      </select>
+    </div>
   );
 }
 
