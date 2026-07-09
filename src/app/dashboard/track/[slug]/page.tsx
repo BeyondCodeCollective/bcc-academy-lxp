@@ -9,6 +9,7 @@ import {
   Medal,
 } from "@phosphor-icons/react/dist/ssr";
 import { resolveCurrentUnit } from "@/lib/utils";
+import { trackUnitDisplay, unitText } from "@/lib/programs/unit-display";
 import { resolveTrackProgram } from "@/lib/programs/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { canAccessAdminPanel } from "@/lib/roles";
@@ -173,8 +174,11 @@ export default async function TrackOverviewPage({
   // Per-track unit label ("Week" default, "Day" for a bootcamp, …).
   const unit = track.unitLabel || "Week";
   const unitLower = unit.toLowerCase();
+  // Extras (a kickoff) render by name and don't consume a number, so "Session 3"
+  // may live at internal week 4. `numbered` is what "Duration" should report.
+  const { display, numbered } = trackUnitDisplay(track);
   // Single "Week N" — the old "Open current week — Week N" said "week" twice.
-  const ctaLabel = `Open ${unit} ${ctaWeek}`;
+  const ctaLabel = `Open ${unitText(display, ctaWeek, unit)}`;
 
   // Track-level description if authored, else fall back to week 1's
   // description (every track has one written and it's already framing copy).
@@ -216,6 +220,7 @@ export default async function TrackOverviewPage({
     const lockedLabel = comingSoonLocked ? "Coming soon" : sequentialLocked ? "Locked" : null;
     return {
       week: ws.week,
+      label: unitText(display, ws.week, unit),
       topic: titleByWeek.get(ws.week) ?? ws.topic,
       icon: ws.icon,
       href: isLocked ? null : `/dashboard/track/${slug}/${ws.week}`,
@@ -229,11 +234,16 @@ export default async function TrackOverviewPage({
   // Self-paced courses have no fixed weekly schedule, so a ticking "Week N of M"
   // is misleading — show "Self-paced · N weeks" instead. Otherwise lead with the
   // live week (once started) then the track length.
+  // An extra (kickoff) has no number, so it can't read "Kickoff of 16" — it
+  // announces itself by name and lets the track length follow.
+  const currentDisplay = display.get(currentWeek);
   const eyebrow = track.selfPaced
-    ? `Self-paced · ${track.totalWeeks} ${unitLower}s`
+    ? `Self-paced · ${numbered} ${unitLower}s`
     : started
-      ? `${unit} ${currentWeek} of ${track.totalWeeks} · ${track.totalWeeks}-${unitLower} track`
-      : `${track.totalWeeks}-${unitLower} track`;
+      ? currentDisplay?.number
+        ? `${unit} ${currentDisplay.number} of ${numbered} · ${numbered}-${unitLower} track`
+        : `${currentDisplay?.text ?? unit} · ${numbered}-${unitLower} track`
+      : `${numbered}-${unitLower} track`;
 
   // Engagement card for actual learners — single-course students land here
   // instead of the dashboard home, so this is where their streak lives. Scoped
@@ -399,7 +409,7 @@ export default async function TrackOverviewPage({
         <Fact
           icon={Clock}
           label="Duration"
-          value={`${track.totalWeeks} ${unitLower}s`}
+          value={`${numbered} ${unitLower}s`}
         />
         <Fact
           icon={Lightning}

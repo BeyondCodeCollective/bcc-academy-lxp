@@ -8,9 +8,10 @@ import { Field, fieldInput } from "@/components/ui";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
-// `date` is the unit's real meeting date. The form never edits it, but it must
-// round-trip through save or editing a topic would wipe the schedule.
-type WeekSummary = { week: number; topic: string; icon: string; date?: string };
+// `date` (meeting date) and `label` (extra-unit name, e.g. "Kickoff") are not
+// editable here, but must round-trip through save or editing a topic would wipe
+// the schedule and the unit numbering.
+type WeekSummary = { week: number; topic: string; icon: string; date?: string; label?: string };
 
 type Props = {
   track: {

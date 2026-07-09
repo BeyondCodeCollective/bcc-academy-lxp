@@ -307,7 +307,7 @@ export type TrackOverviewPatch = {
   sessions_per_week?: number | null;
   last_session_day_offset?: number | null;
   session_times?: string[] | null;
-  week_summaries?: { week: number; topic: string; icon: string; date?: string }[] | null;
+  week_summaries?: { week: number; topic: string; icon: string; date?: string; label?: string }[] | null;
   default_reflection_prompts?: string[] | null;
   submissions_enabled?: boolean | null;
   reflections_enabled?: boolean | null;

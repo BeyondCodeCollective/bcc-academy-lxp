@@ -16,6 +16,7 @@ import { ReflectionForm } from "@/components/reflection-form";
 import { IntakeForm } from "@/components/intake-form";
 import { WeekKeyboardNav } from "@/components/week-keyboard-nav";
 import { WeekNavPortal } from "@/components/week-nav-portal";
+import { trackUnitDisplay, unitText } from "@/lib/programs/unit-display";
 import { getSurveyStatus } from "@/app/dashboard/actions";
 import type { WeekConfig } from "@/lib/programs/types";
 import { resolveSessionContent } from "@/lib/session-content";
@@ -38,8 +39,11 @@ export default async function TrackWeekPage({
   const weekContent = track.weeks.find((w) => w.week === weekNum);
   if (!weekContent) redirect("/dashboard");
 
-  // Per-track unit label ("Week" default, "Day" for a bootcamp, …).
+  // Per-track unit label ("Week" default, "Day" for a bootcamp, …). Extras like
+  // a kickoff render by name, so the displayed number can trail the internal one.
   const unit = track.unitLabel || "Week";
+  const { display } = trackUnitDisplay(track);
+  const unitName = unitText(display, weekNum, unit);
 
   // Curriculum lock: before launch, non-admins can't open lessons by direct URL
   // either — bounce them to the holding page (countdown). Mirrors the overview's
@@ -86,7 +90,7 @@ export default async function TrackWeekPage({
           </Link>
           <div className="border border-rule bg-neutral-50 p-8 text-center">
             <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-ink-faint mb-2">
-              {unit} {weekContent.week}
+              {unitName}
             </p>
             <h1 className="text-2xl font-bold tracking-tight text-ink sm:text-3xl">
               {weekContent.title}
@@ -172,13 +176,13 @@ export default async function TrackWeekPage({
           </Link>
           <div className="border border-rule bg-neutral-50 p-8 text-center">
             <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-ink-faint mb-2">
-              {unit} {weekContent.week}
+              {unitName}
             </p>
             <h1 className="text-2xl font-bold tracking-tight text-ink sm:text-3xl">
               {weekContent.title}
             </h1>
             <p className="mt-4 text-base text-ink-soft">
-              Finish <strong>{unit} {unlockedThrough}</strong> to unlock this {unit.toLowerCase()}.
+              Finish <strong>{unitText(display, unlockedThrough, unit)}</strong> to unlock this {unit.toLowerCase()}.
             </p>
           </div>
         </div>
@@ -257,7 +261,14 @@ export default async function TrackWeekPage({
       {/* Prev/next week nav renders into the breadcrumb row (#breadcrumb-actions)
          so it shares that line instead of stacking below. The "up to course"
          path is the breadcrumb's course crumb. */}
-      <WeekNavPortal trackSlug={trackSlug} weekNum={weekNum} totalWeeks={track.totalWeeks} unitLabel={unit} />
+      <WeekNavPortal
+        trackSlug={trackSlug}
+        weekNum={weekNum}
+        totalWeeks={track.totalWeeks}
+        unitLabel={unit}
+        prevLabel={display.get(weekNum - 1)?.text}
+        nextLabel={display.get(weekNum + 1)?.text}
+      />
 
       {/* Compact header. For single-session weeks the session title equals
          the week title, so we fold session metadata (time + Join action)

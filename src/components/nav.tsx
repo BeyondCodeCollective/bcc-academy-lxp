@@ -18,6 +18,7 @@ import {
   SpeakerSlash,
 } from "@phosphor-icons/react";
 import { computeCurrentWeek } from "@/lib/utils";
+import { unitDisplayMap } from "@/lib/programs/unit-display";
 import { TextScaleToggle } from "@/components/text-scale-toggle";
 import { useReadAloud } from "@/components/assessment-a11y-bar";
 import { SidebarToggle } from "@/components/sidebar-toggle";
@@ -78,7 +79,8 @@ type CurriculumTrack = {
   selfPaced?: boolean;
   totalWeeks: number;
   lastSessionDayOffset: number;
-  weekSummaries: { week: number; topic: string; icon: string }[];
+  unitLabel?: string;
+  weekSummaries: { week: number; topic: string; icon: string; label?: string }[];
 };
 
 type NavVariant = "admin-sidebar" | "student-sidebar" | "lunch-learn-sidebar" | "topbar";
@@ -349,6 +351,8 @@ export function Nav({
             ? computeCurrentWeek(track.startDate, track.totalWeeks, track.lastSessionDayOffset)
             : 0;
 
+        const unitDisplay = unitDisplayMap(track.weekSummaries, track.unitLabel ?? "Week");
+
         return (
           <div key={track.slug}>
             <div className="flex flex-col gap-0.5">
@@ -379,7 +383,8 @@ export function Nav({
                       <Check size={14} weight="bold" aria-hidden className="shrink-0 text-ink-faint" />
                     ) : (
                       <span className="w-[14px] shrink-0 text-center text-[11px] tabular-nums text-ink-faint">
-                        {ws.week}
+                        {/* Extras (a kickoff) have no number — mark them with a dot. */}
+                        {unitDisplay.get(ws.week)?.number ?? "·"}
                       </span>
                     )}
                     <span className="truncate">{ws.topic}</span>
