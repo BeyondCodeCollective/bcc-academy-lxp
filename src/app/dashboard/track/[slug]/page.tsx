@@ -20,6 +20,7 @@ import { buttonClass } from "@/components/ui";
 import { getTrackProgressMap } from "@/app/dashboard/track/actions";
 import { addDays } from "@/lib/ical";
 import { TrackCalendar, type CalendarEvent } from "@/components/track-calendar";
+import type { TrackConfig } from "@/lib/programs/types";
 import { getAllSessionContent } from "@/app/dashboard/admin/actions-tracks";
 import { isSequentialGated, highestUnlockedWeek } from "@/lib/track-gating";
 import { MyProgressCard } from "@/components/my-progress-card";
@@ -243,22 +244,30 @@ export default async function TrackOverviewPage({
       : null;
 
   // ── Calendar ──────────────────────────────────────────────────────────────
-  // Month-grid calendar of everything on this track: the weekly sessions dated
-  // from the syllabus (start date + N weeks — same math as the subscribable
-  // calendar feed) plus any office-hours / MASS / guest-speaker / event items
-  // an admin adds. Sessions only appear once the track has a real start date.
-  const calendarEvents: CalendarEvent[] = [
-    ...(!track.startDateTbd && track.startDate
-      ? track.weekSummaries.map(
+  // Month-grid calendar of the learner's whole schedule: this track's weekly
+  // sessions (dated from the syllabus) + its office-hours / MASS / speaker /
+  // event items, PLUS the same for every OTHER track the viewer is co-enrolled
+  // in — so a student taking Security+ and its MASS wraparound sees both sets
+  // of dates in one calendar. MASS-track sessions render in the "mass" color so
+  // they read distinctly from technical sessions.
+  const sessionType = (s: string): CalendarEvent["type"] =>
+    s === "mass" || s.startsWith("mass-") ? "mass" : "session";
+
+  const eventsForTrack = (
+    t: TrackConfig,
+    titles?: Map<number, string>,
+  ): CalendarEvent[] => [
+    ...(!t.startDateTbd && t.startDate
+      ? t.weekSummaries.map(
           (ws): CalendarEvent => ({
-            date: addDays(track.startDate, (ws.week - 1) * 7),
-            type: "session",
-            title: titleByWeek.get(ws.week) ?? ws.topic,
-            href: `/dashboard/track/${slug}/${ws.week}`,
+            date: addDays(t.startDate, (ws.week - 1) * 7),
+            type: sessionType(t.slug),
+            title: titles?.get(ws.week) ?? ws.topic,
+            href: `/dashboard/track/${t.slug}/${ws.week}`,
           }),
         )
       : []),
-    ...(track.officeHours ?? []).map(
+    ...(t.officeHours ?? []).map(
       (item): CalendarEvent => ({
         date: item.date,
         type: item.type ?? "office-hours",
@@ -266,6 +275,28 @@ export default async function TrackOverviewPage({
         time: item.time || undefined,
       }),
     ),
+  ];
+
+  // Other tracks this viewer is co-enrolled in. Their configs are already on
+  // `program.tracks` (Catalyst aggregates its DB tracks), so no extra fetch
+  // beyond the enrollment lookup.
+  let companionTracks: TrackConfig[] = [];
+  if (ctx?.userId) {
+    const { data: enrolled } = await createServiceClient()
+      .from("student_tracks")
+      .select("track_slug")
+      .eq("student_id", ctx.userId);
+    const otherSlugs = new Set(
+      (enrolled ?? [])
+        .map((r) => r.track_slug as string)
+        .filter((s) => s !== slug),
+    );
+    companionTracks = program.tracks.filter((t) => otherSlugs.has(t.slug));
+  }
+
+  const calendarEvents: CalendarEvent[] = [
+    ...eventsForTrack(track, titleByWeek),
+    ...companionTracks.flatMap((t) => eventsForTrack(t)),
   ];
   const todayISO = now.toISOString().slice(0, 10);
 
