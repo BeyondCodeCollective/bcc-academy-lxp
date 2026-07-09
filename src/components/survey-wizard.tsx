@@ -1019,6 +1019,196 @@ const SECURITY_PLUS_APPLICATION_PAGES: SurveyPage[] = [
   },
 ];
 
+// ─── Home for the Summer — Application ──────────────────────────────────────
+// Beyond Code Collective x NextEra Energy. Five 90-minute virtual sessions,
+// August 3–7, 2026. Mirrors the flat schema in lib/surveys/schemas.ts — keep
+// the two in sync or admin Survey Insights mislabels the response JSON.
+const HOME_FOR_SUMMER_APPLICATION_PAGES: SurveyPage[] = [
+  {
+    title: "Your Information",
+    questions: [
+      {
+        type: "text",
+        id: "full_name",
+        label: "Full name",
+        placeholder: "e.g. Jordan Smith",
+        required: true,
+        short: true,
+      },
+      {
+        type: "text",
+        id: "phone",
+        label: "Phone number",
+        placeholder: "e.g. (555) 123-4567",
+        required: true,
+        short: true,
+      },
+      {
+        type: "radio",
+        id: "student_status",
+        label: "Are you currently a student or recent graduate?",
+        options: [
+          "Current undergraduate student",
+          "Recently graduated (within the last two years)",
+        ],
+        required: true,
+      },
+      {
+        type: "text",
+        id: "university",
+        label: "Current university / college (or most recent, if you recently graduated)",
+        required: true,
+        short: true,
+      },
+      {
+        type: "month-year",
+        id: "graduation_date",
+        // Applicants are current undergrads or grads from the last two years,
+        // so the date is usually in the future — the default range ends at the
+        // current year and would make those unselectable.
+        minYear: 2022,
+        maxYear: 2031,
+        label: "Expected or actual graduation date",
+        required: true,
+      },
+      {
+        type: "text",
+        id: "major",
+        label: "Major / field of study",
+        required: true,
+        short: true,
+      },
+    ],
+  },
+  {
+    title: "Eligibility & Commitment",
+    subtitle:
+      "Home for the Summer runs August 3–7, 2026 — five virtual sessions, 90 minutes each day.",
+    questions: [
+      {
+        type: "text",
+        id: "age",
+        label: "Your age",
+        required: true,
+        short: true,
+      },
+      {
+        type: "radio",
+        id: "location",
+        label: "Where are you currently located?",
+        options: ["Florida", "Georgia", "Other"],
+        required: true,
+      },
+      {
+        type: "text",
+        id: "location_other",
+        label: "If you chose Other, where are you located? (Optional)",
+        required: false,
+        short: true,
+      },
+      {
+        type: "radio",
+        id: "computer_internet_access",
+        label: "Do you have access to a computer or laptop and reliable internet access?",
+        options: ["Yes", "No"],
+        required: true,
+      },
+      {
+        type: "radio",
+        id: "available_all_sessions",
+        label:
+          "Are you available for all five virtual sessions, August 3–7, 2026 (90 minutes each)?",
+        options: ["Yes", "No"],
+        required: true,
+      },
+    ],
+  },
+  {
+    title: "Professional Goals",
+    subtitle:
+      "No prior technical experience is expected. This series assumes curiosity, not expertise.",
+    questions: [
+      {
+        type: "text",
+        id: "career_goals",
+        label:
+          "What career goals are you working toward, and which skills or areas do you feel you need to develop to reach them?",
+        required: true,
+      },
+      {
+        type: "multi-select",
+        id: "tech_interests",
+        label: "What areas of tech are you interested in? Select all that apply.",
+        options: [
+          "Artificial Intelligence",
+          "Cyber Security",
+          "Data & Analytics",
+          "Software Development",
+          "UX/UI Design",
+          "Project Management & Operations",
+          "Digital Marketing & Content",
+          "Other",
+        ],
+        required: true,
+      },
+      {
+        type: "text",
+        id: "tech_interests_other",
+        label: "If you chose Other, which area of tech? (Optional)",
+        required: false,
+        short: true,
+      },
+      {
+        type: "multi-select",
+        id: "workplace_tools",
+        label: "Which workplace tools have you used before? Select all that apply.",
+        options: [
+          "Google Workspace",
+          "Microsoft 365",
+          "Slack",
+          "Notion",
+          "Asana",
+          "Zoom/Loom",
+          "AI tools (ChatGPT, Claude, etc.)",
+          "None of the above",
+        ],
+        required: true,
+      },
+    ],
+  },
+  {
+    title: "Anything Else",
+    questions: [
+      {
+        type: "text",
+        id: "anything_else",
+        label: "Is there anything else you want us to know about you or your application? (Optional)",
+        required: false,
+      },
+      {
+        type: "radio",
+        id: "heard_about_program",
+        label: "How did you hear about Home for the Summer?",
+        options: [
+          "Social media",
+          "University/college",
+          "Friend or peer",
+          "Beyond Code Collective Community",
+          "Other",
+        ],
+        required: true,
+      },
+      {
+        type: "text",
+        id: "heard_about_program_other",
+        label: "If you chose Other, where did you hear about us? (Optional)",
+        required: false,
+        short: true,
+      },
+    ],
+  },
+];
+
 // ─── CompTIA Security+ — Pre-Program Survey ─────────────────────────────────
 const SECURITY_PLUS_PRE_PAGES: SurveyPage[] = [
   {
@@ -1228,6 +1418,9 @@ function getSurveyPages(surveyId: string, programSlug: string): SurveyPage[] {
   }
   if (surveyId === "security-plus-application") {
     return SECURITY_PLUS_APPLICATION_PAGES;
+  }
+  if (surveyId === "home-for-summer-application") {
+    return HOME_FOR_SUMMER_APPLICATION_PAGES;
   }
   if (surveyId === "mid-program-spring-2026" && programSlug === "atg") {
     return ATG_MID_PROGRAM_PAGES;
