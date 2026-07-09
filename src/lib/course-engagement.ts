@@ -1,6 +1,7 @@
-// Aggregates one course's engagement for the admin snapshot. Activity = lesson
-// watched, work submitted, tutor chat, or browsing (last_activity_at). Server
-// only (service client). Returns null when the course has no learners.
+// Aggregates one course's engagement for the admin snapshot. Activity = live
+// session attended, lesson watched, work submitted, tutor chat, or browsing
+// (activity_events). Server only (service client). Returns null when the
+// course has no learners.
 
 import { createServiceClient } from "@/lib/supabase/server";
 import type { ProgressDay, HeatLevel } from "@/components/stats/streak-heatmap";
@@ -52,14 +53,14 @@ export async function getCourseRosterStats(
   // program's row and would otherwise vanish from the count.
   const { data: studentRows } = await svc
     .from("students")
-    .select("id, role, last_activity_at")
+    .select("id, role")
     .in("id", enrolledIds);
   const learners = (studentRows ?? []).filter((s) => s.role === "student");
   const learnerIds = learners.map((s) => s.id);
   if (learnerIds.length === 0) return empty;
 
   const since = new Date(now.getTime() - 7 * MS_PER_DAY).toISOString();
-  const [watchedRes, subRes, tutorRes, attRes] = await Promise.all([
+  const [watchedRes, subRes, tutorRes, attRes, eventRes] = await Promise.all([
     svc
       .from("week_progress")
       .select("user_id, track_slug")
@@ -83,6 +84,16 @@ export async function getCourseRosterStats(
       .in("track", trackSlugs)
       .in("student_id", learnerIds)
       .gte("checked_in_at", since),
+    // Browsing/login. NOT students.last_activity_at — that column's only
+    // writer was a dropped `void` builder, so it reads NULL for nearly every
+    // learner. activity_events is the real log: its insert is awaited.
+    // `login` never carries a track_slug and 39% of page_views don't either,
+    // so these count as active-anywhere, exactly as last_activity_at did.
+    svc
+      .from("activity_events")
+      .select("user_id")
+      .in("user_id", learnerIds)
+      .gte("created_at", since),
   ]);
 
   // Track-scoped signals mark a learner active in THAT track. Tutor chat and
@@ -97,13 +108,8 @@ export async function getCourseRosterStats(
   for (const r of subRes.data ?? []) mark(r.track_slug, r.student_id);
   for (const r of attRes.data ?? []) mark(r.track, r.student_id);
 
-  const weekAgo = now.getTime() - 7 * MS_PER_DAY;
   const activeAnywhere = new Set<string>((tutorRes.data ?? []).map((r) => r.student_id));
-  for (const s of learners) {
-    if (s.last_activity_at && new Date(s.last_activity_at).getTime() >= weekAgo) {
-      activeAnywhere.add(s.id);
-    }
-  }
+  for (const r of eventRes.data ?? []) activeAnywhere.add(r.user_id);
 
   const learnerIdSet = new Set(learnerIds);
   const stats: Record<string, CourseRosterStat> = {};
@@ -150,17 +156,16 @@ export async function getCourseEngagement(
 
   const { data: studentRows } = await svc
     .from("students")
-    .select("id, role, last_seen_at, last_activity_at")
+    .select("id, role, last_seen_at")
     .in("id", enrolledIds);
   const learners = (studentRows ?? []).filter((s) => s.role === "student") as {
     id: string;
     last_seen_at: string | null;
-    last_activity_at: string | null;
   }[];
   if (learners.length === 0) return null;
   const learnerIds = learners.map((s) => s.id);
 
-  const [watchedRes, subRes, tutorRes, attRes] = await Promise.all([
+  const [watchedRes, subRes, tutorRes, attRes, eventRes] = await Promise.all([
     svc
       .from("week_progress")
       .select("user_id, week_number, video_watched_at")
@@ -186,12 +191,21 @@ export async function getCourseEngagement(
       .eq("track", trackSlug)
       .in("student_id", learnerIds)
       .not("checked_in_at", "is", null),
+    // Browsing/login, from the real event log. students.last_activity_at is
+    // NULL for nearly every learner — its only writer was a dropped `void`
+    // builder. Bounded to the heatmap window so this stays a small read.
+    svc
+      .from("activity_events")
+      .select("user_id, created_at")
+      .in("user_id", learnerIds)
+      .gte("created_at", new Date(now.getTime() - HEATMAP_WEEKS * 7 * MS_PER_DAY).toISOString()),
   ]);
 
   const watched = watchedRes.data ?? [];
   const subs = subRes.data ?? [];
   const tutor = tutorRes.data ?? [];
   const att = attRes.data ?? [];
+  const events = eventRes.data ?? [];
 
   const lessonsWatched = new Set(
     watched.map((r) => `${r.user_id}-${r.week_number}`),
@@ -233,13 +247,22 @@ export async function getCourseEngagement(
   const showSubmissions = capabilities.submissionsEnabled || submissions > 0;
 
   // Per-day cohort activity (for the heatmap) and per-learner latest activity
-  // (for the status buckets), across all three engagement signals.
-  const perDay = new Map<string, number>();
+  // (for the status buckets), across every engagement signal — browsing now
+  // included, because activity_events is a real per-event log rather than the
+  // single overwritten timestamp last_activity_at was meant to be.
+  //
+  // The heatmap counts DISTINCT LEARNERS per day, not events. Counting events
+  // would let page_views (dozens per learner per session) drown out one
+  // check-in per learner per day, and "when the cohort shows up" is a question
+  // about people, not clicks.
+  const perDay = new Map<string, Set<string>>();
   const latestByLearner = new Map<string, number>();
   const record = (learnerId: string | null, iso: string | null | undefined) => {
     if (!iso) return;
-    perDay.set(dayKey(iso), (perDay.get(dayKey(iso)) ?? 0) + 1);
+    const key = dayKey(iso);
+    if (!perDay.has(key)) perDay.set(key, new Set());
     if (learnerId) {
+      perDay.get(key)!.add(learnerId);
       const t = new Date(iso).getTime();
       latestByLearner.set(learnerId, Math.max(latestByLearner.get(learnerId) ?? 0, t));
     }
@@ -248,14 +271,7 @@ export async function getCourseEngagement(
   for (const r of subs) record(r.student_id, r.submitted_at);
   for (const r of tutor) record(r.student_id, r.created_at);
   for (const r of att) record(r.student_id, r.checked_in_at);
-  // Browsing (last_activity_at) also counts toward "active", but not the heatmap
-  // (it's a single timestamp, not a per-event log).
-  for (const s of learners) {
-    if (s.last_activity_at) {
-      const t = new Date(s.last_activity_at).getTime();
-      latestByLearner.set(s.id, Math.max(latestByLearner.get(s.id) ?? 0, t));
-    }
-  }
+  for (const r of events) record(r.user_id, r.created_at);
 
   const weekAgo = now.getTime() - 7 * MS_PER_DAY;
   let active = 0;
@@ -264,7 +280,9 @@ export async function getCourseEngagement(
   let neverLoggedIn = 0;
   for (const s of learners) {
     const latest = latestByLearner.get(s.id);
-    const loggedIn = !!(s.last_seen_at || s.last_activity_at);
+    // last_seen_at is written on every login (auth callback, awaited) and is
+    // the only reliable "has ever signed in" flag.
+    const loggedIn = !!s.last_seen_at;
     if (latest && latest >= weekAgo) active += 1;
     else if (latest) idle += 1;
     else if (loggedIn) bounced += 1;
@@ -278,14 +296,15 @@ export async function getCourseEngagement(
   const start = new Date(end);
   start.setUTCDate(end.getUTCDate() - (total - 1));
   const todayKey = dayKey(now);
-  // Scale levels to the busiest day so a small cohort still reads.
-  const maxDay = Math.max(1, ...perDay.values());
+  // Scale levels to the busiest day so a small cohort still reads. Values are
+  // distinct-learner counts, capped by the cohort size.
+  const maxDay = Math.max(1, ...Array.from(perDay.values(), (s) => s.size));
   const days: ProgressDay[] = [];
   for (let i = 0; i < total; i++) {
     const d = new Date(start.getTime() + i * MS_PER_DAY);
     const key = dayKey(d);
     const future = key > todayKey;
-    const count = perDay.get(key) ?? 0;
+    const count = perDay.get(key)?.size ?? 0;
     const level: HeatLevel = future || count === 0
       ? 0
       : (Math.min(4, Math.ceil((count / maxDay) * 4)) as HeatLevel);
