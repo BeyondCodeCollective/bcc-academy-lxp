@@ -1051,8 +1051,16 @@ const HOME_FOR_SUMMER_APPLICATION_PAGES: SurveyPage[] = [
         options: [
           "Current undergraduate student",
           "Recently graduated (within the last two years)",
+          "Other",
         ],
         required: true,
+      },
+      {
+        type: "text",
+        id: "student_status_other",
+        label: "If you chose Other, please specify",
+        required: false,
+        short: true,
       },
       {
         type: "text",
@@ -1120,7 +1128,7 @@ const HOME_FOR_SUMMER_APPLICATION_PAGES: SurveyPage[] = [
         type: "radio",
         id: "available_all_sessions",
         label:
-          "Are you available for all five virtual sessions, August 3–7, 2026 (90 minutes each)?",
+          "Are you available for all five virtual sessions, August 3–7, 2026 (5:00–6:30 PM ET, 90 minutes each)?",
         options: ["Yes", "No"],
         required: true,
       },
