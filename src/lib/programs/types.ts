@@ -172,8 +172,17 @@ export type TrackConfig = {
   sessionTimes: string[];
   /** For computeCurrentWeek — days after week start when last session occurs */
   lastSessionDayOffset: number;
-  /** Dashboard card data (icon + short topic per week) */
-  weekSummaries: { week: number; topic: string; icon: string }[];
+  /**
+   * Dashboard card data (icon + short topic per week).
+   *
+   * `date` (ISO YYYY-MM-DD) is the real calendar date this unit meets. Set it
+   * on tracks whose cadence isn't one-unit-per-7-days — a session-modeled
+   * track meeting Tue/Thu, or any course with a break week. When present it is
+   * authoritative for the calendar, the ICS feed, and the current unit; when
+   * absent those fall back to `startDate + 7×(week−1)`. Unlike
+   * `WeekConfig.comingSoonUntil` this does NOT gate access — it only dates.
+   */
+  weekSummaries: { week: number; topic: string; icon: string; date?: string }[];
   /** Full week content for the track detail pages */
   weeks: WeekConfig[];
   /** Default reflection prompts used when a week doesn't specify custom ones */

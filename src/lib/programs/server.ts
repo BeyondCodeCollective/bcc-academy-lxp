@@ -149,7 +149,8 @@ function buildTrackFromOverride(row: TrackOverrideRow): TrackConfig {
   // `sessions_per_week` there is the weekly meeting cadence, not sessions per
   // unit. Week-modeled tracks keep the per-week session count.
   const sessionsPerUnit = unitLabel === "Session" ? 1 : sessionsPerWeek;
-  const weekSummaries = (row.week_summaries as { week: number; topic: string; icon: string }[] | null) ?? [];
+  const weekSummaries =
+    (row.week_summaries as { week: number; topic: string; icon: string; date?: string }[] | null) ?? [];
 
   // Generate a WeekConfig for each week so the admin curriculum editor
   // renders week tabs just like it does for TS-config courses.

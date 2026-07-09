@@ -62,8 +62,10 @@ export async function GET(
     const track = getTrackBySlug(program, slug);
     if (!track) continue;
 
-    // Weekly schedule — one all-day marker per week. Skip TBD start dates so we
-    // don't emit far-future placeholder events.
+    // Schedule — one all-day marker per unit, on its explicit `date` when the
+    // syllabus carries one (a Tue/Thu session track, a break week), else the
+    // 7-day fallback. Skip TBD start dates so we don't emit far-future
+    // placeholder events.
     if (!track.startDateTbd && track.startDate) {
       const scheduleNote = [
         track.sessionTimes.length ? track.sessionTimes.join(" · ") : null,
@@ -73,9 +75,12 @@ export async function GET(
         .join("\n");
       for (const ws of track.weekSummaries) {
         events.push({
+          // uid stays `-week-` even for Session tracks: it keys the event in
+          // calendars people already subscribe to, so changing it would
+          // duplicate every event rather than move it.
           uid: `${slug}-week-${ws.week}`,
-          date: addDays(track.startDate, (ws.week - 1) * 7),
-          summary: `${track.shortName} · Week ${ws.week}: ${ws.topic}`,
+          date: ws.date ?? addDays(track.startDate, (ws.week - 1) * 7),
+          summary: `${track.shortName} · ${track.unitLabel ?? "Week"} ${ws.week}: ${ws.topic}`,
           description: scheduleNote || undefined,
         });
       }

@@ -260,7 +260,7 @@ export default async function TrackOverviewPage({
     ...(!t.startDateTbd && t.startDate
       ? t.weekSummaries.map(
           (ws): CalendarEvent => ({
-            date: addDays(t.startDate, (ws.week - 1) * 7),
+            date: ws.date ?? addDays(t.startDate, (ws.week - 1) * 7),
             type: sessionType(t.slug),
             title: titles?.get(ws.week) ?? ws.topic,
             href: `/dashboard/track/${t.slug}/${ws.week}`,
