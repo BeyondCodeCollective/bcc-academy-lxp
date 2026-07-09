@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { cookies } from "next/headers";
 import { createClient, createServiceClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { computeCurrentWeek } from "@/lib/utils";
@@ -186,11 +187,19 @@ async function DashboardContent({
             .eq("student_id", userId),
       ]);
 
+      // Backfill a missing cohort_id. Two reasons this never worked: the
+      // builder was voided, so it issued no request at all; and the anon
+      // client can't update `students` anyway (RLS grants UPDATE to admins
+      // only). Use the service client inside after(), matching how
+      // deferred-setup.ts writes the same column.
       if (!hasCohortId && defaultCohortRes.data) {
-        void supabase
-          .from("students")
-          .update({ cohort_id: defaultCohortRes.data.id })
-          .eq("id", userId);
+        const cohortId = defaultCohortRes.data.id;
+        after(async () => {
+          await createServiceClient()
+            .from("students")
+            .update({ cohort_id: cohortId })
+            .eq("id", userId);
+        });
       }
 
       if (cohort) {

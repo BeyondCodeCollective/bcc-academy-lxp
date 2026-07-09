@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { after } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { determineRole } from "@/lib/auth/admins";
 import type { Cohort } from "@/lib/types";
@@ -78,12 +79,20 @@ export const getSessionContext = cache(async (): Promise<SessionContext | null> 
   // bouncers — unlike last_seen_at (written only on login in the auth
   // callback), this advances as the learner navigates the dashboard. We only
   // reach here on a cache miss, so this fires at most once per _PROFILE_TTL
-  // (60s) per user. Fire-and-forget via the service client; never block.
+  // (60s) per user.
+  //
+  // Must be awaited inside after(): a Supabase query builder is lazy and only
+  // issues its request when awaited, so a bare `void builder` never ran at all
+  // — last_activity_at sat NULL for 123 of 124 learners. after() keeps the
+  // original "never block the response" intent while actually performing the
+  // write.
   if (healed) {
-    void createServiceClient()
-      .from("students")
-      .update({ last_activity_at: new Date().toISOString() })
-      .eq("id", userId);
+    after(async () => {
+      await createServiceClient()
+        .from("students")
+        .update({ last_activity_at: new Date().toISOString() })
+        .eq("id", userId);
+    });
   }
 
   return result;
