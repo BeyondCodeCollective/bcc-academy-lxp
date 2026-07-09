@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { generateText } from "ai";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { getProgram } from "@/lib/programs/server";
@@ -166,16 +166,21 @@ export async function POST(request: Request) {
     result.text.trim() ||
     "I had trouble generating a response. Could you try rephrasing your question?";
 
-  // Log exchange — never block the reply on a log failure.
+  // Log exchange — never block the reply on a log failure. Must be awaited
+  // inside after(): a Supabase query builder is lazy, so the previous bare
+  // `void svc.from(...).insert(...)` never issued a request and tutor_messages
+  // stayed empty. after() runs it once the reply has been sent.
   if (studentRow?.program_id) {
-    void svc.from("tutor_messages").insert({
-      student_id: user.id,
-      program_id: studentRow.program_id,
-      track_slug: activeTrack?.slug ?? null,
-      week_number: currentWeekNumber,
-      input_tokens: result.usage?.inputTokens ?? null,
-      output_tokens: result.usage?.outputTokens ?? null,
-      model: MODEL,
+    after(async () => {
+      await svc.from("tutor_messages").insert({
+        student_id: user.id,
+        program_id: studentRow.program_id,
+        track_slug: activeTrack?.slug ?? null,
+        week_number: currentWeekNumber,
+        input_tokens: result.usage?.inputTokens ?? null,
+        output_tokens: result.usage?.outputTokens ?? null,
+        model: MODEL,
+      });
     });
   }
 
