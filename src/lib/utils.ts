@@ -9,14 +9,18 @@ import type { TrackConfig } from "@/lib/programs/types";
  *   to the next week. For example, Tech+ starts Wednesday and the last session
  *   is Friday → offset = 2. MASS starts Tuesday with one session on the start
  *   day → offset = 6 (default, preserves original 7-day-cycle behavior).
+ * @param asOf — the moment to evaluate. Defaults to now. Callers that already
+ *   take an `asOf` (attendance) must pass it through, or their answer silently
+ *   ignores it and reads the wall clock instead.
  */
 export function computeCurrentWeek(
   startDate: string,
   totalWeeks: number = 8,
-  lastSessionDayOffset: number = 6
+  lastSessionDayOffset: number = 6,
+  asOf: Date = new Date()
 ): number {
   const start = new Date(startDate);
-  const now = new Date();
+  const now = asOf;
   const diffMs = now.getTime() - start.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
   if (diffDays <= lastSessionDayOffset) return Math.max(1, Math.min(1, totalWeeks));

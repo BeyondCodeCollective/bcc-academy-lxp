@@ -35,6 +35,11 @@ export type TrackLike = {
   /** Server-resolved current unit (handles day-gated camps). Falls back to
    *  computeCurrentWeek when absent. */
   currentUnit?: number;
+  /** "Session" means each unit IS one session (see sessionsPerUnit). */
+  unitLabel?: string;
+  /** Dated/labeled units. `date` gives the real cadence; `label` marks an
+   *  extra (a kickoff) that is not a teaching session. */
+  weekSummaries?: { week: number; date?: string; label?: string }[];
 };
 
 export type ExpectedSession = {
@@ -59,38 +64,65 @@ export type StudentSummary = {
 };
 
 /**
- * How many sessions of `track` have happened on or before today. Returns 0
+ * Sessions inside one unit. On a session-modeled track (unitLabel "Session",
+ * e.g. Security+) the unit IS the session, and `sessionsPerWeek` is the weekly
+ * meeting cadence — not a per-unit count. Multiplying by it there double-counts.
+ */
+function sessionsPerUnit(track: TrackLike): number {
+  return track.unitLabel === "Session" ? 1 : track.sessionsPerWeek;
+}
+
+/**
+ * The units that have actually met on or before `asOf` AND count as teaching
+ * sessions. The single source of truth for every "how much should have happened"
+ * question below.
+ *
+ * A syllabus that dates its units is authoritative — it's the only thing that
+ * knows a track meets Tue/Thu, or takes a week off. `label`ed units (a kickoff)
+ * are extras: real meetings, but not sessions anyone is graded on attending.
+ * Undated tracks keep the original 7-day cycle.
+ */
+export function countedUnits(track: TrackLike, asOf: Date = new Date()): number[] {
+  const summaries = track.weekSummaries ?? [];
+  const dated = summaries.filter((s) => s.date);
+
+  if (dated.length > 0) {
+    return dated
+      .filter((s) => !s.label && new Date(s.date!) <= asOf)
+      .map((s) => s.week)
+      .sort((a, b) => a - b);
+  }
+
+  if (asOf < new Date(track.startDate)) return [];
+  const currentWeek =
+    track.currentUnit ??
+    computeCurrentWeek(track.startDate, track.totalWeeks, track.lastSessionDayOffset, asOf);
+  const extras = new Set(summaries.filter((s) => s.label).map((s) => s.week));
+  const out: number[] = [];
+  for (let w = 1; w <= currentWeek; w++) if (!extras.has(w)) out.push(w);
+  return out;
+}
+
+/**
+ * How many sessions of `track` have happened on or before `asOf`. Returns 0
  * if the track hasn't started yet.
  */
 export function elapsedSessions(track: TrackLike, asOf: Date = new Date()): number {
-  const start = new Date(track.startDate);
-  if (asOf < start) return 0;
-  const currentWeek = computeCurrentWeek(
-    track.startDate,
-    track.totalWeeks,
-    track.lastSessionDayOffset
-  );
-  return currentWeek * track.sessionsPerWeek;
+  return countedUnits(track, asOf).length * sessionsPerUnit(track);
 }
 
 /**
  * The list of session slots that should have happened for this track up to
- * `asOf`. Order is chronological (week 1 session 1 → week N session M).
+ * `asOf`. Order is chronological (unit 1 session 1 → unit N session M).
  */
 export function expectedSessionsFor(
   track: TrackLike,
   asOf: Date = new Date()
 ): ExpectedSession[] {
-  const start = new Date(track.startDate);
-  if (asOf < start) return [];
-  const currentWeek = computeCurrentWeek(
-    track.startDate,
-    track.totalWeeks,
-    track.lastSessionDayOffset
-  );
+  const perUnit = sessionsPerUnit(track);
   const out: ExpectedSession[] = [];
-  for (let w = 1; w <= currentWeek; w++) {
-    for (let s = 1; s <= track.sessionsPerWeek; s++) {
+  for (const w of countedUnits(track, asOf)) {
+    for (let s = 1; s <= perUnit; s++) {
       out.push({ trackSlug: track.slug, week: w, session: s });
     }
   }
@@ -114,23 +146,19 @@ function pct(attended: number, expected: number): number {
 export function weeklyAttendanceRates(
   track: TrackLike,
   students: StudentRow[],
-  records: AttendanceRecord[]
+  records: AttendanceRecord[],
+  asOf: Date = new Date()
 ): number[] {
   if (students.length === 0) return [];
-  const elapsed = computeCurrentWeek(
-    track.startDate,
-    track.totalWeeks,
-    track.lastSessionDayOffset
-  );
   const trackRecords = records.filter((r) => r.track === track.slug);
-  const out: number[] = [];
-  for (let w = 1; w <= elapsed; w++) {
+  // Index i is the i-th *counted* unit, so on a track with a kickoff extra
+  // index 0 is Session 1, not the kickoff.
+  return countedUnits(track, asOf).map((w) => {
     const presentCount = students.filter((s) =>
       trackRecords.some((r) => r.student_id === s.id && r.week_number === w)
     ).length;
-    out.push(Math.round((presentCount / students.length) * 100));
-  }
-  return out;
+    return Math.round((presentCount / students.length) * 100);
+  });
 }
 
 /**
@@ -170,10 +198,16 @@ export function summarizeStudent(
       byTrack[track.slug] = { attended: 0, expected: 0, rate: 100 };
       continue;
     }
-    const recordsForTrack = records.filter(
-      (r) => r.student_id === student.id && r.track === track.slug,
-    );
-    const trackAttended = recordsForTrack.length;
+    // Count only the slots we're actually holding them to. Counting every
+    // record for the track let a check-in that isn't an expected session — an
+    // extra like a kickoff, or a slot beyond `asOf` — push a student past 100%.
+    const countedSlots = new Set(sessions.map((s) => takenKey(s.trackSlug, s.week, s.session)));
+    const trackAttended = records.filter(
+      (r) =>
+        r.student_id === student.id &&
+        r.track === track.slug &&
+        countedSlots.has(takenKey(r.track, r.week_number, r.session_number)),
+    ).length;
     byTrack[track.slug] = {
       attended: trackAttended,
       expected: sessions.length,
