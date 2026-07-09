@@ -13,10 +13,21 @@ function dayKey(iso: string | Date): string {
   return (typeof iso === "string" ? new Date(iso) : iso).toISOString().slice(0, 10);
 }
 
+/** What a track can actually measure. A camp with no videos and no submissions
+ *  would otherwise render two tiles that are structurally pinned at zero. */
+export type TrackCapabilities = {
+  /** Any week defines a videoUrl, so `video_watched_at` can ever be written. */
+  hasVideoContent: boolean;
+  submissionsEnabled: boolean;
+  /** "Week" or "Day" — labels the per-session attendance breakdown. */
+  unitLabel: string;
+};
+
 export async function getCourseEngagement(
   courseName: string,
   trackSlug: string,
   programIds: string[],
+  capabilities: TrackCapabilities,
   now: Date = new Date(),
 ): Promise<CourseEngagementProps | null> {
   const svc = createServiceClient();
@@ -64,7 +75,7 @@ export async function getCourseEngagement(
     // attendance table keys on `track`/`checked_in_at`, not track_slug.
     svc
       .from("attendance")
-      .select("student_id, checked_in_at")
+      .select("student_id, checked_in_at, week_number, session_number")
       .eq("track", trackSlug)
       .in("student_id", learnerIds)
       .not("checked_in_at", "is", null),
@@ -79,6 +90,40 @@ export async function getCourseEngagement(
     watched.map((r) => `${r.user_id}-${r.week_number}`),
   ).size;
   const submissions = subs.length;
+
+  // Attendance, per session. A held session is one somebody checked into — the
+  // schedule alone can't say whether a session ran. `perfect` counts learners
+  // present at every held session: that's the certificate-eligible number, and
+  // unlike an overall attendance rate it can't average a drop-off away.
+  const sessionKey = (r: { week_number: number; session_number: number }) =>
+    `${r.week_number}-${r.session_number}`;
+  const heldKeys = Array.from(new Set(att.map(sessionKey))).sort((a, b) => {
+    const [aw, as] = a.split("-").map(Number);
+    const [bw, bs] = b.split("-").map(Number);
+    return aw - bw || as - bs;
+  });
+  const byLearner = new Map<string, Set<string>>();
+  for (const r of att) {
+    if (!byLearner.has(r.student_id)) byLearner.set(r.student_id, new Set());
+    byLearner.get(r.student_id)!.add(sessionKey(r));
+  }
+  const attendance = heldKeys.length
+    ? {
+        sessionsHeld: heldKeys.length,
+        perfect: learners.filter((s) => byLearner.get(s.id)?.size === heldKeys.length).length,
+        unitLabel: capabilities.unitLabel,
+        perSession: heldKeys.map((k) => ({
+          unit: Number(k.split("-")[0]),
+          session: Number(k.split("-")[1]),
+          present: att.filter((r) => sessionKey(r) === k).length,
+        })),
+      }
+    : null;
+
+  // Never hide a metric that has real data behind it — only one the track can
+  // never produce.
+  const showLessonsWatched = capabilities.hasVideoContent || lessonsWatched > 0;
+  const showSubmissions = capabilities.submissionsEnabled || submissions > 0;
 
   // Per-day cohort activity (for the heatmap) and per-learner latest activity
   // (for the status buckets), across all three engagement signals.
@@ -146,6 +191,9 @@ export async function getCourseEngagement(
     activeThisWeek: active,
     lessonsWatched,
     submissions,
+    showLessonsWatched,
+    showSubmissions,
+    attendance,
     status: { active, idle, bounced, neverLoggedIn },
     days,
   };
