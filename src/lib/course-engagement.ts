@@ -14,8 +14,16 @@ function dayKey(iso: string | Date): string {
   return (typeof iso === "string" ? new Date(iso) : iso).toISOString().slice(0, 10);
 }
 
-/** Enrolled-learner and active-learner counts per track, for the course list. */
-export type CourseRosterStat = { total: number; active: number };
+/** Enrolled/active/completed counts per track, for the course list. */
+export type CourseRosterStat = {
+  total: number;
+  active: number;
+  /** Learners present at every held session. Null when the track has no
+   *  attendance at all, so an ended course with nothing to count says nothing
+   *  rather than "0 completed". */
+  fullAttendance: number | null;
+  sessionsHeld: number;
+};
 
 /**
  * Per-track {total, active} for every course in the list, using the SAME
@@ -60,7 +68,7 @@ export async function getCourseRosterStats(
   if (learnerIds.length === 0) return empty;
 
   const since = new Date(now.getTime() - 7 * MS_PER_DAY).toISOString();
-  const [watchedRes, subRes, tutorRes, attRes, eventRes] = await Promise.all([
+  const [watchedRes, subRes, tutorRes, attRes, eventRes, allAttRes] = await Promise.all([
     svc
       .from("week_progress")
       .select("user_id, track_slug")
@@ -94,6 +102,13 @@ export async function getCourseRosterStats(
       .select("user_id")
       .in("user_id", learnerIds)
       .gte("created_at", since),
+    // All-time attendance, for the completion figure on an ended course.
+    svc
+      .from("attendance")
+      .select("student_id, track, week_number, session_number")
+      .in("track", trackSlugs)
+      .in("student_id", learnerIds)
+      .not("checked_in_at", "is", null),
   ]);
 
   // Track-scoped signals mark a learner active in THAT track. Tutor chat and
@@ -111,6 +126,20 @@ export async function getCourseRosterStats(
   const activeAnywhere = new Set<string>((tutorRes.data ?? []).map((r) => r.student_id));
   for (const r of eventRes.data ?? []) activeAnywhere.add(r.user_id);
 
+  // Sessions each learner attended, per track. A held session is one somebody
+  // checked into — the schedule alone can't say whether a session ran.
+  const heldByTrack = new Map<string, Set<string>>();
+  const attendedByTrack = new Map<string, Map<string, Set<string>>>();
+  for (const r of allAttRes.data ?? []) {
+    const key = `${r.week_number}-${r.session_number}`;
+    if (!heldByTrack.has(r.track)) heldByTrack.set(r.track, new Set());
+    heldByTrack.get(r.track)!.add(key);
+    if (!attendedByTrack.has(r.track)) attendedByTrack.set(r.track, new Map());
+    const byLearner = attendedByTrack.get(r.track)!;
+    if (!byLearner.has(r.student_id)) byLearner.set(r.student_id, new Set());
+    byLearner.get(r.student_id)!.add(key);
+  }
+
   const learnerIdSet = new Set(learnerIds);
   const stats: Record<string, CourseRosterStat> = {};
   for (const slug of trackSlugs) {
@@ -121,7 +150,15 @@ export async function getCourseRosterStats(
     const inTrack = activeInTrack.get(slug) ?? new Set<string>();
     let active = 0;
     for (const id of ids) if (inTrack.has(id) || activeAnywhere.has(id)) active += 1;
-    stats[slug] = { total: ids.size, active };
+
+    const held = heldByTrack.get(slug)?.size ?? 0;
+    const attended = attendedByTrack.get(slug);
+    let fullAttendance: number | null = null;
+    if (held > 0 && attended) {
+      fullAttendance = 0;
+      for (const id of ids) if (attended.get(id)?.size === held) fullAttendance += 1;
+    }
+    stats[slug] = { total: ids.size, active, fullAttendance, sessionsHeld: held };
   }
   return stats;
 }

@@ -16,7 +16,7 @@ import { buildInsightsData } from "@/lib/analytics/insights-data";
 import type { SurveyQuestion } from "@/components/survey-fields";
 import { fetchPendingPeople, type PendingPerson } from "@/lib/people-hub";
 import { getCourseEngagement, getCourseRosterStats } from "@/lib/course-engagement";
-import { resolveCurrentUnit } from "@/lib/utils";
+import { resolveCurrentUnit, resolveTrackPhase } from "@/lib/utils";
 import { getEngagementAnalytics, type EngagementAnalytics } from "./actions-analytics";
 import type { CourseEngagementProps } from "@/components/stats/course-engagement";
 
@@ -82,7 +82,10 @@ export default async function AdminPage({
   let insightsData: InsightsData | null = null;
   let analyticsData: EngagementAnalytics | null = null;
   let courseEngagement: CourseEngagementProps | null = null;
-  let courseStats: Record<string, { total: number; active: number }> = {};
+  let courseStats: Record<
+    string,
+    { total: number; active: number; fullAttendance: number | null; sessionsHeld: number }
+  > = {};
   let alumniEnrollments: { track_slug: string; email: string; source: string }[] = [];
   let pendingPeople: PendingPerson[] = [];
   let unviewedAssessments: number | null = null;
@@ -437,6 +440,9 @@ export default async function AdminPage({
       // is available; the admin tabs/attendance default to it instead of
       // computeCurrentWeek, which pins at Day 1 all camp.
       currentUnit: resolveCurrentUnit(t),
+      // Which headline number is honest for this course: enrolled before it
+      // starts, active while it runs, completion once it's over.
+      phase: resolveTrackPhase(t),
       unitLabel: t.unitLabel,
       selfPaced: t.selfPaced,
       sessionsPerWeek: t.sessionsPerWeek,

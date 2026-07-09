@@ -177,6 +177,8 @@ type AdminTrackConfig = {
   /** Server-resolved current unit (day-gated camps advance by date, not the
    *  7-day cycle). Falls back to computeCurrentWeek when absent. */
   currentUnit?: number;
+  /** Where the course sits in its life. See resolveTrackPhase. */
+  phase?: "upcoming" | "running" | "ended";
   selfPaced?: boolean;
   sessionsPerWeek: number;
   instructor: string;
@@ -544,8 +546,11 @@ export function AdminTabs({
   isMaster?: boolean;
   assignableRoles?: string[];
   engagementScores?: Record<string, { total: number; attendance: number; submissions: number; reflections: number; tutorMessages: number }>;
-  /** Server-computed enrolled/active per track. See getCourseRosterStats. */
-  courseStats?: Record<string, { total: number; active: number }>;
+  /** Server-computed enrolled/active/completed per track. See getCourseRosterStats. */
+  courseStats?: Record<
+    string,
+    { total: number; active: number; fullAttendance: number | null; sessionsHeld: number }
+  >;
   initialTab?: string;
   initialTrackView?: string;
   lunchLearnRecordings?:{ id: string; title: string; presenter: string; recording_url: string; description: string | null; recorded_at: string }[];
@@ -1029,6 +1034,11 @@ export function AdminTabs({
                         t.lastSessionDayOffset,
                       ))
                   : 0;
+                const ended = t.phase === "ended";
+                // Only a running course can have active learners. Before it
+                // starts, "0 / 20 active" is as misleading as it is after it
+                // ends. Fall back to `started` when the server sent no phase.
+                const isRunning = t.phase ? t.phase === "running" : started;
                 const status =
                   t.type === "single-event"
                     ? "Single session"
@@ -1036,10 +1046,17 @@ export function AdminTabs({
                       ? "Starts TBD"
                       : t.selfPaced
                         ? `Self-paced · ${t.totalWeeks} ${(t.unitLabel || "Week").toLowerCase()}s`
-                        : started
-                          ? `${t.unitLabel || "Week"} ${currentWeek} of ${t.totalWeeks}`
-                          : `Starts ${start.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+                        : ended
+                          ? "Completed"
+                          : started
+                            ? `${t.unitLabel || "Week"} ${currentWeek} of ${t.totalWeeks}`
+                            : `Starts ${start.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
                 const count = studentCountFor(t.slug);
+                // "Active this week" is a rolling window, so a finished course
+                // decays to 0 and reads as failure rather than as "it's done".
+                // Once a course has ended, report its outcome instead: how many
+                // learners made every session.
+                const completed = ended ? (courseStats[t.slug]?.fullAttendance ?? null) : null;
                 return (
                   <div
                     key={t.slug}
@@ -1063,7 +1080,12 @@ export function AdminTabs({
                         </p>
                       </div>
                       <p className="hidden shrink-0 text-[12px] text-ink-soft sm:block">{status}</p>
-                      {showActive ? (
+                      {completed !== null ? (
+                        <p className="shrink-0 w-24 text-right text-[12px] tabular-nums">
+                          <span className="font-semibold text-primary">{completed}</span>
+                          <span className="text-ink-faint"> / {count} completed</span>
+                        </p>
+                      ) : showActive && isRunning ? (
                         <p className="shrink-0 w-24 text-right text-[12px] tabular-nums">
                           <span className="font-semibold text-primary">{activeCountFor(t.slug)}</span>
                           <span className="text-ink-faint"> / {count} active</span>
