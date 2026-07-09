@@ -1,4 +1,4 @@
-import type { SurveyQuestion } from "@/components/survey-fields";
+import { US_STATES, type SurveyQuestion } from "@/components/survey-fields";
 
 // Flat question schemas per survey id, used by the admin Survey Insights
 // dashboard to introspect what kind of aggregation/visualization to render
@@ -881,8 +881,8 @@ const HOME_FOR_SUMMER_APPLICATION: SurveyQuestion[] = [
   { type: "month-year", id: "graduation_date", label: "Expected or actual graduation date", minYear: 2022, maxYear: 2031, required: true },
   { type: "text", id: "major", label: "Major / field of study", required: true, short: true },
   { type: "text", id: "age", label: "Your age", required: true, short: true },
-  { type: "radio", id: "location", label: "Where are you currently located?", options: ["Florida", "Georgia", "Other"], required: true },
-  { type: "text", id: "location_other", label: "If you chose Other, where are you located?", required: false, short: true },
+  { type: "select", id: "state", label: "State", options: US_STATES, placeholder: "Select your state", required: true },
+  { type: "text", id: "zip_code", label: "ZIP code", placeholder: "e.g. 33101", zip: true, required: true },
   { type: "radio", id: "computer_internet_access", label: "Do you have access to a computer or laptop and reliable internet access?", options: ["Yes", "No"], required: true },
   { type: "radio", id: "available_all_sessions", label: "Are you available for all five virtual sessions, August 3–7, 2026 (90 minutes each)?", options: ["Yes", "No"], required: true },
   { type: "text", id: "career_goals", label: "What career goals are you working toward, and which skills or areas do you feel you need to develop to reach them?", required: true },
