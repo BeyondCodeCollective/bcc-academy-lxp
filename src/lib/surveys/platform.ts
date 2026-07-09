@@ -34,6 +34,7 @@ export function surveySkippedForTracks(
 // ─── Authenticated (dashboard) ──────────────────────────────────────────────
 
 export const SECURITY_PLUS_APPLICATION_SURVEY_ID = "security-plus-application";
+export const HOME_FOR_SUMMER_APPLICATION_SURVEY_ID = "home-for-summer-application";
 
 export const PLATFORM_AUTH_SURVEYS: Record<string, SurveyConfig> = {
   [BCC_INTAKE_SURVEY_ID]: {
@@ -46,6 +47,13 @@ export const PLATFORM_AUTH_SURVEYS: Record<string, SurveyConfig> = {
     id: SECURITY_PLUS_APPLICATION_SURVEY_ID,
     title: "CompTIA Security+ Application",
     description: "Application for the Security+ Catalyst cohort — for Network+ graduates.",
+    required: false,
+  },
+  [HOME_FOR_SUMMER_APPLICATION_SURVEY_ID]: {
+    id: HOME_FOR_SUMMER_APPLICATION_SURVEY_ID,
+    title: "Home for the Summer Application",
+    description:
+      "Application for the Home for the Summer intensive — August 3–7, 2026, with NextEra Energy.",
     required: false,
   },
   "comptia-security-pre": {
@@ -97,6 +105,14 @@ export const PLATFORM_PUBLIC_SURVEYS: Record<string, SurveyConfig> = {
     id: SECURITY_PLUS_APPLICATION_SURVEY_ID,
     title: "CompTIA Security+ Application",
     description: "Application for the Security+ Catalyst cohort — for Network+ graduates.",
+    required: false,
+  },
+  // Collected via /apply/home-for-summer (custom form, not /survey/<id>).
+  [HOME_FOR_SUMMER_APPLICATION_SURVEY_ID]: {
+    id: HOME_FOR_SUMMER_APPLICATION_SURVEY_ID,
+    title: "Home for the Summer Application",
+    description:
+      "Application for the Home for the Summer intensive — August 3–7, 2026, with NextEra Energy.",
     required: false,
   },
 };

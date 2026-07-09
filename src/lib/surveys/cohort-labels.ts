@@ -33,6 +33,7 @@ export const SURVEY_COHORT_DEFAULTS: Record<string, string> = {
   "comptia-security-agreement": "Comptia Security+",
   "comptia-security-pre": "Comptia Security+",
   "network-plus-post": "CompTIA Network+",
+  "home-for-summer-application": "Home for the Summer",
 };
 
 // Resolve a cohort label from a student's track enrollments, preferring a
