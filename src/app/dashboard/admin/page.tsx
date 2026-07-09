@@ -363,9 +363,11 @@ export default async function AdminPage({
     if (isTrackTab) {
       const t = program.tracks.find((tk) => tk.slug === effectiveTab);
       if (t) {
-        courseEngagement = await getCourseEngagement(t.name, t.slug, programIds).catch(
-          () => null,
-        );
+        courseEngagement = await getCourseEngagement(t.name, t.slug, programIds, {
+          hasVideoContent: t.weeks.some((w) => !!w.videoUrl),
+          submissionsEnabled: t.submissionsEnabled !== false,
+          unitLabel: t.unitLabel ?? "Week",
+        }).catch(() => null);
       }
     }
   }
