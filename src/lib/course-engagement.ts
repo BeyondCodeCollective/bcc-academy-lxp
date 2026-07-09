@@ -42,7 +42,7 @@ export async function getCourseEngagement(
   if (learners.length === 0) return null;
   const learnerIds = learners.map((s) => s.id);
 
-  const [watchedRes, subRes, tutorRes] = await Promise.all([
+  const [watchedRes, subRes, tutorRes, attRes] = await Promise.all([
     svc
       .from("week_progress")
       .select("user_id, week_number, video_watched_at")
@@ -59,11 +59,21 @@ export async function getCourseEngagement(
       .from("tutor_messages")
       .select("student_id, created_at")
       .in("student_id", learnerIds),
+    // Attendance (live-session joins) is the engagement signal for camps and
+    // cohort courses that don't generate video/submission activity. Note the
+    // attendance table keys on `track`/`checked_in_at`, not track_slug.
+    svc
+      .from("attendance")
+      .select("student_id, checked_in_at")
+      .eq("track", trackSlug)
+      .in("student_id", learnerIds)
+      .not("checked_in_at", "is", null),
   ]);
 
   const watched = watchedRes.data ?? [];
   const subs = subRes.data ?? [];
   const tutor = tutorRes.data ?? [];
+  const att = attRes.data ?? [];
 
   const lessonsWatched = new Set(
     watched.map((r) => `${r.user_id}-${r.week_number}`),
@@ -85,6 +95,7 @@ export async function getCourseEngagement(
   for (const r of watched) record(r.user_id, r.video_watched_at);
   for (const r of subs) record(r.student_id, r.submitted_at);
   for (const r of tutor) record(r.student_id, r.created_at);
+  for (const r of att) record(r.student_id, r.checked_in_at);
   // Browsing (last_activity_at) also counts toward "active", but not the heatmap
   // (it's a single timestamp, not a per-event log).
   for (const s of learners) {
