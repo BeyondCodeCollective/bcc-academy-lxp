@@ -184,7 +184,7 @@ type AdminTrackConfig = {
   startDate: string;
   startDateTbd?: boolean;
   lastSessionDayOffset: number;
-  weekSummaries: { week: number; topic: string; icon: string }[];
+  weekSummaries: { week: number; topic: string; icon: string; date?: string; label?: string }[];
   defaultReflectionPrompts?: string[];
   submissionsEnabled?: boolean;
   reflectionsEnabled?: boolean;

@@ -20,6 +20,7 @@ import {
   weeklyAttendanceRates,
 } from "@/lib/attendance/compute";
 import { computeCurrentWeek } from "@/lib/utils";
+import { unitDisplayMap, numberedUnitCount } from "@/lib/programs/unit-display";
 
 type AttendanceTabProps = {
   students: StudentRow[];
@@ -660,7 +661,7 @@ function TrackTrendRow({
                   <div
                     className={`absolute inset-x-0 bottom-0 rounded-sm transition-all ${tone}`}
                     style={{ height: `${Math.max(pct, 4)}%` }}
-                    title={`Week ${i + 1}: ${rate}%`}
+                    title={`${track.unitLabel ?? "Week"} ${i + 1}: ${rate}%`}
                   />
                 </div>
                 <span className="text-[10px] tabular-nums text-ink-faint">
@@ -733,12 +734,24 @@ function MarkPanel({
   if (!activeTrack) return null;
 
   const totalWeeks = activeTrack.totalWeeks;
-  const sessionsPerWeek = activeTrack.sessionsPerWeek;
+  // A session-modeled track has one session per unit; `sessionsPerWeek` there
+  // is the weekly cadence, so using it would render two slots per session.
+  const sessionsPerWeek =
+    activeTrack.unitLabel === "Session" ? 1 : activeTrack.sessionsPerWeek;
   const expectedThisTrack = expectedSessionsFor(activeTrack);
   const elapsedWeeks =
     expectedThisTrack.length > 0
       ? Math.max(...expectedThisTrack.map((s) => s.week))
       : 0;
+  const unitDisplay = unitDisplayMap(activeTrack.weekSummaries ?? [], activeTrack.unitLabel ?? "Week");
+  const numberedUnits = numberedUnitCount(activeTrack.weekSummaries ?? [], totalWeeks);
+  const markUnit = unitDisplay.get(markWeek);
+  // Extras (a kickoff) carry no number, so "Kickoff of 16" would be nonsense.
+  const markUnitLabel = markUnit
+    ? markUnit.number
+      ? `${markUnit.text} of ${numberedUnits}`
+      : markUnit.text
+    : `Week ${markWeek} of ${totalWeeks}`;
 
   return (
     <div className="space-y-5">
@@ -792,7 +805,7 @@ function MarkPanel({
             {activeTrack.shortName}
           </p>
           <p className="text-sm font-semibold text-ink">
-            Week {markWeek} of {totalWeeks}
+            {markUnitLabel}
             {markWeek > elapsedWeeks && elapsedWeeks > 0 && (
               <span className="ml-2 text-xs font-normal text-ink-faint">
                 · upcoming
