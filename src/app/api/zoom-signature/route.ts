@@ -95,21 +95,35 @@ export async function POST(request: NextRequest) {
   // errors. Staff (instructors/admins) are skipped so they don't pollute the
   // learner attendance count. Idempotent per (student, track, week, session).
   if (trackSlug && weekNumber && !isStaffEmail(user.email)) {
-    void svc
-      .from("attendance")
-      .upsert(
+    // Fire-and-forget so the Zoom join is never delayed. Resolve the program the
+    // student is enrolled under for this track (this also confirms enrollment),
+    // then upsert against the real 5-column unique key. `program_id` is NOT NULL
+    // and the conflict target must match (program_id, student_id, track, week,
+    // session) — without both, every write silently failed and nothing recorded.
+    void (async () => {
+      const { data: enrollment } = await svc
+        .from("student_tracks")
+        .select("program_id")
+        .eq("student_id", user.id)
+        .eq("track_slug", trackSlug)
+        .maybeSingle<{ program_id: string }>();
+      if (!enrollment?.program_id) return;
+      const { error } = await svc.from("attendance").upsert(
         {
+          program_id: enrollment.program_id,
           student_id: user.id,
           track: trackSlug,
           week_number: weekNumber,
           session_number: sessionNumber,
           marked_by: user.id,
         },
-        { onConflict: "student_id,track,week_number,session_number", ignoreDuplicates: true },
-      )
-      .then(({ error }) => {
-        if (error) console.error("[zoom-signature] auto-attendance failed:", error.message);
-      });
+        {
+          onConflict: "program_id,student_id,track,week_number,session_number",
+          ignoreDuplicates: true,
+        },
+      );
+      if (error) console.error("[zoom-signature] auto-attendance failed:", error.message);
+    })();
   }
 
   // ── Generate JWT signature ────────────────────────────────────────────────
