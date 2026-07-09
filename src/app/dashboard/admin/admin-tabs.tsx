@@ -1006,12 +1006,18 @@ export function AdminTabs({
                 const tone = toneForTrack(t.slug);
                 const start = new Date(t.startDate);
                 const started = now >= start;
+                // `currentUnit` comes from resolveCurrentUnit, which honours
+                // dated syllabi and per-unit unlocks. computeCurrentWeek only
+                // knows a 7-day cycle, so on a day-gated camp it reports Day 1
+                // for the whole camp. Fall back to it only when the server
+                // didn't supply a unit.
                 const currentWeek = started
-                  ? computeCurrentWeek(
-                      t.startDate,
-                      t.totalWeeks,
-                      t.lastSessionDayOffset,
-                    )
+                  ? (t.currentUnit ??
+                      computeCurrentWeek(
+                        t.startDate,
+                        t.totalWeeks,
+                        t.lastSessionDayOffset,
+                      ))
                   : 0;
                 const status =
                   t.type === "single-event"
