@@ -76,6 +76,33 @@ export async function removeStudentTrack(
     .eq("program_id", programId);
 
   if (error) throw new Error(error.message);
+
+  // Revoke the invite too, or this unenrollment silently undoes itself: on an
+  // invite-only program (`requireInviteLink`), deferred-setup re-enrolls from
+  // `allowed_signup_emails` on EVERY sign-in via an upsert that only ever adds
+  // (src/lib/auth/deferred-setup.ts). Removing a student in the admin UI looked
+  // like it worked, then the allowlist put them straight back the next time
+  // they logged in.
+  //
+  // Enrollment without an allowlist row is fine — nothing prunes student_tracks
+  // — so an admin can still assign a track without inviting.
+  const { data: student } = await svc
+    .from("students")
+    .select("email")
+    .eq("id", studentId)
+    .maybeSingle<{ email: string | null }>();
+
+  if (student?.email) {
+    // Allowlist emails are stored lowercase (deferred-setup looks them up with
+    // email.toLowerCase()); PK is (email, track_slug), so no program filter.
+    const { error: allowErr } = await svc
+      .from("allowed_signup_emails")
+      .delete()
+      .eq("email", student.email.toLowerCase())
+      .eq("track_slug", trackSlug);
+    if (allowErr) throw new Error(allowErr.message);
+  }
+
   revalidatePath("/dashboard", "page");
   return { success: true };
 }
