@@ -148,15 +148,12 @@ export async function proxy(request: NextRequest) {
     return applyProgramCookies(NextResponse.redirect(url));
   }
 
-  // On program subdomains, redirect authenticated users from "/" to their
-  // dashboard. On the marketing domain (bccacademy.io), "/" is the public
-  // homepage — authenticated or not, everyone should see it.
-  if (
-    user &&
-    request.nextUrl.pathname === "/" &&
-    !previewOverride &&
-    program.slug !== "marketing"
-  ) {
+  // Redirect authenticated users from "/" to their dashboard — including the
+  // apex (bccacademy.io). The apex used to keep signed-in users on the public
+  // homepage, which greets them with a login panel and reads exactly like
+  // being logged out; a student typing the bare domain should land back in
+  // their course. Logged-out visitors still get the homepage.
+  if (user && request.nextUrl.pathname === "/" && !previewOverride) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return applyProgramCookies(NextResponse.redirect(url));
