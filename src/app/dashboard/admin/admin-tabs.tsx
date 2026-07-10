@@ -816,7 +816,7 @@ export function AdminTabs({
 
   const [showBulkAssign, setShowBulkAssign] = useState(false);
 
-  async function updateStudent(id: string, field: "role" | "cohort_id", value: string) {
+  async function updateStudent(id: string, field: "role" | "cohort_id" | "first_name" | "last_name", value: string) {
     setStudentSaving(id);
     try {
       await updateStudentAction(id, field, value);
@@ -1942,7 +1942,7 @@ function PeopleTab({
   enrollmentSaving: string | null;
   instrTrackSaving: string | null;
   studentSaving: string | null;
-  onUpdateStudent: (id: string, field: "role" | "cohort_id", value: string) => Promise<void>;
+  onUpdateStudent: (id: string, field: "role" | "cohort_id" | "first_name" | "last_name", value: string) => Promise<void>;
   onDeleteStudent: (id: string) => Promise<void>;
   onToggleStudentTrack: (studentId: string, trackSlug: string) => Promise<void>;
   onToggleInstructorTrack: (instructorId: string, trackSlug: string) => Promise<void>;
@@ -2240,6 +2240,34 @@ function PeopleTab({
                   className="border-t border-rule-soft bg-neutral-50 px-4 py-4 space-y-4"
                   onClick={(e) => e.stopPropagation()}
                 >
+                  {/* Name — saves on blur or Enter. Fixes typos/casing for the
+                     certificate and Zoom join without asking the student. */}
+                  <div className="flex flex-wrap gap-3">
+                    {([["first_name", "First name"], ["last_name", "Last name"]] as const).map(
+                      ([field, label]) => (
+                        <div key={field}>
+                          <label className="text-[11px] font-medium uppercase tracking-wide text-ink-soft">
+                            {label}
+                          </label>
+                          <input
+                            type="text"
+                            defaultValue={s[field] ?? ""}
+                            disabled={studentSaving === s.id}
+                            onBlur={(e) => {
+                              const v = e.target.value.trim();
+                              if (v && v !== (s[field] ?? "")) onUpdateStudent(s.id, field, v);
+                              else e.target.value = s[field] ?? "";
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") e.currentTarget.blur();
+                            }}
+                            className="mt-1 block w-40 border border-rule bg-white px-3 py-2 text-xs font-medium text-ink focus:border-ink-faint focus:outline-none disabled:opacity-60"
+                          />
+                        </div>
+                      ),
+                    )}
+                  </div>
+
                   {/* Role + cohort */}
                   <div className="flex flex-wrap gap-3">
                     <div>
