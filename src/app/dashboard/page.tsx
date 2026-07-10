@@ -330,9 +330,25 @@ async function DashboardContent({
       ? rawPreviewSlugOuter
       : null;
   const isAdmin = canAccessAdminPanel(userRole) && !previewSlugOuter;
+  // Companions collapse into their course: a Security+ learner is enrolled in
+  // comptia-security AND its MASS wraparound, but that's ONE course — the
+  // course page already folds MASS into the Security+ schedule. Without the
+  // collapse this counted as two courses, so the single-course redirect never
+  // fired and every Security+ learner landed on this bare shell (with a
+  // separate MASS card) instead of their course.
+  // Only collapse when the parent course is ALSO enrolled — a learner somehow
+  // enrolled in just the wraparound must keep seeing it, or the redirect would
+  // send them into a course whose enrollment gate bounces them right back.
+  const enrolledSet = new Set(enrolledTrackSlugs);
+  const visibleSlugs = new Set(
+    enrolledTrackSlugs.map((s) => {
+      const parent = program.tracks.find((t) => t.slug === s)?.companionOf;
+      return parent && enrolledSet.has(parent) ? parent : s;
+    }),
+  );
   const visibleTracks = isAdmin
     ? program.tracks
-    : program.tracks.filter((t) => enrolledTrackSlugs.includes(t.slug));
+    : program.tracks.filter((t) => visibleSlugs.has(t.slug));
   // A learner whose only course lives under a different program than the
   // session resolved (stale program-override cookie — e.g. after browsing
   // another program's pages in the same browser) shouldn't see an empty
