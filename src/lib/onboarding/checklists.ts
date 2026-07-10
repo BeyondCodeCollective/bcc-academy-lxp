@@ -21,6 +21,13 @@ export type TrackOnboarding = {
   title: string;
   intro: string;
   items: ChecklistItem[];
+  /**
+   * Paused: the checklist still EXISTS — admin Agreements reads it to know
+   * which survey_type holds each cohort's signatures — but it no longer gates
+   * learners. Set back to false to start enforcing it again for the next
+   * intake. See getEnforcedOnboardingChecklist.
+   */
+  paused?: boolean;
 };
 
 // Reusable per-track acceptance checklists. Add a track slug here to gate it
@@ -30,6 +37,12 @@ export type TrackOnboarding = {
 const CHECKLISTS: Record<string, TrackOnboarding> = {
   "comptia-security": {
     trackSlug: "comptia-security",
+    // Paused 2026-07-09, before the Jul 13 start: all 15 learners had already
+    // completed intake, agreement and pre-survey, so the gate only trapped
+    // accounts enrolled after the fact. The definition stays so the admin
+    // Agreements page can still surface the 15 signatures. Flip to false to
+    // enforce it again for the next intake.
+    paused: true,
     cohort: "Catalyst Cybersecurity Cohort",
     title: "Complete your acceptance materials",
     intro:
@@ -62,8 +75,23 @@ const CHECKLISTS: Record<string, TrackOnboarding> = {
   },
 };
 
+/**
+ * The checklist DEFINITION for a track, paused or not. Use this where you need
+ * to know a cohort's agreement survey_type — e.g. admin Agreements — so a
+ * paused checklist doesn't erase the signatures already collected under it.
+ */
 export function getOnboardingChecklist(trackSlug: string): TrackOnboarding | null {
   return CHECKLISTS[trackSlug] ?? null;
+}
+
+/**
+ * The checklist that should GATE a learner, or null when paused. Use this on
+ * every learner-facing surface: the dashboard layout confines a learner to an
+ * incomplete checklist, and the track page renders it instead of the course.
+ */
+export function getEnforcedOnboardingChecklist(trackSlug: string): TrackOnboarding | null {
+  const checklist = CHECKLISTS[trackSlug];
+  return checklist && !checklist.paused ? checklist : null;
 }
 
 export type OnboardingStatus = {
