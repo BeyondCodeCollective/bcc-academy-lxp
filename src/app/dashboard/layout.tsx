@@ -27,7 +27,8 @@ import { isStaffEmail } from "@/lib/auth/admins";
 import { getHomeProgramForTrack } from "@/lib/programs";
 import { programHasResources } from "@/lib/resources";
 import { MARKETING_SLUG } from "@/lib/programs/marketing";
-import type { ProgramConfig } from "@/lib/programs/types";
+import type { ProgramConfig, TrackConfig } from "@/lib/programs/types";
+import { trackHasStarted } from "@/lib/utils";
 
 function NavSkeleton() {
   // Light placeholder that matches the shell — avoids a black flash on
@@ -231,6 +232,7 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
   let enrolledTrackSlugs: string[] = [];
   let canShowPreviewToggle = false;
   let previewingSlug: string | null = null;
+  let pendingLearner = false;
   if (isSupabaseConfigured()) {
     const ctx = await getSessionContext();
     if (!ctx) redirect("/");
@@ -297,6 +299,13 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
       }
 
       const enrolledSlugs = (enrolledRes as { slug: string }[]).map((t) => t.slug);
+      // The layout-body gate bounces pending registrants (every enrolled course
+      // not yet started) off Tutor/Resources — so the nav must not advertise
+      // those links, or clicking them silently redirects with no explanation.
+      pendingLearner =
+        !isStaff &&
+        enrolledSlugs.length > 0 &&
+        !(enrolledRes as TrackConfig[]).some((t) => trackHasStarted(t));
       // Skip check uses enrolled + allowlist tracks: a just-registered learner's
       // enrollment may not have completed yet (deferred setup runs on the
       // dashboard PAGE, after this layout gate), but their allowlist already
@@ -365,10 +374,10 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
     email = user?.email ?? demoEmail;
   }
 
-  const showTutor = isTutorAvailable(program);
+  const showTutor = isTutorAvailable(program) && !pendingLearner;
   // Resources nav appears only when the current program actually has resources
   // (data-driven — no empty nav item). Independent of the AI Tutor.
-  const showResources = await programHasResources(program.slug);
+  const showResources = !pendingLearner && (await programHasResources(program.slug));
   // canAccessStaff gates the Workshops nav. Demote it in preview mode the
   // same way isAdmin / canSwitch are — otherwise a super-admin previewing
   // as an AI Literacy student still sees the Workshops link and the nav
@@ -589,6 +598,14 @@ async function Overlays({ isSurveyPage }: { isSurveyPage: boolean }) {
 
   const role = ctx.student?.role ?? "";
 
+  // The tutor is one of the surfaces pending registrants are confined away
+  // from (layout-body gate) — don't float a button that only bounces them.
+  let confined = false;
+  if (!canAccessAdminPanel(role) && !isStaffEmail(ctx.student?.email ?? ctx.userEmail)) {
+    const supabase = await createClient();
+    confined = (await getLearnerAccess(supabase, ctx.userId, program)).pendingOnly;
+  }
+
   // Learner accounts created from an email alone (bulk invites, Eventbrite
   // claims) have no name — but the certificate and the Zoom join both print
   // it. Block once, ask once: the overlay never renders again after save.
@@ -658,7 +675,7 @@ async function Overlays({ isSurveyPage }: { isSurveyPage: boolean }) {
   return (
     <>
       {needsName && <NameCaptureOverlay campMode={program.slug === "bgc"} />}
-      {showTutor && <TutorFab />}
+      {showTutor && !confined && <TutorFab />}
       {canShowPreview && (
         <PreviewToggle previewingSlug={validPreviewSlug} groups={previewGroups} />
       )}
