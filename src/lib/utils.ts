@@ -30,6 +30,34 @@ export function unitDateHasArrived(date: string, at: Date): boolean {
 }
 
 /**
+ * Has this cohort's first day arrived? The single answer to "has the course
+ * started", so the holding page, the curriculum lock, the nav, the tutor and
+ * the admin filters can never disagree.
+ *
+ * `startDate` is a bare YYYY-MM-DD, so `now >= new Date(startDate)` flipped
+ * true at midnight UTC — 8pm ET the evening before the cohort actually began.
+ * A track with `startDateTbd` has no real date and has never started.
+ */
+export function trackHasStarted(
+  track: { startDate: string; startDateTbd?: boolean },
+  at: Date = new Date(),
+): boolean {
+  if (track.startDateTbd) return false;
+  return unitDateHasArrived(track.startDate, at);
+}
+
+/** Format a bare YYYY-MM-DD for humans without slipping to the prior day. */
+export function formatCohortDate(
+  date: string,
+  opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric", year: "numeric" },
+  locale?: string,
+): string {
+  // Anchor at local noon so no timezone can push it across a date boundary —
+  // the same trick holding-view.tsx already uses.
+  return new Date(`${date.slice(0, 10)}T12:00:00`).toLocaleDateString(locale, opts);
+}
+
+/**
  * Compute the current week number (1-based) from a cohort start date.
  * Returns a value clamped between 1 and totalWeeks.
  *

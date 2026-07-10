@@ -93,7 +93,7 @@ export function countedUnits(track: TrackLike, asOf: Date = new Date()): number[
       .sort((a, b) => a - b);
   }
 
-  if (asOf < new Date(track.startDate)) return [];
+  if (!unitDateHasArrived(track.startDate, asOf)) return [];
   const currentWeek =
     track.currentUnit ??
     computeCurrentWeek(track.startDate, track.totalWeeks, track.lastSessionDayOffset, asOf);

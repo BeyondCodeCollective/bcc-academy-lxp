@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { formatCohortDate } from "@/lib/utils";
 import { redirect } from "next/navigation";
 import { getProgram } from "@/lib/programs/server";
 import { resolveCurrentUser } from "@/lib/current-user";
@@ -53,7 +54,7 @@ export default async function HelpPage() {
 
   const weeklyTracks = visibleTracks.filter((t) => t.type === "weekly");
   const cohort = program.defaultCohort;
-  const startDate = new Date(cohort.startDate).toLocaleDateString(undefined, {
+  const startDate = formatCohortDate(cohort.startDate, {
     weekday: "long",
     month: "long",
     day: "numeric",

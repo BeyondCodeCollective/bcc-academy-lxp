@@ -8,7 +8,7 @@ import {
   ArrowRight,
   Medal,
 } from "@phosphor-icons/react/dist/ssr";
-import { resolveCurrentUnit } from "@/lib/utils";
+import { resolveCurrentUnit, trackHasStarted } from "@/lib/utils";
 import { trackUnitDisplay, unitText } from "@/lib/programs/unit-display";
 import { resolveTrackProgram } from "@/lib/programs/server";
 import { getSessionContext } from "@/lib/auth/session";
@@ -126,7 +126,7 @@ export default async function TrackOverviewPage({
   }
 
   const now = new Date();
-  const started = !track.startDateTbd && now >= new Date(track.startDate);
+  const started = trackHasStarted(track, now);
 
   // Certificate of completion — issued by an admin when the student finishes.
   // Checked before the holding gate: a completed student is DONE with the

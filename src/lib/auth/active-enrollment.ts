@@ -3,9 +3,9 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ProgramConfig, TrackConfig } from "@/lib/programs/types";
 import { getEnrolledTracks } from "@/lib/enrollment";
+import { trackHasStarted } from "@/lib/utils";
 
-const isStarted = (t: TrackConfig): boolean =>
-  !t.startDateTbd && Date.now() >= new Date(t.startDate).getTime();
+const isStarted = (t: TrackConfig): boolean => trackHasStarted(t);
 
 export type LearnerAccess = {
   enrolled: TrackConfig[];

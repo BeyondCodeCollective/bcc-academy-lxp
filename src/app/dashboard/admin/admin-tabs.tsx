@@ -36,7 +36,7 @@ import {
 import { Avatar } from "@/components/avatar";
 import { buttonClass, fieldInput } from "@/components/ui";
 import { PageHeader } from "@/components/page-header";
-import { computeCurrentWeek } from "@/lib/utils";
+import { computeCurrentWeek, trackHasStarted, formatCohortDate } from "@/lib/utils";
 import { LunchLearnAdmin } from "@/app/dashboard/lunch-learn/admin/admin-client";
 import { AttendanceTab } from "./attendance-tab";
 import { ProgressTab } from "./progress-tab";
@@ -1019,8 +1019,7 @@ export function AdminTabs({
             <div className="divide-y divide-rule overflow-hidden panel">
               {tracks.map((t) => {
                 const tone = toneForTrack(t.slug);
-                const start = new Date(t.startDate);
-                const started = now >= start;
+                const started = trackHasStarted(t, now);
                 // `currentUnit` comes from resolveCurrentUnit, which honours
                 // dated syllabi and per-unit unlocks. computeCurrentWeek only
                 // knows a 7-day cycle, so on a day-gated camp it reports Day 1
@@ -1133,7 +1132,7 @@ export function AdminTabs({
         const enrolledInTrack = enrollments.filter(
           (e) => e.track_slug === activeTrack.slug && studentRoleIds.has(e.student_id),
         ).length;
-        const notStarted = new Date(activeTrack.startDate).getTime() > Date.now();
+        const notStarted = !trackHasStarted(activeTrack);
         const currentWeek = notStarted
           ? 0
           : activeTrack.currentUnit ??
@@ -1144,10 +1143,7 @@ export function AdminTabs({
             );
         const startLabel = activeTrack.startDateTbd
           ? "TBD"
-          : new Date(activeTrack.startDate).toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-            });
+          : formatCohortDate(activeTrack.startDate, { month: "short", day: "numeric" }, "en-US");
         return (
         <div className="space-y-4">
           {/* Back to Admin home */}
