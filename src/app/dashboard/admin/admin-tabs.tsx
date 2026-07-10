@@ -75,14 +75,19 @@ function AdminTopTabs({
   sub,
   showInsights,
   actions,
+  isManager = true,
 }: {
   current: "courses" | "students" | "student-work" | "analytics";
   sub?: "attendance" | "insights" | "analytics";
   showInsights: boolean;
   /** Right-aligned on the tab row (e.g. the Manage menu on Courses). */
   actions?: React.ReactNode;
+  /** Instructors get a single surface — their course tab already holds its
+   *  own Students / Attendance / Progress / Work views, so the cross-course
+   *  People, Student work, and Analytics tabs render for managers only. */
+  isManager?: boolean;
 }) {
-  const tabs = [
+  const allTabs = [
     { id: "courses", label: "Courses", href: "/dashboard/admin", Icon: GraduationCapIcon },
     // "People", not "All people" — a tab names a place, not a filter. (Same
     // term Canvas uses for its roster tab; the view holds staff too, so
@@ -99,6 +104,7 @@ function AdminTopTabs({
       Icon: ChartLineUpIcon,
     },
   ] as const;
+  const tabs = isManager ? allTabs : allTabs.filter((t) => t.id === "courses");
   const segments = [
     { id: "attendance", label: "Attendance", href: "/dashboard/admin?tab=attendance", show: true },
     { id: "insights", label: "Survey insights", href: "/dashboard/admin?tab=insights", show: showInsights },
@@ -588,9 +594,15 @@ export function AdminTabs({
     ? []
     : [
         ...tracks.map((t, i) => ({ id: t.slug, label: t.shortName, icon: getTrackIcon(i) })),
-        { id: "student-work", label: "Student Work", icon: ClipboardList },
-        { id: "attendance", label: "Analytics", icon: UserCheck },
-        ...(isManager ? [{ id: "lunch-learn", label: "Lunch & Learn", icon: Coffee }] : []),
+        // Cross-course rollups are a manager tool; an instructor's course tab
+        // already holds its own Students / Attendance / Progress / Work views.
+        ...(isManager
+          ? [
+              { id: "student-work", label: "Student Work", icon: ClipboardList },
+              { id: "attendance", label: "Analytics", icon: UserCheck },
+              { id: "lunch-learn", label: "Lunch & Learn", icon: Coffee },
+            ]
+          : []),
       ];
 
   // Default landing is the Admin Home picker — a grid of cards that lets
@@ -1025,6 +1037,7 @@ export function AdminTabs({
               current="courses"
               showInsights={canViewInsights(userRole)}
               actions={canSwitchPrograms(userRole) && <ManageMenu />}
+              isManager={isManager}
             />
 
             <div className="divide-y divide-rule overflow-hidden panel">
@@ -1511,7 +1524,7 @@ export function AdminTabs({
       {/* People — compact cross-track roster */}
       {tab === "students" && (
         <div className="space-y-6">
-        <AdminTopTabs current="students" showInsights={canViewInsights(userRole)} />
+        <AdminTopTabs current="students" showInsights={canViewInsights(userRole)} isManager={isManager} />
         <PeopleTab
           students={students}
           cohorts={cohorts}
@@ -1538,7 +1551,7 @@ export function AdminTabs({
       {/* Standalone Student Work (from sidebar, all tracks) */}
       {tab === "student-work" && (
         <div className="space-y-6">
-          <AdminTopTabs current="student-work" showInsights={canViewInsights(userRole)} />
+          <AdminTopTabs current="student-work" showInsights={canViewInsights(userRole)} isManager={isManager} />
           <StudentWorkTab tracks={tracks} programSlug={programSlug} />
         </div>
       )}
@@ -1546,7 +1559,7 @@ export function AdminTabs({
       {/* Standalone Analytics (from sidebar, all tracks) */}
       {tab === "attendance" && (
         <div className="space-y-6">
-          <AdminTopTabs current="analytics" sub="attendance" showInsights={canViewInsights(userRole)} />
+          <AdminTopTabs current="analytics" sub="attendance" showInsights={canViewInsights(userRole)} isManager={isManager} />
           <AttendanceTab
             students={students.filter((s) => s.role === "student")}
             tracks={tracks}
@@ -1579,7 +1592,7 @@ export function AdminTabs({
          follows the program switcher rather than showing every program. */}
       {tab === "analytics" && (
         <div className="space-y-6">
-          <AdminTopTabs current="analytics" sub="analytics" showInsights={canViewInsights(userRole)} />
+          <AdminTopTabs current="analytics" sub="analytics" showInsights={canViewInsights(userRole)} isManager={isManager} />
           {/* Program context only — the lit Engagement segment is the title. */}
           {analyticsData && (
             <p className="text-sm text-ink-soft">{analyticsData.programName} — activation funnel &amp; per-learner activity</p>
@@ -1599,7 +1612,7 @@ export function AdminTabs({
          broader operational dashboard (engagement, attendance, alumni). */}
       {tab === "insights" && (
         <div className="space-y-6">
-          <AdminTopTabs current="analytics" sub="insights" showInsights={canViewInsights(userRole)} />
+          <AdminTopTabs current="analytics" sub="insights" showInsights={canViewInsights(userRole)} isManager={isManager} />
 
           {/* The "{Program} surveys" widget that used to live here pulled from
              `surveyStats` (auth-only, never populated on the Insights tab since
