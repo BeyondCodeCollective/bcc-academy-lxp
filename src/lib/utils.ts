@@ -14,6 +14,14 @@ import type { TrackConfig } from "@/lib/programs/types";
  */
 export const COHORT_TIME_ZONE = "America/New_York";
 
+/** "18:30" → "6:30 PM ET". Wall-clock only; the zone label is a constant. */
+export function formatCohortTime(hhmm: string): string {
+  const [h, m] = hhmm.split(":").map(Number);
+  const suffix = h >= 12 ? "PM" : "AM";
+  const hour12 = h % 12 === 0 ? 12 : h % 12;
+  return `${hour12}:${String(m).padStart(2, "0")} ${suffix} ET`;
+}
+
 export function easternDayKey(at: Date): string {
   // en-CA formats as YYYY-MM-DD.
   return new Intl.DateTimeFormat("en-CA", {

@@ -8,7 +8,7 @@ import {
   ArrowRight,
   Medal,
 } from "@phosphor-icons/react/dist/ssr";
-import { resolveCurrentUnit, trackHasStarted, formatCohortDate } from "@/lib/utils";
+import { resolveCurrentUnit, trackHasStarted, formatCohortDate, formatCohortTime } from "@/lib/utils";
 import { trackUnitDisplay, unitText } from "@/lib/programs/unit-display";
 import { resolveTrackProgram } from "@/lib/programs/server";
 import { getSessionContext } from "@/lib/auth/session";
@@ -288,6 +288,7 @@ export default async function TrackOverviewPage({
             type: sessionType(t.slug),
             title: titles?.get(ws.week) ?? ws.topic,
             href: `/dashboard/track/${t.slug}/${ws.week}`,
+            time: ws.time ? formatCohortTime(ws.time) : undefined,
           }),
         )
       : []),

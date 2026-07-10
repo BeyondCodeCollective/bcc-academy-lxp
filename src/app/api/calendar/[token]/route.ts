@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { getHomeProgramForTrack, getTrackBySlug } from "@/lib/programs";
-import { getProgramWithOverrides } from "@/lib/programs/server";
+import { getProgramWithOverrides, resolveHomeProgramSlug } from "@/lib/programs/server";
 import { unitDisplayMap, unitText } from "@/lib/programs/unit-display";
+import { COHORT_TIME_ZONE } from "@/lib/utils";
 import {
   buildCalendar,
   icalTimestamp,
@@ -57,15 +58,21 @@ export async function GET(
 
   const events: CalendarEvent[] = [];
   for (const slug of trackSlugs) {
-    const home = getHomeProgramForTrack(slug);
-    if (!home) continue; // builder-only courses aren't on a calendar yet
-    const program = await getProgramWithOverrides(home.slug);
+    // Builder-created courses (comptia-security, mass-secplus, …) have no TS
+    // config, so getHomeProgramForTrack returns null for them. They used to be
+    // skipped entirely and never reached anyone's calendar. Fall back to the
+    // program that owns their track_overrides row.
+    const homeSlug =
+      getHomeProgramForTrack(slug)?.slug ?? (await resolveHomeProgramSlug(slug));
+    if (!homeSlug) continue;
+    const program = await getProgramWithOverrides(homeSlug);
     const track = getTrackBySlug(program, slug);
     if (!track) continue;
 
-    // Schedule — one all-day marker per unit, on its explicit `date` when the
-    // syllabus carries one (a Tue/Thu session track, a break week), else the
-    // 7-day fallback. Skip TBD start dates so we don't emit far-future
+    // Schedule — one event per unit, on its explicit `date` when the syllabus
+    // carries one (a Tue/Thu session track, a break week), else the 7-day
+    // fallback. A unit with a `time` becomes a timed event; without one it
+    // stays an all-day marker. Skip TBD start dates so we don't emit far-future
     // placeholder events.
     if (!track.startDateTbd && track.startDate) {
       const scheduleNote = [
@@ -82,6 +89,9 @@ export async function GET(
           // duplicate every event rather than move it.
           uid: `${slug}-week-${ws.week}`,
           date: ws.date ?? addDays(track.startDate, (ws.week - 1) * 7),
+          startTime: ws.time,
+          durationMinutes: ws.durationMinutes,
+          timeZone: ws.time ? COHORT_TIME_ZONE : undefined,
           summary: `${track.shortName} · ${unitText(display, ws.week, track.unitLabel ?? "Week")}: ${ws.topic}`,
           description: scheduleNote || undefined,
         });
