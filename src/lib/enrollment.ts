@@ -28,7 +28,9 @@ export async function getEnrolledTracks(
  * Prefer a standalone course over a companion; break ties by start date, then
  * slug, so the answer is stable rather than dependent on query order.
  */
-export function primaryTrack(tracks: TrackConfig[]): TrackConfig | null {
+export function primaryTrack<T extends { slug: string; startDate: string; companionOf?: string }>(
+  tracks: T[],
+): T | null {
   if (tracks.length === 0) return null;
   const standalone = tracks.filter((t) => !t.companionOf);
   const candidates = standalone.length > 0 ? standalone : tracks;
