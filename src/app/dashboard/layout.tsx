@@ -489,6 +489,11 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
         programs={programs}
         currentProgramSlug={program.slug}
         variant={navVariant}
+        // Home follows the previewed course. The Lunch & Learns sentinel maps
+        // to null so Home falls back to /dashboard (the L&L hub).
+        previewingSlug={
+          previewingSlug === LUNCH_LEARN_PREVIEW_SLUG ? null : previewingSlug
+        }
         curriculumTracks={curriculumTracks}
         adminTracks={adminTracks}
         lunchLearnRecordings={lunchLearnRecordings}
