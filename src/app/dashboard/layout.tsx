@@ -19,7 +19,7 @@ import { getSessionContext } from "@/lib/auth/session";
 import { getPreviewTrackSlug, LUNCH_LEARN_PREVIEW_SLUG } from "@/lib/auth/preview-mode";
 import { getEnrolledTracks } from "@/lib/enrollment";
 import { getLearnerAccess } from "@/lib/auth/active-enrollment";
-import { getOnboardingChecklist, getOnboardingStatus } from "@/lib/onboarding/checklists";
+import { getEnforcedOnboardingChecklist, getOnboardingStatus } from "@/lib/onboarding/checklists";
 import { BCC_INTAKE_SURVEY_ID, surveySkippedForTracks } from "@/lib/surveys/platform";
 import { isSurveyEnabledForLearner } from "@/lib/surveys/features";
 import { isStaffEmail } from "@/lib/auth/admins";
@@ -140,7 +140,7 @@ export default async function DashboardLayout({
         // settings pages are exempt above, so they can still complete items.
         if (!access.pendingOnly) {
           for (const t of access.enrolled) {
-            if (!getOnboardingChecklist(t.slug)) continue;
+            if (!getEnforcedOnboardingChecklist(t.slug)) continue;
             const status = await getOnboardingStatus(supabase, ctx.userId, t.slug);
             if (status && !status.allComplete) {
               const reqTrack = pathname.match(/^\/dashboard\/track\/([^/]+)/)?.[1];

@@ -28,7 +28,7 @@ import { MyProgressCard } from "@/components/my-progress-card";
 import { getLearnerProgress } from "@/lib/learner-progress";
 import { HoldingView } from "@/components/holding-view";
 import { getLandingHeroForTrack } from "@/lib/landing-pages";
-import { getOnboardingChecklist, getOnboardingStatus } from "@/lib/onboarding/checklists";
+import { getEnforcedOnboardingChecklist, getOnboardingStatus } from "@/lib/onboarding/checklists";
 import { OnboardingChecklist } from "@/components/onboarding-checklist";
 
 export const dynamic = "force-dynamic";
@@ -65,7 +65,7 @@ export default async function TrackOverviewPage({
   // Intake Form, Participation Agreement, Pre-Survey — before reaching the
   // course. Start-date independent; admins/previewers bypass. Items a learner
   // already completed (read from survey_responses) auto-check.
-  const checklist = getOnboardingChecklist(slug);
+  const checklist = getEnforcedOnboardingChecklist(slug);
   if (checklist && !isAdminViewer && ctx?.userId) {
     const status = await getOnboardingStatus(createServiceClient(), ctx.userId, slug);
     if (status) {
