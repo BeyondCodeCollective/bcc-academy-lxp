@@ -37,6 +37,20 @@ export function primaryTrack(tracks: TrackConfig[]): TrackConfig | null {
   )[0];
 }
 
+/**
+ * Rewrite each companion track to the course it wraps around.
+ *
+ * "Skip this survey for Security+ learners" has to survive the fact that every
+ * Security+ learner is ALSO enrolled in its MASS wraparound. Without this, the
+ * `.every()` in surveySkippedForTracks sees an unlisted second track and shows
+ * the survey anyway — which is how the Security+ cohort ended up being asked
+ * for an AI Fundamentals pre-program survey.
+ */
+export function collapseCompanionSlugs(slugs: string[], tracks: TrackConfig[]): string[] {
+  const companionOf = new Map(tracks.map((t) => [t.slug, t.companionOf]));
+  return slugs.map((s) => companionOf.get(s) ?? s);
+}
+
 // Where a login should drop a learner: the current session's page once the
 // course has started (that's where the live Zoom embed is), and the course
 // overview before it starts — the overview carries the pre-start banner, and

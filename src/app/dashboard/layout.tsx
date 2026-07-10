@@ -21,6 +21,7 @@ import { getEnrolledTracks } from "@/lib/enrollment";
 import { getLearnerAccess } from "@/lib/auth/active-enrollment";
 import { getEnforcedOnboardingChecklist, getOnboardingStatus } from "@/lib/onboarding/checklists";
 import { BCC_INTAKE_SURVEY_ID, surveySkippedForTracks } from "@/lib/surveys/platform";
+import { collapseCompanionSlugs } from "@/lib/enrollment";
 import { isSurveyEnabledForLearner } from "@/lib/surveys/features";
 import { isStaffEmail } from "@/lib/auth/admins";
 import { getHomeProgramForTrack } from "@/lib/programs";
@@ -304,7 +305,11 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
       const allowlistSlugs = (
         (allowlistRes as { data: { track_slug: string }[] | null }).data ?? []
       ).map((r) => r.track_slug);
-      const surveyTrackSlugs = [...enrolledSlugs, ...allowlistSlugs];
+      // A companion (MASS) inherits its course's survey exemptions.
+      const surveyTrackSlugs = collapseCompanionSlugs(
+        [...enrolledSlugs, ...allowlistSlugs],
+        program.tracks,
+      );
       const requiredSurvey = !isStaff
         ? program.surveys?.find(
             (s) =>
