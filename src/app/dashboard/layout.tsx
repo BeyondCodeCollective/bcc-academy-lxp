@@ -11,6 +11,7 @@ import { getDashboardIndex } from "@/lib/dashboard-index";
 import { TutorFab } from "@/components/tutor-fab";
 import { NameCaptureOverlay } from "@/components/name-capture-overlay";
 import { PreviewToggle } from "@/components/preview-toggle";
+import { PreviewBanner } from "@/components/preview-banner";
 import { getProgram, getProgramWithOverrides } from "@/lib/programs/server";
 import { getProgramBySlug, getAllPrograms, getJoinablePrograms, isTutorAvailable } from "@/lib/programs";
 import { ProgramProvider } from "@/lib/programs/context";
@@ -184,6 +185,11 @@ export default async function DashboardLayout({
           className={`flex-1 bg-paper ${isSurveyPage ? "" : "md:pl-60"}`}
           style={{ fontSize: "16px" }}
         >
+          {!isSurveyPage && (
+            <Suspense fallback={null}>
+              <PreviewBanner />
+            </Suspense>
+          )}
           {!isSurveyPage && (
             <Suspense fallback={null}>
               <TopBarShell />
