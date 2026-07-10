@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAdmin, programIdFromSlug } from "../actions-shared";
+import { requireAdmin, resolveProgramForActor } from "../actions-shared";
 
 export type ResourceInput = {
   title: string;
@@ -17,9 +17,11 @@ export type ResourceInput = {
  * program's rows and re-insert in order. Admin-only (service role).
  */
 export async function saveResources(programSlug: string, items: ResourceInput[]) {
-  const { svc, userId } = await requireAdmin();
-  const programId = await programIdFromSlug(svc, programSlug);
-  if (!programId) throw new Error(`Program not found: ${programSlug}`);
+  const actor = await requireAdmin();
+  const { svc, userId } = actor;
+  // Bind the client-supplied slug to the actor's own program — this action
+  // wipes and re-inserts the whole list, so a cross-tenant call is destructive.
+  const programId = await resolveProgramForActor(actor, svc, programSlug);
 
   // Keep only rows with a title; trim everything; blank optionals → null.
   const clean = (v: string) => (v.trim() === "" ? null : v.trim());

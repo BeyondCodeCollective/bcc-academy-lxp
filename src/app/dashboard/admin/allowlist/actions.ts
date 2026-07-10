@@ -1,10 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createServiceClient } from "@/lib/supabase/server";
-import { getSessionContext } from "@/lib/auth/session";
-import { canAccessAdminPanel } from "@/lib/roles";
-import { isPreviewingAsStudent } from "@/lib/auth/preview-mode";
+import { requireManager, assertTrackInActorProgram } from "../actions-shared";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -19,18 +16,25 @@ export async function parseEmailList(raw: string): Promise<string[]> {
   return [...set];
 }
 
+// The allowlist is the source of truth the auth callback trusts to admit and
+// enroll new signups, so every action here is manage_students (admin+) and
+// bound to the actor's own program — access_admin_panel alone would let an
+// instructor read or rewrite any track's allowlist across programs.
+async function requireAllowlistActor(trackSlug: string) {
+  const actor = await requireManager();
+  await assertTrackInActorProgram(actor, actor.svc, trackSlug);
+  return actor;
+}
+
 export async function getAllowedEmails(
   trackSlug: string,
 ): Promise<{ ok: boolean; emails: string[]; error?: string }> {
-  const ctx = await getSessionContext();
-  if (
-    !ctx ||
-    !canAccessAdminPanel(ctx.student?.role ?? "") ||
-    (await isPreviewingAsStudent(ctx.student?.role ?? ""))
-  ) {
+  let svc;
+  try {
+    ({ svc } = await requireAllowlistActor(trackSlug));
+  } catch {
     return { ok: false, emails: [], error: "Not authorized" };
   }
-  const svc = createServiceClient();
   const { data, error } = await svc
     .from("allowed_signup_emails")
     .select("email")
@@ -52,15 +56,12 @@ export async function getAllowedEmails(
 export async function getAllowlistAudience(
   trackSlug: string,
 ): Promise<{ ok: boolean; pending: number; joined: number; total: number; error?: string }> {
-  const ctx = await getSessionContext();
-  if (
-    !ctx ||
-    !canAccessAdminPanel(ctx.student?.role ?? "") ||
-    (await isPreviewingAsStudent(ctx.student?.role ?? ""))
-  ) {
+  let svc;
+  try {
+    ({ svc } = await requireAllowlistActor(trackSlug));
+  } catch {
     return { ok: false, pending: 0, joined: 0, total: 0, error: "Not authorized" };
   }
-  const svc = createServiceClient();
   const [{ data: allow }, { data: accts }] = await Promise.all([
     svc.from("allowed_signup_emails").select("email").eq("track_slug", trackSlug),
     svc.from("students").select("email"),
@@ -86,16 +87,14 @@ export async function replaceAllowedEmails(
   trackSlug: string,
   rawCsvOrList: string,
 ): Promise<{ ok: boolean; count: number; error?: string }> {
-  const ctx = await getSessionContext();
-  if (
-    !ctx ||
-    !canAccessAdminPanel(ctx.student?.role ?? "") ||
-    (await isPreviewingAsStudent(ctx.student?.role ?? ""))
-  ) {
+  let svc: Awaited<ReturnType<typeof requireManager>>["svc"];
+  let userId: string;
+  try {
+    ({ svc, userId } = await requireAllowlistActor(trackSlug));
+  } catch {
     return { ok: false, count: 0, error: "Not authorized" };
   }
   const emails = await parseEmailList(rawCsvOrList);
-  const svc = createServiceClient();
 
   const { error: deleteErr } = await svc
     .from("allowed_signup_emails")
@@ -110,7 +109,7 @@ export async function replaceAllowedEmails(
     const rows = emails.map((email) => ({
       email,
       track_slug: trackSlug,
-      added_by: ctx.userId ?? null,
+      added_by: userId ?? null,
     }));
     const { error: insertErr } = await svc
       .from("allowed_signup_emails")
@@ -134,17 +133,16 @@ export async function removePendingPerson(
   email: string,
   trackSlugs: string[],
 ): Promise<{ ok: boolean; error?: string }> {
-  const ctx = await getSessionContext();
-  if (
-    !ctx ||
-    !canAccessAdminPanel(ctx.student?.role ?? "") ||
-    (await isPreviewingAsStudent(ctx.student?.role ?? ""))
-  ) {
-    return { ok: false, error: "Not authorized" };
-  }
   const e = email.trim().toLowerCase();
   if (!e || trackSlugs.length === 0) return { ok: false, error: "Nothing to remove" };
-  const svc = createServiceClient();
+  let svc: Awaited<ReturnType<typeof requireManager>>["svc"];
+  try {
+    const actor = await requireManager();
+    svc = actor.svc;
+    await Promise.all(trackSlugs.map((t) => assertTrackInActorProgram(actor, svc, t)));
+  } catch {
+    return { ok: false, error: "Not authorized" };
+  }
 
   const [allowErr, inviteErr] = await Promise.all([
     svc
