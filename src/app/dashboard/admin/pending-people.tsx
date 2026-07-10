@@ -23,6 +23,7 @@ export function PendingPeopleSection({ pending, trackNames }: Props) {
   const [isPending, startTransition] = useTransition();
   const [state, setState] = useState<Record<string, "sending" | "sent" | "error">>({});
   const [removing, setRemoving] = useState<Record<string, boolean>>({});
+  const [removeError, setRemoveError] = useState<string | null>(null);
   const [sendingAll, setSendingAll] = useState(false);
   const [allResult, setAllResult] = useState<string | null>(null);
 
@@ -83,12 +84,15 @@ export function PendingPeopleSection({ pending, trackNames }: Props) {
     if (!window.confirm(`Remove ${email} from the allowlist (and cancel any unused invite)?`)) {
       return;
     }
+    setRemoveError(null);
     setRemoving((m) => ({ ...m, [email]: true }));
     startTransition(async () => {
       const r = await removePendingPerson(email, trackSlugs);
       if (r.ok) {
         router.refresh();
       } else {
+        // A silent failure reads as "the page just refreshed" — say why.
+        setRemoveError(`Couldn't remove ${email}: ${r.error ?? "unknown error"}`);
         setRemoving((m) => ({ ...m, [email]: false }));
       }
     });
@@ -114,6 +118,7 @@ export function PendingPeopleSection({ pending, trackNames }: Props) {
         </button>
       </div>
       {allResult && <p className="text-[12px] text-ink-soft">{allResult}</p>}
+      {removeError && <p className="text-[12px] text-red-600">{removeError}</p>}
       <div className="divide-y divide-rule-soft overflow-hidden panel">
         {pending.map((p) => {
           const st = state[p.email];
