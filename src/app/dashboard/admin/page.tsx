@@ -6,7 +6,7 @@ import type { Student } from "@/lib/types";
 import { getProgram } from "@/lib/programs/server";
 import type { StudentTrackRow, SurveyStatsRow, InstructorTrackRow, PublicSurveyStatsRow, BCCSurveyResponse } from "./actions";
 import { getPublicSurveyStats, getPublicSurveyCountsByType } from "./actions";
-import { canAccessAdminPanel, canSwitchPrograms, canViewInsights, assignableRoles } from "@/lib/roles";
+import { canAccessAdminPanel, canManageStudents, canSwitchPrograms, canViewInsights, assignableRoles } from "@/lib/roles";
 import { isMasterEmail } from "@/lib/auth/admins";
 import { PLATFORM_AUTH_SURVEYS, PLATFORM_PUBLIC_SURVEYS } from "@/lib/surveys/platform";
 import { getHomeProgramForTrack } from "@/lib/programs";
@@ -267,7 +267,12 @@ export default async function AdminPage({
 
     // People hub: allowlisted/invited emails with no account yet, for the
     // current program's tracks. Only on the People tab.
-    if (effectiveTab === "students") {
+    // Managers only: instructors are view-only on their course's roster and
+    // can't act on invites/allowlists, so don't ship them the pending emails.
+    if (
+      effectiveTab === "students" &&
+      (canManageStudents(userRole) || isMasterEmail(actorEmail))
+    ) {
       const studentEmails = new Set(
         allStudents.map((s) => (s.email ?? "").toLowerCase()).filter(Boolean),
       );

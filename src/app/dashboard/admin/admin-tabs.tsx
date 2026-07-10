@@ -2117,7 +2117,7 @@ function PeopleTab({
             className={`${fieldInput} flex-1 min-w-[200px]`}
           />
         )}
-        {!embedded && (
+        {!embedded && isManager && (
           <div className="relative">
             <select
               value={roleFilter}
@@ -2132,7 +2132,7 @@ function PeopleTab({
             <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-ink-faint" />
           </div>
         )}
-        {!embedded && tracks.length > 0 && (
+        {!embedded && isManager && tracks.length > 0 && (
           <div className="relative">
             <select
               value={trackFilter}
@@ -2152,10 +2152,15 @@ function PeopleTab({
 
       {/* Pending — allowlisted/invited people with no account yet (front of
          the pipeline), shown above the roster so every stage is in one place. */}
-      <PendingPeopleSection
-        pending={pendingPeople}
-        trackNames={Object.fromEntries(tracks.map((t) => [t.slug, t.shortName || t.name]))}
-      />
+      {/* Managers only — instructors can't resend or remove invites (the
+         server actions are manage_students), so the section is pure dead
+         weight and cross-track noise for them. */}
+      {isManager && (
+        <PendingPeopleSection
+          pending={pendingPeople}
+          trackNames={Object.fromEntries(tracks.map((t) => [t.slug, t.shortName || t.name]))}
+        />
+      )}
 
       {/* Roster */}
       <div className="divide-y divide-neutral-100 overflow-hidden panel">
