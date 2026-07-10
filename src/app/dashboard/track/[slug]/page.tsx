@@ -26,6 +26,8 @@ import { getAllSessionContent } from "@/app/dashboard/admin/actions-tracks";
 import { isSequentialGated, highestUnlockedWeek } from "@/lib/track-gating";
 import { MyProgressCard } from "@/components/my-progress-card";
 import { getLearnerProgress } from "@/lib/learner-progress";
+import { getWhatsNew, type FeedItem } from "@/lib/whats-new";
+import { WhatsNew } from "@/components/whats-new";
 import { HoldingView } from "@/components/holding-view";
 import { PreStartBanner } from "@/components/pre-start-banner";
 import { getLandingHeroForTrack } from "@/lib/landing-pages";
@@ -267,6 +269,32 @@ export default async function TrackOverviewPage({
       ? await getLearnerProgress(ctx.userId, [slug], now).catch(() => null)
       : null;
 
+  // Announcements + upcoming office hours. These are track-scoped, and this is
+  // the page the learner actually lands on, so the feed lives here rather than
+  // on a separate home. Scoped to this course and anything that wraps around it
+  // (MASS accompanies Security+), so a coaching announcement isn't orphaned.
+  let whatsNew: FeedItem[] = [];
+  if (ctx?.userId) {
+    const feedTracks = program.tracks.filter(
+      (t) => t.slug === slug || t.companionOf === slug,
+    );
+    const { data: progRow } = await createServiceClient()
+      .from("programs")
+      .select("id")
+      .eq("slug", program.slug)
+      .maybeSingle<{ id: string }>();
+    if (progRow) {
+      whatsNew = await getWhatsNew({
+        userId: ctx.userId,
+        programId: progRow.id,
+        tracks: feedTracks,
+        includeTrackName: feedTracks.length > 1,
+        now,
+        limit: 4,
+      }).catch(() => []);
+    }
+  }
+
   // ── Calendar ──────────────────────────────────────────────────────────────
   // Month-grid calendar of the learner's whole schedule: this track's weekly
   // sessions (dated from the syllabus) + its office-hours / MASS / speaker /
@@ -369,6 +397,10 @@ export default async function TrackOverviewPage({
          Each cell links to its week page; current week is inset-ringed in the
          track tone. Replaces a previous decorative-icon hero. */}
       {preStart && <PreStartBanner track={track} />}
+
+      {/* Above the syllabus: "bring a laptop Monday" has to be read before a
+         learner scrolls into session cards. */}
+      {whatsNew.length > 0 && <WhatsNew items={whatsNew} />}
 
       <header className="space-y-5">
         <div className="relative w-full overflow-hidden panel p-5 sm:p-7">
