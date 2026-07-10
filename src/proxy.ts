@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { authCookieDomain } from "@/lib/supabase/cookie-domain";
+import { safeNextPath } from "@/lib/auth/next-path";
 import {
   getProgramByDomain,
   getProgramBySlug,
@@ -112,24 +113,17 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // If not authenticated and trying to access dashboard, redirect to login.
-  // Apply routes and the shareable participation-agreement link carry ?next=
-  // so the auth callback sends the user straight to the destination after
-  // they sign in — without it, a shared /dashboard/agreement link dropped
-  // its destination here and post-login routing landed on their course.
+  // If not authenticated and trying to access dashboard, send them to log in
+  // and carry the destination in ?next= so the auth callback lands them exactly
+  // where the link pointed. Any emailed dashboard link (a session page, the
+  // participation agreement, an apply route) has to survive the sign-in round
+  // trip — dropping it stranded students on the marketing homepage.
   if (!user && request.nextUrl.pathname.startsWith("/dashboard")) {
     const url = request.nextUrl.clone();
-    if (
-      pathname.startsWith("/dashboard/apply/") ||
-      pathname.startsWith("/dashboard/agreement")
-    ) {
-      url.pathname = "/login";
-      url.search = "";
-      url.searchParams.set("next", pathname);
-    } else {
-      url.pathname = "/";
-      url.search = "";
-    }
+    const next = safeNextPath(pathname);
+    url.pathname = next ? "/login" : "/";
+    url.search = "";
+    if (next) url.searchParams.set("next", next);
     return applyProgramCookies(NextResponse.redirect(url));
   }
 
