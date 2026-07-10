@@ -1049,7 +1049,7 @@ export function AdminTabs({
                           ? "Completed"
                           : started
                             ? `${t.unitLabel || "Week"} ${currentWeek} of ${t.totalWeeks}`
-                            : `Starts ${start.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+                            : `Starts ${formatCohortDate(t.startDate, { month: "short", day: "numeric" }, "en-US")}`;
                 const count = studentCountFor(t.slug);
                 // "Active this week" is a rolling window, so a finished course
                 // decays to 0 and reads as failure rather than as "it's done".
