@@ -22,8 +22,6 @@ import { WeekIcon } from "@/components/week-icon";
 import { DashboardBento } from "@/components/dashboard-bento";
 import { MyProgressCard, type MyProgressCardProps } from "@/components/my-progress-card";
 import { getLearnerProgress } from "@/lib/learner-progress";
-import { getWhatsNew, type FeedItem } from "@/lib/whats-new";
-import { WhatsNew } from "@/components/whats-new";
 import { PageHeader } from "@/components/page-header";
 import { BCC_INTAKE_SURVEY_ID, surveySkippedForTracks } from "@/lib/surveys/platform";
 import { isSurveyEnabledForLearner } from "@/lib/surveys/features";
@@ -395,28 +393,6 @@ async function DashboardContent({
     return { track, started, currentWeek };
   });
 
-  // "What's New" feed — announcements + instructor feedback + upcoming office
-  // hours, consolidated across the learner's courses (replaces the old
-  // announcement banners). Admins get the regular management surfaces instead.
-  const feedTracks = [...visibleTracks, ...otherProgramCourses.map((c) => c.track)];
-  let whatsNew: FeedItem[] = [];
-  if (!isAdmin && feedUserId && feedTracks.length > 0) {
-    const svcFeed = createServiceClient();
-    const { data: progRow } = await svcFeed
-      .from("programs")
-      .select("id")
-      .eq("slug", program.slug)
-      .maybeSingle<{ id: string }>();
-    if (progRow) {
-      whatsNew = await getWhatsNew({
-        userId: feedUserId,
-        programId: progRow.id,
-        tracks: feedTracks,
-        includeTrackName: true,
-        now,
-      }).catch(() => []);
-    }
-  }
 
   if (noCohort) {
     return (
@@ -580,8 +556,6 @@ async function DashboardContent({
           </p>
         )}
       </div>
-
-      <WhatsNew items={whatsNew} />
 
       {learnerProgress && <MyProgressCard {...learnerProgress} />}
 

@@ -19,6 +19,7 @@ import {
 } from "@phosphor-icons/react";
 import { computeCurrentWeek, trackHasStarted } from "@/lib/utils";
 import { unitDisplayMap } from "@/lib/programs/unit-display";
+import { primaryTrack } from "@/lib/enrollment";
 import { TextScaleToggle } from "@/components/text-scale-toggle";
 import { useReadAloud } from "@/components/assessment-a11y-bar";
 import { SidebarToggle } from "@/components/sidebar-toggle";
@@ -80,6 +81,8 @@ type CurriculumTrack = {
   totalWeeks: number;
   lastSessionDayOffset: number;
   unitLabel?: string;
+  /** Set when this track wraps around another (MASS → Security+). */
+  companionOf?: string;
   weekSummaries: { week: number; topic: string; icon: string; label?: string }[];
 };
 
@@ -154,19 +157,19 @@ export function Nav({
   // admins to /dashboard/admin — flashing the learner skeleton first. Point
   // every brand/home link straight at the right destination to avoid that.
   //
-  // Same reasoning for single-course students (e.g. Upskill Bahamas): their
-  // one course overview IS their home, so /dashboard is a pure redirect hop —
-  // it flashes the neutral dashboard skeleton, then the track-overview skeleton
-  // a beat later (two different designs in a row). Point Home straight at the
-  // course so only its own skeleton ever shows.
-  const singleCourseSlug =
-    variant === "student-sidebar" && curriculumTracks.length === 1
-      ? curriculumTracks[0].slug
-      : null;
+  // Same reasoning for students: their course IS their home. /dashboard was a
+  // greeting, a picker duplicating this very sidebar, and two tiles duplicating
+  // these very nav items — 118 of 122 learners have exactly one real course, and
+  // the four with two reach the second from the list below. Point Home at the
+  // course; the second course is one click away, and nobody lands on a chooser.
+  // (Security+ enrolls you in its MASS wraparound too, so "how many courses"
+  // isn't a count — `primaryTrack` prefers a standalone course over a companion.)
+  const primarySlug =
+    variant === "student-sidebar" ? (primaryTrack(curriculumTracks)?.slug ?? null) : null;
   const homeHref = isAdmin
     ? "/dashboard/admin"
-    : singleCourseSlug
-      ? `/dashboard/track/${singleCourseSlug}`
+    : primarySlug
+      ? `/dashboard/track/${primarySlug}`
       : "/dashboard";
 
   const items: NavItem[] = [
