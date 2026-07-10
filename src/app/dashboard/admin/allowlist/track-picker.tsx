@@ -20,7 +20,7 @@ export function TrackPicker({
         // Stay on the hosting page (Add People), just swap the ?track param.
         router.push(`${pathname}?track=${e.target.value}`);
       }}
-      className={`${fieldInput} sm:w-auto min-w-[320px] font-medium`}
+      className={`${fieldInput} w-full min-w-0 sm:w-auto sm:min-w-[320px] font-medium`}
     >
       {groups.map((group) => (
         <optgroup key={group.label} label={group.label}>

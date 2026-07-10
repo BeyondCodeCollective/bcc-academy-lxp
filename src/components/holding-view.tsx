@@ -145,7 +145,7 @@ export function HoldingView({
 
       {/* Quick facts — unit-aware: a day-based bootcamp reads "3 days · Daily",
           a weekly track keeps the week/workshop phrasing. */}
-      <dl className="grid grid-cols-3 gap-3">
+      <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <Fact icon={ChalkboardTeacher} label="Instructor" value={track.instructor || "TBA"} />
         <Fact
           icon={Clock}

@@ -21,7 +21,7 @@ export default function CentralLoginPage() {
           </Link>
         </header>
 
-        <div className="flex-1 flex items-center px-8 md:px-12 lg:px-16 pb-6">
+        <div className="flex-1 flex items-start pt-10 sm:items-center sm:pt-0 px-8 md:px-12 lg:px-16 pb-6">
           <div className="w-full max-w-xl">
             <div className="text-white mb-4 md:mb-6">
               <SignIn size={48} weight="bold" />
