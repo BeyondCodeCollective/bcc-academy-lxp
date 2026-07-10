@@ -174,6 +174,13 @@ export type TrackConfig = {
    * without hardcoding a slug. Undefined = a standalone course.
    */
   companionOf?: string;
+  /**
+   * Course cover artwork, rendered full-width (natural aspect) at the top of
+   * the course overview. Distinct from the marketing landing page's hero so
+   * an instructor's course art never rewrites a public page. A repo path
+   * (/images/...) or absolute URL.
+   */
+  coverImageUrl?: string;
   instructor: string;
   /** Human-readable schedule: ["Tuesday 10-11am ET"] */
   sessionTimes: string[];
