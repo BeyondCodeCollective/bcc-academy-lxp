@@ -1,33 +1,32 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { Archive, ArrowRight, Medal, Megaphone } from "@phosphor-icons/react/dist/ssr";
 import {
-  Archive,
-  Clock,
-  ChalkboardTeacher,
-  Lightning,
-  ArrowRight,
-  Medal,
-} from "@phosphor-icons/react/dist/ssr";
-import { resolveCurrentUnit, trackHasStarted, formatCohortDate } from "@/lib/utils";
+  resolveCurrentUnit,
+  trackHasStarted,
+  formatCohortDate,
+  resolveTrackEndDayKey,
+  unitDateHasArrived,
+} from "@/lib/utils";
 import { trackUnitDisplay, unitText } from "@/lib/programs/unit-display";
 import { resolveTrackProgram } from "@/lib/programs/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { canAccessAdminPanel } from "@/lib/roles";
 import { createServiceClient } from "@/lib/supabase/server";
 import { CopyInviteLink } from "@/components/copy-invite-link";
-import { WeekCarousel, type WeekCardData } from "@/components/week-carousel";
-import { PageHeader } from "@/components/page-header";
 import { buttonClass } from "@/components/ui";
 import { getTrackProgressMap } from "@/app/dashboard/track/actions";
 import { addDays } from "@/lib/ical";
-import { TrackCalendar, type CalendarEvent } from "@/components/track-calendar";
+import { meetingDaysLabel, breakWeekLabel } from "@/lib/course-summary";
+import { type CalendarEvent } from "@/components/track-calendar";
+import { CourseCalendarPanel } from "@/components/course-calendar-panel";
+import { SessionList, type SessionRow } from "@/components/session-list";
 import type { TrackConfig } from "@/lib/programs/types";
 import { getAllSessionContent } from "@/app/dashboard/admin/actions-tracks";
 import { isSequentialGated, highestUnlockedWeek } from "@/lib/track-gating";
 import { MyProgressCard } from "@/components/my-progress-card";
 import { getLearnerProgress } from "@/lib/learner-progress";
 import { getWhatsNew, type FeedItem } from "@/lib/whats-new";
-import { WhatsNew } from "@/components/whats-new";
 import { HoldingView } from "@/components/holding-view";
 import { PreStartBanner } from "@/components/pre-start-banner";
 import { getLandingHeroForTrack } from "@/lib/landing-pages";
@@ -188,6 +187,35 @@ export default async function TrackOverviewPage({
   // Single "Week N" — the old "Open current week — Week N" said "week" twice.
   const ctaLabel = `Open ${unitText(display, ctaWeek, unit)}`;
 
+  // Dated units know which weekdays a cohort meets, so say "Tue & Thu" rather
+  // than the abstract "2×/week". Extras are excluded: a Monday kickoff doesn't
+  // make Security+ a Mon/Tue/Thu course.
+  const teachingUnits = track.weekSummaries.filter((ws) => !ws.label);
+  const cadence = meetingDaysLabel(teachingUnits, unitLower, track.sessionsPerWeek);
+
+  const endDayKey = resolveTrackEndDayKey(track);
+  const dateRange =
+    !track.startDateTbd && endDayKey
+      ? `${formatCohortDate(track.startDate, { month: "short", day: "numeric" }, "en-US")} – ${formatCohortDate(endDayKey, { month: "short", day: "numeric" }, "en-US")}`
+      : null;
+
+  // One sentence where three fact tiles used to be.
+  const metaLine = [track.instructor, `${numbered} ${unitLower}s`, cadence, dateRange]
+    .filter(Boolean)
+    .join(" · ");
+
+  const ctaDateLabel = (() => {
+    const d = track.weekSummaries.find((ws) => ws.week === ctaWeek)?.date;
+    if (!d) return null;
+    const label = formatCohortDate(d, { weekday: "long", month: "long", day: "numeric" }, "en-US");
+    return unitDateHasArrived(d, now) ? `Today · ${label}` : label;
+  })();
+
+  // The calendar's whole value in a line, so the month grid can stay collapsed.
+  const breakWeek = breakWeekLabel(track.weekSummaries);
+  const calendarSummary = `${numbered} ${unitLower}s, ${cadence}${breakWeek ? ` · no class ${breakWeek}` : ""}`;
+
+
   // Track-level description if authored, else fall back to week 1's
   // description (every track has one written and it's already framing copy).
   const overviewCopy = track.description ?? track.weeks[0]?.description ?? "";
@@ -214,7 +242,7 @@ export default async function TrackOverviewPage({
     if (row.title) titleByWeek.set(row.week_number, row.title);
   }
 
-  const weekCards: WeekCardData[] = track.weekSummaries.map((ws) => {
+  const sessionRows: SessionRow[] = track.weekSummaries.map((ws) => {
     const isCurrent = started && ws.week === currentWeek;
     const isPast = started && ws.week < currentWeek;
     const weekConfig = track.weeks.find((w) => w.week === ws.week);
@@ -237,12 +265,13 @@ export default async function TrackOverviewPage({
     return {
       week: ws.week,
       label: unitText(display, ws.week, unit),
-      topic: titleByWeek.get(ws.week) ?? ws.topic,
-      icon: ws.icon,
+      title: titleByWeek.get(ws.week) ?? ws.topic,
+      dateLabel: ws.date
+        ? formatCohortDate(ws.date, { weekday: "short", month: "short", day: "numeric" }, "en-US")
+        : "",
       href: isLocked ? null : `/dashboard/track/${slug}/${ws.week}`,
       isCurrent,
       isPast,
-      isLocked,
       lockedLabel,
     };
   });
@@ -352,6 +381,9 @@ export default async function TrackOverviewPage({
   ];
   const todayISO = now.toISOString().slice(0, 10);
 
+  // The feed is a line, not a card: one item, the most recent.
+  const latestNews = whatsNew[0] ?? null;
+
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-3xl px-4 sm:px-5 py-8 space-y-8">
       {isAdminViewer && (
@@ -392,119 +424,89 @@ export default async function TrackOverviewPage({
         </a>
       )}
 
-      {/* Hero — the tone-tinted block frames a 2×5 grid of weekly topics, so
-         it doubles as the curriculum-at-a-glance and as week-level navigation.
-         Each cell links to its week page; current week is inset-ringed in the
-         track tone. Replaces a previous decorative-icon hero. */}
-      {preStart && <PreStartBanner track={track} />}
-
-      {/* Above the syllabus: "bring a laptop Monday" has to be read before a
-         learner scrolls into session cards. */}
-      {whatsNew.length > 0 && <WhatsNew items={whatsNew} />}
-
-      <header className="space-y-5">
-        <div className="relative w-full overflow-hidden panel p-5 sm:p-7">
-          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
-            Jump to any {unitLower}
-          </p>
-          <WeekCarousel weeks={weekCards} emojiIcons={track.emojiIcons} unitLabel={unit} />
-          {started && (
-            <div className="absolute top-3 right-3">
-              <span className="inline-flex items-center gap-1.5 rounded-full panel px-2.5 py-1 text-[11px] font-semibold text-primary">
-                <span className="h-1.5 w-1.5 rounded-full bg-highlight animate-pulse" />
-                In progress
-              </span>
-            </div>
-          )}
-        </div>
-
-        <div>
-          <PageHeader
-            eyebrow={eyebrow}
-            title={track.name}
-          />
-          {overviewCopy && (
-            <p className="mt-3 text-base leading-relaxed text-ink-soft whitespace-pre-wrap">
-              {overviewCopy}
-            </p>
-          )}
-        </div>
-
-        {/* Every unit is locked before day one, so a "Open Kickoff" button
-           would only lead to the locked session page. The banner's
-           add-to-calendar is the pre-start action. */}
-        {!preStart && (
-          <div>
-            <Link
-              href={`/dashboard/track/${slug}/${ctaWeek}`}
-              className={`${buttonClass("primary", "md")} w-full justify-center text-[15px] shadow-sm sm:w-auto`}
-            >
-              {ctaLabel}
-              <ArrowRight size={16} weight="bold" />
-            </Link>
-          </div>
-        )}
+      {/* 1 — what course is this. The page used to open on a rail of session
+         cards: navigation, above identity, duplicating the sidebar. */}
+      <header>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
+          {eyebrow}
+        </p>
+        <h1 className="mt-1.5 text-[27px] font-bold leading-[1.08] tracking-[-0.02em] text-ink sm:text-[30px]">
+          {track.name}
+        </h1>
+        {/* Three fact tiles said one sentence. This is the sentence. */}
+        <p className="mt-2 text-[13.2px] tabular-nums text-ink-faint">
+          {metaLine}
+        </p>
       </header>
 
-      {learnerProgress && <MyProgressCard {...learnerProgress} />}
+      {/* 2 — when it happens. Before day one that's the start; after, it's the
+         session to open next. */}
+      {preStart ? (
+        <PreStartBanner track={track} />
+      ) : (
+        <Link
+          href={`/dashboard/track/${slug}/${ctaWeek}`}
+          className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-xl border border-rule border-l-[3px] border-l-primary bg-surface-elevated px-4 py-3.5 transition-colors hover:bg-paper-tint-soft"
+        >
+          <span className="min-w-[190px] flex-1">
+            <span className="flex items-center gap-2 text-[14.5px] font-semibold leading-snug text-ink">
+              {started && (
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-highlight" aria-hidden />
+              )}
+              {ctaLabel}
+            </span>
+            {ctaDateLabel && (
+              <span className="mt-0.5 block text-xs tabular-nums text-ink-faint">
+                {ctaDateLabel}
+              </span>
+            )}
+          </span>
+          <span className={`${buttonClass("primary", "sm")} shrink-0`}>
+            Open
+            <ArrowRight size={15} weight="bold" />
+          </span>
+        </Link>
+      )}
 
-      {/* Quick facts strip — mirrors workshop detail. Self-paced tracks
-         skip the start-date card (it reads as stale once a self-paced
-         program is live) and the grid drops to 3 columns. */}
-      <dl
-        className="grid grid-cols-3 gap-3"
-      >
-        <Fact
-          icon={ChalkboardTeacher}
-          label="Instructor"
-          value={track.instructor}
-        />
-        <Fact
-          icon={Clock}
-          label="Duration"
-          value={`${numbered} ${unitLower}s`}
-        />
-        <Fact
-          icon={Lightning}
-          label="Cadence"
-          value={
-            unitLower === "day"
-              ? "Daily"
-              : track.sessionsPerWeek > 1
-                ? `${track.sessionsPerWeek}×/week`
-                : "1×/week"
-          }
-        />
-      </dl>
+      {/* Announcements: track-scoped and time-sensitive, so they sit above the
+         syllabus — but a line, not a card. */}
+      {latestNews && (
+        <Link
+          href={latestNews.href}
+          target={latestNews.external ? "_blank" : undefined}
+          rel={latestNews.external ? "noopener noreferrer" : undefined}
+          className="flex items-start gap-2.5 rounded-lg bg-paper-tint-soft px-3 py-2.5 text-[12.9px] text-ink-soft transition-colors hover:bg-paper-tint"
+        >
+          <Megaphone size={15} className="mt-0.5 shrink-0 text-ink-faint" aria-hidden />
+          <span className="min-w-0">
+            <strong className="font-semibold text-ink">{latestNews.title}</strong>
+            {latestNews.body ? ` — ${latestNews.body}` : ""}
+            <span className="text-ink-faint"> · {latestNews.whenLabel.toLowerCase()}</span>
+          </span>
+        </Link>
+      )}
 
+      {/* 3 — what happens, in order. */}
+      <SessionList rows={sessionRows} unitLabelPlural={`${unitLower}s`} />
+
+      {/* Progress is meaningless before day one — a 0% bar is decoration. */}
+      {started && learnerProgress && <MyProgressCard {...learnerProgress} />}
+
+      {/* 4 — the shape of the term, behind one line. */}
       {calendarEvents.length > 0 && (
-        <section className="space-y-4">
-          <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">
-            Calendar
-          </h2>
-          <TrackCalendar events={calendarEvents} todayISO={todayISO} />
-        </section>
+        <CourseCalendarPanel
+          events={calendarEvents}
+          todayISO={todayISO}
+          summary={calendarSummary}
+        />
+      )}
+
+      {overviewCopy && (
+        <p className="border-t border-rule pt-4 text-[12.9px] leading-relaxed text-ink-faint whitespace-pre-wrap">
+          {overviewCopy}
+        </p>
       )}
     </div>
   );
 }
 
-function Fact({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: React.ComponentType<{ size?: number; weight?: "bold"; "aria-hidden"?: boolean }>;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="space-y-1 panel p-3">
-      <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
-        <Icon size={11} weight="bold" aria-hidden />
-        {label}
-      </p>
-      <p className="text-[13px] font-medium text-ink">{value}</p>
-    </div>
-  );
-}
