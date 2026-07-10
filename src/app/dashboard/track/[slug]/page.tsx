@@ -16,8 +16,9 @@ import { CopyInviteLink } from "@/components/copy-invite-link";
 import { buttonClass } from "@/components/ui";
 import { getTrackProgressMap } from "@/app/dashboard/track/actions";
 import { addDays } from "@/lib/ical";
-import { meetingDaysLabel } from "@/lib/course-summary";
-import { CourseAgenda, type AgendaRow } from "@/components/course-agenda";
+import { type AgendaRow } from "@/components/course-agenda";
+import { type CalendarEvent } from "@/components/track-calendar";
+import { ScheduleTabs } from "@/components/schedule-tabs";
 import type { TrackConfig } from "@/lib/programs/types";
 import { getAllSessionContent } from "@/app/dashboard/admin/actions-tracks";
 import { isSequentialGated, highestUnlockedWeek } from "@/lib/track-gating";
@@ -186,11 +187,6 @@ export default async function TrackOverviewPage({
   // Fallback CTA (course over, not yet certified) — reopen the current unit.
   const ctaLabel = `Open ${unitText(display, ctaWeek, unit)}`;
 
-  // Weekdays the cohort meets, read off its dated units. Extras are excluded:
-  // a Monday kickoff doesn't make Security+ a Mon/Tue/Thu course.
-  const teachingUnits = track.weekSummaries.filter((ws) => !ws.label);
-  const cadence = meetingDaysLabel(teachingUnits, unitLower, track.sessionsPerWeek);
-
   // Header carries who + how long; every date lives in the panel or the
   // schedule below, never twice.
   const metaLine = [track.instructor, `${numbered} ${unitLower}s`]
@@ -347,6 +343,16 @@ export default async function TrackOverviewPage({
 
   const todayISO = easternDayKey(now);
 
+  // The month-grid view of the same schedule. Carries each row's href, so a
+  // locked (pre-start / coming-soon) session doesn't link there either.
+  const calendarEvents: CalendarEvent[] = agendaRows.map((r) => ({
+    date: r.date,
+    type: r.kind,
+    title: r.label ? `${r.label}: ${r.title}` : r.title,
+    href: r.href,
+    time: r.time,
+  }));
+
   // The feed is a line, not a card: one item, the most recent.
   const latestNews = whatsNew[0] ?? null;
 
@@ -444,22 +450,15 @@ export default async function TrackOverviewPage({
         </Link>
       )}
 
-      {/* 3 — the whole schedule, one named list. Replaced a session list and a
-         month grid that showed the same dates twice. */}
+      {/* 3 — the whole schedule, one dataset in the viewer's choice of shape:
+         a month calendar or a named list. */}
       {agendaRows.length > 0 && (
-        <section>
-          <div className="flex items-baseline justify-between px-1">
-            <h2 className="text-[15px] font-semibold text-ink">Schedule</h2>
-            {cadence && <span className="text-[12px] text-ink-faint">{cadence}</span>}
-          </div>
-          <div className="mt-2">
-            <CourseAgenda
-              rows={agendaRows}
-              todayISO={todayISO}
-              focusDate={touchpoint?.date ?? null}
-            />
-          </div>
-        </section>
+        <ScheduleTabs
+          rows={agendaRows}
+          events={calendarEvents}
+          todayISO={todayISO}
+          focusDate={touchpoint?.date ?? null}
+        />
       )}
 
       {/* Progress is meaningless before day one — a 0% bar is decoration. */}
