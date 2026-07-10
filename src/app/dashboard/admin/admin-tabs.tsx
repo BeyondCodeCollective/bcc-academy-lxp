@@ -89,13 +89,23 @@ function AdminTopTabs({
     // "Students" would be inaccurate.)
     { id: "students", label: "People", href: "/dashboard/admin?tab=students", Icon: UsersIcon },
     { id: "student-work", label: "Student work", href: "/dashboard/admin?tab=student-work", Icon: ClipboardListIcon },
-    { id: "analytics", label: "Analytics", href: "/dashboard/admin?tab=attendance", Icon: ChartLineUpIcon },
+    // A tab is named for what it holds. Instructors get attendance only
+    // (insights/engagement are admin capabilities), so calling their tab
+    // "Analytics" over-promised and its single segment button read as broken.
+    {
+      id: "analytics",
+      label: showInsights ? "Analytics" : "Attendance",
+      href: "/dashboard/admin?tab=attendance",
+      Icon: ChartLineUpIcon,
+    },
   ] as const;
   const segments = [
     { id: "attendance", label: "Attendance", href: "/dashboard/admin?tab=attendance", show: true },
     { id: "insights", label: "Survey insights", href: "/dashboard/admin?tab=insights", show: showInsights },
     { id: "analytics", label: "Engagement", href: "/dashboard/admin?tab=analytics", show: showInsights },
   ];
+  // One segment is not a choice — hide the picker until there are at least two.
+  const visibleSegments = segments.filter((t) => t.show);
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-x-1 border-b border-rule">
@@ -116,10 +126,9 @@ function AdminTopTabs({
           </Link>
         ))}
       </div>
-      {current === "analytics" && (
+      {current === "analytics" && visibleSegments.length > 1 && (
         <div className="inline-flex gap-1 rounded-lg bg-paper-tint p-1">
-          {segments
-            .filter((t) => t.show)
+          {visibleSegments
             .map((t) => (
               <Link
                 key={t.id}
