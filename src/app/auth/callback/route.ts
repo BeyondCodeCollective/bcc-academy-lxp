@@ -6,6 +6,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { authCookieDomain } from "@/lib/supabase/cookie-domain";
 import { getProgram, fetchDynamicProgram } from "@/lib/programs/server";
 import { getProgramBySlug, getHomeProgramForTrack, getTrackBySlug, isKnownProgramHost, hasTsConfigSlug } from "@/lib/programs";
+import { safeNextPath } from "@/lib/auth/next-path";
 import { courseLandingPath } from "@/lib/enrollment";
 import { completePendingSetup } from "@/lib/auth/deferred-setup";
 import { determineRole, isPrivilegedEmail, isStaffEmail } from "@/lib/auth/admins";
@@ -44,10 +45,8 @@ export async function GET(request: Request) {
   // form reads ?next=, so a student who has to manually re-request a sign-in
   // link after a failed exchange still lands where the original link pointed
   // (e.g. the participation agreement) instead of the default dashboard.
-  const nextQS =
-    nextParam?.startsWith("/dashboard/apply/") || nextParam?.startsWith("/dashboard/agreement")
-      ? `&next=${encodeURIComponent(nextParam)}`
-      : "";
+  const nextDestination = safeNextPath(nextParam);
+  const nextQS = nextDestination ? `&next=${encodeURIComponent(nextDestination)}` : "";
   // The email the magic link was issued for — used to guard against silently
   // falling back to a DIFFERENT account already signed in on this browser.
   const intendedEmail = searchParams.get("email")?.toLowerCase() ?? null;
@@ -367,14 +366,10 @@ export async function GET(request: Request) {
           return r;
         };
 
-        // For apply flows and the shareable participation-agreement link, send
-        // the user directly to the page they came from rather than the generic
-        // dashboard setup screen (or their single course).
-        const safeNext =
-          nextParam?.startsWith("/dashboard/apply/") ||
-          nextParam?.startsWith("/dashboard/agreement")
-            ? nextParam
-            : null;
+        // Any emailed dashboard link (a session page, the agreement, an apply
+        // route) sends the user to the page they came from rather than the
+        // generic dashboard setup screen (or their single course).
+        const safeNext = nextDestination;
 
         // Single-course learners go straight to their one course, so the only
         // loading skeleton shown is that course's — no dashboard→course double
