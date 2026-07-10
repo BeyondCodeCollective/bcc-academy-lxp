@@ -5,6 +5,7 @@ import {
   resolveCurrentUnit,
   trackHasStarted,
   formatCohortDate,
+  formatCohortTime,
   resolveTrackEndDayKey,
   unitDateHasArrived,
 } from "@/lib/utils";
@@ -345,6 +346,7 @@ export default async function TrackOverviewPage({
             type: sessionType(t.slug),
             title: titles?.get(ws.week) ?? ws.topic,
             href: `/dashboard/track/${t.slug}/${ws.week}`,
+            time: ws.time ? formatCohortTime(ws.time) : undefined,
           }),
         )
       : []),

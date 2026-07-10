@@ -193,7 +193,17 @@ export type TrackConfig = {
    * that label instead of "Session N", consumes no unit number, and is excluded
    * from the unit total. See `lib/programs/unit-display.ts`.
    */
-  weekSummaries: { week: number; topic: string; icon: string; date?: string; label?: string }[];
+  /** `time` is a 24-hour "HH:MM" wall clock in COHORT_TIME_ZONE; with it the
+   *  unit becomes a timed calendar event rather than an all-day marker. */
+  weekSummaries: {
+    week: number;
+    topic: string;
+    icon: string;
+    date?: string;
+    label?: string;
+    time?: string;
+    durationMinutes?: number;
+  }[];
   /** Full week content for the track detail pages */
   weeks: WeekConfig[];
   /** Default reflection prompts used when a week doesn't specify custom ones */
