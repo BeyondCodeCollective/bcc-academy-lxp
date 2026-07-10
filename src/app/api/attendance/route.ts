@@ -9,15 +9,15 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = await createClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.user) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const { data: currentStudent } = await supabase
     .from("students")
     .select("id, role, program_id")
-    .eq("id", session.user.id)
+    .eq("id", user.id)
     .single<{ id: string; role: string; program_id: string | null }>();
 
   if (!currentStudent || !canAccessAdminPanel(currentStudent.role)) {
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
       track,
       week_number,
       session_number,
-      marked_by: session.user.id,
+      marked_by: user.id,
     },
     { onConflict: "student_id,track,week_number,session_number", ignoreDuplicates: true }
   );
@@ -86,8 +86,8 @@ export async function DELETE(request: NextRequest) {
   }
 
   const supabase = await createClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.user) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -101,7 +101,7 @@ export async function DELETE(request: NextRequest) {
   const { data: currentStudent } = await supabase
     .from("students")
     .select("role, program_id")
-    .eq("id", session.user.id)
+    .eq("id", user.id)
     .single<{ role: string; program_id: string | null }>();
 
   if (!canAccessAdminPanel(currentStudent?.role ?? "")) {
@@ -149,8 +149,8 @@ export async function GET(request: NextRequest) {
   }
 
   const supabase = await createClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.user) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -161,7 +161,7 @@ export async function GET(request: NextRequest) {
   const { data: currentStudent } = await supabase
     .from("students")
     .select("role, program_id")
-    .eq("id", session.user.id)
+    .eq("id", user.id)
     .single<{ role: string; program_id: string | null }>();
 
   let query = supabase
@@ -187,7 +187,7 @@ export async function GET(request: NextRequest) {
     if (studentId) query = query.eq("student_id", studentId);
   } else {
     // Non-admin: can only see their own
-    query = query.eq("student_id", session.user.id);
+    query = query.eq("student_id", user.id);
     if (track) query = query.eq("track", track);
   }
 

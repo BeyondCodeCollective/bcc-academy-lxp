@@ -2,6 +2,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { hasCapability, canSwitchPrograms } from "@/lib/roles";
+import { getHomeProgramForTrack } from "@/lib/programs";
 import type { Capability } from "@/lib/roles";
 import { isMasterEmail } from "@/lib/auth/admins";
 import { isPreviewingAsStudent } from "@/lib/auth/preview-mode";
@@ -135,5 +136,31 @@ export async function assertStudentInActorProgram(
     .maybeSingle<{ program_id: string | null }>();
   if (!data || !actor.programId || data.program_id !== actor.programId) {
     throw new Error("Not authorized for this student");
+  }
+}
+
+// Same boundary for actions keyed on a trackSlug: confirm the track belongs to
+// the actor's program (super_admins/master pass). TS-config tracks resolve via
+// their home program; Course Builder tracks exist only in track_overrides.
+export async function assertTrackInActorProgram(
+  actor: ActorContext,
+  svc: ReturnType<typeof createServiceClient>,
+  trackSlug: string,
+): Promise<void> {
+  if (canSwitchPrograms(actor.role) || actor.isMaster) return;
+  if (!actor.programId) throw new Error("Not authorized for this track");
+  const homeSlug = getHomeProgramForTrack(trackSlug)?.slug;
+  if (homeSlug) {
+    const targetId = await programIdFromSlug(svc, homeSlug);
+    if (targetId !== actor.programId) throw new Error("Not authorized for this track");
+    return;
+  }
+  const { data } = await svc
+    .from("track_overrides")
+    .select("program_id")
+    .eq("track_slug", trackSlug)
+    .maybeSingle<{ program_id: string | null }>();
+  if (!data || data.program_id !== actor.programId) {
+    throw new Error("Not authorized for this track");
   }
 }
