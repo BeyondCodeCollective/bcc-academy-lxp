@@ -365,23 +365,15 @@ export function Nav({
                 const isPast = started && ws.week < currentWeek;
                 const isCurrent = started && ws.week === currentWeek;
                 const isFuture = !started || ws.week > currentWeek;
+                // Before the course starts the session pages redirect back to
+                // the overview — a link would just flash two skeletons and loop.
+                // Show the session, but don't let it be clicked. Admins preview.
+                const locked = !started && !isAdmin;
 
-                return (
-                  <Link
-                    key={ws.week}
-                    href={weekHref}
-                    onClick={() => setMobileOpen(false)}
-                    aria-current={isActive ? "page" : undefined}
-                    className={`flex min-h-[36px] items-center gap-2.5 rounded-lg py-1.5 text-[13px] transition-colors border-l-2 pl-[10px] pr-3 ${
-                      isActive
-                        ? "border-primary bg-primary/[0.08] font-medium text-primary"
-                        : isCurrent
-                          ? "border-transparent text-ink hover:bg-paper-tint"
-                          : isFuture
-                            ? "border-transparent text-ink-faint hover:bg-paper-tint hover:text-ink-soft"
-                            : "border-transparent text-ink-soft hover:bg-paper-tint hover:text-ink"
-                    }`}
-                  >
+                const base =
+                  "flex min-h-[36px] items-center gap-2.5 rounded-lg py-1.5 text-[13px] border-l-2 pl-[10px] pr-3";
+                const inner = (
+                  <>
                     {isPast ? (
                       <Check size={14} weight="bold" aria-hidden className="shrink-0 text-ink-faint" />
                     ) : (
@@ -394,6 +386,37 @@ export function Nav({
                     {isCurrent && (
                       <span className="ml-auto shrink-0 h-1.5 w-1.5 rounded-full bg-primary" />
                     )}
+                  </>
+                );
+
+                if (locked) {
+                  return (
+                    <div
+                      key={ws.week}
+                      className={`${base} cursor-default select-none border-transparent text-ink-faint`}
+                    >
+                      {inner}
+                    </div>
+                  );
+                }
+
+                return (
+                  <Link
+                    key={ws.week}
+                    href={weekHref}
+                    onClick={() => setMobileOpen(false)}
+                    aria-current={isActive ? "page" : undefined}
+                    className={`${base} transition-colors ${
+                      isActive
+                        ? "border-primary bg-primary/[0.08] font-medium text-primary"
+                        : isCurrent
+                          ? "border-transparent text-ink hover:bg-paper-tint"
+                          : isFuture
+                            ? "border-transparent text-ink-faint hover:bg-paper-tint hover:text-ink-soft"
+                            : "border-transparent text-ink-soft hover:bg-paper-tint hover:text-ink"
+                    }`}
+                  >
+                    {inner}
                   </Link>
                 );
               })}
