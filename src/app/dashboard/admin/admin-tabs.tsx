@@ -182,6 +182,8 @@ type AdminTrackConfig = {
   selfPaced?: boolean;
   sessionsPerWeek: number;
   instructor: string;
+  /** Slug of the course this track wraps around (MASS → its cohort). */
+  companionOf?: string;
   sessionTimes: string[];
   startDate: string;
   startDateTbd?: boolean;
@@ -540,7 +542,7 @@ export function AdminTabs({
   instructorTracks?: InstructorTrackRow[];
   programSlug: string;
   surveyStats: Record<string, SurveyStatsRow[]>;
-  surveyConfigs: { id: string; title: string }[];
+  surveyConfigs: { id: string; title: string; skipForTracks?: string[] }[];
   trackPublicSurveys?: { id: string; title: string; count: number }[];
   userRole?: string;
   isMaster?: boolean;
@@ -1479,7 +1481,16 @@ export function AdminTabs({
                 trackSlug={activeTrack.slug}
                 trackShortName={activeTrack.shortName}
                 programSlug={programSlug}
-                surveyConfigs={surveyConfigs}
+                // Only surveys this track's students actually take. A track
+                // opted out via skipForTracks (Security+ vs the AI
+                // Fundamentals surveys) shouldn't list them; a companion
+                // (MASS) follows the course it wraps around.
+                surveyConfigs={surveyConfigs.filter(
+                  (s) =>
+                    !s.skipForTracks?.includes(
+                      activeTrack.companionOf ?? activeTrack.slug,
+                    ),
+                )}
                 trackPublicSurveys={trackPublicSurveys}
               />
             </div>
