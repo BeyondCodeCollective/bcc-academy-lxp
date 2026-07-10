@@ -13,6 +13,35 @@ import { determineRole, isPrivilegedEmail, isStaffEmail } from "@/lib/auth/admin
 import { subscribeToNewsletter } from "@/lib/mailchimp";
 import { logActivityEvent } from "@/lib/analytics/log-event";
 
+/**
+ * The program UUID that OWNS a track — TS-config tracks via their home
+ * program, Course Builder tracks via their track_overrides row. Used to stamp
+ * a NEW student's program_id from the course they're joining rather than the
+ * surface they signed in on: a camp kid who requests a fresh login link from
+ * the apex homepage must still land under the camp's program (three Roblox/BGC
+ * learners got filed under Catalyst exactly this way).
+ */
+async function trackHomeProgramId(
+  admin: ReturnType<typeof createServiceClient>,
+  trackSlug: string,
+): Promise<string | null> {
+  const homeSlug = getHomeProgramForTrack(trackSlug)?.slug;
+  if (homeSlug) {
+    const { data } = await admin
+      .from("programs")
+      .select("id")
+      .eq("slug", homeSlug)
+      .maybeSingle<{ id: string }>();
+    return data?.id ?? null;
+  }
+  const { data } = await admin
+    .from("track_overrides")
+    .select("program_id")
+    .eq("track_slug", trackSlug)
+    .maybeSingle<{ program_id: string | null }>();
+  return data?.program_id ?? null;
+}
+
 // Magic-link landing. Pin to iad1 only: Supabase is in Virginia (us-east-1),
 // co-located with iad1, so DB round-trips are sub-millisecond from this region.
 // The callback still issues 3–5 sequential round-trips (auth token exchange +
@@ -337,6 +366,11 @@ export async function GET(request: Request) {
           .eq("slug", effectiveSlug)
           .maybeSingle();
 
+        // A joined track's OWNING program beats the sign-in surface — the
+        // upsert only fires for brand-new accounts (ignoreDuplicates), and a
+        // learner's home is where their course lives, not where they clicked.
+        const trackProgramId =
+          !existing && trackParam ? await trackHomeProgramId(admin, trackParam) : null;
         await admin.from("students").upsert(
           {
             id: user.id,
@@ -345,7 +379,7 @@ export async function GET(request: Request) {
             last_name: "",
             role: determineRole(email),
             cohort_id: null,
-            program_id: effectiveProgramRow?.id ?? programId,
+            program_id: trackProgramId ?? effectiveProgramRow?.id ?? programId,
           },
           { onConflict: "id", ignoreDuplicates: true }
         );
@@ -427,7 +461,13 @@ export async function GET(request: Request) {
 
       // Pinned host (program subdomain): simple upsert + redirect.
       // Cohort, track enrollment, and survey work happen on the dashboard
-      // after the first paint via completePendingSetup().
+      // after the first paint via completePendingSetup(). Same rule as the
+      // unpinned path: a joined track's owning program wins over the host, so
+      // signing up for another program's course from this domain can't file
+      // the account under the wrong program.
+      const pinnedTrackProgramId = trackParam
+        ? await trackHomeProgramId(admin, trackParam)
+        : null;
       await admin.from("students").upsert(
         {
           id: user.id,
@@ -436,7 +476,7 @@ export async function GET(request: Request) {
           last_name: "",
           role: determineRole(email),
           cohort_id: null,
-          program_id: programId,
+          program_id: pinnedTrackProgramId ?? programId,
         },
         { onConflict: "id", ignoreDuplicates: true }
       );
