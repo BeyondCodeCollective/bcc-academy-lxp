@@ -7,7 +7,7 @@ import { authCookieDomain } from "@/lib/supabase/cookie-domain";
 import { getProgram, fetchDynamicProgram } from "@/lib/programs/server";
 import { getProgramBySlug, getHomeProgramForTrack, getTrackBySlug, isKnownProgramHost, hasTsConfigSlug } from "@/lib/programs";
 import { safeNextPath } from "@/lib/auth/next-path";
-import { courseLandingPath } from "@/lib/enrollment";
+import { courseLandingPath, primaryTrack } from "@/lib/enrollment";
 import { completePendingSetup } from "@/lib/auth/deferred-setup";
 import { determineRole, isPrivilegedEmail, isStaffEmail } from "@/lib/auth/admins";
 import { subscribeToNewsletter } from "@/lib/mailchimp";
@@ -379,10 +379,17 @@ export async function GET(request: Request) {
             .from("student_tracks")
             .select("track_slug")
             .eq("student_id", user.id);
-          if (enr && enr.length === 1) {
-            const enrolledCfg = getTrackBySlug(effectiveProgram, enr[0].track_slug);
-            const dest = enrolledCfg
-              ? courseLandingPath(enrolledCfg)
+          // Land every learner in their course, not on a picker. Someone
+          // enrolled in Security+ AND its MASS wraparound has two enrollments
+          // but one course; the dashboard home in between was a step nobody
+          // asked for. It stays reachable from the nav.
+          if (enr && enr.length > 0) {
+            const enrolledCfgs = enr
+              .map((e) => getTrackBySlug(effectiveProgram, e.track_slug as string))
+              .filter((t): t is NonNullable<typeof t> => !!t);
+            const primary = primaryTrack(enrolledCfgs);
+            const dest = primary
+              ? courseLandingPath(primary)
               : `/dashboard/track/${enr[0].track_slug}`;
             return withProgramCookies(redirectWithCookies(`${origin}${dest}`));
           }

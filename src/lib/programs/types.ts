@@ -167,6 +167,13 @@ export type TrackConfig = {
    * calendar entry) — fine for self-paced, wrong for a live event.
    */
   kickoffTimeUtc?: string;
+  /**
+   * Slug of the course this track wraps around — MASS Wraparound accompanies
+   * Security+. A learner enrolled in both came for the course, not the
+   * wraparound, so this is what makes "their primary course" answerable
+   * without hardcoding a slug. Undefined = a standalone course.
+   */
+  companionOf?: string;
   instructor: string;
   /** Human-readable schedule: ["Tuesday 10-11am ET"] */
   sessionTimes: string[];

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { resolveCurrentUnit, trackHasStarted, formatCohortDate, COHORT_TIME_ZONE } from "@/lib/utils";
+import { resolveCurrentUnit, trackHasStarted } from "@/lib/utils";
 import { ArrowLeft, Video, CheckCircle, Link as LinkIcon, FileText } from "lucide-react";
 import { isSupabaseConfigured, createServiceClient } from "@/lib/supabase/server";
 import { getSessionContent } from "@/app/dashboard/admin/actions";
@@ -63,54 +63,10 @@ export default async function TrackWeekPage({
   }
   const hasStarted = trackHasStarted(track);
   if (!gateIsAdmin && !hasStarted) {
-    // Say when it opens rather than bouncing to the overview. A silent redirect
-    // reads as a broken link: the learner clicks a session and lands back where
-    // they started, with nothing explaining why.
-    const unitDate =
-      track.weekSummaries.find((ws) => ws.week === weekNum)?.date ?? track.startDate;
-    const dateLabel = formatCohortDate(
-      unitDate,
-      { weekday: "long", month: "long", day: "numeric" },
-      "en-US",
-    );
-    const timeLabel =
-      weekNum === 1 && track.kickoffTimeUtc
-        ? new Date(track.kickoffTimeUtc).toLocaleTimeString("en-US", {
-            timeZone: COHORT_TIME_ZONE,
-            hour: "numeric",
-            minute: "2-digit",
-            timeZoneName: "short",
-          })
-        : null;
-    return (
-      <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8">
-        <Link
-          href={`/dashboard/track/${trackSlug}`}
-          className="mb-6 inline-flex items-center gap-1.5 text-sm text-ink-faint hover:text-ink transition-colors py-2"
-        >
-          <ArrowLeft size={16} />
-          Back to {track.shortName}
-        </Link>
-        <div className="border border-rule bg-neutral-50 p-8 text-center">
-          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-ink-faint mb-2">
-            {unitName}
-          </p>
-          <h1 className="text-2xl font-bold tracking-tight text-ink sm:text-3xl">
-            {weekContent.title}
-          </h1>
-          <p className="mt-4 text-base text-ink-soft">
-            Opens <strong>{dateLabel}</strong>
-            {timeLabel ? (
-              <>
-                {" at "}
-                <strong>{timeLabel}</strong>
-              </>
-            ) : null}
-            . You&apos;ll join right on this page — nothing to install.
-          </p>
-        </div>
-      </div>
-    );
+    // Back to the course, which carries the pre-start banner ("Starts Monday,
+    // July 13 · 6:30 PM EDT") and locked cards that each name their own date.
+    // A dedicated locked page here would only restate that on an empty screen.
+    redirect(`/dashboard/track/${trackSlug}`);
   }
 
   // Coming-soon guard. If the week has a `comingSoonUntil` date still in the
