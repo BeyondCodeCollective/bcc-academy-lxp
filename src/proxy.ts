@@ -104,6 +104,27 @@ export async function proxy(request: NextRequest) {
               domain ? { ...options, domain } : options
             )
           );
+          // Before this fix the browser client wrote host-only auth cookies
+          // (no domain) while the server wrote `.bccacademy.io` ones. Every
+          // signed-in browser still carries the stale host-only copy, and the
+          // browser sends both — Next's RequestCookies keeps only the first,
+          // so the old one can shadow the fresh session forever. Expire it.
+          //
+          // Only here, inside setAll, where we have just written the domain
+          // cookie with a current value: purging outside this block could drop
+          // the only valid session a pre-fix browser holds.
+          //
+          // Must use headers.append, NOT supabaseResponse.cookies.set —
+          // ResponseCookies is keyed by name, so a second set() with the same
+          // name REPLACES the one above and would sign everyone out.
+          if (domain) {
+            cookiesToSet.forEach(({ name }) => {
+              supabaseResponse.headers.append(
+                "set-cookie",
+                `${name}=; Path=/; Max-Age=0; SameSite=Lax; Secure`
+              );
+            });
+          }
         },
       },
     }
