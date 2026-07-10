@@ -1,8 +1,10 @@
 "use server";
 
+import { headers } from "next/headers";
 import { createServiceClient } from "@/lib/supabase/server";
 import { sendSignupNotification } from "@/lib/email";
 import { subscribeToNewsletter } from "@/lib/mailchimp";
+import { rateLimit } from "@/lib/rate-limit";
 
 // Public (unauthenticated) survey submission.
 // Writes to public_survey_responses; uniqueness on (program_id, survey_type,
@@ -29,6 +31,26 @@ export async function savePublicSurveyResponse(input: {
   if (!input.surveyType) return { ok: false, error: "Missing survey type." };
   if (!input.programSlug) return { ok: false, error: "Missing program." };
   if (!input.consentVersion) return { ok: false, error: "Missing consent version." };
+  // Slug-shaped only — free-form values would let a script invent arbitrary
+  // survey buckets that then surface in Survey Insights.
+  if (!/^[a-z0-9-]{1,64}$/.test(input.surveyType)) {
+    return { ok: false, error: "Missing survey type." };
+  }
+  // These rows feed funder-facing reports; keep a script from flooding the
+  // table or mailbombing the learn-more notification path. The cap is per IP
+  // per 10 minutes and generous enough for a whole classroom on venue wifi.
+  if (JSON.stringify(input.responses).length > 20_000) {
+    return { ok: false, error: "Response too large." };
+  }
+  const hdrs = await headers();
+  const ip =
+    hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    hdrs.get("x-real-ip") ||
+    "unknown";
+  const rl = rateLimit({ key: ip, scope: "public-survey", max: 30, windowMs: 10 * 60_000 });
+  if (!rl.ok) {
+    return { ok: false, error: "Too many submissions — please try again in a few minutes." };
+  }
 
   // Normalize ZIP to exactly 5 digits. Strip anything non-numeric a user
   // might paste, take the first 5, and reject if what's left isn't 5 digits.
