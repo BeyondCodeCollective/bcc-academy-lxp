@@ -7,6 +7,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { getProgram } from "@/lib/programs/server";
 import { getLearnerAccess } from "@/lib/auth/active-enrollment";
 import { isStaffEmail } from "@/lib/auth/admins";
+import { logActivityEvent } from "@/lib/analytics/log-event";
 
 /**
  * POST /api/zoom-signature
@@ -123,6 +124,15 @@ export async function POST(request: NextRequest) {
         },
       );
       if (error) console.error("[zoom-signature] auto-attendance failed:", error.message);
+      // The join is also a timeline event — attendance is the credential
+      // record; this feeds the engagement heatmap and "active" signals.
+      await logActivityEvent({
+        userId: user.id,
+        eventType: "session_join",
+        programId: enrollment.program_id,
+        trackSlug,
+        metadata: { week: weekNumber, session: sessionNumber },
+      });
     })();
   }
 

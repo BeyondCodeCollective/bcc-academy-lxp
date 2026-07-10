@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin, resolveProgramForActor } from "./actions-shared";
+import { logActivityEvent } from "@/lib/analytics/log-event";
 import { notifyAnnouncement, notifyFeedback } from "@/lib/notifications";
 import { sendCertificateEmail } from "@/lib/email";
 import { getProgramBySlug, getTrackBySlug } from "@/lib/programs";
@@ -323,6 +324,14 @@ export async function issueCertificate(
     .select("certificate_id")
     .single();
   if (error) return { success: false, error: error.message };
+
+  void logActivityEvent({
+    userId: studentId,
+    eventType: "certificate_issued",
+    programId,
+    trackSlug,
+    metadata: { issuedBy: actor.userId },
+  });
 
   let emailed = false;
   if (!opts?.skipEmail) {

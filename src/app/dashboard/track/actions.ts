@@ -98,6 +98,14 @@ export async function submitProject(
 
   if (error) throw new Error(error.message);
 
+  void logActivityEvent({
+    userId,
+    eventType: "submission",
+    programId,
+    trackSlug,
+    metadata: { week: weekNumber },
+  });
+
   revalidatePath(`/dashboard/track/${trackSlug}/${weekNumber}`);
   revalidatePath(`/dashboard/insights`);
   return { success: true };
@@ -149,6 +157,14 @@ export async function submitReflection(
   );
 
   if (error) throw new Error(error.message);
+
+  void logActivityEvent({
+    userId,
+    eventType: "reflection",
+    programId,
+    trackSlug,
+    metadata: { week: weekNumber },
+  });
 
   revalidatePath(`/dashboard/track/${trackSlug}/${weekNumber}`);
   revalidatePath(`/dashboard/insights`);

@@ -5,6 +5,7 @@ import { getSessionContext, bustProfileCache } from "@/lib/auth/session";
 import { getHomeProgramForTrack } from "@/lib/programs";
 import { BCC_TRACK_VARIANT_LABELS } from "@/lib/surveys/cohort-labels";
 import { revalidatePath } from "next/cache";
+import { logActivityEvent } from "@/lib/analytics/log-event";
 
 export async function completeOnboarding(data: {
   first_name: string;
@@ -165,6 +166,13 @@ export async function saveSurveyResponse(
     });
     throw new Error(`Save failed: ${error.message}`);
   }
+
+  void logActivityEvent({
+    userId: user.id,
+    eventType: "survey_complete",
+    programId,
+    metadata: { surveyType },
+  });
 
   // If the survey collected a name, save it to the student record.
   // Supports both separate first_name/last_name fields and a single full_name field.
