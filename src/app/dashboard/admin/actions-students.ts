@@ -52,13 +52,27 @@ export async function deleteStudentAction(studentId: string) {
 
 export async function updateStudentAction(
   studentId: string,
-  field: "role" | "cohort_id",
+  field: "role" | "cohort_id" | "first_name" | "last_name",
   value: string
 ) {
   const actor = await requireManager();
   const { svc, userId, role: actorRole } = actor;
-  // Stay within the actor's program before any role/cohort mutation.
+  // Stay within the actor's program before any role/cohort/name mutation.
   await assertStudentInActorProgram(actor, svc, studentId);
+
+  // Names print on certificates and the Zoom join — keep them trimmed and
+  // bounded, and never blank a name that's already set (clearing would
+  // re-trigger the name-capture overlay on the student's next visit).
+  if (field === "first_name" || field === "last_name") {
+    const trimmed = value.trim().slice(0, 80);
+    if (!trimmed) throw new Error("Name can't be empty.");
+    const { error } = await svc
+      .from("students")
+      .update({ [field]: trimmed })
+      .eq("id", studentId);
+    if (error) throw new Error(error.message);
+    return { success: true };
+  }
 
   // Role changes are privilege-sensitive: enforce the tier hierarchy so an
   // admin can't escalate anyone (incl. themselves) to a role at or above their
