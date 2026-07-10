@@ -125,12 +125,14 @@ export default async function DashboardLayout({
         const supabase = await createClient();
         const access = await getLearnerAccess(supabase, ctx.userId, activeProgram);
         if (access.pendingOnly && access.pendingSlug) {
-          // Only their OWN pending track's holding page is allowed. Program pages
-          // AND any other track bounce back to it — so a pending registrant can't
-          // type their way into a started course or program content either.
+          // Their own courses and the dashboard home are allowed — a learner
+          // enrolled in two not-yet-started courses should be able to see both.
+          // Any OTHER track, and program content, still bounce back, so a
+          // pending registrant can't type their way into a started course.
           const reqTrack = pathname.match(/^\/dashboard\/track\/([^/]+)/)?.[1];
           const isOwnTrack = !!reqTrack && access.enrolled.some((t) => t.slug === reqTrack);
-          if (!isOwnTrack) {
+          const isDashboardHome = pathname === "/dashboard";
+          if (!isOwnTrack && !isDashboardHome) {
             redirect(`/dashboard/track/${access.pendingSlug}`);
           }
         }

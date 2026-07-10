@@ -8,7 +8,7 @@ import {
   ArrowRight,
   Medal,
 } from "@phosphor-icons/react/dist/ssr";
-import { resolveCurrentUnit, trackHasStarted } from "@/lib/utils";
+import { resolveCurrentUnit, trackHasStarted, formatCohortDate } from "@/lib/utils";
 import { trackUnitDisplay, unitText } from "@/lib/programs/unit-display";
 import { resolveTrackProgram } from "@/lib/programs/server";
 import { getSessionContext } from "@/lib/auth/session";
@@ -27,6 +27,7 @@ import { isSequentialGated, highestUnlockedWeek } from "@/lib/track-gating";
 import { MyProgressCard } from "@/components/my-progress-card";
 import { getLearnerProgress } from "@/lib/learner-progress";
 import { HoldingView } from "@/components/holding-view";
+import { PreStartBanner } from "@/components/pre-start-banner";
 import { getLandingHeroForTrack } from "@/lib/landing-pages";
 import { getEnforcedOnboardingChecklist, getOnboardingStatus } from "@/lib/onboarding/checklists";
 import { OnboardingChecklist } from "@/components/onboarding-checklist";
@@ -143,12 +144,14 @@ export default async function TrackOverviewPage({
     certificateId = (completion?.certificate_id as string | null) ?? null;
   }
 
-  // Holding page + curriculum lock. Before launch, a registered student sees a
-  // confirmation + countdown — not the lessons. Registration earns a seat, not
-  // the curriculum. Admins/previewers bypass so they can build ahead of launch.
-  // Runs BEFORE the single-event redirect so a not-yet-started single-event
-  // track shows the holding view here instead of bouncing to its session page.
-  if (!isAdminViewer && !started && !certificateId) {
+  // Before day one a learner sees the real course with a banner on top, not a
+  // countdown instead of it — the syllabus is what they're being asked to
+  // commit to. Two cases still take the full holding page, because a banner
+  // has nothing useful to say there: a TBD start date (no date to promise) and
+  // a single-event track (which redirects straight to its session page below,
+  // so a banner on this page would never be seen).
+  const preStart = !isAdminViewer && !started && !certificateId;
+  if (preStart && (track.startDateTbd || track.type === "single-event")) {
     const landingHero = await getLandingHeroForTrack(slug).catch(() => null);
     return (
       <HoldingView
@@ -219,8 +222,16 @@ export default async function TrackOverviewPage({
     const comingSoonLocked =
       !isAdminViewer && !!comingSoonUntil && now < new Date(comingSoonUntil);
     const sequentialLocked = gated && ws.week > unlockedThrough;
-    const isLocked = comingSoonLocked || sequentialLocked;
-    const lockedLabel = comingSoonLocked ? "Coming soon" : sequentialLocked ? "Locked" : null;
+    const isLocked = preStart || comingSoonLocked || sequentialLocked;
+    // Before the course starts every unit is shut, but each one knows its own
+    // date — say it, so the lock reads as a schedule and not as a failure.
+    const lockedLabel = preStart
+      ? `Opens ${formatCohortDate(ws.date ?? track.startDate, { weekday: "short", month: "short", day: "numeric" }, "en-US")}`
+      : comingSoonLocked
+        ? "Coming soon"
+        : sequentialLocked
+          ? "Locked"
+          : null;
     return {
       week: ws.week,
       label: unitText(display, ws.week, unit),
@@ -357,6 +368,8 @@ export default async function TrackOverviewPage({
          it doubles as the curriculum-at-a-glance and as week-level navigation.
          Each cell links to its week page; current week is inset-ringed in the
          track tone. Replaces a previous decorative-icon hero. */}
+      {preStart && <PreStartBanner track={track} />}
+
       <header className="space-y-5">
         <div className="relative w-full overflow-hidden panel p-5 sm:p-7">
           <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
@@ -385,15 +398,20 @@ export default async function TrackOverviewPage({
           )}
         </div>
 
-        <div>
-          <Link
-            href={`/dashboard/track/${slug}/${ctaWeek}`}
-            className={`${buttonClass("primary", "md")} w-full justify-center text-[15px] shadow-sm sm:w-auto`}
-          >
-            {ctaLabel}
-            <ArrowRight size={16} weight="bold" />
-          </Link>
-        </div>
+        {/* Every unit is locked before day one, so a "Open Kickoff" button
+           would only lead to the locked session page. The banner's
+           add-to-calendar is the pre-start action. */}
+        {!preStart && (
+          <div>
+            <Link
+              href={`/dashboard/track/${slug}/${ctaWeek}`}
+              className={`${buttonClass("primary", "md")} w-full justify-center text-[15px] shadow-sm sm:w-auto`}
+            >
+              {ctaLabel}
+              <ArrowRight size={16} weight="bold" />
+            </Link>
+          </div>
+        )}
       </header>
 
       {learnerProgress && <MyProgressCard {...learnerProgress} />}
