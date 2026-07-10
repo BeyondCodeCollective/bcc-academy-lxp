@@ -9,7 +9,7 @@ import { test, expect } from '@playwright/test';
  * Run with: pnpm playwright test tests/smoke/production-readiness.spec.ts
  */
 
-const BASE_URL = process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:3000';
+const BASE_URL = process.env.SMOKE_BASE_URL || process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:3000';
 
 // ─── Load & Performance Tests ───────────────────────────────────────────────
 
