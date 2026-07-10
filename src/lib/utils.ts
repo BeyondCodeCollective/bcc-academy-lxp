@@ -133,36 +133,44 @@ export function resolveCurrentUnit(track: TrackConfig, now: Date = new Date()): 
 }
 
 /**
- * The date of a track's LAST session, or null when it can't be known.
+ * The ET calendar day (YYYY-MM-DD) of a track's LAST session, or null when it
+ * can't be known. A day key, not a Date: every other date in a cohort's life is
+ * compared as an Eastern calendar day, and a Date would drag a timezone back in.
  *
  * Three sources, most authoritative first:
  *  1. A dated syllabus (`weekSummaries[].date`) — Security+ meets Tue/Thu and
  *     skips a week; only the syllabus knows when it really ends.
  *  2. Per-unit unlock dates (`weeks[].comingSoonUntil`) — how day-gated camps
- *     like the Roblox bootcamp express their schedule.
+ *     like the Roblox bootcamp express their schedule. These are real ISO
+ *     timestamps, so resolve them to the ET day they land on.
  *  3. Derived from the start date. Units are DAYS when unitLabel is "Day"
  *     (a 3-day camp ends 2 days after it starts), otherwise weeks.
  */
-export function resolveTrackEndDate(track: TrackConfig): Date | null {
+export function resolveTrackEndDayKey(track: TrackConfig): string | null {
   if (track.startDateTbd || track.selfPaced) return null;
 
+  // Bare YYYY-MM-DD sorts lexicographically, so no Date parsing needed.
   const dated = track.weekSummaries
     .filter((ws) => ws.date)
-    .map((ws) => new Date(ws.date as string).getTime());
-  if (dated.length) return new Date(Math.max(...dated));
+    .map((ws) => (ws.date as string).slice(0, 10));
+  if (dated.length) return dated.reduce((a, b) => (a > b ? a : b));
 
   const unlocks = track.weeks
     .filter((w) => w.comingSoonUntil)
-    .map((w) => new Date(w.comingSoonUntil as string).getTime());
-  if (unlocks.length) return new Date(Math.max(...unlocks));
+    .map((w) => easternDayKey(new Date(w.comingSoonUntil as string)));
+  if (unlocks.length) return unlocks.reduce((a, b) => (a > b ? a : b));
 
-  const start = new Date(track.startDate);
-  if (Number.isNaN(start.getTime())) return null;
+  const [y, m, d] = track.startDate.slice(0, 10).split("-").map(Number);
+  if (!y || !m || !d) return null;
   const spanDays =
     track.unitLabel === "Day"
       ? Math.max(0, track.totalWeeks - 1)
       : Math.max(0, track.totalWeeks - 1) * 7 + (track.lastSessionDayOffset ?? 0);
-  return new Date(start.getTime() + spanDays * 86_400_000);
+  // Calendar arithmetic on a bare date: UTC keeps it free of DST shifts, and
+  // the result is read back as a calendar day, never as an instant.
+  return new Date(Date.UTC(y, m - 1, d) + spanDays * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
 }
 
 export type TrackPhase = "upcoming" | "running" | "ended";
@@ -173,17 +181,19 @@ export type TrackPhase = "upcoming" | "running" | "ended";
  * A rolling "active this week" decays to zero on a finished cohort, which
  * reads as failure rather than as "the course is done".
  *
- * A course is only `ended` the day AFTER its last session — on the last day
- * itself it is still running.
+ * Every boundary is an EASTERN calendar day, matching trackHasStarted. A bare
+ * `now >= new Date(startDate)` flips true at midnight UTC — 8pm ET the evening
+ * before — so a Monday cohort would read "running" from Sunday evening, and a
+ * course would read "ended" at 8pm ET on its own final class day.
+ *
+ * A course is only `ended` once the ET day AFTER its last session has arrived;
+ * on the last day itself it is still running.
  */
 export function resolveTrackPhase(track: TrackConfig, now: Date = new Date()): TrackPhase {
-  if (track.startDateTbd) return "upcoming";
-  if (now < new Date(track.startDate)) return "upcoming";
-  const end = resolveTrackEndDate(track);
-  if (!end) return "running";
-  const dayAfterLastSession = new Date(end.getTime() + 86_400_000);
-  dayAfterLastSession.setUTCHours(0, 0, 0, 0);
-  return now >= dayAfterLastSession ? "ended" : "running";
+  if (!trackHasStarted(track, now)) return "upcoming";
+  const endDayKey = resolveTrackEndDayKey(track);
+  if (!endDayKey) return "running";
+  return easternDayKey(now) > endDayKey ? "ended" : "running";
 }
 
 /**
