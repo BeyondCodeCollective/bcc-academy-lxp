@@ -422,6 +422,17 @@ export default async function TrackOverviewPage({
         </a>
       )}
 
+      {/* 0 — course cover, when the course has artwork. Full design, natural
+         aspect (the instructor's banner is a composed poster — cropping it
+         cuts its own text). Decorative: the header right below carries the
+         course identity for screen readers. */}
+      {track.coverImageUrl && (
+        <div className="overflow-hidden rounded-2xl">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={track.coverImageUrl} alt="" className="block h-auto w-full" />
+        </div>
+      )}
+
       {/* 1 — what course is this. The page used to open on a rail of session
          cards: navigation, above identity, duplicating the sidebar. */}
       <header>
