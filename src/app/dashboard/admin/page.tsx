@@ -401,6 +401,9 @@ export default async function AdminPage({
   const surveyConfigs = (program.surveys ?? []).map((s) => ({
     id: s.id,
     title: s.title,
+    // Which tracks opt out — the per-track Surveys tab hides these, so a
+    // Security+ instructor isn't offered AI Fundamentals surveys.
+    skipForTracks: s.skipForTracks,
   }));
 
   // Public surveys tied to a track (e.g. network-plus-post → Network+).
@@ -458,6 +461,7 @@ export default async function AdminPage({
       selfPaced: t.selfPaced,
       sessionsPerWeek: t.sessionsPerWeek,
       instructor: t.instructor,
+      companionOf: t.companionOf,
       sessionTimes: t.sessionTimes,
       startDate: t.startDate,
       startDateTbd: t.startDateTbd,

@@ -53,6 +53,9 @@ export const catalystConfig: ProgramConfig = {
       description:
         "You made it — share how the program landed and where you're headed next. Takes about 5 minutes.",
       required: false,
+      // Same opt-outs as the pre-survey: these cohorts aren't AI Fundamentals,
+      // so neither their students nor their instructors should see it.
+      skipForTracks: ["game-on", "comptia-security"],
       organization: "Beyond Code Centers",
     },
   ],
