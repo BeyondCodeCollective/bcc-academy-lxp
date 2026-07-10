@@ -74,7 +74,9 @@ export async function sendLoginLink({
   if (!isAdmitted) {
     return {
       ok: false,
-      error: "This email isn't on our invite list. If you have an invite link from your instructor, use that to sign up.",
+      // Accepted-by-application students have no invite link — give them a
+      // recovery path instead of a dead end (allowlist adds can lag decisions).
+      error: "This email isn't on our invite list yet. If you have an invite link from your instructor, use that to sign up. If you applied and were accepted, email info@bccacademy.io with the address you applied with and we'll get you set up.",
     };
   }
 

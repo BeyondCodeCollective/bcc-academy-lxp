@@ -103,7 +103,7 @@ export function PreviewToggle({
         onClick={() => setOpen((v) => !v)}
         className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold shadow-sm transition-colors ${
           active
-            ? "bg-[#1D59FF] text-white hover:bg-[#d44425]"
+            ? "bg-primary text-white hover:bg-primary-hover"
             : "bg-ink text-white hover:bg-ink/90"
         }`}
         title={active ? `Previewing as ${activeName}` : "Preview as a student"}

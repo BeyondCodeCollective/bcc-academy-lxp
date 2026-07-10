@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getProgramBySlug } from "@/lib/programs";
 import { numberedUnitCount } from "@/lib/programs/unit-display";
+import { COHORT_TIME_ZONE } from "@/lib/utils";
 import { PrintButton } from "./print-button";
 
 export const dynamic = "force-dynamic";
@@ -56,17 +57,24 @@ export default async function CertificatePage({
     trackConfig?.name ??
     DB_TRACK_CREDENTIAL_NAMES[completion.track_slug] ??
     completion.track_slug;
-  const studentName = student
-    ? `${student.first_name} ${student.last_name}`
-    : "Student";
+  // A name-less account (bulk invite before name capture) would print a lone
+  // space — fall back to "Student" whenever the trimmed name is empty.
+  const studentName =
+    `${student?.first_name ?? ""} ${student?.last_name ?? ""}`.trim() || "Student";
+  // Pin to the cohort timezone — the server's zone can flip a completion
+  // recorded near midnight to the wrong calendar day.
   const completedDate = new Date(
     completion.completed_at
   ).toLocaleDateString("en-US", {
+    timeZone: COHORT_TIME_ZONE,
     year: "numeric",
     month: "long",
     day: "numeric",
   });
-  const completedYear = new Date(completion.completed_at).getFullYear();
+  const completedYear = new Date(completion.completed_at).toLocaleDateString(
+    "en-US",
+    { timeZone: COHORT_TIME_ZONE, year: "numeric" },
+  );
   const orgName = program?.organization ?? "Beyond Code Collective";
   const programName = program?.name ?? programRow?.name ?? "BCC Academy";
   const primaryColor = program?.colors.primary ?? "#1a1a1a";
