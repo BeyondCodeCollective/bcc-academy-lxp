@@ -75,6 +75,7 @@ export default async function AdminPage({
   let studentTracks: StudentTrackRow[] = [];
   let instructorTracks: InstructorTrackRow[] = [];
   let userRole = "student";
+  let actorId: string | null = null;
   let actorEmail: string | null = null;
   let myInstructorTracks: string[] = [];
   let publicSurveyStats: PublicSurveyStatsRow[] = [];
@@ -102,6 +103,7 @@ export default async function AdminPage({
     const ctx = await getSessionContext();
     if (!ctx) redirect("/");
     const userId = ctx.userId;
+    actorId = userId;
     userRole = ctx.student?.role ?? "student";
     actorEmail = ctx.student?.email ?? ctx.userEmail ?? null;
 
@@ -494,6 +496,23 @@ export default async function AdminPage({
   const tracks = userRole === "instructor" && myInstructorTracks.length > 0
     ? visibleTracks.filter((t) => myInstructorTracks.includes(t.slug))
     : visibleTracks;
+
+  // Instructors see only the PEOPLE in their own courses, not the whole
+  // program roster. Without this, the People and Attendance tabs listed every
+  // student in the program (tracks were scoped above, students weren't).
+  // Enrollments are trimmed to the same tracks so nothing else re-derives the
+  // full picture from them.
+  if (userRole === "instructor" && myInstructorTracks.length > 0) {
+    const myTrackSet = new Set(myInstructorTracks);
+    const visibleIds = new Set(
+      studentTracks
+        .filter((e) => myTrackSet.has(e.track_slug))
+        .map((e) => e.student_id),
+    );
+    if (actorId) visibleIds.add(actorId);
+    allStudents = allStudents.filter((s) => visibleIds.has(s.id));
+    studentTracks = studentTracks.filter((e) => myTrackSet.has(e.track_slug));
+  }
 
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-5xl space-y-6 px-4 sm:px-5 py-8">

@@ -2,6 +2,25 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient, createServiceClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { canAccessAdminPanel, canSwitchPrograms } from "@/lib/roles";
 
+/** Instructors are track-scoped: they may only read or write attendance for a
+ *  track they're assigned to (instructor_tracks). Other admin-capable roles
+ *  pass through; a missing/invalid track fails closed for instructors. */
+async function instructorOwnsTrack(
+  role: string,
+  userId: string,
+  track: unknown,
+): Promise<boolean> {
+  if (role !== "instructor") return true;
+  if (typeof track !== "string" || !track) return false;
+  const { data } = await createServiceClient()
+    .from("instructor_tracks")
+    .select("track_slug")
+    .eq("student_id", userId)
+    .eq("track_slug", track)
+    .limit(1);
+  return (data ?? []).length > 0;
+}
+
 // POST: admin marks attendance for a student
 export async function POST(request: NextRequest) {
   if (!isSupabaseConfigured()) {
@@ -40,6 +59,10 @@ export async function POST(request: NextRequest) {
   }
   if (!student_id) {
     return NextResponse.json({ error: "student_id is required" }, { status: 400 });
+  }
+
+  if (!(await instructorOwnsTrack(currentStudent.role, user.id, track))) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   // Program-scope check. The attendance row carries no program_id, so RLS
@@ -108,6 +131,10 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  if (!(await instructorOwnsTrack(currentStudent?.role ?? "", user.id, track))) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   // Program-scope check (same reason as POST — attendance has no program_id).
   // IMPORTANT: Both IDs must be non-null and match. `null !== null` is false.
   const { data: targetStudent } = await supabase
@@ -170,6 +197,10 @@ export async function GET(request: NextRequest) {
 
   const role = currentStudent?.role ?? "";
   if (canAccessAdminPanel(role)) {
+    // Instructors must name one of their own tracks; no track = fail closed.
+    if (!(await instructorOwnsTrack(role, user.id, track))) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
     // Cross-tenant scope: attendance has no program_id, so a non-super admin is
     // restricted to attendance rows for students in their own program. Without
     // this, passing another program's student_id leaked their records.
