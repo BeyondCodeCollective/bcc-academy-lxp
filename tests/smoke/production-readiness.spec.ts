@@ -50,11 +50,11 @@ test.describe('Production Performance Under Load', () => {
 
   test('concurrent requests dont timeout', async ({ page, context }) => {
     // Simulate concurrent requests by opening multiple pages
-    const pages = [
+    const pages = await Promise.all([
       context.newPage(),
       context.newPage(),
       context.newPage(),
-    ];
+    ]);
 
     const results = await Promise.all(
       pages.map((p) => p.goto(`${BASE_URL}/dashboard`).then(() => p.close()))
@@ -383,7 +383,7 @@ test.describe('Session Management', () => {
       const authCookie = cookies.find((c) => c.name.includes('auth'));
 
       // Either auth cookie cleared or page redirected to login
-      expect(page.url()).toMatch(/login|auth|home/) || !authCookie;
+      expect(/login|auth|home/.test(page.url()) || !authCookie).toBe(true);
     }
   });
 });
