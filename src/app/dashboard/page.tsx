@@ -3,6 +3,7 @@ import { after } from "next/server";
 import { cookies } from "next/headers";
 import { createClient, createServiceClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { computeCurrentWeek, trackHasStarted, easternDayKey } from "@/lib/utils";
+import { numberedUnitCount, unitDisplayMap } from "@/lib/programs/unit-display";
 import Link from "next/link";
 import { WelcomeVideo } from "@/components/welcome-video";
 import { OnboardingForm } from "@/components/onboarding-form";
@@ -16,7 +17,7 @@ import { canAccessAdminPanel } from "@/lib/roles";
 import { getSessionContext } from "@/lib/auth/session";
 import { getPreviewTrackSlug, LUNCH_LEARN_PREVIEW_SLUG } from "@/lib/auth/preview-mode";
 import { resolveCurrentUser } from "@/lib/current-user";
-import { getEnrolledTracks } from "@/lib/enrollment";
+import { getEnrolledTracks, collapseCompanionSlugs } from "@/lib/enrollment";
 import { WeekIcon } from "@/components/week-icon";
 import { DashboardBento } from "@/components/dashboard-bento";
 import { MyProgressCard, type MyProgressCardProps } from "@/components/my-progress-card";
@@ -287,7 +288,11 @@ async function DashboardContent({
               if (home) enrolledHomePrograms.add(home);
             }
           }
-          const surveyTrackSlugs = [...enrolledTrackSlugs, ...allowlistTrackSlugs];
+          // A companion (MASS) inherits its course's survey exemptions.
+          const surveyTrackSlugs = collapseCompanionSlugs(
+            [...enrolledTrackSlugs, ...allowlistTrackSlugs],
+            program.tracks,
+          );
 
           pendingSurveys = program.surveys
             .filter((s) => {
@@ -515,7 +520,17 @@ async function DashboardContent({
       slug: track.slug,
       name: track.name,
       instructor: track.instructor,
-      totalWeeks: track.totalWeeks,
+      // Speak the track's own units. Security+ is 17 internal units — a kickoff
+      // plus 16 sessions — and the learner is only ever told about the 16.
+      numberedUnits: numberedUnitCount(track.weekSummaries, track.totalWeeks),
+      unitNoun: (track.unitLabel ?? "Week").toLowerCase(),
+      // The current unit's *displayed* number, minus itself. An extra (kickoff)
+      // has no number, so nothing counts as complete while you're on it.
+      unitsDone: Math.max(
+        0,
+        (unitDisplayMap(track.weekSummaries, track.unitLabel ?? "Week").get(currentWeek)?.number ??
+          1) - 1,
+      ),
       currentWeek: currentWeek || 1,
       started,
       currentTopic:

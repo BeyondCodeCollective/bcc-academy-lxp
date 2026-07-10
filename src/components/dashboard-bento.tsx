@@ -7,7 +7,12 @@ type TrackTile = {
   slug: string;
   name: string;
   instructor: string;
-  totalWeeks: number;
+  /** Units a learner is graded on — excludes extras like a kickoff. */
+  numberedUnits: number;
+  /** Singular, lowercased for prose: "session", "week", "day". */
+  unitNoun: string;
+  /** Displayed progress, already in unit numbers (an extra consumes none). */
+  unitsDone: number;
   currentWeek: number;
   started: boolean;
   currentTopic: string;
@@ -44,20 +49,26 @@ export function DashboardBento({
         <h2 className="mb-4 text-[17px] font-bold tracking-[-0.015em] text-ink">Your courses</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           {tracks.map((t) => {
-            const done = t.started ? Math.max(0, t.currentWeek - 1) : 0;
+            const done = t.started ? t.unitsDone : 0;
             const resumeWeek = t.started ? Math.max(1, t.currentWeek) : 1;
-            const pct = Math.round((done / t.totalWeeks) * 100);
+            const pct = t.numberedUnits > 0 ? Math.round((done / t.numberedUnits) * 100) : 0;
             return (
               <CourseCard
                 key={t.slug}
-                href={`/dashboard/track/${t.slug}/${resumeWeek}`}
+                // Before day one every session is locked, so link to the course
+                // itself rather than a session page that redirects right back.
+                href={
+                  t.started
+                    ? `/dashboard/track/${t.slug}/${resumeWeek}`
+                    : `/dashboard/track/${t.slug}`
+                }
                 program={programName}
                 name={t.name}
                 instructor={t.instructor}
                 progress={{
                   label: t.started
-                    ? `${done} of ${t.totalWeeks} complete`
-                    : `${t.totalWeeks} weeks · not started`,
+                    ? `${done} of ${t.numberedUnits} complete`
+                    : `${t.numberedUnits} ${t.unitNoun}s · not started`,
                   pct,
                 }}
                 action={t.started ? "Resume" : "Start"}
