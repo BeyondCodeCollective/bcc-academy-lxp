@@ -66,7 +66,7 @@ export function MyProgressCard({
       </div>
 
       {/* Hero stats */}
-      <div className="mt-6 grid grid-cols-3 gap-4 border-t border-rule pt-5">
+      <div className="mt-6 grid grid-cols-2 gap-4 border-t sm:grid-cols-3 border-rule pt-5">
         <Stat value={String(lessonsWatched)} label="Lessons watched" />
         <Stat
           value={String(dayStreak)}

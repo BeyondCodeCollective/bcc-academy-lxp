@@ -61,7 +61,7 @@ export function ZoomEmbed({
       </div>
 
       {/* Zoom embed — isolated iframe */}
-      <div className="relative w-full overflow-hidden bg-neutral-950 aspect-video min-h-[440px]">
+      <div className="relative w-full overflow-hidden bg-neutral-950 aspect-video min-h-[220px] sm:min-h-[440px]">
         <iframe
           src={src}
           title={sessionTitle ? `Live session: ${sessionTitle}` : "Live session"}
