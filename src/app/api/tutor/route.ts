@@ -5,7 +5,7 @@ import { getProgram } from "@/lib/programs/server";
 import { isTutorAvailable } from "@/lib/programs";
 import { getLearnerAccess } from "@/lib/auth/active-enrollment";
 import { isStaffEmail } from "@/lib/auth/admins";
-import { computeCurrentWeek } from "@/lib/utils";
+import { computeCurrentWeek, trackHasStarted } from "@/lib/utils";
 import type { TrackConfig, WeekConfig } from "@/lib/programs/types";
 
 // Per-student daily ceiling. Low-enough to keep costs sane if usage
@@ -98,7 +98,7 @@ export async function POST(request: Request) {
   let activeWeek: WeekConfig | undefined;
   if (activeTrack) {
     const now = new Date();
-    const started = now >= new Date(activeTrack.startDate);
+    const started = trackHasStarted(activeTrack, now);
     currentWeekNumber = started
       ? computeCurrentWeek(
           activeTrack.startDate,

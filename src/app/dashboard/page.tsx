@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { cookies } from "next/headers";
 import { createClient, createServiceClient, isSupabaseConfigured } from "@/lib/supabase/server";
-import { computeCurrentWeek } from "@/lib/utils";
+import { computeCurrentWeek, trackHasStarted, easternDayKey } from "@/lib/utils";
 import Link from "next/link";
 import { WelcomeVideo } from "@/components/welcome-video";
 import { OnboardingForm } from "@/components/onboarding-form";
@@ -381,7 +381,7 @@ async function DashboardContent({
 
   const now = new Date();
   const trackStates = visibleTracks.map((track) => {
-    const started = !track.startDateTbd && now >= new Date(track.startDate);
+    const started = trackHasStarted(track, now);
     const currentWeek = track.selfPaced
       ? started ? 1 : 0
       : started
@@ -634,7 +634,14 @@ async function DashboardContent({
          action — so hide them once the event date has passed. They remain
          reachable via direct track URL for anyone with the link. */}
       {trackStates
-        .filter(({ track }) => track.type === "single-event" && new Date() <= new Date(track.startDate))
+        .filter(
+          ({ track }) =>
+            track.type === "single-event" &&
+            // Visible through the whole day of the event in ET. Comparing to
+            // `new Date(startDate)` (midnight UTC) hid the card at 8pm ET the
+            // evening BEFORE it happened.
+            easternDayKey(new Date()) <= track.startDate.slice(0, 10),
+        )
         .map(({ track }) => (
           <SingleEventCard key={track.slug} track={track} />
         ))}
@@ -654,7 +661,7 @@ async function DashboardContent({
  */
 function singleCourseDestination(track: TrackConfig, fromLogin: boolean): string {
   if (fromLogin) {
-    const started = !track.startDateTbd && new Date() >= new Date(track.startDate);
+    const started = trackHasStarted(track);
     const week =
       started && !track.selfPaced
         ? computeCurrentWeek(track.startDate, track.totalWeeks, track.lastSessionDayOffset)

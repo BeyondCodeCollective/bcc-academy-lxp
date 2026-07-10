@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { resolveCurrentUnit } from "@/lib/utils";
+import { resolveCurrentUnit, trackHasStarted } from "@/lib/utils";
 import { ArrowLeft, Video, CheckCircle, Link as LinkIcon, FileText } from "lucide-react";
 import { isSupabaseConfigured, createServiceClient } from "@/lib/supabase/server";
 import { getSessionContent } from "@/app/dashboard/admin/actions";
@@ -61,7 +61,7 @@ export default async function TrackWeekPage({
       .maybeSingle();
     if (!enr) redirect("/dashboard");
   }
-  const hasStarted = !track.startDateTbd && new Date() >= new Date(track.startDate);
+  const hasStarted = trackHasStarted(track);
   if (!gateIsAdmin && !hasStarted) {
     redirect(`/dashboard/track/${trackSlug}`);
   }
@@ -140,7 +140,7 @@ export default async function TrackWeekPage({
   }
 
   const now = new Date();
-  const trackStarted = !track.startDateTbd && now >= new Date(track.startDate);
+  const trackStarted = trackHasStarted(track, now);
   // Shared with the redirect + overview: advances to the current Day on a
   // day-gated camp instead of pinning at Day 1 all week.
   const currentWeek = resolveCurrentUnit(track, now);

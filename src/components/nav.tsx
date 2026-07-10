@@ -17,7 +17,7 @@ import {
   SpeakerHigh,
   SpeakerSlash,
 } from "@phosphor-icons/react";
-import { computeCurrentWeek } from "@/lib/utils";
+import { computeCurrentWeek, trackHasStarted } from "@/lib/utils";
 import { unitDisplayMap } from "@/lib/programs/unit-display";
 import { TextScaleToggle } from "@/components/text-scale-toggle";
 import { useReadAloud } from "@/components/assessment-a11y-bar";
@@ -344,7 +344,7 @@ export function Nav({
     <div className="flex flex-col gap-4">
       {visibleCurriculumTracks.map((track) => {
         const now = new Date();
-        const started = !track.startDateTbd && now >= new Date(track.startDate);
+        const started = trackHasStarted(track, now);
         const currentWeek = track.selfPaced
           ? started ? 1 : 0
           : started

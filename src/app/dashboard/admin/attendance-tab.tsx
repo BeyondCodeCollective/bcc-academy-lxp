@@ -19,7 +19,7 @@ import {
   summarizeAllStudents,
   weeklyAttendanceRates,
 } from "@/lib/attendance/compute";
-import { computeCurrentWeek } from "@/lib/utils";
+import { computeCurrentWeek, trackHasStarted, formatCohortDate } from "@/lib/utils";
 import { unitDisplayMap, numberedUnitCount } from "@/lib/programs/unit-display";
 
 type AttendanceTabProps = {
@@ -58,7 +58,7 @@ const STATUS_LABEL: Record<string, { label: string; bg: string; text: string }> 
 
 export function AttendanceTab({ students, tracks, scopeLabel, embedded, viewSwitcher, hideTitle }: AttendanceTabProps) {
   const startedTracks = useMemo(
-    () => tracks.filter((t) => new Date() >= new Date(t.startDate)),
+    () => tracks.filter((t) => trackHasStarted(t)),
     [tracks]
   );
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
@@ -765,7 +765,7 @@ function MarkPanel({
       >
         {tracks.map((t) => {
           const isActive = t.slug === activeTrackSlug;
-          const hasStarted = new Date() >= new Date(t.startDate);
+          const hasStarted = trackHasStarted(t);
           return (
             <button
               key={t.slug}
@@ -781,7 +781,7 @@ function MarkPanel({
                     ? "bg-paper-tint-soft text-ink-soft hover:bg-paper-tint hover:text-ink"
                     : "bg-paper-tint-soft text-ink-faint/60 cursor-not-allowed"
               }`}
-              title={hasStarted ? t.name : `Starts ${new Date(t.startDate).toLocaleDateString()}`}
+              title={hasStarted ? t.name : `Starts ${formatCohortDate(t.startDate, undefined)}`}
             >
               {t.shortName}
             </button>
