@@ -40,9 +40,8 @@ export function PublicApplyForm() {
             Application received.
           </h2>
           <p className="text-sm text-neutral-500 max-w-sm mx-auto">
-            We&apos;ll review every application and share decisions no later than one
-            week after the submission deadline. Selected participants will be
-            onboarded for the July start.
+            We review every application and email decisions within one week.
+            Selected participants will be onboarded before the cohort begins.
           </p>
         </div>
       </div>
@@ -60,9 +59,10 @@ export function PublicApplyForm() {
             Apply for CompTIA Security+
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-neutral-600 max-w-[55ch]">
-            This application is for Network+ graduates. It helps us understand
-            where you&apos;re headed, what you need from a training program, and how
-            Security+ fits into your career path.
+            This application is designed for Network+ graduates, but anyone with
+            equivalent networking experience is welcome to apply. It helps us
+            understand where you&apos;re headed, what you need from a training
+            program, and how Security+ fits into your career path.
           </p>
           <p className="mt-2 text-sm text-neutral-500">
             Plan for 10–15 minutes. Be honest — we&apos;re not looking for
@@ -70,8 +70,7 @@ export function PublicApplyForm() {
             what you need.
           </p>
           <p className="mt-3 text-xs text-neutral-400">
-            Decisions will be shared no later than one week after the submission
-            deadline. July start.
+            Decisions are emailed within one week of applying.
           </p>
         </div>
 

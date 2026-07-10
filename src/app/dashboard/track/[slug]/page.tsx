@@ -1,6 +1,11 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Archive, ArrowRight, Medal, Megaphone } from "@phosphor-icons/react/dist/ssr";
+import {
+  Archive,
+  ArrowRight,
+  Medal,
+  Megaphone,
+} from "@phosphor-icons/react/dist/ssr";
 import {
   resolveCurrentUnit,
   trackHasStarted,
@@ -28,9 +33,15 @@ import { getWhatsNew, type FeedItem } from "@/lib/whats-new";
 import { HoldingView } from "@/components/holding-view";
 import { PreStartBanner } from "@/components/pre-start-banner";
 import { NextUpPanel } from "@/components/next-up-panel";
-import { touchpointCandidates, resolveTouchpoint } from "@/lib/course-touchpoint";
+import {
+  touchpointCandidates,
+  resolveTouchpoint,
+} from "@/lib/course-touchpoint";
 import { getLandingHeroForTrack } from "@/lib/landing-pages";
-import { getEnforcedOnboardingChecklist, getOnboardingStatus } from "@/lib/onboarding/checklists";
+import {
+  getEnforcedOnboardingChecklist,
+  getOnboardingStatus,
+} from "@/lib/onboarding/checklists";
 import { OnboardingChecklist } from "@/components/onboarding-checklist";
 
 export const dynamic = "force-dynamic";
@@ -69,7 +80,11 @@ export default async function TrackOverviewPage({
   // already completed (read from survey_responses) auto-check.
   const checklist = getEnforcedOnboardingChecklist(slug);
   if (checklist && !isAdminViewer && ctx?.userId) {
-    const status = await getOnboardingStatus(createServiceClient(), ctx.userId, slug);
+    const status = await getOnboardingStatus(
+      createServiceClient(),
+      ctx.userId,
+      slug,
+    );
     if (status) {
       const studentName = [ctx.student?.first_name, ctx.student?.last_name]
         .filter(Boolean)
@@ -98,32 +113,34 @@ export default async function TrackOverviewPage({
     }
   }
 
+  // One program-id lookup shared by the archived gate and the What's-New feed
+  // below — the identical query used to run twice per render.
+  const { data: programRow } = await createServiceClient()
+    .from("programs")
+    .select("id")
+    .eq("slug", program.slug)
+    .maybeSingle<{ id: string }>();
+  const programId = programRow?.id ?? null;
+
   // Archived gate: non-admin students cannot view archived builder-created courses.
-  if (!isAdminViewer) {
-    const svc = createServiceClient();
-    const { data: programRow } = await svc
-      .from("programs")
-      .select("id")
-      .eq("slug", program.slug)
-      .maybeSingle<{ id: string }>();
-    if (programRow) {
-      const { data: overrideRow } = await svc
-        .from("track_overrides")
-        .select("archived_at")
-        .eq("program_id", programRow.id)
-        .eq("track_slug", slug)
-        .maybeSingle<{ archived_at: string | null }>();
-      if (overrideRow?.archived_at) {
-        return (
-          <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-16 text-center space-y-3">
-            <Archive size={40} className="mx-auto text-ink-faint" aria-hidden />
-            <h1 className="text-xl font-bold text-ink">This course has ended</h1>
-            <p className="text-sm text-ink-soft">
-              {track.name} is no longer active. Reach out to your instructor if you have questions.
-            </p>
-          </div>
-        );
-      }
+  if (!isAdminViewer && programId) {
+    const { data: overrideRow } = await createServiceClient()
+      .from("track_overrides")
+      .select("archived_at")
+      .eq("program_id", programId)
+      .eq("track_slug", slug)
+      .maybeSingle<{ archived_at: string | null }>();
+    if (overrideRow?.archived_at) {
+      return (
+        <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-16 text-center space-y-3">
+          <Archive size={40} className="mx-auto text-ink-faint" aria-hidden />
+          <h1 className="text-xl font-bold text-ink">This course has ended</h1>
+          <p className="text-sm text-ink-soft">
+            {track.name} is no longer active. Reach out to your instructor if
+            you have questions.
+          </p>
+        </div>
+      );
     }
   }
 
@@ -202,7 +219,10 @@ export default async function TrackOverviewPage({
   // query progress when gating is actually active.
   const gated = !isAdminViewer && started && isSequentialGated(track);
   const progress = gated
-    ? await getTrackProgressMap(slug).catch(() => ({ watched: [], submitted: [] }))
+    ? await getTrackProgressMap(slug).catch(() => ({
+        watched: [],
+        submitted: [],
+      }))
     : { watched: [], submitted: [] };
   const watchedSet = new Set(progress.watched);
   const submittedSet = new Set(progress.submitted);
@@ -247,15 +267,10 @@ export default async function TrackOverviewPage({
     const feedTracks = program.tracks.filter(
       (t) => t.slug === slug || t.companionOf === slug,
     );
-    const { data: progRow } = await createServiceClient()
-      .from("programs")
-      .select("id")
-      .eq("slug", program.slug)
-      .maybeSingle<{ id: string }>();
-    if (progRow) {
+    if (programId) {
       whatsNew = await getWhatsNew({
         userId: ctx.userId,
-        programId: progRow.id,
+        programId,
         tracks: feedTracks,
         includeTrackName: feedTracks.length > 1,
         now,
@@ -303,12 +318,17 @@ export default async function TrackOverviewPage({
     const u = t.unitLabel || "Week";
     const mass = isMassSlug(t.slug);
     const sessions = t.weekSummaries.map((ws): AgendaRow => {
-      const date = (ws.date ?? addDays(t.startDate, (ws.week - 1) * 7)).slice(0, 10);
+      const date = (ws.date ?? addDays(t.startDate, (ws.week - 1) * 7)).slice(
+        0,
+        10,
+      );
       return {
         date,
         label: mass ? "MASS" : unitText(disp, ws.week, u),
         title: titles?.get(ws.week) ?? ws.topic,
-        href: locked(ws.week) ? undefined : `/dashboard/track/${t.slug}/${ws.week}`,
+        href: locked(ws.week)
+          ? undefined
+          : `/dashboard/track/${t.slug}/${ws.week}`,
         kind: mass ? "mass" : "session",
         time: ws.time ? formatCohortTime(ws.time) : undefined,
       };
@@ -317,7 +337,8 @@ export default async function TrackOverviewPage({
       date: item.date,
       title: item.title,
       // officeHours carry office-hours / speaker / event — never a session.
-      kind: !item.type || item.type === "office-hours" ? "office-hours" : "event",
+      kind:
+        !item.type || item.type === "office-hours" ? "office-hours" : "event",
       time: item.time || undefined,
     }));
     return [...sessions, ...officeHours];
@@ -329,7 +350,12 @@ export default async function TrackOverviewPage({
   const primaryLocked = (week: number): boolean => {
     if (preStart) return true;
     const wc = track.weeks.find((w) => w.week === week);
-    if (!isAdminViewer && wc?.comingSoonUntil && now < new Date(wc.comingSoonUntil)) return true;
+    if (
+      !isAdminViewer &&
+      wc?.comingSoonUntil &&
+      now < new Date(wc.comingSoonUntil)
+    )
+      return true;
     if (gated && week > unlockedThrough) return true;
     return false;
   };
@@ -384,8 +410,8 @@ export default async function TrackOverviewPage({
               You earned your Certificate of Completion! 🎉
             </span>
             <span className="block text-xs text-ink-soft">
-              View, print, or share your official certificate — the link works anywhere,
-              no login needed.
+              View, print, or share your official certificate — the link works
+              anywhere, no login needed.
             </span>
           </span>
           <ArrowRight
@@ -441,11 +467,20 @@ export default async function TrackOverviewPage({
           rel={latestNews.external ? "noopener noreferrer" : undefined}
           className="flex items-start gap-2.5 rounded-lg bg-paper-tint-soft px-3 py-2.5 text-[12.9px] text-ink-soft transition-colors hover:bg-paper-tint"
         >
-          <Megaphone size={15} className="mt-0.5 shrink-0 text-ink-faint" aria-hidden />
+          <Megaphone
+            size={15}
+            className="mt-0.5 shrink-0 text-ink-faint"
+            aria-hidden
+          />
           <span className="min-w-0">
-            <strong className="font-semibold text-ink">{latestNews.title}</strong>
+            <strong className="font-semibold text-ink">
+              {latestNews.title}
+            </strong>
             {latestNews.body ? ` — ${latestNews.body}` : ""}
-            <span className="text-ink-faint"> · {latestNews.whenLabel.toLowerCase()}</span>
+            <span className="text-ink-faint">
+              {" "}
+              · {latestNews.whenLabel.toLowerCase()}
+            </span>
           </span>
         </Link>
       )}
@@ -472,4 +507,3 @@ export default async function TrackOverviewPage({
     </div>
   );
 }
-

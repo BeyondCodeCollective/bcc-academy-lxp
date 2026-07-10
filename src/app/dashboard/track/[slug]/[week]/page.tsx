@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { resolveCurrentUnit, trackHasStarted } from "@/lib/utils";
+import { resolveCurrentUnit, trackHasStarted, formatCohortDate } from "@/lib/utils";
 import { ArrowLeft, Video, CheckCircle, Link as LinkIcon, FileText } from "lucide-react";
 import { isSupabaseConfigured, createServiceClient } from "@/lib/supabase/server";
 import { getSessionContent } from "@/app/dashboard/admin/actions";
@@ -77,7 +77,9 @@ export default async function TrackWeekPage({
   if (weekContent.comingSoonUntil && !gateIsAdmin) {
     const unlockDate = new Date(weekContent.comingSoonUntil);
     if (new Date() < unlockDate) {
-      const dateLabel = unlockDate.toLocaleDateString("en-US", {
+      // Display via the noon-anchored helper — formatting the raw Date can
+      // slip to the prior day when the value is a bare YYYY-MM-DD.
+      const dateLabel = formatCohortDate(weekContent.comingSoonUntil, {
         month: "long",
         day: "numeric",
         year: "numeric",
@@ -415,7 +417,7 @@ export default async function TrackWeekPage({
           <RecordingCard
             url={weekContent.videoUrl}
             title="Session Recording"
-            subtitle={`Week ${weekNum} replay`}
+            subtitle={`${unitName} replay`}
             trackSlug={trackSlug}
             weekNumber={weekNum}
             showWatchButton={isSupabaseConfigured() && unlocked}
@@ -433,7 +435,7 @@ export default async function TrackWeekPage({
           : "Session Recording";
         const recordingSubtitle = weekContent.sessions.length > 1
           ? session.title
-          : `Week ${weekNum} replay`;
+          : `${unitName} replay`;
 
         const showWatchButton = isSupabaseConfigured() && unlocked;
 
@@ -456,7 +458,7 @@ export default async function TrackWeekPage({
       {resources.length > 0 && (
         <section className="mb-8">
           <h2 className="mb-3 text-sm font-bold text-ink">
-            Today&apos;s Materials
+            Course Materials
           </h2>
           <ul className="grid gap-3 sm:grid-cols-2">
             {resources.map((r, i) => {
@@ -510,7 +512,7 @@ export default async function TrackWeekPage({
       {showChecklist && (
         <section className="mt-2 border-t border-rule pt-6">
           <h2 className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
-            Week completion
+            {unit} completion
           </h2>
           <div className="space-y-2">
             {(weekContent.videoUrl || hasRecording) && (
