@@ -114,6 +114,7 @@ export function Nav({
   adminTracks = [],
   lunchLearnRecordings = [],
   showLunchLearnLink = false,
+  previewingSlug = null,
 }: {
   isAdmin: boolean;
   canAccessStaff?: boolean;
@@ -134,6 +135,8 @@ export function Nav({
   adminTracks?: { slug: string; shortName: string }[];
   lunchLearnRecordings?: LunchLearnRecording[];
   showLunchLearnLink?: boolean;
+  /** Track being previewed-as-student — Home follows it. Null = not previewing. */
+  previewingSlug?: string | null;
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -164,8 +167,14 @@ export function Nav({
   // course; the second course is one click away, and nobody lands on a chooser.
   // (Security+ enrolls you in its MASS wraparound too, so "how many courses"
   // isn't a count — `primaryTrack` prefers a standalone course over a companion.)
+  // While previewing-as-student, curriculumTracks is the WHOLE catalog (so the
+  // sidebar works on any course page) — primaryTrack over that list would send
+  // Home to whichever course starts earliest, not the one being previewed.
+  // That teleported an admin to Network+ out of a MASS preview (2026-07-10).
   const primarySlug =
-    variant === "student-sidebar" ? (primaryTrack(curriculumTracks)?.slug ?? null) : null;
+    variant === "student-sidebar"
+      ? (previewingSlug ?? primaryTrack(curriculumTracks)?.slug ?? null)
+      : null;
   const homeHref = isAdmin
     ? "/dashboard/admin"
     : primarySlug
