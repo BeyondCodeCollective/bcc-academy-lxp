@@ -17,7 +17,6 @@ import { resolveTrackProgram } from "@/lib/programs/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { canAccessAdminPanel } from "@/lib/roles";
 import { createServiceClient } from "@/lib/supabase/server";
-import { CopyInviteLink } from "@/components/copy-invite-link";
 import { buttonClass } from "@/components/ui";
 import { getTrackProgressMap } from "@/app/dashboard/track/actions";
 import { addDays } from "@/lib/ical";
@@ -384,16 +383,6 @@ export default async function TrackOverviewPage({
 
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-3xl px-4 sm:px-5 py-8 space-y-8">
-      {isAdminViewer && (
-        <div className="flex justify-end">
-          <CopyInviteLink
-            programSlug={program.slug}
-            trackSlug={slug}
-            fallbackDomain={program.domain}
-          />
-        </div>
-      )}
-
       {/* Certificate earned — links the public, shareable certificate page. */}
       {certificateId && (
         <a
