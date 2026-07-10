@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { authCookieDomain } from "@/lib/supabase/cookie-domain";
 import { safeNextPath } from "@/lib/auth/next-path";
+import { canAccessAdminPanel } from "@/lib/roles";
 import {
   getProgramByDomain,
   getProgramBySlug,
@@ -146,6 +147,31 @@ export async function proxy(request: NextRequest) {
     url.search = "";
     if (next) url.searchParams.set("next", next);
     return applyProgramCookies(NextResponse.redirect(url));
+  }
+
+  // Staff home IS the admin panel. Decide it HERE, in the proxy, so an
+  // admin/instructor never renders the learner /dashboard and flashes its
+  // skeleton before bouncing to /dashboard/admin (two stacked skeletons read
+  // as broken). Scoped to the bare home entry points ("/" or /dashboard) so
+  // the role lookup isn't on every /dashboard/* request. Skipped while
+  // previewing-as-student, where a super-admin views the learner side on
+  // purpose — the same gate the page uses.
+  const previewingAsStudent =
+    (request.cookies.get("preview-as-student")?.value ?? "").length > 0;
+  const isHomeEntry =
+    request.nextUrl.pathname === "/dashboard" || request.nextUrl.pathname === "/";
+  if (user && !previewOverride && !previewingAsStudent && isHomeEntry) {
+    const { data: me } = await supabase
+      .from("students")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (canAccessAdminPanel((me?.role as string | undefined) ?? "")) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/dashboard/admin";
+      url.search = "";
+      return applyProgramCookies(NextResponse.redirect(url));
+    }
   }
 
   // Redirect authenticated users from "/" to their dashboard — including the
