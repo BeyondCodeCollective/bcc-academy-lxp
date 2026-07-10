@@ -5,7 +5,7 @@
  * or "what's this student's rate" goes through here.
  */
 
-import { computeCurrentWeek } from "@/lib/utils";
+import { computeCurrentWeek, unitDateHasArrived } from "@/lib/utils";
 
 export type AttendanceRecord = {
   id: string;
@@ -88,7 +88,7 @@ export function countedUnits(track: TrackLike, asOf: Date = new Date()): number[
 
   if (dated.length > 0) {
     return dated
-      .filter((s) => !s.label && new Date(s.date!) <= asOf)
+      .filter((s) => !s.label && unitDateHasArrived(s.date!, asOf))
       .map((s) => s.week)
       .sort((a, b) => a - b);
   }
