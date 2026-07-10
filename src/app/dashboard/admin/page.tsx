@@ -16,7 +16,7 @@ import { buildInsightsData } from "@/lib/analytics/insights-data";
 import type { SurveyQuestion } from "@/components/survey-fields";
 import { fetchPendingPeople, type PendingPerson } from "@/lib/people-hub";
 import { getCourseEngagement, getCourseRosterStats } from "@/lib/course-engagement";
-import { resolveCurrentUnit, resolveTrackPhase } from "@/lib/utils";
+import { resolveCurrentUnit, resolveTrackPhase, formatCohortDate } from "@/lib/utils";
 import { getEngagementAnalytics, type EngagementAnalytics } from "./actions-analytics";
 import type { CourseEngagementProps } from "@/components/stats/course-engagement";
 
@@ -385,6 +385,15 @@ export default async function AdminPage({
           submissionsEnabled: t.submissionsEnabled !== false,
           unitLabel: t.unitLabel ?? "Week",
         }).catch(() => null);
+        // Pre-start, "3/16 active · 12 idle" reads as failure when it's a full
+        // roster waiting on day one — lead with enrollment instead.
+        if (courseEngagement && resolveTrackPhase(t) === "upcoming") {
+          courseEngagement = {
+            ...courseEngagement,
+            upcoming: true,
+            startLabel: t.startDateTbd ? null : formatCohortDate(t.startDate),
+          };
+        }
       }
     }
   }

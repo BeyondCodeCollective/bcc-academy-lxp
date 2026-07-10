@@ -35,6 +35,12 @@ export type CourseEngagementProps = {
   };
   /** Aggregate cohort activity, one cell per day (level = relative volume). */
   days: ProgressDay[];
+  /** Course hasn't started: lead with enrollment, not an activity ratio.
+   *  "3/16 active · 12 idle" on a course with zero sessions held reads as
+   *  failure when it's actually a full roster waiting for day one. */
+  upcoming?: boolean;
+  /** Human start date ("Jul 15, 2026") for the upcoming headline; null = TBD. */
+  startLabel?: string | null;
 };
 
 // Tailwind needs literal class names, so the column count can't be interpolated.
@@ -55,11 +61,42 @@ export function CourseEngagement({
   attendance,
   status,
   days,
+  upcoming = false,
+  startLabel,
 }: CourseEngagementProps) {
   const activePct = totalLearners > 0 ? Math.round((activeThisWeek / totalLearners) * 100) : 0;
   const unit = attendance?.unitLabel ?? "Week";
   const tileCount =
     2 + (showLessonsWatched ? 1 : 0) + (showSubmissions ? 1 : 0) + (attendance ? 1 : 0);
+
+  // Pre-start: the honest numbers are the roster and who's already been in.
+  // Activity ratios, idle buckets, and attendance only exist once it's running.
+  if (upcoming) {
+    const signedIn = Math.max(0, totalLearners - status.neverLoggedIn);
+    return (
+      <section className="space-y-5">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">
+          Engagement
+        </h2>
+        <div className="grid grid-cols-2 gap-3">
+          <StatCard
+            value={totalLearners}
+            label="Enrolled"
+            hint={startLabel ? `Starts ${startLabel}` : "Start date TBD"}
+          />
+          <StatCard
+            value={`${signedIn}/${totalLearners}`}
+            label="Signed in"
+            hint="Been on the platform before day one"
+          />
+        </div>
+        <div className="panel p-5 sm:p-6">
+          <p className="mb-4 text-sm font-semibold text-ink">Early activity</p>
+          <StreakHeatmap days={days} legendStreak={false} />
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="space-y-5">
