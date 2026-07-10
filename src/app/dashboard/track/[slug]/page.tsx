@@ -4,10 +4,8 @@ import { Archive, ArrowRight, Medal, Megaphone } from "@phosphor-icons/react/dis
 import {
   resolveCurrentUnit,
   trackHasStarted,
-  formatCohortDate,
   formatCohortTime,
-  resolveTrackEndDayKey,
-  unitDateHasArrived,
+  easternDayKey,
 } from "@/lib/utils";
 import { trackUnitDisplay, unitText } from "@/lib/programs/unit-display";
 import { resolveTrackProgram } from "@/lib/programs/server";
@@ -18,10 +16,8 @@ import { CopyInviteLink } from "@/components/copy-invite-link";
 import { buttonClass } from "@/components/ui";
 import { getTrackProgressMap } from "@/app/dashboard/track/actions";
 import { addDays } from "@/lib/ical";
-import { meetingDaysLabel, breakWeekLabel } from "@/lib/course-summary";
-import { type CalendarEvent } from "@/components/track-calendar";
-import { CourseCalendarPanel } from "@/components/course-calendar-panel";
-import { SessionList, type SessionRow } from "@/components/session-list";
+import { meetingDaysLabel } from "@/lib/course-summary";
+import { CourseAgenda, type AgendaRow } from "@/components/course-agenda";
 import type { TrackConfig } from "@/lib/programs/types";
 import { getAllSessionContent } from "@/app/dashboard/admin/actions-tracks";
 import { isSequentialGated, highestUnlockedWeek } from "@/lib/track-gating";
@@ -30,6 +26,8 @@ import { getLearnerProgress } from "@/lib/learner-progress";
 import { getWhatsNew, type FeedItem } from "@/lib/whats-new";
 import { HoldingView } from "@/components/holding-view";
 import { PreStartBanner } from "@/components/pre-start-banner";
+import { NextUpPanel } from "@/components/next-up-panel";
+import { touchpointCandidates, resolveTouchpoint } from "@/lib/course-touchpoint";
 import { getLandingHeroForTrack } from "@/lib/landing-pages";
 import { getEnforcedOnboardingChecklist, getOnboardingStatus } from "@/lib/onboarding/checklists";
 import { OnboardingChecklist } from "@/components/onboarding-checklist";
@@ -183,39 +181,21 @@ export default async function TrackOverviewPage({
   const unit = track.unitLabel || "Week";
   const unitLower = unit.toLowerCase();
   // Extras (a kickoff) render by name and don't consume a number, so "Session 3"
-  // may live at internal week 4. `numbered` is what "Duration" should report.
+  // may live at internal week 4. `numbered` is the track length to report.
   const { display, numbered } = trackUnitDisplay(track);
-  // Single "Week N" — the old "Open current week — Week N" said "week" twice.
+  // Fallback CTA (course over, not yet certified) — reopen the current unit.
   const ctaLabel = `Open ${unitText(display, ctaWeek, unit)}`;
 
-  // Dated units know which weekdays a cohort meets, so say "Tue & Thu" rather
-  // than the abstract "2×/week". Extras are excluded: a Monday kickoff doesn't
-  // make Security+ a Mon/Tue/Thu course.
+  // Weekdays the cohort meets, read off its dated units. Extras are excluded:
+  // a Monday kickoff doesn't make Security+ a Mon/Tue/Thu course.
   const teachingUnits = track.weekSummaries.filter((ws) => !ws.label);
   const cadence = meetingDaysLabel(teachingUnits, unitLower, track.sessionsPerWeek);
 
-  const endDayKey = resolveTrackEndDayKey(track);
-  const dateRange =
-    !track.startDateTbd && endDayKey
-      ? `${formatCohortDate(track.startDate, { month: "short", day: "numeric" }, "en-US")} – ${formatCohortDate(endDayKey, { month: "short", day: "numeric" }, "en-US")}`
-      : null;
-
-  // One sentence where three fact tiles used to be.
-  const metaLine = [track.instructor, `${numbered} ${unitLower}s`, cadence, dateRange]
+  // Header carries who + how long; every date lives in the panel or the
+  // schedule below, never twice.
+  const metaLine = [track.instructor, `${numbered} ${unitLower}s`]
     .filter(Boolean)
     .join(" · ");
-
-  const ctaDateLabel = (() => {
-    const d = track.weekSummaries.find((ws) => ws.week === ctaWeek)?.date;
-    if (!d) return null;
-    const label = formatCohortDate(d, { weekday: "long", month: "long", day: "numeric" }, "en-US");
-    return unitDateHasArrived(d, now) ? `Today · ${label}` : label;
-  })();
-
-  // The calendar's whole value in a line, so the month grid can stay collapsed.
-  const breakWeek = breakWeekLabel(track.weekSummaries);
-  const calendarSummary = `${numbered} ${unitLower}s, ${cadence}${breakWeek ? ` · no class ${breakWeek}` : ""}`;
-
 
   // Track-level description if authored, else fall back to week 1's
   // description (every track has one written and it's already framing copy).
@@ -243,53 +223,16 @@ export default async function TrackOverviewPage({
     if (row.title) titleByWeek.set(row.week_number, row.title);
   }
 
-  const sessionRows: SessionRow[] = track.weekSummaries.map((ws) => {
-    const isCurrent = started && ws.week === currentWeek;
-    const isPast = started && ws.week < currentWeek;
-    const weekConfig = track.weeks.find((w) => w.week === ws.week);
-    const comingSoonUntil = weekConfig?.comingSoonUntil;
-    // Admins bypass (mirrors the week page guard) so instructors can prep
-    // future sessions from the overview too.
-    const comingSoonLocked =
-      !isAdminViewer && !!comingSoonUntil && now < new Date(comingSoonUntil);
-    const sequentialLocked = gated && ws.week > unlockedThrough;
-    const isLocked = preStart || comingSoonLocked || sequentialLocked;
-    // Before the course starts every unit is shut, but each one knows its own
-    // date — say it, so the lock reads as a schedule and not as a failure.
-    const lockedLabel = preStart
-      ? `Opens ${formatCohortDate(ws.date ?? track.startDate, { weekday: "short", month: "short", day: "numeric" }, "en-US")}`
-      : comingSoonLocked
-        ? "Coming soon"
-        : sequentialLocked
-          ? "Locked"
-          : null;
-    return {
-      week: ws.week,
-      label: unitText(display, ws.week, unit),
-      title: titleByWeek.get(ws.week) ?? ws.topic,
-      dateLabel: ws.date
-        ? formatCohortDate(ws.date, { weekday: "short", month: "short", day: "numeric" }, "en-US")
-        : "",
-      href: isLocked ? null : `/dashboard/track/${slug}/${ws.week}`,
-      isCurrent,
-      isPast,
-      lockedLabel,
-    };
-  });
-
-  // Self-paced courses have no fixed weekly schedule, so a ticking "Week N of M"
-  // is misleading — show "Self-paced · N weeks" instead. Otherwise lead with the
-  // live week (once started) then the track length.
-  // An extra (kickoff) has no number, so it can't read "Kickoff of 16" — it
-  // announces itself by name and lets the track length follow.
+  // Eyebrow: session position once started, track length before. An extra
+  // (kickoff) has no number, so it announces itself by name.
   const currentDisplay = display.get(currentWeek);
   const eyebrow = track.selfPaced
     ? `Self-paced · ${numbered} ${unitLower}s`
-    : currentDisplay
-      ? currentDisplay.number
-        ? `${unit} ${currentDisplay.number} of ${numbered} · ${numbered}-${unitLower} track`
-        : `${currentDisplay.text} · ${numbered}-${unitLower} track`
-      : `${numbered}-${unitLower} track`;
+    : currentDisplay?.number
+      ? `${unit} ${currentDisplay.number} of ${numbered}`
+      : currentDisplay
+        ? currentDisplay.text
+        : `${numbered}-${unitLower} track`;
 
   // Engagement card for actual learners — single-course students land here
   // instead of the dashboard home, so this is where their streak lives. Scoped
@@ -325,44 +268,10 @@ export default async function TrackOverviewPage({
     }
   }
 
-  // ── Calendar ──────────────────────────────────────────────────────────────
-  // Month-grid calendar of the learner's whole schedule: this track's weekly
-  // sessions (dated from the syllabus) + its office-hours / MASS / speaker /
-  // event items, PLUS the same for every OTHER track the viewer is co-enrolled
-  // in — so a student taking Security+ and its MASS wraparound sees both sets
-  // of dates in one calendar. MASS-track sessions render in the "mass" color so
-  // they read distinctly from technical sessions.
-  const sessionType = (s: string): CalendarEvent["type"] =>
-    s === "mass" || s.startsWith("mass-") ? "mass" : "session";
-
-  const eventsForTrack = (
-    t: TrackConfig,
-    titles?: Map<number, string>,
-  ): CalendarEvent[] => [
-    ...(!t.startDateTbd && t.startDate
-      ? t.weekSummaries.map(
-          (ws): CalendarEvent => ({
-            date: ws.date ?? addDays(t.startDate, (ws.week - 1) * 7),
-            type: sessionType(t.slug),
-            title: titles?.get(ws.week) ?? ws.topic,
-            href: `/dashboard/track/${t.slug}/${ws.week}`,
-            time: ws.time ? formatCohortTime(ws.time) : undefined,
-          }),
-        )
-      : []),
-    ...(t.officeHours ?? []).map(
-      (item): CalendarEvent => ({
-        date: item.date,
-        type: item.type ?? "office-hours",
-        title: item.title,
-        time: item.time || undefined,
-      }),
-    ),
-  ];
-
-  // Other tracks this viewer is co-enrolled in. Their configs are already on
-  // `program.tracks` (Catalyst aggregates its DB tracks), so no extra fetch
-  // beyond the enrollment lookup.
+  // Other tracks this viewer is co-enrolled in (MASS wraps around Security+).
+  // Their configs are already on `program.tracks`, so no extra fetch beyond the
+  // enrollment lookup. Folded into BOTH the panel and the schedule so a
+  // Wednesday coaching session can't go invisible on a Tue/Thu course.
   let companionTracks: TrackConfig[] = [];
   if (ctx?.userId) {
     const { data: enrolled } = await createServiceClient()
@@ -377,11 +286,66 @@ export default async function TrackOverviewPage({
     companionTracks = program.tracks.filter((t) => otherSlugs.has(t.slug));
   }
 
-  const calendarEvents: CalendarEvent[] = [
-    ...eventsForTrack(track, titleByWeek),
-    ...companionTracks.flatMap((t) => eventsForTrack(t)),
+  // ── The panel: live / today / upcoming, across the course + its companions ──
+  const touchpoint = resolveTouchpoint(
+    [
+      ...touchpointCandidates(track, titleByWeek),
+      ...companionTracks.flatMap((t) => touchpointCandidates(t)),
+    ],
+    now,
+  );
+
+  // ── The schedule (one agenda) — every session, named, chronological ──
+  const isMassSlug = (s: string) => s === "mass" || s.startsWith("mass-");
+  const rowsForTrack = (
+    t: TrackConfig,
+    titles: Map<number, string> | undefined,
+    locked: (week: number) => boolean,
+  ): AgendaRow[] => {
+    if (t.startDateTbd || !t.startDate) return [];
+    const { display: disp } = trackUnitDisplay(t);
+    const u = t.unitLabel || "Week";
+    const mass = isMassSlug(t.slug);
+    const sessions = t.weekSummaries.map((ws): AgendaRow => {
+      const date = (ws.date ?? addDays(t.startDate, (ws.week - 1) * 7)).slice(0, 10);
+      return {
+        date,
+        label: mass ? "MASS" : unitText(disp, ws.week, u),
+        title: titles?.get(ws.week) ?? ws.topic,
+        href: locked(ws.week) ? undefined : `/dashboard/track/${t.slug}/${ws.week}`,
+        kind: mass ? "mass" : "session",
+        time: ws.time ? formatCohortTime(ws.time) : undefined,
+      };
+    });
+    const officeHours = (t.officeHours ?? []).map((item): AgendaRow => ({
+      date: item.date,
+      title: item.title,
+      // officeHours carry office-hours / speaker / event — never a session.
+      kind: !item.type || item.type === "office-hours" ? "office-hours" : "event",
+      time: item.time || undefined,
+    }));
+    return [...sessions, ...officeHours];
+  };
+
+  // Primary lock: before start everything's shut; after, honor comingSoon and
+  // sequential gating so the agenda can't jump a learner past a locked session
+  // (the week page would just bounce them back here).
+  const primaryLocked = (week: number): boolean => {
+    if (preStart) return true;
+    const wc = track.weeks.find((w) => w.week === week);
+    if (!isAdminViewer && wc?.comingSoonUntil && now < new Date(wc.comingSoonUntil)) return true;
+    if (gated && week > unlockedThrough) return true;
+    return false;
+  };
+
+  const agendaRows: AgendaRow[] = [
+    ...rowsForTrack(track, titleByWeek, primaryLocked),
+    ...companionTracks.flatMap((t) =>
+      rowsForTrack(t, undefined, () => !trackHasStarted(t, now)),
+    ),
   ];
-  const todayISO = now.toISOString().slice(0, 10);
+
+  const todayISO = easternDayKey(now);
 
   // The feed is a line, not a card: one item, the most recent.
   const latestNews = whatsNew[0] ?? null;
@@ -441,27 +405,19 @@ export default async function TrackOverviewPage({
         </p>
       </header>
 
-      {/* 2 — when it happens. Before day one that's the start; after, it's the
-         session to open next. */}
+      {/* 2 — the one thing to do now. Before day one that's the start + a way to
+         calendar it; once running, the live / today / next session. */}
       {preStart ? (
         <PreStartBanner track={track} />
+      ) : touchpoint ? (
+        <NextUpPanel touchpoint={touchpoint} />
       ) : (
         <Link
           href={`/dashboard/track/${slug}/${ctaWeek}`}
           className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-xl border border-rule border-l-[3px] border-l-primary bg-surface-elevated px-4 py-3.5 transition-colors hover:bg-paper-tint-soft"
         >
-          <span className="min-w-[190px] flex-1">
-            <span className="flex items-center gap-2 text-[14.5px] font-semibold leading-snug text-ink">
-              {started && (
-                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-highlight" aria-hidden />
-              )}
-              {ctaLabel}
-            </span>
-            {ctaDateLabel && (
-              <span className="mt-0.5 block text-xs tabular-nums text-ink-faint">
-                {ctaDateLabel}
-              </span>
-            )}
+          <span className="min-w-[190px] flex-1 text-[14.5px] font-semibold leading-snug text-ink">
+            {ctaLabel}
           </span>
           <span className={`${buttonClass("primary", "sm")} shrink-0`}>
             Open
@@ -488,20 +444,26 @@ export default async function TrackOverviewPage({
         </Link>
       )}
 
-      {/* 3 — what happens, in order. */}
-      <SessionList rows={sessionRows} unitLabelPlural={`${unitLower}s`} />
+      {/* 3 — the whole schedule, one named list. Replaced a session list and a
+         month grid that showed the same dates twice. */}
+      {agendaRows.length > 0 && (
+        <section>
+          <div className="flex items-baseline justify-between px-1">
+            <h2 className="text-[15px] font-semibold text-ink">Schedule</h2>
+            {cadence && <span className="text-[12px] text-ink-faint">{cadence}</span>}
+          </div>
+          <div className="mt-2">
+            <CourseAgenda
+              rows={agendaRows}
+              todayISO={todayISO}
+              focusDate={touchpoint?.date ?? null}
+            />
+          </div>
+        </section>
+      )}
 
       {/* Progress is meaningless before day one — a 0% bar is decoration. */}
       {started && learnerProgress && <MyProgressCard {...learnerProgress} />}
-
-      {/* 4 — the shape of the term, behind one line. */}
-      {calendarEvents.length > 0 && (
-        <CourseCalendarPanel
-          events={calendarEvents}
-          todayISO={todayISO}
-          summary={calendarSummary}
-        />
-      )}
 
       {overviewCopy && (
         <p className="border-t border-rule pt-4 text-[12.9px] leading-relaxed text-ink-faint whitespace-pre-wrap">
