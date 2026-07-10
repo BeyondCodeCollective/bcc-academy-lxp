@@ -4,7 +4,18 @@ import { createServiceClient } from "@/lib/supabase/server";
 // logging failure never breaks the request it's observing. Writes go through
 // the service client (RLS-exempt) since the table is service-only.
 
-export type ActivityEventType = "login" | "page_view" | "video_progress";
+export type ActivityEventType =
+  | "login"
+  | "page_view"
+  | "video_progress"
+  | "submission"
+  | "reflection"
+  // Agreements flow through survey_complete too — distinguish by
+  // metadata.surveyType, which carries the survey/agreement id.
+  | "survey_complete"
+  // Learner joined the live Zoom through the platform embed.
+  | "session_join"
+  | "certificate_issued";
 
 export async function logActivityEvent(e: {
   userId: string;
