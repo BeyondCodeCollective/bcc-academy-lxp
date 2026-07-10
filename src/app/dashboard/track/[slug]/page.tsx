@@ -170,7 +170,10 @@ export default async function TrackOverviewPage({
   // three always agree on which Day is current.
   const currentWeek = resolveCurrentUnit(track, now);
 
-  const ctaWeek = started ? currentWeek : 1;
+  // A dated track reports 0 until its first unit's date arrives in ET, even
+  // once `started` (which trips at midnight UTC — the prior evening here).
+  // Never link to unit 0; there is no such page.
+  const ctaWeek = currentWeek > 0 ? currentWeek : 1;
   // Per-track unit label ("Week" default, "Day" for a bootcamp, …).
   const unit = track.unitLabel || "Week";
   const unitLower = unit.toLowerCase();
@@ -239,10 +242,10 @@ export default async function TrackOverviewPage({
   const currentDisplay = display.get(currentWeek);
   const eyebrow = track.selfPaced
     ? `Self-paced · ${numbered} ${unitLower}s`
-    : started
-      ? currentDisplay?.number
+    : currentDisplay
+      ? currentDisplay.number
         ? `${unit} ${currentDisplay.number} of ${numbered} · ${numbered}-${unitLower} track`
-        : `${currentDisplay?.text ?? unit} · ${numbered}-${unitLower} track`
+        : `${currentDisplay.text} · ${numbered}-${unitLower} track`
       : `${numbered}-${unitLower} track`;
 
   // Engagement card for actual learners — single-course students land here

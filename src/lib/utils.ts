@@ -1,6 +1,35 @@
 import type { TrackConfig } from "@/lib/programs/types";
 
 /**
+ * The cohort-local calendar day for `at`, as `YYYY-MM-DD`.
+ *
+ * Every BCC cohort runs on US Eastern. A bare `YYYY-MM-DD` in a syllabus
+ * parses as midnight *UTC* — 8pm ET the evening before — so comparing it to a
+ * Date directly makes a session "happen" the night before it does. Compare
+ * Eastern day keys instead; ISO dates sort lexicographically, and Intl handles
+ * the EST/EDT switch.
+ *
+ * (`WeekConfig.comingSoonUntil` deliberately keeps its documented midnight-UTC
+ * semantics — it's an unlock moment, not a session date.)
+ */
+export const COHORT_TIME_ZONE = "America/New_York";
+
+export function easternDayKey(at: Date): string {
+  // en-CA formats as YYYY-MM-DD.
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: COHORT_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(at);
+}
+
+/** True once `date` (a bare YYYY-MM-DD, or an ISO timestamp) has arrived in ET. */
+export function unitDateHasArrived(date: string, at: Date): boolean {
+  return date.slice(0, 10) <= easternDayKey(at);
+}
+
+/**
  * Compute the current week number (1-based) from a cohort start date.
  * Returns a value clamped between 1 and totalWeeks.
  *
@@ -42,21 +71,24 @@ export function computeCurrentWeek(
 export function resolveCurrentUnit(track: TrackConfig, now: Date = new Date()): number {
   const started = !track.startDateTbd && now >= new Date(track.startDate);
   // A syllabus that dates its units (Security+ meets Tue/Thu and skips a week)
-  // is authoritative: the current unit is the last one whose date has passed.
-  // The 7-day cycle can't express that cadence, so don't let it vote.
-  const dateScheduledThrough = track.startDateTbd
-    ? 0
-    : Math.max(
+  // is authoritative: the current unit is the last one whose date has arrived
+  // in the cohort's timezone. The 7-day cycle can't express that cadence, so
+  // don't let it vote — including before the first unit, where falling back
+  // would report unit 1 from the evening before (startDate is midnight UTC).
+  const hasUnitDates = !track.startDateTbd && track.weekSummaries.some((ws) => ws.date);
+  const dateScheduledThrough = hasUnitDates
+    ? Math.max(
         0,
         ...track.weekSummaries
-          .filter((ws) => ws.date && now >= new Date(ws.date))
+          .filter((ws) => ws.date && unitDateHasArrived(ws.date, now))
           .map((ws) => ws.week),
-      );
+      )
+    : 0;
   const computed = track.selfPaced
     ? started
       ? 1
       : 0
-    : dateScheduledThrough > 0
+    : hasUnitDates
       ? dateScheduledThrough
       : started
         ? computeCurrentWeek(track.startDate, track.totalWeeks, track.lastSessionDayOffset)
