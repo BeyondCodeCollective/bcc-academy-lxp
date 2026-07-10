@@ -8,6 +8,7 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import type { TrackConfig } from "@/lib/programs/types";
 import { buildGoogleCalendarUrl } from "@/lib/gcal";
+import { COHORT_TIME_ZONE } from "@/lib/utils";
 import { LaunchCountdown } from "@/components/launch-countdown";
 
 // In-portal holding page shown to a registered learner before their course
@@ -36,9 +37,18 @@ export function HoldingView({
     : null;
 
   const calDetails = `Your spot for ${track.name}. We'll see you there!`;
-  // Live events carry their exact first-session time (kickoffTimeUtc); the
-  // date-derived fallbacks are arbitrary and only acceptable for self-paced.
+  // The exact first-session instant, when the cohort has one.
   const kickoffIso = track.kickoffTimeUtc ?? null;
+  // "6:30 PM EDT" — cohorts run on US Eastern; show the time in their timezone,
+  // not the viewer's, so nobody has to convert.
+  const kickoffTimeLabel = kickoffIso
+    ? new Date(kickoffIso).toLocaleTimeString("en-US", {
+        timeZone: COHORT_TIME_ZONE,
+        hour: "numeric",
+        minute: "2-digit",
+        timeZoneName: "short",
+      })
+    : null;
   const googleCalUrl = hasDate
     ? buildGoogleCalendarUrl({
         title: track.name,
@@ -53,14 +63,18 @@ export function HoldingView({
           : {}),
       })
     : null;
-  const icsUrl = hasDate
-    ? `/api/calendar/event?` +
-      new URLSearchParams({
-        title: track.name,
-        start: kickoffIso ?? `${startDate}T09:00:00Z`,
-        details: calDetails,
-      }).toString()
-    : null;
+  // The .ics route has no all-day mode — it needs an instant. Without a real
+  // kickoff time we'd be inventing one (the old fallback said 09:00Z, i.e. 5am
+  // ET), so offer only the Google link, which degrades to an all-day event.
+  const icsUrl =
+    hasDate && kickoffIso
+      ? `/api/calendar/event?` +
+        new URLSearchParams({
+          title: track.name,
+          start: kickoffIso,
+          details: calDetails,
+        }).toString()
+      : null;
 
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-3xl px-4 sm:px-5 py-8 space-y-6">
@@ -105,6 +119,7 @@ export function HoldingView({
           {launchLabel && (
             <p className="mt-2 text-sm font-medium text-white/85 sm:text-base">
               Your seat is saved · kicks off {launchLabel}
+              {kickoffTimeLabel ? ` · ${kickoffTimeLabel}` : ""}
             </p>
           )}
         </div>
