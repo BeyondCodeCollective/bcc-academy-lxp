@@ -229,3 +229,118 @@ export async function updateCourseAction(
   revalidateCourseSurfaces(trackSlug);
   return { success: true };
 }
+
+export type ApplyScheduleResult =
+  | { success: true; summary: string }
+  | { success: false; error: string };
+
+/**
+ * Stamp a weekly meeting schedule onto a course: every numbered unit gets a
+ * date (7 days apart from the first session), a start time (ET wall clock),
+ * and a duration. This is what makes the course calendar, the .ics feed, and
+ * the "Today / Live now · Join" panel real for a DB-built course — until now
+ * these fields could only be set by SQL (Security+ and Tech & AI were both
+ * loaded by hand).
+ *
+ * Labeled extras (a kickoff) keep whatever date they already have — their
+ * timing is deliberate, not derived. Session-modeled multi-meeting courses
+ * (unit "Session", >1/week) are rejected: their units aren't 7 days apart,
+ * so a weekly stamp would write wrong dates for every other session.
+ */
+export async function applyWeeklyScheduleAction(
+  programSlug: string,
+  trackSlug: string,
+  formData: { firstDate: string; time: string; durationMinutes: number },
+): Promise<ApplyScheduleResult> {
+  const svc = await requireSuperAdmin();
+  const { firstDate, time, durationMinutes } = formData;
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(firstDate))
+    return { success: false, error: "Pick the first session's date." };
+  if (!/^\d{2}:\d{2}$/.test(time))
+    return { success: false, error: "Pick a start time." };
+  if (!Number.isInteger(durationMinutes) || durationMinutes < 5 || durationMinutes > 600)
+    return { success: false, error: "Duration must be 5–600 minutes." };
+
+  const { data: programRow } = await svc
+    .from("programs")
+    .select("id")
+    .eq("slug", programSlug)
+    .single<{ id: string }>();
+  if (!programRow) return { success: false, error: "Could not find that program." };
+
+  const { data: row } = await svc
+    .from("track_overrides")
+    .select("week_summaries, total_weeks, unit_label, sessions_per_week")
+    .eq("program_id", programRow.id)
+    .eq("track_slug", trackSlug)
+    .maybeSingle<{
+      week_summaries:
+        | { week: number; topic: string; icon: string; date?: string; label?: string; time?: string; durationMinutes?: number }[]
+        | null;
+      total_weeks: number | null;
+      unit_label: string | null;
+      sessions_per_week: number | null;
+    }>();
+  if (!row) return { success: false, error: "Save the course once before setting its schedule." };
+
+  if (row.unit_label === "Session" && (row.sessions_per_week ?? 1) > 1) {
+    return {
+      success: false,
+      error:
+        "This course meets more than once a week, so its sessions aren't 7 days apart — set per-session dates individually instead.",
+    };
+  }
+
+  const totalWeeks = row.total_weeks ?? 8;
+  const existing = row.week_summaries ?? [];
+  const entries =
+    existing.length > 0
+      ? [...existing].sort((a, b) => a.week - b.week)
+      : Array.from({ length: totalWeeks }, (_, i) => ({
+          week: i + 1,
+          topic: `Week ${i + 1}`,
+          icon: "📅",
+        }));
+
+  // Anchor at noon UTC so date math never slips a calendar day.
+  const first = new Date(`${firstDate}T12:00:00Z`);
+  let n = 0;
+  const stamped = entries.map((e) => {
+    if ("label" in e && e.label) return e; // extras keep their own timing
+    const d = new Date(first.getTime() + n * 7 * 86_400_000);
+    n += 1;
+    return { ...e, date: d.toISOString().slice(0, 10), time, durationMinutes };
+  });
+
+  // "Wednesdays 3:00–3:30 PM ET" — derived, so the meta line can't drift
+  // from the actual schedule.
+  const weekday = first.toLocaleDateString("en-US", { weekday: "long", timeZone: "UTC" });
+  const [h, m] = time.split(":").map(Number);
+  const fmt = (mins: number) => {
+    const hh = Math.floor(mins / 60) % 24;
+    const mm = mins % 60;
+    const h12 = hh % 12 === 0 ? 12 : hh % 12;
+    return `${h12}:${String(mm).padStart(2, "0")} ${hh >= 12 ? "PM" : "AM"}`;
+  };
+  const startMins = h * 60 + m;
+  const label = `${weekday}s ${fmt(startMins)}–${fmt(startMins + durationMinutes)} ET`;
+
+  const { error } = await svc
+    .from("track_overrides")
+    .update({
+      start_date: firstDate,
+      week_summaries: stamped,
+      session_times: [label],
+    })
+    .eq("program_id", programRow.id)
+    .eq("track_slug", trackSlug);
+
+  if (error) {
+    console.error("[applyWeeklyScheduleAction] failed:", error);
+    return { success: false, error: "Failed to save the schedule." };
+  }
+
+  revalidateCourseSurfaces(trackSlug);
+  return { success: true, summary: label };
+}
