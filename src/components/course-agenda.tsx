@@ -14,6 +14,8 @@ export type AgendaRow = {
   kind: "session" | "mass" | "office-hours" | "event";
   /** "6:30 PM ET" */
   time?: string;
+  /** "HH:MM" raw wall clock — orders same-day events; undefined sorts last. */
+  sortTime?: string;
 };
 
 // A filled cobalt dot reads as "your course"; a hollow ring as "around it"
@@ -55,7 +57,11 @@ export function CourseAgenda({
   /** the live / next session, from the panel — gets the accent */
   focusDate?: string | null;
 }) {
-  const sorted = [...rows].sort((a, b) => a.date.localeCompare(b.date));
+  const sorted = [...rows].sort(
+    (a, b) =>
+      a.date.localeCompare(b.date) ||
+      (a.sortTime ?? "99:99").localeCompare(b.sortTime ?? "99:99"),
+  );
   if (sorted.length === 0) return null;
 
   const items: React.ReactNode[] = [];
