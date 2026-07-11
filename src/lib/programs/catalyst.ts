@@ -44,7 +44,7 @@ export const catalystConfig: ProgramConfig = {
       // pre-survey. Game On registrants skip this. comptia-security learners take
       // the pre-survey as an item inside their acceptance checklist, so it must
       // not force-redirect them away from that checklist on login.
-      skipForTracks: ["game-on", "comptia-security"],
+      skipForTracks: ["game-on", "comptia-security", "tech-and-ai-hangout"],
       organization: "Beyond Code Centers",
     },
     {
@@ -55,7 +55,7 @@ export const catalystConfig: ProgramConfig = {
       required: false,
       // Same opt-outs as the pre-survey: these cohorts aren't AI Fundamentals,
       // so neither their students nor their instructors should see it.
-      skipForTracks: ["game-on", "comptia-security"],
+      skipForTracks: ["game-on", "comptia-security", "tech-and-ai-hangout"],
       organization: "Beyond Code Centers",
     },
   ],

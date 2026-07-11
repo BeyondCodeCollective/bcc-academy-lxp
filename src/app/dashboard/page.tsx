@@ -20,6 +20,7 @@ import { resolveCurrentUser } from "@/lib/current-user";
 import { getEnrolledTracks, collapseCompanionSlugs } from "@/lib/enrollment";
 import { WeekIcon } from "@/components/week-icon";
 import { DashboardBento } from "@/components/dashboard-bento";
+import { isTutorAvailable } from "@/lib/programs";
 import { MyProgressCard, type MyProgressCardProps } from "@/components/my-progress-card";
 import { getLearnerProgress } from "@/lib/learner-progress";
 import { PageHeader } from "@/components/page-header";
@@ -612,6 +613,7 @@ async function DashboardContent({
           tracks={bentoTracks}
           otherCourses={bentoOtherCourses}
           programName={program.name}
+          showTutor={isTutorAvailable(program)}
         />
       ) : (
         trackStates.filter(({ track }) => track.type !== "single-event").length > 0 && (
