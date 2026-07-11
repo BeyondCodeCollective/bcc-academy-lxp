@@ -7,6 +7,8 @@ type TrackTile = {
   slug: string;
   name: string;
   instructor: string;
+  /** "Tue & Thu · 6:30–9:30 PM ET" — when the course meets. */
+  schedule?: string;
   /** Units a learner is graded on — excludes extras like a kickoff. */
   numberedUnits: number;
   /** Singular, lowercased for prose: "session", "week", "day". */
@@ -70,6 +72,7 @@ export function DashboardBento({
                 program={programName}
                 name={t.name}
                 instructor={t.instructor}
+                schedule={t.schedule}
                 progress={{
                   label: t.started
                     ? `${done} of ${t.numberedUnits} complete`
@@ -111,6 +114,7 @@ function CourseCard({
   program,
   name,
   instructor,
+  schedule,
   progress,
   action,
 }: {
@@ -118,6 +122,8 @@ function CourseCard({
   program: string;
   name: string;
   instructor: string;
+  /** "Tue & Thu · 6:30–9:30 PM ET" — the first thing a student wants. */
+  schedule?: string;
   progress?: { label: string; pct: number };
   action: string;
 }) {
@@ -130,6 +136,9 @@ function CourseCard({
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">{program}</p>
         <p className="mt-1 text-base font-bold tracking-[-0.01em] text-ink">{name}</p>
         {instructor && <p className="mt-0.5 text-xs text-ink-soft">with {instructor}</p>}
+        {schedule && (
+          <p className="mt-1.5 text-xs font-medium tabular-nums text-ink">{schedule}</p>
+        )}
       </div>
       <div>
         <div className="flex items-baseline justify-between text-xs font-semibold text-ink-faint">

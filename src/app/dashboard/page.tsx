@@ -521,6 +521,9 @@ async function DashboardContent({
       slug: track.slug,
       name: track.name,
       instructor: track.instructor,
+      // When it meets — session_times is kept current by the admin schedule
+      // editor, which derives it from the applied dates/times.
+      schedule: track.sessionTimes?.[0],
       // Speak the track's own units. Security+ is 17 internal units — a kickoff
       // plus 16 sessions — and the learner is only ever told about the 16.
       numberedUnits: numberedUnitCount(track.weekSummaries, track.totalWeeks),
