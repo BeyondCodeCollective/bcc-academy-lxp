@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { type ComponentType } from "react";
 import { ArrowRight, ChatCircle, BookOpen } from "@phosphor-icons/react/dist/ssr";
-import { TUTOR_DISABLED_PRELAUNCH } from "@/lib/programs";
+
 
 type TrackTile = {
   slug: string;
@@ -36,10 +36,15 @@ export function DashboardBento({
   tracks,
   otherCourses,
   programName,
+  showTutor = false,
 }: {
   tracks: TrackTile[];
   otherCourses: OtherCourse[];
   programName: string;
+  /** Whether THIS program's tutor is enabled (isTutorAvailable) — the tile
+   *  used to check only the global prelaunch flag, advertising a tutor to
+   *  programs that don't have one. */
+  showTutor?: boolean;
 }) {
   if (tracks.length === 0 && otherCourses.length === 0) return null;
 
@@ -89,14 +94,14 @@ export function DashboardBento({
         </div>
       </section>
 
-      {/* Utilities, demoted below a rule. Hidden while the AI Tutor is disabled
-          pre-launch — the links would otherwise 404 / show a coming-soon page. */}
-      {!TUTOR_DISABLED_PRELAUNCH && (
-        <div className="mt-14 grid gap-3 border-t border-rule pt-6 sm:grid-cols-2 sm:gap-4">
+      {/* Utilities, demoted below a rule. The tutor tile follows the
+          program's own tutor flag — same gate as the sidebar and fab. */}
+      <div className="mt-14 grid gap-3 border-t border-rule pt-6 sm:grid-cols-2 sm:gap-4">
+        {showTutor && (
           <QuickLink href="/dashboard/tutor" label="AI Tutor" sub="Ask anything, anytime" Icon={ChatCircle} />
-          <QuickLink href="/dashboard/resources" label="Resources" sub="Materials & contacts" Icon={BookOpen} />
-        </div>
-      )}
+        )}
+        <QuickLink href="/dashboard/resources" label="Resources" sub="Materials & contacts" Icon={BookOpen} />
+      </div>
     </div>
   );
 }
