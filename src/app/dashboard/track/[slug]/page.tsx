@@ -345,6 +345,7 @@ export default async function TrackOverviewPage({
           : `/dashboard/track/${t.slug}/${ws.week}`,
         kind: mass ? "mass" : "session",
         time: ws.time ? formatCohortTime(ws.time) : undefined,
+        sortTime: ws.time,
       };
     });
     const officeHours = (t.officeHours ?? []).map((item): AgendaRow => ({
@@ -374,12 +375,18 @@ export default async function TrackOverviewPage({
     return false;
   };
 
+  // Chronological within a day (6:00 PM Hangout above 6:30 PM MASS) — the
+  // month grid renders a day's chips in array order, so order the source.
   const agendaRows: AgendaRow[] = [
     ...rowsForTrack(track, titleByWeek, primaryLocked),
     ...companionTracks.flatMap((t) =>
       rowsForTrack(t, undefined, () => !trackHasStarted(t, now)),
     ),
-  ];
+  ].sort(
+    (a, b) =>
+      a.date.localeCompare(b.date) ||
+      (a.sortTime ?? "99:99").localeCompare(b.sortTime ?? "99:99"),
+  );
 
   const todayISO = easternDayKey(now);
 
