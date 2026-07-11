@@ -316,15 +316,30 @@ export default async function TrackOverviewPage({
     const { display: disp } = trackUnitDisplay(t);
     const u = t.unitLabel || "Week";
     const mass = isMassSlug(t.slug);
+    // Rows from a co-enrolled course carry that COURSE's name, not its unit
+    // numbering — "Week 1: Week 1" on the Security+ calendar identifies
+    // nothing; "Tech and AI Hangout" does. (MASS keeps its own label.)
+    const own = t.slug === slug;
     const sessions = t.weekSummaries.map((ws): AgendaRow => {
       const date = (ws.date ?? addDays(t.startDate, (ws.week - 1) * 7)).slice(
         0,
         10,
       );
+      const unitLabel = unitText(disp, ws.week, u);
+      const topic = titles?.get(ws.week) ?? ws.topic;
+      // An untitled unit's topic is its own label ("Week 1") — saying it
+      // twice is noise everywhere it renders.
+      const placeholder = topic === unitLabel;
+      const label = mass ? "MASS" : own ? (placeholder ? undefined : unitLabel) : undefined;
+      const title = mass || own
+        ? topic
+        : placeholder
+          ? t.shortName
+          : `${t.shortName} · ${topic}`;
       return {
         date,
-        label: mass ? "MASS" : unitText(disp, ws.week, u),
-        title: titles?.get(ws.week) ?? ws.topic,
+        label,
+        title,
         href: locked(ws.week)
           ? undefined
           : `/dashboard/track/${t.slug}/${ws.week}`,
