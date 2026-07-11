@@ -30,6 +30,11 @@ export default async function EditCoursePage({
   const track = program.tracks.find((t) => t.slug === slug);
   if (!track) redirect("/dashboard/admin/programs");
 
+  // Pre-fill the schedule from the first dated numbered unit, if one exists.
+  const firstDated = [...track.weekSummaries]
+    .sort((a, b) => a.week - b.week)
+    .find((ws) => !ws.label && ws.date);
+
   return (
     <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8 space-y-6">
       <div>
@@ -48,6 +53,9 @@ export default async function EditCoursePage({
           initialTotalWeeks={track.totalWeeks}
           initialSessionsPerWeek={track.sessionsPerWeek}
           initialPhase={track.phase ?? "core"}
+          initialFirstDate={firstDated?.date ?? ""}
+          initialTime={firstDated?.time ?? ""}
+          initialDuration={firstDated?.durationMinutes ? String(firstDated.durationMinutes) : ""}
         />
       </div>
     </div>
