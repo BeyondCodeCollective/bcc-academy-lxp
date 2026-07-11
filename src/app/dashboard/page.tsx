@@ -400,7 +400,15 @@ async function DashboardContent({
   }
 
   const now = new Date();
-  const trackStates = visibleTracks.map((track) => {
+  // Card list ≠ redirect list. The COLLAPSED set above decides whether this
+  // page renders at all (Security+ alone must still skip it — MASS doesn't
+  // make someone "multi-course"). But once the home does render, every
+  // enrolled course gets a card, wraparound included — Fonz's call
+  // (2026-07-10): a hidden MASS just reads as missing.
+  const cardTracks = isAdmin
+    ? visibleTracks
+    : program.tracks.filter((t) => enrolledSet.has(t.slug));
+  const trackStates = cardTracks.map((track) => {
     const started = trackHasStarted(track, now);
     const currentWeek = track.selfPaced
       ? started ? 1 : 0
