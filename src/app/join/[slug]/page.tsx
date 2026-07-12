@@ -4,6 +4,18 @@ import { getJoinablePrograms, getProgramBySlug, getTrackBySlug, getHomeProgramFo
 import type { ProgramConfig } from "@/lib/programs";
 import { fetchDynamicProgram, getProgramWithOverrides } from "@/lib/programs/server";
 import { JoinForm } from "./join-form";
+import type { Metadata } from "next";
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const program = getJoinablePrograms().find((p) => p.slug === slug);
+  const name = program?.name ?? slug;
+  return {
+    title: `Join ${name} — BCC Academy`,
+    description: `Enroll in ${name} at BCC Academy. Start your learning journey today.`,
+    openGraph: { title: `Join ${name}`, description: `Enroll in ${name} at BCC Academy.` },
+  };
+}
 
 // Deploy the join page (and its server actions) to both Frankfurt and
 // US-East. Vercel routes each request to the nearest region, so users in

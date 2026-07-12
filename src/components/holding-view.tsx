@@ -84,7 +84,7 @@ export function HoldingView({
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={heroImageUrl}
-            alt=""
+            alt={`${track.name} course hero image`}
             className="absolute inset-0 h-full w-full object-cover object-center"
           />
         ) : (

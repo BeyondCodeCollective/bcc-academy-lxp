@@ -22,6 +22,8 @@ export async function generateMetadata({ params }: PathwayPageProps) {
     return {
       title: `${career.name} — Career Pathway — BCC Academy`,
       description: career.description,
+      openGraph: { title: `${career.name} — Career Pathway`, description: career.description },
+      twitter: { title: `${career.name} — Career Pathway`, description: career.description },
     };
   }
   const pathway = pathways.find((p) => p.id === slug);
@@ -30,6 +32,8 @@ export async function generateMetadata({ params }: PathwayPageProps) {
   return {
     title: `${pathway.name} (${pathway.stage}) — BCC Academy`,
     description: pathway.description,
+    openGraph: { title: `${pathway.name} — BCC Academy`, description: pathway.description },
+    twitter: { title: `${pathway.name} — BCC Academy`, description: pathway.description },
   };
 }
 

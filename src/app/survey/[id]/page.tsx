@@ -24,6 +24,23 @@ import { PublicPostSurvey } from "./public-post-survey";
 
 export const dynamic = "force-dynamic";
 
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const titles: Record<string, string> = {
+    "bcc-learner-intake": "Learner Intake Survey",
+    "bcc-workshop": "Workshop Feedback",
+    "network-plus-post": "CompTIA Network+ End-of-Cohort Survey",
+    "pre-survey-spring-2026": "Pre-Program Survey",
+    "post-survey-spring-2026": "Post-Program Survey",
+  };
+  const title = titles[id] ?? "Survey";
+  return {
+    title: `${title} — BCC Academy`,
+    description: `Complete the ${title.toLowerCase()} for BCC Academy.`,
+    openGraph: { title: `${title} — BCC Academy`, description: `Complete the ${title.toLowerCase()}.` },
+  };
+}
+
 type SurveyProps = { surveyId: string; programSlug: string };
 
 const SURVEY_COMPONENTS: Record<string, ComponentType<SurveyProps>> = {
