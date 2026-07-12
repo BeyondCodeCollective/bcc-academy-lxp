@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { getSessionContext } from "@/lib/auth/session";
 import { canSwitchPrograms } from "@/lib/roles";
 import { createServiceClient } from "@/lib/supabase/server";
@@ -117,7 +118,7 @@ export default async function FeaturesPage() {
           Program features
         </h2>
         <div className="divide-y divide-rule overflow-hidden panel">
-          <a
+          <Link
             href="/dashboard/admin/assessments"
             className="group flex items-center justify-between gap-4 px-4 py-3.5 hover:bg-paper-tint-soft transition-colors"
           >
@@ -133,7 +134,7 @@ export default async function FeaturesPage() {
               )}
               <span className="text-ink-faint group-hover:text-ink-soft transition-colors">→</span>
             </span>
-          </a>
+          </Link>
         </div>
 
         <div className="mt-2">

@@ -636,7 +636,7 @@ function ResultsScreen({
             [ What&rsquo;s Next ]
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <a
+            <Link
               href="/join/atg"
               className="group flex flex-col gap-2 p-4 bg-cobalt text-white hover:bg-dark-cobalt transition-colors"
             >
@@ -644,8 +644,8 @@ function ResultsScreen({
               <span className="font-bold text-sm">Beyond the Game</span>
               <span className="text-xs text-white/70 leading-snug">Tech careers for athletes in transition</span>
               <span className="mt-auto text-xs font-bold text-electric-green group-hover:underline">Apply →</span>
-            </a>
-            <a
+            </Link>
+            <Link
               href="/survey/pre-survey-spring-2026"
               className="group flex flex-col gap-2 p-4 bg-true-black text-white hover:bg-cobalt transition-colors"
             >
@@ -653,8 +653,8 @@ function ResultsScreen({
               <span className="font-bold text-sm">Beyond Code Centers</span>
               <span className="text-xs text-white/70 leading-snug">Human-led learning in a hub near you</span>
               <span className="mt-auto text-xs font-bold text-electric-green group-hover:underline">Apply →</span>
-            </a>
-            <a
+            </Link>
+            <Link
               href="/#hubs"
               className="group flex flex-col gap-2 p-4 border-2 border-true-black/10 hover:border-cobalt/40 transition-colors"
             >
@@ -662,7 +662,7 @@ function ResultsScreen({
               <span className="font-bold text-sm text-black">Find a Hub Near You</span>
               <span className="text-xs text-gray-400 leading-snug">See if there&rsquo;s a hub in your city</span>
               <span className="mt-auto text-xs font-bold text-cobalt group-hover:underline">Find a Hub →</span>
-            </a>
+            </Link>
           </div>
         </motion.div>
 

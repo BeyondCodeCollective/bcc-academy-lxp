@@ -48,13 +48,10 @@ export const metadata: Metadata = {
     type: "website",
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "Beyond Code Collective",
     description:
       "A community-based learning and workforce ecosystem for ages 7 to 77. Where everyone builds together.",
-  },
-  alternates: {
-    canonical: "https://bccacademy.io",
   },
 };
 

@@ -348,10 +348,7 @@ export default async function AdminPage({
     // AND only when on the insights tab. Previously fired on every admin nav
     // (~10 extra queries cross-program); now skipped unless ?tab=insights.
     if (needsInsightsData && !canViewInsights(userRole)) {
-      // Diagnostic: a user landed on ?tab=insights without insights access.
-      // Captures the actual role string we resolved so we can tell a legitimate
-      // instructor hit from a role-lookup mismatch.
-      console.warn("[admin/insights] skipping fetch — role=%s, userId=%s", userRole, userId);
+      // Intentionally silent — admin loaded without insights access; skip fetch.
     }
     if (canViewInsights(userRole) && needsInsightsData) {
       // Scope Survey Insights to the CURRENT program for everyone (incl.

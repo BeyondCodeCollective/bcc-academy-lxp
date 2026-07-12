@@ -718,12 +718,12 @@ export function Nav({
       {variant === "student-sidebar" && showLunchLearnLink && (
         <div className="flex flex-col gap-1">
           <div className="my-1 h-px bg-rule" aria-hidden />
-          <a
+          <Link
             href="/dashboard/lunch-learn"
             className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-ink-soft hover:bg-paper-tint hover:text-ink transition-colors"
           >
             <span>Lunch &amp; Learns</span>
-          </a>
+          </Link>
         </div>
       )}
 
