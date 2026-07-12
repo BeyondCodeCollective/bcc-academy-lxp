@@ -45,7 +45,10 @@ export default async function AdminPage({
   searchParams: Promise<{ tab?: string; view?: string }>;
 }) {
   const { tab: initialTab, view: initialTrackView } = await searchParams;
-  const program = await getProgram();
+  const [program, ctx] = await Promise.all([
+    getProgram(),
+    isSupabaseConfigured() ? getSessionContext() : Promise.resolve(null),
+  ]);
 
   // Tab-gated data fetching. The admin page re-renders on every ?tab=
   // change, so we only pay the cost for queries the active tab actually
@@ -97,11 +100,9 @@ export default async function AdminPage({
   ];
   const engagementScores: Record<string, { total: number; attendance: number; submissions: number; reflections: number; tutorMessages: number }> = {};
 
-  if (isSupabaseConfigured()) {
-    // Reuse the React-cached session context resolved by the layout — avoids
-    // a duplicate students.select("role") query on every admin page render.
-    const ctx = await getSessionContext();
-    if (!ctx) redirect("/");
+  if (isSupabaseConfigured() && !ctx) redirect("/");
+  if (isSupabaseConfigured() && ctx) {
+    // Session context resolved in parallel with getProgram() above.
     const userId = ctx.userId;
     actorId = userId;
     userRole = ctx.student?.role ?? "student";

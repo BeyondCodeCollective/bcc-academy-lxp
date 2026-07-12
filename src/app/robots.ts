@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: "/",
       disallow: ["/dashboard", "/auth", "/api"],
     },
-    sitemap: "https://atg.bccacademy.io/sitemap.xml",
+    sitemap: "https://bccacademy.io/sitemap.xml",
   };
 }

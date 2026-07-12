@@ -32,7 +32,10 @@ export default async function TrackWeekPage({
   const { slug: trackSlug, week: weekStr } = await params;
   const weekNum = parseInt(weekStr, 10);
 
-  const resolved = await resolveTrackProgram(trackSlug);
+  const [resolved, gateCtx] = await Promise.all([
+    resolveTrackProgram(trackSlug),
+    getSessionContext(),
+  ]);
   if (!resolved) redirect("/dashboard");
   const { program, track } = resolved;
 
@@ -48,7 +51,6 @@ export default async function TrackWeekPage({
   // Curriculum lock: before launch, non-admins can't open lessons by direct URL
   // either — bounce them to the holding page (countdown). Mirrors the overview's
   // pre-start gate so registration never exposes content early.
-  const gateCtx = await getSessionContext();
   const gateIsAdmin = canAccessAdminPanel(gateCtx?.student?.role ?? "");
   // Enrollment gate: only an enrolled learner (or admin) can open this track's
   // lessons by URL — no peeking into a course you didn't join.

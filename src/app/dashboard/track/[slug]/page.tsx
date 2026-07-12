@@ -51,11 +51,12 @@ export default async function TrackOverviewPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const resolved = await resolveTrackProgram(slug);
+  const [resolved, ctx] = await Promise.all([
+    resolveTrackProgram(slug),
+    getSessionContext(),
+  ]);
   if (!resolved) redirect("/dashboard");
   const { program, track } = resolved;
-
-  const ctx = await getSessionContext();
   const isAdminViewer = canAccessAdminPanel(ctx?.student?.role ?? "");
 
   // Enrollment gate: a non-admin learner can only open a track they're enrolled
@@ -440,7 +441,7 @@ export default async function TrackOverviewPage({
       {track.coverImageUrl && (
         <div className="overflow-hidden rounded-2xl">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={track.coverImageUrl} alt="" className="block h-auto w-full" />
+          <img src={track.coverImageUrl} alt={track.name} className="block h-auto w-full" />
         </div>
       )}
 
