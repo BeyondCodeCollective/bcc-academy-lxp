@@ -145,7 +145,7 @@ export async function sendLoginLink({
           magicLink: callbackUrl.toString(),
           programName: intendedProgramName ?? program.name,
         });
-        console.log("[login] sign-in email sent via Resend", { email: trimmed });
+        console.log("[login] sign-in email sent via Resend");
         return { ok: true };
       } catch (emailErr) {
         console.error("[login] sendSignInEmail failed — falling through to OTP", {

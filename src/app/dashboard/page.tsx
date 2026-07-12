@@ -103,8 +103,8 @@ async function DashboardContent({
   const currentUser = await resolveCurrentUser(cookieStore);
   if (!currentUser) redirect("/");
 
-  let firstName = currentUser.firstName;
-  let userRole = currentUser.userRole;
+  const firstName = currentUser.firstName;
+  const userRole = currentUser.userRole;
   let cohortName = program.defaultCohort.displayName;
   let cohortStartDate = program.defaultCohort.startDate;
   let noCohort = false;

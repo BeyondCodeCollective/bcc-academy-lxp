@@ -4,6 +4,16 @@ import { SignIn } from "@phosphor-icons/react/dist/ssr";
 import Image from "next/image";
 import Link from "next/link";
 import { getJoinablePrograms } from "@/lib/programs";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Sign In — BCC Academy",
+  description: "Sign in to your BCC Academy learning portal.",
+  openGraph: {
+    title: "Sign In — BCC Academy",
+    description: "Sign in to your BCC Academy learning portal.",
+  },
+};
 
 // Apex login page. Fully static — render input is just the in-memory
 // program list. Legacy program subdomains (catalyst/atg/forge/forte
