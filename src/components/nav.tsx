@@ -172,9 +172,24 @@ export function Nav({
   // sidebar works on any course page) — primaryTrack over that list would send
   // Home to whichever course starts earliest, not the one being previewed.
   // That teleported an admin to Network+ out of a MASS preview (2026-07-10).
+  //
+  // Multi-course students are the exception: their hub is the card home at
+  // /dashboard (which now leads with the cross-course "Happening next"
+  // panel). Pointing Home at the primary course stranded them — Home from
+  // the Security+ page just reloaded the Security+ page. Companions collapse
+  // only when their parent course is also enrolled (same rule as the
+  // /dashboard redirect): Security+ + MASS is still ONE course, and those
+  // students keep Home on the course.
+  const enrolledSlugSet = new Set(curriculumTracks.map((t) => t.slug));
+  const collapsedCourseCount = new Set(
+    curriculumTracks.map((t) =>
+      t.companionOf && enrolledSlugSet.has(t.companionOf) ? t.companionOf : t.slug,
+    ),
+  ).size;
   const primarySlug =
     variant === "student-sidebar"
-      ? (previewingSlug ?? primaryTrack(curriculumTracks)?.slug ?? null)
+      ? (previewingSlug ??
+        (collapsedCourseCount > 1 ? null : (primaryTrack(curriculumTracks)?.slug ?? null)))
       : null;
   const homeHref = isAdmin
     ? "/dashboard/admin"
