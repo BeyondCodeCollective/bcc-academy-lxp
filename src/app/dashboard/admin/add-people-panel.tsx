@@ -283,6 +283,10 @@ function AddDirectly({
           role: role as "student" | "instructor" | "admin" | "super_admin",
           cohort_id: null,
         });
+        if (!result.success) {
+          setError(result.error);
+          return;
+        }
         const student = result.student as StudentRow;
         if (course) await assignStudentTrack(student.id, course, programSlug);
         onStudentAdded(student);
