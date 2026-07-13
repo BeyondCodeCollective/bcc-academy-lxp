@@ -2,15 +2,9 @@
 // Handles push notifications and offline caching for PWA install.
 
 const CACHE_NAME = "bcc-academy-v1";
-const OFFLINE_URL = "/offline";
 
-// Install — cache the offline page
+// Install — skip waiting immediately
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll([OFFLINE_URL]);
-    })
-  );
   self.skipWaiting();
 });
 
@@ -58,10 +52,6 @@ self.addEventListener("notificationclick", (event) => {
       for (const client of clients) {
         if (client.url.includes(self.location.origin) && "focus" in client) {
           client.navigate(url);
-          return client.focus();
-        }
-        // If already on the right page, just focus
-        if (client.url.endsWith(url) && "focus" in client) {
           return client.focus();
         }
       }
