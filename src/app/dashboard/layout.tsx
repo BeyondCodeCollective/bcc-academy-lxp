@@ -17,7 +17,7 @@ import { getProgramBySlug, getAllPrograms, getJoinablePrograms, isTutorAvailable
 import { ProgramProvider } from "@/lib/programs/context";
 import { canAccessAdminPanel, canSwitchPrograms, canAccessStaffContent } from "@/lib/roles";
 import { getSessionContext } from "@/lib/auth/session";
-import { getPreviewTrackSlug, LUNCH_LEARN_PREVIEW_SLUG } from "@/lib/auth/preview-mode";
+import { getPreviewTrackSlug, getPreviewTrackSlugs, LUNCH_LEARN_PREVIEW_SLUG } from "@/lib/auth/preview-mode";
 import { getEnrolledTracks } from "@/lib/enrollment";
 import { getLearnerAccess } from "@/lib/auth/active-enrollment";
 import { getEnforcedOnboardingChecklist, getOnboardingStatus } from "@/lib/onboarding/checklists";
@@ -237,7 +237,7 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
   let userRole = "";
   let enrolledTrackSlugs: string[] = [];
   let canShowPreviewToggle = false;
-  let previewingSlug: string | null = null;
+  let previewingSlugs: string[] = [];
   let pendingLearner = false;
   if (isSupabaseConfigured()) {
     const ctx = await getSessionContext();
@@ -245,23 +245,23 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
     const role = ctx.student?.role ?? "";
     userRole = role;
     const actualIsAdmin = canAccessAdminPanel(role);
-    const previewSlug = await getPreviewTrackSlug(role);
-    const validPreviewSlug =
-      previewSlug &&
-      (previewSlug === LUNCH_LEARN_PREVIEW_SLUG ||
-        program.tracks.some((t) => t.slug === previewSlug))
-        ? previewSlug
-        : null;
+    const previewSlugsRaw = await getPreviewTrackSlugs(role);
+    const validPreviewSlugs = previewSlugsRaw.filter(
+      (s) =>
+        s === LUNCH_LEARN_PREVIEW_SLUG ||
+        program.tracks.some((t) => t.slug === s),
+    );
+    const validPreviewSlug = validPreviewSlugs[0] ?? null;
     isAdmin = actualIsAdmin && !validPreviewSlug;
     canSwitch = canSwitchPrograms(role) && !validPreviewSlug;
     canShowPreviewToggle = canSwitchPrograms(role);
-    previewingSlug = validPreviewSlug;
+    previewingSlugs = validPreviewSlugs;
     firstName = ctx.student?.first_name ?? "";
     lastName = ctx.student?.last_name ?? "";
     email = ctx.student?.email ?? ctx.userEmail;
     avatarUrl = ctx.student?.avatar_url ?? null;
     if (validPreviewSlug && validPreviewSlug !== LUNCH_LEARN_PREVIEW_SLUG) {
-      enrolledTrackSlugs = [validPreviewSlug];
+      enrolledTrackSlugs = validPreviewSlugs;
     }
     if (!isAdmin && !isSurvey && !validPreviewSlug) {
       const supabase = await createClient();
@@ -382,6 +382,8 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
 
   const showTutor = isTutorAvailable(program) && !pendingLearner;
   // Resources nav appears only when the current program actually has resources
+  // First previewed slug — single-course consumers below key off it.
+  const previewingSlug = previewingSlugs[0] ?? null;
   // (data-driven — no empty nav item). Independent of the AI Tutor.
   const showResources = !pendingLearner && (await programHasResources(program.slug));
   // canAccessStaff gates the Workshops nav. Demote it in preview mode the
@@ -490,9 +492,13 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
         currentProgramSlug={program.slug}
         variant={navVariant}
         // Home follows the previewed course. The Lunch & Learns sentinel maps
-        // to null so Home falls back to /dashboard (the L&L hub).
+        // to null so Home falls back to /dashboard (the L&L hub) — and so does
+        // a MULTI-course preview, whose home is the course-picker page, not
+        // any single course.
         previewingSlug={
-          previewingSlug === LUNCH_LEARN_PREVIEW_SLUG ? null : previewingSlug
+          previewingSlug === LUNCH_LEARN_PREVIEW_SLUG || previewingSlugs.length > 1
+            ? null
+            : previewingSlug
         }
         curriculumTracks={curriculumTracks}
         adminTracks={adminTracks}
@@ -628,13 +634,17 @@ async function Overlays({ isSurveyPage }: { isSurveyPage: boolean }) {
     !(ctx.student.last_name ?? "").trim();
 
   const canShowPreview = canSwitchPrograms(role);
-  const previewSlug = await getPreviewTrackSlug(role);
-  const validPreviewSlug =
-    previewSlug &&
-    (previewSlug === LUNCH_LEARN_PREVIEW_SLUG ||
-      program.tracks.some((t) => t.slug === previewSlug))
-      ? previewSlug
-      : null;
+  // Validate against ALL programs' tracks (the menu lists every program), not
+  // just the current one — the L&L sentinel passes through as-is.
+  const previewSlugsAll = await getPreviewTrackSlugs(role);
+  const validPreviewSlugs = previewSlugsAll.filter(
+    (s) =>
+      s === LUNCH_LEARN_PREVIEW_SLUG ||
+      getJoinablePrograms().some((p) =>
+        p.tracks.some((t) => t.slug === s),
+      ) ||
+      program.tracks.some((t) => t.slug === s),
+  );
 
   // Preview menu: every course across all programs, grouped under its home
   // program (mirrors the Courses catalog, which already aggregates all
@@ -688,7 +698,7 @@ async function Overlays({ isSurveyPage }: { isSurveyPage: boolean }) {
       {needsName && <NameCaptureOverlay campMode={program.slug === "bgc"} />}
       {showTutor && !confined && <TutorFab />}
       {canShowPreview && (
-        <PreviewToggle previewingSlug={validPreviewSlug} groups={previewGroups} />
+        <PreviewToggle previewingSlugs={validPreviewSlugs} groups={previewGroups} />
       )}
     </>
   );

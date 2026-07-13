@@ -15,7 +15,7 @@ import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import type { ProgramConfig, TrackConfig } from "@/lib/programs/types";
 import { canAccessAdminPanel } from "@/lib/roles";
 import { getSessionContext } from "@/lib/auth/session";
-import { getPreviewTrackSlug, LUNCH_LEARN_PREVIEW_SLUG } from "@/lib/auth/preview-mode";
+import { getPreviewTrackSlug, getPreviewTrackSlugs, LUNCH_LEARN_PREVIEW_SLUG } from "@/lib/auth/preview-mode";
 import { resolveCurrentUser } from "@/lib/current-user";
 import { getEnrolledTracks, collapseCompanionSlugs } from "@/lib/enrollment";
 import { WeekIcon } from "@/components/week-icon";
@@ -87,7 +87,7 @@ export default async function DashboardPage({
   }
 
   return (
-    <div className="mx-auto w-full max-w-2xl md:max-w-5xl px-4 sm:px-5 py-8">
+    <div className="mx-auto w-full max-w-2xl md:max-w-5xl px-4 sm:px-8 md:px-5 py-8">
       <DashboardContent program={program} setup={setup} joinTrack={joinTrack} />
     </div>
   );
@@ -158,11 +158,11 @@ async function DashboardContent({
     const welcomeDone = !!student?.welcome_seen_at;
     needsOnboarding = !welcomeDone;
 
-    const rawPreviewSlug = await getPreviewTrackSlug(userRole);
-    const previewSlug =
-      rawPreviewSlug && program.tracks.some((t) => t.slug === rawPreviewSlug)
-        ? rawPreviewSlug
-        : null;
+    const rawPreviewSlugs = await getPreviewTrackSlugs(userRole);
+    const previewSlugs = rawPreviewSlugs.filter((s) =>
+      program.tracks.some((t) => t.slug === s),
+    );
+    const previewSlug = previewSlugs.length > 0;
     const isAdminUser = canAccessAdminPanel(userRole) && !previewSlug;
 
     // Only non-admin students need Supabase queries — admins see none of
@@ -214,7 +214,7 @@ async function DashboardContent({
       }
 
       enrolledTrackSlugs = previewSlug
-        ? [previewSlug]
+        ? previewSlugs
         : enrolledTracks.map((t) => t.slug);
 
       if (!previewSlug) {
@@ -329,11 +329,13 @@ async function DashboardContent({
 
   void cohortStartDate;
 
-  const rawPreviewSlugOuter = await getPreviewTrackSlug(userRole);
-  const previewSlugOuter =
-    rawPreviewSlugOuter && program.tracks.some((t) => t.slug === rawPreviewSlugOuter)
-      ? rawPreviewSlugOuter
-      : null;
+  const rawPreviewSlugsOuter = await getPreviewTrackSlugs(userRole);
+  const previewSlugsOuter = rawPreviewSlugsOuter.filter((s) =>
+    program.tracks.some((t) => t.slug === s),
+  );
+  // First previewed slug — existing single-course consumers (the "Previewing
+  // as" label, engagement guard) key off it; null when preview is off.
+  const previewSlugOuter = previewSlugsOuter[0] ?? null;
   const isAdmin = canAccessAdminPanel(userRole) && !previewSlugOuter;
   // Companions collapse into their course: a Security+ learner is enrolled in
   // comptia-security AND its MASS wraparound, but that's ONE course — the
@@ -643,7 +645,9 @@ async function DashboardContent({
         {previewSlugOuter && (
           <p className="mt-1.5 text-sm font-medium text-primary">
             Previewing as student enrolled in{" "}
-            {program.tracks.find((t) => t.slug === previewSlugOuter)?.name}
+            {previewSlugsOuter
+              .map((s) => program.tracks.find((t) => t.slug === s)?.name ?? s)
+              .join(" + ")}
           </p>
         )}
       </div>

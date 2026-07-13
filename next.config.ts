@@ -60,6 +60,9 @@ const nextConfig: NextConfig = {
     ];
   },
   async headers() {
+    // Dev-only allowance so impeccable live mode can load. Guarded by NODE_ENV.
+    const __impeccableLiveDev =
+      process.env.NODE_ENV === "development" ? " http://localhost:8400" : "";
     const cspReport = [
       "default-src 'self'",
       // *.zoom.us in script-src: the Meeting SDK lazy-loads feature modules
@@ -72,7 +75,7 @@ const nextConfig: NextConfig = {
       // campaign landing pages loads eb_widgets.js and mounts the checkout
       // iframe from there. img.evbuc.com below was allowlisted all along —
       // these three were missed when CSP went enforced, killing the embed.
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: https://va.vercel-scripts.com https://www.googletagmanager.com https://*.zoom.us https://www.eventbrite.com",
+      `script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: https://va.vercel-scripts.com https://www.googletagmanager.com https://*.zoom.us https://www.eventbrite.com${__impeccableLiveDev}`,
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.zoom.us",
       "img-src 'self' data: blob: https://*.supabase.co https://images.pexels.com https://img.evbuc.com https://*.google-analytics.com https://*.googletagmanager.com https://*.zoom.us",
       // The Zoom Meeting SDK spawns its audio/video pipeline as blob: workers.
@@ -87,7 +90,7 @@ const nextConfig: NextConfig = {
       // google.com/g/collect (consent-mode pings) alongside
       // *.google-analytics.com — the sweep's CSP tripwire caught these
       // being dropped on most dashboard pages.
-      "connect-src 'self' https://*.supabase.co https://*.resend.com https://va.vercel-scripts.com https://*.google-analytics.com https://o4506503091847168.ingest.us.sentry.io https://zoom.us https://*.zoom.us wss://*.zoom.us https://www.eventbrite.com https://www.google.com",
+      `connect-src 'self' https://*.supabase.co https://*.resend.com https://va.vercel-scripts.com https://*.google-analytics.com https://o4506503091847168.ingest.us.sentry.io https://zoom.us https://*.zoom.us wss://*.zoom.us https://www.eventbrite.com https://www.google.com${__impeccableLiveDev}`,
       "report-uri /api/csp-report",
     ].join("; ");
 

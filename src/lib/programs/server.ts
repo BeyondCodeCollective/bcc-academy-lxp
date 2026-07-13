@@ -79,7 +79,9 @@ async function resolveBaseProgram(): Promise<ProgramConfig> {
   // reverts the moment preview ends instead of stranding the admin in the
   // previewed program. Only super-admins can set this cookie, so its presence
   // is sufficient authorization. Highest priority while active.
-  const previewSlug = c.get(PREVIEW_COOKIE)?.value;
+  // Multi-course preview stores comma-separated slugs; the FIRST course
+  // decides the program skin (all previewed courses live in one program).
+  const previewSlug = (c.get(PREVIEW_COOKIE)?.value ?? "").split(",")[0].trim();
   if (previewSlug && previewSlug !== LUNCH_LEARN_PREVIEW_SLUG) {
     const home = getHomeProgramForTrack(previewSlug);
     if (home) return home;

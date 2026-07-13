@@ -1,6 +1,6 @@
 import { Eye } from "@phosphor-icons/react/dist/ssr";
 import { getSessionContext } from "@/lib/auth/session";
-import { getPreviewTrackSlug, LUNCH_LEARN_PREVIEW_SLUG } from "@/lib/auth/preview-mode";
+import { getPreviewTrackSlugs, LUNCH_LEARN_PREVIEW_SLUG } from "@/lib/auth/preview-mode";
 import { getProgram } from "@/lib/programs/server";
 import { setPreviewTrackSlug } from "@/app/dashboard/preview-actions";
 
@@ -12,15 +12,17 @@ import { setPreviewTrackSlug } from "@/app/dashboard/preview-actions";
  */
 export async function PreviewBanner() {
   const ctx = await getSessionContext();
-  const slug = await getPreviewTrackSlug(ctx?.student?.role ?? "");
-  if (!slug) return null;
+  const slugs = await getPreviewTrackSlugs(ctx?.student?.role ?? "");
+  if (slugs.length === 0) return null;
 
   let name: string;
-  if (slug === LUNCH_LEARN_PREVIEW_SLUG) {
+  if (slugs[0] === LUNCH_LEARN_PREVIEW_SLUG) {
     name = "Lunch & Learns";
   } else {
     const program = await getProgram();
-    name = program.tracks.find((t) => t.slug === slug)?.name ?? slug;
+    name = slugs
+      .map((s) => program.tracks.find((t) => t.slug === s)?.name ?? s)
+      .join(" + ");
   }
 
   return (

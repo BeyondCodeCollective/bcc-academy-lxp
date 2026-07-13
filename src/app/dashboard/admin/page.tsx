@@ -531,7 +531,7 @@ export default async function AdminPage({
   }
 
   return (
-    <div className="mx-auto w-full max-w-2xl md:max-w-5xl space-y-6 px-4 sm:px-5 py-8">
+    <div className="mx-auto w-full max-w-2xl md:max-w-5xl space-y-6 px-4 sm:px-8 md:px-5 py-8">
       <AdminTabs
         cohorts={allCohorts}
         students={allStudents}
