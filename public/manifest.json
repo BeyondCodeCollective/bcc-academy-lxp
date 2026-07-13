@@ -1,0 +1,17 @@
+{
+  "name": "BCC Academy",
+  "short_name": "BCC Academy",
+  "description": "Beyond Code Collective — Where everyone builds together",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#f5f5f7",
+  "theme_color": "#1a1a1a",
+  "icons": [
+    {
+      "src": "/bcc-logo-white.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

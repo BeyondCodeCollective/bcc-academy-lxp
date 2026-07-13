@@ -21,6 +21,7 @@ import { computeCurrentWeek, trackHasStarted } from "@/lib/utils";
 import { unitDisplayMap } from "@/lib/programs/unit-display";
 import { primaryTrack } from "@/lib/enrollment";
 import { TextScaleToggle } from "@/components/text-scale-toggle";
+import { PushToggle } from "@/components/push-toggle";
 import { useReadAloud } from "@/components/assessment-a11y-bar";
 import { SidebarToggle } from "@/components/sidebar-toggle";
 
@@ -322,6 +323,10 @@ export function Nav({
           )}
           <span>{readAloud ? "Audio on" : "Audio"}</span>
         </button>
+      </div>
+      {/* Push notifications toggle */}
+      <div className="px-2 py-1.5">
+        <PushToggle />
       </div>
       {/* The account menu lives in the top bar on the light shell, so the
           redundant sidebar user menu is dropped there. */}

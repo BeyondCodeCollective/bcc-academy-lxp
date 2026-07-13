@@ -160,6 +160,19 @@ export async function createAnnouncement(data: {
     message: data.message,
   });
 
+  // Fire-and-forget: push notification to enrolled students
+  if (data.trackSlug) {
+    void import("@/lib/push").then(({ sendPushToTrack }) =>
+      sendPushToTrack({
+        programId,
+        trackSlug: data.trackSlug!,
+        title: "New announcement",
+        body: data.message.slice(0, 200),
+        url: "/dashboard",
+      })
+    );
+  }
+
   revalidatePath("/dashboard");
   return { success: true };
 }

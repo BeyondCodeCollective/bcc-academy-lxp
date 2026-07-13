@@ -39,6 +39,7 @@ export const metadata: Metadata = {
   description:
     "A community-based learning and workforce ecosystem giving people lifelong access to the skills, relationships, and pathways shaping the future of work. Ages 7 to 77. By us, for everyone.",
   metadataBase: new URL("https://bccacademy.io"),
+  manifest: "/manifest.json",
   openGraph: {
     title: "Beyond Code Collective",
     description:
