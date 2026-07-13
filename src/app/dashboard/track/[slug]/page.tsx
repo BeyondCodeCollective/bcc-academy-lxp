@@ -523,9 +523,10 @@ export default async function TrackOverviewPage({
       {started && learnerProgress && <MyProgressCard {...learnerProgress} />}
 
       {overviewCopy && (
-        <p className="border-t border-rule pt-4 text-[12.9px] leading-relaxed text-ink-faint whitespace-pre-wrap">
-          {overviewCopy}
-        </p>
+        <div
+          className="border-t border-rule pt-4 prose prose-sm max-w-none text-ink-faint leading-relaxed prose-headings:text-ink prose-a:text-accent"
+          dangerouslySetInnerHTML={{ __html: overviewCopy }}
+        />
       )}
     </div>
   );
