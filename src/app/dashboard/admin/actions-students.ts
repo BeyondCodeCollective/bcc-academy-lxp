@@ -123,8 +123,21 @@ export async function addStudentAction(data: {
     email_confirm: true,
   });
 
-  if (authError) throw new Error(authError.message);
-  if (!authUser.user) throw new Error("Failed to create user");
+  if (authError) {
+    // Expected failures must be RETURNED, not thrown: Next.js redacts thrown
+    // server-action errors in production (digest only), so the admin saw a
+    // blank "Server Components render" crash instead of "already registered".
+    const exists = /already (been )?registered/i.test(authError.message);
+    return {
+      success: false as const,
+      error: exists
+        ? "That email already has an account. Search for them under People — they may just need a course assignment."
+        : authError.message,
+    };
+  }
+  if (!authUser.user) {
+    return { success: false as const, error: "Failed to create user" };
+  }
 
   // Insert student record — pinned to the calling admin's program so
   // program-scoped RLS (program_rls.sql) lets the new user read their
@@ -168,7 +181,7 @@ export async function addStudentAction(data: {
   }
 
   return {
-    success: true,
+    success: true as const,
     student: {
       id: authUser.user.id,
       email: data.email,
