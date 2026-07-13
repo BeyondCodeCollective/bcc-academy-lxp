@@ -85,10 +85,27 @@ async function resolveBaseProgram(): Promise<ProgramConfig> {
   if (previewSlug && previewSlug !== LUNCH_LEARN_PREVIEW_SLUG) {
     const home = getHomeProgramForTrack(previewSlug);
     if (home) return home;
-    // Builder-created courses live as DB track_overrides under Catalyst with no
-    // TS config, so getHomeProgramForTrack can't see them. Render them in the
-    // Catalyst shell — getProgram() layers the builder track on via overrides.
-    // (Also keeps preview working even if a stale program-override is set.)
+    // Builder-created courses have no TS config; their home program lives on
+    // their track_overrides row and can be ANY program. (The old blanket
+    // Catalyst fallback rendered a Beyond Code Centers course preview in the
+    // Catalyst shell, where the slug then failed the program filter and the
+    // preview silently degraded to the admin's own view.)
+    try {
+      const { data } = await createServiceClient()
+        .from("track_overrides")
+        .select("programs(slug)")
+        .eq("track_slug", previewSlug)
+        .maybeSingle<{ programs: { slug: string } | null }>();
+      const overrideProgramSlug = data?.programs?.slug;
+      if (overrideProgramSlug) {
+        const resolved = await resolveSlug(overrideProgramSlug);
+        if (resolved) return resolved;
+      }
+    } catch (err) {
+      console.warn("[resolveBaseProgram] preview home lookup failed:", err);
+    }
+    // Unknown slug (stale cookie, deleted course): Catalyst keeps the shell
+    // usable; getProgram() layers builder tracks on via overrides.
     return getProgramBySlug("catalyst");
   }
 
