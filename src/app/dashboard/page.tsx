@@ -22,6 +22,7 @@ import { WeekIcon } from "@/components/week-icon";
 import { DashboardBento } from "@/components/dashboard-bento";
 import { isTutorAvailable } from "@/lib/programs";
 import { MyProgressCard, type MyProgressCardProps } from "@/components/my-progress-card";
+import { AnnouncementBanner } from "@/components/announcement-banner";
 import { getLearnerProgress } from "@/lib/learner-progress";
 import { PageHeader } from "@/components/page-header";
 import { BCC_INTAKE_SURVEY_ID, surveySkippedForTracks } from "@/lib/surveys/platform";
@@ -113,6 +114,7 @@ async function DashboardContent({
   let learnerProgress: MyProgressCardProps | null = null;
   let pendingSurveys: { id: string; title: string; description: string }[] = [];
   let assessmentEnabled = false;
+  let activeAnnouncements: { id: string; message: string; track_slug: string | null; created_at: string }[] = [];
   let assessmentCompleted = false;
   // Enrollments whose track belongs to a different program than the current
   // session — e.g. a Forte AI Literacy student also enrolled in a Catalyst
@@ -399,6 +401,26 @@ async function DashboardContent({
     learnerProgress = await getLearnerProgress(feedUserId, progressSlugs);
   }
 
+  // Fetch active announcements for this program
+  {
+    const svc = createServiceClient();
+    const { data: programRow } = await svc
+      .from("programs")
+      .select("id")
+      .eq("slug", program.slug)
+      .single();
+    if (programRow) {
+      const { data } = await svc
+        .from("announcements")
+        .select("id, message, track_slug, created_at")
+        .eq("program_id", programRow.id)
+        .gt("expires_at", new Date().toISOString())
+        .order("created_at", { ascending: false })
+        .limit(5);
+      activeAnnouncements = (data ?? []) as typeof activeAnnouncements;
+    }
+  }
+
   const now = new Date();
   // Card list ≠ redirect list. The COLLAPSED set above decides whether this
   // page renders at all (Security+ alone must still skip it — MASS doesn't
@@ -584,6 +606,8 @@ async function DashboardContent({
           </p>
         )}
       </div>
+
+      <AnnouncementBanner announcements={activeAnnouncements} />
 
       {learnerProgress && <MyProgressCard {...learnerProgress} />}
 
