@@ -161,7 +161,7 @@ function CourseCard({
     >
       <span
         aria-hidden
-        className="pointer-events-none absolute -bottom-7 right-1 select-none text-[110px] font-extrabold leading-none tracking-[-0.06em] text-ink opacity-[0.045]"
+        className="pointer-events-none absolute -top-5 right-1 select-none text-[110px] font-extrabold leading-none tracking-[-0.06em] text-ink opacity-[0.045]"
       >
         {monogram(name)}
       </span>
