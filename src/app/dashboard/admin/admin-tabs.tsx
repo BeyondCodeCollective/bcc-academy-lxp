@@ -36,7 +36,7 @@ import {
 } from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import { buttonClass, fieldInput } from "@/components/ui";
-import { PageHeader } from "@/components/page-header";
+import { PageHeader, Section } from "@/components/page-header";
 import { computeCurrentWeek, trackHasStarted, formatCohortDate } from "@/lib/utils";
 import { LunchLearnAdmin } from "@/app/dashboard/lunch-learn/admin/admin-client";
 import { AttendanceTab } from "./attendance-tab";
@@ -58,7 +58,7 @@ import type { InsightsData } from "./page";
 import type { Student } from "@/lib/types";
 import { isStorageUrl, isUploadedVideo } from "@/lib/storage-utils";
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
-import { iconForTrack, toneForTrack } from "@/lib/track-visual";
+import { iconForTrack } from "@/lib/track-visual";
 import { Clipboard as ClipboardListIcon, Users as UsersIcon, ChartBar as ChartBarIcon, ChartPie as ChartPieIcon, ChartLineUp as ChartLineUpIcon, ArrowLeft as ArrowLeftIcon, GraduationCap as GraduationCapIcon } from "@phosphor-icons/react";
 
 const PLATFORM_SURVEY_TITLES: Record<string, string> = {
@@ -1041,9 +1041,20 @@ export function AdminTabs({
               isManager={isManager}
             />
 
-            <div className="divide-y divide-rule overflow-hidden panel">
-              {tracks.map((t) => {
-                const tone = toneForTrack(t.slug);
+            {(() => {
+              // Phase partition (redesign 2026-07-13): running courses lead with
+              // their live numbers, upcoming wait below, completed close the page
+              // — the admin's scan order, not config order. Falls back to the
+              // date-derived started flag when the server sent no phase.
+              const phaseOf = (t: (typeof tracks)[number]) =>
+                t.phase ??
+                (trackHasStarted(t, now) ? "running" : "upcoming");
+              const running = tracks.filter((t) => phaseOf(t) === "running");
+              const upcoming = tracks.filter((t) => phaseOf(t) === "upcoming");
+              const completed = tracks.filter((t) => phaseOf(t) === "ended");
+
+              const renderRow = (t: (typeof tracks)[number]) => {
+                const TrackIcon = iconForTrack(t.slug);
                 const started = trackHasStarted(t, now);
                 // `currentUnit` comes from resolveCurrentUnit, which honours
                 // dated syllabi and per-unit unlocks. computeCurrentWeek only
@@ -1091,9 +1102,11 @@ export function AdminTabs({
                       href={`/dashboard/admin?tab=${t.slug}`}
                       className="flex min-w-0 flex-1 items-center gap-4"
                     >
-                      <span
-                        className="h-2.5 w-2.5 shrink-0 rounded-full"
-                        style={{ backgroundColor: tone }}
+                      <TrackIcon
+                        size={18}
+                        weight="bold"
+                        aria-hidden
+                        className="shrink-0 text-ink-faint transition-colors group-hover:text-ink-soft"
                       />
                       <div className="min-w-0 flex-1">
                         <p className="text-[14px] font-semibold text-ink leading-snug">
@@ -1103,7 +1116,13 @@ export function AdminTabs({
                           {t.instructor}
                         </p>
                       </div>
-                      <p className="hidden shrink-0 text-[12px] text-ink-soft sm:block">{status}</p>
+                      <p
+                        className={`hidden shrink-0 text-[12px] sm:block ${
+                          isRunning && !ended ? "font-semibold text-primary" : "text-ink-soft"
+                        }`}
+                      >
+                        {status}
+                      </p>
                       {completed !== null ? (
                         <p className="shrink-0 w-24 text-right text-[12px] tabular-nums">
                           <span className="font-semibold text-primary">{completed}</span>
@@ -1135,12 +1154,42 @@ export function AdminTabs({
                       aria-label={`Manage ${t.name}`}
                       className="shrink-0 rounded-md p-1.5 text-ink-faint transition-colors hover:bg-paper-tint hover:text-ink group-hover:text-ink-soft"
                     >
-                      <ArrowRight size={15} aria-hidden />
+                      <ArrowRight
+                        size={15}
+                        aria-hidden
+                        className="transition-transform group-hover:translate-x-0.5"
+                      />
                     </Link>
                   </div>
                 );
-              })}
-            </div>
+              };
+
+              return (
+                <div className="space-y-8">
+                  {running.length > 0 && (
+                    <Section label="Running now" count={running.length}>
+                      <div className="divide-y divide-rule overflow-hidden panel">
+                        {running.map(renderRow)}
+                      </div>
+                    </Section>
+                  )}
+                  {upcoming.length > 0 && (
+                    <Section label="Starting soon" count={upcoming.length}>
+                      <div className="divide-y divide-rule overflow-hidden panel">
+                        {upcoming.map(renderRow)}
+                      </div>
+                    </Section>
+                  )}
+                  {completed.length > 0 && (
+                    <Section label="Completed" count={completed.length}>
+                      <div className="divide-y divide-rule overflow-hidden panel">
+                        {completed.map(renderRow)}
+                      </div>
+                    </Section>
+                  )}
+                </div>
+              );
+            })()}
 
           </div>
         );

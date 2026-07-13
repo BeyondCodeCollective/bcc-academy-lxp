@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { setPreviewTrackSlug } from "@/app/dashboard/preview-actions";
+import { setPreviewTrackSlug, togglePreviewTrackSlug } from "@/app/dashboard/preview-actions";
 import { Eye, EyeOff, ChevronUp } from "lucide-react";
 
 type TrackOption = { slug: string; name: string };
@@ -15,10 +15,10 @@ type ProgramGroup = {
 };
 
 export function PreviewToggle({
-  previewingSlug,
+  previewingSlugs,
   groups,
 }: {
-  previewingSlug: string | null;
+  previewingSlugs: string[];
   groups: ProgramGroup[];
 }) {
   const [open, setOpen] = useState(false);
@@ -32,11 +32,16 @@ export function PreviewToggle({
     return () => document.removeEventListener("mousedown", onDown);
   }, [open]);
 
-  const active = previewingSlug !== null;
-  const activeName =
+  const active = previewingSlugs.length > 0;
+  const firstName =
     groups
       .flatMap((g) => g.tracks)
-      .find((t) => t.slug === previewingSlug)?.name ?? previewingSlug;
+      .find((t) => t.slug === previewingSlugs[0])?.name ?? previewingSlugs[0];
+  const buttonLabel = !active
+    ? "Preview as student"
+    : previewingSlugs.length === 1
+      ? `Previewing: ${firstName}`
+      : `Previewing: ${previewingSlugs.length} courses`;
 
   return (
     <div ref={ref} className="fixed bottom-4 right-4 z-40">
@@ -45,6 +50,8 @@ export function PreviewToggle({
           <p className="border-b border-rule-soft px-3 py-2 text-[10px] font-medium uppercase tracking-[0.14em] text-ink-faint">
             Preview as enrolled in
           </p>
+          {/* Each click toggles that course in/out of the preview set — pick
+             two or more (same program) to see the multi-course learner home. */}
           <ul className="max-h-72 overflow-y-auto">
             {groups.map((group) => (
               <li key={group.programSlug || "_general"}>
@@ -54,28 +61,28 @@ export function PreviewToggle({
                   </p>
                 )}
                 <ul>
-                  {group.tracks.map((t) => (
-                    <li key={t.slug}>
-                      <form
-                        action={setPreviewTrackSlug.bind(null, t.slug)}
-                        onSubmit={() => setOpen(false)}
-                      >
-                        <button
-                          type="submit"
-                          className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-xs transition-colors hover:bg-paper-tint-soft ${
-                            previewingSlug === t.slug
-                              ? "font-semibold text-[#1D59FF]"
-                              : "text-ink"
-                          }`}
-                        >
-                          <span className="truncate">{t.name}</span>
-                          {previewingSlug === t.slug && (
-                            <span className="shrink-0 text-[10px]">✓</span>
-                          )}
-                        </button>
-                      </form>
-                    </li>
-                  ))}
+                  {group.tracks.map((t) => {
+                    const selected = previewingSlugs.includes(t.slug);
+                    return (
+                      <li key={t.slug}>
+                        <form action={togglePreviewTrackSlug.bind(null, t.slug)}>
+                          <button
+                            type="submit"
+                            className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-xs transition-colors hover:bg-paper-tint-soft ${
+                              selected
+                                ? "font-semibold text-[#1D59FF]"
+                                : "text-ink"
+                            }`}
+                          >
+                            <span className="truncate">{t.name}</span>
+                            {selected && (
+                              <span className="shrink-0 text-[10px]">✓</span>
+                            )}
+                          </button>
+                        </form>
+                      </li>
+                    );
+                  })}
                 </ul>
               </li>
             ))}
@@ -106,12 +113,10 @@ export function PreviewToggle({
             ? "bg-primary text-white hover:bg-primary-hover"
             : "bg-ink text-white hover:bg-ink/90"
         }`}
-        title={active ? `Previewing as ${activeName}` : "Preview as a student"}
+        title={buttonLabel}
       >
         <Eye size={13} />
-        <span className="max-w-[160px] truncate">
-          {active ? `Previewing: ${activeName}` : "Preview as student"}
-        </span>
+        <span className="max-w-[160px] truncate">{buttonLabel}</span>
         <ChevronUp
           size={12}
           className={`transition-transform ${open ? "" : "rotate-180"}`}

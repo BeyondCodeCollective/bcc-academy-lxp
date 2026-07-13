@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { type ComponentType } from "react";
 import { ArrowRight, ChatCircle, BookOpen } from "@phosphor-icons/react/dist/ssr";
+import { buttonClass } from "@/components/ui";
 
 
 type TrackTile = {
@@ -29,10 +30,14 @@ type OtherCourse = {
 
 /**
  * The learner home — only ever seen by MULTI-course learners (single-course
- * students are redirected straight to their course). So it's a flat, equal
- * grid: every course is the same card (program · course · progress · resume),
- * no "continue" hero and no "other programs" demotion. Pick up any course in
- * one click. Cross-program courses route through /switch-program first.
+ * students are redirected straight to their course).
+ *
+ * Composition (redesign 2026-07-13): ONE course leads. The first tile (the
+ * page sorts started-first, longest-first) renders as a full-width hero —
+ * this week's topic, schedule, progress, one cobalt Resume — because a
+ * multi-course learner's real question is "which course am I in right now?".
+ * Every other course stays one click away as a compact card below. This
+ * supersedes the equal-grid layout (2026-07-12), which read as flat.
  */
 export function DashboardBento({
   tracks,
@@ -50,52 +55,60 @@ export function DashboardBento({
 }) {
   if (tracks.length === 0 && otherCourses.length === 0) return null;
 
+  const [hero, ...rest] = tracks;
+
   return (
     <div>
-      <section>
-        <h2 className="mb-4 text-[17px] font-bold tracking-[-0.015em] text-ink">Your courses</h2>
-        <div className="grid gap-4 sm:grid-cols-2">
-          {tracks.map((t) => {
-            const done = t.started ? t.unitsDone : 0;
-            const resumeWeek = t.started ? Math.max(1, t.currentWeek) : 1;
-            const pct = t.numberedUnits > 0 ? Math.round((done / t.numberedUnits) * 100) : 0;
-            return (
-              <CourseCard
-                key={t.slug}
-                // Before day one every session is locked, so link to the course
-                // itself rather than a session page that redirects right back.
-                href={
-                  t.started
-                    ? `/dashboard/track/${t.slug}/${resumeWeek}`
-                    : `/dashboard/track/${t.slug}`
-                }
-                program={programName}
-                name={t.name}
-                instructor={t.instructor}
-                schedule={t.schedule}
-                progress={{
-                  label: t.started
-                    ? `${done} of ${t.numberedUnits} complete`
-                    : `${t.numberedUnits} ${t.unitNoun}s · not started`,
-                  pct,
-                }}
-                action={t.started ? "Resume" : "Start"}
-              />
-            );
-          })}
+      {hero && <HeroCourseCard t={hero} program={programName} />}
 
-          {otherCourses.map((c) => (
-            <CourseCard
-              key={c.trackSlug}
-              href={`/dashboard/switch-program?track=${encodeURIComponent(c.trackSlug)}`}
-              program={c.programName}
-              name={c.trackName}
-              instructor={c.instructor}
-              action="Open"
-            />
-          ))}
-        </div>
-      </section>
+      {(rest.length > 0 || otherCourses.length > 0) && (
+        <section className="mt-8">
+          <h2 className="mb-4 text-[17px] font-bold tracking-[-0.015em] text-ink">
+            Also enrolled in
+          </h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {rest.map((t) => {
+              const done = t.started ? t.unitsDone : 0;
+              const resumeWeek = t.started ? Math.max(1, t.currentWeek) : 1;
+              const pct = t.numberedUnits > 0 ? Math.round((done / t.numberedUnits) * 100) : 0;
+              return (
+                <CourseCard
+                  key={t.slug}
+                  // Before day one every session is locked, so link to the course
+                  // itself rather than a session page that redirects right back.
+                  href={
+                    t.started
+                      ? `/dashboard/track/${t.slug}/${resumeWeek}`
+                      : `/dashboard/track/${t.slug}`
+                  }
+                  program={programName}
+                  name={t.name}
+                  instructor={t.instructor}
+                  schedule={t.schedule}
+                  progress={{
+                    label: t.started
+                      ? `${done} of ${t.numberedUnits} complete`
+                      : `${t.numberedUnits} ${t.unitNoun}s · not started`,
+                    pct,
+                  }}
+                  action={t.started ? "Resume" : "Start"}
+                />
+              );
+            })}
+
+            {otherCourses.map((c) => (
+              <CourseCard
+                key={c.trackSlug}
+                href={`/dashboard/switch-program?track=${encodeURIComponent(c.trackSlug)}`}
+                program={c.programName}
+                name={c.trackName}
+                instructor={c.instructor}
+                action="Open"
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Utilities, demoted below a rule. The tutor tile follows the
           program's own tutor flag — same gate as the sidebar and fab. */}
@@ -107,6 +120,86 @@ export function DashboardBento({
       </div>
     </div>
   );
+}
+
+/**
+ * The lead course — a full-width panel that answers "where am I right now?"
+ * Same materials as every card (white panel, monogram, cobalt), amplified:
+ * Archivo display name, the current topic stated in words, a real button.
+ */
+function HeroCourseCard({ t, program }: { t: TrackTile; program: string }) {
+  const done = t.started ? t.unitsDone : 0;
+  const resumeWeek = t.started ? Math.max(1, t.currentWeek) : 1;
+  const pct = t.numberedUnits > 0 ? Math.round((done / t.numberedUnits) * 100) : 0;
+  const href = t.started
+    ? `/dashboard/track/${t.slug}/${resumeWeek}`
+    : `/dashboard/track/${t.slug}`;
+
+  return (
+    <section className="group relative overflow-hidden panel p-6 shadow-sm sm:p-8">
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -top-8 right-2 select-none text-[170px] font-extrabold leading-none tracking-[-0.06em] text-ink opacity-[0.045] sm:text-[220px]"
+      >
+        {monogram(t.name)}
+      </span>
+
+      <div className="relative">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
+          {program}
+          {t.schedule && <span className="normal-case tracking-normal"> · {t.schedule}</span>}
+        </p>
+        <h2 className="mt-2 max-w-xl text-[28px] font-bold leading-[1.1] tracking-[-0.02em] text-ink sm:text-[32px]">
+          {t.name}
+        </h2>
+        {t.instructor && (
+          <p className="mt-1 text-sm text-ink-soft">with {t.instructor}</p>
+        )}
+
+        <p className="mt-5 max-w-lg text-sm leading-relaxed text-ink">
+          {t.started ? (
+            <>
+              This {t.unitNoun}:{" "}
+              <span className="font-semibold">{t.currentTopic || `${capitalize(t.unitNoun)} ${resumeWeek}`}</span>
+            </>
+          ) : (
+            <>
+              Starts soon — {t.numberedUnits} {t.unitNoun}s
+              {t.currentTopic && (
+                <>
+                  , beginning with <span className="font-semibold">{t.currentTopic}</span>
+                </>
+              )}
+            </>
+          )}
+        </p>
+
+        <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-4">
+          <Link href={href} className={buttonClass("primary", "md")}>
+            {t.started ? `Resume ${t.unitNoun} ${resumeWeek}` : "Start course"}
+            <ArrowRight size={16} weight="bold" aria-hidden />
+          </Link>
+          {t.started && (
+            <div className="min-w-[160px] max-w-[240px] flex-1">
+              <p className="text-xs font-semibold tabular-nums text-ink-faint">
+                {done} of {t.numberedUnits} complete
+              </p>
+              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-paper-tint">
+                <div
+                  className="h-full rounded-full bg-primary transition-all"
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function capitalize(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 /**
@@ -157,7 +250,7 @@ function CourseCard({
   return (
     <Link
       href={href}
-      className="group relative flex flex-col justify-between gap-5 overflow-hidden panel p-5 shadow-sm transition-shadow hover:shadow-sm"
+      className="group relative flex flex-col justify-between gap-5 overflow-hidden panel p-5 shadow-sm transition-shadow hover:shadow-md"
     >
       <span
         aria-hidden
