@@ -109,6 +109,33 @@ export function DashboardBento({
   );
 }
 
+/**
+ * The course's ghost mark — big faint initials in the card corner (approved
+ * mock 2026-07-12: no icons, no hues, no cover strips; type only).
+ * "CompTIA Security+" → "S+", "Tech and AI Hangout" → "T·AI",
+ * "MASS Wraparound — Security+ Cohort" → "M", "AI Fundamentals" → "AI".
+ */
+function monogram(name: string): string {
+  const words = name
+    .split(/[\s—–-]+/)
+    .filter((w) => w && !/^(and|the|of|for|&|\d+)$/i.test(w));
+  if (words.length === 0) return name.slice(0, 1).toUpperCase();
+  const first = words[0];
+  // A leading acronym IS the identity: short ones whole ("AI"), long ones
+  // by initial ("MASS" → "M") — before the "+" rule so MASS Wraparound —
+  // Security+ doesn't read as "S+".
+  if (first === first.toUpperCase() && /^[A-Z]+$/.test(first)) {
+    return first.length <= 3 ? first : first[0];
+  }
+  const plus = words.find((w) => w.endsWith("+"));
+  if (plus) return `${plus[0].toUpperCase()}+`;
+  const acronym = words
+    .slice(1)
+    .find((w) => w.length <= 3 && w === w.toUpperCase() && /^[A-Z]+$/.test(w));
+  if (acronym) return `${first[0].toUpperCase()}·${acronym}`;
+  return first[0].toUpperCase();
+}
+
 function CourseCard({
   href,
   program,
@@ -130,11 +157,17 @@ function CourseCard({
   return (
     <Link
       href={href}
-      className="group flex flex-col justify-between gap-5 panel p-5 shadow-sm transition-shadow hover:shadow-sm"
+      className="group relative flex flex-col justify-between gap-5 overflow-hidden panel p-5 shadow-sm transition-shadow hover:shadow-sm"
     >
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -top-5 right-1 select-none text-[110px] font-extrabold leading-none tracking-[-0.06em] text-ink opacity-[0.045]"
+      >
+        {monogram(name)}
+      </span>
       <div>
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">{program}</p>
-        <p className="mt-1 text-base font-bold tracking-[-0.01em] text-ink">{name}</p>
+        <p className="mt-1 text-[20px] font-bold leading-tight tracking-[-0.02em] text-ink">{name}</p>
         {instructor && <p className="mt-0.5 text-xs text-ink-soft">with {instructor}</p>}
         {schedule && (
           <p className="mt-1.5 text-xs font-medium tabular-nums text-ink">{schedule}</p>
