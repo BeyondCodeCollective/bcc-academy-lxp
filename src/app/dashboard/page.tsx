@@ -454,6 +454,23 @@ async function DashboardContent({
       ),
     now,
   );
+  // Small tasks ride inside the panel as quiet rows instead of stacking a
+  // full-width banner each (four banners buried the panel, 2026-07-12).
+  const homeTodos = [
+    ...pendingSurveys.map((s) => ({
+      label: s.title,
+      href: `/dashboard/survey/${s.id}`,
+    })),
+    ...(!isAdmin && assessmentEnabled && !assessmentCompleted
+      ? [
+          {
+            label: "Complete your pathway profile",
+            detail: "10–15 min",
+            href: "/dashboard/assessment",
+          },
+        ]
+      : []),
+  ];
   const trackStates = cardTracks.map((track) => {
     const started = trackHasStarted(track, now);
     const currentWeek = track.selfPaced
@@ -631,17 +648,21 @@ async function DashboardContent({
         )}
       </div>
 
-      <AnnouncementBanner announcements={activeAnnouncements} />
+      <AnnouncementBanner
+        announcements={activeAnnouncements}
+        trackNames={Object.fromEntries(program.tracks.map((t) => [t.slug, t.shortName]))}
+      />
 
-      {nextUp && <NextUpPanel touchpoint={nextUp} />}
+      {nextUp && <NextUpPanel touchpoint={nextUp} todos={homeTodos} />}
 
       {learnerProgress && <MyProgressCard {...learnerProgress} />}
 
-      {pendingSurveys.map((survey) => (
-        <SurveyCard key={survey.id} survey={survey} />
-      ))}
+      {/* No panel to fold into (nothing scheduled) — fall back to survey
+         cards / the profile banner so the tasks stay reachable. */}
+      {!nextUp &&
+        pendingSurveys.map((survey) => <SurveyCard key={survey.id} survey={survey} />)}
 
-      {!isAdmin && assessmentEnabled && !assessmentCompleted && (
+      {!nextUp && !isAdmin && assessmentEnabled && !assessmentCompleted && (
         <div className="rounded-lg bg-accent/10 border border-accent/20 px-5 py-4 flex items-center justify-between gap-4">
           <div>
             <p className="font-semibold text-ink text-sm">Complete your pathway profile</p>

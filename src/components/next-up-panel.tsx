@@ -10,7 +10,22 @@ import type { Touchpoint } from "@/lib/course-touchpoint";
  * then (join / open). Computed server-side each load, so it's correct on
  * arrival without polling.
  */
-export function NextUpPanel({ touchpoint }: { touchpoint: Touchpoint }) {
+export type PanelTodo = {
+  label: string;
+  /** "10–15 min" — rendered faintly after the label */
+  detail?: string;
+  href: string;
+};
+
+export function NextUpPanel({
+  touchpoint,
+  todos = [],
+}: {
+  touchpoint: Touchpoint;
+  /** Small tasks (profile, surveys) fold into the panel as quiet rows —
+     each one as its own full-width banner buried the panel (2026-07-12). */
+  todos?: PanelTodo[];
+}) {
   const { kind, href, unitLabel, title, whenLabel, timeLabel, isMass } = touchpoint;
   const isLive = kind === "live";
 
@@ -21,10 +36,10 @@ export function NextUpPanel({ touchpoint }: { touchpoint: Touchpoint }) {
     ? whenLabel
     : [whenLabel, timeLabel].filter(Boolean).join(" · ");
 
-  return (
+  const topRow = (
     <Link
       href={href}
-      className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-xl border border-rule border-l-[3px] border-l-primary bg-surface-elevated px-4 py-3.5 transition-colors hover:bg-paper-tint-soft"
+      className="flex flex-wrap items-center gap-x-4 gap-y-3 transition-colors hover:opacity-90"
     >
       <span className="min-w-[190px] flex-1">
         <span className="flex items-center gap-2">
@@ -54,5 +69,33 @@ export function NextUpPanel({ touchpoint }: { touchpoint: Touchpoint }) {
         <ArrowRight size={15} weight="bold" />
       </span>
     </Link>
+  );
+
+  return (
+    <div className="rounded-xl border border-rule border-l-[3px] border-l-primary bg-surface-elevated px-4 py-3.5">
+      {topRow}
+      {todos.length > 0 && (
+        <div className="mt-3 border-t border-rule pt-1">
+          {todos.map((todo) => (
+            <div
+              key={todo.href}
+              className="flex items-center gap-2.5 border-t border-rule py-2 text-[13px] text-ink-soft first:border-t-0"
+            >
+              <span
+                className="h-[15px] w-[15px] shrink-0 rounded border-[1.5px] border-ink-faint"
+                aria-hidden
+              />
+              <span className="min-w-0 flex-1">
+                {todo.label}
+                {todo.detail && <span className="text-ink-faint"> · {todo.detail}</span>}
+              </span>
+              <Link href={todo.href} className="shrink-0 text-[13px] font-semibold text-primary">
+                Start <ArrowRight size={12} weight="bold" className="inline" />
+              </Link>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
