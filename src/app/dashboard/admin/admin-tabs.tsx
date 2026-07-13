@@ -6,6 +6,7 @@ import Link from "next/link";
 import { deleteStudentAction, updateStudentAction, updateCohortAction, saveSessionContent, assignStudentTrack, removeStudentTrack, bulkAssignTrack, exportSurveyResponses, exportPublicSurveyResponses, getAllSubmissions, addFeedback, assignInstructorTrack, removeInstructorTrack, deleteSurveyResponse, deletePublicSurveyResponse, listPublicSurveyResponses, sendInviteAction, createCohortAction } from "./actions";
 import type { SessionResource, StudentTrackRow, SurveyStatsRow, AdminSubmissionRow, InstructorTrackRow, PublicSurveyStatsRow } from "./actions";
 import { canManageStudents, canSwitchPrograms, canViewInsights } from "@/lib/roles";
+import { RichTextEditor } from "@/components/rich-text-editor";
 import {
   Users,
   BookOpen,
@@ -1291,13 +1292,14 @@ export function AdminTabs({
                       </div>
                       <div>
                         <label className="text-xs font-medium text-ink-soft">Description</label>
-                        <textarea
-                          value={aw.overrideDescription}
-                          onChange={(e) => updateWeekOverride(activeTrack.slug, aw.week, { overrideDescription: e.target.value })}
-                          placeholder="Leave blank to use the default description"
-                          rows={2}
-                          className={`${fieldInput} mt-1 resize-none`}
-                        />
+                        <div className="mt-1">
+                          <RichTextEditor
+                            content={aw.overrideDescription}
+                            onChange={(html) => updateWeekOverride(activeTrack.slug, aw.week, { overrideDescription: html })}
+                            placeholder="Leave blank to use the default description"
+                            minHeight={120}
+                          />
+                        </div>
                       </div>
                       <div>
                         <label className="text-xs font-medium text-ink-soft">

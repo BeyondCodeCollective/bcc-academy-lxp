@@ -490,10 +490,11 @@ export default async function TrackWeekPage({
         </section>
       )}
 
-      {/* Brief description */}
-      <p className="mb-8 text-base leading-relaxed text-ink-soft max-w-[65ch] whitespace-pre-wrap">
-        {displayDescription}
-      </p>
+      {/* Brief description — renders rich text from the WYSIWYG editor */}
+      <div
+        className="mb-8 prose prose-sm max-w-[65ch] text-ink-soft leading-relaxed prose-headings:text-ink prose-a:text-accent prose-strong:text-ink"
+        dangerouslySetInnerHTML={{ __html: displayDescription }}
+      />
 
       {/* What You'll Cover — divider + eyebrow + list, no card. */}
       <section className="mb-8 border-t border-rule pt-6">

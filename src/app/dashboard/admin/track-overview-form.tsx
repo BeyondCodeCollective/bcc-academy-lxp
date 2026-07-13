@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
 import { saveTrackOverview, type TrackOverviewPatch } from "./actions";
 import { Field, fieldInput } from "@/components/ui";
+import { RichTextEditor } from "@/components/rich-text-editor";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
@@ -140,12 +141,12 @@ export function TrackOverviewForm({ track, programSlug, onLiveChange }: Props) {
           label="Description"
           hint="Shown below the title on the student's track page."
         >
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            onBlur={handleBlur}
-            rows={4}
-            className={`${fieldInput} resize-y leading-relaxed`}
+          <RichTextEditor
+            content={description}
+            onChange={setDescription}
+            onBlur={() => handleBlur()}
+            placeholder="Describe this track for students…"
+            minHeight={120}
           />
         </Field>
       </div>
