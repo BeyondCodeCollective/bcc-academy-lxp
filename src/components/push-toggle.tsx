@@ -32,10 +32,15 @@ export function PushToggle() {
       return;
     }
 
-    navigator.serviceWorker.ready.then((reg) => {
-      reg.pushManager.getSubscription().then((sub) => {
-        setState(sub ? "subscribed" : "default");
-      });
+    // Register service worker on mount so ready resolves
+    navigator.serviceWorker.register("/sw.js").then(() => {
+      return navigator.serviceWorker.ready;
+    }).then((reg) => {
+      return reg.pushManager.getSubscription();
+    }).then((sub) => {
+      setState(sub ? "subscribed" : "default");
+    }).catch(() => {
+      setState("default");
     });
   }, []);
 
