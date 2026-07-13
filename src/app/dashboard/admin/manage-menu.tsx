@@ -10,6 +10,7 @@ import { buttonClass } from "@/components/ui";
 // home leads with the course list + daily-ops toolbar instead of two pill rows.
 const ITEMS: { href: string; label: string }[] = [
   { href: "/dashboard/admin/programs", label: "Manage courses" },
+  { href: "/dashboard/admin/announcements", label: "Announcements" },
   { href: "/dashboard/admin/landing", label: "Landing pages" },
   { href: "/dashboard/admin/registrations", label: "Registrations" },
   { href: "/dashboard/admin/agreements", label: "Participation agreements" },
