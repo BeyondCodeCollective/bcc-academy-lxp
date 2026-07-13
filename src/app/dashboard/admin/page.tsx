@@ -182,7 +182,15 @@ export default async function AdminPage({
           ? svc
                   .from("students")
                   .select("id, first_name, last_name, email, role, cohort_id, last_seen_at, last_activity_at")
-                  .in("program_id", programIds)
+                  // Program members PLUS every super_admin: cross-program staff
+                  // (e.g. someone running both Catalyst and Beyond Code Centers)
+                  // should appear in each program's People tab, not only under
+                  // the program their account happened to be created in.
+                  .or(
+                    programIds.length > 0
+                      ? `program_id.in.(${programIds.join(",")}),role.eq.super_admin`
+                      : "role.eq.super_admin",
+                  )
                   .order("created_at", { ascending: true })
           : Promise.resolve({ data: [] as Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id" | "last_seen_at" | "last_activity_at">[] }),
         needsCohorts
