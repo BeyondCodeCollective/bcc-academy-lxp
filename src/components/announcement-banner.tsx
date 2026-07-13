@@ -17,7 +17,7 @@ export function AnnouncementBanner({ announcements }: { announcements: Announcem
           key={a.id}
           className="flex items-start gap-3 rounded-xl border border-accent/20 bg-accent/5 px-4 py-3"
         >
-          <Megaphone size={16} className="mt-0.5 shrink-0 text-accent" />
+          <Megaphone size={16} className="mt-0.5 shrink-0 text-accent" aria-hidden />
           <div className="min-w-0 flex-1">
             <p className="text-sm text-ink">{a.message}</p>
             <p className="mt-1 text-xs text-ink-faint">

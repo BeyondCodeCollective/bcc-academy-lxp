@@ -10,8 +10,11 @@ import { VIDEO_URLS } from "@/data/marketing/videos";
 // Mode can still block it; the dark fallback shows in that case.)
 export function HeroVideo() {
   const ref = useRef<HTMLVideoElement>(null);
+  const prefersReducedMotion = typeof window !== "undefined"
+    && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   useEffect(() => {
+    if (prefersReducedMotion) return;
     const v = ref.current;
     if (!v) return;
     v.muted = true;
@@ -22,7 +25,7 @@ export function HeroVideo() {
     play();
     v.addEventListener("canplay", play, { once: true });
     return () => v.removeEventListener("canplay", play);
-  }, []);
+  }, [prefersReducedMotion]);
 
   return (
     <video

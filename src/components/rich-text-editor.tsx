@@ -91,7 +91,7 @@ export function RichTextEditor({
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm max-w-none focus:outline-none text-ink leading-relaxed",
+          "prose prose-sm max-w-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary text-ink leading-relaxed",
         style: `min-height: ${minHeight}px`,
       },
     },

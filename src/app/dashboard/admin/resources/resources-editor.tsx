@@ -87,10 +87,10 @@ export function ResourcesEditor({ programSlug, programName, initial }: Props) {
                 </label>
               </div>
               <div className="mt-5 flex shrink-0 flex-col gap-1">
-                <button type="button" onClick={() => move(i, -1)} disabled={i === 0} aria-label="Move up" className="rounded p-1 text-ink-faint hover:bg-paper-tint hover:text-ink disabled:opacity-30">
+                <button type="button" onClick={() => move(i, -1)} disabled={i === 0} aria-label="Move up" className="rounded p-1 min-h-[44px] min-w-[44px] flex items-center justify-center text-ink-faint hover:bg-paper-tint hover:text-ink disabled:opacity-30">
                   <ArrowUp size={13} aria-hidden />
                 </button>
-                <button type="button" onClick={() => move(i, 1)} disabled={i === rows.length - 1} aria-label="Move down" className="rounded p-1 text-ink-faint hover:bg-paper-tint hover:text-ink disabled:opacity-30">
+                <button type="button" onClick={() => move(i, 1)} disabled={i === rows.length - 1} aria-label="Move down" className="rounded p-1 min-h-[44px] min-w-[44px] flex items-center justify-center text-ink-faint hover:bg-paper-tint hover:text-ink disabled:opacity-30">
                   <ArrowDown size={13} aria-hidden />
                 </button>
               </div>
