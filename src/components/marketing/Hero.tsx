@@ -46,6 +46,14 @@ export default function Hero() {
     return () => clearInterval(interval);
   }, []);
 
+  // Respect prefers-reduced-motion — pause video immediately on mount
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches && videoRef.current) {
+      videoRef.current.pause();
+      setVideoPlaying(false);
+    }
+  }, []);
+
   const toggleVideo = () => {
     if (videoRef.current) {
       if (videoPlaying) {

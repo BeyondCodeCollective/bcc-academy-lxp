@@ -168,6 +168,7 @@ export function CentralLoginForm({
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="your@email.com"
+          aria-label="Email address"
           required
           autoComplete="email"
           autoFocus={!compact}

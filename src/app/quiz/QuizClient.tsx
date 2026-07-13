@@ -207,6 +207,7 @@ function LeadCaptureScreen({
                   value={value}
                   onChange={handleChange}
                   placeholder="your@email.com"
+                aria-label="Email address"
                   className="w-full bg-white text-black placeholder-gray-400 px-5 py-4 text-lg focus:outline-none focus:ring-2 focus:ring-gray-400 border-0"
                   autoFocus
                 />
