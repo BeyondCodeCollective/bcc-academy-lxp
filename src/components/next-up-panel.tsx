@@ -43,7 +43,9 @@ export function NextUpPanel({ touchpoint }: { touchpoint: Touchpoint }) {
           </span>
         </span>
         <span className="mt-1 block text-[15px] font-semibold leading-snug text-ink">
-          {isMass ? unitLabel : `${unitLabel} · ${title}`}
+          {/* MASS and home-composed touchpoints carry the full line in
+             unitLabel; a placeholder topic (title === unitLabel) adds nothing. */}
+          {isMass || !title || title === unitLabel ? unitLabel : `${unitLabel} · ${title}`}
         </span>
         <span className="mt-0.5 block text-xs tabular-nums text-ink-faint">{sub}</span>
       </span>
