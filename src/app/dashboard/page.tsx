@@ -20,6 +20,8 @@ import { resolveCurrentUser } from "@/lib/current-user";
 import { getEnrolledTracks, collapseCompanionSlugs } from "@/lib/enrollment";
 import { WeekIcon } from "@/components/week-icon";
 import { DashboardBento } from "@/components/dashboard-bento";
+import { NextUpPanel } from "@/components/next-up-panel";
+import { touchpointCandidates, resolveTouchpoint } from "@/lib/course-touchpoint";
 import { isTutorAvailable } from "@/lib/programs";
 import { MyProgressCard, type MyProgressCardProps } from "@/components/my-progress-card";
 import { AnnouncementBanner } from "@/components/announcement-banner";
@@ -430,6 +432,28 @@ async function DashboardContent({
   const cardTracks = isAdmin
     ? visibleTracks
     : program.tracks.filter((t) => enrolledSet.has(t.slug));
+  // "Happening next" across EVERY enrolled course — the multi-course home's
+  // answer to "what do I do right now?". Same live > today > upcoming logic
+  // as the course page, but each candidate is labeled with its COURSE (a
+  // home visitor is choosing between courses, not between sessions of one).
+  // Placeholder topics (topic === unit label) collapse to just the course
+  // name — no "Week 1: Week 1".
+  const nextUp = resolveTouchpoint(
+    cardTracks
+      .filter((t) => t.type !== "single-event")
+      .flatMap((track) =>
+        touchpointCandidates(track).map((c) => ({
+          ...c,
+          unitLabel: c.isMass
+            ? c.unitLabel
+            : c.title && c.title !== c.unitLabel
+              ? `${track.shortName} · ${c.title}`
+              : track.shortName,
+          title: "",
+        })),
+      ),
+    now,
+  );
   const trackStates = cardTracks.map((track) => {
     const started = trackHasStarted(track, now);
     const currentWeek = track.selfPaced
@@ -608,6 +632,8 @@ async function DashboardContent({
       </div>
 
       <AnnouncementBanner announcements={activeAnnouncements} />
+
+      {nextUp && <NextUpPanel touchpoint={nextUp} />}
 
       {learnerProgress && <MyProgressCard {...learnerProgress} />}
 
