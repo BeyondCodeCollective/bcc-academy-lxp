@@ -6,7 +6,7 @@
 // matching skeleton.
 export default function DashboardLoading() {
   return (
-    <div className="mx-auto w-full max-w-2xl md:max-w-5xl px-4 sm:px-5 py-8 space-y-6 animate-pulse">
+    <div className="mx-auto w-full max-w-2xl md:max-w-5xl px-4 sm:px-8 md:px-5 py-8 space-y-6 animate-pulse">
       {/* Header — title + subtitle, with optional action chips on the right */}
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
