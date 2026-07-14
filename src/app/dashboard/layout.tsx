@@ -37,10 +37,12 @@ function NavSkeleton() {
   // Empty light rail — holds the sidebar's space (main is md:pl-60 regardless)
   // and avoids a black flash while the nav streams in, but draws no fake nav
   // items: like the route loaders, a guessed layout reads as a wrong UI when
-  // the real nav (per-program items) swaps in.
+  // the real nav (per-program items) swaps in. Needs .js-sidebar so the
+  // collapsed-rail CSS applies to the fallback too — without it, a collapsed
+  // sidebar flashes to full width during program switches, then snaps back.
   return (
     <nav
-      className="hidden md:flex md:w-60 md:flex-col md:fixed md:inset-y-0 shell-light items-center justify-center"
+      className="js-sidebar hidden md:flex md:w-60 md:flex-col md:fixed md:inset-y-0 shell-light items-center justify-center"
       role="status"
       aria-label="Loading"
     >
