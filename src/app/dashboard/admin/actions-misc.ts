@@ -1,5 +1,7 @@
 "use server";
 
+import { after } from "next/server";
+
 import { revalidatePath } from "next/cache";
 import { requireAdmin, resolveProgramForActor } from "./actions-shared";
 import { logActivityEvent } from "@/lib/analytics/log-event";
@@ -154,22 +156,24 @@ export async function createAnnouncement(data: {
 
   // Fire-and-forget: email enrolled students (who haven't opted out). Never
   // let a delivery hiccup fail the instructor's post.
-  void notifyAnnouncement({
+  after(() => notifyAnnouncement({
     programId: programId,
     trackSlug: data.trackSlug || null,
     message: data.message,
-  });
+  }));
 
   // Fire-and-forget: push notification to enrolled students
   if (data.trackSlug) {
-    void import("@/lib/push").then(({ sendPushToTrack }) =>
-      sendPushToTrack({
-        programId,
-        trackSlug: data.trackSlug!,
-        title: "New announcement",
-        body: data.message.slice(0, 200),
-        url: "/dashboard",
-      })
+    after(() =>
+      import("@/lib/push").then(({ sendPushToTrack }) =>
+        sendPushToTrack({
+          programId,
+          trackSlug: data.trackSlug!,
+          title: "New announcement",
+          body: data.message.slice(0, 200),
+          url: "/dashboard",
+        })
+      ),
     );
   }
 
@@ -338,13 +342,13 @@ export async function issueCertificate(
     .single();
   if (error) return { success: false, error: error.message };
 
-  void logActivityEvent({
+  after(() => logActivityEvent({
     userId: studentId,
     eventType: "certificate_issued",
     programId,
     trackSlug,
     metadata: { issuedBy: actor.userId },
-  });
+  }));
 
   let emailed = false;
   if (!opts?.skipEmail) {

@@ -419,7 +419,9 @@ export async function sendWelcomeEmail({
 }: WelcomeEmailParams): Promise<void> {
   // Backfill the newsletter subscriber's name now that onboarding has captured
   // it (signup subscribed them with a blank name). Idempotent + program-gated.
-  void subscribeToNewsletter({ email: to, firstName, programSlug: program.slug });
+  // Awaited: this helper already runs post-response (inside after()); a
+  // `void` here was dropped with the lambda the same way as attendance was.
+  await subscribeToNewsletter({ email: to, firstName, programSlug: program.slug });
 
   if (!resend) {
     console.warn("[email] RESEND_API_KEY not set — skipping welcome email");

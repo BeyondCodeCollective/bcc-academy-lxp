@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { generateInviteToken } from "@/lib/invite-token";
 import { createServiceClient } from "@/lib/supabase/server";
 import type { ProgramConfig } from "@/lib/programs/types";
@@ -280,17 +281,19 @@ export async function completePendingSetup(
         }
         if (inviteToken) signInUrl = `https://${program.domain}/invite/${inviteToken}`;
 
-        void sendWelcomeEmail({
-          to: email,
-          firstName: welcomeName,
-          program,
-          enrolledTracks: tracksToEnroll,
-          signInUrl,
-        }).then(() =>
-          admin
-            .from("students")
-            .update({ welcome_email_sent_at: new Date().toISOString() })
-            .eq("id", userId),
+        after(() =>
+          sendWelcomeEmail({
+            to: email,
+            firstName: welcomeName,
+            program,
+            enrolledTracks: tracksToEnroll,
+            signInUrl,
+          }).then(() =>
+            admin
+              .from("students")
+              .update({ welcome_email_sent_at: new Date().toISOString() })
+              .eq("id", userId),
+          ),
         );
       }
     }

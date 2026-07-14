@@ -1,5 +1,7 @@
 "use server";
 
+import { after } from "next/server";
+
 import { revalidatePath } from "next/cache";
 import { requireManager, assertStudentInActorProgram } from "./actions-shared";
 import { assignableRoles, canAssignRole } from "@/lib/roles";
@@ -171,12 +173,12 @@ export async function addStudentAction(data: {
       .eq("id", programId)
       .maybeSingle();
     if (prog?.slug) {
-      void subscribeToNewsletter({
+      after(() => subscribeToNewsletter({
         email: data.email,
         firstName: data.first_name,
         lastName: data.last_name,
         programSlug: prog.slug,
-      });
+      }));
     }
   }
 
