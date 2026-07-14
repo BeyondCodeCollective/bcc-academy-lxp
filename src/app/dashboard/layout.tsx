@@ -19,6 +19,7 @@ import { canAccessAdminPanel, canSwitchPrograms, canAccessStaffContent } from "@
 import { getSessionContext } from "@/lib/auth/session";
 import { getPreviewTrackSlug, getPreviewTrackSlugs, LUNCH_LEARN_PREVIEW_SLUG } from "@/lib/auth/preview-mode";
 import { getEnrolledTracks } from "@/lib/enrollment";
+import { getHiddenTrackSlugs } from "@/lib/programs/hidden";
 import { getLearnerAccess } from "@/lib/auth/active-enrollment";
 import { getEnforcedOnboardingChecklist, getOnboardingStatus } from "@/lib/onboarding/checklists";
 import { BCC_INTAKE_SURVEY_ID, surveySkippedForTracks } from "@/lib/surveys/platform";
@@ -646,9 +647,13 @@ async function Overlays({ isSurveyPage }: { isSurveyPage: boolean }) {
   // edited live in track_overrides, which is the source of truth. The raw TS
   // config would show stale names (e.g. "AI Literacy" instead of the renamed
   // "Foundations of AI & Digital Skills").
-  const overriddenPrograms = await Promise.all(
-    getJoinablePrograms().map((p) => getProgramWithOverrides(p.slug)),
-  );
+  // Hidden courses (admin Hide/Show) stay out of the preview menu too — the
+  // admin home and catalog already filter by hidden_courses, but this menu
+  // didn't, so retired courses kept piling up here (2026-07-13).
+  const [hiddenTrackSlugs, overriddenPrograms] = await Promise.all([
+    getHiddenTrackSlugs(),
+    Promise.all(getJoinablePrograms().map((p) => getProgramWithOverrides(p.slug))),
+  ]);
   const programBySlug = new Map(overriddenPrograms.map((p) => [p.slug, p] as const));
 
   const previewGroupMap = new Map<
@@ -658,6 +663,7 @@ async function Overlays({ isSurveyPage }: { isSurveyPage: boolean }) {
   const seenTrackSlugs = new Set<string>();
   for (const p of overriddenPrograms) {
     for (const t of p.tracks) {
+      if (hiddenTrackSlugs.has(t.slug)) continue;
       if (seenTrackSlugs.has(t.slug)) continue;
       seenTrackSlugs.add(t.slug);
       const home = getHomeProgramForTrack(t.slug);
