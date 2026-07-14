@@ -1,6 +1,6 @@
 "use server";
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import crypto from "crypto";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/server";
@@ -96,12 +96,17 @@ export async function POST(request: NextRequest) {
   // errors. Staff (instructors/admins) are skipped so they don't pollute the
   // learner attendance count. Idempotent per (student, track, week, session).
   if (trackSlug && weekNumber && !isStaffEmail(user.email)) {
-    // Fire-and-forget so the Zoom join is never delayed. Resolve the program the
-    // student is enrolled under for this track (this also confirms enrollment),
-    // then upsert against the real 5-column unique key. `program_id` is NOT NULL
-    // and the conflict target must match (program_id, student_id, track, week,
-    // session) — without both, every write silently failed and nothing recorded.
-    void (async () => {
+    // Runs AFTER the response so the Zoom join is never delayed — but via
+    // after(), which the platform guarantees to complete. The previous
+    // `void (async () => …)()` fire-and-forget was frozen with the lambda the
+    // moment the signature was returned: every join at the Security+ kickoff
+    // (2026-07-13, ~50 joins) recorded NO attendance and NO session_join
+    // event. Same failure class as PR #681 — never `void` a Supabase write
+    // in a serverless function.
+    // Resolve the program the student is enrolled under for this track (this
+    // also confirms enrollment), then upsert against the real 5-column unique
+    // key: `program_id` is NOT NULL and the conflict target must match.
+    after(async () => {
       const { data: enrollment } = await svc
         .from("student_tracks")
         .select("program_id")
@@ -133,7 +138,7 @@ export async function POST(request: NextRequest) {
         trackSlug,
         metadata: { week: weekNumber, session: sessionNumber },
       });
-    })();
+    });
   }
 
   // ── Generate JWT signature ────────────────────────────────────────────────
