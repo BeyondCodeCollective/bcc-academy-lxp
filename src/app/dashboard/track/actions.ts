@@ -1,5 +1,7 @@
 "use server";
 
+import { after } from "next/server";
+
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { getProgramId } from "@/lib/programs/server";
 import { getSessionContext } from "@/lib/auth/session";
@@ -98,13 +100,13 @@ export async function submitProject(
 
   if (error) throw new Error(error.message);
 
-  void logActivityEvent({
+  after(() => logActivityEvent({
     userId,
     eventType: "submission",
     programId,
     trackSlug,
     metadata: { week: weekNumber },
-  });
+  }));
 
   revalidatePath(`/dashboard/track/${trackSlug}/${weekNumber}`);
   revalidatePath(`/dashboard/insights`);
@@ -158,13 +160,13 @@ export async function submitReflection(
 
   if (error) throw new Error(error.message);
 
-  void logActivityEvent({
+  after(() => logActivityEvent({
     userId,
     eventType: "reflection",
     programId,
     trackSlug,
     metadata: { week: weekNumber },
-  });
+  }));
 
   revalidatePath(`/dashboard/track/${trackSlug}/${weekNumber}`);
   revalidatePath(`/dashboard/insights`);
@@ -291,13 +293,13 @@ export async function markVideoWatched(trackSlug: string, weekNumber: number) {
   // Record the watch on the activity timeline. The platform uses a self-report
   // "Mark as watched" button (not an instrumented player), so the honest signal
   // is completion — percent 100. Granular progress would need an SDK player.
-  void logActivityEvent({
+  after(() => logActivityEvent({
     userId,
     eventType: "video_progress",
     programId,
     trackSlug,
     metadata: { week: weekNumber, percent: 100 },
-  });
+  }));
 
   revalidatePath(`/dashboard/track/${trackSlug}/${weekNumber}`);
   return { success: true };

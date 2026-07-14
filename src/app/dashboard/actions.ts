@@ -1,5 +1,7 @@
 "use server";
 
+import { after } from "next/server";
+
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { getSessionContext, bustProfileCache } from "@/lib/auth/session";
 import { getHomeProgramForTrack } from "@/lib/programs";
@@ -167,12 +169,12 @@ export async function saveSurveyResponse(
     throw new Error(`Save failed: ${error.message}`);
   }
 
-  void logActivityEvent({
+  after(() => logActivityEvent({
     userId: user.id,
     eventType: "survey_complete",
     programId,
     metadata: { surveyType },
-  });
+  }));
 
   // If the survey collected a name, save it to the student record.
   // Supports both separate first_name/last_name fields and a single full_name field.

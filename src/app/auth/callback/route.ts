@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
@@ -368,13 +368,13 @@ export async function GET(request: Request) {
           { onConflict: "id", ignoreDuplicates: true }
         );
         await admin.from("students").update({ last_seen_at: new Date().toISOString() }).eq("id", user.id);
-        void logActivityEvent({ userId: user.id, eventType: "login", programId: effectiveProgramRow?.id ?? programId });
+        after(() => logActivityEvent({ userId: user.id, eventType: "login", programId: effectiveProgramRow?.id ?? programId }));
 
         // First-time signup → add to the Mailchimp newsletter (auto-subscribe).
         // Only on `!existing` so we don't fire on every login. Name is blank at
         // this stage; sendWelcomeEmail re-syncs it once onboarding captures it.
         if (!existing) {
-          void subscribeToNewsletter({ email, programSlug: effectiveSlug });
+          after(() => subscribeToNewsletter({ email, programSlug: effectiveSlug }));
         }
 
         const cookieOpts = { path: "/", httpOnly: false, sameSite: "lax" as const };
@@ -465,7 +465,7 @@ export async function GET(request: Request) {
         { onConflict: "id", ignoreDuplicates: true }
       );
       await admin.from("students").update({ last_seen_at: new Date().toISOString() }).eq("id", user.id);
-      void logActivityEvent({ userId: user.id, eventType: "login", programId });
+      after(() => logActivityEvent({ userId: user.id, eventType: "login", programId }));
 
       // Single-course learners → straight to their course (no dashboard→course
       // skeleton flash). New students / admins / staff fall through to setup.
