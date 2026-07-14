@@ -8,11 +8,8 @@ import { getProgram } from "@/lib/programs/server";
 import { resolveProgramScope } from "@/lib/programs/scope";
 import { HorizontalBarChart } from "@/components/charts/horizontal-bar-chart";
 import { DonutChart } from "@/components/charts/donut-chart";
-import { fetchAllInsightsData } from "@/lib/insights-data";
 import { OutcomesDashboard } from "@/app/dashboard/admin/outcomes/outcomes-dashboard";
-import { fetchOutcomesData } from "@/lib/analytics/outcomes";
-import { fetchProgressData } from "@/lib/analytics/progress";
-import { fetchAcquisitionData } from "@/lib/analytics/acquisition";
+import { getInsightsBundle } from "@/lib/analytics/insights-cache";
 import { StatCard } from "@/components/stats/stat-card";
 import { COBALT_FAMILY } from "@/components/stats/palette";
 
@@ -39,8 +36,8 @@ export default async function InsightsPage() {
   const program = await getProgram();
   const scope = await resolveProgramScope(program.slug);
 
-  const [
-    {
+  const {
+    insights: {
       allStudents,
       studentTracks,
       alumni,
@@ -56,12 +53,7 @@ export default async function InsightsPage() {
     outcomes,
     progress,
     acquisition,
-  ] = await Promise.all([
-    fetchAllInsightsData(scope),
-    fetchOutcomesData(scope),
-    fetchProgressData(scope),
-    fetchAcquisitionData(scope),
-  ]);
+  } = await getInsightsBundle(scope);
 
   const namesById = new Map(
     allStudents.map((s) => [
