@@ -2,7 +2,7 @@ import "server-only";
 
 import { createServiceClient } from "@/lib/supabase/server";
 import { generateInviteToken } from "@/lib/invite-token";
-import { getHomeProgramForTrack } from "@/lib/programs";
+import { resolveHomeProgramSlug } from "@/lib/programs/server";
 import { getProgramWithOverrides } from "@/lib/programs/server";
 import { fetchEventbriteOrder } from "@/lib/eventbrite";
 import { getLandingByEventbriteId } from "@/lib/landing-pages";
@@ -54,7 +54,9 @@ export async function processEventbriteOrder(
     return { ok: true, inviteToken: existingOrder.invite_token as string, trackSlug, slug };
   }
 
-  const programSlug = getHomeProgramForTrack(trackSlug)?.slug ?? "catalyst";
+  // Resolve builder courses via track_overrides — blanket Catalyst filed
+  // other programs' buyers under the wrong program.
+  const programSlug = (await resolveHomeProgramSlug(trackSlug)) ?? "catalyst";
 
   // Allowlist so future magic-link logins for this email also pass the track gate.
   await svc

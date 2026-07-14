@@ -90,19 +90,10 @@ async function resolveBaseProgram(): Promise<ProgramConfig> {
     // Catalyst fallback rendered a Beyond Code Centers course preview in the
     // Catalyst shell, where the slug then failed the program filter and the
     // preview silently degraded to the admin's own view.)
-    try {
-      const { data } = await createServiceClient()
-        .from("track_overrides")
-        .select("programs(slug)")
-        .eq("track_slug", previewSlug)
-        .maybeSingle<{ programs: { slug: string } | null }>();
-      const overrideProgramSlug = data?.programs?.slug;
-      if (overrideProgramSlug) {
-        const resolved = await resolveSlug(overrideProgramSlug);
-        if (resolved) return resolved;
-      }
-    } catch (err) {
-      console.warn("[resolveBaseProgram] preview home lookup failed:", err);
+    const overrideProgramSlug = await resolveHomeProgramSlug(previewSlug);
+    if (overrideProgramSlug) {
+      const resolved = await resolveSlug(overrideProgramSlug);
+      if (resolved) return resolved;
     }
     // Unknown slug (stale cookie, deleted course): Catalyst keeps the shell
     // usable; getProgram() layers builder tracks on via overrides.

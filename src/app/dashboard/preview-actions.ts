@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { getSessionContext } from "@/lib/auth/session";
 import { canSwitchPrograms } from "@/lib/roles";
 import { PREVIEW_COOKIE, LUNCH_LEARN_PREVIEW_SLUG } from "@/lib/auth/preview-mode";
-import { getHomeProgramForTrack } from "@/lib/programs";
+import { resolveHomeProgramSlug } from "@/lib/programs/server";
 
 /**
  * Set the preview cookie to a specific track slug, or clear it. Only
@@ -63,12 +63,17 @@ export async function togglePreviewTrackSlug(slug: string) {
   } else if (current.includes(slug)) {
     next = current.filter((s) => s !== slug);
   } else {
-    const sameProgram = (a: string, b: string) =>
-      getHomeProgramForTrack(a)?.slug === getHomeProgramForTrack(b)?.slug;
+    // Resolve homes through the DB too — two builder courses in DIFFERENT
+    // programs both return undefined from the TS-config lookup and would
+    // wrongly read as "same program".
+    const homeOf = new Map<string, string | null>();
+    for (const s of [...current, slug]) {
+      if (!homeOf.has(s)) homeOf.set(s, await resolveHomeProgramSlug(s));
+    }
     const compatible =
       current.length > 0 &&
       !current.includes(LUNCH_LEARN_PREVIEW_SLUG) &&
-      current.every((s) => sameProgram(s, slug));
+      current.every((s) => homeOf.get(s) === homeOf.get(slug) && homeOf.get(s) !== null);
     next = compatible ? [...current, slug] : [slug];
   }
 

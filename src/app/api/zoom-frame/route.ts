@@ -153,8 +153,22 @@ export async function GET(req: NextRequest) {
         // Guard: init/join sometimes never callback on asset/network/CSP
         // failure — cleared only once join resolves, so a silent join hang
         // still surfaces an error instead of an endless spinner.
+        //
+        // BUT: "waiting for the host to start the meeting" is a legitimate
+        // pre-join state where the join callback also never fires — the SDK
+        // renders its own waiting screen under our overlay. Painting
+        // "Session timed out" over it told early students class was broken
+        // (Security+ kickoff, 2026-07-13). If the SDK has rendered ANYTHING,
+        // get out of its way instead of erroring.
         const initTimeout = setTimeout(() => {
-          showError("Session timed out while loading. Please refresh and try again.");
+          const zoomRoot = document.getElementById("zmmtg-root");
+          const sdkRendered =
+            zoomRoot && (zoomRoot.innerText || "").trim().length > 0;
+          if (sdkRendered) {
+            statusEl.style.display = "none";
+          } else {
+            showError("Session timed out while loading. Please refresh and try again.");
+          }
         }, 30000);
 
         ZoomMtg.init({

@@ -270,6 +270,33 @@ export default async function AdminPage({
     allCohorts = cohortsResult.data || [];
     studentTracks = (studentTracksRes.data ?? []) as StudentTrackRow[];
     instructorTracks = (instructorTracksRes.data ?? []) as InstructorTrackRow[];
+
+    // Membership is defined by ENROLLMENT, not just the account's program_id
+    // stamp. A learner whose account was stamped under another program (signed
+    // up on a different surface) but who is enrolled in THIS program's courses
+    // belongs on this roster — without this, the HS cohort read "2 enrolled"
+    // while its Students list showed zero. Supplement the stamped set with
+    // anyone holding an enrollment or instructor assignment here.
+    if (needsStudents) {
+      const have = new Set(allStudents.map((s) => s.id));
+      const missingIds = Array.from(
+        new Set(
+          [...studentTracks, ...instructorTracks]
+            .map((e) => e.student_id)
+            .filter((id) => !have.has(id)),
+        ),
+      );
+      if (missingIds.length > 0) {
+        const { data: extra } = await svc
+          .from("students")
+          .select("id, first_name, last_name, email, role, cohort_id, last_seen_at, last_activity_at")
+          .in("id", missingIds);
+        allStudents = [
+          ...allStudents,
+          ...((extra ?? []) as typeof allStudents),
+        ];
+      }
+    }
     myInstructorTracks = ((myInstrTracksRes.data ?? []) as { track_slug: string }[]).map(
       (r) => r.track_slug
     );

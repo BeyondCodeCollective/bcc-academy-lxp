@@ -12,7 +12,7 @@ import { TutorFab } from "@/components/tutor-fab";
 import { NameCaptureOverlay } from "@/components/name-capture-overlay";
 import { PreviewToggle } from "@/components/preview-toggle";
 import { PreviewBanner } from "@/components/preview-banner";
-import { getProgram, getProgramWithOverrides } from "@/lib/programs/server";
+import { getProgram, getProgramWithOverrides, resolveHomeProgramSlug } from "@/lib/programs/server";
 import { getProgramBySlug, getAllPrograms, getJoinablePrograms, isTutorAvailable } from "@/lib/programs";
 import { ProgramProvider } from "@/lib/programs/context";
 import { canAccessAdminPanel, canSwitchPrograms, canAccessStaffContent } from "@/lib/roles";
@@ -67,16 +67,7 @@ async function resolveLearnerBrand(resolved: ProgramConfig): Promise<ProgramConf
     .eq("student_id", ctx.userId);
   for (const row of rows ?? []) {
     const slug = (row as { track_slug: string }).track_slug;
-    let homeSlug = getHomeProgramForTrack(slug)?.slug ?? null;
-    if (!homeSlug) {
-      // DB-driven (Course Builder) track — not in TS config; look up its program.
-      const { data: ov } = await svc
-        .from("track_overrides")
-        .select("programs(slug)")
-        .eq("track_slug", slug)
-        .maybeSingle();
-      homeSlug = (ov?.programs as unknown as { slug: string } | null)?.slug ?? null;
-    }
+    const homeSlug = await resolveHomeProgramSlug(slug);
     if (homeSlug && homeSlug !== MARKETING_SLUG) {
       return getProgramWithOverrides(homeSlug);
     }
