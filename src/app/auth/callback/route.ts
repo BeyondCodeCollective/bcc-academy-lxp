@@ -4,7 +4,7 @@ import type { EmailOtpType } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { createServiceClient } from "@/lib/supabase/server";
 import { authCookieDomain } from "@/lib/supabase/cookie-domain";
-import { getProgram, fetchDynamicProgram } from "@/lib/programs/server";
+import { getProgram, fetchDynamicProgram, resolveHomeProgramSlug } from "@/lib/programs/server";
 import { getProgramBySlug, getHomeProgramForTrack, getTrackBySlug, isKnownProgramHost, hasTsConfigSlug } from "@/lib/programs";
 import { safeNextPath } from "@/lib/auth/next-path";
 import { courseLandingPath, primaryTrack } from "@/lib/enrollment";
@@ -196,15 +196,7 @@ export async function GET(request: Request) {
           // TS-config tracks resolve in-memory; Course-Builder (DB) tracks live
           // only in track_overrides, so getHomeProgramForTrack can't see them.
           // Fall back to a DB lookup for the track's program in that case.
-          let homeSlug = getHomeProgramForTrack(firstTrack)?.slug ?? null;
-          if (!homeSlug) {
-            const { data: ov } = await admin
-              .from("track_overrides")
-              .select("programs(slug)")
-              .eq("track_slug", firstTrack)
-              .maybeSingle();
-            homeSlug = (ov?.programs as unknown as { slug: string } | null)?.slug ?? null;
-          }
+          const homeSlug = await resolveHomeProgramSlug(firstTrack);
           if (homeSlug) {
             // Always trust the allowlist over a stale pending-join-slug cookie.
             // The cookie can be left over from a previous session on a different
@@ -247,15 +239,7 @@ export async function GET(request: Request) {
         if (finalTrack) {
           trackParam = finalTrack;
           if (!joinSlug) {
-            let hpSlug = getHomeProgramForTrack(trackParam)?.slug ?? null;
-            if (!hpSlug) {
-              const { data: ov } = await admin
-                .from("track_overrides")
-                .select("programs(slug)")
-                .eq("track_slug", trackParam)
-                .maybeSingle();
-              hpSlug = (ov?.programs as unknown as { slug: string } | null)?.slug ?? null;
-            }
+            const hpSlug = await resolveHomeProgramSlug(trackParam);
             if (hpSlug) {
               joinSlug = hpSlug;
               if (hasTsConfigSlug(joinSlug)) program = getProgramBySlug(joinSlug);

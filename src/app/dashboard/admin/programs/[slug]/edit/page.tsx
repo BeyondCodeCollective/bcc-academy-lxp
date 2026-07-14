@@ -1,9 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSessionContext } from "@/lib/auth/session";
 import { canSwitchPrograms } from "@/lib/roles";
-import { getHomeProgramForTrack } from "@/lib/programs";
-import { getProgramWithOverrides } from "@/lib/programs/server";
-import { createServiceClient } from "@/lib/supabase/server";
+import { getProgramWithOverrides, resolveHomeProgramSlug } from "@/lib/programs/server";
 import { EditCourseForm } from "./edit-course-form";
 import { PageHeader } from "@/components/page-header";
 import { ManageMenu } from "../../../manage-menu";
@@ -29,15 +27,7 @@ export default async function EditCoursePage({
   // override) and pre-fill the form. Saving upserts a track_overrides row, so
   // even a hardcoded course becomes DB-editable on first edit — no deploy
   // required.
-  let programSlug = getHomeProgramForTrack(slug)?.slug;
-  if (!programSlug) {
-    const { data: override } = await createServiceClient()
-      .from("track_overrides")
-      .select("programs(slug)")
-      .eq("track_slug", slug)
-      .maybeSingle<{ programs: { slug: string } | null }>();
-    programSlug = override?.programs?.slug ?? "catalyst";
-  }
+  const programSlug = (await resolveHomeProgramSlug(slug)) ?? "catalyst";
   const program = await getProgramWithOverrides(programSlug);
   const track = program.tracks.find((t) => t.slug === slug);
   if (!track) redirect("/dashboard/admin/programs");

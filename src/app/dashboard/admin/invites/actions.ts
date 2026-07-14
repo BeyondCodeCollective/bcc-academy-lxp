@@ -6,7 +6,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { canSwitchPrograms } from "@/lib/roles";
 import { isPreviewingAsStudent } from "@/lib/auth/preview-mode";
-import { getHomeProgramForTrack } from "@/lib/programs";
+import { resolveHomeProgramSlug } from "@/lib/programs/server";
 import { getProgramWithOverrides } from "@/lib/programs/server";
 import { sendInviteEmail } from "@/lib/email";
 
@@ -38,8 +38,9 @@ export async function sendCohortInvites(
     return { ok: false, error: "Not authorized" };
   }
 
-  const home = getHomeProgramForTrack(trackSlug);
-  const programSlug = home?.slug ?? "catalyst";
+  // Builder courses live under any program (their home is on track_overrides);
+  // the old blanket-Catalyst fallback branded their invites as Catalyst.
+  const programSlug = (await resolveHomeProgramSlug(trackSlug)) ?? "catalyst";
   // Prefer the DB-overridden program name (source of truth).
   const programName = (await getProgramWithOverrides(programSlug)).name;
 
@@ -160,8 +161,9 @@ export async function sendTestInvite(
     return { ok: false, error: "Enter a valid email address" };
   }
 
-  const home = getHomeProgramForTrack(trackSlug);
-  const programSlug = home?.slug ?? "catalyst";
+  // Builder courses live under any program (their home is on track_overrides);
+  // the old blanket-Catalyst fallback branded their invites as Catalyst.
+  const programSlug = (await resolveHomeProgramSlug(trackSlug)) ?? "catalyst";
   const programName = (await getProgramWithOverrides(programSlug)).name;
 
   const svc = createServiceClient();
