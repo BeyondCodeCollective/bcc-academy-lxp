@@ -31,20 +31,20 @@ import { programHasResources } from "@/lib/resources";
 import { MARKETING_SLUG } from "@/lib/programs/marketing";
 import type { ProgramConfig, TrackConfig } from "@/lib/programs/types";
 import { trackHasStarted } from "@/lib/utils";
+import { Loader2 } from "lucide-react";
 
 function NavSkeleton() {
-  // Light placeholder that matches the shell — avoids a black flash on
-  // refresh while the nav streams in.
+  // Empty light rail — holds the sidebar's space (main is md:pl-60 regardless)
+  // and avoids a black flash while the nav streams in, but draws no fake nav
+  // items: like the route loaders, a guessed layout reads as a wrong UI when
+  // the real nav (per-program items) swaps in.
   return (
-    <nav className="hidden md:flex md:w-60 md:flex-col md:fixed md:inset-y-0 shell-light animate-pulse">
-      <div className="flex items-center gap-3 px-6 h-16">
-        <div className="h-4 w-28 rounded bg-rule" />
-      </div>
-      <div className="flex-1 space-y-1.5 p-4">
-        <div className="h-11 rounded-lg bg-rule" />
-        <div className="h-11 rounded-lg bg-rule" />
-        <div className="h-11 rounded-lg bg-rule" />
-      </div>
+    <nav
+      className="hidden md:flex md:w-60 md:flex-col md:fixed md:inset-y-0 shell-light items-center justify-center"
+      role="status"
+      aria-label="Loading"
+    >
+      <Loader2 size={20} className="animate-spin text-ink-faint" />
     </nav>
   );
 }
