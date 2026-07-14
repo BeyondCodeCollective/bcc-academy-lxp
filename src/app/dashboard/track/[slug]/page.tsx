@@ -279,23 +279,28 @@ export default async function TrackOverviewPage({
     }
   }
 
-  // Other tracks this viewer is co-enrolled in (MASS wraps around Security+).
-  // Their configs are already on `program.tracks`, so no extra fetch beyond the
-  // enrollment lookup. Folded into BOTH the panel and the schedule so a
-  // Wednesday coaching session can't go invisible on a Tue/Thu course.
-  let companionTracks: TrackConfig[] = [];
+  // Tracks folded into this course's panel + schedule, so a Wednesday
+  // coaching session can't go invisible on a Tue/Thu course. Two sources:
+  // declared companions (companionOf === this course — MASS wraps around the
+  // WHOLE Security+ cohort, so every viewer sees it, admins included) plus
+  // anything else the viewer is personally co-enrolled in. Configs are
+  // already on `program.tracks`, so the only fetch is the enrollment lookup.
+  const otherSlugs = new Set<string>(
+    program.tracks.filter((t) => t.companionOf === slug).map((t) => t.slug),
+  );
   if (ctx?.userId) {
     const { data: enrolled } = await createServiceClient()
       .from("student_tracks")
       .select("track_slug")
       .eq("student_id", ctx.userId);
-    const otherSlugs = new Set(
-      (enrolled ?? [])
-        .map((r) => r.track_slug as string)
-        .filter((s) => s !== slug),
-    );
-    companionTracks = program.tracks.filter((t) => otherSlugs.has(t.slug));
+    for (const r of enrolled ?? []) {
+      const s = r.track_slug as string;
+      if (s !== slug) otherSlugs.add(s);
+    }
   }
+  const companionTracks: TrackConfig[] = program.tracks.filter((t) =>
+    otherSlugs.has(t.slug),
+  );
 
   // ── The panel: live / today / upcoming, across the course + its companions ──
   const touchpoint = resolveTouchpoint(
