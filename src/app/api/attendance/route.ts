@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createServiceClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { canAccessAdminPanel, canSwitchPrograms } from "@/lib/roles";
+import { resolveTrackProgram } from "@/lib/programs/server";
+import { unitHasArrived } from "@/lib/attendance/compute";
 
 /** Instructors are track-scoped: they may only read or write attendance for a
  *  track they're assigned to (instructor_tracks). Other admin-capable roles
@@ -63,6 +65,18 @@ export async function POST(request: NextRequest) {
 
   if (!(await instructorOwnsTrack(currentStudent.role, user.id, track))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // No marking sessions that haven't happened. The UI disables future units,
+  // but this is the backstop — clicking ahead through the week navigator is
+  // exactly how the Security+ launch data got phantom check-ins for sessions
+  // that were weeks away. Unknown tracks skip the check rather than break.
+  const resolved = await resolveTrackProgram(track);
+  if (resolved && !unitHasArrived(resolved.track, week_number)) {
+    return NextResponse.json(
+      { error: "This session hasn't happened yet — attendance opens on its date" },
+      { status: 422 },
+    );
   }
 
   // Program-scope check. The attendance row carries no program_id, so RLS

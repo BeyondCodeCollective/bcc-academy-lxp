@@ -15,12 +15,12 @@ import {
   type AttendanceRecord,
   type StudentRow,
   type TrackLike,
-  expectedSessionsFor,
   summarizeAllStudents,
+  unitHasArrived,
   weeklyAttendanceRates,
 } from "@/lib/attendance/compute";
 import { computeCurrentWeek, trackHasStarted, formatCohortDate } from "@/lib/utils";
-import { unitDisplayMap, numberedUnitCount } from "@/lib/programs/unit-display";
+import { unitDisplayMap } from "@/lib/programs/unit-display";
 
 type AttendanceTabProps = {
   students: StudentRow[];
@@ -37,6 +37,11 @@ type AttendanceTabProps = {
 };
 
 type View = "overview" | "mark";
+
+/** The unit's calendar date (YYYY-MM-DD) when the syllabus provides one. */
+function unitDate(track: TrackLike, week: number): string | null {
+  return (track.weekSummaries ?? []).find((s) => s.week === week)?.date ?? null;
+}
 
 const TONE_BY_RATE = {
   on: "bg-green-500",
@@ -738,20 +743,9 @@ function MarkPanel({
   // is the weekly cadence, so using it would render two slots per session.
   const sessionsPerWeek =
     activeTrack.unitLabel === "Session" ? 1 : activeTrack.sessionsPerWeek;
-  const expectedThisTrack = expectedSessionsFor(activeTrack);
-  const elapsedWeeks =
-    expectedThisTrack.length > 0
-      ? Math.max(...expectedThisTrack.map((s) => s.week))
-      : 0;
   const unitDisplay = unitDisplayMap(activeTrack.weekSummaries ?? [], activeTrack.unitLabel ?? "Week");
-  const numberedUnits = numberedUnitCount(activeTrack.weekSummaries ?? [], totalWeeks);
-  const markUnit = unitDisplay.get(markWeek);
-  // Extras (a kickoff) carry no number, so "Kickoff of 16" would be nonsense.
-  const markUnitLabel = markUnit
-    ? markUnit.number
-      ? `${markUnit.text} of ${numberedUnits}`
-      : markUnit.text
-    : `Week ${markWeek} of ${totalWeeks}`;
+  const arrived = unitHasArrived(activeTrack, markWeek);
+  const markDate = unitDate(activeTrack, markWeek);
 
   return (
     <div className="space-y-5">
@@ -804,14 +798,28 @@ function MarkPanel({
           <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-faint">
             {activeTrack.shortName}
           </p>
-          <p className="text-sm font-semibold text-ink">
-            {markUnitLabel}
-            {markWeek > elapsedWeeks && elapsedWeeks > 0 && (
-              <span className="ml-2 text-xs font-normal text-ink-faint">
-                · upcoming
-              </span>
-            )}
-          </p>
+          {/* Unit picker — a select, not chevrons alone: a 17-unit course
+             (Security+) is unusable one week-step at a time. */}
+          <select
+            value={markWeek}
+            onChange={(e) => setMarkWeek(Number(e.target.value))}
+            aria-label="Select unit"
+            className="mt-0.5 max-w-full cursor-pointer rounded-md border border-rule bg-surface-elevated px-2 py-1 text-sm font-semibold text-ink"
+          >
+            {Array.from({ length: totalWeeks }, (_, i) => i + 1).map((w) => {
+              const u = unitDisplay.get(w);
+              const text = u?.text ?? `Week ${w}`;
+              const d = unitDate(activeTrack, w);
+              const future = !unitHasArrived(activeTrack, w);
+              return (
+                <option key={w} value={w}>
+                  {text}
+                  {d ? ` · ${formatCohortDate(d, { month: "short", day: "numeric" })}` : ""}
+                  {future ? " · upcoming" : ""}
+                </option>
+              );
+            })}
+          </select>
         </div>
         <button
           type="button"
@@ -823,6 +831,17 @@ function MarkPanel({
           <ChevronRight size={16} />
         </button>
       </div>
+
+      {/* Future units are view-only. Marking ahead of the calendar is how the
+         Security+ launch data got phantom check-ins for sessions 2–6. */}
+      {!arrived && (
+        <p className="rounded-md bg-paper-tint-soft px-4 py-3 text-sm text-ink-soft">
+          This {(activeTrack.unitLabel ?? "week").toLowerCase()} hasn&apos;t
+          happened yet
+          {markDate ? ` — it meets ${formatCohortDate(markDate)}` : ""}. Marking
+          opens on the day.
+        </p>
+      )}
 
       {students.length === 0 ? (
         <p className="text-sm text-ink-soft text-center py-8">
@@ -838,6 +857,7 @@ function MarkPanel({
           savingKeys={savingKeys}
           onToggle={onToggle}
           onMarkAllPresent={onMarkAllPresent}
+          locked={!arrived}
         />
       )}
     </div>
@@ -853,6 +873,7 @@ function SessionTable({
   savingKeys,
   onToggle,
   onMarkAllPresent,
+  locked,
 }: {
   track: TrackLike;
   week: number;
@@ -868,6 +889,8 @@ function SessionTable({
     nextValue: boolean
   ) => Promise<void>;
   onMarkAllPresent: (slug: string, week: number, sess: number) => Promise<void>;
+  /** True when this unit's date hasn't arrived — grid is view-only. */
+  locked?: boolean;
 }) {
   const sessionNumbers = Array.from({ length: sessionsPerWeek }, (_, i) => i + 1);
 
@@ -890,7 +913,7 @@ function SessionTable({
               <button
                 type="button"
                 onClick={() => void onMarkAllPresent(track.slug, week, s)}
-                disabled={allPresent}
+                disabled={allPresent || locked}
                 className="rounded-full border border-rule px-2 py-0.5 text-[10px] font-medium text-ink-soft hover:bg-surface-elevated hover:text-ink disabled:opacity-40 transition-colors"
               >
                 S{s} all
@@ -934,7 +957,7 @@ function SessionTable({
                       role="checkbox"
                       aria-checked={checked}
                       aria-label={`${name} — Session ${sNum}: ${checked ? "present" : "absent"}`}
-                      disabled={saving}
+                      disabled={saving || locked}
                       onClick={() =>
                         void onToggle(s.id, track.slug, week, sNum, !checked)
                       }
@@ -942,7 +965,7 @@ function SessionTable({
                         checked
                           ? "border-green-500 bg-green-500 text-white"
                           : "border-rule bg-surface-elevated text-ink-faint hover:border-ink-soft hover:text-ink-soft"
-                      } ${saving ? "opacity-60" : ""}`}
+                      } ${saving ? "opacity-60" : ""} ${locked ? "cursor-not-allowed opacity-50" : ""}`}
                     >
                       {checked ? <Check size={14} strokeWidth={2.5} /> : <Circle size={12} />}
                       {sessionsPerWeek > 1 && (

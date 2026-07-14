@@ -104,6 +104,34 @@ export function countedUnits(track: TrackLike, asOf: Date = new Date()): number[
 }
 
 /**
+ * Has this unit's date arrived — i.e. is it markable? Mirrors countedUnits'
+ * sourcing rules but answers per-unit and includes labeled extras (a kickoff
+ * is markable on its day even though it isn't a counted teaching session).
+ * Marking future sessions is what corrupted the Security+ launch data, so
+ * both the mark grid and the attendance API refuse units this returns false
+ * for.
+ */
+export function unitHasArrived(
+  track: TrackLike & { startDateTbd?: boolean },
+  week: number,
+  at: Date = new Date(),
+): boolean {
+  const summaries = track.weekSummaries ?? [];
+  const dated = summaries.filter((s) => s.date);
+  if (dated.length > 0) {
+    const ws = dated.find((s) => s.week === week);
+    // A dated syllabus is authoritative; a unit it doesn't date isn't
+    // schedulable yet, so it can't be marked either.
+    return ws?.date ? unitDateHasArrived(ws.date, at) : false;
+  }
+  if (track.startDateTbd || !unitDateHasArrived(track.startDate, at)) return false;
+  const cw =
+    track.currentUnit ??
+    computeCurrentWeek(track.startDate, track.totalWeeks, track.lastSessionDayOffset, at);
+  return week <= cw;
+}
+
+/**
  * How many sessions of `track` have happened on or before `asOf`. Returns 0
  * if the track hasn't started yet.
  */
