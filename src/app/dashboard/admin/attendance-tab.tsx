@@ -404,7 +404,7 @@ function Header({
                   : "text-ink-soft hover:text-ink"
               }`}
             >
-              {v === "overview" ? "Overview" : "Mark"}
+              {v === "overview" ? "View report" : "Take attendance"}
             </button>
           ))}
         </div>
