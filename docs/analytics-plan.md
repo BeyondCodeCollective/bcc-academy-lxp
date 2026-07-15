@@ -96,8 +96,12 @@ funnel); backfill direct-adds so it isn't an undercount.
       relabeled so the two "Invited" numbers stop colliding.
 
 ### Phase 2 — Unify definitions (swap surfaces onto canonical)
-- [ ] Engagement funnel (A1), Insights "engaged/active" (A3), Acquisition risk
-      (A6), per-learner /100 score (A10) all consume `engagement.ts`.
+- [x] Build `src/lib/analytics/engagement.ts` — `isEngaged` (attendance OR video
+      OR submission OR reflection) + `isActiveWithin`. One definition.
+- [x] Engagement funnel (A1) consumes it; reflections added to the union so it
+      agrees with the Insights page (validated: Catalyst 12/15).
+- [ ] Insights "engaged/active" (A3), Acquisition risk (A6), per-learner /100
+      score (A10) consume `engagement.ts` (one surface per PR, QA the deltas).
 - [ ] One risk model + one label vocabulary across Attendance (A2) and
       Acquisition (A6).
 - [ ] Fix A6 funnel monotonicity (Active-7d can exceed Activated today).
