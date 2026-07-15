@@ -312,10 +312,18 @@ export default async function TrackOverviewPage({
   );
 
   // ── The panel: live / today / upcoming, across the course + its companions ──
+  // A candidate from ANOTHER course (e.g. the Tech and AI Hangout surfacing on
+  // the Security+ page because it meets earlier the same day) must name that
+  // course — otherwise "Week 1" reads as this course's Week 1. MASS already
+  // self-labels ("MASS coaching"), so it's left alone.
   const touchpoint = resolveTouchpoint(
     [
       ...touchpointCandidates(track, titleByWeek),
-      ...companionTracks.flatMap((t) => touchpointCandidates(t)),
+      ...companionTracks.flatMap((t) =>
+        touchpointCandidates(t).map((c) =>
+          c.isMass ? c : { ...c, unitLabel: `${t.shortName} · ${c.unitLabel}` },
+        ),
+      ),
     ],
     now,
   );
