@@ -298,6 +298,15 @@ export default async function TrackOverviewPage({
       if (s !== slug) otherSlugs.add(s);
     }
   }
+  // Staff carry no enrollments, so without this an admin/instructor viewing a
+  // course would see only its declared companions (MASS) and miss cohort
+  // electives like the Tech and AI Hangout. Show staff the whole program's
+  // schedule; undated tracks yield no rows, so this only adds real sessions.
+  if (isAdminViewer) {
+    for (const t of program.tracks) {
+      if (t.slug !== slug) otherSlugs.add(t.slug);
+    }
+  }
   const companionTracks: TrackConfig[] = program.tracks.filter((t) =>
     otherSlugs.has(t.slug),
   );
