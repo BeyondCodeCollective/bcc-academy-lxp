@@ -266,9 +266,17 @@ export function summarizeStudent(
   }
 
   const rate = pct(attended, expected);
+  // A risk label is a claim about a person, so it needs enough signal to stand
+  // behind. Until a track has held at least this many *recorded* sessions, one
+  // absence would brand a whole cohort "disengaged" after its first meeting —
+  // doubly wrong while live attendance capture is still partial. Below the
+  // threshold everyone is on-track (i.e. "not enough data yet").
+  const MIN_SESSIONS_FOR_RISK = 3;
   let status: RiskStatus = "on-track";
-  if (rate < 50 || consecutiveMisses >= 4) status = "disengaged";
-  else if (rate < 80 || consecutiveMisses >= 2) status = "at-risk";
+  if (expected >= MIN_SESSIONS_FOR_RISK) {
+    if (rate < 50 || consecutiveMisses >= 4) status = "disengaged";
+    else if (rate < 80 || consecutiveMisses >= 2) status = "at-risk";
+  }
 
   return {
     student,

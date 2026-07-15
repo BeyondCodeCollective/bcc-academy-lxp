@@ -56,9 +56,11 @@ function rateTone(rate: number): keyof typeof TONE_BY_RATE {
 }
 
 const STATUS_LABEL: Record<string, { label: string; bg: string; text: string }> = {
+  // Factual, non-judgmental labels — these describe attendance, not the person.
+  // "Disengaged" read as an accusation on a visitor-facing screen.
   "on-track": { label: "On track", bg: "bg-green-50", text: "text-green-700" },
-  "at-risk": { label: "At risk", bg: "bg-amber-50", text: "text-amber-700" },
-  disengaged: { label: "Disengaged", bg: "bg-red-50", text: "text-red-700" },
+  "at-risk": { label: "Check in", bg: "bg-amber-50", text: "text-amber-700" },
+  disengaged: { label: "Low attendance", bg: "bg-red-50", text: "text-red-700" },
 };
 
 export function AttendanceTab({ students, tracks, scopeLabel, embedded, viewSwitcher, hideTitle }: AttendanceTabProps) {

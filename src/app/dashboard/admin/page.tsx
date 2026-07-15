@@ -191,6 +191,9 @@ export default async function AdminPage({
                       ? `program_id.in.(${programIds.join(",")}),role.eq.super_admin`
                       : "role.eq.super_admin",
                   )
+                  // Internal QA logins never belong on a visitor-facing roster,
+                  // attendance list, or risk view.
+                  .eq("is_test", false)
                   .order("created_at", { ascending: true })
           : Promise.resolve({ data: [] as Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id" | "last_seen_at" | "last_activity_at">[] }),
         needsCohorts
@@ -290,7 +293,8 @@ export default async function AdminPage({
         const { data: extra } = await svc
           .from("students")
           .select("id, first_name, last_name, email, role, cohort_id, last_seen_at, last_activity_at")
-          .in("id", missingIds);
+          .in("id", missingIds)
+          .eq("is_test", false);
         allStudents = [
           ...allStudents,
           ...((extra ?? []) as typeof allStudents),
