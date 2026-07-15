@@ -84,8 +84,16 @@ funnel); backfill direct-adds so it isn't an undercount.
       `isEngaged` / `isActive`, modality-aware, staff/`is_test` excluded,
       `.error`-checked. Reuse `getLearnerActivity` (don't re-implement).
       Built alongside its first consumer in Phase 2 so it's validated in use.
-- [ ] Stop reading dead `last_activity_at`; standardize on `activity_events`.
-- [ ] Unify "invited" to one source.
+- [x] ~~Retire dead `last_activity_at`~~ — **revised:** the column was revived
+      (`auth/session.ts` now writes it; 32/122 populated and growing). Instead,
+      stop treating a NULL as "inactive" — fall back to `last_seen_at`
+      (`admin-tabs.tsx` active-count fixed). `activity_events` stays the
+      browsing source for per-course.
+- [ ] **Unify "invited"** — deferred to Phase 2 canonical layer. `invites` (288,
+      105 used) and `allowed_signup_emails` (302) measure *different* things
+      (invite-link acceptance vs. permitted-to-join), so it's not a swap. Canonical
+      "reach" = allowlist; the invite-acceptance funnel keeps `invites` but gets
+      relabeled so the two "Invited" numbers stop colliding.
 
 ### Phase 2 — Unify definitions (swap surfaces onto canonical)
 - [ ] Engagement funnel (A1), Insights "engaged/active" (A3), Acquisition risk
