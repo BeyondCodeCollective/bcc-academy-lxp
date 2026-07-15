@@ -3,6 +3,7 @@
 import { requireCapability } from "./actions-shared";
 import { getProgram } from "@/lib/programs/server";
 import { resolveProgramScope } from "@/lib/programs/scope";
+import { isEngaged } from "@/lib/analytics/engagement";
 
 // Program-level engagement analytics for the admin "Analytics" tab. Scoped to
 // the CURRENT program for every role (super-admins included) so the view always
@@ -66,7 +67,7 @@ export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
 
   // Engagement events scoped to these learners + the program's allowlist.
   // Empty .in([]) is safe (returns no rows), so no need to guard each call.
-  const [videoRows, attendanceRows, submissionRows, surveyRows, allowRows, testEmailRows] =
+  const [videoRows, attendanceRows, submissionRows, reflectionRows, surveyRows, allowRows, testEmailRows] =
     await Promise.all([
       // Only a WATCHED video counts — a week_progress row can exist without
       // video_watched_at. (Matches getLearnerActivity; otherwise Engagement is
@@ -74,6 +75,9 @@ export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
       svc.from("week_progress").select("user_id").in("user_id", studentIds).not("video_watched_at", "is", null),
       svc.from("attendance").select("student_id").in("student_id", studentIds),
       svc.from("submissions").select("student_id").in("student_id", studentIds),
+      // Reflections are a "did the work" signal too — omitting them undercounted
+      // engagement and disagreed with the Insights page's definition.
+      svc.from("reflections").select("student_id").in("student_id", studentIds).not("submitted_at", "is", null),
       svc.from("survey_responses").select("student_id, survey_type, completed_at").in("student_id", studentIds).not("completed_at", "is", null),
       svc.from("allowed_signup_emails").select("email").in("track_slug", trackSlugs),
       // Emails of internal QA accounts, so they're subtracted from "Invited"
@@ -106,10 +110,24 @@ export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
     submissionsByUser.set(r.student_id, (submissionsByUser.get(r.student_id) ?? 0) + 1);
   }
 
-  const engaged = new Set<string>();
-  for (const r of (videoRows.data ?? []) as { user_id: string }[]) engaged.add(r.user_id);
-  for (const r of (attendanceRows.data ?? []) as { student_id: string }[]) engaged.add(r.student_id);
-  for (const r of (submissionRows.data ?? []) as { student_id: string }[]) engaged.add(r.student_id);
+  // Canonical engagement (src/lib/analytics/engagement.ts): did-the-work =
+  // attendance OR video OR submission OR reflection. Build the per-learner signal
+  // sets, then apply the shared predicate so this count means the same thing as
+  // every other surface.
+  const watchedSet = new Set(((videoRows.data ?? []) as { user_id: string }[]).map((r) => r.user_id));
+  const attendedSet = new Set(((attendanceRows.data ?? []) as { student_id: string }[]).map((r) => r.student_id));
+  const submittedSet = new Set(((submissionRows.data ?? []) as { student_id: string }[]).map((r) => r.student_id));
+  const reflectedSet = new Set(((reflectionRows.data ?? []) as { student_id: string }[]).map((r) => r.student_id));
+  const engaged = new Set<string>(
+    studentIds.filter((id) =>
+      isEngaged({
+        watched: watchedSet.has(id),
+        attended: attendedSet.has(id),
+        submitted: submittedSet.has(id),
+        reflected: reflectedSet.has(id),
+      }),
+    ),
+  );
 
   const testEmails = new Set(
     ((testEmailRows.data ?? []) as { email: string }[])
