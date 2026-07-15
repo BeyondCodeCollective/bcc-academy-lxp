@@ -18,6 +18,10 @@ export type EngagementLearner = {
   attended: number;
   submitted: number;
   surveys: number;
+  // Which surveys this learner completed, so the count in the table drills
+  // through to the actual list ("what 4 surveys did they take?") instead of
+  // being a dead number.
+  surveyList: { type: string; completedAt: string | null }[];
 };
 
 export type EngagementAnalytics = {
@@ -62,7 +66,7 @@ export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
 
   // Engagement events scoped to these learners + the program's allowlist.
   // Empty .in([]) is safe (returns no rows), so no need to guard each call.
-  const [videoRows, attendanceRows, submissionRows, surveyRows, allowRows] =
+  const [videoRows, attendanceRows, submissionRows, surveyRows, allowRows, testEmailRows] =
     await Promise.all([
       // Only a WATCHED video counts — a week_progress row can exist without
       // video_watched_at. (Matches getLearnerActivity; otherwise Engagement is
@@ -70,17 +74,25 @@ export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
       svc.from("week_progress").select("user_id").in("user_id", studentIds).not("video_watched_at", "is", null),
       svc.from("attendance").select("student_id").in("student_id", studentIds),
       svc.from("submissions").select("student_id").in("student_id", studentIds),
-      svc.from("survey_responses").select("student_id").in("student_id", studentIds).not("completed_at", "is", null),
+      svc.from("survey_responses").select("student_id, survey_type, completed_at").in("student_id", studentIds).not("completed_at", "is", null),
       svc.from("allowed_signup_emails").select("email").in("track_slug", trackSlugs),
+      // Emails of internal QA accounts, so they're subtracted from "Invited"
+      // too — otherwise Invited counts a test allowlist entry that "Created"
+      // (is_test filtered) doesn't, and the funnel reads N+1 → N.
+      svc.from("students").select("email").in("program_id", ids).eq("is_test", true),
     ]);
 
   const videosByUser = new Map<string, number>();
   for (const r of (videoRows.data ?? []) as { user_id: string }[]) {
     videosByUser.set(r.user_id, (videosByUser.get(r.user_id) ?? 0) + 1);
   }
-  const surveysByStudent = new Map<string, number>();
-  for (const r of (surveyRows.data ?? []) as { student_id: string }[]) {
-    surveysByStudent.set(r.student_id, (surveysByStudent.get(r.student_id) ?? 0) + 1);
+  // Keep the full per-learner survey list (type + date), not just a count, so
+  // the table's Surveys cell can drill through to "which ones did they take?".
+  const surveysByStudent = new Map<string, { type: string; completedAt: string | null }[]>();
+  for (const r of (surveyRows.data ?? []) as { student_id: string; survey_type: string; completed_at: string | null }[]) {
+    const list = surveysByStudent.get(r.student_id) ?? [];
+    list.push({ type: r.survey_type, completedAt: r.completed_at });
+    surveysByStudent.set(r.student_id, list);
   }
   // Per-learner attendance + submissions, so the table can show WHY someone is
   // counted "engaged" when they have 0 videos (engaged = watched OR attended OR
@@ -99,11 +111,17 @@ export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
   for (const r of (attendanceRows.data ?? []) as { student_id: string }[]) engaged.add(r.student_id);
   for (const r of (submissionRows.data ?? []) as { student_id: string }[]) engaged.add(r.student_id);
 
-  const invited = new Set(
-    ((allowRows.data ?? []) as { email: string }[])
+  const testEmails = new Set(
+    ((testEmailRows.data ?? []) as { email: string }[])
       .map((r) => r.email?.toLowerCase())
       .filter(Boolean),
-  ).size;
+  );
+  const invitedEmails = new Set(
+    ((allowRows.data ?? []) as { email: string }[])
+      .map((r) => r.email?.toLowerCase())
+      .filter((e): e is string => !!e && !testEmails.has(e)),
+  );
+  const invited = invitedEmails.size;
 
   const learners: EngagementLearner[] = studs
     .map((s) => ({
@@ -114,7 +132,10 @@ export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
       videosWatched: videosByUser.get(s.id) ?? 0,
       attended: attendanceByUser.get(s.id) ?? 0,
       submitted: submissionsByUser.get(s.id) ?? 0,
-      surveys: surveysByStudent.get(s.id) ?? 0,
+      surveys: (surveysByStudent.get(s.id) ?? []).length,
+      surveyList: (surveysByStudent.get(s.id) ?? []).sort((a, b) =>
+        (a.completedAt ?? "").localeCompare(b.completedAt ?? ""),
+      ),
     }))
     // Rank by TOTAL engagement (videos + attendance + submissions), not videos
     // alone — a live-session track like Security+ engages via attendance, so a

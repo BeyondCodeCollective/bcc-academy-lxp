@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import type { EngagementAnalytics, EngagementLearner } from "./actions-analytics";
 
 // Program-level engagement: the activation funnel + a per-learner activity
@@ -12,6 +12,9 @@ export function AnalyticsDashboard({ data }: { data: EngagementAnalytics }) {
   // scale), so an unfiltered wall is unusable. Match is case-insensitive across
   // both name and email.
   const [query, setQuery] = useState("");
+  // Which learner's survey list is expanded (by email). Lets the Surveys count
+  // drill through to "which surveys did they take?" inline.
+  const [openSurveys, setOpenSurveys] = useState<string | null>(null);
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return learners;
@@ -102,10 +105,12 @@ export function AnalyticsDashboard({ data }: { data: EngagementAnalytics }) {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((l) => (
+              {filtered.map((l) => {
+                const open = openSurveys === l.email;
+                return (
+                <Fragment key={l.email}>
                 <tr
-                  key={l.email}
-                  className={`border-b border-rule/60 last:border-0 ${l.videosWatched + l.attended + l.submitted > 0 ? "bg-[#f3f8ff]" : ""}`}
+                  className={`border-b border-rule/60 ${open ? "" : "last:border-0"} ${l.videosWatched + l.attended + l.submitted > 0 ? "bg-[#f3f8ff]" : ""}`}
                 >
                   <td className="px-3 py-2">
                     <div className="font-medium text-ink">{l.name || l.email}</div>
@@ -116,9 +121,44 @@ export function AnalyticsDashboard({ data }: { data: EngagementAnalytics }) {
                   <td className="px-3 py-2 text-center text-ink">{l.videosWatched}</td>
                   <td className="px-3 py-2 text-center text-ink">{l.attended}</td>
                   <td className="px-3 py-2 text-center text-ink">{l.submitted}</td>
-                  <td className="px-3 py-2 text-center text-ink">{l.surveys}</td>
+                  <td className="px-3 py-2 text-center text-ink">
+                    {l.surveys > 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => setOpenSurveys(open ? null : l.email)}
+                        aria-expanded={open}
+                        className="inline-flex items-center gap-1 font-medium text-primary underline-offset-2 hover:underline"
+                      >
+                        {l.surveys}
+                        <span aria-hidden className={`text-[9px] transition-transform ${open ? "rotate-180" : ""}`}>▾</span>
+                      </button>
+                    ) : (
+                      <span className="text-ink">0</span>
+                    )}
+                  </td>
                 </tr>
-              ))}
+                {open && (
+                  <tr className="border-b border-rule/60 bg-paper-tint">
+                    <td colSpan={7} className="px-3 py-2.5">
+                      <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-ink-faint">
+                        Surveys completed by {l.name || l.email}
+                      </p>
+                      <ul className="flex flex-wrap gap-x-4 gap-y-1">
+                        {l.surveyList.map((sv, i) => (
+                          <li key={`${sv.type}-${i}`} className="text-xs text-ink-soft">
+                            <span className="font-medium text-ink">{surveyTitle(sv.type)}</span>
+                            {sv.completedAt && (
+                              <span className="text-ink-faint"> · {sv.completedAt.slice(0, 10)}</span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
+                );
+              })}
               {filtered.length === 0 && (
                 <tr>
                   <td colSpan={7} className="px-3 py-8 text-center text-ink-faint">
@@ -138,6 +178,25 @@ export function AnalyticsDashboard({ data }: { data: EngagementAnalytics }) {
         </p>
       </section>
     </div>
+  );
+}
+
+// Human label for a survey_type slug. A few known types get a clean name; the
+// rest fall back to title-cased slug so a new survey never renders as a raw id.
+const SURVEY_TITLES: Record<string, string> = {
+  "bcc-learner-intake": "Learner Intake",
+  "security-plus-application": "Security+ Application",
+  "comptia-security-application": "Security+ Application",
+  "comptia-security-agreement": "Security+ Participation Agreement",
+  "comptia-security-pre": "Security+ Pre-Program Survey",
+  "comptia-security-post": "Security+ Post-Program Survey",
+  "network-plus-post": "Network+ Post-Program Survey",
+  "catalyst-participation-agreement": "Catalyst Participation Agreement",
+};
+function surveyTitle(type: string): string {
+  return (
+    SURVEY_TITLES[type] ??
+    type.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
   );
 }
 
