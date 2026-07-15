@@ -20,31 +20,42 @@ export function AnalyticsDashboard({ data }: { data: EngagementAnalytics }) {
         l.name.toLowerCase().includes(q) || l.email.toLowerCase().includes(q),
     );
   }, [learners, query]);
-  // Funnel conversion vs the "invited" top — shown only when invited > 0
-  // ("% of 0" is meaningless, e.g. Beyond Code Centers, where students were
-  // added directly rather than via an allowlist).
-  // Capped at 100: when students are added directly (not via the allowlist),
-  // activated/engaged can exceed "invited", which would otherwise read ">100%".
-  const pct = (v: number): number | null =>
-    funnel.invited > 0 ? Math.min(100, Math.round((v / funnel.invited) * 100)) : null;
+  // Step-wise funnel: each stage is a % of the PRIOR stage, not all against
+  // "invited". Reading Engaged as "% of invited" put 13 next to 76% right beside
+  // a "36" account count — three numbers that don't reconcile. As a funnel it's
+  // honest: Created = % of invited, Engaged = % of those who created an account.
+  // null when the base is 0 ("% of 0" is meaningless, e.g. cohorts added directly
+  // rather than via an allowlist). Capped at 100 for the rare direct-add case
+  // where a stage exceeds its base.
+  const pctOf = (v: number, base: number): number | null =>
+    base > 0 ? Math.min(100, Math.round((v / base) * 100)) : null;
 
   const cards = [
-    { label: "Invited", sublabel: "received access", value: funnel.invited, showPct: false },
-    { label: "Created account", sublabel: "& signed in", value: funnel.activated, showPct: true },
-    { label: "Engaged", sublabel: "watched · attended · submitted", value: funnel.engaged, showPct: true },
+    { label: "Invited", sublabel: "received access", value: funnel.invited, pctLabel: null },
+    {
+      label: "Created account",
+      sublabel: "& signed in",
+      value: funnel.activated,
+      pctLabel: pctOf(funnel.activated, funnel.invited) === null ? null : `${pctOf(funnel.activated, funnel.invited)}% of invited`,
+    },
+    {
+      label: "Engaged",
+      sublabel: "watched · attended · submitted",
+      value: funnel.engaged,
+      pctLabel: pctOf(funnel.engaged, funnel.activated) === null ? null : `${pctOf(funnel.engaged, funnel.activated)}% of accounts`,
+    },
   ];
 
   return (
     <div className="space-y-8">
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {cards.map((c) => {
-          const p = c.showPct ? pct(c.value) : null;
           return (
             <div key={c.label} className="rounded-xl border border-rule bg-white p-5">
               <div className="flex items-baseline gap-2">
                 <span className="text-3xl font-bold tracking-tight text-ink">{c.value}</span>
-                {p !== null && (
-                  <span className="text-xs font-medium text-ink-faint">{p}% of invited</span>
+                {c.pctLabel !== null && (
+                  <span className="text-xs font-medium text-ink-faint">{c.pctLabel}</span>
                 )}
               </div>
               <div className="mt-1 text-sm font-semibold text-ink">{c.label}</div>
@@ -94,7 +105,7 @@ export function AnalyticsDashboard({ data }: { data: EngagementAnalytics }) {
               {filtered.map((l) => (
                 <tr
                   key={l.email}
-                  className={`border-b border-rule/60 last:border-0 ${l.videosWatched > 0 ? "bg-[#f3f8ff]" : ""}`}
+                  className={`border-b border-rule/60 last:border-0 ${l.videosWatched + l.attended + l.submitted > 0 ? "bg-[#f3f8ff]" : ""}`}
                 >
                   <td className="px-3 py-2">
                     <div className="font-medium text-ink">{l.name || l.email}</div>
