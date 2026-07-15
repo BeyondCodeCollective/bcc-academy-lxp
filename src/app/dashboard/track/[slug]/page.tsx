@@ -320,9 +320,14 @@ export default async function TrackOverviewPage({
     [
       ...touchpointCandidates(track, titleByWeek),
       ...companionTracks.flatMap((t) =>
-        touchpointCandidates(t).map((c) =>
-          c.isMass ? c : { ...c, unitLabel: `${t.shortName} · ${c.unitLabel}` },
-        ),
+        touchpointCandidates(t).map((c) => {
+          if (c.isMass) return c;
+          // Fold the course name into one label and clear the title, so an
+          // untitled unit (topic === "Week 1") reads "Tech and AI Hangout ·
+          // Week 1", not "… · Week 1 · Week 1".
+          const topic = c.title && c.title !== c.unitLabel ? c.title : c.unitLabel;
+          return { ...c, unitLabel: `${t.shortName} · ${topic}`, title: "" };
+        }),
       ),
     ],
     now,
