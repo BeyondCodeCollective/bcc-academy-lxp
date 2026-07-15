@@ -665,3 +665,42 @@ export async function sendSignupNotification(input: {
     );
   }
 }
+
+/**
+ * Internal heads-up when a staff-domain email signs in for the first time and
+ * gets an auto-created account. Staff auto-creation is a feature (Lunch &
+ * Learn access), but it's also how instructor accounts silently duplicate when
+ * someone's real account lives under a personal email (Kobie, 2026-07-14).
+ * This makes the event loud so a mix-up is caught the same day. Goes to
+ * SIGNUP_NOTIFY_EMAIL; self-contained try/catch like sendSignupNotification.
+ */
+export async function sendStaffAccountNotification(input: {
+  email: string;
+}): Promise<void> {
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY not set — skipping staff account notification");
+    return;
+  }
+  const to = process.env.SIGNUP_NOTIFY_EMAIL ?? "info@bccacademy.io";
+  const esc = (s: string) =>
+    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  try {
+    await resend.emails.send({
+      from: FROM_ADDRESS,
+      to,
+      replyTo: input.email,
+      subject: `New staff account auto-created: ${input.email}`,
+      html: `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:15px;line-height:1.6;color:#1a1a1a;">
+  <p style="margin:0 0 12px;font-weight:700;">A staff email just signed in with no existing account</p>
+  <p style="margin:0 0 4px;"><strong>Email:</strong> ${esc(input.email)}</p>
+  <p style="margin:0 0 12px;">A new student-role account was created automatically (staff Lunch &amp; Learn access). If this person already has an account under another email — for example an instructor set up on a personal address — merge or fix it in People before it causes confusion.</p>
+  <p style="margin:12px 0 0;font-size:12px;color:#999;">They were shown the staff-welcome screen explaining this is a fresh account.</p>
+</div>`,
+    });
+  } catch (e) {
+    console.error(
+      "[email] sendStaffAccountNotification failed:",
+      e instanceof Error ? e.message : String(e),
+    );
+  }
+}
