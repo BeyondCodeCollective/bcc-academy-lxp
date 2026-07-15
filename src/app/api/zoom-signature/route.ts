@@ -8,6 +8,7 @@ import { getProgram } from "@/lib/programs/server";
 import { getLearnerAccess } from "@/lib/auth/active-enrollment";
 import { isStaffEmail } from "@/lib/auth/admins";
 import { logActivityEvent } from "@/lib/analytics/log-event";
+import { resolveCurrentUnit } from "@/lib/utils";
 
 /**
  * POST /api/zoom-signature
@@ -95,6 +96,24 @@ export async function POST(request: NextRequest) {
   // Best-effort and non-blocking: never fail or delay the join if this write
   // errors. Staff (instructors/admins) are skipped so they don't pollute the
   // learner attendance count. Idempotent per (student, track, week, session).
+  // On a dated live cohort there is ONE recurring meeting, so which session a
+  // learner is attending is decided by TODAY's schedule — not by which unit page
+  // they happened to launch Zoom from. Trusting the client's weekNumber let a
+  // single day's joins land on weeks 1–5 (every learner marked whatever page
+  // they opened). Resolve the live session server-side from the syllabus dates;
+  // fall back to the client value only for undated/self-paced (on-demand) tracks
+  // where the page's week genuinely is the unit being consumed.
+  const liveTrack = program.tracks.find((t) => t.slug === trackSlug);
+  if (liveTrack && liveTrack.weekSummaries.some((ws) => ws.date)) {
+    const currentUnit = resolveCurrentUnit(liveTrack);
+    if (currentUnit >= 1) {
+      weekNumber = currentUnit;
+      // Session-modeled tracks (Security+/Network+) make each unit its own
+      // session, so presence is always session 1 of that unit.
+      sessionNumber = liveTrack.unitLabel === "Session" ? 1 : sessionNumber;
+    }
+  }
+
   if (trackSlug && weekNumber && !isStaffEmail(user.email)) {
     // Runs AFTER the response so the Zoom join is never delayed — but via
     // after(), which the platform guarantees to complete. The previous

@@ -640,6 +640,23 @@ export function AdminTabs({
   }, [initialTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [students, setStudents] = useState(initialStudents);
+  // Client-side nav between tabs (e.g. Engagement -> Attendance) re-runs the
+  // server load with a different roster, but useState keeps its FIRST value —
+  // so landing on a tab that doesn't fetch students (Engagement/Survey insights)
+  // and then opening Attendance showed "0 students". Adopt the server roster
+  // whenever its membership changes; identical rosters are left alone so
+  // optimistic in-tab edits (add/remove/rename) aren't clobbered by ref churn.
+  useEffect(() => {
+    setStudents((prev) => {
+      if (
+        prev.length === initialStudents.length &&
+        prev.every((s, i) => s.id === initialStudents[i]?.id)
+      ) {
+        return prev;
+      }
+      return initialStudents;
+    });
+  }, [initialStudents]);
   const [expandedWeek, setExpandedWeek] = useState<number | null>(null);
   const [trackView, setTrackView] = useState<
     "overview" | "curriculum" | "students" | "surveys"
