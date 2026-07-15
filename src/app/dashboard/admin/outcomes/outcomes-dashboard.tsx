@@ -161,8 +161,8 @@ function ProgressSection({ progress }: { progress: ProgressData }) {
 function AcquisitionSection({ acquisition }: { acquisition: AcquisitionData }) {
   const riskSegments = [
     { label: "On track", value: acquisition.risk["on-track"], color: "#10B981" },
-    { label: "At risk", value: acquisition.risk["at-risk"], color: "#F59E0B" },
-    { label: "Disengaged", value: acquisition.risk.disengaged, color: "#9CA3AF" },
+    { label: "Check in", value: acquisition.risk["at-risk"], color: "#F59E0B" },
+    { label: "Inactive", value: acquisition.risk.disengaged, color: "#9CA3AF" },
   ];
   const totalScored = riskSegments.reduce((s, r) => s + r.value, 0);
   const needs = acquisition.risk["at-risk"] + acquisition.risk.disengaged;
