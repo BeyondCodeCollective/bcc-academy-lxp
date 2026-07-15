@@ -1035,12 +1035,15 @@ export function AdminTabs({
         const weekAgo = now.getTime() - 7 * 86_400_000;
         const activeStudentIds = new Set(
           students
-            .filter(
-              (s) =>
-                s.role === "student" &&
-                s.last_activity_at &&
-                new Date(s.last_activity_at).getTime() >= weekAgo,
-            )
+            .filter((s) => {
+              if (s.role !== "student") return false;
+              // last_activity_at is the richer signal but is still backfilling
+              // (only written since its writer was added), so a NULL means
+              // "unknown", not "inactive" — fall back to last_seen_at (login)
+              // rather than silently undercounting active learners.
+              const signal = s.last_activity_at ?? s.last_seen_at;
+              return !!signal && new Date(signal).getTime() >= weekAgo;
+            })
             .map((s) => s.id),
         );
         const activeCountFor = (slug: string) =>
