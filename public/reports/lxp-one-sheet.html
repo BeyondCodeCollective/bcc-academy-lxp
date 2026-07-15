@@ -1,0 +1,222 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800&display=swap" rel="stylesheet">
+<title>BCC Academy LXP — Data One-Sheet</title>
+<style>
+  :root{
+    --paper:#f6f7f9; --card:#ffffff; --ink:#16181d; --ink-soft:#4b5260; --ink-faint:#818899;
+    --rule:#e5e8ee; --primary:#1D59FF; --before:#B45309; --tint:#eef2fb;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{--paper:#141519;--card:#1d1f25;--ink:#eceef2;--ink-soft:#b6bcc9;--ink-faint:#7c8395;--rule:#2c2f37;--primary:#5B84FF;--before:#D97706;--tint:#20263a}
+  }
+  :root[data-theme="dark"]{--paper:#141519;--card:#1d1f25;--ink:#eceef2;--ink-soft:#b6bcc9;--ink-faint:#7c8395;--rule:#2c2f37;--primary:#5B84FF;--before:#D97706;--tint:#20263a}
+  :root[data-theme="light"]{--paper:#f6f7f9;--card:#ffffff;--ink:#16181d;--ink-soft:#4b5260;--ink-faint:#818899;--rule:#e5e8ee;--primary:#1D59FF;--before:#B45309;--tint:#eef2fb}
+
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font:15px/1.5 Archivo,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  .sheet{max-width:860px;margin:0 auto;padding:40px 24px 72px}
+
+  header{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;
+    border-bottom:3px solid var(--primary);padding-bottom:18px;margin-bottom:26px}
+  .brand{font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--primary)}
+  h1{margin:6px 0 0;font-size:30px;line-height:1.1;letter-spacing:-.025em;font-weight:800;text-wrap:balance}
+  .asof{font-size:12px;color:var(--ink-faint);font-variant-numeric:tabular-nums}
+
+  h2{margin:0 0 4px;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint)}
+  .lede{margin:0 0 14px;font-size:13.5px;color:var(--ink-soft);max-width:66ch}
+  section{margin-bottom:30px}
+
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+  .tile{background:var(--card);border:1px solid var(--rule);border-radius:12px;padding:16px 18px}
+  .tile .n{font-size:34px;font-weight:800;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
+  .tile .l{margin-top:7px;font-size:12.5px;font-weight:600;color:var(--ink)}
+  .tile .s{margin-top:2px;font-size:11.5px;color:var(--ink-faint)}
+  .tile.hero{background:var(--tint);border-color:transparent}
+  .tile.hero .n{color:var(--primary)}
+
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:640px){.cols{grid-template-columns:1fr}}
+  .panel{background:var(--card);border:1px solid var(--rule);border-radius:12px;padding:18px 20px}
+  .panel h3{margin:0 0 2px;font-size:14.5px;font-weight:700;letter-spacing:-.01em}
+  .panel .sub{margin:0 0 12px;font-size:12px;color:var(--ink-faint)}
+
+  /* monthly signup bars */
+  .bars{display:flex;align-items:flex-end;gap:10px;height:120px;margin-top:14px}
+  .bar{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px;height:100%}
+  .bar .v{font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--ink-soft)}
+  .bar i{display:block;width:100%;max-width:64px;background:var(--primary);border-radius:4px 4px 0 0;min-height:3px}
+  .bar .m{font-size:11px;color:var(--ink-faint)}
+
+  /* facts list */
+  .facts{margin:0;padding:0;list-style:none}
+  .facts li{display:flex;justify-content:space-between;gap:16px;align-items:baseline;
+    padding:8px 0;border-bottom:1px solid var(--rule);font-size:13px}
+  .facts li:last-child{border-bottom:0}
+  .facts .k{color:var(--ink-soft)}
+  .facts .v{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+
+  /* dumbbell */
+  .legend{display:flex;gap:16px;font-size:11.5px;color:var(--ink-soft);margin-bottom:10px}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .dot{width:9px;height:9px;border-radius:50%}
+  .db{display:grid;grid-template-columns:minmax(190px,260px) 1fr;gap:6px 14px;align-items:center}
+  @media(max-width:560px){.db{grid-template-columns:1fr}.db .lab{margin-top:8px}}
+  .db .lab{font-size:12.5px;color:var(--ink);line-height:1.3}
+  .db .row{position:relative;height:26px}
+  .db .track{position:absolute;left:0;right:0;top:12px;height:2px;background:var(--rule)}
+  .db .seg{position:absolute;top:12px;height:2px;background:var(--primary)}
+  .db .pt{position:absolute;top:7px;width:12px;height:12px;border-radius:50%;box-shadow:0 0 0 2px var(--card)}
+  .db .pt b{position:absolute;top:-16px;left:50%;transform:translateX(-50%);
+    font-size:10.5px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--ink-faint)}
+  .db .pt.after b{color:var(--ink)}
+
+  .quoteline{margin:16px 0 0;padding:12px 16px;background:var(--tint);border-radius:10px;
+    font-size:13px;color:var(--ink);font-weight:600}
+  .quoteline span{color:var(--primary)}
+
+  footer{margin-top:34px;border-top:1px solid var(--rule);padding-top:12px;
+    font-size:11px;color:var(--ink-faint);line-height:1.6}
+
+  @media print{
+    :root{--paper:#fff;--card:#fff;--ink:#16181d;--ink-soft:#4b5260;--ink-faint:#818899;--rule:#e5e8ee;--primary:#1D59FF;--before:#B45309;--tint:#eef2fb}
+    body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .sheet{zoom:.68;max-width:none;padding:8px 8px 0}
+    .tiles{grid-template-columns:repeat(4,1fr)}
+    .panel,.tile,section{break-inside:avoid}
+    header{margin-bottom:18px;padding-bottom:12px}
+    section{margin-bottom:16px}
+    .bars{height:100px}
+    footer{margin-top:14px}
+  }
+</style>
+
+<div class="sheet">
+  <header>
+    <div>
+      <p class="brand">Beyond the Code Collective · BCC Academy</p>
+      <h1>Learning Platform — What the Data Shows</h1>
+    </div>
+    <p class="asof">Live platform data · as of July 14, 2026</p>
+  </header>
+
+  <section>
+    <div class="tiles">
+      <div class="tile hero">
+        <div class="n">256</div>
+        <div class="l">People trained, all-time</div>
+        <div class="s">126 on-platform learners + 161 program alumni, deduplicated</div>
+      </div>
+      <div class="tile">
+        <div class="n">86%</div>
+        <div class="l">Active in the last 30 days</div>
+        <div class="s">108 of 126 current learners</div>
+      </div>
+      <div class="tile">
+        <div class="n">171</div>
+        <div class="l">Course enrollments today</div>
+        <div class="s">11 live courses · 6 programs</div>
+      </div>
+      <div class="tile">
+        <div class="n">4.92<span style="font-size:18px;color:var(--ink-faint)">/5</span></div>
+        <div class="l">Would recommend BCC</div>
+        <div class="s">Graduate exit survey · 22 of 24 gave 5/5</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="cols">
+    <section class="panel">
+      <h3>Growth is accelerating</h3>
+      <p class="sub">New learner accounts by month — 85% joined in the last 6 weeks</p>
+      <div class="bars">
+        <div class="bar"><span class="v">18</span><i style="height:27%"></i><span class="m">Apr</span></div>
+        <div class="bar"><span class="v">1</span><i style="height:2%"></i><span class="m">May</span></div>
+        <div class="bar"><span class="v">41</span><i style="height:62%"></i><span class="m">Jun</span></div>
+        <div class="bar"><span class="v">66</span><i style="height:100%"></i><span class="m">Jul (to date)</span></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h3>Learners keep coming back</h3>
+      <p class="sub">Platform engagement, trailing 30 days</p>
+      <ul class="facts">
+        <li><span class="k">Sign-ins</span><span class="v">454</span></li>
+        <li><span class="k">Tracked learning actions (since Jun 29)</span><span class="v">2,949</span></li>
+        <li><span class="k">Learners generating activity</span><span class="v">101</span></li>
+        <li><span class="k">Verified live-session check-ins</span><span class="v">176 · 71 students</span></li>
+        <li><span class="k">Learners enrolled in 2+ courses</span><span class="v">24 (19%)</span></li>
+      </ul>
+    </section>
+  </div>
+
+  <section class="panel">
+    <h3>Measured outcomes — graduate confidence, before vs. after</h3>
+    <p class="sub">Network+ cohort exit survey, n=24 · self-rated 1–5 on the same statements at both points</p>
+    <div class="legend">
+      <span><span class="dot" style="background:var(--before)"></span>Before the program</span>
+      <span><span class="dot" style="background:var(--primary)"></span>After</span>
+    </div>
+    <div class="db">
+      <!-- scale: 1–5 mapped to 0–100% -->
+      <div class="lab">I understand core networking concepts</div>
+      <div class="row"><div class="track"></div><div class="seg" style="left:43.75%;width:35.5%"></div>
+        <span class="pt" style="left:calc(43.75% - 6px);background:var(--before)"><b>2.75</b></span>
+        <span class="pt after" style="left:calc(79.25% - 6px);background:var(--primary)"><b>4.17</b></span></div>
+      <div class="lab">I can troubleshoot a basic networking problem</div>
+      <div class="row"><div class="track"></div><div class="seg" style="left:43.75%;width:35.5%"></div>
+        <span class="pt" style="left:calc(43.75% - 6px);background:var(--before)"><b>2.75</b></span>
+        <span class="pt after" style="left:calc(79.25% - 6px);background:var(--primary)"><b>4.17</b></span></div>
+      <div class="lab">I can explain networks to a non-technical person</div>
+      <div class="row"><div class="track"></div><div class="seg" style="left:44.75%;width:36.5%"></div>
+        <span class="pt" style="left:calc(44.75% - 6px);background:var(--before)"><b>2.79</b></span>
+        <span class="pt after" style="left:calc(81.25% - 6px);background:var(--primary)"><b>4.25</b></span></div>
+      <div class="lab">I can talk about my skills in a job interview</div>
+      <div class="row"><div class="track"></div><div class="seg" style="left:60.5%;width:25%"></div>
+        <span class="pt" style="left:calc(60.5% - 6px);background:var(--before)"><b>3.42</b></span>
+        <span class="pt after" style="left:calc(85.5% - 6px);background:var(--primary)"><b>4.42</b></span></div>
+      <div class="lab">I know how to keep learning tech skills on my own</div>
+      <div class="row"><div class="track"></div><div class="seg" style="left:63.5%;width:26%"></div>
+        <span class="pt" style="left:calc(63.5% - 6px);background:var(--before)"><b>3.54</b></span>
+        <span class="pt after" style="left:calc(89.5% - 6px);background:var(--primary)"><b>4.58</b></span></div>
+      <div class="lab">I belong in this industry</div>
+      <div class="row"><div class="track"></div><div class="seg" style="left:68.75%;width:22%"></div>
+        <span class="pt" style="left:calc(68.75% - 6px);background:var(--before)"><b>3.75</b></span>
+        <span class="pt after" style="left:calc(90.75% - 6px);background:var(--primary)"><b>4.63</b></span></div>
+    </div>
+    <p class="quoteline">Average confidence rose <span>3.26 → 4.42 (+36%)</span> across all seven measures — the biggest gains were on hard technical skills.</p>
+  </section>
+
+  <div class="cols">
+    <section class="panel">
+      <h3>Graduates re-enroll</h3>
+      <p class="sub">The exit survey converts directly into the next cohort</p>
+      <ul class="facts">
+        <li><span class="k">Network+ grads interested in Security+</span><span class="v">18 of 24 (75%)</span></li>
+        <li><span class="k">Seated in the Security+ cohort (launched Jul 13)</span><span class="v">15</span></li>
+        <li><span class="k">All-time enrollments incl. past programs</span><span class="v">545</span></li>
+        <li><span class="k">Distinct courses delivered to date</span><span class="v">15</span></li>
+      </ul>
+    </section>
+
+    <section class="panel">
+      <h3>Who we serve</h3>
+      <p class="sub">Learner intake survey, n=21 (rolling)</p>
+      <ul class="facts">
+        <li><span class="k">Women</span><span class="v">67%</span></li>
+        <li><span class="k">People of color</span><span class="v">95%</span></li>
+        <li><span class="k">First-generation college</span><span class="v">43%</span></li>
+        <li><span class="k">Unemployed or seeking work</span><span class="v">38%</span></li>
+      </ul>
+    </section>
+  </div>
+
+  <footer>
+    <strong>Method.</strong> All figures pulled directly from the BCC Academy production database on July 14, 2026 — learner accounts, enrollment records, attendance check-ins, activity telemetry (live since June 29), and 143 survey responses across 16 instruments. Confidence figures are retrospective pre/post self-ratings from the Network+ graduate exit survey (n=24). Intake demographics reflect respondents to date (n=21), not all learners. "People trained" counts unique individuals across current platform accounts and imported alumni rosters.
+  </footer>
+</div>
