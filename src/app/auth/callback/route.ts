@@ -11,6 +11,7 @@ import { courseLandingPath, primaryTrack } from "@/lib/enrollment";
 import { completePendingSetup } from "@/lib/auth/deferred-setup";
 import { determineRole, isPrivilegedEmail, isStaffEmail } from "@/lib/auth/admins";
 import { subscribeToNewsletter } from "@/lib/mailchimp";
+import { sendStaffAccountNotification } from "@/lib/email";
 import { logActivityEvent } from "@/lib/analytics/log-event";
 
 /**
@@ -383,6 +384,21 @@ export async function GET(request: Request) {
           r.cookies.set("program-override", effectiveSlug, { ...cookieOpts, maxAge: 60 * 60 * 24 * 365 });
           return r;
         };
+
+        // A staff-domain email with no prior account and no join intent just
+        // got a brand-new auto-created account. That's a feature (staff Lunch
+        // & Learn access) — but it's also how an instructor whose real account
+        // lives under a personal email silently duplicates and lands in an
+        // empty shell. Make it loud on both sides: notify admins, and show the
+        // staffer an explainer instead of a bare dashboard. Privileged emails
+        // (SUPER_ADMIN/ADMIN lists) skip this — their fresh account is correct.
+        if (!existing && !isPrivilegedByEnv && isStaffEmail(email) && !trackParam) {
+          after(() => sendStaffAccountNotification({ email }));
+          const welcome = nextDestination
+            ? `/dashboard/staff-welcome?next=${encodeURIComponent(nextDestination)}`
+            : "/dashboard/staff-welcome";
+          return withProgramCookies(redirectWithCookies(`${origin}${welcome}`));
+        }
 
         // Any emailed dashboard link (a session page, the agreement, an apply
         // route) sends the user to the page they came from rather than the
