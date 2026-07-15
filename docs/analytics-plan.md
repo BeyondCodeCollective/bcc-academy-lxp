@@ -46,8 +46,8 @@ A learner is **engaged in a track** if they have ≥1 *primary* signal for that
 track, where primary depends on modality:
 - **live** → attended a session (or submitted/reflected).
 - **on-demand** → watched a video (or submitted/reflected).
-- ⚑ Decision: do we count tutor-chat / browsing as engagement, or only
-  "did the work" signals? (Proposed: **not** engagement — they're *activity*.)
+- **DECIDED:** tutor-chat / browsing are **activity, not engagement** (engagement
+  = did-the-work signals only).
 
 ### Active (windowed, default 7d)
 Any signal (including login + browsing) within the window. One definition for
@@ -57,12 +57,12 @@ every "Active (Nd)" number.
 - **live tracks**: attendance-rate based, gated by `MIN_SESSIONS_FOR_RISK` (≥3
   recorded sessions) — already shipped in `compute.ts`.
 - **on-demand tracks**: recency based (no scheduled sessions to miss).
-- One label vocabulary everywhere. ⚑ Decision: **On track / Check in / Inactive**
-  (proposed) — retire "Disengaged" and "Low attendance" as separate names.
+- One label vocabulary everywhere. **DECIDED: On track / Check in / Inactive** —
+  retire "Disengaged" and "Low attendance" as separate names.
 
 ### Invited
-⚑ Decision: pick **one** table. Proposed: `allowed_signup_emails` (already used
-by the Engagement funnel), and backfill direct-adds so it isn't an undercount.
+**DECIDED:** one table — `allowed_signup_emails` (already used by the Engagement
+funnel); backfill direct-adds so it isn't an undercount.
 
 ## Phased work
 
@@ -76,13 +76,14 @@ by the Engagement funnel), and backfill direct-adds so it isn't an undercount.
 - [x] Survey count drill-through; "Invited" excludes test email (#757)
 
 ### Phase 1 — Foundation (no visible change, high leverage)
-- [ ] Add **track modality** (`live` | `on-demand` | `hybrid`) to track config /
-      `track_overrides`.
+- [x] Add **track modality** helper (`live` | `on-demand` | `hybrid`) —
+      `src/lib/analytics/modality.ts` (derives from `selfPaced`; no migration).
+- [x] Fix Insights (`insights-data.ts` / `dashboard/insights/page.tsx`) staff +
+      `is_test` leak into active/per-track/phase totals.
 - [ ] New `src/lib/analytics/engagement.ts`: canonical signals +
       `isEngaged` / `isActive`, modality-aware, staff/`is_test` excluded,
       `.error`-checked. Reuse `getLearnerActivity` (don't re-implement).
-- [ ] Fix Insights (`insights-data.ts` / `dashboard/insights/page.tsx`) staff +
-      `is_test` leak into per-track/phase totals.
+      Built alongside its first consumer in Phase 2 so it's validated in use.
 - [ ] Stop reading dead `last_activity_at`; standardize on `activity_events`.
 - [ ] Unify "invited" to one source.
 
