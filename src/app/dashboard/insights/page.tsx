@@ -94,15 +94,18 @@ export default async function InsightsPage() {
 
   const students = allStudents.filter((s) => s.role === "student");
   const totalStudents = students.length;
+  // Gate every downstream count to real learners — enrollment/activity rows for
+  // staff or QA accounts must never inflate active/per-track/phase totals.
+  const studentIds = new Set(students.map((s) => s.id));
 
   // Active in last 7 days — computed from date-filtered narrow queries.
   // Previously scanned the ENTIRE attendance/submissions/reflections table
   // and filtered dates in JS. Now the database handles the date filter,
   // so only matching rows are transferred.
   const activeIds = new Set<string>();
-  for (const r of activeAttendance) activeIds.add(r.student_id);
-  for (const r of activeSubmissions) activeIds.add(r.student_id);
-  for (const r of activeReflections) activeIds.add(r.student_id);
+  for (const r of activeAttendance) if (studentIds.has(r.student_id)) activeIds.add(r.student_id);
+  for (const r of activeSubmissions) if (studentIds.has(r.student_id)) activeIds.add(r.student_id);
+  for (const r of activeReflections) if (studentIds.has(r.student_id)) activeIds.add(r.student_id);
   const activeCount = activeIds.size;
 
   // Engagement signal: students who have done at least one activity over
@@ -113,7 +116,6 @@ export default async function InsightsPage() {
   for (const r of engagedAttendance) engagedIds.add(r.student_id);
   for (const r of engagedSubmissions) engagedIds.add(r.student_id);
   for (const r of engagedReflections) engagedIds.add(r.student_id);
-  const studentIds = new Set(students.map((s) => s.id));
   const studentsEngaged = Array.from(engagedIds).filter((id) =>
     studentIds.has(id),
   ).length;
@@ -145,6 +147,8 @@ export default async function InsightsPage() {
   const trackPairs = new Map<string, Set<string>>();
   for (const r of studentTracks) {
     if (!r.student_id || !r.track_slug) continue;
+    // Staff/QA enrollments must not count toward per-track or phase totals.
+    if (!studentIds.has(r.student_id)) continue;
     const pair = `${r.student_id}::${r.track_slug}`;
     if (trackStudentSet.has(pair)) continue;
     trackStudentSet.add(pair);

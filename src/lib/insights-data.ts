@@ -22,11 +22,14 @@ export async function fetchAllInsightsData(scope: ProgramScope) {
     engagedSubmissionsRes,
     engagedReflectionsRes,
   ] = await Promise.all([
+    // Learners only. Excluding just "admin" let instructors + super_admins (and
+    // is_test QA logins) leak into per-track and phase totals via student_tracks.
     svc
       .from("students")
       .select("id, role, email, first_name, last_name")
       .in("program_id", ids)
-      .not("role", "eq", "admin"),
+      .eq("role", "student")
+      .eq("is_test", false),
     svc.from("student_tracks").select("student_id, track_slug").in("program_id", ids),
     svc.from("alumni_enrollments").select("email").in("program_id", ids),
     svc
