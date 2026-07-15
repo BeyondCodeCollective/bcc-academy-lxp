@@ -47,7 +47,8 @@ export async function fetchAcquisitionData(scope: ProgramScope): Promise<Acquisi
       .from("students")
       .select("id, first_name, last_name, email, role, onboarding_completed, last_seen_at")
       .in("program_id", ids)
-      .eq("role", "student"),
+      .eq("role", "student")
+      .eq("is_test", false),
     // invites are keyed by program_slug, not program_id.
     svc.from("invites").select("email, used_at").in("program_slug", scope.slugs),
     getLearnerActivity(scope),

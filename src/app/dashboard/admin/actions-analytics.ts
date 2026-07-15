@@ -40,10 +40,16 @@ export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
   };
   if (ids.length === 0) return empty;
 
+  // Learners only — admins/instructors/super-admins never watch course videos
+  // or get marked present, so counting them as "created an account" tanks the
+  // engaged rate and makes a healthy cohort read as mostly-inactive. is_test
+  // hides internal QA logins the same way.
   const { data: students } = await svc
     .from("students")
     .select("id, first_name, last_name, email, created_at, last_seen_at")
-    .in("program_id", ids);
+    .in("program_id", ids)
+    .eq("role", "student")
+    .eq("is_test", false);
   const studs = (students ?? []) as {
     id: string;
     first_name: string | null;
@@ -110,9 +116,13 @@ export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
       submitted: submissionsByUser.get(s.id) ?? 0,
       surveys: surveysByStudent.get(s.id) ?? 0,
     }))
+    // Rank by TOTAL engagement (videos + attendance + submissions), not videos
+    // alone — a live-session track like Security+ engages via attendance, so a
+    // videos-only sort buried every active learner under a wall of zeros.
     .sort(
       (a, b) =>
-        b.videosWatched - a.videosWatched ||
+        b.videosWatched + b.attended + b.submitted -
+          (a.videosWatched + a.attended + a.submitted) ||
         (b.lastActive ?? "").localeCompare(a.lastActive ?? ""),
     );
 
