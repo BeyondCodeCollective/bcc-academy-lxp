@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import { getSessionContext } from "@/lib/auth/session";
 import { canSwitchPrograms } from "@/lib/roles";
+import { isEngaged, isActiveWithin } from "@/lib/analytics/engagement";
 import { isPreviewingAsStudent } from "@/lib/auth/preview-mode";
 import { getProgram } from "@/lib/programs/server";
 import { resolveProgramScope } from "@/lib/programs/scope";
@@ -49,6 +50,7 @@ export default async function InsightsPage() {
       engagedAttendance,
       engagedSubmissions,
       engagedReflections,
+      engagedVideo,
     },
     outcomes,
     progress,
@@ -102,22 +104,33 @@ export default async function InsightsPage() {
   // Previously scanned the ENTIRE attendance/submissions/reflections table
   // and filtered dates in JS. Now the database handles the date filter,
   // so only matching rows are transferred.
+  const nowMs = Date.now();
   const activeIds = new Set<string>();
   for (const r of activeAttendance) if (studentIds.has(r.student_id)) activeIds.add(r.student_id);
   for (const r of activeSubmissions) if (studentIds.has(r.student_id)) activeIds.add(r.student_id);
   for (const r of activeReflections) if (studentIds.has(r.student_id)) activeIds.add(r.student_id);
+  // Login counts as activity too (canonical isActiveWithin): a learner who
+  // signed in this week is active even without a graded event yet. Previously
+  // "Active 7d" missed them, undercounting live cohorts between sessions.
+  for (const s of students) {
+    const seen = s.last_seen_at ? new Date(s.last_seen_at).getTime() : undefined;
+    if (isActiveWithin(seen, 7, nowMs)) activeIds.add(s.id);
+  }
   const activeCount = activeIds.size;
 
-  // Engagement signal: students who have done at least one activity over
-  // the lifetime of their cohort. Computed from all-time student_id-only
-  // queries — still a full scan but ~60% less data per row vs the old
-  // approach that also fetched timestamps for every row.
-  const engagedIds = new Set<string>();
-  for (const r of engagedAttendance) engagedIds.add(r.student_id);
-  for (const r of engagedSubmissions) engagedIds.add(r.student_id);
-  for (const r of engagedReflections) engagedIds.add(r.student_id);
-  const studentsEngaged = Array.from(engagedIds).filter((id) =>
-    studentIds.has(id),
+  // Engaged ever — canonical isEngaged: attendance OR video OR submission OR
+  // reflection (video was previously omitted here).
+  const engAttended = new Set(engagedAttendance.map((r) => r.student_id));
+  const engSubmitted = new Set(engagedSubmissions.map((r) => r.student_id));
+  const engReflected = new Set(engagedReflections.map((r) => r.student_id));
+  const engWatched = new Set((engagedVideo as { user_id: string }[]).map((r) => r.user_id));
+  const studentsEngaged = students.filter((s) =>
+    isEngaged({
+      attended: engAttended.has(s.id),
+      submitted: engSubmitted.has(s.id),
+      reflected: engReflected.has(s.id),
+      watched: engWatched.has(s.id),
+    }),
   ).length;
   const engagementPct =
     totalStudents > 0

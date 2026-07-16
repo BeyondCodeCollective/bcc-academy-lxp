@@ -100,8 +100,10 @@ funnel); backfill direct-adds so it isn't an undercount.
       OR submission OR reflection) + `isActiveWithin`. One definition.
 - [x] Engagement funnel (A1) consumes it; reflections added to the union so it
       agrees with the Insights page (validated: Catalyst 12/15).
-- [ ] Insights "engaged/active" (A3), Acquisition risk (A6), per-learner /100
-      score (A10) consume `engagement.ts` (one surface per PR, QA the deltas).
+- [x] Insights (A3) consumes it: "Engaged ever" adds video (isEngaged);
+      "Active 7d" adds login via isActiveWithin (Catalyst active 12→13).
+- [ ] Acquisition risk (A6), per-learner /100 score (A10) consume
+      `engagement.ts` (one surface per PR, QA the deltas).
 - [ ] One risk model + one label vocabulary across Attendance (A2) and
       Acquisition (A6).
 - [ ] Fix A6 funnel monotonicity (Active-7d can exceed Activated today).

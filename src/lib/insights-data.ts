@@ -21,12 +21,13 @@ export async function fetchAllInsightsData(scope: ProgramScope) {
     engagedAttendanceRes,
     engagedSubmissionsRes,
     engagedReflectionsRes,
+    engagedVideoRes,
   ] = await Promise.all([
     // Learners only. Excluding just "admin" let instructors + super_admins (and
     // is_test QA logins) leak into per-track and phase totals via student_tracks.
     svc
       .from("students")
-      .select("id, role, email, first_name, last_name")
+      .select("id, role, email, first_name, last_name, last_seen_at")
       .in("program_id", ids)
       .eq("role", "student")
       .eq("is_test", false),
@@ -74,6 +75,13 @@ export async function fetchAllInsightsData(scope: ProgramScope) {
       .select("student_id")
       .in("program_id", ids)
       .not("submitted_at", "is", null),
+    // Video is a "did the work" signal too — omitting it made "Engaged ever"
+    // undercount on-demand tracks and disagree with the canonical definition.
+    svc
+      .from("week_progress")
+      .select("user_id")
+      .in("program_id", ids)
+      .not("video_watched_at", "is", null),
   ]);
 
   return {
@@ -88,5 +96,6 @@ export async function fetchAllInsightsData(scope: ProgramScope) {
     engagedAttendance: engagedAttendanceRes.data ?? [],
     engagedSubmissions: engagedSubmissionsRes.data ?? [],
     engagedReflections: engagedReflectionsRes.data ?? [],
+    engagedVideo: engagedVideoRes.data ?? [],
   };
 }
