@@ -1022,7 +1022,7 @@ const SECURITY_PLUS_APPLICATION_PAGES: SurveyPage[] = [
 
 // ─── Home for the Summer — Application ──────────────────────────────────────
 // Beyond Code Collective x NextEra Energy. Five 90-minute virtual sessions,
-// August 3–7, 2026. Mirrors the flat schema in lib/surveys/schemas.ts — keep
+// August 10–14, 2026. Mirrors the flat schema in lib/surveys/schemas.ts — keep
 // the two in sync or admin Survey Insights mislabels the response JSON.
 const HOME_FOR_SUMMER_APPLICATION_PAGES: SurveyPage[] = [
   {
@@ -1092,7 +1092,7 @@ const HOME_FOR_SUMMER_APPLICATION_PAGES: SurveyPage[] = [
   {
     title: "Eligibility & Commitment",
     subtitle:
-      "Home for the Summer runs August 3–7, 2026 — five virtual sessions, 90 minutes each day.",
+      "Home for the Summer runs August 10–14, 2026 — five virtual sessions, 90 minutes each day.",
     questions: [
       {
         type: "text",
@@ -1128,7 +1128,7 @@ const HOME_FOR_SUMMER_APPLICATION_PAGES: SurveyPage[] = [
         type: "radio",
         id: "available_all_sessions",
         label:
-          "Are you available for all five virtual sessions, August 3–7, 2026 (5:00–6:30 PM ET, 90 minutes each)?",
+          "Are you available for all five virtual sessions, August 10–14, 2026 (5:00–6:30 PM ET, 90 minutes each)?",
         options: ["Yes", "No"],
         required: true,
       },
