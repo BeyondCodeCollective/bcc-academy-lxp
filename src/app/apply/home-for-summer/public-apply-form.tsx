@@ -41,7 +41,7 @@ export function PublicApplyForm() {
           </h2>
           <p className="text-sm text-neutral-500 max-w-sm mx-auto">
             We&apos;ll review every application and share decisions ahead of the
-            August 3 start. Selected participants will be onboarded before the
+            August 10 start. Selected participants will be onboarded before the
             first session.
           </p>
         </div>
@@ -62,7 +62,7 @@ export function PublicApplyForm() {
           <p className="mt-3 text-sm leading-relaxed text-neutral-600 max-w-[55ch]">
             A week-long virtual intensive for undergraduates and recent
             graduates — the tools, norms, and competencies employers assume but
-            rarely teach. Five sessions, 90 minutes each, August 3–7, 2026.
+            rarely teach. Five sessions, 90 minutes each, August 10–14, 2026.
           </p>
           <p className="mt-2 text-sm text-neutral-500">
             No prior technical experience needed. The series assumes curiosity,

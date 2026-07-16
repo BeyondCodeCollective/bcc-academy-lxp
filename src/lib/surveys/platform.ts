@@ -53,7 +53,7 @@ export const PLATFORM_AUTH_SURVEYS: Record<string, SurveyConfig> = {
     id: HOME_FOR_SUMMER_APPLICATION_SURVEY_ID,
     title: "Home for the Summer Application",
     description:
-      "Application for the Home for the Summer intensive — August 3–7, 2026, with NextEra Energy.",
+      "Application for the Home for the Summer intensive — August 10–14, 2026, with NextEra Energy.",
     required: false,
   },
   "comptia-security-pre": {
@@ -112,7 +112,7 @@ export const PLATFORM_PUBLIC_SURVEYS: Record<string, SurveyConfig> = {
     id: HOME_FOR_SUMMER_APPLICATION_SURVEY_ID,
     title: "Home for the Summer Application",
     description:
-      "Application for the Home for the Summer intensive — August 3–7, 2026, with NextEra Energy.",
+      "Application for the Home for the Summer intensive — August 10–14, 2026, with NextEra Energy.",
     required: false,
   },
 };

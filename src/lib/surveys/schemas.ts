@@ -885,7 +885,7 @@ const HOME_FOR_SUMMER_APPLICATION: SurveyQuestion[] = [
   { type: "select", id: "state", label: "State", options: US_STATES, placeholder: "Select your state", required: true },
   { type: "text", id: "zip_code", label: "ZIP code", placeholder: "e.g. 33101", zip: true, required: true },
   { type: "radio", id: "computer_internet_access", label: "Do you have access to a computer or laptop and reliable internet access?", options: ["Yes", "No"], required: true },
-  { type: "radio", id: "available_all_sessions", label: "Are you available for all five virtual sessions, August 3–7, 2026 (5:00–6:30 PM ET, 90 minutes each)?", options: ["Yes", "No"], required: true },
+  { type: "radio", id: "available_all_sessions", label: "Are you available for all five virtual sessions, August 10–14, 2026 (5:00–6:30 PM ET, 90 minutes each)?", options: ["Yes", "No"], required: true },
   { type: "text", id: "career_goals", label: "What career goals are you working toward, and which skills or areas do you feel you need to develop to reach them?", required: true },
   { type: "multi-select", id: "tech_interests", label: "What areas of tech are you interested in?", options: ["Artificial Intelligence", "Cyber Security", "Data & Analytics", "Software Development", "UX/UI Design", "Project Management & Operations", "Digital Marketing & Content", "Other"], required: true },
   { type: "text", id: "tech_interests_other", label: "If you chose Other, which area of tech?", required: false, short: true },
