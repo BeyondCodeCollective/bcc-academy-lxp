@@ -98,7 +98,7 @@ export default async function AdminPage({
     ...Object.values(PLATFORM_AUTH_SURVEYS),
     ...(program.surveys ?? []),
   ];
-  const engagementScores: Record<string, { total: number; attendance: number; submissions: number; reflections: number; tutorMessages: number }> = {};
+  const engagementScores: Record<string, { total: number; attendance: number; submissions: number; reflections: number; videos: number }> = {};
 
   if (isSupabaseConfigured() && !ctx) redirect("/");
   if (isSupabaseConfigured() && ctx) {
@@ -248,7 +248,10 @@ export default async function AdminPage({
             svc.from("attendance").select("student_id, track, week_number").in("program_id", programIds),
             svc.from("submissions").select("student_id, track_slug, week_number").in("program_id", programIds).not("submitted_at", "is", null),
             svc.from("reflections").select("student_id, track_slug, week_number").in("program_id", programIds).not("submitted_at", "is", null),
-            svc.from("tutor_messages").select("student_id").in("program_id", programIds),
+            // Video is a did-the-work engagement signal (self-paced tracks have
+            // no attendance); tutor chat was ACTIVITY, not engagement, so it no
+            // longer feeds the score.
+            svc.from("week_progress").select("user_id, track_slug, week_number").in("program_id", programIds).not("video_watched_at", "is", null),
           ])
         : Promise.resolve(null),
       // Historical alumni (imported from Circle and similar). Only fetched
@@ -335,32 +338,35 @@ export default async function AdminPage({
 
     // Compute engagement scores only when the active tab needs them.
     if (engagementRes) {
-      const [attendanceRes, submissionsRes, reflectionsRes, tutorRes] = engagementRes;
+      const [attendanceRes, submissionsRes, reflectionsRes, videoRes] = engagementRes;
       const attendanceRows = (attendanceRes.data ?? []) as { student_id: string; track: string; week_number: number }[];
       const submissionRows = (submissionsRes.data ?? []) as { student_id: string; track_slug: string; week_number: number }[];
       const reflectionRows = (reflectionsRes.data ?? []) as { student_id: string; track_slug: string; week_number: number }[];
-      const tutorRows = (tutorRes.data ?? []) as { student_id: string }[];
+      const videoRows = (videoRes.data ?? []) as { user_id: string; track_slug: string; week_number: number }[];
 
       const maxWeeks = Math.max(...program.tracks.map((t) => t.totalWeeks), 1);
 
+      // Canonical engagement (docs/analytics-plan.md): the four did-the-work
+      // signals, each worth up to 25 pts → /100. Video replaces the old tutor
+      // term so self-paced tracks aren't structurally under-scored.
       for (const s of allStudents) {
         if (s.role !== "student") continue;
         const att = new Set(attendanceRows.filter((r) => r.student_id === s.id).map((r) => `${r.track}-${r.week_number}`)).size;
         const sub = new Set(submissionRows.filter((r) => r.student_id === s.id).map((r) => `${r.track_slug}-${r.week_number}`)).size;
         const ref = new Set(reflectionRows.filter((r) => r.student_id === s.id).map((r) => `${r.track_slug}-${r.week_number}`)).size;
-        const tut = tutorRows.filter((r) => r.student_id === s.id).length;
+        const vid = new Set(videoRows.filter((r) => r.user_id === s.id).map((r) => `${r.track_slug}-${r.week_number}`)).size;
 
         const attScore = Math.min((att / maxWeeks) * 25, 25);
         const subScore = Math.min((sub / maxWeeks) * 25, 25);
         const refScore = Math.min((ref / maxWeeks) * 25, 25);
-        const tutScore = Math.min((tut / 10) * 25, 25);
+        const vidScore = Math.min((vid / maxWeeks) * 25, 25);
 
         engagementScores[s.id] = {
-          total: Math.round(attScore + subScore + refScore + tutScore),
+          total: Math.round(attScore + subScore + refScore + vidScore),
           attendance: att,
           submissions: sub,
           reflections: ref,
-          tutorMessages: tut,
+          videos: vid,
         };
       }
     }
