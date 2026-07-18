@@ -102,10 +102,15 @@ funnel); backfill direct-adds so it isn't an undercount.
       agrees with the Insights page (validated: Catalyst 12/15).
 - [x] Insights (A3) consumes it: "Engaged ever" adds video (isEngaged);
       "Active 7d" adds login via isActiveWithin (Catalyst active 12→13).
-- [ ] Acquisition risk (A6), per-learner /100 score (A10) consume
-      `engagement.ts` (one surface per PR, QA the deltas).
-- [ ] One risk model + one label vocabulary across Attendance (A2) and
-      Acquisition (A6).
+- [x] **One risk model** across Attendance (A2) and Acquisition (A6): A6 now
+      calls the same `summarizeStudent()` for learners enrolled in live tracks,
+      scored only against *their* live tracks — which answers the old
+      "rate-scoring mis-penalizes anyone not in every track" objection. Below
+      `MIN_SESSIONS_FOR_RISK` it falls back to recency rather than reporting a
+      false on-track. One label vocabulary already shipped (#758).
+      No-op on today's numbers (Security+ has 1 counted session → recency);
+      switches to attendance-based once 3+ sessions are recorded.
+- [ ] Per-learner /100 score (A10) consumes `engagement.ts` (add video term).
 - [ ] Fix A6 funnel monotonicity (Active-7d can exceed Activated today).
 
 ### Phase 3 — Two-layer scoping

@@ -6,15 +6,29 @@
 //   • Activation funnel: Signed up → Onboarded → Activated → Active (7d)
 //                                                     (from `students` + activity)
 //
-// Risk is recency-based, not attendance-rate-based: a learner is scored by how
-// long since their last signal (attendance, submission, reflection, or login).
-// Attendance-rate scoring (src/lib/attendance/compute.ts) mis-penalizes anyone
-// not enrolled in every track when run BCC-wide, so recency is the correct
-// cross-program signal.
+// Risk is ONE model, chosen by track modality (docs/analytics-plan.md):
+//   • live tracks      → attendance-rate, via the same summarizeStudent() the
+//                        Attendance tab uses, gated by MIN_SESSIONS_FOR_RISK.
+//   • on-demand / none → recency of last signal (nothing scheduled to miss).
+//
+// Previously this was recency-only while the Attendance tab was rate-only, so
+// the SAME learner could read "On track" here and "Low attendance" there — a
+// learner who logs in daily but skips every live session being the classic case.
+// The old objection to rate-scoring (it "mis-penalizes anyone not enrolled in
+// every track") is handled by scoring each learner against ONLY the live tracks
+// they're actually enrolled in.
 
 import { createServiceClient } from "@/lib/supabase/server";
 import type { ProgramScope } from "@/lib/programs/scope";
 import { getLearnerActivity } from "@/lib/analytics/activity";
+import { getProgram } from "@/lib/programs/server";
+import { trackModality } from "@/lib/analytics/modality";
+import {
+  summarizeStudent,
+  MIN_SESSIONS_FOR_RISK,
+  type AttendanceRecord,
+  type TrackLike,
+} from "@/lib/attendance/compute";
 
 export type FunnelStage = { label: string; count: number };
 
@@ -42,20 +56,46 @@ export async function fetchAcquisitionData(scope: ProgramScope): Promise<Acquisi
   const svc = createServiceClient();
   const ids = scope.ids;
 
-  const [studentsRes, invitesRes, activity] = await Promise.all([
-    svc
-      .from("students")
-      .select("id, first_name, last_name, email, role, onboarding_completed, last_seen_at")
-      .in("program_id", ids)
-      .eq("role", "student")
-      .eq("is_test", false),
-    // invites are keyed by program_slug, not program_id.
-    svc.from("invites").select("email, used_at").in("program_slug", scope.slugs),
-    getLearnerActivity(scope),
-  ]);
+  const [studentsRes, invitesRes, activity, enrollRes, attendanceRes, program] =
+    await Promise.all([
+      svc
+        .from("students")
+        .select("id, first_name, last_name, email, role, onboarding_completed, last_seen_at")
+        .in("program_id", ids)
+        .eq("role", "student")
+        .eq("is_test", false),
+      // invites are keyed by program_slug, not program_id.
+      svc.from("invites").select("email, used_at").in("program_slug", scope.slugs),
+      getLearnerActivity(scope),
+      // Enrollments + attendance drive the live-track risk model below.
+      svc.from("student_tracks").select("student_id, track_slug").in("program_id", ids),
+      svc
+        .from("attendance")
+        .select("id, student_id, track, week_number, session_number, checked_in_at, marked_by")
+        .in("program_id", ids),
+      getProgram(),
+    ]);
 
   const students = studentsRes.data ?? [];
   const invites = invitesRes.data ?? [];
+  const enrollments = (enrollRes.data ?? []) as { student_id: string; track_slug: string }[];
+  const attendanceRecords = (attendanceRes.data ?? []) as AttendanceRecord[];
+
+  // The live tracks each learner is actually enrolled in — scoring against only
+  // these is what makes rate-based risk fair for someone not in every track.
+  const liveBySlug = new Map<string, TrackLike>(
+    (program.tracks ?? [])
+      .filter((t) => trackModality(t) === "live")
+      .map((t) => [t.slug, t as TrackLike]),
+  );
+  const liveTracksByStudent = new Map<string, TrackLike[]>();
+  for (const e of enrollments) {
+    const t = liveBySlug.get(e.track_slug);
+    if (!t) continue;
+    const list = liveTracksByStudent.get(e.student_id) ?? [];
+    list.push(t);
+    liveTracksByStudent.set(e.student_id, list);
+  }
 
   // ── Invite funnel ──────────────────────────────────────────────────────────
   const invitedEmails = new Set<string>();
@@ -108,37 +148,67 @@ export async function fetchAcquisitionData(scope: ProgramScope): Promise<Acquisi
     "at-risk": 0,
     disengaged: 0,
   };
-  const atRisk: AtRiskStudent[] = [];
+  // Severity carried alongside the row so sorting never has to re-parse the
+  // human-readable signal string (which now differs per model).
+  const atRisk: (AtRiskStudent & { severity: number })[] = [];
   for (const s of students) {
-    const last = lastSignal.get(s.id) ?? 0;
-    const daysSince = last === 0 ? Infinity : Math.floor((now - last) / DAY);
+    const liveTracks = liveTracksByStudent.get(s.id) ?? [];
     let bucket: RiskBucket;
-    if (daysSince <= AT_RISK_DAYS) bucket = "on-track";
-    else if (daysSince <= DISENGAGED_DAYS) bucket = "at-risk";
-    else bucket = "disengaged";
+    let signal: string;
+    let severity: number;
+
+    // Live learner with enough recorded sessions → judged on showing up, via the
+    // same summarizeStudent() the Attendance tab uses, so the two surfaces can
+    // never disagree.
+    const summary =
+      liveTracks.length > 0
+        ? summarizeStudent(
+            {
+              id: s.id,
+              first_name: s.first_name ?? "",
+              last_name: s.last_name ?? "",
+              email: s.email ?? "",
+            },
+            liveTracks,
+            attendanceRecords,
+          )
+        : null;
+
+    if (summary && summary.expected >= MIN_SESSIONS_FOR_RISK) {
+      bucket = summary.status;
+      signal = `${summary.attended}/${summary.expected} sessions`;
+      // Worst rate first; a missed streak breaks ties.
+      severity = (100 - summary.rate) * 10 + summary.consecutiveMisses;
+    } else {
+      // Either no live track to miss, or too few recorded sessions to judge
+      // attendance yet. Recency is then the only honest signal — falling through
+      // to "on-track" here would hide a learner who has genuinely gone quiet.
+      const last = lastSignal.get(s.id) ?? 0;
+      const daysSince = last === 0 ? Infinity : Math.floor((now - last) / DAY);
+      if (daysSince <= AT_RISK_DAYS) bucket = "on-track";
+      else if (daysSince <= DISENGAGED_DAYS) bucket = "at-risk";
+      else bucket = "disengaged";
+      signal = last === 0 ? "Never active" : `No activity in ${daysSince}d`;
+      severity = daysSince === Infinity ? Number.MAX_SAFE_INTEGER : daysSince;
+    }
+
     risk[bucket]++;
     if (bucket !== "on-track") {
       const name =
         [s.first_name, s.last_name].filter(Boolean).join(" ").trim() || s.email || "—";
-      atRisk.push({
-        id: s.id,
-        name,
-        email: s.email ?? "",
-        signal: last === 0 ? "Never active" : `No activity in ${daysSince}d`,
-      });
+      atRisk.push({ id: s.id, name, email: s.email ?? "", signal, severity });
     }
   }
-  // Most-disengaged first; "Never active" (Infinity) floats to the top.
-  atRisk.sort((a, b) => {
-    const av = a.signal === "Never active" ? Infinity : parseInt(a.signal.match(/\d+/)?.[0] ?? "0", 10);
-    const bv = b.signal === "Never active" ? Infinity : parseInt(b.signal.match(/\d+/)?.[0] ?? "0", 10);
-    return bv - av;
-  });
+  // Most severe first.
+  atRisk.sort((a, b) => b.severity - a.severity);
 
   return {
     inviteFunnel,
     activationFunnel,
     risk,
-    needsAttention: atRisk.slice(0, 12),
+    // `severity` is an internal sort key, not part of the surface contract.
+    needsAttention: atRisk
+      .slice(0, 12)
+      .map(({ id, name, email, signal }) => ({ id, name, email, signal })),
   };
 }
