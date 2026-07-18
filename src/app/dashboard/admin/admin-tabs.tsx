@@ -563,7 +563,7 @@ export function AdminTabs({
   userRole?: string;
   isMaster?: boolean;
   assignableRoles?: string[];
-  engagementScores?: Record<string, { total: number; attendance: number; submissions: number; reflections: number; tutorMessages: number }>;
+  engagementScores?: Record<string, { total: number; attendance: number; submissions: number; reflections: number; videos: number }>;
   /** Server-computed enrolled/active/completed per track. See getCourseRosterStats. */
   courseStats?: Record<
     string,
@@ -2039,7 +2039,7 @@ function PeopleTab({
   tracks: AdminTrackConfig[];
   enrollments: StudentTrackRow[];
   instrTracks: InstructorTrackRow[];
-  engagementScores: Record<string, { total: number; attendance: number; submissions: number; reflections: number; tutorMessages: number }>;
+  engagementScores: Record<string, { total: number; attendance: number; submissions: number; reflections: number; videos: number }>;
   isManager: boolean;
   assignableRoles?: string[];
   programSlug: string;
@@ -2568,6 +2568,8 @@ function PeopleTab({
                       <span>{engagementScores[s.id].submissions} submitted</span>
                       <span className="text-ink-faint">·</span>
                       <span>{engagementScores[s.id].reflections} reflected</span>
+                      <span className="text-ink-faint">·</span>
+                      <span>{engagementScores[s.id].videos} watched</span>
                     </div>
                   )}
 

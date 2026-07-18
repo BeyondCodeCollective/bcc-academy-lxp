@@ -110,8 +110,11 @@ funnel); backfill direct-adds so it isn't an undercount.
       false on-track. One label vocabulary already shipped (#758).
       No-op on today's numbers (Security+ has 1 counted session → recency);
       switches to attendance-based once 3+ sessions are recorded.
-- [ ] Per-learner /100 score (A10) consumes `engagement.ts` (add video term).
-- [ ] Fix A6 funnel monotonicity (Active-7d can exceed Activated today).
+- [x] Per-learner /100 score (A10): the four did-the-work signals, each 25 pts.
+      Video replaces the old tutor term (tutor = activity, not engagement), so
+      self-paced tracks aren't structurally under-scored; UI shows "watched".
+- [ ] Fix A6 funnel monotonicity (Active-7d can exceed Activated today) —
+      carried into Phase 4 trust polish.
 
 ### Phase 3 — Two-layer scoping
 - [ ] Add **course layer** to the Engagement funnel (A1) and Risk (A6):
