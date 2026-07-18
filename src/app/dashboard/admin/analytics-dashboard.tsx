@@ -1,13 +1,23 @@
 "use client";
 
-import { Fragment, useMemo, useState } from "react";
-import type { EngagementAnalytics, EngagementLearner } from "./actions-analytics";
+import { Fragment, useMemo, useState, useTransition } from "react";
+import { getEngagementAnalytics, type EngagementAnalytics, type EngagementLearner } from "./actions-analytics";
 
-// Program-level engagement: the activation funnel + a per-learner activity
-// table. Scoped server-side to the current program, so it reflects the program
-// switcher (Forte shows Upskill, Catalyst shows Catalyst, etc.).
-export function AnalyticsDashboard({ data }: { data: EngagementAnalytics }) {
-  const { funnel, learners } = data;
+// Engagement: the activation funnel + a per-learner activity table. Two layers —
+// the program roll-up, and a per-course drill-down via the pills below. Scoped
+// server-side, so it reflects the program switcher (Forte shows Upskill, etc.).
+export function AnalyticsDashboard({ data: initialData }: { data: EngagementAnalytics }) {
+  // The active scope's data. Starts at the server-rendered program roll-up;
+  // picking a course re-fetches from the same server action with a trackSlug.
+  const [data, setData] = useState(initialData);
+  const [pending, startTransition] = useTransition();
+  const { funnel, learners, courses, activeCourse } = data;
+
+  function selectCourse(slug: string | null) {
+    startTransition(async () => {
+      setData(await getEngagementAnalytics(slug ?? undefined));
+    });
+  }
   // Name/email filter — the table runs to hundreds of rows (175+ at Upskill
   // scale), so an unfiltered wall is unusable. Match is case-insensitive across
   // both name and email.
@@ -51,6 +61,23 @@ export function AnalyticsDashboard({ data }: { data: EngagementAnalytics }) {
 
   return (
     <div className="space-y-8">
+      {/* Course layer — the "second layer": All (program roll-up) or one course.
+         Only shown when the program actually has courses to drill into. */}
+      {courses.length > 1 && (
+        <div className={`flex flex-wrap gap-1.5 ${pending ? "opacity-60" : ""}`}>
+          <CoursePill label="All courses" active={activeCourse === null} onClick={() => selectCourse(null)} disabled={pending} />
+          {courses.map((c) => (
+            <CoursePill
+              key={c.slug}
+              label={c.name}
+              active={activeCourse === c.slug}
+              onClick={() => selectCourse(c.slug)}
+              disabled={pending}
+            />
+          ))}
+        </div>
+      )}
+
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {cards.map((c) => {
           return (
@@ -178,6 +205,34 @@ export function AnalyticsDashboard({ data }: { data: EngagementAnalytics }) {
         </p>
       </section>
     </div>
+  );
+}
+
+function CoursePill({
+  label,
+  active,
+  onClick,
+  disabled,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+  disabled: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-pressed={active}
+      className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-wait ${
+        active
+          ? "border-ink bg-ink text-white"
+          : "border-rule bg-white text-ink-soft hover:border-ink-faint hover:text-ink"
+      }`}
+    >
+      {label}
+    </button>
   );
 }
 

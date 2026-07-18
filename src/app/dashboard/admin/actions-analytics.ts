@@ -29,19 +29,32 @@ export type EngagementAnalytics = {
   programName: string;
   funnel: { invited: number; activated: number; engaged: number };
   learners: EngagementLearner[];
+  // The two-layer scope: the course pills to render, and which one is active
+  // (null = the whole program). Lets the tab drill Program → Course.
+  courses: { slug: string; name: string }[];
+  activeCourse: string | null;
 };
 
-export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
+export async function getEngagementAnalytics(
+  trackSlug?: string,
+): Promise<EngagementAnalytics> {
   const { svc } = await requireCapability("view_insights");
   const program = await getProgram();
   const scope = await resolveProgramScope(program.slug);
   const ids = scope.ids;
   const trackSlugs = program.tracks.map((t) => t.slug);
+  const courses = program.tracks.map((t) => ({ slug: t.slug, name: t.shortName || t.name }));
+  // Only honor a course filter for a track that's actually in this program.
+  const activeCourse = trackSlug && trackSlugs.includes(trackSlug) ? trackSlug : null;
+  // "Invited" reach narrows to the selected course's allowlist when drilled in.
+  const invitedTrackSlugs = activeCourse ? [activeCourse] : trackSlugs;
 
   const empty: EngagementAnalytics = {
     programName: program.name,
     funnel: { invited: 0, activated: 0, engaged: 0 },
     learners: [],
+    courses,
+    activeCourse,
   };
   if (ids.length === 0) return empty;
 
@@ -55,7 +68,7 @@ export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
     .in("program_id", ids)
     .eq("role", "student")
     .eq("is_test", false);
-  const studs = (students ?? []) as {
+  let studs = (students ?? []) as {
     id: string;
     first_name: string | null;
     last_name: string | null;
@@ -63,6 +76,16 @@ export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
     created_at: string | null;
     last_seen_at: string | null;
   }[];
+  // Course drill-down: keep only learners enrolled in the selected track.
+  if (activeCourse) {
+    const { data: enrolled } = await svc
+      .from("student_tracks")
+      .select("student_id")
+      .eq("track_slug", activeCourse)
+      .in("program_id", ids);
+    const enrolledIds = new Set((enrolled ?? []).map((r) => (r as { student_id: string }).student_id));
+    studs = studs.filter((s) => enrolledIds.has(s.id));
+  }
   const studentIds = studs.map((s) => s.id);
 
   // Engagement events scoped to these learners + the program's allowlist.
@@ -79,7 +102,7 @@ export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
       // engagement and disagreed with the Insights page's definition.
       svc.from("reflections").select("student_id").in("student_id", studentIds).not("submitted_at", "is", null),
       svc.from("survey_responses").select("student_id, survey_type, completed_at").in("student_id", studentIds).not("completed_at", "is", null),
-      svc.from("allowed_signup_emails").select("email").in("track_slug", trackSlugs),
+      svc.from("allowed_signup_emails").select("email").in("track_slug", invitedTrackSlugs),
       // Emails of internal QA accounts, so they're subtracted from "Invited"
       // too — otherwise Invited counts a test allowlist entry that "Created"
       // (is_test filtered) doesn't, and the funnel reads N+1 → N.
@@ -169,5 +192,7 @@ export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
     programName: program.name,
     funnel: { invited, activated: studs.length, engaged: engaged.size },
     learners,
+    courses,
+    activeCourse,
   };
 }

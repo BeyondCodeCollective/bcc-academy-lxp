@@ -117,9 +117,11 @@ funnel); backfill direct-adds so it isn't an undercount.
       carried into Phase 4 trust polish.
 
 ### Phase 3 — Two-layer scoping
-- [ ] Add **course layer** to the Engagement funnel (A1) and Risk (A6):
-      Program → Course selector (course pills, matching Attendance for a
-      consistent Analytics section).
+- [x] **Course layer on the Engagement funnel (A1)**: `getEngagementAnalytics`
+      takes an optional `trackSlug`; the dashboard renders course pills
+      (All → per course) and re-fetches. Learners scope to `student_tracks` for
+      the slug; "Invited" narrows to that track's allowlist.
+- [ ] Course layer on Acquisition/Risk (A6): the same pill scope.
 - [ ] Modality-aware columns: hide "Videos" for live tracks; lead with
       attendance for live, video-progress for on-demand.
 
