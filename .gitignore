@@ -61,3 +61,8 @@ next-env.d.ts
 
 # Zoom SDK static assets (copied from node_modules at build time)
 /public/zoom/
+
+# Supabase CLI link state — machine-local, must not be shared between
+# checkouts (a committed project-ref silently points every clone at whatever
+# project was last linked).
+supabase/.temp/
