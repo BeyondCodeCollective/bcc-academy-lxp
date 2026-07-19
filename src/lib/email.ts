@@ -626,6 +626,68 @@ export async function sendFeedbackEmail({
 }
 
 /**
+ * "We got your application" receipt for a public application form. Applicants
+ * previously got only an on-screen confirmation — nothing in their inbox, so no
+ * paper trail, no way to spot a typo'd address, and nothing to reply to.
+ *
+ * Deliberately makes no promise beyond "we'll be in touch by email": decisions
+ * and timelines are the team's to communicate, not this receipt's.
+ *
+ * Never throws. The application is already saved by the time this runs, and a
+ * mail failure must never surface as a failed submission.
+ */
+export async function sendApplicationConfirmationEmail({
+  to,
+  firstName,
+  programName,
+  applicationName,
+}: {
+  to: string;
+  firstName?: string;
+  /** Brand shown in the header bar, e.g. "Catalyst". */
+  programName: string;
+  /** What they applied to, e.g. "Home for the Summer". */
+  applicationName: string;
+}): Promise<void> {
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY not set — skipping application confirmation");
+    return;
+  }
+  const esc = (s: string) =>
+    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const hello = firstName ? ` ${esc(firstName)}` : "";
+
+  try {
+    const { error } = await resend.emails.send({
+      from: FROM_ADDRESS,
+      to,
+      replyTo: "info@bccacademy.io",
+      subject: `We received your ${applicationName} application`,
+      text: `Thanks for applying to ${applicationName}.
+
+We've received your application and our team is reviewing it. We'll get back to you at this email address soon with next steps.
+
+Nothing to do for now — just keep an eye on your inbox.
+
+Questions? Reply to this email or contact info@bccacademy.io.`,
+      html: inviteShell(
+        programName,
+        `    <p style="margin:0 0 6px;font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#16a34a;">✓ Application received</p>
+    <p style="margin:0 0 20px;font-size:22px;font-weight:700;color:#1a1a1a;">${esc(applicationName)}</p>
+    <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#444;">Thanks for applying${hello}. We've got your application and our team is reviewing it. We'll get back to you at this email address soon with next steps.</p>
+    <p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:#444;">Nothing to do for now — just keep an eye on your inbox.</p>
+    <p style="margin:0;font-size:12px;color:#999;line-height:1.5;">Questions? Reply here or email <a href="mailto:info@bccacademy.io" style="color:#1a1a1a;">info@bccacademy.io</a>.</p>`,
+      ),
+    });
+    if (error) {
+      console.error("[email] sendApplicationConfirmationEmail failed:", JSON.stringify(error));
+    }
+  } catch (err) {
+    console.error("[email] sendApplicationConfirmationEmail threw:", err);
+  }
+}
+
+/**
  * Internal heads-up when someone fills the homepage "Learn More" form. Goes to
  * SIGNUP_NOTIFY_EMAIL (default info@bccacademy.io); reply-to is the signup's own
  * address so the team can respond directly. Self-contained try/catch — a failed
