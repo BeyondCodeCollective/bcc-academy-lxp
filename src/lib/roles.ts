@@ -11,12 +11,14 @@ export type Capability =
   | "view_insights"        // see the Survey Insights dashboard (scoped to own program for admins)
   | "switch_programs";     // use the super-admin program switcher
 
+// The ladder is CUMULATIVE: every tier holds everything the tier below it does,
+// plus more. It didn't used to be — super_admin lacked manage_students, so
+// "promoting" an admin to super_admin silently took away their ability to
+// manage people, and a higher rank could do less. The master (email-gated
+// owner) sits above all of them and bypasses every capability check.
 const ROLE_CAPABILITIES: Record<Capability, Role[]> = {
   access_admin_panel: ["instructor", "admin", "super_admin"],
-  // Managing people (students, cohorts, role assignment) is for a PROGRAM admin
-  // — not super_admin, which is cross-program VIEW/oversight only. The master
-  // (email-gated owner) bypasses every capability in requireCapability().
-  manage_students:    ["admin"],
+  manage_students:    ["admin", "super_admin"],
   view_insights:      ["admin", "super_admin"],
   switch_programs:    ["super_admin"],
 };

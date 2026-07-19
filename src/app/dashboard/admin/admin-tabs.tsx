@@ -581,7 +581,8 @@ export function AdminTabs({
 }) {
   const router = useRouter();
   const programSlug = initialProgramSlug;
-  // super_admin is view-only; people management is for program admins + master.
+  // Capability-driven, so it follows ROLE_CAPABILITIES: admin and super_admin
+  // both manage people (the ladder is cumulative), plus the master owner.
   const isManager = canManageStudents(userRole) || isMaster;
   // Programs like Catalyst (apex) don't have a learner dashboard — no
   // tracks, no cohorts. They render a single empty-state pointer to
