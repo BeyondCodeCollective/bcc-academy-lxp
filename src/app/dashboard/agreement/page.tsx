@@ -84,11 +84,16 @@ export default async function AgreementPage() {
   // Same resolver the sign action uses, so the cohort shown and the cohort
   // recorded can't drift apart. A prior signature keeps its own label.
   const priorCohort = typeof responses.cohort === "string" ? responses.cohort : undefined;
+  const cohort = priorCohort ?? (await resolveCatalystCohortLabel(ctx.userId));
+  // Prefix the program only when the cohort doesn't already carry it —
+  // otherwise the no-course fallback renders "Catalyst · Catalyst", and legacy
+  // records ("Catalyst After the Game Cohort") double it too.
+  const eyebrow = cohort.startsWith(program.name) ? cohort : `${program.name} · ${cohort}`;
 
   return (
     <CatalystAgreement
       programSlug={program.slug}
-      cohortLabel={priorCohort ?? (await resolveCatalystCohortLabel(ctx.userId))}
+      cohortLabel={eyebrow}
       defaultName={priorName ?? nameFromProfile}
       alreadySigned={!!existing?.completed_at}
       signedName={priorName}
