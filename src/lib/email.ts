@@ -729,6 +729,62 @@ export async function sendSignupNotification(input: {
 }
 
 /**
+ * Internal heads-up when someone submits a public application. Without it the
+ * only way to know an application arrived is to open admin → Insights, so a
+ * promo push looks identical to a dead one until someone remembers to check.
+ *
+ * Goes to APPLICATION_NOTIFY_EMAIL (default jihan.johnston@wearebcc.org) with
+ * reply-to set to the applicant, so a reply reaches them directly. Carries only
+ * the fields needed to triage — the full application lives in the portal.
+ * Self-contained try/catch: a failed notification must never affect the
+ * applicant's submission.
+ */
+export async function sendApplicationNotification(input: {
+  name: string;
+  email: string;
+  /** What they applied to, e.g. "Home for the Summer". */
+  applicationName: string;
+  /** Short triage lines, e.g. { University: "Mercer", "Available for all sessions": "Yes" }. */
+  details?: Record<string, string | undefined>;
+}): Promise<void> {
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY not set — skipping application notification");
+    return;
+  }
+  const to = process.env.APPLICATION_NOTIFY_EMAIL ?? "jihan.johnston@wearebcc.org";
+  const esc = (s: string) =>
+    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const rows = Object.entries(input.details ?? {})
+    .filter(([, v]) => v)
+    .map(
+      ([k, v]) =>
+        `  <p style="margin:0 0 4px;"><strong>${esc(k)}:</strong> ${esc(String(v))}</p>`,
+    )
+    .join("\n");
+
+  try {
+    await resend.emails.send({
+      from: FROM_ADDRESS,
+      to,
+      replyTo: input.email,
+      subject: `New ${input.applicationName} application: ${input.name || input.email}`,
+      html: `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:15px;line-height:1.6;color:#1a1a1a;">
+  <p style="margin:0 0 12px;font-weight:700;">New ${esc(input.applicationName)} application</p>
+  <p style="margin:0 0 4px;"><strong>Name:</strong> ${esc(input.name) || "—"}</p>
+  <p style="margin:0 0 4px;"><strong>Email:</strong> ${esc(input.email)}</p>
+${rows}
+  <p style="margin:12px 0 0;font-size:12px;color:#999;">Full application: bccacademy.io/dashboard/admin?tab=insights → ${esc(input.applicationName)}. Reply to this email to reach the applicant directly.</p>
+</div>`,
+    });
+  } catch (e) {
+    console.error(
+      "[email] sendApplicationNotification failed:",
+      e instanceof Error ? e.message : String(e),
+    );
+  }
+}
+
+/**
  * Internal heads-up when a staff-domain email signs in for the first time and
  * gets an auto-created account. Staff auto-creation is a feature (Lunch &
  * Learn access), but it's also how instructor accounts silently duplicate when
