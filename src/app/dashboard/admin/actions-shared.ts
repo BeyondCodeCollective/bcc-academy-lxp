@@ -23,8 +23,8 @@ export async function requireCapability(capability: Capability) {
 
   const role = student?.role ?? "";
   // The master (owner) is the top tier and bypasses every capability check.
-  // super_admin is cross-program VIEW-only, so management capabilities resolve
-  // through an admin role or the master email — not super_admin.
+  // Below it the ladder is cumulative (see ROLE_CAPABILITIES): a super_admin
+  // holds everything an admin does, across programs.
   const isMaster = isMasterEmail(student?.email);
   if (!isMaster && !hasCapability(role, capability)) throw new Error("Not authorized");
   // A super-admin previewing as a student is treated as a student — block
