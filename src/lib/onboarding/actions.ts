@@ -3,25 +3,38 @@
 import { revalidatePath } from "next/cache";
 import { saveSurveyResponse } from "@/app/dashboard/actions";
 import { getOnboardingChecklist } from "@/lib/onboarding/checklists";
+import { resolveCatalystCohortLabel } from "@/lib/onboarding/cohort-label";
+import { createClient } from "@/lib/supabase/server";
 
 // Records the signed participation agreement as a survey_responses row so it
 // flows through the same completion + insights pipeline as every other item
 // (and so a signed agreement auto-checks the checklist). Reuses
 // saveSurveyResponse, which handles auth, program_id, cohort tagging, and the
 // unique(student_id, survey_type) upsert.
-// Standalone Catalyst Program Participation Agreement (After the Game cohort) —
-// signed from /dashboard/agreement, not tied to a track checklist. Records a
+// Standalone Catalyst Program Participation Agreement — signed from
+// /dashboard/agreement, not tied to a track checklist. Records a
 // survey_responses row under the learner's account like every other agreement.
+//
+// The cohort is the signer's enrolled COURSE, resolved server-side: this one
+// document is used across most Catalyst projects, and hardcoding "After the
+// Game" filed every signer — Home for the Summer included — under that cohort.
 export async function signCatalystAgreement(fullName: string, programSlug: string) {
   const name = fullName.trim();
   if (!name) throw new Error("Please type your full name to sign.");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated — please sign in again and retry.");
+
   await saveSurveyResponse(
     "catalyst-participation-agreement",
     {
       full_name: name,
       agreed_at: new Date().toISOString(),
-      cohort: "Catalyst After the Game Cohort",
-      version: "catalyst-atg-2026-07",
+      cohort: await resolveCatalystCohortLabel(user.id),
+      version: "catalyst-2026-07",
     },
     programSlug,
   );
