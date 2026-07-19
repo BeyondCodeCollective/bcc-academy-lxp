@@ -91,8 +91,10 @@ export function CatalystAgreement({
   signedAt,
 }: {
   programSlug: string;
-  /** The signer's course — this document serves most Catalyst projects, so the
-   *  eyebrow can't be hardcoded to one cohort. */
+  /** The full eyebrow line, already composed by the page ("Catalyst · MASS
+   *  Wraparound", or just "Catalyst" when the signer has no course). This
+   *  document serves most Catalyst projects, so it can't be hardcoded — and
+   *  composing it here would double the program name on the fallback. */
   cohortLabel: string;
   defaultName: string;
   alreadySigned: boolean;
@@ -143,7 +145,7 @@ export function CatalystAgreement({
   return (
     <div className="mx-auto max-w-2xl px-4 py-10 sm:py-14">
       <p className="font-mono text-xs uppercase tracking-[0.2em] text-ink-faint">
-        Catalyst · {cohortLabel}
+        {cohortLabel}
       </p>
       <h1 className="mt-2 font-display text-3xl font-bold text-ink">Program Participation Agreement</h1>
       <p className="mt-4 text-sm leading-relaxed text-ink-soft">
