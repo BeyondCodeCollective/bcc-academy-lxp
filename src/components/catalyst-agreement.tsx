@@ -84,12 +84,16 @@ const SECTIONS: { n: string; heading: string; lede: string; points: string[] }[]
 
 export function CatalystAgreement({
   programSlug,
+  cohortLabel,
   defaultName,
   alreadySigned,
   signedName,
   signedAt,
 }: {
   programSlug: string;
+  /** The signer's course — this document serves most Catalyst projects, so the
+   *  eyebrow can't be hardcoded to one cohort. */
+  cohortLabel: string;
   defaultName: string;
   alreadySigned: boolean;
   signedName?: string;
@@ -139,7 +143,7 @@ export function CatalystAgreement({
   return (
     <div className="mx-auto max-w-2xl px-4 py-10 sm:py-14">
       <p className="font-mono text-xs uppercase tracking-[0.2em] text-ink-faint">
-        Catalyst · After the Game Cohort
+        Catalyst · {cohortLabel}
       </p>
       <h1 className="mt-2 font-display text-3xl font-bold text-ink">Program Participation Agreement</h1>
       <p className="mt-4 text-sm leading-relaxed text-ink-soft">

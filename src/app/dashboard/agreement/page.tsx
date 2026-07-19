@@ -4,6 +4,7 @@ import { getProgram } from "@/lib/programs/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { CatalystAgreement } from "@/components/catalyst-agreement";
 import { getOnboardingChecklist } from "@/lib/onboarding/checklists";
+import { resolveCatalystCohortLabel } from "@/lib/onboarding/cohort-label";
 import { TrackAgreementView } from "./track-agreement-view";
 
 // Standalone participation-agreement signing page. Auth-gated (own check +
@@ -80,9 +81,14 @@ export default async function AgreementPage() {
     ? `${student.first_name ?? ""} ${student.last_name ?? ""}`.trim()
     : "";
 
+  // Same resolver the sign action uses, so the cohort shown and the cohort
+  // recorded can't drift apart. A prior signature keeps its own label.
+  const priorCohort = typeof responses.cohort === "string" ? responses.cohort : undefined;
+
   return (
     <CatalystAgreement
       programSlug={program.slug}
+      cohortLabel={priorCohort ?? (await resolveCatalystCohortLabel(ctx.userId))}
       defaultName={priorName ?? nameFromProfile}
       alreadySigned={!!existing?.completed_at}
       signedName={priorName}
