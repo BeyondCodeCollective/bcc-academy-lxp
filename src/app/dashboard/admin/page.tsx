@@ -219,7 +219,14 @@ export default async function AdminPage({
           ? svc
               .from("instructor_tracks")
               .select("id, student_id, track_slug, program_id, created_at")
-              .in("program_id", programIds)
+              // Deliberately NOT filtered by program. The staff roster above
+              // already spans programs (it ORs in every super_admin), so
+              // scoping assignments to the active program made cross-program
+              // instructors render as teaching nothing — their rows exist,
+              // they're just filed under another program. Re-assigning from
+              // the "empty" list then no-ops against the existing row, so the
+              // list looks permanently broken and un-fixable. The roster is
+              // the scope; this table is small and keyed to it.
               .order("created_at")
           : Promise.resolve({ data: [] as InstructorTrackRow[] }),
         userRole === "instructor"
