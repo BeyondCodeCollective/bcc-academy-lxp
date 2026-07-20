@@ -405,6 +405,27 @@ export async function GET(request: Request) {
         // generic dashboard setup screen (or their single course).
         const safeNext = nextDestination;
 
+        // Enrol BEFORE honouring `next`. This used to live inside the
+        // `!safeNext` branch below, so any emailed link carrying a `next` —
+        // including the per-learner sign-in links minted by
+        // scripts/make-track-signin-links.mjs — created the students row and
+        // then skipped enrolment entirely. The learner signed in fine and
+        // found no course, which is indistinguishable from "the platform is
+        // broken" (it stranded two Wisdom Leaders learners on 2026-07-19).
+        // completePendingSetup is idempotent and unions trackParam with every
+        // allowlisted track, so running it on each sign-in is safe.
+        if (!canBypassInviteGate && trackParam) {
+          await completePendingSetup(
+            user.id,
+            email,
+            effectiveProgram,
+            trackParam,
+            (existing?.cohort_id as string | null) ?? null,
+            envRole,
+            (existing?.welcome_seen_at as string | null) ?? null,
+          );
+        }
+
         // Single-course learners go straight to their one course, so the only
         // loading skeleton shown is that course's — no dashboard→course double
         // flash. Admins/staff fall through to the normal dashboard.
@@ -438,15 +459,7 @@ export async function GET(request: Request) {
             ? getTrackBySlug(effectiveProgram, trackParam)
             : undefined;
           if ((enr ?? []).length === 0 && joinTrackCfg) {
-            await completePendingSetup(
-              user.id,
-              email,
-              effectiveProgram,
-              trackParam,
-              (existing?.cohort_id as string | null) ?? null,
-              envRole,
-              (existing?.welcome_seen_at as string | null) ?? null,
-            );
+            // Enrolment already ran above; just land them in the course.
             return withProgramCookies(
               redirectWithCookies(`${origin}${courseLandingPath(joinTrackCfg)}`),
             );

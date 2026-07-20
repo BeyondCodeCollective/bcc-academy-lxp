@@ -472,14 +472,18 @@ export async function removeInstructorTrack(
   const actor = await requireManager();
   const { svc } = actor;
 
-  const programId = await resolveProgramForActor(actor, svc, programSlug);
+  // Intentionally not scoped by program. The assignment list is no longer
+  // program-filtered (see admin/page.tsx), so an admin can see — and must be
+  // able to clear — an assignment that was created under a different program.
+  // Matching on program_id here made those removes silently delete nothing:
+  // the toggle flipped off, then came back on the next reload.
+  void programSlug;
 
   const { error } = await svc
     .from("instructor_tracks")
     .delete()
     .eq("student_id", studentId)
-    .eq("track_slug", trackSlug)
-    .eq("program_id", programId);
+    .eq("track_slug", trackSlug);
 
   if (error) throw new Error(error.message);
   revalidatePath("/dashboard/admin");
