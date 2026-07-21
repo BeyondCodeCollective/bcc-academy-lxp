@@ -43,6 +43,46 @@ async function trackHomeProgramId(
   return data?.program_id ?? null;
 }
 
+// A magic-link (token_hash) is single-use and is redeemed on GET. Email
+// security scanners and link prefetchers (Gmail, Outlook SafeLinks, corporate
+// mail proxies) issue that GET automatically, BEFORE the human clicks — burning
+// the token, so the real click lands on an already-spent link and fails. This
+// stranded the 55+ Wisdom Leaders cohort. The fix: don't redeem on the first
+// GET. Show a one-button page; only the human's click (which re-loads the SAME
+// url with confirm=1) runs verifyOtp. Scanners GET the page and stop — they
+// don't click a rendered button, so the token survives for the person.
+function signInInterstitial(confirmUrl: string): string {
+  return `<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Sign in — BCC Academy</title>
+<style>
+  :root { color-scheme: dark; }
+  /* Inlined brand tokens (true-black + electric-green from globals.css) — a raw
+     route-handler page can't reference Tailwind utility classes. */
+  body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+    background:#000000; color:#fff; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; padding:24px; }
+  .card { width:100%; max-width:420px; text-align:center; }
+  h1 { font-size:28px; font-weight:800; letter-spacing:-0.02em; margin:0 0 12px; }
+  p { color:rgba(255,255,255,0.7); font-size:16px; line-height:1.5; margin:0 0 28px; }
+  a.btn { display:block; width:100%; box-sizing:border-box; padding:16px; background:#E5F701;
+    color:#000000; font-weight:700; font-size:18px; text-decoration:none; text-transform:uppercase;
+    letter-spacing:0.04em; border:0; }
+  a.btn:hover { filter:brightness(1.08); }
+  .eyebrow { color:#E5F701; font-size:12px; letter-spacing:0.3em; text-transform:uppercase; margin:0 0 16px; }
+</style>
+</head><body>
+  <div class="card">
+    <p class="eyebrow">[ Student Portal ]</p>
+    <h1>You're one tap away.</h1>
+    <p>For your security, tap below to finish signing in.</p>
+    <a class="btn" href="${confirmUrl}">Continue to sign in &rarr;</a>
+  </div>
+</body></html>`;
+}
+
 // Magic-link landing. Pin to iad1 only: Supabase is in Virginia (us-east-1),
 // co-located with iad1, so DB round-trips are sub-millisecond from this region.
 // The callback still issues 3–5 sequential round-trips (auth token exchange +
@@ -80,6 +120,24 @@ export async function GET(request: Request) {
   // The email the magic link was issued for — used to guard against silently
   // falling back to a DIFFERENT account already signed in on this browser.
   const intendedEmail = searchParams.get("email")?.toLowerCase() ?? null;
+
+  // Prefetch/scanner guard (token_hash only — the PKCE `code` flow is exchanged
+  // differently and isn't consumed by a passive GET the same way). Until the
+  // human confirms, show a one-button page instead of redeeming the token, so a
+  // mail scanner's automatic GET can't burn a single-use link before the click.
+  const confirmed = searchParams.get("confirm") === "1";
+  if (token_hash && type && !confirmed) {
+    const confirmUrl = new URL(request.url);
+    confirmUrl.searchParams.set("confirm", "1");
+    return new NextResponse(signInInterstitial(confirmUrl.toString()), {
+      status: 200,
+      headers: {
+        "content-type": "text/html; charset=utf-8",
+        "cache-control": "no-store",
+        "referrer-policy": "no-referrer",
+      },
+    });
+  }
 
   if (code || token_hash) {
     const cookieStore = await cookies();

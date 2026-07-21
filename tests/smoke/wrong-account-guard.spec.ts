@@ -38,8 +38,10 @@ test("a failed magic link never falls back to a different signed-in account", as
     // 2. While A's session is live, hit the callback for B with a bad token.
     //    The token fails to exchange; without the guard the callback would
     //    fall back to A's session and land on the dashboard as A.
+    // confirm=1 skips the anti-prefetch interstitial (which token_hash links now
+    // show first) so this test exercises the verify/guard path directly.
     await page.goto(
-      `${baseURL}/auth/callback?email=${encodeURIComponent(accountB)}&token_hash=invalid-token-hash&type=magiclink`,
+      `${baseURL}/auth/callback?email=${encodeURIComponent(accountB)}&token_hash=invalid-token-hash&type=magiclink&confirm=1`,
     );
 
     // 3. Must NOT impersonate A — should bounce to a clean login instead.
