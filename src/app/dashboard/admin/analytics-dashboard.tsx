@@ -204,10 +204,10 @@ function surveyTitle(type: string): string {
 // engagement data without re-running the export scripts. Quotes every field so
 // commas/quotes in names don't break columns.
 function downloadCsv(learners: EngagementLearner[], programName: string) {
-  const header = ["Name", "Email", "Signed up", "Last active", "Videos", "Attended", "Submitted", "Surveys"];
+  const header = ["Name", "Email", "ZIP", "State", "Birthday", "Age", "Signed up", "Last active", "Videos", "Attended", "Submitted", "Surveys"];
   const esc = (v: string | number | null) => `"${String(v ?? "").replace(/"/g, '""')}"`;
   const rows = learners.map((l) =>
-    [l.name, l.email, l.signedUp, l.lastActive, l.videosWatched, l.attended, l.submitted, l.surveys]
+    [l.name, l.email, l.zip, l.state, l.dateOfBirth, l.age, l.signedUp, l.lastActive, l.videosWatched, l.attended, l.submitted, l.surveys]
       .map(esc)
       .join(","),
   );

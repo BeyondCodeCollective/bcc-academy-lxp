@@ -8,6 +8,7 @@ import { getHomeProgramForTrack } from "@/lib/programs";
 import { BCC_TRACK_VARIANT_LABELS } from "@/lib/surveys/cohort-labels";
 import { revalidatePath } from "next/cache";
 import { logActivityEvent } from "@/lib/analytics/log-event";
+import { promoteProfileFields } from "@/lib/profile-promotion";
 
 export async function completeOnboarding(data: {
   first_name: string;
@@ -167,6 +168,16 @@ export async function saveSurveyResponse(
       error,
     });
     throw new Error(`Save failed: ${error.message}`);
+  }
+
+  // Copy any zip/dob/state answer onto the student record for grant reporting.
+  // Service client because RLS lets a student write survey_responses but not
+  // necessarily their own students row. Fill-only, so re-taking a survey never
+  // erases a value. Never let this break the (already-saved) submission.
+  try {
+    await promoteProfileFields(svc, user.id, enriched);
+  } catch (e) {
+    console.error("[saveSurveyResponse] profile promotion failed", e);
   }
 
   after(() => logActivityEvent({

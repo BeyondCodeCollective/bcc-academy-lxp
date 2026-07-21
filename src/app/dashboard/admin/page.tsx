@@ -73,7 +73,7 @@ export default async function AdminPage({
   const needsInsightsData = effectiveTab === "insights";
   const needsAnalyticsData = effectiveTab === "analytics";
   void needsSurveyStats; // kept as a named constant for the gated query below
-  let allStudents: Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id" | "last_seen_at" | "last_activity_at">[] = [];
+  let allStudents: Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id" | "last_seen_at" | "last_activity_at" | "zip" | "state" | "date_of_birth">[] = [];
   let allCohorts: { id: string; name: string; display_name: string | null; track_slug: string | null; start_date: string | null; total_weeks: number | null }[] = [];
   let studentTracks: StudentTrackRow[] = [];
   let instructorTracks: InstructorTrackRow[] = [];
@@ -181,7 +181,7 @@ export default async function AdminPage({
         needsStudents
           ? svc
                   .from("students")
-                  .select("id, first_name, last_name, email, role, cohort_id, last_seen_at, last_activity_at")
+                  .select("id, first_name, last_name, email, role, cohort_id, last_seen_at, last_activity_at, zip, state, date_of_birth")
                   // Program members PLUS every super_admin: cross-program staff
                   // (e.g. someone running both Catalyst and Beyond Code Centers)
                   // should appear in each program's People tab, not only under
@@ -195,7 +195,7 @@ export default async function AdminPage({
                   // attendance list, or risk view.
                   .eq("is_test", false)
                   .order("created_at", { ascending: true })
-          : Promise.resolve({ data: [] as Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id" | "last_seen_at" | "last_activity_at">[] }),
+          : Promise.resolve({ data: [] as Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id" | "last_seen_at" | "last_activity_at" | "zip" | "state" | "date_of_birth">[] }),
         needsCohorts
           ? svc
               .from("cohorts")
@@ -279,7 +279,7 @@ export default async function AdminPage({
       myInstrTracksRes,
     ] = coreRes;
 
-    allStudents = (studentsResult.data ?? []) as Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id" | "last_seen_at" | "last_activity_at">[];
+    allStudents = (studentsResult.data ?? []) as Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id" | "last_seen_at" | "last_activity_at" | "zip" | "state" | "date_of_birth">[];
     allCohorts = cohortsResult.data || [];
     studentTracks = (studentTracksRes.data ?? []) as StudentTrackRow[];
     instructorTracks = (instructorTracksRes.data ?? []) as InstructorTrackRow[];
@@ -302,7 +302,7 @@ export default async function AdminPage({
       if (missingIds.length > 0) {
         const { data: extra } = await svc
           .from("students")
-          .select("id, first_name, last_name, email, role, cohort_id, last_seen_at, last_activity_at")
+          .select("id, first_name, last_name, email, role, cohort_id, last_seen_at, last_activity_at, zip, state, date_of_birth")
           .in("id", missingIds)
           .eq("is_test", false);
         allStudents = [

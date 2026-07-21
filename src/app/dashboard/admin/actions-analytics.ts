@@ -5,6 +5,18 @@ import { getProgram } from "@/lib/programs/server";
 import { resolveProgramScope } from "@/lib/programs/scope";
 import { isEngaged } from "@/lib/analytics/engagement";
 
+/** Whole-years age from a YYYY-MM-DD birth date, or null. */
+function ageFromDob(dob: string | null): number | null {
+  if (!dob || !/^\d{4}-\d{2}-\d{2}$/.test(dob)) return null;
+  const [y, m, d] = dob.split("-").map(Number);
+  const now = new Date();
+  let age = now.getFullYear() - y;
+  const beforeBirthday =
+    now.getMonth() + 1 < m || (now.getMonth() + 1 === m && now.getDate() < d);
+  if (beforeBirthday) age -= 1;
+  return age >= 0 && age < 120 ? age : null;
+}
+
 // Program-level engagement analytics for the admin "Analytics" tab. Scoped to
 // the CURRENT program for every role (super-admins included) so the view always
 // reflects the program switcher — NOT the cross-program firehose that Survey
@@ -13,6 +25,10 @@ import { isEngaged } from "@/lib/analytics/engagement";
 export type EngagementLearner = {
   email: string;
   name: string;
+  zip: string | null;
+  state: string | null;
+  dateOfBirth: string | null;
+  age: number | null;
   signedUp: string | null;
   lastActive: string | null;
   videosWatched: number;
@@ -51,7 +67,7 @@ export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
   // hides internal QA logins the same way.
   const { data: students } = await svc
     .from("students")
-    .select("id, first_name, last_name, email, created_at, last_seen_at")
+    .select("id, first_name, last_name, email, created_at, last_seen_at, zip, state, date_of_birth")
     .in("program_id", ids)
     .eq("role", "student")
     .eq("is_test", false);
@@ -62,6 +78,9 @@ export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
     email: string;
     created_at: string | null;
     last_seen_at: string | null;
+    zip: string | null;
+    state: string | null;
+    date_of_birth: string | null;
   }[];
   const studentIds = studs.map((s) => s.id);
 
@@ -145,6 +164,10 @@ export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
     .map((s) => ({
       email: s.email,
       name: `${s.first_name ?? ""} ${s.last_name ?? ""}`.trim(),
+      zip: s.zip ?? null,
+      state: s.state ?? null,
+      dateOfBirth: s.date_of_birth ?? null,
+      age: ageFromDob(s.date_of_birth),
       signedUp: s.created_at ? s.created_at.slice(0, 10) : null,
       lastActive: s.last_seen_at ? s.last_seen_at.slice(0, 10) : null,
       videosWatched: videosByUser.get(s.id) ?? 0,

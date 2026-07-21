@@ -22,6 +22,11 @@ export type StudentRow = {
   first_name: string;
   last_name: string;
   email: string;
+  // Optional demographics — present when the caller passes the People roster
+  // (used by the attendance CSV export for grant reporting); absent elsewhere.
+  zip?: string | null;
+  state?: string | null;
+  date_of_birth?: string | null;
 };
 
 export type TrackLike = {

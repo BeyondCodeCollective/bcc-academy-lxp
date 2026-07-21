@@ -5,6 +5,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { sendSignupNotification } from "@/lib/email";
 import { subscribeToNewsletter } from "@/lib/mailchimp";
 import { rateLimit } from "@/lib/rate-limit";
+import { promoteProfileFields, studentIdByEmail } from "@/lib/profile-promotion";
 
 // Public (unauthenticated) survey submission.
 // Writes to public_survey_responses; uniqueness on (program_id, survey_type,
@@ -125,6 +126,15 @@ export async function savePublicSurveyResponse(input: {
       },
       { onConflict: "program_id,survey_type,email" },
     );
+
+  if (!upsertErr) {
+    // If this email already has a learner account, copy zip/dob/state onto it
+    // for grant reporting. Public surveys are often taken before signup, in
+    // which case there's no account yet and this is a no-op — the backfill and
+    // the future promotion on their next authenticated survey cover that case.
+    const sid = await studentIdByEmail(svc, email);
+    if (sid) await promoteProfileFields(svc, sid, scrubbedResponses);
+  }
 
   if (upsertErr) {
     // Log only the error code/message — never the submitted PII.

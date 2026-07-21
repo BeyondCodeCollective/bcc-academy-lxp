@@ -179,7 +179,7 @@ function trackLabel(slug: string | null): string {
   return map[slug] ?? slug;
 }
 
-type StudentRow = Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id" | "last_seen_at" | "last_activity_at">;
+type StudentRow = Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id" | "last_seen_at" | "last_activity_at" | "zip" | "state" | "date_of_birth">;
 
 // Track config passed from server (subset of TrackConfig)
 type AdminTrackConfig = {
