@@ -258,6 +258,9 @@ export function AttendanceTab({ students, tracks, scopeLabel, embedded, viewSwit
     const header = [
       "Name",
       "Email",
+      "ZIP",
+      "State",
+      "Birthday",
       ...trackCols.map((n) => `${n} %`),
       "Overall %",
       "Sessions Attended",
@@ -265,6 +268,8 @@ export function AttendanceTab({ students, tracks, scopeLabel, embedded, viewSwit
       "Consecutive Misses",
       "Status",
     ].join(",");
+    const q = (v: string | number | null | undefined) =>
+      `"${String(v ?? "").replace(/"/g, '""')}"`;
     const rows = summaries.map((s) => {
       const name =
         s.student.first_name && s.student.last_name
@@ -272,8 +277,11 @@ export function AttendanceTab({ students, tracks, scopeLabel, embedded, viewSwit
           : s.student.email;
       const trackRates = tracks.map((t) => s.byTrack[t.slug]?.rate ?? "—");
       return [
-        `"${name.replace(/"/g, '""')}"`,
+        q(name),
         s.student.email,
+        q(s.student.zip),
+        q(s.student.state),
+        q(s.student.date_of_birth),
         ...trackRates,
         s.rate,
         s.attended,

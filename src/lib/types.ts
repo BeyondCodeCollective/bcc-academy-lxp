@@ -10,6 +10,8 @@ export type Student = {
   cohort_id: string | null;
   location: string | null;
   date_of_birth: string | null;
+  zip: string | null;
+  state: string | null;
   education_level: string | null;
   onboarding_completed: boolean;
   created_at: string;
