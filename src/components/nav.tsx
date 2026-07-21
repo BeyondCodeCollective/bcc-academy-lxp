@@ -84,7 +84,7 @@ type CurriculumTrack = {
   unitLabel?: string;
   /** Set when this track wraps around another (MASS → Security+). */
   companionOf?: string;
-  weekSummaries: { week: number; topic: string; icon: string; label?: string }[];
+  weekSummaries: { week: number; topic: string; icon: string; label?: string; title?: string }[];
 };
 
 type NavVariant = "admin-sidebar" | "student-sidebar" | "lunch-learn-sidebar" | "topbar";
@@ -411,7 +411,7 @@ export function Nav({
                         {unitDisplay.get(ws.week)?.number ?? "·"}
                       </span>
                     )}
-                    <span className="truncate">{ws.topic}</span>
+                    <span className="truncate">{ws.title ?? ws.topic}</span>
                     {isCurrent && (
                       <span className="ml-auto shrink-0 h-1.5 w-1.5 rounded-full bg-primary" />
                     )}

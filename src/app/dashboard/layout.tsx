@@ -443,6 +443,15 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
       ? program.tracks
       : program.tracks.filter((t) => enrolledTrackSlugs.includes(t.slug));
 
+  // Real per-week titles, resolved session_content.title → WeekConfig.title,
+  // so the sidebar shows "AI Fundamentals & Prompt Engineering" rather than a
+  // generic "Week 1". getDashboardIndex is React-cached, so this shares the
+  // execution the breadcrumbs/search shells already trigger — no extra query.
+  const weekTitles =
+    navVariant === "student-sidebar"
+      ? (await getDashboardIndex()).labels
+      : {};
+
   const curriculumTracks =
     navVariant === "student-sidebar"
       ? sidebarTrackSource
@@ -461,6 +470,7 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
               topic: ws.topic,
               icon: ws.icon,
               label: ws.label,
+              title: weekTitles[`/dashboard/track/${t.slug}/${ws.week}`],
             })),
           }))
       : [];
