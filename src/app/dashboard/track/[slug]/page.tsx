@@ -364,7 +364,13 @@ export default async function TrackOverviewPage({
         10,
       );
       const unitLabel = unitText(disp, ws.week, u);
-      const topic = titles?.get(ws.week) ?? ws.topic;
+      // Prefer the real session title, matching the lesson page's resolution:
+      // session_content.title (DB) → WeekConfig.title (config) →
+      // weekSummaries[].topic. The old chain skipped WeekConfig.title, so a
+      // track with a real title in config but a generic "Week N" topic showed
+      // "Week N" on the calendar while the lesson page showed the real title.
+      const configTitle = t.weeks.find((w) => w.week === ws.week)?.title;
+      const topic = titles?.get(ws.week) ?? configTitle ?? ws.topic;
       // An untitled unit's topic is its own label ("Week 1") — saying it
       // twice is noise everywhere it renders.
       const placeholder = topic === unitLabel;
