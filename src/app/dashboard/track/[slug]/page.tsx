@@ -16,6 +16,7 @@ import { trackUnitDisplay, unitText } from "@/lib/programs/unit-display";
 import { resolveTrackProgram } from "@/lib/programs/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { canAccessAdminPanel } from "@/lib/roles";
+import { getPreviewTrackSlugs } from "@/lib/auth/preview-mode";
 import { createServiceClient } from "@/lib/supabase/server";
 import { buttonClass } from "@/components/ui";
 import { getTrackProgressMap } from "@/app/dashboard/track/actions";
@@ -57,13 +58,22 @@ export default async function TrackOverviewPage({
   ]);
   if (!resolved) redirect("/dashboard");
   const { program, track } = resolved;
-  const isAdminViewer = canAccessAdminPanel(ctx?.student?.role ?? "");
+  const role = ctx?.student?.role ?? "";
+
+  // A staffer previewing THIS track should see exactly what the student sees —
+  // no admin overlay, no whole-program schedule, no gating bypass. Previewing a
+  // DIFFERENT course leaves them as an admin viewer here. This is what lets an
+  // instructor walk their own students' experience (the toggle is scoped to
+  // their assigned courses in preview-actions).
+  const previewingThisTrack = (await getPreviewTrackSlugs(role)).includes(slug);
+  const isAdminViewer = canAccessAdminPanel(role) && !previewingThisTrack;
 
   // Enrollment gate: a non-admin learner can only open a track they're enrolled
-  // in — no viewing another course's curriculum by typing the URL. (Pending
+  // in — no viewing another course's curriculum by typing the URL. Staff (incl.
+  // a previewer, who needs no real student_tracks row) are exempt. (Pending
   // registrants are already confined to their own holding page by the layout;
   // this additionally stops ACTIVE learners from reaching other started tracks.)
-  if (!isAdminViewer && ctx?.userId) {
+  if (!canAccessAdminPanel(role) && ctx?.userId) {
     const { data: enr } = await createServiceClient()
       .from("student_tracks")
       .select("track_slug")

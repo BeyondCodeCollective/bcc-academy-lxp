@@ -1,0 +1,215 @@
+<title>Upskill Bahamas — LXP Data Analysis</title>
+<style>
+  :root{
+    --paper:#f6f7f9; --card:#ffffff; --ink:#16181d; --ink-soft:#4b5260; --ink-faint:#818899;
+    --rule:#e5e8ee; --primary:#1D59FF; --flag:#B45309; --tint:#eef2fb; --flagtint:#fdf3e7;
+    --good:#15803D;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{--paper:#141519;--card:#1d1f25;--ink:#eceef2;--ink-soft:#b6bcc9;--ink-faint:#7c8395;--rule:#2c2f37;--primary:#5B84FF;--flag:#D97706;--tint:#20263a;--flagtint:#2a2113;--good:#4ADE80}
+  }
+  :root[data-theme="dark"]{--paper:#141519;--card:#1d1f25;--ink:#eceef2;--ink-soft:#b6bcc9;--ink-faint:#7c8395;--rule:#2c2f37;--primary:#5B84FF;--flag:#D97706;--tint:#20263a;--flagtint:#2a2113;--good:#4ADE80}
+  :root[data-theme="light"]{--paper:#f6f7f9;--card:#ffffff;--ink:#16181d;--ink-soft:#4b5260;--ink-faint:#818899;--rule:#e5e8ee;--primary:#1D59FF;--flag:#B45309;--tint:#eef2fb;--flagtint:#fdf3e7;--good:#15803D}
+
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font:15px/1.5 Archivo,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  .sheet{max-width:860px;margin:0 auto;padding:40px 24px 64px}
+
+  header{border-bottom:3px solid var(--primary);padding-bottom:18px;margin-bottom:24px}
+  .top{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px}
+  .brand{font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--primary)}
+  h1{margin:6px 0 0;font-size:29px;line-height:1.1;letter-spacing:-.025em;font-weight:800;text-wrap:balance}
+  .asof{font-size:12px;color:var(--ink-faint);font-variant-numeric:tabular-nums}
+  .lede{margin:12px 0 0;font-size:13.5px;color:var(--ink-soft);max-width:72ch}
+
+  h2{margin:0 0 3px;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint)}
+  section{margin-bottom:26px}
+  .sub{margin:0 0 14px;font-size:12.5px;color:var(--ink-faint)}
+
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+  .tile{background:var(--card);border:1px solid var(--rule);border-radius:12px;padding:15px 17px}
+  .tile .n{font-size:30px;font-weight:800;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
+  .tile .l{margin-top:6px;font-size:12px;font-weight:600}
+  .tile .s{margin-top:2px;font-size:11px;color:var(--ink-faint)}
+  .tile.hero{background:var(--tint);border-color:transparent}
+  .tile.hero .n{color:var(--primary)}
+
+  .panel{background:var(--card);border:1px solid var(--rule);border-radius:12px;padding:18px 20px}
+  .panel h3{margin:0 0 2px;font-size:15px;font-weight:700;letter-spacing:-.01em}
+  .panel .psub{margin:0 0 14px;font-size:12px;color:var(--ink-faint)}
+
+  /* funnel — horizontal decreasing bars */
+  .funnel{display:grid;grid-template-columns:max-content 1fr;gap:9px 14px;align-items:center}
+  .funnel .lab{font-size:12.5px;color:var(--ink)}
+  .funnel .lab b{display:block;font-size:11px;font-weight:400;color:var(--ink-faint)}
+  .funnel .track{position:relative;height:30px}
+  .funnel .track i{display:block;height:100%;background:var(--primary);border-radius:5px;min-width:34px;
+    display:flex;align-items:center;justify-content:flex-end;padding-right:9px;box-sizing:border-box;
+    color:#fff;font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums}
+  .funnel .track.mut i{background:#9aa6c4}
+  .funnel .pct{position:absolute;top:50%;transform:translateY(-50%);left:calc(100% + 8px);
+    font-size:11.5px;font-weight:700;color:var(--ink-soft);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+  /* time-series bars */
+  .ts{display:flex;align-items:flex-end;gap:3px;height:110px;margin-top:6px}
+  .ts .b{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%}
+  .ts .b i{display:block;width:100%;background:var(--primary);border-radius:3px 3px 0 0;min-height:2px}
+  .ts .b.peak i{background:var(--primary)}
+  .ts .b span{margin-top:5px;font-size:9px;color:var(--ink-faint);white-space:nowrap;transform:rotate(-90deg);transform-origin:center;height:26px;display:flex;align-items:center}
+  .tsnote{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-faint);margin-top:26px}
+
+  /* video decay */
+  .decay{display:flex;align-items:flex-end;gap:6px;height:100px;margin-top:8px}
+  .decay .b{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px;height:100%}
+  .decay .b em{font-style:normal;font-size:11px;font-weight:700;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+  .decay .b i{display:block;width:100%;max-width:46px;background:var(--primary);border-radius:4px 4px 0 0;min-height:3px}
+  .decay .b span{font-size:10px;color:var(--ink-faint)}
+
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:640px){.cols{grid-template-columns:1fr}}
+
+  .facts{margin:0;padding:0;list-style:none}
+  .facts li{display:flex;justify-content:space-between;gap:14px;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--rule);font-size:12.5px}
+  .facts li:last-child{border-bottom:0}
+  .facts .k{color:var(--ink-soft)} .facts .v{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+
+  .flag{background:var(--flagtint);border:1px solid var(--flag);border-radius:12px;padding:16px 20px}
+  .flag h3{margin:0 0 8px;font-size:13.5px;font-weight:800;color:var(--flag);letter-spacing:-.01em}
+  .flag p{margin:0 0 8px;font-size:12.5px;color:var(--ink);line-height:1.5}
+  .flag p:last-child{margin-bottom:0}
+  .flag b{font-weight:700}
+
+  .reads{margin:0;padding:0;list-style:none;display:grid;gap:10px}
+  .reads li{display:flex;gap:11px;font-size:13px;line-height:1.45;align-items:flex-start}
+  .reads .mk{flex-shrink:0;width:22px;height:22px;border-radius:6px;background:var(--tint);color:var(--primary);
+    font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums}
+  .reads b{font-weight:700}
+
+  footer{margin-top:28px;border-top:1px solid var(--rule);padding-top:12px;font-size:11px;color:var(--ink-faint);line-height:1.6}
+
+  @media print{
+    :root{--paper:#fff;--card:#fff}
+    body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .sheet{zoom:.72;max-width:none;padding:6px 6px 0}
+    .panel,.tile,.flag,section{break-inside:avoid}
+    .pgbreak{break-before:page}
+    header{margin-bottom:16px}
+    section{margin-bottom:16px}
+  }
+</style>
+
+<div class="sheet">
+  <header>
+    <div class="top">
+      <p class="brand">BCC Academy LXP · Partner Analytics</p>
+      <p class="asof">Data as of July 15, 2026</p>
+    </div>
+    <h1>Upskill Bahamas — AI Literacy Cohort</h1>
+    <p class="lede">A deep read of every signal the platform has captured for the Forte Bahamas cohort since launch. This is the honest engagement picture — strong enrollment out of the gate, a small core of committed learners, and a self-paced retention curve that needs attention. Read alongside the summary one-sheet, where the program's top-line "active" figure is generous (see the note below).</p>
+  </header>
+
+  <section>
+    <div class="tiles">
+      <div class="tile hero"><div class="n">29</div><div class="l">Learners enrolled</div><div class="s">Single cohort · AI Literacy track</div></div>
+      <div class="tile"><div class="n">12</div><div class="l">Returned after signup</div><div class="s">41% came back at least once</div></div>
+      <div class="tile"><div class="n">8</div><div class="l">Watched a lesson</div><div class="s">28% reached the content</div></div>
+      <div class="tile"><div class="n">6</div><div class="l">Turned in work</div><div class="s">21% made a submission</div></div>
+      <div class="tile"><div class="n">1</div><div class="l">Active this week</div><div class="s">Engagement has tailed off</div></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h3>The activation funnel</h3>
+    <p class="psub">How far the 29 enrolled learners actually progressed · % of enrolled</p>
+    <div class="funnel">
+      <div class="lab">Enrolled<b>Account created</b></div>
+      <div class="track"><i style="width:100%">29</i><span class="pct">100%</span></div>
+      <div class="lab">Returned<b>Came back past signup</b></div>
+      <div class="track"><i style="width:41.4%">12</i><span class="pct">41%</span></div>
+      <div class="lab">Generated activity<b>Any tracked action</b></div>
+      <div class="track"><i style="width:37.9%">11</i><span class="pct">38%</span></div>
+      <div class="lab">Watched a lesson<b>≥1 video</b></div>
+      <div class="track"><i style="width:27.6%">8</i><span class="pct">28%</span></div>
+      <div class="lab">Kept watching<b>≥2 videos</b></div>
+      <div class="track"><i style="width:20.7%">6</i><span class="pct">21%</span></div>
+      <div class="lab">Submitted work<b>≥1 submission</b></div>
+      <div class="track"><i style="width:20.7%">6</i><span class="pct">21%</span></div>
+    </div>
+  </section>
+
+  <section class="flag">
+    <h3>⚠ Read the "100% active" figure carefully</h3>
+    <p>The program summary shows Upskill Bahamas at <b>100% active in the last 30 days</b>. That is technically true but misleading: the platform stamps a learner's "last seen" timestamp at the moment they sign up, and this whole cohort enrolled inside the 30-day window. It measures <b>signing up</b>, not <b>coming back</b>.</p>
+    <p>The truer retention signal: <b>17 of 29 learners (59%) never returned</b> after their first session, and only <b>1 has been active in the past week</b>. The numbers on this page use behavior — return visits, videos, submissions — not the signup timestamp.</p>
+  </section>
+
+  <section class="panel">
+    <h3>Engagement over time</h3>
+    <p class="psub">Tracked actions per day since telemetry began (Jun 29) · peaked Jul 7, declining since</p>
+    <div class="ts">
+      <div class="b"><i style="height:25%"></i><span>Jun 29</span></div>
+      <div class="b"><i style="height:56%"></i><span>Jun 30</span></div>
+      <div class="b"><i style="height:27%"></i><span>Jul 1</span></div>
+      <div class="b"><i style="height:3%"></i><span>Jul 2</span></div>
+      <div class="b"><i style="height:20%"></i><span>Jul 3</span></div>
+      <div class="b"><i style="height:3%"></i><span>Jul 4</span></div>
+      <div class="b"><i style="height:16%"></i><span>Jul 6</span></div>
+      <div class="b peak"><i style="height:100%"></i><span>Jul 7</span></div>
+      <div class="b"><i style="height:43%"></i><span>Jul 8</span></div>
+      <div class="b"><i style="height:28%"></i><span>Jul 9</span></div>
+      <div class="b"><i style="height:8%"></i><span>Jul 10</span></div>
+      <div class="b"><i style="height:4%"></i><span>Jul 11</span></div>
+      <div class="b"><i style="height:11%"></i><span>Jul 13</span></div>
+      <div class="b"><i style="height:19%"></i><span>Jul 14</span></div>
+      <div class="b"><i style="height:3%"></i><span>Jul 15</span></div>
+    </div>
+    <div class="tsnote"><span>279 total actions · 12 distinct active learners</span><span>Peak: 75 actions on Jul 7</span></div>
+  </section>
+
+  <div class="cols pgbreak">
+    <section class="panel">
+      <h3>Lessons fall off week by week</h3>
+      <p class="psub">Distinct learners who watched each week's video</p>
+      <div class="decay">
+        <div class="b"><em>8</em><i style="height:100%"></i><span>W1</span></div>
+        <div class="b"><em>6</em><i style="height:75%"></i><span>W2</span></div>
+        <div class="b"><em>3</em><i style="height:38%"></i><span>W3</span></div>
+        <div class="b"><em>2</em><i style="height:25%"></i><span>W4</span></div>
+        <div class="b"><em>2</em><i style="height:25%"></i><span>W5</span></div>
+        <div class="b"><em>2</em><i style="height:25%"></i><span>W6</span></div>
+        <div class="b"><em>2</em><i style="height:25%"></i><span>W7</span></div>
+        <div class="b"><em>2</em><i style="height:25%"></i><span>W8</span></div>
+        <div class="b"><em>2</em><i style="height:25%"></i><span>W9</span></div>
+        <div class="b"><em>1</em><i style="height:13%"></i><span>W10</span></div>
+      </div>
+      <p class="psub" style="margin-top:14px;margin-bottom:0">8 learners start Week 1; a committed pair reaches the back half of the course.</p>
+    </section>
+
+    <section class="panel">
+      <h3>Engagement is concentrated</h3>
+      <p class="psub">Page views per active learner (12 learners)</p>
+      <ul class="facts">
+        <li><span class="k">Top learner</span><span class="v">76 views</span></li>
+        <li><span class="k">2nd–3rd</span><span class="v">39 · 31</span></li>
+        <li><span class="k">Median active learner</span><span class="v">~7 views</span></li>
+        <li><span class="k">Bottom third</span><span class="v">1–4 views</span></li>
+        <li><span class="k">Total submissions</span><span class="v">6</span></li>
+      </ul>
+      <p class="psub" style="margin-top:12px;margin-bottom:0">A few power users drive most activity; most who return look once and leave.</p>
+    </section>
+  </div>
+
+  <section>
+    <h2>What the data says</h2>
+    <ul class="reads">
+      <li><span class="mk">1</span><div><b>Enrollment worked; onboarding didn't convert.</b> 29 learners signed up in a tight burst (15 on launch day, Jun 19), but 59% never returned for a second session. The gap between "signed up" and "started learning" is where this cohort is leaking.</div></li>
+      <li><span class="mk">2</span><div><b>There's a real, committed core.</b> 6 learners watched multiple lessons and submitted work; the top learner logged 76 page views. The product engages people who come back — the challenge is getting them back, not holding them once there.</div></li>
+      <li><span class="mk">3</span><div><b>The curve is decaying, not plateauing.</b> Activity peaked Jul 7 and has fallen to near-zero this week. Without a re-engagement touch (email, a live session, a nudge), this cohort trends toward dormant.</div></li>
+      <li><span class="mk">4</span><div><b>We're flying blind on who they are.</b> No intake survey ran for this program — location, education, and goals are all empty, and there's no pre/post measure. We can see <em>what</em> learners did but not <em>who</em> they are or whether confidence moved. An intake + exit survey would make the next cohort measurable.</div></li>
+    </ul>
+  </section>
+
+  <footer>
+    <strong>Method &amp; caveats.</strong> All figures pulled directly from the BCC Academy production database on July 15, 2026, for the Forte Bahamas program (AI Literacy track). Behavioral metrics (returns, page views, videos, submissions) come from activity telemetry, which began recording June 29, 2026 — activity before that date is not captured, so early-cohort numbers are a floor, not a ceiling. "Returned" counts learners whose last-seen timestamp is more than 10 minutes after account creation. "Active this week" is the trailing 7 days. This program has no intake or exit survey, so no demographic or confidence data is available. n=29 enrolled learners; percentages are of that base.
+  </footer>
+</div>
