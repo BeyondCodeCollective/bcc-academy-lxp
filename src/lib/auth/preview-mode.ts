@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { canSwitchPrograms } from "@/lib/roles";
+import { canAccessAdminPanel } from "@/lib/roles";
 
 export const PREVIEW_COOKIE = "preview-as-student";
 
@@ -8,19 +8,21 @@ export const PREVIEW_COOKIE = "preview-as-student";
 export const LUNCH_LEARN_PREVIEW_SLUG = "__lunch-learns";
 
 /**
- * When a super-admin sets the preview cookie, the dashboard renders as if
- * they were a student enrolled in the named track(s). Restricted to
- * super-admins (other admins still see their normal view) so the toggle
- * can't be exploited by less-trusted accounts.
+ * When a staff member sets the preview cookie, the dashboard renders as if
+ * they were a student enrolled in the named track(s). Available to anyone with
+ * admin-panel access — super-admins and admins across their programs, and
+ * instructors for the courses they teach (the set of courses offered to an
+ * instructor is scoped to their assignments in preview-actions/layout, and the
+ * write actions re-check that scope).
  *
  * The cookie holds one slug, or several comma-separated slugs to preview a
- * MULTI-course student (the only way to reach the multi-course home as an
- * admin — real single-course students are redirected off it).
+ * MULTI-course student (the only way to reach the multi-course home as staff —
+ * real single-course students are redirected off it).
  *
  * Returns the track slugs being previewed; empty array when preview is off.
  */
 export async function getPreviewTrackSlugs(role: string): Promise<string[]> {
-  if (!canSwitchPrograms(role)) return [];
+  if (!canAccessAdminPanel(role)) return [];
   const cookieStore = await cookies();
   const value = cookieStore.get(PREVIEW_COOKIE)?.value ?? "";
   return value
@@ -39,7 +41,7 @@ export async function getPreviewTrackSlug(role: string): Promise<string | null> 
 }
 
 /**
- * True when a super-admin is actively previewing as a student. Access gates
+ * True when a staff member is actively previewing as a student. Access gates
  * (admin pages + server actions) use this to treat the previewer as a student,
  * so preview mode is a real restriction, not just hidden chrome.
  */

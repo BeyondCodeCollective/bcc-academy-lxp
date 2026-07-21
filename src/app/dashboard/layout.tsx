@@ -18,6 +18,7 @@ import { ProgramProvider } from "@/lib/programs/context";
 import { canAccessAdminPanel, canSwitchPrograms, canAccessStaffContent } from "@/lib/roles";
 import { getSessionContext } from "@/lib/auth/session";
 import { getPreviewTrackSlug, getPreviewTrackSlugs, LUNCH_LEARN_PREVIEW_SLUG } from "@/lib/auth/preview-mode";
+import { getMyInstructorTracks } from "@/app/dashboard/admin/actions-tracks";
 import { getEnrolledTracks } from "@/lib/enrollment";
 import { getHiddenTrackSlugs } from "@/lib/programs/hidden";
 import { getLearnerAccess } from "@/lib/auth/active-enrollment";
@@ -627,7 +628,6 @@ async function Overlays({ isSurveyPage }: { isSurveyPage: boolean }) {
     !(ctx.student.first_name ?? "").trim() &&
     !(ctx.student.last_name ?? "").trim();
 
-  const canShowPreview = canSwitchPrograms(role);
   // Validate against ALL programs' tracks (the menu lists every program), not
   // just the current one — the L&L sentinel passes through as-is.
   const previewSlugsAll = await getPreviewTrackSlugs(role);
@@ -658,6 +658,12 @@ async function Overlays({ isSurveyPage }: { isSurveyPage: boolean }) {
   ]);
   const programBySlug = new Map(overriddenPrograms.map((p) => [p.slug, p] as const));
 
+  // Instructors may preview only the courses they teach; super-admins/admins
+  // see the full menu. `instructorScope` is null for the latter (no filter).
+  const instructorScope = canSwitchPrograms(role)
+    ? null
+    : new Set(await getMyInstructorTracks());
+
   const previewGroupMap = new Map<
     string,
     { programSlug: string; programName: string; tracks: { slug: string; name: string }[] }
@@ -667,6 +673,7 @@ async function Overlays({ isSurveyPage }: { isSurveyPage: boolean }) {
     for (const t of p.tracks) {
       if (hiddenTrackSlugs.has(t.slug)) continue;
       if (seenTrackSlugs.has(t.slug)) continue;
+      if (instructorScope && !instructorScope.has(t.slug)) continue;
       seenTrackSlugs.add(t.slug);
       const home = getHomeProgramForTrack(t.slug);
       const homeSlug = home?.slug ?? p.slug;
@@ -684,13 +691,25 @@ async function Overlays({ isSurveyPage }: { isSurveyPage: boolean }) {
     }
   }
   const previewGroups = [
-    {
-      programSlug: "",
-      programName: "",
-      tracks: [{ slug: LUNCH_LEARN_PREVIEW_SLUG, name: "Lunch & Learns" }],
-    },
+    // Lunch & Learns is a super-admin-only preview convenience, not something
+    // an instructor is scoped to teach — omit it for them.
+    ...(instructorScope
+      ? []
+      : [
+          {
+            programSlug: "",
+            programName: "",
+            tracks: [{ slug: LUNCH_LEARN_PREVIEW_SLUG, name: "Lunch & Learns" }],
+          },
+        ]),
     ...Array.from(previewGroupMap.values()),
   ];
+
+  // Super-admins always get the pill; instructors/admins only when they have at
+  // least one previewable course. Placed after previewGroupMap is built.
+  const canShowPreview =
+    canSwitchPrograms(role) ||
+    (canAccessAdminPanel(role) && previewGroupMap.size > 0);
 
   return (
     <>

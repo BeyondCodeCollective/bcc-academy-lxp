@@ -3,9 +3,22 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getSessionContext } from "@/lib/auth/session";
-import { canSwitchPrograms } from "@/lib/roles";
+import { canAccessAdminPanel, canSwitchPrograms } from "@/lib/roles";
 import { PREVIEW_COOKIE, LUNCH_LEARN_PREVIEW_SLUG } from "@/lib/auth/preview-mode";
 import { resolveHomeProgramSlug } from "@/lib/programs/server";
+import { getMyInstructorTracks } from "@/app/dashboard/admin/actions-tracks";
+
+/**
+ * Which track slugs a staffer may preview. Super-admins may preview anything
+ * (including the Lunch & Learns sentinel). Everyone else with admin-panel
+ * access — instructors, program admins — is confined to the courses they're
+ * assigned to teach, so an instructor can walk their own students' view but
+ * not another cohort's. Returns null to mean "no restriction" (super-admin).
+ */
+async function allowedPreviewSlugs(role: string): Promise<Set<string> | null> {
+  if (canSwitchPrograms(role)) return null;
+  return new Set(await getMyInstructorTracks());
+}
 
 /**
  * Set the preview cookie to a specific track slug, or clear it. Only
@@ -19,12 +32,15 @@ import { resolveHomeProgramSlug } from "@/lib/programs/server";
 export async function setPreviewTrackSlug(slug: string | null) {
   const ctx = await getSessionContext();
   const role = ctx?.student?.role ?? "";
-  if (!canSwitchPrograms(role)) return;
+  if (!canAccessAdminPanel(role)) return;
 
   const cookieStore = await cookies();
   if (!slug) {
     cookieStore.delete(PREVIEW_COOKIE);
   } else {
+    // A non-super-admin may only preview a course they teach.
+    const allowed = await allowedPreviewSlugs(role);
+    if (allowed && !allowed.has(slug)) return;
     cookieStore.set(PREVIEW_COOKIE, slug, {
       path: "/",
       httpOnly: true,
@@ -49,7 +65,12 @@ export async function setPreviewTrackSlug(slug: string | null) {
 export async function togglePreviewTrackSlug(slug: string) {
   const ctx = await getSessionContext();
   const role = ctx?.student?.role ?? "";
-  if (!canSwitchPrograms(role)) return;
+  if (!canAccessAdminPanel(role)) return;
+
+  // A non-super-admin may only preview a course they teach. The L&L sentinel
+  // is a super-admin-only convenience, so it's covered by the same check.
+  const allowed = await allowedPreviewSlugs(role);
+  if (allowed && !allowed.has(slug)) return;
 
   const cookieStore = await cookies();
   const current = (cookieStore.get(PREVIEW_COOKIE)?.value ?? "")
