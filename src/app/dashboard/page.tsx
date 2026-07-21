@@ -434,6 +434,27 @@ async function DashboardContent({
   const cardTracks = isAdmin
     ? visibleTracks
     : program.tracks.filter((t) => enrolledSet.has(t.slug));
+  // Real session titles for the "Happening next" panel, so it reads
+  // "AI Fundamentals · Prompt Engineering" like the course page — not
+  // "AI Fundamentals · Week 1". The course page passes titleByWeek into
+  // touchpointCandidates; the home used to omit it and fall back to the
+  // generic topic. One query over the card tracks builds a per-track map.
+  const titleByTrackWeek = new Map<string, Map<number, string>>();
+  {
+    const svc = createServiceClient();
+    const { data: titleRows } = await svc
+      .from("session_content")
+      .select("track, week_number, title")
+      .in("track", cardTracks.map((t) => t.slug))
+      .not("title", "is", null);
+    for (const r of titleRows ?? []) {
+      if (!r.title) continue;
+      const m = titleByTrackWeek.get(r.track as string) ?? new Map<number, string>();
+      m.set(r.week_number as number, r.title as string);
+      titleByTrackWeek.set(r.track as string, m);
+    }
+  }
+
   // "Happening next" across EVERY enrolled course — the multi-course home's
   // answer to "what do I do right now?". Same live > today > upcoming logic
   // as the course page, but each candidate is labeled with its COURSE (a
@@ -444,7 +465,7 @@ async function DashboardContent({
     cardTracks
       .filter((t) => t.type !== "single-event")
       .flatMap((track) =>
-        touchpointCandidates(track).map((c) => ({
+        touchpointCandidates(track, titleByTrackWeek.get(track.slug)).map((c) => ({
           ...c,
           unitLabel: c.isMass
             ? c.unitLabel
