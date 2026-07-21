@@ -10,6 +10,51 @@ import { revalidatePath } from "next/cache";
 import { logActivityEvent } from "@/lib/analytics/log-event";
 import { promoteProfileFields } from "@/lib/profile-promotion";
 
+/**
+ * One-time learner profile capture: ZIP + birthday, for grant reporting.
+ * Runs when a learner is missing either field (see the `needsProfile` gate in
+ * the dashboard layout). ZIP must be 5 digits; a learner outside the US (e.g.
+ * Forte Bahamas) is never shown this — the gate excludes that program — but we
+ * still accept an empty ZIP defensively and only write what's provided.
+ */
+export async function completeProfile(data: {
+  zip?: string;
+  date_of_birth?: string;
+}) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  const patch: { zip?: string; date_of_birth?: string } = {};
+
+  if (typeof data.zip === "string") {
+    const digits = data.zip.replace(/\D/g, "").slice(0, 5);
+    if (digits && !/^\d{5}$/.test(digits)) {
+      throw new Error("ZIP must be 5 digits.");
+    }
+    if (digits) patch.zip = digits;
+  }
+  if (typeof data.date_of_birth === "string" && data.date_of_birth) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(data.date_of_birth)) {
+      throw new Error("Enter a valid date of birth.");
+    }
+    patch.date_of_birth = data.date_of_birth;
+  }
+  if (Object.keys(patch).length === 0) {
+    throw new Error("Please enter your ZIP code and date of birth.");
+  }
+
+  const svc = createServiceClient();
+  const { error } = await svc.from("students").update(patch).eq("id", user.id);
+  if (error) throw new Error(error.message);
+
+  bustProfileCache(user.id);
+  revalidatePath("/dashboard");
+  return { success: true };
+}
+
 export async function completeOnboarding(data: {
   first_name: string;
   last_name: string;

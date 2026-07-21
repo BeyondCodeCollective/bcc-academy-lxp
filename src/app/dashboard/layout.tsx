@@ -10,6 +10,7 @@ import { Breadcrumbs } from "@/components/breadcrumbs";
 import { getDashboardIndex } from "@/lib/dashboard-index";
 import { TutorFab } from "@/components/tutor-fab";
 import { NameCaptureOverlay } from "@/components/name-capture-overlay";
+import { ProfileCaptureOverlay } from "@/components/profile-capture-overlay";
 import { PreviewToggle } from "@/components/preview-toggle";
 import { PreviewBanner } from "@/components/preview-banner";
 import { getProgram, getProgramWithOverrides, resolveHomeProgramSlug } from "@/lib/programs/server";
@@ -628,6 +629,30 @@ async function Overlays({ isSurveyPage }: { isSurveyPage: boolean }) {
     !(ctx.student.first_name ?? "").trim() &&
     !(ctx.student.last_name ?? "").trim();
 
+  // One-time ZIP + birthday capture for grant reporting. Learners only, never
+  // staff, and never the Forte Bahamas program (a US ZIP doesn't apply there).
+  // Only checked once a learner HAS a name, so it never stacks with the name
+  // overlay. The session context doesn't carry these columns, so read them here
+  // only when the cheaper conditions already hold.
+  const profileEligible =
+    !!ctx.student &&
+    !canAccessAdminPanel(role) &&
+    !isStaffEmail(ctx.student.email ?? ctx.userEmail) &&
+    !needsName &&
+    program.slug !== "forte";
+  let needsZip = false;
+  let needsDob = false;
+  if (profileEligible) {
+    const { data: prof } = await createServiceClient()
+      .from("students")
+      .select("zip, date_of_birth")
+      .eq("id", ctx.userId)
+      .maybeSingle<{ zip: string | null; date_of_birth: string | null }>();
+    needsZip = !((prof?.zip ?? "").trim());
+    needsDob = !prof?.date_of_birth;
+  }
+  const needsProfile = needsZip || needsDob;
+
   // Validate against ALL programs' tracks (the menu lists every program), not
   // just the current one — the L&L sentinel passes through as-is.
   const previewSlugsAll = await getPreviewTrackSlugs(role);
@@ -714,6 +739,9 @@ async function Overlays({ isSurveyPage }: { isSurveyPage: boolean }) {
   return (
     <>
       {needsName && <NameCaptureOverlay campMode={program.slug === "bgc"} />}
+      {!needsName && needsProfile && (
+        <ProfileCaptureOverlay needsZip={needsZip} needsDob={needsDob} />
+      )}
       {showTutor && !confined && <TutorFab />}
       {canShowPreview && (
         <PreviewToggle previewingSlugs={validPreviewSlugs} groups={previewGroups} />
