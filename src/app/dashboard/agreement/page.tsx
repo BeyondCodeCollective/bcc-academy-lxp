@@ -87,7 +87,7 @@ export default async function AgreementPage() {
   const cohort = priorCohort ?? (await resolveCatalystCohortLabel(ctx.userId));
   // Prefix the program only when the cohort doesn't already carry it —
   // otherwise the no-course fallback renders "Catalyst · Catalyst", and legacy
-  // records ("Catalyst After the Game Cohort") double it too.
+  // records ("Catalyst Beyond the Game Cohort") double it too.
   const eyebrow = cohort.startsWith(program.name) ? cohort : `${program.name} · ${cohort}`;
 
   return (

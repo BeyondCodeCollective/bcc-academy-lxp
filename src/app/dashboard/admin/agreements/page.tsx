@@ -53,7 +53,7 @@ export default async function AgreementsPage() {
 
   // Discover agreements from actual enrollments: a track counts if its onboarding
   // checklist configures an "agreement" item. Plus the standalone Catalyst
-  // "After the Game" agreement, which isn't tied to a track checklist.
+  // "Beyond the Game" agreement, which isn't tied to a track checklist.
   const groups: { key: string; label: string; surveyType: string; studentIds: string[] }[] = [];
   const byTrack = new Map<string, string[]>();
   for (const e of enrollments) {
@@ -75,7 +75,7 @@ export default async function AgreementsPage() {
   if (program.slug === "atg") {
     groups.push({
       key: "catalyst-atg",
-      label: "Catalyst · After the Game",
+      label: "Catalyst · Beyond the Game",
       surveyType: "catalyst-participation-agreement",
       studentIds: [...new Set(enrollments.map((e) => e.student_id))],
     });
