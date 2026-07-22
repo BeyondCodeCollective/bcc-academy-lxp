@@ -151,7 +151,18 @@ export async function createCourseFromDraftAction(params: {
     return { success: false, error: `A course with this name already exists (slug: ${slug}).` };
   }
 
-  const first = [...draft.sessions].sort((a, b) => a.date.localeCompare(b.date))[0];
+  // session_content has a UNIQUE (program_id, track, week_number) constraint, so
+  // every session needs a distinct number. A parser that groups two sessions per
+  // calendar week (Wed+Fri → week 1, week 1) produces duplicates and the insert
+  // fails ("session details failed to save"). Sort chronologically and renumber
+  // 1..N so each session is its own unit.
+  const orderedSessions = [...draft.sessions]
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map((s, i) => ({ ...s, week: i + 1 }));
+  const first = orderedSessions[0];
+  // Importing a course that's already underway (e.g. mid-cohort) should mark the
+  // sessions that have passed as completed rather than "upcoming".
+  const todayIso = new Date().toISOString().slice(0, 10);
 
   const { error: trackError } = await svc.from("track_overrides").insert({
     program_id: programRow.id,
@@ -169,7 +180,7 @@ export async function createCourseFromDraftAction(params: {
     cover_image_url: params.coverImageUrl ?? null,
     phase: "core",
     sequential_gating: false,
-    week_summaries: draft.sessions.map((s) => ({
+    week_summaries: orderedSessions.map((s) => ({
       week: s.week,
       date: s.date,
       time: s.time,
@@ -185,18 +196,21 @@ export async function createCourseFromDraftAction(params: {
   }
 
   const { error: contentError } = await svc.from("session_content").insert(
-    draft.sessions.map((s) => ({
-      track: slug,
-      program_id: programRow.id,
-      week_number: s.week,
-      meeting_link: params.meetingLink?.trim() || null,
-      status: "upcoming",
-      status_2: "upcoming",
-      title: s.week === 1 ? draft.sessionTitle || s.topic : s.topic,
-      subtitle: s.week === 1 ? draft.sessionSubtitle || null : null,
-      description: s.week === 1 ? draft.description?.trim() || null : null,
-      objectives: s.week === 1 ? (draft.objectives ?? []) : [],
-    })),
+    orderedSessions.map((s) => {
+      const status = s.date < todayIso ? "completed" : "upcoming";
+      return {
+        track: slug,
+        program_id: programRow.id,
+        week_number: s.week,
+        meeting_link: params.meetingLink?.trim() || null,
+        status,
+        status_2: status,
+        title: s.week === 1 ? draft.sessionTitle || s.topic : s.topic,
+        subtitle: s.week === 1 ? draft.sessionSubtitle || null : null,
+        description: s.week === 1 ? draft.description?.trim() || null : null,
+        objectives: s.week === 1 ? (draft.objectives ?? []) : [],
+      };
+    }),
   );
   if (contentError) {
     console.error("[createCourseFromDraftAction] session_content insert failed:", contentError);
