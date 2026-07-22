@@ -35,6 +35,13 @@ export function AnalyticsDashboard({ data }: { data: EngagementAnalytics }) {
   }, [learners, trackOptions]);
   const trackName = trackOptions.find((t) => t.slug === track)?.name ?? null;
   const isFiltered = query.trim() !== "" || track !== "";
+  // When a track is selected, show that track's activity, not the learner's
+  // program-wide totals — otherwise a Security+ view counts their MASS/hangout
+  // sessions too and over-reports the track.
+  const countsFor = (l: EngagementLearner) =>
+    track
+      ? l.byTrack[track] ?? { videosWatched: 0, attended: 0, submitted: 0 }
+      : { videosWatched: l.videosWatched, attended: l.attended, submitted: l.submitted };
   // Step-wise funnel: each stage is a % of the PRIOR stage, not all against
   // "invited". Reading Engaged as "% of invited" put 13 next to 76% right beside
   // a "36" account count — three numbers that don't reconcile. As a funnel it's
@@ -108,7 +115,7 @@ export function AnalyticsDashboard({ data }: { data: EngagementAnalytics }) {
             />
             <button
               type="button"
-              onClick={() => downloadCsv(filtered, data.programName, trackName)}
+              onClick={() => downloadCsv(filtered, data.programName, track, trackName)}
               disabled={filtered.length === 0}
               className="border border-rule bg-white px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:border-ink-faint disabled:cursor-not-allowed disabled:opacity-50"
             >
@@ -132,10 +139,11 @@ export function AnalyticsDashboard({ data }: { data: EngagementAnalytics }) {
             <tbody>
               {filtered.map((l) => {
                 const open = openSurveys === l.email;
+                const c = countsFor(l);
                 return (
                 <Fragment key={l.email}>
                 <tr
-                  className={`border-b border-rule/60 ${open ? "" : "last:border-0"} ${l.videosWatched + l.attended + l.submitted > 0 ? "bg-[#f3f8ff]" : ""}`}
+                  className={`border-b border-rule/60 ${open ? "" : "last:border-0"} ${c.videosWatched + c.attended + c.submitted > 0 ? "bg-[#f3f8ff]" : ""}`}
                 >
                   <td className="px-3 py-2">
                     <div className="font-medium text-ink">{l.name || l.email}</div>
@@ -143,9 +151,9 @@ export function AnalyticsDashboard({ data }: { data: EngagementAnalytics }) {
                   </td>
                   <td className="px-3 py-2 text-ink-soft">{l.signedUp ?? "—"}</td>
                   <td className="px-3 py-2 text-ink-soft">{l.lastActive ?? "—"}</td>
-                  <td className="px-3 py-2 text-center text-ink">{l.videosWatched}</td>
-                  <td className="px-3 py-2 text-center text-ink">{l.attended}</td>
-                  <td className="px-3 py-2 text-center text-ink">{l.submitted}</td>
+                  <td className="px-3 py-2 text-center text-ink">{c.videosWatched}</td>
+                  <td className="px-3 py-2 text-center text-ink">{c.attended}</td>
+                  <td className="px-3 py-2 text-center text-ink">{c.submitted}</td>
                   <td className="px-3 py-2 text-center text-ink">
                     {l.surveys > 0 ? (
                       <button
@@ -228,14 +236,17 @@ function surveyTitle(type: string): string {
 // Client-side CSV of the (filtered) learner rows — lets staff hand off
 // engagement data without re-running the export scripts. Quotes every field so
 // commas/quotes in names don't break columns.
-function downloadCsv(learners: EngagementLearner[], programName: string, trackName: string | null) {
+function downloadCsv(learners: EngagementLearner[], programName: string, track: string, trackName: string | null) {
   const header = ["Name", "Email", "ZIP", "State", "Birthday", "Age", "Signed up", "Last active", "Videos", "Attended", "Submitted", "Surveys"];
   const esc = (v: string | number | null) => `"${String(v ?? "").replace(/"/g, '""')}"`;
-  const rows = learners.map((l) =>
-    [l.name, l.email, l.zip, l.state, l.dateOfBirth, l.age, l.signedUp, l.lastActive, l.videosWatched, l.attended, l.submitted, l.surveys]
+  // Match the table: when a track is selected, export that track's counts, not
+  // the learner's program-wide totals.
+  const rows = learners.map((l) => {
+    const c = track ? l.byTrack[track] ?? { videosWatched: 0, attended: 0, submitted: 0 } : l;
+    return [l.name, l.email, l.zip, l.state, l.dateOfBirth, l.age, l.signedUp, l.lastActive, c.videosWatched, c.attended, c.submitted, l.surveys]
       .map(esc)
-      .join(","),
-  );
+      .join(",");
+  });
   const csv = [header.map(esc).join(","), ...rows].join("\n");
   // Name the file after the scope actually exported (program, or the selected
   // track) so a track-filtered download isn't mistaken for the whole program.

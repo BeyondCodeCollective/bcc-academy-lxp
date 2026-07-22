@@ -61,9 +61,11 @@ export async function getCourseRosterStats(
   // program's row and would otherwise vanish from the count.
   const { data: studentRows } = await svc
     .from("students")
-    .select("id, role")
+    .select("id, role, is_test")
     .in("id", enrolledIds);
-  const learners = (studentRows ?? []).filter((s) => s.role === "student");
+  // Real learners only — internal QA logins (is_test) would inflate the course
+  // roster, active count, and the certificate-eligible "full attendance" number.
+  const learners = (studentRows ?? []).filter((s) => s.role === "student" && !s.is_test);
   const learnerIds = learners.map((s) => s.id);
   if (learnerIds.length === 0) return empty;
 
@@ -193,9 +195,10 @@ export async function getCourseEngagement(
 
   const { data: studentRows } = await svc
     .from("students")
-    .select("id, role, last_seen_at")
+    .select("id, role, is_test, last_seen_at")
     .in("id", enrolledIds);
-  const learners = (studentRows ?? []).filter((s) => s.role === "student") as {
+  // Real learners only — exclude internal QA (is_test) accounts.
+  const learners = (studentRows ?? []).filter((s) => s.role === "student" && !s.is_test) as {
     id: string;
     last_seen_at: string | null;
   }[];

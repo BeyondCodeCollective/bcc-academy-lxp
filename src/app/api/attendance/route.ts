@@ -79,8 +79,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Program-scope check. The attendance row carries no program_id, so RLS
-  // can't enforce cross-tenant separation here — verify in app code.
+  // Program-scope check. RLS isn't enforced cross-tenant here, so verify in app
+  // code that the admin and the target student share a program.
   // IMPORTANT: Both IDs must be non-null and match. The comparison `null !== null`
   // evaluates to false, which would incorrectly allow cross-tenant access.
   const { data: targetStudent } = await supabase
@@ -97,15 +97,32 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  // attendance.program_id is NOT NULL and part of the unique key
+  // (program_id, student_id, track, week_number, session_number). Resolve the
+  // program the student is enrolled under for this track — the same source the
+  // Zoom auto-writer uses — and fall back to the already-verified matching
+  // program so an admin can still mark a student who predates a student_tracks
+  // row. Omitting program_id, or using the old 4-column onConflict target, made
+  // every manual mark fail (NOT NULL violation / no matching unique constraint),
+  // which is why manual attendance never stuck and the overview read "0 students".
+  const { data: enrollment } = await createServiceClient()
+    .from("student_tracks")
+    .select("program_id")
+    .eq("student_id", student_id)
+    .eq("track_slug", track)
+    .maybeSingle<{ program_id: string }>();
+  const attendanceProgramId = enrollment?.program_id ?? targetProgramId;
+
   const { error } = await supabase.from("attendance").upsert(
     {
+      program_id: attendanceProgramId,
       student_id,
       track,
       week_number,
       session_number,
       marked_by: user.id,
     },
-    { onConflict: "student_id,track,week_number,session_number", ignoreDuplicates: true }
+    { onConflict: "program_id,student_id,track,week_number,session_number", ignoreDuplicates: true }
   );
 
   if (error) {
@@ -149,7 +166,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // Program-scope check (same reason as POST — attendance has no program_id).
+  // Program-scope check (same reason as POST — verify shared program in app code).
   // IMPORTANT: Both IDs must be non-null and match. `null !== null` is false.
   const { data: targetStudent } = await supabase
     .from("students")
