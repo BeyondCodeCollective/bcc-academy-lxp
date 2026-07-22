@@ -31,6 +31,11 @@ export type EngagementLearner = {
   age: number | null;
   signedUp: string | null;
   lastActive: string | null;
+  // Track slugs this learner is enrolled in (from student_tracks). Lets the
+  // Analytics tab filter/export by a single track — a program-scoped export
+  // silently mixed every track's learners together, so a "Security+ zips"
+  // export came back partial and nobody could tell why.
+  tracks: string[];
   videosWatched: number;
   attended: number;
   submitted: number;
@@ -45,6 +50,9 @@ export type EngagementAnalytics = {
   programName: string;
   funnel: { invited: number; activated: number; engaged: number };
   learners: EngagementLearner[];
+  // Tracks in this program, for the Analytics tab's track filter. Slug + display
+  // name so the dropdown reads "CompTIA Security+" but filters on the slug.
+  trackOptions: { slug: string; name: string }[];
 };
 
 export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
@@ -54,10 +62,13 @@ export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
   const ids = scope.ids;
   const trackSlugs = program.tracks.map((t) => t.slug);
 
+  const trackOptions = program.tracks.map((t) => ({ slug: t.slug, name: t.name }));
+
   const empty: EngagementAnalytics = {
     programName: program.name,
     funnel: { invited: 0, activated: 0, engaged: 0 },
     learners: [],
+    trackOptions,
   };
   if (ids.length === 0) return empty;
 
@@ -86,7 +97,7 @@ export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
 
   // Engagement events scoped to these learners + the program's allowlist.
   // Empty .in([]) is safe (returns no rows), so no need to guard each call.
-  const [videoRows, attendanceRows, submissionRows, reflectionRows, surveyRows, allowRows, testEmailRows] =
+  const [videoRows, attendanceRows, submissionRows, reflectionRows, surveyRows, allowRows, testEmailRows, studentTrackRows] =
     await Promise.all([
       // Only a WATCHED video counts — a week_progress row can exist without
       // video_watched_at. (Matches getLearnerActivity; otherwise Engagement is
@@ -103,6 +114,10 @@ export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
       // too — otherwise Invited counts a test allowlist entry that "Created"
       // (is_test filtered) doesn't, and the funnel reads N+1 → N.
       svc.from("students").select("email").in("program_id", ids).eq("is_test", true),
+      // Per-learner track enrollment — the canonical students↔tracks mapping,
+      // so the Analytics filter scopes to a real roster (not attendance/allowlist
+      // proxies).
+      svc.from("student_tracks").select("student_id, track_slug").in("student_id", studentIds),
     ]);
 
   const videosByUser = new Map<string, number>();
@@ -127,6 +142,12 @@ export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
   const submissionsByUser = new Map<string, number>();
   for (const r of (submissionRows.data ?? []) as { student_id: string }[]) {
     submissionsByUser.set(r.student_id, (submissionsByUser.get(r.student_id) ?? 0) + 1);
+  }
+  const tracksByStudent = new Map<string, string[]>();
+  for (const r of (studentTrackRows.data ?? []) as { student_id: string; track_slug: string }[]) {
+    const list = tracksByStudent.get(r.student_id) ?? [];
+    list.push(r.track_slug);
+    tracksByStudent.set(r.student_id, list);
   }
 
   // Canonical engagement (src/lib/analytics/engagement.ts): did-the-work =
@@ -170,6 +191,7 @@ export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
       age: ageFromDob(s.date_of_birth),
       signedUp: s.created_at ? s.created_at.slice(0, 10) : null,
       lastActive: s.last_seen_at ? s.last_seen_at.slice(0, 10) : null,
+      tracks: tracksByStudent.get(s.id) ?? [],
       videosWatched: videosByUser.get(s.id) ?? 0,
       attended: attendanceByUser.get(s.id) ?? 0,
       submitted: submissionsByUser.get(s.id) ?? 0,
@@ -192,5 +214,6 @@ export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
     programName: program.name,
     funnel: { invited, activated: studs.length, engaged: engaged.size },
     learners,
+    trackOptions,
   };
 }
