@@ -1635,6 +1635,7 @@ export function AdminTabs({
           <AttendanceTab
             students={students.filter((s) => s.role === "student")}
             tracks={tracks}
+            enrollments={enrollments}
             scopeLabel="All tracks"
             hideTitle
           />
