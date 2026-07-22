@@ -7,22 +7,34 @@ import type { EngagementAnalytics, EngagementLearner } from "./actions-analytics
 // table. Scoped server-side to the current program, so it reflects the program
 // switcher (Forte shows Upskill, Catalyst shows Catalyst, etc.).
 export function AnalyticsDashboard({ data }: { data: EngagementAnalytics }) {
-  const { funnel, learners } = data;
+  const { funnel, learners, trackOptions } = data;
   // Name/email filter — the table runs to hundreds of rows (175+ at Upskill
   // scale), so an unfiltered wall is unusable. Match is case-insensitive across
   // both name and email.
   const [query, setQuery] = useState("");
+  // Track filter — "" = all tracks. A program-scoped export silently blends
+  // every track together, so "export Security+ zips" came back partial with no
+  // signal why. Scoping the table AND the CSV to one track fixes that at source.
+  const [track, setTrack] = useState("");
   // Which learner's survey list is expanded (by email). Lets the Surveys count
   // drill through to "which surveys did they take?" inline.
   const [openSurveys, setOpenSurveys] = useState<string | null>(null);
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return learners;
-    return learners.filter(
-      (l) =>
-        l.name.toLowerCase().includes(q) || l.email.toLowerCase().includes(q),
-    );
-  }, [learners, query]);
+    return learners.filter((l) => {
+      if (track && !l.tracks.includes(track)) return false;
+      if (q && !(l.name.toLowerCase().includes(q) || l.email.toLowerCase().includes(q))) return false;
+      return true;
+    });
+  }, [learners, query, track]);
+  // Only show tracks that actually have a learner here, so the dropdown never
+  // offers an empty option that exports a blank file.
+  const availableTracks = useMemo(() => {
+    const present = new Set(learners.flatMap((l) => l.tracks));
+    return trackOptions.filter((t) => present.has(t.slug));
+  }, [learners, trackOptions]);
+  const trackName = trackOptions.find((t) => t.slug === track)?.name ?? null;
+  const isFiltered = query.trim() !== "" || track !== "";
   // Step-wise funnel: each stage is a % of the PRIOR stage, not all against
   // "invited". Reading Engaged as "% of invited" put 13 next to 76% right beside
   // a "36" account count — three numbers that don't reconcile. As a funnel it's
@@ -71,9 +83,22 @@ export function AnalyticsDashboard({ data }: { data: EngagementAnalytics }) {
       <section className="space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">
-            Per-learner activity ({query.trim() ? `${filtered.length} of ${learners.length}` : learners.length})
+            Per-learner activity ({isFiltered ? `${filtered.length} of ${learners.length}` : learners.length})
           </h2>
           <div className="flex items-center gap-2">
+            {availableTracks.length > 0 && (
+              <select
+                value={track}
+                onChange={(e) => setTrack(e.target.value)}
+                aria-label="Filter by track"
+                className="border border-rule bg-white px-2.5 py-1.5 text-sm text-ink focus:border-ink-faint focus:outline-none"
+              >
+                <option value="">All tracks</option>
+                {availableTracks.map((t) => (
+                  <option key={t.slug} value={t.slug}>{t.name}</option>
+                ))}
+              </select>
+            )}
             <input
               type="search"
               value={query}
@@ -83,11 +108,11 @@ export function AnalyticsDashboard({ data }: { data: EngagementAnalytics }) {
             />
             <button
               type="button"
-              onClick={() => downloadCsv(filtered, data.programName)}
+              onClick={() => downloadCsv(filtered, data.programName, trackName)}
               disabled={filtered.length === 0}
               className="border border-rule bg-white px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:border-ink-faint disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Export CSV
+              Export CSV · {filtered.length}
             </button>
           </div>
         </div>
@@ -203,7 +228,7 @@ function surveyTitle(type: string): string {
 // Client-side CSV of the (filtered) learner rows — lets staff hand off
 // engagement data without re-running the export scripts. Quotes every field so
 // commas/quotes in names don't break columns.
-function downloadCsv(learners: EngagementLearner[], programName: string) {
+function downloadCsv(learners: EngagementLearner[], programName: string, trackName: string | null) {
   const header = ["Name", "Email", "ZIP", "State", "Birthday", "Age", "Signed up", "Last active", "Videos", "Attended", "Submitted", "Surveys"];
   const esc = (v: string | number | null) => `"${String(v ?? "").replace(/"/g, '""')}"`;
   const rows = learners.map((l) =>
@@ -212,7 +237,10 @@ function downloadCsv(learners: EngagementLearner[], programName: string) {
       .join(","),
   );
   const csv = [header.map(esc).join(","), ...rows].join("\n");
-  const slug = programName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  // Name the file after the scope actually exported (program, or the selected
+  // track) so a track-filtered download isn't mistaken for the whole program.
+  const slugify = (v: string) => v.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const slug = slugify(trackName || programName);
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
