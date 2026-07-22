@@ -168,11 +168,31 @@ export async function getWhatsNew(opts: {
         latestByWeek.set(k, { week: work.week, slug: work.slug, createdAt });
     }
   }
+  // Real session titles so the item reads "New feedback on Prompt Engineering
+  // Basics" rather than a generic "Week 3". One query over the (track, week)
+  // pairs we're about to render; falls back to "your Week N work" when a
+  // session has no title.
+  const fbTitleByKey = new Map<string, string>();
+  const fbPairs = [...latestByWeek.values()];
+  if (fbPairs.length) {
+    const { data: titleRows } = await svc
+      .from("session_content")
+      .select("track, week_number, title")
+      .in("track", [...new Set(fbPairs.map((v) => v.slug))])
+      .not("title", "is", null);
+    for (const r of titleRows ?? []) {
+      if (r.title) fbTitleByKey.set(`${r.track}-${r.week_number}`, r.title as string);
+    }
+  }
+
   for (const [k, v] of latestByWeek) {
+    const sessionTitle = fbTitleByKey.get(`${v.slug}-${v.week}`);
     items.push({
       key: `fb-${k}`,
       kind: "feedback",
-      title: `New feedback on your Week ${v.week} work`,
+      title: sessionTitle
+        ? `New feedback on ${sessionTitle}`
+        : `New feedback on your Week ${v.week} work`,
       href: `/dashboard/track/${v.slug}/${v.week}`,
       whenLabel: relativeTime(v.createdAt, now),
       sortAt: v.createdAt,

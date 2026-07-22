@@ -131,7 +131,7 @@ export function UserMenu({
         {avatarNode("md")}
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-medium text-ink">
-            {firstName} {lastName}
+            {[firstName, lastName].filter(Boolean).join(" ") || "Your account"}
           </span>
           {email && (
             <span className="block truncate text-xs text-ink-faint">
@@ -192,7 +192,7 @@ export function UserMenu({
             </span>
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-ink">
-                {firstName} {lastName}
+                {[firstName, lastName].filter(Boolean).join(" ") || "Your account"}
               </p>
               {email && (
                 <p className="truncate text-xs text-ink-faint">{email}</p>
