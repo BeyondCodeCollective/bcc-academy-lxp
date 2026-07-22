@@ -5,9 +5,9 @@ import { createServiceClient } from "@/lib/supabase/server";
  * The cohort a Catalyst participation agreement is signed under.
  *
  * The agreement text is the same document for every Catalyst project, but the
- * cohort recorded alongside it used to be hardcoded to "Catalyst After the Game
+ * cohort recorded alongside it used to be hardcoded to "Catalyst Beyond the Game
  * Cohort" — so a Home for the Summer (or any other) signer was filed as an
- * After the Game participant and the agreements list couldn't tell cohorts
+ * Beyond the Game participant and the agreements list couldn't tell cohorts
  * apart. Resolve the learner's enrolled COURSE name instead.
  *
  * Derived server-side (never passed in from the client) because it becomes part

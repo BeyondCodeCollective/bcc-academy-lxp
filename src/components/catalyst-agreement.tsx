@@ -6,7 +6,7 @@ import { Check } from "@phosphor-icons/react";
 import { buttonClass } from "@/components/ui";
 import { signCatalystAgreement } from "@/lib/onboarding/actions";
 
-// Catalyst Program Participation Agreement — After the Game cohort (2026-07).
+// Catalyst Program Participation Agreement — Beyond the Game cohort (2026-07).
 const SECTIONS: { n: string; heading: string; lede: string; points: string[] }[] = [
   {
     n: "1",
