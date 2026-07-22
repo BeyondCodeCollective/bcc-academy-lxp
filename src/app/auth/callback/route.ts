@@ -316,7 +316,12 @@ export async function GET(request: Request) {
             .limit(1);
           if (!invRows?.length) {
             await supabase.auth.signOut();
-            return NextResponse.redirect(`${origin}/login?error=invite${nextQS}`);
+            // Distinct from error=invite (a dead/scanner-consumed token): this
+            // link WORKED, the email just isn't allowlisted/invited for this
+            // program. The old shared code told them to "open the newest email
+            // and tap again", which loops them straight back into the same
+            // rejection. error=not-invited gets copy that names the real cause.
+            return NextResponse.redirect(`${origin}/login?error=not-invited${nextQS}`);
           }
         }
       }

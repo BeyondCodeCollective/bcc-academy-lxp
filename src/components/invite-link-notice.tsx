@@ -21,7 +21,7 @@ function Notice() {
   // session. Say plainly what happened and what to do next.
   if (error === "auth") {
     return (
-      <div className="mb-6 rounded-lg border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
+      <div role="alert" className="mb-6 rounded-lg border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
         <p className="font-semibold mb-1">That link has already been used.</p>
         <p>
           Sign-in links work one time only, so an older email won&apos;t open
@@ -32,9 +32,27 @@ function Notice() {
     );
   }
 
+  // The link worked, but this email isn't on the list for the program it points
+  // at. Telling them to "tap the link again" (the error=invite copy) would just
+  // loop them — name the real cause and give a human to reach.
+  if (error === "not-invited") {
+    return (
+      <div role="alert" className="mb-6 rounded-lg border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
+        <p className="font-semibold mb-1">We couldn&apos;t find your spot.</p>
+        <p>
+          Your sign-in worked, but this email isn&apos;t on the list for that
+          course yet. Double-check you used the same email you registered with.
+          Still stuck? Reach out to your instructor or email{" "}
+          <a href="mailto:info@bccacademy.io" className="underline">info@bccacademy.io</a>{" "}
+          and we&apos;ll get you added.
+        </p>
+      </div>
+    );
+  }
+
   if (error !== "invite") return null;
   return (
-    <div className="mb-6 rounded-lg border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
+    <div role="alert" className="mb-6 rounded-lg border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
       <p className="font-semibold mb-1">That sign-in link didn&apos;t work.</p>
       <p>
         {/* Explicit {" "} — the compiler dropped the plain space after the
