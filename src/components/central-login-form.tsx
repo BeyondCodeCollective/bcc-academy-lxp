@@ -4,6 +4,18 @@ import { useState } from "react";
 import { Check } from "@phosphor-icons/react";
 import { sendLoginLink } from "@/app/login/actions";
 
+// Strip a ?error=… from the URL without a navigation, so the failure banner
+// (a sibling component reading the query param) disappears the moment the user
+// takes a recovery action. Otherwise "That link didn't work" stays pinned above
+// the "Check your email" confirmation — reads as broken when it worked.
+function clearErrorParam() {
+  if (typeof window === "undefined") return;
+  const url = new URL(window.location.href);
+  if (!url.searchParams.has("error")) return;
+  url.searchParams.delete("error");
+  window.history.replaceState(null, "", url.pathname + url.search);
+}
+
 export function CentralLoginForm({
   programs = [],
   compact = false,
@@ -50,6 +62,9 @@ export function CentralLoginForm({
     e.preventDefault();
     setLoading(true);
     setError("");
+    // The user is recovering — drop any stale ?error banner so the "check your
+    // email" confirmation isn't stacked under a "that link failed" message.
+    clearErrorParam();
 
     const trimmedEmail = email.trim().toLowerCase();
 
@@ -185,7 +200,7 @@ export function CentralLoginForm({
         )}
       </div>
 
-      {error && <p className="text-sm text-red-400">{error}</p>}
+      {error && <p role="alert" className="text-sm text-red-400">{error}</p>}
 
       <button
         type="submit"
