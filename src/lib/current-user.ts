@@ -8,6 +8,8 @@ export type CurrentUser = {
   lastName: string;
   email: string | null;
   userRole: string;
+  /** Resolved students.is_staff — staff (BGC/BCC employee) see Lunch & Learns only. */
+  isStaff: boolean;
   isDemo: boolean;
 };
 
@@ -36,7 +38,7 @@ export async function resolveCurrentUser(
         firstName = demoEmail.split("@")[0].replace(/[._-]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
       }
     }
-    return { firstName, lastName, email: demoEmail ?? null, userRole, isDemo: true };
+    return { firstName, lastName, email: demoEmail ?? null, userRole, isStaff: false, isDemo: true };
   }
 
   const ctx = await getSessionContext();
@@ -50,6 +52,7 @@ export async function resolveCurrentUser(
     lastName: student?.last_name || "",
     email: student?.email ?? ctx.userEmail ?? null,
     userRole: student?.role ?? "student",
+    isStaff: !!student?.is_staff,
     isDemo: false,
   };
 }

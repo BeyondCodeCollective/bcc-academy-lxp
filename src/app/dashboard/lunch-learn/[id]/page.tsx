@@ -16,7 +16,7 @@ export default async function LunchLearnDetailPage({
   if (!ctx) redirect("/");
   const role = ctx.student?.role ?? "";
   const email = ctx.student?.email ?? ctx.userEmail ?? null;
-  if (!canAccessStaffContent(role, email)) {
+  if (!canAccessStaffContent(role, email, ctx.student?.is_staff)) {
     redirect("/dashboard");
   }
 

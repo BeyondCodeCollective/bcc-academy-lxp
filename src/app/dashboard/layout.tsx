@@ -27,7 +27,7 @@ import { getEnforcedOnboardingChecklist, getOnboardingStatus } from "@/lib/onboa
 import { BCC_INTAKE_SURVEY_ID, surveySkippedForTracks } from "@/lib/surveys/platform";
 import { collapseCompanionSlugs } from "@/lib/enrollment";
 import { isSurveyEnabledForLearner } from "@/lib/surveys/features";
-import { isStaffEmail } from "@/lib/auth/admins";
+import { isStaffResolved } from "@/lib/auth/staff";
 import { getHomeProgramForTrack } from "@/lib/programs";
 import { programHasResources } from "@/lib/resources";
 import { MARKETING_SLUG } from "@/lib/programs/marketing";
@@ -119,7 +119,7 @@ export default async function DashboardLayout({
     if (ctx) {
       const exempt =
         canAccessAdminPanel(ctx.student?.role ?? "") ||
-        isStaffEmail(ctx.student?.email ?? ctx.userEmail);
+        isStaffResolved(ctx.student?.is_staff, ctx.student?.email ?? ctx.userEmail);
       if (!exempt) {
         const supabase = await createClient();
         const access = await getLearnerAccess(supabase, ctx.userId, activeProgram);
@@ -231,6 +231,7 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
   let email: string | null = null;
   let avatarUrl: string | null = null;
   let userRole = "";
+  let staffFlag = false;
   let enrolledTrackSlugs: string[] = [];
   let canShowPreviewToggle = false;
   let previewingSlugs: string[] = [];
@@ -255,13 +256,14 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
     firstName = ctx.student?.first_name ?? "";
     lastName = ctx.student?.last_name ?? "";
     email = ctx.student?.email ?? ctx.userEmail;
+    staffFlag = !!ctx.student?.is_staff;
     avatarUrl = ctx.student?.avatar_url ?? null;
     if (validPreviewSlug && validPreviewSlug !== LUNCH_LEARN_PREVIEW_SLUG) {
       enrolledTrackSlugs = validPreviewSlugs;
     }
     if (!isAdmin && !isSurvey && !validPreviewSlug) {
       const supabase = await createClient();
-      const isStaff = isStaffEmail(email);
+      const isStaff = isStaffResolved(ctx.student?.is_staff, email);
       const needsEnrollment = program.tracks.length > 0;
 
       const [intakeRes, enrolledRes, allowlistRes] = await Promise.all([
@@ -387,7 +389,7 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
   // as an AI Literacy student still sees the Workshops link and the nav
   // doesn't fully match what a real student would experience.
   const canAccessStaff =
-    canAccessStaffContent(userRole, email) && !previewingSlug;
+    canAccessStaffContent(userRole, email, staffFlag) && !previewingSlug;
   let programs: { slug: string; name: string; domain: string; dnsReady?: boolean }[] = [];
   if (canSwitch) {
     // Super-admins manage every program, so the switcher lists them all —
@@ -411,7 +413,7 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
   const isUmbrellaContext = program.slug === "catalyst" || program.slug === "bcc-academy";
   const showLunchLearnSidebar =
     previewingSlug === LUNCH_LEARN_PREVIEW_SLUG ||
-    (!isAdmin && enrolledTrackSlugs.length === 0 && !!email && isStaffEmail(email) && isUmbrellaContext);
+    (!isAdmin && enrolledTrackSlugs.length === 0 && !!email && isStaffResolved(staffFlag, email) && isUmbrellaContext);
 
   // A student with no enrolled tracks yet (brand-new, enrollment still being
   // finalized on this same request) used to get the "topbar" variant — a
@@ -509,7 +511,7 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
         curriculumTracks={curriculumTracks}
         adminTracks={adminTracks}
         lunchLearnRecordings={lunchLearnRecordings}
-        showLunchLearnLink={isStaffEmail(email) && program.slug === "bgc"}
+        showLunchLearnLink={isStaffResolved(staffFlag, email) && program.slug === "bgc"}
       />
     </>
   );
@@ -565,7 +567,7 @@ async function TopBarShell() {
   // reach — clicking would just bounce them, so don't show them at all.
   let confined = false;
   const isLearner =
-    !canAccessAdminPanel(role) && !isStaffEmail(ctx.student?.email ?? ctx.userEmail);
+    !canAccessAdminPanel(role) && !isStaffResolved(ctx.student?.is_staff, ctx.student?.email ?? ctx.userEmail);
   if (isLearner) {
     const supabase = await createClient();
     confined = (await getLearnerAccess(supabase, ctx.userId, program)).pendingOnly;
@@ -624,7 +626,7 @@ async function Overlays({ isSurveyPage }: { isSurveyPage: boolean }) {
   // The tutor is one of the surfaces pending registrants are confined away
   // from (layout-body gate) — don't float a button that only bounces them.
   let confined = false;
-  if (!canAccessAdminPanel(role) && !isStaffEmail(ctx.student?.email ?? ctx.userEmail)) {
+  if (!canAccessAdminPanel(role) && !isStaffResolved(ctx.student?.is_staff, ctx.student?.email ?? ctx.userEmail)) {
     const supabase = await createClient();
     confined = (await getLearnerAccess(supabase, ctx.userId, program)).pendingOnly;
   }
@@ -635,7 +637,7 @@ async function Overlays({ isSurveyPage }: { isSurveyPage: boolean }) {
   const needsName =
     !!ctx.student &&
     !canAccessAdminPanel(role) &&
-    !isStaffEmail(ctx.student.email ?? ctx.userEmail) &&
+    !isStaffResolved(ctx.student.is_staff, ctx.student.email ?? ctx.userEmail) &&
     !(ctx.student.first_name ?? "").trim() &&
     !(ctx.student.last_name ?? "").trim();
 
@@ -647,7 +649,7 @@ async function Overlays({ isSurveyPage }: { isSurveyPage: boolean }) {
   const profileEligible =
     !!ctx.student &&
     !canAccessAdminPanel(role) &&
-    !isStaffEmail(ctx.student.email ?? ctx.userEmail) &&
+    !isStaffResolved(ctx.student.is_staff, ctx.student.email ?? ctx.userEmail) &&
     !needsName &&
     program.slug !== "forte";
   let needsZip = false;

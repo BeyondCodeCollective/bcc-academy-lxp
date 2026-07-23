@@ -50,10 +50,17 @@ export default async function DashboardPage({
   const role = ctx?.student?.role ?? "";
   const email = ctx?.student?.email ?? ctx?.userEmail ?? null;
   const isAdmin = canAccessAdminPanel(role);
+  // Staff flag: prefer the resolved students.is_staff (covers DB-listed staff on
+  // mixed domains), falling back to the email check.
+  const isStaff = ctx?.student?.is_staff ?? isStaffEmail(email);
   const previewSlugTop = await getPreviewTrackSlug(role);
   const previewingLunchLearns = previewSlugTop === LUNCH_LEARN_PREVIEW_SLUG;
-  const isUmbrellaProgram = program.slug === "catalyst" || program.slug === "bcc-academy";
-  if (previewingLunchLearns || (!isAdmin && isStaffEmail(email) && isUmbrellaProgram)) {
+  // Staff home is Lunch & Learns under Black Girls Code; also honor the Catalyst
+  // umbrella so a staffer who lands there (host-driven program) still sees L&L,
+  // never an empty learner dashboard.
+  const isUmbrellaProgram =
+    program.slug === "catalyst" || program.slug === "bcc-academy" || program.slug === "bgc";
+  if (previewingLunchLearns || (!isAdmin && isStaff && isUmbrellaProgram)) {
     const firstName = ctx?.student?.first_name || "";
     return <LunchLearnHub isAdmin={false} firstName={firstName} />;
   }
@@ -247,7 +254,7 @@ async function DashboardContent({
         const completedTypes = new Set(
           (completedSurveysRes.data ?? []).map((r) => r.survey_type)
         );
-        const isStaff = isStaffEmail(currentUser.email ?? null);
+        const isStaff = currentUser.isStaff || isStaffEmail(currentUser.email ?? null);
 
         // Intake survey is OPT-IN — only fires when toggled on for this program
         // or one of the learner's tracks (admin Features page), same as the

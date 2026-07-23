@@ -36,6 +36,7 @@ export default async function WorkshopsIndexPage() {
   const canSeeLuncheons = canAccessStaffContent(
     currentUser.userRole,
     currentUser.email,
+    currentUser.isStaff,
   );
 
   const svc = createServiceClient();

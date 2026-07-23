@@ -10,6 +10,7 @@ import { safeNextPath } from "@/lib/auth/next-path";
 import { courseLandingPath, primaryTrack } from "@/lib/enrollment";
 import { completePendingSetup } from "@/lib/auth/deferred-setup";
 import { determineRole, isPrivilegedEmail, isStaffEmail } from "@/lib/auth/admins";
+import { resolveIsStaff } from "@/lib/auth/staff";
 import { subscribeToNewsletter } from "@/lib/mailchimp";
 import { sendStaffAccountNotification } from "@/lib/email";
 import { logActivityEvent } from "@/lib/analytics/log-event";
@@ -368,6 +369,7 @@ export async function GET(request: Request) {
             first_name: "",
             last_name: "",
             role: determineRole(email),
+            is_staff: await resolveIsStaff(email),
             cohort_id: null,
             program_id: trackProgramId ?? effectiveProgramRow?.id ?? programId,
           },
@@ -493,6 +495,7 @@ export async function GET(request: Request) {
           first_name: "",
           last_name: "",
           role: determineRole(email),
+          is_staff: await resolveIsStaff(email),
           cohort_id: null,
           program_id: pinnedTrackProgramId ?? programId,
         },
