@@ -618,6 +618,37 @@ export async function getBCCSurveyResponses(
 // an authenticated row exists for the same (email, survey_type), drop the
 // public twin. Keep the authenticated copy — it carries the student link and
 // cohort tagging.
+// Grant/demographic exports read name/zip/DOB off the response JSON, but early
+// (imported) submissions never captured those keys — legacy `bcc-learner-intake`
+// rows have the demographics yet blank full_name/zip_code/date_of_birth, so the
+// export showed empty cells for people whose student record actually has the
+// data. Backfill any MISSING field from the linked student record (a real
+// submitted value always wins). full_name is safe to fill for every survey;
+// zip/DOB are only injected for the intake, so we don't add demographic columns
+// to surveys that never asked for them.
+type StudentIdentity = {
+  first_name?: string | null;
+  last_name?: string | null;
+  zip?: string | null;
+  date_of_birth?: string | null;
+} | null;
+
+function backfillFromStudent(
+  surveyType: string,
+  responses: Record<string, unknown>,
+  student: StudentIdentity,
+): Record<string, unknown> {
+  if (!student) return responses;
+  const out = { ...responses };
+  const name = `${student.first_name ?? ""} ${student.last_name ?? ""}`.trim();
+  if (!out.full_name && name) out.full_name = name;
+  if (surveyType === "bcc-learner-intake") {
+    if (!out.zip_code && student.zip) out.zip_code = student.zip;
+    if (!out.date_of_birth && student.date_of_birth) out.date_of_birth = student.date_of_birth;
+  }
+  return out;
+}
+
 function dedupeClaimedResponses(rows: BCCSurveyResponse[]): BCCSurveyResponse[] {
   const authKeys = new Set(
     rows
@@ -718,7 +749,7 @@ export async function getDashboardSurveyResponses(
     svc
       .from("survey_responses")
       .select(
-        "responses, completed_at, program_id, programs(slug, name), students(first_name, last_name, email)",
+        "responses, completed_at, program_id, programs(slug, name), students(first_name, last_name, email, zip, date_of_birth)",
       )
       .eq("survey_type", surveyType)
       .not("completed_at", "is", null)
@@ -756,7 +787,7 @@ export async function getDashboardSurveyResponses(
         responses: Record<string, unknown>;
         completed_at: string | null;
         programs: { slug: string; name: string } | { slug: string; name: string }[] | null;
-        students: { first_name: string; last_name: string; email: string } | null;
+        students: { first_name: string; last_name: string; email: string; zip: string | null; date_of_birth: string | null } | null;
       }[]
     | null;
 
@@ -774,7 +805,7 @@ export async function getDashboardSurveyResponses(
       program_slug: p?.slug ?? "",
       program_name: p?.name ?? "",
       completed_at: row.completed_at,
-      responses: row.responses,
+      responses: backfillFromStudent(surveyType, row.responses, row.students),
       source: "authenticated",
     };
   });
@@ -810,7 +841,7 @@ export async function getDashboardAllSurveyResponses(
   let authQuery = svc
     .from("survey_responses")
     .select(
-      "survey_type, student_id, responses, completed_at, program_id, programs(slug, name), students(first_name, last_name, email)",
+      "survey_type, student_id, responses, completed_at, program_id, programs(slug, name), students(first_name, last_name, email, zip, date_of_birth)",
     )
     .in("survey_type", surveyTypes)
     .not("completed_at", "is", null);
@@ -863,7 +894,7 @@ export async function getDashboardAllSurveyResponses(
     responses: Record<string, unknown>;
     completed_at: string | null;
     programs: { slug: string; name: string } | { slug: string; name: string }[] | null;
-    students: { first_name: string; last_name: string; email: string } | null;
+    students: { first_name: string; last_name: string; email: string; zip: string | null; date_of_birth: string | null } | null;
   }[] | null;
 
   // Read-time cohort fallback. Submission stamps `program_variant` from the
@@ -939,6 +970,9 @@ export async function getDashboardAllSurveyResponses(
         SURVEY_COHORT_DEFAULTS[row.survey_type];
       if (label) responses = { ...responses, program_variant: label };
     }
+    // Backfill blank name/zip/DOB from the student record so grant/demographic
+    // exports aren't empty for legacy imported submissions.
+    responses = backfillFromStudent(row.survey_type, responses, row.students);
     (byType[row.survey_type] ??= []).push({
       survey_type: row.survey_type,
       full_name: row.students ? `${row.students.first_name} ${row.students.last_name}` : "Unknown",
@@ -985,7 +1019,7 @@ export async function getTrackSurveyResponses(
   let query = svc
     .from("survey_responses")
     .select(
-      "responses, completed_at, program_id, programs(slug, name), students(first_name, last_name, email)",
+      "responses, completed_at, program_id, programs(slug, name), students(first_name, last_name, email, zip, date_of_birth)",
     )
     .eq("survey_type", surveyType)
     .in("student_id", enrolledIds)
@@ -1014,7 +1048,7 @@ export async function getTrackSurveyResponses(
         responses: Record<string, unknown>;
         completed_at: string | null;
         programs: { slug: string; name: string } | { slug: string; name: string }[] | null;
-        students: { first_name: string; last_name: string; email: string } | null;
+        students: { first_name: string; last_name: string; email: string; zip: string | null; date_of_birth: string | null } | null;
       }[]
     | null;
 
@@ -1032,7 +1066,7 @@ export async function getTrackSurveyResponses(
       program_slug: p?.slug ?? "",
       program_name: p?.name ?? "",
       completed_at: row.completed_at,
-      responses: row.responses,
+      responses: backfillFromStudent(surveyType, row.responses, row.students),
       source: "authenticated",
     };
   });
