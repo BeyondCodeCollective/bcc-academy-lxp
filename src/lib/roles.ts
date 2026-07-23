@@ -101,7 +101,11 @@ export function canAssignRole(
 export function canAccessStaffContent(
   role: string,
   email: string | null | undefined,
+  // The resolved students.is_staff flag. Pass it so DB-listed staff on mixed
+  // domains (e.g. @wearebcc.org employees) are recognized, not just the
+  // auto-staff domain. Falls back to the email check when not provided.
+  isStaff?: boolean | null,
 ): boolean {
   if (hasCapability(role, "access_admin_panel")) return true;
-  return isStaffEmail(email);
+  return !!isStaff || isStaffEmail(email);
 }

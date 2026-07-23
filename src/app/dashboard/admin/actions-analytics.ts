@@ -87,7 +87,10 @@ export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
     .select("id, first_name, last_name, email, created_at, last_seen_at, zip, state, date_of_birth")
     .in("program_id", ids)
     .eq("role", "student")
-    .eq("is_test", false);
+    .eq("is_test", false)
+    // Staff (BGC/BCC employees) are not learners — they only see Lunch & Learns,
+    // so they must never inflate the activation funnel or the per-learner table.
+    .eq("is_staff", false);
   const studs = (students ?? []) as {
     id: string;
     first_name: string | null;

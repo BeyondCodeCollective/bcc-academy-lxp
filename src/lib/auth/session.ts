@@ -2,12 +2,13 @@ import { cache } from "react";
 import { after } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { determineRole } from "@/lib/auth/admins";
+import { resolveIsStaff } from "@/lib/auth/staff";
 import type { Cohort } from "@/lib/types";
 
 // Single source for the student columns the session needs — reused by the
 // normal read and the self-heal re-read so they never drift.
 const STUDENT_SELECT =
-  "id, email, first_name, last_name, avatar_url, role, cohort_id, onboarding_completed, welcome_seen_at, cohorts(id, name, display_name, start_date, end_date, total_weeks, created_at)";
+  "id, email, first_name, last_name, avatar_url, role, is_staff, cohort_id, onboarding_completed, welcome_seen_at, cohorts(id, name, display_name, start_date, end_date, total_weeks, created_at)";
 
 export type SessionStudent = {
   id: string;
@@ -16,6 +17,8 @@ export type SessionStudent = {
   last_name: string | null;
   avatar_url: string | null;
   role: "student" | "instructor" | "admin" | "super_admin" | null;
+  // Staff (BGC/BCC employee) → Lunch & Learns only, never learner content.
+  is_staff: boolean | null;
   cohort_id: string | null;
   onboarding_completed: boolean | null;
   welcome_seen_at: string | null;
@@ -135,6 +138,7 @@ async function ensureProfile(
       first_name: "",
       last_name: "",
       role: determineRole(email ?? ""),
+      is_staff: await resolveIsStaff(email),
       program_id: hub.id,
     },
     { onConflict: "id", ignoreDuplicates: true },
