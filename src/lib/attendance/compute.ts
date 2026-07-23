@@ -303,7 +303,18 @@ export function summarizeAllStudents(
   students: StudentRow[],
   tracks: TrackLike[],
   records: AttendanceRecord[],
-  asOf: Date = new Date()
+  asOf: Date = new Date(),
+  // When provided (studentId → enrolled track slugs), each student is scored
+  // ONLY against tracks they're actually enrolled in. Without it, every student
+  // is measured against every track — which made program-roster accounts with
+  // no enrollment (staff ghost logins, un-enrolled signups) read as
+  // "0/4 · 4 in a row missed" on tracks they were never part of.
+  enrolledByStudent?: Map<string, Set<string>>
 ): StudentSummary[] {
-  return students.map((s) => summarizeStudent(s, tracks, records, asOf));
+  return students.map((s) => {
+    const scopedTracks = enrolledByStudent
+      ? tracks.filter((t) => enrolledByStudent.get(s.id)?.has(t.slug))
+      : tracks;
+    return summarizeStudent(s, scopedTracks, records, asOf);
+  });
 }

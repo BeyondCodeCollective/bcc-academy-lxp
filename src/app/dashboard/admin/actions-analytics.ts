@@ -36,9 +36,15 @@ export type EngagementLearner = {
   // silently mixed every track's learners together, so a "Security+ zips"
   // export came back partial and nobody could tell why.
   tracks: string[];
+  // Program-wide totals across every track this learner touches.
   videosWatched: number;
   attended: number;
   submitted: number;
+  // Same three signals broken out per track slug, so the Analytics table/CSV can
+  // show track-scoped counts when a track is selected. A program-wide "attended"
+  // over-reports a single track (a Security+ learner who also does MASS showed 7
+  // against a 4-session track).
+  byTrack: Record<string, { videosWatched: number; attended: number; submitted: number }>;
   surveys: number;
   // Which surveys this learner completed, so the count in the table drills
   // through to the actual list ("what 4 surveys did they take?") instead of
@@ -102,9 +108,13 @@ export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
       // Only a WATCHED video counts — a week_progress row can exist without
       // video_watched_at. (Matches getLearnerActivity; otherwise Engagement is
       // inflated and disagrees with the BCC-wide analytics.)
-      svc.from("week_progress").select("user_id").in("user_id", studentIds).not("video_watched_at", "is", null),
-      svc.from("attendance").select("student_id").in("student_id", studentIds),
-      svc.from("submissions").select("student_id").in("student_id", studentIds),
+      // Select the track column on each activity table so counts can be scoped
+      // per-track for the Analytics track filter. NOTE the column name differs:
+      // `attendance` uses `track`, but week_progress/submissions/reflections use
+      // `track_slug`. Mixing these up silently returns nothing.
+      svc.from("week_progress").select("user_id, track_slug").in("user_id", studentIds).not("video_watched_at", "is", null),
+      svc.from("attendance").select("student_id, track").in("student_id", studentIds).in("program_id", ids),
+      svc.from("submissions").select("student_id, track_slug").in("student_id", studentIds),
       // Reflections are a "did the work" signal too — omitting them undercounted
       // engagement and disagreed with the Insights page's definition.
       svc.from("reflections").select("student_id").in("student_id", studentIds).not("submitted_at", "is", null),
@@ -119,6 +129,22 @@ export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
       // proxies).
       svc.from("student_tracks").select("student_id, track_slug").in("student_id", studentIds),
     ]);
+
+  // Per-(student, track) tallies for the three engagement signals, so a
+  // track-filtered view reports that track's activity instead of the sum across
+  // every track a learner is in. `bump` increments the inner track counter.
+  const bump = (m: Map<string, Map<string, number>>, id: string, track: string | null) => {
+    if (!track) return;
+    const inner = m.get(id) ?? new Map<string, number>();
+    inner.set(track, (inner.get(track) ?? 0) + 1);
+    m.set(id, inner);
+  };
+  const videosByUserTrack = new Map<string, Map<string, number>>();
+  const attendanceByUserTrack = new Map<string, Map<string, number>>();
+  const submissionsByUserTrack = new Map<string, Map<string, number>>();
+  for (const r of (videoRows.data ?? []) as { user_id: string; track_slug: string | null }[]) {
+    bump(videosByUserTrack, r.user_id, r.track_slug);
+  }
 
   const videosByUser = new Map<string, number>();
   for (const r of (videoRows.data ?? []) as { user_id: string }[]) {
@@ -136,12 +162,14 @@ export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
   // counted "engaged" when they have 0 videos (engaged = watched OR attended OR
   // submitted). Without these columns the funnel total looks contradictory.
   const attendanceByUser = new Map<string, number>();
-  for (const r of (attendanceRows.data ?? []) as { student_id: string }[]) {
+  for (const r of (attendanceRows.data ?? []) as { student_id: string; track: string | null }[]) {
     attendanceByUser.set(r.student_id, (attendanceByUser.get(r.student_id) ?? 0) + 1);
+    bump(attendanceByUserTrack, r.student_id, r.track);
   }
   const submissionsByUser = new Map<string, number>();
-  for (const r of (submissionRows.data ?? []) as { student_id: string }[]) {
+  for (const r of (submissionRows.data ?? []) as { student_id: string; track_slug: string | null }[]) {
     submissionsByUser.set(r.student_id, (submissionsByUser.get(r.student_id) ?? 0) + 1);
+    bump(submissionsByUserTrack, r.student_id, r.track_slug);
   }
   const tracksByStudent = new Map<string, string[]>();
   for (const r of (studentTrackRows.data ?? []) as { student_id: string; track_slug: string }[]) {
@@ -181,6 +209,24 @@ export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
   );
   const invited = invitedEmails.size;
 
+  // Fold a learner's three per-track count maps into one { slug: {v,a,s} } record.
+  const byTrackFor = (id: string) => {
+    const slugs = new Set<string>([
+      ...(videosByUserTrack.get(id)?.keys() ?? []),
+      ...(attendanceByUserTrack.get(id)?.keys() ?? []),
+      ...(submissionsByUserTrack.get(id)?.keys() ?? []),
+    ]);
+    const out: Record<string, { videosWatched: number; attended: number; submitted: number }> = {};
+    for (const slug of slugs) {
+      out[slug] = {
+        videosWatched: videosByUserTrack.get(id)?.get(slug) ?? 0,
+        attended: attendanceByUserTrack.get(id)?.get(slug) ?? 0,
+        submitted: submissionsByUserTrack.get(id)?.get(slug) ?? 0,
+      };
+    }
+    return out;
+  };
+
   const learners: EngagementLearner[] = studs
     .map((s) => ({
       email: s.email,
@@ -195,6 +241,7 @@ export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
       videosWatched: videosByUser.get(s.id) ?? 0,
       attended: attendanceByUser.get(s.id) ?? 0,
       submitted: submissionsByUser.get(s.id) ?? 0,
+      byTrack: byTrackFor(s.id),
       surveys: (surveysByStudent.get(s.id) ?? []).length,
       surveyList: (surveysByStudent.get(s.id) ?? []).sort((a, b) =>
         (a.completedAt ?? "").localeCompare(b.completedAt ?? ""),

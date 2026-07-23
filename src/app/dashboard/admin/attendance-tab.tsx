@@ -25,6 +25,12 @@ import { unitDisplayMap } from "@/lib/programs/unit-display";
 type AttendanceTabProps = {
   students: StudentRow[];
   tracks: TrackLike[];
+  /** Enrollment rows (student_id → track_slug). When passed, attendance is
+   * scored per enrollment so a program-roster account with no enrollment (staff
+   * ghost login, un-enrolled signup) doesn't surface as "missed" a track it was
+   * never in. Omit for the embedded per-track view, whose students are already
+   * enrollment-scoped upstream. */
+  enrollments?: { student_id: string; track_slug: string }[];
   /** Used in the CSV filename + page heading. Defaults to "attendance". */
   scopeLabel?: string;
   /** When true: hides the header/title, defaults straight to mark view. */
@@ -63,7 +69,7 @@ const STATUS_LABEL: Record<string, { label: string; bg: string; text: string }> 
   disengaged: { label: "Low attendance", bg: "bg-red-50", text: "text-red-700" },
 };
 
-export function AttendanceTab({ students, tracks, scopeLabel, embedded, viewSwitcher, hideTitle }: AttendanceTabProps) {
+export function AttendanceTab({ students, tracks, enrollments, scopeLabel, embedded, viewSwitcher, hideTitle }: AttendanceTabProps) {
   const startedTracks = useMemo(
     () => tracks.filter((t) => trackHasStarted(t)),
     [tracks]
@@ -165,9 +171,23 @@ export function AttendanceTab({ students, tracks, scopeLabel, embedded, viewSwit
   }, [fetchRecords]);
 
 
+  // studentId → set of enrolled track slugs. Undefined when no enrollments were
+  // passed (embedded per-track view), which keeps the original all-tracks
+  // behavior for callers that pre-scope their student list.
+  const enrolledByStudent = useMemo(() => {
+    if (!enrollments) return undefined;
+    const m = new Map<string, Set<string>>();
+    for (const e of enrollments) {
+      const set = m.get(e.student_id) ?? new Set<string>();
+      set.add(e.track_slug);
+      m.set(e.student_id, set);
+    }
+    return m;
+  }, [enrollments]);
+
   const summaries = useMemo(
-    () => summarizeAllStudents(students, tracks, records),
-    [students, tracks, records]
+    () => summarizeAllStudents(students, tracks, records, undefined, enrolledByStudent),
+    [students, tracks, records, enrolledByStudent]
   );
 
   // Boolean lookup: did student X attend session (slug, week, n)?
@@ -333,6 +353,7 @@ export function AttendanceTab({ students, tracks, scopeLabel, embedded, viewSwit
         <OverviewPanel
           startedTracks={startedTracks}
           students={students}
+          enrolledByStudent={enrolledByStudent}
           summaries={summaries}
           records={records}
           loading={loading}
@@ -449,6 +470,7 @@ function Header({
 function OverviewPanel({
   startedTracks,
   students,
+  enrolledByStudent,
   summaries,
   records,
   loading,
@@ -456,6 +478,7 @@ function OverviewPanel({
 }: {
   startedTracks: TrackLike[];
   students: StudentRow[];
+  enrolledByStudent?: Map<string, Set<string>>;
   summaries: ReturnType<typeof summarizeAllStudents>;
   records: AttendanceRecord[];
   loading: boolean;
@@ -564,7 +587,14 @@ function OverviewPanel({
               <TrackTrendRow
                 key={track.slug}
                 track={track}
-                students={students}
+                // Scope the rate denominator to this track's enrolled learners,
+                // so program-roster accounts not in the track don't drag the
+                // weekly % down. Falls back to all students when unscoped.
+                students={
+                  enrolledByStudent
+                    ? students.filter((s) => enrolledByStudent.get(s.id)?.has(track.slug))
+                    : students
+                }
                 records={records}
                 onMark={() => onJumpToMark(track.slug)}
               />
