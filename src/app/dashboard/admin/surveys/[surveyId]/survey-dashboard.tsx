@@ -168,15 +168,22 @@ export function SurveyDashboard({
               })}
             </div>
           )}
-          <button
-            type="button"
-            onClick={downloadCsv}
-            disabled={total === 0}
-            className="inline-flex items-center gap-1.5 rounded-md border border-rule bg-paper-tint-soft px-3 py-1.5 text-xs font-medium text-ink hover:bg-paper-tint transition-colors disabled:opacity-40"
-          >
-            <Download size={13} />
-            CSV
-          </button>
+          {/* When embedded in Survey Insights, the parent already renders the
+              authoritative server-side "Export CSV" (which strips internal
+              _-fields and applies the student-record backfill). Showing this
+              client-side CSV too gave two buttons and leaked internal columns
+              like _cohort_track, so it only renders standalone. */}
+          {chrome !== "embedded" && (
+            <button
+              type="button"
+              onClick={downloadCsv}
+              disabled={total === 0}
+              className="inline-flex items-center gap-1.5 rounded-md border border-rule bg-paper-tint-soft px-3 py-1.5 text-xs font-medium text-ink hover:bg-paper-tint transition-colors disabled:opacity-40"
+            >
+              <Download size={13} />
+              CSV
+            </button>
+          )}
         </div>
       </header>
 
@@ -335,14 +342,18 @@ function ApplicantRosterDashboard({
               })}
             </div>
           )}
-          <button
-            type="button"
-            onClick={onDownloadCsv}
-            disabled={total === 0}
-            className="inline-flex items-center gap-1.5 rounded-md border border-rule bg-paper-tint-soft px-3 py-1.5 text-xs font-medium text-ink hover:bg-paper-tint transition-colors disabled:opacity-40"
-          >
-            ⬇️ CSV
-          </button>
+          {/* Hidden when embedded — Survey Insights renders the authoritative
+              server-side Export CSV above; two buttons leaked internal columns. */}
+          {chrome !== "embedded" && (
+            <button
+              type="button"
+              onClick={onDownloadCsv}
+              disabled={total === 0}
+              className="inline-flex items-center gap-1.5 rounded-md border border-rule bg-paper-tint-soft px-3 py-1.5 text-xs font-medium text-ink hover:bg-paper-tint transition-colors disabled:opacity-40"
+            >
+              ⬇️ CSV
+            </button>
+          )}
         </div>
       </header>
 
