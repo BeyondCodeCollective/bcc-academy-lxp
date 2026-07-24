@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 // Shared survey question types and field renderers. Used by both the in-app
 // SurveyWizard (authenticated dashboard) and the public survey wizard
 // (catalyst.bccacademy.io post-survey). Keeping them in one file means a
@@ -104,6 +106,16 @@ export type SelectQuestion = {
   required?: boolean;
 };
 
+export type FileQuestion = {
+  type: "file";
+  id: string;
+  label: string;
+  /** Comma-separated accept list for the picker, e.g. ".pdf,.doc,.docx". */
+  accept?: string;
+  helper?: string;
+  required?: boolean;
+};
+
 /** US states + DC, for the `select` state dropdown. */
 export const US_STATES: string[] = [
   "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado",
@@ -126,7 +138,8 @@ export type SurveyQuestion =
   | ConsentQuestion
   | DualLikertQuestion
   | DateQuestion
-  | SelectQuestion;
+  | SelectQuestion
+  | FileQuestion;
 
 export function isPageValid(
   questions: SurveyQuestion[],
@@ -157,6 +170,8 @@ export function isPageValid(
       if (!my || !my.month || !my.year) return false;
     } else if (q.type === "text" && q.zip) {
       if (typeof val !== "string" || !/^\d{5}$/.test(val.trim())) return false;
+    } else if (q.type === "file") {
+      if (typeof val !== "string" || !val.trim()) return false;
     } else {
       if (!val || (typeof val === "string" && !val.trim())) return false;
     }
@@ -168,12 +183,20 @@ export function QuestionRenderer({
   question,
   value,
   onChange,
+  onUploadFile,
 }: {
   question: SurveyQuestion;
   value: unknown;
   onChange: (val: unknown) => void;
+  // Validated server-side uploader, supplied by forms that use a `file`
+  // question (e.g. the public application). Returns the stored path.
+  onUploadFile?: (file: File) => Promise<{ ok: true; path: string } | { ok: false; error: string }>;
 }) {
   switch (question.type) {
+    case "file":
+      return (
+        <FileField question={question} value={value as string} onChange={onChange} onUploadFile={onUploadFile} />
+      );
     case "consent":
       return <ConsentField question={question} value={value as boolean} onChange={onChange} />;
     case "radio":
@@ -205,6 +228,85 @@ export function QuestionRenderer({
     case "select":
       return <SelectField question={question} value={value as string} onChange={onChange} />;
   }
+}
+
+// Client-side pre-checks mirror the server action's limits so users get instant
+// feedback — the server still re-validates and is the source of truth.
+const FILE_MAX_BYTES = 5 * 1024 * 1024;
+const FILE_ACCEPT_EXT = [".pdf", ".doc", ".docx"];
+
+function FileField({
+  question,
+  value,
+  onChange,
+  onUploadFile,
+}: {
+  question: FileQuestion;
+  value: string | undefined;
+  onChange: (val: unknown) => void;
+  onUploadFile?: (file: File) => Promise<{ ok: true; path: string } | { ok: false; error: string }>;
+}) {
+  const [status, setStatus] = useState<"idle" | "uploading" | "done" | "error">(
+    value ? "done" : "idle",
+  );
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-picking the same file after an error
+    if (!file) return;
+    setError(null);
+    if (!onUploadFile) {
+      setError("Uploads aren't available here.");
+      return;
+    }
+    if (file.size > FILE_MAX_BYTES) {
+      setStatus("error");
+      setError("That file is too large (max 5 MB).");
+      return;
+    }
+    const lc = file.name.toLowerCase();
+    if (!FILE_ACCEPT_EXT.some((ext) => lc.endsWith(ext))) {
+      setStatus("error");
+      setError("Please choose a PDF or Word document (.pdf, .doc, .docx).");
+      return;
+    }
+    setFileName(file.name);
+    setStatus("uploading");
+    const res = await onUploadFile(file);
+    if (res.ok) {
+      onChange(res.path);
+      setStatus("done");
+    } else {
+      setStatus("error");
+      setError(res.error);
+      onChange("");
+    }
+  }
+
+  return (
+    <div>
+      <label className="mb-2 block text-base font-medium text-ink">
+        {question.label}
+        {question.required ? <span className="text-red-500"> *</span> : null}
+      </label>
+      {question.helper && <p className="mb-2 text-sm text-ink-soft">{question.helper}</p>}
+      <label className="inline-flex cursor-pointer items-center gap-2 border border-neutral-300 bg-white px-4 py-2.5 text-sm font-medium text-ink hover:border-neutral-900">
+        <input
+          type="file"
+          accept={question.accept ?? FILE_ACCEPT_EXT.join(",")}
+          onChange={handleChange}
+          className="hidden"
+        />
+        {status === "uploading" ? "Uploading…" : status === "done" ? "Replace file" : "Choose file"}
+      </label>
+      {status === "done" && (
+        <p className="mt-2 text-sm text-green-700">✓ Uploaded{fileName ? `: ${fileName}` : ""}</p>
+      )}
+      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+    </div>
+  );
 }
 
 const EMAIL_RE = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;

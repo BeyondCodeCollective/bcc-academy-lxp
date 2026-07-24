@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { SurveyWizard } from "@/components/survey-wizard";
 import { HOME_FOR_SUMMER_APPLICATION_SURVEY_ID } from "@/lib/surveys/platform";
-import { savePublicApplication } from "./actions";
+import { savePublicApplication, uploadResume } from "./actions";
 
 export function PublicApplyForm() {
   const [email, setEmail] = useState("");
@@ -138,6 +138,11 @@ export function PublicApplyForm() {
         surveyId={HOME_FOR_SUMMER_APPLICATION_SURVEY_ID}
         programSlug="catalyst"
         onSubmit={handleSurveySubmit}
+        onUploadFile={async (file) => {
+          const fd = new FormData();
+          fd.append("file", file);
+          return uploadResume(fd);
+        }}
       />
     </div>
   );

@@ -5,6 +5,36 @@ import { Download } from "lucide-react";
 import type { SurveyQuestion } from "@/components/survey-fields";
 import type { BCCSurveyResponse } from "../../actions";
 import { aggregateDualLikert, aggregateLikertMeans } from "@/lib/surveys/aggregate";
+import { getResumeSignedUrl } from "@/app/apply/home-for-summer/actions";
+
+// Uploaded resumes live in a private bucket; admins fetch a short-lived signed
+// URL on demand rather than the path being publicly linkable.
+function ResumeDownload({ path }: { path: string }) {
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  async function open() {
+    setLoading(true);
+    setErr(null);
+    const res = await getResumeSignedUrl(path);
+    setLoading(false);
+    if (res.ok) window.open(res.url, "_blank", "noopener,noreferrer");
+    else setErr(res.error);
+  }
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={open}
+        disabled={loading}
+        className="inline-flex items-center gap-1.5 border border-rule bg-white px-3 py-1.5 text-sm font-medium text-ink hover:border-ink-faint disabled:opacity-50"
+      >
+        <Download size={13} />
+        {loading ? "Opening…" : "Download resume"}
+      </button>
+      {err && <p className="mt-1 text-sm text-red-600">{err}</p>}
+    </div>
+  );
+}
 
 interface Props {
   surveyId: string;
@@ -426,7 +456,9 @@ function ApplicantRosterDashboard({
                         <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-faint mb-1">
                           {q.label}
                         </p>
-                        {text ? (
+                        {text && text.startsWith("hfs/") ? (
+                          <ResumeDownload path={text} />
+                        ) : text ? (
                           <p className="text-[14px] text-ink leading-relaxed whitespace-pre-wrap">
                             {text}
                           </p>

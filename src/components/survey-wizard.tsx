@@ -1147,12 +1147,12 @@ const HOME_FOR_SUMMER_APPLICATION_PAGES: SurveyPage[] = [
         required: true,
       },
       {
-        type: "text",
-        id: "resume_link",
-        label: "Share a link to your resume (Google Drive, Dropbox, LinkedIn, etc.)",
-        placeholder: "Paste a shareable link — make sure viewing is turned on",
+        type: "file",
+        id: "resume",
+        label: "Upload your resume",
+        helper: "PDF or Word document (.pdf, .doc, .docx), up to 5 MB.",
+        accept: ".pdf,.doc,.docx",
         required: false,
-        short: true,
       },
       {
         type: "multi-select",
@@ -1467,9 +1467,11 @@ interface Props {
    *  called instead of saveSurveyResponse. The parent is responsible for
    *  rendering the post-submit state. */
   onSubmit?: (answers: Record<string, unknown>) => Promise<void>;
+  /** Validated server-side file uploader, for surveys with a `file` question. */
+  onUploadFile?: (file: File) => Promise<{ ok: true; path: string } | { ok: false; error: string }>;
 }
 
-export function SurveyWizard({ surveyId, programSlug, existingResponses, userId, onSubmit, initialAnswers }: Props) {
+export function SurveyWizard({ surveyId, programSlug, existingResponses, userId, onSubmit, initialAnswers, onUploadFile }: Props) {
   const router = useRouter();
   const storageKey = userId
     ? `survey-${surveyId}-${userId}-progress`
@@ -1626,6 +1628,7 @@ export function SurveyWizard({ surveyId, programSlug, existingResponses, userId,
             question={q}
             value={answers[q.id]}
             onChange={(val) => updateAnswer(q.id, val)}
+            onUploadFile={onUploadFile}
           />
         ))}
       </div>

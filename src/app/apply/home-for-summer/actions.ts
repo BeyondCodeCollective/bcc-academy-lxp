@@ -2,12 +2,74 @@
 
 import { after } from "next/server";
 import { savePublicSurveyResponse } from "@/app/survey/[id]/actions";
+import { createServiceClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/app/dashboard/admin/actions-shared";
 import {
   sendApplicationConfirmationEmail,
   sendApplicationNotification,
 } from "@/lib/email";
 
 const APPLICATION_NAME = "Home for the Summer";
+
+// Resume upload hardening. The form is public/anonymous, so the browser NEVER
+// touches storage directly (no anon storage policy exists). Every upload comes
+// through here, is validated server-side, and is written with the service role
+// into a private bucket. Defense-in-depth: the bucket also enforces the same
+// size + MIME limits on every write.
+const RESUME_MAX_BYTES = 5 * 1024 * 1024; // 5 MB
+const RESUME_TYPES: Record<string, string> = {
+  "application/pdf": "pdf",
+  "application/msword": "doc",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+};
+
+export async function uploadResume(
+  formData: FormData,
+): Promise<{ ok: true; path: string } | { ok: false; error: string }> {
+  const file = formData.get("file");
+  if (!(file instanceof File)) return { ok: false, error: "No file provided." };
+  if (file.size === 0) return { ok: false, error: "That file looks empty." };
+  if (file.size > RESUME_MAX_BYTES) return { ok: false, error: "File is too large (max 5 MB)." };
+
+  // Type allowlist by declared MIME AND extension — reject anything that isn't
+  // clearly a PDF/Word doc. We never execute these; they're only ever handed
+  // back to admins as a download via a signed URL.
+  const ext = RESUME_TYPES[file.type];
+  const nameLc = file.name.toLowerCase();
+  const extOk = ext && (nameLc.endsWith(`.${ext}`) || (ext === "doc" && nameLc.endsWith(".doc")));
+  if (!ext || !extOk) {
+    return { ok: false, error: "Please upload a PDF or Word document (.pdf, .doc, .docx)." };
+  }
+
+  // Never trust the filename as a path. Hardcode the prefix, use a random id,
+  // and sanitize the original name to a readable suffix (alnum/dot/dash only —
+  // no slashes, so no traversal).
+  const safeBase =
+    file.name.replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9._-]+/g, "-").slice(0, 60) || "resume";
+  const path = `hfs/${crypto.randomUUID()}-${safeBase}.${ext}`;
+
+  const { error } = await createServiceClient()
+    .storage.from("resumes")
+    .upload(path, file, { contentType: file.type, upsert: false });
+  if (error) {
+    console.error("uploadResume failed:", error.message);
+    return { ok: false, error: "Upload failed. Please try again." };
+  }
+  return { ok: true, path };
+}
+
+/** Admin-only: a short-lived signed download URL for a stored resume path. */
+export async function getResumeSignedUrl(
+  path: string,
+): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  await requireAdmin();
+  if (!path.startsWith("hfs/")) return { ok: false, error: "Invalid resume path." };
+  const { data, error } = await createServiceClient()
+    .storage.from("resumes")
+    .createSignedUrl(path, 60 * 5); // 5 minutes
+  if (error || !data?.signedUrl) return { ok: false, error: "Could not generate link." };
+  return { ok: true, url: data.signedUrl };
+}
 
 /** Reads a plain string answer, or undefined when absent/blank. */
 function answer(answers: Record<string, unknown>, key: string): string | undefined {
