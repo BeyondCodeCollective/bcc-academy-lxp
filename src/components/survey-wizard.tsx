@@ -1128,7 +1128,7 @@ const HOME_FOR_SUMMER_APPLICATION_PAGES: SurveyPage[] = [
         type: "radio",
         id: "available_all_sessions",
         label:
-          "Are you available for all five virtual sessions, August 10–14, 2026 (5:00–6:30 PM ET, 90 minutes each)?",
+          "Are you available for all five virtual sessions, August 10–14, 2026 (11:00 AM–12:30 PM ET, 90 minutes each)?",
         options: ["Yes", "No"],
         required: true,
       },
@@ -1145,6 +1145,14 @@ const HOME_FOR_SUMMER_APPLICATION_PAGES: SurveyPage[] = [
         label:
           "What career goals are you working toward, and which skills or areas do you feel you need to develop to reach them?",
         required: true,
+      },
+      {
+        type: "text",
+        id: "resume_link",
+        label: "Share a link to your resume (Google Drive, Dropbox, LinkedIn, etc.)",
+        placeholder: "Paste a shareable link — make sure viewing is turned on",
+        required: false,
+        short: true,
       },
       {
         type: "multi-select",
