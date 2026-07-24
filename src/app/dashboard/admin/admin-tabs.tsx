@@ -2089,6 +2089,18 @@ function PeopleTab({
     return matchesSearch && matchesRole && matchesTrack;
   });
 
+  // The pending list (pre-account invites/allowlist) must obey the SAME filters
+  // as the roster, or picking a cohort still shows everyone's pending rows mixed
+  // together. Pending people have no account yet, so role only gates them by
+  // "student" vs a specific staff role.
+  const filteredPending = pendingPeople.filter((p) => {
+    const matchesSearch =
+      !searchQuery || p.email.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesTrack = trackFilter === "all" || p.trackSlugs.includes(trackFilter);
+    const matchesRole = roleFilter === "all" || roleFilter === "student";
+    return matchesSearch && matchesTrack && matchesRole;
+  });
+
   function getStudentTrackSlugs(studentId: string) {
     return enrollments.filter((e) => e.student_id === studentId).map((e) => e.track_slug);
   }
@@ -2263,7 +2275,7 @@ function PeopleTab({
          weight and cross-track noise for them. */}
       {isManager && (
         <PendingPeopleSection
-          pending={pendingPeople}
+          pending={filteredPending}
           trackNames={Object.fromEntries(tracks.map((t) => [t.slug, t.shortName || t.name]))}
         />
       )}
