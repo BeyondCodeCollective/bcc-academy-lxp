@@ -121,7 +121,11 @@ export async function fetchProgressData(scope: ProgramScope): Promise<ProgressDa
       totalWeeks,
       enrolled,
       completed,
-      completionRate: enrolled > 0 ? Math.round((completed / enrolled) * 100) : 0,
+      // Clamp is belt-and-suspenders: the enrolled-set intersection above
+      // already guarantees completed <= enrolled, but this makes the metric
+      // definition ("capped at 100%") literally true regardless of upstream data.
+      completionRate:
+        enrolled > 0 ? Math.min(100, Math.round((completed / enrolled) * 100)) : 0,
       dropoff,
     });
   }
@@ -147,7 +151,9 @@ export async function fetchProgressData(scope: ProgramScope): Promise<ProgressDa
     totalEnrolled,
     totalCompleted,
     overallCompletionRate:
-      totalEnrolled > 0 ? Math.round((totalCompleted / totalEnrolled) * 100) : 0,
+      totalEnrolled > 0
+        ? Math.min(100, Math.round((totalCompleted / totalEnrolled) * 100))
+        : 0,
     medianDaysToComplete: median(days) === null ? null : Math.round(median(days)!),
   };
 }

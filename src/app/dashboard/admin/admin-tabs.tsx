@@ -47,6 +47,8 @@ import { CourseEngagement, type CourseEngagementProps } from "@/components/stats
 import { InsightsDashboard } from "./insights/insights-dashboard";
 import { AnalyticsDashboard } from "./analytics-dashboard";
 import type { EngagementAnalytics } from "./actions-analytics";
+import { CoursesDashboard } from "./courses-dashboard";
+import type { CoursesAnalytics } from "./actions-courses";
 import { TrackOverviewForm } from "./track-overview-form";
 import { OfficeHoursEditor } from "./office-hours-editor";
 import { ManageMenu } from "./manage-menu";
@@ -79,7 +81,7 @@ function AdminTopTabs({
   isManager = true,
 }: {
   current: "courses" | "students" | "student-work" | "analytics";
-  sub?: "attendance" | "insights" | "analytics";
+  sub?: "attendance" | "insights" | "analytics" | "course-progress";
   showInsights: boolean;
   /** Right-aligned on the tab row (e.g. the Manage menu on Courses). */
   actions?: React.ReactNode;
@@ -110,6 +112,7 @@ function AdminTopTabs({
     { id: "attendance", label: "Attendance", href: "/dashboard/admin?tab=attendance", show: true },
     { id: "insights", label: "Survey insights", href: "/dashboard/admin?tab=insights", show: showInsights },
     { id: "analytics", label: "Engagement", href: "/dashboard/admin?tab=analytics", show: showInsights },
+    { id: "course-progress", label: "Courses", href: "/dashboard/admin?tab=course-progress", show: showInsights },
   ];
   // One segment is not a choice — hide the picker until there are at least two.
   const visibleSegments = segments.filter((t) => t.show);
@@ -546,6 +549,7 @@ export function AdminTabs({
   lunchLearnRecordings = [],
   insightsData = null,
   analyticsData = null,
+  coursesData = null,
   courseEngagement = null,
   pendingPeople = [],
   alumniEnrollments = [],
@@ -574,6 +578,7 @@ export function AdminTabs({
   lunchLearnRecordings?:{ id: string; title: string; presenter: string; recording_url: string; description: string | null; recorded_at: string }[];
   insightsData?: InsightsData | null;
   analyticsData?: EngagementAnalytics | null;
+  coursesData?: CoursesAnalytics | null;
   courseEngagement?: CourseEngagementProps | null;
   pendingPeople?: PendingPerson[];
   alumniEnrollments?: { track_slug: string; email: string; source: string }[];
@@ -1674,6 +1679,22 @@ export function AdminTabs({
             <AnalyticsDashboard data={analyticsData} />
           ) : (
             <p className="text-sm text-ink-faint">No analytics available for this program.</p>
+          )}
+        </div>
+      )}
+
+      {/* Courses & Progress — completion funnel, distribution, and per-course /
+         per-student progress. Scoped to the current program like Engagement. */}
+      {tab === "course-progress" && (
+        <div className="space-y-6">
+          <AdminTopTabs current="analytics" sub="course-progress" showInsights={canViewInsights(userRole)} isManager={isManager} />
+          {coursesData && (
+            <p className="text-sm text-ink-soft">{coursesData.programName} — course completion &amp; per-student progress</p>
+          )}
+          {coursesData ? (
+            <CoursesDashboard data={coursesData} />
+          ) : (
+            <p className="text-sm text-ink-faint">No course analytics available for this program.</p>
           )}
         </div>
       )}

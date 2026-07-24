@@ -18,6 +18,7 @@ import { fetchPendingPeople, type PendingPerson } from "@/lib/people-hub";
 import { getCourseEngagement, getCourseRosterStats } from "@/lib/course-engagement";
 import { resolveCurrentUnit, resolveTrackPhase, formatCohortDate } from "@/lib/utils";
 import { getEngagementAnalytics, type EngagementAnalytics } from "./actions-analytics";
+import { getCoursesAnalytics, type CoursesAnalytics } from "./actions-courses";
 import type { CourseEngagementProps } from "@/components/stats/course-engagement";
 
 export type InsightsData = {
@@ -72,6 +73,7 @@ export default async function AdminPage({
   const needsLunchLearns = effectiveTab === "lunch-learn";
   const needsInsightsData = effectiveTab === "insights";
   const needsAnalyticsData = effectiveTab === "analytics";
+  const needsCoursesData = effectiveTab === "course-progress";
   void needsSurveyStats; // kept as a named constant for the gated query below
   let allStudents: Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "is_staff" | "cohort_id" | "last_seen_at" | "last_activity_at" | "zip" | "state" | "date_of_birth">[] = [];
   let allCohorts: { id: string; name: string; display_name: string | null; track_slug: string | null; start_date: string | null; total_weeks: number | null }[] = [];
@@ -85,6 +87,7 @@ export default async function AdminPage({
   let lunchLearnRecordings: LunchLearnRow[] = [];
   let insightsData: InsightsData | null = null;
   let analyticsData: EngagementAnalytics | null = null;
+  let coursesData: CoursesAnalytics | null = null;
   let courseEngagement: CourseEngagementProps | null = null;
   let courseStats: Record<
     string,
@@ -418,6 +421,11 @@ export default async function AdminPage({
       analyticsData = await getEngagementAnalytics().catch(() => null);
     }
 
+    // Courses & Progress analytics — same current-program scoping as Engagement.
+    if (canViewInsights(userRole) && needsCoursesData) {
+      coursesData = await getCoursesAnalytics().catch(() => null);
+    }
+
     // Enrolled + active per course for the course-picker list. Computed here
     // rather than on the client, which only has program-scoped students and a
     // browsing timestamp: that undercounts the roster (learners whose
@@ -604,6 +612,7 @@ export default async function AdminPage({
         lunchLearnRecordings={lunchLearnRecordings}
         insightsData={insightsData}
         analyticsData={analyticsData}
+        coursesData={coursesData}
         courseEngagement={courseEngagement}
         pendingPeople={pendingPeople}
         alumniEnrollments={alumniEnrollments}

@@ -4,6 +4,14 @@ import { requireCapability } from "./actions-shared";
 import { getProgram } from "@/lib/programs/server";
 import { resolveProgramScope } from "@/lib/programs/scope";
 import { isEngaged } from "@/lib/analytics/engagement";
+import {
+  type RangePreset,
+  type Delta,
+  type Period,
+  resolveRange,
+  delta,
+  formatPeriod,
+} from "@/lib/analytics/period";
 
 /** Whole-years age from a YYYY-MM-DD birth date, or null. */
 function ageFromDob(dob: string | null): number | null {
@@ -265,5 +273,112 @@ export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
     funnel: { invited, activated: studs.length, engaged: engaged.size },
     learners,
     trackOptions,
+  };
+}
+
+// ─── Compare-to-previous trends ──────────────────────────────────────────────
+// A separate, range-aware layer that period-compares only the metrics with a
+// real event timestamp. Kept apart from getEngagementAnalytics (which is
+// current-state) so the funnel/table stay untouched. Each metric is counted for
+// the current window and the equal-length window before it, via a .gte/.lt pair
+// on the event's own timestamp column.
+
+export type EngagementTrends = {
+  rangeLabel: string;
+  periodLabel: string;
+  activeLearners: Delta;
+  lessonsWatched: Delta;
+  attended: Delta;
+  submitted: Delta;
+};
+
+export async function getEngagementTrends(
+  preset: RangePreset,
+): Promise<EngagementTrends> {
+  const { svc } = await requireCapability("view_insights");
+  const program = await getProgram();
+  const scope = await resolveProgramScope(program.slug);
+  const ids = scope.ids;
+  const { current, previous } = resolveRange(preset);
+
+  const empty = (): Delta => delta(0, 0);
+  const base: EngagementTrends = {
+    rangeLabel: preset,
+    periodLabel: formatPeriod(current),
+    activeLearners: empty(),
+    lessonsWatched: empty(),
+    attended: empty(),
+    submitted: empty(),
+  };
+  if (ids.length === 0) return base;
+
+  // Learners only, matching getEngagementAnalytics' exclusions so the two
+  // surfaces agree on who counts.
+  const { data: students } = await svc
+    .from("students")
+    .select("id")
+    .in("program_id", ids)
+    .eq("role", "student")
+    .eq("is_test", false)
+    .eq("is_staff", false);
+  const studentIds = ((students ?? []) as { id: string }[]).map((s) => s.id);
+  if (studentIds.length === 0) return base;
+
+  const iso = (d: Date) => d.toISOString();
+
+  // Fetch the (id, timestamp) rows once per event, spanning both windows, then
+  // bucket in memory — one round-trip per table instead of four.
+  const spanStart = iso(previous.start);
+  const spanEnd = iso(current.end);
+  const [videoRows, attendRows, submitRows] = await Promise.all([
+    svc
+      .from("week_progress")
+      .select("user_id, video_watched_at")
+      .in("user_id", studentIds)
+      .gte("video_watched_at", spanStart)
+      .lt("video_watched_at", spanEnd),
+    svc
+      .from("attendance")
+      .select("student_id, checked_in_at")
+      .in("student_id", studentIds)
+      .in("program_id", ids)
+      .gte("checked_in_at", spanStart)
+      .lt("checked_in_at", spanEnd),
+    svc
+      .from("submissions")
+      .select("student_id, submitted_at")
+      .in("student_id", studentIds)
+      .gte("submitted_at", spanStart)
+      .lt("submitted_at", spanEnd),
+  ]);
+
+  const inPeriod = (ts: string | null, p: Period) =>
+    !!ts && ts >= iso(p.start) && ts < iso(p.end);
+
+  // Count events + collect distinct active learners, per window.
+  let vCur = 0, vPrev = 0, aCur = 0, aPrev = 0, sCur = 0, sPrev = 0;
+  const activeCur = new Set<string>();
+  const activePrev = new Set<string>();
+
+  for (const r of (videoRows.data ?? []) as { user_id: string; video_watched_at: string | null }[]) {
+    if (inPeriod(r.video_watched_at, current)) { vCur++; activeCur.add(r.user_id); }
+    else if (inPeriod(r.video_watched_at, previous)) { vPrev++; activePrev.add(r.user_id); }
+  }
+  for (const r of (attendRows.data ?? []) as { student_id: string; checked_in_at: string | null }[]) {
+    if (inPeriod(r.checked_in_at, current)) { aCur++; activeCur.add(r.student_id); }
+    else if (inPeriod(r.checked_in_at, previous)) { aPrev++; activePrev.add(r.student_id); }
+  }
+  for (const r of (submitRows.data ?? []) as { student_id: string; submitted_at: string | null }[]) {
+    if (inPeriod(r.submitted_at, current)) { sCur++; activeCur.add(r.student_id); }
+    else if (inPeriod(r.submitted_at, previous)) { sPrev++; activePrev.add(r.student_id); }
+  }
+
+  return {
+    rangeLabel: preset,
+    periodLabel: formatPeriod(current),
+    activeLearners: delta(activeCur.size, activePrev.size),
+    lessonsWatched: delta(vCur, vPrev),
+    attended: delta(aCur, aPrev),
+    submitted: delta(sCur, sPrev),
   };
 }

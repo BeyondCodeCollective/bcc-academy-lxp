@@ -1,7 +1,91 @@
 "use client";
 
-import { Fragment, useMemo, useState } from "react";
-import type { EngagementAnalytics, EngagementLearner } from "./actions-analytics";
+import { Fragment, useEffect, useMemo, useState, useTransition } from "react";
+import type { EngagementAnalytics, EngagementLearner, EngagementTrends } from "./actions-analytics";
+import { getEngagementTrends } from "./actions-analytics";
+import { StatCard, type StatTrend } from "@/components/stats/stat-card";
+import { METRIC_DEFS } from "@/lib/analytics/metric-defs";
+import { RANGE_LABELS, type RangePreset, type Delta } from "@/lib/analytics/period";
+
+// Turn a period-over-period Delta into a StatCard trend chip. No chip when the
+// prior window was zero — an "∞%" jump is noise, not signal, so we stay silent
+// rather than fabricate a number. Up is good for every metric here (more
+// activity is better).
+function trendFor(d: Delta): StatTrend | undefined {
+  if (d.pct === null) return undefined;
+  return {
+    dir: d.dir,
+    text: `${Math.abs(d.pct)}%`,
+    good: d.dir === "up",
+    vs: d.prev.toLocaleString(),
+  };
+}
+
+// Compare-to-previous headline row. Self-contained: owns the range preset and
+// refetches period-compared metrics from the server action when it changes.
+// Only event-timestamped metrics live here (see period.ts) — current-state
+// counts stay in the funnel below, deltas would be dishonest.
+function TrendsRow() {
+  const [preset, setPreset] = useState<RangePreset>("90d");
+  const [trends, setTrends] = useState<EngagementTrends | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  useEffect(() => {
+    let live = true;
+    startTransition(async () => {
+      const t = await getEngagementTrends(preset);
+      if (live) setTrends(t);
+    });
+    return () => {
+      live = false;
+    };
+  }, [preset]);
+
+  const cards: { key: keyof typeof METRIC_DEFS; label: string; d: Delta | null }[] = [
+    { key: "activeMembers", label: "Active learners", d: trends?.activeLearners ?? null },
+    { key: "lessonsWatched", label: "Lessons watched", d: trends?.lessonsWatched ?? null },
+    { key: "activeStudents", label: "Sessions attended", d: trends?.attended ?? null },
+    { key: "activeStudents", label: "Work submitted", d: trends?.submitted ?? null },
+  ];
+
+  return (
+    <section className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="inline-flex rounded-lg border border-rule bg-white p-0.5">
+          {(Object.keys(RANGE_LABELS) as RangePreset[]).map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => setPreset(p)}
+              aria-pressed={preset === p}
+              className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${
+                preset === p ? "bg-ink text-white" : "text-ink-soft hover:text-ink"
+              }`}
+            >
+              {RANGE_LABELS[p]}
+            </button>
+          ))}
+        </div>
+        {trends && (
+          <span className="text-xs text-ink-faint">
+            {trends.periodLabel} · vs previous period
+          </span>
+        )}
+      </div>
+      <div className={`grid grid-cols-2 gap-3 transition-opacity sm:grid-cols-4 ${pending ? "opacity-50" : ""}`}>
+        {cards.map((c, i) => (
+          <StatCard
+            key={i}
+            value={c.d ? c.d.value.toLocaleString() : "—"}
+            label={c.label}
+            info={METRIC_DEFS[c.key]}
+            trend={c.d ? trendFor(c.d) : undefined}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
 
 // Program-level engagement: the activation funnel + a per-learner activity
 // table. Scoped server-side to the current program, so it reflects the program
@@ -70,6 +154,7 @@ export function AnalyticsDashboard({ data }: { data: EngagementAnalytics }) {
 
   return (
     <div className="space-y-8">
+      <TrendsRow />
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {cards.map((c) => {
           return (
