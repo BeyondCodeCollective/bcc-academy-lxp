@@ -57,6 +57,30 @@ function cohortColor(name: string, cohorts: string[]): string {
   return idx >= 0 ? PALETTE[idx % PALETTE.length] : "#6B7280";
 }
 
+// Grant-critical columns. The export flattens survey answers, so a blank here
+// ships an incomplete grant file. We flag only a field the survey actually
+// collects (some response filled it), then count the rows that left it empty —
+// so a partial CSV can't go out unnoticed, the way the early intake rows did.
+const GRANT_FIELDS: { id: string; label: string }[] = [
+  { id: "full_name", label: "name" },
+  { id: "zip_code", label: "ZIP" },
+  { id: "date_of_birth", label: "DOB" },
+  { id: "intake_consent", label: "consent" },
+];
+
+function grantFieldValue(r: BCCSurveyResponse, id: string): string | null {
+  const raw = id === "full_name" ? (r.responses?.full_name ?? r.full_name) : r.responses?.[id];
+  const s = raw == null ? "" : String(raw).trim();
+  return s.length ? s : null;
+}
+
+function grantCompleteness(responses: BCCSurveyResponse[]): { label: string; count: number }[] {
+  return GRANT_FIELDS
+    .filter((f) => responses.some((r) => grantFieldValue(r, f.id) != null))
+    .map((f) => ({ label: f.label, count: responses.filter((r) => grantFieldValue(r, f.id) == null).length }))
+    .filter((m) => m.count > 0);
+}
+
 export function InsightsDashboard({
   sections,
   programs,
@@ -409,6 +433,17 @@ export function InsightsDashboard({
               </a>
             </div>
           </div>
+          {(() => {
+            const gaps = grantCompleteness(active.responses);
+            if (gaps.length === 0) return null;
+            return (
+              <div className="mb-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                Heads up before you export:{" "}
+                {gaps.map((g) => `${g.count} ${g.count === 1 ? "response is" : "responses are"} missing ${g.label}`).join(" · ")}
+                . Those cells will be blank in the CSV.
+              </div>
+            );
+          })()}
           <SurveyDashboard
             surveyId={active.survey.id}
             surveyTitle={active.survey.title}
