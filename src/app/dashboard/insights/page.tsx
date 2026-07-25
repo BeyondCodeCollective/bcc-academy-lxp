@@ -237,7 +237,7 @@ export default async function InsightsPage() {
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-ink">
-            Analytics
+            Overview
           </h1>
           <p className="mt-1 text-sm text-ink-soft">
             {program.slug === "catalyst"
@@ -249,7 +249,7 @@ export default async function InsightsPage() {
           href="/dashboard/admin?tab=insights"
           className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-soft transition-colors hover:text-ink"
         >
-          Survey Insights
+          Insights
           <ArrowRight size={11} weight="bold" />
         </Link>
       </header>
