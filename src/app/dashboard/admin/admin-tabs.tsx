@@ -1671,10 +1671,6 @@ export function AdminTabs({
       {tab === "analytics" && (
         <div className="space-y-6">
           <AdminTopTabs current="analytics" sub="analytics" showInsights={canViewInsights(userRole)} isManager={isManager} />
-          {/* Program context only — the lit Engagement segment is the title. */}
-          {analyticsData && (
-            <p className="text-sm text-ink-soft">{analyticsData.programName} — activation funnel &amp; per-learner activity</p>
-          )}
           {analyticsData ? (
             <AnalyticsDashboard data={analyticsData} />
           ) : (
@@ -1688,9 +1684,6 @@ export function AdminTabs({
       {tab === "course-progress" && (
         <div className="space-y-6">
           <AdminTopTabs current="analytics" sub="course-progress" showInsights={canViewInsights(userRole)} isManager={isManager} />
-          {coursesData && (
-            <p className="text-sm text-ink-soft">{coursesData.programName} — course completion &amp; per-student progress</p>
-          )}
           {coursesData ? (
             <CoursesDashboard data={coursesData} />
           ) : (
