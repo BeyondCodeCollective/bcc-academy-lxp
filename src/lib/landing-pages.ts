@@ -61,6 +61,8 @@ export type LandingPage = {
   /** Application-based programs: primary CTA links here instead of a form. */
   applyUrl: string | null;
   applyCtaLabel: string | null;
+  /** Social/OG card image; falls back to the hero image. */
+  ogImage: string | null;
 };
 
 /** Loads a published marketing landing page by slug (the /bcc/[slug] template
@@ -103,6 +105,7 @@ export async function getLandingPage(slug: string): Promise<LandingPage | null> 
     enrollCtaLabel: (data.enroll_cta_label as string | null) ?? null,
     applyUrl: (data.apply_url as string | null) ?? null,
     applyCtaLabel: (data.apply_cta_label as string | null) ?? null,
+    ogImage: (data.og_image as string | null) ?? null,
   };
 }
 
