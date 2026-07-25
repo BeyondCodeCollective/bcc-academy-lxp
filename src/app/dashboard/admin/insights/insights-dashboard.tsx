@@ -7,7 +7,6 @@ import type { SurveyQuestion } from "@/components/survey-fields";
 import type { BCCSurveyResponse } from "../actions";
 import type { SurveyConfig } from "@/lib/programs/types";
 import { StatCard } from "@/components/stats/stat-card";
-import { SectionLabel, ANALYTICS_SELECT_CLASS } from "../analytics-ui";
 import { normalizeCohortLabel } from "@/lib/surveys/cohort-labels";
 
 interface Section {
@@ -252,7 +251,7 @@ export function InsightsDashboard({
               id="cohort-filter"
               value={cohortFilter}
               onChange={(e) => changeCohort(e.target.value)}
-              className={ANALYTICS_SELECT_CLASS}
+              className="border border-rule bg-white px-2.5 py-1.5 text-sm text-ink focus:border-ink-faint focus:outline-none"
             >
               <option value="all">All cohorts</option>
               {allCohorts.map((c) => (
@@ -281,9 +280,9 @@ export function InsightsDashboard({
 
       {/* Survey cards */}
       <section>
-        <div className="mb-3">
-          <SectionLabel>Surveys</SectionLabel>
-        </div>
+        <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.14em] text-ink-faint">
+          Surveys
+        </p>
         {cohortFilter !== "all" && visibleLedger.length === 0 ? (
           <div className="border border-rule bg-surface-elevated p-6 text-center">
             <p className="text-sm text-ink-soft">
