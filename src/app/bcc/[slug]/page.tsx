@@ -313,6 +313,21 @@ export default async function CampLandingPage({
               page.heroFit === "contain" ? "object-contain" : "object-cover"
             }`}
           />
+          {page.sponsorLogoUrl && (
+            <div className="absolute top-6 right-6 md:top-8 md:right-8">
+              <span
+                className="block text-[9px] font-semibold uppercase tracking-[0.18em] text-white/70"
+              >
+                In partnership with
+              </span>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={page.sponsorLogoUrl}
+                alt="Sponsor"
+                className="mt-1.5 h-6 w-auto md:h-7"
+              />
+            </div>
+          )}
         </div>
       )}
     </div>
