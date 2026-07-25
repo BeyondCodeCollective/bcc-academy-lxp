@@ -41,9 +41,10 @@ function TrendsRow() {
     };
   }, [preset]);
 
+  // "Lessons watched" is intentionally omitted — we run live sessions, not
+  // pre-recorded video, so a watched-lesson count is always ~0 and misleading.
   const cards: { key: keyof typeof METRIC_DEFS; label: string; d: Delta | null }[] = [
     { key: "activeMembers", label: "Active learners", d: trends?.activeLearners ?? null },
-    { key: "lessonsWatched", label: "Lessons watched", d: trends?.lessonsWatched ?? null },
     { key: "activeStudents", label: "Sessions attended", d: trends?.attended ?? null },
     { key: "activeStudents", label: "Work submitted", d: trends?.submitted ?? null },
   ];
@@ -72,7 +73,7 @@ function TrendsRow() {
           </span>
         )}
       </div>
-      <div className={`grid grid-cols-2 gap-3 transition-opacity sm:grid-cols-4 ${pending ? "opacity-50" : ""}`}>
+      <div className={`grid grid-cols-1 gap-3 transition-opacity sm:grid-cols-3 ${pending ? "opacity-50" : ""}`}>
         {cards.map((c, i) => (
           <StatCard
             key={i}
