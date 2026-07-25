@@ -150,7 +150,7 @@ export function InsightsDashboard({ sections, programs }: Props) {
   }, [activeSection, multiCohort, cohortFilter]);
 
   const scopedCount = scopedResponses.length;
-  const series = useMemo(() => weeklySeries(scopedResponses), [scopedResponses]);
+  const series = useMemo(() => responseSeries(scopedResponses), [scopedResponses]);
   const shownCohorts =
     multiCohort && cohortFilter !== "all"
       ? surveyCohorts.filter((c) => c.name === cohortFilter)
@@ -189,7 +189,7 @@ export function InsightsDashboard({ sections, programs }: Props) {
         <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
           <div className="flex flex-wrap items-end gap-3">
             <label className="flex flex-col gap-1.5">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-faint">Survey</span>
+              <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-faint">Form</span>
               <select
                 value={activeId ?? ""}
                 onChange={(e) => selectSurvey(e.target.value)}
@@ -224,13 +224,16 @@ export function InsightsDashboard({ sections, programs }: Props) {
           </p>
         </div>
 
-        {/* Weekly responses — value on each bar, date under it. */}
-        {series.length > 0 && (
+        {/* Responses over time — value on each bar, date under it. Granularity
+           (day vs week) adapts to the collection window and is labeled so a
+           weekly bucket is never misread as a single day. */}
+        {series.bars.length > 0 && (
           <div className="mt-5">
             <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-faint">
-              Responses over time
+              Responses over time{" "}
+              <span className="font-medium normal-case text-ink-faint">· by {series.granularity}</span>
             </p>
-            <ResponsesChart series={series} />
+            <ResponsesChart bars={series.bars} />
           </div>
         )}
 
@@ -353,16 +356,16 @@ function StatTile({
 
 // Weekly responses bar chart — the count sits ON each bar, the week date under
 // it, so every bar reads at a glance without hovering.
-function ResponsesChart({ series }: { series: { label: string; count: number }[] }) {
-  const max = Math.max(1, ...series.map((b) => b.count));
+function ResponsesChart({ bars }: { bars: SeriesBar[] }) {
+  const max = Math.max(1, ...bars.map((b) => b.count));
   return (
     <>
       <div className="flex items-end gap-1">
-        {series.map((b, i) => (
+        {bars.map((b, i) => (
           <div
             key={i}
             className="flex min-w-0 flex-1 flex-col items-center justify-end gap-1"
-            title={`Week of ${b.label} · ${b.count} response${b.count === 1 ? "" : "s"}`}
+            title={b.tip}
           >
             <span className="text-[10px] font-semibold tabular-nums text-ink-faint">{b.count}</span>
             <div
@@ -373,7 +376,7 @@ function ResponsesChart({ series }: { series: { label: string; count: number }[]
         ))}
       </div>
       <div className="mt-1.5 flex gap-1">
-        {series.map((b, i) => (
+        {bars.map((b, i) => (
           <div key={i} className="flex-1 text-center text-[10px] tabular-nums text-ink-faint">{b.label}</div>
         ))}
       </div>
@@ -381,41 +384,46 @@ function ResponsesChart({ series }: { series: { label: string; count: number }[]
   );
 }
 
-// Responses per ISO week (Monday-based) across a survey's responses, for the
-// bar chart. Capped to the most recent 8 weeks so a long-running survey stays
-// readable. Derived from completed_at.
-function weeklySeries(
-  responses: BCCSurveyResponse[],
-  maxBars = 8,
-): { label: string; count: number }[] {
+type SeriesBar = { label: string; count: number; tip: string };
+type SeriesData = { bars: SeriesBar[]; granularity: "day" | "week" };
+
+// Responses over time, derived from completed_at. Granularity adapts to the
+// collection window: a form that's open a short while (applications, agreements)
+// buckets by DAY so the real daily shape shows — a Mon–Sun weekly bucket labeled
+// "Jul 20" reads as "17 on the 20th" when really they trickled in across the
+// week. Long-running surveys bucket by week so the chart stays legible.
+function responseSeries(responses: BCCSurveyResponse[]): SeriesData {
   const times = responses
     .map((r) => r.completed_at)
     .filter((d): d is string => !!d)
     .map((d) => new Date(d).getTime())
     .filter((t) => !Number.isNaN(t));
-  if (times.length === 0) return [];
-  const WEEK = 7 * 86_400_000;
-  const weekStart = (t: number) => {
+  if (times.length === 0) return { bars: [], granularity: "day" };
+  const DAY = 86_400_000;
+  const min = Math.min(...times);
+  const max = Math.max(...times);
+  const daily = Math.round((max - min) / DAY) <= 14;
+  const step = daily ? DAY : 7 * DAY;
+  const bucket = (t: number) => {
     const d = new Date(t);
     d.setHours(0, 0, 0, 0);
-    d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); // back to Monday
+    if (!daily) d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); // back to Monday
     return d.getTime();
   };
   const counts = new Map<number, number>();
   for (const t of times) {
-    const w = weekStart(t);
-    counts.set(w, (counts.get(w) ?? 0) + 1);
+    const b = bucket(t);
+    counts.set(b, (counts.get(b) ?? 0) + 1);
   }
-  const first = weekStart(Math.min(...times));
-  const last = weekStart(Math.max(...times));
-  const weeks: { label: string; count: number }[] = [];
-  for (let w = first; w <= last; w += WEEK) {
-    weeks.push({
-      label: new Date(w).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-      count: counts.get(w) ?? 0,
-    });
+  const bars: SeriesBar[] = [];
+  for (let b = bucket(min); b <= bucket(max); b += step) {
+    const label = new Date(b).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    const count = counts.get(b) ?? 0;
+    const noun = count === 1 ? "response" : "responses";
+    bars.push({ label, count, tip: `${daily ? "" : "Week of "}${label} · ${count} ${noun}` });
   }
-  return weeks.length > maxBars ? weeks.slice(-maxBars) : weeks;
+  const cap = daily ? 14 : 8;
+  return { bars: bars.length > cap ? bars.slice(-cap) : bars, granularity: daily ? "day" : "week" };
 }
 
 

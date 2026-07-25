@@ -110,7 +110,7 @@ function AdminTopTabs({
   const tabs = isManager ? allTabs : allTabs.filter((t) => t.id === "courses");
   const segments = [
     { id: "attendance", label: "Attendance", href: "/dashboard/admin?tab=attendance", show: true },
-    { id: "insights", label: "Survey insights", href: "/dashboard/admin?tab=insights", show: showInsights },
+    { id: "insights", label: "Insights", href: "/dashboard/admin?tab=insights", show: showInsights },
     { id: "analytics", label: "Engagement", href: "/dashboard/admin?tab=analytics", show: showInsights },
     { id: "course-progress", label: "Courses", href: "/dashboard/admin?tab=course-progress", show: showInsights },
   ];
