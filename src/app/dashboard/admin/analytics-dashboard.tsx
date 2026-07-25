@@ -5,7 +5,8 @@ import type { EngagementAnalytics, EngagementLearner, EngagementTrends } from ".
 import { getEngagementTrends } from "./actions-analytics";
 import { StatCard, type StatTrend } from "@/components/stats/stat-card";
 import { METRIC_DEFS } from "@/lib/analytics/metric-defs";
-import { RANGE_LABELS, type RangePreset, type Delta } from "@/lib/analytics/period";
+import { type RangePreset, type Delta } from "@/lib/analytics/period";
+import { SectionLabel, RangeBar, ANALYTICS_SELECT_CLASS } from "./analytics-ui";
 
 // Turn a period-over-period Delta into a StatCard trend chip. No chip when the
 // prior window was zero — an "∞%" jump is noise, not signal, so we stay silent
@@ -41,38 +42,26 @@ function TrendsRow() {
     };
   }, [preset]);
 
+  // Only the metrics that mean something for a LIVE cohort: sessions attended
+  // and work submitted, each with its period-over-period trend. "Lessons
+  // watched" is dropped — these are live events, not pre-recorded video, so it
+  // was always 0 and pure noise. "Active learners" is dropped too — it's the
+  // same people as the funnel's "Engaged" and reading the same number twice
+  // just added confusion.
   const cards: { key: keyof typeof METRIC_DEFS; label: string; d: Delta | null }[] = [
-    { key: "activeMembers", label: "Active learners", d: trends?.activeLearners ?? null },
-    { key: "lessonsWatched", label: "Lessons watched", d: trends?.lessonsWatched ?? null },
-    { key: "activeStudents", label: "Sessions attended", d: trends?.attended ?? null },
-    { key: "activeStudents", label: "Work submitted", d: trends?.submitted ?? null },
+    { key: "sessionsAttended", label: "Sessions attended", d: trends?.attended ?? null },
+    { key: "workSubmitted", label: "Work submitted", d: trends?.submitted ?? null },
   ];
 
   return (
     <section className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="inline-flex rounded-lg border border-rule bg-white p-0.5">
-          {(Object.keys(RANGE_LABELS) as RangePreset[]).map((p) => (
-            <button
-              key={p}
-              type="button"
-              onClick={() => setPreset(p)}
-              aria-pressed={preset === p}
-              className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${
-                preset === p ? "bg-ink text-white" : "text-ink-soft hover:text-ink"
-              }`}
-            >
-              {RANGE_LABELS[p]}
-            </button>
-          ))}
-        </div>
-        {trends && (
-          <span className="text-xs text-ink-faint">
-            {trends.periodLabel} · vs previous period
-          </span>
-        )}
-      </div>
-      <div className={`grid grid-cols-2 gap-3 transition-opacity sm:grid-cols-4 ${pending ? "opacity-50" : ""}`}>
+      <RangeBar
+        preset={preset}
+        onPreset={setPreset}
+        periodLabel={trends ? `${trends.periodLabel} · vs previous period` : undefined}
+      />
+      <SectionLabel>Activity</SectionLabel>
+      <div className={`grid grid-cols-2 gap-3 transition-opacity ${pending ? "opacity-50" : ""}`}>
         {cards.map((c, i) => (
           <StatCard
             key={i}
@@ -155,21 +144,18 @@ export function AnalyticsDashboard({ data }: { data: EngagementAnalytics }) {
   return (
     <div className="space-y-8">
       <TrendsRow />
-      <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        {cards.map((c) => {
-          return (
-            <div key={c.label} className="rounded-xl border border-rule bg-white p-5">
-              <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-bold tracking-tight text-ink">{c.value}</span>
-                {c.pctLabel !== null && (
-                  <span className="text-xs font-medium text-ink-faint">{c.pctLabel}</span>
-                )}
-              </div>
-              <div className="mt-1 text-sm font-semibold text-ink">{c.label}</div>
-              <div className="text-xs text-ink-faint">{c.sublabel}</div>
-            </div>
-          );
-        })}
+      <section className="space-y-3">
+        <SectionLabel>Enrollment funnel</SectionLabel>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {cards.map((c) => (
+            <StatCard
+              key={c.label}
+              value={c.value}
+              label={c.label}
+              hint={c.pctLabel ? `${c.pctLabel} · ${c.sublabel}` : c.sublabel}
+            />
+          ))}
+        </div>
       </section>
 
       <section className="space-y-2">
@@ -183,7 +169,7 @@ export function AnalyticsDashboard({ data }: { data: EngagementAnalytics }) {
                 value={track}
                 onChange={(e) => setTrack(e.target.value)}
                 aria-label="Filter by track"
-                className="border border-rule bg-white px-2.5 py-1.5 text-sm text-ink focus:border-ink-faint focus:outline-none"
+                className={ANALYTICS_SELECT_CLASS}
               >
                 <option value="">All tracks</option>
                 {availableTracks.map((t) => (
@@ -196,13 +182,13 @@ export function AnalyticsDashboard({ data }: { data: EngagementAnalytics }) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Filter by name or email…"
-              className="w-48 border border-rule bg-white px-2.5 py-1.5 text-sm text-ink placeholder:text-ink-faint focus:border-ink-faint focus:outline-none sm:w-64"
+              className="w-48 rounded-lg border border-rule bg-white px-2.5 py-1.5 text-sm text-ink placeholder:text-ink-faint focus:border-ink-faint focus:outline-none sm:w-64"
             />
             <button
               type="button"
               onClick={() => downloadCsv(filtered, data.programName, track, trackName)}
               disabled={filtered.length === 0}
-              className="border border-rule bg-white px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:border-ink-faint disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-lg border border-rule bg-white px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:border-ink-faint disabled:cursor-not-allowed disabled:opacity-50"
             >
               Export CSV · {filtered.length}
             </button>
