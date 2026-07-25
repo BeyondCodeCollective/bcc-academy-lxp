@@ -10,7 +10,11 @@ import { getHomeProgramForTrack } from "@/lib/programs";
 export const BCC_TRACK_VARIANT_LABELS: Record<string, string> = {
   "ai-fundamentals": "AI Fundamentals",
   "ai-digital-natives": "AI Fundamentals for Digital Natives",
-  "comptia-security": "Comptia Security+",
+  "comptia-security": "CompTIA Security+",
+  // Older responses stored the mis-cased label "Comptia Security+" directly;
+  // map it to the canonical casing so it collapses into the same bucket instead
+  // of splitting the cohort by capitalization.
+  "Comptia Security+": "CompTIA Security+",
 };
 
 // Collapse a raw cohort value (a stored program_variant / _cohort_track, which
@@ -29,9 +33,9 @@ export function normalizeCohortLabel(raw: string): string {
 // so responses from people with no enrollment yet (public applicants, invited
 // signers) still land in the right bucket instead of "Untagged".
 export const SURVEY_COHORT_DEFAULTS: Record<string, string> = {
-  "security-plus-application": "Comptia Security+",
-  "comptia-security-agreement": "Comptia Security+",
-  "comptia-security-pre": "Comptia Security+",
+  "security-plus-application": "CompTIA Security+",
+  "comptia-security-agreement": "CompTIA Security+",
+  "comptia-security-pre": "CompTIA Security+",
   "network-plus-post": "CompTIA Network+",
   "home-for-summer-application": "Home for the Summer",
 };

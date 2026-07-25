@@ -62,6 +62,15 @@ export async function buildInsightsData(
   // Surveys with responses but no config entry — synthesize a minimal config so
   // real data is never silently hidden (getSurveySchema still resolves a real
   // schema when one exists).
+  //
+  // Title-casing the slug mangles acronyms ("comptia-security-agreement" →
+  // "Comptia Security Agreement"). Override the known orphan slugs with proper
+  // display titles here (display-only — no full SurveyConfig, so this can't make
+  // an agreement surface as a fillable survey in the wizard/enrollment flow).
+  const ORPHAN_TITLE_OVERRIDES: Record<string, string> = {
+    "comptia-security-agreement": "CompTIA Security+ Agreement",
+    "catalyst-participation-agreement": "Catalyst Participation Agreement",
+  };
   const configuredIds = new Set(configuredWithData.map((s) => s.id));
   const orphanSurveys: SurveyConfig[] = Array.from(
     new Set(stats.map((r) => r.survey_type)),
@@ -69,7 +78,9 @@ export async function buildInsightsData(
     .filter((id) => !configuredIds.has(id))
     .map((id) => ({
       id,
-      title: id.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+      title:
+        ORPHAN_TITLE_OVERRIDES[id] ??
+        id.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
       description: "",
       required: false,
     }));
