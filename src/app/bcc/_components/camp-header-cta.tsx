@@ -3,9 +3,9 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-// Header CTA that reflects the session: "Sign in" for visitors, "Go to portal"
-// once you're signed in — so the camp page never shows a stale "Sign in" link
-// to someone who's already logged in.
+// Header CTA that only appears for signed-in learners ("Go to portal"). New
+// visitors on an application/marketing page have no account yet, so a "Sign in"
+// link there just reads as confusing — we render nothing for them.
 export function CampHeaderCta() {
   const [signedIn, setSignedIn] = useState(false);
 
@@ -16,13 +16,15 @@ export function CampHeaderCta() {
       .catch(() => setSignedIn(false));
   }, []);
 
+  if (!signedIn) return null;
+
   return (
     <a
-      href={signedIn ? "/dashboard" : "/login"}
+      href="/dashboard"
       className="text-[11px] font-medium uppercase tracking-[0.15em] transition-opacity hover:opacity-60"
       style={{ color: "#1a1a1a44" }}
     >
-      {signedIn ? "Go to portal →" : "Sign in →"}
+      Go to portal →
     </a>
   );
 }
