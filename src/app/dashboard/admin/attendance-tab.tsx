@@ -7,7 +7,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
-  AlertTriangle,
   Check,
   Circle,
 } from "lucide-react";
@@ -482,6 +481,9 @@ function OverviewPanel({
   // One course at a time. Default to the first started track; the selector only
   // lists tracks that actually take attendance.
   const [selectedSlug, setSelectedSlug] = useState<string>("");
+  // Names of who's behind stay hidden until the "Need a check-in" tile is
+  // clicked — the page leads with numbers, not a wall of at-risk students.
+  const [showCheckIn, setShowCheckIn] = useState(false);
   const track =
     startedTracks.find((t) => t.slug === selectedSlug) ?? startedTracks[0] ?? null;
 
@@ -540,7 +542,10 @@ function OverviewPanel({
           </span>
           <select
             value={track?.slug ?? ""}
-            onChange={(e) => setSelectedSlug(e.target.value)}
+            onChange={(e) => {
+              setSelectedSlug(e.target.value);
+              setShowCheckIn(false);
+            }}
             className="min-w-[16rem] max-w-full rounded-lg border border-rule bg-white px-3 py-2 text-sm font-semibold text-ink focus:border-ink-faint focus:outline-none"
           >
             {startedTracks.map((t) => (
@@ -550,28 +555,77 @@ function OverviewPanel({
         </label>
       )}
 
-      {/* Scoped summary. */}
-      <p className="max-w-[65ch] text-sm leading-relaxed text-ink-soft">
-        <span className="font-semibold tabular-nums text-ink">{trackStudents.length}</span>{" "}
-        student{trackStudents.length === 1 ? "" : "s"}
-        {avg !== null && (
-          <>
-            {" · "}
-            <span className="font-semibold tabular-nums text-ink">{avg}%</span> average
-            attendance across{" "}
-            <span className="font-semibold tabular-nums text-ink">{rates.length}</span>{" "}
-            session{rates.length === 1 ? "" : "s"}
-          </>
-        )}
-        {atRisk.length > 0 && (
-          <>
-            {" · "}
-            <span className="font-semibold text-ink">{atRisk.length}</span> need
-            {atRisk.length === 1 ? "s" : ""} a check-in
-          </>
-        )}
-        .
-      </p>
+      {/* Headline numbers, big. "Need a check-in" is a button — click to reveal
+         the names, which stay hidden by default. */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="panel p-4 sm:p-5">
+          <p className="text-2xl font-bold tabular-nums text-ink sm:text-3xl">
+            {avg !== null ? `${avg}%` : "—"}
+          </p>
+          <p className="mt-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-faint">
+            Avg attendance
+          </p>
+        </div>
+        <div className="panel p-4 sm:p-5">
+          <p className="text-2xl font-bold tabular-nums text-ink sm:text-3xl">
+            {trackStudents.length}
+          </p>
+          <p className="mt-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-faint">
+            Students
+          </p>
+        </div>
+        <button
+          type="button"
+          disabled={atRisk.length === 0}
+          onClick={() => setShowCheckIn((v) => !v)}
+          aria-expanded={showCheckIn}
+          className="panel p-4 text-left transition enabled:hover:border-ink-faint enabled:hover:shadow-sm disabled:opacity-70 sm:p-5"
+        >
+          <p className="text-2xl font-bold tabular-nums text-ink sm:text-3xl">
+            {atRisk.length}
+          </p>
+          <p className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-faint">
+            Need a check-in
+            {atRisk.length > 0 && (
+              <svg width="10" height="6" viewBox="0 0 10 6" fill="none" className={`transition-transform ${showCheckIn ? "rotate-180" : ""}`}>
+                <path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" />
+              </svg>
+            )}
+          </p>
+        </button>
+      </div>
+
+      {/* Names — revealed only when the tile is clicked. */}
+      {showCheckIn && atRisk.length > 0 && (
+        <div className="rounded-xl border border-rule bg-paper-tint-soft p-4">
+          <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-faint">
+            Check in with
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {atRisk.map((s) => {
+              const name =
+                s.student.first_name && s.student.last_name
+                  ? `${s.student.first_name} ${s.student.last_name}`
+                  : s.student.email;
+              const dot = s.status === "disengaged" ? "bg-red-400" : "bg-amber-400";
+              return (
+                <span
+                  key={s.student.id}
+                  title={`${s.attended}/${s.expected} sessions · ${
+                    s.consecutiveMisses > 0
+                      ? `${s.consecutiveMisses} in a row missed`
+                      : "no recent streak"
+                  }`}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-rule bg-white px-3 py-1.5 text-[13px] font-semibold text-ink"
+                >
+                  <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
+                  {name}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Weekly boxes — color + % agree; click a box to correct that session.
          Attendance is auto-recorded from Zoom, so this is a view + occasional fix. */}
@@ -606,43 +660,6 @@ function OverviewPanel({
         )}
       </section>
 
-      {/* Needs attention — scoped to this course; one status pill per row, no
-         redundant action button. */}
-      {atRisk.length > 0 && (
-        <section>
-          <div className="mb-3 flex items-center gap-2">
-            <AlertTriangle size={14} className="text-ink-faint" />
-            <h3 className="text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
-              Needs attention
-            </h3>
-          </div>
-          <ul className="divide-y divide-rule-soft border-t border-rule">
-            {atRisk.map((s) => {
-              const status = STATUS_LABEL[s.status];
-              const name =
-                s.student.first_name && s.student.last_name
-                  ? `${s.student.first_name} ${s.student.last_name}`
-                  : s.student.email;
-              return (
-                <li key={s.student.id} className="flex items-center justify-between gap-4 py-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-ink">{name}</p>
-                    <p className="text-xs text-ink-faint">
-                      {s.attended}/{s.expected} sessions ·{" "}
-                      {s.consecutiveMisses > 0
-                        ? `${s.consecutiveMisses} in a row missed`
-                        : "no recent streak"}
-                    </p>
-                  </div>
-                  <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${status.bg} ${status.text}`}>
-                    {status.label}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      )}
     </div>
   );
 }
