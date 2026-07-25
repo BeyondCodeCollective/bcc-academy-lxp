@@ -45,6 +45,10 @@ export type LandingPage = {
   secondaryCtaUrl: string | null;
   partners: LandingPartner[];
   heroImageUrl: string | null;
+  /** 'cover' fills+crops (photos); 'contain' fits the whole image (posters). */
+  heroFit: "cover" | "contain";
+  /** Letterbox background behind a 'contain' hero. */
+  heroBg: string | null;
   footerText: string | null;
   metaTitle: string | null;
   metaDescription: string | null;
@@ -84,6 +88,8 @@ export async function getLandingPage(slug: string): Promise<LandingPage | null> 
     secondaryCtaUrl: (data.secondary_cta_url as string | null) ?? null,
     partners: (data.partners as LandingPartner[] | null) ?? [],
     heroImageUrl: (data.hero_image_url as string | null) ?? null,
+    heroFit: (data.hero_fit as string | null) === "contain" ? "contain" : "cover",
+    heroBg: (data.hero_bg as string | null) ?? null,
     footerText: (data.footer_text as string | null) ?? null,
     metaTitle: (data.meta_title as string | null) ?? null,
     metaDescription: (data.meta_description as string | null) ?? null,

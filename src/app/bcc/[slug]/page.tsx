@@ -265,13 +265,20 @@ export default async function CampLandingPage({
       {page.heroImageUrl && (
         <div
           className="hidden md:block md:sticky md:top-0 md:h-[100dvh] relative overflow-hidden"
-          style={{ width: "52%", minWidth: "52%", maxWidth: "52%" }}
+          style={{
+            width: "52%",
+            minWidth: "52%",
+            maxWidth: "52%",
+            background: page.heroBg ?? undefined,
+          }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={page.heroImageUrl}
             alt=""
-            className="absolute inset-0 w-full h-full object-cover object-center"
+            className={`absolute inset-0 w-full h-full object-center ${
+              page.heroFit === "contain" ? "object-contain" : "object-cover"
+            }`}
           />
         </div>
       )}
