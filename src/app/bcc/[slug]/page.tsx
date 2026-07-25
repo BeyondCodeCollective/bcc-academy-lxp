@@ -100,7 +100,16 @@ export default async function CampLandingPage({
                   {page.formLabel}
                 </p>
               )}
-              {page.eventbriteEventId ? (
+              {page.applyUrl ? (
+                <a
+                  href={page.applyUrl}
+                  className="inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold text-white"
+                  style={{ background: accent }}
+                >
+                  {page.applyCtaLabel ?? "Apply now"}
+                  <span aria-hidden="true">→</span>
+                </a>
+              ) : page.eventbriteEventId ? (
                 <CampEventbriteRegister
                   eventId={page.eventbriteEventId}
                   accent={accent}
