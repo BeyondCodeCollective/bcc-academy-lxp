@@ -8,7 +8,9 @@ import { sendEventConfirmationEmail } from "@/lib/email";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export type EnrollActionResult = { ok: true } | { ok: false; error: string };
+export type EnrollActionResult =
+  | { ok: true; enrolled: boolean }
+  | { ok: false; error: string };
 
 /**
  * Native course enrollment from a /bcc/[slug] page — the no-Eventbrite path.
@@ -32,7 +34,7 @@ export async function enrollInCourse(input: {
   }
 
   const page = await getLandingPage(input.slug);
-  if (!page || !page.nativeEnroll || !page.trackSlug) {
+  if (!page || !page.nativeEnroll) {
     return { ok: false, error: "This course isn't open for signup right now." };
   }
 
@@ -45,16 +47,38 @@ export async function enrollInCourse(input: {
   try {
     const svc = createServiceClient();
 
-    // Idempotency: if this email already signed up for this page, re-send the
-    // same invite link instead of enrolling again.
+    // Idempotency: if this email already signed up for this page, don't
+    // re-enroll or re-email.
     const { data: existing } = await svc
       .from("landing_signups")
-      .select("invite_token")
+      .select("id")
       .eq("slug", input.slug)
       .eq("email", email)
       .maybeSingle();
 
-    const { inviteToken, programSlug } = await enrollEmailInTrack(email, page.trackSlug);
+    // With a track → enroll (allowlist + invite + magic link). Without one
+    // (a "notify me" page whose course isn't built yet) → capture interest only.
+    let inviteToken: string | null = null;
+    if (page.trackSlug) {
+      const enrolled = await enrollEmailInTrack(email, page.trackSlug);
+      inviteToken = enrolled.inviteToken;
+
+      if (!existing) {
+        const programName = (await getProgramWithOverrides(enrolled.programSlug)).name;
+        await sendEventConfirmationEmail({
+          to: email,
+          firstName: name.split(" ")[0] ?? "",
+          programName,
+          eventName: session?.label ?? page.headline.replace(/\n/g, " "),
+          eventStartUtc: session?.startUtc ?? null,
+          eventEndUtc: session?.endUtc ?? null,
+          eventStartLocal: null,
+          eventTimezone: session?.timezone ?? null,
+          inviteLink: `${input.origin}/invite/${inviteToken}`,
+          origin: input.origin,
+        });
+      }
+    }
 
     if (!existing) {
       await svc.from("landing_signups").insert({
@@ -67,21 +91,7 @@ export async function enrollInCourse(input: {
       });
     }
 
-    const programName = (await getProgramWithOverrides(programSlug)).name;
-    await sendEventConfirmationEmail({
-      to: email,
-      firstName: name.split(" ")[0] ?? "",
-      programName,
-      eventName: session?.label ?? page.headline.replace(/\n/g, " "),
-      eventStartUtc: session?.startUtc ?? null,
-      eventEndUtc: session?.endUtc ?? null,
-      eventStartLocal: null,
-      eventTimezone: session?.timezone ?? null,
-      inviteLink: `${input.origin}/invite/${inviteToken}`,
-      origin: input.origin,
-    });
-
-    return { ok: true };
+    return { ok: true, enrolled: !!page.trackSlug };
   } catch (err) {
     console.error("[enrollInCourse] failed", err);
     return { ok: false, error: "Something went wrong. Please try again." };

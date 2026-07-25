@@ -24,6 +24,7 @@ export function CampEnrollForm({
   const [email, setEmail] = useState("");
   const [sessionId, setSessionId] = useState(sessions[0]?.id ?? "");
   const [status, setStatus] = useState<"idle" | "loading" | "sent" | "error">("idle");
+  const [enrolled, setEnrolled] = useState(true);
   const [error, setError] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
@@ -41,6 +42,7 @@ export function CampEnrollForm({
     });
 
     if (result.ok) {
+      setEnrolled(result.enrolled);
       setStatus("sent");
     } else {
       setStatus("error");
@@ -50,12 +52,18 @@ export function CampEnrollForm({
 
   if (status === "sent") {
     return (
-      <div className="border-l-4 p-4" style={{ borderColor: accent, background: `${accent}10` }}>
+      <div className="rounded-xl p-4" style={{ background: `${accent}0f` }}>
         <p className="text-sm font-semibold" style={{ color: "#1a1a1a" }}>
-          You're in — check your email.
+          {enrolled ? "You're in — check your email." : "You're on the list."}
         </p>
         <p className="mt-1 text-sm" style={{ color: "#1a1a1a99" }}>
-          We sent a link to <strong>{email.trim()}</strong> to open your course.
+          {enrolled ? (
+            <>
+              We sent a link to <strong>{email.trim()}</strong> to open your course.
+            </>
+          ) : (
+            <>We&apos;ll email <strong>{email.trim()}</strong> the moment sessions open.</>
+          )}
         </p>
       </div>
     );
