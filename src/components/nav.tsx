@@ -219,7 +219,7 @@ export function Nav({
       ? [{ href: "/dashboard/resources", label: "Resources", icon: BookOpen }]
       : []),
     ...(canSwitch
-      ? [{ href: "/dashboard/insights", label: "Analytics", icon: ChartBar }]
+      ? [{ href: "/dashboard/insights", label: "Overview", icon: ChartBar }]
       : []),
   ];
 

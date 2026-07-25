@@ -17,7 +17,7 @@ const SECTION_LABELS: Record<string, string> = {
   guide: "Guide",
   start: "Get started",
   assessment: "Pathway",
-  insights: "Analytics",
+  insights: "Overview",
 };
 
 const ADMIN_SECTION_LABELS: Record<string, string> = {
