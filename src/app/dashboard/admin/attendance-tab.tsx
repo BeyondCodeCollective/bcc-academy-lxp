@@ -49,13 +49,17 @@ function unitDate(track: TrackLike, week: number): string | null {
   return (track.weekSummaries ?? []).find((s) => s.week === week)?.date ?? null;
 }
 
-const TONE_BY_RATE = {
-  on: "bg-green-500",
-  watch: "bg-amber-400",
-  alert: "bg-red-400",
-} as const;
+type RateTone = "on" | "watch" | "alert";
 
-function rateTone(rate: number): keyof typeof TONE_BY_RATE {
+// Tinted box (bg + text) for the per-week attendance boxes, matching the
+// STATUS_LABEL palette so color reads the same everywhere.
+const BOX_TONE: Record<RateTone, string> = {
+  on: "bg-green-50 text-green-700",
+  watch: "bg-amber-50 text-amber-700",
+  alert: "bg-red-50 text-red-700",
+};
+
+function rateTone(rate: number): RateTone {
   if (rate >= 80) return "on";
   if (rate >= 50) return "watch";
   return "alert";
@@ -357,8 +361,9 @@ export function AttendanceTab({ students, tracks, enrollments, scopeLabel, embed
           summaries={summaries}
           records={records}
           loading={loading}
-          onJumpToMark={(slug) => {
+          onJumpToMark={(slug, week) => {
             selectTrack(slug);
+            if (week) setMarkWeek(week);
             setView("mark");
           }}
         />
@@ -417,28 +422,18 @@ function Header({
         </div>
       )}
       <div className="flex items-center gap-1.5">
-        <div
-          role="tablist"
-          aria-label="Attendance view"
-          className="inline-flex items-center rounded-full bg-paper-tint-soft p-0.5 text-xs font-medium"
-        >
-          {(["overview", "mark"] as const).map((v) => (
-            <button
-              key={v}
-              type="button"
-              role="tab"
-              aria-selected={view === v}
-              onClick={() => setView(v)}
-              className={`rounded-full px-3 py-1.5 transition-colors ${
-                view === v
-                  ? "bg-ink text-white"
-                  : "text-ink-soft hover:text-ink"
-              }`}
-            >
-              {v === "overview" ? "View report" : "Take attendance"}
-            </button>
-          ))}
-        </div>
+        {/* Attendance is auto-recorded from Zoom, so there's no "Take attendance"
+           action — you adjust a session by clicking its box. The only view
+           switch left is getting back from that editor to the report. */}
+        {view === "mark" && (
+          <button
+            type="button"
+            onClick={() => setView("overview")}
+            className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium text-ink-soft transition-colors hover:text-ink"
+          >
+            ← Back to report
+          </button>
+        )}
         <button
           type="button"
           onClick={onRefresh}
@@ -482,60 +477,54 @@ function OverviewPanel({
   summaries: ReturnType<typeof summarizeAllStudents>;
   records: AttendanceRecord[];
   loading: boolean;
-  onJumpToMark: (slug: string) => void;
+  onJumpToMark: (slug: string, week?: number) => void;
 }) {
-  // Overall rate across every (student × expected session) cell.
-  const totals = useMemo(() => {
-    let attended = 0;
-    let expected = 0;
-    for (const s of summaries) {
-      attended += s.attended;
-      expected += s.expected;
-    }
-    return {
-      attended,
-      expected,
-      // null (not 100) when nothing's been expected yet — a "100% of 0 sessions"
-      // claim is a leak, not a fact. The prose below omits the rate clause then.
-      rate: expected > 0 ? Math.round((attended / expected) * 100) : null,
-    };
-  }, [summaries]);
+  // One course at a time. Default to the first started track; the selector only
+  // lists tracks that actually take attendance.
+  const [selectedSlug, setSelectedSlug] = useState<string>("");
+  const track =
+    startedTracks.find((t) => t.slug === selectedSlug) ?? startedTracks[0] ?? null;
 
-  // The full risk list — no silent cap. The earlier .slice(0, 8) also made the
-  // "{n} need a check-in" prose under-report (it counted the truncated list).
+  // Scope the roster (and thus the rate + risk list) to THIS course's enrolled
+  // learners, so program accounts not in the track don't drag numbers down.
+  const trackStudents = useMemo(
+    () =>
+      track && enrolledByStudent
+        ? students.filter((s) => enrolledByStudent.get(s.id)?.has(track.slug))
+        : students,
+    [students, enrolledByStudent, track],
+  );
+
+  const rates = useMemo(
+    () => (track ? weeklyAttendanceRates(track, trackStudents, records) : []),
+    [track, trackStudents, records],
+  );
+  const avg =
+    rates.length > 0 ? Math.round(rates.reduce((a, b) => a + b, 0) / rates.length) : null;
+
+  // Risk list scoped to this course's roster (no silent cap).
   const atRisk = useMemo(
     () =>
       summaries
         .filter((s) => s.status !== "on-track")
+        .filter(
+          (s) =>
+            !enrolledByStudent ||
+            (track ? !!enrolledByStudent.get(s.student.id)?.has(track.slug) : true),
+        )
         .sort((a, b) => b.consecutiveMisses - a.consecutiveMisses || a.rate - b.rate),
-    [summaries]
+    [summaries, enrolledByStudent, track],
   );
 
-  // Loading state intentionally renders nothing — the previous
-  // "Loading attendance…" card sat at a different height than the
-  // populated overview, causing a visible jump on the per-track Insights
-  // view. The fetch is quick enough that no placeholder is better than a
-  // flashing one.
-  if (loading) {
-    return null;
-  }
+  // Loading renders nothing — a placeholder at a different height caused a
+  // visible jump on the per-track view.
+  if (loading) return null;
 
-  // Nothing-to-report state. The editorial summary literally read
-  // "0 students across 0 active tracks. Overall attendance 100% across 0
-  // expected sessions." for tracks that hadn't started yet (AI Literacy,
-  // Network+, etc) — technically correct, completely useless. Replace
-  // it with a clear empty state when there's no usable data: no tracks
-  // started, no records anywhere, and no students to report on.
-  const nothingToShow =
-    startedTracks.length === 0 &&
-    records.length === 0 &&
-    summaries.every((s) => s.expected === 0);
-  if (nothingToShow) {
+  if (startedTracks.length === 0) {
     return (
       <div className="panel p-6 text-center">
-        <p className="text-sm text-ink-soft max-w-[40ch] mx-auto">
-          No attendance to show yet. This will fill in once a session
-          starts and someone marks attendance.
+        <p className="mx-auto max-w-[40ch] text-sm text-ink-soft">
+          No attendance to show yet. This will fill in once a session starts.
         </p>
       </div>
     );
@@ -543,70 +532,82 @@ function OverviewPanel({
 
   return (
     <div className="space-y-6">
-      {/* Editorial summary — facts in prose. */}
-      <p className="text-base leading-relaxed text-ink-soft max-w-[65ch]">
-        <span className="font-semibold tabular-nums text-ink">
-          {students.length.toLocaleString()}
-        </span>{" "}
-        student{students.length === 1 ? "" : "s"} across{" "}
-        <span className="font-semibold tabular-nums text-ink">
-          {startedTracks.length.toLocaleString()}
-        </span>{" "}
-        active track{startedTracks.length === 1 ? "" : "s"}.{" "}
-        {totals.rate !== null ? (
+      {/* Course selector — pick one; nothing is stacked or viewable all at once. */}
+      {startedTracks.length > 1 && (
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-faint">
+            Course
+          </span>
+          <select
+            value={track?.slug ?? ""}
+            onChange={(e) => setSelectedSlug(e.target.value)}
+            className="min-w-[16rem] max-w-full rounded-lg border border-rule bg-white px-3 py-2 text-sm font-semibold text-ink focus:border-ink-faint focus:outline-none"
+          >
+            {startedTracks.map((t) => (
+              <option key={t.slug} value={t.slug}>{t.name}</option>
+            ))}
+          </select>
+        </label>
+      )}
+
+      {/* Scoped summary. */}
+      <p className="max-w-[65ch] text-sm leading-relaxed text-ink-soft">
+        <span className="font-semibold tabular-nums text-ink">{trackStudents.length}</span>{" "}
+        student{trackStudents.length === 1 ? "" : "s"}
+        {avg !== null && (
           <>
-            Overall attendance{" "}
-            <span className="font-semibold tabular-nums text-ink">{totals.rate}%</span>{" "}
-            across{" "}
-            <span className="font-semibold tabular-nums text-ink">
-              {totals.expected.toLocaleString()}
-            </span>{" "}
-            expected session{totals.expected === 1 ? "" : "s"}.
+            {" · "}
+            <span className="font-semibold tabular-nums text-ink">{avg}%</span> average
+            attendance across{" "}
+            <span className="font-semibold tabular-nums text-ink">{rates.length}</span>{" "}
+            session{rates.length === 1 ? "" : "s"}
           </>
-        ) : (
-          <>No sessions have taken place yet.</>
         )}
         {atRisk.length > 0 && (
           <>
-            {" "}
-            <span className="text-ink">{atRisk.length}</span>{" "}
-            need{atRisk.length === 1 ? "s" : ""} a check-in.
+            {" · "}
+            <span className="font-semibold text-ink">{atRisk.length}</span> need
+            {atRisk.length === 1 ? "s" : ""} a check-in
           </>
         )}
+        .
       </p>
 
-      {/* Per-track weekly trend — one row per track. Section is omitted
-         entirely when no tracks have started; an empty card with a
-         "weekly attendance" header read as broken/loading. The page-level
-         "Attendance · {Track}" header already names this view, so the
-         redundant inner h3 is gone too. */}
-      {startedTracks.length > 0 && (
-        <section className="panel p-4 sm:p-5">
-          <div className="space-y-5">
-            {startedTracks.map((track) => (
-              <TrackTrendRow
-                key={track.slug}
-                track={track}
-                // Scope the rate denominator to this track's enrolled learners,
-                // so program-roster accounts not in the track don't drag the
-                // weekly % down. Falls back to all students when unscoped.
-                students={
-                  enrolledByStudent
-                    ? students.filter((s) => enrolledByStudent.get(s.id)?.has(track.slug))
-                    : students
-                }
-                records={records}
-                onMark={() => onJumpToMark(track.slug)}
-              />
+      {/* Weekly boxes — color + % agree; click a box to correct that session.
+         Attendance is auto-recorded from Zoom, so this is a view + occasional fix. */}
+      <section className="panel p-4 sm:p-5">
+        <div className="mb-4 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-ink-soft">
+          <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-[3px] bg-green-500" />Good · 80%+</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-[3px] bg-amber-400" />Watch · 50–79%</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-[3px] bg-red-400" />Low · under 50%</span>
+        </div>
+        {rates.length === 0 ? (
+          <p className="text-sm text-ink-faint">No sessions yet.</p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {rates.map((rate, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => track && onJumpToMark(track.slug, i + 1)}
+                title={`Adjust ${track?.unitLabel ?? "Week"} ${i + 1} attendance`}
+                className={`group min-w-[78px] flex-1 rounded-xl px-2.5 py-3 text-center transition-shadow hover:shadow-[inset_0_0_0_1.5px_currentColor] ${BOX_TONE[rateTone(rate)]}`}
+              >
+                <div className="text-lg font-extrabold leading-none tabular-nums">{rate}%</div>
+                <div className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-semibold opacity-80">
+                  {track?.unitLabel ?? "Week"} {i + 1}
+                  <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-60 group-hover:opacity-100">
+                    <path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                  </svg>
+                </div>
+              </button>
             ))}
           </div>
-        </section>
-      )}
+        )}
+      </section>
 
-      {/* Needs attention — only renders when there's actually someone on
-         the risk list. The previous empty-state ("Nobody on the risk list
-         right now. Worth a celebration.") added a third section that
-         didn't say anything useful on a quiet day. */}
+      {/* Needs attention — scoped to this course; one status pill per row, no
+         redundant action button. */}
       {atRisk.length > 0 && (
         <section>
           <div className="mb-3 flex items-center gap-2">
@@ -623,12 +624,9 @@ function OverviewPanel({
                   ? `${s.student.first_name} ${s.student.last_name}`
                   : s.student.email;
               return (
-                <li
-                  key={s.student.id}
-                  className="flex items-center justify-between gap-4 py-3"
-                >
+                <li key={s.student.id} className="flex items-center justify-between gap-4 py-3">
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-ink truncate">{name}</p>
+                    <p className="truncate text-sm font-medium text-ink">{name}</p>
                     <p className="text-xs text-ink-faint">
                       {s.attended}/{s.expected} sessions ·{" "}
                       {s.consecutiveMisses > 0
@@ -636,9 +634,7 @@ function OverviewPanel({
                         : "no recent streak"}
                     </p>
                   </div>
-                  <span
-                    className={`shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${status.bg} ${status.text}`}
-                  >
+                  <span className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${status.bg} ${status.text}`}>
                     {status.label}
                   </span>
                 </li>
@@ -646,76 +642,6 @@ function OverviewPanel({
             })}
           </ul>
         </section>
-      )}
-    </div>
-  );
-}
-
-function TrackTrendRow({
-  track,
-  students,
-  records,
-  onMark,
-}: {
-  track: TrackLike;
-  students: StudentRow[];
-  records: AttendanceRecord[];
-  onMark: () => void;
-}) {
-  const rates = useMemo(
-    () => weeklyAttendanceRates(track, students, records),
-    [track, students, records]
-  );
-  const overall =
-    rates.length > 0
-      ? Math.round(rates.reduce((a, b) => a + b, 0) / rates.length)
-      : null;
-
-  return (
-    <div>
-      <div className="mb-1.5 flex items-end justify-between gap-3">
-        <p className="text-sm font-medium text-ink truncate">{track.name}</p>
-        <div className="flex items-center gap-3 shrink-0">
-          {overall !== null && (
-            <span className="text-xs tabular-nums text-ink-soft">
-              {overall}% avg
-            </span>
-          )}
-          <button
-            type="button"
-            onClick={onMark}
-            className="text-xs font-medium text-ink-soft hover:text-ink transition-colors"
-          >
-            Mark →
-          </button>
-        </div>
-      </div>
-      {rates.length === 0 ? (
-        <p className="text-xs text-ink-faint">No sessions yet.</p>
-      ) : (
-        <div className="flex items-end gap-1">
-          {rates.map((rate, i) => {
-            const tone = TONE_BY_RATE[rateTone(rate)];
-            const pct = Math.max(0, Math.min(rate, 100));
-            return (
-              <div
-                key={i}
-                className="flex-1 flex flex-col items-center gap-1 min-w-0"
-              >
-                <div className="relative w-full h-12 overflow-hidden rounded-sm bg-paper-tint-soft">
-                  <div
-                    className={`absolute inset-x-0 bottom-0 rounded-sm transition-all ${tone}`}
-                    style={{ height: `${Math.max(pct, 4)}%` }}
-                    title={`${track.unitLabel ?? "Week"} ${i + 1}: ${rate}%`}
-                  />
-                </div>
-                <span className="text-[10px] tabular-nums text-ink-faint">
-                  W{i + 1}
-                </span>
-              </div>
-            );
-          })}
-        </div>
       )}
     </div>
   );
