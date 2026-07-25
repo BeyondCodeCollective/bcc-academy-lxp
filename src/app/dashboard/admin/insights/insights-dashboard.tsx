@@ -1,12 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { SurveyDashboard } from "../surveys/[surveyId]/survey-dashboard";
 import type { SurveyQuestion } from "@/components/survey-fields";
 import type { BCCSurveyResponse } from "../actions";
 import type { SurveyConfig } from "@/lib/programs/types";
-import { StatCard } from "@/components/stats/stat-card";
 import { normalizeCohortLabel } from "@/lib/surveys/cohort-labels";
 
 interface Section {
@@ -81,13 +79,9 @@ function grantCompleteness(responses: BCCSurveyResponse[]): { label: string; cou
     .filter((m) => m.count > 0);
 }
 
-export function InsightsDashboard({
-  sections,
-  programs,
-}: Props) {
-
-  // Distinct cohorts across all responses — the dimension people actually search
-  // by. Tagged cohorts first (alphabetical), "Untagged" last.
+export function InsightsDashboard({ sections, programs }: Props) {
+  // Distinct cohorts across all responses — needed to color the per-survey
+  // breakdown consistently.
   const allCohorts = useMemo(() => {
     const set = new Set<string>();
     for (const s of sections) for (const r of s.responses) set.add(cohortOf(r));
@@ -95,92 +89,32 @@ export function InsightsDashboard({
       a === "Untagged" ? 1 : b === "Untagged" ? -1 : a.localeCompare(b),
     );
   }, [sections]);
-  const [cohortFilter, setCohortFilter] = useState<string>("all");
 
-  // Selecting a cohort scopes the WHOLE page — hero stats, timeline, and the
-  // survey cards — not just the detail panel. Anything narrower reads as "the
-  // filter does nothing" because the big numbers up top never move.
-  const visibleSections = useMemo(
-    () =>
-      cohortFilter === "all"
-        ? sections
-        : sections.map((s) => ({
-            ...s,
-            responses: s.responses.filter((r) => cohortOf(r) === cohortFilter),
-          })),
-    [sections, cohortFilter],
-  );
+  const ledger = useMemo(() => buildLedger(sections, allCohorts), [sections, allCohorts]);
 
-  const ledger = useMemo(() => buildLedger(visibleSections, allCohorts), [visibleSections, allCohorts]);
-  // Tie the survey grid to the cohort dropdown: when a cohort is selected, only
-  // show surveys that actually have responses for it (otherwise the grid is a
-  // wall of every survey, most with 0, which makes finding the cohort's data hard).
-  const visibleLedger = useMemo(
-    () => (cohortFilter === "all" ? ledger : ledger.filter((row) => row.count > 0)),
-    [ledger, cohortFilter],
+  // Roll-up stats for the three tiles (scoped to this program, like the page).
+  const totalResponses = useMemo(
+    () => sections.reduce((n, s) => n + s.responses.length, 0),
+    [sections],
   );
   const uniqueRespondents = useMemo(() => {
     const emails = new Set<string>();
-    for (const s of visibleSections) {
-      for (const r of s.responses) {
-        if (r.email) emails.add(r.email.toLowerCase());
-      }
-    }
+    for (const s of sections)
+      for (const r of s.responses) if (r.email) emails.add(r.email.toLowerCase());
     return emails.size;
-  }, [visibleSections]);
-  const shownResponses = useMemo(
-    () => visibleSections.reduce((n, s) => n + s.responses.length, 0),
-    [visibleSections],
-  );
-  const shownSurveys =
-    cohortFilter === "all"
-      ? sections.length
-      : visibleSections.filter((s) => s.responses.length > 0).length;
-  // One figure PER SURVEY for the cohort view, so a pre-survey, a post-survey
-  // and an intake form are never summed into one meaningless "Responses" total.
-  const perSurveyStats = useMemo(
-    () =>
-      visibleSections
-        .filter((s) => s.responses.length > 0)
-        .map((s) => ({ id: s.survey.id, title: s.survey.title, count: s.responses.length }))
-        .sort((a, b) => b.count - a.count),
-    [visibleSections],
-  );
+  }, [sections]);
 
-  // Cohort is deep-linkable via ?cohort=… so one URL opens straight on a cohort
-  // (e.g. sharing the Digital Natives view). Read once on mount.
-  const cohortInit = useRef(false);
-  useEffect(() => {
-    if (cohortInit.current || typeof window === "undefined") return;
-    cohortInit.current = true;
-    const c = new URLSearchParams(window.location.search).get("cohort");
-    // Syncing initial state from the URL must happen after mount, not via a lazy
-    // useState initializer — the server can't read window, so doing it in render
-    // would hydration-mismatch. This is the legitimate "read external system on
-    // mount" case the rule's perf guard doesn't apply to.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (c && allCohorts.includes(c)) setCohortFilter(c);
-  }, [allCohorts]);
-
-  function changeCohort(value: string) {
-    setCohortFilter(value);
-    if (typeof window === "undefined") return;
-    const url = new URL(window.location.href);
-    if (value === "all") url.searchParams.delete("cohort");
-    else url.searchParams.set("cohort", value);
-    history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
-  }
-
+  // Survey is the PRIMARY selector. Default to the most recent survey with a
+  // real schema, else the first one.
   const initialId =
-    visibleLedger.find((row) => row.hasSchema)?.id ?? visibleLedger[0]?.id ?? null;
+    ledger.find((row) => row.hasSchema)?.id ?? ledger[0]?.id ?? null;
   const [activeId, setActiveId] = useState<string | null>(initialId);
 
+  // Deep-link a survey via #id (share a URL that opens straight on it).
   useEffect(() => {
     if (typeof window === "undefined") return;
     const fromHash = window.location.hash.slice(1);
     if (fromHash && ledger.some((row) => row.id === fromHash)) {
-      // Same as above: reading location.hash is a post-mount external sync, not
-      // a render-time value the server could produce.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveId(fromHash);
     }
@@ -194,12 +128,41 @@ export function InsightsDashboard({
 
   function selectSurvey(id: string) {
     setActiveId(id);
-    if (typeof window !== "undefined") {
-      history.replaceState(null, "", `#${id}`);
-    }
+    setCohortFilter("all");
+    if (typeof window !== "undefined") history.replaceState(null, "", `#${id}`);
   }
 
-  const active = visibleSections.find((s) => s.survey.id === activeId) ?? null;
+  const activeRow = ledger.find((row) => row.id === activeId) ?? null;
+  const activeSection = sections.find((s) => s.survey.id === activeId) ?? null;
+
+  // Cohort is a SUB-filter of the selected survey, shown only when the survey
+  // genuinely spans more than one real (non-Untagged) cohort.
+  const surveyCohorts = (activeRow?.cohortBreakdown ?? []).filter(
+    (c) => c.name !== "Untagged",
+  );
+  const multiCohort = surveyCohorts.length > 1;
+  const [cohortFilter, setCohortFilter] = useState<string>("all");
+
+  const scopedResponses = useMemo(() => {
+    if (!activeSection) return [];
+    if (!multiCohort || cohortFilter === "all") return activeSection.responses;
+    return activeSection.responses.filter((r) => cohortOf(r) === cohortFilter);
+  }, [activeSection, multiCohort, cohortFilter]);
+
+  const scopedCount = scopedResponses.length;
+  const series = useMemo(() => weeklySeries(scopedResponses), [scopedResponses]);
+  const shownCohorts =
+    multiCohort && cohortFilter !== "all"
+      ? surveyCohorts.filter((c) => c.name === cohortFilter)
+      : surveyCohorts;
+
+  const isAgreement = !!activeId && /agreement/i.test(activeId);
+  const cohortParam =
+    multiCohort && cohortFilter !== "all"
+      ? `&cohort=${encodeURIComponent(cohortFilter)}`
+      : "";
+  const grantGaps = activeSection ? grantCompleteness(activeSection.responses) : [];
+
   if (sections.length === 0) {
     return (
       <div className="panel p-8 text-center">
@@ -212,180 +175,128 @@ export function InsightsDashboard({
   }
 
   return (
-    <div className="space-y-10">
-      {/* Hero — across all cohorts, a roll-up overview. Inside one cohort, a
-         figure PER SURVEY instead, because summing a pre-survey + post-survey +
-         intake form into a single number means nothing. */}
-      {cohortFilter === "all" ? (
-        <div className="grid grid-cols-3 gap-3">
-          <StatCard value={shownResponses.toLocaleString()} label="Responses" />
-          <StatCard value={uniqueRespondents.toLocaleString()} label="Respondents" />
-          <StatCard value={shownSurveys.toLocaleString()} label="Surveys" />
-        </div>
-      ) : (
-        <div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {perSurveyStats.map((s) => (
-              <StatCard key={s.id} value={s.count.toLocaleString()} label={s.title} />
-            ))}
+    <div className="space-y-8">
+      {/* Roll-up tiles — each links somewhere useful. */}
+      <div className="grid grid-cols-3 gap-3">
+        <StatTile value={totalResponses} label="Responses" href="/api/insights/csv" download />
+        <StatTile value={uniqueRespondents} label="Respondents" href="/dashboard/admin?tab=students" />
+        <StatTile value={sections.length} label="Surveys" href="/dashboard/admin/surveys" />
+      </div>
+
+      {/* One fused component: the survey selector IS the card header, and its
+         summary swaps in place. No separate dropdown floating above a card. */}
+      <div className="panel p-5 sm:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-faint">Survey</span>
+              <select
+                value={activeId ?? ""}
+                onChange={(e) => selectSurvey(e.target.value)}
+                className="min-w-[16rem] rounded-lg border border-rule bg-white px-3 py-2 text-sm font-semibold text-ink focus:border-ink-faint focus:outline-none"
+              >
+                {ledger.map((row) => (
+                  <option key={row.id} value={row.id}>{row.title}</option>
+                ))}
+              </select>
+            </label>
+            {multiCohort && (
+              <label className="flex flex-col gap-1.5">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-faint">Cohort</span>
+                <select
+                  value={cohortFilter}
+                  onChange={(e) => setCohortFilter(e.target.value)}
+                  className="rounded-lg border border-rule bg-white px-3 py-2 text-sm text-ink focus:border-ink-faint focus:outline-none"
+                >
+                  <option value="all">All cohorts</option>
+                  {surveyCohorts.map((c) => (
+                    <option key={c.name} value={c.name}>{c.name}</option>
+                  ))}
+                </select>
+              </label>
+            )}
           </div>
-          <p className="mt-2 text-xs text-ink-faint">
-            {cohortFilter} — {uniqueRespondents.toLocaleString()}{" "}
-            {uniqueRespondents === 1 ? "person" : "people"} across {shownSurveys}{" "}
-            survey{shownSurveys === 1 ? "" : "s"}. Each card is a separate survey,
-            not a combined total.
+          <p className="text-right text-3xl font-bold tabular-nums leading-none text-ink sm:text-4xl">
+            {scopedCount.toLocaleString()}
+            <span className="mt-1.5 block text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-faint">
+              Responses
+            </span>
           </p>
         </div>
-      )}
 
-      {/* Cohort filter (scope the page to one cohort) + PDF export of the
-         current scope. Export always shows; the filter only when there's more
-         than one cohort. */}
-      <div className="flex items-center justify-between gap-2">
-        {allCohorts.length > 1 ? (
-          <div className="flex items-center gap-2">
-            <label htmlFor="cohort-filter" className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-faint">
-              Cohort
-            </label>
-            <select
-              id="cohort-filter"
-              value={cohortFilter}
-              onChange={(e) => changeCohort(e.target.value)}
-              className="border border-rule bg-white px-2.5 py-1.5 text-sm text-ink focus:border-ink-faint focus:outline-none"
-            >
-              <option value="all">All cohorts</option>
-              {allCohorts.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
+        {/* Weekly responses — value on each bar, date under it. */}
+        {series.length > 0 && (
+          <div className="mt-5">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-faint">
+              Responses over time
+            </p>
+            <ResponsesChart series={series} />
           </div>
-        ) : (
-          <span />
         )}
-        <div className="flex items-center gap-2">
+
+        {/* Cohort pills (only when meaningful) + last response. */}
+        <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-ink-faint">
+          {shownCohorts.map((c) => (
+            <span
+              key={c.name}
+              className="inline-flex items-center gap-1.5 rounded-full border border-rule bg-paper-tint-soft px-2.5 py-1 text-xs font-semibold text-ink"
+            >
+              <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: c.color }} />
+              {c.name}
+              {multiCohort && <span className="tabular-nums text-ink-soft">{c.count}</span>}
+            </span>
+          ))}
+          <span>Last response {activeRow?.lastActivity ? timeAgo(activeRow.lastActivity) : "—"}</span>
+        </div>
+
+        {grantGaps.length > 0 && (
+          <div className="mt-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            Heads up before you export:{" "}
+            {grantGaps
+              .map((g) => `${g.count} ${g.count === 1 ? "response is" : "responses are"} missing ${g.label}`)
+              .join(" · ")}
+            . Those cells will be blank in the CSV.
+          </div>
+        )}
+
+        {/* Exports — the full question-by-question detail lives here, not on the
+           page (keeps this fast to scan, per the redesign). */}
+        <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-rule pt-4">
+          {activeRow?.hasSchema && (
+            <a
+              href={`/api/insights/pdf?detailed=1&survey=${encodeURIComponent(activeId ?? "")}${cohortParam}`}
+              className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-primary-hover"
+            >
+              Detailed report ↓
+            </a>
+          )}
           <a
-            href={`/api/insights/csv${cohortFilter !== "all" ? `?cohort=${encodeURIComponent(cohortFilter)}` : ""}`}
-            className="border border-rule bg-white px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:border-ink-faint"
+            href={`/api/insights/csv?survey=${encodeURIComponent(activeId ?? "")}${cohortParam}`}
+            className="rounded-lg border border-rule bg-white px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:border-ink-faint"
           >
             Export CSV
           </a>
           <a
-            href={`/api/insights/pdf${cohortFilter !== "all" ? `?cohort=${encodeURIComponent(cohortFilter)}` : ""}`}
-            className="border border-rule bg-white px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:border-ink-faint"
+            href={`/api/insights/pdf?survey=${encodeURIComponent(activeId ?? "")}${cohortParam}`}
+            className="rounded-lg border border-rule bg-white px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:border-ink-faint"
           >
             Export PDF
           </a>
+          {isAgreement && (
+            <Link
+              href="/dashboard/admin/agreements"
+              className="ml-auto text-sm font-medium text-primary hover:underline"
+            >
+              Who has signed &rarr;
+            </Link>
+          )}
         </div>
       </div>
 
-      {/* Survey cards */}
-      <section>
-        <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.14em] text-ink-faint">
-          Surveys
-        </p>
-        {cohortFilter !== "all" && visibleLedger.length === 0 ? (
-          <div className="border border-rule bg-surface-elevated p-6 text-center">
-            <p className="text-sm text-ink-soft">
-              No responses for{" "}
-              <span className="font-semibold text-ink">{cohortFilter}</span> yet.{" "}
-              <button
-                type="button"
-                onClick={() => changeCohort("all")}
-                className="underline hover:text-ink"
-              >
-                View all cohorts
-              </button>
-            </p>
-          </div>
-        ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {visibleLedger.map((row) => {
-            // Agreements aren't question surveys (no schema → no chart to
-            // open), but they DO have a home: the Agreements screen. Their
-            // card links there instead of sitting greyed-out and dead.
-            const isAgreement = /agreement/i.test(row.id);
-            const Card: React.ElementType = isAgreement ? Link : "button";
-            const cardProps = isAgreement
-              ? { href: "/dashboard/admin/agreements" }
-              : {
-                  type: "button" as const,
-                  onClick: () => row.hasSchema && selectSurvey(row.id),
-                  disabled: !row.hasSchema,
-                };
-            return (
-            <Card
-              key={row.id}
-              {...cardProps}
-              className={`group border bg-surface-elevated p-4 text-left transition-all ${
-                activeId === row.id
-                  ? "border-ink ring-1 ring-ink"
-                  : row.hasSchema || isAgreement
-                    ? "border-rule hover:border-rule hover:shadow-sm"
-                    : "cursor-not-allowed border-rule-soft opacity-60"
-              }`}
-            >
-              <div className="mb-3 flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-ink">
-                    {row.title}
-                  </p>
-                  <p className="mt-0.5 text-xs text-ink-faint">
-                    {row.lastActivity
-                      ? `Last response ${timeAgo(row.lastActivity)}`
-                      : "No responses yet"}
-                  </p>
-                </div>
-                <p className="text-2xl font-bold tabular-nums text-ink">
-                  {row.count}
-                </p>
-              </div>
-
-              {/* Per-cohort breakdown — who actually took it (Digital Natives,
-                 AI Fundamentals, …), not the umbrella program. Single bar with
-                 an inline key; the count to the right tells volume. */}
-              {row.cohortBreakdown.length > 0 ? (
-                <>
-                  <div className="mb-1.5 flex h-2 w-full overflow-hidden rounded-full bg-paper-tint">
-                    {row.cohortBreakdown.map((seg) => (
-                      <div
-                        key={seg.name}
-                        style={{
-                          width: `${(seg.count / row.count) * 100}%`,
-                          backgroundColor: seg.color,
-                        }}
-                        className="h-full"
-                        title={`${seg.name}: ${seg.count}`}
-                      />
-                    ))}
-                  </div>
-                  <p className="text-[11px] text-ink-soft">
-                    {row.cohortBreakdown.map((seg, i) => (
-                      <span key={seg.name}>
-                        {i > 0 && <span className="text-ink-faint"> · </span>}
-                        <span
-                          aria-hidden
-                          className="mr-1 inline-block h-1.5 w-1.5 rounded-full align-middle"
-                          style={{ backgroundColor: seg.color }}
-                        />
-                        {seg.name} <span className="tabular-nums text-ink">{seg.count}</span>
-                      </span>
-                    ))}
-                  </p>
-                </>
-              ) : (
-                <div className="h-2 w-full overflow-hidden rounded-full bg-paper-tint" />
-              )}
-              {isAgreement && (
-                <p className="mt-1 text-[11px] font-medium text-primary">
-                  Who has signed &rarr;
-                </p>
-              )}
-            </Card>
-            );
-          })}
-        </div>
-        )}
-      </section>
+      <p className="text-[11px] leading-relaxed text-ink-faint">
+        Every question, answer, and free-text response is in the detailed report —
+        kept off the page to keep this fast to scan.
+      </p>
 
       {/* Program legend */}
       {programs.length > 1 && (
@@ -401,62 +312,112 @@ export function InsightsDashboard({
           ))}
         </div>
       )}
-
-      {/* Detail view */}
-      {active && active.schema && (
-        <section className="pt-2">
-          <div className="mb-3 flex items-center justify-between gap-2">
-            {cohortFilter !== "all" ? (
-              <p className="text-[12px] text-ink-soft">
-                Showing <span className="font-semibold text-ink">{cohortFilter}</span> only —{" "}
-                <button type="button" onClick={() => changeCohort("all")} className="underline hover:text-ink">
-                  clear
-                </button>
-              </p>
-            ) : (
-              <span />
-            )}
-            <div className="flex items-center gap-2">
-              {/* CSV export — raw data for your team */}
-              <a
-                href={`/api/insights/csv?survey=${encodeURIComponent(active.survey.id)}${cohortFilter !== "all" ? `&cohort=${encodeURIComponent(cohortFilter)}` : ""}`}
-                className="shrink-0 border border-rule bg-white px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:border-ink-faint"
-              >
-                Export CSV
-              </a>
-              {/* Per-question detailed PDF for THIS survey, honoring the cohort filter. */}
-              <a
-                href={`/api/insights/pdf?detailed=1&survey=${encodeURIComponent(active.survey.id)}${cohortFilter !== "all" ? `&cohort=${encodeURIComponent(cohortFilter)}` : ""}`}
-                className="shrink-0 border border-rule bg-white px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:border-ink-faint"
-              >
-                Detailed report ↓
-              </a>
-            </div>
-          </div>
-          {(() => {
-            const gaps = grantCompleteness(active.responses);
-            if (gaps.length === 0) return null;
-            return (
-              <div className="mb-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-                Heads up before you export:{" "}
-                {gaps.map((g) => `${g.count} ${g.count === 1 ? "response is" : "responses are"} missing ${g.label}`).join(" · ")}
-                . Those cells will be blank in the CSV.
-              </div>
-            );
-          })()}
-          <SurveyDashboard
-            surveyId={active.survey.id}
-            surveyTitle={active.survey.title}
-            schema={active.schema}
-            responses={active.responses}
-            programs={programs}
-            chrome="embedded"
-          />
-        </section>
-      )}
     </div>
   );
 }
+
+// The three roll-up tiles, as links. `download` for the CSV route; internal
+// nav otherwise. Hover reveals a ↗ so it reads as clickable.
+function StatTile({
+  value,
+  label,
+  href,
+  download,
+}: {
+  value: number;
+  label: string;
+  href: string;
+  download?: boolean;
+}) {
+  const inner = (
+    <>
+      <span className="absolute right-4 top-4 text-ink-faint opacity-0 transition group-hover:opacity-100 group-hover:text-primary">
+        ↗
+      </span>
+      <p className="text-3xl font-bold tabular-nums text-ink sm:text-4xl">
+        {value.toLocaleString()}
+      </p>
+      <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
+        {label}
+      </p>
+    </>
+  );
+  const cls =
+    "group relative block panel p-5 transition hover:-translate-y-0.5 hover:border-primary hover:shadow-sm";
+  return download ? (
+    <a href={href} className={cls}>{inner}</a>
+  ) : (
+    <Link href={href} className={cls}>{inner}</Link>
+  );
+}
+
+// Weekly responses bar chart — the count sits ON each bar, the week date under
+// it, so every bar reads at a glance without hovering.
+function ResponsesChart({ series }: { series: { label: string; count: number }[] }) {
+  const max = Math.max(1, ...series.map((b) => b.count));
+  return (
+    <>
+      <div className="flex items-end gap-1">
+        {series.map((b, i) => (
+          <div
+            key={i}
+            className="flex min-w-0 flex-1 flex-col items-center justify-end gap-1"
+            title={`Week of ${b.label} · ${b.count} response${b.count === 1 ? "" : "s"}`}
+          >
+            <span className="text-[10px] font-semibold tabular-nums text-ink-faint">{b.count}</span>
+            <div
+              className="w-full rounded-t bg-primary"
+              style={{ height: `${Math.max((b.count / max) * 44, 3)}px`, opacity: 0.45 + 0.55 * (b.count / max) }}
+            />
+          </div>
+        ))}
+      </div>
+      <div className="mt-1.5 flex gap-1">
+        {series.map((b, i) => (
+          <div key={i} className="flex-1 text-center text-[10px] tabular-nums text-ink-faint">{b.label}</div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+// Responses per ISO week (Monday-based) across a survey's responses, for the
+// bar chart. Capped to the most recent 8 weeks so a long-running survey stays
+// readable. Derived from completed_at.
+function weeklySeries(
+  responses: BCCSurveyResponse[],
+  maxBars = 8,
+): { label: string; count: number }[] {
+  const times = responses
+    .map((r) => r.completed_at)
+    .filter((d): d is string => !!d)
+    .map((d) => new Date(d).getTime())
+    .filter((t) => !Number.isNaN(t));
+  if (times.length === 0) return [];
+  const WEEK = 7 * 86_400_000;
+  const weekStart = (t: number) => {
+    const d = new Date(t);
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); // back to Monday
+    return d.getTime();
+  };
+  const counts = new Map<number, number>();
+  for (const t of times) {
+    const w = weekStart(t);
+    counts.set(w, (counts.get(w) ?? 0) + 1);
+  }
+  const first = weekStart(Math.min(...times));
+  const last = weekStart(Math.max(...times));
+  const weeks: { label: string; count: number }[] = [];
+  for (let w = first; w <= last; w += WEEK) {
+    weeks.push({
+      label: new Date(w).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+      count: counts.get(w) ?? 0,
+    });
+  }
+  return weeks.length > maxBars ? weeks.slice(-maxBars) : weeks;
+}
+
 
 // ── Sub-components ──────────────────────────────────────────────────────────
 
