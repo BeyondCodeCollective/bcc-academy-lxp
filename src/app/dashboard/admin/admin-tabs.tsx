@@ -665,8 +665,8 @@ export function AdminTabs({
   }, [initialStudents]);
   const [expandedWeek, setExpandedWeek] = useState<number | null>(null);
   const [trackView, setTrackView] = useState<
-    "overview" | "curriculum" | "students" | "surveys"
-  >((initialTrackView as "overview" | "curriculum" | "students" | "surveys") ?? "overview");
+    "overview" | "analytics" | "curriculum" | "students" | "surveys"
+  >((initialTrackView as "overview" | "analytics" | "curriculum" | "students" | "surveys") ?? "overview");
   const [studentSubView, setStudentSubView] = useState<"students" | "attendance" | "progress" | "work" | "certificates">("students");
   const [studentSaving, setStudentSaving] = useState<string | null>(null);
 
@@ -1265,6 +1265,7 @@ export function AdminTabs({
           <div className="flex gap-1 bg-paper-tint p-1">
             {[
               { id: "overview" as const, label: "Overview" },
+              { id: "analytics" as const, label: "Analytics" },
               { id: "curriculum" as const, label: "Curriculum" },
               { id: "students" as const, label: "Students" },
               { id: "surveys" as const, label: "Surveys" },
@@ -1286,7 +1287,6 @@ export function AdminTabs({
           {/* Sub-tab content */}
           {trackView === "overview" && (
             <div className="space-y-8">
-              {courseEngagement && <CourseEngagement {...courseEngagement} />}
               <TrackOverviewForm
                 key={activeTrack.slug}
                 track={activeTrack}
@@ -1301,6 +1301,22 @@ export function AdminTabs({
                 programSlug={programSlug}
                 initial={activeTrack.officeHours ?? []}
               />
+            </div>
+          )}
+
+          {/* Analytics — this one course's numbers, in one place. The
+             CourseEngagement snapshot is engagement/attendance-framed (active
+             this week, turnout, status), never a misleading "0% complete". */}
+          {trackView === "analytics" && (
+            <div className="space-y-8">
+              {courseEngagement ? (
+                <CourseEngagement {...courseEngagement} />
+              ) : (
+                <p className="text-sm text-ink-faint">
+                  No analytics for this course yet — this fills in once learners
+                  start attending and doing the work.
+                </p>
+              )}
             </div>
           )}
 
