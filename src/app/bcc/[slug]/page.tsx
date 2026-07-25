@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getLandingPage } from "@/lib/landing-pages";
 import { CampEmailForm } from "../_components/camp-email-form";
+import { CampEnrollForm } from "../_components/camp-enroll-form";
 import { CampEventbriteRegister } from "../_components/camp-eventbrite-register";
 import { CampHeaderCta } from "../_components/camp-header-cta";
 
@@ -105,6 +106,13 @@ export default async function CampLandingPage({
                   accent={accent}
                   height={page.embedHeight}
                 />
+              ) : page.nativeEnroll ? (
+                <CampEnrollForm
+                  slug={page.slug}
+                  sessions={page.sessions}
+                  accent={accent}
+                  ctaLabel={page.enrollCtaLabel}
+                />
               ) : (
                 <CampEmailForm accent={accent} trackSlug={page.trackSlug} />
               )}
@@ -130,6 +138,61 @@ export default async function CampLandingPage({
                   ))}
                 </div>
               </>
+            )}
+
+            {/* Detailed content — overview, what you'll learn, etc. */}
+            {page.bodySections.length > 0 && (
+              <div className="mt-10 space-y-6">
+                {page.bodySections.map((section, i) => (
+                  <div key={i}>
+                    <h2
+                      className="text-[13px] font-semibold uppercase tracking-[0.12em]"
+                      style={{ color: accent }}
+                    >
+                      {section.heading}
+                    </h2>
+                    <p
+                      className="mt-2 text-sm leading-relaxed whitespace-pre-line"
+                      style={{ color: "#1a1a1a99" }}
+                    >
+                      {section.body}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Instructor */}
+            {page.instructor && (
+              <div
+                className="mt-10 flex items-start gap-4 rounded-2xl p-5"
+                style={{ background: "#1a1a1a08" }}
+              >
+                {page.instructor.photoUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={page.instructor.photoUrl}
+                    alt={page.instructor.name}
+                    className="h-14 w-14 shrink-0 rounded-full object-cover"
+                  />
+                )}
+                <div>
+                  {page.instructor.role && (
+                    <p
+                      className="text-[11px] font-semibold uppercase tracking-[0.14em]"
+                      style={{ color: accent }}
+                    >
+                      {page.instructor.role}
+                    </p>
+                  )}
+                  <p className="text-[15px] font-semibold" style={{ color: "#1a1a1a" }}>
+                    {page.instructor.name}
+                  </p>
+                  <p className="mt-1 text-sm leading-relaxed" style={{ color: "#1a1a1a99" }}>
+                    {page.instructor.bio}
+                  </p>
+                </div>
+              </div>
             )}
 
             {/* Secondary CTA */}

@@ -6,6 +6,27 @@ export type LandingPartner =
   | { kind: "image"; src: string; alt: string; height?: number }
   | { kind: "wordmark"; label: string; height?: number };
 
+/** A detailed-content block rendered below the hero (overview, what you'll
+ *  learn, etc.). */
+export type LandingSection = { heading: string; body: string };
+
+/** The person leading the course, shown as a headshot + bio block. */
+export type LandingInstructor = {
+  name: string;
+  role?: string | null;
+  bio: string;
+  photoUrl?: string | null;
+};
+
+/** A selectable session/cohort date for native enrollment. */
+export type LandingSession = {
+  id: string;
+  label: string;
+  startUtc?: string | null;
+  endUtc?: string | null;
+  timezone?: string | null;
+};
+
 export type LandingPage = {
   slug: string;
   headerLabel: string;
@@ -27,6 +48,12 @@ export type LandingPage = {
   footerText: string | null;
   metaTitle: string | null;
   metaDescription: string | null;
+  bodySections: LandingSection[];
+  instructor: LandingInstructor | null;
+  sessions: LandingSession[];
+  /** When true, render the native pick-a-date + enroll form (no Eventbrite). */
+  nativeEnroll: boolean;
+  enrollCtaLabel: string | null;
 };
 
 /** Loads a published marketing landing page by slug (the /bcc/[slug] template
@@ -60,6 +87,11 @@ export async function getLandingPage(slug: string): Promise<LandingPage | null> 
     footerText: (data.footer_text as string | null) ?? null,
     metaTitle: (data.meta_title as string | null) ?? null,
     metaDescription: (data.meta_description as string | null) ?? null,
+    bodySections: (data.body_sections as LandingSection[] | null) ?? [],
+    instructor: (data.instructor as LandingInstructor | null) ?? null,
+    sessions: (data.sessions as LandingSession[] | null) ?? [],
+    nativeEnroll: (data.native_enroll as boolean | null) ?? false,
+    enrollCtaLabel: (data.enroll_cta_label as string | null) ?? null,
   };
 }
 
