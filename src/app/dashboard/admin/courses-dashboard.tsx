@@ -3,7 +3,6 @@ import { StatCard } from "@/components/stats/stat-card";
 import { DonutChart } from "@/components/charts/donut-chart";
 import { METRIC_DEFS } from "@/lib/analytics/metric-defs";
 import { COBALT_FAMILY } from "@/components/stats/palette";
-import { SectionLabel } from "./analytics-ui";
 
 // Courses & Progress — Circle's "Courses" analytics layout, in the BCC visual
 // language: three headline cards, a completion-distribution donut, and the
@@ -59,9 +58,9 @@ export function CoursesDashboard({ data }: { data: CoursesAnalytics }) {
         />
 
         <div className="panel overflow-hidden p-5">
-          <div className="mb-4">
-            <SectionLabel>Popular courses</SectionLabel>
-          </div>
+          <p className="mb-4 text-[11px] font-medium uppercase tracking-[0.14em] text-ink-faint">
+            Popular courses
+          </p>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -97,7 +96,9 @@ export function CoursesDashboard({ data }: { data: CoursesAnalytics }) {
       </section>
 
       <section className="space-y-2">
-        <SectionLabel>Active students</SectionLabel>
+        <h2 className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">
+          Active students
+        </h2>
         <div className="overflow-x-auto rounded-lg border border-rule">
           <table className="w-full text-sm">
             <thead>

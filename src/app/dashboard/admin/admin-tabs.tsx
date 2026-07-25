@@ -112,7 +112,7 @@ function AdminTopTabs({
     { id: "attendance", label: "Attendance", href: "/dashboard/admin?tab=attendance", show: true },
     { id: "insights", label: "Survey insights", href: "/dashboard/admin?tab=insights", show: showInsights },
     { id: "analytics", label: "Engagement", href: "/dashboard/admin?tab=analytics", show: showInsights },
-    { id: "course-progress", label: "Progress", href: "/dashboard/admin?tab=course-progress", show: showInsights },
+    { id: "course-progress", label: "Courses", href: "/dashboard/admin?tab=course-progress", show: showInsights },
   ];
   // One segment is not a choice — hide the picker until there are at least two.
   const visibleSegments = segments.filter((t) => t.show);
