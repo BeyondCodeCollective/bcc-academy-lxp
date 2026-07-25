@@ -21,6 +21,7 @@ import {
 } from "@/lib/attendance/compute";
 import { computeCurrentWeek, trackHasStarted, formatCohortDate } from "@/lib/utils";
 import { unitDisplayMap } from "@/lib/programs/unit-display";
+import { SectionLabel, ANALYTICS_SELECT_CLASS } from "./analytics-ui";
 
 type AttendanceTabProps = {
   students: StudentRow[];
@@ -609,11 +610,13 @@ function OverviewPanel({
          didn't say anything useful on a quiet day. */}
       {atRisk.length > 0 && (
         <section>
-          <div className="mb-3 flex items-center gap-2">
-            <AlertTriangle size={14} className="text-ink-faint" />
-            <h3 className="text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
-              Needs attention
-            </h3>
+          <div className="mb-3">
+            <SectionLabel hint={atRisk.length}>
+              <span className="inline-flex items-center gap-2">
+                <AlertTriangle size={14} className="text-ink-faint" />
+                Needs attention
+              </span>
+            </SectionLabel>
           </div>
           <ul className="divide-y divide-rule-soft border-t border-rule">
             {atRisk.map((s) => {
@@ -844,7 +847,7 @@ function MarkPanel({
             value={markWeek}
             onChange={(e) => setMarkWeek(Number(e.target.value))}
             aria-label="Select unit"
-            className="mt-0.5 max-w-full cursor-pointer rounded-md border border-rule bg-surface-elevated px-2 py-1 text-sm font-semibold text-ink"
+            className={`${ANALYTICS_SELECT_CLASS} mt-0.5 max-w-full cursor-pointer font-semibold`}
           >
             {Array.from({ length: totalWeeks }, (_, i) => i + 1).map((w) => {
               const u = unitDisplay.get(w);

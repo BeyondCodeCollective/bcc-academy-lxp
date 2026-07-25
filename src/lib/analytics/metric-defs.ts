@@ -13,6 +13,10 @@ export const METRIC_DEFS = {
     "Members who finished a course they were enrolled in. A current total, so it has no previous-period comparison.",
   activeMembers:
     "Distinct members who watched a lesson, attended, submitted, or reflected in the window.",
+  sessionsAttended:
+    "Live sessions attended in the window (attendance check-ins). Compared to the previous period.",
+  workSubmitted:
+    "Assignments and reflections submitted in the window. Compared to the previous period.",
   atRisk: "Enrolled members with no activity in the last 7 to 20 days.",
   disengaged: "Enrolled members with no activity in more than 21 days.",
   completionDistribution:
