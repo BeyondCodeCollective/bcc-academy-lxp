@@ -207,6 +207,55 @@ export async function GET(req: NextRequest) {
       }
     })();
   </script>
+
+  <script>
+    // Settings-dialog escape hatch. Zoom's Settings/Statistics modal
+    // (.settings-dialog) opens with a native close (.settings-dialog__close),
+    // but in this embedded frame — shorter than the standalone web client it
+    // was built for — that ✕ can render clipped above the visible area, and
+    // Escape is not wired. A student who opened Settings → Statistics got
+    // trapped with no way out but a full page reload (reported 2026-07-25).
+    // Fix: wire Escape to the native close, and pin an always-visible ✕ inside
+    // the frame whenever the dialog is open. Pure DOM, so it doesn't fight the
+    // SDK's own positioning.
+    (function () {
+      function closeSettings() {
+        var btn = document.querySelector(".settings-dialog__close");
+        if (btn) { btn.click(); return true; }
+        // Fallback: if the native close ever moves, hide the dialog outright so
+        // the user is never stuck.
+        var dlg = document.querySelector(".settings-dialog");
+        if (dlg) { dlg.style.display = "none"; return true; }
+        return false;
+      }
+
+      document.addEventListener("keydown", function (e) {
+        if ((e.key === "Escape" || e.keyCode === 27) &&
+            document.querySelector(".settings-dialog")) {
+          e.stopPropagation();
+          closeSettings();
+        }
+      }, true);
+
+      // Pinned fallback control — shown only while the settings dialog is open.
+      var esc = document.createElement("button");
+      esc.type = "button";
+      esc.textContent = "✕ Close settings";
+      esc.setAttribute("aria-label", "Close settings");
+      esc.style.cssText =
+        "position:fixed;top:10px;right:10px;z-index:2147483647;display:none;" +
+        "padding:8px 12px;background:#1D59FF;color:#fff;border:none;border-radius:8px;" +
+        "font:600 13px system-ui,sans-serif;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.4);";
+      esc.addEventListener("click", closeSettings);
+      document.body.appendChild(esc);
+
+      // Toggle the fallback button's visibility as the dialog opens/closes.
+      var obs = new MutationObserver(function () {
+        esc.style.display = document.querySelector(".settings-dialog") ? "block" : "none";
+      });
+      obs.observe(document.body, { childList: true, subtree: true });
+    })();
+  </script>
 </body>
 </html>`;
 
