@@ -101,7 +101,27 @@ function OutcomesSection({ outcomes }: { outcomes: OutcomesData }) {
 // ─── 2. Progress & Completion ────────────────────────────────────────────────
 
 function ProgressSection({ progress }: { progress: ProgressData }) {
-  // Drop-off overlay across the tracks with the most learners.
+  // Average progress = how far through the material learners have gotten, from
+  // the weekly "still reached" curve. This is the honest signal WHILE a course
+  // runs — leading with completion reads as "0% failed" when a cohort just isn't
+  // finished yet. Completion stays, but as secondary context, not the headline.
+  const avgProgress = (t: ProgressData["tracks"][number]) =>
+    t.totalWeeks > 0
+      ? Math.round(t.dropoff.reduce((a, b) => a + b, 0) / t.totalWeeks)
+      : 0;
+
+  const overallAvgProgress = (() => {
+    let num = 0;
+    let den = 0;
+    for (const t of progress.tracks) {
+      if (t.enrolled > 0 && t.totalWeeks > 0) {
+        num += avgProgress(t) * t.enrolled;
+        den += t.enrolled;
+      }
+    }
+    return den > 0 ? Math.round(num / den) : 0;
+  })();
+
   const shown = progress.tracks.filter((t) => t.enrolled >= 3).slice(0, 5);
   const maxWeeks = Math.max(1, ...shown.map((t) => t.totalWeeks));
   const xLabels = Array.from({ length: maxWeeks }, (_, i) => `W${i + 1}`);
@@ -111,16 +131,22 @@ function ProgressSection({ progress }: { progress: ProgressData }) {
     points: t.dropoff,
   }));
 
-  const completionData = progress.tracks
+  const progressData = progress.tracks
     .filter((t) => t.enrolled >= 3)
-    .map((t) => ({ label: t.name, value: t.completionRate }));
+    .map((t) => ({ label: t.name, value: avgProgress(t) }));
+
+  const nTracks = progress.tracks.filter((t) => t.enrolled >= 1).length;
 
   return (
     <section className="space-y-5">
       <SectionHeader
-        eyebrow="Progress & Completion"
-        headline={`${progress.overallCompletionRate}% complete their track`}
-        sub={`${progress.totalCompleted.toLocaleString()} completions across ${progress.totalEnrolled.toLocaleString()} enrollments${
+        eyebrow="Progress"
+        headline={`${overallAvgProgress}% of the way through, on average`}
+        sub={`${progress.totalEnrolled.toLocaleString()} enrolled across ${nTracks} course${nTracks === 1 ? "" : "s"}${
+          progress.totalCompleted > 0
+            ? ` · ${progress.totalCompleted.toLocaleString()} completed so far`
+            : ""
+        }${
           progress.medianDaysToComplete !== null
             ? ` · median ${progress.medianDaysToComplete} days to finish`
             : ""
@@ -128,28 +154,28 @@ function ProgressSection({ progress }: { progress: ProgressData }) {
       />
 
       <div className="grid gap-3 lg:grid-cols-2">
-        {completionData.length > 0 ? (
+        {progressData.length > 0 ? (
           <HorizontalBarChart
-            title="Completion rate by track"
-            data={completionData}
+            title="Progress by track"
+            data={progressData}
             unit="%"
             max={100}
             barClass="bg-[#1D59FF]"
-            totalCaption={{ value: completionData.length, label: "tracks" }}
+            totalCaption={{ value: progressData.length, label: "tracks" }}
           />
         ) : (
-          <EmptyCard text="No track has enough enrollment to chart completion yet." />
+          <EmptyCard text="No track has enough enrollment to chart progress yet." />
         )}
 
         {series.length > 0 ? (
           <LineChart
-            title="Drop-off — % of enrolled still active by week"
+            title="Still active by week"
             xLabels={xLabels}
             series={series}
             caption={`${shown.length} track${shown.length === 1 ? "" : "s"}`}
           />
         ) : (
-          <EmptyCard text="Not enough weekly activity to chart drop-off yet." />
+          <EmptyCard text="Not enough weekly activity to chart retention yet." />
         )}
       </div>
     </section>
