@@ -316,7 +316,7 @@ export default async function CampLandingPage({
           {page.sponsorLogoUrl && (
             <div className="absolute top-6 right-6 md:top-8 md:right-8">
               <span
-                className="block text-[9px] font-semibold uppercase tracking-[0.18em] text-white/70"
+                className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-white/80"
               >
                 In partnership with
               </span>
@@ -324,7 +324,7 @@ export default async function CampLandingPage({
               <img
                 src={page.sponsorLogoUrl}
                 alt="Sponsor"
-                className="mt-1.5 h-6 w-auto md:h-7"
+                className="mt-2 h-10 w-auto md:h-12"
               />
             </div>
           )}
