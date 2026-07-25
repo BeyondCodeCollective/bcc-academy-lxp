@@ -16,9 +16,33 @@ export async function generateMetadata({
   const { slug } = await params;
   const page = await getLandingPage(slug);
   if (!page) return { title: "Not found" };
+
+  const title = page.metaTitle ?? page.headline.replace(/\n/g, " ");
+  const description = page.metaDescription ?? page.subhead ?? undefined;
+
+  // Per-page social card: prefer og_image, fall back to the hero. Relative
+  // paths are made absolute so scrapers can fetch them.
+  const rawImage = page.ogImage ?? page.heroImageUrl;
+  const image = rawImage?.startsWith("/")
+    ? `https://bccacademy.io${rawImage}`
+    : rawImage ?? undefined;
+
   return {
-    title: page.metaTitle ?? page.headline.replace(/\n/g, " "),
-    description: page.metaDescription ?? page.subhead ?? undefined,
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      url: `https://bccacademy.io/bcc/${slug}`,
+      type: "website",
+      ...(image ? { images: [{ url: image }] } : {}),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      ...(image ? { images: [image] } : {}),
+    },
   };
 }
 
