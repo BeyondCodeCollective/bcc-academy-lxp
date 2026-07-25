@@ -63,6 +63,8 @@ export type LandingPage = {
   applyCtaLabel: string | null;
   /** Social/OG card image; falls back to the hero image. */
   ogImage: string | null;
+  /** Logo overlaid top-right of the hero (e.g. a white sponsor logo). */
+  sponsorLogoUrl: string | null;
 };
 
 /** Loads a published marketing landing page by slug (the /bcc/[slug] template
@@ -106,6 +108,7 @@ export async function getLandingPage(slug: string): Promise<LandingPage | null> 
     applyUrl: (data.apply_url as string | null) ?? null,
     applyCtaLabel: (data.apply_cta_label as string | null) ?? null,
     ogImage: (data.og_image as string | null) ?? null,
+    sponsorLogoUrl: (data.sponsor_logo_url as string | null) ?? null,
   };
 }
 
