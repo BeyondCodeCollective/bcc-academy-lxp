@@ -355,6 +355,18 @@ export async function fetchOutcomesData(scope: ProgramScope): Promise<OutcomesDa
     if (before.length === 0 || after.length === 0) continue;
     groups.push(...crossSurveyGroups(pair, before, after));
   }
+  // A shift claim needs a real sample on BOTH sides — with one post-survey
+  // respondent, "confidence dipped" is one person's answers wearing the whole
+  // cohort's face (16 pre vs 1 post did exactly this). Rows below the floor
+  // are cut; if nothing survives, the page shows its "fills in once a cohort
+  // completes a survey" empty state instead of a verdict.
+  const MIN_SHIFT_N = 3;
+  const sampledGroups = groups
+    .map((g) => ({ ...g, rows: g.rows.filter((r) => r.n >= MIN_SHIFT_N) }))
+    .filter((g) => g.rows.length > 0);
+  groups.length = 0;
+  groups.push(...sampledGroups);
+
   // Surface the biggest movers first.
   groups.sort((a, b) => avgOf(b.rows) - avgOf(a.rows));
 
