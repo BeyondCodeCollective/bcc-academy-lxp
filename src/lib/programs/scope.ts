@@ -8,7 +8,7 @@
 // program_id (students, student_tracks, attendance, submissions, …).
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { getAllPrograms } from "@/lib/programs";
+import { getEveryProgramConfig } from "@/lib/programs";
 
 export type ProgramScope = { slugs: string[]; ids: string[] };
 
@@ -21,7 +21,7 @@ export type ProgramScope = { slugs: string[]; ids: string[] };
  * program_id-filtered analytics read zero on standalone program views.
  */
 export async function resolveScopeTrackSlugs(scope: ProgramScope): Promise<string[]> {
-  const fromConfig = getAllPrograms()
+  const fromConfig = getEveryProgramConfig()
     .filter((p) => scope.slugs.includes(p.slug))
     .flatMap((p) => p.tracks.map((t) => t.slug));
   const svc = createServiceClient();

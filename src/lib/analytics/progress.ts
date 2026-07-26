@@ -7,7 +7,7 @@
 // "still doing the work", which is the honest signal this platform records.
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { getAllPrograms } from "@/lib/programs";
+import { getEveryProgramConfig } from "@/lib/programs";
 import { resolveScopeTrackSlugs, type ProgramScope } from "@/lib/programs/scope";
 import { getLearnerActivity } from "@/lib/analytics/activity";
 import { humanizeSlug } from "@/lib/utils";
@@ -79,7 +79,7 @@ export async function fetchProgressData(scope: ProgramScope): Promise<ProgressDa
 
   // Track metadata (name + totalWeeks) from program configs.
   const meta = new Map<string, { name: string; totalWeeks: number }>();
-  for (const p of getAllPrograms()) {
+  for (const p of getEveryProgramConfig()) {
     for (const t of p.tracks) {
       meta.set(t.slug, { name: t.shortName || t.name, totalWeeks: t.totalWeeks });
     }

@@ -5,7 +5,7 @@ import { getProgram } from "@/lib/programs/server";
 import { resolveProgramScope, resolveScopeTrackSlugs } from "@/lib/programs/scope";
 import { fetchProgressData } from "@/lib/analytics/progress";
 import { getLearnerActivity } from "@/lib/analytics/activity";
-import { getAllPrograms } from "@/lib/programs";
+import { getEveryProgramConfig } from "@/lib/programs";
 
 // Courses & Progress analytics — the "are they moving through and finishing?"
 // view, laid out like Circle's Courses page but built from our tables. Reuses
@@ -90,7 +90,7 @@ export async function getCoursesAnalytics(): Promise<CoursesAnalytics> {
   // Track metadata (totalWeeks) for progress fractions.
   const weeksBySlug = new Map<string, number>();
   const nameBySlug = new Map<string, string>();
-  for (const p of getAllPrograms()) {
+  for (const p of getEveryProgramConfig()) {
     for (const t of p.tracks) {
       weeksBySlug.set(t.slug, t.totalWeeks);
       nameBySlug.set(t.slug, t.shortName || t.name);

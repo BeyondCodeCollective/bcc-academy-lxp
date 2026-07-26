@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getAllPrograms } from "@/lib/programs";
+import { getEveryProgramConfig } from "@/lib/programs";
 import type { SurveyConfig } from "@/lib/programs/types";
 import type { SurveyQuestion } from "@/components/survey-fields";
 import { getSurveySchema } from "@/lib/surveys/schemas";
@@ -44,7 +44,7 @@ export async function buildInsightsData(
     (r) => !EXCLUDED_FROM_INSIGHTS.has(r.survey_type),
   );
 
-  const programSurveys: SurveyConfig[] = getAllPrograms().flatMap(
+  const programSurveys: SurveyConfig[] = getEveryProgramConfig().flatMap(
     (p) => p.surveys ?? [],
   );
   const allSurveysById = new Map<string, SurveyConfig>();
@@ -98,7 +98,7 @@ export async function buildInsightsData(
     responses: allResponses[survey.id] ?? [],
   }));
 
-  const visiblePrograms = getAllPrograms().filter((p) =>
+  const visiblePrograms = getEveryProgramConfig().filter((p) =>
     aggregatedSlugs.includes(p.slug),
   );
 

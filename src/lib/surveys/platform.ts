@@ -1,5 +1,5 @@
 import type { SurveyConfig } from "@/lib/programs/types";
-import { getAllPrograms } from "@/lib/programs";
+import { getEveryProgramConfig } from "@/lib/programs";
 
 // ─── Platform-level surveys ─────────────────────────────────────────────────
 //
@@ -41,7 +41,7 @@ export function surveySkippedForTracks(
  * where "who replied" genuinely is the right filing.
  */
 export function surveyOwnerProgramSlug(surveyId: string): string | null {
-  for (const p of getAllPrograms()) {
+  for (const p of getEveryProgramConfig()) {
     for (const s of p.surveys ?? []) {
       if (s.id === surveyId && s.appliesToPrograms?.length) {
         return s.appliesToPrograms[0];
