@@ -553,7 +553,7 @@ export function AdminTabs({
   /** Server-computed enrolled/active/completed per track. See getCourseRosterStats. */
   courseStats?: Record<
     string,
-    { total: number; active: number; fullAttendance: number | null; sessionsHeld: number }
+    { total: number; active: number; fullAttendance: number | null; sessionsHeld: number; certificates?: number }
   >;
   initialTab?: string;
   initialTrackView?: string;
@@ -1154,6 +1154,12 @@ export function AdminTabs({
                 // Once a course has ended, report its outcome instead: how many
                 // learners made every session.
                 const completed = ended ? (courseStats[t.slug]?.fullAttendance ?? null) : null;
+                // A finished course with no certificates issued isn't a course
+                // nobody completed — it's one nobody has recorded yet, and it
+                // reads as 0% everywhere until someone does. Say so on the row,
+                // where the person who can fix it is already looking.
+                const awaitingCertificates =
+                  ended && count > 0 && (courseStats[t.slug]?.certificates ?? 0) === 0;
                 return (
                   <div
                     key={t.slug}
@@ -1176,6 +1182,11 @@ export function AdminTabs({
                         </p>
                         <p className="text-[12px] text-ink-faint">
                           {t.instructor}
+                          {awaitingCertificates && (
+                            <span className="ml-2 font-medium text-primary">
+                              · Ended — no certificates issued yet
+                            </span>
+                          )}
                         </p>
                       </div>
                       <p
