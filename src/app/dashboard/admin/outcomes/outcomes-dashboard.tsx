@@ -239,16 +239,26 @@ function AcquisitionSection({ acquisition }: { acquisition: AcquisitionData }) {
           {acquisition.needsAttention.length === 0 ? (
             <p className="text-sm text-ink-faint">Nobody&apos;s drifting — nice.</p>
           ) : (
-            <ul className="divide-y divide-rule-soft">
-              {acquisition.needsAttention.map((s) => (
-                <li key={s.id} className="flex items-center justify-between gap-3 py-2.5">
-                  <PersonCell name={s.name} email={s.email} />
-                  <span className="shrink-0 text-[11px] tabular-nums text-ink-soft">
-                    {s.signal}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <>
+              {/* Cap the list — a 20-name wall makes the whole row read as one
+                 long empty column next to the risk donut. The full set lives
+                 in Attendance's "Need a check-in". */}
+              <ul className="divide-y divide-rule-soft">
+                {acquisition.needsAttention.slice(0, 8).map((s) => (
+                  <li key={s.id} className="flex items-center justify-between gap-3 py-2.5">
+                    <PersonCell name={s.name} email={s.email} />
+                    <span className="shrink-0 text-[11px] tabular-nums text-ink-soft">
+                      {s.signal}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              {acquisition.needsAttention.length > 8 && (
+                <p className="mt-2 text-xs text-ink-faint">
+                  + {acquisition.needsAttention.length - 8} more in Analytics → Attendance
+                </p>
+              )}
+            </>
           )}
         </div>
       </div>
