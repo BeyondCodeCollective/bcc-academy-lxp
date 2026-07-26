@@ -8,7 +8,7 @@
 
 import { createServiceClient } from "@/lib/supabase/server";
 import { getAllPrograms } from "@/lib/programs";
-import type { ProgramScope } from "@/lib/programs/scope";
+import { resolveScopeTrackSlugs, type ProgramScope } from "@/lib/programs/scope";
 import { getLearnerActivity } from "@/lib/analytics/activity";
 import { humanizeSlug } from "@/lib/utils";
 
@@ -43,11 +43,14 @@ function median(nums: number[]): number | null {
 
 export async function fetchProgressData(scope: ProgramScope): Promise<ProgressData> {
   const svc = createServiceClient();
-  const ids = scope.ids;
 
+  // Membership by track slug (globally unique), never the program_id stamp —
+  // see resolveScopeTrackSlugs. Keeps this tab consistent with the roster,
+  // attendance, and engagement surfaces.
+  const trackSlugs = await resolveScopeTrackSlugs(scope);
   const [enrollRes, completeRes, activity] = await Promise.all([
-    svc.from("student_tracks").select("student_id, track_slug, created_at").in("program_id", ids),
-    svc.from("track_completions").select("student_id, track_slug, completed_at").in("program_id", ids),
+    svc.from("student_tracks").select("student_id, track_slug, created_at").in("track_slug", trackSlugs),
+    svc.from("track_completions").select("student_id, track_slug, completed_at").in("track_slug", trackSlugs),
     getLearnerActivity(scope),
   ]);
 

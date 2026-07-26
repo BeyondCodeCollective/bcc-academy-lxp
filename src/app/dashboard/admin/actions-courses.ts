@@ -2,7 +2,7 @@
 
 import { requireCapability } from "./actions-shared";
 import { getProgram } from "@/lib/programs/server";
-import { resolveProgramScope } from "@/lib/programs/scope";
+import { resolveProgramScope, resolveScopeTrackSlugs } from "@/lib/programs/scope";
 import { fetchProgressData } from "@/lib/analytics/progress";
 import { getLearnerActivity } from "@/lib/analytics/activity";
 import { getAllPrograms } from "@/lib/programs";
@@ -62,21 +62,32 @@ export async function getCoursesAnalytics(
   };
   if (ids.length === 0) return empty;
 
-  const [progress, activity, enrollRes, completeRes, studentRes, videoRes] =
+  // Membership by track slug, never the program_id stamp — keeps this tab
+  // consistent with the roster/attendance/engagement surfaces (PR #832).
+  const trackSlugs = await resolveScopeTrackSlugs(scope);
+  const [progress, activity, enrollRes, completeRes, videoRes] =
     await Promise.all([
       fetchProgressData(scope),
       getLearnerActivity(scope),
-      svc.from("student_tracks").select("student_id, track_slug").in("program_id", ids),
-      svc.from("track_completions").select("student_id, track_slug").in("program_id", ids),
-      svc
-        .from("students")
-        .select("id, first_name, last_name, email")
-        .in("program_id", ids)
-        .eq("role", "student")
-        .eq("is_test", false)
-        .eq("is_staff", false),
-      svc.from("week_progress").select("user_id").in("program_id", ids).not("video_watched_at", "is", null),
+      svc.from("student_tracks").select("student_id, track_slug").in("track_slug", trackSlugs),
+      svc.from("track_completions").select("student_id, track_slug").in("track_slug", trackSlugs),
+      svc.from("week_progress").select("user_id").in("track_slug", trackSlugs).not("video_watched_at", "is", null),
     ]);
+  // Students by enrollment id — an account stamped under another program but
+  // enrolled in this program's courses belongs on this list.
+  const enrolledStudentIds = Array.from(
+    new Set(((enrollRes.data ?? []) as { student_id: string }[]).map((r) => r.student_id)),
+  );
+  const studentRes =
+    enrolledStudentIds.length > 0
+      ? await svc
+          .from("students")
+          .select("id, first_name, last_name, email")
+          .in("id", enrolledStudentIds)
+          .eq("role", "student")
+          .eq("is_test", false)
+          .eq("is_staff", false)
+      : { data: [] };
 
   // Track metadata (totalWeeks) for progress fractions.
   const weeksBySlug = new Map<string, number>();

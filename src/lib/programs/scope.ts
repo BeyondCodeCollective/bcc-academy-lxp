@@ -8,8 +8,31 @@
 // program_id (students, student_tracks, attendance, submissions, …).
 
 import { createServiceClient } from "@/lib/supabase/server";
+import { getAllPrograms } from "@/lib/programs";
 
 export type ProgramScope = { slugs: string[]; ids: string[] };
+
+/**
+ * Every track slug the scope's programs own: TS-config tracks plus DB/builder
+ * courses from track_overrides. Track slugs are globally unique
+ * (student_tracks is UNIQUE(student_id, track_slug)), so slug lists — never
+ * the program_id stamps on activity rows — are the safe membership scope.
+ * Signups on the apex domain stamp rows with Catalyst's id, which made
+ * program_id-filtered analytics read zero on standalone program views.
+ */
+export async function resolveScopeTrackSlugs(scope: ProgramScope): Promise<string[]> {
+  const fromConfig = getAllPrograms()
+    .filter((p) => scope.slugs.includes(p.slug))
+    .flatMap((p) => p.tracks.map((t) => t.slug));
+  const svc = createServiceClient();
+  const { data } = await svc
+    .from("track_overrides")
+    .select("track_slug")
+    .in("program_id", scope.ids);
+  return Array.from(
+    new Set([...fromConfig, ...(data ?? []).map((r) => r.track_slug as string)]),
+  );
+}
 
 const _cache = new Map<string, { scope: ProgramScope; ts: number }>();
 

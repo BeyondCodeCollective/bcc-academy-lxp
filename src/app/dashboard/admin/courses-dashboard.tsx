@@ -26,6 +26,7 @@ const DIST_COLORS: Record<string, string> = {
 
 export function CoursesDashboard({ data }: { data: CoursesAnalytics }) {
   const totalEnrolledPairs = data.distribution.reduce((n, d) => n + d.value, 0);
+  const showVideosColumn = data.activeStudents.some((s) => s.lessons > 0);
 
   return (
     <div className="space-y-8">
@@ -94,10 +95,13 @@ export function CoursesDashboard({ data }: { data: CoursesAnalytics }) {
         <h2 className={microLabel}>
           Active students
         </h2>
+        {/* "Videos watched" only exists for pre-recorded content; most cohorts
+           run live sessions, so an all-zero column reads as broken — hide it
+           unless someone has actually watched something. */}
         <DataTable
           columns={[
             "Student",
-            { label: "Lessons", align: "right" },
+            ...(showVideosColumn ? [{ label: "Videos watched", align: "right" as const }] : []),
             { label: "Started", align: "right" },
             { label: "Completed", align: "right" },
             { label: "Completion", align: "right" },
@@ -109,7 +113,9 @@ export function CoursesDashboard({ data }: { data: CoursesAnalytics }) {
               <td className="px-4 py-2.5">
                 <PersonCell name={s.name || null} email={s.email} />
               </td>
-              <td className="px-4 py-2.5 text-right"><Num value={s.lessons} /></td>
+              {showVideosColumn && (
+                <td className="px-4 py-2.5 text-right"><Num value={s.lessons} /></td>
+              )}
               <td className="px-4 py-2.5 text-right"><Num value={s.started} /></td>
               <td className="px-4 py-2.5 text-right"><Num value={s.completed} /></td>
               <td className="px-4 py-2.5 text-right tabular-nums text-ink">{s.completionPct}%</td>
@@ -118,15 +124,16 @@ export function CoursesDashboard({ data }: { data: CoursesAnalytics }) {
           ))}
           {data.activeStudents.length === 0 && (
             <tr>
-              <td colSpan={6} className="px-4 py-8 text-center text-ink-faint">
+              <td colSpan={showVideosColumn ? 6 : 5} className="px-4 py-8 text-center text-ink-faint">
                 No active students in this window yet.
               </td>
             </tr>
           )}
         </DataTable>
         <p className="text-[11px] leading-relaxed text-ink-faint">
-          Progress uses furthest week reached (attendance, submissions, reflections,
-          or lessons watched) over course length. Learners marked complete count as 100%.
+          Progress uses furthest week reached — live-session attendance counts the
+          same as submissions, reflections, or watched videos — over course length.
+          Learners marked complete count as 100%.
         </p>
       </section>
     </div>
