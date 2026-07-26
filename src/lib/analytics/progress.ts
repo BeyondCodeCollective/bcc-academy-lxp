@@ -7,7 +7,7 @@
 // "still doing the work", which is the honest signal this platform records.
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { getAllPrograms } from "@/lib/programs";
+import { getEveryProgramConfig } from "@/lib/programs";
 import { resolveScopeTrackSlugs, type ProgramScope } from "@/lib/programs/scope";
 import { getLearnerActivity } from "@/lib/analytics/activity";
 import { humanizeSlug } from "@/lib/utils";
@@ -54,12 +54,32 @@ export async function fetchProgressData(scope: ProgramScope): Promise<ProgressDa
     getLearnerActivity(scope),
   ]);
 
-  const enrollments = enrollRes.data ?? [];
-  const completions = completeRes.data ?? [];
+  // Staff enrolled in a course are not learners. Instructors and admins sit in
+  // student_tracks so they can see the course, but counting them as "enrolled"
+  // inflates the denominator: Tech+ had 8 enrollments and 4 actual learners, so
+  // certificates to all 4 read as 50% complete instead of 100%. The roster and
+  // engagement surfaces already filter this way (getCourseRosterStats) — this
+  // one didn't, so the same course reported two different totals.
+  const enrolledIds = Array.from(
+    new Set((enrollRes.data ?? []).map((e) => e.student_id)),
+  );
+  const learnerIds = new Set<string>();
+  if (enrolledIds.length > 0) {
+    const { data: people } = await svc
+      .from("students")
+      .select("id, role, is_test")
+      .in("id", enrolledIds);
+    for (const p of people ?? []) {
+      if (p.role === "student" && !p.is_test) learnerIds.add(p.id as string);
+    }
+  }
+
+  const enrollments = (enrollRes.data ?? []).filter((e) => learnerIds.has(e.student_id));
+  const completions = (completeRes.data ?? []).filter((c) => learnerIds.has(c.student_id));
 
   // Track metadata (name + totalWeeks) from program configs.
   const meta = new Map<string, { name: string; totalWeeks: number }>();
-  for (const p of getAllPrograms()) {
+  for (const p of getEveryProgramConfig()) {
     for (const t of p.tracks) {
       meta.set(t.slug, { name: t.shortName || t.name, totalWeeks: t.totalWeeks });
     }

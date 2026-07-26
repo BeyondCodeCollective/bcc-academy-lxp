@@ -5,7 +5,7 @@ import { getProgram } from "@/lib/programs/server";
 import { resolveProgramScope, resolveScopeTrackSlugs } from "@/lib/programs/scope";
 import { fetchProgressData } from "@/lib/analytics/progress";
 import { getLearnerActivity } from "@/lib/analytics/activity";
-import { getAllPrograms } from "@/lib/programs";
+import { getEveryProgramConfig } from "@/lib/programs";
 
 // Courses & Progress analytics — the "are they moving through and finishing?"
 // view, laid out like Circle's Courses page but built from our tables. Reuses
@@ -90,22 +90,32 @@ export async function getCoursesAnalytics(): Promise<CoursesAnalytics> {
   // Track metadata (totalWeeks) for progress fractions.
   const weeksBySlug = new Map<string, number>();
   const nameBySlug = new Map<string, string>();
-  for (const p of getAllPrograms()) {
+  for (const p of getEveryProgramConfig()) {
     for (const t of p.tracks) {
       weeksBySlug.set(t.slug, t.totalWeeks);
       nameBySlug.set(t.slug, t.shortName || t.name);
     }
   }
 
+  // Learners only. Instructors and admins hold student_tracks rows so they can
+  // see a course, but counting them as enrolled inflates every denominator on
+  // this page — Tech+ read 50% complete with certificates issued to all four of
+  // its actual learners, because four staff sat in the same track.
+  const learnerIdSet = new Set(
+    ((studentRes.data ?? []) as { id: string }[]).map((r) => r.id),
+  );
+
   // Enrolled (student,course) pairs, de-duped. Program-altitude on purpose —
   // per-course numbers live inside each course (course-first hierarchy).
   const enrolledPairs = new Set<string>();
   for (const e of (enrollRes.data ?? []) as { student_id: string; track_slug: string }[]) {
+    if (!learnerIdSet.has(e.student_id)) continue;
     enrolledPairs.add(`${e.student_id}|${e.track_slug}`);
   }
   // Completed pairs (100% by definition).
   const completedPairs = new Set<string>();
   for (const c of (completeRes.data ?? []) as { student_id: string; track_slug: string }[]) {
+    if (!learnerIdSet.has(c.student_id)) continue;
     completedPairs.add(`${c.student_id}|${c.track_slug}`);
   }
   // Furthest week + last-active timestamp per (student,course) from the union.

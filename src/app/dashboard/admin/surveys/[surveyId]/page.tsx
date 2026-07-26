@@ -5,7 +5,7 @@ import { canSwitchPrograms } from "@/lib/roles";
 import { getDashboardSurveyResponses, getTrackSurveyResponses } from "../../actions";
 import { getSurveySchema } from "@/lib/surveys/schemas";
 import { PLATFORM_AUTH_SURVEYS, PLATFORM_PUBLIC_SURVEYS } from "@/lib/surveys/platform";
-import { getAllPrograms } from "@/lib/programs";
+import { getEveryProgramConfig } from "@/lib/programs";
 import type { SurveyConfig } from "@/lib/programs/types";
 import { SurveyDashboard } from "./survey-dashboard";
 
@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 function findSurveyConfig(surveyId: string): SurveyConfig | null {
   const platform = PLATFORM_AUTH_SURVEYS[surveyId] ?? PLATFORM_PUBLIC_SURVEYS[surveyId];
   if (platform) return platform;
-  for (const p of getAllPrograms()) {
+  for (const p of getEveryProgramConfig()) {
     const s = (p.surveys ?? []).find((x) => x.id === surveyId);
     if (s) return s;
   }
@@ -53,7 +53,7 @@ export default async function SurveyDashboardPage({
   const responses = trackSlug
     ? await getTrackSurveyResponses(surveyId, decodeURIComponent(trackSlug))
     : await getDashboardSurveyResponses(surveyId);
-  const programs = getAllPrograms().map((p) => ({ slug: p.slug, name: p.name }));
+  const programs = getEveryProgramConfig().map((p) => ({ slug: p.slug, name: p.name }));
 
   return (
     <div className="min-h-[100dvh] bg-paper-tint-soft">

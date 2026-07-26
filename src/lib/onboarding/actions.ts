@@ -19,6 +19,17 @@ import { createClient } from "@/lib/supabase/server";
 // document is used across most Catalyst projects, and hardcoding "After the
 // Game" filed every signer — Home for the Summer included — under that cohort.
 export async function signCatalystAgreement(fullName: string, programSlug: string) {
+  // The CATALYST agreement is filed under Catalyst, whoever signs it and
+  // wherever they signed it from. It used to be stamped with the signer's
+  // browsing program, so two Beyond the Game learners (MASS/Tech+) who opened
+  // the shareable /dashboard/agreement link filed a "Catalyst Participation
+  // Agreement" under Beyond the Game — a form that program doesn't own, sitting
+  // in its Insights with two responses.
+  //
+  // A response belongs to the program that owns the FORM. Who signed it and
+  // which dashboard they were looking at are separate facts, already recorded
+  // on the row.
+  void programSlug;
   const name = fullName.trim();
   if (!name) throw new Error("Please type your full name to sign.");
 
@@ -36,7 +47,7 @@ export async function signCatalystAgreement(fullName: string, programSlug: strin
       cohort: await resolveCatalystCohortLabel(user.id),
       version: "catalyst-2026-07",
     },
-    programSlug,
+    "catalyst",
   );
   return { success: true };
 }

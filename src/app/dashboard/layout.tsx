@@ -25,7 +25,7 @@ import { getEnrolledTracks } from "@/lib/enrollment";
 import { getHiddenTrackSlugs } from "@/lib/programs/hidden";
 import { getLearnerAccess } from "@/lib/auth/active-enrollment";
 import { getEnforcedOnboardingChecklist, getOnboardingStatus } from "@/lib/onboarding/checklists";
-import { BCC_INTAKE_SURVEY_ID, surveySkippedForTracks } from "@/lib/surveys/platform";
+import { BCC_INTAKE_SURVEY_ID, surveySkippedForTracks, surveyAppliesToPrograms } from "@/lib/surveys/platform";
 import { collapseCompanionSlugs } from "@/lib/enrollment";
 import { isSurveyEnabledForLearner } from "@/lib/surveys/features";
 import { isStaffResolved } from "@/lib/auth/staff";
@@ -302,15 +302,22 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
       // Build the set of home programs from enrolled tracks + allowlist so
       // surveys with skipForPrograms: ['forte'] are suppressed for Forte
       // students regardless of which program dashboard they landed on.
+      // getHomeProgramForTrack only knows TS-config courses. A builder-created
+      // course resolved to nothing, which an allowlist reads as "not their
+      // program" — so fall back to resolveHomeProgramSlug, which covers DB
+      // courses too. Otherwise a Beyond Code Centers builder course would
+      // quietly lose the survey its learners are supposed to get.
       const homePrograms = new Set<string>();
-      for (const t of enrolledRes as { slug: string }[]) {
-        const h = getHomeProgramForTrack(t.slug)?.slug;
+      const addHome = async (slug: string) => {
+        const h = getHomeProgramForTrack(slug)?.slug ?? (await resolveHomeProgramSlug(slug));
         if (h) homePrograms.add(h);
-      }
-      for (const row of (allowlistRes as { data: { track_slug: string }[] | null }).data ?? []) {
-        const h = getHomeProgramForTrack(row.track_slug)?.slug;
-        if (h) homePrograms.add(h);
-      }
+      };
+      await Promise.all([
+        ...(enrolledRes as { slug: string }[]).map((t) => addHome(t.slug)),
+        ...((allowlistRes as { data: { track_slug: string }[] | null }).data ?? []).map(
+          (row) => addHome(row.track_slug),
+        ),
+      ]);
 
       const enrolledSlugs = (enrolledRes as { slug: string }[]).map((t) => t.slug);
       // The layout-body gate bounces pending registrants (every enrolled course
@@ -337,6 +344,7 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
         ? program.surveys?.find(
             (s) =>
               s.required &&
+              surveyAppliesToPrograms(s.appliesToPrograms, homePrograms) &&
               !s.skipForPrograms?.some((p) => homePrograms.has(p)) &&
               !surveySkippedForTracks(s.skipForTracks, surveyTrackSlugs),
           )

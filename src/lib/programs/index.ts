@@ -73,6 +73,30 @@ export function getAllPrograms(): ProgramConfig[] {
 }
 
 /**
+ * EVERY real program's config — Catalyst plus the standalone ones (Beyond the
+ * Game, Forte, Beyond Code Centers, BGC). Excludes only `marketing`, the apex
+ * pseudo-program with no DB row.
+ *
+ * getAllPrograms() returns just PROGRAMS, which today is Catalyst alone. That
+ * reads as "all" at every call site and silently isn't: the outcomes engine
+ * built its candidate survey list from it, so Beyond the Game's mid-program
+ * survey — the one instrument on the platform that measures before and after
+ * in a single response — was invisible. Its Learnings page said "no paired
+ * before/after responses yet" while sitting on a +0.84 shift across every
+ * statement from all four learners.
+ *
+ * Anything that asks "what exists across the platform" wants this one.
+ */
+export function getEveryProgramConfig(): ProgramConfig[] {
+  return [
+    ...Object.values(PROGRAMS),
+    ...Object.entries(SPECIAL_CONFIGS)
+      .filter(([slug]) => slug !== MARKETING_SLUG)
+      .map(([, cfg]) => cfg),
+  ];
+}
+
+/**
  * Full program configs for every program a new student could self-join
  * (Catalyst + Forte). Used by the "No account found" CTA list on /login
  * so a Forte invitee who lost their join link can still self-route to

@@ -20,7 +20,7 @@ import { getSurveySchema } from "@/lib/surveys/schemas";
 import { getDashboardAllSurveyResponses } from "@/app/dashboard/admin/actions-surveys";
 import type { BCCSurveyResponse } from "@/app/dashboard/admin/actions-surveys";
 import { PLATFORM_AUTH_SURVEYS, PLATFORM_PUBLIC_SURVEYS } from "@/lib/surveys/platform";
-import { getAllPrograms } from "@/lib/programs";
+import { getEveryProgramConfig } from "@/lib/programs";
 import { aggregateDualLikert, aggregateLikertMeans } from "@/lib/surveys/aggregate";
 import type { SurveyQuestion } from "@/components/survey-fields";
 import type { ProgramScope } from "@/lib/programs/scope";
@@ -83,7 +83,7 @@ function candidateSurveyIds(): string[] {
   for (const s of [
     ...Object.values(PLATFORM_AUTH_SURVEYS),
     ...Object.values(PLATFORM_PUBLIC_SURVEYS),
-    ...getAllPrograms().flatMap((p) => p.surveys ?? []),
+    ...getEveryProgramConfig().flatMap((p) => p.surveys ?? []),
   ]) {
     ids.add(s.id);
   }
@@ -94,7 +94,7 @@ function titleFor(surveyId: string): string {
   const cfg =
     PLATFORM_AUTH_SURVEYS[surveyId] ??
     PLATFORM_PUBLIC_SURVEYS[surveyId] ??
-    getAllPrograms()
+    getEveryProgramConfig()
       .flatMap((p) => p.surveys ?? [])
       .find((s) => s.id === surveyId);
   return cfg?.title ?? surveyId;
