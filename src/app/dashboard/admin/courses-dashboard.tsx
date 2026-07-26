@@ -65,6 +65,7 @@ export function CoursesDashboard({ data }: { data: CoursesAnalytics }) {
             Popular courses
           </p>
           <DataTable
+            dense
             columns={[
               "Course",
               { label: "Enroll.", align: "right" },
@@ -75,11 +76,11 @@ export function CoursesDashboard({ data }: { data: CoursesAnalytics }) {
           >
             {data.popularCourses.map((c) => (
               <tr key={c.slug}>
-                <td className="px-4 py-2.5 text-ink">{c.name}</td>
-                <td className="px-4 py-2.5 text-right"><Num value={c.enrolled} /></td>
-                <td className="px-4 py-2.5 text-right"><Num value={c.started} /></td>
-                <td className="px-4 py-2.5 text-right"><Num value={c.completed} /></td>
-                <td className="px-4 py-2.5 text-right tabular-nums text-ink">{c.completionRate}%</td>
+                <td className="px-3 py-2.5 text-ink">{c.name}</td>
+                <td className="px-3 py-2.5 text-right"><Num value={c.enrolled} /></td>
+                <td className="px-3 py-2.5 text-right"><Num value={c.started} /></td>
+                <td className="px-3 py-2.5 text-right"><Num value={c.completed} /></td>
+                <td className="px-3 py-2.5 text-right tabular-nums text-ink">{c.completionRate}%</td>
               </tr>
             ))}
             {data.popularCourses.length === 0 && (
