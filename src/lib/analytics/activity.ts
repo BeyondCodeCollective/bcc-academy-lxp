@@ -10,7 +10,7 @@
 
 import { cache } from "react";
 import { createServiceClient } from "@/lib/supabase/server";
-import type { ProgramScope } from "@/lib/programs/scope";
+import { resolveScopeTrackSlugs, type ProgramScope } from "@/lib/programs/scope";
 
 export type ActivityRow = {
   student_id: string;
@@ -25,16 +25,17 @@ export type ActivityRow = {
 export const getLearnerActivity = cache(
   async (scope: ProgramScope): Promise<ActivityRow[]> => {
     const svc = createServiceClient();
-    const ids = scope.ids;
+    const trackSlugs = await resolveScopeTrackSlugs(scope);
+    if (trackSlugs.length === 0) return [];
 
     const [attRes, subRes, reflRes, progRes] = await Promise.all([
-      svc.from("attendance").select("student_id, track, week_number, checked_in_at").in("program_id", ids),
-      svc.from("submissions").select("student_id, track_slug, week_number, submitted_at").in("program_id", ids),
-      svc.from("reflections").select("student_id, track_slug, week_number, submitted_at").in("program_id", ids),
+      svc.from("attendance").select("student_id, track, week_number, checked_in_at").in("track", trackSlugs),
+      svc.from("submissions").select("student_id, track_slug, week_number, submitted_at").in("track_slug", trackSlugs),
+      svc.from("reflections").select("student_id, track_slug, week_number, submitted_at").in("track_slug", trackSlugs),
       // Self-paced video tracks (e.g. Upskill's ai-literacy) produce no
       // attendance / submissions / reflections — a watched lesson video is
       // their only liveness signal, so fold week_progress into the union too.
-      svc.from("week_progress").select("user_id, track_slug, week_number, video_watched_at").in("program_id", ids).not("video_watched_at", "is", null),
+      svc.from("week_progress").select("user_id, track_slug, week_number, video_watched_at").in("track_slug", trackSlugs).not("video_watched_at", "is", null),
     ]);
 
     const att = (attRes.data ?? []) as {
