@@ -1665,6 +1665,7 @@ export function AdminTabs({
             enrollments={enrollments}
             scopeLabel="All tracks"
             hideTitle
+            course={initialCourse}
           />
         </div>
       )}
@@ -1688,7 +1689,7 @@ export function AdminTabs({
         <div className="space-y-6">
           <AdminTopTabs current="analytics" sub="analytics" showInsights={canViewInsights(userRole)} isManager={isManager} course={initialCourse} courseOptions={analyticsCourseOptions} />
           {analyticsData ? (
-            <AnalyticsDashboard data={analyticsData} />
+            <AnalyticsDashboard data={analyticsData} course={initialCourse} />
           ) : (
             <p className="text-sm text-ink-faint">No analytics available for this program.</p>
           )}

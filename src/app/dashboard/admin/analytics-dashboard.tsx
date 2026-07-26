@@ -6,7 +6,7 @@ import { getEngagementTrends } from "./actions-analytics";
 import { StatCard, type StatTrend } from "@/components/stats/stat-card";
 import { METRIC_DEFS } from "@/lib/analytics/metric-defs";
 import { RANGE_LABELS, type RangePreset, type Delta } from "@/lib/analytics/period";
-import { buttonClass, DataTable, microLabel, Num, PersonCell, SegmentedTabs } from "@/components/ui";
+import { buttonClass, DataTable, microLabel, Num, PersonCell } from "@/components/ui";
 import { formatShortDate } from "@/lib/utils";
 
 // Turn a period-over-period Delta into a StatCard trend chip. No chip when the
@@ -53,16 +53,19 @@ function TrendsRow() {
 
   return (
     <section className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <SegmentedTabs
-          ariaLabel="Date range"
-          tabs={(Object.keys(RANGE_LABELS) as RangePreset[]).map((p) => ({
-            id: p,
-            label: RANGE_LABELS[p],
-          }))}
-          active={preset}
-          onSelect={(id) => setPreset(id as RangePreset)}
-        />
+      {/* Range is a FILTER, not navigation — a select, so it can't read as a
+         third row of tabs under the top tabs and the Analytics pills. */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <select
+          value={preset}
+          onChange={(e) => setPreset(e.target.value as RangePreset)}
+          aria-label="Date range"
+          className="rounded-lg border border-rule bg-white px-2.5 py-1.5 text-sm font-medium text-ink focus:border-ink-faint focus:outline-none"
+        >
+          {(Object.keys(RANGE_LABELS) as RangePreset[]).map((p) => (
+            <option key={p} value={p}>{RANGE_LABELS[p]}</option>
+          ))}
+        </select>
         {trends && (
           <span className="text-xs text-ink-faint">
             {trends.periodLabel} · vs previous period
@@ -87,7 +90,14 @@ function TrendsRow() {
 // Program-level engagement: the activation funnel + a per-learner activity
 // table. Scoped server-side to the current program, so it reflects the program
 // switcher (Forte shows Upskill, Catalyst shows Catalyst, etc.).
-export function AnalyticsDashboard({ data }: { data: EngagementAnalytics }) {
+export function AnalyticsDashboard({
+  data,
+  course,
+}: {
+  data: EngagementAnalytics;
+  /** Shared Analytics scope — pre-select this course's track. */
+  course?: string;
+}) {
   const { funnel, learners, trackOptions } = data;
   // Name/email filter — the table runs to hundreds of rows (175+ at Upskill
   // scale), so an unfiltered wall is unusable. Match is case-insensitive across
@@ -96,7 +106,7 @@ export function AnalyticsDashboard({ data }: { data: EngagementAnalytics }) {
   // Track filter — "" = all tracks. A program-scoped export silently blends
   // every track together, so "export Security+ zips" came back partial with no
   // signal why. Scoping the table AND the CSV to one track fixes that at source.
-  const [track, setTrack] = useState("");
+  const [track, setTrack] = useState(course ?? "");
   // Which learner's survey list is expanded (by email). Lets the Surveys count
   // drill through to "which surveys did they take?" inline.
   const [openSurveys, setOpenSurveys] = useState<string | null>(null);
@@ -119,6 +129,13 @@ export function AnalyticsDashboard({ data }: { data: EngagementAnalytics }) {
   // When a track is selected, show that track's activity, not the learner's
   // program-wide totals — otherwise a Security+ view counts their MASS/hangout
   // sessions too and over-reports the track.
+  // A count column that is all zeros across the whole roster reads as broken
+  // (live-session programs record no videos) — hide it instead of muting it.
+  const showVideos = learners.some((l) => l.videosWatched > 0);
+  const showAttended = learners.some((l) => l.attended > 0);
+  const showSubmitted = learners.some((l) => l.submitted > 0);
+  const totalCols =
+    4 + [showVideos, showAttended, showSubmitted].filter(Boolean).length;
   const countsFor = (l: EngagementLearner) =>
     track
       ? l.byTrack[track] ?? { videosWatched: 0, attended: 0, submitted: 0 }
@@ -135,30 +152,26 @@ export function AnalyticsDashboard({ data }: { data: EngagementAnalytics }) {
 
   const activatedPct = pctOf(funnel.activated, funnel.invited);
   const engagedPct = pctOf(funnel.engaged, funnel.activated);
-  const cards = [
-    { label: "Invited", value: funnel.invited, hint: "Received access" },
-    {
-      label: "Created account",
-      value: funnel.activated,
-      hint: activatedPct === null ? "Signed in" : `Signed in · ${activatedPct}% of invited`,
-    },
-    {
-      label: "Engaged",
-      value: funnel.engaged,
-      hint:
-        engagedPct === null
-          ? "Watched, attended, or submitted"
-          : `Watched, attended, or submitted · ${engagedPct}% of accounts`,
-    },
-  ];
 
   return (
     <div className="space-y-8">
       <TrendsRow />
-      <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        {cards.map((c) => (
-          <StatCard key={c.label} value={c.value} label={c.label} hint={c.hint} />
-        ))}
+      {/* Activation funnel — one quiet line. A second row of hero cards made
+         the page read as six competing headlines. */}
+      <section className="panel flex flex-wrap items-baseline gap-x-2.5 gap-y-1 px-4 py-3 text-sm">
+        <FunnelStep value={funnel.invited} label="invited" />
+        <span aria-hidden className="text-ink-faint">→</span>
+        <FunnelStep
+          value={funnel.activated}
+          label="created account"
+          pct={activatedPct === null ? undefined : `${activatedPct}% of invited`}
+        />
+        <span aria-hidden className="text-ink-faint">→</span>
+        <FunnelStep
+          value={funnel.engaged}
+          label="engaged"
+          pct={engagedPct === null ? undefined : `${engagedPct}% of accounts`}
+        />
       </section>
 
       <section className="space-y-2">
@@ -202,9 +215,9 @@ export function AnalyticsDashboard({ data }: { data: EngagementAnalytics }) {
             "Learner",
             "Signed up",
             "Last active",
-            { label: "Videos", align: "center" },
-            { label: "Attended", align: "center" },
-            { label: "Submitted", align: "center" },
+            ...(showVideos ? [{ label: "Videos", align: "center" as const }] : []),
+            ...(showAttended ? [{ label: "Attended", align: "center" as const }] : []),
+            ...(showSubmitted ? [{ label: "Submitted", align: "center" as const }] : []),
             { label: "Surveys", align: "center" },
           ]}
         >
@@ -213,15 +226,15 @@ export function AnalyticsDashboard({ data }: { data: EngagementAnalytics }) {
             const c = countsFor(l);
             return (
             <Fragment key={l.email}>
-            <tr className={c.videosWatched + c.attended + c.submitted > 0 ? "bg-primary/5" : ""}>
+            <tr>
               <td className="px-4 py-2.5">
                 <PersonCell name={l.name || null} email={l.email} />
               </td>
               <td className="px-4 py-2.5 text-ink-soft">{formatShortDate(l.signedUp)}</td>
               <td className="px-4 py-2.5 text-ink-soft">{formatShortDate(l.lastActive)}</td>
-              <td className="px-4 py-2.5 text-center"><Num value={c.videosWatched} /></td>
-              <td className="px-4 py-2.5 text-center"><Num value={c.attended} /></td>
-              <td className="px-4 py-2.5 text-center"><Num value={c.submitted} /></td>
+              {showVideos && <td className="px-4 py-2.5 text-center"><Num value={c.videosWatched} /></td>}
+              {showAttended && <td className="px-4 py-2.5 text-center"><Num value={c.attended} /></td>}
+              {showSubmitted && <td className="px-4 py-2.5 text-center"><Num value={c.submitted} /></td>}
               <td className="px-4 py-2.5 text-center">
                 {l.surveys > 0 ? (
                   <button
@@ -240,7 +253,7 @@ export function AnalyticsDashboard({ data }: { data: EngagementAnalytics }) {
             </tr>
             {open && (
               <tr className="bg-paper-tint">
-                <td colSpan={7} className="px-4 py-2.5">
+                <td colSpan={totalCols} className="px-4 py-2.5">
                   <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-ink-faint">
                     Surveys completed by {l.name || l.email}
                   </p>
@@ -262,7 +275,7 @@ export function AnalyticsDashboard({ data }: { data: EngagementAnalytics }) {
           })}
           {filtered.length === 0 && (
             <tr>
-              <td colSpan={7} className="px-4 py-8 text-center text-ink-faint">
+              <td colSpan={totalCols} className="px-4 py-8 text-center text-ink-faint">
                 {learners.length === 0
                   ? "No learners in this program yet."
                   : "No learners match that filter."}
@@ -277,6 +290,17 @@ export function AnalyticsDashboard({ data }: { data: EngagementAnalytics }) {
         </p>
       </section>
     </div>
+  );
+}
+
+// One step of the inline activation strip: count, quiet label, optional share.
+function FunnelStep({ value, label, pct }: { value: number; label: string; pct?: string }) {
+  return (
+    <span className="inline-flex items-baseline gap-1.5">
+      <span className="font-semibold tabular-nums text-ink">{value.toLocaleString()}</span>
+      <span className="text-ink-soft">{label}</span>
+      {pct && <span className="text-xs text-ink-faint">{pct}</span>}
+    </span>
   );
 }
 
