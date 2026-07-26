@@ -8,9 +8,9 @@ export const METRIC_DEFS = {
   lessonsWatched:
     "Distinct lesson videos watched in the window. Compared on when each view happened.",
   completionRate:
-    "Members who finished ÷ members enrolled, capped at 100%. Enrollment means having a student_tracks row.",
+    "Members marked complete ÷ members enrolled, capped at 100%. Completion is recorded when you issue a certificate — a course nobody has issued for reads 0%, however far the learners actually got.",
   courseCompletions:
-    "Members who finished a course they were enrolled in. A current total, so it has no previous-period comparison.",
+    "Members with a certificate issued for a course they were enrolled in — completion is a decision you make, not something the platform infers from activity. A current total, so it has no previous-period comparison.",
   activeMembers:
     "Distinct members who watched a lesson, attended, submitted, or reflected in the window.",
   atRisk: "Enrolled members with no activity in the last 7 to 20 days.",
