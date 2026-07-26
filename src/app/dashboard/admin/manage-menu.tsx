@@ -18,7 +18,14 @@ const ITEMS: { href: string; label: string }[] = [
   { href: "/dashboard/admin/features", label: "Tools" },
 ];
 
-export function ManageMenu() {
+// Handing someone a second program is a credential change, so the entry point
+// only appears for the master (the tier that assigns roles).
+const MASTER_ITEMS: { href: string; label: string }[] = [
+  { href: "/dashboard/admin/access", label: "Program access" },
+];
+
+export function ManageMenu({ isMaster = false }: { isMaster?: boolean }) {
+  const items = isMaster ? [...ITEMS, ...MASTER_ITEMS] : ITEMS;
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
@@ -63,7 +70,7 @@ export function ManageMenu() {
           role="menu"
           className="absolute right-0 z-30 mt-1.5 w-52 overflow-hidden rounded-lg border border-rule bg-surface-elevated py-1 shadow-lg"
         >
-          {ITEMS.map((it) => {
+          {items.map((it) => {
             const active = pathname.startsWith(it.href);
             return (
               <Link

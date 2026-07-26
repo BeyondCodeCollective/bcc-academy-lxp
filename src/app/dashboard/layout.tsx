@@ -18,6 +18,7 @@ import { getProgramBySlug, getAllPrograms, getJoinablePrograms, isTutorAvailable
 import { ProgramProvider } from "@/lib/programs/context";
 import { canAccessAdminPanel, canSwitchPrograms, canAccessStaffContent } from "@/lib/roles";
 import { getSessionContext } from "@/lib/auth/session";
+import { getGrantedProgramSlugs } from "@/lib/auth/program-access";
 import { getPreviewTrackSlug, getPreviewTrackSlugs, LUNCH_LEARN_PREVIEW_SLUG } from "@/lib/auth/preview-mode";
 import { getMyInstructorTracks } from "@/app/dashboard/admin/actions-tracks";
 import { getEnrolledTracks } from "@/lib/enrollment";
@@ -236,6 +237,9 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
   let canShowPreviewToggle = false;
   let previewingSlugs: string[] = [];
   let pendingLearner = false;
+  // Programs reachable through a cross-program grant (empty for super-admins,
+  // who already see every program, and for single-program staff).
+  let grantSwitcherSlugs: string[] = [];
   if (isSupabaseConfigured()) {
     const ctx = await getSessionContext();
     if (!ctx) redirect("/");
@@ -252,6 +256,12 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
     isAdmin = actualIsAdmin && !validPreviewSlug;
     canSwitch = canSwitchPrograms(role) && !validPreviewSlug;
     canShowPreviewToggle = canSwitchPrograms(role);
+    if (actualIsAdmin && !canSwitchPrograms(role) && !validPreviewSlug) {
+      grantSwitcherSlugs = [
+        program.slug,
+        ...(await getGrantedProgramSlugs(ctx.userId)),
+      ];
+    }
     previewingSlugs = validPreviewSlugs;
     firstName = ctx.student?.first_name ?? "";
     lastName = ctx.student?.last_name ?? "";
@@ -391,7 +401,16 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
   const canAccessStaff =
     canAccessStaffContent(userRole, email, staffFlag) && !previewingSlug;
   let programs: { slug: string; name: string; domain: string; dnsReady?: boolean }[] = [];
-  if (canSwitch) {
+  // Cross-program staff (grants, not super_admin) get the switcher too, but it
+  // lists ONLY the programs they were granted — that's the whole point of
+  // grants: work in two programs without holding all of them.
+  if (!canSwitch && grantSwitcherSlugs.length > 0) {
+    programs = getJoinablePrograms()
+      .filter((p) => grantSwitcherSlugs.includes(p.slug))
+      .map((p) => ({ slug: p.slug, name: p.name, domain: p.domain, dnsReady: p.dnsReady }));
+    canSwitch = programs.length > 1;
+  }
+  if (canSwitch && programs.length === 0) {
     // Super-admins manage every program, so the switcher lists them all —
     // Catalyst, Upskill Bahamas (Forte), Beyond Code Centers, BGC. getAllPrograms
     // returns only Catalyst (Forte/BCC/BGC live in SPECIAL_CONFIGS), which left

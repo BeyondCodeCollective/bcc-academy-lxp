@@ -41,6 +41,34 @@ export const getProgramGrants = cache(
   },
 );
 
+/**
+ * Program slugs for the switcher: the person's home program plus every granted
+ * program. Only meaningful for non-super-admins — super-admins get all programs
+ * from the config registry, no query needed.
+ */
+export const getGrantedProgramSlugs = cache(
+  async (studentId: string): Promise<string[]> => {
+    const svc = createServiceClient();
+    const { data, error } = await svc
+      .from("staff_program_access")
+      .select("programs(slug)")
+      .eq("student_id", studentId);
+    if (error) {
+      console.error("getGrantedProgramSlugs error:", error.message);
+      return [];
+    }
+    const slugs = (data ?? [])
+      // PostgREST types the embedded row as an array; a program_id FK always
+      // resolves to exactly one program.
+      .map((r) => {
+        const p = r.programs as unknown as { slug: string } | { slug: string }[] | null;
+        return Array.isArray(p) ? p[0]?.slug : p?.slug;
+      })
+      .filter((s): s is string => !!s);
+    return [...new Set(slugs)];
+  },
+);
+
 /** The program ids a person may act in: their home stamp plus every grant. */
 export function allowedProgramIds(
   homeProgramId: string | null,
