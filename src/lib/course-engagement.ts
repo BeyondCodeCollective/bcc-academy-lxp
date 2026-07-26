@@ -40,19 +40,21 @@ export type CourseRosterStat = {
  */
 export async function getCourseRosterStats(
   trackSlugs: string[],
-  programIds: string[],
   now: Date = new Date(),
 ): Promise<Record<string, CourseRosterStat>> {
   const empty: Record<string, CourseRosterStat> = {};
-  if (trackSlugs.length === 0 || programIds.length === 0) return empty;
+  if (trackSlugs.length === 0) return empty;
 
   const svc = createServiceClient();
 
+  // Track slugs are globally unique (student_tracks is UNIQUE(student, slug)),
+  // so slug alone is the scope. Filtering by program_id too dropped enrollments
+  // stamped under another program (signups on the apex domain stamp Catalyst),
+  // which zeroed whole rosters on standalone program views.
   const { data: enroll } = await svc
     .from("student_tracks")
     .select("student_id, track_slug")
-    .in("track_slug", trackSlugs)
-    .in("program_id", programIds);
+    .in("track_slug", trackSlugs);
   const enrollments = enroll ?? [];
   const enrolledIds = Array.from(new Set(enrollments.map((e) => e.student_id)));
   if (enrolledIds.length === 0) return empty;
@@ -178,18 +180,18 @@ export type TrackCapabilities = {
 export async function getCourseEngagement(
   courseName: string,
   trackSlug: string,
-  programIds: string[],
   capabilities: TrackCapabilities,
   now: Date = new Date(),
 ): Promise<CourseEngagementProps | null> {
   const svc = createServiceClient();
 
-  // Enrolled learners (students only) in this course, within program scope.
+  // Enrolled learners (students only) in this course. Slug alone is the scope
+  // (globally unique) — a program_id filter here dropped enrollments stamped
+  // under another program and blanked the course view.
   const { data: enroll } = await svc
     .from("student_tracks")
     .select("student_id")
-    .eq("track_slug", trackSlug)
-    .in("program_id", programIds);
+    .eq("track_slug", trackSlug);
   const enrolledIds = Array.from(new Set((enroll ?? []).map((r) => r.student_id)));
   if (enrolledIds.length === 0) return null;
 
