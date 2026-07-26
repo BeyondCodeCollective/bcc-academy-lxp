@@ -528,6 +528,7 @@ export function AdminTabs({
   courseStats = {},
   initialTab,
   initialTrackView,
+  initialStudentSubView,
   lunchLearnRecordings = [],
   insightsData = null,
   outcomesData = null,
@@ -560,6 +561,9 @@ export function AdminTabs({
   >;
   initialTab?: string;
   initialTrackView?: string;
+  /** Which Students sub-view to open (roster / attendance / progress / work /
+   *  certificates), so a linked-to number lands on the list behind it. */
+  initialStudentSubView?: string;
   lunchLearnRecordings?:{ id: string; title: string; presenter: string; recording_url: string; description: string | null; recorded_at: string }[];
   insightsData?: InsightsData | null;
   /** Before/after confidence shift for this program — the "did it work" number. */
@@ -687,7 +691,17 @@ export function AdminTabs({
         "overview",
     );
   }, [initialTab, initialTrackView]); // eslint-disable-line react-hooks/exhaustive-deps
-  const [studentSubView, setStudentSubView] = useState<"students" | "attendance" | "progress" | "work" | "certificates">("students");
+  type StudentSubView = "students" | "attendance" | "progress" | "work" | "certificates";
+  const SUB_VIEWS: StudentSubView[] = ["students", "attendance", "progress", "work", "certificates"];
+  const subViewFromUrl = SUB_VIEWS.includes(initialStudentSubView as StudentSubView)
+    ? (initialStudentSubView as StudentSubView)
+    : null;
+  const [studentSubView, setStudentSubView] = useState<StudentSubView>(subViewFromUrl ?? "students");
+  // Same reason trackView re-syncs: switching courses must not carry the last
+  // course's sub-view over, and a link that names one must win.
+  useEffect(() => {
+    setStudentSubView(subViewFromUrl ?? "students");
+  }, [initialTab, initialStudentSubView]); // eslint-disable-line react-hooks/exhaustive-deps
   const [studentSaving, setStudentSaving] = useState<string | null>(null);
 
   // Track data: keyed by track slug
