@@ -497,14 +497,13 @@ export function Nav({
   const onAdminPage = pathname.startsWith("/dashboard/admin");
   // Insights is cross-program — the PROGRAMS list in the sidebar shouldn't
   // appear there or it implies a per-track filter that doesn't apply.
-  const onInsightsTab = activeTab === "insights";
-  // Admin Home (the picker, no ?tab=) IS the canonical track selector for
-  // that surface. Hiding the sidebar track switcher there avoids doubling
-  // up; it reappears as soon as the admin clicks into a track tab.
-  const onAdminHome =
-    pathname === "/dashboard/admin" && !searchParams.get("tab");
-
-  const adminNav = variant === "admin-sidebar" && onAdminPage && !onInsightsTab && !onAdminHome && adminTracks.length > 0 && (
+  // The switcher's one job is jumping BETWEEN course workspaces while inside
+  // one. On the cross-course tabs (People/Analytics) it sat next to look-alike
+  // track FILTERS and read as a confusing double — so it only renders in
+  // course context (a course tab or Lunch & Learns).
+  const onCourseContext =
+    adminTracks.some((t) => t.slug === activeTab) || activeTab === "lunch-learn";
+  const adminNav = variant === "admin-sidebar" && onAdminPage && onCourseContext && adminTracks.length > 0 && (
     <div className="nav-collapsible flex flex-col gap-1">
       <div className="my-1 h-px bg-rule" aria-hidden />
 

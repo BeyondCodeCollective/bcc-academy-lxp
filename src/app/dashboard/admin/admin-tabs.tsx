@@ -670,6 +670,15 @@ export function AdminTabs({
   const [trackView, setTrackView] = useState<
     "overview" | "analytics" | "curriculum" | "students" | "surveys"
   >((initialTrackView as "overview" | "analytics" | "curriculum" | "students" | "surveys") ?? "overview");
+  // Landing on a course must honor the URL's view (or default to Overview) —
+  // trackView is client state, so without this, switching courses reopened
+  // whatever sub-tab was last visited (e.g. Surveys) on the NEW course.
+  useEffect(() => {
+    setTrackView(
+      (initialTrackView as "overview" | "analytics" | "curriculum" | "students" | "surveys") ??
+        "overview",
+    );
+  }, [initialTab, initialTrackView]); // eslint-disable-line react-hooks/exhaustive-deps
   const [studentSubView, setStudentSubView] = useState<"students" | "attendance" | "progress" | "work" | "certificates">("students");
   const [studentSaving, setStudentSaving] = useState<string | null>(null);
 
