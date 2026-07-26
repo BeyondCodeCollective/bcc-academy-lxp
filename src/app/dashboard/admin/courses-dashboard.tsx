@@ -61,36 +61,32 @@ export function CoursesDashboard({ data }: { data: CoursesAnalytics }) {
         />
 
         <div className="panel overflow-hidden p-5">
-          <p className={`mb-4 ${microLabel}`}>
+          <p className={`mb-2 ${microLabel}`}>
             Popular courses
           </p>
-          <DataTable
-            dense
-            columns={[
-              "Course",
-              { label: "Enroll.", align: "right" },
-              { label: "Started", align: "right" },
-              { label: "Done", align: "right" },
-              { label: "Rate", align: "right" },
-            ]}
-          >
+          {/* A list, not a table — a bordered table nested inside a bordered
+             card reads as a box-in-a-box, and five columns in a half-width
+             card squeezed course names onto four lines. */}
+          <ul className="divide-y divide-rule-soft">
             {data.popularCourses.map((c) => (
-              <tr key={c.slug}>
-                <td className="px-3 py-2.5 text-ink">{c.name}</td>
-                <td className="px-3 py-2.5 text-right"><Num value={c.enrolled} /></td>
-                <td className="px-3 py-2.5 text-right"><Num value={c.started} /></td>
-                <td className="px-3 py-2.5 text-right"><Num value={c.completed} /></td>
-                <td className="px-3 py-2.5 text-right tabular-nums text-ink">{c.completionRate}%</td>
-              </tr>
+              <li key={c.slug} className="flex items-center justify-between gap-4 py-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-ink">{c.name}</p>
+                  <p className="mt-0.5 text-xs text-ink-faint">
+                    {c.enrolled} enrolled · {c.started} started · {c.completed} done
+                  </p>
+                </div>
+                <span className="shrink-0 text-sm font-semibold tabular-nums text-ink">
+                  {c.completionRate}%
+                </span>
+              </li>
             ))}
             {data.popularCourses.length === 0 && (
-              <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-ink-faint">
-                  No courses with enrollments yet.
-                </td>
-              </tr>
+              <li className="py-6 text-center text-sm text-ink-faint">
+                No courses with enrollments yet.
+              </li>
             )}
-          </DataTable>
+          </ul>
         </div>
       </section>
 
