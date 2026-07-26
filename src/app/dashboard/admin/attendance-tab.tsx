@@ -109,7 +109,9 @@ export function AttendanceTab({ students, tracks, enrollments, scopeLabel, embed
   const activeTrackSlug =
     (explicitTrackSlug && tracks.some((t) => t.slug === explicitTrackSlug)
       ? explicitTrackSlug
-      : startedTracks[0]?.slug ?? tracks[0]?.slug) ?? "";
+      : course && tracks.some((t) => t.slug === course)
+        ? course
+        : startedTracks[0]?.slug ?? tracks[0]?.slug) ?? "";
 
   const activeTrack = useMemo(
     () => tracks.find((t) => t.slug === activeTrackSlug) ?? null,
@@ -351,6 +353,8 @@ export function AttendanceTab({ students, tracks, enrollments, scopeLabel, embed
 
       {view === "overview" ? (
         <OverviewPanel
+          key={course ?? "all"}
+          allTracks={tracks}
           startedTracks={startedTracks}
           students={students}
           enrolledByStudent={enrolledByStudent}
@@ -367,6 +371,7 @@ export function AttendanceTab({ students, tracks, enrollments, scopeLabel, embed
       ) : (
         <MarkPanel
           tracks={tracks}
+          hideCoursePicker={!!course}
           startedTracks={startedTracks}
           activeTrack={activeTrack}
           activeTrackSlug={activeTrackSlug}
@@ -466,6 +471,7 @@ function OverviewPanel({
   loading,
   onJumpToMark,
   initialCourse,
+  allTracks,
 }: {
   startedTracks: TrackLike[];
   students: StudentRow[];
@@ -474,17 +480,20 @@ function OverviewPanel({
   records: AttendanceRecord[];
   loading: boolean;
   onJumpToMark: (slug: string, week?: number) => void;
-  /** Shared Analytics scope — pre-select this course. */
+  /** Shared Analytics scope — the ONE course picker; this panel follows it. */
   initialCourse?: string;
+  /** Full track list, to name a scoped course that hasn't started yet. */
+  allTracks: TrackLike[];
 }) {
-  // One course at a time. Default to the shared scope (if set), else the first
-  // started track; the selector only lists tracks that actually take attendance.
-  const [selectedSlug, setSelectedSlug] = useState<string>(initialCourse ?? "");
   // Names of who's behind stay hidden until the "Need a check-in" tile is
   // clicked — the page leads with numbers, not a wall of at-risk students.
   const [showCheckIn, setShowCheckIn] = useState(false);
-  const track =
-    startedTracks.find((t) => t.slug === selectedSlug) ?? startedTracks[0] ?? null;
+  // The shared scope (top-right) is the only course selector — no second
+  // dropdown here. A scoped course that hasn't started renders its own empty
+  // state below instead of silently swapping to another course.
+  const track = initialCourse
+    ? startedTracks.find((t) => t.slug === initialCourse) ?? null
+    : startedTracks[0] ?? null;
 
   // Scope the roster (and thus the rate + risk list) to THIS course's enrolled
   // learners, so program accounts not in the track don't drag numbers down.
@@ -521,11 +530,16 @@ function OverviewPanel({
   // visible jump on the per-track view.
   if (loading) return null;
 
-  if (startedTracks.length === 0) {
+  if (startedTracks.length === 0 || (initialCourse && !track)) {
+    const scopedName = initialCourse
+      ? allTracks.find((t) => t.slug === initialCourse)?.name
+      : null;
     return (
       <div className="panel p-6 text-center">
         <p className="mx-auto max-w-[40ch] text-sm text-ink-soft">
-          No attendance to show yet. This will fill in once a session starts.
+          {scopedName
+            ? `${scopedName} hasn’t started yet — attendance opens on its first session.`
+            : "No attendance to show yet. This will fill in once a session starts."}
         </p>
       </div>
     );
@@ -533,27 +547,6 @@ function OverviewPanel({
 
   return (
     <div className="space-y-6">
-      {/* Course selector — pick one; nothing is stacked or viewable all at once. */}
-      {startedTracks.length > 1 && (
-        <label className="flex flex-col gap-1.5">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
-            Course
-          </span>
-          <select
-            value={track?.slug ?? ""}
-            onChange={(e) => {
-              setSelectedSlug(e.target.value);
-              setShowCheckIn(false);
-            }}
-            className="min-w-[16rem] max-w-full rounded-lg border border-rule bg-white px-3 py-2 text-sm font-semibold text-ink focus:border-ink-faint focus:outline-none"
-          >
-            {startedTracks.map((t) => (
-              <option key={t.slug} value={t.slug}>{t.name}</option>
-            ))}
-          </select>
-        </label>
-      )}
-
       {/* Headline numbers, big. "Need a check-in" is a button — click to reveal
          the names, which stay hidden by default. */}
       <div className="grid grid-cols-3 gap-3">
@@ -646,6 +639,7 @@ function OverviewPanel({
 
 function MarkPanel({
   tracks,
+  hideCoursePicker,
   startedTracks,
   activeTrack,
   activeTrackSlug,
@@ -660,6 +654,8 @@ function MarkPanel({
   loading,
 }: {
   tracks: TrackLike[];
+  /** True when the shared Analytics scope already picks the course. */
+  hideCoursePicker?: boolean;
   startedTracks: TrackLike[];
   activeTrack: TrackLike | null;
   activeTrackSlug: string;
@@ -710,7 +706,7 @@ function MarkPanel({
     <div className="space-y-5">
       {/* Track picker — a select, like every other scope filter (pills are
          reserved for navigation, so this can't read as yet another tab row). */}
-      {tracks.length > 1 && (
+      {!hideCoursePicker && tracks.length > 1 && (
         <label className="flex flex-col gap-1.5">
           <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
             Course
