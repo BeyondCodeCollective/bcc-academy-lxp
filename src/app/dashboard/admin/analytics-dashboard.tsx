@@ -106,7 +106,9 @@ export function AnalyticsDashboard({
   // Track filter — "" = all tracks. A program-scoped export silently blends
   // every track together, so "export Security+ zips" came back partial with no
   // signal why. Scoping the table AND the CSV to one track fixes that at source.
-  const [track, setTrack] = useState(course ?? "");
+  // The shared Analytics scope (top-right) is the ONE course filter — no
+  // second "All tracks" dropdown in the toolbar.
+  const track = course ?? "";
   // Which learner's survey list is expanded (by email). Lets the Surveys count
   // drill through to "which surveys did they take?" inline.
   const [openSurveys, setOpenSurveys] = useState<string | null>(null);
@@ -118,12 +120,6 @@ export function AnalyticsDashboard({
       return true;
     });
   }, [learners, query, track]);
-  // Only show tracks that actually have a learner here, so the dropdown never
-  // offers an empty option that exports a blank file.
-  const availableTracks = useMemo(() => {
-    const present = new Set(learners.flatMap((l) => l.tracks));
-    return trackOptions.filter((t) => present.has(t.slug));
-  }, [learners, trackOptions]);
   const trackName = trackOptions.find((t) => t.slug === track)?.name ?? null;
   const isFiltered = query.trim() !== "" || track !== "";
   // When a track is selected, show that track's activity, not the learner's
@@ -180,19 +176,6 @@ export function AnalyticsDashboard({
             Per-learner activity ({isFiltered ? `${filtered.length} of ${learners.length}` : learners.length})
           </h2>
           <div className="flex items-center gap-2">
-            {availableTracks.length > 0 && (
-              <select
-                value={track}
-                onChange={(e) => setTrack(e.target.value)}
-                aria-label="Filter by track"
-                className="rounded-lg border border-rule bg-white px-2.5 py-1.5 text-sm text-ink focus:border-ink-faint focus:outline-none"
-              >
-                <option value="">All tracks</option>
-                {availableTracks.map((t) => (
-                  <option key={t.slug} value={t.slug}>{t.name}</option>
-                ))}
-              </select>
-            )}
             <input
               type="search"
               value={query}
