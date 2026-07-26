@@ -24,7 +24,7 @@ export function SectionHeadline({
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
           {eyebrow}
         </p>
-        <h2 className="mt-1 text-2xl font-bold tracking-tight text-ink sm:text-3xl">
+        <h2 className="mt-1 text-xl font-bold tracking-tight text-ink">
           {headline}
         </h2>
         {sub && <p className="mt-1.5 max-w-2xl text-sm text-ink-soft">{sub}</p>}
