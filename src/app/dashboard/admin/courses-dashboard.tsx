@@ -41,7 +41,15 @@ export function CoursesDashboard({ data }: { data: CoursesAnalytics }) {
           value={data.totalCompleted.toLocaleString()}
           label="Course completions"
           info={METRIC_DEFS.courseCompletions}
-          hint={data.totalCompleted === 0 ? "None yet — cohorts still mid-course" : undefined}
+          // "Cohorts still mid-course" was a guess, and a wrong one for a camp
+          // that finished — a 3-day Roblox bootcamp where all 58 girls made it
+          // through read as 0% because nobody had issued certificates yet.
+          // Completion is recorded when a certificate is issued, so say that.
+          hint={
+            data.totalCompleted === 0
+              ? "None recorded — completion is logged when you issue certificates"
+              : undefined
+          }
         />
         <StatCard
           value={`${data.overallCompletionRate}%`}

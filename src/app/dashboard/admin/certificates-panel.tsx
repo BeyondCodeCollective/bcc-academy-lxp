@@ -3,12 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { Award, Check, Copy, ExternalLink, Loader2, Mail } from "lucide-react";
 import {
+  getCertificateEligibility,
   getTrackCompletions,
   issueCertificate,
   issueCertificatesBulk,
   resendCertificateEmail,
   revokeCompletion,
   type TrackCompletionRow,
+  type CertificateEligibility,
 } from "./actions-misc";
 import { buttonClass } from "@/components/ui";
 
@@ -38,12 +40,16 @@ export function CertificatesPanel({
   const [bulkRunning, setBulkRunning] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [eligibility, setEligibility] = useState<CertificateEligibility | null>(null);
 
   useEffect(() => {
     let alive = true;
     getTrackCompletions(trackSlug, programSlug)
       .then((rows) => { if (alive) setCompletions(rows); })
       .catch(() => { if (alive) setCompletions([]); });
+    getCertificateEligibility(trackSlug, programSlug)
+      .then((e) => { if (alive) setEligibility(e); })
+      .catch(() => { if (alive) setEligibility({ sessionsHeld: 0, attended: {} }); });
     return () => { alive = false; };
   }, [trackSlug, programSlug]);
 
@@ -140,6 +146,29 @@ export function CertificatesPanel({
 
   const issuedCount = byStudent.size;
 
+  // Attendance decides the order: for a short camp, the people who came every
+  // day should be the first names you see, not whoever enrolled first.
+  const sessionsHeld = eligibility?.sessionsHeld ?? 0;
+  const attendedBy = (id: string) => eligibility?.attended[id] ?? 0;
+  const rosterInOrder = useMemo(() => {
+    if (sessionsHeld === 0) return students;
+    return [...students].sort((a, b) => attendedBy(b.id) - attendedBy(a.id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [students, eligibility, sessionsHeld]);
+
+  // Never say "0 eligible" when attendance was simply never logged — Tech+ and
+  // MASS ran off-platform, and their learners genuinely finished. Unknown and
+  // zero are different answers, and only one of them should give you pause.
+  const fullAttendance = students.filter(
+    (s) => sessionsHeld > 0 && attendedBy(s.id) === sessionsHeld,
+  ).length;
+  const eligibilityLine =
+    eligibility === null
+      ? null
+      : sessionsHeld === 0
+        ? "No attendance logged for this course — issue based on what you know."
+        : `${fullAttendance} of ${students.length} attended all ${sessionsHeld} session${sessionsHeld === 1 ? "" : "s"}.`;
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -150,6 +179,9 @@ export function CertificatesPanel({
               ? "Loading…"
               : `${issuedCount} of ${students.length} issued`}
           </p>
+          {eligibilityLine && (
+            <p className="text-xs text-ink-faint">{eligibilityLine}</p>
+          )}
         </div>
         <button
           onClick={issueAll}
@@ -173,12 +205,13 @@ export function CertificatesPanel({
           <thead>
             <tr className="border-b border-rule-soft text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
               <th className="px-4 py-3">Student</th>
+              {sessionsHeld > 0 && <th className="px-4 py-3">Attended</th>}
               <th className="px-4 py-3">Certificate</th>
               <th className="px-4 py-3 text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {students.map((s) => {
+            {rosterInOrder.map((s) => {
               const completion = byStudent.get(s.id);
               const name = `${s.first_name ?? ""} ${s.last_name ?? ""}`.trim() || s.email;
               const isBusy = busy.has(s.id);
@@ -188,6 +221,11 @@ export function CertificatesPanel({
                     <p className="font-medium text-ink">{name}</p>
                     <p className="text-xs text-ink-faint">{s.email}</p>
                   </td>
+                  {sessionsHeld > 0 && (
+                    <td className="px-4 py-3 tabular-nums text-ink-soft">
+                      {attendedBy(s.id)}/{sessionsHeld}
+                    </td>
+                  )}
                   <td className="px-4 py-3">
                     {completion ? (
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-2.5 py-1 text-[11px] font-semibold text-green-700">

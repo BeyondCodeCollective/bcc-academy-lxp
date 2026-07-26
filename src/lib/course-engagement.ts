@@ -22,6 +22,8 @@ export type CourseRosterStat = {
    *  attendance at all, so an ended course with nothing to count says nothing
    *  rather than "0 completed". */
   fullAttendance: number | null;
+  /** Certificates issued — completion is only ever recorded by issuing one. */
+  certificates: number;
   sessionsHeld: number;
 };
 
@@ -72,7 +74,7 @@ export async function getCourseRosterStats(
   if (learnerIds.length === 0) return empty;
 
   const since = new Date(now.getTime() - 7 * MS_PER_DAY).toISOString();
-  const [watchedRes, subRes, tutorRes, attRes, eventRes, allAttRes] = await Promise.all([
+  const [watchedRes, subRes, tutorRes, attRes, eventRes, allAttRes, certRes] = await Promise.all([
     svc
       .from("week_progress")
       .select("user_id, track_slug")
@@ -113,6 +115,12 @@ export async function getCourseRosterStats(
       .in("track", trackSlugs)
       .in("student_id", learnerIds)
       .not("checked_in_at", "is", null),
+    // Certificates issued — the only thing that records a completion, so an
+    // ended course with zero of them is waiting on someone, not a failure.
+    svc
+      .from("track_completions")
+      .select("student_id, track_slug")
+      .in("track_slug", trackSlugs),
   ]);
 
   // Track-scoped signals mark a learner active in THAT track. Tutor chat and
@@ -144,6 +152,12 @@ export async function getCourseRosterStats(
     byLearner.get(r.student_id)!.add(key);
   }
 
+  const certsByTrack = new Map<string, Set<string>>();
+  for (const r of certRes.data ?? []) {
+    if (!certsByTrack.has(r.track_slug)) certsByTrack.set(r.track_slug, new Set());
+    certsByTrack.get(r.track_slug)!.add(r.student_id);
+  }
+
   const learnerIdSet = new Set(learnerIds);
   const stats: Record<string, CourseRosterStat> = {};
   for (const slug of trackSlugs) {
@@ -162,7 +176,13 @@ export async function getCourseRosterStats(
       fullAttendance = 0;
       for (const id of ids) if (attended.get(id)?.size === held) fullAttendance += 1;
     }
-    stats[slug] = { total: ids.size, active, fullAttendance, sessionsHeld: held };
+    stats[slug] = {
+      total: ids.size,
+      active,
+      fullAttendance,
+      sessionsHeld: held,
+      certificates: certsByTrack.get(slug)?.size ?? 0,
+    };
   }
   return stats;
 }

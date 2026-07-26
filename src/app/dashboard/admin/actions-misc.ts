@@ -270,6 +270,53 @@ export async function getTrackCompletions(
   return (data ?? []) as TrackCompletionRow[];
 }
 
+export type CertificateEligibility = {
+  /** Sessions someone checked into. 0 = attendance was never logged here. */
+  sessionsHeld: number;
+  /** student_id → sessions attended. Absent = attended none. */
+  attended: Record<string, number>;
+};
+
+/**
+ * Attendance behind a course, so "Issue all" isn't a blind bulk action on a
+ * long roster — for a 3-day camp, showing up IS the bar.
+ *
+ * sessionsHeld === 0 means attendance was never logged for this course (Tech+
+ * and MASS ran entirely off-platform). That's reported as "unknown", never as
+ * "nobody attended" — the difference decides whether a 0 should stop you from
+ * issuing.
+ */
+export async function getCertificateEligibility(
+  trackSlug: string,
+  programSlug: string,
+): Promise<CertificateEligibility> {
+  const actor = await requireAdmin();
+  const { svc } = actor;
+  await resolveProgramForActor(actor, svc, programSlug);
+
+  const { data, error } = await svc
+    .from("attendance")
+    .select("student_id, week_number, session_number")
+    .eq("track", trackSlug)
+    .not("checked_in_at", "is", null);
+  if (error) {
+    console.error("getCertificateEligibility error:", error.message);
+    return { sessionsHeld: 0, attended: {} };
+  }
+
+  const perLearner = new Map<string, Set<string>>();
+  const held = new Set<string>();
+  for (const r of data ?? []) {
+    const key = `${r.week_number}-${r.session_number}`;
+    held.add(key);
+    if (!perLearner.has(r.student_id)) perLearner.set(r.student_id, new Set());
+    perLearner.get(r.student_id)!.add(key);
+  }
+  const attended: Record<string, number> = {};
+  for (const [id, set] of perLearner) attended[id] = set.size;
+  return { sessionsHeld: held.size, attended };
+}
+
 const CERT_EMAIL_PACE_MS = 550; // ~2/sec — Resend rate limit
 const sleepMs = (ms: number) => new Promise((r) => setTimeout(r, ms));
 

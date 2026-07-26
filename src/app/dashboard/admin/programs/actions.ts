@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { hasCapability } from "@/lib/roles";
-import { getProgramBySlug } from "@/lib/programs";
+import { getProgramBySlug, getHomeProgramForTrack } from "@/lib/programs";
 import { toSlug } from "@/lib/programs/slug";
 
 // Bust every cached surface that lists or renders course metadata so edits made
@@ -174,6 +174,99 @@ export async function showCourseAction(
     return { success: false, error: "Failed to show course." };
   }
   revalidateCourseSurfaces(trackSlug);
+  return { success: true };
+}
+
+// Tables holding LEARNER history for a course. A course with any of these is
+// not deletable — erasing someone's attendance or submitted work to tidy up a
+// course list is never the right trade. Hide covers that case; this is only for
+// courses that never ran.
+const LEARNER_HISTORY_TABLES: { table: string; column: string; label: string }[] = [
+  { table: "student_tracks", column: "track_slug", label: "enrollments" },
+  { table: "attendance", column: "track", label: "attendance records" },
+  { table: "submissions", column: "track_slug", label: "submissions" },
+  { table: "week_progress", column: "track_slug", label: "progress records" },
+  { table: "reflections", column: "track_slug", label: "reflections" },
+  { table: "track_completions", column: "track_slug", label: "completions" },
+];
+
+// Config rows the course owns outright — no learner data, safe to remove with
+// it. Ordered so nothing is left pointing at a course that no longer exists.
+const COURSE_CONFIG_TABLES: { table: string; column: string }[] = [
+  { table: "session_content", column: "track" },
+  { table: "announcements", column: "track_slug" },
+  { table: "instructor_tracks", column: "track_slug" },
+  { table: "cohorts", column: "track_slug" },
+  { table: "hidden_courses", column: "track_slug" },
+  { table: "track_overrides", column: "track_slug" },
+];
+
+export type DeleteCourseResult =
+  | { success: true }
+  | { success: false; error: string; blockedBy?: { label: string; count: number }[] };
+
+/**
+ * Permanently delete a course. Unlike hide, this does not come back.
+ *
+ * Refuses outright if any learner history exists — the counts come back so the
+ * UI can say what's in the way instead of a bare "can't". Only the course's own
+ * config (curriculum, announcements, instructor assignments, cohorts) is
+ * removed. Hardcoded TS-config courses can't be deleted this way: their
+ * definition lives in code, so they'd reappear on the next render — hide those.
+ */
+export async function deleteCourseAction(
+  programSlug: string,
+  trackSlug: string,
+): Promise<DeleteCourseResult> {
+  const svc = await requireSuperAdmin();
+
+  // A course defined in TypeScript would regenerate itself from config the
+  // moment the page re-rendered, so "deleted" would be a lie.
+  const homeProgram = getHomeProgramForTrack(trackSlug);
+  if (homeProgram?.tracks.some((t) => t.slug === trackSlug)) {
+    return {
+      success: false,
+      error:
+        "This course is defined in code, not the database — it would come back on the next deploy. Hide it instead.",
+    };
+  }
+
+  const blockedBy: { label: string; count: number }[] = [];
+  for (const { table, column, label } of LEARNER_HISTORY_TABLES) {
+    const { count, error } = await svc
+      .from(table)
+      .select("*", { count: "exact", head: true })
+      .eq(column, trackSlug);
+    // A missing table or a failed count must not read as "nothing there" —
+    // that would delete a course whose history we simply couldn't see.
+    if (error) {
+      console.error(`[deleteCourseAction] count failed on ${table}:`, error);
+      return { success: false, error: `Couldn't verify ${label}. Nothing was deleted.` };
+    }
+    if ((count ?? 0) > 0) blockedBy.push({ label, count: count ?? 0 });
+  }
+  if (blockedBy.length > 0) {
+    return {
+      success: false,
+      error: "This course has learner history, so it can't be deleted. Hide it instead.",
+      blockedBy,
+    };
+  }
+
+  for (const { table, column } of COURSE_CONFIG_TABLES) {
+    const { error } = await svc.from(table).delete().eq(column, trackSlug);
+    if (error) {
+      console.error(`[deleteCourseAction] delete failed on ${table}:`, error);
+      return {
+        success: false,
+        error: `Failed while removing ${table}. The course is partially deleted — re-run to finish.`,
+      };
+    }
+  }
+
+  revalidateCourseSurfaces(trackSlug);
+  revalidatePath("/dashboard/admin/programs", "page");
+  void programSlug;
   return { success: true };
 }
 

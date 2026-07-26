@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { hideCourseAction, showCourseAction } from "./actions";
+import { hideCourseAction, showCourseAction, deleteCourseAction } from "./actions";
 import { buttonClass } from "@/components/ui";
 
 export type CourseRow = {
@@ -54,6 +54,10 @@ function CourseItem({ course }: { course: CourseRow }) {
   const [isPending, startTransition] = useTransition();
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  // What's standing in the way of a delete, so the row can say so instead of
+  // just refusing.
+  const [blockedBy, setBlockedBy] = useState<{ label: string; count: number }[] | null>(null);
 
   function openCourse() {
     document.cookie = `program-override=${course.programSlug}; path=/; max-age=86400`;
@@ -79,22 +83,78 @@ function CourseItem({ course }: { course: CourseRow }) {
     });
   }
 
-  // Hidden row — muted, with a Show button to restore.
+  function handleDelete(e?: React.MouseEvent) {
+    e?.stopPropagation();
+    setError(null);
+    setBlockedBy(null);
+    startTransition(async () => {
+      const res = await deleteCourseAction(course.programSlug, course.slug);
+      if (res.success) {
+        setConfirmDelete(false);
+        router.refresh();
+      } else {
+        setError(res.error);
+        setBlockedBy(res.blockedBy ?? null);
+        setConfirmDelete(false);
+      }
+    });
+  }
+
+  // Hidden row — muted, with Show to restore and Delete to remove for good.
+  // Delete only exists here: you have to retire a course before you can erase
+  // it, so a stray click on a live course can't destroy anything.
   if (course.hidden) {
     return (
-      <div className="flex items-center gap-3 px-4 py-3.5 opacity-60">
+      <div className="flex flex-wrap items-center gap-3 px-4 py-3.5 opacity-60">
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-ink-soft truncate">{course.name}</p>
           {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
+          {blockedBy && blockedBy.length > 0 && (
+            <p className="text-xs text-ink-soft mt-1">
+              {blockedBy.map((b) => `${b.count} ${b.label}`).join(" · ")}
+            </p>
+          )}
         </div>
-        <button
-          type="button"
-          disabled={isPending}
-          onClick={() => toggleHidden(false)}
-          className={`${buttonClass("secondary", "sm")} shrink-0`}
-        >
-          {isPending ? "Showing…" : "Show"}
-        </button>
+        {confirmDelete ? (
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-xs text-ink-soft">Delete for good?</span>
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={handleDelete}
+              className="border border-red-600 bg-red-600 px-2.5 py-1 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+            >
+              {isPending ? "Deleting…" : "Delete"}
+            </button>
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() => setConfirmDelete(false)}
+              className="text-xs font-medium text-ink-soft hover:text-ink"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() => toggleHidden(false)}
+              className={buttonClass("secondary", "sm")}
+            >
+              {isPending ? "Showing…" : "Show"}
+            </button>
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() => setConfirmDelete(true)}
+              className="text-xs font-medium text-ink-faint underline-offset-2 hover:text-red-600 hover:underline"
+            >
+              Delete
+            </button>
+          </div>
+        )}
       </div>
     );
   }
