@@ -18,6 +18,7 @@ import { getSessionContext } from "@/lib/auth/session";
 import { getPreviewTrackSlug, getPreviewTrackSlugs, LUNCH_LEARN_PREVIEW_SLUG } from "@/lib/auth/preview-mode";
 import { resolveCurrentUser } from "@/lib/current-user";
 import { getEnrolledTracks, collapseCompanionSlugs } from "@/lib/enrollment";
+import { getHiddenTrackSlugs } from "@/lib/programs/hidden";
 import { WeekIcon } from "@/components/week-icon";
 import { DashboardBento } from "@/components/dashboard-bento";
 import { NextUpPanel } from "@/components/next-up-panel";
@@ -353,9 +354,24 @@ async function DashboardContent({
   // Only collapse when the parent course is ALSO enrolled — a learner somehow
   // enrolled in just the wraparound must keep seeing it, or the redirect would
   // send them into a course whose enrollment gate bounces them right back.
-  const enrolledSet = new Set(enrolledTrackSlugs);
+  // Hide/Show is meant to retire a course, but it only ever filtered ADMIN
+  // surfaces — so a retired course stayed on its learners' home, "Happening
+  // next", and calendar while being invisible to the staff who retired it
+  // (Tech & AI Hangout, moved to Slack, did exactly this). Hidden now means
+  // hidden for everyone; enrollment rows and history are untouched, so
+  // un-hiding restores the course intact.
+  const learnerHiddenSlugs = await getHiddenTrackSlugs();
+  const enrolledTrackSlugsVisible = enrolledTrackSlugs.filter(
+    (s) => !learnerHiddenSlugs.has(s),
+  );
+  // Cross-program enrollments obey the same rule — a retired course shouldn't
+  // survive by being filed under another program.
+  otherProgramCourses = otherProgramCourses.filter(
+    (c) => !learnerHiddenSlugs.has(c.track.slug),
+  );
+  const enrolledSet = new Set(enrolledTrackSlugsVisible);
   const visibleSlugs = new Set(
-    enrolledTrackSlugs.map((s) => {
+    enrolledTrackSlugsVisible.map((s) => {
       const parent = program.tracks.find((t) => t.slug === s)?.companionOf;
       return parent && enrolledSet.has(parent) ? parent : s;
     }),
@@ -405,7 +421,7 @@ async function DashboardContent({
   if (feedUserId && !isAdmin && !previewSlugOuter) {
     const progressSlugs = Array.from(
       new Set([
-        ...enrolledTrackSlugs,
+        ...enrolledTrackSlugsVisible,
         ...otherProgramCourses.map((c) => c.track.slug),
       ]),
     );
