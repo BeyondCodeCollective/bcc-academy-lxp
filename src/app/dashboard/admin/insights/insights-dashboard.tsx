@@ -79,6 +79,10 @@ function grantCompleteness(responses: BCCSurveyResponse[]): { label: string; cou
 
 // Course-first: no shared course scope here — the Cohort selector below is
 // this view's own (and only) course-level cut.
+// Sentinel for "every form" in the Form select. A real survey id can never
+// collide with it.
+const ALL_FORMS = "__all__";
+
 export function InsightsDashboard({ sections, programs }: Props) {
   // Distinct cohorts across all responses — needed to color the per-survey
   // breakdown consistently.
@@ -92,23 +96,11 @@ export function InsightsDashboard({ sections, programs }: Props) {
 
   const ledger = useMemo(() => buildLedger(sections, allCohorts), [sections, allCohorts]);
 
-  // Roll-up stats for the three tiles (scoped to this program, like the page).
-  const totalResponses = useMemo(
-    () => sections.reduce((n, s) => n + s.responses.length, 0),
-    [sections],
-  );
-  const uniqueRespondents = useMemo(() => {
-    const emails = new Set<string>();
-    for (const s of sections)
-      for (const r of s.responses) if (r.email) emails.add(r.email.toLowerCase());
-    return emails.size;
-  }, [sections]);
-
-  // Survey is the PRIMARY selector. Default to the most recent survey with a
-  // real schema, else the first one.
-  const initialId =
-    ledger.find((row) => row.hasSchema)?.id ?? ledger[0]?.id ?? null;
-  const [activeId, setActiveId] = useState<string | null>(initialId);
+  // Survey is the PRIMARY selector, and it now includes an ALL option so the
+  // page opens on the whole picture and narrows from there — the controls tell
+  // you what you're looking at instead of sitting under a summary that ignores
+  // them.
+  const [activeId, setActiveId] = useState<string | null>(ALL_FORMS);
 
   // Deep-link a survey via #id (share a URL that opens straight on it).
   useEffect(() => {
@@ -132,24 +124,58 @@ export function InsightsDashboard({ sections, programs }: Props) {
     if (typeof window !== "undefined") history.replaceState(null, "", `#${id}`);
   }
 
+  const isAllForms = activeId === ALL_FORMS;
   const activeRow = ledger.find((row) => row.id === activeId) ?? null;
   const activeSection = sections.find((s) => s.survey.id === activeId) ?? null;
 
   // Cohort is a SUB-filter of the selected survey, shown only when the survey
   // genuinely spans more than one real (non-Untagged) cohort.
-  const surveyCohorts = (activeRow?.cohortBreakdown ?? []).filter(
-    (c) => c.name !== "Untagged",
-  );
+  // Across ALL forms the cohort list is every cohort that answered anything;
+  // for one form it's that form's own breakdown.
+  const surveyCohorts = isAllForms
+    ? allCohorts
+        .filter((name) => name !== "Untagged")
+        .map((name) => ({
+          name,
+          count: sections.reduce(
+            (n, sec) => n + sec.responses.filter((r) => cohortOf(r) === name).length,
+            0,
+          ),
+          color: cohortColor(name, allCohorts),
+        }))
+    : (activeRow?.cohortBreakdown ?? []).filter((c) => c.name !== "Untagged");
   const multiCohort = surveyCohorts.length > 1;
   const [cohortFilter, setCohortFilter] = useState<string>("all");
 
   const scopedResponses = useMemo(() => {
-    if (!activeSection) return [];
-    if (!multiCohort || cohortFilter === "all") return activeSection.responses;
-    return activeSection.responses.filter((r) => cohortOf(r) === cohortFilter);
-  }, [activeSection, multiCohort, cohortFilter]);
+    const pool = isAllForms
+      ? sections.flatMap((sec) => sec.responses)
+      : (activeSection?.responses ?? []);
+    if (!multiCohort || cohortFilter === "all") return pool;
+    return pool.filter((r) => cohortOf(r) === cohortFilter);
+  }, [isAllForms, sections, activeSection, multiCohort, cohortFilter]);
 
   const scopedCount = scopedResponses.length;
+  // The tiles describe the CURRENT selection. A summary that ignores the
+  // controls above it is just a number you have to mentally discount.
+  const scopedRespondents = useMemo(() => {
+    const emails = new Set<string>();
+    for (const r of scopedResponses) if (r.email) emails.add(r.email.toLowerCase());
+    return emails.size;
+  }, [scopedResponses]);
+  const scopedCohortCount = useMemo(
+    () => new Set(scopedResponses.map((r) => cohortOf(r))).size,
+    [scopedResponses],
+  );
+  const scopedFormCount = useMemo(
+    () =>
+      isAllForms
+        ? sections.filter((sec) => sec.responses.length > 0).length
+        : activeSection && activeSection.responses.length > 0
+          ? 1
+          : 0,
+    [isAllForms, sections, activeSection],
+  );
   const series = useMemo(() => responseSeries(scopedResponses), [scopedResponses]);
   const shownCohorts =
     multiCohort && cohortFilter !== "all"
@@ -176,15 +202,8 @@ export function InsightsDashboard({ sections, programs }: Props) {
 
   return (
     <div className="space-y-8">
-      {/* Roll-up tiles — each links somewhere useful. */}
-      <div className="grid grid-cols-3 gap-3">
-        <StatCard value={totalResponses.toLocaleString()} label="Responses" href="/api/insights/csv" download />
-        <StatCard value={uniqueRespondents.toLocaleString()} label="Respondents" href="/dashboard/admin?tab=students" />
-        <StatCard value={sections.length.toLocaleString()} label="Surveys" href="/dashboard/admin/surveys" />
-      </div>
-
-      {/* One fused component: the survey selector IS the card header, and its
-         summary swaps in place. No separate dropdown floating above a card. */}
+      {/* Controls first: what you pick here decides everything below it —
+         the tiles, the chart, the cohort pills, and the exports. */}
       <div className="panel p-5 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
           <div className="flex flex-wrap items-end gap-3">
@@ -195,6 +214,7 @@ export function InsightsDashboard({ sections, programs }: Props) {
                 onChange={(e) => selectSurvey(e.target.value)}
                 className="min-w-[16rem] rounded-lg border border-rule bg-white px-3 py-2 text-sm font-semibold text-ink focus:border-ink-faint focus:outline-none"
               >
+                <option value={ALL_FORMS}>All forms</option>
                 {ledger.map((row) => (
                   <option key={row.id} value={row.id}>{row.title}</option>
                 ))}
@@ -233,6 +253,27 @@ export function InsightsDashboard({ sections, programs }: Props) {
               </span>
             </p>
           </Link>
+        </div>
+
+        {/* Tiles describe the selection above them, so changing Form or Cohort
+           moves these numbers too. */}
+        <div className="mt-5 grid grid-cols-3 gap-3">
+          <StatCard
+            value={scopedCount.toLocaleString()}
+            label="Responses"
+            href={`/api/insights/csv${isAllForms ? "" : `?survey=${encodeURIComponent(activeId ?? "")}${cohortParam}`}`}
+            download
+          />
+          <StatCard
+            value={scopedRespondents.toLocaleString()}
+            label="Respondents"
+            href="/dashboard/admin?tab=students"
+          />
+          <StatCard
+            value={(isAllForms ? scopedFormCount : scopedCohortCount).toLocaleString()}
+            label={isAllForms ? "Forms answered" : "Cohorts"}
+            href={isAllForms ? "/dashboard/admin/surveys" : undefined}
+          />
         </div>
 
         {/* Responses over time — value on each bar, date under it. Granularity
@@ -276,7 +317,7 @@ export function InsightsDashboard({ sections, programs }: Props) {
         {/* Exports — the full question-by-question detail lives here, not on the
            page (keeps this fast to scan, per the redesign). */}
         <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-rule pt-4">
-          {activeRow?.hasSchema && (
+          {!isAllForms && activeRow?.hasSchema && (
             <a
               href={`/api/insights/pdf?detailed=1&survey=${encodeURIComponent(activeId ?? "")}${cohortParam}`}
               className={buttonClass("primary", "sm")}
@@ -296,7 +337,7 @@ export function InsightsDashboard({ sections, programs }: Props) {
           >
             Export PDF
           </a>
-          {isAgreement ? (
+          {!isAllForms && isAgreement ? (
             <Link
               href="/dashboard/admin/agreements"
               className="ml-auto text-sm font-medium text-primary hover:underline"
@@ -304,6 +345,7 @@ export function InsightsDashboard({ sections, programs }: Props) {
               Who has signed &rarr;
             </Link>
           ) : (
+            !isAllForms &&
             activeId &&
             activeRow?.hasSchema && (
               // The question-by-question detail existed only as a PDF download,
