@@ -182,9 +182,11 @@ async function main() {
     const named = t.instructor.trim().toLowerCase();
     if (["tbd", "beyond code collective", "replit"].includes(named)) continue;
     const account = staffAccounts.find((p) => nameOf(p) === named);
-    if (!account) {
-      unassigned.push(`${t.track_slug}: "${t.instructor}" has no staff account`);
-    } else if (!assignedByTrack[t.track_slug]?.has(account.id)) {
+    // A named instructor with no account is not a finding. Plenty of courses
+    // are taught by people who never log in, and flagging it every run just
+    // trains you to skim past the section that does matter.
+    if (!account) continue;
+    if (!assignedByTrack[t.track_slug]?.has(account.id)) {
       unassigned.push(`${t.track_slug}: ${t.instructor} is named but not assigned (instructor_tracks)`);
     }
   }
@@ -192,7 +194,7 @@ async function main() {
     report(
       "instructor-named-but-not-assigned",
       "medium",
-      "The course names an instructor who isn't assigned to it. Course scoping reads instructor_tracks, so an unassigned instructor sees the whole program's roster instead of their own course.",
+      "An instructor WITH an account is named on a course but not assigned to it. Course scoping reads instructor_tracks, so they see the whole program's roster instead of their own course.",
       unassigned,
     );
   }
