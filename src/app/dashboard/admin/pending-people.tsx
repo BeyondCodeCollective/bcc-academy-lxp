@@ -101,7 +101,7 @@ export function PendingPeopleSection({ pending, trackNames }: Props) {
   return (
     <section className="space-y-2">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-faint">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
           Pending — invited or allowlisted, no account yet ({pending.length})
         </p>
         <button

@@ -171,7 +171,7 @@ export function CertificatesPanel({
       <div className="panel overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-rule-soft text-left text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
+            <tr className="border-b border-rule-soft text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
               <th className="px-4 py-3">Student</th>
               <th className="px-4 py-3">Certificate</th>
               <th className="px-4 py-3 text-right">Actions</th>

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Megaphone, Trash2, Plus, Loader2, Send } from "lucide-react";
 import { createAnnouncement, deleteAnnouncement } from "./actions-misc";
+import { humanizeSlug } from "@/lib/utils";
 
 type Announcement = {
   id: string;
@@ -76,7 +77,7 @@ export function AnnouncementsManager({ announcements: initial, tracks, programSl
 
   const trackName = (slug: string | null) => {
     if (!slug) return "All tracks";
-    return tracks.find((t) => t.slug === slug)?.name ?? slug;
+    return tracks.find((t) => t.slug === slug)?.name ?? humanizeSlug(slug);
   };
 
   const expiresIn = (expiresAt: string) => {

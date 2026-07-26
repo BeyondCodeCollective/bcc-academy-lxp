@@ -3,6 +3,7 @@
 // a grid for a dashboard row. Presentational; styled on the editorial tokens.
 
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { InfoDot } from "./info-dot";
 
 export type StatTrend = {
@@ -15,11 +16,11 @@ export type StatTrend = {
   vs?: ReactNode;
 };
 
-// Semantic delta tones, matching the risk literals used across the analytics
-// surfaces (#10B981 emerald / #F59E0B amber). Good news is green, bad is amber.
+// Semantic delta tones from the shared status tokens. Good news is green,
+// bad is amber.
 const TREND_TONE = {
-  good: "bg-[#10B981]/12 text-[#0f7a54]",
-  bad: "bg-[#F59E0B]/14 text-[#a8620a]",
+  good: "bg-success/12 text-success-text",
+  bad: "bg-warning/14 text-warning-text",
 };
 
 export function StatCard({
@@ -29,6 +30,11 @@ export function StatCard({
   trend,
   info,
   children,
+  onClick,
+  ariaExpanded,
+  disabled,
+  href,
+  download,
 }: {
   value: ReactNode;
   label: string;
@@ -39,9 +45,17 @@ export function StatCard({
   info?: string;
   /** Optional extra content under the header (bars, split, etc.). */
   children?: ReactNode;
+  /** Makes the whole card a button (e.g. a tile that reveals a list). */
+  onClick?: () => void;
+  ariaExpanded?: boolean;
+  disabled?: boolean;
+  /** Makes the whole card a link (hover reveals a ↗). Wins over onClick. */
+  href?: string;
+  /** Native download link (e.g. a CSV route) instead of client nav. */
+  download?: boolean;
 }) {
-  return (
-    <div className="panel p-5 sm:p-6">
+  const body = (
+    <>
       <div className="flex items-start justify-between gap-3">
         <p className="text-3xl font-semibold leading-none text-ink tabular-nums sm:text-4xl">
           {value}
@@ -65,6 +79,38 @@ export function StatCard({
       </p>
       {hint && <p className="mt-1 text-sm text-ink-soft">{hint}</p>}
       {children && <div className="mt-4">{children}</div>}
-    </div>
+    </>
   );
+
+  if (href) {
+    const linkClass =
+      "group relative block panel p-5 transition hover:-translate-y-0.5 hover:border-primary hover:shadow-sm sm:p-6";
+    const inner = (
+      <>
+        <span className="absolute right-4 top-4 text-ink-faint opacity-0 transition group-hover:text-primary group-hover:opacity-100">
+          ↗
+        </span>
+        {body}
+      </>
+    );
+    return download ? (
+      <a href={href} className={linkClass}>{inner}</a>
+    ) : (
+      <Link href={href} className={linkClass}>{inner}</Link>
+    );
+  }
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        aria-expanded={ariaExpanded}
+        className="panel p-5 text-left transition enabled:hover:border-ink-faint enabled:hover:shadow-sm disabled:opacity-70 sm:p-6"
+      >
+        {body}
+      </button>
+    );
+  }
+  return <div className="panel p-5 sm:p-6">{body}</div>;
 }

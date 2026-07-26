@@ -18,7 +18,7 @@ export function FunnelChart({ title, stages, barClass = "bg-ink", caption }: Pro
   return (
     <div className="panel p-5">
       <div className="mb-4 flex items-baseline justify-between gap-3">
-        <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-faint">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
           {title}
         </p>
         {caption && <p className="text-[11px] tabular-nums text-ink-faint">{caption}</p>}

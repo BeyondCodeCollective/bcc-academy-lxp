@@ -10,6 +10,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { getAllPrograms } from "@/lib/programs";
 import type { ProgramScope } from "@/lib/programs/scope";
 import { getLearnerActivity } from "@/lib/analytics/activity";
+import { humanizeSlug } from "@/lib/utils";
 
 export type TrackProgress = {
   slug: string;
@@ -117,7 +118,9 @@ export async function fetchProgressData(scope: ProgramScope): Promise<ProgressDa
     }
     tracks.push({
       slug,
-      name: m?.name ?? slug,
+      // Raw slugs must never reach the UI — humanize when no config name exists
+      // (DB-driven courses not in the TS registry).
+      name: m?.name ?? humanizeSlug(slug),
       totalWeeks,
       enrolled,
       completed,

@@ -2,6 +2,8 @@
 // cobalt --primary at rising opacity for intensity, --highlight (green) used
 // only as a filled current-streak ring — never as text. Presentational.
 
+import { COBALT_RAMP } from "./palette";
+
 export type HeatLevel = 0 | 1 | 2 | 3 | 4;
 
 export type ProgressDay = {
@@ -15,13 +17,13 @@ export type ProgressDay = {
   future?: boolean;
 };
 
-// Cobalt at rising opacity = a calm, single-hue scale (no rainbow).
+// Level 0 is "empty", levels 1–4 climb the shared sequential cobalt ramp.
 export const CELL_BG: Record<HeatLevel, string> = {
   0: "var(--paper-tint)",
-  1: "color-mix(in srgb, var(--primary) 28%, var(--paper-tint))",
-  2: "color-mix(in srgb, var(--primary) 52%, white)",
-  3: "color-mix(in srgb, var(--primary) 78%, white)",
-  4: "var(--primary)",
+  1: COBALT_RAMP[1],
+  2: COBALT_RAMP[2],
+  3: COBALT_RAMP[3],
+  4: COBALT_RAMP[4],
 };
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];

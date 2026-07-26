@@ -13,6 +13,8 @@ import { OutcomesDashboard } from "@/app/dashboard/admin/outcomes/outcomes-dashb
 import { getInsightsBundle } from "@/lib/analytics/insights-cache";
 import { StatCard } from "@/components/stats/stat-card";
 import { COBALT_FAMILY } from "@/components/stats/palette";
+import { formatRelativeDate, humanizeSlug } from "@/lib/utils";
+import { microLabel } from "@/components/ui";
 
 // Program context comes from a cookie/header (super-admin switcher), so the URL
 // is identical across programs — the page must re-render per request or a cached
@@ -307,7 +309,7 @@ export default async function InsightsPage() {
       <HorizontalBarChart
         title="Students per track"
         data={trackData}
-        barClass="bg-[#1D59FF]"
+        barClass="bg-primary"
         unit="students"
         totalCaption={{
           value: trackPairs.size,
@@ -318,7 +320,7 @@ export default async function InsightsPage() {
       {/* Recent activity — the feed that used to live on the Admin Overview
          tab. Cross-program, latest 10 submissions + reflections. */}
       <section className="space-y-3">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">
+        <p className={microLabel}>
           Recent activity
         </p>
         <div className="divide-y divide-neutral-100 overflow-hidden panel">
@@ -328,15 +330,9 @@ export default async function InsightsPage() {
             </p>
           ) : (
             activity.map((item) => {
-              const submittedAt = new Date(item.submitted_at);
-              const diffMs = Date.now() - submittedAt.getTime();
-              const diffHrs = Math.round(diffMs / (1000 * 60 * 60));
-              const ago =
-                diffHrs < 1
-                  ? "just now"
-                  : diffHrs < 24
-                    ? `${diffHrs}h ago`
-                    : `${Math.round(diffHrs / 24)}d ago`;
+              const ago = formatRelativeDate(item.submitted_at);
+              const trackName =
+                trackNameBySlug.get(item.track_slug) ?? humanizeSlug(item.track_slug);
               return (
                 <div
                   key={item.id}
@@ -350,7 +346,7 @@ export default async function InsightsPage() {
                       {item.kind === "submission"
                         ? "Submitted homework"
                         : "Added reflection"}{" "}
-                      — {item.track_slug} Week {item.week_number}
+                      — {trackName} Week {item.week_number}
                     </p>
                   </div>
                   <span className="shrink-0 text-xs text-ink-faint">

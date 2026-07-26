@@ -35,9 +35,9 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { Avatar } from "@/components/avatar";
-import { buttonClass, fieldInput } from "@/components/ui";
+import { BackLink, buttonClass, fieldInput, microLabel, SaveIndicator, SegmentedTabs, type SaveState } from "@/components/ui";
 import { PageHeader, Section } from "@/components/page-header";
-import { computeCurrentWeek, trackHasStarted, formatCohortDate } from "@/lib/utils";
+import { computeCurrentWeek, trackHasStarted, formatCohortDate, humanizeSlug } from "@/lib/utils";
 import { LunchLearnAdmin } from "@/app/dashboard/lunch-learn/admin/admin-client";
 import { AttendanceTab } from "./attendance-tab";
 import { ProgressTab } from "./progress-tab";
@@ -61,7 +61,7 @@ import type { Student } from "@/lib/types";
 import { isStorageUrl, isUploadedVideo } from "@/lib/storage-utils";
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
 import { iconForTrack } from "@/lib/track-visual";
-import { Clipboard as ClipboardListIcon, Users as UsersIcon, ChartBar as ChartBarIcon, ChartPie as ChartPieIcon, ChartLineUp as ChartLineUpIcon, ArrowLeft as ArrowLeftIcon, GraduationCap as GraduationCapIcon } from "@phosphor-icons/react";
+import { Clipboard as ClipboardListIcon, Users as UsersIcon, ChartBar as ChartBarIcon, ChartPie as ChartPieIcon, ChartLineUp as ChartLineUpIcon, GraduationCap as GraduationCapIcon } from "@phosphor-icons/react";
 
 const PLATFORM_SURVEY_TITLES: Record<string, string> = {
   "bcc-learner-intake": "BCC Learner Intake",
@@ -79,6 +79,8 @@ function AdminTopTabs({
   showInsights,
   actions,
   isManager = true,
+  course,
+  courseOptions,
 }: {
   current: "courses" | "students" | "student-work" | "analytics";
   sub?: "attendance" | "insights" | "analytics" | "course-progress";
@@ -89,7 +91,13 @@ function AdminTopTabs({
    *  own Students / Attendance / Progress / Work views, so the cross-course
    *  People, Student work, and Analytics tabs render for managers only. */
   isManager?: boolean;
+  /** Shared Analytics scope — the selected course slug ("" / undefined = all
+   *  courses). Carried in `?course=` so it survives sub-tab navigation. */
+  course?: string;
+  /** Courses for the scope selector (slug + display name). */
+  courseOptions?: { slug: string; name: string }[];
 }) {
+  const router = useRouter();
   const allTabs = [
     { id: "courses", label: "Courses", href: "/dashboard/admin", Icon: GraduationCapIcon },
     // "People", not "All people" — a tab names a place, not a filter. (Same
@@ -112,10 +120,16 @@ function AdminTopTabs({
     { id: "attendance", label: "Attendance", href: "/dashboard/admin?tab=attendance", show: true },
     { id: "insights", label: "Insights", href: "/dashboard/admin?tab=insights", show: showInsights },
     { id: "analytics", label: "Engagement", href: "/dashboard/admin?tab=analytics", show: showInsights },
-    { id: "course-progress", label: "Courses", href: "/dashboard/admin?tab=course-progress", show: showInsights },
+    { id: "course-progress", label: "Progress", href: "/dashboard/admin?tab=course-progress", show: showInsights },
   ];
   // One segment is not a choice — hide the picker until there are at least two.
   const visibleSegments = segments.filter((t) => t.show);
+  // Carry the shared course scope across sub-tab links so switching Attendance →
+  // Insights → Engagement → Progress keeps you at the same altitude.
+  const withCourse = (href: string) =>
+    course ? `${href}&course=${encodeURIComponent(course)}` : href;
+  const currentBase =
+    visibleSegments.find((t) => t.id === sub)?.href ?? "/dashboard/admin?tab=attendance";
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-x-1 border-b border-rule">
@@ -137,20 +151,33 @@ function AdminTopTabs({
         ))}
       </div>
       {current === "analytics" && visibleSegments.length > 1 && (
-        <div className="inline-flex gap-1 rounded-lg bg-paper-tint p-1">
-          {visibleSegments
-            .map((t) => (
-              <Link
-                key={t.id}
-                href={t.href}
-                aria-current={sub === t.id ? "page" : undefined}
-                className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                  sub === t.id ? "bg-white text-ink shadow-sm" : "text-ink-soft hover:text-ink"
-                }`}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <SegmentedTabs
+            ariaLabel="Analytics view"
+            tabs={visibleSegments.map((t) => ({ ...t, href: withCourse(t.href) }))}
+            active={sub ?? ""}
+          />
+          {/* Shared scope — set the course once; every sub-tab above obeys it. */}
+          {courseOptions && courseOptions.length > 0 && (
+            <label className="flex items-center gap-2">
+              <span className={microLabel}>
+                Course
+              </span>
+              <select
+                value={course ?? ""}
+                onChange={(e) => {
+                  const slug = e.target.value;
+                  router.push(slug ? `${currentBase}&course=${encodeURIComponent(slug)}` : currentBase);
+                }}
+                className="rounded-lg border border-rule bg-white px-2.5 py-1.5 text-sm text-ink focus:border-ink-faint focus:outline-none"
               >
-                {t.label}
-              </Link>
-            ))}
+                <option value="">All courses</option>
+                {courseOptions.map((c) => (
+                  <option key={c.slug} value={c.slug}>{c.name}</option>
+                ))}
+              </select>
+            </label>
+          )}
         </div>
       )}
     </div>
@@ -179,7 +206,7 @@ function trackLabel(slug: string | null): string {
     "game-dev": "Game Dev",
     "ai-for-digital-natives": "AI for Digital Natives",
   };
-  return map[slug] ?? slug;
+  return map[slug] ?? humanizeSlug(slug);
 }
 
 type StudentRow = Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id" | "last_seen_at" | "last_activity_at" | "zip" | "state" | "date_of_birth">;
@@ -505,21 +532,6 @@ function ResourceEditor({
   );
 }
 
-// ─── Save indicator ───────────────────────────────────────────────────────────
-
-type SaveState = "idle" | "saving" | "saved" | "error";
-
-function SaveIndicator({ state }: { state: SaveState }) {
-  if (state === "idle") return null;
-  if (state === "saving") return <span className="text-[11px] text-ink-faint">Saving...</span>;
-  if (state === "saved") return (
-    <span className="inline-flex items-center gap-1 text-[11px] text-green-600">
-      <Check size={11} /> Saved
-    </span>
-  );
-  return <span className="text-[11px] text-red-500">Save failed</span>;
-}
-
 // ─── Tab icon helper ─────────────────────────────────────────────────────────
 
 function getTrackIcon(index: number) {
@@ -545,6 +557,7 @@ export function AdminTabs({
   engagementScores = {},
   courseStats = {},
   initialTab,
+  initialCourse,
   initialTrackView,
   lunchLearnRecordings = [],
   insightsData = null,
@@ -574,6 +587,7 @@ export function AdminTabs({
     { total: number; active: number; fullAttendance: number | null; sessionsHeld: number }
   >;
   initialTab?: string;
+  initialCourse?: string;
   initialTrackView?: string;
   lunchLearnRecordings?:{ id: string; title: string; presenter: string; recording_url: string; description: string | null; recorded_at: string }[];
   insightsData?: InsightsData | null;
@@ -589,6 +603,11 @@ export function AdminTabs({
   // Capability-driven, so it follows ROLE_CAPABILITIES: admin and super_admin
   // both manage people (the ladder is cumulative), plus the master owner.
   const isManager = canManageStudents(userRole) || isMaster;
+  // Courses for the shared Analytics scope selector (slug + display name).
+  const analyticsCourseOptions = tracks.map((t) => ({
+    slug: t.slug,
+    name: t.shortName || t.name,
+  }));
   // Programs like Catalyst (apex) don't have a learner dashboard — no
   // tracks, no cohorts. They render a single empty-state pointer to
   // Survey Insights via the `insights` tab.
@@ -1247,13 +1266,7 @@ export function AdminTabs({
         return (
         <div className="space-y-4">
           {/* Back to Admin home */}
-          <Link
-            href="/dashboard/admin"
-            className="inline-flex items-center gap-1.5 text-[11px] font-medium text-ink-faint transition-colors hover:text-ink-soft"
-          >
-            <ArrowLeftIcon size={11} weight="bold" aria-hidden />
-            Admin
-          </Link>
+          <BackLink href="/dashboard/admin" label="Admin" />
 
           {/* Track header */}
           <PageHeader
@@ -1261,28 +1274,21 @@ export function AdminTabs({
             subtitle={`with ${liveTrackNames[activeTrack.slug]?.instructor ?? activeTrack.instructor} · ${activeTrack.sessionTimes.join(" & ")}`}
           />
 
-          {/* Sub-tab bar within the track */}
-          <div className="flex gap-1 bg-paper-tint p-1">
-            {[
-              { id: "overview" as const, label: "Overview" },
-              { id: "analytics" as const, label: "Analytics" },
-              { id: "curriculum" as const, label: "Curriculum" },
-              { id: "students" as const, label: "Students" },
-              { id: "surveys" as const, label: "Surveys" },
-            ].map((v) => (
-              <button
-                key={v.id}
-                onClick={() => setTrackView(v.id)}
-                className={`flex-1 rounded-md px-3 py-2 text-xs font-medium transition-colors ${
-                  trackView === v.id
-                    ? "bg-white text-ink shadow-sm"
-                    : "text-ink-soft hover:text-ink-soft"
-                }`}
-              >
-                {v.label}
-              </button>
-            ))}
-          </div>
+          {/* Sub-tab bar within the track — the one segmented control */}
+          <SegmentedTabs
+            ariaLabel="Course view"
+            tabs={[
+              { id: "overview", label: "Overview" },
+              { id: "analytics", label: "Analytics" },
+              { id: "curriculum", label: "Curriculum" },
+              { id: "students", label: "Students" },
+              { id: "surveys", label: "Surveys" },
+            ]}
+            active={trackView}
+            onSelect={(id) =>
+              setTrackView(id as "overview" | "analytics" | "curriculum" | "students" | "surveys")
+            }
+          />
 
           {/* Sub-tab content */}
           {trackView === "overview" && (
@@ -1325,7 +1331,7 @@ export function AdminTabs({
           {activeWeeks.map((aw) => {
             const hasMultipleSessions = aw.sessions.length > 1;
             return (
-              <div key={aw.week} className="panel overflow-hidden">
+              <div key={aw.week} className="panel-form overflow-hidden">
                 <button
                   onClick={() => setExpandedWeek(expandedWeek === aw.week ? null : aw.week)}
                   className="flex w-full items-center justify-between px-4 sm:px-5 py-3.5 sm:py-4 hover:bg-paper-tint-soft transition-colors"
@@ -1347,7 +1353,7 @@ export function AdminTabs({
                   </div>
                   <div className="flex items-center gap-2">
                     <SaveIndicator state={saveStates[activeTrack.slug]?.[aw.week] ?? "idle"} />
-                    <span className={`h-2 w-2 rounded-full ${aw.sessions.every((s) => s.status === "completed") ? "bg-green-500" : "bg-neutral-300"}`} />
+                    <span className={`h-2 w-2 rounded-full ${aw.sessions.every((s) => s.status === "completed") ? "bg-success" : "bg-neutral-300"}`} />
                     <ChevronDown size={16} className={`text-ink-faint transition-transform ${expandedWeek === aw.week ? "rotate-180" : ""}`} />
                   </div>
                 </button>
@@ -1652,7 +1658,7 @@ export function AdminTabs({
       {/* Standalone Analytics (from sidebar, all tracks) */}
       {tab === "attendance" && (
         <div className="space-y-6">
-          <AdminTopTabs current="analytics" sub="attendance" showInsights={canViewInsights(userRole)} isManager={isManager} />
+          <AdminTopTabs current="analytics" sub="attendance" showInsights={canViewInsights(userRole)} isManager={isManager} course={initialCourse} courseOptions={analyticsCourseOptions} />
           <AttendanceTab
             students={students.filter((s) => s.role === "student")}
             tracks={tracks}
@@ -1666,13 +1672,7 @@ export function AdminTabs({
       {/* Lunch & Learn management */}
       {tab === "lunch-learn" && (
         <div className="space-y-6">
-          <Link
-            href="/dashboard/admin"
-            className="inline-flex items-center gap-1.5 text-[11px] font-medium text-ink-faint transition-colors hover:text-ink-soft"
-          >
-            <ArrowLeftIcon size={11} weight="bold" aria-hidden />
-            Admin
-          </Link>
+          <BackLink href="/dashboard/admin" label="Admin" />
           <PageHeader
             title="Lunch & Learns"
             subtitle={`${lunchLearnRecordings.length} recording${lunchLearnRecordings.length === 1 ? "" : "s"} for internal staff`}
@@ -1686,7 +1686,7 @@ export function AdminTabs({
          follows the program switcher rather than showing every program. */}
       {tab === "analytics" && (
         <div className="space-y-6">
-          <AdminTopTabs current="analytics" sub="analytics" showInsights={canViewInsights(userRole)} isManager={isManager} />
+          <AdminTopTabs current="analytics" sub="analytics" showInsights={canViewInsights(userRole)} isManager={isManager} course={initialCourse} courseOptions={analyticsCourseOptions} />
           {analyticsData ? (
             <AnalyticsDashboard data={analyticsData} />
           ) : (
@@ -1699,7 +1699,7 @@ export function AdminTabs({
          per-student progress. Scoped to the current program like Engagement. */}
       {tab === "course-progress" && (
         <div className="space-y-6">
-          <AdminTopTabs current="analytics" sub="course-progress" showInsights={canViewInsights(userRole)} isManager={isManager} />
+          <AdminTopTabs current="analytics" sub="course-progress" showInsights={canViewInsights(userRole)} isManager={isManager} course={initialCourse} courseOptions={analyticsCourseOptions} />
           {coursesData ? (
             <CoursesDashboard data={coursesData} />
           ) : (
@@ -1715,7 +1715,7 @@ export function AdminTabs({
          broader operational dashboard (engagement, attendance, alumni). */}
       {tab === "insights" && (
         <div className="space-y-6">
-          <AdminTopTabs current="analytics" sub="insights" showInsights={canViewInsights(userRole)} isManager={isManager} />
+          <AdminTopTabs current="analytics" sub="insights" showInsights={canViewInsights(userRole)} isManager={isManager} course={initialCourse} courseOptions={analyticsCourseOptions} />
 
           {/* The "{Program} surveys" widget that used to live here pulled from
              `surveyStats` (auth-only, never populated on the Insights tab since
@@ -1725,7 +1725,7 @@ export function AdminTabs({
              component below now serves as the single source for these counts. */}
           {false && surveyConfigs.length > 0 && (
             <section className="space-y-3">
-              <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">
+              <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
                 {programSlug === "catalyst" ? "Catalyst" : "Program"} surveys
               </h2>
               {surveyConfigs.map((survey) => {
@@ -2166,13 +2166,7 @@ function PeopleTab({
   return (
     <div className="space-y-6">
       {!embedded && (
-        <Link
-          href="/dashboard/admin"
-          className="inline-flex items-center gap-1.5 text-[11px] font-medium text-ink-faint transition-colors hover:text-ink-soft"
-        >
-          <ArrowLeftIcon size={11} weight="bold" aria-hidden />
-          Admin
-        </Link>
+        <BackLink href="/dashboard/admin" label="Admin" />
       )}
       {/* Header */}
       {(!embedded || isManager) && (
@@ -3052,7 +3046,7 @@ function GroupsPanel({
   return (
     <div>
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
           Groups
         </h2>
         {!showForm && (

@@ -4,6 +4,7 @@
 // Presentational.
 
 import type { ReactNode } from "react";
+import { COBALT_RAMP } from "./palette";
 
 export type DataBarItem = {
   label: string;
@@ -15,16 +16,9 @@ export type DataBarItem = {
   icon?: ReactNode;
 };
 
-// Rank → cobalt opacity. Top item is full strength, the tail fades.
+// Rank → shared cobalt ramp, reversed: top item is full strength, the tail fades.
 function fillFor(rank: number): string {
-  const stops = [
-    "var(--primary)",
-    "color-mix(in srgb, var(--primary) 82%, white)",
-    "color-mix(in srgb, var(--primary) 64%, white)",
-    "color-mix(in srgb, var(--primary) 48%, white)",
-    "color-mix(in srgb, var(--primary) 36%, white)",
-  ];
-  return stops[Math.min(rank, stops.length - 1)];
+  return COBALT_RAMP[Math.max(0, COBALT_RAMP.length - 1 - rank)];
 }
 
 export function DataBar({ items }: { items: DataBarItem[] }) {

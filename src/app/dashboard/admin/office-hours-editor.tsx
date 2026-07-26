@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus, Trash2 } from "lucide-react";
 import { saveTrackOverview } from "./actions-tracks";
 import type { OfficeHour, ScheduleItemType } from "@/lib/programs/types";
-import { fieldInput, buttonClass } from "@/components/ui";
+import { fieldInput, buttonClass, microLabel, SaveIndicator } from "@/components/ui";
 
 type Props = {
   trackSlug: string;
@@ -75,7 +75,7 @@ export function OfficeHoursEditor({ trackSlug, programSlug, initial }: Props) {
     <section className="space-y-4">
       <div className="flex items-end justify-between gap-3">
         <div>
-          <h3 className="text-[11px] font-medium uppercase tracking-[0.18em] text-ink-faint">
+          <h3 className={microLabel}>
             Schedule
           </h3>
           <p className="mt-1 text-[12px] text-ink-soft">
@@ -96,11 +96,11 @@ export function OfficeHoursEditor({ trackSlug, programSlug, initial }: Props) {
       ) : (
         <div className="space-y-3">
           {rows.map((r, i) => (
-            <div key={i} className="panel space-y-3 p-4">
+            <div key={i} className="panel-form space-y-3 p-4">
               <div className="flex items-start gap-3">
                 <div className="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
                   <label className="block">
-                    <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-ink-faint">Type</span>
+                    <span className="mb-1 block text-xs font-medium text-ink-soft">Type</span>
                     <select
                       value={r.type ?? "office-hours"}
                       onChange={(e) => update(i, "type", e.target.value)}
@@ -114,15 +114,15 @@ export function OfficeHoursEditor({ trackSlug, programSlug, initial }: Props) {
                     </select>
                   </label>
                   <label className="block">
-                    <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-ink-faint">Date</span>
+                    <span className="mb-1 block text-xs font-medium text-ink-soft">Date</span>
                     <input type="date" value={r.date} onChange={(e) => update(i, "date", e.target.value)} className={fieldInput} />
                   </label>
                   <label className="block">
-                    <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-ink-faint">Time</span>
+                    <span className="mb-1 block text-xs font-medium text-ink-soft">Time</span>
                     <input type="text" value={r.time} onChange={(e) => update(i, "time", e.target.value)} placeholder="1pm EST (10am PT)" className={fieldInput} />
                   </label>
                   <label className="block">
-                    <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-ink-faint">Title</span>
+                    <span className="mb-1 block text-xs font-medium text-ink-soft">Title</span>
                     <input type="text" value={r.title} onChange={(e) => update(i, "title", e.target.value)} placeholder="AI Office Hours" className={fieldInput} />
                   </label>
                 </div>
@@ -136,16 +136,16 @@ export function OfficeHoursEditor({ trackSlug, programSlug, initial }: Props) {
                 </button>
               </div>
               <label className="block">
-                <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-ink-faint">Description</span>
+                <span className="mb-1 block text-xs font-medium text-ink-soft">Description</span>
                 <textarea value={r.description} onChange={(e) => update(i, "description", e.target.value)} rows={2} placeholder="What this session is for…" className={fieldInput} />
               </label>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <label className="block">
-                  <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-ink-faint">Join link (optional)</span>
+                  <span className="mb-1 block text-xs font-medium text-ink-soft">Join link (optional)</span>
                   <input type="text" value={r.joinUrl ?? ""} onChange={(e) => update(i, "joinUrl", e.target.value)} placeholder="https://meet.google.com/…" className={fieldInput} />
                 </label>
                 <label className="block">
-                  <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-ink-faint">Dial-in (optional)</span>
+                  <span className="mb-1 block text-xs font-medium text-ink-soft">Dial-in (optional)</span>
                   <input type="text" value={r.dialIn ?? ""} onChange={(e) => update(i, "dialIn", e.target.value)} placeholder="(US) +1 … · PIN: …" className={fieldInput} />
                 </label>
               </div>
@@ -154,7 +154,9 @@ export function OfficeHoursEditor({ trackSlug, programSlug, initial }: Props) {
         </div>
       )}
 
-      <div className="flex items-center gap-3">
+      {/* Save actions live bottom-right of the form — the one submit placement. */}
+      <div className="flex items-center justify-end gap-3">
+        <SaveIndicator state={state} />
         <button
           type="button"
           onClick={save}
@@ -163,8 +165,6 @@ export function OfficeHoursEditor({ trackSlug, programSlug, initial }: Props) {
         >
           {state === "saving" ? "Saving…" : "Save schedule"}
         </button>
-        {state === "saved" && <span className="text-[12px] text-ink-soft">Saved ✓</span>}
-        {state === "error" && <span className="text-[12px] text-red-600">Couldn’t save — try again.</span>}
       </div>
     </section>
   );

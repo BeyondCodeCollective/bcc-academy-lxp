@@ -145,7 +145,7 @@ function ProgramSection({ group }: { group: ProgramGroup }) {
 
   return (
     <div className="space-y-2">
-      <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
+      <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
         {group.programName}
       </p>
       <div className="divide-y divide-neutral-100 rounded-lg border border-rule bg-white overflow-hidden">

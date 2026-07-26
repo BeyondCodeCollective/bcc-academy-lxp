@@ -6,6 +6,8 @@ import { getEngagementTrends } from "./actions-analytics";
 import { StatCard, type StatTrend } from "@/components/stats/stat-card";
 import { METRIC_DEFS } from "@/lib/analytics/metric-defs";
 import { RANGE_LABELS, type RangePreset, type Delta } from "@/lib/analytics/period";
+import { buttonClass, DataTable, microLabel, Num, PersonCell, SegmentedTabs } from "@/components/ui";
+import { formatShortDate } from "@/lib/utils";
 
 // Turn a period-over-period Delta into a StatCard trend chip. No chip when the
 // prior window was zero — an "∞%" jump is noise, not signal, so we stay silent
@@ -52,21 +54,15 @@ function TrendsRow() {
   return (
     <section className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="inline-flex rounded-lg border border-rule bg-white p-0.5">
-          {(Object.keys(RANGE_LABELS) as RangePreset[]).map((p) => (
-            <button
-              key={p}
-              type="button"
-              onClick={() => setPreset(p)}
-              aria-pressed={preset === p}
-              className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${
-                preset === p ? "bg-ink text-white" : "text-ink-soft hover:text-ink"
-              }`}
-            >
-              {RANGE_LABELS[p]}
-            </button>
-          ))}
-        </div>
+        <SegmentedTabs
+          ariaLabel="Date range"
+          tabs={(Object.keys(RANGE_LABELS) as RangePreset[]).map((p) => ({
+            id: p,
+            label: RANGE_LABELS[p],
+          }))}
+          active={preset}
+          onSelect={(id) => setPreset(id as RangePreset)}
+        />
         {trends && (
           <span className="text-xs text-ink-faint">
             {trends.periodLabel} · vs previous period
@@ -137,19 +133,22 @@ export function AnalyticsDashboard({ data }: { data: EngagementAnalytics }) {
   const pctOf = (v: number, base: number): number | null =>
     base > 0 ? Math.min(100, Math.round((v / base) * 100)) : null;
 
+  const activatedPct = pctOf(funnel.activated, funnel.invited);
+  const engagedPct = pctOf(funnel.engaged, funnel.activated);
   const cards = [
-    { label: "Invited", sublabel: "received access", value: funnel.invited, pctLabel: null },
+    { label: "Invited", value: funnel.invited, hint: "Received access" },
     {
       label: "Created account",
-      sublabel: "& signed in",
       value: funnel.activated,
-      pctLabel: pctOf(funnel.activated, funnel.invited) === null ? null : `${pctOf(funnel.activated, funnel.invited)}% of invited`,
+      hint: activatedPct === null ? "Signed in" : `Signed in · ${activatedPct}% of invited`,
     },
     {
       label: "Engaged",
-      sublabel: "watched · attended · submitted",
       value: funnel.engaged,
-      pctLabel: pctOf(funnel.engaged, funnel.activated) === null ? null : `${pctOf(funnel.engaged, funnel.activated)}% of accounts`,
+      hint:
+        engagedPct === null
+          ? "Watched, attended, or submitted"
+          : `Watched, attended, or submitted · ${engagedPct}% of accounts`,
     },
   ];
 
@@ -157,25 +156,14 @@ export function AnalyticsDashboard({ data }: { data: EngagementAnalytics }) {
     <div className="space-y-8">
       <TrendsRow />
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        {cards.map((c) => {
-          return (
-            <div key={c.label} className="rounded-xl border border-rule bg-white p-5">
-              <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-bold tracking-tight text-ink">{c.value}</span>
-                {c.pctLabel !== null && (
-                  <span className="text-xs font-medium text-ink-faint">{c.pctLabel}</span>
-                )}
-              </div>
-              <div className="mt-1 text-sm font-semibold text-ink">{c.label}</div>
-              <div className="text-xs text-ink-faint">{c.sublabel}</div>
-            </div>
-          );
-        })}
+        {cards.map((c) => (
+          <StatCard key={c.label} value={c.value} label={c.label} hint={c.hint} />
+        ))}
       </section>
 
       <section className="space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">
+          <h2 className={microLabel}>
             Per-learner activity ({isFiltered ? `${filtered.length} of ${learners.length}` : learners.length})
           </h2>
           <div className="flex items-center gap-2">
@@ -184,7 +172,7 @@ export function AnalyticsDashboard({ data }: { data: EngagementAnalytics }) {
                 value={track}
                 onChange={(e) => setTrack(e.target.value)}
                 aria-label="Filter by track"
-                className="border border-rule bg-white px-2.5 py-1.5 text-sm text-ink focus:border-ink-faint focus:outline-none"
+                className="rounded-lg border border-rule bg-white px-2.5 py-1.5 text-sm text-ink focus:border-ink-faint focus:outline-none"
               >
                 <option value="">All tracks</option>
                 {availableTracks.map((t) => (
@@ -197,99 +185,91 @@ export function AnalyticsDashboard({ data }: { data: EngagementAnalytics }) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Filter by name or email…"
-              className="w-48 border border-rule bg-white px-2.5 py-1.5 text-sm text-ink placeholder:text-ink-faint focus:border-ink-faint focus:outline-none sm:w-64"
+              className="w-48 rounded-lg border border-rule bg-white px-2.5 py-1.5 text-sm text-ink placeholder:text-ink-faint focus:border-ink-faint focus:outline-none sm:w-64"
             />
             <button
               type="button"
               onClick={() => downloadCsv(filtered, data.programName, track, trackName)}
               disabled={filtered.length === 0}
-              className="border border-rule bg-white px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:border-ink-faint disabled:cursor-not-allowed disabled:opacity-50"
+              className={buttonClass("secondary", "sm")}
             >
               Export CSV · {filtered.length}
             </button>
           </div>
         </div>
-        <div className="overflow-x-auto rounded-lg border border-rule">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-rule text-left text-[10px] uppercase tracking-wide text-ink-faint">
-                <th className="px-3 py-2 font-semibold">Learner</th>
-                <th className="px-3 py-2 font-semibold">Signed up</th>
-                <th className="px-3 py-2 font-semibold">Last active</th>
-                <th className="px-3 py-2 text-center font-semibold">Videos</th>
-                <th className="px-3 py-2 text-center font-semibold">Attended</th>
-                <th className="px-3 py-2 text-center font-semibold">Submitted</th>
-                <th className="px-3 py-2 text-center font-semibold">Surveys</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((l) => {
-                const open = openSurveys === l.email;
-                const c = countsFor(l);
-                return (
-                <Fragment key={l.email}>
-                <tr
-                  className={`border-b border-rule/60 ${open ? "" : "last:border-0"} ${c.videosWatched + c.attended + c.submitted > 0 ? "bg-[#f3f8ff]" : ""}`}
-                >
-                  <td className="px-3 py-2">
-                    <div className="font-medium text-ink">{l.name || l.email}</div>
-                    {l.name && <div className="text-xs text-ink-faint">{l.email}</div>}
-                  </td>
-                  <td className="px-3 py-2 text-ink-soft">{l.signedUp ?? "—"}</td>
-                  <td className="px-3 py-2 text-ink-soft">{l.lastActive ?? "—"}</td>
-                  <td className="px-3 py-2 text-center text-ink">{c.videosWatched}</td>
-                  <td className="px-3 py-2 text-center text-ink">{c.attended}</td>
-                  <td className="px-3 py-2 text-center text-ink">{c.submitted}</td>
-                  <td className="px-3 py-2 text-center text-ink">
-                    {l.surveys > 0 ? (
-                      <button
-                        type="button"
-                        onClick={() => setOpenSurveys(open ? null : l.email)}
-                        aria-expanded={open}
-                        className="inline-flex items-center gap-1 font-medium text-primary underline-offset-2 hover:underline"
-                      >
-                        {l.surveys}
-                        <span aria-hidden className={`text-[9px] transition-transform ${open ? "rotate-180" : ""}`}>▾</span>
-                      </button>
-                    ) : (
-                      <span className="text-ink">0</span>
-                    )}
-                  </td>
-                </tr>
-                {open && (
-                  <tr className="border-b border-rule/60 bg-paper-tint">
-                    <td colSpan={7} className="px-3 py-2.5">
-                      <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-ink-faint">
-                        Surveys completed by {l.name || l.email}
-                      </p>
-                      <ul className="flex flex-wrap gap-x-4 gap-y-1">
-                        {l.surveyList.map((sv, i) => (
-                          <li key={`${sv.type}-${i}`} className="text-xs text-ink-soft">
-                            <span className="font-medium text-ink">{surveyTitle(sv.type)}</span>
-                            {sv.completedAt && (
-                              <span className="text-ink-faint"> · {sv.completedAt.slice(0, 10)}</span>
-                            )}
-                          </li>
-                        ))}
-                      </ul>
-                    </td>
-                  </tr>
+        <DataTable
+          columns={[
+            "Learner",
+            "Signed up",
+            "Last active",
+            { label: "Videos", align: "center" },
+            { label: "Attended", align: "center" },
+            { label: "Submitted", align: "center" },
+            { label: "Surveys", align: "center" },
+          ]}
+        >
+          {filtered.map((l) => {
+            const open = openSurveys === l.email;
+            const c = countsFor(l);
+            return (
+            <Fragment key={l.email}>
+            <tr className={c.videosWatched + c.attended + c.submitted > 0 ? "bg-primary/5" : ""}>
+              <td className="px-4 py-2.5">
+                <PersonCell name={l.name || null} email={l.email} />
+              </td>
+              <td className="px-4 py-2.5 text-ink-soft">{formatShortDate(l.signedUp)}</td>
+              <td className="px-4 py-2.5 text-ink-soft">{formatShortDate(l.lastActive)}</td>
+              <td className="px-4 py-2.5 text-center"><Num value={c.videosWatched} /></td>
+              <td className="px-4 py-2.5 text-center"><Num value={c.attended} /></td>
+              <td className="px-4 py-2.5 text-center"><Num value={c.submitted} /></td>
+              <td className="px-4 py-2.5 text-center">
+                {l.surveys > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => setOpenSurveys(open ? null : l.email)}
+                    aria-expanded={open}
+                    className="inline-flex items-center gap-1 font-medium text-primary underline-offset-2 hover:underline"
+                  >
+                    {l.surveys}
+                    <span aria-hidden className={`text-[9px] transition-transform ${open ? "rotate-180" : ""}`}>▾</span>
+                  </button>
+                ) : (
+                  <Num value={0} />
                 )}
-                </Fragment>
-                );
-              })}
-              {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="px-3 py-8 text-center text-ink-faint">
-                    {learners.length === 0
-                      ? "No learners in this program yet."
-                      : "No learners match that filter."}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              </td>
+            </tr>
+            {open && (
+              <tr className="bg-paper-tint">
+                <td colSpan={7} className="px-4 py-2.5">
+                  <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-ink-faint">
+                    Surveys completed by {l.name || l.email}
+                  </p>
+                  <ul className="flex flex-wrap gap-x-4 gap-y-1">
+                    {l.surveyList.map((sv, i) => (
+                      <li key={`${sv.type}-${i}`} className="text-xs text-ink-soft">
+                        <span className="font-medium text-ink">{surveyTitle(sv.type)}</span>
+                        {sv.completedAt && (
+                          <span className="text-ink-faint"> · {formatShortDate(sv.completedAt)}</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </td>
+              </tr>
+            )}
+            </Fragment>
+            );
+          })}
+          {filtered.length === 0 && (
+            <tr>
+              <td colSpan={7} className="px-4 py-8 text-center text-ink-faint">
+                {learners.length === 0
+                  ? "No learners in this program yet."
+                  : "No learners match that filter."}
+              </td>
+            </tr>
+          )}
+        </DataTable>
         <p className="text-[11px] leading-relaxed text-ink-faint">
           &ldquo;Engaged&rdquo; = watched a video, attended a session, or submitted work.
           Logins-over-time, time-in-platform, and video&nbsp;% watched aren&rsquo;t tracked yet

@@ -6,7 +6,9 @@ import { FunnelChart } from "@/components/charts/funnel-chart";
 import type { OutcomesData } from "@/lib/analytics/outcomes";
 import type { ProgressData } from "@/lib/analytics/progress";
 import type { AcquisitionData } from "@/lib/analytics/acquisition";
-import { COBALT_FAMILY as PALETTE } from "@/components/stats/palette";
+import { COBALT_FAMILY as PALETTE, STATUS_COLORS } from "@/components/stats/palette";
+import { SectionHeadline } from "@/components/stats/section-headline";
+import { microLabel, PersonCell } from "@/components/ui";
 
 export type OutcomesDashboardData = {
   outcomes: OutcomesData;
@@ -45,7 +47,7 @@ function OutcomesSection({ outcomes }: { outcomes: OutcomesData }) {
         : "Confidence held about steady";
   return (
     <section className="space-y-5">
-      <SectionHeader
+      <SectionHeadline
         eyebrow="Outcomes & Learning"
         headline={hasShift ? shiftHeadline : "Learning gain"}
         sub={
@@ -81,7 +83,7 @@ function OutcomesSection({ outcomes }: { outcomes: OutcomesData }) {
 
       {(outcomes.pathway.length > 0 || outcomes.archetype.length > 0) && (
         <div className="space-y-3 pt-2">
-          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-faint">
+          <p className={microLabel}>
             Who our learners are · from the entry assessment
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -139,7 +141,7 @@ function ProgressSection({ progress }: { progress: ProgressData }) {
 
   return (
     <section className="space-y-5">
-      <SectionHeader
+      <SectionHeadline
         eyebrow="Progress"
         headline={`${overallAvgProgress}% of the way through, on average`}
         sub={`${progress.totalEnrolled.toLocaleString()} enrolled across ${nTracks} course${nTracks === 1 ? "" : "s"}${
@@ -160,7 +162,7 @@ function ProgressSection({ progress }: { progress: ProgressData }) {
             data={progressData}
             unit="%"
             max={100}
-            barClass="bg-[#1D59FF]"
+            barClass="bg-primary"
             totalCaption={{ value: progressData.length, label: "tracks" }}
           />
         ) : (
@@ -186,16 +188,16 @@ function ProgressSection({ progress }: { progress: ProgressData }) {
 
 function AcquisitionSection({ acquisition }: { acquisition: AcquisitionData }) {
   const riskSegments = [
-    { label: "On track", value: acquisition.risk["on-track"], color: "#10B981" },
-    { label: "Check in", value: acquisition.risk["at-risk"], color: "#F59E0B" },
-    { label: "Inactive", value: acquisition.risk.disengaged, color: "#9CA3AF" },
+    { label: "On track", value: acquisition.risk["on-track"], color: STATUS_COLORS.success },
+    { label: "Check in", value: acquisition.risk["at-risk"], color: STATUS_COLORS.warning },
+    { label: "Inactive", value: acquisition.risk.disengaged, color: STATUS_COLORS.inactive },
   ];
   const totalScored = riskSegments.reduce((s, r) => s + r.value, 0);
   const needs = acquisition.risk["at-risk"] + acquisition.risk.disengaged;
 
   return (
     <section className="space-y-5">
-      <SectionHeader
+      <SectionHeadline
         eyebrow="Acquisition & Risk"
         headline={
           needs > 0
@@ -209,12 +211,12 @@ function AcquisitionSection({ acquisition }: { acquisition: AcquisitionData }) {
         <FunnelChart
           title="Activation funnel"
           stages={acquisition.activationFunnel}
-          barClass="bg-[#1D59FF]"
+          barClass="bg-primary"
         />
         <FunnelChart
           title="Invite acceptance"
           stages={acquisition.inviteFunnel}
-          barClass="bg-[#1D59FF]"
+          barClass="bg-primary"
         />
       </div>
 
@@ -231,7 +233,7 @@ function AcquisitionSection({ acquisition }: { acquisition: AcquisitionData }) {
         )}
 
         <div className="panel p-5">
-          <p className="mb-4 text-[11px] font-medium uppercase tracking-[0.14em] text-ink-faint">
+          <p className={`mb-4 ${microLabel}`}>
             Needs attention
           </p>
           {acquisition.needsAttention.length === 0 ? (
@@ -240,10 +242,7 @@ function AcquisitionSection({ acquisition }: { acquisition: AcquisitionData }) {
             <ul className="divide-y divide-rule-soft">
               {acquisition.needsAttention.map((s) => (
                 <li key={s.id} className="flex items-center justify-between gap-3 py-2.5">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-ink">{s.name}</p>
-                    <p className="truncate text-[11px] text-ink-faint">{s.email}</p>
-                  </div>
+                  <PersonCell name={s.name} email={s.email} />
                   <span className="shrink-0 text-[11px] tabular-nums text-ink-soft">
                     {s.signal}
                   </span>
@@ -258,28 +257,6 @@ function AcquisitionSection({ acquisition }: { acquisition: AcquisitionData }) {
 }
 
 // ─── Shared bits ─────────────────────────────────────────────────────────────
-
-function SectionHeader({
-  eyebrow,
-  headline,
-  sub,
-}: {
-  eyebrow: string;
-  headline: string;
-  sub: string;
-}) {
-  return (
-    <header>
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
-        {eyebrow}
-      </p>
-      <h2 className="mt-1 text-2xl font-bold tracking-tight text-ink sm:text-3xl">
-        {headline}
-      </h2>
-      <p className="mt-1.5 max-w-2xl text-sm text-ink-soft">{sub}</p>
-    </header>
-  );
-}
 
 function EmptyCard({ text }: { text: string }) {
   return (

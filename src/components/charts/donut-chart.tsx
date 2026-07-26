@@ -37,7 +37,7 @@ export function DonutChart({ title, segments, centerValue, centerLabel }: Props)
 
   return (
     <div className="panel p-5">
-      <p className="mb-4 text-[11px] font-medium uppercase tracking-[0.14em] text-ink-faint">
+      <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
         {title}
       </p>
       <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
@@ -77,7 +77,7 @@ export function DonutChart({ title, segments, centerValue, centerLabel }: Props)
               {displayCenter}
             </p>
             {centerLabel && (
-              <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-ink-faint">
+              <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
                 {centerLabel}
               </p>
             )}

@@ -17,3 +17,24 @@ export const COBALT_FAMILY = [
 export function cobaltAt(i: number): string {
   return COBALT_FAMILY[i % COBALT_FAMILY.length];
 }
+
+/** Sequential cobalt ramp, weakest → full strength. THE scale for every
+ *  non-judgmental distribution (heatmap intensity, ranked bars, completion
+ *  buckets) so "more" always reads as "more cobalt" across the app. */
+export const COBALT_RAMP = [
+  "color-mix(in srgb, var(--primary) 16%, white)",
+  "color-mix(in srgb, var(--primary) 36%, white)",
+  "color-mix(in srgb, var(--primary) 56%, white)",
+  "color-mix(in srgb, var(--primary) 78%, white)",
+  "var(--primary)",
+] as const;
+
+/** Semantic status fills for chart segments/dots — the JS mirror of the
+ *  --success/--warning/--danger/--inactive tokens in globals.css. Charts that
+ *  take literal color props read from here so the hexes can't fork. */
+export const STATUS_COLORS = {
+  success: "#10B981",
+  warning: "#F59E0B",
+  danger: "#EF4444",
+  inactive: "#9CA3AF",
+} as const;

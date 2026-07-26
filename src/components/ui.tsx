@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
+import { ArrowLeft, Check } from "@phosphor-icons/react/dist/ssr";
 
 /**
  * Content-composition primitives — the second layer of the design system
@@ -78,13 +80,15 @@ export function buttonClass(
 /**
  * Data-table shell — uppercase header row + hairline-divided body, matching the
  * Section eyebrow treatment. Pass <tr> rows (with <td className="px-4 py-3 …">)
- * as children.
+ * as children. Columns are strings, or `{ label, align }` for numeric columns.
  */
+export type DataTableColumn = string | { label: string; align?: "left" | "right" | "center" };
+
 export function DataTable({
   columns,
   children,
 }: {
-  columns: string[];
+  columns: DataTableColumn[];
   children: ReactNode;
 }) {
   return (
@@ -92,18 +96,131 @@ export function DataTable({
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-rule bg-paper-tint-soft text-left">
-            {columns.map((c) => (
-              <th
-                key={c}
-                className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-ink-faint"
-              >
-                {c}
-              </th>
-            ))}
+            {columns.map((c) => {
+              const col = typeof c === "string" ? { label: c, align: "left" as const } : c;
+              return (
+                <th
+                  key={col.label}
+                  className={`px-4 py-2.5 ${microLabel} ${
+                    col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : ""
+                  }`}
+                >
+                  {col.label}
+                </th>
+              );
+            })}
           </tr>
         </thead>
         <tbody className="divide-y divide-rule">{children}</tbody>
       </table>
     </div>
   );
+}
+
+/**
+ * Stacked name + email cell — THE way a person renders inside a table row,
+ * so rosters and activity tables read identically.
+ */
+export function PersonCell({ name, email }: { name: string | null; email: string }) {
+  return (
+    <div className="min-w-0">
+      <p className="truncate text-sm font-medium text-ink">{name || email}</p>
+      {name && <p className="truncate text-xs text-ink-faint">{email}</p>}
+    </div>
+  );
+}
+
+/**
+ * Muted count cell value — zeros render faint so a young cohort's table reads
+ * as "not yet" instead of broken. Non-zero values are full-strength ink.
+ */
+export function Num({ value }: { value: number }) {
+  return (
+    <span className={`tabular-nums ${value === 0 ? "text-ink-faint/60" : "text-ink"}`}>
+      {value.toLocaleString()}
+    </span>
+  );
+}
+
+/** The micro-label convention (card labels, table headers, section eyebrows).
+ *  Uppercase + tracked is for LABELS only — headlines and body stay sentence
+ *  case. Use this string anywhere a component wrapper doesn't already apply it. */
+export const microLabel =
+  "text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint";
+
+/**
+ * ONE segmented sub-nav — the pill control (gray track, white active pill).
+ * Used for every second-level view switch: Analytics sub-tabs, course detail
+ * sub-tabs, range presets. Links when `href` is set, buttons otherwise.
+ */
+export function SegmentedTabs({
+  tabs,
+  active,
+  onSelect,
+  ariaLabel,
+}: {
+  tabs: { id: string; label: string; href?: string }[];
+  active: string;
+  onSelect?: (id: string) => void;
+  ariaLabel?: string;
+}) {
+  const itemClass = (isActive: boolean) =>
+    `rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+      isActive ? "bg-white text-ink shadow-sm" : "text-ink-soft hover:text-ink"
+    }`;
+  return (
+    <div className="inline-flex flex-wrap gap-1 rounded-lg bg-paper-tint p-1" aria-label={ariaLabel}>
+      {tabs.map((t) =>
+        t.href ? (
+          <Link
+            key={t.id}
+            href={t.href}
+            aria-current={active === t.id ? "page" : undefined}
+            className={itemClass(active === t.id)}
+          >
+            {t.label}
+          </Link>
+        ) : (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => onSelect?.(t.id)}
+            aria-pressed={active === t.id}
+            className={itemClass(active === t.id)}
+          >
+            {t.label}
+          </button>
+        ),
+      )}
+    </div>
+  );
+}
+
+/** ONE back pattern for drill-in pages — a quiet arrow link to the parent. */
+export function BackLink({ href, label }: { href: string; label: string }) {
+  return (
+    <Link
+      href={href}
+      className="inline-flex items-center gap-1.5 text-[11px] font-medium text-ink-faint transition-colors hover:text-ink-soft"
+    >
+      <ArrowLeft size={11} weight="bold" aria-hidden />
+      {label}
+    </Link>
+  );
+}
+
+/** Autosave/submit feedback — one treatment for every form's save state. */
+export type SaveState = "idle" | "saving" | "saved" | "error";
+
+export function SaveIndicator({ state }: { state: SaveState }) {
+  if (state === "idle") return null;
+  if (state === "saving") return <span className="text-[11px] text-ink-faint">Saving…</span>;
+  if (state === "saved") {
+    return (
+      <span className="inline-flex items-center gap-1 text-[11px] text-success-text">
+        <Check size={11} aria-hidden /> Saved
+      </span>
+    );
+  }
+  return <span className="text-[11px] text-danger-text">Save failed</span>;
 }
