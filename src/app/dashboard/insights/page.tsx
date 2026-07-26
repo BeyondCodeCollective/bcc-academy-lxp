@@ -295,27 +295,29 @@ export default async function InsightsPage() {
          finishing, and engaged?" story. */}
       <OutcomesDashboard data={{ outcomes, progress, acquisition }} />
 
-      {/* Phase breakdown — only when the donut would actually segment. */}
-      {showPhaseDonut && (
-        <DonutChart
-          title="Students by phase"
-          segments={phaseSegments}
-          centerValue={totalStudents.toLocaleString()}
-          centerLabel="students"
+      {/* Composition row — phase donut + per-track counts side by side.
+         Full-width, a lone donut put the ring far left and its numbers far
+         right with a field of nothing between. */}
+      <div className="grid gap-3 lg:grid-cols-2">
+        {showPhaseDonut && (
+          <DonutChart
+            title="Students by phase"
+            segments={phaseSegments}
+            centerValue={totalStudents.toLocaleString()}
+            centerLabel="students"
+          />
+        )}
+        <HorizontalBarChart
+          title="Students per track"
+          data={trackData}
+          barClass="bg-primary"
+          unit="students"
+          totalCaption={{
+            value: trackPairs.size,
+            label: `track${trackPairs.size === 1 ? "" : "s"}`,
+          }}
         />
-      )}
-
-      {/* Per-track student counts */}
-      <HorizontalBarChart
-        title="Students per track"
-        data={trackData}
-        barClass="bg-primary"
-        unit="students"
-        totalCaption={{
-          value: trackPairs.size,
-          label: `track${trackPairs.size === 1 ? "" : "s"}`,
-        }}
-      />
+      </div>
 
       {/* Recent activity — the feed that used to live on the Admin Overview
          tab. Cross-program, latest 10 submissions + reflections. */}

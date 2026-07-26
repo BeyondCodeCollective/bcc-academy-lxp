@@ -125,7 +125,9 @@ function AdminTopTabs({
   const tabs = isManager ? allTabs : allTabs.filter((t) => t.id === "courses");
   const segments = [
     { id: "attendance", label: "Attendance", href: "/dashboard/admin?tab=attendance", show: true },
-    { id: "insights", label: "Insights", href: "/dashboard/admin?tab=insights", show: showInsights },
+    // "Surveys" — it's the survey-response view. Calling it Insights collided
+    // with the Overview page and implied a second, different analytics level.
+    { id: "insights", label: "Surveys", href: "/dashboard/admin?tab=insights", show: showInsights },
     { id: "analytics", label: "Engagement", href: "/dashboard/admin?tab=analytics", show: showInsights },
     { id: "course-progress", label: "Progress", href: "/dashboard/admin?tab=course-progress", show: showInsights },
   ];
@@ -167,7 +169,9 @@ function AdminTopTabs({
           {/* Shared scope — set the course once; every sub-tab above obeys it.
              Hidden until all four dimensions honor ?course= (flip this flag on
              once the wiring lands) so prod never shows an inert control. */}
-          {ANALYTICS_SCOPE_ENABLED && courseOptions && courseOptions.length > 0 && (
+          {/* Surveys already slice by Form + Cohort — a third, course-level
+             selector on that sub-tab stacked two altitudes on one page. */}
+          {ANALYTICS_SCOPE_ENABLED && sub !== "insights" && courseOptions && courseOptions.length > 0 && (
             <label className="flex items-center gap-2">
               <span className={microLabel}>
                 Course
