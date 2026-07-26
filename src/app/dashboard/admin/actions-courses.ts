@@ -97,15 +97,25 @@ export async function getCoursesAnalytics(): Promise<CoursesAnalytics> {
     }
   }
 
+  // Learners only. Instructors and admins hold student_tracks rows so they can
+  // see a course, but counting them as enrolled inflates every denominator on
+  // this page — Tech+ read 50% complete with certificates issued to all four of
+  // its actual learners, because four staff sat in the same track.
+  const learnerIdSet = new Set(
+    ((studentRes.data ?? []) as { id: string }[]).map((r) => r.id),
+  );
+
   // Enrolled (student,course) pairs, de-duped. Program-altitude on purpose —
   // per-course numbers live inside each course (course-first hierarchy).
   const enrolledPairs = new Set<string>();
   for (const e of (enrollRes.data ?? []) as { student_id: string; track_slug: string }[]) {
+    if (!learnerIdSet.has(e.student_id)) continue;
     enrolledPairs.add(`${e.student_id}|${e.track_slug}`);
   }
   // Completed pairs (100% by definition).
   const completedPairs = new Set<string>();
   for (const c of (completeRes.data ?? []) as { student_id: string; track_slug: string }[]) {
+    if (!learnerIdSet.has(c.student_id)) continue;
     completedPairs.add(`${c.student_id}|${c.track_slug}`);
   }
   // Furthest week + last-active timestamp per (student,course) from the union.
