@@ -531,6 +531,7 @@ export function AdminTabs({
   analyticsData = null,
   coursesData = null,
   courseEngagement = null,
+  attendanceRates = null,
   trackAnsweredSurveyIds = null,
   pendingPeople = [],
   alumniEnrollments = [],
@@ -561,6 +562,8 @@ export function AdminTabs({
   analyticsData?: EngagementAnalytics | null;
   coursesData?: CoursesAnalytics | null;
   courseEngagement?: CourseEngagementProps | null;
+  /** Per-learner attendance for the open course — roster badge. */
+  attendanceRates?: { held: number; attended: Record<string, number> } | null;
   /** Auth surveys with ≥1 response from the open course's students; null off track tabs. */
   trackAnsweredSurveyIds?: string[] | null;
   pendingPeople?: PendingPerson[];
@@ -1565,6 +1568,7 @@ export function AdminTabs({
                     onToggleInstructorTrack={toggleInstructorTrack}
                     onStudentAdded={(s) => setStudents((prev) => [...prev, s])}
                     initialTrackFilter={activeTrack.slug}
+                    attendanceRates={attendanceRates}
                     embedded
                     viewSwitcher={viewSwitcher}
                   />
@@ -2079,6 +2083,7 @@ function PeopleTab({
   onToggleInstructorTrack,
   onStudentAdded,
   initialTrackFilter,
+  attendanceRates = null,
   embedded,
   viewSwitcher,
   pendingPeople = [],
@@ -2102,6 +2107,8 @@ function PeopleTab({
   onToggleInstructorTrack: (instructorId: string, trackSlug: string) => Promise<void>;
   onStudentAdded: (student: StudentRow) => void;
   initialTrackFilter?: string;
+  /** Sessions held + each learner's attended count, for the open course. */
+  attendanceRates?: { held: number; attended: Record<string, number> } | null;
   embedded?: boolean;
   viewSwitcher?: React.ReactNode;
   pendingPeople?: PendingPerson[];
@@ -2332,6 +2339,19 @@ function PeopleTab({
             [s.first_name, s.last_name].filter(Boolean).join(" ") || "—";
           const isExpanded = expandedId === s.id;
           const trackCount = getTrackCount(s.id);
+          // Attendance only means something for a learner in the open course —
+          // staff don't check in, and the rate is course-scoped.
+          const attendanceRate =
+            attendanceRates && s.role === "student"
+              ? (() => {
+                  const attended = attendanceRates.attended[s.id] ?? 0;
+                  return {
+                    attended,
+                    held: attendanceRates.held,
+                    pct: Math.round((attended / attendanceRates.held) * 100),
+                  };
+                })()
+              : null;
           const studentSlugs = getStudentTrackSlugs(s.id);
           const instructorSlugs = getInstructorTrackSlugs(s.id);
 
@@ -2376,6 +2396,14 @@ function PeopleTab({
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
+                  {attendanceRate && (
+                    <span
+                      className="text-[11px] tabular-nums hidden sm:block text-ink-soft"
+                      title={`Attended ${attendanceRate.attended} of ${attendanceRate.held} sessions held`}
+                    >
+                      {attendanceRate.pct}% attendance
+                    </span>
+                  )}
                   <span className="text-[11px] text-ink-faint tabular-nums hidden sm:block">
                     {trackCount} {trackCount === 1 ? "track" : "tracks"}
                   </span>

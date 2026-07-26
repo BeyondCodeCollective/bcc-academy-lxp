@@ -104,6 +104,26 @@ export function CourseEngagement({
             100,
         )
       : 0;
+  // Is turnout going anywhere? First half of the sessions vs second half —
+  // steadier than last-vs-first, which one snow day can swing. Needs 4 held
+  // sessions before the halves mean anything; below that the panel just shows
+  // the per-session bars.
+  const trend = (() => {
+    if (!attendance || totalLearners === 0) return null;
+    const s = attendance.perSession;
+    if (s.length < 4) return null;
+    const mid = Math.floor(s.length / 2);
+    const meanPct = (rows: typeof s) =>
+      Math.round(
+        (rows.reduce((sum, r) => sum + r.present, 0) / (rows.length * totalLearners)) * 100,
+      );
+    const firstHalf = meanPct(s.slice(0, mid));
+    const secondHalf = meanPct(s.slice(mid));
+    const deltaPts = secondHalf - firstHalf;
+    // Under 5 points is noise on a cohort this size, not a story.
+    const direction = deltaPts <= -5 ? "down" : deltaPts >= 5 ? "up" : "flat";
+    return { firstHalf, secondHalf, deltaPts, direction };
+  })();
   const tileCount =
     2 + (showLessonsWatched ? 1 : 0) + (showSubmissions ? 1 : 0) + (attendance ? 1 : 0);
 
@@ -182,6 +202,26 @@ export function CourseEngagement({
               {avgTurnout}% average turnout · {totalLearners} enrolled
             </p>
           </div>
+          {trend && (
+            <div className="mb-4 flex items-baseline gap-2">
+              <span
+                className={`text-sm font-semibold tabular-nums ${
+                  trend.direction === "down" ? "text-red-600" : "text-ink"
+                }`}
+              >
+                {trend.direction === "down" ? "↓" : trend.direction === "up" ? "↑" : "→"}{" "}
+                {Math.abs(trend.deltaPts)} pts
+              </span>
+              <span className="text-xs text-ink-soft">
+                {trend.direction === "down"
+                  ? "turnout is falling"
+                  : trend.direction === "up"
+                    ? "turnout is climbing"
+                    : "turnout is holding steady"}{" "}
+                — first half {trend.firstHalf}% vs second half {trend.secondHalf}%
+              </span>
+            </div>
+          )}
           {/* Bar width is turnout against the ROSTER, not against the best
               session — otherwise the thinnest week still renders near-full and
               a half-empty room looks like a good night. */}
