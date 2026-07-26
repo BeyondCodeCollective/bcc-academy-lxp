@@ -482,12 +482,40 @@ export default async function AdminPage({
   let activeTrack: typeof program.tracks[0] | undefined;
   let activeTrackPublicSurveyIds: string[] = [];
   let trackPublicSurveys: { id: string; title: string; count: number }[] = [];
+  // Auth surveys this course's enrolled students have actually answered.
+  // null = not a track tab (no filtering). The course Surveys tab is an
+  // insights list, and the old opt-out (skipForTracks) rule surfaced every
+  // program survey under every course — an unrelated survey has no business
+  // there, and with zero responses there'd be nothing to view anyway.
+  let trackAnsweredSurveyIds: string[] | null = null;
 
   if (isSupabaseConfigured()) {
     activeTrack = isTrackTab
       ? program.tracks.find((t) => t.slug === effectiveTab)
       : undefined;
     activeTrackPublicSurveyIds = activeTrack?.publicSurveys ?? [];
+    if (activeTrack) {
+      const trackStudentIds = Array.from(
+        new Set(
+          studentTracks
+            .filter((e) => e.track_slug === activeTrack!.slug)
+            .map((e) => e.student_id),
+        ),
+      );
+      const surveyIds = (program.surveys ?? []).map((sv) => sv.id);
+      if (trackStudentIds.length > 0 && surveyIds.length > 0) {
+        const { data: answered } = await createServiceClient()
+          .from("survey_responses")
+          .select("survey_type")
+          .in("survey_type", surveyIds)
+          .in("student_id", trackStudentIds);
+        trackAnsweredSurveyIds = Array.from(
+          new Set((answered ?? []).map((r) => r.survey_type as string)),
+        );
+      } else {
+        trackAnsweredSurveyIds = [];
+      }
+    }
     const publicSurveyCounts = activeTrackPublicSurveyIds.length > 0
       ? await getPublicSurveyCountsByType(activeTrackPublicSurveyIds).catch((e) => {
           console.error("getPublicSurveyCountsByType failed:", e);
@@ -609,6 +637,7 @@ export default async function AdminPage({
         surveyStats={surveyStats}
         surveyConfigs={surveyConfigs}
         trackPublicSurveys={trackPublicSurveys}
+        trackAnsweredSurveyIds={trackAnsweredSurveyIds}
         userRole={userRole}
         isMaster={isMasterEmail(actorEmail)}
         assignableRoles={assignableRoles(userRole, isMasterEmail(actorEmail))}

@@ -573,6 +573,7 @@ export function AdminTabs({
   analyticsData = null,
   coursesData = null,
   courseEngagement = null,
+  trackAnsweredSurveyIds = null,
   pendingPeople = [],
   alumniEnrollments = [],
   unviewedAssessments = 0,
@@ -603,6 +604,8 @@ export function AdminTabs({
   analyticsData?: EngagementAnalytics | null;
   coursesData?: CoursesAnalytics | null;
   courseEngagement?: CourseEngagementProps | null;
+  /** Auth surveys with ≥1 response from the open course's students; null off track tabs. */
+  trackAnsweredSurveyIds?: string[] | null;
   pendingPeople?: PendingPerson[];
   alumniEnrollments?: { track_slug: string; email: string; source: string }[];
   unviewedAssessments?: number;
@@ -1639,11 +1642,17 @@ export function AdminTabs({
                 // opted out via skipForTracks (Security+ vs the AI
                 // Fundamentals surveys) shouldn't list them; a companion
                 // (MASS) follows the course it wraps around.
+                // Evidence-based, not opt-out: list only surveys this course's
+                // students have actually answered (plus the skip rule). The old
+                // opt-out-only filter surfaced every program survey under every
+                // course.
                 surveyConfigs={surveyConfigs.filter(
                   (s) =>
                     !s.skipForTracks?.includes(
                       activeTrack.companionOf ?? activeTrack.slug,
-                    ),
+                    ) &&
+                    (trackAnsweredSurveyIds === null ||
+                      trackAnsweredSurveyIds.includes(s.id)),
                 )}
                 trackPublicSurveys={trackPublicSurveys}
               />
