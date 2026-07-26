@@ -477,8 +477,14 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
           }))
       : [];
 
+  // Sidebar course switcher honors the Manage Courses Hide/Show control, the
+  // same way the admin home does — a hidden course must not linger here as a
+  // stale entry (it still navigates to an empty tab).
+  const hiddenSlugs = isAdmin ? await getHiddenTrackSlugs() : new Set<string>();
   const adminTracks = isAdmin
-    ? program.tracks.map((t) => ({ slug: t.slug, shortName: t.shortName }))
+    ? program.tracks
+        .filter((t) => !hiddenSlugs.has(t.slug))
+        .map((t) => ({ slug: t.slug, shortName: t.shortName }))
     : [];
 
   return (
