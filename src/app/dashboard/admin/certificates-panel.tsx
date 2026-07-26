@@ -8,6 +8,7 @@ import {
   issueCertificate,
   issueCertificatesBulk,
   resendCertificateEmail,
+  sendCertificateEmailsBulk,
   revokeCompletion,
   type TrackCompletionRow,
   type CertificateEligibility,
@@ -41,6 +42,10 @@ export function CertificatesPanel({
   const [notice, setNotice] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [eligibility, setEligibility] = useState<CertificateEligibility | null>(null);
+  // Off by default: most issuing now is backfill for courses that already
+  // ended, and an email can't be unsent. Turning it on is one click; undoing a
+  // send to 58 families is impossible.
+  const [sendEmail, setSendEmail] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -73,9 +78,11 @@ export function CertificatesPanel({
     setStudentBusy(studentId, true);
     setNotice(null);
     try {
-      const res = await issueCertificate(studentId, trackSlug, programSlug);
+      const res = await issueCertificate(studentId, trackSlug, programSlug, {
+        skipEmail: !sendEmail,
+      });
       if (!res.success) setNotice(`Could not issue: ${res.error}`);
-      else if (res.success && !res.emailed && !res.alreadyIssued)
+      else if (res.success && sendEmail && !res.emailed && !res.alreadyIssued)
         setNotice("Certificate issued — the email failed, use “Email again”.");
       await refresh();
     } finally {
@@ -87,7 +94,9 @@ export function CertificatesPanel({
     if (unissued.length === 0) return;
     const ok = window.confirm(
       `Issue certificates to ${unissued.length} student${unissued.length === 1 ? "" : "s"}? ` +
-      `Each family gets an email with their certificate link.`,
+      (sendEmail
+        ? "Each family gets an email with their certificate link."
+        : "No emails will be sent — certificates are recorded only."),
     );
     if (!ok) return;
     setBulkRunning(true);
@@ -97,15 +106,47 @@ export function CertificatesPanel({
         unissued.map((s) => s.id),
         trackSlug,
         programSlug,
+        { skipEmail: !sendEmail },
       );
       setNotice(
-        `Issued ${res.issued} · emailed ${res.emailed}` +
+        `Issued ${res.issued}` +
+        (sendEmail ? ` · emailed ${res.emailed}` : " · no emails sent") +
         (res.skipped ? ` · already had one: ${res.skipped}` : "") +
         (res.failed.length ? ` · FAILED: ${res.failed.length} (retry with Issue all)` : ""),
       );
       await refresh();
     } catch (e) {
       setNotice(`Bulk issue failed: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setBulkRunning(false);
+    }
+  }
+
+  // "Issue now, tell people later" — the send half. Goes to everyone holding a
+  // certificate for this course, so it's also the retry when a batch of emails
+  // failed the first time.
+  async function emailAllIssued() {
+    const holders = students.filter((s) => byStudent.has(s.id));
+    if (holders.length === 0) return;
+    const ok = window.confirm(
+      `Email ${holders.length} famil${holders.length === 1 ? "y" : "ies"} their certificate link? ` +
+      `This sends now and can't be undone.`,
+    );
+    if (!ok) return;
+    setBulkRunning(true);
+    setNotice(null);
+    try {
+      const res = await sendCertificateEmailsBulk(
+        holders.map((s) => s.id),
+        trackSlug,
+        programSlug,
+      );
+      setNotice(
+        `Emailed ${res.sent}` +
+        (res.failed.length ? ` · FAILED: ${res.failed.length} (run again to retry)` : ""),
+      );
+    } catch (e) {
+      setNotice(`Bulk email failed: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setBulkRunning(false);
     }
@@ -183,6 +224,16 @@ export function CertificatesPanel({
             <p className="text-xs text-ink-faint">{eligibilityLine}</p>
           )}
         </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="flex items-center gap-1.5 text-xs text-ink-soft">
+            <input
+              type="checkbox"
+              checked={sendEmail}
+              onChange={(e) => setSendEmail(e.target.checked)}
+              className="h-3.5 w-3.5 accent-neutral-900"
+            />
+            Email families
+          </label>
         <button
           onClick={issueAll}
           disabled={bulkRunning || completions === null || unissued.length === 0}
@@ -194,6 +245,17 @@ export function CertificatesPanel({
             <><Award size={13} /> Issue all ({unissued.length})</>
           )}
         </button>
+        {issuedCount > 0 && (
+          <button
+            onClick={emailAllIssued}
+            disabled={bulkRunning}
+            title="Send the certificate email to everyone who already has one"
+            className={buttonClass("secondary", "sm")}
+          >
+            <Mail size={13} /> Email all ({issuedCount})
+          </button>
+        )}
+        </div>
       </div>
 
       {notice && (
