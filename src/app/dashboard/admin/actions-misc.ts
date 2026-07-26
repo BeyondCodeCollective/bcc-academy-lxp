@@ -430,6 +430,11 @@ export async function issueCertificatesBulk(
   studentIds: string[],
   trackSlug: string,
   programSlug: string,
+  // Backfilling a course that finished weeks ago shouldn't surprise 58
+  // families with an email about it. Recording the completion and telling
+  // people about it are separate decisions — an email can't be unsent, so the
+  // caller has to ask for it.
+  opts?: { skipEmail?: boolean },
 ): Promise<{
   issued: number;
   skipped: number;
@@ -443,7 +448,7 @@ export async function issueCertificatesBulk(
   let issued = 0, skipped = 0, emailed = 0;
   const failed: { studentId: string; error: string }[] = [];
   for (const studentId of studentIds) {
-    const res = await issueCertificate(studentId, trackSlug, programSlug);
+    const res = await issueCertificate(studentId, trackSlug, programSlug, opts);
     if (!res.success) {
       failed.push({ studentId, error: res.error ?? "unknown" });
       continue;
@@ -458,6 +463,32 @@ export async function issueCertificatesBulk(
     }
   }
   return { issued, skipped, emailed, failed };
+}
+
+/**
+ * Send the certificate email to a batch of learners who already hold one —
+ * the second half of "issue now, tell people later". Paced like the bulk
+ * issue so the sends don't trip the provider's rate limit.
+ */
+export async function sendCertificateEmailsBulk(
+  studentIds: string[],
+  trackSlug: string,
+  programSlug: string,
+): Promise<{ sent: number; failed: { studentId: string; error: string }[] }> {
+  await requireAdmin();
+
+  let sent = 0;
+  const failed: { studentId: string; error: string }[] = [];
+  for (const studentId of studentIds) {
+    const res = await resendCertificateEmail(studentId, trackSlug, programSlug);
+    if (res.success) {
+      sent++;
+      await sleepMs(CERT_EMAIL_PACE_MS);
+    } else {
+      failed.push({ studentId, error: res.error ?? "unknown" });
+    }
+  }
+  return { sent, failed };
 }
 
 /** Explicit re-send of the certificate email (e.g. it bounced or was lost). */
