@@ -40,11 +40,18 @@ export const catalystConfig: ProgramConfig = {
         "Help us understand your background and experience so we can better support you.",
       required: true,
       skipForPrograms: ["forte"],
-      // Event/workshop courses land registrants on a holding page, not a cohort
-      // pre-survey. Game On registrants skip this. comptia-security learners take
-      // the pre-survey as an item inside their acceptance checklist, so it must
-      // not force-redirect them away from that checklist on login.
-      skipForTracks: ["game-on", "comptia-security", "tech-and-ai-hangout", "entrepreneurship-101"],
+      // This is Beyond Code Centers' AI Fundamentals survey, surfaced here
+      // because Catalyst aggregates that program's courses. Naming the program
+      // it belongs to is the whole rule: the old skip list named four unrelated
+      // courses and had to be extended for every new one — it missed MASS, so a
+      // MASS Wraparound learner under Beyond the Game was served an "AI
+      // Fundamentals" pre-survey and answered it.
+      appliesToPrograms: ["beyond-code-centers"],
+      // comptia-security learners take the pre-survey as an item inside their
+      // acceptance checklist, so it must not force-redirect them away from that
+      // checklist on login. (Catalyst-home, so the allowlist already excludes
+      // it — kept explicit because the reason is a different one.)
+      skipForTracks: ["comptia-security"],
       organization: "Beyond Code Centers",
     },
     {
@@ -53,9 +60,10 @@ export const catalystConfig: ProgramConfig = {
       description:
         "You made it — share how the program landed and where you're headed next. Takes about 5 minutes.",
       required: false,
-      // Same opt-outs as the pre-survey: these cohorts aren't AI Fundamentals,
-      // so neither their students nor their instructors should see it.
-      skipForTracks: ["game-on", "comptia-security", "tech-and-ai-hangout", "entrepreneurship-101"],
+      // Same targeting as the pre-survey: it's an AI Fundamentals survey, so it
+      // goes to AI Fundamentals learners — not to whoever hasn't been added to
+      // an exclusion list yet.
+      appliesToPrograms: ["beyond-code-centers"],
       organization: "Beyond Code Centers",
     },
   ],

@@ -28,7 +28,7 @@ import { MyProgressCard, type MyProgressCardProps } from "@/components/my-progre
 import { AnnouncementBanner } from "@/components/announcement-banner";
 import { getLearnerProgress } from "@/lib/learner-progress";
 import { PageHeader } from "@/components/page-header";
-import { BCC_INTAKE_SURVEY_ID, surveySkippedForTracks } from "@/lib/surveys/platform";
+import { BCC_INTAKE_SURVEY_ID, surveySkippedForTracks, surveyAppliesToPrograms } from "@/lib/surveys/platform";
 import { isSurveyEnabledForLearner } from "@/lib/surveys/features";
 import { isStaffEmail } from "@/lib/auth/admins";
 import { completePendingSetup } from "@/lib/auth/deferred-setup";
@@ -277,10 +277,20 @@ async function DashboardContent({
           // on the Catalyst dashboard (wrong cookie, previous Catalyst
           // enrollment, routing race) still has "forte" in the set and the
           // skipForPrograms: ["forte"] check fires correctly.
+          // getHomeProgramForTrack only knows TS-config courses, so a
+          // builder-created course resolved to nothing — which an allowlist
+          // reads as "not their program" and would quietly withhold a survey
+          // they should get. resolveHomeProgramSlug covers both kinds.
           const enrolledHomePrograms = new Set(
-            enrolledTrackSlugs
-              .map((slug) => getHomeProgramForTrack(slug)?.slug)
-              .filter((s): s is string => !!s),
+            (
+              await Promise.all(
+                enrolledTrackSlugs.map(
+                  async (slug) =>
+                    getHomeProgramForTrack(slug)?.slug ??
+                    (await resolveHomeProgramSlug(slug)),
+                ),
+              )
+            ).filter((s): s is string => !!s),
           );
 
           // Allowlist tracks too: a just-registered learner's enrollment may not
@@ -308,6 +318,9 @@ async function DashboardContent({
           pendingSurveys = program.surveys
             .filter((s) => {
               if (!s.required || completedTypes.has(s.id)) return false;
+              // Allowlist first: a survey that names its programs is only ever
+              // for those learners, whatever the skip lists say.
+              if (!surveyAppliesToPrograms(s.appliesToPrograms, enrolledHomePrograms)) return false;
               if (s.skipForPrograms?.some((p) => enrolledHomePrograms.has(p))) return false;
               if (surveySkippedForTracks(s.skipForTracks, surveyTrackSlugs)) return false;
               return true;

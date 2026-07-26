@@ -285,6 +285,20 @@ export type SurveyConfig = {
   /** Program slugs whose students should skip this survey even when they
    *  resolve to this program's dashboard (e.g. forte students on Catalyst) */
   skipForPrograms?: string[];
+  /**
+   * Home program slugs this survey is FOR. When set, only learners whose
+   * courses belong to one of these programs are offered it — an allowlist.
+   *
+   * This exists because the opt-out model below defaults to "everyone", so
+   * every new course silently inherits every survey unless somebody remembers
+   * to exclude it. That's how a MASS Wraparound learner under Beyond the Game
+   * was served Catalyst's "AI Fundamentals — Pre-Program Survey": the skip list
+   * named four unrelated courses and simply hadn't been updated for MASS.
+   *
+   * Prefer this over skipForTracks for any survey that belongs to one program.
+   * Adding a course can then never leak a survey it has nothing to do with.
+   */
+  appliesToPrograms?: string[];
   /** Track slugs that opt OUT of this survey. A learner skips the survey when
    *  every course they're enrolled in is on this list — e.g. an event/workshop
    *  course (Game On) whose registrants land on a holding page, not a cohort

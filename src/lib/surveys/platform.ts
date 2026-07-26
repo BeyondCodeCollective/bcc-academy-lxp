@@ -26,6 +26,23 @@ export function surveySkippedForTracks(
   return enrolledTrackSlugs.every((t) => skipForTracks.includes(t));
 }
 
+/**
+ * Allowlist counterpart to surveySkippedForTracks: is this survey meant for a
+ * learner in these programs at all?
+ *
+ * No allowlist = the old opt-out behaviour (applies to everyone, minus skips).
+ * An allowlist with no matching home program = not this learner's survey, which
+ * is the safe default a denylist can't give you.
+ */
+export function surveyAppliesToPrograms(
+  appliesToPrograms: string[] | undefined,
+  enrolledHomeProgramSlugs: Iterable<string>,
+): boolean {
+  if (!appliesToPrograms?.length) return true;
+  const homes = new Set(enrolledHomeProgramSlugs);
+  return appliesToPrograms.some((p) => homes.has(p));
+}
+
 // The BCC Learner Intake is OPT-IN, toggled per program/track via
 // program_features/track_features.survey_enabled (admin Features page) — see
 // isSurveyEnabledForLearner in src/lib/surveys/features.ts. Off by default, so
