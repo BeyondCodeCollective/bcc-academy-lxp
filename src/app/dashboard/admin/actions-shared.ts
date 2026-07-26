@@ -6,6 +6,12 @@ import { getHomeProgramForTrack } from "@/lib/programs";
 import type { Capability } from "@/lib/roles";
 import { isMasterEmail } from "@/lib/auth/admins";
 import { isPreviewingAsStudent } from "@/lib/auth/preview-mode";
+import {
+  getProgramGrants,
+  allowedProgramIds,
+  allowedTrackSlugs,
+  type ProgramGrant,
+} from "@/lib/auth/program-access";
 
 export async function requireCapability(capability: Capability) {
   const supabase = await createClient();
@@ -32,7 +38,10 @@ export async function requireCapability(capability: Capability) {
   if (await isPreviewingAsStudent(role)) {
     throw new Error("Exit student preview to make changes.");
   }
-  return { svc, userId: user.id, role, programId: student?.program_id ?? null, isMaster };
+  // Cross-program grants (see lib/auth/program-access). Fetched here so every
+  // downstream boundary check below sees the same picture.
+  const grants = await getProgramGrants(user.id);
+  return { svc, userId: user.id, role, programId: student?.program_id ?? null, isMaster, grants };
 }
 
 // Shorthand aliases used by domain files.
@@ -97,7 +106,19 @@ export async function programIdFromSlug(
 }
 
 // Authorization context returned by requireCapability/requireAdmin/requireManager.
-type ActorContext = { role: string; programId: string | null; isMaster?: boolean };
+type ActorContext = {
+  role: string;
+  programId: string | null;
+  isMaster?: boolean;
+  // Cross-program grants. Absent on hand-built contexts (older call sites) —
+  // treated as "no grants", i.e. the old home-program-only behaviour.
+  grants?: ProgramGrant[];
+};
+
+// The programs an actor may act in: their home stamp plus every grant.
+function actorProgramIds(actor: ActorContext): string[] {
+  return allowedProgramIds(actor.programId ?? null, actor.grants ?? []);
+}
 
 // Resolves a client-supplied programSlug to its UUID AND enforces that the actor
 // is allowed to act on it. Capability checks (requireAdmin etc.) only prove the
@@ -115,7 +136,7 @@ export async function resolveProgramForActor(
   // super_admins (switch_programs) and the master owner legitimately operate
   // across programs.
   if (canSwitchPrograms(actor.role) || actor.isMaster) return targetId;
-  if (!actor.programId || targetId !== actor.programId) {
+  if (!actorProgramIds(actor).includes(targetId)) {
     throw new Error("Not authorized for this program");
   }
   return targetId;
@@ -134,7 +155,7 @@ export async function assertStudentInActorProgram(
     .select("program_id")
     .eq("id", studentId)
     .maybeSingle<{ program_id: string | null }>();
-  if (!data || !actor.programId || data.program_id !== actor.programId) {
+  if (!data?.program_id || !actorProgramIds(actor).includes(data.program_id)) {
     throw new Error("Not authorized for this student");
   }
 }
@@ -148,11 +169,21 @@ export async function assertTrackInActorProgram(
   trackSlug: string,
 ): Promise<void> {
   if (canSwitchPrograms(actor.role) || actor.isMaster) return;
-  if (!actor.programId) throw new Error("Not authorized for this track");
+  const allowed = actorProgramIds(actor);
+  if (allowed.length === 0) throw new Error("Not authorized for this track");
+  // A track-scoped grant (e.g. "Catalyst, but only Homes for the Summer")
+  // narrows further: holding the program is not enough if the grant named a
+  // different course.
+  const assertTrackAllowedIn = (programId: string) => {
+    if (!allowed.includes(programId)) throw new Error("Not authorized for this track");
+    const slugs = allowedTrackSlugs(actor.programId ?? null, actor.grants ?? [], programId);
+    if (slugs && !slugs.includes(trackSlug)) {
+      throw new Error("Not authorized for this track");
+    }
+  };
   const homeSlug = getHomeProgramForTrack(trackSlug)?.slug;
   if (homeSlug) {
-    const targetId = await programIdFromSlug(svc, homeSlug);
-    if (targetId !== actor.programId) throw new Error("Not authorized for this track");
+    assertTrackAllowedIn(await programIdFromSlug(svc, homeSlug));
     return;
   }
   const { data } = await svc
@@ -160,7 +191,6 @@ export async function assertTrackInActorProgram(
     .select("program_id")
     .eq("track_slug", trackSlug)
     .maybeSingle<{ program_id: string | null }>();
-  if (!data || data.program_id !== actor.programId) {
-    throw new Error("Not authorized for this track");
-  }
+  if (!data?.program_id) throw new Error("Not authorized for this track");
+  assertTrackAllowedIn(data.program_id);
 }

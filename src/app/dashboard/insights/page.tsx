@@ -251,7 +251,7 @@ export default async function InsightsPage() {
           href="/dashboard/admin?tab=insights"
           className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-soft transition-colors hover:text-ink"
         >
-          Insights
+          Surveys
           <ArrowRight size={11} weight="bold" />
         </Link>
       </header>

@@ -8,6 +8,7 @@ import type { StudentTrackRow, SurveyStatsRow, InstructorTrackRow, PublicSurveyS
 import { getPublicSurveyStats, getPublicSurveyCountsByType } from "./actions";
 import { canAccessAdminPanel, canManageStudents, canSwitchPrograms, canViewInsights, assignableRoles } from "@/lib/roles";
 import { isMasterEmail } from "@/lib/auth/admins";
+import { getProgramGrants, allowedProgramIds, allowedTrackSlugs } from "@/lib/auth/program-access";
 import { PLATFORM_AUTH_SURVEYS, PLATFORM_PUBLIC_SURVEYS } from "@/lib/surveys/platform";
 import { getHomeProgramForTrack } from "@/lib/programs";
 import { getHiddenTrackSlugs } from "@/lib/programs/hidden";
@@ -83,6 +84,10 @@ export default async function AdminPage({
   let actorId: string | null = null;
   let actorEmail: string | null = null;
   let myInstructorTracks: string[] = [];
+  // Track narrowing from a course-scoped cross-program grant (e.g. "Catalyst,
+  // but only Homes for the Summer"). null = whole program. See
+  // lib/auth/program-access.
+  let grantTrackScope: string[] | null = null;
   let publicSurveyStats: PublicSurveyStatsRow[] = [];
   let lunchLearnRecordings: LunchLearnRow[] = [];
   let insightsData: InsightsData | null = null;
@@ -125,6 +130,30 @@ export default async function AdminPage({
     const programId = programRows?.find((p) => p.slug === program.slug)?.id;
 
     if (!canAccessAdminPanel(userRole)) redirect("/dashboard");
+
+    // Program boundary for non-super-admins. Holding an admin/instructor role
+    // proves you run SOME program — it never proved you run THIS one, so
+    // reaching another program's admin surface (its domain, a switcher cookie)
+    // showed you its roster. Access = your home program plus your grants.
+    if (!canSwitchPrograms(userRole) && !isMasterEmail(actorEmail) && programId) {
+      const [grants, homeRow] = await Promise.all([
+        getProgramGrants(userId),
+        svc
+          .from("students")
+          .select("program_id")
+          .eq("id", userId)
+          .maybeSingle<{ program_id: string | null }>(),
+      ]);
+      const homeProgramId = homeRow.data?.program_id ?? null;
+      const allowed = allowedProgramIds(homeProgramId, grants);
+      // Only enforce once we actually know where this person belongs — an
+      // account with neither a program stamp nor a grant keeps the old
+      // behaviour rather than being locked out of the panel.
+      if (allowed.length > 0 && !allowed.includes(programId)) {
+        redirect("/dashboard");
+      }
+      grantTrackScope = allowedTrackSlugs(homeProgramId, grants, programId);
+    }
 
     // Survey Insights is open to any admin, but program admins see only their
     // own program's data (scoped server-side in the actions below); super-admins
@@ -603,16 +632,36 @@ export default async function AdminPage({
   const hiddenSlugs = await getHiddenTrackSlugs();
   const visibleTracks = ownTracks.filter((t) => !hiddenSlugs.has(t.slug));
 
+  // A course-scoped grant confines someone to the named courses inside a
+  // program they don't otherwise belong to — the same narrowing instructors
+  // get from their assignments, just sourced from the grant.
+  const grantScopedTracks = grantTrackScope
+    ? visibleTracks.filter((t) => grantTrackScope.includes(t.slug))
+    : visibleTracks;
+
   // Instructors only see their assigned tracks
   const tracks = userRole === "instructor" && myInstructorTracks.length > 0
-    ? visibleTracks.filter((t) => myInstructorTracks.includes(t.slug))
-    : visibleTracks;
+    ? grantScopedTracks.filter((t) => myInstructorTracks.includes(t.slug))
+    : grantScopedTracks;
 
   // Instructors see only the PEOPLE in their own courses, not the whole
   // program roster. Without this, the People and Attendance tabs listed every
   // student in the program (tracks were scoped above, students weren't).
   // Enrollments are trimmed to the same tracks so nothing else re-derives the
   // full picture from them.
+  // Same for a course-scoped grant: courses were narrowed above, so narrow the
+  // people and enrollments too or the roster still lists the whole program.
+  if (grantTrackScope) {
+    const scope = new Set(grantTrackScope);
+    const visibleIds = new Set(
+      studentTracks.filter((e) => scope.has(e.track_slug)).map((e) => e.student_id),
+    );
+    if (actorId) visibleIds.add(actorId);
+    allStudents = allStudents.filter((s) => visibleIds.has(s.id));
+    studentTracks = studentTracks.filter((e) => scope.has(e.track_slug));
+    instructorTracks = instructorTracks.filter((e) => scope.has(e.track_slug));
+  }
+
   if (userRole === "instructor" && myInstructorTracks.length > 0) {
     const myTrackSet = new Set(myInstructorTracks);
     const visibleIds = new Set(
