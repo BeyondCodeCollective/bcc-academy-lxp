@@ -216,12 +216,23 @@ export function InsightsDashboard({ sections, programs }: Props) {
               </label>
             )}
           </div>
-          <p className="text-right text-3xl font-bold tabular-nums leading-none text-ink sm:text-4xl">
-            {scopedCount.toLocaleString()}
-            <span className={`mt-1.5 block ${microLabel}`}>
-              Responses
-            </span>
-          </p>
+          {/* The count is the most-clicked-looking thing on the card; make it
+             actually go where the reader expects — the responses. */}
+          <Link
+            href={
+              activeId
+                ? `/dashboard/admin/surveys/${encodeURIComponent(activeId)}?returnTo=${encodeURIComponent("/dashboard/admin?tab=insights")}&returnLabel=${encodeURIComponent("Insights")}`
+                : "/dashboard/admin/surveys"
+            }
+            className="text-right transition-colors hover:text-primary"
+          >
+            <p className="text-3xl font-bold tabular-nums leading-none text-ink sm:text-4xl">
+              {scopedCount.toLocaleString()}
+              <span className={`mt-1.5 block ${microLabel}`}>
+                Responses
+              </span>
+            </p>
+          </Link>
         </div>
 
         {/* Responses over time — value on each bar, date under it. Granularity
@@ -285,13 +296,26 @@ export function InsightsDashboard({ sections, programs }: Props) {
           >
             Export PDF
           </a>
-          {isAgreement && (
+          {isAgreement ? (
             <Link
               href="/dashboard/admin/agreements"
               className="ml-auto text-sm font-medium text-primary hover:underline"
             >
               Who has signed &rarr;
             </Link>
+          ) : (
+            activeId &&
+            activeRow?.hasSchema && (
+              // The question-by-question detail existed only as a PDF download,
+              // so the page dead-ended: you could see that 16 people answered
+              // and never what they said without leaving the app.
+              <Link
+                href={`/dashboard/admin/surveys/${encodeURIComponent(activeId)}?returnTo=${encodeURIComponent("/dashboard/admin?tab=insights")}&returnLabel=${encodeURIComponent("Insights")}`}
+                className="ml-auto text-sm font-medium text-primary hover:underline"
+              >
+                See the responses &rarr;
+              </Link>
+            )
           )}
         </div>
       </div>

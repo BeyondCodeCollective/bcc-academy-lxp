@@ -737,23 +737,34 @@ export async function getDashboardSurveyStats(
 export async function getDashboardSurveyResponses(
   surveyType: string,
 ): Promise<BCCSurveyResponse[]> {
-  const { svc, userId } = await requireSuperAdmin();
+  // Was super-admin only, which made the whole per-survey detail view
+  // unreachable for the people who run a program — they could see a response
+  // COUNT on Insights and never the responses. Program admins get it scoped to
+  // their own program by resolveInsightsScope, server-side, exactly like the
+  // aggregate view.
+  const { svc, userId, role } = await requireCapability("view_insights");
+  const scopeIds = await resolveInsightsScope(role);
+
+  let publicQuery = svc
+    .from("public_survey_responses")
+    .select("email, full_name, responses, completed_at, program_id, programs(slug, name)")
+    .eq("survey_type", surveyType)
+    .is("withdrawn_at", null);
+  let authQuery = svc
+    .from("survey_responses")
+    .select(
+      "responses, completed_at, program_id, programs(slug, name), students(first_name, last_name, email, zip, date_of_birth)",
+    )
+    .eq("survey_type", surveyType)
+    .not("completed_at", "is", null);
+  if (scopeIds) {
+    publicQuery = publicQuery.in("program_id", scopeIds);
+    authQuery = authQuery.in("program_id", scopeIds);
+  }
 
   const [publicRes, authRes] = await Promise.all([
-    svc
-      .from("public_survey_responses")
-      .select("email, full_name, responses, completed_at, programs(slug, name)")
-      .eq("survey_type", surveyType)
-      .is("withdrawn_at", null)
-      .order("completed_at", { ascending: false }),
-    svc
-      .from("survey_responses")
-      .select(
-        "responses, completed_at, program_id, programs(slug, name), students(first_name, last_name, email, zip, date_of_birth)",
-      )
-      .eq("survey_type", surveyType)
-      .not("completed_at", "is", null)
-      .order("completed_at", { ascending: false }),
+    publicQuery.order("completed_at", { ascending: false }),
+    authQuery.order("completed_at", { ascending: false }),
   ]);
 
   logAdminAccess(svc, {

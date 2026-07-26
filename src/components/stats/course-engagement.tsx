@@ -9,6 +9,8 @@ import { StreakHeatmap, type ProgressDay } from "@/components/stats/streak-heatm
 
 export type CourseEngagementProps = {
   courseName: string;
+  /** This course's slug, so every tile can link to the list behind it. */
+  trackSlug?: string;
   totalLearners: number;
   /** Had any activity in the last 7 days. */
   activeThisWeek: number;
@@ -80,6 +82,7 @@ const GRID_COLS: Record<number, string> = {
 };
 
 export function CourseEngagement({
+  trackSlug,
   totalLearners,
   activeThisWeek,
   lessonsWatched,
@@ -92,6 +95,14 @@ export function CourseEngagement({
   upcoming = false,
   startLabel,
 }: CourseEngagementProps) {
+  // A tile that states a number and can't show you who is a dead end. Roster
+  // for people-shaped figures, attendance grid for turnout, submissions for
+  // work. No link at all when we don't know the course (embedded previews).
+  const base = trackSlug ? `/dashboard/admin?tab=${encodeURIComponent(trackSlug)}` : null;
+  const rosterHref = base ? `${base}&view=students` : undefined;
+  const attendanceHref = base ? `${base}&view=students&sub=attendance` : undefined;
+  const workHref = base ? `${base}&view=students&sub=work` : undefined;
+
   const activePct = totalLearners > 0 ? Math.round((activeThisWeek / totalLearners) * 100) : 0;
   const unit = attendance?.unitLabel ?? "Week";
   // Mean turnout across held sessions — the one number that answers "how well
@@ -168,6 +179,7 @@ export function CourseEngagement({
           value={`${activeThisWeek}/${totalLearners}`}
           label="Active this week"
           hint={`${activePct}% of learners`}
+          href={rosterHref}
         />
         {attendance && (
           <StatCard
@@ -176,18 +188,20 @@ export function CourseEngagement({
             hint={`Attended all ${attendance.sessionsHeld} ${
               attendance.sessionsHeld === 1 ? unit.toLowerCase() : `${unit.toLowerCase()}s`
             }`}
+            href={attendanceHref}
           />
         )}
         {showLessonsWatched && (
-          <StatCard value={lessonsWatched.toLocaleString()} label="Lessons watched" />
+          <StatCard value={lessonsWatched.toLocaleString()} label="Lessons watched" href={rosterHref} />
         )}
         {showSubmissions && (
-          <StatCard value={submissions.toLocaleString()} label="Submissions" />
+          <StatCard value={submissions.toLocaleString()} label="Submissions" href={workHref} />
         )}
         <StatCard
           value={status.bounced + status.neverLoggedIn}
           label="Not started"
           hint="Signed up, no activity"
+          href={rosterHref}
         />
       </div>
 
@@ -243,9 +257,15 @@ export function CourseEngagement({
         <div className="panel p-5 sm:p-6">
           <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
             <p className="text-sm font-semibold text-ink">Who&apos;s missing class</p>
-            <p className="text-xs text-ink-faint">
-              {attendance.absentees.length} of {totalLearners} missed at least one
-            </p>
+            {attendanceHref ? (
+              <a href={attendanceHref} className="text-xs text-ink-faint underline-offset-2 hover:text-primary hover:underline">
+                {attendance.absentees.length} of {totalLearners} missed at least one →
+              </a>
+            ) : (
+              <p className="text-xs text-ink-faint">
+                {attendance.absentees.length} of {totalLearners} missed at least one
+              </p>
+            )}
           </div>
           <ul className="divide-y divide-rule/60">
             {attendance.absentees.slice(0, ABSENTEE_LIMIT).map((a) => (

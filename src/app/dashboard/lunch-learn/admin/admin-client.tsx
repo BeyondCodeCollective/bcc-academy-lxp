@@ -98,7 +98,7 @@ export function LunchLearnAdmin({ recordings, embedded }: { recordings: Recordin
             <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-ink-faint mb-3">
               Admin
             </p>
-            <h1 className="text-3xl font-semibold text-ink tracking-[-0.02em]">
+            <h1 className="text-2xl font-semibold text-ink tracking-[-0.02em]">
               Manage recordings
             </h1>
             <p className="mt-2 text-[14px] text-ink-soft">

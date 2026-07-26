@@ -45,10 +45,16 @@ function TrendsRow() {
 
   // "Lessons watched" is intentionally omitted — we run live sessions, not
   // pre-recorded video, so a watched-lesson count is always ~0 and misleading.
-  const cards: { key: keyof typeof METRIC_DEFS; label: string; d: Delta | null }[] = [
-    { key: "activeMembers", label: "Active learners", d: trends?.activeLearners ?? null },
-    { key: "activeStudents", label: "Sessions attended", d: trends?.attended ?? null },
-    { key: "activeStudents", label: "Work submitted", d: trends?.submitted ?? null },
+  // Each headline number opens the surface that lists the people behind it.
+  const cards: {
+    key: keyof typeof METRIC_DEFS;
+    label: string;
+    d: Delta | null;
+    href: string;
+  }[] = [
+    { key: "activeMembers", label: "Active learners", d: trends?.activeLearners ?? null, href: "/dashboard/admin?tab=students" },
+    { key: "activeStudents", label: "Sessions attended", d: trends?.attended ?? null, href: "/dashboard/admin?tab=attendance" },
+    { key: "activeStudents", label: "Work submitted", d: trends?.submitted ?? null, href: "/dashboard/admin?tab=student-work" },
   ];
 
   return (
@@ -80,6 +86,7 @@ function TrendsRow() {
             label={c.label}
             info={METRIC_DEFS[c.key]}
             trend={c.d ? trendFor(c.d) : undefined}
+            href={c.href}
           />
         ))}
       </div>

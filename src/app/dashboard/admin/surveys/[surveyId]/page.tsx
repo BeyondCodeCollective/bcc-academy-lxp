@@ -1,7 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient, isSupabaseConfigured, createServiceClient } from "@/lib/supabase/server";
-import { canSwitchPrograms } from "@/lib/roles";
+import { canViewInsights } from "@/lib/roles";
 import { getDashboardSurveyResponses, getTrackSurveyResponses } from "../../actions";
 import { getSurveySchema } from "@/lib/surveys/schemas";
 import { PLATFORM_AUTH_SURVEYS, PLATFORM_PUBLIC_SURVEYS } from "@/lib/surveys/platform";
@@ -44,7 +44,10 @@ export default async function SurveyDashboardPage({
     .select("role")
     .eq("id", session.user.id)
     .single();
-  if (!canSwitchPrograms(student?.role ?? "student")) redirect("/dashboard/admin");
+  // Admin and up: the responses themselves are scoped to the actor's program
+  // server-side (resolveInsightsScope), so a program admin sees their own
+  // program's answers and nobody else's.
+  if (!canViewInsights(student?.role ?? "student")) redirect("/dashboard/admin");
 
   const survey = findSurveyConfig(surveyId);
   const schema = getSurveySchema(surveyId);

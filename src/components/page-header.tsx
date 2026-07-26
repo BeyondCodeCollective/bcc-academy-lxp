@@ -55,7 +55,7 @@ export function PageHeader({
             </div>
           )}
           <h1
-            className={`text-3xl font-bold tracking-tight text-ink sm:text-4xl${hasEyebrow ? " mt-1.5" : ""}`}
+            className={`text-2xl font-bold tracking-tight text-ink${hasEyebrow ? " mt-1.5" : ""}`}
           >
             {title}
           </h1>

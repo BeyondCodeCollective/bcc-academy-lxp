@@ -130,12 +130,36 @@ in designs or history are historical.
 
 **Scale:**
 
+Two scales, because a marketing page and a dashboard are doing different
+jobs. A landing page has one thing to say and should say it loudly; a
+dashboard is read for an hour at a time and a 36px section header just pushes
+the data off the screen.
+
+**Marketing / landing / holding pages:**
+
 | Role | Size | Weight | Family |
 |---|---|---|---|
 | Display / Hero | 48–72px | Bold (700) | Archivo |
 | H1 | 40–48px | Bold (700) | Archivo |
 | H2 | 28–36px | Semi-bold (600) | Archivo |
 | H3 | 20–24px | Semi-bold (600) | Archivo |
+
+**Product surfaces (dashboard + admin) — July 2026 decision.** Headings step
+down; nothing in the app is larger than 24px:
+
+| Role | Size | Notes |
+|---|---|---|
+| Page title (h1) | 24px (`text-2xl`) | `PageHeader` — one per page |
+| Section heading (h2) | 20px (`text-xl`) | `SectionHeadline`, panel headers |
+| Everything below | per the table below | unchanged |
+
+Stat VALUES are exempt — a `StatCard` number, a donut centre, or a countdown
+is data, not a heading, and shrinking those defeats the point of the tile.
+
+**Shared scale:**
+
+| Role | Size | Weight | Family |
+|---|---|---|---|
 | Body | 16px | Regular (400) | SF / system stack |
 | Label / Small | 14px | Medium (500) | SF / system stack |
 | Caption | 12px | Medium (500) | SF / system stack |

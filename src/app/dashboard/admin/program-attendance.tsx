@@ -127,31 +127,47 @@ export function ProgramAttendanceOverview({ students, tracks, enrollments }: Pro
           { label: "Need a check-in", align: "right" },
         ]}
       >
-        {rows.map(({ track, students: count, avg, atRisk }) => (
+        {rows.map(({ track, students: count, avg, atRisk }) => {
+          // Every number here is a question with an answer one click away.
+          // Leaving them as dead text makes the reader export a CSV to find
+          // out who the 9 are.
+          const base = `/dashboard/admin?tab=${encodeURIComponent(track.slug)}`;
+          const roster = `${base}&view=students`;
+          const attendance = `${base}&view=students&sub=attendance`;
+          return (
           <tr key={track.slug} className="transition-colors hover:bg-paper-tint-soft">
             <td className="px-4 py-3">
               <Link
-                href={`/dashboard/admin?tab=${encodeURIComponent(track.slug)}&view=analytics`}
+                href={`${base}&view=analytics`}
                 className="text-sm font-medium text-ink underline-offset-2 hover:text-primary hover:underline"
               >
                 {track.name}
               </Link>
             </td>
-            <td className="px-4 py-3 text-right"><Num value={count} /></td>
+            <td className="px-4 py-3 text-right">
+              <Link href={roster} className="inline-block underline-offset-2 hover:text-primary hover:underline" title={`Open the ${track.name} roster`}>
+                <Num value={count} />
+              </Link>
+            </td>
             <td className="px-4 py-3 text-right tabular-nums text-ink">
-              {avg !== null ? `${avg}%` : "—"}
+              <Link href={attendance} className="inline-block underline-offset-2 hover:text-primary hover:underline" title="Week-by-week turnout and check-ins">
+                {avg !== null ? `${avg}%` : "—"}
+              </Link>
             </td>
             <td className="px-4 py-3 text-right">
-              {atRisk > 0 ? (
-                <StatusChip tone={atRisk >= Math.max(2, Math.ceil(count / 2)) ? "danger" : "warning"}>
-                  {atRisk}
-                </StatusChip>
-              ) : (
-                <Num value={0} />
-              )}
+              <Link href={attendance} className="inline-block" title={atRisk > 0 ? `${atRisk} learner${atRisk === 1 ? "" : "s"} to follow up with` : "Nobody needs a check-in"}>
+                {atRisk > 0 ? (
+                  <StatusChip tone={atRisk >= Math.max(2, Math.ceil(count / 2)) ? "danger" : "warning"}>
+                    {atRisk}
+                  </StatusChip>
+                ) : (
+                  <Num value={0} />
+                )}
+              </Link>
             </td>
           </tr>
-        ))}
+          );
+        })}
       </DataTable>
     </div>
   );

@@ -99,7 +99,7 @@ export default async function TrackWeekPage({
             <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-ink-faint mb-2">
               {unitName}
             </p>
-            <h1 className="text-2xl font-bold tracking-tight text-ink sm:text-3xl">
+            <h1 className="text-2xl font-bold tracking-tight text-ink">
               {weekContent.title}
             </h1>
             <p className="mt-4 text-base text-ink-soft">
@@ -185,7 +185,7 @@ export default async function TrackWeekPage({
             <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-ink-faint mb-2">
               {unitName}
             </p>
-            <h1 className="text-2xl font-bold tracking-tight text-ink sm:text-3xl">
+            <h1 className="text-2xl font-bold tracking-tight text-ink">
               {weekContent.title}
             </h1>
             <p className="mt-4 text-base text-ink-soft">

@@ -32,10 +32,14 @@ export function CoursesDashboard({ data }: { data: CoursesAnalytics }) {
   return (
     <div className="space-y-8">
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {/* Each figure is a question; the link is its answer. Enrollments →
+           the people. Completions → the courses where certificates get
+           issued, since completion is only ever recorded by issuing one. */}
         <StatCard
           value={data.totalEnrolled.toLocaleString()}
           label="Course enrollments"
           info={METRIC_DEFS.courseEnrollments}
+          href="/dashboard/admin?tab=students"
         />
         <StatCard
           value={data.totalCompleted.toLocaleString()}
@@ -50,11 +54,13 @@ export function CoursesDashboard({ data }: { data: CoursesAnalytics }) {
               ? "None recorded — completion is logged when you issue certificates"
               : undefined
           }
+          href="/dashboard/admin"
         />
         <StatCard
           value={`${data.overallCompletionRate}%`}
           label="Completion rate"
           info={METRIC_DEFS.completionRate}
+          href="/dashboard/admin"
         />
       </section>
 

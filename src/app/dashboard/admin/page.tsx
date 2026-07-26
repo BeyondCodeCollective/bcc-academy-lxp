@@ -45,9 +45,12 @@ type LunchLearnRow = {
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; view?: string }>;
+  searchParams: Promise<{ tab?: string; view?: string; sub?: string }>;
 }) {
-  const { tab: initialTab, view: initialTrackView } = await searchParams;
+  // `sub` makes the Students sub-view (roster / attendance / progress / work /
+  // certificates) addressable, so an analytics number can link straight to the
+  // list behind it instead of dead-ending on a figure.
+  const { tab: initialTab, view: initialTrackView, sub: initialStudentSubView } = await searchParams;
   const [program, ctx] = await Promise.all([
     getProgram(),
     isSupabaseConfigured() ? getSessionContext() : Promise.resolve(null),
@@ -733,6 +736,7 @@ export default async function AdminPage({
         courseStats={courseStats}
         initialTab={initialTab}
         initialTrackView={initialTrackView}
+        initialStudentSubView={initialStudentSubView}
         lunchLearnRecordings={lunchLearnRecordings}
         insightsData={insightsData}
         outcomesData={outcomesData}

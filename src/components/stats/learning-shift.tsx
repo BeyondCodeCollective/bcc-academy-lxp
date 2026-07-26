@@ -29,12 +29,14 @@ export function LearningShift({ outcomes }: { outcomes: OutcomesData }) {
           What changed
         </p>
         <h2 className="mt-1 text-xl font-bold tracking-tight text-ink">{headline}</h2>
+        {/* One string, not five interpolations across newlines — JSX ate the
+            space and it rendered "3 learnersreporting". */}
         <p className="mt-1 text-sm text-ink-soft">
-          Across {outcomes.statementCount}{" "}
-          {outcomes.statementCount === 1 ? "measure" : "measures"} ·{" "}
-          {outcomes.respondents}{" "}
-          {outcomes.respondents === 1 ? "learner" : "learners"} reporting before
-          &amp; after
+          {`Across ${outcomes.statementCount} ${
+            outcomes.statementCount === 1 ? "measure" : "measures"
+          } · ${outcomes.respondents} ${
+            outcomes.respondents === 1 ? "learner" : "learners"
+          } reporting before & after`}
         </p>
       </div>
 

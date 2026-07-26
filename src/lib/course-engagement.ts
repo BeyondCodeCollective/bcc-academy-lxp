@@ -413,6 +413,7 @@ export async function getCourseEngagement(
 
   return {
     courseName,
+    trackSlug,
     totalLearners: learners.length,
     activeThisWeek: active,
     lessonsWatched,

@@ -83,7 +83,7 @@ export function SurveyDashboard({
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
               Survey Insights
             </p>
-            <h2 className="mt-1 text-3xl font-bold tracking-tight text-ink sm:text-4xl">
+            <h2 className="mt-1 text-2xl font-bold tracking-tight text-ink">
               {surveyTitle}
             </h2>
           </header>
@@ -137,7 +137,7 @@ export function SurveyDashboard({
               Survey Insights
             </p>
           )}
-          <h2 className="text-3xl font-bold text-ink tracking-tight">
+          <h2 className="text-xl font-bold text-ink tracking-tight">
             {surveyTitle}
           </h2>
           <p className="text-sm text-ink-soft mt-2 tabular-nums">
@@ -311,7 +311,7 @@ function ApplicantRosterDashboard({
               Applications
             </p>
           )}
-          <h2 className="text-3xl font-bold text-ink tracking-tight">
+          <h2 className="text-xl font-bold text-ink tracking-tight">
             {surveyTitle}
           </h2>
           <p className="text-sm text-ink-soft mt-2 tabular-nums">
