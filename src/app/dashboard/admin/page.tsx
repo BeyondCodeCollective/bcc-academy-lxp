@@ -121,6 +121,7 @@ export default async function AdminPage({
     const aggregatedSlugs = [program.slug === "marketing" ? "catalyst" : program.slug];
     const programRows = await getCachedProgramIds(aggregatedSlugs);
     const programIds = (programRows ?? []).map((p) => p.id as string);
+    const programTrackSlugs = program.tracks.map((t) => t.slug);
     const programId = programRows?.find((p) => p.slug === program.slug)?.id;
 
     if (!canAccessAdminPanel(userRole)) redirect("/dashboard");
@@ -206,16 +207,20 @@ export default async function AdminPage({
               .in("program_id", programIds)
               .order("created_at", { ascending: true })
           : Promise.resolve({ data: [] as { id: string; name: string; display_name: string | null; track_slug: string | null; start_date: string | null; total_weeks: number | null }[] }),
+        // Enrollment scope = THIS program's track slugs (globally unique), not
+        // program_id — signups on the apex domain stamp Catalyst, and filtering
+        // by program_id blanked standalone program rosters (HS cohort, BCC
+        // Centers) whose enrollments were filed under it.
         needsStudentTracks
           ? isHomeTab
               ? svc
                   .from("student_tracks")
                   .select("track_slug, student_id")
-                  .in("program_id", programIds)
+                  .in("track_slug", programTrackSlugs)
               : svc
                   .from("student_tracks")
                   .select("id, student_id, track_slug, program_id, created_at")
-                  .in("program_id", programIds)
+                  .in("track_slug", programTrackSlugs)
                   .order("created_at")
           : Promise.resolve({ data: [] as StudentTrackRow[] }),
         needsInstructorTracks
@@ -255,13 +260,16 @@ export default async function AdminPage({
         : Promise.resolve([] as PublicSurveyStatsRow[]),
       needsEngagement
         ? Promise.all([
-            svc.from("attendance").select("student_id, track, week_number").in("program_id", programIds),
-            svc.from("submissions").select("student_id, track_slug, week_number").in("program_id", programIds).not("submitted_at", "is", null),
-            svc.from("reflections").select("student_id, track_slug, week_number").in("program_id", programIds).not("submitted_at", "is", null),
+            // Scoped by track slug (globally unique), not program_id stamp —
+            // activity recorded under another program's id (apex-domain flows
+            // stamp Catalyst) still belongs to this program's courses.
+            svc.from("attendance").select("student_id, track, week_number").in("track", programTrackSlugs),
+            svc.from("submissions").select("student_id, track_slug, week_number").in("track_slug", programTrackSlugs).not("submitted_at", "is", null),
+            svc.from("reflections").select("student_id, track_slug, week_number").in("track_slug", programTrackSlugs).not("submitted_at", "is", null),
             // Video is a did-the-work engagement signal (self-paced tracks have
             // no attendance); tutor chat was ACTIVITY, not engagement, so it no
             // longer feeds the score.
-            svc.from("week_progress").select("user_id, track_slug, week_number").in("program_id", programIds).not("video_watched_at", "is", null),
+            svc.from("week_progress").select("user_id, track_slug, week_number").in("track_slug", programTrackSlugs).not("video_watched_at", "is", null),
           ])
         : Promise.resolve(null),
       // Historical alumni (imported from Circle and similar). Only fetched
@@ -434,7 +442,6 @@ export default async function AdminPage({
     // the course Overview agree.
     courseStats = await getCourseRosterStats(
       program.tracks.map((t) => t.slug),
-      programIds,
     ).catch(() => ({}));
 
     // Per-course engagement snapshot for the open course tab — the admin
@@ -443,7 +450,7 @@ export default async function AdminPage({
     if (isTrackTab) {
       const t = program.tracks.find((tk) => tk.slug === effectiveTab);
       if (t) {
-        courseEngagement = await getCourseEngagement(t.name, t.slug, programIds, {
+        courseEngagement = await getCourseEngagement(t.name, t.slug, {
           hasVideoContent: t.weeks.some((w) => !!w.videoUrl),
           submissionsEnabled: t.submissionsEnabled !== false,
           unitLabel: t.unitLabel ?? "Week",

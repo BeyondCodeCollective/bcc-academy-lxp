@@ -90,15 +90,30 @@ export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
   // or get marked present, so counting them as "created an account" tanks the
   // engaged rate and makes a healthy cohort read as mostly-inactive. is_test
   // hides internal QA logins the same way.
-  const { data: students } = await svc
-    .from("students")
-    .select("id, first_name, last_name, email, created_at, last_seen_at, zip, state, date_of_birth")
-    .in("program_id", ids)
-    .eq("role", "student")
-    .eq("is_test", false)
-    // Staff (BGC/BCC employees) are not learners — they only see Lunch & Learns,
-    // so they must never inflate the activation funnel or the per-learner table.
-    .eq("is_staff", false);
+  // Membership = stamped under this program OR enrolled in one of its tracks.
+  // Signups on the apex domain stamp students.program_id = catalyst, so a
+  // program_id-only filter blanked standalone program views (BCC Centers read
+  // all-zero with a full roster). Track slugs are globally unique, so the
+  // enrollment side can't over-include.
+  const { data: enrolledRows } = await svc
+    .from("student_tracks")
+    .select("student_id")
+    .in("track_slug", trackSlugs);
+  const enrolledIds = Array.from(new Set((enrolledRows ?? []).map((r) => r.student_id as string)));
+  const STUDENT_FIELDS = "id, first_name, last_name, email, created_at, last_seen_at, zip, state, date_of_birth";
+  // Staff (BGC/BCC employees) are not learners — they only see Lunch & Learns,
+  // so they must never inflate the activation funnel or the per-learner table.
+  const [byProgram, byEnrollment] = await Promise.all([
+    svc.from("students").select(STUDENT_FIELDS).in("program_id", ids).eq("role", "student").eq("is_test", false).eq("is_staff", false),
+    enrolledIds.length > 0
+      ? svc.from("students").select(STUDENT_FIELDS).in("id", enrolledIds).eq("role", "student").eq("is_test", false).eq("is_staff", false)
+      : Promise.resolve({ data: [] }),
+  ]);
+  const byId = new Map<string, unknown>();
+  for (const row of [...(byProgram.data ?? []), ...(byEnrollment.data ?? [])]) {
+    byId.set((row as { id: string }).id, row);
+  }
+  const students = Array.from(byId.values());
   const studs = (students ?? []) as {
     id: string;
     first_name: string | null;
@@ -124,7 +139,7 @@ export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
       // `attendance` uses `track`, but week_progress/submissions/reflections use
       // `track_slug`. Mixing these up silently returns nothing.
       svc.from("week_progress").select("user_id, track_slug").in("user_id", studentIds).not("video_watched_at", "is", null),
-      svc.from("attendance").select("student_id, track").in("student_id", studentIds).in("program_id", ids),
+      svc.from("attendance").select("student_id, track").in("student_id", studentIds).in("track", trackSlugs),
       svc.from("submissions").select("student_id, track_slug").in("student_id", studentIds),
       // Reflections are a "did the work" signal too — omitting them undercounted
       // engagement and disagreed with the Insights page's definition.
@@ -312,16 +327,28 @@ export async function getEngagementTrends(
   };
   if (ids.length === 0) return base;
 
-  // Learners only, matching getEngagementAnalytics' exclusions so the two
-  // surfaces agree on who counts.
-  const { data: students } = await svc
-    .from("students")
-    .select("id")
-    .in("program_id", ids)
-    .eq("role", "student")
-    .eq("is_test", false)
-    .eq("is_staff", false);
-  const studentIds = ((students ?? []) as { id: string }[]).map((s) => s.id);
+  // Learners only, matching getEngagementAnalytics' membership (stamped under
+  // this program OR enrolled in its tracks) so the two surfaces agree on who
+  // counts.
+  const trackSlugs = program.tracks.map((t) => t.slug);
+  const { data: enrolledRows } = await svc
+    .from("student_tracks")
+    .select("student_id")
+    .in("track_slug", trackSlugs);
+  const enrolledIds = Array.from(new Set((enrolledRows ?? []).map((r) => r.student_id as string)));
+  const [byProgram, byEnrollment] = await Promise.all([
+    svc.from("students").select("id").in("program_id", ids).eq("role", "student").eq("is_test", false).eq("is_staff", false),
+    enrolledIds.length > 0
+      ? svc.from("students").select("id").in("id", enrolledIds).eq("role", "student").eq("is_test", false).eq("is_staff", false)
+      : Promise.resolve({ data: [] }),
+  ]);
+  const studentIds = Array.from(
+    new Set(
+      [...(byProgram.data ?? []), ...(byEnrollment.data ?? [])].map(
+        (r) => (r as { id: string }).id,
+      ),
+    ),
+  );
   if (studentIds.length === 0) return base;
 
   const iso = (d: Date) => d.toISOString();
@@ -341,7 +368,7 @@ export async function getEngagementTrends(
       .from("attendance")
       .select("student_id, checked_in_at")
       .in("student_id", studentIds)
-      .in("program_id", ids)
+      .in("track", trackSlugs)
       .gte("checked_in_at", spanStart)
       .lt("checked_in_at", spanEnd),
     svc
