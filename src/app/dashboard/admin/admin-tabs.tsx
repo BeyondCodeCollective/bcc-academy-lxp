@@ -62,7 +62,7 @@ import type { Student } from "@/lib/types";
 import { isStorageUrl, isUploadedVideo } from "@/lib/storage-utils";
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
 import { iconForTrack } from "@/lib/track-visual";
-import { Clipboard as ClipboardListIcon, Users as UsersIcon, ChartBar as ChartBarIcon, ChartPie as ChartPieIcon, ChartLineUp as ChartLineUpIcon, GraduationCap as GraduationCapIcon } from "@phosphor-icons/react";
+import { Users as UsersIcon, ChartBar as ChartBarIcon, ChartPie as ChartPieIcon, ChartLineUp as ChartLineUpIcon, GraduationCap as GraduationCapIcon } from "@phosphor-icons/react";
 
 const PLATFORM_SURVEY_TITLES: Record<string, string> = {
   "bcc-learner-intake": "BCC Learner Intake",
@@ -98,7 +98,9 @@ function AdminTopTabs({
     // term Canvas uses for its roster tab; the view holds staff too, so
     // "Students" would be inaccurate.)
     { id: "students", label: "People", href: "/dashboard/admin?tab=students", Icon: UsersIcon },
-    { id: "student-work", label: "Student work", href: "/dashboard/admin?tab=student-work", Icon: ClipboardListIcon },
+    // "Student work" is off the top nav for now (user call, 2026-07-26) — a
+    // course's work lives inside the course (Students → Submissions). The
+    // ?tab=student-work URL still renders for anyone who has it bookmarked.
     // A tab is named for what it holds. Instructors get attendance only
     // (insights/engagement are admin capabilities), so calling their tab
     // "Analytics" over-promised and its single segment button read as broken.
