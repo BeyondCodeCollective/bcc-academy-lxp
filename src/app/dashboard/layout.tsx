@@ -457,12 +457,22 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
     lunchLearnRecordings = data ?? [];
   }
 
+  // Hidden (retired) courses are filtered out of BOTH the learner sidebar and
+  // the admin course switcher, so this resolves for everyone — it used to be
+  // fetched admin-only, further down.
+  const hiddenSlugs = await getHiddenTrackSlugs();
+
   // In admin preview mode pass all tracks so the sidebar can show correct
   // weeks for any track page the admin navigates to (filtered by URL in Nav).
   const sidebarTrackSource =
     navVariant === "student-sidebar" && previewingSlug && canShowPreviewToggle
       ? program.tracks
-      : program.tracks.filter((t) => enrolledTrackSlugs.includes(t.slug));
+      : program.tracks.filter(
+          // Retired (hidden) courses drop out of the learner sidebar too — the
+          // Hide control is meant to take a course off the platform, not just
+          // off the admin's view of it.
+          (t) => enrolledTrackSlugs.includes(t.slug) && !hiddenSlugs.has(t.slug),
+        );
 
   // Real per-week titles, resolved session_content.title → WeekConfig.title,
   // so the sidebar shows "AI Fundamentals & Prompt Engineering" rather than a
@@ -499,7 +509,6 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
   // Sidebar course switcher honors the Manage Courses Hide/Show control, the
   // same way the admin home does — a hidden course must not linger here as a
   // stale entry (it still navigates to an empty tab).
-  const hiddenSlugs = isAdmin ? await getHiddenTrackSlugs() : new Set<string>();
   const adminTracks = isAdmin
     ? program.tracks
         .filter((t) => !hiddenSlugs.has(t.slug))

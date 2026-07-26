@@ -94,6 +94,9 @@ export default async function AdminPage({
   let analyticsData: EngagementAnalytics | null = null;
   let coursesData: CoursesAnalytics | null = null;
   let courseEngagement: CourseEngagementProps | null = null;
+  // Per-learner attendance for the open course's roster: sessions held once,
+  // plus each learner's attended count. Null when nobody has checked in.
+  let attendanceRates: { held: number; attended: Record<string, number> } | null = null;
   let courseStats: Record<
     string,
     { total: number; active: number; fullAttendance: number | null; sessionsHeld: number }
@@ -479,6 +482,27 @@ export default async function AdminPage({
     if (isTrackTab) {
       const t = program.tracks.find((tk) => tk.slug === effectiveTab);
       if (t) {
+        // Per-learner attendance for the roster badge. Keyed on week+session,
+        // not week alone — a course meeting twice a week would otherwise read
+        // 100% for someone who only ever comes on Tuesdays. "Held" is derived
+        // from check-ins, since the schedule can't say a session actually ran.
+        const { data: attRows } = await svc
+          .from("attendance")
+          .select("student_id, week_number, session_number")
+          .eq("track", t.slug)
+          .not("checked_in_at", "is", null);
+        const held = new Set(
+          (attRows ?? []).map((r) => `${r.week_number}-${r.session_number}`),
+        ).size;
+        if (held > 0) {
+          const perLearner = new Map<string, Set<string>>();
+          for (const r of attRows ?? []) {
+            if (!perLearner.has(r.student_id)) perLearner.set(r.student_id, new Set());
+            perLearner.get(r.student_id)!.add(`${r.week_number}-${r.session_number}`);
+          }
+          attendanceRates = { held, attended: {} };
+          for (const [id, set] of perLearner) attendanceRates.attended[id] = set.size;
+        }
         courseEngagement = await getCourseEngagement(t.name, t.slug, {
           hasVideoContent: t.weeks.some((w) => !!w.videoUrl),
           submissionsEnabled: t.submissionsEnabled !== false,
@@ -699,6 +723,7 @@ export default async function AdminPage({
         analyticsData={analyticsData}
         coursesData={coursesData}
         courseEngagement={courseEngagement}
+        attendanceRates={attendanceRates}
         pendingPeople={pendingPeople}
         alumniEnrollments={alumniEnrollments}
         unviewedAssessments={unviewedAssessments ?? 0}

@@ -197,11 +197,14 @@ export async function getCourseEngagement(
 
   const { data: studentRows } = await svc
     .from("students")
-    .select("id, role, is_test, last_seen_at")
+    .select("id, first_name, last_name, email, role, is_test, last_seen_at")
     .in("id", enrolledIds);
   // Real learners only — exclude internal QA (is_test) accounts.
   const learners = (studentRows ?? []).filter((s) => s.role === "student" && !s.is_test) as {
     id: string;
+    first_name: string | null;
+    last_name: string | null;
+    email: string | null;
     last_seen_at: string | null;
   }[];
   if (learners.length === 0) return null;
@@ -266,10 +269,23 @@ export async function getCourseEngagement(
     return aw - bw || as - bs;
   });
   const byLearner = new Map<string, Set<string>>();
+  const lastAttendedBy = new Map<string, string>();
   for (const r of att) {
     if (!byLearner.has(r.student_id)) byLearner.set(r.student_id, new Set());
     byLearner.get(r.student_id)!.add(sessionKey(r));
+    const prev = lastAttendedBy.get(r.student_id);
+    if (r.checked_in_at && (!prev || r.checked_in_at > prev)) {
+      lastAttendedBy.set(r.student_id, r.checked_in_at);
+    }
   }
+  // The earliest check-in dates a session: that's when the room opened.
+  const sessionDate = (key: string): string | null => {
+    const times = att
+      .filter((r) => sessionKey(r) === key && r.checked_in_at)
+      .map((r) => r.checked_in_at as string)
+      .sort();
+    return times[0] ?? null;
+  };
   const attendance = heldKeys.length
     ? {
         sessionsHeld: heldKeys.length,
@@ -279,7 +295,29 @@ export async function getCourseEngagement(
           unit: Number(k.split("-")[0]),
           session: Number(k.split("-")[1]),
           present: att.filter((r) => sessionKey(r) === k).length,
+          date: sessionDate(k),
         })),
+        // Who to actually call. A turnout percentage tells an instructor the
+        // room was thin; only names tell them whom to follow up with. Sorted
+        // by most missed, then by who's been gone longest.
+        absentees: learners
+          .map((s) => {
+            const present = byLearner.get(s.id)?.size ?? 0;
+            return {
+              name:
+                `${s.first_name ?? ""} ${s.last_name ?? ""}`.trim() ||
+                (s.email ?? "Unnamed learner"),
+              attended: present,
+              missed: heldKeys.length - present,
+              lastAttendedAt: lastAttendedBy.get(s.id) ?? null,
+            };
+          })
+          .filter((a) => a.missed > 0)
+          .sort(
+            (a, b) =>
+              b.missed - a.missed ||
+              (a.lastAttendedAt ?? "").localeCompare(b.lastAttendedAt ?? ""),
+          ),
       }
     : null;
 
