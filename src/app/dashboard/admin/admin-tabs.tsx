@@ -6,6 +6,8 @@ import Link from "next/link";
 import { deleteStudentAction, updateStudentAction, updateCohortAction, saveSessionContent, assignStudentTrack, removeStudentTrack, bulkAssignTrack, exportSurveyResponses, exportPublicSurveyResponses, getAllSubmissions, addFeedback, assignInstructorTrack, removeInstructorTrack, deleteSurveyResponse, deletePublicSurveyResponse, listPublicSurveyResponses, sendInviteAction, createCohortAction } from "./actions";
 import type { SessionResource, StudentTrackRow, SurveyStatsRow, AdminSubmissionRow, InstructorTrackRow, PublicSurveyStatsRow } from "./actions";
 import { canManageStudents, canSwitchPrograms, canViewInsights } from "@/lib/roles";
+import { LearningShift } from "@/components/stats/learning-shift";
+import type { OutcomesData } from "@/lib/analytics/outcomes";
 import { RichTextEditor } from "@/components/rich-text-editor";
 import {
   Users,
@@ -528,6 +530,7 @@ export function AdminTabs({
   initialTrackView,
   lunchLearnRecordings = [],
   insightsData = null,
+  outcomesData = null,
   analyticsData = null,
   coursesData = null,
   courseEngagement = null,
@@ -559,6 +562,8 @@ export function AdminTabs({
   initialTrackView?: string;
   lunchLearnRecordings?:{ id: string; title: string; presenter: string; recording_url: string; description: string | null; recorded_at: string }[];
   insightsData?: InsightsData | null;
+  /** Before/after confidence shift for this program — the "did it work" number. */
+  outcomesData?: OutcomesData | null;
   analyticsData?: EngagementAnalytics | null;
   coursesData?: CoursesAnalytics | null;
   courseEngagement?: CourseEngagementProps | null;
@@ -1811,6 +1816,13 @@ export function AdminTabs({
                 );
               })}
             </section>
+          )}
+
+          {/* Lead with the outcome. Response counts answer "did people fill it
+             in"; this answers "did anything change", which is the question the
+             program is actually judged on. */}
+          {outcomesData && outcomesData.groups.length > 0 && (
+            <LearningShift outcomes={outcomesData} />
           )}
 
           {insightsData ? (

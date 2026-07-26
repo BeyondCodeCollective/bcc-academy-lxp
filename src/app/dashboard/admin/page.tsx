@@ -14,6 +14,7 @@ import { getHomeProgramForTrack } from "@/lib/programs";
 import { getHiddenTrackSlugs } from "@/lib/programs/hidden";
 import type { SurveyConfig } from "@/lib/programs/types";
 import { buildInsightsData } from "@/lib/analytics/insights-data";
+import { fetchOutcomesData, type OutcomesData } from "@/lib/analytics/outcomes";
 import type { SurveyQuestion } from "@/components/survey-fields";
 import { fetchPendingPeople, type PendingPerson } from "@/lib/people-hub";
 import { getCourseEngagement, getCourseRosterStats } from "@/lib/course-engagement";
@@ -91,6 +92,7 @@ export default async function AdminPage({
   let publicSurveyStats: PublicSurveyStatsRow[] = [];
   let lunchLearnRecordings: LunchLearnRow[] = [];
   let insightsData: InsightsData | null = null;
+  let outcomesData: OutcomesData | null = null;
   let analyticsData: EngagementAnalytics | null = null;
   let coursesData: CoursesAnalytics | null = null;
   let courseEngagement: CourseEngagementProps | null = null;
@@ -453,6 +455,19 @@ export default async function AdminPage({
       // operational dashboard at /dashboard/insights is scoped separately.
       // Same assembly the PDF export route uses, so screen + PDF never drift.
       insightsData = await buildInsightsData(programIds, aggregatedSlugs);
+      // Before/after shift for the SAME program scope. This lived only on
+      // /dashboard/insights, which is super-admin-gated — so a program admin
+      // could see every survey response and never the one number they mean:
+      // did confidence move. Beyond the Game's mid-program survey asks before
+      // and now in one response, so it has a real shift (+0.84 across every
+      // statement) that nobody running that program could reach.
+      outcomesData = await fetchOutcomesData({
+        slugs: aggregatedSlugs,
+        ids: programIds,
+      }).catch((e) => {
+        console.error("fetchOutcomesData failed:", e);
+        return null;
+      });
     }
 
     // Program-level engagement analytics — scoped to the CURRENT program for
@@ -720,6 +735,7 @@ export default async function AdminPage({
         initialTrackView={initialTrackView}
         lunchLearnRecordings={lunchLearnRecordings}
         insightsData={insightsData}
+        outcomesData={outcomesData}
         analyticsData={analyticsData}
         coursesData={coursesData}
         courseEngagement={courseEngagement}
