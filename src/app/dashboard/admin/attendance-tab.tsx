@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import {
   UserCheck,
   RefreshCw,
@@ -43,6 +43,8 @@ type AttendanceTabProps = {
   /** When true: keep the view toggle + controls but drop the title block —
    * the parent already renders a PageHeader, so showing both is a double header. */
   hideTitle?: boolean;
+  /** Shared Analytics scope — pre-select this course in the overview. */
+  course?: string;
 };
 
 type View = "overview" | "mark";
@@ -67,7 +69,7 @@ const STATUS_LABEL: Record<string, { label: string; tone: StatusTone }> = {
   disengaged: { label: "Low attendance", tone: "danger" },
 };
 
-export function AttendanceTab({ students, tracks, enrollments, scopeLabel, embedded, viewSwitcher, hideTitle }: AttendanceTabProps) {
+export function AttendanceTab({ students, tracks, enrollments, scopeLabel, embedded, viewSwitcher, hideTitle, course }: AttendanceTabProps) {
   const startedTracks = useMemo(
     () => tracks.filter((t) => trackHasStarted(t)),
     [tracks]
@@ -355,6 +357,7 @@ export function AttendanceTab({ students, tracks, enrollments, scopeLabel, embed
           summaries={summaries}
           records={records}
           loading={loading}
+          initialCourse={course}
           onJumpToMark={(slug, week) => {
             selectTrack(slug);
             if (week) setMarkWeek(week);
@@ -462,6 +465,7 @@ function OverviewPanel({
   records,
   loading,
   onJumpToMark,
+  initialCourse,
 }: {
   startedTracks: TrackLike[];
   students: StudentRow[];
@@ -470,10 +474,12 @@ function OverviewPanel({
   records: AttendanceRecord[];
   loading: boolean;
   onJumpToMark: (slug: string, week?: number) => void;
+  /** Shared Analytics scope — pre-select this course. */
+  initialCourse?: string;
 }) {
-  // One course at a time. Default to the first started track; the selector only
-  // lists tracks that actually take attendance.
-  const [selectedSlug, setSelectedSlug] = useState<string>("");
+  // One course at a time. Default to the shared scope (if set), else the first
+  // started track; the selector only lists tracks that actually take attendance.
+  const [selectedSlug, setSelectedSlug] = useState<string>(initialCourse ?? "");
   // Names of who's behind stay hidden until the "Need a check-in" tile is
   // clicked — the page leads with numbers, not a wall of at-risk students.
   const [showCheckIn, setShowCheckIn] = useState(false);
@@ -673,8 +679,6 @@ function MarkPanel({
   onMarkAllPresent: (slug: string, week: number, sess: number) => Promise<void>;
   loading: boolean;
 }) {
-  const trackPickerRef = useRef<HTMLDivElement>(null);
-
   // Return null while loading — a placeholder card sits at a different height
   // than the populated mark grid and causes a visible jump on mount.
   // The fetch is fast enough that appearing immediately is better UX.
@@ -704,39 +708,30 @@ function MarkPanel({
 
   return (
     <div className="space-y-5">
-      {/* Track picker — one button per track, scrollable horizontally on
-         narrow screens. Replaces the hardcoded MASS|Tech+ toggle. */}
-      <div
-        ref={trackPickerRef}
-        role="tablist"
-        aria-label="Select track"
-        className="flex items-center gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide"
-      >
-        {tracks.map((t) => {
-          const isActive = t.slug === activeTrackSlug;
-          const hasStarted = trackHasStarted(t);
-          return (
-            <button
-              key={t.slug}
-              type="button"
-              role="tab"
-              aria-selected={isActive}
-              disabled={!hasStarted}
-              onClick={() => selectTrack(t.slug)}
-              className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                isActive
-                  ? "bg-ink text-white"
-                  : hasStarted
-                    ? "bg-paper-tint-soft text-ink-soft hover:bg-paper-tint hover:text-ink"
-                    : "bg-paper-tint-soft text-ink-faint/60 cursor-not-allowed"
-              }`}
-              title={hasStarted ? t.name : `Starts ${formatCohortDate(t.startDate, undefined)}`}
-            >
-              {t.shortName}
-            </button>
-          );
-        })}
-      </div>
+      {/* Track picker — a select, like every other scope filter (pills are
+         reserved for navigation, so this can't read as yet another tab row). */}
+      {tracks.length > 1 && (
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
+            Course
+          </span>
+          <select
+            value={activeTrackSlug}
+            onChange={(e) => selectTrack(e.target.value)}
+            className="min-w-[16rem] max-w-full rounded-lg border border-rule bg-white px-3 py-2 text-sm font-semibold text-ink focus:border-ink-faint focus:outline-none"
+          >
+            {tracks.map((t) => {
+              const hasStarted = trackHasStarted(t);
+              return (
+                <option key={t.slug} value={t.slug} disabled={!hasStarted}>
+                  {t.name}
+                  {hasStarted ? "" : ` · starts ${formatCohortDate(t.startDate, { month: "short", day: "numeric" })}`}
+                </option>
+              );
+            })}
+          </select>
+        </label>
+      )}
 
       {/* Week navigator */}
       <div className="flex items-center justify-between gap-3 border-y border-rule py-3">
