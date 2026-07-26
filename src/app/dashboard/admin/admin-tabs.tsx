@@ -854,6 +854,27 @@ export function AdminTabs({
 
   // Track enrollment state
   const [enrollments, setEnrollments] = useState<StudentTrackRow[]>(initialStudentTracks);
+  // Same staleness trap as the roster above: client-nav between tabs re-runs
+  // the server load, but useState keeps its FIRST value — arriving at
+  // Attendance from a tab that doesn't fetch enrollments (Engagement/Surveys)
+  // rendered every course as 0 students. Adopt the server rows whenever
+  // membership changes; identical sets are left alone so optimistic in-tab
+  // enrollment edits aren't clobbered.
+  useEffect(() => {
+    setEnrollments((prev) => {
+      if (
+        prev.length === initialStudentTracks.length &&
+        prev.every(
+          (e, i) =>
+            e.student_id === initialStudentTracks[i]?.student_id &&
+            e.track_slug === initialStudentTracks[i]?.track_slug,
+        )
+      ) {
+        return prev;
+      }
+      return initialStudentTracks;
+    });
+  }, [initialStudentTracks]);
   const [instrTracks, setInstrTracks] = useState<InstructorTrackRow[]>(initialInstructorTracks);
   const [instrTrackSaving, setInstrTrackSaving] = useState<string | null>(null);
   const [enrollmentSaving, setEnrollmentSaving] = useState<string | null>(null);
