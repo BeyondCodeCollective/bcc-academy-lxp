@@ -9,6 +9,7 @@ import { BCC_TRACK_VARIANT_LABELS } from "@/lib/surveys/cohort-labels";
 import { revalidatePath } from "next/cache";
 import { logActivityEvent } from "@/lib/analytics/log-event";
 import { promoteProfileFields } from "@/lib/profile-promotion";
+import { surveyOwnerProgramSlug } from "@/lib/surveys/platform";
 
 /**
  * One-time learner profile capture: ZIP + birthday, for grant reporting.
@@ -142,6 +143,26 @@ export async function saveSurveyResponse(
   // "marketing" is the apex-domain placeholder — it has no DB row; treat it
   // the same as catalyst (the umbrella program that owns the intake).
   let programId = studentRow?.program_id ?? null;
+
+  // A response belongs to the program that owns the FORM, not to whoever
+  // answered it. program_id was taken from the student's own stamp, which
+  // answers "who replied" — a different question, with a different answer for
+  // any form that names its program. Two Beyond the Game learners signing the
+  // Catalyst agreement filed it under Beyond the Game, where it showed up in
+  // that program's Insights as a form that program doesn't own.
+  //
+  // Platform-wide forms (intake, learn-more) claim no program, so they keep
+  // filing under the respondent — there, "who replied" IS the right answer.
+  const ownerSlug = surveyOwnerProgramSlug(surveyType);
+  if (ownerSlug) {
+    const { data: ownerRow } = await supabase
+      .from("programs")
+      .select("id")
+      .eq("slug", ownerSlug)
+      .maybeSingle();
+    if (ownerRow?.id) programId = ownerRow.id as string;
+  }
+
   if (!programId) {
     const lookupSlug = programSlug === "marketing" ? "catalyst" : programSlug;
     const { data: programRow, error: programErr } = await supabase

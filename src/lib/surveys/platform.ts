@@ -1,4 +1,5 @@
 import type { SurveyConfig } from "@/lib/programs/types";
+import { getAllPrograms } from "@/lib/programs";
 
 // ─── Platform-level surveys ─────────────────────────────────────────────────
 //
@@ -24,6 +25,30 @@ export function surveySkippedForTracks(
 ): boolean {
   if (!skipForTracks?.length || enrolledTrackSlugs.length === 0) return false;
   return enrolledTrackSlugs.every((t) => skipForTracks.includes(t));
+}
+
+/**
+ * The program that OWNS a survey — the one whose section it belongs in.
+ *
+ * Responses are filed under the answering student's program stamp, which
+ * answers "who replied", not "which program's form is this". For a form that
+ * declares its programs, those are different questions with different answers:
+ * two Beyond the Game learners signing the Catalyst agreement filed it under
+ * Beyond the Game, and it showed up in that program's Insights.
+ *
+ * Returns null when a survey doesn't claim a program, leaving the old
+ * student-stamp behaviour for the platform-wide forms (intake, learn-more)
+ * where "who replied" genuinely is the right filing.
+ */
+export function surveyOwnerProgramSlug(surveyId: string): string | null {
+  for (const p of getAllPrograms()) {
+    for (const s of p.surveys ?? []) {
+      if (s.id === surveyId && s.appliesToPrograms?.length) {
+        return s.appliesToPrograms[0];
+      }
+    }
+  }
+  return null;
 }
 
 /**
