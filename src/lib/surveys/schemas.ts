@@ -441,7 +441,7 @@ const PRE_SURVEY_SPRING_2026: SurveyQuestion[] = [
     id: "digital_experience",
     label: "Digital Experience",
     scale: LIKERT_1_5,
-    scaleAnchors: { low: "1 — Strongly Agree", high: "5 — Strongly Disagree" },
+    scaleAnchors: { low: "1 — Strongly Disagree", high: "5 — Strongly Agree" },
     statements: [
       "I feel comfortable using a computer or tablet on my own.",
       "I feel comfortable using technology.",
@@ -460,7 +460,7 @@ const PRE_SURVEY_SPRING_2026: SurveyQuestion[] = [
     id: "ai_experience",
     label: "AI Tools",
     scale: LIKERT_1_5,
-    scaleAnchors: { low: "1 — Strongly Agree", high: "5 — Strongly Disagree" },
+    scaleAnchors: { low: "1 — Strongly Disagree", high: "5 — Strongly Agree" },
     statements: [
       "I'm familiar with everyday AI tools (e.g. ChatGPT, Google Gemini, Snapchat AI).",
       "I'm familiar with coding AI tools (e.g. Codex, Replit, Loveable).",
@@ -507,7 +507,7 @@ const POST_SURVEY_SPRING_2026: SurveyQuestion[] = [
     id: "digital_experience",
     label: "Digital Experience",
     scale: LIKERT_1_5,
-    scaleAnchors: { low: "1 — Strongly Agree", high: "5 — Strongly Disagree" },
+    scaleAnchors: { low: "1 — Strongly Disagree", high: "5 — Strongly Agree" },
     statements: [
       "I feel comfortable using a computer or tablet on my own.",
       "I feel comfortable using technology.",
@@ -526,7 +526,7 @@ const POST_SURVEY_SPRING_2026: SurveyQuestion[] = [
     id: "ai_experience",
     label: "AI Tools",
     scale: LIKERT_1_5,
-    scaleAnchors: { low: "1 — Strongly Agree", high: "5 — Strongly Disagree" },
+    scaleAnchors: { low: "1 — Strongly Disagree", high: "5 — Strongly Agree" },
     statements: [
       "I'm familiar with everyday AI tools (e.g. ChatGPT, Google Gemini, Snapchat AI).",
       "I'm familiar with coding AI tools (e.g. Codex, Replit, Loveable).",

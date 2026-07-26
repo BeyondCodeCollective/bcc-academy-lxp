@@ -248,3 +248,18 @@ Consistent rounding is a signal of quality. Never mix sharp and rounded corners 
 - **Don't** add borders to cards on light backgrounds
 - **Don't** use glossy finishes, glow effects, or heavy box-shadows
 - **Don't** mix sharp and rounded corners in the same component
+
+## Surveys
+
+**Likert scales run 1 = Strongly Disagree → 5 = Strongly Agree.** Always. Five
+is the good end.
+
+The spring-2026 instruments shipped inverted (1 = Strongly Agree), which is
+defensible on paper and wrong in practice: two of five post-survey respondents
+answered by the convention rather than the label, straight-lining 5s while
+writing "Yes, a lot more confident" and "I am now proficient". The dashboard
+then reported that Beyond Code Centers' confidence had DIPPED. Flipped in July
+2026, with the six affected responses migrated.
+
+Never ship an inverted scale again — the analytics can reorient a mean, but
+nothing can reorient a respondent who read the numbers the normal way.

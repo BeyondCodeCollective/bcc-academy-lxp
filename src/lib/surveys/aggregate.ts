@@ -25,17 +25,24 @@ type HasResponses = { responses: Record<string, unknown> };
  * 2.6, and the dashboard reported "Confidence dipped -1.64" for a cohort whose
  * real answers were overwhelmingly positive on both sides.
  *
- * The scales run 1..5 with 1 = Strongly Agree (see scaleAnchors), so labels map
- * onto the same numbers the wizard would have written.
+ * Scales now run 1..5 with 5 = Strongly Agree (July 2026 — the inverted
+ * anchors were the source of the confusion, see the schema flip), and labels
+ * map onto that ladder.
  */
-const LIKERT_LABEL_VALUES: Record<string, number> = {
-  "strongly agree": 1,
-  agree: 2,
-  neutral: 3,
-  "neither agree nor disagree": 3,
-  disagree: 4,
-  "strongly disagree": 5,
-};
+// Agreement order, weakest to strongest. Position maps onto the scale, so a
+// label always means the same thing no matter which way the numbers run —
+// which is the whole point of storing a label.
+const AGREEMENT_LADDER = [
+  ["strongly disagree"],
+  ["disagree"],
+  ["neutral", "neither agree nor disagree"],
+  ["agree"],
+  ["strongly agree"],
+];
+
+const LIKERT_LABEL_VALUES: Record<string, number> = Object.fromEntries(
+  AGREEMENT_LADDER.flatMap((names, i) => names.map((n) => [n, i + 1])),
+);
 
 /** A likert answer as a number, whichever way it was stored. NaN when it's
  *  genuinely unanswerable (empty, "Prefer not to say", an unknown label). */
