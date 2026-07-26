@@ -6,6 +6,10 @@ import type { SurveyQuestion } from "@/components/survey-fields";
 import type { BCCSurveyResponse } from "../actions";
 import type { SurveyConfig } from "@/lib/programs/types";
 import { normalizeCohortLabel } from "@/lib/surveys/cohort-labels";
+import { COBALT_FAMILY as PALETTE } from "@/components/stats/palette";
+import { StatCard } from "@/components/stats/stat-card";
+import { buttonClass, microLabel } from "@/components/ui";
+import { formatRelativeDate } from "@/lib/utils";
 
 interface Section {
   survey: SurveyConfig;
@@ -19,16 +23,8 @@ interface Props {
   totalResponses: number;
 }
 
-// Program breakdown stays in the cobalt family — distinguishable by lightness,
-// not by hue. No amber/purple/pink rainbow; the brand is one accent.
-const PALETTE = [
-  "#1D59FF", // cobalt — primary
-  "#7CA0FF", // cobalt light
-  "#1A2B6B", // deep navy
-  "#4B5FA8", // muted indigo
-  "#A7B6D9", // slate
-  "#C9D4F0", // pale cobalt
-];
+// Program breakdown stays in the cobalt family (shared palette) —
+// distinguishable by lightness, not by hue. No rainbow; the brand is one accent.
 
 function colorFor(
   programs: { slug: string; name: string }[],
@@ -178,9 +174,9 @@ export function InsightsDashboard({ sections, programs }: Props) {
     <div className="space-y-8">
       {/* Roll-up tiles — each links somewhere useful. */}
       <div className="grid grid-cols-3 gap-3">
-        <StatTile value={totalResponses} label="Responses" href="/api/insights/csv" download />
-        <StatTile value={uniqueRespondents} label="Respondents" href="/dashboard/admin?tab=students" />
-        <StatTile value={sections.length} label="Surveys" href="/dashboard/admin/surveys" />
+        <StatCard value={totalResponses.toLocaleString()} label="Responses" href="/api/insights/csv" download />
+        <StatCard value={uniqueRespondents.toLocaleString()} label="Respondents" href="/dashboard/admin?tab=students" />
+        <StatCard value={sections.length.toLocaleString()} label="Surveys" href="/dashboard/admin/surveys" />
       </div>
 
       {/* One fused component: the survey selector IS the card header, and its
@@ -189,7 +185,7 @@ export function InsightsDashboard({ sections, programs }: Props) {
         <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
           <div className="flex flex-wrap items-end gap-3">
             <label className="flex flex-col gap-1.5">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-faint">Form</span>
+              <span className={microLabel}>Form</span>
               <select
                 value={activeId ?? ""}
                 onChange={(e) => selectSurvey(e.target.value)}
@@ -202,7 +198,7 @@ export function InsightsDashboard({ sections, programs }: Props) {
             </label>
             {multiCohort && (
               <label className="flex flex-col gap-1.5">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-faint">Cohort</span>
+                <span className={microLabel}>Cohort</span>
                 <select
                   value={cohortFilter}
                   onChange={(e) => setCohortFilter(e.target.value)}
@@ -218,7 +214,7 @@ export function InsightsDashboard({ sections, programs }: Props) {
           </div>
           <p className="text-right text-3xl font-bold tabular-nums leading-none text-ink sm:text-4xl">
             {scopedCount.toLocaleString()}
-            <span className="mt-1.5 block text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-faint">
+            <span className={`mt-1.5 block ${microLabel}`}>
               Responses
             </span>
           </p>
@@ -229,7 +225,7 @@ export function InsightsDashboard({ sections, programs }: Props) {
            weekly bucket is never misread as a single day. */}
         {series.bars.length > 0 && (
           <div className="mt-5">
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-faint">
+            <p className={`mb-2 ${microLabel}`}>
               Responses over time{" "}
               <span className="font-medium normal-case text-ink-faint">· by {series.granularity}</span>
             </p>
@@ -249,11 +245,11 @@ export function InsightsDashboard({ sections, programs }: Props) {
               {multiCohort && <span className="tabular-nums text-ink-soft">{c.count}</span>}
             </span>
           ))}
-          <span>Last response {activeRow?.lastActivity ? timeAgo(activeRow.lastActivity) : "—"}</span>
+          <span>Last response {formatRelativeDate(activeRow?.lastActivity)}</span>
         </div>
 
         {grantGaps.length > 0 && (
-          <div className="mt-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          <div className="mt-4 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning-text">
             Heads up before you export:{" "}
             {grantGaps
               .map((g) => `${g.count} ${g.count === 1 ? "response is" : "responses are"} missing ${g.label}`)
@@ -268,20 +264,20 @@ export function InsightsDashboard({ sections, programs }: Props) {
           {activeRow?.hasSchema && (
             <a
               href={`/api/insights/pdf?detailed=1&survey=${encodeURIComponent(activeId ?? "")}${cohortParam}`}
-              className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-primary-hover"
+              className={buttonClass("primary", "sm")}
             >
               Detailed report ↓
             </a>
           )}
           <a
             href={`/api/insights/csv?survey=${encodeURIComponent(activeId ?? "")}${cohortParam}`}
-            className="rounded-lg border border-rule bg-white px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:border-ink-faint"
+            className={buttonClass("secondary", "sm")}
           >
             Export CSV
           </a>
           <a
             href={`/api/insights/pdf?survey=${encodeURIComponent(activeId ?? "")}${cohortParam}`}
-            className="rounded-lg border border-rule bg-white px-3 py-1.5 text-sm font-medium text-ink transition-colors hover:border-ink-faint"
+            className={buttonClass("secondary", "sm")}
           >
             Export PDF
           </a>
@@ -316,41 +312,6 @@ export function InsightsDashboard({ sections, programs }: Props) {
         </div>
       )}
     </div>
-  );
-}
-
-// The three roll-up tiles, as links. `download` for the CSV route; internal
-// nav otherwise. Hover reveals a ↗ so it reads as clickable.
-function StatTile({
-  value,
-  label,
-  href,
-  download,
-}: {
-  value: number;
-  label: string;
-  href: string;
-  download?: boolean;
-}) {
-  const inner = (
-    <>
-      <span className="absolute right-4 top-4 text-ink-faint opacity-0 transition group-hover:opacity-100 group-hover:text-primary">
-        ↗
-      </span>
-      <p className="text-3xl font-bold tabular-nums text-ink sm:text-4xl">
-        {value.toLocaleString()}
-      </p>
-      <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
-        {label}
-      </p>
-    </>
-  );
-  const cls =
-    "group relative block panel p-5 transition hover:-translate-y-0.5 hover:border-primary hover:shadow-sm";
-  return download ? (
-    <a href={href} className={cls}>{inner}</a>
-  ) : (
-    <Link href={href} className={cls}>{inner}</Link>
   );
 }
 
@@ -477,16 +438,4 @@ function buildLedger(
       if (!b.lastActivity) return -1;
       return b.lastActivity.localeCompare(a.lastActivity);
     });
-}
-
-function timeAgo(iso: string): string {
-  const ms = Date.now() - new Date(iso).getTime();
-  const hrs = Math.round(ms / (1000 * 60 * 60));
-  if (hrs < 1) return "just now";
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.round(hrs / 24);
-  if (days === 1) return "yesterday";
-  if (days < 7) return `${days}d ago`;
-  const wks = Math.round(days / 7);
-  return `${wks}w ago`;
 }

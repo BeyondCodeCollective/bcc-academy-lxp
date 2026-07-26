@@ -110,6 +110,10 @@ export function buildTrail(
   }
 
   // ── Generic learner sections ─────────────────────────────────────────────
+  // Overview is a top-level sidebar destination for admins — the sidebar
+  // already marks it active, so a "Home > Overview" trail is noise. Drill-in
+  // surfaces use the in-page BackLink instead; trails are for nested routes.
+  if (top === "insights" && isAdmin) return [];
   const sectionLabel = SECTION_LABELS[top] ?? humanize(top);
   if (rest.length === 1) return [home, { label: sectionLabel }];
   const sectionHref = `/dashboard/${top}`;

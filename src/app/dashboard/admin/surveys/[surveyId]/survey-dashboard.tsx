@@ -133,7 +133,7 @@ export function SurveyDashboard({
       <header className="flex flex-wrap items-end justify-between gap-4 pb-4 border-b border-rule">
         <div>
           {chrome === "standalone" && (
-            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-ink-soft mb-2">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint mb-2">
               Survey Insights
             </p>
           )}
@@ -307,7 +307,7 @@ function ApplicantRosterDashboard({
       <header className="flex flex-wrap items-end justify-between gap-4 pb-4 border-b border-rule">
         <div>
           {chrome === "standalone" && (
-            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-ink-soft mb-2">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint mb-2">
               Applications
             </p>
           )}
@@ -423,7 +423,7 @@ function ApplicantRosterDashboard({
                     const text = typeof val === "string" ? val.trim() : "";
                     return (
                       <div key={q.id}>
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-faint mb-1">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint mb-1">
                           {q.label}
                         </p>
                         {text ? (
@@ -478,7 +478,7 @@ function FilterPill({
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>
-      <h3 className="text-[11px] font-medium uppercase tracking-[0.18em] text-ink-faint mb-4">
+      <h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint mb-4">
         {title}
       </h3>
       {children}

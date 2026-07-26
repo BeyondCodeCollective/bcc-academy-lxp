@@ -20,6 +20,10 @@ import {
 } from "@/lib/attendance/compute";
 import { computeCurrentWeek, trackHasStarted, formatCohortDate } from "@/lib/utils";
 import { unitDisplayMap } from "@/lib/programs/unit-display";
+import { StatCard } from "@/components/stats/stat-card";
+import { SectionHeadline } from "@/components/stats/section-headline";
+import { ThresholdLegend, TONE_CHIP, TONE_DOT, type StatusTone } from "@/components/stats/status";
+import { buttonClass, microLabel } from "@/components/ui";
 
 type AttendanceTabProps = {
   students: StudentRow[];
@@ -48,28 +52,19 @@ function unitDate(track: TrackLike, week: number): string | null {
   return (track.weekSummaries ?? []).find((s) => s.week === week)?.date ?? null;
 }
 
-type RateTone = "on" | "watch" | "alert";
-
-// Tinted box (bg + text) for the per-week attendance boxes, matching the
-// STATUS_LABEL palette so color reads the same everywhere.
-const BOX_TONE: Record<RateTone, string> = {
-  on: "bg-green-50 text-green-700",
-  watch: "bg-amber-50 text-amber-700",
-  alert: "bg-red-50 text-red-700",
-};
-
-function rateTone(rate: number): RateTone {
-  if (rate >= 80) return "on";
-  if (rate >= 50) return "watch";
-  return "alert";
+// Threshold → semantic tone (shared TONE_CHIP/TONE_DOT classes render it).
+function rateTone(rate: number): StatusTone {
+  if (rate >= 80) return "success";
+  if (rate >= 50) return "warning";
+  return "danger";
 }
 
-const STATUS_LABEL: Record<string, { label: string; bg: string; text: string }> = {
+const STATUS_LABEL: Record<string, { label: string; tone: StatusTone }> = {
   // Factual, non-judgmental labels — these describe attendance, not the person.
   // "Disengaged" read as an accusation on a visitor-facing screen.
-  "on-track": { label: "On track", bg: "bg-green-50", text: "text-green-700" },
-  "at-risk": { label: "Check in", bg: "bg-amber-50", text: "text-amber-700" },
-  disengaged: { label: "Low attendance", bg: "bg-red-50", text: "text-red-700" },
+  "on-track": { label: "On track", tone: "success" },
+  "at-risk": { label: "Check in", tone: "warning" },
+  disengaged: { label: "Low attendance", tone: "danger" },
 };
 
 export function AttendanceTab({ students, tracks, enrollments, scopeLabel, embedded, viewSwitcher, hideTitle }: AttendanceTabProps) {
@@ -408,54 +403,52 @@ function Header({
   hasData: boolean;
   hideTitle?: boolean;
 }) {
-  return (
-    <header className={`flex flex-col gap-3 sm:flex-row sm:items-end ${hideTitle ? "sm:justify-end" : "sm:justify-between"}`}>
-      {!hideTitle && (
-        <div>
-          <p className="text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
-            {scopeLabel || "Attendance"}
-          </p>
-          <h2 className="mt-1 text-2xl font-bold text-ink tracking-tight">
-            {view === "overview" ? "Who's showing up" : "Mark check-ins"}
-          </h2>
-        </div>
+  // Attendance is auto-recorded from Zoom, so there's no "Take attendance"
+  // action — you adjust a session by clicking its box. The only view switch
+  // left is getting back from that editor to the report.
+  const actions = (
+    <>
+      {view === "mark" && (
+        <button
+          type="button"
+          onClick={() => setView("overview")}
+          className={buttonClass("ghost", "sm")}
+        >
+          ← Back to report
+        </button>
       )}
-      <div className="flex items-center gap-1.5">
-        {/* Attendance is auto-recorded from Zoom, so there's no "Take attendance"
-           action — you adjust a session by clicking its box. The only view
-           switch left is getting back from that editor to the report. */}
-        {view === "mark" && (
-          <button
-            type="button"
-            onClick={() => setView("overview")}
-            className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium text-ink-soft transition-colors hover:text-ink"
-          >
-            ← Back to report
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={onRefresh}
-          disabled={refreshing}
-          aria-label="Refresh attendance"
-          className="inline-flex h-8 w-8 items-center justify-center rounded-full text-ink-soft hover:bg-paper-tint-soft hover:text-ink disabled:opacity-50 transition-colors"
-        >
-          <RefreshCw
-            size={14}
-            className={refreshing ? "animate-spin" : undefined}
-          />
-        </button>
-        <button
-          type="button"
-          onClick={onExport}
-          disabled={!hasData}
-          className="inline-flex items-center gap-1.5 rounded-full border border-rule px-3 py-1.5 text-xs font-medium text-ink-soft hover:bg-surface-elevated hover:text-ink disabled:opacity-40 transition-colors"
-        >
-          <Download size={12} />
-          Export CSV
-        </button>
-      </div>
-    </header>
+      <button
+        type="button"
+        onClick={onRefresh}
+        disabled={refreshing}
+        aria-label="Refresh attendance"
+        className={buttonClass("ghost", "sm")}
+      >
+        <RefreshCw
+          size={14}
+          className={refreshing ? "animate-spin" : undefined}
+        />
+      </button>
+      <button
+        type="button"
+        onClick={onExport}
+        disabled={!hasData}
+        className={buttonClass("secondary", "sm")}
+      >
+        <Download size={12} />
+        Export CSV
+      </button>
+    </>
+  );
+  if (hideTitle) {
+    return <div className="flex items-center justify-end gap-1.5">{actions}</div>;
+  }
+  return (
+    <SectionHeadline
+      eyebrow={scopeLabel || "Attendance"}
+      headline={view === "overview" ? "Who's showing up" : "Mark check-ins"}
+      actions={actions}
+    />
   );
 }
 
@@ -537,7 +530,7 @@ function OverviewPanel({
       {/* Course selector — pick one; nothing is stacked or viewable all at once. */}
       {startedTracks.length > 1 && (
         <label className="flex flex-col gap-1.5">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-faint">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
             Course
           </span>
           <select
@@ -558,47 +551,22 @@ function OverviewPanel({
       {/* Headline numbers, big. "Need a check-in" is a button — click to reveal
          the names, which stay hidden by default. */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="panel p-4 sm:p-5">
-          <p className="text-2xl font-bold tabular-nums text-ink sm:text-3xl">
-            {avg !== null ? `${avg}%` : "—"}
-          </p>
-          <p className="mt-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-faint">
-            Avg attendance
-          </p>
-        </div>
-        <div className="panel p-4 sm:p-5">
-          <p className="text-2xl font-bold tabular-nums text-ink sm:text-3xl">
-            {trackStudents.length}
-          </p>
-          <p className="mt-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-faint">
-            Students
-          </p>
-        </div>
-        <button
-          type="button"
-          disabled={atRisk.length === 0}
+        <StatCard value={avg !== null ? `${avg}%` : "—"} label="Avg attendance" />
+        <StatCard value={trackStudents.length} label="Students" />
+        <StatCard
+          value={atRisk.length}
+          label="Need a check-in"
+          hint={atRisk.length > 0 ? (showCheckIn ? "Hide names" : "Show names") : undefined}
           onClick={() => setShowCheckIn((v) => !v)}
-          aria-expanded={showCheckIn}
-          className="panel p-4 text-left transition enabled:hover:border-ink-faint enabled:hover:shadow-sm disabled:opacity-70 sm:p-5"
-        >
-          <p className="text-2xl font-bold tabular-nums text-ink sm:text-3xl">
-            {atRisk.length}
-          </p>
-          <p className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-faint">
-            Need a check-in
-            {atRisk.length > 0 && (
-              <svg width="10" height="6" viewBox="0 0 10 6" fill="none" className={`transition-transform ${showCheckIn ? "rotate-180" : ""}`}>
-                <path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" />
-              </svg>
-            )}
-          </p>
-        </button>
+          ariaExpanded={showCheckIn}
+          disabled={atRisk.length === 0}
+        />
       </div>
 
       {/* Names — revealed only when the tile is clicked. */}
       {showCheckIn && atRisk.length > 0 && (
         <div className="rounded-xl border border-rule bg-paper-tint-soft p-4">
-          <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-faint">
+          <p className={`mb-2.5 ${microLabel}`}>
             Check in with
           </p>
           <div className="flex flex-wrap gap-2">
@@ -607,7 +575,7 @@ function OverviewPanel({
                 s.student.first_name && s.student.last_name
                   ? `${s.student.first_name} ${s.student.last_name}`
                   : s.student.email;
-              const dot = s.status === "disengaged" ? "bg-red-400" : "bg-amber-400";
+              const dot = TONE_DOT[STATUS_LABEL[s.status]?.tone ?? "warning"];
               return (
                 <span
                   key={s.student.id}
@@ -630,10 +598,14 @@ function OverviewPanel({
       {/* Weekly boxes — color + % agree; click a box to correct that session.
          Attendance is auto-recorded from Zoom, so this is a view + occasional fix. */}
       <section className="panel p-4 sm:p-5">
-        <div className="mb-4 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-ink-soft">
-          <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-[3px] bg-green-500" />Good · 80%+</span>
-          <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-[3px] bg-amber-400" />Watch · 50–79%</span>
-          <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded-[3px] bg-red-400" />Low · under 50%</span>
+        <div className="mb-4">
+          <ThresholdLegend
+            items={[
+              { tone: "success", label: "Good · 80%+" },
+              { tone: "warning", label: "Watch · 50–79%" },
+              { tone: "danger", label: "Low · under 50%" },
+            ]}
+          />
         </div>
         {rates.length === 0 ? (
           <p className="text-sm text-ink-faint">No sessions yet.</p>
@@ -645,7 +617,7 @@ function OverviewPanel({
                 type="button"
                 onClick={() => track && onJumpToMark(track.slug, i + 1)}
                 title={`Adjust ${track?.unitLabel ?? "Week"} ${i + 1} attendance`}
-                className={`group min-w-[78px] flex-1 rounded-xl px-2.5 py-3 text-center transition-shadow hover:shadow-[inset_0_0_0_1.5px_currentColor] ${BOX_TONE[rateTone(rate)]}`}
+                className={`group min-w-[78px] flex-1 rounded-lg px-2.5 py-3 text-center transition-shadow hover:shadow-[inset_0_0_0_1.5px_currentColor] ${TONE_CHIP[rateTone(rate)]}`}
               >
                 <div className="text-lg font-extrabold leading-none tabular-nums">{rate}%</div>
                 <div className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-semibold opacity-80">
@@ -778,7 +750,7 @@ function MarkPanel({
           <ChevronLeft size={16} />
         </button>
         <div className="text-center">
-          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-faint">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
             {activeTrack.shortName}
           </p>
           {/* Unit picker — a select, not chevrons alone: a 17-unit course
@@ -880,7 +852,7 @@ function SessionTable({
   return (
     <div className="overflow-hidden panel">
       {/* Header: per-session present count + "mark all" */}
-      <div className="grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_repeat(var(--sessions),auto)_auto] gap-x-3 items-center px-4 py-2.5 bg-paper-tint-soft border-b border-rule text-[11px] font-medium uppercase tracking-[0.14em] text-ink-faint"
+      <div className="grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_repeat(var(--sessions),auto)_auto] gap-x-3 items-center px-4 py-2.5 bg-paper-tint-soft border-b border-rule text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint"
         style={{ ["--sessions" as string]: sessionsPerWeek }}>
         <div>Student</div>
         {sessionNumbers.map((s) => {
@@ -946,7 +918,7 @@ function SessionTable({
                       }
                       className={`relative inline-flex h-8 w-8 sm:justify-self-end items-center justify-center rounded-full border transition-colors ${
                         checked
-                          ? "border-green-500 bg-green-500 text-white"
+                          ? "border-success bg-success text-white"
                           : "border-rule bg-surface-elevated text-ink-faint hover:border-ink-soft hover:text-ink-soft"
                       } ${saving ? "opacity-60" : ""} ${locked ? "cursor-not-allowed opacity-50" : ""}`}
                     >

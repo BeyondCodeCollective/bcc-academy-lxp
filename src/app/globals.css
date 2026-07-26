@@ -34,6 +34,20 @@
   --rule: #e5e5e5;
   --rule-soft: #eeeeee;
 
+  /* ─── Semantic status set ─────────────────────────────────────────────
+     ONE palette for every "how is it going" signal — attendance chips, risk
+     donuts, trend deltas, save states. Fill = dots/bars/chips backgrounds;
+     text = readable-on-tint counterpart. Sequential (non-judgmental)
+     distributions use the cobalt ramp in stats/palette.ts, never these. */
+  --success: #10B981;
+  --success-text: #0f7a54;
+  --warning: #F59E0B;
+  --warning-text: #a8620a;
+  --danger: #EF4444;
+  --danger-text: #b91c1c;
+  --inactive: #9CA3AF;
+  --inactive-text: #55555c;
+
   /* ─── Nav heights (single source of truth) ──────────────────────────
      Set by the nav component; consumed by pages like /dashboard/tutor
      that need to subtract nav height from viewport. Avoids magic numbers
@@ -73,6 +87,16 @@
 .panel {
   border-radius: 0.5rem;
   border: 1px solid var(--rule);
+  background-color: var(--surface-elevated);
+}
+
+/* Edit-mode surface — analytics cards are plain .panel; anything the admin can
+   TYPE into gets the accent top edge so it's obvious where viewing ends and
+   editing begins (course detail mixes both in one scroll). */
+.panel-form {
+  border-radius: 0.5rem;
+  border: 1px solid var(--rule);
+  border-top: 2px solid var(--primary);
   background-color: var(--surface-elevated);
 }
 
@@ -146,6 +170,14 @@
   --color-ink-faint: var(--ink-faint);
   --color-rule: var(--rule);
   --color-rule-soft: var(--rule-soft);
+  --color-success: var(--success);
+  --color-success-text: var(--success-text);
+  --color-warning: var(--warning);
+  --color-warning-text: var(--warning-text);
+  --color-danger: var(--danger);
+  --color-danger-text: var(--danger-text);
+  --color-inactive: var(--inactive);
+  --color-inactive-text: var(--inactive-text);
   --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", var(--font-geist-sans), sans-serif;
   --font-mono: var(--font-geist-mono), "SF Mono", Monaco, "Cascadia Code", monospace;
 }

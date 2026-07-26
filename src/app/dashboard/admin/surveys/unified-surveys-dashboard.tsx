@@ -76,7 +76,7 @@ export function UnifiedSurveysDashboard({
 
       {/* Ledger — a table of every survey, click to focus. */}
       <div>
-        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-ink-faint mb-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint mb-3">
           Surveys
         </p>
         <ul className="border-y border-rule">

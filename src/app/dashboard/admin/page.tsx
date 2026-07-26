@@ -43,9 +43,9 @@ type LunchLearnRow = {
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; view?: string }>;
+  searchParams: Promise<{ tab?: string; view?: string; course?: string }>;
 }) {
-  const { tab: initialTab, view: initialTrackView } = await searchParams;
+  const { tab: initialTab, view: initialTrackView, course: initialCourse } = await searchParams;
   const [program, ctx] = await Promise.all([
     getProgram(),
     isSupabaseConfigured() ? getSessionContext() : Promise.resolve(null),
@@ -608,6 +608,7 @@ export default async function AdminPage({
         engagementScores={engagementScores}
         courseStats={courseStats}
         initialTab={initialTab}
+        initialCourse={initialCourse}
         initialTrackView={initialTrackView}
         lunchLearnRecordings={lunchLearnRecordings}
         insightsData={insightsData}

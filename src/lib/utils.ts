@@ -66,6 +66,65 @@ export function formatCohortDate(
 }
 
 /**
+ * Short date for table cells — "Jul 23", with the year only when it isn't the
+ * current one. THE formatter for dates in tables; raw ISO never reaches the UI.
+ */
+export function formatShortDate(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  // Bare YYYY-MM-DD anchors at local noon (same trick as formatCohortDate) so
+  // a timezone can't push it to the prior day.
+  const d = new Date(iso.length <= 10 ? `${iso.slice(0, 10)}T12:00:00` : iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
+  if (d.getFullYear() !== new Date().getFullYear()) opts.year = "numeric";
+  return d.toLocaleDateString("en-US", opts);
+}
+
+/**
+ * Relative time for recent activity — "3h ago" / "3d ago" under a week, then
+ * the short date. One clock for every feed and "last response" line.
+ */
+export function formatRelativeDate(
+  iso: string | null | undefined,
+  nowMs: number = Date.now(),
+): string {
+  if (!iso) return "—";
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return "—";
+  const hrs = Math.round((nowMs - t) / 3_600_000);
+  if (hrs < 1) return "just now";
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.round(hrs / 24);
+  if (days === 1) return "yesterday";
+  if (days < 7) return `${days}d ago`;
+  return formatShortDate(iso);
+}
+
+// Casing for slug words that title-case gets wrong. Last-resort only — real
+// names come from track config / track_overrides.
+const SLUG_WORDS: Record<string, string> = {
+  comptia: "CompTIA",
+  ai: "AI",
+  mass: "MASS",
+  bcc: "BCC",
+  bgc: "BGC",
+  it: "IT",
+};
+
+/**
+ * Human fallback for a track/course slug — "comptia-security" → "CompTIA
+ * Security". Raw slugs must never render in the UI; use this when no display
+ * name is on record.
+ */
+export function humanizeSlug(slug: string): string {
+  return slug
+    .split(/[-_]+/)
+    .filter(Boolean)
+    .map((w) => SLUG_WORDS[w] ?? w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
+/**
  * Compute the current week number (1-based) from a cohort start date.
  * Returns a value clamped between 1 and totalWeeks.
  *

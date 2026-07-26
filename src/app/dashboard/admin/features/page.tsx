@@ -106,7 +106,7 @@ export default async function FeaturesPage() {
 
       {/* Survey & Form Links */}
       <section className="space-y-4">
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
           Survey &amp; form links
         </h2>
         <SurveyLinksSection surveyConfigs={surveyConfigs} />
@@ -114,7 +114,7 @@ export default async function FeaturesPage() {
 
       {/* Program features (assessment + surveys, toggleable per program/track) */}
       <section className="space-y-4">
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
           Program features
         </h2>
         <div className="divide-y divide-rule overflow-hidden panel">

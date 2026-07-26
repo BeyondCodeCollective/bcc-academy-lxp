@@ -60,10 +60,10 @@ export function ProgressTab({
       {/* Legend */}
       <div className="flex flex-wrap items-center gap-4 text-[11px] text-ink-faint">
         <span className="inline-flex items-center gap-1.5">
-          <Eye size={12} className="text-green-600" /> Watched
+          <Eye size={12} className="text-success" /> Watched
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <FileText size={12} className="text-green-600" /> Uploaded work
+          <FileText size={12} className="text-success" /> Uploaded work
         </span>
         <span className="inline-flex items-center gap-1.5">
           <span className="h-3 w-3 rounded-[3px] border border-rule bg-paper-tint" /> Not yet
@@ -83,7 +83,7 @@ export function ProgressTab({
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr className="border-b border-rule">
-                <th className="sticky left-0 z-10 bg-paper px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-faint">
+                <th className="sticky left-0 z-10 bg-paper px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
                   Student
                 </th>
                 {weeks.map((w) => (
@@ -94,7 +94,7 @@ export function ProgressTab({
                     {w}
                   </th>
                 ))}
-                <th className="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-faint">
+                <th className="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
                   Total
                 </th>
               </tr>
@@ -117,9 +117,9 @@ export function ProgressTab({
                       </td>
                     ))}
                     <td className="px-4 py-2.5 text-right text-[12px] text-ink-soft whitespace-nowrap tabular-nums">
-                      <span className="text-green-700">{watched.size}</span>
+                      <span className="text-success-text">{watched.size}</span>
                       <span className="text-ink-faint"> · </span>
-                      <span className="text-green-700">{submitted.size}</span>
+                      <span className="text-success-text">{submitted.size}</span>
                       <span className="text-ink-faint">/{totalWeeks}</span>
                     </td>
                   </tr>
@@ -143,11 +143,11 @@ function Cell({ watched, uploaded }: { watched: boolean; uploaded: boolean }) {
     >
       <Eye
         size={13}
-        className={watched ? "text-green-600" : "text-ink-faint/30"}
+        className={watched ? "text-success" : "text-ink-faint/30"}
       />
       <FileText
         size={13}
-        className={uploaded ? "text-green-600" : "text-ink-faint/30"}
+        className={uploaded ? "text-success" : "text-ink-faint/30"}
       />
     </span>
   );

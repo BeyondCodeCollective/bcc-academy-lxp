@@ -2,7 +2,9 @@ import type { CoursesAnalytics } from "./actions-courses";
 import { StatCard } from "@/components/stats/stat-card";
 import { DonutChart } from "@/components/charts/donut-chart";
 import { METRIC_DEFS } from "@/lib/analytics/metric-defs";
-import { COBALT_FAMILY } from "@/components/stats/palette";
+import { COBALT_RAMP } from "@/components/stats/palette";
+import { DataTable, microLabel, Num, PersonCell } from "@/components/ui";
+import { formatShortDate } from "@/lib/utils";
 
 // Courses & Progress — Circle's "Courses" analytics layout, in the BCC visual
 // language: three headline cards, a completion-distribution donut, and the
@@ -10,15 +12,15 @@ import { COBALT_FAMILY } from "@/components/stats/palette";
 // getCoursesAnalytics. Current-state metrics (enrollments, completions, rate)
 // carry no period delta by design — we don't store the history to compute one.
 
-// Distribution palette: an ordinal cobalt ramp (pale → strong) from the shared
-// COBALT_FAMILY tokens, so more-complete buckets read as stronger cobalt and the
-// whole scale reads as one hue — never the rainbow Circle uses. The "finished"
-// bucket gets the brand electric green as a marker.
+// Distribution palette: the shared sequential cobalt ramp, so more-complete
+// buckets read as stronger cobalt and this donut matches every other
+// distribution in the app. The "finished" bucket gets the brand electric
+// green as a marker.
 const DIST_COLORS: Record<string, string> = {
-  "0%": COBALT_FAMILY[5], // pale cobalt
-  "1–25%": COBALT_FAMILY[4], // slate
-  "26–75%": COBALT_FAMILY[1], // cobalt light
-  "76–99%": COBALT_FAMILY[0], // cobalt — primary
+  "0%": COBALT_RAMP[0],
+  "1–25%": COBALT_RAMP[1],
+  "26–75%": COBALT_RAMP[2],
+  "76–99%": COBALT_RAMP[4],
   "100%": "var(--highlight)", // electric green marker
 };
 
@@ -37,6 +39,7 @@ export function CoursesDashboard({ data }: { data: CoursesAnalytics }) {
           value={data.totalCompleted.toLocaleString()}
           label="Course completions"
           info={METRIC_DEFS.courseCompletions}
+          hint={data.totalCompleted === 0 ? "None yet — cohorts still mid-course" : undefined}
         />
         <StatCard
           value={`${data.overallCompletionRate}%`}
@@ -51,90 +54,79 @@ export function CoursesDashboard({ data }: { data: CoursesAnalytics }) {
           segments={data.distribution.map((d) => ({
             label: d.label,
             value: d.value,
-            color: DIST_COLORS[d.label] ?? COBALT_FAMILY[1],
+            color: DIST_COLORS[d.label] ?? COBALT_RAMP[2],
           }))}
           centerValue={totalEnrolledPairs.toLocaleString()}
           centerLabel="Enrolled"
         />
 
         <div className="panel overflow-hidden p-5">
-          <p className="mb-4 text-[11px] font-medium uppercase tracking-[0.14em] text-ink-faint">
+          <p className={`mb-4 ${microLabel}`}>
             Popular courses
           </p>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-[10px] uppercase tracking-wide text-ink-faint">
-                  <th className="pb-2 pr-3 font-semibold">Course</th>
-                  <th className="pb-2 px-2 text-right font-semibold">Enroll.</th>
-                  <th className="pb-2 px-2 text-right font-semibold">Started</th>
-                  <th className="pb-2 px-2 text-right font-semibold">Done</th>
-                  <th className="pb-2 pl-2 text-right font-semibold">Rate</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.popularCourses.map((c) => (
-                  <tr key={c.slug} className="border-t border-rule/70">
-                    <td className="py-2 pr-3 text-ink">{c.name}</td>
-                    <td className="py-2 px-2 text-right tabular-nums text-ink">{c.enrolled}</td>
-                    <td className="py-2 px-2 text-right tabular-nums text-ink-soft">{c.started}</td>
-                    <td className="py-2 px-2 text-right tabular-nums text-ink-soft">{c.completed}</td>
-                    <td className="py-2 pl-2 text-right tabular-nums text-ink">{c.completionRate}%</td>
-                  </tr>
-                ))}
-                {data.popularCourses.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="py-6 text-center text-ink-faint">
-                      No courses with enrollments yet.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            columns={[
+              "Course",
+              { label: "Enroll.", align: "right" },
+              { label: "Started", align: "right" },
+              { label: "Done", align: "right" },
+              { label: "Rate", align: "right" },
+            ]}
+          >
+            {data.popularCourses.map((c) => (
+              <tr key={c.slug}>
+                <td className="px-4 py-2.5 text-ink">{c.name}</td>
+                <td className="px-4 py-2.5 text-right"><Num value={c.enrolled} /></td>
+                <td className="px-4 py-2.5 text-right"><Num value={c.started} /></td>
+                <td className="px-4 py-2.5 text-right"><Num value={c.completed} /></td>
+                <td className="px-4 py-2.5 text-right tabular-nums text-ink">{c.completionRate}%</td>
+              </tr>
+            ))}
+            {data.popularCourses.length === 0 && (
+              <tr>
+                <td colSpan={5} className="px-4 py-6 text-center text-ink-faint">
+                  No courses with enrollments yet.
+                </td>
+              </tr>
+            )}
+          </DataTable>
         </div>
       </section>
 
       <section className="space-y-2">
-        <h2 className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">
+        <h2 className={microLabel}>
           Active students
         </h2>
-        <div className="overflow-x-auto rounded-lg border border-rule">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-rule text-left text-[10px] uppercase tracking-wide text-ink-faint">
-                <th className="px-3 py-2 font-semibold">Student</th>
-                <th className="px-3 py-2 text-right font-semibold">Lessons</th>
-                <th className="px-3 py-2 text-right font-semibold">Started</th>
-                <th className="px-3 py-2 text-right font-semibold">Completed</th>
-                <th className="px-3 py-2 text-right font-semibold">Completion</th>
-                <th className="px-3 py-2 text-right font-semibold">Last active</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.activeStudents.map((s) => (
-                <tr key={s.email} className="border-b border-rule/60 last:border-0">
-                  <td className="px-3 py-2">
-                    <div className="font-medium text-ink">{s.name || s.email}</div>
-                    {s.name && <div className="text-xs text-ink-faint">{s.email}</div>}
-                  </td>
-                  <td className="px-3 py-2 text-right tabular-nums text-ink">{s.lessons}</td>
-                  <td className="px-3 py-2 text-right tabular-nums text-ink-soft">{s.started}</td>
-                  <td className="px-3 py-2 text-right tabular-nums text-ink-soft">{s.completed}</td>
-                  <td className="px-3 py-2 text-right tabular-nums text-ink">{s.completionPct}%</td>
-                  <td className="px-3 py-2 text-right text-ink-soft">{s.lastActive ?? "—"}</td>
-                </tr>
-              ))}
-              {data.activeStudents.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="px-3 py-8 text-center text-ink-faint">
-                    No active students in this window yet.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          columns={[
+            "Student",
+            { label: "Lessons", align: "right" },
+            { label: "Started", align: "right" },
+            { label: "Completed", align: "right" },
+            { label: "Completion", align: "right" },
+            { label: "Last active", align: "right" },
+          ]}
+        >
+          {data.activeStudents.map((s) => (
+            <tr key={s.email}>
+              <td className="px-4 py-2.5">
+                <PersonCell name={s.name || null} email={s.email} />
+              </td>
+              <td className="px-4 py-2.5 text-right"><Num value={s.lessons} /></td>
+              <td className="px-4 py-2.5 text-right"><Num value={s.started} /></td>
+              <td className="px-4 py-2.5 text-right"><Num value={s.completed} /></td>
+              <td className="px-4 py-2.5 text-right tabular-nums text-ink">{s.completionPct}%</td>
+              <td className="px-4 py-2.5 text-right text-ink-soft">{formatShortDate(s.lastActive)}</td>
+            </tr>
+          ))}
+          {data.activeStudents.length === 0 && (
+            <tr>
+              <td colSpan={6} className="px-4 py-8 text-center text-ink-faint">
+                No active students in this window yet.
+              </td>
+            </tr>
+          )}
+        </DataTable>
         <p className="text-[11px] leading-relaxed text-ink-faint">
           Progress uses furthest week reached (attendance, submissions, reflections,
           or lessons watched) over course length. Learners marked complete count as 100%.

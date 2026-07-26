@@ -2,12 +2,9 @@
 
 import { startTransition, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check } from "lucide-react";
 import { saveTrackOverview, type TrackOverviewPatch } from "./actions";
-import { Field, fieldInput } from "@/components/ui";
+import { Field, fieldInput, microLabel, SaveIndicator, type SaveState } from "@/components/ui";
 import { RichTextEditor } from "@/components/rich-text-editor";
-
-type SaveState = "idle" | "saving" | "saved" | "error";
 
 // `date` (meeting date) and `label` (extra-unit name, e.g. "Kickoff") are not
 // editable here, but must round-trip through save or editing a topic would wipe
@@ -110,13 +107,13 @@ export function TrackOverviewForm({ track, programSlug, onLiveChange }: Props) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-faint">
+        <p className={microLabel}>
           Track overview
         </p>
         <SaveIndicator state={saveState} />
       </div>
 
-      <div className="panel p-4 sm:p-5 space-y-4">
+      <div className="panel-form p-4 sm:p-5 space-y-4">
         <Field label="Track name">
           <input
             type="text"
@@ -152,7 +149,7 @@ export function TrackOverviewForm({ track, programSlug, onLiveChange }: Props) {
       </div>
 
       {track.selfPaced && (
-        <div className="panel p-4 sm:p-5">
+        <div className="panel-form p-4 sm:p-5">
           <label className="flex cursor-pointer items-start gap-3">
             <input
               type="checkbox"
@@ -174,10 +171,10 @@ export function TrackOverviewForm({ track, programSlug, onLiveChange }: Props) {
       )}
 
       {weekSummaries.length > 0 && (
-        <div className="panel p-4 sm:p-5 space-y-4">
+        <div className="panel-form p-4 sm:p-5 space-y-4">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-faint">
+              <p className={microLabel}>
                 {(unitLabel || "Week")}s
               </p>
               <p className="mt-1 text-xs text-ink-faint">
@@ -233,19 +230,4 @@ export function TrackOverviewForm({ track, programSlug, onLiveChange }: Props) {
       )}
     </div>
   );
-}
-
-// ─── Bits ───────────────────────────────────────────────────────────────────
-
-function SaveIndicator({ state }: { state: SaveState }) {
-  if (state === "idle") return null;
-  if (state === "saving") return <span className="text-[11px] text-ink-faint">Saving…</span>;
-  if (state === "saved") {
-    return (
-      <span className="inline-flex items-center gap-1 text-[11px] text-green-600">
-        <Check size={11} /> Saved
-      </span>
-    );
-  }
-  return <span className="text-[11px] text-red-500">Save failed</span>;
 }
