@@ -87,13 +87,9 @@ export type DataTableColumn = string | { label: string; align?: "left" | "right"
 export function DataTable({
   columns,
   children,
-  dense = false,
 }: {
   columns: DataTableColumn[];
   children: ReactNode;
-  /** Tighter cell padding for tables inside half-width cards, so they fit
-   *  without a horizontal scrollbar. Use px-3 on the row cells to match. */
-  dense?: boolean;
 }) {
   return (
     <div className="overflow-x-auto rounded-lg border border-rule">
@@ -105,7 +101,7 @@ export function DataTable({
               return (
                 <th
                   key={col.label}
-                  className={`${dense ? "px-3" : "px-4"} py-2.5 ${microLabel} ${
+                  className={`px-4 py-2.5 ${microLabel} ${
                     col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : ""
                   }`}
                 >
