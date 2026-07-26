@@ -6,6 +6,7 @@ import Link from "next/link";
 import { deleteStudentAction, updateStudentAction, updateCohortAction, saveSessionContent, assignStudentTrack, removeStudentTrack, bulkAssignTrack, exportSurveyResponses, exportPublicSurveyResponses, getAllSubmissions, addFeedback, assignInstructorTrack, removeInstructorTrack, deleteSurveyResponse, deletePublicSurveyResponse, listPublicSurveyResponses, sendInviteAction, createCohortAction } from "./actions";
 import type { SessionResource, StudentTrackRow, SurveyStatsRow, AdminSubmissionRow, InstructorTrackRow, PublicSurveyStatsRow } from "./actions";
 import { canManageStudents, canSwitchPrograms, canViewInsights } from "@/lib/roles";
+import { normalizeCohortLabel } from "@/lib/surveys/cohort-labels";
 import { RichTextEditor } from "@/components/rich-text-editor";
 import {
   Users,
@@ -77,7 +78,7 @@ const PLATFORM_SURVEY_TITLES: Record<string, string> = {
 // Shared Analytics course-scope selector. Off until all four sub-tabs honor
 // ?course=; flip to true once the dimension wiring lands so prod never shows a
 // control that does nothing.
-const ANALYTICS_SCOPE_ENABLED = false;
+const ANALYTICS_SCOPE_ENABLED = true;
 
 function AdminTopTabs({
   current,
@@ -616,6 +617,11 @@ export function AdminTabs({
     slug: t.slug,
     name: t.shortName || t.name,
   }));
+  // The selected course as a cohort label, so Insights (which buckets responses
+  // by cohort) scopes to the same course as the other dimensions.
+  const courseCohort = initialCourse
+    ? normalizeCohortLabel(initialCourse)
+    : undefined;
   // Programs like Catalyst (apex) don't have a learner dashboard — no
   // tracks, no cohorts. They render a single empty-state pointer to
   // Survey Insights via the `insights` tab.
@@ -1813,6 +1819,7 @@ export function AdminTabs({
               sections={insightsData.sections}
               programs={insightsData.programs}
               totalResponses={insightsData.totalResponses}
+              courseCohort={courseCohort}
             />
           ) : canViewInsights(userRole) ? (
             <div className="panel p-8 text-center space-y-2">
