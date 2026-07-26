@@ -647,7 +647,17 @@ export function AdminTabs({
   // pattern stays consistent — they'll see only the tracks they teach.
   const defaultTab = "home";
 
-  const [tab, setTab] = useState<string>(initialTab || defaultTab);
+  // A ?tab= that matches neither a fixed tab nor one of THIS program's tracks
+  // (stale bookmark, back-button into another program's course, hidden course)
+  // must not render a dead blank view — fall back to the home picker.
+  const FIXED_TABS = new Set([
+    "home", "students", "student-work", "attendance", "insights",
+    "analytics", "course-progress", "lunch-learn",
+  ]);
+  const normalizeTab = (t: string) =>
+    FIXED_TABS.has(t) || tracks.some((tr) => tr.slug === t) ? t : defaultTab;
+
+  const [tab, setTab] = useState<string>(normalizeTab(initialTab || defaultTab));
   const [liveTrackNames, setLiveTrackNames] = useState<Record<string, { name: string; instructor: string }>>({});
 
   // When the browser restores this page from its back-forward cache (bfcache),
@@ -657,8 +667,17 @@ export function AdminTabs({
     const handlePageShow = (e: PageTransitionEvent) => {
       if (e.persisted) router.refresh();
     };
+    // Next's client router restores back/forward from its own cache without
+    // re-fetching — stale when the program cookie changed in between (switch
+    // program, hit back). The URL is identical across programs, so only a
+    // refresh can reconcile the view with the current cookie.
+    const handlePopState = () => router.refresh();
     window.addEventListener("pageshow", handlePageShow);
-    return () => window.removeEventListener("pageshow", handlePageShow);
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("pageshow", handlePageShow);
+      window.removeEventListener("popstate", handlePopState);
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sync tab state when the URL ?tab= param changes (sidebar nav clicks).
@@ -668,7 +687,7 @@ export function AdminTabs({
   // old view with empty server data and looked like a load failure. Now
   // we reset to the default tab whenever initialTab is absent.
   useEffect(() => {
-    const next = initialTab || defaultTab;
+    const next = normalizeTab(initialTab || defaultTab);
     if (next !== tab) setTab(next);
   }, [initialTab]); // eslint-disable-line react-hooks/exhaustive-deps
 

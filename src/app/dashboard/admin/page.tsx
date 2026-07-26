@@ -423,7 +423,7 @@ export default async function AdminPage({
 
     // Courses & Progress analytics — same current-program scoping as Engagement.
     if (canViewInsights(userRole) && needsCoursesData) {
-      coursesData = await getCoursesAnalytics().catch(() => null);
+      coursesData = await getCoursesAnalytics(initialCourse).catch(() => null);
     }
 
     // Enrolled + active per course for the course-picker list. Computed here

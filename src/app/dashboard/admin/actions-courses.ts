@@ -43,7 +43,9 @@ export type CoursesAnalytics = {
   activeStudents: ActiveStudent[];
 };
 
-export async function getCoursesAnalytics(): Promise<CoursesAnalytics> {
+export async function getCoursesAnalytics(
+  courseSlug?: string,
+): Promise<CoursesAnalytics> {
   const { svc } = await requireCapability("view_insights");
   const program = await getProgram();
   const scope = await resolveProgramScope(program.slug);
@@ -86,9 +88,12 @@ export async function getCoursesAnalytics(): Promise<CoursesAnalytics> {
     }
   }
 
-  // Enrolled (student,course) pairs, de-duped.
+  // Enrolled (student,course) pairs, de-duped. Scoped to one course when the
+  // shared Analytics scope is set, so distribution + active students below all
+  // reflect just that course.
   const enrolledPairs = new Set<string>();
   for (const e of (enrollRes.data ?? []) as { student_id: string; track_slug: string }[]) {
+    if (courseSlug && e.track_slug !== courseSlug) continue;
     enrolledPairs.add(`${e.student_id}|${e.track_slug}`);
   }
   // Completed pairs (100% by definition).
@@ -140,7 +145,11 @@ export async function getCoursesAnalytics(): Promise<CoursesAnalytics> {
       startedByTrack.set(slug, (startedByTrack.get(slug) ?? 0) + 1);
     }
   }
-  const popularCourses: PopularCourse[] = progress.tracks
+  // Scope the per-track rollup + totals to the selected course when set.
+  const scopedTracks = courseSlug
+    ? progress.tracks.filter((t) => t.slug === courseSlug)
+    : progress.tracks;
+  const popularCourses: PopularCourse[] = scopedTracks
     .map((t) => ({
       slug: t.slug,
       name: t.name,
@@ -166,7 +175,11 @@ export async function getCoursesAnalytics(): Promise<CoursesAnalytics> {
     id: string; first_name: string | null; last_name: string | null; email: string;
   }[];
   const activeStudents: ActiveStudent[] = students
-    .filter((s) => (startedTracks.get(s.id)?.size ?? 0) > 0)
+    .filter(
+      (s) =>
+        (enrolledBySid.get(s.id)?.length ?? 0) > 0 &&
+        (startedTracks.get(s.id)?.size ?? 0) > 0,
+    )
     .map((s) => {
       const slugs = enrolledBySid.get(s.id) ?? [];
       const fracs = slugs.map((slug) => fractionFor(`${s.id}|${slug}`, slug));
@@ -186,11 +199,24 @@ export async function getCoursesAnalytics(): Promise<CoursesAnalytics> {
     .sort((a, b) => b.lessons + b.started - (a.lessons + a.started))
     .slice(0, 50);
 
+  // Totals: the one course's figures when scoped, else program-wide.
+  const scopedTotals = courseSlug
+    ? {
+        totalEnrolled: scopedTracks.reduce((n, t) => n + t.enrolled, 0),
+        totalCompleted: scopedTracks.reduce((n, t) => n + t.completed, 0),
+        overallCompletionRate: scopedTracks[0]?.completionRate ?? 0,
+      }
+    : {
+        totalEnrolled: progress.totalEnrolled,
+        totalCompleted: progress.totalCompleted,
+        overallCompletionRate: progress.overallCompletionRate,
+      };
+
   return {
     programName: program.name,
-    totalEnrolled: progress.totalEnrolled,
-    totalCompleted: progress.totalCompleted,
-    overallCompletionRate: progress.overallCompletionRate,
+    totalEnrolled: scopedTotals.totalEnrolled,
+    totalCompleted: scopedTotals.totalCompleted,
+    overallCompletionRate: scopedTotals.overallCompletionRate,
     distribution,
     popularCourses,
     activeStudents,
