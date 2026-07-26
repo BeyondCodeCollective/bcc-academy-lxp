@@ -24,7 +24,20 @@ export type CourseEngagementProps = {
     /** Learners present at every held session — the certificate-eligible count. */
     perfect: number;
     unitLabel: string;
-    perSession: { unit: number; session: number; present: number }[];
+    perSession: {
+      unit: number;
+      session: number;
+      present: number;
+      /** When the room opened (earliest check-in). Null on legacy rows. */
+      date: string | null;
+    }[];
+    /** Learners who missed at least one held session, most missed first. */
+    absentees: {
+      name: string;
+      attended: number;
+      missed: number;
+      lastAttendedAt: string | null;
+    }[];
   } | null;
   /** Learner status buckets — should sum to totalLearners. */
   status: {
@@ -44,6 +57,21 @@ export type CourseEngagementProps = {
 };
 
 // Tailwind needs literal class names, so the column count can't be interpolated.
+// "Jul 8" — short enough to sit inside a bar label without wrapping. UTC so
+// the date matches the session everyone else is looking at, not the viewer's
+// local midnight.
+function formatDay(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+// A follow-up list stops being a follow-up list past a dozen names; the full
+// picture lives in the attendance grid.
+const ABSENTEE_LIMIT = 12;
+
 const GRID_COLS: Record<number, string> = {
   2: "sm:grid-cols-2",
   3: "sm:grid-cols-3",
@@ -66,6 +94,16 @@ export function CourseEngagement({
 }: CourseEngagementProps) {
   const activePct = totalLearners > 0 ? Math.round((activeThisWeek / totalLearners) * 100) : 0;
   const unit = attendance?.unitLabel ?? "Week";
+  // Mean turnout across held sessions — the one number that answers "how well
+  // attended is this course", which per-session counts alone don't.
+  const avgTurnout =
+    attendance && attendance.perSession.length > 0 && totalLearners > 0
+      ? Math.round(
+          (attendance.perSession.reduce((sum, s) => sum + s.present, 0) /
+            (attendance.perSession.length * totalLearners)) *
+            100,
+        )
+      : 0;
   const tileCount =
     2 + (showLessonsWatched ? 1 : 0) + (showSubmissions ? 1 : 0) + (attendance ? 1 : 0);
 
@@ -136,13 +174,61 @@ export function CourseEngagement({
       {/* Per-session attendance — shows the shape a single rate would flatten. */}
       {attendance && (
         <div className="panel p-5 sm:p-6">
-          <p className="mb-4 text-sm font-semibold text-ink">Attendance by {unit.toLowerCase()}</p>
+          <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+            <p className="text-sm font-semibold text-ink">
+              Attendance by {unit.toLowerCase()}
+            </p>
+            <p className="text-xs text-ink-faint">
+              {avgTurnout}% average turnout · {totalLearners} enrolled
+            </p>
+          </div>
+          {/* Bar width is turnout against the ROSTER, not against the best
+              session — otherwise the thinnest week still renders near-full and
+              a half-empty room looks like a good night. */}
           <DataBar
             items={attendance.perSession.map((s) => ({
-              label: `${unit.toLowerCase()} ${s.unit}`,
-              value: s.present,
+              label: s.date
+                ? `${unit.toLowerCase()} ${s.unit} · ${formatDay(s.date)}`
+                : `${unit.toLowerCase()} ${s.unit}`,
+              value: `${s.present}/${totalLearners}`,
+              pct: totalLearners ? (s.present / totalLearners) * 100 : 0,
             }))}
           />
+        </div>
+      )}
+
+      {/* Names, not just a rate. A turnout number says the room was thin; this
+          says whom to call. */}
+      {attendance && attendance.absentees.length > 0 && (
+        <div className="panel p-5 sm:p-6">
+          <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+            <p className="text-sm font-semibold text-ink">Who&apos;s missing class</p>
+            <p className="text-xs text-ink-faint">
+              {attendance.absentees.length} of {totalLearners} missed at least one
+            </p>
+          </div>
+          <ul className="divide-y divide-rule/60">
+            {attendance.absentees.slice(0, ABSENTEE_LIMIT).map((a) => (
+              <li
+                key={a.name}
+                className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 py-2"
+              >
+                <span className="text-sm text-ink">{a.name}</span>
+                <span className="text-xs text-ink-soft tabular-nums">
+                  missed {a.missed} of {attendance.sessionsHeld} ·{" "}
+                  {a.lastAttendedAt
+                    ? `last here ${formatDay(a.lastAttendedAt)}`
+                    : "never attended"}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {attendance.absentees.length > ABSENTEE_LIMIT && (
+            <p className="mt-3 text-xs text-ink-faint">
+              +{attendance.absentees.length - ABSENTEE_LIMIT} more — see Students
+              → Attendance for the full grid.
+            </p>
+          )}
         </div>
       )}
 
