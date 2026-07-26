@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { CoursesAnalytics } from "./actions-courses";
 import { StatCard } from "@/components/stats/stat-card";
 import { DonutChart } from "@/components/charts/donut-chart";
@@ -72,7 +73,14 @@ export function CoursesDashboard({ data }: { data: CoursesAnalytics }) {
             {data.popularCourses.map((c) => (
               <li key={c.slug} className="flex items-center justify-between gap-4 py-3">
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-ink">{c.name}</p>
+                  {/* Course-first: the course's own numbers live in the course —
+                     the name is the way down to them. */}
+                  <Link
+                    href={`/dashboard/admin?tab=${encodeURIComponent(c.slug)}&view=analytics`}
+                    className="text-sm font-medium text-ink underline-offset-2 hover:text-primary hover:underline"
+                  >
+                    {c.name}
+                  </Link>
                   <p className="mt-0.5 text-xs text-ink-faint">
                     {c.enrolled} enrolled · {c.started} started · {c.completed} done
                   </p>

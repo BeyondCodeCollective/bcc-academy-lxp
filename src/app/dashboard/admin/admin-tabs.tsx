@@ -6,7 +6,6 @@ import Link from "next/link";
 import { deleteStudentAction, updateStudentAction, updateCohortAction, saveSessionContent, assignStudentTrack, removeStudentTrack, bulkAssignTrack, exportSurveyResponses, exportPublicSurveyResponses, getAllSubmissions, addFeedback, assignInstructorTrack, removeInstructorTrack, deleteSurveyResponse, deletePublicSurveyResponse, listPublicSurveyResponses, sendInviteAction, createCohortAction } from "./actions";
 import type { SessionResource, StudentTrackRow, SurveyStatsRow, AdminSubmissionRow, InstructorTrackRow, PublicSurveyStatsRow } from "./actions";
 import { canManageStudents, canSwitchPrograms, canViewInsights } from "@/lib/roles";
-import { normalizeCohortLabel } from "@/lib/surveys/cohort-labels";
 import { RichTextEditor } from "@/components/rich-text-editor";
 import {
   Users,
@@ -45,6 +44,7 @@ import { ProgressTab } from "./progress-tab";
 import { CertificatesPanel } from "./certificates-panel";
 import { TrackInsightsSection } from "@/components/track-insights-section";
 import { CourseEngagement, type CourseEngagementProps } from "@/components/stats/course-engagement";
+import { ProgramAttendanceOverview } from "./program-attendance";
 import { InsightsDashboard } from "./insights/insights-dashboard";
 import { AnalyticsDashboard } from "./analytics-dashboard";
 import type { EngagementAnalytics } from "./actions-analytics";
@@ -75,19 +75,12 @@ const PLATFORM_SURVEY_TITLES: Record<string, string> = {
 // Engagement group under Analytics as segmented sub-views ("how are we
 // doing" is one kind of work). Old ?tab= URLs all keep working.
 
-// Shared Analytics course-scope selector. Off until all four sub-tabs honor
-// ?course=; flip to true once the dimension wiring lands so prod never shows a
-// control that does nothing.
-const ANALYTICS_SCOPE_ENABLED = true;
-
 function AdminTopTabs({
   current,
   sub,
   showInsights,
   actions,
   isManager = true,
-  course,
-  courseOptions,
 }: {
   current: "courses" | "students" | "student-work" | "analytics";
   sub?: "attendance" | "insights" | "analytics" | "course-progress";
@@ -98,13 +91,7 @@ function AdminTopTabs({
    *  own Students / Attendance / Progress / Work views, so the cross-course
    *  People, Student work, and Analytics tabs render for managers only. */
   isManager?: boolean;
-  /** Shared Analytics scope — the selected course slug ("" / undefined = all
-   *  courses). Carried in `?course=` so it survives sub-tab navigation. */
-  course?: string;
-  /** Courses for the scope selector (slug + display name). */
-  courseOptions?: { slug: string; name: string }[];
 }) {
-  const router = useRouter();
   const allTabs = [
     { id: "courses", label: "Courses", href: "/dashboard/admin", Icon: GraduationCapIcon },
     // "People", not "All people" — a tab names a place, not a filter. (Same
@@ -133,12 +120,6 @@ function AdminTopTabs({
   ];
   // One segment is not a choice — hide the picker until there are at least two.
   const visibleSegments = segments.filter((t) => t.show);
-  // Carry the shared course scope across sub-tab links so switching Attendance →
-  // Insights → Engagement → Progress keeps you at the same altitude.
-  const withCourse = (href: string) =>
-    course ? `${href}&course=${encodeURIComponent(course)}` : href;
-  const currentBase =
-    visibleSegments.find((t) => t.id === sub)?.href ?? "/dashboard/admin?tab=attendance";
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-x-1 border-b border-rule">
@@ -159,39 +140,11 @@ function AdminTopTabs({
           </Link>
         ))}
       </div>
+      {/* Course-first: no course scope up here. The program tabs COMPARE
+         courses; a course's own numbers live inside the course (its Analytics
+         sub-tab), reached by clicking the course in any table below. */}
       {current === "analytics" && visibleSegments.length > 1 && (
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <SegmentedTabs
-            ariaLabel="Analytics view"
-            tabs={visibleSegments.map((t) => ({ ...t, href: withCourse(t.href) }))}
-            active={sub ?? ""}
-          />
-          {/* Shared scope — set the course once; every sub-tab above obeys it.
-             Hidden until all four dimensions honor ?course= (flip this flag on
-             once the wiring lands) so prod never shows an inert control. */}
-          {/* Surveys already slice by Form + Cohort — a third, course-level
-             selector on that sub-tab stacked two altitudes on one page. */}
-          {ANALYTICS_SCOPE_ENABLED && sub !== "insights" && courseOptions && courseOptions.length > 0 && (
-            <label className="flex items-center gap-2">
-              <span className={microLabel}>
-                Course
-              </span>
-              <select
-                value={course ?? ""}
-                onChange={(e) => {
-                  const slug = e.target.value;
-                  router.push(slug ? `${currentBase}&course=${encodeURIComponent(slug)}` : currentBase);
-                }}
-                className="rounded-lg border border-rule bg-white px-2.5 py-1.5 text-sm text-ink focus:border-ink-faint focus:outline-none"
-              >
-                <option value="">All courses</option>
-                {courseOptions.map((c) => (
-                  <option key={c.slug} value={c.slug}>{c.name}</option>
-                ))}
-              </select>
-            </label>
-          )}
-        </div>
+        <SegmentedTabs ariaLabel="Analytics view" tabs={visibleSegments} active={sub ?? ""} />
       )}
     </div>
   );
@@ -570,7 +523,6 @@ export function AdminTabs({
   engagementScores = {},
   courseStats = {},
   initialTab,
-  initialCourse,
   initialTrackView,
   lunchLearnRecordings = [],
   insightsData = null,
@@ -601,7 +553,6 @@ export function AdminTabs({
     { total: number; active: number; fullAttendance: number | null; sessionsHeld: number }
   >;
   initialTab?: string;
-  initialCourse?: string;
   initialTrackView?: string;
   lunchLearnRecordings?:{ id: string; title: string; presenter: string; recording_url: string; description: string | null; recorded_at: string }[];
   insightsData?: InsightsData | null;
@@ -620,16 +571,7 @@ export function AdminTabs({
   // both manage people (the ladder is cumulative), plus the master owner.
   const isManager = canManageStudents(userRole) || isMaster;
   // Courses for the shared Analytics scope selector (slug + display name).
-  const analyticsCourseOptions = tracks.map((t) => ({
-    slug: t.slug,
-    name: t.shortName || t.name,
-  }));
-  // The selected course as a cohort label, so Insights (which buckets responses
-  // by cohort) scopes to the same course as the other dimensions.
-  const courseCohort = initialCourse
-    ? normalizeCohortLabel(initialCourse)
-    : undefined;
-  // Programs like Catalyst (apex) don't have a learner dashboard — no
+    // Programs like Catalyst (apex) don't have a learner dashboard — no
   // tracks, no cohorts. They render a single empty-state pointer to
   // Survey Insights via the `insights` tab.
   const isDashboardless = tracks.length === 0 && cohorts.length === 0;
@@ -1704,14 +1646,11 @@ export function AdminTabs({
       {/* Standalone Analytics (from sidebar, all tracks) */}
       {tab === "attendance" && (
         <div className="space-y-6">
-          <AdminTopTabs current="analytics" sub="attendance" showInsights={canViewInsights(userRole)} isManager={isManager} course={initialCourse} courseOptions={analyticsCourseOptions} />
-          <AttendanceTab
+          <AdminTopTabs current="analytics" sub="attendance" showInsights={canViewInsights(userRole)} isManager={isManager} />
+          <ProgramAttendanceOverview
             students={students.filter((s) => s.role === "student")}
             tracks={tracks}
             enrollments={enrollments}
-            scopeLabel="All tracks"
-            hideTitle
-            course={initialCourse}
           />
         </div>
       )}
@@ -1733,9 +1672,9 @@ export function AdminTabs({
          follows the program switcher rather than showing every program. */}
       {tab === "analytics" && (
         <div className="space-y-6">
-          <AdminTopTabs current="analytics" sub="analytics" showInsights={canViewInsights(userRole)} isManager={isManager} course={initialCourse} courseOptions={analyticsCourseOptions} />
+          <AdminTopTabs current="analytics" sub="analytics" showInsights={canViewInsights(userRole)} isManager={isManager} />
           {analyticsData ? (
-            <AnalyticsDashboard data={analyticsData} course={initialCourse} />
+            <AnalyticsDashboard data={analyticsData} />
           ) : (
             <p className="text-sm text-ink-faint">No analytics available for this program.</p>
           )}
@@ -1746,7 +1685,7 @@ export function AdminTabs({
          per-student progress. Scoped to the current program like Engagement. */}
       {tab === "course-progress" && (
         <div className="space-y-6">
-          <AdminTopTabs current="analytics" sub="course-progress" showInsights={canViewInsights(userRole)} isManager={isManager} course={initialCourse} courseOptions={analyticsCourseOptions} />
+          <AdminTopTabs current="analytics" sub="course-progress" showInsights={canViewInsights(userRole)} isManager={isManager} />
           {coursesData ? (
             <CoursesDashboard data={coursesData} />
           ) : (
@@ -1762,7 +1701,7 @@ export function AdminTabs({
          broader operational dashboard (engagement, attendance, alumni). */}
       {tab === "insights" && (
         <div className="space-y-6">
-          <AdminTopTabs current="analytics" sub="insights" showInsights={canViewInsights(userRole)} isManager={isManager} course={initialCourse} courseOptions={analyticsCourseOptions} />
+          <AdminTopTabs current="analytics" sub="insights" showInsights={canViewInsights(userRole)} isManager={isManager} />
 
           {/* The "{Program} surveys" widget that used to live here pulled from
              `surveyStats` (auth-only, never populated on the Insights tab since
@@ -1832,7 +1771,6 @@ export function AdminTabs({
               sections={insightsData.sections}
               programs={insightsData.programs}
               totalResponses={insightsData.totalResponses}
-              courseCohort={courseCohort}
             />
           ) : canViewInsights(userRole) ? (
             <div className="panel p-8 text-center space-y-2">

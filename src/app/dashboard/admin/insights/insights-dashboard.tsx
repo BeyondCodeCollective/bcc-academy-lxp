@@ -23,7 +23,6 @@ interface Props {
   totalResponses: number;
   /** Shared Analytics scope — a cohort label. When set, only responses from
    *  that cohort (i.e. that course) are shown. */
-  courseCohort?: string;
 }
 
 // Program breakdown stays in the cobalt family (shared palette) —
@@ -78,22 +77,9 @@ function grantCompleteness(responses: BCCSurveyResponse[]): { label: string; cou
     .filter((m) => m.count > 0);
 }
 
-export function InsightsDashboard({ sections: rawSections, programs, courseCohort }: Props) {
-  // Shared course scope: filter every survey's responses to the course's cohort,
-  // then drop surveys with nothing left. Shadowing `sections` scopes the whole
-  // component (stats, survey list, chart) with one change.
-  const sections = useMemo(
-    () =>
-      courseCohort
-        ? rawSections
-            .map((s) => ({
-              ...s,
-              responses: s.responses.filter((r) => cohortOf(r) === courseCohort),
-            }))
-            .filter((s) => s.responses.length > 0)
-        : rawSections,
-    [rawSections, courseCohort],
-  );
+// Course-first: no shared course scope here — the Cohort selector below is
+// this view's own (and only) course-level cut.
+export function InsightsDashboard({ sections, programs }: Props) {
   // Distinct cohorts across all responses — needed to color the per-survey
   // breakdown consistently.
   const allCohorts = useMemo(() => {

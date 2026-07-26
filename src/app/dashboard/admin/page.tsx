@@ -43,9 +43,9 @@ type LunchLearnRow = {
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; view?: string; course?: string }>;
+  searchParams: Promise<{ tab?: string; view?: string }>;
 }) {
-  const { tab: initialTab, view: initialTrackView, course: initialCourse } = await searchParams;
+  const { tab: initialTab, view: initialTrackView } = await searchParams;
   const [program, ctx] = await Promise.all([
     getProgram(),
     isSupabaseConfigured() ? getSessionContext() : Promise.resolve(null),
@@ -431,7 +431,7 @@ export default async function AdminPage({
 
     // Courses & Progress analytics — same current-program scoping as Engagement.
     if (canViewInsights(userRole) && needsCoursesData) {
-      coursesData = await getCoursesAnalytics(initialCourse).catch(() => null);
+      coursesData = await getCoursesAnalytics().catch(() => null);
     }
 
     // Enrolled + active per course for the course-picker list. Computed here
@@ -644,7 +644,6 @@ export default async function AdminPage({
         engagementScores={engagementScores}
         courseStats={courseStats}
         initialTab={initialTab}
-        initialCourse={initialCourse}
         initialTrackView={initialTrackView}
         lunchLearnRecordings={lunchLearnRecordings}
         insightsData={insightsData}
