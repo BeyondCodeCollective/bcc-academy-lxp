@@ -73,6 +73,12 @@ const PLATFORM_SURVEY_TITLES: Record<string, string> = {
 // navigation instead of a row of quiet links. Attendance / Survey insights /
 // Engagement group under Analytics as segmented sub-views ("how are we
 // doing" is one kind of work). Old ?tab= URLs all keep working.
+
+// Shared Analytics course-scope selector. Off until all four sub-tabs honor
+// ?course=; flip to true once the dimension wiring lands so prod never shows a
+// control that does nothing.
+const ANALYTICS_SCOPE_ENABLED = false;
+
 function AdminTopTabs({
   current,
   sub,
@@ -157,8 +163,10 @@ function AdminTopTabs({
             tabs={visibleSegments.map((t) => ({ ...t, href: withCourse(t.href) }))}
             active={sub ?? ""}
           />
-          {/* Shared scope — set the course once; every sub-tab above obeys it. */}
-          {courseOptions && courseOptions.length > 0 && (
+          {/* Shared scope — set the course once; every sub-tab above obeys it.
+             Hidden until all four dimensions honor ?course= (flip this flag on
+             once the wiring lands) so prod never shows an inert control. */}
+          {ANALYTICS_SCOPE_ENABLED && courseOptions && courseOptions.length > 0 && (
             <label className="flex items-center gap-2">
               <span className={microLabel}>
                 Course
