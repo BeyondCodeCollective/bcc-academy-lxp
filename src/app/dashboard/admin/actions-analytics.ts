@@ -67,9 +67,19 @@ export type EngagementAnalytics = {
   // Tracks in this program, for the Analytics tab's track filter. Slug + display
   // name so the dropdown reads "CompTIA Security+" but filters on the slug.
   trackOptions: { slug: string; name: string }[];
+  /** The course the funnel is scoped to, or null for the whole program. */
+  activeCourse: string | null;
 };
 
-export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
+export async function getEngagementAnalytics(
+  // Course scope for the FUNNEL, not just the table. The dashboard already
+  // filters its learner rows by the shared Analytics course scope, but
+  // invited/activated/engaged stayed program-wide — so drilling into one course
+  // left three headline numbers describing everything else too. (Rebased from
+  // PR #771's Phase 3, driven by the existing shared scope rather than a second
+  // row of course pills.)
+  trackSlug?: string,
+): Promise<EngagementAnalytics> {
   const { svc } = await requireCapability("view_insights");
   const program = await getProgram();
   const scope = await resolveProgramScope(program.slug);
@@ -77,11 +87,16 @@ export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
   const trackSlugs = program.tracks.map((t) => t.slug);
 
   const trackOptions = program.tracks.map((t) => ({ slug: t.slug, name: t.name }));
+  // Only honour a course filter for a track that's actually in this program.
+  const activeCourse = trackSlug && trackSlugs.includes(trackSlug) ? trackSlug : null;
+  // "Invited" reach narrows to the selected course's allowlist when drilled in.
+  const invitedTrackSlugs = activeCourse ? [activeCourse] : trackSlugs;
 
   const empty: EngagementAnalytics = {
     programName: program.name,
     funnel: { invited: 0, activated: 0, engaged: 0 },
     learners: [],
+    activeCourse,
     trackOptions,
   };
   if (ids.length === 0) return empty;
@@ -114,7 +129,7 @@ export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
     byId.set((row as { id: string }).id, row);
   }
   const students = Array.from(byId.values());
-  const studs = (students ?? []) as {
+  let studs = (students ?? []) as {
     id: string;
     first_name: string | null;
     last_name: string | null;
@@ -125,6 +140,22 @@ export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
     state: string | null;
     date_of_birth: string | null;
   }[];
+
+  // Course drill-down: keep only learners enrolled in the selected course.
+  // Applied AFTER the membership + staff filtering above, so it narrows that
+  // set rather than replacing it — the original Phase 3 patch queried students
+  // by program_id alone and would have dropped both fixes.
+  if (activeCourse) {
+    const { data: enrolled } = await svc
+      .from("student_tracks")
+      .select("student_id")
+      .eq("track_slug", activeCourse);
+    const enrolledIds = new Set(
+      (enrolled ?? []).map((r) => (r as { student_id: string }).student_id),
+    );
+    studs = studs.filter((s) => enrolledIds.has(s.id));
+  }
+
   const studentIds = studs.map((s) => s.id);
 
   // Engagement events scoped to these learners + the program's allowlist.
@@ -145,7 +176,7 @@ export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
       // engagement and disagreed with the Insights page's definition.
       svc.from("reflections").select("student_id").in("student_id", studentIds).not("submitted_at", "is", null),
       svc.from("survey_responses").select("student_id, survey_type, completed_at").in("student_id", studentIds).not("completed_at", "is", null),
-      svc.from("allowed_signup_emails").select("email").in("track_slug", trackSlugs),
+      svc.from("allowed_signup_emails").select("email").in("track_slug", invitedTrackSlugs),
       // Emails of internal QA accounts, so they're subtracted from "Invited"
       // too — otherwise Invited counts a test allowlist entry that "Created"
       // (is_test filtered) doesn't, and the funnel reads N+1 → N.
@@ -288,6 +319,7 @@ export async function getEngagementAnalytics(): Promise<EngagementAnalytics> {
     funnel: { invited, activated: studs.length, engaged: engaged.size },
     learners,
     trackOptions,
+    activeCourse,
   };
 }
 

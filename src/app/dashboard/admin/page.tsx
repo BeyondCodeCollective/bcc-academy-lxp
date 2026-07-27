@@ -45,12 +45,20 @@ type LunchLearnRow = {
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; view?: string; sub?: string }>;
+  searchParams: Promise<{ tab?: string; view?: string; sub?: string; course?: string }>;
 }) {
   // `sub` makes the Students sub-view (roster / attendance / progress / work /
   // certificates) addressable, so an analytics number can link straight to the
   // list behind it instead of dead-ending on a figure.
-  const { tab: initialTab, view: initialTrackView, sub: initialStudentSubView } = await searchParams;
+  const {
+    tab: initialTab,
+    view: initialTrackView,
+    sub: initialStudentSubView,
+    // Shared Analytics course scope. The ?course= plumbing has been in place
+    // since #824; the dimensions never read it, which is why the selector was
+    // gated off in #825. The funnel reads it now.
+    course: analyticsCourse,
+  } = await searchParams;
   const [program, ctx] = await Promise.all([
     getProgram(),
     isSupabaseConfigured() ? getSessionContext() : Promise.resolve(null),
@@ -476,7 +484,9 @@ export default async function AdminPage({
     // Program-level engagement analytics — scoped to the CURRENT program for
     // every role (the action enforces this), so it tracks the program switcher.
     if (canViewInsights(userRole) && needsAnalyticsData) {
-      analyticsData = await getEngagementAnalytics().catch(() => null);
+      // Same course scope the learner table already uses, so the funnel and
+      // the rows below it describe the same population.
+      analyticsData = await getEngagementAnalytics(analyticsCourse).catch(() => null);
     }
 
     // Courses & Progress analytics — same current-program scoping as Engagement.
@@ -741,6 +751,7 @@ export default async function AdminPage({
         insightsData={insightsData}
         outcomesData={outcomesData}
         analyticsData={analyticsData}
+        analyticsCourse={analyticsCourse}
         coursesData={coursesData}
         courseEngagement={courseEngagement}
         attendanceRates={attendanceRates}

@@ -533,6 +533,7 @@ export function AdminTabs({
   insightsData = null,
   outcomesData = null,
   analyticsData = null,
+  analyticsCourse,
   coursesData = null,
   courseEngagement = null,
   attendanceRates = null,
@@ -569,6 +570,8 @@ export function AdminTabs({
   /** Before/after confidence shift for this program — the "did it work" number. */
   outcomesData?: OutcomesData | null;
   analyticsData?: EngagementAnalytics | null;
+  /** Shared Analytics course scope (?course=), applied to the funnel + table. */
+  analyticsCourse?: string;
   coursesData?: CoursesAnalytics | null;
   courseEngagement?: CourseEngagementProps | null;
   /** Per-learner attendance for the open course — roster badge. */
@@ -1740,7 +1743,7 @@ export function AdminTabs({
         <div className="space-y-6">
           <AdminTopTabs current="analytics" sub="analytics" showInsights={canViewInsights(userRole)} isManager={isManager} />
           {analyticsData ? (
-            <AnalyticsDashboard data={analyticsData} />
+            <AnalyticsDashboard data={analyticsData} course={analyticsCourse} />
           ) : (
             <p className="text-sm text-ink-faint">No analytics available for this program.</p>
           )}
