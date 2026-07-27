@@ -10,6 +10,16 @@ import { COBALT_FAMILY as PALETTE } from "@/components/stats/palette";
 import { StatCard } from "@/components/stats/stat-card";
 import { buttonClass, microLabel } from "@/components/ui";
 import { formatRelativeDate } from "@/lib/utils";
+import {
+  type ShiftGroup,
+  type ShiftResponse,
+  surveyCarriesShift,
+  groupsFromSurvey,
+  crossSurveyGroups,
+  CROSS_SURVEY_PAIRS,
+} from "@/lib/analytics/shift";
+import { getSurveySchema } from "@/lib/surveys/schemas";
+import { LearningShift } from "@/components/stats/learning-shift";
 
 interface Section {
   survey: SurveyConfig;
@@ -182,6 +192,57 @@ export function InsightsDashboard({ sections, programs }: Props) {
       ? surveyCohorts.filter((c) => c.name === cohortFilter)
       : surveyCohorts;
 
+  // "What changed" for exactly what's selected above. It used to be computed
+  // server-side over the whole program and rendered below the panel, so
+  // narrowing to a cohort of 3 still showed a shift across all 5 respondents —
+  // the section ignored the controls it sat under.
+  //
+  // Cohort narrows BOTH sides of a pre→post pair: picking "AI Fundamentals for
+  // Digital Natives" compares that cohort's pre-survey answers to its own post
+  // ones, not to the whole program's.
+  const scopedShift = useMemo(() => {
+    const inScope = (rows: ShiftResponse[]) =>
+      multiCohort && cohortFilter !== "all"
+        ? rows.filter((r) => cohortOf(r as unknown as BCCSurveyResponse) === cohortFilter)
+        : rows;
+    const bySurvey = new Map<string, ShiftResponse[]>();
+    for (const sec of sections) bySurvey.set(sec.survey.id, inScope(sec.responses));
+
+    const groups: ShiftGroup[] = [];
+    // A single form can carry its own before/now (the mid-program check-in).
+    for (const [id, rows] of bySurvey) {
+      if (!isAllForms && id !== activeId) continue;
+      if (rows.length === 0) continue;
+      const schema = getSurveySchema(id);
+      if (!schema || !surveyCarriesShift(schema)) continue;
+      groups.push(...groupsFromSurvey(id, schema, rows));
+    }
+    // Cross-survey pre→post pairs. Included when viewing all forms, or when the
+    // selected form is either half of the pair — picking the post-survey should
+    // show you the shift it's half of, not an empty section.
+    for (const pair of CROSS_SURVEY_PAIRS) {
+      if (!isAllForms && activeId !== pair.before && activeId !== pair.after) continue;
+      const before = bySurvey.get(pair.before) ?? [];
+      const after = bySurvey.get(pair.after) ?? [];
+      if (before.length === 0 || after.length === 0) continue;
+      groups.push(...crossSurveyGroups(pair, before, after));
+    }
+    const MIN_SHIFT_N = 3;
+    const sampled = groups
+      .map((g) => ({ ...g, rows: g.rows.filter((r) => r.n >= MIN_SHIFT_N) }))
+      .filter((g) => g.rows.length > 0);
+    if (sampled.length === 0) return null;
+    const allRows = sampled.flatMap((g) => g.rows);
+    return {
+      groups: sampled,
+      avgDelta: allRows.reduce((n, r) => n + r.delta, 0) / allRows.length,
+      statementCount: new Set(allRows.map((r) => r.statement)).size,
+      respondents: Math.max(...sampled.map((g) => Math.max(...g.rows.map((r) => r.n)))),
+      pathway: [],
+      archetype: [],
+    };
+  }, [sections, isAllForms, activeId, multiCohort, cohortFilter]);
+
   const isAgreement = !!activeId && /agreement/i.test(activeId);
   const cohortParam =
     multiCohort && cohortFilter !== "all"
@@ -344,6 +405,8 @@ export function InsightsDashboard({ sections, programs }: Props) {
           )}
         </div>
       </div>
+
+      {scopedShift && <LearningShift outcomes={scopedShift} />}
 
       <p className="text-[11px] leading-relaxed text-ink-faint">
         Every question, answer, and free-text response is in the detailed report —
