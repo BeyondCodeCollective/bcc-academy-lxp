@@ -5,6 +5,7 @@ import { Download } from "@phosphor-icons/react";
 import type { SurveyQuestion } from "@/components/survey-fields";
 import type { BCCSurveyResponse } from "../../actions";
 import { aggregateDualLikert, aggregateLikertMeans } from "@/lib/surveys/aggregate";
+import { getApplicationFileUrl } from "../../actions-misc";
 
 interface Props {
   surveyId: string;
@@ -126,6 +127,7 @@ export function SurveyDashboard({
   const likertQs = schema.filter((q) => q.type === "likert");
   const dualLikertQs = schema.filter((q) => q.type === "dual-likert");
   const textQs = schema.filter((q) => q.type === "text");
+  const fileQs = schema.filter((q) => q.type === "file");
 
   return (
     <div className="space-y-10">
@@ -226,6 +228,18 @@ export function SurveyDashboard({
           <div className="space-y-8">
             {dualLikertQs.map((q) => (
               <DualLikertBlock key={q.id} question={q} visible={visible} />
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {/* Attachments — without this section a `file` question renders nowhere,
+         and an uploaded resume would be unreachable from the admin. */}
+      {fileQs.length > 0 && (
+        <Section title="Attachments">
+          <div className="space-y-1">
+            {fileQs.map((q) => (
+              <FileBlock key={q.id} question={q} visible={visible} />
             ))}
           </div>
         </Section>
@@ -839,4 +853,94 @@ function formatCsvValue(val: unknown): string {
       .join("; ");
   }
   return String(val ?? "");
+}
+
+// One row per applicant who attached a file. The URL is fetched on click rather
+// than rendered up front: signing every file on page load would mint dozens of
+// live links for files nobody opens, and each one expires in five minutes
+// anyway — so a pre-signed list would be mostly dead by the time it was used.
+function FileBlock({
+  question,
+  visible,
+}: {
+  question: Extract<SurveyQuestion, { type: "file" }>;
+  visible: BCCSurveyResponse[];
+}) {
+  const [open, setOpen] = useState(false);
+  const [pending, setPending] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const files = visible
+    .map((r) => ({
+      name: r.full_name,
+      email: r.email,
+      file: r.responses[question.id] as
+        | { path?: string; name?: string; size?: number }
+        | undefined,
+    }))
+    .filter((a) => !!a.file?.path);
+
+  async function openFile(path: string) {
+    setPending(path);
+    setError(null);
+    try {
+      const res = await getApplicationFileUrl(path);
+      if (res.ok) {
+        window.open(res.url, "_blank", "noopener,noreferrer");
+      } else {
+        setError(res.error);
+      }
+    } catch {
+      setError("Could not open that file.");
+    } finally {
+      setPending(null);
+    }
+  }
+
+  return (
+    <div className="border-t border-rule first:border-t-0">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-baseline justify-between gap-4 py-3 text-left hover:text-ink transition-colors"
+      >
+        <p className="text-xs text-ink leading-snug">{question.label}</p>
+        <span className="text-micro text-ink-faint shrink-0 tabular-nums">
+          {files.length}
+          <span className="ml-2 inline-block w-3 text-center">{open ? "−" : "+"}</span>
+        </span>
+      </button>
+      {open && (
+        <div className="pb-4 -mt-1 space-y-2">
+          {files.length === 0 && (
+            <p className="text-xs text-ink-faint italic">Nobody attached a file.</p>
+          )}
+          {files.map((a, i) => (
+            <div key={i} className="flex items-center gap-3 border-l border-rule pl-4">
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-xs text-ink">{a.name}</span>
+                <span className="block truncate text-micro text-ink-faint">
+                  {a.file?.name}
+                </span>
+              </span>
+              <button
+                type="button"
+                onClick={() => openFile(a.file!.path!)}
+                disabled={pending === a.file!.path}
+                className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-rule px-2.5 py-1 text-micro font-medium text-ink transition-colors hover:bg-paper-tint-soft disabled:opacity-50"
+              >
+                <Download size={12} />
+                {pending === a.file!.path ? "Opening…" : "Open"}
+              </button>
+            </div>
+          ))}
+          {error && (
+            <p className="pl-4 text-xs text-red-600" role="alert">
+              {error}
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }

@@ -1279,13 +1279,17 @@ const HOME_FOR_SUMMER_APPLICATION_PAGES: SurveyPage[] = [
           "What career goals are you working toward, and which skills or areas do you feel you need to develop to reach them?",
         required: true,
       },
+      // Was a "paste a shareable link" text field. Sharing permissions are the
+      // usual failure mode there — the link arrives and staff can't open it,
+      // and nobody finds out until someone tries. An attached file can't be
+      // permission-locked.
       {
-        type: "text",
-        id: "resume_link",
-        label: "Share a link to your resume (Google Drive, Dropbox, LinkedIn, etc.)",
-        placeholder: "Paste a shareable link — make sure viewing is turned on",
+        type: "file",
+        id: "resume_file",
+        kind: "home-for-summer",
+        label: "Upload your resume",
+        hint: "Optional, but it helps us understand where you are in your journey.",
         required: false,
-        short: true,
       },
       {
         type: "multi-select",

@@ -5,6 +5,10 @@
 // (catalyst.bccacademy.io post-survey). Keeping them in one file means a
 // single source of truth for markup and styling.
 
+import { useState } from "react";
+import { FileText } from "@phosphor-icons/react";
+import { uploadApplicationFile } from "@/app/apply/upload-actions";
+
 export type RadioQuestion = {
   type: "radio";
   id: string;
@@ -31,6 +35,20 @@ export type TextQuestion = {
   short?: boolean;
   /** Enforces 5-digit US ZIP code format. Implies short. */
   zip?: boolean;
+};
+
+/** A real file attachment. The stored answer is the object the upload action
+ *  returns — `{ path, name, size }` — not the file itself: the file goes
+ *  straight to private storage, and only its path travels with the response. */
+export type FileQuestion = {
+  type: "file";
+  id: string;
+  label: string;
+  /** Which application this upload belongs to — picks the storage folder
+   *  server-side. Never a free path. */
+  kind: "home-for-summer";
+  hint?: string;
+  required?: boolean;
 };
 
 export type LikertQuestion = {
@@ -126,7 +144,8 @@ export type SurveyQuestion =
   | ConsentQuestion
   | DualLikertQuestion
   | DateQuestion
-  | SelectQuestion;
+  | SelectQuestion
+  | FileQuestion;
 
 export function isPageValid(
   questions: SurveyQuestion[],
@@ -152,6 +171,9 @@ export function isPageValid(
       const val = answers[q.id] as Record<string, { before?: string; now?: string }> | undefined;
       if (!val) return false;
       if (!q.statements.every((s) => !!(val[s]?.before && val[s]?.now))) return false;
+    } else if (q.type === "file") {
+      const f = val as { path?: string } | undefined;
+      if (!f?.path) return false;
     } else if (q.type === "month-year") {
       const my = val as { month: string; year: string } | undefined;
       if (!my || !my.month || !my.year) return false;
@@ -204,6 +226,14 @@ export function QuestionRenderer({
       return <DateField question={question} value={value as string} onChange={onChange} />;
     case "select":
       return <SelectField question={question} value={value as string} onChange={onChange} />;
+    case "file":
+      return (
+        <FileField
+          question={question}
+          value={value as UploadedFile | undefined}
+          onChange={onChange}
+        />
+      );
   }
 }
 
@@ -770,6 +800,115 @@ function MonthYearField({
           ))}
         </select>
       </div>
+    </div>
+  );
+}
+
+/** What a completed upload stores in the answers object. */
+export type UploadedFile = { path: string; name: string; size: number };
+
+function formatBytes(n: number): string {
+  return n < 1024 * 1024
+    ? `${Math.max(1, Math.round(n / 1024))} KB`
+    : `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+// The file is uploaded the moment it's chosen, not held until submit. Two
+// reasons: a 5 MB payload riding along with the survey submission is a slow,
+// failure-prone way to end an application someone just spent ten minutes on,
+// and uploading early means the applicant finds out NOW if their file is the
+// wrong type — while they're still at their computer with the right one.
+function FileField({
+  question,
+  value,
+  onChange,
+}: {
+  question: FileQuestion;
+  value: UploadedFile | undefined;
+  onChange: (val: UploadedFile | undefined) => void;
+}) {
+  const inputId = `file-${question.id}`;
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    // Clearing the picker clears the answer — otherwise "Remove" leaves a
+    // stored path pointing at a file the applicant thinks they took off.
+    if (!file) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("kind", question.kind);
+      const res = await uploadApplicationFile(fd);
+      if (res.ok) {
+        onChange({ path: res.path, name: res.name, size: res.size });
+      } else {
+        setError(res.error);
+        onChange(undefined);
+      }
+    } catch {
+      setError("Upload failed. Please check your connection and try again.");
+      onChange(undefined);
+    } finally {
+      setBusy(false);
+      // Reset the input so picking the SAME file again after an error still
+      // fires a change event.
+      e.target.value = "";
+    }
+  }
+
+  return (
+    <div>
+      <label htmlFor={inputId} className="text-sm font-medium text-ink mb-2 block">
+        {question.label}
+        {question.required && <span aria-hidden="true" className="text-red-500 ml-0.5">*</span>}
+      </label>
+      {question.hint && (
+        <p className="mb-2 text-sm text-ink-faint">{question.hint}</p>
+      )}
+
+      {value ? (
+        <div className="flex items-center gap-3 rounded-lg border border-rule bg-neutral-50 px-3 py-2.5">
+          <FileText size={16} className="shrink-0 text-ink-soft" />
+          <span className="min-w-0 flex-1 truncate text-sm text-ink">
+            {value.name}
+            <span className="ml-2 text-ink-faint">{formatBytes(value.size)}</span>
+          </span>
+          <button
+            type="button"
+            onClick={() => { onChange(undefined); setError(null); }}
+            className="shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 text-sm font-medium text-ink-soft transition-colors hover:bg-neutral-200 hover:text-ink"
+          >
+            Remove
+          </button>
+        </div>
+      ) : (
+        <input
+          id={inputId}
+          type="file"
+          accept=".pdf,.doc,.docx"
+          disabled={busy}
+          onChange={handleChange}
+          className="block w-full rounded-lg border border-rule bg-neutral-50 px-3 py-2.5 text-sm text-ink file:mr-3 file:rounded-full file:border-0 file:bg-ink file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white hover:file:bg-ink-soft disabled:opacity-50"
+        />
+      )}
+
+      {busy && (
+        <p className="mt-2 text-sm text-ink-faint" role="status">
+          Uploading…
+        </p>
+      )}
+      {error && (
+        <p className="mt-2 text-sm text-red-600" role="alert">
+          {error}
+        </p>
+      )}
+      <p className="mt-2 text-sm text-ink-faint">
+        PDF or Word document, up to 5 MB.
+      </p>
     </div>
   );
 }
