@@ -292,7 +292,7 @@ export function InsightsDashboard({ sections, programs, scope }: Props) {
               <select
                 value={activeId ?? ""}
                 onChange={(e) => selectSurvey(e.target.value)}
-                className="min-w-[16rem] rounded-lg border border-rule bg-white px-3 py-2 text-sm font-semibold text-ink focus:border-ink-faint focus:outline-none"
+                className="min-w-[16rem] rounded-lg border border-rule bg-white px-3 py-2 text-sm font-semibold text-ink focus:border-ink-faint"
               >
                 <option value={ALL_FORMS}>All forms</option>
                 {ledger.map((row) => (
@@ -306,7 +306,7 @@ export function InsightsDashboard({ sections, programs, scope }: Props) {
                 <select
                   value={cohortFilter}
                   onChange={(e) => setCohortFilter(e.target.value)}
-                  className="rounded-lg border border-rule bg-white px-3 py-2 text-sm text-ink focus:border-ink-faint focus:outline-none"
+                  className="rounded-lg border border-rule bg-white px-3 py-2 text-sm text-ink focus:border-ink-faint"
                 >
                   <option value="all">All cohorts</option>
                   {surveyCohorts.map((c) => (
@@ -393,7 +393,7 @@ export function InsightsDashboard({ sections, programs, scope }: Props) {
         )}
 
         {grantGaps.length > 0 && (
-          <div className="mt-4 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning-text">
+          <div className="mt-4 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning-text">
             Heads up before you export:{" "}
             {grantGaps
               .map((g) => `${g.count} ${g.count === 1 ? "response is" : "responses are"} missing ${g.label}`)
@@ -464,7 +464,7 @@ export function InsightsDashboard({ sections, programs, scope }: Props) {
         </p>
       )}
 
-      <p className="text-[11px] leading-relaxed text-ink-faint">
+      <p className="text-micro leading-relaxed text-ink-faint">
         Every question, answer, and free-text response is in the detailed report —
         kept off the page to keep this fast to scan.
       </p>
@@ -500,7 +500,7 @@ function ResponsesChart({ bars }: { bars: SeriesBar[] }) {
             className="flex min-w-0 flex-1 flex-col items-center justify-end gap-1"
             title={b.tip}
           >
-            <span className="text-[10px] font-semibold tabular-nums text-ink-faint">{b.count}</span>
+            <span className="text-micro font-semibold tabular-nums text-ink-faint">{b.count}</span>
             <div
               className="w-full rounded-t bg-primary"
               style={{ height: `${Math.max((b.count / max) * 44, 3)}px`, opacity: 0.45 + 0.55 * (b.count / max) }}
@@ -510,7 +510,7 @@ function ResponsesChart({ bars }: { bars: SeriesBar[] }) {
       </div>
       <div className="mt-1.5 flex gap-1">
         {bars.map((b, i) => (
-          <div key={i} className="flex-1 text-center text-[10px] tabular-nums text-ink-faint">{b.label}</div>
+          <div key={i} className="flex-1 text-center text-micro tabular-nums text-ink-faint">{b.label}</div>
         ))}
       </div>
     </>

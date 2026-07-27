@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Download } from "lucide-react";
+import { Download } from "@phosphor-icons/react";
 import type { SurveyQuestion } from "@/components/survey-fields";
 import type { BCCSurveyResponse } from "../../actions";
 import { aggregateDualLikert, aggregateLikertMeans } from "@/lib/surveys/aggregate";
@@ -80,7 +80,7 @@ export function SurveyDashboard({
       <div className="space-y-6">
         {chrome === "standalone" && (
           <header>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
+            <p className="text-micro font-semibold uppercase tracking-[0.16em] text-ink-faint">
               Survey Insights
             </p>
             <h2 className="mt-1 text-2xl font-bold tracking-tight text-ink">
@@ -89,8 +89,8 @@ export function SurveyDashboard({
           </header>
         )}
         <div className="panel px-6 py-12 text-center">
-          <p className="text-[15px] font-medium text-ink">No responses yet</p>
-          <p className="mx-auto mt-1.5 max-w-sm text-[13px] text-ink-soft">
+          <p className="text-sm font-medium text-ink">No responses yet</p>
+          <p className="mx-auto mt-1.5 max-w-sm text-xs text-ink-soft">
             Responses will appear here once people start completing this survey.
           </p>
         </div>
@@ -133,7 +133,7 @@ export function SurveyDashboard({
       <header className="flex flex-wrap items-end justify-between gap-4 pb-4 border-b border-rule">
         <div>
           {chrome === "standalone" && (
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint mb-2">
+            <p className="text-micro font-semibold uppercase tracking-[0.16em] text-ink-faint mb-2">
               Survey Insights
             </p>
           )}
@@ -178,7 +178,7 @@ export function SurveyDashboard({
               type="button"
               onClick={downloadCsv}
               disabled={total === 0}
-              className="inline-flex items-center gap-1.5 rounded-md border border-rule bg-paper-tint-soft px-3 py-1.5 text-xs font-medium text-ink hover:bg-paper-tint transition-colors disabled:opacity-40"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-rule bg-paper-tint-soft px-3 py-1.5 text-xs font-medium text-ink hover:bg-paper-tint transition-colors disabled:opacity-40"
             >
               <Download size={13} />
               CSV
@@ -307,7 +307,7 @@ function ApplicantRosterDashboard({
       <header className="flex flex-wrap items-end justify-between gap-4 pb-4 border-b border-rule">
         <div>
           {chrome === "standalone" && (
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint mb-2">
+            <p className="text-micro font-semibold uppercase tracking-[0.16em] text-ink-faint mb-2">
               Applications
             </p>
           )}
@@ -349,7 +349,7 @@ function ApplicantRosterDashboard({
               type="button"
               onClick={onDownloadCsv}
               disabled={total === 0}
-              className="inline-flex items-center gap-1.5 rounded-md border border-rule bg-paper-tint-soft px-3 py-1.5 text-xs font-medium text-ink hover:bg-paper-tint transition-colors disabled:opacity-40"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-rule bg-paper-tint-soft px-3 py-1.5 text-xs font-medium text-ink hover:bg-paper-tint transition-colors disabled:opacity-40"
             >
               ⬇️ CSV
             </button>
@@ -363,7 +363,7 @@ function ApplicantRosterDashboard({
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="Search by name or email…"
-        className="w-full max-w-sm border border-rule bg-paper-tint-soft px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-ink focus:outline-none"
+        className="w-full max-w-sm border border-rule bg-paper-tint-soft px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-ink"
       />
 
       {/* Roster */}
@@ -391,7 +391,7 @@ function ApplicantRosterDashboard({
               >
                 {/* Initials avatar */}
                 <div
-                  className="shrink-0 h-9 w-9 rounded-full bg-paper-tint flex items-center justify-center text-[11px] font-semibold text-ink-soft select-none"
+                  className="shrink-0 h-9 w-9 rounded-full bg-paper-tint flex items-center justify-center text-micro font-semibold text-ink-soft select-none"
                   aria-hidden
                 >
                   {initials(r.full_name || r.email)}
@@ -401,12 +401,12 @@ function ApplicantRosterDashboard({
                   <p className="text-sm font-medium text-ink truncate">
                     {r.full_name || "—"}
                   </p>
-                  <p className="text-[11px] text-ink-faint truncate">{r.email}</p>
+                  <p className="text-micro text-ink-faint truncate">{r.email}</p>
                 </div>
 
                 <div className="shrink-0 flex items-center gap-3">
                   {date && (
-                    <span className="text-[11px] text-ink-faint tabular-nums hidden sm:block">
+                    <span className="text-micro text-ink-faint tabular-nums hidden sm:block">
                       {date}
                     </span>
                   )}
@@ -423,21 +423,21 @@ function ApplicantRosterDashboard({
                     const text = typeof val === "string" ? val.trim() : "";
                     return (
                       <div key={q.id}>
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint mb-1">
+                        <p className="text-micro font-semibold uppercase tracking-[0.16em] text-ink-faint mb-1">
                           {q.label}
                         </p>
                         {text ? (
-                          <p className="text-[14px] text-ink leading-relaxed whitespace-pre-wrap">
+                          <p className="text-sm text-ink leading-relaxed whitespace-pre-wrap">
                             {text}
                           </p>
                         ) : (
-                          <p className="text-[13px] text-ink-faint italic">No answer</p>
+                          <p className="text-xs text-ink-faint italic">No answer</p>
                         )}
                       </div>
                     );
                   })}
                   {date && (
-                    <p className="text-[10px] text-ink-faint pt-2 border-t border-rule-soft">
+                    <p className="text-micro text-ink-faint pt-2 border-t border-rule-soft">
                       Submitted {date}
                     </p>
                   )}
@@ -464,7 +464,7 @@ function FilterPill({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-md px-2.5 py-1 text-[11px] font-medium tabular-nums transition-colors ${
+      className={`rounded-lg px-2.5 py-1 text-micro font-medium tabular-nums transition-colors ${
         active
           ? "bg-ink text-white"
           : "bg-transparent text-ink-soft hover:bg-paper-tint"
@@ -478,7 +478,7 @@ function FilterPill({
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>
-      <h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint mb-4">
+      <h3 className="text-micro font-semibold uppercase tracking-[0.16em] text-ink-faint mb-4">
         {title}
       </h3>
       {children}
@@ -511,7 +511,7 @@ function RadioBlock({
       <p className="text-sm font-medium text-ink leading-snug">
         {question.label}
       </p>
-      <p className="text-[11px] text-ink-faint mt-1 tabular-nums">
+      <p className="text-micro text-ink-faint mt-1 tabular-nums">
         {answered} answered
       </p>
       <div className="mt-4 space-y-2">
@@ -520,14 +520,14 @@ function RadioBlock({
           const pct = answered === 0 ? 0 : Math.round((count / answered) * 100);
           return (
             <div key={opt}>
-              <div className="flex items-baseline gap-3 text-[12px] text-ink">
+              <div className="flex items-baseline gap-3 text-xs text-ink">
                 <span className="flex-1 truncate">{opt}</span>
-                <span className="text-ink-soft shrink-0 tabular-nums text-[11px]">
+                <span className="text-ink-soft shrink-0 tabular-nums text-micro">
                   {count}
                   <span className="text-ink-faint"> · {pct}%</span>
                 </span>
               </div>
-              <div className="h-[3px] mt-1 rounded-sm bg-paper-tint overflow-hidden">
+              <div className="h-[3px] mt-1 rounded-lg bg-paper-tint overflow-hidden">
                 <div
                   className="h-full"
                   style={{
@@ -569,7 +569,7 @@ function MultiSelectBlock({
       <p className="text-sm font-medium text-ink leading-snug">
         {question.label}
       </p>
-      <p className="text-[11px] text-ink-faint mt-1 tabular-nums">
+      <p className="text-micro text-ink-faint mt-1 tabular-nums">
         {answered} answered
       </p>
       <div className="mt-4 space-y-2">
@@ -578,14 +578,14 @@ function MultiSelectBlock({
           const pct = answered === 0 ? 0 : Math.round((count / answered) * 100);
           return (
             <div key={opt}>
-              <div className="flex items-baseline gap-3 text-[12px] text-ink">
+              <div className="flex items-baseline gap-3 text-xs text-ink">
                 <span className="flex-1 truncate">{opt}</span>
-                <span className="text-ink-soft shrink-0 tabular-nums text-[11px]">
+                <span className="text-ink-soft shrink-0 tabular-nums text-micro">
                   {count}
                   <span className="text-ink-faint"> · {pct}%</span>
                 </span>
               </div>
-              <div className="h-[3px] mt-1 rounded-sm bg-paper-tint overflow-hidden">
+              <div className="h-[3px] mt-1 rounded-lg bg-paper-tint overflow-hidden">
                 <div
                   className="h-full"
                   style={{
@@ -622,7 +622,7 @@ function LikertBlock({
         {question.label}
       </p>
       {question.scaleAnchors && (
-        <p className="text-[11px] text-ink-faint mt-1">
+        <p className="text-micro text-ink-faint mt-1">
           {question.scaleAnchors.low}{" "}
           <span className="text-ink-faint">→</span>{" "}
           {question.scaleAnchors.high}
@@ -645,13 +645,13 @@ function LikertBlock({
           return (
             <div key={stmt}>
               <div className="flex items-baseline gap-3 mb-2">
-                <p className="text-[13px] text-ink leading-snug flex-1">
+                <p className="text-xs text-ink leading-snug flex-1">
                   {stmt}
                 </p>
                 {isNumericAscending && total > 0 && (
                   <p className="text-lg font-semibold text-ink shrink-0 tabular-nums">
                     {mean.toFixed(2)}
-                    <span className="text-[10px] text-ink-faint font-sans font-normal ml-1 tracking-wider uppercase">
+                    <span className="text-micro text-ink-faint font-sans font-normal ml-1 tracking-wider uppercase">
                       mean
                     </span>
                   </p>
@@ -672,10 +672,10 @@ function LikertBlock({
                           }}
                         />
                       </div>
-                      <p className="text-[10px] text-center text-ink-faint mt-1 tabular-nums">
+                      <p className="text-micro text-center text-ink-faint mt-1 tabular-nums">
                         {s}
                       </p>
-                      <p className="text-[10px] text-center text-ink tabular-nums font-medium">
+                      <p className="text-micro text-center text-ink tabular-nums font-medium">
                         {c}
                       </p>
                     </div>
@@ -704,7 +704,7 @@ function DualLikertBlock({
       <p className="text-sm font-medium text-ink leading-snug">
         {question.label}
       </p>
-      <p className="text-[11px] text-ink-faint mt-1">
+      <p className="text-micro text-ink-faint mt-1">
         {question.beforeLabel}{" "}
         <span className="text-ink-faint">→</span>{" "}
         {question.nowLabel}
@@ -716,14 +716,14 @@ function DualLikertBlock({
 
           return (
             <div key={stmt} className="grid grid-cols-[1fr_auto] gap-x-6 gap-y-2 items-baseline">
-              <p className="text-[13px] text-ink leading-snug">{stmt}</p>
+              <p className="text-xs text-ink leading-snug">{stmt}</p>
               {n > 0 ? (
                 <p className="text-lg font-semibold text-ink shrink-0 tabular-nums whitespace-nowrap">
                   {beforeMean.toFixed(2)}
                   <span className="text-ink-faint mx-1.5 font-normal">→</span>
                   {nowMean.toFixed(2)}
                   <span
-                    className={`ml-2 text-[11px] font-sans font-medium tabular-nums ${
+                    className={`ml-2 text-micro font-sans font-medium tabular-nums ${
                       delta >= 0 ? "text-ink" : "text-ink-faint"
                     }`}
                   >
@@ -732,11 +732,11 @@ function DualLikertBlock({
                   </span>
                 </p>
               ) : (
-                <span className="text-[11px] text-ink-faint">—</span>
+                <span className="text-micro text-ink-faint">—</span>
               )}
               <div className="col-span-2 space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] uppercase tracking-wider text-ink-faint w-12 shrink-0">
+                  <span className="text-micro uppercase tracking-wider text-ink-faint w-12 shrink-0">
                     Before
                   </span>
                   <div className="flex-1 h-1.5 bg-paper-tint overflow-hidden">
@@ -750,7 +750,7 @@ function DualLikertBlock({
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] uppercase tracking-wider text-ink-faint w-12 shrink-0">
+                  <span className="text-micro uppercase tracking-wider text-ink-faint w-12 shrink-0">
                     Now
                   </span>
                   <div className="flex-1 h-1.5 bg-paper-tint overflow-hidden">
@@ -794,10 +794,10 @@ function TextBlock({
         onClick={() => setOpen((v) => !v)}
         className="w-full flex items-baseline justify-between gap-4 py-3 text-left hover:text-ink transition-colors"
       >
-        <p className="text-[13px] text-ink leading-snug">
+        <p className="text-xs text-ink leading-snug">
           {question.label}
         </p>
-        <span className="text-[11px] text-ink-faint shrink-0 tabular-nums">
+        <span className="text-micro text-ink-faint shrink-0 tabular-nums">
           {answers.length}
           <span className="ml-2 inline-block w-3 text-center">{open ? "−" : "+"}</span>
         </span>
@@ -805,14 +805,14 @@ function TextBlock({
       {open && (
         <div className="pb-4 -mt-1 space-y-4">
           {answers.length === 0 && (
-            <p className="text-[12px] text-ink-faint italic">No answers.</p>
+            <p className="text-xs text-ink-faint italic">No answers.</p>
           )}
           {answers.map((a, i) => (
             <div key={i} className="border-l border-rule pl-4">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-ink-faint">
+              <p className="text-micro font-medium uppercase tracking-wider text-ink-faint">
                 {a.name}
               </p>
-              <p className="text-[13px] text-ink mt-1 leading-relaxed whitespace-pre-wrap">
+              <p className="text-xs text-ink mt-1 leading-relaxed whitespace-pre-wrap">
                 {String(a.val)}
               </p>
             </div>

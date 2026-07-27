@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Eye, FileText, Loader2 } from "lucide-react";
+import { Eye, FileText, CircleNotch as Loader2 } from "@phosphor-icons/react";
 import { getTrackProgress, type TrackProgress } from "./actions-progress";
 
 type StudentRow = {
@@ -58,7 +58,7 @@ export function ProgressTab({
       )}
 
       {/* Legend */}
-      <div className="flex flex-wrap items-center gap-4 text-[11px] text-ink-faint">
+      <div className="flex flex-wrap items-center gap-4 text-micro text-ink-faint">
         <span className="inline-flex items-center gap-1.5">
           <Eye size={12} className="text-success" /> Watched
         </span>
@@ -83,18 +83,18 @@ export function ProgressTab({
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr className="border-b border-rule">
-                <th className="sticky left-0 z-10 bg-paper px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
+                <th className="sticky left-0 z-10 bg-paper px-4 py-2.5 text-left text-micro font-semibold uppercase tracking-[0.16em] text-ink-faint">
                   Student
                 </th>
                 {weeks.map((w) => (
                   <th
                     key={w}
-                    className="px-2 py-2.5 text-center text-[11px] font-semibold text-ink-faint tabular-nums"
+                    className="px-2 py-2.5 text-center text-micro font-semibold text-ink-faint tabular-nums"
                   >
                     {w}
                   </th>
                 ))}
-                <th className="px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
+                <th className="px-4 py-2.5 text-right text-micro font-semibold uppercase tracking-[0.16em] text-ink-faint">
                   Total
                 </th>
               </tr>
@@ -106,17 +106,17 @@ export function ProgressTab({
                 return (
                   <tr key={s.id} className="border-b border-rule-soft last:border-0">
                     <td className="sticky left-0 z-10 bg-paper px-4 py-2.5">
-                      <p className="truncate text-[13px] font-medium text-ink">
+                      <p className="truncate text-xs font-medium text-ink">
                         {name(s)}
                       </p>
-                      <p className="truncate text-[11px] text-ink-faint">{s.email}</p>
+                      <p className="truncate text-micro text-ink-faint">{s.email}</p>
                     </td>
                     {weeks.map((w) => (
                       <td key={w} className="px-2 py-2.5 text-center">
                         <Cell watched={watched.has(w)} uploaded={submitted.has(w)} />
                       </td>
                     ))}
-                    <td className="px-4 py-2.5 text-right text-[12px] text-ink-soft whitespace-nowrap tabular-nums">
+                    <td className="px-4 py-2.5 text-right text-xs text-ink-soft whitespace-nowrap tabular-nums">
                       <span className="text-success-text">{watched.size}</span>
                       <span className="text-ink-faint"> · </span>
                       <span className="text-success-text">{submitted.size}</span>

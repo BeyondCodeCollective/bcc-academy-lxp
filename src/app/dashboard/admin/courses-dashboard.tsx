@@ -152,7 +152,7 @@ export function CoursesDashboard({ data }: { data: CoursesAnalytics }) {
             </tr>
           )}
         </DataTable>
-        <p className="text-[11px] leading-relaxed text-ink-faint">
+        <p className="text-micro leading-relaxed text-ink-faint">
           Progress uses furthest week reached — live-session attendance counts the
           same as submissions, reflections, or watched videos — over course length.
           Learners marked complete count as 100%.

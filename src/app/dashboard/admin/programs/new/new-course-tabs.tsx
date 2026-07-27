@@ -21,7 +21,7 @@ export function NewCourseTabs({ canCreateManually }: { canCreateManually: boolea
             type="button"
             onClick={() => setMode(m)}
             aria-pressed={mode === m}
-            className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+            className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
               mode === m ? "bg-white text-ink shadow-sm" : "text-ink-soft hover:text-ink"
             }`}
           >

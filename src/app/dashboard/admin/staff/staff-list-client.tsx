@@ -47,7 +47,7 @@ export function StaffListClient({ initial }: { initial: StaffEmailRow[] }) {
           onChange={(e) => setEmail(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && add()}
           placeholder="name@wearebcc.org"
-          className="w-72 border border-rule bg-white px-3 py-1.5 text-sm text-ink placeholder:text-ink-faint focus:border-ink-faint focus:outline-none"
+          className="w-72 border border-rule bg-white px-3 py-1.5 text-sm text-ink placeholder:text-ink-faint focus:border-ink-faint"
         />
         <button
           type="button"
@@ -60,7 +60,7 @@ export function StaffListClient({ initial }: { initial: StaffEmailRow[] }) {
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      <div className="overflow-hidden rounded-lg border border-rule">
+      <div className="overflow-x-auto rounded-lg border border-rule">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-rule text-left uppercase tracking-wide text-ink-faint">

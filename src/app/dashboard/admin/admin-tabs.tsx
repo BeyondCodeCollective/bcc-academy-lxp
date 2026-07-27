@@ -7,33 +7,7 @@ import { deleteStudentAction, updateStudentAction, updateCohortAction, saveSessi
 import type { SessionResource, StudentTrackRow, SurveyStatsRow, AdminSubmissionRow, InstructorTrackRow, PublicSurveyStatsRow } from "./actions";
 import { canManageStudents, canSwitchPrograms, canViewInsights } from "@/lib/roles";
 import { RichTextEditor } from "@/components/rich-text-editor";
-import {
-  Users,
-  BookOpen,
-  GraduationCap,
-  Settings,
-  Save,
-  ChevronDown,
-  ExternalLink,
-  Check,
-  UserCheck,
-  Trash2,
-  UserPlus,
-  Plus,
-  X,
-  Link as LinkIcon,
-  Upload,
-  Download,
-  Loader2,
-  Video,
-  FileText,
-  ClipboardList,
-  Send,
-  MessageSquare,
-  Coffee,
-  Eye,
-  ArrowRight,
-} from "lucide-react";
+import { Users, BookOpen, GraduationCap, Gear as Settings, FloppyDisk as Save, CaretDown as ChevronDown, ArrowSquareOut as ExternalLink, Check, UserCheck, Trash as Trash2, UserPlus, Plus, X, Link as LinkIcon, UploadSimple as Upload, Download, CircleNotch as Loader2, Video, FileText, ClipboardText as ClipboardList, PaperPlaneTilt as Send, ChatCentered as MessageSquare, Coffee, Eye, ArrowRight } from "@phosphor-icons/react";
 import { Avatar } from "@/components/avatar";
 import { BackLink, buttonClass, fieldInput, microLabel, SaveIndicator, SegmentedTabs, type SaveState } from "@/components/ui";
 import { PageHeader, Section } from "@/components/page-header";
@@ -388,13 +362,13 @@ function UploadButton({
         className={`${buttonClass("secondary", "sm")} min-h-[36px]`}
       >
         {uploadState === "uploading" ? (
-          <><Loader2 size={11} className="animate-spin" /> Uploading...</>
+          <><Loader2 size={11} className="animate-spin" /> Uploading…</>
         ) : (
           <><Icon size={11} /> {label}</>
         )}
       </button>
       {uploadState === "error" && (
-        <p className="text-[10px] text-red-500">{errorMsg}</p>
+        <p className="text-micro text-red-500">{errorMsg}</p>
       )}
     </div>
   );
@@ -450,7 +424,7 @@ function ResourceEditor({
       </div>
 
       {resources.length === 0 && (
-        <p className="text-[11px] text-ink-faint pl-0.5">No resources yet</p>
+        <p className="text-micro text-ink-faint pl-0.5">No resources yet</p>
       )}
 
       {resources.map((r, i) => (
@@ -1203,10 +1177,10 @@ export function AdminTabs({
                         className="shrink-0 text-ink-faint transition-colors group-hover:text-ink-soft"
                       />
                       <div className="min-w-0 flex-1">
-                        <p className="text-[14px] font-semibold text-ink leading-snug">
+                        <p className="text-sm font-semibold text-ink leading-snug">
                           {t.name}
                         </p>
-                        <p className="text-[12px] text-ink-faint">
+                        <p className="text-xs text-ink-faint">
                           {t.instructor}
                           {awaitingCertificates && (
                             <span className="ml-2 font-medium text-primary">
@@ -1216,24 +1190,24 @@ export function AdminTabs({
                         </p>
                       </div>
                       <p
-                        className={`hidden shrink-0 text-[12px] sm:block ${
+                        className={`hidden shrink-0 text-xs sm:block ${
                           isRunning && !ended ? "font-semibold text-primary" : "text-ink-soft"
                         }`}
                       >
                         {status}
                       </p>
                       {completed !== null ? (
-                        <p className="shrink-0 w-24 text-right text-[12px] tabular-nums">
+                        <p className="shrink-0 w-24 text-right text-xs tabular-nums">
                           <span className="font-semibold text-primary">{completed}</span>
                           <span className="text-ink-faint"> / {count} completed</span>
                         </p>
                       ) : showActive && isRunning ? (
-                        <p className="shrink-0 w-24 text-right text-[12px] tabular-nums">
+                        <p className="shrink-0 w-24 text-right text-xs tabular-nums">
                           <span className="font-semibold text-primary">{activeCountFor(t.slug)}</span>
                           <span className="text-ink-faint"> / {count} active</span>
                         </p>
                       ) : (
-                        <p className="shrink-0 w-20 text-right text-[12px] text-ink-faint tabular-nums">
+                        <p className="shrink-0 w-20 text-right text-xs text-ink-faint tabular-nums">
                           {count} {count === 1 ? "student" : "students"}
                         </p>
                       )}
@@ -1243,7 +1217,7 @@ export function AdminTabs({
                       href={`/dashboard/track/${t.slug}`}
                       title="Open student view"
                       aria-label={`Open student view of ${t.name}`}
-                      className="shrink-0 rounded-md p-1.5 text-ink-faint transition-colors hover:bg-paper-tint hover:text-ink"
+                      className="shrink-0 rounded-lg p-1.5 text-ink-faint transition-colors hover:bg-paper-tint hover:text-ink"
                     >
                       <Eye size={15} aria-hidden />
                     </Link>
@@ -1251,7 +1225,7 @@ export function AdminTabs({
                     <Link
                       href={`/dashboard/admin?tab=${t.slug}`}
                       aria-label={`Manage ${t.name}`}
-                      className="shrink-0 rounded-md p-1.5 text-ink-faint transition-colors hover:bg-paper-tint hover:text-ink group-hover:text-ink-soft"
+                      className="shrink-0 rounded-lg p-1.5 text-ink-faint transition-colors hover:bg-paper-tint hover:text-ink group-hover:text-ink-soft"
                     >
                       <ArrowRight
                         size={15}
@@ -1391,14 +1365,14 @@ export function AdminTabs({
                   className="flex w-full items-center justify-between px-4 sm:px-5 py-3.5 sm:py-4 hover:bg-paper-tint-soft transition-colors"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-rule text-[11px] font-semibold tabular-nums text-ink-soft">
+                    <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-rule text-micro font-semibold tabular-nums text-ink-soft">
                       {aw.week}
                     </span>
                     <div className="text-left">
                       <p className="text-sm font-semibold text-ink">
                         {aw.overrideTitle || aw.title}
                       </p>
-                      <p className="text-[10px] text-ink-faint">
+                      <p className="text-micro text-ink-faint">
                         {aw.sessions.length} session{aw.sessions.length !== 1 ? "s" : ""}
                         {aw.sessions.some((s) => s.recordingUrl) && " · Recording set"}
                         {aw.sessions.some((s) => s.resources.length > 0) && " · Has resources"}
@@ -1506,7 +1480,7 @@ export function AdminTabs({
                             />
                           </div>
                           {s.recordingUrl && isStorageUrl(s.recordingUrl) && (
-                            <p className="mt-1 text-[10px] text-ink-faint">
+                            <p className="mt-1 text-micro text-ink-faint">
                               Uploaded file · <a href={s.recordingUrl} target="_blank" rel="noopener noreferrer" className="underline hover:text-ink-soft">Preview</a>
                             </p>
                           )}
@@ -1572,7 +1546,7 @@ export function AdminTabs({
                       e.target.value as "students" | "attendance" | "progress" | "work" | "certificates",
                     )
                   }
-                  className="appearance-none panel pl-3 pr-8 py-2 text-sm font-medium text-ink focus:border-ink-faint focus:outline-none"
+                  className="appearance-none panel pl-3 pr-8 py-2 text-sm font-medium text-ink focus:border-ink-faint"
                 >
                   <option value="students">Roster</option>
                   {showAttendance && <option value="attendance">Attendance</option>}
@@ -1803,7 +1777,7 @@ export function AdminTabs({
              component below now serves as the single source for these counts. */}
           {false && surveyConfigs.length > 0 && (
             <section className="space-y-3">
-              <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
+              <h2 className="text-micro font-semibold uppercase tracking-[0.16em] text-ink-faint">
                 {programSlug === "catalyst" ? "Catalyst" : "Program"} surveys
               </h2>
               {surveyConfigs.map((survey) => {
@@ -1959,7 +1933,7 @@ function StudentWorkTab({
             <select
               value={trackFilter}
               onChange={(e) => setTrackFilter(e.target.value)}
-              className="appearance-none border border-rule bg-neutral-50 pl-3 pr-7 py-1.5 text-xs font-medium text-ink focus:border-ink-faint focus:outline-none"
+              className="appearance-none border border-rule bg-neutral-50 pl-3 pr-7 py-1.5 text-xs font-medium text-ink focus:border-ink-faint"
             >
               <option value="all">All Tracks</option>
               {tracks.map((t) => (
@@ -1974,7 +1948,7 @@ function StudentWorkTab({
           <select
             value={weekFilter}
             onChange={(e) => setWeekFilter(e.target.value === "all" ? "all" : parseInt(e.target.value))}
-            className="appearance-none border border-rule bg-neutral-50 pl-3 pr-7 py-1.5 text-xs font-medium text-ink focus:border-ink-faint focus:outline-none"
+            className="appearance-none border border-rule bg-neutral-50 pl-3 pr-7 py-1.5 text-xs font-medium text-ink focus:border-ink-faint"
           >
             <option value="all">All Weeks</option>
             {Array.from({ length: maxWeeks }, (_, i) => (
@@ -2009,7 +1983,7 @@ function StudentWorkTab({
                 <div className="flex items-center gap-3 text-left min-w-0">
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-ink">{sub.student_name}</p>
-                    <p className="text-[11px] text-ink-faint">
+                    <p className="text-micro text-ink-faint">
                       {(() => { const st = tracks.find((t) => t.slug === sub.track_slug); return `${st?.shortName ?? sub.track_slug} · ${st?.unitLabel || "Week"} ${sub.week_number}`; })()}
                       {sub.submitted_at && ` · ${new Date(sub.submitted_at).toLocaleDateString()}`}
                     </p>
@@ -2017,7 +1991,7 @@ function StudentWorkTab({
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   {sub.feedback_count > 0 && (
-                    <span className="inline-flex items-center gap-0.5 text-[10px] text-green-600 bg-green-50 rounded-full px-1.5 py-0.5">
+                    <span className="inline-flex items-center gap-0.5 text-micro text-green-600 bg-green-50 rounded-full px-1.5 py-0.5">
                       <MessageSquare size={10} /> {sub.feedback_count}
                     </span>
                   )}
@@ -2043,19 +2017,19 @@ function StudentWorkTab({
                 <div className="border-t border-rule-soft px-4 py-3 space-y-3">
                   {promptOrder.map((prompt) => (
                     <div key={prompt}>
-                      <p className="text-[11px] font-medium text-ink-faint mb-0.5">{prompt}</p>
+                      <p className="text-micro font-medium text-ink-faint mb-0.5">{prompt}</p>
                       <p className="text-sm text-ink whitespace-pre-wrap">{responses[prompt]}</p>
                     </div>
                   ))}
                   {sub.description && (
                     <div>
-                      <p className="text-[11px] font-medium text-ink-faint uppercase tracking-wide mb-1">Description</p>
+                      <p className="text-micro font-medium text-ink-faint uppercase tracking-wide mb-1">Description</p>
                       <p className="text-sm text-ink">{sub.description}</p>
                     </div>
                   )}
                   {sub.links.length > 0 && (
                     <div>
-                      <p className="text-[11px] font-medium text-ink-faint uppercase tracking-wide mb-1">Links</p>
+                      <p className="text-micro font-medium text-ink-faint uppercase tracking-wide mb-1">Links</p>
                       <div className="space-y-1">
                         {sub.links.map((link, i) => (
                           <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-ink hover:text-ink">
@@ -2068,7 +2042,7 @@ function StudentWorkTab({
                   )}
                   {sub.files.length > 0 && (
                     <div>
-                      <p className="text-[11px] font-medium text-ink-faint uppercase tracking-wide mb-1">Files</p>
+                      <p className="text-micro font-medium text-ink-faint uppercase tracking-wide mb-1">Files</p>
                       <div className="space-y-1">
                         {sub.files.map((file, i) => (
                           <a key={i} href={file.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-ink hover:text-ink">
@@ -2268,7 +2242,7 @@ function PeopleTab({
                   <select
                     value={bulkTrack}
                     onChange={(e) => setBulkTrack(e.target.value)}
-                    className="appearance-none border border-rule bg-white pl-3 pr-7 py-2 text-xs font-medium text-ink focus:border-ink-faint focus:outline-none"
+                    className="appearance-none border border-rule bg-white pl-3 pr-7 py-2 text-xs font-medium text-ink focus:border-ink-faint"
                   >
                     {tracks.map((t) => (
                       <option key={t.slug} value={t.slug}>{t.shortName}</option>
@@ -2346,7 +2320,7 @@ function PeopleTab({
             <select
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
-              className="appearance-none border border-rule bg-neutral-50 pl-3 pr-7 py-2 text-sm text-ink focus:border-ink-faint focus:outline-none"
+              className="appearance-none border border-rule bg-neutral-50 pl-3 pr-7 py-2 text-sm text-ink focus:border-ink-faint"
             >
               <option value="all">All roles</option>
               <option value="student">Students</option>
@@ -2361,7 +2335,7 @@ function PeopleTab({
             <select
               value={trackFilter}
               onChange={(e) => setTrackFilter(e.target.value)}
-              className="appearance-none border border-rule bg-neutral-50 pl-3 pr-7 py-2 text-sm text-ink focus:border-ink-faint focus:outline-none"
+              className="appearance-none border border-rule bg-neutral-50 pl-3 pr-7 py-2 text-sm text-ink focus:border-ink-faint"
             >
               <option value="all">All tracks</option>
               {tracks.map((t) => (
@@ -2444,7 +2418,7 @@ function PeopleTab({
                     {fullName}
                   </p>
                   <p className="text-xs text-ink-faint truncate">{s.email}</p>
-                  <p className="text-[11px] text-ink-faint truncate">
+                  <p className="text-micro text-ink-faint truncate">
                     {s.last_activity_at
                       ? `Last active: ${new Date(s.last_activity_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
                       : s.last_seen_at
@@ -2455,20 +2429,20 @@ function PeopleTab({
                 <div className="flex items-center gap-2 shrink-0">
                   {attendanceRate && (
                     <span
-                      className="text-[11px] tabular-nums hidden sm:block text-ink-soft"
+                      className="text-micro tabular-nums hidden sm:block text-ink-soft"
                       title={`Attended ${attendanceRate.attended} of ${attendanceRate.held} sessions held`}
                     >
                       {attendanceRate.pct}% attendance
                     </span>
                   )}
-                  <span className="text-[11px] text-ink-faint tabular-nums hidden sm:block">
+                  <span className="text-micro text-ink-faint tabular-nums hidden sm:block">
                     {trackCount} {trackCount === 1 ? "track" : "tracks"}
                   </span>
                   {s.role === "student" && (
                     <StatusPill status={(s.last_activity_at ?? s.last_seen_at) ? "active" : "joined"} />
                   )}
                   <span
-                    className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                    className={`inline-block rounded-full px-2 py-0.5 text-micro font-medium ${
                       s.role === "student"
                         ? "bg-paper-tint text-ink-soft"
                         : s.role === "instructor"
@@ -2496,7 +2470,7 @@ function PeopleTab({
                     {([["first_name", "First name"], ["last_name", "Last name"]] as const).map(
                       ([field, label]) => (
                         <div key={field}>
-                          <label className="text-[11px] font-medium uppercase tracking-wide text-ink-soft">
+                          <label className="text-micro font-medium uppercase tracking-wide text-ink-soft">
                             {label}
                           </label>
                           <input
@@ -2511,7 +2485,7 @@ function PeopleTab({
                             onKeyDown={(e) => {
                               if (e.key === "Enter") e.currentTarget.blur();
                             }}
-                            className="mt-1 block w-40 border border-rule bg-white px-3 py-2 text-xs font-medium text-ink focus:border-ink-faint focus:outline-none disabled:opacity-60"
+                            className="mt-1 block w-40 border border-rule bg-white px-3 py-2 text-xs font-medium text-ink focus:border-ink-faint disabled:opacity-60"
                           />
                         </div>
                       ),
@@ -2521,7 +2495,7 @@ function PeopleTab({
                   {/* Role + cohort */}
                   <div className="flex flex-wrap gap-3">
                     <div>
-                      <label className="text-[11px] font-medium uppercase tracking-wide text-ink-soft">
+                      <label className="text-micro font-medium uppercase tracking-wide text-ink-soft">
                         Role
                       </label>
                       <div className="relative mt-1">
@@ -2532,7 +2506,7 @@ function PeopleTab({
                           value={s.role}
                           disabled={studentSaving === s.id || !assignableRoles.includes(s.role)}
                           onChange={(e) => onUpdateStudent(s.id, "role", e.target.value)}
-                          className="appearance-none border border-rule bg-white pl-3 pr-7 py-2 text-xs font-medium text-ink focus:border-ink-faint focus:outline-none disabled:opacity-60"
+                          className="appearance-none border border-rule bg-white pl-3 pr-7 py-2 text-xs font-medium text-ink focus:border-ink-faint disabled:opacity-60"
                         >
                           {([
                             ["student", "Student"],
@@ -2550,7 +2524,7 @@ function PeopleTab({
                     </div>
                     {cohorts.length > 0 && s.role === "student" && (
                       <div>
-                        <label className="text-[11px] font-medium uppercase tracking-wide text-ink-soft">
+                        <label className="text-micro font-medium uppercase tracking-wide text-ink-soft">
                           Group
                         </label>
                         <div className="relative mt-1">
@@ -2558,7 +2532,7 @@ function PeopleTab({
                             value={s.cohort_id ?? ""}
                             disabled={studentSaving === s.id}
                             onChange={(e) => onUpdateStudent(s.id, "cohort_id", e.target.value)}
-                            className="appearance-none border border-rule bg-white pl-3 pr-7 py-2 text-xs font-medium text-ink focus:border-ink-faint focus:outline-none disabled:opacity-60"
+                            className="appearance-none border border-rule bg-white pl-3 pr-7 py-2 text-xs font-medium text-ink focus:border-ink-faint disabled:opacity-60"
                           >
                             <option value="">No group</option>
                             {cohorts.map((c) => (
@@ -2578,7 +2552,7 @@ function PeopleTab({
                               setNewGroupNameRow("");
                               setShowNewGroupFormRow(s.id);
                             }}
-                            className="mt-1 text-[11px] text-ink-faint hover:text-ink-soft transition-colors"
+                            className="mt-1 text-micro text-ink-faint hover:text-ink-soft transition-colors"
                           >
                             + New group
                           </button>
@@ -2587,7 +2561,7 @@ function PeopleTab({
                             <select
                               value={newGroupTrackRow}
                               onChange={(e) => setNewGroupTrackRow(e.target.value)}
-                              className="border border-rule bg-neutral-50 pl-3 pr-2 py-1.5 text-xs text-ink focus:border-ink-faint focus:outline-none"
+                              className="border border-rule bg-neutral-50 pl-3 pr-2 py-1.5 text-xs text-ink focus:border-ink-faint"
                             >
                               <option value="">— select track —</option>
                               {tracks.map((t) => (
@@ -2599,7 +2573,7 @@ function PeopleTab({
                               value={newGroupNameRow}
                               onChange={(e) => setNewGroupNameRow(e.target.value)}
                               placeholder="e.g. Security+ · Cohort 1"
-                              className="border border-rule bg-neutral-50 pl-3 py-1.5 text-xs text-ink focus:border-ink-faint focus:outline-none"
+                              className="border border-rule bg-neutral-50 pl-3 py-1.5 text-xs text-ink focus:border-ink-faint"
                             />
                             <button
                               type="button"
@@ -2628,7 +2602,7 @@ function PeopleTab({
                             <button
                               type="button"
                               onClick={() => { setShowNewGroupFormRow(null); setNewGroupTrackRow(""); setNewGroupNameRow(""); }}
-                              className="text-[11px] text-ink-faint hover:text-ink-soft transition-colors"
+                              className="text-micro text-ink-faint hover:text-ink-soft transition-colors"
                             >
                               Cancel
                             </button>
@@ -2646,10 +2620,10 @@ function PeopleTab({
                   {tracks.length > 0 && (
                     <div>
                       <div className="mb-2 flex items-baseline gap-3">
-                        <p className="text-[11px] font-medium uppercase tracking-wide text-ink-soft">
+                        <p className="text-micro font-medium uppercase tracking-wide text-ink-soft">
                           {s.role === "instructor" ? "Teaching" : "Tracks"}
                         </p>
-                        <p className="text-[10px] text-ink-faint">
+                        <p className="text-micro text-ink-faint">
                           ✓ enrolled · + click to add
                         </p>
                       </div>
@@ -2673,7 +2647,7 @@ function PeopleTab({
                                   : onToggleStudentTrack(s.id, t.slug)
                               }
                               disabled={isSaving}
-                              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors disabled:opacity-60 ${
+                              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-micro font-medium transition-colors disabled:opacity-60 ${
                                 enrolled
                                   ? "bg-ink text-white"
                                   : "border border-rule bg-white text-ink-soft hover:border-ink-faint hover:text-ink-soft"
@@ -2813,7 +2787,16 @@ function SurveyCard({
   }
 
   async function handleClearAll() {
-    if (!confirm(`Delete all ${localResponses.length} responses for "${title}"? This cannot be undone.`)) return;
+    // This one KEEPS a confirmation, because it genuinely cannot be undone —
+    // survey responses have no inverse action. Upgraded from click-OK to
+    // type-the-word: a bulk irreversible delete shouldn't be one stray Enter
+    // away, and "OK" is the default answer muscle memory gives.
+    const typed = prompt(
+      `Delete all ${localResponses.length} responses for "${title}"?\n\n` +
+        `This cannot be undone — there is no Undo for this one.\n` +
+        `Type DELETE to confirm.`,
+    );
+    if (typed?.trim().toUpperCase() !== "DELETE") return;
     setClearingAll(true);
     try {
       for (const r of localResponses) {
@@ -2832,7 +2815,7 @@ function SurveyCard({
         <span className="text-xs text-ink-faint">{completed} of {totalStudents} completed</span>
       </div>
       <div className="h-2 w-full overflow-hidden rounded-full bg-paper-tint mb-3">
-        <div className="h-full rounded-full bg-ink transition-all" style={{ width: `${pct}%` }} />
+        <div className="h-full rounded-full bg-ink transition-[width] duration-300 ease-out" style={{ width: `${pct}%` }} />
       </div>
       <div className="flex items-center gap-2">
         <a
@@ -2881,7 +2864,7 @@ function SurveyCard({
             <div key={r.id} className="flex items-center justify-between gap-2 px-2 py-1.5 hover:bg-paper-tint-soft">
               <div className="min-w-0">
                 <p className="text-xs font-medium text-ink truncate">{r.label}</p>
-                <p className="text-[11px] text-ink-faint truncate">{r.sublabel}</p>
+                <p className="text-micro text-ink-faint truncate">{r.sublabel}</p>
               </div>
               <button
                 type="button"
@@ -3005,11 +2988,11 @@ function PublicSurveyCard({
                   className="flex-1 text-left min-w-0"
                 >
                   <p className="text-xs font-medium text-ink truncate">{r.full_name}</p>
-                  <p className="text-[11px] text-ink-faint truncate">{r.email}{r.completedAt ? ` · ${new Date(r.completedAt).toLocaleDateString()}` : ""}</p>
+                  <p className="text-micro text-ink-faint truncate">{r.email}{r.completedAt ? ` · ${new Date(r.completedAt).toLocaleDateString()}` : ""}</p>
                 </button>
                 <div className="flex items-center gap-1 shrink-0">
                   {r.invitedAt ? (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700" title={`Invited ${new Date(r.invitedAt).toLocaleDateString()}`}>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-micro font-medium text-green-700" title={`Invited ${new Date(r.invitedAt).toLocaleDateString()}`}>
                       ✓ Invited
                     </span>
                   ) : (
@@ -3026,7 +3009,7 @@ function PublicSurveyCard({
                         setInviting(null);
                       }}
                       disabled={inviting === r.email}
-                      className="inline-flex items-center gap-1 bg-blue-50 px-2 py-1 text-[11px] font-medium text-blue-700 hover:bg-blue-100 transition-colors disabled:opacity-50"
+                      className="inline-flex items-center gap-1 bg-blue-50 px-2 py-1 text-micro font-medium text-blue-700 hover:bg-blue-100 transition-colors disabled:opacity-50"
                       title="Accept & send invite email"
                     >
                       {inviting === r.email ? <Loader2 size={11} className="animate-spin" /> : "Send Invite"}
@@ -3057,7 +3040,7 @@ function PublicSurveyCard({
                     .filter(([, val]) => val !== null && val !== undefined && val !== "")
                     .map(([key, val]) => (
                       <div key={key}>
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint">
+                        <p className="text-micro font-semibold uppercase tracking-wide text-ink-faint">
                           {key.replace(/_/g, " ")}
                         </p>
                         <p className="text-xs text-ink mt-0.5">
@@ -3149,7 +3132,7 @@ function GroupsPanel({
   return (
     <div>
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
+        <h2 className="text-micro font-semibold uppercase tracking-[0.16em] text-ink-faint">
           Groups
         </h2>
         {!showForm && (
@@ -3182,11 +3165,11 @@ function GroupsPanel({
                 className="group flex items-center gap-4 px-4 py-3.5 hover:bg-paper-tint-soft transition-colors"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-[14px] font-semibold text-ink truncate">
+                  <p className="text-sm font-semibold text-ink truncate">
                     {c.display_name || c.name}
                   </p>
                   {c.track_slug && (
-                    <p className="text-[12px] text-ink-faint truncate">
+                    <p className="text-xs text-ink-faint truncate">
                       {trackLabel(c.track_slug)}
                     </p>
                   )}
@@ -3212,7 +3195,7 @@ function GroupsPanel({
                   required
                   value={trackSlug}
                   onChange={(e) => setTrackSlug(e.target.value)}
-                  className="w-full appearance-none border border-rule bg-neutral-50 pl-3 pr-7 py-2 text-sm text-ink focus:border-ink-faint focus:outline-none"
+                  className="w-full appearance-none border border-rule bg-neutral-50 pl-3 pr-7 py-2 text-sm text-ink focus:border-ink-faint"
                 >
                   <option value="">— select track —</option>
                   {tracks.map((t) => (
@@ -3311,7 +3294,7 @@ function SurveyLinksPanel({ surveyConfigs }: { surveyConfigs: { id: string; titl
         onClick={() => setOpen((v) => !v)}
         className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-paper-tint-soft transition-colors"
       >
-        <span className="text-[14px] font-semibold text-ink">
+        <span className="text-sm font-semibold text-ink">
           {allLinks.length} survey {allLinks.length === 1 ? "link" : "links"}
         </span>
         <span className="text-ink-faint text-xs">{open ? "↑ collapse" : "↓ expand"}</span>
@@ -3324,14 +3307,14 @@ function SurveyLinksPanel({ surveyConfigs }: { surveyConfigs: { id: string; titl
               className="flex items-center justify-between gap-4 px-4 py-3"
             >
               <div className="min-w-0">
-                <p className="text-[13px] font-medium text-ink truncate">{s.label}</p>
-                <p className="text-[11px] text-ink-faint font-mono truncate">
+                <p className="text-xs font-medium text-ink truncate">{s.label}</p>
+                <p className="text-micro text-ink-faint font-mono truncate">
                   {typeof window !== "undefined" ? `${window.location.origin}${s.path}` : s.path}
                 </p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 {s.auth && (
-                  <span className="text-[10px] font-medium uppercase tracking-wide text-ink-faint border border-rule px-1.5 py-0.5">
+                  <span className="text-micro font-medium uppercase tracking-wide text-ink-faint border border-rule px-1.5 py-0.5">
                     login required
                   </span>
                 )}

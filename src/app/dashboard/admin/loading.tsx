@@ -1,4 +1,4 @@
-import { Loader2 } from "lucide-react";
+import { CircleNotch as Loader2 } from "@phosphor-icons/react/dist/ssr";
 
 // Admin fallback — a neutral centered loader, deliberately NOT a skeleton.
 // This file renders before the ?tab= param is read server-side, so it can't

@@ -125,6 +125,51 @@ export async function replaceAllowedEmails(
 }
 
 /**
+ * Inverse of removePendingPerson — puts the email back on the allowlist for the
+ * given courses. This is what makes the Undo on the Pending list honest: the
+ * remove happens immediately, and reversing it is one insert rather than asking
+ * the admin to retype an email they just deleted.
+ *
+ * Only the allowlist row is restored. A cancelled invite is NOT re-sent — undoing
+ * a removal shouldn't put mail in someone's inbox; the admin can send again from
+ * the same row if they want that.
+ */
+export async function restorePendingPerson(
+  email: string,
+  trackSlugs: string[],
+): Promise<{ ok: boolean; error?: string }> {
+  const e = email.trim().toLowerCase();
+  if (!e || trackSlugs.length === 0) return { ok: false, error: "Nothing to restore" };
+  let svc: Awaited<ReturnType<typeof requireManager>>["svc"];
+  let userId: string | undefined;
+  try {
+    const actor = await requireManager();
+    svc = actor.svc;
+    userId = actor.userId;
+    await Promise.all(trackSlugs.map((t) => assertTrackInActorProgram(actor, svc, t)));
+  } catch {
+    return { ok: false, error: "Not authorized" };
+  }
+
+  // upsert, not insert: an admin can hit Undo after the row was re-added by
+  // another route (or another admin), and that shouldn't error.
+  const { error } = await svc
+    .from("allowed_signup_emails")
+    .upsert(
+      trackSlugs.map((t) => ({ email: e, track_slug: t, added_by: userId ?? null })),
+      { onConflict: "email,track_slug" },
+    );
+  if (error) {
+    console.error("[allowlist] restore failed", { email: e, error });
+    return { ok: false, error: error.message };
+  }
+
+  revalidatePath("/dashboard/admin/allowlist");
+  revalidatePath("/dashboard/admin");
+  return { ok: true };
+}
+
+/**
  * Remove a single email from the allowlist (and clear any not-yet-used invites)
  * for the given courses. Used by the People hub's Pending list to take someone
  * off before they've created an account.

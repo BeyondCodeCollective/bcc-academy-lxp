@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { Loader2 } from "lucide-react";
+import { CircleNotch as Loader2 } from "@phosphor-icons/react";
 import { buttonClass, fieldInput } from "@/components/ui";
 import { addStudentAction, assignStudentTrack } from "./actions";
 import { getAllowedEmails, replaceAllowedEmails, getAllowlistAudience } from "./allowlist/actions";
@@ -47,7 +47,7 @@ export function AddPeoplePanel({ tracks, programSlug, assignableRoles = [], onSt
         <button
           type="button"
           onClick={onClose}
-          className="text-[12px] text-ink-faint transition-colors hover:text-ink"
+          className="text-xs text-ink-faint transition-colors hover:text-ink"
         >
           Close
         </button>
@@ -80,7 +80,7 @@ function ModeTab({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-md px-2.5 py-1 text-[12px] font-medium transition-colors ${
+      className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
         active ? "bg-ink text-white" : "text-ink-soft hover:bg-paper-tint"
       }`}
     >
@@ -190,8 +190,8 @@ function InviteByEmail({ tracks }: { tracks: Track[] }) {
 
       {/* Bulk send — the "send day" action. The number is the people who still
          need to sign up (no account yet); those who've joined are skipped. */}
-      <div className="flex flex-wrap items-center gap-3 rounded-md border border-rule bg-paper-tint-soft px-3 py-2.5">
-        <span className="text-[13px] text-ink">
+      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-rule bg-paper-tint-soft px-3 py-2.5">
+        <span className="text-xs text-ink">
           <span className="font-semibold tabular-nums">{audience?.pending ?? "…"}</span>{" "}
           still need to sign up
           {audience && audience.joined > 0 && (
@@ -231,8 +231,8 @@ function InviteByEmail({ tracks }: { tracks: Track[] }) {
         >
           {pending ? "Working…" : "Allowlist + invite these"}
         </button>
-        {result && <span className="text-[12px] text-ink-soft">{result}</span>}
-        {error && <span className="text-[12px] text-red-600">{error}</span>}
+        {result && <span className="text-xs text-ink-soft">{result}</span>}
+        {error && <span className="text-xs text-red-600">{error}</span>}
       </div>
     </div>
   );
@@ -304,7 +304,7 @@ function AddDirectly({
 
   return (
     <form onSubmit={submit} className="space-y-3">
-      <p className="text-[12px] text-ink-soft">
+      <p className="text-xs text-ink-soft">
         Create an account now — no invite link needed. Good for an instructor,
         admin, or someone you&apos;re adding by hand.
       </p>
@@ -343,8 +343,8 @@ function AddDirectly({
           {pending ? <Loader2 size={12} className="animate-spin" /> : null}
           {pending ? "Adding…" : "Add person"}
         </button>
-        {done && <span className="text-[12px] text-ink-soft">Added ✓</span>}
-        {error && <span className="text-[12px] text-red-600">{error}</span>}
+        {done && <span className="text-xs text-ink-soft">Added ✓</span>}
+        {error && <span className="text-xs text-red-600">{error}</span>}
       </div>
     </form>
   );
@@ -353,7 +353,7 @@ function AddDirectly({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-ink-faint">
+      <span className="mb-1 block text-micro font-medium uppercase tracking-wider text-ink-faint">
         {label}
       </span>
       {children}

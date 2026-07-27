@@ -69,7 +69,7 @@ function OutcomesSection({ outcomes }: { outcomes: OutcomesData }) {
                 rows={g.rows}
               />
               {g.isCrossSurvey && (
-                <p className="text-[11px] text-ink-faint">
+                <p className="text-micro text-ink-faint">
                   Cohort-level: compares pre-survey respondents to post-survey
                   respondents, not the same individuals paired.
                 </p>
@@ -247,7 +247,7 @@ function AcquisitionSection({ acquisition }: { acquisition: AcquisitionData }) {
                 {acquisition.needsAttention.slice(0, 8).map((s) => (
                   <li key={s.id} className="flex items-center justify-between gap-3 py-2.5">
                     <PersonCell name={s.name} email={s.email} />
-                    <span className="shrink-0 text-[11px] tabular-nums text-ink-soft">
+                    <span className="shrink-0 text-micro tabular-nums text-ink-soft">
                       {s.signal}
                     </span>
                   </li>
@@ -271,7 +271,7 @@ function AcquisitionSection({ acquisition }: { acquisition: AcquisitionData }) {
 function EmptyCard({ text }: { text: string }) {
   return (
     <div className="panel px-6 py-10 text-center">
-      <p className="text-[13px] text-ink-soft">{text}</p>
+      <p className="text-xs text-ink-soft">{text}</p>
     </div>
   );
 }

@@ -66,7 +66,7 @@ function TrendsRow() {
           value={preset}
           onChange={(e) => setPreset(e.target.value as RangePreset)}
           aria-label="Date range"
-          className="rounded-lg border border-rule bg-white px-2.5 py-1.5 text-sm font-medium text-ink focus:border-ink-faint focus:outline-none"
+          className="rounded-lg border border-rule bg-white px-2.5 py-1.5 text-sm font-medium text-ink focus:border-ink-faint"
         >
           {(Object.keys(RANGE_LABELS) as RangePreset[]).map((p) => (
             <option key={p} value={p}>{RANGE_LABELS[p]}</option>
@@ -188,7 +188,7 @@ export function AnalyticsDashboard({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Filter by name or email…"
-              className="w-48 rounded-lg border border-rule bg-white px-2.5 py-1.5 text-sm text-ink placeholder:text-ink-faint focus:border-ink-faint focus:outline-none sm:w-64"
+              className="w-48 rounded-lg border border-rule bg-white px-2.5 py-1.5 text-sm text-ink placeholder:text-ink-faint focus:border-ink-faint sm:w-64"
             />
             <button
               type="button"
@@ -234,7 +234,7 @@ export function AnalyticsDashboard({
                     className="inline-flex items-center gap-1 font-medium text-primary underline-offset-2 hover:underline"
                   >
                     {l.surveys}
-                    <span aria-hidden className={`text-[9px] transition-transform ${open ? "rotate-180" : ""}`}>▾</span>
+                    <span aria-hidden className={`text-micro transition-transform ${open ? "rotate-180" : ""}`}>▾</span>
                   </button>
                 ) : (
                   <Num value={0} />
@@ -244,7 +244,7 @@ export function AnalyticsDashboard({
             {open && (
               <tr className="bg-paper-tint">
                 <td colSpan={totalCols} className="px-4 py-2.5">
-                  <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-ink-faint">
+                  <p className="mb-1.5 text-micro font-semibold uppercase tracking-wide text-ink-faint">
                     Surveys completed by {l.name || l.email}
                   </p>
                   <ul className="flex flex-wrap gap-x-4 gap-y-1">
@@ -273,7 +273,7 @@ export function AnalyticsDashboard({
             </tr>
           )}
         </DataTable>
-        <p className="text-[11px] leading-relaxed text-ink-faint">
+        <p className="text-micro leading-relaxed text-ink-faint">
           &ldquo;Engaged&rdquo; = watched a video, attended a session, or submitted work.
           Logins-over-time, time-in-platform, and video&nbsp;% watched aren&rsquo;t tracked yet
           &mdash; coming with deeper event tracking.

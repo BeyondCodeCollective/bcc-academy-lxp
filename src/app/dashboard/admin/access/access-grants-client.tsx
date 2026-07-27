@@ -62,7 +62,7 @@ export function AccessGrantsClient({
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="name@wearebcc.org"
-            className="w-60 border border-rule bg-white px-3 py-1.5 text-sm text-ink placeholder:text-ink-faint focus:border-ink-faint focus:outline-none"
+            className="w-60 border border-rule bg-white px-3 py-1.5 text-sm text-ink placeholder:text-ink-faint focus:border-ink-faint"
           />
         </label>
         <label className="flex flex-col gap-1">
@@ -70,7 +70,7 @@ export function AccessGrantsClient({
           <select
             value={programSlug}
             onChange={(e) => setProgramSlug(e.target.value)}
-            className="border border-rule bg-white px-3 py-1.5 text-sm text-ink focus:border-ink-faint focus:outline-none"
+            className="border border-rule bg-white px-3 py-1.5 text-sm text-ink focus:border-ink-faint"
           >
             {programs.map((p) => (
               <option key={p.slug} value={p.slug}>
@@ -84,7 +84,7 @@ export function AccessGrantsClient({
           <select
             value={role}
             onChange={(e) => setRole(e.target.value as "admin" | "instructor")}
-            className="border border-rule bg-white px-3 py-1.5 text-sm text-ink focus:border-ink-faint focus:outline-none"
+            className="border border-rule bg-white px-3 py-1.5 text-sm text-ink focus:border-ink-faint"
           >
             <option value="admin">Admin</option>
             <option value="instructor">Instructor</option>
@@ -98,7 +98,7 @@ export function AccessGrantsClient({
             value={trackSlug}
             onChange={(e) => setTrackSlug(e.target.value)}
             placeholder="whole program"
-            className="w-44 border border-rule bg-white px-3 py-1.5 text-sm text-ink placeholder:text-ink-faint focus:border-ink-faint focus:outline-none"
+            className="w-44 border border-rule bg-white px-3 py-1.5 text-sm text-ink placeholder:text-ink-faint focus:border-ink-faint"
           />
         </label>
         <button
@@ -112,7 +112,7 @@ export function AccessGrantsClient({
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      <div className="overflow-hidden rounded-lg border border-rule">
+      <div className="overflow-x-auto rounded-lg border border-rule">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-rule text-left uppercase tracking-wide text-ink-faint">

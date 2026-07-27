@@ -2,11 +2,12 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Trash2 } from "lucide-react";
-import { Loader2 } from "lucide-react";
+import { Trash as Trash2 } from "@phosphor-icons/react";
+import { CircleNotch as Loader2 } from "@phosphor-icons/react";
 import { buttonClass } from "@/components/ui";
 import { sendTestInvite, sendCohortInvites } from "./invites/actions";
-import { removePendingPerson } from "./allowlist/actions";
+import { removePendingPerson, restorePendingPerson } from "./allowlist/actions";
+import { UndoBar } from "@/components/undo-bar";
 import type { PendingPerson } from "@/lib/people-hub";
 
 type Props = {
@@ -24,6 +25,7 @@ export function PendingPeopleSection({ pending, trackNames }: Props) {
   const [state, setState] = useState<Record<string, "sending" | "sent" | "error">>({});
   const [removing, setRemoving] = useState<Record<string, boolean>>({});
   const [removeError, setRemoveError] = useState<string | null>(null);
+  const [undo, setUndo] = useState<{ email: string; trackSlugs: string[] } | null>(null);
   const [sendingAll, setSendingAll] = useState(false);
   const [allResult, setAllResult] = useState<string | null>(null);
 
@@ -80,15 +82,17 @@ export function PendingPeopleSection({ pending, trackNames }: Props) {
     });
   };
 
+  // Removing someone from the allowlist is reversible, so it just happens and
+  // offers an Undo. The confirm() it replaced taxed every correct removal to
+  // catch the rare wrong one, and blocked the thread while it did.
   const remove = (email: string, trackSlugs: string[]) => {
-    if (!window.confirm(`Remove ${email} from the allowlist (and cancel any unused invite)?`)) {
-      return;
-    }
     setRemoveError(null);
+    setUndo(null);
     setRemoving((m) => ({ ...m, [email]: true }));
     startTransition(async () => {
       const r = await removePendingPerson(email, trackSlugs);
       if (r.ok) {
+        setUndo({ email, trackSlugs });
         router.refresh();
       } else {
         // A silent failure reads as "the page just refreshed" — say why.
@@ -101,7 +105,7 @@ export function PendingPeopleSection({ pending, trackNames }: Props) {
   return (
     <section className="space-y-2">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
+        <p className="text-micro font-semibold uppercase tracking-[0.16em] text-ink-faint">
           Pending — invited or allowlisted, no account yet ({pending.length})
         </p>
         <button
@@ -117,8 +121,8 @@ export function PendingPeopleSection({ pending, trackNames }: Props) {
           {sendingAll ? "Sending…" : "Send all invites"}
         </button>
       </div>
-      {allResult && <p className="text-[12px] text-ink-soft">{allResult}</p>}
-      {removeError && <p className="text-[12px] text-red-600">{removeError}</p>}
+      {allResult && <p className="text-xs text-ink-soft">{allResult}</p>}
+      {removeError && <p className="text-xs text-red-600">{removeError}</p>}
       <div className="divide-y divide-rule-soft overflow-hidden panel">
         {pending.map((p) => {
           const st = state[p.email];
@@ -129,7 +133,7 @@ export function PendingPeopleSection({ pending, trackNames }: Props) {
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm text-ink">{p.email}</p>
                 {trackLabel && (
-                  <p className="truncate text-[11px] text-ink-faint">{trackLabel}</p>
+                  <p className="truncate text-micro text-ink-faint">{trackLabel}</p>
                 )}
               </div>
               <StatusPill status={p.status} />
@@ -154,7 +158,7 @@ export function PendingPeopleSection({ pending, trackNames }: Props) {
                 onClick={() => remove(p.email, p.trackSlugs)}
                 disabled={removing[p.email]}
                 aria-label={`Remove ${p.email}`}
-                className="shrink-0 rounded-md p-1.5 text-ink-faint transition-colors hover:bg-paper-tint hover:text-red-600 disabled:opacity-40"
+                className="shrink-0 rounded-lg p-1.5 text-ink-faint transition-colors hover:bg-paper-tint hover:text-red-600 disabled:opacity-40"
               >
                 <Trash2 size={14} aria-hidden />
               </button>
@@ -162,6 +166,18 @@ export function PendingPeopleSection({ pending, trackNames }: Props) {
           );
         })}
       </div>
+
+      {undo && (
+        <UndoBar
+          message={`Removed ${undo.email} from the allowlist.`}
+          onUndo={async () => {
+            const r = await restorePendingPerson(undo.email, undo.trackSlugs);
+            if (!r.ok) throw new Error(r.error ?? "unknown error");
+            router.refresh();
+          }}
+          onDismiss={() => setUndo(null)}
+        />
+      )}
     </section>
   );
 }
@@ -180,7 +196,7 @@ export function StatusPill({
   const s = map[status];
   return (
     <span
-      className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${s.cls}`}
+      className={`shrink-0 rounded-full px-2 py-0.5 text-micro font-medium ${s.cls}`}
     >
       {s.label}
     </span>

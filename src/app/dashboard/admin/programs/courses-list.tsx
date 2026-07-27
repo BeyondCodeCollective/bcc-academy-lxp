@@ -32,7 +32,7 @@ function IconButton({ onClick, title, children, className = "" }: {
       type="button"
       title={title}
       onClick={onClick}
-      className={`shrink-0 flex items-center justify-center w-8 h-8 rounded-md border border-rule bg-white text-ink-soft hover:bg-paper-tint-soft transition-colors ${className}`}
+      className={`shrink-0 flex items-center justify-center w-8 h-8 rounded-lg border border-rule bg-white text-ink-soft hover:bg-paper-tint-soft transition-colors ${className}`}
     >
       {children}
     </button>
@@ -40,7 +40,7 @@ function IconButton({ onClick, title, children, className = "" }: {
 }
 
 function CopyIcon({ copied }: { copied: boolean }) {
-  if (copied) return <span className="text-[10px] font-semibold text-primary">✓</span>;
+  if (copied) return <span className="text-micro font-semibold text-primary">✓</span>;
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
       <rect x="4.5" y="0.5" width="9" height="9" rx="1.5" stroke="currentColor" />
@@ -178,7 +178,7 @@ function CourseItem({ course }: { course: CourseRow }) {
           href={`/dashboard/admin/programs/${course.slug}/edit`}
           onClick={(e) => e.stopPropagation()}
           title="Course settings"
-          className="shrink-0 flex items-center justify-center w-8 h-8 rounded-md border border-rule bg-white text-ink-soft hover:bg-paper-tint-soft transition-colors"
+          className="shrink-0 flex items-center justify-center w-8 h-8 rounded-lg border border-rule bg-white text-ink-soft hover:bg-paper-tint-soft transition-colors"
         >
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
             <circle cx="7" cy="7" r="2" stroke="currentColor" />
@@ -205,7 +205,7 @@ function ProgramSection({ group }: { group: ProgramGroup }) {
 
   return (
     <div className="space-y-2">
-      <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
+      <p className="px-1 text-micro font-semibold uppercase tracking-[0.16em] text-ink-faint">
         {group.programName}
       </p>
       <div className="divide-y divide-neutral-100 rounded-lg border border-rule bg-white overflow-hidden">

@@ -118,7 +118,7 @@ export default async function AssessmentDetailPage({
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-semibold uppercase tracking-widest text-ink/40">{label}</span>
                   <span className="text-xs font-medium text-accent">{poleName}</span>
-                  <span className="text-[10px] text-ink/30">{signal === "clear" ? "3–0" : "2–1"}</span>
+                  <span className="text-micro text-ink/30">{signal === "clear" ? "3–0" : "2–1"}</span>
                 </div>
                 <p className="text-sm text-ink/70 leading-relaxed">{content.facilitator}</p>
               </div>
@@ -144,7 +144,7 @@ export default async function AssessmentDetailPage({
             ].map(({ label, value }) => (
               <div key={label} className="rounded-lg border border-ink/10 px-3 py-3 text-center">
                 <p className="text-lg font-bold text-ink">{value.toFixed(2)}</p>
-                <p className="text-[10px] text-ink/40 mt-0.5">{label}</p>
+                <p className="text-micro text-ink/40 mt-0.5">{label}</p>
               </div>
             ))}
           </div>

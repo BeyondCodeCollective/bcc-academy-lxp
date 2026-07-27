@@ -1,5 +1,30 @@
+/* Hallmark · design-system: DESIGN.md · genre: modern-minimal (product surface)
+ * theme: BCC (cobalt #1D59FF accent · light paper · Archivo display)
+ * Audited 2026-07-27 — see DESIGN.md for the system this stamp claims allegiance to.
+ */
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
+
+/* Horizontal-overflow guard. `clip` not `hidden` — `hidden` on the root creates
+   a scroll container and silently breaks every `position: sticky` header. The
+   widest surface in the app is the admin attendance grid (one column per
+   session), which must scroll inside its own container, never push the page. */
+html,
+body {
+  overflow-x: clip;
+}
+
+/* Global keyboard focus indicator.
+   Admin controls were hand-rolling `focus:outline-none` with only a 1px grey
+   border tint left as the indicator — 22 of them, with zero `focus-visible` in
+   the whole admin. DESIGN.md specifies a #1D59FF focus ring; this makes it the
+   floor for every focusable element, so a component can't silently opt out by
+   forgetting. Never transitioned: a ring that fades in leaves keyboard users
+   with no indicator at the start of the transition. */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
 
 :root {
   /* ─── Surface system ──────────────────────────────────────────────────
@@ -150,6 +175,14 @@
 }
 
 @theme inline {
+  /* Fourth type step, below DESIGN.md's 12px caption. The admin had 169
+     arbitrary `text-[Npx]` sizes across 9 different values (9, 10, 11, 12, 13,
+     14, 15, 17px); `text-[11px]` alone appeared 78 times, which is a token
+     asking to be named. One step, documented in DESIGN.md, replaces the 9/10/11
+     px spread — nothing in the product goes below 11px now. */
+  --text-micro: 0.6875rem; /* 11px */
+  --text-micro--line-height: 1.45;
+
   --color-background: var(--background);
   --color-surface-elevated: var(--surface-elevated);
   --color-surface-soft: var(--surface-soft);

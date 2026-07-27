@@ -97,7 +97,7 @@ export function ImportCourseForm() {
       <div className="space-y-4">
         <div className="rounded-lg border border-green-200 bg-green-50 p-5 space-y-4">
           <p className="text-sm font-semibold text-green-800">✓ Course created</p>
-          <div className="rounded-md border border-green-200 bg-white p-4 space-y-3">
+          <div className="rounded-lg border border-green-200 bg-white p-4 space-y-3">
             <p className="font-mono text-sm text-green-700 break-all">{created.joinUrl}</p>
             <button
               type="button"
@@ -151,7 +151,7 @@ export function ImportCourseForm() {
         </Field>
 
         {error && (
-          <p className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
             {error}
           </p>
         )}
@@ -173,7 +173,7 @@ export function ImportCourseForm() {
 
   return (
     <form onSubmit={handleCreate} className="space-y-5">
-      <div className="rounded-md border border-ink/10 bg-surface-muted px-4 py-3">
+      <div className="rounded-lg border border-ink/10 bg-surface-muted px-4 py-3">
         <p className="text-sm font-semibold">Review before creating</p>
         <p className="mt-1 text-xs text-ink-soft">
           Nothing has been saved yet. Check the dates and times especially.
@@ -181,14 +181,14 @@ export function ImportCourseForm() {
       </div>
 
       {missing.length > 0 && (
-        <p className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           The source didn&apos;t state: {missing.join(", ")}. Fill these in — they were
           left blank rather than guessed.
         </p>
       )}
 
       {!draft.timezoneStated && (
-        <p className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           No timezone was stated in the source, so these times are assumed to be
           Eastern. Confirm them against wherever people registered.
         </p>
@@ -286,7 +286,7 @@ export function ImportCourseForm() {
       </Field>
 
       {attendees.length > 0 && (
-        <label className="flex items-start gap-2 rounded-md border border-ink/10 px-4 py-3">
+        <label className="flex items-start gap-2 rounded-lg border border-ink/10 px-4 py-3">
           <input
             type="checkbox"
             checked={useAttendees}
@@ -304,7 +304,7 @@ export function ImportCourseForm() {
       )}
 
       {error && (
-        <p className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
         </p>
       )}

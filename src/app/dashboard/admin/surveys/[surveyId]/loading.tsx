@@ -1,4 +1,4 @@
-import { Loader2 } from "lucide-react";
+import { CircleNotch as Loader2 } from "@phosphor-icons/react/dist/ssr";
 
 // Neutral centered loader, deliberately NOT a skeleton. Layout-mimicking
 // skeletons flash as a "different UI" whenever the guess is wrong, and a

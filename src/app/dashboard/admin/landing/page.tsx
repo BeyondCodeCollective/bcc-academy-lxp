@@ -76,11 +76,11 @@ export default async function LandingPagesListPage() {
               </td>
               <td className="px-4 py-3 align-top">
                 {r.published ? (
-                  <span className="inline-flex rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-semibold text-green-700">
+                  <span className="inline-flex rounded-full bg-green-100 px-2 py-0.5 text-micro font-semibold text-green-700">
                     Published
                   </span>
                 ) : (
-                  <span className="inline-flex rounded-full bg-paper-tint px-2 py-0.5 text-[11px] font-semibold text-ink-faint">
+                  <span className="inline-flex rounded-full bg-paper-tint px-2 py-0.5 text-micro font-semibold text-ink-faint">
                     Draft
                   </span>
                 )}
