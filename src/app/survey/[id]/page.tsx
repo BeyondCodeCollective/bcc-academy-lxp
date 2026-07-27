@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import type { ComponentType } from "react";
 import { getProgram } from "@/lib/programs/server";
 import { getJoinablePrograms } from "@/lib/programs";
@@ -10,6 +10,7 @@ import { PublicWorkshopSurvey } from "./public-workshop-survey";
 import { PublicLearnerIntake } from "./public-learner-intake";
 import { PublicPreSurvey } from "./public-pre-survey";
 import { PublicPostSurvey } from "./public-post-survey";
+import { PublicImpactSurvey } from "./public-impact-survey";
 
 // Public survey route. Outside /dashboard/* so the proxy/middleware does not
 // gate it — anyone who lands on catalyst.bccacademy.io/survey/network-plus-post
@@ -32,6 +33,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     "network-plus-post": "CompTIA Network+ End-of-Cohort Survey",
     "pre-survey-spring-2026": "Pre-Program Survey",
     "post-survey-spring-2026": "Post-Program Survey",
+    "ai-impact-survey-2026": "Program Impact Survey",
   };
   const title = titles[id] ?? "Survey";
   return {
@@ -49,6 +51,14 @@ const SURVEY_COMPONENTS: Record<string, ComponentType<SurveyProps>> = {
   "bcc-learner-intake": PublicLearnerIntake,
   "pre-survey-spring-2026": PublicPreSurvey,
   "post-survey-spring-2026": PublicPostSurvey,
+  "ai-impact-survey-2026": PublicImpactSurvey,
+};
+
+// post-survey-spring-2026 is retired: it's no longer assigned to a program, so
+// its config no longer resolves and the shared link would 404. Send it to the
+// instrument that replaced it rather than breaking a URL already in the wild.
+const RETIRED_SURVEY_REDIRECTS: Record<string, string> = {
+  "post-survey-spring-2026": "ai-impact-survey-2026",
 };
 
 export default async function PublicSurveyPage({
@@ -57,6 +67,8 @@ export default async function PublicSurveyPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const replacement = RETIRED_SURVEY_REDIRECTS[id];
+  if (replacement) redirect(`/survey/${replacement}`);
   const program = await getProgram();
   // Resolve from the current program first, then ANY program (so a Catalyst
   // survey link still works on the marketing apex / a different program

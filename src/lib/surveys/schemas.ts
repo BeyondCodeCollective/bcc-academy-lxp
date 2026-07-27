@@ -414,6 +414,31 @@ const NETWORK_PLUS_POST: SurveyQuestion[] = [
 ];
 
 // ─── pre-survey-spring-2026 (Beyond Code Centers auth pre-survey) ──────────────────────────
+// The two confidence batteries the AI Fundamentals family measures. Shared by
+// the pre-survey, the (retired) post-survey, and the single-sitting impact
+// survey so all three stay statement-for-statement comparable — a reworded
+// statement in one of them would silently break every pre→post delta.
+export const DIGITAL_EXPERIENCE_STATEMENTS = [
+  "I feel comfortable using a computer or tablet on my own.",
+  "I feel comfortable using technology.",
+  "I know how to search for information online and check if it's reliable.",
+  "I feel confident sending a professional email.",
+  "I understand how to stay safe online (passwords, scams, privacy).",
+  "I can use tools like Google Docs, Sheets, or MS Word for school or work.",
+  "I feel like technology is something I can learn and control.",
+  "I could use technology to help me reach a goal (job, school, or creative).",
+  "I'm excited to use new technologies.",
+];
+
+export const AI_EXPERIENCE_STATEMENTS = [
+  "I'm familiar with everyday AI tools (e.g. ChatGPT, Google Gemini, Snapchat AI).",
+  "I'm familiar with coding AI tools (e.g. Codex, Replit, Loveable).",
+  "I know what AI tools are and have a basic idea of how they work.",
+  "I see learning AI tools as a skill worth developing seriously.",
+  "I feel confident I could learn to use AI tools well.",
+  "AI feels relevant to my future goals.",
+];
+
 const PRE_SURVEY_SPRING_2026: SurveyQuestion[] = [
   ...SHARED_DEMOGRAPHICS,
   {
@@ -442,17 +467,7 @@ const PRE_SURVEY_SPRING_2026: SurveyQuestion[] = [
     label: "Digital Experience",
     scale: LIKERT_1_5,
     scaleAnchors: { low: "1 — Strongly Disagree", high: "5 — Strongly Agree" },
-    statements: [
-      "I feel comfortable using a computer or tablet on my own.",
-      "I feel comfortable using technology.",
-      "I know how to search for information online and check if it's reliable.",
-      "I feel confident sending a professional email.",
-      "I understand how to stay safe online (passwords, scams, privacy).",
-      "I can use tools like Google Docs, Sheets, or MS Word for school or work.",
-      "I feel like technology is something I can learn and control.",
-      "I could use technology to help me reach a goal (job, school, or creative).",
-      "I'm excited to use new technologies.",
-    ],
+    statements: DIGITAL_EXPERIENCE_STATEMENTS,
     required: true,
   },
   {
@@ -461,14 +476,7 @@ const PRE_SURVEY_SPRING_2026: SurveyQuestion[] = [
     label: "AI Tools",
     scale: LIKERT_1_5,
     scaleAnchors: { low: "1 — Strongly Disagree", high: "5 — Strongly Agree" },
-    statements: [
-      "I'm familiar with everyday AI tools (e.g. ChatGPT, Google Gemini, Snapchat AI).",
-      "I'm familiar with coding AI tools (e.g. Codex, Replit, Loveable).",
-      "I know what AI tools are and have a basic idea of how they work.",
-      "I see learning AI tools as a skill worth developing seriously.",
-      "I feel confident I could learn to use AI tools well.",
-      "AI feels relevant to my future goals.",
-    ],
+    statements: AI_EXPERIENCE_STATEMENTS,
     required: true,
   },
   {
@@ -508,17 +516,7 @@ const POST_SURVEY_SPRING_2026: SurveyQuestion[] = [
     label: "Digital Experience",
     scale: LIKERT_1_5,
     scaleAnchors: { low: "1 — Strongly Disagree", high: "5 — Strongly Agree" },
-    statements: [
-      "I feel comfortable using a computer or tablet on my own.",
-      "I feel comfortable using technology.",
-      "I know how to search for information online and check if it's reliable.",
-      "I feel confident sending a professional email.",
-      "I understand how to stay safe online (passwords, scams, privacy).",
-      "I can use tools like Google Docs, Sheets, or MS Word for school or work.",
-      "I feel like technology is something I can learn and control.",
-      "I could use technology to help me reach a goal (job, school, or creative).",
-      "I'm excited to use new technologies.",
-    ],
+    statements: DIGITAL_EXPERIENCE_STATEMENTS,
     required: true,
   },
   {
@@ -527,14 +525,7 @@ const POST_SURVEY_SPRING_2026: SurveyQuestion[] = [
     label: "AI Tools",
     scale: LIKERT_1_5,
     scaleAnchors: { low: "1 — Strongly Disagree", high: "5 — Strongly Agree" },
-    statements: [
-      "I'm familiar with everyday AI tools (e.g. ChatGPT, Google Gemini, Snapchat AI).",
-      "I'm familiar with coding AI tools (e.g. Codex, Replit, Loveable).",
-      "I know what AI tools are and have a basic idea of how they work.",
-      "I see learning AI tools as a skill worth developing seriously.",
-      "I feel confident I could learn to use AI tools well.",
-      "AI feels relevant to my future goals.",
-    ],
+    statements: AI_EXPERIENCE_STATEMENTS,
     required: true,
   },
   {
@@ -592,6 +583,106 @@ const POST_SURVEY_SPRING_2026: SurveyQuestion[] = [
       "Less interested than before",
     ],
     required: true,
+  },
+];
+
+// ─── ai-impact-survey-2026 (AI Fundamentals, single sitting) ─────────────────
+//
+// Replaces the pre→post pair as the instrument that measures growth.
+//
+// The pair only produces an outcome when the SAME cohort answers twice, months
+// apart. AI Fundamentals answered the pre-survey 9 of 9 and the post-survey 1
+// of 9 — so a real program had no reportable outcome, not because nothing
+// changed but because the second sitting never happened. Beyond the Game's
+// mid-program check-in asks before and now in ONE response and landed 4 of 4.
+//
+// So: same two confidence batteries, same statements, asked as `dual-likert` at
+// the end of the program. One sitting, one response, a delta per statement.
+// `surveyCarriesShift` picks dual-likert up with no analytics changes, and the
+// question ids differ from the pre-survey's (`*_change`) so this can never be
+// mistaken for one half of the old cross-survey pair.
+//
+// Retrospective self-report has a known bias — people re-rate their "before"
+// through what they now know. The pre-survey is still assigned, so the
+// pre-vs-now comparison stays available for anyone who took both; this makes an
+// outcome exist for everyone else.
+const AI_IMPACT_SURVEY_2026: SurveyQuestion[] = [
+  {
+    type: "radio",
+    id: "program_variant",
+    label: "Which version of the program did you take?",
+    options: [
+      "AI Fundamentals",
+      "AI Fundamentals for Digital Natives",
+      "AI Fundamentals for Wisdom Circle Leaders",
+    ],
+    required: true,
+  },
+  {
+    type: "dual-likert",
+    id: "digital_experience_change",
+    label: "Digital Experience",
+    scale: LIKERT_1_5,
+    beforeLabel: "BEFORE the program",
+    nowLabel: "RIGHT NOW",
+    scaleAnchors: { low: "Strongly Disagree", high: "Strongly Agree" },
+    statements: DIGITAL_EXPERIENCE_STATEMENTS,
+    required: true,
+  },
+  {
+    type: "dual-likert",
+    id: "ai_experience_change",
+    label: "AI Tools",
+    scale: LIKERT_1_5,
+    beforeLabel: "BEFORE the program",
+    nowLabel: "RIGHT NOW",
+    scaleAnchors: { low: "Strongly Disagree", high: "Strongly Agree" },
+    statements: AI_EXPERIENCE_STATEMENTS,
+    required: true,
+  },
+  {
+    type: "text",
+    id: "post_new_skill",
+    label: "What is something you can do now that you couldn't do before this program?",
+    required: true,
+  },
+  {
+    type: "radio",
+    id: "post_taught_others",
+    label:
+      "Did you have a chance to share or teach what you learned to someone else?",
+    options: [
+      "Yes — I taught or shared something with someone",
+      "I tried, but it was hard to explain",
+      "Not yet, but I want to",
+      "No",
+    ],
+    required: true,
+  },
+  {
+    type: "radio",
+    id: "post_career_interest",
+    label: "How do you feel about working in a career that involves technology?",
+    options: [
+      "More interested than before",
+      "I was already interested and still am",
+      "About the same",
+      "Less interested than before",
+    ],
+    required: true,
+  },
+  {
+    type: "radio",
+    id: "post_recommend",
+    label: "Would you recommend this program to someone else?",
+    options: ["Yes", "Maybe", "No"],
+    required: true,
+  },
+  {
+    type: "text",
+    id: "post_more_help",
+    label: "Do you want more help with anything?",
+    required: false,
   },
 ];
 
@@ -1019,7 +1110,11 @@ const SCHEMAS: Record<string, SurveyQuestion[]> = {
   "bcc-workshop": BCC_WORKSHOP,
   "network-plus-post": NETWORK_PLUS_POST,
   "pre-survey-spring-2026": PRE_SURVEY_SPRING_2026,
+  // Retired as an assignment (see ai-impact-survey-2026), kept registered so
+  // the responses already collected keep their titles, schema, and pre→post
+  // pairing in Insights.
   "post-survey-spring-2026": POST_SURVEY_SPRING_2026,
+  "ai-impact-survey-2026": AI_IMPACT_SURVEY_2026,
   "mid-program-spring-2026": MID_PROGRAM_SPRING_2026,
   "security-plus-application": SECURITY_PLUS_APPLICATION,
   "home-for-summer-application": HOME_FOR_SUMMER_APPLICATION,
