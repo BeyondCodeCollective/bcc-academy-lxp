@@ -18,6 +18,12 @@ type SurveyPage = {
 };
 
 import { BCC_INTAKE_SURVEY_ID } from "@/lib/surveys/platform";
+// Shared with the analytics schema so the form and the dashboard measure the
+// same statements, word for word.
+import {
+  DIGITAL_EXPERIENCE_STATEMENTS,
+  AI_EXPERIENCE_STATEMENTS,
+} from "@/lib/surveys/schemas";
 
 // ─── BCC Learner Intake ───────────────────────────────────────────────────────
 // Platform-level required survey — fires once for every student regardless of program.
@@ -726,6 +732,133 @@ const ATG_MID_PROGRAM_PAGES: SurveyPage[] = [
 // the exact `digital_experience` and `ai_experience` Likert ids from the
 // pre-survey so the dashboard can pair pre→post per student and compute true
 // confidence deltas without asking respondents to recall their "before" state.
+
+// ─── AI Fundamentals — Program Impact Survey (single sitting) ────────────────
+//
+// The pre→post pair needed two sittings months apart and got 9 of 9 then 1 of
+// 9, so the cohort had no reportable outcome. This asks the same statements
+// once, rating BEFORE and NOW side by side, the way ATG's mid-program check-in
+// does (4 of 4). Statements come from schemas.ts so the form a learner fills in
+// and the schema Insights reads can't drift apart.
+const AI_IMPACT_PAGES: SurveyPage[] = [
+  {
+    title: "Before you start",
+    subtitle: "A quick note on how we use what you share.",
+    questions: [
+      {
+        type: "consent",
+        id: "impact_consent",
+        label: "Why we ask",
+        text: "Your answers help us measure how the program landed and improve future cohorts. Here's what you should know:",
+        bullets: [
+          "Your answers stay private.",
+          'You can mark "Prefer not to say" on any question.',
+          "You can email info@beyondcodecollective.org anytime to see, change, or delete your answers.",
+        ],
+        confirmLabel: "Got it — I'm ready to start.",
+        required: true,
+      },
+      {
+        type: "radio",
+        id: "program_variant",
+        label: "Which version of the program did you take?",
+        options: [
+          "AI Fundamentals",
+          "AI Fundamentals for Digital Natives",
+          "AI Fundamentals for Wisdom Circle Leaders",
+        ],
+        required: true,
+      },
+    ],
+  },
+  {
+    title: "Digital Experience",
+    subtitle:
+      "Rate each statement twice — once for how you felt BEFORE the program, and once for RIGHT NOW. There are no right or wrong answers.",
+    questions: [
+      {
+        type: "dual-likert",
+        id: "digital_experience_change",
+        label: "Digital Experience",
+        scale: LIKERT_1_5,
+        beforeLabel: "BEFORE the program",
+        nowLabel: "RIGHT NOW",
+        scaleAnchors: { low: "Strongly Disagree", high: "Strongly Agree" },
+        statements: DIGITAL_EXPERIENCE_STATEMENTS,
+        required: true,
+      },
+    ],
+  },
+  {
+    title: "AI Tools",
+    subtitle: "Same again — where you started, and where you are now.",
+    questions: [
+      {
+        type: "dual-likert",
+        id: "ai_experience_change",
+        label: "AI Tools",
+        scale: LIKERT_1_5,
+        beforeLabel: "BEFORE the program",
+        nowLabel: "RIGHT NOW",
+        scaleAnchors: { low: "Strongly Disagree", high: "Strongly Agree" },
+        statements: AI_EXPERIENCE_STATEMENTS,
+        required: true,
+      },
+    ],
+  },
+  {
+    title: "In your own words",
+    questions: [
+      {
+        type: "text",
+        id: "post_new_skill",
+        label: "What is something you can do now that you couldn't do before this program?",
+        placeholder: "Tell us what stood out…",
+        required: true,
+      },
+      {
+        type: "radio",
+        id: "post_taught_others",
+        label:
+          "Did you have a chance to share or teach what you learned to someone else — like a family member or friend?",
+        options: [
+          "Yes — I taught or shared something with someone",
+          "I tried, but it was hard to explain",
+          "Not yet, but I want to",
+          "No",
+        ],
+        required: true,
+      },
+      {
+        type: "radio",
+        id: "post_career_interest",
+        label: "How do you feel about working in a career that involves technology?",
+        options: [
+          "More interested than before",
+          "I was already interested and still am",
+          "About the same",
+          "Less interested than before",
+        ],
+        required: true,
+      },
+      {
+        type: "radio",
+        id: "post_recommend",
+        label: "Would you recommend this program to someone else?",
+        options: ["Yes", "Maybe", "No"],
+        required: true,
+      },
+      {
+        type: "text",
+        id: "post_more_help",
+        label: "Do you want more help with anything?",
+        placeholder:
+          "Is there a skill, topic, or type of support you wish the program had included?",
+        required: false,
+      },
+    ],
+  },
+];
 
 const FORGE_POST_SURVEY_PAGES: SurveyPage[] = [
   {
@@ -1446,6 +1579,13 @@ function getSurveyPages(surveyId: string, programSlug: string): SurveyPage[] {
   }
   if (surveyId === "post-survey-spring-2026" && programSlug === "catalyst") {
     return FORGE_POST_SURVEY_PAGES;
+  }
+  // No programSlug condition: this survey belongs to AI Fundamentals wherever
+  // it's opened from (Catalyst aggregates Beyond Code Centers' courses). Without
+  // an explicit branch it would fall through to SHARED_PAGES — the PRE-survey
+  // questions under an impact-survey title.
+  if (surveyId === "ai-impact-survey-2026") {
+    return AI_IMPACT_PAGES;
   }
   const finalPage = programSlug === "atg" ? ATG_FINAL_PAGE : FORGE_FINAL_PAGE;
   return [...SHARED_PAGES, finalPage];

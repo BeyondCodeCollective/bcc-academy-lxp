@@ -55,10 +55,13 @@ export const catalystConfig: ProgramConfig = {
       organization: "Beyond Code Centers",
     },
     {
-      id: "post-survey-spring-2026",
-      title: "AI Fundamentals — Post-Program Survey",
+      // Replaces post-survey-spring-2026. That one only yielded an outcome if
+      // the same cohort sat down twice — 9 of 9 took the pre-survey and 1 of 9
+      // the post — so it asks before AND now in a single sitting instead.
+      id: "ai-impact-survey-2026",
+      title: "AI Fundamentals — Program Impact Survey",
       description:
-        "You made it — share how the program landed and where you're headed next. Takes about 5 minutes.",
+        "You made it — how far you've come, in your own words. One sitting, about 5 minutes.",
       required: false,
       // Same targeting as the pre-survey: it's an AI Fundamentals survey, so it
       // goes to AI Fundamentals learners — not to whoever hasn't been added to

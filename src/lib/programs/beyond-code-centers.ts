@@ -452,10 +452,14 @@ Guidelines:
       organization: "Beyond Code Centers",
     },
     {
-      id: "post-survey-spring-2026",
-      title: "AI Fundamentals — Post-Program Survey",
+      // Replaces post-survey-spring-2026 — before AND now in one sitting, so an
+      // outcome no longer depends on the cohort coming back months later. See
+      // the schema comment in lib/surveys/schemas.ts for the response numbers
+      // that drove the change.
+      id: "ai-impact-survey-2026",
+      title: "AI Fundamentals — Program Impact Survey",
       description:
-        "You made it — share how the program landed and where you're headed next. Takes about 5 minutes.",
+        "You made it — how far you've come, in your own words. One sitting, about 5 minutes.",
       required: false,
       organization: "Beyond Code Centers",
     },

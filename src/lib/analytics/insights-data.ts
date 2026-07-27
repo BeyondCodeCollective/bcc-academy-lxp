@@ -85,6 +85,10 @@ export async function buildInsightsData(
   const ORPHAN_TITLE_OVERRIDES: Record<string, string> = {
     "comptia-security-agreement": "CompTIA Security+ Agreement",
     "catalyst-participation-agreement": "Catalyst Participation Agreement",
+    // No longer assigned to any program (replaced by ai-impact-survey-2026), so
+    // it arrives here as an orphan. Its responses are real and still pair with
+    // the pre-survey — say what it is, and that it's retired.
+    "post-survey-spring-2026": "AI Fundamentals — Post-Program Survey (retired)",
   };
   const configuredIds = new Set(configuredWithData.map((s) => s.id));
   const orphanSurveys: SurveyConfig[] = Array.from(
