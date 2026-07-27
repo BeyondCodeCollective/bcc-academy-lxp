@@ -554,6 +554,10 @@ export default async function AdminPage({
   // program survey under every course — an unrelated survey has no business
   // there, and with zero responses there'd be nothing to view anyway.
   let trackAnsweredSurveyIds: string[] | null = null;
+  /** Enrolled LEARNERS in the open course — the denominator for response rate. */
+  let trackEnrolledCount = 0;
+  /** survey id → distinct learners from this course who answered it. */
+  let trackSurveyRespondents: Record<string, number> = {};
 
   if (isSupabaseConfigured()) {
     activeTrack = isTrackTab
@@ -561,22 +565,45 @@ export default async function AdminPage({
       : undefined;
     activeTrackPublicSurveyIds = activeTrack?.publicSurveys ?? [];
     if (activeTrack) {
+      // Learners only — staff hold enrollments so they can see a course, and
+      // counting them would make a response rate read low for a class that
+      // fully responded. Same filter the completion rate uses.
+      const learnerIds = new Set(
+        allStudents
+          .filter((s) => s.role === "student" && !s.is_staff)
+          .map((s) => s.id),
+      );
       const trackStudentIds = Array.from(
         new Set(
           studentTracks
             .filter((e) => e.track_slug === activeTrack!.slug)
-            .map((e) => e.student_id),
+            .map((e) => e.student_id)
+            .filter((id) => learnerIds.has(id)),
         ),
       );
+      trackEnrolledCount = trackStudentIds.length;
       const surveyIds = (program.surveys ?? []).map((sv) => sv.id);
       if (trackStudentIds.length > 0 && surveyIds.length > 0) {
         const { data: answered } = await createServiceClient()
           .from("survey_responses")
-          .select("survey_type")
+          .select("survey_type, student_id")
           .in("survey_type", surveyIds)
           .in("student_id", trackStudentIds);
         trackAnsweredSurveyIds = Array.from(
           new Set((answered ?? []).map((r) => r.survey_type as string)),
+        );
+        // Distinct respondents per survey. THE number this page was missing:
+        // "15 of 16 answered the pre-survey, 1 of 16 answered the post" is how
+        // you notice a cohort never came back — AI Fundamentals sat at 15-vs-1
+        // for weeks with nothing anywhere saying so.
+        const byS = new Map<string, Set<string>>();
+        for (const r of answered ?? []) {
+          const id = r.survey_type as string;
+          if (!byS.has(id)) byS.set(id, new Set());
+          byS.get(id)!.add(r.student_id as string);
+        }
+        trackSurveyRespondents = Object.fromEntries(
+          Array.from(byS, ([id, set]) => [id, set.size]),
         );
       } else {
         trackAnsweredSurveyIds = [];
@@ -724,6 +751,8 @@ export default async function AdminPage({
         surveyConfigs={surveyConfigs}
         trackPublicSurveys={trackPublicSurveys}
         trackAnsweredSurveyIds={trackAnsweredSurveyIds}
+        trackEnrolledCount={trackEnrolledCount}
+        trackSurveyRespondents={trackSurveyRespondents}
         userRole={userRole}
         isMaster={isMasterEmail(actorEmail)}
         assignableRoles={assignableRoles(userRole, isMasterEmail(actorEmail))}

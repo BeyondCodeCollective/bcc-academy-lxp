@@ -535,6 +535,8 @@ export function AdminTabs({
   courseEngagement = null,
   attendanceRates = null,
   trackAnsweredSurveyIds = null,
+  trackEnrolledCount = 0,
+  trackSurveyRespondents = {},
   pendingPeople = [],
   alumniEnrollments = [],
   unviewedAssessments = 0,
@@ -573,6 +575,10 @@ export function AdminTabs({
   attendanceRates?: { held: number; attended: Record<string, number> } | null;
   /** Auth surveys with ≥1 response from the open course's students; null off track tabs. */
   trackAnsweredSurveyIds?: string[] | null;
+  /** Enrolled learners in the open course — response-rate denominator. */
+  trackEnrolledCount?: number;
+  /** survey id → distinct learners from this course who answered it. */
+  trackSurveyRespondents?: Record<string, number>;
   pendingPeople?: PendingPerson[];
   alumniEnrollments?: { track_slug: string; email: string; source: string }[];
   unviewedAssessments?: number;
@@ -1665,6 +1671,8 @@ export function AdminTabs({
                       trackAnsweredSurveyIds.includes(s.id)),
                 )}
                 trackPublicSurveys={trackPublicSurveys}
+                enrolledCount={trackEnrolledCount}
+                respondentsBySurvey={trackSurveyRespondents}
               />
             </div>
           )}
