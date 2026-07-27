@@ -76,7 +76,7 @@ export function CreateCourseForm() {
         <div className="rounded-lg border border-green-200 bg-green-50 p-5 space-y-4">
           <p className="text-sm font-semibold text-green-800">✓ Course created</p>
 
-          <div className="rounded-md border border-green-200 bg-white p-4 space-y-3">
+          <div className="rounded-lg border border-green-200 bg-white p-4 space-y-3">
             <p className="font-mono text-sm text-green-700 break-all">{result.joinUrl}</p>
             <button
               type="button"
@@ -216,7 +216,7 @@ export function CreateCourseForm() {
       </Field>
 
       {error && (
-        <p className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
         </p>
       )}

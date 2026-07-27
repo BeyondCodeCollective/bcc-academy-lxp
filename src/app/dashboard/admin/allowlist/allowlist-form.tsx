@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useRef } from "react";
-import { CheckCircle, AlertCircle, Upload, Loader2 } from "lucide-react";
+import { CheckCircle, Warning as AlertCircle, UploadSimple as Upload, CircleNotch as Loader2 } from "@phosphor-icons/react";
 import { replaceAllowedEmails, parseEmailList } from "./actions";
 import { Field, fieldInput, buttonClass } from "@/components/ui";
 
@@ -50,7 +50,7 @@ export function AllowlistForm({
   return (
     <div className="space-y-4">
       <div
-        className={`flex gap-2 border-l-4 p-4 text-sm ${
+        className={`flex gap-2 rounded-lg border p-4 text-sm ${
           gateActive
             ? "border-emerald-400 bg-emerald-50 text-emerald-900"
             : "border-rule bg-neutral-50 text-ink"
@@ -88,7 +88,7 @@ export function AllowlistForm({
             setStatus({ kind: "idle" });
           }}
           rows={14}
-          className={`${fieldInput} font-mono text-[13px] leading-relaxed resize-y`}
+          className={`${fieldInput} font-mono text-xs leading-relaxed resize-y`}
           placeholder="ashley@example.com&#10;ryan@example.com&#10;…"
           spellCheck={false}
         />
@@ -150,7 +150,7 @@ export function AllowlistForm({
       </div>
 
       <p className="text-xs text-ink-soft">
-        CSV files: if your file has a header row with an <code className="font-mono text-[11px]">email</code>{" "}
+        CSV files: if your file has a header row with an <code className="font-mono text-micro">email</code>{" "}
         column, only that column is picked. Otherwise the first valid email in
         each row is taken. Duplicates and non-emails are dropped automatically.
       </p>

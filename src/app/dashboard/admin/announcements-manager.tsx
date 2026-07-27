@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Megaphone, Trash2, Plus, Loader2, Send } from "lucide-react";
+import { Megaphone, Trash as Trash2, Plus, CircleNotch as Loader2, PaperPlaneTilt as Send } from "@phosphor-icons/react";
 import { createAnnouncement, deleteAnnouncement } from "./actions-misc";
 import { humanizeSlug } from "@/lib/utils";
 
@@ -125,7 +125,7 @@ export function AnnouncementsManager({ announcements: initial, tracks, programSl
             onChange={(e) => setMessage(e.target.value)}
             placeholder="What do you want to tell students?"
             rows={3}
-            className="w-full rounded-lg border border-rule bg-paper px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-accent/30 resize-none"
+            className="w-full rounded-lg border border-rule bg-paper px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary)] resize-none"
           />
           <div className="flex flex-wrap items-end gap-3">
             <div>

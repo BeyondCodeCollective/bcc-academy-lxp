@@ -70,13 +70,13 @@ export function UnifiedSurveysDashboard({
   return (
     <div className="space-y-12">
       {/* LEDE — editorial paragraph instead of a hero stat block. */}
-      <p className="text-[17px] leading-[1.65] text-ink max-w-2xl tracking-[-0.005em]">
+      <p className="text-base leading-[1.65] text-ink max-w-2xl tracking-[-0.005em]">
         {lede}
       </p>
 
       {/* Ledger — a table of every survey, click to focus. */}
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint mb-3">
+        <p className="text-micro font-semibold uppercase tracking-[0.16em] text-ink-faint mb-3">
           Surveys
         </p>
         <ul className="border-y border-rule">
@@ -98,7 +98,7 @@ export function UnifiedSurveysDashboard({
                 }`}
               >
                 <span
-                  className={`text-[10px] font-mono tabular-nums tracking-tight px-2 ${
+                  className={`text-micro font-mono tabular-nums tracking-tight px-2 ${
                     activeId === row.id && row.hasSchema
                       ? "text-ink"
                       : "text-ink-faint"
@@ -107,11 +107,11 @@ export function UnifiedSurveysDashboard({
                   {String(i + 1).padStart(2, "0")}
                 </span>
                 <div className="min-w-0">
-                  <p className="text-[15px] font-medium text-ink truncate">
+                  <p className="text-sm font-medium text-ink truncate">
                     {row.title}
                   </p>
                   {row.programs && (
-                    <p className="text-[11px] text-ink-soft mt-0.5 truncate">
+                    <p className="text-micro text-ink-soft mt-0.5 truncate">
                       {row.programs}
                     </p>
                   )}
@@ -119,18 +119,18 @@ export function UnifiedSurveysDashboard({
                 <p className="text-2xl font-semibold text-ink tabular-nums leading-none">
                   {row.count}
                 </p>
-                <p className="text-[11px] text-ink-faint tabular-nums whitespace-nowrap min-w-[5rem] text-right">
+                <p className="text-micro text-ink-faint tabular-nums whitespace-nowrap min-w-[5rem] text-right">
                   {row.lastActivity ? lastActivityText(row.lastActivity) : "—"}
                 </p>
               </button>
             </li>
           ))}
         </ul>
-        <p className="text-[11px] text-ink-faint mt-3">
+        <p className="text-micro text-ink-faint mt-3">
           {ledger.filter((r) => !r.hasSchema).length > 0 && (
             <>
               Greyed-out rows have responses but no dashboard schema yet — add
-              one in <code className="text-[10px] bg-paper-tint px-1 py-0.5 rounded">src/lib/surveys/schemas.ts</code> to visualize.
+              one in <code className="text-micro bg-paper-tint px-1 py-0.5 rounded">src/lib/surveys/schemas.ts</code> to visualize.
             </>
           )}
         </p>

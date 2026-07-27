@@ -167,13 +167,13 @@ export function EditCourseForm({
       </Field>
 
       {error && (
-        <p className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
         </p>
       )}
 
       {saved && (
-        <p className="rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+        <p className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
           ✓ Changes saved
         </p>
       )}
@@ -245,12 +245,12 @@ export function EditCourseForm({
       </div>
 
       {schedError && (
-        <p className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {schedError}
         </p>
       )}
       {schedSaved && (
-        <p className="rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+        <p className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
           ✓ Schedule set — {schedSaved}
         </p>
       )}

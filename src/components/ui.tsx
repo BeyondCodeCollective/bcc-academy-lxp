@@ -25,7 +25,7 @@ export function Panel({
  * consistent field look with a skin-aware focus ring.
  */
 export const fieldInput =
-  "w-full rounded-md border border-rule bg-neutral-50 px-3 py-2.5 text-sm text-ink placeholder:text-ink-faint transition-colors focus:border-primary focus:outline-none";
+  "w-full rounded-md border border-rule bg-neutral-50 px-3 py-2.5 text-sm text-ink placeholder:text-ink-faint transition-colors focus:border-primary";
 
 /** Labeled form field — one label treatment across every form. */
 export function Field({

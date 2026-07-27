@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Award, Check, Copy, ExternalLink, Loader2, Mail } from "lucide-react";
+import { Medal as Award, Check, Copy, ArrowSquareOut as ExternalLink, CircleNotch as Loader2, Envelope as Mail } from "@phosphor-icons/react";
 import {
   getCertificateEligibility,
   getTrackCompletions,
@@ -14,6 +14,7 @@ import {
   type CertificateEligibility,
 } from "./actions-misc";
 import { buttonClass } from "@/components/ui";
+import { UndoBar } from "@/components/undo-bar";
 
 type StudentRow = {
   id: string;
@@ -41,6 +42,7 @@ export function CertificatesPanel({
   const [bulkRunning, setBulkRunning] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [undo, setUndo] = useState<{ studentId: string; name: string } | null>(null);
   const [eligibility, setEligibility] = useState<CertificateEligibility | null>(null);
   // Off by default: most issuing now is backfill for courses that already
   // ended, and an email can't be unsent. Turning it on is one click; undoing a
@@ -163,11 +165,15 @@ export function CertificatesPanel({
     }
   }
 
+  // Revoking is reversible — re-issuing restores the certificate — so it happens
+  // immediately with an Undo instead of a blocking confirm. The re-issue on Undo
+  // passes skipEmail: undoing a mistake must not mail the family twice.
   async function revokeOne(studentId: string, name: string) {
-    if (!window.confirm(`Revoke ${name}'s certificate? Their link stops working immediately.`)) return;
     setStudentBusy(studentId, true);
+    setUndo(null);
     try {
       await revokeCompletion(studentId, trackSlug, programSlug);
+      setUndo({ studentId, name });
       await refresh();
     } catch (e) {
       setNotice(`Could not revoke: ${e instanceof Error ? e.message : String(e)}`);
@@ -265,7 +271,7 @@ export function CertificatesPanel({
       <div className="panel overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-rule-soft text-left text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
+            <tr className="border-b border-rule-soft text-left text-micro font-semibold uppercase tracking-[0.16em] text-ink-faint">
               <th className="px-4 py-3">Student</th>
               {sessionsHeld > 0 && <th className="px-4 py-3">Attended</th>}
               <th className="px-4 py-3">Certificate</th>
@@ -290,7 +296,7 @@ export function CertificatesPanel({
                   )}
                   <td className="px-4 py-3">
                     {completion ? (
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-2.5 py-1 text-[11px] font-semibold text-green-700">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-2.5 py-1 text-micro font-semibold text-green-700">
                         <Check size={11} />
                         Issued{" "}
                         {new Date(completion.completed_at).toLocaleDateString("en-US", {
@@ -313,27 +319,27 @@ export function CertificatesPanel({
                             target="_blank"
                             rel="noopener noreferrer"
                             title="View certificate"
-                            className="rounded-md p-1.5 text-ink-soft transition-colors hover:bg-paper-tint hover:text-ink"
+                            className="rounded-lg p-1.5 text-ink-soft transition-colors hover:bg-paper-tint hover:text-ink"
                           >
                             <ExternalLink size={14} />
                           </a>
                           <button
                             onClick={() => copyLink(completion.certificate_id)}
                             title="Copy public link"
-                            className="rounded-md p-1.5 text-ink-soft transition-colors hover:bg-paper-tint hover:text-ink"
+                            className="rounded-lg p-1.5 text-ink-soft transition-colors hover:bg-paper-tint hover:text-ink"
                           >
                             {copiedId === completion.certificate_id ? <Check size={14} /> : <Copy size={14} />}
                           </button>
                           <button
                             onClick={() => resendOne(s.id)}
                             title="Email the certificate link again"
-                            className="rounded-md p-1.5 text-ink-soft transition-colors hover:bg-paper-tint hover:text-ink"
+                            className="rounded-lg p-1.5 text-ink-soft transition-colors hover:bg-paper-tint hover:text-ink"
                           >
                             <Mail size={14} />
                           </button>
                           <button
                             onClick={() => revokeOne(s.id, name)}
-                            className="rounded-md px-2 py-1 text-[11px] font-medium text-ink-faint transition-colors hover:bg-paper-tint hover:text-red-600"
+                            className="rounded-lg px-2 py-1 text-micro font-medium text-ink-faint transition-colors hover:bg-paper-tint hover:text-red-600"
                           >
                             Revoke
                           </button>
@@ -366,6 +372,20 @@ export function CertificatesPanel({
         Issuing creates the student&apos;s public certificate page and emails the family the
         link. Re-issuing is safe — a student only ever has one certificate per course.
       </p>
+
+      {undo && (
+        <UndoBar
+          message={`Revoked ${undo.name}'s certificate — their link stopped working.`}
+          onUndo={async () => {
+            const res = await issueCertificate(undo.studentId, trackSlug, programSlug, {
+              skipEmail: true,
+            });
+            if (!res.success) throw new Error(res.error ?? "unknown error");
+            await refresh();
+          }}
+          onDismiss={() => setUndo(null)}
+        />
+      )}
     </div>
   );
 }

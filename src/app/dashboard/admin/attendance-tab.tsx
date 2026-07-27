@@ -1,15 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
-import {
-  UserCheck,
-  RefreshCw,
-  ChevronLeft,
-  ChevronRight,
-  Download,
-  Check,
-  Circle,
-} from "lucide-react";
+import { UserCheck, ArrowsClockwise as RefreshCw, CaretLeft as ChevronLeft, CaretRight as ChevronRight, Download, Check, Circle } from "@phosphor-icons/react";
 import {
   type AttendanceRecord,
   type StudentRow,
@@ -583,7 +575,7 @@ function OverviewPanel({
                       ? `${s.consecutiveMisses} in a row missed`
                       : "no recent streak"
                   }`}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-rule bg-white px-3 py-1.5 text-[13px] font-semibold text-ink"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-rule bg-white px-3 py-1.5 text-xs font-semibold text-ink"
                 >
                   <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
                   {name}
@@ -619,7 +611,7 @@ function OverviewPanel({
                 className={`group min-w-[78px] flex-1 rounded-lg px-2.5 py-3 text-center transition-shadow hover:shadow-[inset_0_0_0_1.5px_currentColor] ${TONE_CHIP[rateTone(rate)]}`}
               >
                 <div className="text-lg font-extrabold leading-none tabular-nums">{rate}%</div>
-                <div className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-semibold opacity-80">
+                <div className="mt-1.5 inline-flex items-center gap-1 text-micro font-semibold opacity-80">
                   {track?.unitLabel ?? "Week"} {i + 1}
                   <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-60 group-hover:opacity-100">
                     <path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
@@ -708,13 +700,13 @@ function MarkPanel({
          reserved for navigation, so this can't read as yet another tab row). */}
       {!hideCoursePicker && tracks.length > 1 && (
         <label className="flex flex-col gap-1.5">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
+          <span className="text-micro font-semibold uppercase tracking-[0.16em] text-ink-faint">
             Course
           </span>
           <select
             value={activeTrackSlug}
             onChange={(e) => selectTrack(e.target.value)}
-            className="min-w-[16rem] max-w-full rounded-lg border border-rule bg-white px-3 py-2 text-sm font-semibold text-ink focus:border-ink-faint focus:outline-none"
+            className="min-w-[16rem] max-w-full rounded-lg border border-rule bg-white px-3 py-2 text-sm font-semibold text-ink focus:border-ink-faint"
           >
             {tracks.map((t) => {
               const hasStarted = trackHasStarted(t);
@@ -741,7 +733,7 @@ function MarkPanel({
           <ChevronLeft size={16} />
         </button>
         <div className="text-center">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
+          <p className="text-micro font-semibold uppercase tracking-[0.16em] text-ink-faint">
             {activeTrack.shortName}
           </p>
           {/* Unit picker — a select, not chevrons alone: a 17-unit course
@@ -750,7 +742,7 @@ function MarkPanel({
             value={markWeek}
             onChange={(e) => setMarkWeek(Number(e.target.value))}
             aria-label="Select unit"
-            className="mt-0.5 max-w-full cursor-pointer rounded-md border border-rule bg-surface-elevated px-2 py-1 text-sm font-semibold text-ink"
+            className="mt-0.5 max-w-full cursor-pointer rounded-lg border border-rule bg-surface-elevated px-2 py-1 text-sm font-semibold text-ink"
           >
             {Array.from({ length: totalWeeks }, (_, i) => i + 1).map((w) => {
               const u = unitDisplay.get(w);
@@ -781,7 +773,7 @@ function MarkPanel({
       {/* Future units are view-only. Marking ahead of the calendar is how the
          Security+ launch data got phantom check-ins for sessions 2–6. */}
       {!arrived && (
-        <p className="rounded-md bg-paper-tint-soft px-4 py-3 text-sm text-ink-soft">
+        <p className="rounded-lg bg-paper-tint-soft px-4 py-3 text-sm text-ink-soft">
           This {(activeTrack.unitLabel ?? "week").toLowerCase()} hasn&apos;t
           happened yet
           {markDate ? ` — it meets ${formatCohortDate(markDate)}` : ""}. Marking
@@ -843,7 +835,7 @@ function SessionTable({
   return (
     <div className="overflow-hidden panel">
       {/* Header: per-session present count + "mark all" */}
-      <div className="grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_repeat(var(--sessions),auto)_auto] gap-x-3 items-center px-4 py-2.5 bg-paper-tint-soft border-b border-rule text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint"
+      <div className="grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_repeat(var(--sessions),auto)_auto] gap-x-3 items-center px-4 py-2.5 bg-paper-tint-soft border-b border-rule text-micro font-semibold uppercase tracking-[0.16em] text-ink-faint"
         style={{ ["--sessions" as string]: sessionsPerWeek }}>
         <div>Student</div>
         {sessionNumbers.map((s) => {
@@ -860,7 +852,7 @@ function SessionTable({
                 type="button"
                 onClick={() => void onMarkAllPresent(track.slug, week, s)}
                 disabled={allPresent || locked}
-                className="rounded-full border border-rule px-2 py-0.5 text-[10px] font-medium text-ink-soft hover:bg-surface-elevated hover:text-ink disabled:opacity-40 transition-colors"
+                className="rounded-full border border-rule px-2 py-0.5 text-micro font-medium text-ink-soft hover:bg-surface-elevated hover:text-ink disabled:opacity-40 transition-colors"
               >
                 S{s} all
               </button>
@@ -889,7 +881,7 @@ function SessionTable({
             >
               <div className="min-w-0">
                 <p className="text-sm font-medium text-ink truncate">{name}</p>
-                <p className="text-[11px] text-ink-faint truncate">{s.email}</p>
+                <p className="text-micro text-ink-faint truncate">{s.email}</p>
               </div>
               <div className="flex items-center gap-2 sm:contents">
                 {sessionNumbers.map((sNum) => {
@@ -915,7 +907,7 @@ function SessionTable({
                     >
                       {checked ? <Check size={14} strokeWidth={2.5} /> : <Circle size={12} />}
                       {sessionsPerWeek > 1 && (
-                        <span className="absolute -bottom-3.5 text-[9px] text-ink-faint hidden sm:block">
+                        <span className="absolute -bottom-3.5 text-micro text-ink-faint hidden sm:block">
                           S{sNum}
                         </span>
                       )}
@@ -923,7 +915,7 @@ function SessionTable({
                   );
                 })}
               </div>
-              <div className="hidden sm:block text-right tabular-nums text-[11px] text-ink-soft">
+              <div className="hidden sm:block text-right tabular-nums text-micro text-ink-soft">
                 {attendedSessions}/{sessionsPerWeek}
               </div>
             </li>

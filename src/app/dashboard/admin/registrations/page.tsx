@@ -93,7 +93,7 @@ export default async function RegistrationsPage() {
                 <td className="px-4 py-3 align-top">
                   <span className="font-medium text-ink">{r.email}</span>
                   {dupes > 1 && (
-                    <span className="ml-2 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
+                    <span className="ml-2 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-micro font-semibold text-amber-800">
                       ×{dupes}
                     </span>
                   )}
@@ -106,15 +106,15 @@ export default async function RegistrationsPage() {
                 </td>
                 <td className="px-4 py-3 align-top">
                   {joined ? (
-                    <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-semibold text-green-800">
+                    <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-micro font-semibold text-green-800">
                       Joined
                     </span>
                   ) : claimed ? (
-                    <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-semibold text-blue-800">
+                    <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-micro font-semibold text-blue-800">
                       Signed in
                     </span>
                   ) : (
-                    <span className="inline-flex items-center rounded-full bg-neutral-100 px-2 py-0.5 text-[11px] font-semibold text-neutral-600">
+                    <span className="inline-flex items-center rounded-full bg-neutral-100 px-2 py-0.5 text-micro font-semibold text-neutral-600">
                       Registered
                     </span>
                   )}

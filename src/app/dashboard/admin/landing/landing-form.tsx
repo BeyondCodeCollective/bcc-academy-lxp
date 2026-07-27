@@ -218,14 +218,14 @@ export function LandingForm({
           <Field label="Accent color" hint="6-digit hex">
             <input
               type="text"
-              placeholder="#E54D2E"
+              placeholder="#1D59FF"
               value={accent}
               onChange={(e) => setAccent(e.target.value)}
               className={`${fieldInput} font-mono`}
             />
           </Field>
           <div
-            className="h-[42px] w-12 shrink-0 rounded-md border border-rule"
+            className="h-[42px] w-12 shrink-0 rounded-lg border border-rule"
             style={{ backgroundColor: accentValid ? accent.trim() : "#f5f5f7" }}
             aria-hidden
           />
@@ -377,7 +377,7 @@ export function LandingForm({
           {partners.map((p, i) => (
             <div key={i} className="rounded-lg border border-rule p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <div className="inline-flex rounded-md border border-rule p-0.5 text-xs">
+                <div className="inline-flex rounded-lg border border-rule p-0.5 text-xs">
                   <button
                     type="button"
                     onClick={() => updatePartner(i, { kind: "wordmark" })}
@@ -504,7 +504,7 @@ export function LandingForm({
       </Panel>
 
       {error && (
-        <p className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
         </p>
       )}

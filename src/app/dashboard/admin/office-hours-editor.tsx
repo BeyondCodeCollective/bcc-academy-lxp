@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash as Trash2 } from "@phosphor-icons/react";
 import { saveTrackOverview } from "./actions-tracks";
 import type { OfficeHour, ScheduleItemType } from "@/lib/programs/types";
 import { fieldInput, buttonClass, microLabel, SaveIndicator } from "@/components/ui";
@@ -78,7 +78,7 @@ export function OfficeHoursEditor({ trackSlug, programSlug, initial }: Props) {
           <h3 className={microLabel}>
             Schedule
           </h3>
-          <p className="mt-1 text-[12px] text-ink-soft">
+          <p className="mt-1 text-xs text-ink-soft">
             Shown on the course overview. Add office hours, guest speakers, or
             any other one-off session — each with a date, time, join link, and
             dial-in.
@@ -90,7 +90,7 @@ export function OfficeHoursEditor({ trackSlug, programSlug, initial }: Props) {
       </div>
 
       {rows.length === 0 ? (
-        <p className="panel px-4 py-6 text-center text-[13px] text-ink-faint">
+        <p className="panel px-4 py-6 text-center text-xs text-ink-faint">
           No sessions yet. Add one to show it on the course overview.
         </p>
       ) : (
@@ -130,7 +130,7 @@ export function OfficeHoursEditor({ trackSlug, programSlug, initial }: Props) {
                   type="button"
                   onClick={() => remove(i)}
                   aria-label="Remove session"
-                  className="mt-5 shrink-0 rounded-md p-1.5 text-ink-faint transition-colors hover:bg-paper-tint hover:text-ink"
+                  className="mt-5 shrink-0 rounded-lg p-1.5 text-ink-faint transition-colors hover:bg-paper-tint hover:text-ink"
                 >
                   <Trash2 size={15} aria-hidden />
                 </button>

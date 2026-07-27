@@ -77,7 +77,7 @@ export async function saveLandingPageAction(
 
   const accent = input.accent.trim();
   if (accent && !/^#[0-9a-fA-F]{6}$/.test(accent)) {
-    return { success: false, error: "Accent must be a 6-digit hex color (e.g. #E54D2E)." };
+    return { success: false, error: "Accent must be a 6-digit hex color (e.g. #1D59FF)." };
   }
 
   // Sanitize the repeatable lists: drop rows the user left blank.

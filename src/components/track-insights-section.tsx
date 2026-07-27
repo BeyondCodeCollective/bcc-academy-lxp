@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight } from "@phosphor-icons/react";
 
 type SurveyConfig = { id: string; title: string };
 
@@ -120,7 +120,7 @@ export function TrackInsightsSection({
           );
         })}
       </div>
-      <p className="px-1 text-[11px] leading-relaxed text-ink-faint">
+      <p className="px-1 text-micro leading-relaxed text-ink-faint">
         Response rate counts enrolled learners only — staff on the course roster
         aren&apos;t in the denominator.
       </p>

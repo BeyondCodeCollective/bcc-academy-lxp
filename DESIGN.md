@@ -153,6 +153,12 @@ down; nothing in the app is larger than 24px:
 | Section heading (h2) | 20px (`text-xl`) | `SectionHeadline`, panel headers |
 | Everything below | per the table below | unchanged |
 
+**Micro (11px) is a product-surface step only** — dense admin tables, per-row
+meta, chart axis labels. It exists because the admin had accumulated 169
+arbitrary `text-[Npx]` sizes across nine different values, 78 of them 11px: a
+de-facto token that was never named. Nothing in the product goes below 11px.
+Marketing surfaces stop at Caption.
+
 Stat VALUES are exempt — a `StatCard` number, a donut centre, or a countdown
 is data, not a heading, and shrinking those defeats the point of the tile.
 
@@ -163,6 +169,7 @@ is data, not a heading, and shrinking those defeats the point of the tile.
 | Body | 16px | Regular (400) | SF / system stack |
 | Label / Small | 14px | Medium (500) | SF / system stack |
 | Caption | 12px | Medium (500) | SF / system stack |
+| Micro (`text-micro`) | 11px | Medium (500) | SF / system stack |
 | Code / tabular numbers | 14px | Regular (400) | Geist Mono |
 
 ## Layout
@@ -204,10 +211,28 @@ Consistent rounding is a signal of quality. Never mix sharp and rounded corners 
 - Minimum tap target: 44px height
 
 ### Cards
+
+**Marketing / landing surfaces:**
 - White background, no border, `rounded-xl`
 - Padding: 24–32px
 - Placed on `#f5f5f7` sections only
 - Hover: shadow lift + `scale(1.01)` transition
+
+**Product surfaces (dashboard + admin) — the `.panel` class in `globals.css`:**
+- White background, 1px `#e5e5e5` border, `rounded-lg` (8px)
+- Padding per context; no forced minimum
+- No hover lift — a panel isn't a link
+
+A dashboard puts dozens of surfaces on one screen and is read for an hour at a
+time; the 24px borderless card is a marketing rhythm and reads as slack at that
+density, while the hairline border does work that background contrast alone
+can't when panels sit adjacent. Same reasoning as the stepped-down heading
+scale above. `.panel` is the single definition — change it there, not per
+component.
+
+**Radii on product surfaces: two only.** `rounded-lg` for surfaces and inputs,
+`rounded-full` for chips and buttons. The `md`/`sm` middle ground was being used
+interchangeably with `lg` for the same kinds of object.
 
 ### Navigation
 - Dark nav bar (`#1a1a1a` background), white text
@@ -215,10 +240,25 @@ Consistent rounding is a signal of quality. Never mix sharp and rounded corners 
 - Active nav items: subtle underline or background tint
 - No heavy borders or colored backgrounds on nav links
 
+### Icons
+
+**Phosphor (`@phosphor-icons/react`) is the platform's icon library.** One
+stroke voice everywhere. Lucide was in use across parts of the admin and the
+learner dashboard simultaneously — two stroke weights sitting side by side in
+the same panel, which reads as assembled rather than designed. Admin surfaces
+were consolidated onto Phosphor in July 2026; the learner dashboard still has
+Lucide imports to migrate.
+
 ### Forms & Inputs
 - Background: white or `#f5f5f7`
 - Border: 1px `#e5e5e5`, focus ring `#1D59FF`
 - Labels: 14px, Medium, `#1a1a1a`
+- **Focus: a 2px `#1D59FF` outline at 2px offset, set globally on
+  `:focus-visible` in `globals.css`.** Never `outline: none` without a
+  replacement ring, and never transition the ring — a ring that fades in leaves
+  keyboard users with no indicator while it does. Admin controls had been
+  hand-rolling `focus:outline-none` with a 1px grey border tint as the only
+  indicator.
 - Placeholder: `#9ca3af`
 - Error state: red-600 border + error text below input
 
@@ -244,7 +284,9 @@ Consistent rounding is a signal of quality. Never mix sharp and rounded corners 
 - **Don't** use vermillion coral `#E54D2E`/`#F0613E` anywhere — that is fonz.sh branding, not BCC Academy
 - **Don't** use rainbow gradients or purple-blue-pink AI aesthetics
 - **Don't** add decorative elements without a functional purpose
-- **Don't** use Inter, Roboto, or Open Sans
+- **Don't** use Inter, Roboto, or Open Sans — one carve-out: HTML **email**
+  font stacks may name system faces for the client's platform, since an email
+  can't load a webfont. Keep it to the system chain.
 - **Don't** add borders to cards on light backgrounds
 - **Don't** use glossy finishes, glow effects, or heavy box-shadows
 - **Don't** mix sharp and rounded corners in the same component

@@ -63,7 +63,7 @@ export default async function SurveyDashboardPage({
       <div className="mx-auto w-full max-w-2xl md:max-w-5xl px-5 py-12 md:py-16">
         <Link
           href={backHref}
-          className="inline-flex text-[12px] text-ink-soft hover:text-ink transition-colors mb-8"
+          className="inline-flex text-xs text-ink-soft hover:text-ink transition-colors mb-8"
         >
           {backLabel}
         </Link>

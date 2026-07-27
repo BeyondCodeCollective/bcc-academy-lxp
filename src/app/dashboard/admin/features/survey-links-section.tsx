@@ -43,18 +43,18 @@ export function SurveyLinksSection({ surveyConfigs }: { surveyConfigs: { id: str
       {allLinks.map((s) => (
         <div key={s.id} className="flex items-center justify-between gap-4 px-4 py-3">
           <div className="min-w-0">
-            <p className="text-[13px] font-medium text-ink truncate">{s.label}</p>
-            <p className="text-[11px] text-ink-faint font-mono truncate">
+            <p className="text-xs font-medium text-ink truncate">{s.label}</p>
+            <p className="text-micro text-ink-faint font-mono truncate">
               {typeof window !== "undefined" ? `${window.location.origin}${s.path}` : s.path}
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {s.auth ? (
-              <span className="text-[10px] font-medium uppercase tracking-wide text-ink-faint border border-rule px-1.5 py-0.5">
+              <span className="text-micro font-medium uppercase tracking-wide text-ink-faint border border-rule px-1.5 py-0.5">
                 login required
               </span>
             ) : (
-              <span className="text-[10px] font-medium uppercase tracking-wide text-ink-faint border border-rule px-1.5 py-0.5">
+              <span className="text-micro font-medium uppercase tracking-wide text-ink-faint border border-rule px-1.5 py-0.5">
                 no login
               </span>
             )}

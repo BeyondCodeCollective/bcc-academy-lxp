@@ -106,7 +106,7 @@ export default async function FeaturesPage() {
 
       {/* Survey & Form Links */}
       <section className="space-y-4">
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
+        <h2 className="text-micro font-semibold uppercase tracking-[0.16em] text-ink-faint">
           Survey &amp; form links
         </h2>
         <SurveyLinksSection surveyConfigs={surveyConfigs} />
@@ -114,7 +114,7 @@ export default async function FeaturesPage() {
 
       {/* Program features (assessment + surveys, toggleable per program/track) */}
       <section className="space-y-4">
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
+        <h2 className="text-micro font-semibold uppercase tracking-[0.16em] text-ink-faint">
           Program features
         </h2>
         <div className="divide-y divide-rule overflow-hidden panel">
@@ -123,8 +123,8 @@ export default async function FeaturesPage() {
             className="group flex items-center justify-between gap-4 px-4 py-3.5 hover:bg-paper-tint-soft transition-colors"
           >
             <div>
-              <p className="text-[14px] font-semibold text-ink">Learner pathway profiles</p>
-              <p className="text-[12px] text-ink-faint">View and review submitted assessments</p>
+              <p className="text-sm font-semibold text-ink">Learner pathway profiles</p>
+              <p className="text-xs text-ink-faint">View and review submitted assessments</p>
             </div>
             <span className="flex items-center gap-2 shrink-0">
               {(unviewedAssessments ?? 0) > 0 && (

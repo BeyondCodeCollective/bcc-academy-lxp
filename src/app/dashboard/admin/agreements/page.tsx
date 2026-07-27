@@ -165,11 +165,11 @@ export default async function AgreementsPage() {
                       <td className="px-4 py-3 align-top text-xs text-ink-soft break-all">{e.email}</td>
                       <td className="px-4 py-3 align-top">
                         {e.signed ? (
-                          <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-semibold text-green-800">
+                          <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-micro font-semibold text-green-800">
                             Signed
                           </span>
                         ) : (
-                          <span className="inline-flex items-center rounded-full bg-neutral-100 px-2 py-0.5 text-[11px] font-semibold text-neutral-600">
+                          <span className="inline-flex items-center rounded-full bg-neutral-100 px-2 py-0.5 text-micro font-semibold text-neutral-600">
                             Not yet
                           </span>
                         )}

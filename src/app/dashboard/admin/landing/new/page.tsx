@@ -13,7 +13,7 @@ const EMPTY: LandingFormInitial = {
   eyebrow: "",
   headline: "",
   subhead: "",
-  accent: "#E54D2E",
+  accent: "#1D59FF",
   formLabel: "",
   trackSlug: "",
   eventbriteEventId: "",
