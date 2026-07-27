@@ -6,8 +6,6 @@ import Link from "next/link";
 import { deleteStudentAction, updateStudentAction, updateCohortAction, saveSessionContent, assignStudentTrack, removeStudentTrack, bulkAssignTrack, exportSurveyResponses, exportPublicSurveyResponses, getAllSubmissions, addFeedback, assignInstructorTrack, removeInstructorTrack, deleteSurveyResponse, deletePublicSurveyResponse, listPublicSurveyResponses, sendInviteAction, createCohortAction } from "./actions";
 import type { SessionResource, StudentTrackRow, SurveyStatsRow, AdminSubmissionRow, InstructorTrackRow, PublicSurveyStatsRow } from "./actions";
 import { canManageStudents, canSwitchPrograms, canViewInsights } from "@/lib/roles";
-import { LearningShift } from "@/components/stats/learning-shift";
-import type { OutcomesData } from "@/lib/analytics/outcomes";
 import { RichTextEditor } from "@/components/rich-text-editor";
 import {
   Users,
@@ -531,7 +529,6 @@ export function AdminTabs({
   initialStudentSubView,
   lunchLearnRecordings = [],
   insightsData = null,
-  outcomesData = null,
   analyticsData = null,
   analyticsCourse,
   coursesData = null,
@@ -567,8 +564,6 @@ export function AdminTabs({
   initialStudentSubView?: string;
   lunchLearnRecordings?:{ id: string; title: string; presenter: string; recording_url: string; description: string | null; recorded_at: string }[];
   insightsData?: InsightsData | null;
-  /** Before/after confidence shift for this program — the "did it work" number. */
-  outcomesData?: OutcomesData | null;
   analyticsData?: EngagementAnalytics | null;
   /** Shared Analytics course scope (?course=), applied to the funnel + table. */
   analyticsCourse?: string;
@@ -1860,12 +1855,6 @@ export function AdminTabs({
             </div>
           )}
 
-          {/* Below the survey panel: the survey selector is what you came to
-             this tab to use, so it leads. "What changed" is the conclusion
-             drawn from it, and a conclusion reads better after its source. */}
-          {outcomesData && outcomesData.groups.length > 0 && (
-            <LearningShift outcomes={outcomesData} />
-          )}
         </div>
       )}
       </div>
