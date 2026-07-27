@@ -3,7 +3,7 @@
 import { after } from "next/server";
 
 import { revalidatePath } from "next/cache";
-import { requireAdmin, resolveProgramForActor } from "./actions-shared";
+import { requireAdmin, requireCapability, logAdminAccess, resolveProgramForActor } from "./actions-shared";
 import { logActivityEvent } from "@/lib/analytics/log-event";
 import { notifyAnnouncement, notifyFeedback } from "@/lib/notifications";
 import { sendCertificateEmail } from "@/lib/email";
@@ -577,4 +577,43 @@ export async function addFeedback(data: {
   });
 
   return { success: true };
+}
+
+/**
+ * Short-lived signed URL for a file uploaded through a public application form.
+ *
+ * The bucket is private and has no RLS policies, so this service-role call is
+ * the ONLY way to read one — which is the point: a resume carries an
+ * applicant's name, phone number, and address, and must never sit behind a
+ * guessable public URL. Staff-only, and the link expires in five minutes so a
+ * URL pasted into Slack stops working long before the tab does.
+ */
+export async function getApplicationFileUrl(
+  path: string,
+): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  const { svc, userId } = await requireCapability("view_insights");
+
+  // Only ever inside the one bucket, and never an absolute or traversing path.
+  if (!path || path.startsWith("/") || path.includes("..")) {
+    return { ok: false, error: "Invalid file path." };
+  }
+
+  const { data, error } = await svc.storage
+    .from("resumes")
+    .createSignedUrl(path, 300);
+
+  if (error || !data?.signedUrl) {
+    console.error("[application-file] signed url failed", { path, error });
+    return { ok: false, error: "Could not open that file." };
+  }
+
+  logAdminAccess(svc, {
+    actorUserId: userId,
+    programId: null,
+    action: "view",
+    resource: `application_file.${path}`,
+    rowCount: 1,
+  });
+
+  return { ok: true, url: data.signedUrl };
 }
