@@ -1832,13 +1832,6 @@ export function AdminTabs({
             </section>
           )}
 
-          {/* Lead with the outcome. Response counts answer "did people fill it
-             in"; this answers "did anything change", which is the question the
-             program is actually judged on. */}
-          {outcomesData && outcomesData.groups.length > 0 && (
-            <LearningShift outcomes={outcomesData} />
-          )}
-
           {insightsData ? (
             <InsightsDashboard
               sections={insightsData.sections}
@@ -1862,6 +1855,13 @@ export function AdminTabs({
                 Analytics are only available to admins.
               </p>
             </div>
+          )}
+
+          {/* Below the survey panel: the survey selector is what you came to
+             this tab to use, so it leads. "What changed" is the conclusion
+             drawn from it, and a conclusion reads better after its source. */}
+          {outcomesData && outcomesData.groups.length > 0 && (
+            <LearningShift outcomes={outcomesData} />
           )}
         </div>
       )}

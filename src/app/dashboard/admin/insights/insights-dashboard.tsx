@@ -236,23 +236,6 @@ export function InsightsDashboard({ sections, programs }: Props) {
               </label>
             )}
           </div>
-          {/* The count is the most-clicked-looking thing on the card; make it
-             actually go where the reader expects — the responses. */}
-          <Link
-            href={
-              activeId
-                ? `/dashboard/admin/surveys/${encodeURIComponent(activeId)}?returnTo=${encodeURIComponent("/dashboard/admin?tab=insights")}&returnLabel=${encodeURIComponent("Insights")}`
-                : "/dashboard/admin/surveys"
-            }
-            className="text-right transition-colors hover:text-primary"
-          >
-            <p className="text-3xl font-bold tabular-nums leading-none text-ink sm:text-4xl">
-              {scopedCount.toLocaleString()}
-              <span className={`mt-1.5 block ${microLabel}`}>
-                Responses
-              </span>
-            </p>
-          </Link>
         </div>
 
         {/* Tiles describe the selection above them, so changing Form or Cohort
