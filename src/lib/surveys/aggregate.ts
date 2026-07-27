@@ -13,6 +13,48 @@ import type { SurveyQuestion } from "@/components/survey-fields";
  *  dashboard's filtered rows satisfy this. */
 type HasResponses = { responses: Record<string, unknown> };
 
+/**
+ * Likert answers are stored two ways. Most rows carry the numeric value
+ * ("1".."5"); some carry the LABEL the learner clicked ("Strongly Agree").
+ * Number("Strongly Agree") is NaN, so label rows were silently dropped from
+ * every mean — and dropping them is not neutral.
+ *
+ * Beyond Code Centers' pre-survey is 14 label rows and 2 numeric ones. Both
+ * numeric rows happened to be "1" (Strongly Agree), so the pre-program baseline
+ * was computed from two maximally-positive answers, the post-survey averaged
+ * 2.6, and the dashboard reported "Confidence dipped -1.64" for a cohort whose
+ * real answers were overwhelmingly positive on both sides.
+ *
+ * Scales now run 1..5 with 5 = Strongly Agree (July 2026 — the inverted
+ * anchors were the source of the confusion, see the schema flip), and labels
+ * map onto that ladder.
+ */
+// Agreement order, weakest to strongest. Position maps onto the scale, so a
+// label always means the same thing no matter which way the numbers run —
+// which is the whole point of storing a label.
+const AGREEMENT_LADDER = [
+  ["strongly disagree"],
+  ["disagree"],
+  ["neutral", "neither agree nor disagree"],
+  ["agree"],
+  ["strongly agree"],
+];
+
+const LIKERT_LABEL_VALUES: Record<string, number> = Object.fromEntries(
+  AGREEMENT_LADDER.flatMap((names, i) => names.map((n) => [n, i + 1])),
+);
+
+/** A likert answer as a number, whichever way it was stored. NaN when it's
+ *  genuinely unanswerable (empty, "Prefer not to say", an unknown label). */
+export function likertValue(raw: unknown): number {
+  if (typeof raw === "number") return raw;
+  if (typeof raw !== "string" || raw.length === 0) return NaN;
+  const direct = Number(raw);
+  if (!Number.isNaN(direct)) return direct;
+  const mapped = LIKERT_LABEL_VALUES[raw.trim().toLowerCase()];
+  return mapped ?? NaN;
+}
+
 export type DualLikertStat = {
   statement: string;
   /** Mean of the "before" answers (0 when nobody answered). */
@@ -50,12 +92,12 @@ export function aggregateDualLikert(
         | undefined;
       const pair = block?.[stmt];
       if (!pair) continue;
-      const b = Number(pair.before);
+      const b = likertValue(pair.before);
       if (!Number.isNaN(b)) {
         beforeSum += b;
         beforeN++;
       }
-      const n = Number(pair.now);
+      const n = likertValue(pair.now);
       if (!Number.isNaN(n)) {
         nowSum += n;
         nowN++;
@@ -85,13 +127,10 @@ export function aggregateLikertMeans(
       const block = r.responses[question.id] as
         | Record<string, unknown>
         | undefined;
-      const v = block?.[stmt];
-      if (typeof v === "string" && v.length > 0) {
-        const num = Number(v);
-        if (!Number.isNaN(num)) {
-          sum += num;
-          n++;
-        }
+      const num = likertValue(block?.[stmt]);
+      if (!Number.isNaN(num)) {
+        sum += num;
+        n++;
       }
     }
     return { statement: stmt, mean: n === 0 ? 0 : sum / n, n };
