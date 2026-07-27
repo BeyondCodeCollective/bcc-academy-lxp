@@ -25,14 +25,19 @@ interface Section {
   survey: SurveyConfig;
   schema: SurveyQuestion[] | null;
   responses: BCCSurveyResponse[];
+  /** Course scope: these responses are anonymous, so they aren't narrowed to
+   *  the roster. Labelled, not hidden. */
+  unscopedPublic?: boolean;
 }
 
 interface Props {
   sections: Section[];
   programs: { slug: string; name: string }[];
   totalResponses: number;
-  /** Shared Analytics scope — a cohort label. When set, only responses from
-   *  that cohort (i.e. that course) are shown. */
+  /** Course scope. When set, the sections are already narrowed to this course's
+   *  enrolled learners and every link/export carries the slug so a CSV can't
+   *  come back program-wide. */
+  scope?: { trackSlug: string; trackName: string; enrolledCount: number; returnTo: string };
 }
 
 // Program breakdown stays in the cobalt family (shared palette) —
@@ -93,7 +98,7 @@ function grantCompleteness(responses: BCCSurveyResponse[]): { label: string; cou
 // collide with it.
 const ALL_FORMS = "__all__";
 
-export function InsightsDashboard({ sections, programs }: Props) {
+export function InsightsDashboard({ sections, programs, scope }: Props) {
   // Distinct cohorts across all responses — needed to color the per-survey
   // breakdown consistently.
   const allCohorts = useMemo(() => {
@@ -231,31 +236,45 @@ export function InsightsDashboard({ sections, programs }: Props) {
     const sampled = groups
       .map((g) => ({ ...g, rows: g.rows.filter((r) => r.n >= MIN_SHIFT_N) }))
       .filter((g) => g.rows.length > 0);
-    if (sampled.length === 0) return null;
+    // A pre→post pair that exists but sits under the floor is the common case on
+    // a small course, and silently rendering nothing reads as broken. Report it
+    // so the absence has a reason attached.
+    if (sampled.length === 0) {
+      return { outcomes: null, belowFloor: groups.length > 0, minN: MIN_SHIFT_N };
+    }
     const allRows = sampled.flatMap((g) => g.rows);
     return {
-      groups: sampled,
-      avgDelta: allRows.reduce((n, r) => n + r.delta, 0) / allRows.length,
-      statementCount: new Set(allRows.map((r) => r.statement)).size,
-      respondents: Math.max(...sampled.map((g) => Math.max(...g.rows.map((r) => r.n)))),
-      pathway: [],
-      archetype: [],
+      outcomes: {
+        groups: sampled,
+        avgDelta: allRows.reduce((n, r) => n + r.delta, 0) / allRows.length,
+        statementCount: new Set(allRows.map((r) => r.statement)).size,
+        respondents: Math.max(...sampled.map((g) => Math.max(...g.rows.map((r) => r.n)))),
+        pathway: [],
+        archetype: [],
+      },
+      belowFloor: false,
+      minN: MIN_SHIFT_N,
     };
   }, [sections, isAllForms, activeId, multiCohort, cohortFilter]);
 
   const isAgreement = !!activeId && /agreement/i.test(activeId);
+  // Every export and drill-down link below appends this. Course scope that the
+  // screen honours but a CSV forgets is worse than no scope at all — the file
+  // looks like this course's data and isn't.
+  const scopeParam = scope ? `&trackSlug=${encodeURIComponent(scope.trackSlug)}` : "";
   const cohortParam =
-    multiCohort && cohortFilter !== "all"
+    (multiCohort && cohortFilter !== "all"
       ? `&cohort=${encodeURIComponent(cohortFilter)}`
-      : "";
+      : "") + scopeParam;
   const grantGaps = activeSection ? grantCompleteness(activeSection.responses) : [];
 
   if (sections.length === 0) {
     return (
       <div className="panel p-8 text-center">
         <p className="text-sm text-ink-soft">
-          No survey responses yet. Once a cohort starts answering, this page
-          will come alive.
+          {scope
+            ? `Nobody enrolled in ${scope.trackName} has answered a survey yet. The forms assigned to this course are listed below.`
+            : "No survey responses yet. Once a cohort starts answering, this page will come alive."}
         </p>
       </div>
     );
@@ -309,9 +328,17 @@ export function InsightsDashboard({ sections, programs }: Props) {
             download
           />
           <StatCard
-            value={scopedRespondents.toLocaleString()}
-            label="Respondents"
-            href="/dashboard/admin?tab=students"
+            value={
+              scope
+                ? `${scopedRespondents.toLocaleString()} of ${scope.enrolledCount}`
+                : scopedRespondents.toLocaleString()
+            }
+            label={scope ? "Respondents enrolled" : "Respondents"}
+            href={
+              scope
+                ? `/dashboard/admin?tab=${encodeURIComponent(scope.trackSlug)}&view=students`
+                : "/dashboard/admin?tab=students"
+            }
           />
           <StatCard
             value={(isAllForms ? scopedFormCount : scopedCohortCount).toLocaleString()}
@@ -347,6 +374,23 @@ export function InsightsDashboard({ sections, programs }: Props) {
           ))}
           <span>Last response {formatRelativeDate(activeRow?.lastActivity)}</span>
         </div>
+
+        {/* Say what the scope is, on screen and in the same place the numbers
+           are. A panel that looks program-wide but isn't is the whole risk. */}
+        {scope && (
+          <p className="mt-3 text-sm text-ink-faint">
+            {scope.trackName} only — {scope.enrolledCount} enrolled learner
+            {scope.enrolledCount === 1 ? "" : "s"}, staff excluded. Exports from
+            this panel carry the same scope.
+            {activeSection?.unscopedPublic && (
+              <>
+                {" "}
+                This form is answered anonymously, so its responses can&apos;t be
+                narrowed to the roster.
+              </>
+            )}
+          </p>
+        )}
 
         {grantGaps.length > 0 && (
           <div className="mt-4 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning-text">
@@ -396,7 +440,11 @@ export function InsightsDashboard({ sections, programs }: Props) {
               // so the page dead-ended: you could see that 16 people answered
               // and never what they said without leaving the app.
               <Link
-                href={`/dashboard/admin/surveys/${encodeURIComponent(activeId)}?returnTo=${encodeURIComponent("/dashboard/admin?tab=insights")}&returnLabel=${encodeURIComponent("Insights")}`}
+                href={
+                  scope
+                    ? `/dashboard/admin/surveys/${encodeURIComponent(activeId)}?returnTo=${encodeURIComponent(scope.returnTo)}&returnLabel=${encodeURIComponent(scope.trackName)}&trackSlug=${encodeURIComponent(scope.trackSlug)}`
+                    : `/dashboard/admin/surveys/${encodeURIComponent(activeId)}?returnTo=${encodeURIComponent("/dashboard/admin?tab=insights")}&returnLabel=${encodeURIComponent("Insights")}`
+                }
                 className="ml-auto text-sm font-medium text-primary hover:underline"
               >
                 See the responses &rarr;
@@ -406,7 +454,15 @@ export function InsightsDashboard({ sections, programs }: Props) {
         </div>
       </div>
 
-      {scopedShift && <LearningShift outcomes={scopedShift} />}
+      {scopedShift.outcomes && <LearningShift outcomes={scopedShift.outcomes} />}
+
+      {scopedShift.belowFloor && (
+        <p className="text-sm text-ink-faint">
+          There&apos;s a before-and-after pair here, but fewer than{" "}
+          {scopedShift.minN} learners answered both sides — too few to report a
+          shift from. It appears once {scopedShift.minN} have.
+        </p>
+      )}
 
       <p className="text-[11px] leading-relaxed text-ink-faint">
         Every question, answer, and free-text response is in the detailed report —

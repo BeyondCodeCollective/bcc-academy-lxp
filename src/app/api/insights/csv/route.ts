@@ -52,14 +52,18 @@ export async function GET(req: NextRequest) {
     .in("slug", aggregatedSlugs);
   const programIds = (programRows ?? []).map((p) => p.id as string);
 
-  const data = await buildInsightsData(programIds, aggregatedSlugs);
+  // Course scope, when the export was launched from a course's Surveys panel.
+  // Same argument the screen passes: a CSV that silently returns program-wide
+  // rows under a course heading is the failure this guards against.
+  const trackSlug = req.nextUrl.searchParams.get("trackSlug") || undefined;
+  const data = await buildInsightsData(programIds, aggregatedSlugs, trackSlug);
 
   const surveyId = req.nextUrl.searchParams.get("survey");
   const cohort = req.nextUrl.searchParams.get("cohort") || "all";
 
   const kebab = (v: string) =>
     v.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-  const slug = kebab(program.name) || "program";
+  const slug = trackSlug ? kebab(trackSlug) : kebab(program.name) || "program";
   const cohortSlug = cohort === "all" ? "" : `-${kebab(cohort)}`;
 
   // Single survey export

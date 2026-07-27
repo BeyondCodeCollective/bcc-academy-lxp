@@ -34,7 +34,10 @@ export async function GET(req: NextRequest) {
     .in("slug", aggregatedSlugs);
   const programIds = (programRows ?? []).map((p) => p.id as string);
 
-  const data = await buildInsightsData(programIds, aggregatedSlugs);
+  // Course scope, when the export was launched from a course's Surveys panel.
+  // Same argument the screen passes, so the PDF can't come back program-wide.
+  const trackSlug = req.nextUrl.searchParams.get("trackSlug") || undefined;
+  const data = await buildInsightsData(programIds, aggregatedSlugs, trackSlug);
 
   const cohort = req.nextUrl.searchParams.get("cohort") || "all";
   const detailed = req.nextUrl.searchParams.get("detailed") === "1";
@@ -47,7 +50,9 @@ export async function GET(req: NextRequest) {
 
   const kebab = (v: string) =>
     v.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-  const slug = kebab(program.name) || "program";
+  // Scope belongs in the filename too — two PDFs of the same survey, one
+  // course-scoped and one not, are indistinguishable in a downloads folder.
+  const slug = trackSlug ? kebab(trackSlug) : kebab(program.name) || "program";
   const cohortSlug = cohort === "all" ? "" : "-" + kebab(cohort);
 
   // Detailed per-question report for a single survey.
