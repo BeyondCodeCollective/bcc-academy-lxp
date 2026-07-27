@@ -41,8 +41,11 @@ const ALLOWED: Record<string, { mimes: string[]; magic: number[][] }> = {
   },
 };
 
-export const ACCEPTED_UPLOAD_EXTENSIONS = Object.keys(ALLOWED);
-export const MAX_UPLOAD_BYTES = MAX_BYTES;
+// NOTE: a "use server" file may export ONLY async functions. A plain `export
+// const` here — even an unused one — makes every render that imports this
+// module throw "can only export async functions, found object". Keep constants
+// module-private; if a client ever needs one, hand it back from an async
+// function or define it on the client side.
 
 export type UploadResult =
   | { ok: true; path: string; name: string; size: number }
