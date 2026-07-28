@@ -60,7 +60,7 @@ export default async function SurveyDashboardPage({
 
   return (
     <div className="min-h-[100dvh] bg-paper-tint-soft">
-      <div className="mx-auto w-full max-w-2xl md:max-w-5xl px-5 py-12 md:py-16">
+      <div className="mx-auto w-full max-w-2xl md:max-w-5xl px-5 pt-12 pb-28 md:pt-16">
         <Link
           href={backHref}
           className="inline-flex text-xs text-ink-soft hover:text-ink transition-colors mb-8"

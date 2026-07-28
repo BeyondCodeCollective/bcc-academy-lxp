@@ -5,6 +5,7 @@ import { Download } from "@phosphor-icons/react";
 import type { SurveyQuestion } from "@/components/survey-fields";
 import type { BCCSurveyResponse } from "../../actions";
 import { aggregateDualLikert, aggregateLikertMeans } from "@/lib/surveys/aggregate";
+import { LikertDiverging, type LikertRow } from "@/components/stats/likert-diverging";
 import { getApplicationFileUrl } from "../../actions-misc";
 
 interface Props {
@@ -623,82 +624,45 @@ function LikertBlock({
   question: Extract<SurveyQuestion, { type: "likert" }>;
   visible: BCCSurveyResponse[];
 }) {
-  const scaleNums = question.scale.map((s) => Number(s));
-  const isNumericAscending = scaleNums.every((n) => !Number.isNaN(n));
   // Means come from the shared aggregator so this dashboard and the admin
-  // Outcomes analytics never disagree on a number; the per-value counts below
-  // are histogram-only and stay local.
+  // Outcomes analytics never disagree on a number; the per-value counts are
+  // histogram-only and stay local.
   const meanStats = aggregateLikertMeans(question, visible);
+
+  const rows: LikertRow[] = question.statements.map((stmt, i) => {
+    const counts = question.scale.map(() => 0);
+    let n = 0;
+    for (const r of visible) {
+      const block = r.responses[question.id] as Record<string, unknown> | undefined;
+      const v = block?.[stmt];
+      if (typeof v === "string" && v.length > 0) {
+        const idx = question.scale.indexOf(v);
+        if (idx >= 0) {
+          counts[idx] += 1;
+          n += 1;
+        }
+      }
+    }
+    return { statement: stmt, counts, mean: meanStats[i].mean, n };
+  });
+
+  const answered = rows.filter((r) => r.n > 0);
 
   return (
     <div>
-      <p className="text-sm font-medium text-ink leading-snug">
-        {question.label}
-      </p>
-      {question.scaleAnchors && (
-        <p className="text-micro text-ink-faint mt-1">
-          {question.scaleAnchors.low}{" "}
-          <span className="text-ink-faint">→</span>{" "}
-          {question.scaleAnchors.high}
-        </p>
-      )}
-      <div className="mt-5 space-y-5">
-        {question.statements.map((stmt, i) => {
-          const counts = new Map<string, number>();
-          let total = 0;
-          for (const r of visible) {
-            const block = r.responses[question.id] as Record<string, unknown> | undefined;
-            const v = block?.[stmt];
-            if (typeof v === "string" && v.length > 0) {
-              counts.set(v, (counts.get(v) ?? 0) + 1);
-              total++;
+      <p className="text-sm font-medium text-ink leading-snug">{question.label}</p>
+      <div className="mt-4">
+        {answered.length === 0 ? (
+          <p className="text-xs text-ink-faint italic">No answers.</p>
+        ) : (
+          <LikertDiverging
+            rows={answered}
+            scaleLow={question.scaleAnchors?.low ?? question.scale[0]}
+            scaleHigh={
+              question.scaleAnchors?.high ?? question.scale[question.scale.length - 1]
             }
-          }
-          const mean = meanStats[i].mean;
-
-          return (
-            <div key={stmt}>
-              <div className="flex items-baseline gap-3 mb-2">
-                <p className="text-xs text-ink leading-snug flex-1">
-                  {stmt}
-                </p>
-                {isNumericAscending && total > 0 && (
-                  <p className="text-lg font-semibold text-ink shrink-0 tabular-nums">
-                    {mean.toFixed(2)}
-                    <span className="text-micro text-ink-faint font-sans font-normal ml-1 tracking-wider uppercase">
-                      mean
-                    </span>
-                  </p>
-                )}
-              </div>
-              <div className="flex gap-1">
-                {question.scale.map((s) => {
-                  const c = counts.get(s) ?? 0;
-                  const pct = total === 0 ? 0 : Math.round((c / total) * 100);
-                  return (
-                    <div key={s} className="flex-1">
-                      <div className="h-7 bg-paper-tint flex items-end overflow-hidden">
-                        <div
-                          className="w-full"
-                          style={{
-                            height: `${pct}%`,
-                            backgroundColor: c > 0 ? INK : "transparent",
-                          }}
-                        />
-                      </div>
-                      <p className="text-micro text-center text-ink-faint mt-1 tabular-nums">
-                        {s}
-                      </p>
-                      <p className="text-micro text-center text-ink tabular-nums font-medium">
-                        {c}
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
+          />
+        )}
       </div>
     </div>
   );
