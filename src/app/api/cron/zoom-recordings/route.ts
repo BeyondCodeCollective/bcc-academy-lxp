@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
+import { blobConfigured, uploadRecordingToBlob } from "@/lib/blob-recordings";
 import { driveConfigured, uploadRecordingToDrive } from "@/lib/google-drive";
 import {
   listRecordings,
@@ -138,7 +139,14 @@ export async function GET(request: Request) {
     let storedValue: string;
     let destination: string;
 
-    if (driveConfigured()) {
+    if (blobConfigured()) {
+      // Preferred: private, no per-file cap, on infrastructure we control.
+      const pathname = `recordings/${job.track}/week-${job.week}.mp4`;
+      const up = await uploadRecordingToBlob({ pathname, body: res.body });
+      if (!up.ok) throw new Error(up.error);
+      storedValue = `blob:${up.pathname}`;
+      destination = "vercel-blob";
+    } else if (driveConfigured()) {
       const up = await uploadRecordingToDrive({
         name: `${job.track} — week ${job.week} (${easternDate(job.rec.startTime)}).mp4`,
         body: res.body,

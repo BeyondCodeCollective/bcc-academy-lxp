@@ -23,6 +23,7 @@ import { resolveSessionContent } from "@/lib/session-content";
 import { ZoomEmbed } from "@/components/zoom-embed";
 import { parseZoomLink, isZoomLink } from "@/lib/zoom";
 import { getSessionContext } from "@/lib/auth/session";
+import { signRecordingUrl } from "@/lib/blob-recordings";
 
 export default async function TrackWeekPage({
   params,
@@ -233,6 +234,10 @@ export default async function TrackWeekPage({
     recordingUrls.map(async (raw) => {
       if (!raw) return raw;
       if (/^https?:\/\//i.test(raw)) return raw;
+      // Vercel Blob (private): mint a presigned URL for this request.
+      if (raw.startsWith("blob:")) {
+        return await signRecordingUrl(raw.slice(5));
+      }
       const match = /^([a-z0-9][a-z0-9-]*):(.+)$/i.exec(raw);
       if (!match) return raw;
       const [, bucket, objectPath] = match;
