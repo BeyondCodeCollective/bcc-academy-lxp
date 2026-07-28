@@ -347,7 +347,15 @@ export default async function TrackWeekPage({
         return (
           <div className="mb-6">
             <PageHeader
-              index={String(weekContent.week).padStart(2, "0")}
+              // The STUDENT-FACING number, not the internal week number. On a
+              // course with a kickoff, internal week 2 is "Session 1" — the
+              // recording card, the prev/next nav and the breadcrumb all said
+              // Session 1 while this printed a big "02" beside them. An extra
+              // (kickoff, exam day) carries no number, so it shows none.
+              index={(() => {
+                const n = display.get(weekNum)?.number;
+                return n ? String(n).padStart(2, "0") : undefined;
+              })()}
               badge={
                 isCompleted || isCurrent ? (
                   <span
