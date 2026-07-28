@@ -632,6 +632,44 @@ async function DashboardContent({
     );
   }
 
+  // What each learner has ACTUALLY done, per track.
+  //
+  // The progress bar used to be `currentSessionNumber - 1`, i.e. how far the
+  // CALENDAR had moved. It never read attendance or watched recordings, so
+  // every learner in a course saw the identical percentage — someone who came
+  // to six classes and someone who came to none both read 38% — and it climbed
+  // on its own every week. That's what got called out, and rightly.
+  //
+  // A session counts as done if the learner attended it OR watched its
+  // recording. Missing class and catching up on the replay is doing the work,
+  // and a bar that ignored the replay would push people away from the thing we
+  // just built.
+  const doneUnitsByTrack: Record<string, Set<number>> = {};
+  if (feedUserId && isSupabaseConfigured() && cardTracks.length > 0) {
+    const slugs = cardTracks.map((t) => t.slug);
+    const svcDone = createServiceClient();
+    const [attRows, watchedRows] = await Promise.all([
+      svcDone
+        .from("attendance")
+        .select("track, week_number")
+        .eq("student_id", feedUserId)
+        .in("track", slugs)
+        .not("checked_in_at", "is", null),
+      svcDone
+        .from("week_progress")
+        .select("track_slug, week_number")
+        .eq("user_id", feedUserId)
+        .in("track_slug", slugs)
+        .not("video_watched_at", "is", null),
+    ]);
+    for (const r of (attRows.data ?? []) as { track: string; week_number: number }[]) {
+      (doneUnitsByTrack[r.track] ??= new Set()).add(r.week_number);
+    }
+    for (const r of (watchedRows.data ?? []) as { track_slug: string; week_number: number }[]) {
+      (doneUnitsByTrack[r.track_slug] ??= new Set()).add(r.week_number);
+    }
+  }
+
   // Bento tiles for the learner home: weekly tracks ordered started-first
   // then by length, the active one becomes the hero.
   const bentoTracks = trackStates
@@ -650,13 +688,19 @@ async function DashboardContent({
       // plus 16 sessions — and the learner is only ever told about the 16.
       numberedUnits: numberedUnitCount(track.weekSummaries, track.totalWeeks),
       unitNoun: (track.unitLabel ?? "Week").toLowerCase(),
-      // The current unit's *displayed* number, minus itself. An extra (kickoff)
-      // has no number, so nothing counts as complete while you're on it.
-      unitsDone: Math.max(
-        0,
-        (unitDisplayMap(track.weekSummaries, track.unitLabel ?? "Week").get(currentWeek)?.number ??
-          1) - 1,
-      ),
+      // Sessions this learner attended or watched the recording of. Counted
+      // against the DISPLAYED units, so an extra (a kickoff) never inflates the
+      // bar — it carries no number and isn't part of the 16.
+      unitsDone: (() => {
+        const display = unitDisplayMap(track.weekSummaries, track.unitLabel ?? "Week");
+        const done = doneUnitsByTrack[track.slug];
+        if (!done) return 0;
+        let n = 0;
+        for (const week of done) {
+          if (display.get(week)?.number != null) n += 1;
+        }
+        return n;
+      })(),
       currentWeek: currentWeek || 1,
       started,
       currentTopic:
