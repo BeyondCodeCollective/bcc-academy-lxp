@@ -17,7 +17,6 @@ const CONSENT_LEAD =
 const CONSENT_BULLETS = [
   "Your name stays with the BCC team. We share what we're hearing with your instructor as themes, not as a list of who said what.",
   "We read every response. If something needs fixing, we'd rather find out now than at the end.",
-  "You can email info@beyondcodecollective.org anytime to see, change, or delete your answers.",
 ];
 
 const CONSENT_FOOTER =

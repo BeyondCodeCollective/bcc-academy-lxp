@@ -17,7 +17,6 @@ const CONSENT_LEAD =
 const CONSENT_BULLETS = [
   'You can mark "Prefer not to say" on any item — your choice never affects your participation.',
   "Your answers stay private and are never shared individually.",
-  "To see, change, or delete your answers, email info@beyondcodecollective.org.",
 ];
 
 const CONSENT_FOOTER =

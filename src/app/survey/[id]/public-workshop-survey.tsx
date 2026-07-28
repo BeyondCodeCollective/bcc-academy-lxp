@@ -26,7 +26,6 @@ const CONSENT_LEAD =
 
 const CONSENT_BULLETS = [
   "We may share results with our partners and funders, but your name will never be attached to your answers.",
-  "You can email info@beyondcodecollective.org anytime to see, change, or delete your answers.",
 ];
 
 const CONSENT_FOOTER =

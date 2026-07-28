@@ -26,7 +26,6 @@ const CONSENT_LEAD =
 const CONSENT_BULLETS = [
   "Your name stays private. Only the BCC team sees your name with your answers. When we share results with others, your name is removed.",
   'You can mark "Prefer not to say" on any sensitive question.',
-  "You can email info@beyondcodecollective.org anytime to see, change, or delete your answers.",
   "We keep your answers for up to 5 years so we can measure long-term impact, then we remove your name from the data.",
 ];
 
