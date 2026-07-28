@@ -25,6 +25,7 @@
     "@tiptap/react": "^3.27.3",
     "@tiptap/starter-kit": "^3.27.3",
     "@vercel/analytics": "^2.0.1",
+    "@vercel/blob": "^2.6.1",
     "@zoom/meetingsdk": "^6.1.0",
     "ai": "^6.0.208",
     "framer-motion": "^12.38.0",

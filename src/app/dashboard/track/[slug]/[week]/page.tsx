@@ -23,6 +23,7 @@ import { resolveSessionContent } from "@/lib/session-content";
 import { ZoomEmbed } from "@/components/zoom-embed";
 import { parseZoomLink, isZoomLink } from "@/lib/zoom";
 import { getSessionContext } from "@/lib/auth/session";
+import { signRecordingUrl } from "@/lib/blob-recordings";
 
 export default async function TrackWeekPage({
   params,
@@ -223,6 +224,31 @@ export default async function TrackWeekPage({
   const isCurrent = trackStarted && weekNum === currentWeek && !isCompleted;
 
   const hasRecording = weekContent.sessions.some((_, i) => !!recordingUrls[i]);
+
+  // Recordings imported from Zoom live in a PRIVATE bucket and are stored as
+  // `bucket:path`, not a URL — a signed URL written to the database would be
+  // expired long before a student clicked it. Sign per request instead, and
+  // pass anything already http(s) straight through (Drive links, YouTube, the
+  // Zoom share links added by hand before the importer existed).
+  const playbackUrls = await Promise.all(
+    recordingUrls.map(async (raw) => {
+      if (!raw) return raw;
+      if (/^https?:\/\//i.test(raw)) return raw;
+      // Vercel Blob (private): mint a presigned URL for this request.
+      if (raw.startsWith("blob:")) {
+        return await signRecordingUrl(raw.slice(5));
+      }
+      const match = /^([a-z0-9][a-z0-9-]*):(.+)$/i.exec(raw);
+      if (!match) return raw;
+      const [, bucket, objectPath] = match;
+      const { data } = await createServiceClient()
+        .storage.from(bucket)
+        // Long enough to watch a three-hour class without the link dying
+        // mid-playback.
+        .createSignedUrl(objectPath, 60 * 60 * 6);
+      return data?.signedUrl ?? null;
+    }),
+  );
   const showChecklist = isSupabaseConfigured() && weekSubmissionsEnabled;
   // Self-paced tracks unlock the watch button and the submission form on every
   // week regardless of `currentWeek` — the date gate only matches cohort-style
@@ -448,9 +474,10 @@ export default async function TrackWeekPage({
           />
         )}
 
-      {/* Admin-uploaded session recordings */}
+      {/* Admin-uploaded session recordings, plus the ones the Zoom cron
+         imported. */}
       {weekContent.sessions.map((session, i) => {
-        const url = recordingUrls[i];
+        const url = playbackUrls[i];
         if (!url) return null;
 
         const recordingLabel = weekContent.sessions.length > 1

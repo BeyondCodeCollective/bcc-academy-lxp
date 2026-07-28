@@ -26,9 +26,20 @@ export function RecordingCard({
 }: Props) {
   const youtubeEmbed = getYouTubeEmbedUrl(url);
   const driveEmbed = toDriveEmbedUrl(url);
+  // Match on the PATH, not the whole URL. A signed Supabase URL carries
+  // `?token=…`, so an endsWith(".mp4") test on the full string says "not a
+  // video" and the imported class recording would render as a bare link
+  // instead of a player.
+  const pathname = (() => {
+    try {
+      return new URL(url, "https://x.invalid").pathname.toLowerCase();
+    } catch {
+      return url.toLowerCase();
+    }
+  })();
   const isVideoFile =
     !youtubeEmbed && !driveEmbed &&
-    VIDEO_EXTENSIONS.some((ext) => url.toLowerCase().endsWith(ext));
+    VIDEO_EXTENSIONS.some((ext) => pathname.endsWith(ext));
 
   return (
     <div className="mb-4 overflow-hidden panel">
