@@ -144,13 +144,6 @@ export const PLATFORM_PUBLIC_SURVEYS: Record<string, SurveyConfig> = {
       "Help us understand your background and experience so we can better support you.",
     required: false,
   },
-  "security-plus-midpoint": {
-    id: "security-plus-midpoint",
-    title: "CompTIA Security+ Midpoint Check-In",
-    description:
-      "3 min. A quick pulse at the halfway mark: what's working, what to adjust, and how the exam is feeling.",
-    required: false,
-  },
   "network-plus-post": {
     id: "network-plus-post",
     title: "CompTIA Network+ End-of-Cohort Survey",
