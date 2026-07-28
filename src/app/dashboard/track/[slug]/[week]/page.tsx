@@ -247,12 +247,27 @@ export default async function TrackWeekPage({
       ? `${sessionCtx.student.first_name} ${sessionCtx.student.last_name}`.trim()
       : "") || "Student";
   const zoomUserEmail = sessionCtx?.student?.email ?? sessionCtx?.userEmail ?? "";
+  // A session whose date has passed must not offer a live join. The only signal
+  // here used to be an admin ticking "completed" on the session, and nobody does
+  // that — so every past class kept rendering a live Zoom embed under a red LIVE
+  // NOW badge, spinning on "Connecting to session…" forever. Two signals decide
+  // it instead, neither of which needs anyone to remember anything:
+  //
+  //   · a recording exists — that IS the proof the session already happened, and
+  //     it's what should occupy the slot the live video had, and
+  //   · the week is behind the current one.
+  //
+  // SessionInfo carries only a title and a time, so there is no per-session
+  // calendar date to compare; `weekNum < currentWeek` is the date signal the
+  // track config actually supports.
+  const weekIsPast = trackStarted && weekNum < currentWeek;
   const zoomSessions = weekContent.sessions
     .map((session, i) => ({
       index: i,
       session,
       parsed: meetingLinks[i] ? parseZoomLink(meetingLinks[i]!) : null,
-      isActive: sessionStatuses[i] !== "completed",
+      isActive:
+        sessionStatuses[i] !== "completed" && !recordingUrls[i] && !weekIsPast,
     }))
     .filter((s) => s.parsed !== null && s.isActive);
 
@@ -367,7 +382,13 @@ export default async function TrackWeekPage({
           </h2>
           <div className="space-y-4">
             {weekContent.sessions.map((session, i) => {
-              const action = sessionStatuses[i] === "completed" ? (
+              // Same rule as the Zoom embed above: a session that already
+              // happened shows "Session Ended", not a Join button. Without the
+              // recording/past-week test this offered a live join to a Google
+              // Meet link for a class held two weeks ago.
+              const action = sessionStatuses[i] === "completed" ||
+                recordingUrls[i] ||
+                weekIsPast ? (
                 <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
                   <CheckCircle size={14} />
                   Session Ended
