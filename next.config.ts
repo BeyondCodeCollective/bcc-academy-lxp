@@ -81,7 +81,11 @@ const nextConfig: NextConfig = {
       // the embed hangs on "Connecting to session…" forever.
       "worker-src 'self' blob:",
       "font-src 'self' data: https://fonts.gstatic.com",
-      "media-src 'self' https://*.supabase.co https://images.pexels.com https://videos.pexels.com",
+      // *.blob.vercel-storage.com: class recordings imported from Zoom are
+      // served from the private Blob CDN via a presigned URL. Without it the
+      // <video> element renders and then silently refuses to load — the element
+      // being present is NOT evidence the media plays.
+      "media-src 'self' https://*.supabase.co https://*.blob.vercel-storage.com https://images.pexels.com https://videos.pexels.com",
       "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://zoom.us https://*.zoom.us https://www.eventbrite.com",
       // www.google.com in connect-src: GA4 dual-sends events to
       // google.com/g/collect (consent-mode pings) alongside
