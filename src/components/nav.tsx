@@ -85,6 +85,11 @@ type CurriculumTrack = {
   /** Set when this track wraps around another (MASS → Security+). */
   companionOf?: string;
   weekSummaries: { week: number; topic: string; icon: string; label?: string; title?: string }[];
+  /** Sessions that actually ran — from check-ins or an existing recording, not
+   *  from calendar arithmetic. */
+  heldWeeks?: number[];
+  /** Sessions THIS learner has finished. What a tick means. */
+  completedWeeks?: number[];
 };
 
 type NavVariant = "admin-sidebar" | "student-sidebar" | "lunch-learn-sidebar" | "topbar";
@@ -391,9 +396,21 @@ export function Nav({
               {track.weekSummaries.map((ws) => {
                 const weekHref = `/dashboard/track/${track.slug}/${ws.week}`;
                 const isActive = pathname === weekHref;
-                const isPast = started && ws.week < currentWeek;
-                const isCurrent = started && ws.week === currentWeek;
-                const isFuture = !started || ws.week > currentWeek;
+                // Past/current come from sessions that ACTUALLY ran, not from
+                // `startDate + 7 days × week`. On a twice-weekly course that
+                // arithmetic lags reality badly: Security+ met for Session 4 on
+                // Jul 23 while the maths still called it August and upcoming.
+                // Falls back to the arithmetic for a track with no signal yet.
+                const held = track.heldWeeks ?? [];
+                const latestHeld = held.length ? Math.max(...held) : 0;
+                const effectiveCurrent = latestHeld || currentWeek;
+                const isCurrent = started && ws.week === effectiveCurrent;
+                const isPast = started && (held.includes(ws.week) ? !isCurrent : ws.week < effectiveCurrent);
+                const isFuture = !started || (!isPast && !isCurrent);
+                // A tick means THIS learner finished it. It used to mean "the
+                // date has passed", so a learner who had watched nothing still
+                // saw a column of ticks telling them they were done.
+                const isDone = (track.completedWeeks ?? []).includes(ws.week);
                 // Before the course starts the session pages redirect back to
                 // the overview — a link would just flash two skeletons and loop.
                 // Show the session, but don't let it be clicked. Admins preview.
@@ -403,7 +420,7 @@ export function Nav({
                   "flex min-h-[36px] items-center gap-2.5 rounded-lg py-1.5 text-[13px] border-l-2 pl-[10px] pr-3";
                 const inner = (
                   <>
-                    {isPast ? (
+                    {isDone ? (
                       <Check size={14} weight="bold" aria-hidden className="shrink-0 text-ink-faint" />
                     ) : (
                       <span className="w-[14px] shrink-0 text-center text-[11px] tabular-nums text-ink-faint">

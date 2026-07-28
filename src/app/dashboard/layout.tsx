@@ -491,6 +491,49 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
       ? (await getDashboardIndex()).labels
       : {};
 
+  // Which sessions have ACTUALLY happened, and which this learner has finished.
+  //
+  // The sidebar derived both from `startDate + 7 days × week`, which is wrong on
+  // any course meeting more than once a week: Security+ held Session 3 on Jul 21
+  // and Session 4 on Jul 23, while that arithmetic placed them in August and the
+  // sidebar showed them as upcoming.
+  //
+  // "Held" comes from check-ins or an existing recording — both are evidence a
+  // class ran, which a schedule cannot provide. "Completed" is the learner's own
+  // week_progress, which is what a tick should mean.
+  const heldWeeks: Record<string, number[]> = {};
+  const completedWeeks: Record<string, number[]> = {};
+  // getSessionContext is React-cached, so this shares the call the shells above
+  // already made rather than adding a round-trip.
+  const sidebarUserId =
+    navVariant === "student-sidebar" && isSupabaseConfigured()
+      ? (await getSessionContext())?.userId
+      : null;
+  if (sidebarUserId) {
+    const slugs = sidebarTrackSource.map((t) => t.slug);
+    if (slugs.length > 0) {
+      const svcSide = createServiceClient();
+      const [attRes, recRes, progRes] = await Promise.all([
+        svcSide.from("attendance").select("track, week_number").in("track", slugs).not("checked_in_at", "is", null),
+        svcSide.from("session_content").select("track, week_number, recording_url").in("track", slugs),
+        svcSide.from("week_progress").select("track_slug, week_number, video_watched_at").eq("user_id", sidebarUserId).in("track_slug", slugs),
+      ]);
+      const add = (map: Record<string, number[]>, key: string, week: number) => {
+        const list = (map[key] ??= []);
+        if (!list.includes(week)) list.push(week);
+      };
+      for (const a of (attRes.data ?? []) as { track: string; week_number: number }[]) {
+        add(heldWeeks, a.track, a.week_number);
+      }
+      for (const r of (recRes.data ?? []) as { track: string; week_number: number; recording_url: string | null }[]) {
+        if (r.recording_url) add(heldWeeks, r.track, r.week_number);
+      }
+      for (const w of (progRes.data ?? []) as { track_slug: string; week_number: number; video_watched_at: string | null }[]) {
+        if (w.video_watched_at) add(completedWeeks, w.track_slug, w.week_number);
+      }
+    }
+  }
+
   const curriculumTracks =
     navVariant === "student-sidebar"
       ? sidebarTrackSource
@@ -504,6 +547,8 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
             lastSessionDayOffset: t.lastSessionDayOffset,
             unitLabel: t.unitLabel,
             companionOf: t.companionOf,
+            heldWeeks: heldWeeks[t.slug] ?? [],
+            completedWeeks: completedWeeks[t.slug] ?? [],
             weekSummaries: t.weekSummaries.map((ws) => ({
               week: ws.week,
               topic: ws.topic,
