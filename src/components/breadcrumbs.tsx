@@ -133,8 +133,17 @@ export function Breadcrumbs({
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const trail = buildTrail(pathname, labels, isAdmin, searchParams.get("return"));
-  if (trail.length < 2) return null; // nothing meaningful to show (e.g. Home)
+  const fullTrail = buildTrail(pathname, labels, isAdmin, searchParams.get("return"));
+  if (fullTrail.length < 2) return null; // nothing meaningful to show (e.g. Home)
+
+  // Ancestors only — the current page is NOT repeated here.
+  //
+  // Every page that has a breadcrumb also states its own name in an <h1>
+  // directly beneath it, so including the current page printed the same words
+  // twice, stacked: "Comptia Security › Malware & Attacks" above a big
+  // "Malware & Attacks". The breadcrumb's job is the path back; the heading
+  // says where you are.
+  const trail = fullTrail.slice(0, -1);
 
   return (
     <nav
@@ -146,21 +155,20 @@ export function Breadcrumbs({
          line instead of stacking below. */}
       <div className="flex items-center justify-between gap-3">
         <ol className="flex flex-wrap items-center gap-1 text-[12px] text-ink-faint">
-          {trail.map((c, i) => {
-            const isLast = i === trail.length - 1;
-            return (
-              <li key={`${c.label}-${i}`} className="flex items-center gap-1">
-                {i > 0 && <CaretRight size={11} weight="bold" className="text-ink-faint/60" aria-hidden />}
-                {c.href && !isLast ? (
-                  <Link href={c.href} className="transition-colors hover:text-ink">
-                    {c.label}
-                  </Link>
-                ) : (
-                  <span className={isLast ? "font-medium text-ink-soft" : undefined}>{c.label}</span>
-                )}
-              </li>
-            );
-          })}
+          {trail.map((c, i) => (
+            // Every crumb is an ancestor now, so every crumb with an href is a
+            // link — there's no "current page" entry to render as dead text.
+            <li key={`${c.label}-${i}`} className="flex items-center gap-1">
+              {i > 0 && <CaretRight size={11} weight="bold" className="text-ink-faint/60" aria-hidden />}
+              {c.href ? (
+                <Link href={c.href} className="transition-colors hover:text-ink">
+                  {c.label}
+                </Link>
+              ) : (
+                <span>{c.label}</span>
+              )}
+            </li>
+          ))}
         </ol>
         <div id="breadcrumb-actions" className="flex shrink-0 items-center gap-1" />
       </div>

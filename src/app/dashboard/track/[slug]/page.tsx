@@ -551,7 +551,14 @@ export default async function TrackOverviewPage({
         </Link>
       )}
 
-      {/* 3 — the whole schedule, one dataset in the viewer's choice of shape:
+      {/* 3 — your own progress, ABOVE the schedule.
+         It sat at the very bottom, under the full schedule and the programme
+         blurb, where learners scrolled past it without knowing it existed. It's
+         about the reader, so it outranks a calendar that is the same for
+         everyone. Still hidden before day one — a 0% streak is decoration. */}
+      {started && learnerProgress && <MyProgressCard {...learnerProgress} />}
+
+      {/* 4 — the whole schedule, one dataset in the viewer's choice of shape:
          a month calendar or a named list. */}
       {agendaRows.length > 0 && (
         <ScheduleTabs
@@ -561,9 +568,6 @@ export default async function TrackOverviewPage({
           focusDate={touchpoint?.date ?? null}
         />
       )}
-
-      {/* Progress is meaningless before day one — a 0% bar is decoration. */}
-      {started && learnerProgress && <MyProgressCard {...learnerProgress} />}
 
       {overviewCopy && (
         <div
