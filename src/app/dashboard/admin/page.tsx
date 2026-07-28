@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { createServiceClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { AdminTabs } from "./admin-tabs";
@@ -10,7 +11,7 @@ import { canAccessAdminPanel, canManageStudents, canSwitchPrograms, canViewInsig
 import { isMasterEmail } from "@/lib/auth/admins";
 import { getProgramGrants, allowedProgramIds, allowedTrackSlugs } from "@/lib/auth/program-access";
 import { PLATFORM_AUTH_SURVEYS, PLATFORM_PUBLIC_SURVEYS } from "@/lib/surveys/platform";
-import { getHomeProgramForTrack } from "@/lib/programs";
+import { getHomeProgramForTrack, getJoinablePrograms } from "@/lib/programs";
 import { getHiddenTrackSlugs } from "@/lib/programs/hidden";
 import type { SurveyConfig } from "@/lib/programs/types";
 import { buildInsightsData } from "@/lib/analytics/insights-data";
@@ -62,6 +63,40 @@ export default async function AdminPage({
     getProgram(),
     isSupabaseConfigured() ? getSessionContext() : Promise.resolve(null),
   ]);
+
+  // Land a super-admin in a real program instead of the "No program selected"
+  // dead end.
+  //
+  // The apex (bccacademy.io) resolves to the `marketing` pseudo-program, which
+  // owns no courses. A LEARNER gets rescued by resolveLearnerBrand, which reads
+  // their enrollments — but a super-admin has none, so nothing rescues them and
+  // every visit lands on an empty screen.
+  //
+  // Only fires when no program-override cookie is set, so it's a first-landing
+  // default and never fights a deliberate switch. The empty state stays
+  // reachable by switching to a program that genuinely has no courses.
+  if (
+    program.tracks.length === 0 &&
+    ctx?.userId &&
+    canSwitchPrograms(ctx.student?.role ?? "") &&
+    !(await cookies()).get("program-override")
+  ) {
+    // The admin's own home program. One tiny lookup, only on the dead-end path
+    // (the session context doesn't carry program_id).
+    const { data: me } = await createServiceClient()
+      .from("students")
+      .select("programs(slug)")
+      .eq("id", ctx.userId)
+      .maybeSingle();
+    const meProgram = (Array.isArray(me?.programs) ? me?.programs[0] : me?.programs) as
+      | { slug: string }
+      | undefined;
+    const homeSlug = meProgram?.slug ?? null;
+    const fallback = homeSlug && getJoinablePrograms().find((p) => p.slug === homeSlug);
+    if (fallback) {
+      redirect(`/api/switch-program?slug=${fallback.slug}&next=/dashboard/admin`);
+    }
+  }
 
   // Tab-gated data fetching. The admin page re-renders on every ?tab=
   // change, so we only pay the cost for queries the active tab actually
@@ -779,6 +814,11 @@ export default async function AdminPage({
         initialStudentSubView={initialStudentSubView}
         lunchLearnRecordings={lunchLearnRecordings}
         insightsData={insightsData}
+        switchablePrograms={
+          canSwitchPrograms(userRole)
+            ? getJoinablePrograms().map((p) => ({ slug: p.slug, name: p.name }))
+            : []
+        }
         trackInsightsData={trackInsightsData}
         analyticsData={analyticsData}
         analyticsCourse={analyticsCourse}

@@ -503,6 +503,7 @@ export function AdminTabs({
   initialStudentSubView,
   lunchLearnRecordings = [],
   insightsData = null,
+  switchablePrograms = [],
   trackInsightsData = null,
   analyticsData = null,
   analyticsCourse,
@@ -548,6 +549,8 @@ export function AdminTabs({
   courseEngagement?: CourseEngagementProps | null;
   /** Per-learner attendance for the open course — roster badge. */
   attendanceRates?: { held: number; attended: Record<string, number> } | null;
+  /** Programs a super-admin can switch into, for the no-program empty state. */
+  switchablePrograms?: { slug: string; name: string }[];
   /** Survey Insights narrowed to the open course's roster; null off the course Surveys view. */
   trackInsightsData?: InsightsData | null;
   /** Auth surveys with ≥1 response from the open course's students; null off track tabs. */
@@ -1033,10 +1036,30 @@ export function AdminTabs({
             title="No program selected"
             subtitle={
               canSwitchPrograms(userRole)
-                ? "This domain doesn't have a learner dashboard. Pick a program from the sidebar to manage its tracks, or open Analytics for cross-program data."
+                ? "This domain has no courses of its own. Choose a program to manage, or open Analytics for cross-program data."
                 : "This domain doesn't have a learner dashboard. Contact a super-admin to switch programs."
             }
           />
+          {/* The picker lives HERE, not just in the user menu.
+             This screen used to say "pick a program from the sidebar" — the
+             sidebar switcher only renders when the current program HAS tracks,
+             which on this domain it never does, so the instruction couldn't be
+             followed. The switcher does exist in the avatar menu, but sending
+             someone hunting for it on the one screen that's useless without it
+             is the same as not having one. */}
+          {canSwitchPrograms(userRole) && switchablePrograms.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {switchablePrograms.map((p) => (
+                <a
+                  key={p.slug}
+                  href={`/api/switch-program?slug=${encodeURIComponent(p.slug)}&next=${encodeURIComponent("/dashboard/admin")}`}
+                  className={buttonClass("secondary", "md")}
+                >
+                  {p.name}
+                </a>
+              ))}
+            </div>
+          )}
           {canSwitchPrograms(userRole) && (
             <a
               href="/dashboard/insights"
