@@ -10,6 +10,7 @@ const PUBLIC_SURVEY_LINKS = [
   { id: "post-survey-spring-2026",   label: "AI Fundamentals — Post-Program Survey",      path: "/survey/post-survey-spring-2026" },
   { id: "network-plus-post",         label: "CompTIA Network+ — End-of-Cohort Survey",    path: "/survey/network-plus-post" },
   { id: "security-plus-application", label: "CompTIA Security+ — Application",            path: "/apply/security-plus" },
+  { id: "security-plus-midpoint",    label: "CompTIA Security+ — Midpoint Check-In",      path: "/survey/security-plus-midpoint" },
 ];
 
 export function SurveyLinksSection({ surveyConfigs }: { surveyConfigs: { id: string; title: string }[] }) {
