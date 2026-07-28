@@ -1122,7 +1122,7 @@ const SECURITY_PLUS_MIDPOINT: SurveyQuestion[] = [
     type: "text",
     id: "would_change",
     label: "What would you change if it were up to you?",
-    required: false,
+    required: true,
   },
   {
     type: "text",

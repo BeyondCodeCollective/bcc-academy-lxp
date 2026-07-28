@@ -71,7 +71,6 @@ const BCC_INTAKE_PAGES: SurveyPage[] = [
         bullets: [
           'You can mark "Prefer not to say" on any item — your choice never affects your participation.',
           "Your answers stay private and are never shared individually.",
-          "To see, change, or delete your answers, email info@beyondcodecollective.org.",
         ],
         confirmLabel: "Understood — I'm ready to continue.",
         required: true,
@@ -198,7 +197,6 @@ const SHARED_PAGES: SurveyPage[] = [
         bullets: [
           "Your answers stay private.",
           'You can mark "Prefer not to say" on any question.',
-          "You can ask us anytime to see your answers, change them, or delete them. Just email us at info@beyondcodecollective.org.",
         ],
         confirmLabel: "I understand and agree to participate.",
         required: true,
@@ -465,7 +463,6 @@ const ATG_MID_PROGRAM_PAGES: SurveyPage[] = [
         bullets: [
           "Your answers stay private.",
           'You can mark "Prefer not to say" on any question.',
-          "You can ask us anytime to see your answers, change them, or delete them. Just email us at info@beyondcodecollective.org.",
         ],
         confirmLabel: "Got it — I'm ready to start.",
         required: true,
@@ -753,7 +750,6 @@ const AI_IMPACT_PAGES: SurveyPage[] = [
         bullets: [
           "Your answers stay private.",
           'You can mark "Prefer not to say" on any question.',
-          "You can email info@beyondcodecollective.org anytime to see, change, or delete your answers.",
         ],
         confirmLabel: "Got it — I'm ready to start.",
         required: true,
@@ -873,7 +869,6 @@ const FORGE_POST_SURVEY_PAGES: SurveyPage[] = [
         bullets: [
           "Your answers stay private.",
           'You can mark "Prefer not to say" on any question.',
-          "You can email info@beyondcodecollective.org anytime to see, change, or delete your answers.",
         ],
         confirmLabel: "Got it — I'm ready to start.",
         required: true,
@@ -1591,7 +1586,7 @@ const SECURITY_PLUS_MIDPOINT_PAGES: SurveyPage[] = [
         label: "What would you change if it were up to you?",
         placeholder:
           "Be straight with us. Nothing is too small, and there's still time to act on it.",
-        required: false,
+        required: true,
       },
       {
         type: "text",
