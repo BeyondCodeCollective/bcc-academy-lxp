@@ -105,6 +105,17 @@ export const PLATFORM_AUTH_SURVEYS: Record<string, SurveyConfig> = {
       "Your confidence, goals, and what you need from the program — so we can support you from the start. Private; used only to improve the program and report impact.",
     required: false,
   },
+  // Mid-cohort pulse, taken in class at the halfway mark. Authenticated on
+  // purpose: everyone answering is already enrolled and already logged in to
+  // attend, so the response binds to their account instead of asking them to
+  // retype a name and email we have.
+  "security-plus-midpoint": {
+    id: "security-plus-midpoint",
+    title: "CompTIA Security+ Midpoint Check-In",
+    description:
+      "3 min. A quick pulse at the halfway mark: what's working, what to adjust, and how the exam is feeling.",
+    required: false,
+  },
 };
 
 // ─── Public (no login) ──────────────────────────────────────────────────────
@@ -131,13 +142,6 @@ export const PLATFORM_PUBLIC_SURVEYS: Record<string, SurveyConfig> = {
     title: "AI Fundamentals — Pre-Program Survey",
     description:
       "Help us understand your background and experience so we can better support you.",
-    required: false,
-  },
-  "security-plus-midpoint": {
-    id: "security-plus-midpoint",
-    title: "CompTIA Security+ Midpoint Check-In",
-    description:
-      "3 min. A quick pulse at the halfway mark: what's working, what to adjust, and how the exam is feeling.",
     required: false,
   },
   "network-plus-post": {
