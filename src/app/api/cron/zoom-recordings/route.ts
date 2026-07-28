@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
+import { driveConfigured, uploadRecordingToDrive } from "@/lib/google-drive";
 import {
   listRecordings,
   zoomToken,
@@ -127,25 +128,50 @@ export async function GET(request: Request) {
       throw new Error(`Zoom download ${res.status}`);
     }
 
-    const path = `${job.track}/week-${job.week}-${job.rec.uuid.replace(/[^a-zA-Z0-9]/g, "")}.mp4`;
-    const { error: upErr } = await svc.storage.from(BUCKET).upload(path, res.body, {
-      contentType: "video/mp4",
-      upsert: true,
-      duplex: "half",
-    } as never);
-    if (upErr) throw new Error(`storage upload: ${upErr.message}`);
+    // Google Drive when it's configured, Supabase otherwise.
+    //
+    // Drive is the default because Supabase enforces a project-wide upload cap
+    // (50 MB here) and these files are 200 MB to 1 GB, while Workspace storage
+    // is already paid for and RecordingCard has embedded Drive links for years.
+    // Supabase stays as the fallback: it's private with signed URLs, which is
+    // the stronger access model whenever the file is small enough to fit.
+    let storedValue: string;
+    let destination: string;
 
-    // The stored PATH, not a URL: the bucket is private and the week page mints
-    // a signed URL per request. A URL written here would expire in the database.
+    if (driveConfigured()) {
+      const up = await uploadRecordingToDrive({
+        name: `${job.track} — week ${job.week} (${easternDate(job.rec.startTime)}).mp4`,
+        body: res.body,
+        bytes: job.rec.bytes || undefined,
+      });
+      if (!up.ok) throw new Error(up.error);
+      storedValue = up.url; // /file/d/<id>/view — toDriveEmbedUrl handles it
+      destination = "google-drive";
+    } else {
+      const path = `${job.track}/week-${job.week}-${job.rec.uuid.replace(/[^a-zA-Z0-9]/g, "")}.mp4`;
+      const { error: upErr } = await svc.storage.from(BUCKET).upload(path, res.body, {
+        contentType: "video/mp4",
+        upsert: true,
+        duplex: "half",
+      } as never);
+      if (upErr) throw new Error(`storage upload: ${upErr.message}`);
+      // The stored PATH, not a URL: the bucket is private and the week page
+      // mints a signed URL per request. A URL written here would expire in the
+      // database.
+      storedValue = `${BUCKET}:${path}`;
+      destination = "supabase";
+    }
+
     const { error: dbErr } = await svc
       .from("session_content")
-      .update({ recording_url: `${BUCKET}:${path}` })
+      .update({ recording_url: storedValue })
       .eq("id", job.rowId);
     if (dbErr) throw new Error(`db update: ${dbErr.message}`);
 
     return NextResponse.json({
       ok: true,
       imported: 1,
+      destination,
       track: job.track,
       week: job.week,
       heldOn: easternDate(job.rec.startTime),
