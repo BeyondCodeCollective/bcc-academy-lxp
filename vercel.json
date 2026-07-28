@@ -1,8 +1,15 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
-    "src/app/**/route.ts": { "maxDuration": 120 },
-    "src/app/**/page.tsx": { "maxDuration": 120 }
+    "src/app/**/route.ts": {
+      "maxDuration": 120
+    },
+    "src/app/**/page.tsx": {
+      "maxDuration": 120
+    },
+    "src/app/api/cron/zoom-recordings/route.ts": {
+      "maxDuration": 800
+    }
   },
   "crons": [
     {
@@ -16,6 +23,10 @@
     {
       "path": "/api/cron/zoom-attendance",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/zoom-recordings",
+      "schedule": "30 * * * *"
     }
   ]
 }
