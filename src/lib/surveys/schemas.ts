@@ -1108,6 +1108,40 @@ const COMPTIA_SECURITY_PRE: SurveyQuestion[] = [
   { type: "text", id: "most_need", label: "What is the one thing you most need from this program to be successful?", required: true },
 ];
 
+// ─── security-plus-midpoint (Security+ mid-cohort check-in) ──────────────────
+// Rendered by the custom public component; registered here so Insights shows
+// the real question labels instead of raw response keys.
+const SECURITY_PLUS_MIDPOINT: SurveyQuestion[] = [
+  {
+    type: "text",
+    id: "working_well",
+    label: "What's working for you so far?",
+    required: true,
+  },
+  {
+    type: "text",
+    id: "would_change",
+    label: "What would you change if it were up to you?",
+    required: false,
+  },
+  {
+    type: "text",
+    id: "most_helpful_next",
+    label:
+      "What's the one thing that would help you most between now and the exam?",
+    required: true,
+  },
+  {
+    type: "likert",
+    id: "exam_confidence",
+    label: "Right now, how are you feeling about the exam?",
+    scale: LIKERT_1_5,
+    scaleAnchors: { low: "1 — Not ready yet", high: "5 — I've got this" },
+    statements: ["My confidence about passing the Security+ exam"],
+    required: true,
+  },
+];
+
 const SCHEMAS: Record<string, SurveyQuestion[]> = {
   "bcc-learner-intake": BCC_LEARNER_INTAKE,
   "comptia-security-pre": COMPTIA_SECURITY_PRE,
@@ -1121,6 +1155,7 @@ const SCHEMAS: Record<string, SurveyQuestion[]> = {
   "ai-impact-survey-2026": AI_IMPACT_SURVEY_2026,
   "mid-program-spring-2026": MID_PROGRAM_SPRING_2026,
   "security-plus-application": SECURITY_PLUS_APPLICATION,
+  "security-plus-midpoint": SECURITY_PLUS_MIDPOINT,
   "home-for-summer-application": HOME_FOR_SUMMER_APPLICATION,
 };
 

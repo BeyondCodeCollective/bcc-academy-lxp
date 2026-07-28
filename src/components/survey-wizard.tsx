@@ -1565,7 +1565,60 @@ const SECURITY_PLUS_PRE_PAGES: SurveyPage[] = [
   },
 ];
 
+// ─── CompTIA Security+ Midpoint Check-In ──────────────────────────────────────
+// One page, four questions, taken in the last few minutes of class at the
+// halfway mark. No consent page and no contact page: everyone answering is an
+// enrolled learner who is already signed in, and the response saves against
+// their account.
+
+const SECURITY_PLUS_MIDPOINT_PAGES: SurveyPage[] = [
+  {
+    title: "Halfway there",
+    subtitle:
+      "You're at the midpoint of Security+. Before we head into the back half, we want to hear how it's actually going for you. This is a check-in, not a test. There's no grade attached and nothing here affects your standing in the program. We share what we're hearing with your instructor as themes, not as a list of who said what.",
+    questions: [
+      {
+        type: "text",
+        id: "working_well",
+        label: "What's working for you so far?",
+        placeholder:
+          "A topic that finally clicked, the labs, how class runs, the pace, your study group. Whatever you'd keep.",
+        required: true,
+      },
+      {
+        type: "text",
+        id: "would_change",
+        label: "What would you change if it were up to you?",
+        placeholder:
+          "Be straight with us. Nothing is too small, and there's still time to act on it.",
+        required: false,
+      },
+      {
+        type: "text",
+        id: "most_helpful_next",
+        label:
+          "What's the one thing that would help you most between now and the exam?",
+        placeholder:
+          "More lab time, a review session on a specific domain, practice questions, someone to study with. Name the one thing.",
+        required: true,
+      },
+      {
+        type: "likert",
+        id: "exam_confidence",
+        label: "Right now, how are you feeling about the exam?",
+        scale: ["1", "2", "3", "4", "5"],
+        scaleAnchors: { low: "1 — Not ready yet", high: "5 — I've got this" },
+        statements: ["My confidence about passing the Security+ exam"],
+        required: true,
+      },
+    ],
+  },
+];
+
 function getSurveyPages(surveyId: string, programSlug: string): SurveyPage[] {
+  if (surveyId === "security-plus-midpoint") {
+    return SECURITY_PLUS_MIDPOINT_PAGES;
+  }
   if (surveyId === "comptia-security-pre") {
     return SECURITY_PLUS_PRE_PAGES;
   }
