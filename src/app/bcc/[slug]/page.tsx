@@ -159,8 +159,11 @@ export default async function CampLandingPage({
                   {page.schedule.map((item) => (
                     <div key={item.label} className="flex items-baseline gap-5">
                       <span
-                        className="text-xs font-medium uppercase tracking-[0.1em] shrink-0"
-                        style={{ color: "#1a1a1a44", minWidth: "104px" }}
+                        // The dates were ink at ~27% alpha — nearly invisible
+                        // beside the session titles, on a page whose whole job
+                        // is telling someone which five days to hold.
+                        className="text-xs font-bold uppercase tracking-[0.1em] shrink-0"
+                        style={{ color: "#1a1a1a", minWidth: "104px" }}
                       >
                         {item.label}
                       </span>
