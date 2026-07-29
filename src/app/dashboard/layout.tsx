@@ -257,8 +257,26 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
     canSwitch = canSwitchPrograms(role) && !validPreviewSlug;
     canShowPreviewToggle = canSwitchPrograms(role);
     if (actualIsAdmin && !canSwitchPrograms(role) && !validPreviewSlug) {
+      // The person's HOME program is always in the list, not just whichever
+      // program they happen to be looking at.
+      //
+      // This was [current, ...grants], de-duplicated against the program
+      // registry — so someone whose only grant IS the program they're on saw a
+      // one-entry list, `canSwitch` went false, the switcher vanished, and they
+      // were stranded there with no way back to their home program short of
+      // logging in again. Linda (home Catalyst, one grant: Beyond Code Centers)
+      // hit exactly that the moment she opened Beyond Code Centers.
+      const { data: me } = await createServiceClient()
+        .from("students")
+        .select("programs(slug)")
+        .eq("id", ctx.userId)
+        .maybeSingle();
+      const homeProgram = (Array.isArray(me?.programs) ? me?.programs[0] : me?.programs) as
+        | { slug: string }
+        | undefined;
       grantSwitcherSlugs = [
         program.slug,
+        ...(homeProgram?.slug ? [homeProgram.slug] : []),
         ...(await getGrantedProgramSlugs(ctx.userId)),
       ];
     }

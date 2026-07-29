@@ -70,6 +70,7 @@ const BCC_INTAKE_PAGES: SurveyPage[] = [
         text: "Beyond Code Collective collects this information to demonstrate the impact of our programs to funders. This keeps our programs free and sustainable.",
         bullets: [
           'You can mark "Prefer not to say" on any item — your choice never affects your participation.',
+          "To see, change, or delete your answers, email info@bccacademy.io.",
           "Your answers stay private and are never shared individually.",
         ],
         confirmLabel: "Understood — I'm ready to continue.",
@@ -197,6 +198,7 @@ const SHARED_PAGES: SurveyPage[] = [
         bullets: [
           "Your answers stay private.",
           'You can mark "Prefer not to say" on any question.',
+          "To see, change, or delete your answers, email info@bccacademy.io.",
         ],
         confirmLabel: "I understand and agree to participate.",
         required: true,
@@ -463,6 +465,7 @@ const ATG_MID_PROGRAM_PAGES: SurveyPage[] = [
         bullets: [
           "Your answers stay private.",
           'You can mark "Prefer not to say" on any question.',
+          "To see, change, or delete your answers, email info@bccacademy.io.",
         ],
         confirmLabel: "Got it — I'm ready to start.",
         required: true,
@@ -750,6 +753,7 @@ const AI_IMPACT_PAGES: SurveyPage[] = [
         bullets: [
           "Your answers stay private.",
           'You can mark "Prefer not to say" on any question.',
+          "To see, change, or delete your answers, email info@bccacademy.io.",
         ],
         confirmLabel: "Got it — I'm ready to start.",
         required: true,
@@ -869,6 +873,7 @@ const FORGE_POST_SURVEY_PAGES: SurveyPage[] = [
         bullets: [
           "Your answers stay private.",
           'You can mark "Prefer not to say" on any question.',
+          "To see, change, or delete your answers, email info@bccacademy.io.",
         ],
         confirmLabel: "Got it — I'm ready to start.",
         required: true,

@@ -26,6 +26,7 @@ const CONSENT_LEAD =
 
 const CONSENT_BULLETS = [
   "We may share results with our partners and funders, but your name will never be attached to your answers.",
+  "To see, change, or delete your answers, email info@bccacademy.io.",
 ];
 
 const CONSENT_FOOTER =

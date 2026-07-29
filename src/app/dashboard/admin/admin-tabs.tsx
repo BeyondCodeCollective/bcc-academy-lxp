@@ -1047,7 +1047,7 @@ export function AdminTabs({
              followed. The switcher does exist in the avatar menu, but sending
              someone hunting for it on the one screen that's useless without it
              is the same as not having one. */}
-          {canSwitchPrograms(userRole) && switchablePrograms.length > 0 && (
+          {switchablePrograms.length > 1 && (
             <div className="flex flex-wrap gap-2">
               {switchablePrograms.map((p) => (
                 <a
