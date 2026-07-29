@@ -61,6 +61,17 @@ const RETIRED_SURVEY_REDIRECTS: Record<string, string> = {
   "post-survey-spring-2026": "ai-impact-survey-2026",
 };
 
+// Surveys that MOVED to the authenticated route. #870 shipped the Security+
+// midpoint with a public form; #872 consolidated it to one authenticated
+// version — correct, since every respondent is an enrolled learner and the
+// answer should save against their account rather than re-ask their name. But
+// links copied in between now 404, which is what staff hit when they shared it.
+// Send them to the real page instead of a dead end; the login gate there
+// returns them to the survey afterwards.
+const MOVED_TO_AUTHENTICATED: Record<string, string> = {
+  "security-plus-midpoint": "/dashboard/survey/security-plus-midpoint",
+};
+
 export default async function PublicSurveyPage({
   params,
 }: {
@@ -69,6 +80,8 @@ export default async function PublicSurveyPage({
   const { id } = await params;
   const replacement = RETIRED_SURVEY_REDIRECTS[id];
   if (replacement) redirect(`/survey/${replacement}`);
+  const authRoute = MOVED_TO_AUTHENTICATED[id];
+  if (authRoute) redirect(authRoute);
   const program = await getProgram();
   // Resolve from the current program first, then ANY program (so a Catalyst
   // survey link still works on the marketing apex / a different program
