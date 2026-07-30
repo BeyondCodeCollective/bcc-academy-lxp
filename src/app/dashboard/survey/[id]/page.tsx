@@ -39,12 +39,17 @@ export default async function SurveyPage({
       .maybeSingle();
 
     if (data?.completed_at) {
-      const completedAt = new Date(data.completed_at).getTime();
-      const justCompleted = Date.now() - completedAt < 60_000;
-      if (!justCompleted) redirect("/dashboard");
+      // Say so, don't just bounce them.
+      //
+      // Anyone returning to a survey they'd finished was silently redirected to
+      // /dashboard — and for staff that chains on to /dashboard/admin, so the
+      // link looked broken. It wasn't: they'd already answered. The completion
+      // screen used to show only within 60 seconds of submitting, which is the
+      // one moment the person already knows what happened.
+      const justCompleted = Date.now() - new Date(data.completed_at).getTime() < 60_000;
       return (
         <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8">
-          <SurveyComplete />
+          <SurveyComplete returning={!justCompleted} />
         </div>
       );
     }
