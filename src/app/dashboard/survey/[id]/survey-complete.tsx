@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { Check } from "lucide-react";
 
-export function SurveyComplete() {
+export function SurveyComplete({ returning = false }: { returning?: boolean } = {}) {
   const router = useRouter();
   // When the survey was opened from an onboarding checklist it carries
   // ?return=<checklist>; send the learner back there, not the generic dashboard.
@@ -17,11 +17,12 @@ export function SurveyComplete() {
         <Check size={28} className="text-green-600" />
       </div>
       <h2 className="text-2xl font-bold text-ink mb-3">
-        Thank you.
+        {returning ? "You've already answered this one." : "Thank you."}
       </h2>
       <p className="text-sm text-ink-soft max-w-sm mx-auto mb-8">
-        What you shared helps us shape the program around what you actually
-        need. We appreciate you taking the time.
+        {returning
+          ? "Your answers are saved — there's nothing left to do here. If something has changed and you want to update them, tell your instructor and we'll reopen it."
+          : "What you shared helps us shape the program around what you actually need. We appreciate you taking the time."}
       </p>
       <button
         onClick={() => router.push("/dashboard")}
