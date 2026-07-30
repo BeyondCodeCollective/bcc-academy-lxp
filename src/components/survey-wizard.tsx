@@ -1603,6 +1603,24 @@ const SECURITY_PLUS_MIDPOINT_PAGES: SurveyPage[] = [
         required: true,
       },
       {
+        // Every learner in this cohort answered "studied but not yet tested" for
+        // Network+ on the pre-survey — 15 of 15 — so the exam is still ahead of
+        // all of them. Structured options rather than free text so the admin can
+        // see the distribution and chase the "not sure yet" group.
+        type: "radio",
+        id: "network_plus_exam_timing",
+        label: "When do you plan to take your Network+ exam?",
+        options: [
+          "I've already taken it",
+          "It's scheduled — I have a date",
+          "Within the next month",
+          "One to three months from now",
+          "After I finish Security+",
+          "I'm not sure yet",
+        ],
+        required: true,
+      },
+      {
         type: "likert",
         id: "exam_confidence",
         label: "Right now, how are you feeling about the exam?",
