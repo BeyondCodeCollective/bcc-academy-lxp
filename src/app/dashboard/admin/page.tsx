@@ -9,7 +9,7 @@ import type { StudentTrackRow, SurveyStatsRow, InstructorTrackRow, PublicSurveyS
 import { getPublicSurveyStats, getPublicSurveyCountsByType } from "./actions";
 import { canAccessAdminPanel, canManageStudents, canSwitchPrograms, canViewInsights, assignableRoles } from "@/lib/roles";
 import { isMasterEmail } from "@/lib/auth/admins";
-import { getProgramGrants, allowedProgramIds, allowedTrackSlugs } from "@/lib/auth/program-access";
+import { getProgramGrants, allowedProgramIds, allowedTrackSlugs, getGrantedProgramSlugs } from "@/lib/auth/program-access";
 import { PLATFORM_AUTH_SURVEYS, PLATFORM_PUBLIC_SURVEYS } from "@/lib/surveys/platform";
 import { getHomeProgramForTrack, getJoinablePrograms } from "@/lib/programs";
 import { getHiddenTrackSlugs } from "@/lib/programs/hidden";
@@ -585,6 +585,32 @@ export default async function AdminPage({
     }
   }
 
+  // Programs the "No program selected" screen can offer.
+  //
+  // A super-admin gets all of them. A cross-program admin (Jihan, Linda) gets
+  // the ones they were actually granted plus their home program — the picker was
+  // gated on canSwitchPrograms, i.e. super_admin only, so a grant-holder landing
+  // on that screen saw the empty version with no way out, even though the user
+  // menu would have offered them a switcher elsewhere.
+  let switchablePrograms: { slug: string; name: string }[] = [];
+  if (canSwitchPrograms(userRole)) {
+    switchablePrograms = getJoinablePrograms().map((p) => ({ slug: p.slug, name: p.name }));
+  } else if (canAccessAdminPanel(userRole) && actorId) {
+    const granted = new Set(await getGrantedProgramSlugs(actorId));
+    const { data: me } = await createServiceClient()
+      .from("students")
+      .select("programs(slug)")
+      .eq("id", actorId)
+      .maybeSingle();
+    const home = (Array.isArray(me?.programs) ? me?.programs[0] : me?.programs) as
+      | { slug: string }
+      | undefined;
+    if (home?.slug) granted.add(home.slug);
+    switchablePrograms = getJoinablePrograms()
+      .filter((p) => granted.has(p.slug))
+      .map((p) => ({ slug: p.slug, name: p.name }));
+  }
+
   const surveyConfigs = (program.surveys ?? []).map((s) => ({
     id: s.id,
     title: s.title,
@@ -814,11 +840,7 @@ export default async function AdminPage({
         initialStudentSubView={initialStudentSubView}
         lunchLearnRecordings={lunchLearnRecordings}
         insightsData={insightsData}
-        switchablePrograms={
-          canSwitchPrograms(userRole)
-            ? getJoinablePrograms().map((p) => ({ slug: p.slug, name: p.name }))
-            : []
-        }
+        switchablePrograms={switchablePrograms}
         trackInsightsData={trackInsightsData}
         analyticsData={analyticsData}
         analyticsCourse={analyticsCourse}
