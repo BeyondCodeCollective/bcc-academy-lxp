@@ -1132,6 +1132,20 @@ const SECURITY_PLUS_MIDPOINT: SurveyQuestion[] = [
     required: true,
   },
   {
+    type: "radio",
+    id: "network_plus_exam_timing",
+    label: "When do you plan to take your Network+ exam?",
+    options: [
+      "I've already taken it",
+      "It's scheduled — I have a date",
+      "Within the next month",
+      "One to three months from now",
+      "After I finish Security+",
+      "I'm not sure yet",
+    ],
+    required: true,
+  },
+  {
     type: "likert",
     id: "exam_confidence",
     label: "Right now, how are you feeling about the exam?",
