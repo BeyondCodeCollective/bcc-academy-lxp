@@ -17,9 +17,9 @@ interface Props {
   responses: BCCSurveyResponse[];
   programs: { slug: string; name: string }[];
   /**
-   * "standalone" renders a full editorial header (eyebrow + h1).
-   * "embedded" drops the header, so a parent (e.g. the master-detail
-   *  ledger view) can supply its own.
+   * "standalone" renders the page's own CSV export; "embedded" drops it,
+   * because the parent (e.g. the master-detail ledger view) already renders
+   * the authoritative server-side export.
    */
   chrome?: "standalone" | "embedded";
 }
@@ -83,7 +83,7 @@ export function SurveyDashboard({
     return (
       <div className="space-y-6">
         {chrome === "standalone" && (
-          <PageHeader eyebrow="Survey insights" title={surveyTitle} />
+          <PageHeader title={surveyTitle} />
         )}
         <div className="panel px-6 py-12 text-center">
           <p className="text-sm font-medium text-ink">No responses yet</p>
@@ -129,8 +129,10 @@ export function SurveyDashboard({
     <div className="space-y-10">
       {/* Shared PageHeader — same title treatment as every other admin page,
           instead of the one-off h2 + hand-rolled eyebrow this page carried. */}
+      {/* No eyebrow. The BackLink above already says where you came from and
+          the count below says what this is, so "SURVEY INSIGHTS" was a third
+          label stacked over one title. */}
       <PageHeader
-        eyebrow={chrome === "standalone" ? "Survey insights" : undefined}
         title={surveyTitle}
         subtitle={`${total} response${total === 1 ? "" : "s"}${
           filter !== "all"
@@ -310,7 +312,6 @@ function ApplicantRosterDashboard({
       {/* Same shared header as the chart view — these two modes of one page
           used to render two different title treatments. */}
       <PageHeader
-        eyebrow={chrome === "standalone" ? "Applications" : undefined}
         title={surveyTitle}
         subtitle={`${total} applicant${total === 1 ? "" : "s"}${
           filter !== "all"

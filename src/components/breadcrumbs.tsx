@@ -64,6 +64,11 @@ export function buildTrail(
     const out: Crumb[] = [{ label: "Admin", href: "/dashboard/admin" }];
     if (rest.length === 1) return out;
     const section = rest[1];
+    // A survey dashboard renders its own BackLink, and it points somewhere this
+    // generic trail can't: the course you came from ("← CompTIA Security+"),
+    // not "Surveys". Two trails stacked over one title is one too many, and the
+    // less useful one is this.
+    if (section === "surveys" && rest.length > 2) return [];
     const sectionHref = `/dashboard/admin/${section}`;
     const sectionLabel = ADMIN_SECTION_LABELS[section] ?? humanize(section);
     if (rest.length === 2) return [...out, { label: sectionLabel }];
