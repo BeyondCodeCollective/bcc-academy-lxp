@@ -611,7 +611,12 @@ export default async function AdminPage({
       .map((p) => ({ slug: p.slug, name: p.name }));
   }
 
-  const surveyConfigs = (program.surveys ?? []).map((s) => ({
+  // Platform auth surveys (e.g. the Security+ midpoint check-in) live outside
+  // program.surveys, so building this list from the program config alone left
+  // the course Surveys tab empty even after a cohort had answered.
+  const surveyConfigs = Array.from(
+    new Map(surveyList.map((s) => [s.id, s])).values(),
+  ).map((s) => ({
     id: s.id,
     title: s.title,
     // Which tracks opt out — the per-track Surveys tab hides these, so a
@@ -659,7 +664,7 @@ export default async function AdminPage({
         ),
       );
       trackEnrolledCount = trackStudentIds.length;
-      const surveyIds = (program.surveys ?? []).map((sv) => sv.id);
+      const surveyIds = Array.from(new Set(surveyList.map((sv) => sv.id)));
       if (trackStudentIds.length > 0 && surveyIds.length > 0) {
         const { data: answered } = await createServiceClient()
           .from("survey_responses")
