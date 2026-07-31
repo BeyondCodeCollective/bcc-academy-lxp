@@ -1,5 +1,5 @@
 import { redirect, notFound } from "next/navigation";
-import Link from "next/link";
+import { BackLink } from "@/components/ui";
 import { createClient, isSupabaseConfigured, createServiceClient } from "@/lib/supabase/server";
 import { canViewInsights } from "@/lib/roles";
 import { getDashboardSurveyResponses, getTrackSurveyResponses } from "../../actions";
@@ -32,7 +32,8 @@ export default async function SurveyDashboardPage({
   const { surveyId } = await params;
   const { returnTo, returnLabel, trackSlug } = await searchParams;
   const backHref = returnTo ? decodeURIComponent(returnTo) : "/dashboard/admin/surveys";
-  const backLabel = returnLabel ? `← ${decodeURIComponent(returnLabel)}` : "← All surveys";
+  // BackLink draws its own arrow, so the label is plain text.
+  const backLabel = returnLabel ? decodeURIComponent(returnLabel) : "All surveys";
 
   const supabase = await createClient();
   const { data: { session } } = await supabase.auth.getSession();
@@ -59,22 +60,19 @@ export default async function SurveyDashboardPage({
   const programs = getEveryProgramConfig().map((p) => ({ slug: p.slug, name: p.name }));
 
   return (
-    <div className="min-h-[100dvh] bg-paper-tint-soft">
-      <div className="mx-auto w-full max-w-2xl md:max-w-5xl px-5 pt-12 pb-28 md:pt-16">
-        <Link
-          href={backHref}
-          className="inline-flex text-xs text-ink-soft hover:text-ink transition-colors mb-8"
-        >
-          {backLabel}
-        </Link>
-        <SurveyDashboard
-          surveyId={surveyId}
-          surveyTitle={survey.title}
-          schema={schema}
-          responses={responses}
-          programs={programs}
-        />
-      </div>
+    // House page shell — same max-width, padding and rhythm as every other
+    // admin drill-in (assessments, landing pages). This page used to set its
+    // own full-height tinted background and a wider column, which is why it
+    // read as a different product from the course tabs that link into it.
+    <div className="mx-auto max-w-4xl px-5 py-10 space-y-6">
+      <BackLink href={backHref} label={backLabel} />
+      <SurveyDashboard
+        surveyId={surveyId}
+        surveyTitle={survey.title}
+        schema={schema}
+        responses={responses}
+        programs={programs}
+      />
     </div>
   );
 }

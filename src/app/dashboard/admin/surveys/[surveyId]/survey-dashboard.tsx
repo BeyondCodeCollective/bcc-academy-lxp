@@ -6,6 +6,8 @@ import type { SurveyQuestion } from "@/components/survey-fields";
 import type { BCCSurveyResponse } from "../../actions";
 import { aggregateDualLikert, aggregateLikertMeans } from "@/lib/surveys/aggregate";
 import { LikertDiverging, type LikertRow } from "@/components/stats/likert-diverging";
+import { PageHeader, Section } from "@/components/page-header";
+import { buttonClass, fieldInput } from "@/components/ui";
 import { getApplicationFileUrl } from "../../actions-misc";
 
 interface Props {
@@ -81,14 +83,7 @@ export function SurveyDashboard({
     return (
       <div className="space-y-6">
         {chrome === "standalone" && (
-          <header>
-            <p className="text-micro font-semibold uppercase tracking-[0.16em] text-ink-faint">
-              Survey Insights
-            </p>
-            <h2 className="mt-1 text-2xl font-bold tracking-tight text-ink">
-              {surveyTitle}
-            </h2>
-          </header>
+          <PageHeader eyebrow="Survey insights" title={surveyTitle} />
         )}
         <div className="panel px-6 py-12 text-center">
           <p className="text-sm font-medium text-ink">No responses yet</p>
@@ -132,68 +127,62 @@ export function SurveyDashboard({
 
   return (
     <div className="space-y-10">
-      {/* Header */}
-      <header className="flex flex-wrap items-end justify-between gap-4 pb-4 border-b border-rule">
-        <div>
-          {chrome === "standalone" && (
-            <p className="text-micro font-semibold uppercase tracking-[0.16em] text-ink-faint mb-2">
-              Survey Insights
-            </p>
-          )}
-          <h2 className="text-xl font-bold text-ink tracking-tight">
-            {surveyTitle}
-          </h2>
-          <p className="text-sm text-ink-soft mt-2 tabular-nums">
-            {total} response{total === 1 ? "" : "s"}
-            {filter !== "all" && (
-              <> · {programs.find((p) => p.slug === filter)?.name ?? filter}</>
+      {/* Shared PageHeader — same title treatment as every other admin page,
+          instead of the one-off h2 + hand-rolled eyebrow this page carried. */}
+      <PageHeader
+        eyebrow={chrome === "standalone" ? "Survey insights" : undefined}
+        title={surveyTitle}
+        subtitle={`${total} response${total === 1 ? "" : "s"}${
+          filter !== "all"
+            ? ` · ${programs.find((p) => p.slug === filter)?.name ?? filter}`
+            : ""
+        }`}
+        actions={
+          <>
+            {programsWithData.length > 1 && (
+              <div className="flex gap-1">
+                <FilterPill
+                  label={`All (${responses.length})`}
+                  active={filter === "all"}
+                  onClick={() => setFilter("all")}
+                />
+                {programsWithData.map((p) => {
+                  const count = responses.filter((r) => r.program_slug === p.slug).length;
+                  return (
+                    <FilterPill
+                      key={p.slug}
+                      label={`${p.name} (${count})`}
+                      active={filter === p.slug}
+                      onClick={() => setFilter(p.slug)}
+                    />
+                  );
+                })}
+              </div>
             )}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {programsWithData.length > 1 && (
-            <div className="flex gap-1">
-              <FilterPill
-                label={`All (${responses.length})`}
-                active={filter === "all"}
-                onClick={() => setFilter("all")}
-              />
-              {programsWithData.map((p) => {
-                const count = responses.filter((r) => r.program_slug === p.slug).length;
-                return (
-                  <FilterPill
-                    key={p.slug}
-                    label={`${p.name} (${count})`}
-                    active={filter === p.slug}
-                    onClick={() => setFilter(p.slug)}
-                  />
-                );
-              })}
-            </div>
-          )}
-          {/* When embedded in Survey Insights, the parent already renders the
-              authoritative server-side "Export CSV" (which strips internal
-              _-fields and applies the student-record backfill). Showing this
-              client-side CSV too gave two buttons and leaked internal columns
-              like _cohort_track, so it only renders standalone. */}
-          {chrome !== "embedded" && (
-            <button
-              type="button"
-              onClick={downloadCsv}
-              disabled={total === 0}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-rule bg-paper-tint-soft px-3 py-1.5 text-xs font-medium text-ink hover:bg-paper-tint transition-colors disabled:opacity-40"
-            >
-              <Download size={13} />
-              CSV
-            </button>
-          )}
-        </div>
-      </header>
+            {/* When embedded in Survey Insights, the parent already renders the
+                authoritative server-side "Export CSV" (which strips internal
+                _-fields and applies the student-record backfill). Showing this
+                client-side CSV too gave two buttons and leaked internal columns
+                like _cohort_track, so it only renders standalone. */}
+            {chrome !== "embedded" && (
+              <button
+                type="button"
+                onClick={downloadCsv}
+                disabled={total === 0}
+                className={buttonClass("secondary", "sm")}
+              >
+                <Download size={13} />
+                CSV
+              </button>
+            )}
+          </>
+        }
+      />
 
       {/* Demographics (radio) */}
       {radioQs.length > 0 && (
-        <Section title="Single-choice answers">
-          <div className="grid gap-x-10 gap-y-6 md:grid-cols-2">
+        <Section label="Single-choice answers" count={radioQs.length}>
+          <div className="panel grid gap-x-10 gap-y-8 p-5 md:grid-cols-2">
             {radioQs.map((q) => (
               <RadioBlock key={q.id} question={q} visible={visible} />
             ))}
@@ -203,8 +192,8 @@ export function SurveyDashboard({
 
       {/* Multi-select */}
       {multiSelectQs.length > 0 && (
-        <Section title="Multi-select answers">
-          <div className="grid gap-x-10 gap-y-6 md:grid-cols-2">
+        <Section label="Multi-select answers" count={multiSelectQs.length}>
+          <div className="panel grid gap-x-10 gap-y-8 p-5 md:grid-cols-2">
             {multiSelectQs.map((q) => (
               <MultiSelectBlock key={q.id} question={q} visible={visible} />
             ))}
@@ -214,8 +203,8 @@ export function SurveyDashboard({
 
       {/* Likert */}
       {likertQs.length > 0 && (
-        <Section title="Rating scales">
-          <div className="space-y-8">
+        <Section label="Rating scales" count={likertQs.length}>
+          <div className="panel space-y-8 p-5">
             {likertQs.map((q) => (
               <LikertBlock key={q.id} question={q} visible={visible} />
             ))}
@@ -225,8 +214,8 @@ export function SurveyDashboard({
 
       {/* Dual-likert */}
       {dualLikertQs.length > 0 && (
-        <Section title="Before → after">
-          <div className="space-y-8">
+        <Section label="Before → after" count={dualLikertQs.length}>
+          <div className="panel space-y-8 p-5">
             {dualLikertQs.map((q) => (
               <DualLikertBlock key={q.id} question={q} visible={visible} />
             ))}
@@ -237,8 +226,8 @@ export function SurveyDashboard({
       {/* Attachments — without this section a `file` question renders nowhere,
          and an uploaded resume would be unreachable from the admin. */}
       {fileQs.length > 0 && (
-        <Section title="Attachments">
-          <div className="space-y-1">
+        <Section label="Attachments" count={fileQs.length}>
+          <div className="panel divide-y divide-rule-soft px-5">
             {fileQs.map((q) => (
               <FileBlock key={q.id} question={q} visible={visible} />
             ))}
@@ -248,8 +237,8 @@ export function SurveyDashboard({
 
       {/* Free text */}
       {textQs.length > 0 && (
-        <Section title="Free text">
-          <div className="space-y-1">
+        <Section label="Free text" count={textQs.length}>
+          <div className="panel divide-y divide-rule-soft px-5">
             {textQs.map((q) => (
               <TextBlock key={q.id} question={q} visible={visible} />
             ))}
@@ -318,59 +307,54 @@ function ApplicantRosterDashboard({
 
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <header className="flex flex-wrap items-end justify-between gap-4 pb-4 border-b border-rule">
-        <div>
-          {chrome === "standalone" && (
-            <p className="text-micro font-semibold uppercase tracking-[0.16em] text-ink-faint mb-2">
-              Applications
-            </p>
-          )}
-          <h2 className="text-xl font-bold text-ink tracking-tight">
-            {surveyTitle}
-          </h2>
-          <p className="text-sm text-ink-soft mt-2 tabular-nums">
-            {total} applicant{total === 1 ? "" : "s"}
-            {filter !== "all" && (
-              <> · {programs.find((p) => p.slug === filter)?.name ?? filter}</>
+      {/* Same shared header as the chart view — these two modes of one page
+          used to render two different title treatments. */}
+      <PageHeader
+        eyebrow={chrome === "standalone" ? "Applications" : undefined}
+        title={surveyTitle}
+        subtitle={`${total} applicant${total === 1 ? "" : "s"}${
+          filter !== "all"
+            ? ` · ${programs.find((p) => p.slug === filter)?.name ?? filter}`
+            : ""
+        }`}
+        actions={
+          <>
+            {programsWithData.length > 1 && (
+              <div className="flex gap-1">
+                <FilterPill
+                  label={`All (${responses.length})`}
+                  active={filter === "all"}
+                  onClick={() => onFilterChange("all")}
+                />
+                {programsWithData.map((p) => {
+                  const count = responses.filter((r) => r.program_slug === p.slug).length;
+                  return (
+                    <FilterPill
+                      key={p.slug}
+                      label={`${p.name} (${count})`}
+                      active={filter === p.slug}
+                      onClick={() => onFilterChange(p.slug)}
+                    />
+                  );
+                })}
+              </div>
             )}
-          </p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          {programsWithData.length > 1 && (
-            <div className="flex gap-1">
-              <FilterPill
-                label={`All (${responses.length})`}
-                active={filter === "all"}
-                onClick={() => onFilterChange("all")}
-              />
-              {programsWithData.map((p) => {
-                const count = responses.filter((r) => r.program_slug === p.slug).length;
-                return (
-                  <FilterPill
-                    key={p.slug}
-                    label={`${p.name} (${count})`}
-                    active={filter === p.slug}
-                    onClick={() => onFilterChange(p.slug)}
-                  />
-                );
-              })}
-            </div>
-          )}
-          {/* Hidden when embedded — Survey Insights renders the authoritative
-              server-side Export CSV above; two buttons leaked internal columns. */}
-          {chrome !== "embedded" && (
-            <button
-              type="button"
-              onClick={onDownloadCsv}
-              disabled={total === 0}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-rule bg-paper-tint-soft px-3 py-1.5 text-xs font-medium text-ink hover:bg-paper-tint transition-colors disabled:opacity-40"
-            >
-              ⬇️ CSV
-            </button>
-          )}
-        </div>
-      </header>
+            {/* Hidden when embedded — Survey Insights renders the authoritative
+                server-side Export CSV above; two buttons leaked internal columns. */}
+            {chrome !== "embedded" && (
+              <button
+                type="button"
+                onClick={onDownloadCsv}
+                disabled={total === 0}
+                className={buttonClass("secondary", "sm")}
+              >
+                <Download size={13} />
+                CSV
+              </button>
+            )}
+          </>
+        }
+      />
 
       {/* Search */}
       <input
@@ -378,11 +362,11 @@ function ApplicantRosterDashboard({
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="Search by name or email…"
-        className="w-full max-w-sm border border-rule bg-paper-tint-soft px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-ink"
+        className={`${fieldInput} max-w-sm`}
       />
 
       {/* Roster */}
-      <div className="divide-y divide-rule-soft border border-rule">
+      <div className="panel divide-y divide-rule-soft overflow-hidden">
         {filtered.length === 0 && (
           <p className="p-6 text-sm text-ink-soft">No applicants match your search.</p>
         )}
@@ -487,17 +471,6 @@ function FilterPill({
     >
       {label}
     </button>
-  );
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section>
-      <h3 className="text-micro font-semibold uppercase tracking-[0.16em] text-ink-faint mb-4">
-        {title}
-      </h3>
-      {children}
-    </section>
   );
 }
 
@@ -765,12 +738,13 @@ function TextBlock({
     }))
     .filter((a) => typeof a.val === "string" && (a.val as string).trim().length > 0);
 
+  // Divider comes from the panel's divide-y, so this row draws none of its own.
   return (
-    <div className="border-t border-rule first:border-t-0">
+    <div>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-baseline justify-between gap-4 py-3 text-left hover:text-ink transition-colors"
+        className="w-full flex items-baseline justify-between gap-4 py-3.5 text-left hover:text-ink transition-colors"
       >
         <p className="text-xs text-ink leading-snug">
           {question.label}
@@ -862,11 +836,11 @@ function FileBlock({
   }
 
   return (
-    <div className="border-t border-rule first:border-t-0">
+    <div>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-baseline justify-between gap-4 py-3 text-left hover:text-ink transition-colors"
+        className="w-full flex items-baseline justify-between gap-4 py-3.5 text-left hover:text-ink transition-colors"
       >
         <p className="text-xs text-ink leading-snug">{question.label}</p>
         <span className="text-micro text-ink-faint shrink-0 tabular-nums">
