@@ -67,26 +67,35 @@ export async function createCourseAction(formData: {
   if (!instructor.trim()) return { success: false, error: "Instructor name is required." };
   if (!Number.isFinite(totalWeeks) || !Number.isInteger(totalWeeks) || totalWeeks < 1 || totalWeeks > 52) return { success: false, error: "Weeks must be between 1 and 52." };
   if (!Number.isFinite(sessionsPerWeek) || !Number.isInteger(sessionsPerWeek) || sessionsPerWeek < 1 || sessionsPerWeek > 7) return { success: false, error: "Sessions per week must be between 1 and 7." };
-  if (!(COURSE_PROGRAM_SLUGS as readonly string[]).includes(programSlug)) {
-    return { success: false, error: "Invalid program." };
-  }
-
   const slug = toSlug(name);
   if (!slug) return { success: false, error: "Could not derive a valid slug from the course name." };
 
   const { data: programRow } = await svc
     .from("programs")
-    .select("id")
+    .select("id, is_dynamic")
     .eq("slug", programSlug)
-    .single<{ id: string }>();
+    .single<{ id: string; is_dynamic: boolean | null }>();
   if (!programRow) {
     return { success: false, error: `Could not find the ${programSlug} program. Please contact an engineer.` };
   }
 
-  // Uniqueness check: TS config tracks in the chosen program
-  const programTracks = getProgramBySlug(programSlug).tracks;
-  if (programTracks.some((t) => t.slug === slug)) {
-    return { success: false, error: `A course with this name already exists (slug: ${slug}).` };
+  // Admin-created organizations (is_dynamic) can hold courses too. They have no
+  // TS config, so they're absent from COURSE_PROGRAM_SLUGS by definition —
+  // authorize them off the DB flag instead of the hardcoded list.
+  const isDynamicOrg = programRow.is_dynamic === true;
+  if (!isDynamicOrg && !(COURSE_PROGRAM_SLUGS as readonly string[]).includes(programSlug)) {
+    return { success: false, error: "Invalid program." };
+  }
+
+  // Uniqueness check: TS config tracks in the chosen program. Skipped for
+  // dynamic orgs — getProgramBySlug() falls back to Catalyst for any slug it
+  // doesn't know, so running this would compare against Catalyst's tracks and
+  // reject valid course names.
+  if (!isDynamicOrg) {
+    const programTracks = getProgramBySlug(programSlug).tracks;
+    if (programTracks.some((t) => t.slug === slug)) {
+      return { success: false, error: `A course with this name already exists (slug: ${slug}).` };
+    }
   }
 
   // Uniqueness check: existing track_overrides rows under the chosen program
