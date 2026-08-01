@@ -21,7 +21,7 @@ export default async function OrganizationsPage() {
       <PageHeader
         title="Organizations"
         subtitle="Each organization gets its own courses, staff, learners, and join link. No deploy needed."
-        actions={<ManageMenu />}
+        actions={<ManageMenu canSwitchPrograms />}
       />
 
       <section className="space-y-4">

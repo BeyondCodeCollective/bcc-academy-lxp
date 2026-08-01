@@ -18,14 +18,31 @@ const ITEMS: { href: string; label: string }[] = [
   { href: "/dashboard/admin/features", label: "Tools" },
 ];
 
+// Creating an organization spans every program, so it's gated on the same
+// capability as the program switcher. Plain per-program admins would only hit
+// the page's redirect, so don't show them the door.
+const SWITCHER_ITEMS: { href: string; label: string }[] = [
+  { href: "/dashboard/admin/organizations", label: "Organizations" },
+];
+
 // Handing someone a second program is a credential change, so the entry point
 // only appears for the master (the tier that assigns roles).
 const MASTER_ITEMS: { href: string; label: string }[] = [
   { href: "/dashboard/admin/access", label: "Program access" },
 ];
 
-export function ManageMenu({ isMaster = false }: { isMaster?: boolean }) {
-  const items = isMaster ? [...ITEMS, ...MASTER_ITEMS] : ITEMS;
+export function ManageMenu({
+  isMaster = false,
+  canSwitchPrograms = false,
+}: {
+  isMaster?: boolean;
+  canSwitchPrograms?: boolean;
+}) {
+  const items = [
+    ...ITEMS,
+    ...(canSwitchPrograms || isMaster ? SWITCHER_ITEMS : []),
+    ...(isMaster ? MASTER_ITEMS : []),
+  ];
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
