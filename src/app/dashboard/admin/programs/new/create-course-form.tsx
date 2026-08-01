@@ -22,13 +22,22 @@ const PROGRAM_OPTIONS = [
   { value: "atg",                 label: "Beyond the Game" },
 ];
 
-export function CreateCourseForm() {
+export function CreateCourseForm({
+  extraProgram,
+}: {
+  /** Admin-created organization (is_dynamic), which has no TS config and so
+   *  never appears in PROGRAM_OPTIONS. Passed through from ?program=. */
+  extraProgram?: { slug: string; name: string };
+} = {}) {
+  const programOptions = extraProgram
+    ? [{ value: extraProgram.slug, label: extraProgram.name }, ...PROGRAM_OPTIONS]
+    : PROGRAM_OPTIONS;
   const [name, setName] = useState("");
   const [instructor, setInstructor] = useState("");
   const [totalWeeks, setTotalWeeks] = useState("");
   const [sessionsPerWeek, setSessionsPerWeek] = useState("");
   const [phase, setPhase] = useState("core");
-  const [program, setProgram] = useState("catalyst");
+  const [program, setProgram] = useState(extraProgram?.slug ?? "catalyst");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Extract<CreateCourseResult, { success: true }> | null>(null);
@@ -155,7 +164,7 @@ export function CreateCourseForm() {
           onChange={(e) => setProgram(e.target.value)}
           className={fieldInput}
         >
-          {PROGRAM_OPTIONS.map((o) => (
+          {programOptions.map((o) => (
             <option key={o.value} value={o.value}>{o.label}</option>
           ))}
         </select>

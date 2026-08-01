@@ -449,6 +449,25 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
       domain: p.domain,
       dnsReady: p.dnsReady,
     }));
+
+    // Admin-created organizations (is_dynamic) have no TS config, so they're
+    // absent from getJoinablePrograms(). Without this, a new org is reachable
+    // only by hand-editing the program-override cookie.
+    const { data: dynamicOrgs } = await createServiceClient()
+      .from("programs")
+      .select("slug, name")
+      .eq("is_dynamic", true)
+      .order("name", { ascending: true });
+    const known = new Set(programs.map((p) => p.slug));
+    for (const org of dynamicOrgs ?? []) {
+      if (known.has(org.slug as string)) continue;
+      programs.push({
+        slug: org.slug as string,
+        name: org.name as string,
+        domain: "bccacademy.io",
+        dnsReady: false,
+      });
+    }
   }
 
   // Only redirect staff with no tracks to Lunch & Learns when they're on
