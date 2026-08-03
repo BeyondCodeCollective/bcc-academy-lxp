@@ -197,28 +197,34 @@ function AllSessionsMatrix({
   records: AttendanceRecord[];
   enrolledByStudent: Map<string, Set<string>>;
 }) {
-  const groups = useMemo(
-    () =>
-      tracks
-        .map((track) => ({ track, sessions: expectedSessionsFor(track) }))
-        .filter((g) => g.sessions.length > 0),
-    [tracks],
-  );
-
   const attended = useMemo(() => {
     const s = new Set<string>();
     for (const r of records) s.add(`${r.student_id}|${r.track}|${r.week_number}|${r.session_number}`);
     return s;
   }, [records]);
 
+  const groups = useMemo(() => {
+    // Courses with ZERO recorded attendance are omitted, not shown as 0% —
+    // cohorts that ran off-platform (Google Meet era) have no records, and an
+    // all-dot grid is a claim nobody attended, which isn't what happened.
+    // Entering historical records later makes a course reappear on its own.
+    const trackHasRecords = new Set(records.map((r) => r.track));
+    return tracks
+      .filter((t) => trackHasRecords.has(t.slug))
+      .map((track) => ({ track, sessions: expectedSessionsFor(track) }))
+      .filter((g) => g.sessions.length > 0)
+      // Newest cohort first — the running class is the one being checked.
+      .sort((a, b) => b.track.startDate.localeCompare(a.track.startDate));
+  }, [tracks, records]);
+
   const learners = useMemo(
     () =>
       students
-        .filter((st) => tracks.some((t) => enrolledByStudent.get(st.id)?.has(t.slug)))
+        .filter((st) => groups.some(({ track }) => enrolledByStudent.get(st.id)?.has(track.slug)))
         .sort((a, b) =>
           `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`),
         ),
-    [students, tracks, enrolledByStudent],
+    [students, groups, enrolledByStudent],
   );
 
   if (groups.length === 0 || learners.length === 0) return null;
@@ -274,7 +280,7 @@ function AllSessionsMatrix({
               return (
                 <tr key={st.id} className="border-t border-rule-soft">
                   <td className="sticky left-0 z-10 whitespace-nowrap bg-white px-4 py-1.5 font-medium text-ink">
-                    {st.first_name} {st.last_name}
+                    {`${st.first_name ?? ""} ${st.last_name ?? ""}`.trim() || st.email}
                   </td>
                   {groups.map(({ track, sessions }) => {
                     const enrolled = enrolledByStudent.get(st.id)?.has(track.slug) ?? false;
