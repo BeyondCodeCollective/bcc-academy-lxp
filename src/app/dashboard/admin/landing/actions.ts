@@ -173,3 +173,38 @@ export async function deleteLandingPageAction(
   revalidatePath(`/bcc/${slug}`);
   return { success: true };
 }
+
+/**
+ * Upload a landing-page image (hero/background) to the public `landing`
+ * storage bucket and return its public URL for the hero-image field.
+ */
+export async function uploadLandingImageAction(
+  formData: FormData,
+): Promise<{ success: true; url: string } | { success: false; error: string }> {
+  const svc = await requireSuperAdmin();
+
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) {
+    return { success: false, error: "Choose an image file first." };
+  }
+  const types: Record<string, string> = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+  };
+  const ext = types[file.type];
+  if (!ext) return { success: false, error: "Use a JPG, PNG, or WebP image." };
+  if (file.size > 8 * 1024 * 1024) {
+    return { success: false, error: "Image must be under 8MB." };
+  }
+
+  const path = `${crypto.randomUUID()}.${ext}`;
+  const { error } = await svc.storage
+    .from("landing")
+    .upload(path, Buffer.from(await file.arrayBuffer()), { contentType: file.type });
+  if (error) {
+    console.error("[uploadLandingImageAction] failed:", error);
+    return { success: false, error: "Upload failed. Please try again." };
+  }
+  return { success: true, url: svc.storage.from("landing").getPublicUrl(path).data.publicUrl };
+}

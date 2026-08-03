@@ -222,6 +222,37 @@ export default async function DashboardLayout({
   );
 }
 
+// Every program a super-admin can switch into: the TS-config programs plus
+// admin-created organizations (is_dynamic), which have no TS config and are
+// otherwise reachable only by hand-editing the program-override cookie.
+// Shared by the sidebar user menu and the top-bar account menu.
+async function allSwitchablePrograms(): Promise<
+  { slug: string; name: string; domain: string; dnsReady?: boolean }[]
+> {
+  const programs = getJoinablePrograms().map((p) => ({
+    slug: p.slug,
+    name: p.name,
+    domain: p.domain,
+    dnsReady: p.dnsReady,
+  }));
+  const { data: dynamicOrgs } = await createServiceClient()
+    .from("programs")
+    .select("slug, name")
+    .eq("is_dynamic", true)
+    .order("name", { ascending: true });
+  const known = new Set(programs.map((p) => p.slug));
+  for (const org of dynamicOrgs ?? []) {
+    if (known.has(org.slug as string)) continue;
+    programs.push({
+      slug: org.slug as string,
+      name: org.name as string,
+      domain: "bccacademy.io",
+      dnsReady: false,
+    });
+  }
+  return programs;
+}
+
 async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
   const program = await resolveLearnerBrand(await getProgram());
 
@@ -443,31 +474,7 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
     // super-admins with no way to switch into Upskill Bahamas et al.
     // Builder-created courses are tracks inside Catalyst, not separate programs —
     // manage those via /admin/courses, not the switcher.
-    programs = getJoinablePrograms().map((p) => ({
-      slug: p.slug,
-      name: p.name,
-      domain: p.domain,
-      dnsReady: p.dnsReady,
-    }));
-
-    // Admin-created organizations (is_dynamic) have no TS config, so they're
-    // absent from getJoinablePrograms(). Without this, a new org is reachable
-    // only by hand-editing the program-override cookie.
-    const { data: dynamicOrgs } = await createServiceClient()
-      .from("programs")
-      .select("slug, name")
-      .eq("is_dynamic", true)
-      .order("name", { ascending: true });
-    const known = new Set(programs.map((p) => p.slug));
-    for (const org of dynamicOrgs ?? []) {
-      if (known.has(org.slug as string)) continue;
-      programs.push({
-        slug: org.slug as string,
-        name: org.name as string,
-        domain: "bccacademy.io",
-        dnsReady: false,
-      });
-    }
+    programs = await allSwitchablePrograms();
   }
 
   // Only redirect staff with no tracks to Lunch & Learns when they're on
@@ -673,14 +680,7 @@ async function TopBarShell() {
   const canSwitch = canSwitchPrograms(role) && !isPreviewing;
   // Super-admins manage every program — list them all (Catalyst, Upskill
   // Bahamas, Beyond Code Centers, BGC), not just Catalyst from getAllPrograms.
-  const programs = canSwitch
-    ? getJoinablePrograms().map((p) => ({
-        slug: p.slug,
-        name: p.name,
-        domain: p.domain,
-        dnsReady: p.dnsReady,
-      }))
-    : [];
+  const programs = canSwitch ? await allSwitchablePrograms() : [];
 
   // ⌘K search index (courses, lessons, workshops, recordings) — shared,
   // request-cached source also used by the breadcrumb trail.
