@@ -1738,7 +1738,10 @@ export function AdminTabs({
           <AdminTopTabs current="analytics" sub="attendance" showInsights={canViewInsights(userRole)} isManager={isManager} />
           <ProgramAttendanceOverview
             students={students.filter((s) => s.role === "student")}
-            tracks={tracks}
+            // Self-paced (VOD) courses have no sessions to attend — their
+            // measure is watched-progress (course → Students → Progress), so
+            // an attendance table would only show a misleading zero.
+            tracks={tracks.filter((t) => !t.selfPaced)}
             enrollments={enrollments}
           />
         </div>
