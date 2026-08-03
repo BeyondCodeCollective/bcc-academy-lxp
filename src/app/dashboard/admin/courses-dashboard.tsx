@@ -35,20 +35,12 @@ export function CoursesDashboard({ data }: { data: CoursesAnalytics }) {
 
   return (
     <div className="space-y-8">
-      <section className={`grid grid-cols-1 gap-3 ${data.totalFinished > 0 ? "sm:grid-cols-3" : ""}`}>
-        {/* Each figure is a question; the link is its answer. Enrollments →
-           the people. Completions → the courses where certificates get
-           issued, since completion is only ever recorded by issuing one. */}
-        <StatCard
-          value={data.totalEnrolled.toLocaleString()}
-          label="Course enrollments"
-          info={METRIC_DEFS.courseEnrollments}
-          href="/dashboard/admin?tab=students"
-        />
-        {/* Finishing is a claim about the END of a course — while nobody has
-           finished, a pair of zeros says nothing a mid-course cohort can act
-           on, so the cards wait until the first learner gets there. */}
-        {data.totalFinished > 0 && (
+      {/* The donut's center already announces total enrollments — a headline
+         card repeating it said 47 twice. Cards exist here only once someone
+         has finished a course; until then the page has nothing card-worthy
+         to claim about finishing. */}
+      {data.totalFinished > 0 && (
+      <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <StatCard
           value={data.totalFinished.toLocaleString()}
           label="Finished the course"
@@ -65,15 +57,13 @@ export function CoursesDashboard({ data }: { data: CoursesAnalytics }) {
                 : undefined
           }
         />
-        )}
-        {data.totalFinished > 0 && (
         <StatCard
           value={`${data.finishedRate}%`}
           label="Finish rate"
           info={METRIC_DEFS.finishedRate}
         />
-        )}
       </section>
+      )}
 
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <DonutChart
@@ -106,13 +96,18 @@ export function CoursesDashboard({ data }: { data: CoursesAnalytics }) {
                   >
                     {c.name}
                   </Link>
+                  {/* "0 finished · 0%" made mid-course cohorts read as failing —
+                     finishing enters the line only when it has happened. */}
                   <p className="mt-0.5 text-xs text-ink-faint">
-                    {c.enrolled} enrolled · {c.started} started · {c.finished} finished
+                    {c.enrolled} enrolled · {c.started} started
+                    {c.finished > 0 ? ` · ${c.finished} finished` : ""}
                   </p>
                 </div>
-                <span className="shrink-0 text-sm font-semibold tabular-nums text-ink">
-                  {c.finishedRate}%
-                </span>
+                {c.finished > 0 && (
+                  <span className="shrink-0 text-sm font-semibold tabular-nums text-ink">
+                    {c.finishedRate}%
+                  </span>
+                )}
               </li>
             ))}
             {data.popularCourses.length === 0 && (
