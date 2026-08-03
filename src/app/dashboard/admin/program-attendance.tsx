@@ -67,8 +67,14 @@ export function ProgramAttendanceOverview({ students, tracks, enrollments }: Pro
   }, [enrollments]);
 
   const rows = useMemo(
-    () =>
-      startedTracks.map((track) => {
+    () => {
+      // Same honesty rule as the matrix below: a course with no recorded
+      // attendance shows nothing rather than a 0% that means "unrecorded"
+      // (Google Meet-era cohorts). First real check-in brings it back.
+      const trackHasRecords = new Set(records.map((r) => r.track));
+      return startedTracks
+        .filter((t) => trackHasRecords.has(t.slug))
+        .map((track) => {
         const trackStudents = students.filter((s) =>
           enrolledByStudent.get(s.id)?.has(track.slug),
         );
@@ -85,7 +91,8 @@ export function ProgramAttendanceOverview({ students, tracks, enrollments }: Pro
           enrolledByStudent,
         ).filter((s) => s.status !== "on-track").length;
         return { track, students: trackStudents.length, avg, atRisk };
-      }),
+      });
+    },
     [startedTracks, students, records, enrolledByStudent],
   );
 
