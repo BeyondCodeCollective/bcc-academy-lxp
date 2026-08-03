@@ -27,7 +27,11 @@ const DIST_COLORS: Record<string, string> = {
 
 export function CoursesDashboard({ data }: { data: CoursesAnalytics }) {
   const totalEnrolledPairs = data.distribution.reduce((n, d) => n + d.value, 0);
-  const showVideosColumn = data.activeStudents.some((s) => s.lessons > 0);
+  // Course format decides the column, not "did any single person watch one
+  // thing" — a lone replay view used to force a wall of zeros onto a live
+  // cohort. Videos watched is a VOD metric; it shows only where VOD courses run.
+  const showVideosColumn =
+    data.hasSelfPacedCourse && data.activeStudents.some((s) => s.lessons > 0);
 
   return (
     <div className="space-y-8">
