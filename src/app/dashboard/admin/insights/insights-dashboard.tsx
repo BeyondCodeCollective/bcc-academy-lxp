@@ -160,15 +160,19 @@ export function InsightsDashboard({ sections, programs, scope }: Props) {
         }))
     : (activeRow?.cohortBreakdown ?? []).filter((c) => c.name !== "Untagged");
   const multiCohort = surveyCohorts.length > 1;
+  // The form dictates the cohort, never the reverse: a cohort is a slice of
+  // ONE form's respondents, so filtering "All forms" by cohort produced
+  // numbers with no nameable survey behind them. No form, no cohort filter.
+  const cohortSelectable = !isAllForms && multiCohort;
   const [cohortFilter, setCohortFilter] = useState<string>("all");
 
   const scopedResponses = useMemo(() => {
     const pool = isAllForms
       ? sections.flatMap((sec) => sec.responses)
       : (activeSection?.responses ?? []);
-    if (!multiCohort || cohortFilter === "all") return pool;
+    if (!cohortSelectable || cohortFilter === "all") return pool;
     return pool.filter((r) => cohortOf(r) === cohortFilter);
-  }, [isAllForms, sections, activeSection, multiCohort, cohortFilter]);
+  }, [isAllForms, sections, activeSection, cohortSelectable, cohortFilter]);
 
   const scopedCount = scopedResponses.length;
   // The tiles describe the CURRENT selection. A summary that ignores the
@@ -193,7 +197,7 @@ export function InsightsDashboard({ sections, programs, scope }: Props) {
   );
   const series = useMemo(() => responseSeries(scopedResponses), [scopedResponses]);
   const shownCohorts =
-    multiCohort && cohortFilter !== "all"
+    cohortSelectable && cohortFilter !== "all"
       ? surveyCohorts.filter((c) => c.name === cohortFilter)
       : surveyCohorts;
 
@@ -207,7 +211,7 @@ export function InsightsDashboard({ sections, programs, scope }: Props) {
   // ones, not to the whole program's.
   const scopedShift = useMemo(() => {
     const inScope = (rows: ShiftResponse[]) =>
-      multiCohort && cohortFilter !== "all"
+      cohortSelectable && cohortFilter !== "all"
         ? rows.filter((r) => cohortOf(r as unknown as BCCSurveyResponse) === cohortFilter)
         : rows;
     const bySurvey = new Map<string, ShiftResponse[]>();
@@ -255,7 +259,7 @@ export function InsightsDashboard({ sections, programs, scope }: Props) {
       belowFloor: false,
       minN: MIN_SHIFT_N,
     };
-  }, [sections, isAllForms, activeId, multiCohort, cohortFilter]);
+  }, [sections, isAllForms, activeId, cohortSelectable, cohortFilter]);
 
   const isAgreement = !!activeId && /agreement/i.test(activeId);
   // Every export and drill-down link below appends this. Course scope that the
@@ -263,7 +267,7 @@ export function InsightsDashboard({ sections, programs, scope }: Props) {
   // looks like this course's data and isn't.
   const scopeParam = scope ? `&trackSlug=${encodeURIComponent(scope.trackSlug)}` : "";
   const cohortParam =
-    (multiCohort && cohortFilter !== "all"
+    (cohortSelectable && cohortFilter !== "all"
       ? `&cohort=${encodeURIComponent(cohortFilter)}`
       : "") + scopeParam;
   const grantGaps = activeSection ? grantCompleteness(activeSection.responses) : [];
@@ -300,7 +304,7 @@ export function InsightsDashboard({ sections, programs, scope }: Props) {
                 ))}
               </select>
             </label>
-            {multiCohort && (
+            {cohortSelectable && (
               <label className="flex flex-col gap-1.5">
                 <span className={microLabel}>Cohort</span>
                 <select
