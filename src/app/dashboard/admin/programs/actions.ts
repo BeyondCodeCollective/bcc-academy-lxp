@@ -43,11 +43,11 @@ export type CreateCourseResult =
   | { success: true; slug: string; joinUrl: string }
   | { success: false; error: string };
 
-// Programs a builder course can be filed under. All three resolve on the
-// bccacademy.io hub: Catalyst directly, ATG + Beyond Code Centers via the hub
-// aggregation (applyTrackOverrides). Other programs (forte, bgc) run on their
-// own domains, so a course there wouldn't surface on the hub — excluded here.
-const COURSE_PROGRAM_SLUGS = ["catalyst", "beyond-code-centers", "atg"] as const;
+// Programs a builder course can be filed under. Catalyst, ATG, and Beyond
+// Code Centers surface on the bccacademy.io hub (applyTrackOverrides); bgc
+// and forte are standalone programs whose admins create courses from their
+// own program context.
+const COURSE_PROGRAM_SLUGS = ["catalyst", "beyond-code-centers", "atg", "bgc", "forte"] as const;
 
 export async function createCourseAction(formData: {
   name: string;

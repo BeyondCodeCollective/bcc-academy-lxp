@@ -24,20 +24,30 @@ const PROGRAM_OPTIONS = [
 
 export function CreateCourseForm({
   extraProgram,
+  currentProgram,
 }: {
   /** Admin-created organization (is_dynamic), which has no TS config and so
    *  never appears in PROGRAM_OPTIONS. Passed through from ?program=. */
   extraProgram?: { slug: string; name: string };
+  /** The program context the admin is standing in. Standalone programs (BGC,
+   *  Forte, dynamic orgs) scope the picker to themselves; the hub programs
+   *  keep the full hub list. */
+  currentProgram?: { slug: string; name: string };
 } = {}) {
+  const hubSlugs = PROGRAM_OPTIONS.map((o) => o.value);
   const programOptions = extraProgram
     ? [{ value: extraProgram.slug, label: extraProgram.name }, ...PROGRAM_OPTIONS]
-    : PROGRAM_OPTIONS;
+    : currentProgram && !hubSlugs.includes(currentProgram.slug)
+      ? [{ value: currentProgram.slug, label: currentProgram.name }]
+      : PROGRAM_OPTIONS;
   const [name, setName] = useState("");
   const [instructor, setInstructor] = useState("");
   const [totalWeeks, setTotalWeeks] = useState("");
   const [sessionsPerWeek, setSessionsPerWeek] = useState("");
   const [phase, setPhase] = useState("core");
-  const [program, setProgram] = useState(extraProgram?.slug ?? "catalyst");
+  const [program, setProgram] = useState(
+    extraProgram?.slug ?? currentProgram?.slug ?? "catalyst",
+  );
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Extract<CreateCourseResult, { success: true }> | null>(null);

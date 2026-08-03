@@ -5,6 +5,8 @@ import { NewCourseTabs } from "./new-course-tabs";
 import { PageHeader } from "@/components/page-header";
 import { ManageMenu } from "../../manage-menu";
 import { createServiceClient } from "@/lib/supabase/server";
+import { getProgram } from "@/lib/programs/server";
+import { MARKETING_SLUG } from "@/lib/programs/marketing";
 
 export default async function NewCoursePage({
   searchParams,
@@ -31,12 +33,25 @@ export default async function NewCoursePage({
     if (data) extraProgram = { slug: data.slug as string, name: data.name as string };
   }
 
+  // The program the admin is currently standing in (domain/switcher cookie).
+  // The forms scope their program picker to it; the marketing shell has no
+  // courses, so it passes nothing and the forms fall back to the hub list.
+  const current = await getProgram();
+  const currentProgram =
+    current.slug === MARKETING_SLUG
+      ? undefined
+      : { slug: current.slug, name: current.name };
+
   return (
     <div className="mx-auto w-full max-w-md space-y-6 px-4 py-12">
       <div>
         <PageHeader title="New Course" subtitle="Takes about 30 seconds." actions={<ManageMenu />} />
       </div>
-      <NewCourseTabs canCreateManually={canSwitchPrograms(role)} extraProgram={extraProgram} />
+      <NewCourseTabs
+        canCreateManually={canSwitchPrograms(role)}
+        extraProgram={extraProgram}
+        currentProgram={currentProgram}
+      />
     </div>
   );
 }

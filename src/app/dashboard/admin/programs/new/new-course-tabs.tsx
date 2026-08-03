@@ -10,16 +10,19 @@ import { ImportCourseForm } from "./import-course-form";
 export function NewCourseTabs({
   canCreateManually,
   extraProgram,
+  currentProgram,
 }: {
   canCreateManually: boolean;
   /** Admin-created organization to file the course under, from ?program=. */
   extraProgram?: { slug: string; name: string };
+  /** The program context the admin is standing in (domain/switcher cookie). */
+  currentProgram?: { slug: string; name: string };
 }) {
   // Landing here from an organization means the course belongs to that org, so
   // open on manual entry — the importer has no program picker.
   const [mode, setMode] = useState<"import" | "manual">(extraProgram ? "manual" : "import");
 
-  if (!canCreateManually) return <ImportCourseForm />;
+  if (!canCreateManually) return <ImportCourseForm currentProgram={currentProgram} />;
 
   return (
     <div className="space-y-5">
@@ -39,7 +42,11 @@ export function NewCourseTabs({
         ))}
       </div>
 
-      {mode === "import" ? <ImportCourseForm /> : <CreateCourseForm extraProgram={extraProgram} />}
+      {mode === "import" ? (
+        <ImportCourseForm currentProgram={currentProgram} />
+      ) : (
+        <CreateCourseForm extraProgram={extraProgram} currentProgram={currentProgram} />
+      )}
     </div>
   );
 }
