@@ -102,20 +102,30 @@ export function TrackCalendar({
 
   return (
     <div className="space-y-4">
-      {/* Legend */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-ink-soft">
-        {([
+      {/* Legend — only the event types this program actually has. A single
+          type needs no key at all (a GOSA learner shouldn't see "MASS"). */}
+      {(() => {
+        const present = new Set(
+          events.map((e) => (e.type === "office-hours" ? "event" : e.type)),
+        );
+        const entries = ([
           ["session", "Session"],
           ["mass", "MASS"],
           ["speaker", "Guest speaker"],
           ["event", "Other event"],
-        ] as const).map(([type, label]) => (
-          <span key={type} className="inline-flex items-center gap-1.5">
-            <span className={`h-2.5 w-2.5 rounded-[3px] ${DOT[type]}`} />
-            {label}
-          </span>
-        ))}
-      </div>
+        ] as const).filter(([type]) => present.has(type));
+        if (entries.length < 2) return null;
+        return (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-ink-soft">
+            {entries.map(([type, label]) => (
+              <span key={type} className="inline-flex items-center gap-1.5">
+                <span className={`h-2.5 w-2.5 rounded-[3px] ${DOT[type]}`} />
+                {label}
+              </span>
+            ))}
+          </div>
+        );
+      })()}
 
       {/* Month nav */}
       <div className="flex items-center justify-between">
