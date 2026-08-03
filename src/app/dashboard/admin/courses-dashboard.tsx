@@ -134,7 +134,7 @@ export function CoursesDashboard({ data }: { data: CoursesAnalytics }) {
           columns={[
             "Student",
             ...(showVideosColumn ? [{ label: "Videos watched", align: "right" as const }] : []),
-            { label: "Progress", align: "right" },
+            { label: "Keeping up", align: "right" },
             { label: "Last active", align: "right" },
           ]}
         >
@@ -159,8 +159,9 @@ export function CoursesDashboard({ data }: { data: CoursesAnalytics }) {
           )}
         </DataTable>
         <p className="text-micro leading-relaxed text-ink-faint">
-          Progress uses furthest week reached — live-session attendance counts the
-          same as submissions, reflections, or watched videos — over course length.
+          Keeping up compares how far each learner has reached (attendance,
+          submissions, reflections, or watched videos) against sessions held so
+          far — 100% means fully caught up, whatever week the course is in.
           Certificates are issued separately, from the course&apos;s Students tab.
         </p>
       </section>
