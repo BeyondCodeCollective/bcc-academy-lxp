@@ -2,6 +2,16 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import {
+  RocketLaunch,
+  GraduationCap,
+  ChalkboardTeacher,
+  UsersThree,
+  Stack,
+  CirclesThreePlus,
+  MagnifyingGlass,
+  ArrowLeft,
+} from "@phosphor-icons/react";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES
@@ -19,6 +29,35 @@ type Section = {
   id: string;
   title: string;
   articles: Article[];
+};
+
+// Landing-card metadata per section (icon + one-line blurb), keyed by section id
+// so the SECTIONS content data stays untouched.
+const SECTION_META: Record<string, { icon: React.ReactNode; blurb: string }> = {
+  "getting-started": {
+    icon: <RocketLaunch size={22} weight="duotone" />,
+    blurb: "Log in, find your way around, and understand what BCC Academy is.",
+  },
+  "for-students": {
+    icon: <GraduationCap size={22} weight="duotone" />,
+    blurb: "Enroll in tracks, complete weekly work, and use the AI tutor.",
+  },
+  "for-instructors": {
+    icon: <ChalkboardTeacher size={22} weight="duotone" />,
+    blurb: "Attendance, submissions, reflections, and cohort announcements.",
+  },
+  "for-admins": {
+    icon: <UsersThree size={22} weight="duotone" />,
+    blurb: "Manage people, cohorts, and program analytics from the admin panel.",
+  },
+  "course-management": {
+    icon: <Stack size={22} weight="duotone" />,
+    blurb: "Build tracks, structure weeks, and configure gating and prerequisites.",
+  },
+  platform: {
+    icon: <CirclesThreePlus size={22} weight="duotone" />,
+    blurb: "How programs, roles, and data privacy work across the platform.",
+  },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1667,7 +1706,7 @@ function DataPrivacy() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function HelpCenter() {
-  const [activeArticle, setActiveArticle] = useState<string>("what-is-bcc-academy");
+  const [activeArticle, setActiveArticle] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedSections, setExpandedSections] = useState<string[]>(
     SECTIONS.map((s) => s.id)
@@ -1753,6 +1792,61 @@ export default function HelpCenter() {
         </div>
       </header>
 
+      {!activeArticleData && (
+        <div className="mx-auto max-w-7xl px-6 py-10">
+          {/* Landing search */}
+          <div className="relative max-w-xl">
+            <MagnifyingGlass
+              size={18}
+              className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink-faint"
+            />
+            <input
+              type="text"
+              placeholder="Search the help center..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full rounded-lg border border-rule bg-white py-3 pl-11 pr-4 text-sm transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            />
+          </div>
+
+          {/* Topic cards */}
+          {filteredSections.length > 0 ? (
+            <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {filteredSections.map((section) => (
+                <div key={section.id} className="panel flex h-full flex-col p-5 shadow-sm">
+                  <div className="flex items-center gap-2.5 text-primary">
+                    {SECTION_META[section.id]?.icon}
+                    <h2 className="font-display text-base font-bold tracking-tight text-ink">
+                      {section.title}
+                    </h2>
+                  </div>
+                  <p className="mt-2 text-sm text-ink-soft">
+                    {SECTION_META[section.id]?.blurb}
+                  </p>
+                  <ul className="mt-4 space-y-0.5 border-t border-rule-soft pt-3">
+                    {section.articles.map((article) => (
+                      <li key={article.id}>
+                        <button
+                          onClick={() => setActiveArticle(article.id)}
+                          className="w-full rounded-md px-2 py-1.5 text-left text-sm text-ink-soft transition-colors hover:bg-surface hover:text-ink"
+                        >
+                          {article.title}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-12 text-sm text-ink-soft">
+              No articles match &ldquo;{searchQuery}&rdquo;.
+            </p>
+          )}
+        </div>
+      )}
+
+      {activeArticleData && (
       <div className="max-w-7xl mx-auto px-6 py-10">
         <div className="flex gap-8">
           {/* Sidebar */}
@@ -1841,7 +1935,13 @@ export default function HelpCenter() {
               <article className="max-w-3xl">
                 {/* Breadcrumb */}
                 <div className="flex items-center gap-2 text-sm text-muted mb-4">
-                  <span>Help Center</span>
+                  <button
+                    onClick={() => setActiveArticle(null)}
+                    className="flex items-center gap-1 text-ink-soft transition-colors hover:text-ink"
+                  >
+                    <ArrowLeft size={14} />
+                    Help Center
+                  </button>
                   <span>/</span>
                   <span>{currentSection?.title}</span>
                   <span>/</span>
@@ -1905,6 +2005,7 @@ export default function HelpCenter() {
           </main>
         </div>
       </div>
+      )}
 
       {/* Footer — family mono footer, wordmark left, legal right */}
       <footer className="mx-auto max-w-7xl px-6 pb-16">
