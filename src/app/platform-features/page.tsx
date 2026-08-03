@@ -27,9 +27,10 @@ const CAPABILITIES: Capability[] = [
     blurb: "One codebase, five branded experiences — adding a partner is a row, not a rebuild.",
     features: [
       { name: "Per-program branding, courses & data", tag: "5 programs" },
+      { name: "Create a whole organization from the admin panel", tag: "no deploy" },
       { name: "Super-admin program switcher", tag: "one click" },
       { name: "Live track edits — name, instructor, dates", tag: "no deploy" },
-      { name: "Domain + cookie program resolution", tag: "automatic" },
+      { name: "Cross-program staff grants without super_admin", tag: "least privilege" },
     ],
   },
   {
@@ -48,7 +49,7 @@ const CAPABILITIES: Capability[] = [
     features: [
       { name: "Landing-page builder mapped to courses", tag: "staff-run" },
       { name: "Embedded Eventbrite checkout → instant account", tag: "webhook" },
-      { name: "Funded-program applications", tag: "Security+" },
+      { name: "Funded-program applications with resume upload", tag: "Security+" },
       { name: "Career quiz + pathway pages", tag: "/quiz" },
     ],
   },
@@ -57,7 +58,8 @@ const CAPABILITIES: Capability[] = [
     blurb: "The session, the replay, and the work — one screen.",
     features: [
       { name: "Zoom embedded in the classroom, signed joins", tag: "real names" },
-      { name: "YouTube-hosted recordings play natively", tag: "live today" },
+      { name: "Zoom cloud recordings auto-import to the platform", tag: "hourly" },
+      { name: "Past sessions show the replay, not a dead embed", tag: "automatic" },
       { name: "Day-based camp courses with holding pages", tag: "countdown" },
       { name: "Submissions, reflections & attendance per session", tag: "tracked" },
     ],
@@ -67,9 +69,10 @@ const CAPABILITIES: Capability[] = [
     blurb: "The answer to “did students actually grow?” — per student, provable.",
     features: [
       { name: "Surveys — public, in-app, claimed & deduped", tag: "one record" },
+      { name: "Every course owns its numbers — roster-scoped analytics", tag: "course-first" },
+      { name: "Confidence shift measured in one sitting, pre → post", tag: "funder-ready" },
       { name: "Engagement funnel: invited → activated → active", tag: "per learner" },
       { name: "Cohort-tagged insights + CSV / PDF export", tag: "funder-ready" },
-      { name: "Eventbrite registration funnel", tag: "live" },
     ],
   },
   {
@@ -100,6 +103,7 @@ const CAPABILITIES: Capability[] = [
       { name: "Participation agreements, tracked by cohort", tag: "signed" },
       { name: "Self-serve privacy withdrawal", tag: "/privacy" },
       { name: "Admin PII access audit log + CSP enforcement", tag: "always on" },
+      { name: "RLS on every table + weekly automated security scan", tag: "→ Slack" },
     ],
   },
   {
