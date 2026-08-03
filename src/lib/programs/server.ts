@@ -208,11 +208,13 @@ function buildTrackFromOverride(row: TrackOverrideRow): TrackConfig {
     totalWeeks,
     unitLabel,
     sessionsPerWeek,
-    startDate: row.start_date ?? new Date().toISOString().slice(0, 10),
+    // No start_date = not scheduled: mark TBD (holding page, "Dates TBD"
+    // labels) with a far-future date so nothing unlocks by accident.
+    startDate: row.start_date ?? "2099-01-01",
     kickoffTimeUtc: toIsoInstant(row.kickoff_time_utc),
     companionOf: row.companion_of ?? undefined,
     coverImageUrl: row.cover_image_url ?? undefined,
-    startDateTbd: false,
+    startDateTbd: !row.start_date,
     instructor: row.instructor ?? "",
     sessionTimes: (row.session_times as string[] | null) ?? [],
     lastSessionDayOffset: row.last_session_day_offset ?? 0,
