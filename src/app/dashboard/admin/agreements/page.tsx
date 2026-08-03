@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
-import { hasCapability } from "@/lib/roles";
+import { hasCapability, canManageRoles } from "@/lib/roles";
 import { getProgram } from "@/lib/programs/server";
 import { getOnboardingChecklist } from "@/lib/onboarding/checklists";
 import { PageHeader } from "@/components/page-header";
@@ -134,7 +134,7 @@ export default async function AgreementsPage() {
         title="Participation Agreements"
         subtitle="Who has signed, by cohort"
         noWrap
-        actions={<ManageMenu />}
+        actions={<ManageMenu isMaster={canManageRoles(ctx.userEmail)} />}
       />
 
       {!hasAny ? (

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSessionContext } from "@/lib/auth/session";
-import { canSwitchPrograms } from "@/lib/roles";
+import { canSwitchPrograms, canManageRoles } from "@/lib/roles";
 import { createServiceClient } from "@/lib/supabase/server";
 import { FeatureToggles } from "./feature-toggles";
 import { SurveyLinksSection } from "./survey-links-section";
@@ -101,7 +101,7 @@ export default async function FeaturesPage() {
       <PageHeader
         title="Tools"
         subtitle="Links, settings, and features for managing the platform."
-        actions={<ManageMenu />}
+        actions={<ManageMenu isMaster={canManageRoles(ctx.userEmail)} />}
       />
 
       {/* Survey & Form Links */}

@@ -1,7 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
-import { canSwitchPrograms } from "@/lib/roles";
+import { canSwitchPrograms, canManageRoles } from "@/lib/roles";
 import { PageHeader } from "@/components/page-header";
 import { LandingForm } from "../landing-form";
 import type { LandingFormInitial } from "../landing-form";
@@ -61,7 +61,7 @@ export default async function EditLandingPage({
           actions={
             <div className="flex items-center gap-2">
               <DeleteLandingButton slug={initial.slug} />
-              <ManageMenu />
+              <ManageMenu isMaster={canManageRoles(ctx.userEmail)} />
             </div>
           }
         />

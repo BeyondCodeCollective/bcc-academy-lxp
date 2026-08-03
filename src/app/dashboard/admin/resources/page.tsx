@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSessionContext } from "@/lib/auth/session";
-import { canAccessAdminPanel } from "@/lib/roles";
+import { canAccessAdminPanel, canManageRoles } from "@/lib/roles";
 import { getProgram } from "@/lib/programs/server";
 import { fetchResourcesForProgram } from "@/lib/resources";
 import { PageHeader } from "@/components/page-header";
@@ -23,7 +23,7 @@ export default async function AdminResourcesPage() {
       <PageHeader
         title="Resources"
         subtitle={`Manage the resources learners see on the ${program.name} Resources page.`}
-        actions={<ManageMenu />}
+        actions={<ManageMenu isMaster={canManageRoles(ctx.userEmail)} />}
       />
       <ResourcesEditor
         programSlug={program.slug}

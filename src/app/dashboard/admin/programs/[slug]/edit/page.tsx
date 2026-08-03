@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSessionContext } from "@/lib/auth/session";
-import { canSwitchPrograms } from "@/lib/roles";
+import { canSwitchPrograms, canManageRoles } from "@/lib/roles";
 import { getProgramWithOverrides, resolveHomeProgramSlug } from "@/lib/programs/server";
 import { EditCourseForm } from "./edit-course-form";
 import { PageHeader } from "@/components/page-header";
@@ -40,7 +40,7 @@ export default async function EditCoursePage({
   return (
     <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8 space-y-6">
       <div>
-        <PageHeader title="Edit Course" actions={<ManageMenu />} />
+        <PageHeader title="Edit Course" actions={<ManageMenu isMaster={canManageRoles(ctx.userEmail)} />} />
         <p className="mt-1 text-xs text-ink-faint font-mono">
           {track.name} · {programSlug}
         </p>
