@@ -288,7 +288,15 @@ export type UpdateCourseResult =
 export async function updateCourseAction(
   programSlug: string,
   trackSlug: string,
-  formData: { name: string; instructor: string; totalWeeks: number; sessionsPerWeek: number; phase?: string },
+  formData: {
+    name: string;
+    instructor: string;
+    totalWeeks: number;
+    sessionsPerWeek: number;
+    phase?: string;
+    /** Course cover image URL. Empty string clears it; undefined leaves it alone. */
+    coverImageUrl?: string;
+  },
 ): Promise<UpdateCourseResult> {
   const svc = await requireSuperAdmin();
   const { name, instructor, totalWeeks, sessionsPerWeek, phase } = formData;
@@ -321,6 +329,9 @@ export async function updateCourseAction(
         total_weeks: totalWeeks,
         sessions_per_week: sessionsPerWeek,
         ...(phase ? { phase } : {}),
+        ...(formData.coverImageUrl !== undefined
+          ? { cover_image_url: formData.coverImageUrl.trim() || null }
+          : {}),
       },
       { onConflict: "program_id,track_slug" },
     );

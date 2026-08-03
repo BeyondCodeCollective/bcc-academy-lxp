@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { updateCourseAction, applyWeeklyScheduleAction } from "../../actions";
+import { uploadLandingImageAction } from "../../../landing/actions";
 import type { UpdateCourseResult, ApplyScheduleResult } from "../../actions";
 import { Field, buttonClass, fieldInput } from "@/components/ui";
 
@@ -21,6 +22,7 @@ export function EditCourseForm({
   initialTotalWeeks,
   initialSessionsPerWeek,
   initialPhase,
+  initialCoverImageUrl = "",
   initialFirstDate = "",
   initialTime = "",
   initialDuration = "",
@@ -32,6 +34,8 @@ export function EditCourseForm({
   initialTotalWeeks: number;
   initialSessionsPerWeek: number;
   initialPhase: string;
+  /** Course cover image shown on the learner dashboard card. */
+  initialCoverImageUrl?: string;
   /** First dated unit, YYYY-MM-DD. Empty = no schedule set yet. */
   initialFirstDate?: string;
   /** "HH:MM" ET wall clock from the first dated unit. */
@@ -43,6 +47,8 @@ export function EditCourseForm({
   const [totalWeeks, setTotalWeeks] = useState(String(initialTotalWeeks));
   const [sessionsPerWeek, setSessionsPerWeek] = useState(String(initialSessionsPerWeek));
   const [phase, setPhase] = useState(initialPhase);
+  const [coverImageUrl, setCoverImageUrl] = useState(initialCoverImageUrl);
+  const [uploadingCover, setUploadingCover] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -88,6 +94,7 @@ export function EditCourseForm({
         totalWeeks: parseInt(totalWeeks, 10),
         sessionsPerWeek: parseInt(sessionsPerWeek, 10),
         phase,
+        coverImageUrl,
       });
       if (res.success) {
         setSaved(true);
@@ -164,6 +171,53 @@ export function EditCourseForm({
             <option key={o.value} value={o.value}>{o.label}</option>
           ))}
         </select>
+      </Field>
+
+      <Field label="Cover image" hint="shown on the learner dashboard card — leave empty for none">
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            placeholder="https://…/cover.jpg"
+            value={coverImageUrl}
+            onChange={(e) => setCoverImageUrl(e.target.value)}
+            className={fieldInput}
+          />
+          <label className={`${buttonClass("secondary", "sm")} shrink-0 cursor-pointer`}>
+            {uploadingCover ? "Uploading…" : "Upload"}
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="sr-only"
+              disabled={uploadingCover}
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (!file) return;
+                setUploadingCover(true);
+                setError(null);
+                try {
+                  const fd = new FormData();
+                  fd.set("file", file);
+                  const res = await uploadLandingImageAction(fd);
+                  if (res.success) setCoverImageUrl(res.url);
+                  else setError(res.error);
+                } catch {
+                  setError("Upload failed. Please try again.");
+                } finally {
+                  setUploadingCover(false);
+                }
+              }}
+            />
+          </label>
+        </div>
+        {coverImageUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={coverImageUrl}
+            alt="Course cover preview"
+            className="mt-2 h-24 w-full rounded-lg border border-rule object-cover"
+          />
+        )}
       </Field>
 
       {error && (

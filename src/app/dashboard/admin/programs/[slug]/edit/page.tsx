@@ -60,6 +60,7 @@ export default async function EditCoursePage({
           initialTotalWeeks={track.totalWeeks}
           initialSessionsPerWeek={track.sessionsPerWeek}
           initialPhase={track.phase ?? "core"}
+          initialCoverImageUrl={track.coverImageUrl ?? ""}
           initialFirstDate={firstDated?.date ?? ""}
           initialTime={firstDated?.time ?? ""}
           initialDuration={firstDated?.durationMinutes ? String(firstDated.durationMinutes) : ""}
