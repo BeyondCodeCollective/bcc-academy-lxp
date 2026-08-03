@@ -184,7 +184,10 @@ export default async function TrackOverviewPage({
     return (
       <HoldingView
         track={track}
-        heroImageUrl={landingHero?.heroImageUrl}
+        // The course's own cover wins when set — the landing hero is the
+        // public-page image and the two can intentionally differ (e.g. Home
+        // for the Summer's welcome-week poster for logged-in learners).
+        heroImageUrl={track.coverImageUrl ?? landingHero?.heroImageUrl}
         accent={landingHero?.accent}
       />
     );
