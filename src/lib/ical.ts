@@ -22,6 +22,9 @@ export type CalendarEvent = {
   summary: string;
   description?: string;
   url?: string;
+  /** Shown as the event's "where" — calendar UIs surface this far more
+   *  prominently than URL, so program links belong here too. */
+  location?: string;
 };
 
 /** The zone's offset from UTC, in ms, at a given instant. */
@@ -148,6 +151,7 @@ export function buildCalendar(
       lines.push(foldLine(`DESCRIPTION:${escapeText(ev.description)}`));
     }
     if (ev.url) lines.push(foldLine(`URL:${escapeText(ev.url)}`));
+    if (ev.location) lines.push(foldLine(`LOCATION:${escapeText(ev.location)}`));
     lines.push("END:VEVENT");
   }
 
