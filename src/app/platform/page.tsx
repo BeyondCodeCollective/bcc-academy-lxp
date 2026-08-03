@@ -9,9 +9,8 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-// Internal directory: the one URL to remember. Groups every staff-relevant
-// link — presentation pages, admin entry points, public front doors. Staff-only,
-// standalone pattern shared with the presentation pages.
+// Internal directory: the one URL to remember for the presentation pages.
+// Staff-only, standalone pattern shared with the presentation pages.
 
 type DirLink = { name: string; href: string; blurb?: string };
 type Group = { name: string; links: DirLink[] };
@@ -23,26 +22,6 @@ const GROUPS: Group[] = [
       { name: "The feature set", href: "/platform-features", blurb: "Everything the platform does, by capability" },
       { name: "The platform map", href: "/platform-map", blurb: "Every page in production — rows open the live product" },
       { name: "The strategy brief", href: "/platform-brief", blurb: "Why we own the platform; Zoom today, YouTube on the shelf" },
-    ],
-  },
-  {
-    name: "Run the platform",
-    links: [
-      { name: "Admin home", href: "/dashboard/admin", blurb: "Courses, people, attendance" },
-      { name: "Survey Insights", href: "/dashboard/admin/insights", blurb: "Outcomes, cohort filters, CSV/PDF" },
-      { name: "Organizations", href: "/dashboard/admin/organizations", blurb: "Create an org — no deploy" },
-      { name: "Staff & access", href: "/dashboard/admin/staff", blurb: "Roles and cross-program grants" },
-      { name: "Add people", href: "/dashboard/admin/invites", blurb: "Invites and allowlists" },
-      { name: "Manage Courses", href: "/dashboard/admin/programs", blurb: "Live course edits" },
-    ],
-  },
-  {
-    name: "Front doors",
-    links: [
-      { name: "Homepage", href: "/", blurb: "The public face" },
-      { name: "Learner portal", href: "/dashboard", blurb: "What students see" },
-      { name: "Career quiz", href: "/quiz", blurb: "Public entry point" },
-      { name: "Help center", href: "/help", blurb: "Learner support" },
     ],
   },
 ];
@@ -69,12 +48,11 @@ export default async function PlatformDirectoryPage() {
             Every door.
           </h1>
           <p className="mt-4 max-w-2xl text-sm leading-relaxed text-ink-soft">
-            The pitch pages, the admin engine, and the public front doors —
-            bookmark this one.
+            The presentation pages — bookmark this one.
           </p>
         </header>
 
-        <div className="mt-10 grid grid-cols-1 items-start gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="mt-10 grid max-w-xl grid-cols-1 items-start gap-4">
           {GROUPS.map((group) => (
             <section key={group.name} className="panel min-w-0 p-5 pb-3.5">
               <h2 className="text-lg font-bold tracking-tight text-ink">
