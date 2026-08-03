@@ -3,7 +3,7 @@ import { getLandingPage } from "@/lib/landing-pages";
 import Link from "next/link";
 import { getJoinablePrograms, getProgramBySlug, getTrackBySlug, getHomeProgramForTrack } from "@/lib/programs";
 import type { ProgramConfig } from "@/lib/programs";
-import { fetchDynamicProgram, getProgramWithOverrides } from "@/lib/programs/server";
+import { fetchDynamicProgram, getProgramWithOverrides, resolveHomeProgramSlug } from "@/lib/programs/server";
 import { JoinForm } from "./join-form";
 import type { Metadata } from "next";
 
@@ -40,6 +40,19 @@ export default async function JoinPage({
 }) {
   const { slug } = await params;
   const { track: trackParam } = await searchParams;
+
+  // Course short links: /join/<course-slug> forwards to the owning program's
+  // join page with ?track= — a clean URL for emails and flyers
+  // (bccacademy.io/join/home-for-summer beats /join/catalyst?track=…, which
+  // Gmail's link-wrapping makes look like soup). Only when the slug isn't
+  // itself a program: program slugs keep their landing-page front door below.
+  if (!trackParam) {
+    const isTsProgram = getJoinablePrograms().some((p) => p.slug === slug);
+    if (!isTsProgram && !(await fetchDynamicProgram(slug))) {
+      const home = await resolveHomeProgramSlug(slug);
+      if (home) redirect(`/join/${home}?track=${encodeURIComponent(slug)}`);
+    }
+  }
 
   // The landing pages absorbed the join page: when this program has a
   // PUBLISHED landing page covering the requested track, that page is the
