@@ -35,7 +35,7 @@ export function CoursesDashboard({ data }: { data: CoursesAnalytics }) {
 
   return (
     <div className="space-y-8">
-      <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <section className={`grid grid-cols-1 gap-3 ${data.totalFinished > 0 ? "sm:grid-cols-3" : ""}`}>
         {/* Each figure is a question; the link is its answer. Enrollments →
            the people. Completions → the courses where certificates get
            issued, since completion is only ever recorded by issuing one. */}
@@ -45,6 +45,10 @@ export function CoursesDashboard({ data }: { data: CoursesAnalytics }) {
           info={METRIC_DEFS.courseEnrollments}
           href="/dashboard/admin?tab=students"
         />
+        {/* Finishing is a claim about the END of a course — while nobody has
+           finished, a pair of zeros says nothing a mid-course cohort can act
+           on, so the cards wait until the first learner gets there. */}
+        {data.totalFinished > 0 && (
         <StatCard
           value={data.totalFinished.toLocaleString()}
           label="Finished the course"
@@ -60,14 +64,15 @@ export function CoursesDashboard({ data }: { data: CoursesAnalytics }) {
                 ? `${data.certificatesIssued} certificate${data.certificatesIssued === 1 ? "" : "s"} issued`
                 : undefined
           }
-          href="/dashboard/admin"
         />
+        )}
+        {data.totalFinished > 0 && (
         <StatCard
           value={`${data.finishedRate}%`}
           label="Finish rate"
           info={METRIC_DEFS.finishedRate}
-          href="/dashboard/admin"
         />
+        )}
       </section>
 
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
