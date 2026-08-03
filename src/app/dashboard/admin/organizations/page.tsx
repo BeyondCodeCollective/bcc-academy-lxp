@@ -47,14 +47,20 @@ export default async function OrganizationsPage() {
             {organizations.map((org) => (
               <li key={org.id} className="flex flex-wrap items-start justify-between gap-4 p-4">
                 <div className="min-w-0">
-                  <p className="flex items-center gap-2 font-semibold">
+                  {/* The name IS the door: switch into the org and land on its
+                      admin home (courses, people, curriculum). */}
+                  <a
+                    href={`/api/switch-program?slug=${org.slug}&next=/dashboard/admin`}
+                    className="flex items-center gap-2 font-semibold text-ink hover:text-primary hover:underline"
+                  >
                     <span
                       aria-hidden
                       className="inline-block h-3 w-3 shrink-0 rounded-full border border-rule"
                       style={{ backgroundColor: org.accent ?? "#1D59FF" }}
                     />
                     {org.name}
-                  </p>
+                    <span aria-hidden className="text-ink-faint">→</span>
+                  </a>
                   <p className="mt-0.5 font-mono text-xs text-ink-soft break-all">
                     {org.landingPublished
                       ? `bccacademy.io/bcc/${org.slug}`
