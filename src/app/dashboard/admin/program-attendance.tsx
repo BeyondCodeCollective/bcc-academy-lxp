@@ -399,7 +399,6 @@ function MatrixTable({
             </tr>
           </tbody>
         </table>
-      </div>
     </div>
   );
 }
