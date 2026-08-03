@@ -236,6 +236,37 @@ function AllSessionsMatrix({
 
   if (groups.length === 0 || learners.length === 0) return null;
 
+  // Side-by-side only earns its width when the SAME people span the courses
+  // (Security+ technical + MASS). Disjoint cohorts sharing a grid just fill
+  // it with "not enrolled" dashes — those get one clean grid per course.
+  const rosterOverlaps =
+    groups.length > 1 &&
+    learners.some(
+      (st) =>
+        groups.filter(({ track }) => enrolledByStudent.get(st.id)?.has(track.slug)).length > 1,
+    );
+
+  if (!rosterOverlaps && groups.length > 1) {
+    return (
+      <div className="space-y-3">
+        <SectionHeadline
+          eyebrow="All sessions"
+          headline="Every learner, every session held"
+          sub="✓ attended · missed. These cohorts share no learners, so each course gets its own grid."
+        />
+        {groups.map((g) => (
+          <MatrixTable
+            key={g.track.slug}
+            groups={[g]}
+            learners={learners.filter((st) => enrolledByStudent.get(st.id)?.has(g.track.slug))}
+            attended={attended}
+            enrolledByStudent={enrolledByStudent}
+          />
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3">
       <SectionHeadline
@@ -243,7 +274,29 @@ function AllSessionsMatrix({
         headline="Every learner, every session held"
         sub="Courses side by side. ✓ attended · missed — not enrolled in that course."
       />
-      <div className="panel overflow-x-auto">
+      <MatrixTable
+        groups={groups}
+        learners={learners}
+        attended={attended}
+        enrolledByStudent={enrolledByStudent}
+      />
+    </div>
+  );
+}
+
+function MatrixTable({
+  groups,
+  learners,
+  attended,
+  enrolledByStudent,
+}: {
+  groups: { track: TrackLike; sessions: ReturnType<typeof expectedSessionsFor> }[];
+  learners: StudentRow[];
+  attended: Set<string>;
+  enrolledByStudent: Map<string, Set<string>>;
+}) {
+  return (
+    <div className="panel overflow-x-auto">
         <table className="w-full border-collapse text-xs">
           <thead>
             <tr>
