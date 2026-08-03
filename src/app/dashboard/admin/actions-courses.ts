@@ -17,8 +17,10 @@ export type PopularCourse = {
   name: string;
   enrolled: number;
   started: number;
-  completed: number;
-  completionRate: number;
+  /** Learners who reached the end of the course (content, not certificates). */
+  finished: number;
+  /** finished ÷ enrolled, 0–100. */
+  finishedRate: number;
 };
 
 export type ActiveStudent = {
@@ -35,8 +37,14 @@ export type ActiveStudent = {
 export type CoursesAnalytics = {
   programName: string;
   totalEnrolled: number;
-  totalCompleted: number;
-  overallCompletionRate: number;
+  /** Enrolled pairs that reached the end of the course — the page's one
+   *  definition of "done". Certificates are the separate, deliberate act. */
+  totalFinished: number;
+  /** finished ÷ enrolled, 0–100. */
+  finishedRate: number;
+  /** Certificates issued (track_completions) — surfaced as the follow-up
+   *  action on finished learners, never conflated with progress. */
+  certificatesIssued: number;
   /** Enrolled (student,course) pairs bucketed by progress. */
   distribution: { label: string; value: number }[];
   popularCourses: PopularCourse[];
@@ -52,8 +60,9 @@ export async function getCoursesAnalytics(): Promise<CoursesAnalytics> {
   const empty: CoursesAnalytics = {
     programName: program.name,
     totalEnrolled: 0,
-    totalCompleted: 0,
-    overallCompletionRate: 0,
+    totalFinished: 0,
+    finishedRate: 0,
+    certificatesIssued: 0,
     distribution: [],
     popularCourses: [],
     activeStudents: [],
@@ -140,8 +149,10 @@ export async function getCoursesAnalytics(): Promise<CoursesAnalytics> {
     return Math.min(100, Math.round((reached / weeks) * 100));
   };
 
-  // Completion distribution across enrolled pairs.
+  // Progress distribution across enrolled pairs. "Finished" = reached the
+  // end of the course — the single definition of done on this page.
   const buckets = { "0%": 0, "1–25%": 0, "26–75%": 0, "76–99%": 0, "100%": 0 };
+  const finishedPairs = new Set<string>();
   for (const key of enrolledPairs) {
     const slug = key.split("|")[1];
     const f = fractionFor(key, slug);
@@ -149,7 +160,10 @@ export async function getCoursesAnalytics(): Promise<CoursesAnalytics> {
     else if (f <= 25) buckets["1–25%"]++;
     else if (f <= 75) buckets["26–75%"]++;
     else if (f < 100) buckets["76–99%"]++;
-    else buckets["100%"]++;
+    else {
+      buckets["100%"]++;
+      finishedPairs.add(key);
+    }
   }
   const distribution = Object.entries(buckets).map(([label, value]) => ({ label, value }));
 
@@ -162,15 +176,23 @@ export async function getCoursesAnalytics(): Promise<CoursesAnalytics> {
       startedByTrack.set(slug, (startedByTrack.get(slug) ?? 0) + 1);
     }
   }
+  const finishedByTrack = new Map<string, number>();
+  for (const key of finishedPairs) {
+    const slug = key.split("|")[1];
+    finishedByTrack.set(slug, (finishedByTrack.get(slug) ?? 0) + 1);
+  }
   const popularCourses: PopularCourse[] = progress.tracks
-    .map((t) => ({
-      slug: t.slug,
-      name: t.name,
-      enrolled: t.enrolled,
-      started: startedByTrack.get(t.slug) ?? 0,
-      completed: t.completed,
-      completionRate: t.completionRate,
-    }))
+    .map((t) => {
+      const finished = finishedByTrack.get(t.slug) ?? 0;
+      return {
+        slug: t.slug,
+        name: t.name,
+        enrolled: t.enrolled,
+        started: startedByTrack.get(t.slug) ?? 0,
+        finished,
+        finishedRate: t.enrolled > 0 ? Math.min(100, Math.round((finished / t.enrolled) * 100)) : 0,
+      };
+    })
     .slice(0, 10);
 
   // Per-student rollup for the Active students table. Only learners with any
@@ -212,17 +234,15 @@ export async function getCoursesAnalytics(): Promise<CoursesAnalytics> {
     .sort((a, b) => b.lessons + b.started - (a.lessons + a.started))
     .slice(0, 50);
 
-  const scopedTotals = {
-    totalEnrolled: progress.totalEnrolled,
-    totalCompleted: progress.totalCompleted,
-    overallCompletionRate: progress.overallCompletionRate,
-  };
-
   return {
     programName: program.name,
-    totalEnrolled: scopedTotals.totalEnrolled,
-    totalCompleted: scopedTotals.totalCompleted,
-    overallCompletionRate: scopedTotals.overallCompletionRate,
+    totalEnrolled: progress.totalEnrolled,
+    totalFinished: finishedPairs.size,
+    finishedRate:
+      enrolledPairs.size > 0
+        ? Math.min(100, Math.round((finishedPairs.size / enrolledPairs.size) * 100))
+        : 0,
+    certificatesIssued: completedPairs.size,
     distribution,
     popularCourses,
     activeStudents,
