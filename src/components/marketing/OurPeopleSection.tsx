@@ -102,27 +102,27 @@ export default function OurPeopleSection() {
 
               <div className="flex flex-col gap-4 p-6 md:p-7">
                 <div>
-                  <p className="text-[11px] font-bold text-cobalt uppercase tracking-[0.2em] font-mono mb-2">
+                  <p className="text-xs font-bold text-cobalt uppercase tracking-[0.2em] font-mono mb-2">
                     [ {person.org} ]
                   </p>
                   <h3 className="text-xl md:text-2xl font-display font-bold text-true-black leading-tight uppercase">
                     {person.name}
                   </h3>
-                  <p className="mt-1 text-sm text-grey-3">
+                  <p className="mt-1 text-base text-grey-3">
                     {person.title}
                   </p>
                 </div>
 
                 <div className="border-t border-true-black/10 pt-4">
-                  <p className="text-[10px] font-semibold text-true-black uppercase tracking-[0.2em] font-mono mb-1.5">
+                  <p className="text-[11px] font-semibold text-true-black uppercase tracking-[0.2em] font-mono mb-1.5">
                     Teaches
                   </p>
-                  <p className="text-sm font-semibold text-true-black leading-snug">
+                  <p className="text-base font-semibold text-true-black leading-snug">
                     {person.course}
                   </p>
                 </div>
 
-                <p className="text-sm text-grey-3 leading-relaxed">
+                <p className="text-base md:text-[17px] text-grey-3 leading-relaxed">
                   {person.bio}
                 </p>
               </div>

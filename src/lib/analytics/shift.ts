@@ -267,7 +267,19 @@ export function groupsFromSurvey(
     out.push({
       surveyId,
       surveyTitle,
-      label: before.label.replace(/\s*(before|after|now)\s*/i, "").trim() || before.label,
+      // Derive the shared group label by stripping the trailing tense clause,
+      // so "Confidence BEFORE the program" and "Confidence RIGHT NOW" collapse
+      // to "Confidence". Anchored to the end on purpose: the old regex matched
+      // anywhere and had no word boundaries, so it ate "now" inside "Knowledge"
+      // ("Kledge") and, replacing with "" rather than a space, produced
+      // "Confidencethe program" — both visible on the Insights dashboard.
+      label:
+        before.label
+          .replace(
+            /[\s,–—-]*\b(right\s+now|now|today|before(\s+the\s+program)?|after(\s+the\s+program)?)\b\s*[?.!]*\s*$/i,
+            "",
+          )
+          .trim() || before.label,
       beforeLabel: before.label,
       nowLabel: now.label,
       scaleMax: scaleMaxOf(before.scale),
