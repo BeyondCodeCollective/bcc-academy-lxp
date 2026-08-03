@@ -151,7 +151,13 @@ type TrackOverrideRow = {
 
 // ─── Dynamic Program Resolution ──────────────────────────────────────────────
 
-type DynamicProgramRow = { id: string; slug: string; name: string | null };
+type DynamicProgramRow = {
+  id: string;
+  slug: string;
+  name: string | null;
+  accent?: string | null;
+  logo_url?: string | null;
+};
 
 /**
  * Postgres hands back a timestamptz as `2026-07-13 22:30:00+00` (space, not
@@ -233,18 +239,23 @@ function buildProgramFromDB(
   trackRows: TrackOverrideRow[],
 ): ProgramConfig {
   const displayName = programRow.name ?? programRow.slug;
+  // Org branding lives on the programs row (phase 1 of the DB-driven
+  // migration). Null accent/logo = platform default (cobalt / BCC wordmark).
+  const accent = programRow.accent && /^#[0-9a-fA-F]{6}$/.test(programRow.accent)
+    ? programRow.accent
+    : "#1D59FF";
   return {
     slug: programRow.slug,
     name: displayName,
     tagline: "",
     domain: "bccacademy.io",
     dnsReady: false,
-    logo: "/catalyst/logo.svg",
-    logoLight: "/images/bcc/logos/bcc-horizontal-ink.svg",
+    logo: programRow.logo_url ?? "/catalyst/logo.svg",
+    logoLight: programRow.logo_url ?? "/images/bcc/logos/bcc-horizontal-ink.svg",
     colors: {
-      primary: "#1D59FF",
-      primaryHover: "#4D7CFF",
-      accent: "#1D59FF",
+      primary: accent,
+      primaryHover: accent,
+      accent,
       tagline: "#888888",
     },
     defaultCohort: {
@@ -294,7 +305,7 @@ export async function fetchDynamicProgram(slug: string): Promise<ProgramConfig |
     const svc = createServiceClient();
     const { data: programRow } = await svc
       .from("programs")
-      .select("id, slug, name")
+      .select("id, slug, name, accent, logo_url")
       .eq("slug", slug)
       .eq("is_dynamic", true)
       .maybeSingle();
