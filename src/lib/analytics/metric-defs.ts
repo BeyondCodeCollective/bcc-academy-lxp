@@ -11,6 +11,10 @@ export const METRIC_DEFS = {
     "Members marked complete ÷ members enrolled, capped at 100%. Completion is recorded when you issue a certificate — a course nobody has issued for reads 0%, however far the learners actually got.",
   courseCompletions:
     "Members with a certificate issued for a course they were enrolled in — completion is a decision you make, not something the platform infers from activity. A current total, so it has no previous-period comparison.",
+  courseFinished:
+    "Learners who reached the end of their course — furthest week (attendance, submissions, reflections, or watched videos) covering the full course length. Content progress, independent of certificates.",
+  finishedRate:
+    "Finished ÷ enrolled, capped at 100%. Measures how far people get through content; issuing certificates doesn't change it.",
   activeMembers:
     "Distinct members who watched a lesson, attended, submitted, or reflected in the window.",
   atRisk: "Enrolled members with no activity in the last 7 to 20 days.",

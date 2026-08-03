@@ -42,31 +42,33 @@ export function CoursesDashboard({ data }: { data: CoursesAnalytics }) {
           href="/dashboard/admin?tab=students"
         />
         <StatCard
-          value={data.totalCompleted.toLocaleString()}
-          label="Course completions"
-          info={METRIC_DEFS.courseCompletions}
-          // "Cohorts still mid-course" was a guess, and a wrong one for a camp
-          // that finished — a 3-day Roblox bootcamp where all 58 girls made it
-          // through read as 0% because nobody had issued certificates yet.
-          // Completion is recorded when a certificate is issued, so say that.
+          value={data.totalFinished.toLocaleString()}
+          label="Finished the course"
+          info={METRIC_DEFS.courseFinished}
+          // One definition of "done" on this page: reached the end of the
+          // content. Certificates are the follow-up act — surface the gap
+          // between the two as the action it is, never as a contradiction
+          // ("0 completions" above a table full of 100% rows).
           hint={
-            data.totalCompleted === 0
-              ? "None recorded — completion is logged when you issue certificates"
-              : undefined
+            data.totalFinished > 0 && data.certificatesIssued < data.totalFinished
+              ? `${data.certificatesIssued} certificate${data.certificatesIssued === 1 ? "" : "s"} issued so far — issue the rest from the course's Students tab`
+              : data.certificatesIssued > 0
+                ? `${data.certificatesIssued} certificate${data.certificatesIssued === 1 ? "" : "s"} issued`
+                : undefined
           }
           href="/dashboard/admin"
         />
         <StatCard
-          value={`${data.overallCompletionRate}%`}
-          label="Completion rate"
-          info={METRIC_DEFS.completionRate}
+          value={`${data.finishedRate}%`}
+          label="Finish rate"
+          info={METRIC_DEFS.finishedRate}
           href="/dashboard/admin"
         />
       </section>
 
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <DonutChart
-          title="Completion distribution"
+          title="Progress distribution"
           segments={data.distribution.map((d) => ({
             label: d.label,
             value: d.value,
@@ -96,11 +98,11 @@ export function CoursesDashboard({ data }: { data: CoursesAnalytics }) {
                     {c.name}
                   </Link>
                   <p className="mt-0.5 text-xs text-ink-faint">
-                    {c.enrolled} enrolled · {c.started} started · {c.completed} done
+                    {c.enrolled} enrolled · {c.started} started · {c.finished} finished
                   </p>
                 </div>
                 <span className="shrink-0 text-sm font-semibold tabular-nums text-ink">
-                  {c.completionRate}%
+                  {c.finishedRate}%
                 </span>
               </li>
             ))}
@@ -120,13 +122,15 @@ export function CoursesDashboard({ data }: { data: CoursesAnalytics }) {
         {/* "Videos watched" only exists for pre-recorded content; most cohorts
            run live sessions, so an all-zero column reads as broken — hide it
            unless someone has actually watched something. */}
+        {/* One number per learner: how far through their course(s) they are.
+           The old Started/Completed count columns restated the cards in a
+           second vocabulary ("Completed 0" beside "Completion 100%") and were
+           the single most confusing thing on the page. */}
         <DataTable
           columns={[
             "Student",
             ...(showVideosColumn ? [{ label: "Videos watched", align: "right" as const }] : []),
-            { label: "Started", align: "right" },
-            { label: "Completed", align: "right" },
-            { label: "Completion", align: "right" },
+            { label: "Progress", align: "right" },
             { label: "Last active", align: "right" },
           ]}
         >
@@ -138,15 +142,13 @@ export function CoursesDashboard({ data }: { data: CoursesAnalytics }) {
               {showVideosColumn && (
                 <td className="px-4 py-2.5 text-right"><Num value={s.lessons} /></td>
               )}
-              <td className="px-4 py-2.5 text-right"><Num value={s.started} /></td>
-              <td className="px-4 py-2.5 text-right"><Num value={s.completed} /></td>
               <td className="px-4 py-2.5 text-right tabular-nums text-ink">{s.completionPct}%</td>
               <td className="px-4 py-2.5 text-right text-ink-soft">{formatShortDate(s.lastActive)}</td>
             </tr>
           ))}
           {data.activeStudents.length === 0 && (
             <tr>
-              <td colSpan={showVideosColumn ? 6 : 5} className="px-4 py-8 text-center text-ink-faint">
+              <td colSpan={showVideosColumn ? 4 : 3} className="px-4 py-8 text-center text-ink-faint">
                 No active students in this window yet.
               </td>
             </tr>
@@ -155,7 +157,7 @@ export function CoursesDashboard({ data }: { data: CoursesAnalytics }) {
         <p className="text-micro leading-relaxed text-ink-faint">
           Progress uses furthest week reached — live-session attendance counts the
           same as submissions, reflections, or watched videos — over course length.
-          Learners marked complete count as 100%.
+          Certificates are issued separately, from the course&apos;s Students tab.
         </p>
       </section>
     </div>
