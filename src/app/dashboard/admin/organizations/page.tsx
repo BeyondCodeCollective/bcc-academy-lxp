@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/page-header";
 import { ManageMenu } from "../manage-menu";
 import { listOrganizations } from "./actions";
 import { CreateOrganizationForm } from "./create-organization-form";
+import { OrgBrandingEditor } from "./org-branding-editor";
 
 export default async function OrganizationsPage() {
   const ctx = await getSessionContext();
@@ -44,9 +45,16 @@ export default async function OrganizationsPage() {
         ) : (
           <ul className="divide-y divide-rule rounded-lg border border-rule">
             {organizations.map((org) => (
-              <li key={org.id} className="flex items-start justify-between gap-4 p-4">
+              <li key={org.id} className="flex flex-wrap items-start justify-between gap-4 p-4">
                 <div className="min-w-0">
-                  <p className="font-semibold">{org.name}</p>
+                  <p className="flex items-center gap-2 font-semibold">
+                    <span
+                      aria-hidden
+                      className="inline-block h-3 w-3 shrink-0 rounded-full border border-rule"
+                      style={{ backgroundColor: org.accent ?? "#1D59FF" }}
+                    />
+                    {org.name}
+                  </p>
                   <p className="mt-0.5 font-mono text-xs text-ink-soft break-all">
                     {org.landingPublished
                       ? `bccacademy.io/bcc/${org.slug}`
@@ -62,12 +70,19 @@ export default async function OrganizationsPage() {
                         : "landing page draft"}
                   </p>
                 </div>
-                <a
-                  href={`/dashboard/admin/programs/new?program=${org.slug}`}
-                  className="shrink-0 text-sm font-medium text-primary hover:underline"
-                >
-                  Add course
-                </a>
+                <span className="flex shrink-0 items-center gap-4">
+                  <a
+                    href={`/dashboard/admin/programs/new?program=${org.slug}`}
+                    className="text-sm font-medium text-primary hover:underline"
+                  >
+                    Add course
+                  </a>
+                  <OrgBrandingEditor
+                    slug={org.slug}
+                    initialAccent={org.accent}
+                    initialLogoUrl={org.logoUrl}
+                  />
+                </span>
               </li>
             ))}
           </ul>

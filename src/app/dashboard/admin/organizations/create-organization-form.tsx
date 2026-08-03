@@ -9,6 +9,7 @@ import { Field, fieldInput, buttonClass } from "@/components/ui";
 export function CreateOrganizationForm() {
   const [name, setName] = useState("");
   const [headline, setHeadline] = useState("");
+  const [accent, setAccent] = useState("#1D59FF");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<Extract<CreateOrganizationResult, { success: true }> | null>(null);
@@ -21,7 +22,7 @@ export function CreateOrganizationForm() {
     setError(null);
     setPending(true);
     try {
-      const res = await createOrganizationAction({ name, headline });
+      const res = await createOrganizationAction({ name, headline, accent });
       if (res.success) setResult(res);
       else setError(res.error);
     } catch {
@@ -84,6 +85,7 @@ export function CreateOrganizationForm() {
             setError(null);
             setName("");
             setHeadline("");
+            setAccent("#1D59FF");
             setCopied(false);
           }}
           className="w-full text-center text-sm text-ink-soft hover:text-ink-soft transition-colors py-1"
@@ -122,6 +124,26 @@ export function CreateOrganizationForm() {
           onChange={(e) => setHeadline(e.target.value)}
           className={fieldInput}
         />
+      </Field>
+
+      <Field label="Brand color" hint="used across the org's portal and landing page">
+        <div className="flex items-center gap-2">
+          <input
+            id="accent"
+            type="color"
+            value={accent}
+            onChange={(e) => setAccent(e.target.value)}
+            aria-label="Brand color"
+            className="h-10 w-14 shrink-0 cursor-pointer rounded-lg border border-rule bg-white p-1"
+          />
+          <input
+            type="text"
+            value={accent}
+            onChange={(e) => setAccent(e.target.value)}
+            placeholder="#1D59FF"
+            className={`${fieldInput} font-mono`}
+          />
+        </div>
       </Field>
 
       {error && (

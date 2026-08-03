@@ -29,6 +29,8 @@ export type OrganizationRow = {
   name: string;
   courseCount: number;
   landingPublished: boolean | null;
+  accent: string | null;
+  logoUrl: string | null;
 };
 
 /**
@@ -43,7 +45,7 @@ export async function listOrganizations(): Promise<OrganizationRow[]> {
 
   const { data: rows } = await svc
     .from("programs")
-    .select("id, slug, name")
+    .select("id, slug, name, accent, logo_url")
     .eq("is_dynamic", true)
     .order("created_at", { ascending: true });
 
@@ -78,6 +80,8 @@ export async function listOrganizations(): Promise<OrganizationRow[]> {
     name: r.name as string,
     courseCount: countByProgram.get(r.id as string) ?? 0,
     landingPublished: publishedBySlug.get(r.slug as string) ?? null,
+    accent: (r.accent as string | null) ?? null,
+    logoUrl: (r.logo_url as string | null) ?? null,
   }));
 }
 
@@ -91,6 +95,8 @@ export async function createOrganizationAction(formData: {
   headline?: string;
   /** Seed an unpublished landing page alongside the org. Defaults to true. */
   seedLandingPage?: boolean;
+  /** Brand accent (6-digit hex). Null/absent = platform default cobalt. */
+  accent?: string;
 }): Promise<CreateOrganizationResult> {
   const svc = await requireMaster();
 
@@ -117,9 +123,14 @@ export async function createOrganizationAction(formData: {
     return { success: false, error: `An organization with this name already exists (slug: ${slug}).` };
   }
 
+  const accent = formData.accent?.trim() || null;
+  if (accent && !/^#[0-9a-fA-F]{6}$/.test(accent)) {
+    return { success: false, error: "Accent must be a 6-digit hex color (e.g. #1D59FF)." };
+  }
+
   const { error: insertError } = await svc
     .from("programs")
-    .insert({ slug, name, is_dynamic: true });
+    .insert({ slug, name, is_dynamic: true, accent });
 
   if (insertError) {
     console.error("[createOrganizationAction] programs insert failed:", insertError);
@@ -137,7 +148,7 @@ export async function createOrganizationAction(formData: {
         published: false,
         header_label: name,
         headline: formData.headline?.trim() || name,
-        accent: "#1D59FF",
+        accent: accent ?? "#1D59FF",
       });
     if (landingError) {
       // Non-fatal: the org itself exists and works. Surfacing a hard failure
@@ -157,4 +168,36 @@ export async function createOrganizationAction(formData: {
     joinUrl: `https://bccacademy.io/join/${slug}`,
     landingUrl,
   };
+}
+
+/**
+ * Update an organization's branding (accent color + logo). Applies to the
+ * logged-in portal skin on the next request; the landing page keeps its own
+ * accent field so a published page never changes out from under you.
+ */
+export async function updateOrganizationBrandingAction(
+  slug: string,
+  branding: { accent?: string | null; logoUrl?: string | null },
+): Promise<{ success: boolean; error?: string }> {
+  const svc = await requireMaster();
+
+  const accent = branding.accent?.trim() || null;
+  if (accent && !/^#[0-9a-fA-F]{6}$/.test(accent)) {
+    return { success: false, error: "Accent must be a 6-digit hex color (e.g. #1D59FF)." };
+  }
+  const logoUrl = branding.logoUrl?.trim() || null;
+
+  const { error } = await svc
+    .from("programs")
+    .update({ accent, logo_url: logoUrl })
+    .eq("slug", slug)
+    .eq("is_dynamic", true);
+  if (error) {
+    console.error("[updateOrganizationBrandingAction] failed:", error);
+    return { success: false, error: "Failed to save branding." };
+  }
+
+  revalidatePath("/dashboard/admin/organizations", "page");
+  revalidatePath("/dashboard", "layout");
+  return { success: true };
 }
