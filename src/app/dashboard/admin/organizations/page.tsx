@@ -48,7 +48,9 @@ export default async function OrganizationsPage() {
                 <div className="min-w-0">
                   <p className="font-semibold">{org.name}</p>
                   <p className="mt-0.5 font-mono text-xs text-ink-soft break-all">
-                    bccacademy.io/join/{org.slug}
+                    {org.landingPublished === null
+                      ? `bccacademy.io/join/${org.slug}`
+                      : `bccacademy.io/bcc/${org.slug}`}
                   </p>
                   <p className="mt-1 text-xs text-ink-soft">
                     {org.courseCount} {org.courseCount === 1 ? "course" : "courses"}
