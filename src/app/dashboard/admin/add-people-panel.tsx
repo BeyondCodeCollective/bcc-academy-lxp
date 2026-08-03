@@ -101,6 +101,9 @@ function InviteByEmail({ tracks }: { tracks: Track[] }) {
   // already joined. The bulk-send number tracks `pending`, not the raw list —
   // people with accounts shouldn't be re-invited. Refetched on course change.
   const [audience, setAudience] = useState<{ pending: number; joined: number } | null>(null);
+  // Both send paths email real people — require an explicit second click so
+  // "add to the list" can't be confused with "send the invites".
+  const [confirming, setConfirming] = useState<"all" | "add" | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -121,6 +124,7 @@ function InviteByEmail({ tracks }: { tracks: Track[] }) {
   // (skips already-sent), retries failures, resumable.
   const sendToAll = () => {
     if (!course) return;
+    setConfirming(null);
     setResult(null);
     setError(null);
     startTransition(async () => {
@@ -144,6 +148,7 @@ function InviteByEmail({ tracks }: { tracks: Track[] }) {
   // Append the pasted emails to the allowlist, then bulk-send.
   const addAndSend = () => {
     if (!course || !emails.trim()) return;
+    setConfirming(null);
     setResult(null);
     setError(null);
     startTransition(async () => {
@@ -176,6 +181,7 @@ function InviteByEmail({ tracks }: { tracks: Track[] }) {
           value={course}
           onChange={(e) => {
             setAudience(null);
+            setConfirming(null);
             setCourse(e.target.value);
           }}
           className={fieldInput}
@@ -201,15 +207,38 @@ function InviteByEmail({ tracks }: { tracks: Track[] }) {
             </span>
           )}
         </span>
-        <button
-          type="button"
-          onClick={sendToAll}
-          disabled={pending || !course || !audience?.pending}
-          className={`${buttonClass("primary", "sm")} ml-auto`}
-        >
-          {pending ? <Loader2 size={12} className="animate-spin" /> : null}
-          {pending ? "Sending…" : `Send invites to all${audience?.pending ? ` ${audience.pending}` : ""}`}
-        </button>
+        {confirming === "all" ? (
+          <span className="ml-auto flex items-center gap-2">
+            <span className="text-xs font-semibold text-ink">
+              Email {audience?.pending ?? 0} people now?
+            </span>
+            <button
+              type="button"
+              onClick={sendToAll}
+              disabled={pending}
+              className={buttonClass("primary", "sm")}
+            >
+              Yes, send
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirming(null)}
+              className={buttonClass("secondary", "sm")}
+            >
+              Cancel
+            </button>
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setConfirming("all")}
+            disabled={pending || !course || !audience?.pending}
+            className={`${buttonClass("primary", "sm")} ml-auto`}
+          >
+            {pending ? <Loader2 size={12} className="animate-spin" /> : null}
+            {pending ? "Sending…" : `Send invites to all${audience?.pending ? ` ${audience.pending}` : ""}`}
+          </button>
+        )}
       </div>
 
       {/* Add new people to the list, then send. */}
@@ -223,14 +252,37 @@ function InviteByEmail({ tracks }: { tracks: Track[] }) {
         />
       </Field>
       <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={addAndSend}
-          disabled={pending || !emails.trim() || !course}
-          className={buttonClass("secondary", "sm")}
-        >
-          {pending ? "Working…" : "Allowlist + invite these"}
-        </button>
+        {confirming === "add" ? (
+          <span className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-ink">
+              This emails everyone pasted above. Send now?
+            </span>
+            <button
+              type="button"
+              onClick={addAndSend}
+              disabled={pending}
+              className={buttonClass("primary", "sm")}
+            >
+              Yes, send
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirming(null)}
+              className={buttonClass("secondary", "sm")}
+            >
+              Cancel
+            </button>
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setConfirming("add")}
+            disabled={pending || !emails.trim() || !course}
+            className={buttonClass("secondary", "sm")}
+          >
+            {pending ? "Working…" : "Allowlist + invite these"}
+          </button>
+        )}
         {result && <span className="text-xs text-ink-soft">{result}</span>}
         {error && <span className="text-xs text-red-600">{error}</span>}
       </div>
