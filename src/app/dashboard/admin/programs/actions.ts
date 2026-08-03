@@ -118,7 +118,9 @@ export async function createCourseAction(formData: {
       instructor: instructor.trim(),
       total_weeks: totalWeeks,
       sessions_per_week: sessionsPerWeek,
-      start_date: new Date().toISOString().slice(0, 10),
+      // Not scheduled until an admin sets a schedule (Edit Course) — a
+      // creation-day default silently made every new course live immediately.
+      start_date: null,
       phase: phase ?? "core",
     });
 
