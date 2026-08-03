@@ -23,7 +23,10 @@ export function CampEmailForm({
   // sign up / land inside the previous person's account.
   const [sessionEmail, setSessionEmail] = useState<string | null>(null);
 
-  const portalPath = trackSlug ? `/dashboard/track/${trackSlug}/1` : "/dashboard";
+  // Land on the course OVERVIEW (schedule, weeks, one clear next action), not
+  // week 1's content — this form is the platform's front door now that landing
+  // pages absorbed /join.
+  const portalPath = trackSlug ? `/dashboard/track/${trackSlug}` : "/dashboard";
 
   useEffect(() => {
     createClient()
