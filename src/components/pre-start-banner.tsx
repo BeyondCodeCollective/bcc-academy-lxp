@@ -34,10 +34,13 @@ export function PreStartBanner({ track }: { track: TrackConfig }) {
       })
     : null;
 
+  // See holding-view: the event must link back to the classroom.
+  const courseUrl = `https://bccacademy.io/dashboard/track/${track.slug}`;
   const calendarUrl = buildGoogleCalendarUrl({
     title: track.name,
     date: track.startDate,
-    details: `Your spot for ${track.name}. We'll see you there!`,
+    details: `Your spot for ${track.name}. Join class here: ${courseUrl}\n\nSign in with the same email this account uses and your session will be waiting.`,
+    location: courseUrl,
     ...(track.kickoffTimeUtc
       ? {
           startUtc: track.kickoffTimeUtc,

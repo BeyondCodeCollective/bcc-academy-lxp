@@ -36,7 +36,10 @@ export function HoldingView({
       })
     : null;
 
-  const calDetails = `Your spot for ${track.name}. We'll see you there!`;
+  // The event must carry the way back in — without the course URL a calendar
+  // reminder is a dead end (we don't use Meet links; class lives on the platform).
+  const courseUrl = `https://bccacademy.io/dashboard/track/${track.slug}`;
+  const calDetails = `Your spot for ${track.name}. Join class here: ${courseUrl}\n\nSign in with the same email this account uses and your session will be waiting.`;
   // The exact first-session instant, when the cohort has one.
   const kickoffIso = track.kickoffTimeUtc ?? null;
   // "6:30 PM EDT" — cohorts run on US Eastern; show the time in their timezone,
@@ -54,6 +57,7 @@ export function HoldingView({
         title: track.name,
         date: startDate,
         details: calDetails,
+        location: courseUrl,
         ...(kickoffIso
           ? {
               startUtc: kickoffIso,
@@ -73,6 +77,7 @@ export function HoldingView({
           title: track.name,
           start: kickoffIso,
           details: calDetails,
+          location: courseUrl,
         }).toString()
       : null;
 
