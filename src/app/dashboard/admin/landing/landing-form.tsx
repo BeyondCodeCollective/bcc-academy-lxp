@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { saveLandingPageAction } from "./actions";
+import { saveLandingPageAction, uploadLandingImageAction } from "./actions";
 import type { LandingPageInput } from "./actions";
 import type { ScheduleDay, LandingPartner } from "@/lib/landing-pages";
 import { Field, fieldInput, buttonClass, Panel } from "@/components/ui";
@@ -61,6 +61,8 @@ export function LandingForm({
   const [secondaryCtaUrl, setSecondaryCtaUrl] = useState(initial.secondaryCtaUrl);
   const [partners, setPartners] = useState<PartnerDraft[]>(toDrafts(initial.partners));
   const [heroImageUrl, setHeroImageUrl] = useState(initial.heroImageUrl);
+  const [uploadingHero, setUploadingHero] = useState(false);
+  const [heroUploadError, setHeroUploadError] = useState<string | null>(null);
   const [footerText, setFooterText] = useState(initial.footerText);
   const [metaTitle, setMetaTitle] = useState(initial.metaTitle);
   const [metaDescription, setMetaDescription] = useState(initial.metaDescription);
@@ -459,14 +461,46 @@ export function LandingForm({
       <Panel className="space-y-5 p-5">
         <h2 className="text-sm font-semibold text-ink">Media & footer</h2>
 
-        <Field label="Hero image URL" hint="optional — fills the right panel">
-          <input
-            type="text"
-            placeholder="https://…/hero.jpg"
-            value={heroImageUrl}
-            onChange={(e) => setHeroImageUrl(e.target.value)}
-            className={fieldInput}
-          />
+        <Field label="Hero image" hint="optional — fills the right panel">
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              placeholder="https://…/hero.jpg"
+              value={heroImageUrl}
+              onChange={(e) => setHeroImageUrl(e.target.value)}
+              className={fieldInput}
+            />
+            <label className={`${buttonClass("secondary", "sm")} shrink-0 cursor-pointer`}>
+              {uploadingHero ? "Uploading…" : "Upload"}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="sr-only"
+                disabled={uploadingHero}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = "";
+                  if (!file) return;
+                  setUploadingHero(true);
+                  setHeroUploadError(null);
+                  try {
+                    const fd = new FormData();
+                    fd.set("file", file);
+                    const res = await uploadLandingImageAction(fd);
+                    if (res.success) setHeroImageUrl(res.url);
+                    else setHeroUploadError(res.error);
+                  } catch {
+                    setHeroUploadError("Upload failed. Please try again.");
+                  } finally {
+                    setUploadingHero(false);
+                  }
+                }}
+              />
+            </label>
+          </div>
+          {heroUploadError && (
+            <p className="mt-1.5 text-xs text-red-600">{heroUploadError}</p>
+          )}
         </Field>
 
         <Field label="Footer text">
