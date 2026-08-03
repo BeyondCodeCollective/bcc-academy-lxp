@@ -384,11 +384,18 @@ export default async function AdminPage({
     // belongs on this roster — without this, the HS cohort read "2 enrolled"
     // while its Students list showed zero. Supplement the stamped set with
     // anyone holding an enrollment or instructor assignment here.
+    // instructorTracks is fetched unfiltered (see the fetch above), so narrow
+    // it to THIS program's courses before supplementing — otherwise every
+    // instructor platform-wide gets appended to every program's roster.
     if (needsStudents) {
+      const trackSlugSet = new Set(programTrackSlugs);
       const have = new Set(allStudents.map((s) => s.id));
       const missingIds = Array.from(
         new Set(
-          [...studentTracks, ...instructorTracks]
+          [
+            ...studentTracks,
+            ...instructorTracks.filter((e) => trackSlugSet.has(e.track_slug)),
+          ]
             .map((e) => e.student_id)
             .filter((id) => !have.has(id)),
         ),
