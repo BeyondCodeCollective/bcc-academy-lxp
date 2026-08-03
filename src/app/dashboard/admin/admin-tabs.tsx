@@ -2399,10 +2399,15 @@ function PeopleTab({
             attendanceRates && s.role === "student"
               ? (() => {
                   const attended = attendanceRates.attended[s.id] ?? 0;
+                  const held = attendanceRates.held;
                   return {
                     attended,
-                    held: attendanceRates.held,
-                    pct: Math.round((attended / attendanceRates.held) * 100),
+                    held,
+                    // held is the count of distinct sessions that have any
+                    // attendance recorded, so it's 0 for a course that hasn't
+                    // met yet (and after a failed fetch). Without this guard
+                    // 0/0 renders "NaN%" in the roster.
+                    pct: held > 0 ? Math.round((attended / held) * 100) : 0,
                   };
                 })()
               : null;
