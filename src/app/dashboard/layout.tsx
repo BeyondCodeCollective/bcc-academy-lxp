@@ -13,7 +13,7 @@ import { NameCaptureOverlay } from "@/components/name-capture-overlay";
 import { ProfileCaptureOverlay } from "@/components/profile-capture-overlay";
 import { PreviewToggle } from "@/components/preview-toggle";
 import { PreviewBanner } from "@/components/preview-banner";
-import { getProgram, getProgramWithOverrides, resolveHomeProgramSlug } from "@/lib/programs/server";
+import { getProgram, getProgramWithOverrides, resolveHomeProgramSlug, fetchDynamicProgram, listDynamicPrograms } from "@/lib/programs/server";
 import { getProgramBySlug, getAllPrograms, getJoinablePrograms, isTutorAvailable } from "@/lib/programs";
 import { ProgramProvider } from "@/lib/programs/context";
 import { canAccessAdminPanel, canSwitchPrograms, canAccessStaffContent } from "@/lib/roles";
@@ -792,14 +792,6 @@ async function Overlays({ isSurveyPage }: { isSurveyPage: boolean }) {
   // Validate against ALL programs' tracks (the menu lists every program), not
   // just the current one — the L&L sentinel passes through as-is.
   const previewSlugsAll = await getPreviewTrackSlugs(role);
-  const validPreviewSlugs = previewSlugsAll.filter(
-    (s) =>
-      s === LUNCH_LEARN_PREVIEW_SLUG ||
-      getJoinablePrograms().some((p) =>
-        p.tracks.some((t) => t.slug === s),
-      ) ||
-      program.tracks.some((t) => t.slug === s),
-  );
 
   // Preview menu: every course across all programs, grouped under its home
   // program (mirrors the Courses catalog, which already aggregates all
@@ -813,10 +805,27 @@ async function Overlays({ isSurveyPage }: { isSurveyPage: boolean }) {
   // Hidden courses (admin Hide/Show) stay out of the preview menu too — the
   // admin home and catalog already filter by hidden_courses, but this menu
   // didn't, so retired courses kept piling up here (2026-07-13).
-  const [hiddenTrackSlugs, overriddenPrograms] = await Promise.all([
+  const [hiddenTrackSlugs, overriddenPrograms, dynamicOrgPrograms] = await Promise.all([
     getHiddenTrackSlugs(),
     Promise.all(getJoinablePrograms().map((p) => getProgramWithOverrides(p.slug))),
+    // Admin-created orgs (is_dynamic) have no TS config — resolve them so
+    // their courses appear in the preview menu too.
+    listDynamicPrograms().then((orgs) =>
+      Promise.all(orgs.map((o) => fetchDynamicProgram(o.slug))),
+    ),
   ]);
+  overriddenPrograms.push(
+    ...dynamicOrgPrograms.filter((p): p is NonNullable<typeof p> => p !== null),
+  );
+
+  // Validate the preview cookie against the full menu (config programs +
+  // dynamic orgs + the current program) so a dynamic-org course sticks.
+  const validPreviewSlugs = previewSlugsAll.filter(
+    (s) =>
+      s === LUNCH_LEARN_PREVIEW_SLUG ||
+      overriddenPrograms.some((p) => p.tracks.some((t) => t.slug === s)) ||
+      program.tracks.some((t) => t.slug === s),
+  );
   const programBySlug = new Map(overriddenPrograms.map((p) => [p.slug, p] as const));
 
   // Instructors may preview only the courses they teach; super-admins/admins
