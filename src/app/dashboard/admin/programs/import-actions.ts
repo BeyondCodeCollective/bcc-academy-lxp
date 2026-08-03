@@ -11,7 +11,7 @@ import { parseCourseDraft, type CourseDraft } from "@/lib/course-import/parse";
 
 // Same three programs the manual builder allows — they're the ones that surface
 // on the bccacademy.io hub. See COURSE_PROGRAM_SLUGS in ./actions.ts.
-const COURSE_PROGRAM_SLUGS = ["catalyst", "beyond-code-centers", "atg"] as const;
+const COURSE_PROGRAM_SLUGS = ["catalyst", "beyond-code-centers", "atg", "bgc", "forte"] as const;
 
 type Actor = {
   svc: ReturnType<typeof createServiceClient>;

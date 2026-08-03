@@ -18,14 +18,26 @@ const PROGRAM_OPTIONS = [
 
 type Created = { slug: string; joinUrl: string; allowlisted: number };
 
-export function ImportCourseForm() {
+export function ImportCourseForm({
+  currentProgram,
+}: {
+  /** The program context the admin is standing in. Standalone programs (BGC,
+   *  Forte, dynamic orgs) scope the picker to themselves; the hub programs
+   *  keep the full hub list. */
+  currentProgram?: { slug: string; name: string };
+} = {}) {
+  const hubSlugs = PROGRAM_OPTIONS.map((o) => o.value);
+  const programOptions =
+    currentProgram && !hubSlugs.includes(currentProgram.slug)
+      ? [{ value: currentProgram.slug, label: currentProgram.name }]
+      : PROGRAM_OPTIONS;
   const [input, setInput] = useState("");
   const [needsPaste, setNeedsPaste] = useState(false);
   const [draft, setDraft] = useState<CourseDraft | null>(null);
   const [attendees, setAttendees] = useState<string[]>([]);
   const [useAttendees, setUseAttendees] = useState(true);
   const [coverImageUrl, setCoverImageUrl] = useState<string | undefined>();
-  const [program, setProgram] = useState("catalyst");
+  const [program, setProgram] = useState(currentProgram?.slug ?? "catalyst");
   const [meetingLink, setMeetingLink] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -215,7 +227,7 @@ export function ImportCourseForm() {
           onChange={(e) => setProgram(e.target.value)}
           className={fieldInput}
         >
-          {PROGRAM_OPTIONS.map((o) => (
+          {programOptions.map((o) => (
             <option key={o.value} value={o.value}>{o.label}</option>
           ))}
         </select>
