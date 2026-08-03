@@ -75,7 +75,7 @@ const LIVE_TOOLS: { label: string; zoom: string; ytLive: string }[] = [
   },
   {
     label: "Replay",
-    zoom: "Upload the recording afterward",
+    zoom: "Cloud recordings auto-import hourly; past sessions show the replay",
     ytLive: "Automatic — the stream URL becomes the replay",
   },
   {
@@ -105,9 +105,9 @@ const LAUNCH_STEPS: { title: string; detail: string }[] = [
 
 const RECOMMENDATIONS: { title: string; detail: string }[] = [
   {
-    title: "Keep Zoom for the Roblox bootcamp.",
+    title: "Keep Zoom for interactive cohorts.",
     detail:
-      "It’s tested end-to-end, it’s interactive, cameras-on is what we promised parents, and attendance tracks by name. No live-tooling changes days before an event.",
+      "It carried the Roblox bootcamp end-to-end (58/58 completions), cameras-on is what we promise parents, attendance tracks by name, and recordings now flow back onto the platform automatically.",
   },
   {
     title: "Add YouTube Live as the broadcast option after camp.",
@@ -193,7 +193,7 @@ export default async function PlatformBriefPage() {
     <div className="min-h-screen bg-paper text-ink">
       <div className="mx-auto max-w-3xl px-7 pb-24 pt-16">
         <header>
-          <SectionLabel>BCC Academy · Strategy Brief · July 2026</SectionLabel>
+          <SectionLabel>BCC Academy · Strategy Brief · August 2026</SectionLabel>
           <h1 className="mt-3 text-5xl font-bold leading-[1.02] tracking-tight text-ink sm:text-6xl">
             Why we own the platform
           </h1>
