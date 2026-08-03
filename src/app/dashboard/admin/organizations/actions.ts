@@ -4,26 +4,23 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { hasCapability } from "@/lib/roles";
+import { canManageRoles } from "@/lib/roles";
 import { hasTsConfigSlug } from "@/lib/programs";
 import { toSlug } from "@/lib/programs/slug";
 
-async function requireSuperAdmin() {
+// Master tier only — the platform owner, gated by EMAIL rather than a DB role
+// so no super-admin can self-grant it by editing the students table. Creating
+// an organization spans every program and every tenant, so it sits with role
+// management rather than with per-program admin.
+async function requireMaster() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/");
 
-  const svc = createServiceClient();
-  const { data: student } = await svc
-    .from("students")
-    .select("role")
-    .eq("id", user.id)
-    .single<{ role: string }>();
-
-  if (!hasCapability(student?.role ?? "", "switch_programs")) {
+  if (!canManageRoles(user.email)) {
     throw new Error("Not authorized");
   }
-  return svc;
+  return createServiceClient();
 }
 
 export type OrganizationRow = {
@@ -42,7 +39,7 @@ export type OrganizationRow = {
  * them here would silently do nothing.
  */
 export async function listOrganizations(): Promise<OrganizationRow[]> {
-  const svc = await requireSuperAdmin();
+  const svc = await requireMaster();
 
   const { data: rows } = await svc
     .from("programs")
@@ -95,7 +92,7 @@ export async function createOrganizationAction(formData: {
   /** Seed an unpublished landing page alongside the org. Defaults to true. */
   seedLandingPage?: boolean;
 }): Promise<CreateOrganizationResult> {
-  const svc = await requireSuperAdmin();
+  const svc = await requireMaster();
 
   const name = formData.name.trim();
   if (!name) return { success: false, error: "Organization name is required." };

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSessionContext } from "@/lib/auth/session";
-import { canSwitchPrograms } from "@/lib/roles";
+import { canManageRoles } from "@/lib/roles";
 import { PageHeader } from "@/components/page-header";
 import { ManageMenu } from "../manage-menu";
 import { listOrganizations } from "./actions";
@@ -9,10 +9,9 @@ import { CreateOrganizationForm } from "./create-organization-form";
 export default async function OrganizationsPage() {
   const ctx = await getSessionContext();
   if (!ctx) redirect("/");
-  const role = ctx.student?.role ?? "";
-  // Creating an organization spans every program, so it sits behind the same
-  // capability as the program switcher rather than per-program admin.
-  if (!canSwitchPrograms(role)) redirect("/dashboard/admin");
+  // Master tier only (see requireMaster in ./actions). Email-gated, so this is
+  // the platform owner and nobody else — not even other super-admins.
+  if (!canManageRoles(ctx.userEmail)) redirect("/dashboard/admin");
 
   const organizations = await listOrganizations();
 
@@ -21,7 +20,7 @@ export default async function OrganizationsPage() {
       <PageHeader
         title="Organizations"
         subtitle="Each organization gets its own courses, staff, learners, and join link. No deploy needed."
-        actions={<ManageMenu canSwitchPrograms />}
+        actions={<ManageMenu isMaster />}
       />
 
       <section className="space-y-4">
