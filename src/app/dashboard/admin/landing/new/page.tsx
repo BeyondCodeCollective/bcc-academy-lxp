@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSessionContext } from "@/lib/auth/session";
-import { canSwitchPrograms } from "@/lib/roles";
+import { canSwitchPrograms, canManageRoles } from "@/lib/roles";
 import { PageHeader } from "@/components/page-header";
 import { ManageMenu } from "../../manage-menu";
 import { LandingForm } from "../landing-form";
@@ -36,7 +36,7 @@ export default async function NewLandingPage() {
   return (
     <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8 space-y-6">
       <div>
-        <PageHeader title="New landing page" subtitle="Starts unpublished — flip Published on when it's ready to go live." actions={<ManageMenu />} />
+        <PageHeader title="New landing page" subtitle="Starts unpublished — flip Published on when it's ready to go live." actions={<ManageMenu isMaster={canManageRoles(ctx.userEmail)} />} />
       </div>
       <LandingForm initial={EMPTY} />
     </div>

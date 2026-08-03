@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
-import { canSwitchPrograms } from "@/lib/roles";
+import { canSwitchPrograms, canManageRoles } from "@/lib/roles";
 import { PageHeader } from "@/components/page-header";
 import { ManageMenu } from "../manage-menu";
 import { DataTable } from "@/components/ui";
@@ -75,7 +75,7 @@ export default async function RegistrationsPage() {
         title="Registrations"
         subtitle={`${rows.length} Eventbrite signup${rows.length === 1 ? "" : "s"} · most recent first`}
         noWrap
-        actions={<ManageMenu />}
+        actions={<ManageMenu isMaster={canManageRoles(ctx.userEmail)} />}
       />
 
       {rows.length === 0 ? (

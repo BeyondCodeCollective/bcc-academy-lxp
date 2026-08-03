@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
-import { canSwitchPrograms } from "@/lib/roles";
+import { canSwitchPrograms, canManageRoles } from "@/lib/roles";
 import { PageHeader } from "@/components/page-header";
 import { ManageMenu } from "../manage-menu";
 import { buttonClass, DataTable } from "@/components/ui";
@@ -43,7 +43,7 @@ export default async function LandingPagesListPage() {
               >
                 New landing page
               </Link>
-              <ManageMenu />
+              <ManageMenu isMaster={canManageRoles(ctx.userEmail)} />
             </div>
           }
         />
