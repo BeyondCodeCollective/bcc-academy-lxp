@@ -4,7 +4,7 @@ import { createServiceClient, isSupabaseConfigured } from "@/lib/supabase/server
 import { getSessionContext } from "@/lib/auth/session";
 import { AdminTabs } from "./admin-tabs";
 import type { Student } from "@/lib/types";
-import { getProgram } from "@/lib/programs/server";
+import { getProgram, listDynamicPrograms } from "@/lib/programs/server";
 import type { StudentTrackRow, SurveyStatsRow, InstructorTrackRow, PublicSurveyStatsRow, BCCSurveyResponse } from "./actions";
 import { getPublicSurveyStats, getPublicSurveyCountsByType } from "./actions";
 import { canAccessAdminPanel, canManageStudents, canSwitchPrograms, canViewInsights, assignableRoles } from "@/lib/roles";
@@ -594,7 +594,10 @@ export default async function AdminPage({
   // menu would have offered them a switcher elsewhere.
   let switchablePrograms: { slug: string; name: string }[] = [];
   if (canSwitchPrograms(userRole)) {
-    switchablePrograms = getJoinablePrograms().map((p) => ({ slug: p.slug, name: p.name }));
+    switchablePrograms = [
+      ...getJoinablePrograms().map((p) => ({ slug: p.slug, name: p.name })),
+      ...(await listDynamicPrograms()),
+    ];
   } else if (canAccessAdminPanel(userRole) && actorId) {
     const granted = new Set(await getGrantedProgramSlugs(actorId));
     const { data: me } = await createServiceClient()
@@ -606,9 +609,10 @@ export default async function AdminPage({
       | { slug: string }
       | undefined;
     if (home?.slug) granted.add(home.slug);
-    switchablePrograms = getJoinablePrograms()
-      .filter((p) => granted.has(p.slug))
-      .map((p) => ({ slug: p.slug, name: p.name }));
+    switchablePrograms = [
+      ...getJoinablePrograms().map((p) => ({ slug: p.slug, name: p.name })),
+      ...(await listDynamicPrograms()),
+    ].filter((p) => granted.has(p.slug));
   }
 
   // Platform auth surveys (e.g. the Security+ midpoint check-in) live outside

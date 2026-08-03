@@ -270,6 +270,25 @@ function buildProgramFromDB(
  * Fetch a dynamic (DB-created) program by slug. Returns null when no
  * is_dynamic program with that slug exists. TTL-cached like track_overrides.
  */
+/**
+ * Admin-created organizations (programs.is_dynamic), name-sorted. These have
+ * no TS config, so every surface that enumerates "all programs" from the
+ * config registry must append this list or dynamic orgs silently vanish
+ * (switcher, Manage Courses, program access, search).
+ */
+export async function listDynamicPrograms(): Promise<{ slug: string; name: string }[]> {
+  try {
+    const { data } = await createServiceClient()
+      .from("programs")
+      .select("slug, name")
+      .eq("is_dynamic", true)
+      .order("name", { ascending: true });
+    return (data ?? []).map((r) => ({ slug: r.slug as string, name: (r.name as string) ?? (r.slug as string) }));
+  } catch {
+    return [];
+  }
+}
+
 export async function fetchDynamicProgram(slug: string): Promise<ProgramConfig | null> {
   try {
     const svc = createServiceClient();
