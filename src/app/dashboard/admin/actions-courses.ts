@@ -45,6 +45,9 @@ export type CoursesAnalytics = {
   /** Certificates issued (track_completions) — surfaced as the follow-up
    *  action on finished learners, never conflated with progress. */
   certificatesIssued: number;
+  /** True when the scope includes a self-paced (VOD) course — gates the
+   *  "Videos watched" column so live cohorts don't show a wall of zeros. */
+  hasSelfPacedCourse: boolean;
   /** Enrolled (student,course) pairs bucketed by progress. */
   distribution: { label: string; value: number }[];
   popularCourses: PopularCourse[];
@@ -63,6 +66,7 @@ export async function getCoursesAnalytics(): Promise<CoursesAnalytics> {
     totalFinished: 0,
     finishedRate: 0,
     certificatesIssued: 0,
+    hasSelfPacedCourse: false,
     distribution: [],
     popularCourses: [],
     activeStudents: [],
@@ -97,11 +101,15 @@ export async function getCoursesAnalytics(): Promise<CoursesAnalytics> {
       : { data: [] };
 
   // Track metadata (totalWeeks) for progress fractions.
+  // Whether this scope contains a self-paced (VOD) course — decides if the
+  // "Videos watched" column is a real metric here or live-cohort noise.
+  let hasSelfPacedCourse = false;
   const weeksBySlug = new Map<string, number>();
   const nameBySlug = new Map<string, string>();
   for (const p of getEveryProgramConfig()) {
     for (const t of p.tracks) {
       weeksBySlug.set(t.slug, t.totalWeeks);
+      if (t.selfPaced && trackSlugs.includes(t.slug)) hasSelfPacedCourse = true;
       nameBySlug.set(t.slug, t.shortName || t.name);
     }
   }
@@ -243,6 +251,7 @@ export async function getCoursesAnalytics(): Promise<CoursesAnalytics> {
         ? Math.min(100, Math.round((finishedPairs.size / enrolledPairs.size) * 100))
         : 0,
     certificatesIssued: completedPairs.size,
+    hasSelfPacedCourse,
     distribution,
     popularCourses,
     activeStudents,
