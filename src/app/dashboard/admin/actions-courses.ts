@@ -6,6 +6,7 @@ import { resolveProgramScope, resolveScopeTrackSlugs } from "@/lib/programs/scop
 import { fetchProgressData } from "@/lib/analytics/progress";
 import { getLearnerActivity } from "@/lib/analytics/activity";
 import { getEveryProgramConfig } from "@/lib/programs";
+import { countedUnits } from "@/lib/attendance/compute";
 
 // Courses & Progress analytics — the "are they moving through and finishing?"
 // view, laid out like Circle's Courses page but built from our tables. Reuses
@@ -105,10 +106,17 @@ export async function getCoursesAnalytics(): Promise<CoursesAnalytics> {
   // "Videos watched" column is a real metric here or live-cohort noise.
   let hasSelfPacedCourse = false;
   const weeksBySlug = new Map<string, number>();
+  // Units HELD so far per course — the fair denominator for a PERSON's
+  // progress. Measuring a learner against sessions that haven't happened yet
+  // reads perfect attendance as 38% mid-course.
+  const heldBySlug = new Map<string, number>();
   const nameBySlug = new Map<string, string>();
   for (const p of getEveryProgramConfig()) {
     for (const t of p.tracks) {
       weeksBySlug.set(t.slug, t.totalWeeks);
+      if (!t.startDateTbd && t.startDate) {
+        try { heldBySlug.set(t.slug, countedUnits(t).length); } catch { /* config gaps */ }
+      }
       if (t.selfPaced && trackSlugs.includes(t.slug)) hasSelfPacedCourse = true;
       nameBySlug.set(t.slug, t.shortName || t.name);
     }
@@ -225,7 +233,16 @@ export async function getCoursesAnalytics(): Promise<CoursesAnalytics> {
     )
     .map((s) => {
       const slugs = enrolledBySid.get(s.id) ?? [];
-      const fracs = slugs.map((slug) => fractionFor(`${s.id}|${slug}`, slug));
+      // Pace, not position: furthest reached ÷ units held so far, so a
+      // learner who has attended everything reads 100% mid-course and the
+      // number is comparable across courses of different lengths.
+      const fracs = slugs.map((slug) => {
+        const key = `${s.id}|${slug}`;
+        if (completedPairs.has(key)) return 100;
+        const held = heldBySlug.get(slug) ?? weeksBySlug.get(slug) ?? 8;
+        const reached = furthest.get(key) ?? 0;
+        return Math.min(100, Math.round((reached / Math.max(1, held)) * 100));
+      });
       const completionPct = fracs.length
         ? Math.round(fracs.reduce((a, b) => a + b, 0) / fracs.length)
         : 0;
