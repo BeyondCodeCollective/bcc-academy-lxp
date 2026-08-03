@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { getSessionContext } from "@/lib/auth/session";
 import { canSwitchPrograms, canManageRoles } from "@/lib/roles";
-import { getProgramWithOverrides, resolveHomeProgramSlug } from "@/lib/programs/server";
+import { getProgramWithOverrides, resolveHomeProgramSlug, fetchDynamicProgram } from "@/lib/programs/server";
+import { hasTsConfigSlug } from "@/lib/programs";
 import { EditCourseForm } from "./edit-course-form";
 import { PageHeader } from "@/components/page-header";
 import { ManageMenu } from "../../../manage-menu";
@@ -28,7 +29,11 @@ export default async function EditCoursePage({
   // even a hardcoded course becomes DB-editable on first edit — no deploy
   // required.
   const programSlug = (await resolveHomeProgramSlug(slug)) ?? "catalyst";
-  const program = await getProgramWithOverrides(programSlug);
+  // Dynamic orgs have no TS config — getProgramWithOverrides would fall back
+  // to Catalyst, miss the track, and bounce back to the list (a dead loop).
+  const program = hasTsConfigSlug(programSlug)
+    ? await getProgramWithOverrides(programSlug)
+    : ((await fetchDynamicProgram(programSlug)) ?? (await getProgramWithOverrides("catalyst")));
   const track = program.tracks.find((t) => t.slug === slug);
   if (!track) redirect("/dashboard/admin/programs");
 
