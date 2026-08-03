@@ -3,7 +3,8 @@ import Link from "next/link";
 import { getSessionContext } from "@/lib/auth/session";
 import { canSwitchPrograms } from "@/lib/roles";
 import { getJoinablePrograms, getHomeProgramForTrack } from "@/lib/programs";
-import { getProgramWithOverrides } from "@/lib/programs/server";
+import { getProgramWithOverrides, fetchDynamicProgram } from "@/lib/programs/server";
+import { createServiceClient } from "@/lib/supabase/server";
 import { getHiddenTrackSlugs } from "@/lib/programs/hidden";
 import { CoursesList } from "./courses-list";
 import type { CourseRow, ProgramGroup } from "./courses-list";
@@ -26,6 +27,21 @@ export default async function ProgramsListPage() {
   const withOverrides = await Promise.all(
     programs.map((p) => getProgramWithOverrides(p.slug)),
   );
+
+  // Admin-created organizations (is_dynamic) have no TS config, so they're
+  // absent from getJoinablePrograms() — resolve each through
+  // fetchDynamicProgram so their courses list here too.
+  const { data: dynamicRows } = await createServiceClient()
+    .from("programs")
+    .select("slug")
+    .eq("is_dynamic", true)
+    .order("name", { ascending: true });
+  const dynamicPrograms = (
+    await Promise.all(
+      (dynamicRows ?? []).map((r) => fetchDynamicProgram(r.slug as string)),
+    )
+  ).filter((p): p is NonNullable<typeof p> => p !== null);
+  withOverrides.push(...dynamicPrograms);
 
   const groups: ProgramGroup[] = withOverrides
     .map((prog) => {
