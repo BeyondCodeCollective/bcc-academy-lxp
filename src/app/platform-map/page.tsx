@@ -44,6 +44,7 @@ const ZONES: Zone[] = [
     blurb: "Every door is passwordless.",
     pages: [
       { name: "Security+ application", route: "/apply/security-plus", href: "/apply/security-plus" },
+      { name: "Home for the Summer application — resume upload", route: "/apply/home-for-summer", href: "/apply/home-for-summer" },
       { name: "Embedded Eventbrite checkout", route: "/bcc/game-on", href: "/bcc/game-on" },
       { name: "Program join links", route: "/join/[slug]", href: "/join/bgc" },
       { name: "Magic-link login", route: "/login", href: "/login" },
@@ -90,6 +91,8 @@ const ZONES: Zone[] = [
       { name: "Eventbrite registrations", route: "/admin/registrations", href: "/dashboard/admin/registrations" },
       { name: "Bulk one-click invites", route: "/admin/invites", href: "/dashboard/admin/invites" },
       { name: "Manage Courses — live edits", route: "/admin/programs", href: "/dashboard/admin/programs" },
+      { name: "Organizations — create an org, no deploy", route: "/admin/organizations", href: "/dashboard/admin/organizations" },
+      { name: "Staff & cross-program access grants", route: "/admin/staff", href: "/dashboard/admin/staff" },
       { name: "Landing-page builder", route: "/admin/landing", href: "/dashboard/admin/landing" },
       { name: "Certificates — issue & email", route: "Students → Certificates", href: "/dashboard/admin" },
       { name: "Allowlist", route: "/admin/allowlist", href: "/dashboard/admin/allowlist" },
@@ -118,7 +121,7 @@ const ZONES: Zone[] = [
       { name: "Eventbrite funnel — webhook + instant account claim", route: "/api/eventbrite/*", href: null },
       { name: "Zoom session security — signed SDK joins, no exposed links", route: "/api/zoom-signature · /zoom-frame", href: null },
       { name: "Email engine — invites, reminders, certificates (Resend)", route: "lib/email", href: null },
-      { name: "Cron jobs — daily activity snapshots", route: "/api/cron/*", href: null },
+      { name: "Cron jobs — daily snapshots, Zoom attendance + recording import", route: "/api/cron/*", href: null },
       { name: "CSP enforcement + violation report sink", route: "/api/csp-report", href: null },
       { name: "AI Tutor backend", route: "/api/tutor", href: null },
       { name: "Calendar generation (Google + iCal)", route: "/api/calendar/event", href: null },
@@ -127,7 +130,7 @@ const ZONES: Zone[] = [
   },
 ];
 
-const totalPages = 56;
+const totalPages = 59;
 
 export default async function PlatformMapPage() {
   const ctx = await getSessionContext();
@@ -148,10 +151,10 @@ export default async function PlatformMapPage() {
           <h1 className="mt-3 text-5xl font-bold leading-[1.02] tracking-tight text-ink sm:text-6xl">
             One platform.
             <br />
-            Fifty-six pages.
+            Fifty-nine pages.
           </h1>
           <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-ink-soft">
-            Everything live in production today, built October to July. Every row is a
+            Everything live in production today, built October to August. Every row is a
             door — click it to open the real page.
           </p>
           <div
