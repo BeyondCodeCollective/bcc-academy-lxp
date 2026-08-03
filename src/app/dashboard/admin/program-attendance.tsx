@@ -12,6 +12,7 @@ import {
   type AttendanceRecord,
   type StudentRow,
   type TrackLike,
+  expectedSessionsFor,
   summarizeAllStudents,
   weeklyAttendanceRates,
 } from "@/lib/attendance/compute";
@@ -169,6 +170,170 @@ export function ProgramAttendanceOverview({ students, tracks, enrollments }: Pro
           );
         })}
       </DataTable>
+
+      <AllSessionsMatrix
+        tracks={startedTracks}
+        students={students}
+        records={records}
+        enrolledByStudent={enrolledByStudent}
+      />
+    </div>
+  );
+}
+
+/**
+ * Every learner × every held session, all courses side by side — the
+ * "is everyone looped in" grid. ✓ = attended; · = enrolled but absent;
+ * — = not enrolled in that course. Totals close the loop both ways.
+ */
+function AllSessionsMatrix({
+  tracks,
+  students,
+  records,
+  enrolledByStudent,
+}: {
+  tracks: TrackLike[];
+  students: StudentRow[];
+  records: AttendanceRecord[];
+  enrolledByStudent: Map<string, Set<string>>;
+}) {
+  const groups = useMemo(
+    () =>
+      tracks
+        .map((track) => ({ track, sessions: expectedSessionsFor(track) }))
+        .filter((g) => g.sessions.length > 0),
+    [tracks],
+  );
+
+  const attended = useMemo(() => {
+    const s = new Set<string>();
+    for (const r of records) s.add(`${r.student_id}|${r.track}|${r.week_number}|${r.session_number}`);
+    return s;
+  }, [records]);
+
+  const learners = useMemo(
+    () =>
+      students
+        .filter((st) => tracks.some((t) => enrolledByStudent.get(st.id)?.has(t.slug)))
+        .sort((a, b) =>
+          `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`),
+        ),
+    [students, tracks, enrolledByStudent],
+  );
+
+  if (groups.length === 0 || learners.length === 0) return null;
+
+  return (
+    <div className="space-y-3">
+      <SectionHeadline
+        eyebrow="All sessions"
+        headline="Every learner, every session held"
+        sub="Courses side by side. ✓ attended · missed — not enrolled in that course."
+      />
+      <div className="panel overflow-x-auto">
+        <table className="w-full border-collapse text-xs">
+          <thead>
+            <tr>
+              <th className="sticky left-0 z-10 bg-white px-4 py-2 text-left font-semibold text-ink">
+                Learner
+              </th>
+              {groups.map(({ track, sessions }) => (
+                <th
+                  key={track.slug}
+                  colSpan={sessions.length}
+                  className="border-l border-rule px-2 py-2 text-center font-semibold text-ink"
+                >
+                  {track.shortName || track.name}
+                </th>
+              ))}
+              <th className="border-l border-rule px-3 py-2 text-right font-semibold text-ink">
+                Total
+              </th>
+            </tr>
+            <tr className="text-ink-faint">
+              <th className="sticky left-0 z-10 bg-white px-4 py-1" />
+              {groups.map(({ track, sessions }) =>
+                sessions.map((sess, i) => (
+                  <th
+                    key={`${track.slug}-${sess.week}-${sess.session}`}
+                    className={`px-1.5 py-1 text-center font-normal tabular-nums ${i === 0 ? "border-l border-rule" : ""}`}
+                    title={`${track.shortName || track.name} · ${track.unitLabel ?? "Week"} ${sess.week}${sess.session > 1 ? ` · session ${sess.session}` : ""}`}
+                  >
+                    {sess.week}
+                    {sess.session > 1 ? `.${sess.session}` : ""}
+                  </th>
+                )),
+              )}
+              <th className="border-l border-rule" />
+            </tr>
+          </thead>
+          <tbody>
+            {learners.map((st) => {
+              let att = 0;
+              let exp = 0;
+              return (
+                <tr key={st.id} className="border-t border-rule-soft">
+                  <td className="sticky left-0 z-10 whitespace-nowrap bg-white px-4 py-1.5 font-medium text-ink">
+                    {st.first_name} {st.last_name}
+                  </td>
+                  {groups.map(({ track, sessions }) => {
+                    const enrolled = enrolledByStudent.get(st.id)?.has(track.slug) ?? false;
+                    return sessions.map((sess, i) => {
+                      const went =
+                        enrolled && attended.has(`${st.id}|${track.slug}|${sess.week}|${sess.session}`);
+                      if (enrolled) {
+                        exp += 1;
+                        if (went) att += 1;
+                      }
+                      return (
+                        <td
+                          key={`${track.slug}-${sess.week}-${sess.session}`}
+                          className={`px-1.5 py-1.5 text-center ${i === 0 ? "border-l border-rule" : ""} ${
+                            !enrolled ? "text-ink-faint/50" : went ? "text-green-700" : "text-ink-faint"
+                          }`}
+                        >
+                          {!enrolled ? "—" : went ? "✓" : "·"}
+                        </td>
+                      );
+                    });
+                  })}
+                  <td className="border-l border-rule px-3 py-1.5 text-right tabular-nums text-ink">
+                    {exp > 0 ? `${att}/${exp}` : "—"}
+                  </td>
+                </tr>
+              );
+            })}
+            {/* Per-session turnout */}
+            <tr className="border-t border-rule bg-paper-tint-soft text-ink-soft">
+              <td className="sticky left-0 z-10 bg-paper-tint-soft px-4 py-1.5 font-semibold">
+                Turnout
+              </td>
+              {groups.map(({ track, sessions }) =>
+                sessions.map((sess, i) => {
+                  const enrolledCount = learners.filter((st) =>
+                    enrolledByStudent.get(st.id)?.has(track.slug),
+                  ).length;
+                  const went = learners.filter(
+                    (st) =>
+                      enrolledByStudent.get(st.id)?.has(track.slug) &&
+                      attended.has(`${st.id}|${track.slug}|${sess.week}|${sess.session}`),
+                  ).length;
+                  return (
+                    <td
+                      key={`${track.slug}-${sess.week}-${sess.session}`}
+                      className={`px-1.5 py-1.5 text-center tabular-nums ${i === 0 ? "border-l border-rule" : ""}`}
+                      title={`${went} of ${enrolledCount} attended`}
+                    >
+                      {enrolledCount > 0 ? Math.round((went / enrolledCount) * 100) + "%" : "—"}
+                    </td>
+                  );
+                }),
+              )}
+              <td className="border-l border-rule" />
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
