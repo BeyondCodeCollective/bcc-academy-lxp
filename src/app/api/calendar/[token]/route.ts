@@ -83,6 +83,8 @@ export async function GET(
         .join("\n");
       const display = unitDisplayMap(track.weekSummaries, track.unitLabel ?? "Week");
       for (const ws of track.weekSummaries) {
+        // Every event carries the way back in: the session's classroom page.
+        const sessionUrl = `https://bccacademy.io/dashboard/track/${slug}/${ws.week}`;
         events.push({
           // uid stays `-week-` even for Session tracks: it keys the event in
           // calendars people already subscribe to, so changing it would
@@ -93,7 +95,11 @@ export async function GET(
           durationMinutes: ws.durationMinutes,
           timeZone: ws.time ? COHORT_TIME_ZONE : undefined,
           summary: `${track.shortName} · ${unitText(display, ws.week, track.unitLabel ?? "Week")}: ${ws.topic}`,
-          description: scheduleNote || undefined,
+          description: [scheduleNote || null, `Join class: ${sessionUrl}`]
+            .filter(Boolean)
+            .join("\n"),
+          url: sessionUrl,
+          location: sessionUrl,
         });
       }
     }
@@ -109,6 +115,7 @@ export async function GET(
         summary: `${oh.title}${oh.time ? ` · ${oh.time}` : ""}`,
         description: desc || undefined,
         url: oh.joinUrl,
+        location: oh.joinUrl,
       });
     }
   }

@@ -256,6 +256,9 @@ function eventCalendarLinks(opts: {
   startUtc: string | null;
   endUtc: string | null;
   details: string;
+  /** The event's "where" — the portal/invite link, so the calendar entry
+   *  always carries the way back in. */
+  location?: string;
 }): { google: string; ics: string } | null {
   if (!opts.startUtc) return null;
   // Default to a 1-hour block when Eventbrite gives no end time.
@@ -267,6 +270,7 @@ function eventCalendarLinks(opts: {
     startUtc: opts.startUtc,
     endUtc,
     details: opts.details,
+    ...(opts.location ? { location: opts.location } : {}),
   });
   const ics =
     `${opts.origin}/api/calendar/event?` +
@@ -275,6 +279,7 @@ function eventCalendarLinks(opts: {
       start: opts.startUtc,
       end: endUtc,
       details: opts.details,
+      ...(opts.location ? { location: opts.location } : {}),
     }).toString();
   return { google, ics };
 }
@@ -324,6 +329,7 @@ export async function sendEventConfirmationEmail({
     startUtc: eventStartUtc,
     endUtc: eventEndUtc,
     details: `Your spot for ${eventName}. Enter the portal: ${inviteLink}`,
+    location: inviteLink,
   });
 
   const calRow = cal
