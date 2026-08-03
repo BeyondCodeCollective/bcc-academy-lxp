@@ -1,4 +1,5 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { getLandingPage } from "@/lib/landing-pages";
 import Link from "next/link";
 import { getJoinablePrograms, getProgramBySlug, getTrackBySlug, getHomeProgramForTrack } from "@/lib/programs";
 import type { ProgramConfig } from "@/lib/programs";
@@ -39,6 +40,16 @@ export default async function JoinPage({
 }) {
   const { slug } = await params;
   const { track: trackParam } = await searchParams;
+
+  // The landing pages absorbed the join page: when this program has a
+  // PUBLISHED landing page covering the requested track, that page is the
+  // front door — old /join links, QR codes, and the org-creation success card
+  // all funnel there. Programs without a published landing page (or a ?track=
+  // the landing page doesn't cover) keep this page, so nothing breaks.
+  const landing = await getLandingPage(slug);
+  if (landing && (!trackParam || landing.trackSlug === trackParam)) {
+    redirect(`/bcc/${slug}`);
+  }
 
   const tsSlugSet = new Set(getJoinablePrograms().map((p) => p.slug));
   let program: ProgramConfig;

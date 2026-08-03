@@ -349,8 +349,14 @@ export async function GET(request: Request) {
           return redirectWithCookies(`${origin}/login?status=not-enrolled`);
         }
 
-        // Upsert minimal student row in the resolved program
-        const effectiveProgram = getProgramBySlug(effectiveSlug);
+        // Upsert minimal student row in the resolved program.
+        // DB-aware resolution: getProgramBySlug silently falls back to
+        // Catalyst for dynamic orgs, which made completePendingSetup filter
+        // the joined track against Catalyst's track list and enroll nothing —
+        // stranding any dynamic-org signup whose link carried a `next`.
+        const effectiveProgram = hasTsConfigSlug(effectiveSlug)
+          ? getProgramBySlug(effectiveSlug)
+          : ((await fetchDynamicProgram(effectiveSlug)) ?? getProgramBySlug(effectiveSlug));
         const { data: effectiveProgramRow } = await admin
           .from("programs")
           .select("id")

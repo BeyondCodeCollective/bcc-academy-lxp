@@ -56,14 +56,23 @@ export async function sendLoginLink({
   const isPrivileged =
     isPrivilegedEmail(trimmed) || isStaffEmail(trimmed) || hasElevatedRole;
 
-  // Admission gate. When signing up for a SPECIFIC track (e.g. the Roblox camp
-  // passes joinTrack), the email must be on THAT track's allowlist — being on
-  // some other program's list (e.g. Upskill Bahamas) does NOT grant access to
-  // this camp. Generic logins (no joinTrack) admit any allowlisted email so a
-  // student who lost their link can still get in. Admins/staff always pass.
-  const onAllowlist = joinTrack
-    ? allowedTracks.includes(joinTrack)
-    : allowedTracks.length > 0;
+  // Admission gate. Track-specific signups (joinTrack, from a landing page)
+  // use the join-page semantics — the landing pages absorbed /join, so this is
+  // the platform's front door now: a track with NO allowlist is open
+  // enrollment; a track WITH one admits only listed emails, and being on some
+  // OTHER program's list does not grant access. Generic logins (no joinTrack)
+  // admit any allowlisted email so a student who lost their link can still get
+  // in. Admins/staff always pass.
+  let onAllowlist: boolean;
+  if (joinTrack) {
+    const { count: trackListSize } = await svc
+      .from("allowed_signup_emails")
+      .select("email", { count: "exact", head: true })
+      .eq("track_slug", joinTrack);
+    onAllowlist = (trackListSize ?? 0) === 0 || allowedTracks.includes(joinTrack);
+  } else {
+    onAllowlist = allowedTracks.length > 0;
+  }
   // An existing student can always request a login link for their OWN account,
   // even if their email was never added to allowed_signup_emails (direct admin
   // add, seeding, migration). Scoped to generic logins — track-specific camp
@@ -97,6 +106,19 @@ export async function sendLoginLink({
       callbackJoinSlug = homeProgram.slug;
       callbackTrackSlug = intendedTrack;
       intendedProgramName = homeProgram.name;
+    } else {
+      // Course-Builder / dynamic-org tracks have no TS config, so the
+      // in-memory lookup misses them — resolve the home program from the DB
+      // (same fallback as /dashboard/switch-program).
+      const { resolveHomeProgramSlug, fetchDynamicProgram } = await import(
+        "@/lib/programs/server"
+      );
+      const homeSlug = await resolveHomeProgramSlug(intendedTrack);
+      if (homeSlug) {
+        callbackJoinSlug = homeSlug;
+        callbackTrackSlug = intendedTrack;
+        intendedProgramName = (await fetchDynamicProgram(homeSlug))?.name ?? null;
+      }
     }
   }
 
