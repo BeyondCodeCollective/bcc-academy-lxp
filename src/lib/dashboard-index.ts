@@ -94,11 +94,22 @@ export const getDashboardIndex = cache(async (): Promise<DashboardIndex> => {
   // index simply omits them if the queries fail.
   try {
     const svc = createServiceClient();
-    const [rec, land, sessions] = await Promise.all([
+    const [rec, land, sessions, dynamicTracks] = await Promise.all([
       svc.from("lunch_learns").select("id, title, presenter, description"),
       svc.from("landing_pages").select("slug, headline"),
       svc.from("session_content").select("track, week_number, title").not("title", "is", null),
+      // Courses under admin-created orgs (is_dynamic) have no TS config, so
+      // the config passes above never label them.
+      svc
+        .from("track_overrides")
+        .select("track_slug, name, programs!inner(is_dynamic)")
+        .eq("programs.is_dynamic", true),
     ]);
+    for (const t of dynamicTracks.data ?? []) {
+      const name = (t.name as string) ?? (t.track_slug as string);
+      labels[`/dashboard/track/${t.track_slug}`] ??= name;
+      labels[`/dashboard/admin/programs/${t.track_slug}/edit`] ??= name;
+    }
     // Admin-edited session titles override the config week titles so the
     // breadcrumb matches what the page actually displays.
     for (const s of sessions.data ?? []) {

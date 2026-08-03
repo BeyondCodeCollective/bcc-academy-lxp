@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { canSwitchPrograms } from "@/lib/roles";
 import { getJoinablePrograms } from "@/lib/programs";
+import { listDynamicPrograms } from "@/lib/programs/server";
 
 // Sets the program-override cookie and sends you on.
 //
@@ -30,7 +31,9 @@ export async function GET(request: NextRequest) {
   const slug = request.nextUrl.searchParams.get("slug") ?? "";
   // Allowlist from the real program registry — never trust the query string as
   // a cookie value.
-  const target = getJoinablePrograms().find((p) => p.slug === slug);
+  const target =
+    getJoinablePrograms().find((p) => p.slug === slug) ??
+    (await listDynamicPrograms()).find((p) => p.slug === slug);
   if (!target) {
     return NextResponse.redirect(new URL("/dashboard/admin", request.url));
   }

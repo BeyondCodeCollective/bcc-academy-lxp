@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "./actions-shared";
 import { canManageRoles } from "@/lib/roles";
 import { getAllPrograms, getJoinablePrograms } from "@/lib/programs";
+import { listDynamicPrograms } from "@/lib/programs/server";
 
 // Cross-program access grants. Granting someone a program is a role/credential
 // change, so this whole file is MASTER-only — the same tier that assigns roles.
@@ -114,7 +115,7 @@ export async function revokeProgramAccess(id: string): Promise<{ ok: boolean; er
 /** Programs a grant can name — same list the super-admin switcher offers. */
 export async function listGrantablePrograms(): Promise<{ slug: string; name: string }[]> {
   await requireMaster();
-  const all = [...getJoinablePrograms(), ...getAllPrograms()];
+  const all = [...getJoinablePrograms(), ...getAllPrograms(), ...(await listDynamicPrograms())];
   const seen = new Set<string>();
   return all
     .filter((p) => (seen.has(p.slug) ? false : (seen.add(p.slug), true)))
