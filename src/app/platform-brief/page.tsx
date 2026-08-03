@@ -94,7 +94,7 @@ const LAUNCH_STEPS: { title: string; detail: string }[] = [
   {
     title: "Attach the content",
     detail:
-      "Lesson videos can be unlisted YouTube links today; the classroom already embeds them.",
+      "Run sessions on Zoom and the recordings attach themselves — imported hourly, played back in the classroom. Pre-recorded lessons embed too.",
   },
   {
     title: "Load the roster",
@@ -110,9 +110,9 @@ const RECOMMENDATIONS: { title: string; detail: string }[] = [
       "It carried the Roblox bootcamp end-to-end (58/58 completions), cameras-on is what we promise parents, attendance tracks by name, and recordings now flow back onto the platform automatically.",
   },
   {
-    title: "Add YouTube Live as the broadcast option after camp.",
+    title: "Keep YouTube on the shelf until a broadcast event needs it.",
     detail:
-      "A small, additive build: paste a YouTube Live URL into a session and the classroom shows the stream — then the replay, automatically. Ideal for showcases and Lunch & Learns.",
+      "We publish nothing there today, and nothing depends on it. When a showcase or demo day wants unlimited reach, the YouTube Live embed is a half-day, additive build — do it then, not before.",
   },
   {
     title: "Treat content production as the strategic investment.",
@@ -198,9 +198,10 @@ export default async function PlatformBriefPage() {
             Why we own the platform
           </h1>
           <p className="mt-4 max-w-2xl text-[16px] leading-relaxed text-ink-soft">
-            What BCC Academy does that YouTube can&rsquo;t, what it takes to
-            launch new programs on it, and how we&rsquo;ll use YouTube —
-            including YouTube Live — as an ingredient rather than a competitor.
+            What BCC Academy does that a video channel can&rsquo;t, what it
+            takes to launch new programs on it, and how Zoom powers the live
+            experience today — with YouTube as a future option, not a
+            dependency.
           </p>
         </header>
 
@@ -234,11 +235,13 @@ export default async function PlatformBriefPage() {
             <li className="relative pl-5">
               <span className="absolute left-0 top-[0.5em] h-2 w-2 bg-primary" />
               <b className="font-semibold">
-                YouTube already works inside the platform
+                Zoom is the live engine, end to end.
               </b>{" "}
-              for recorded lessons, and adding YouTube Live for broadcast
-              events is a small build. Zoom remains the tool for interactive
-              cohorts like the Roblox bootcamp.
+              Sessions run embedded in the classroom with signed joins, and
+              cloud recordings import back onto the platform automatically.
+              We don&rsquo;t publish on YouTube today; if we ever want
+              broadcast reach, it&rsquo;s a small additive build — nothing
+              depends on it.
             </li>
           </ul>
         </div>
@@ -340,26 +343,31 @@ export default async function PlatformBriefPage() {
 
         {/* Integration strategy */}
         <section className="mt-14">
-          <SectionLabel>Integration strategy</SectionLabel>
+          <SectionLabel>The live stack</SectionLabel>
           <h2 className="mt-2 text-2xl font-bold tracking-tight text-ink">
-            YouTube as an ingredient, not a competitor
+            Zoom today, YouTube if we ever want it
           </h2>
           <p className="mt-4 text-[15px] leading-relaxed text-ink-soft">
-            We don&rsquo;t have to choose between owning the platform and using
-            YouTube — YouTube becomes our free, world-class video
-            infrastructure, wrapped in our identity, gating, and data layer.
+            Everything live runs on Zoom, inside our own classroom. We are not
+            publishing on YouTube today — it stays on the shelf as a free
+            broadcast option we can plug in later, wrapped in our identity,
+            gating, and data layer.
           </p>
 
           <p className="mt-5 text-[15px] leading-relaxed text-ink-soft">
-            <b className="font-semibold text-ink">Recorded video</b>
+            <b className="font-semibold text-ink">
+              Zoom, embedded and closed-loop
+            </b>
             <span className="ml-2 inline-block rounded-full bg-highlight px-2 py-0.5 align-[0.1em] text-[10px] font-bold uppercase tracking-[0.1em] text-[#1a1a1a]">
               Live today
             </span>
             <br />
-            The classroom already plays YouTube-hosted recordings natively.
-            Publishing a lesson as an unlisted YouTube video costs nothing in
-            storage or bandwidth and appears inside the course like any other
-            lesson.
+            Sessions run inside the classroom with signed joins under real
+            names — no exposed meeting links. Cloud recordings import onto the
+            platform automatically every hour and land on the session they
+            belong to, so a past session shows its replay instead of a dead
+            embed. The whole loop — live class, attendance, recording, replay
+            — happens on infrastructure we control.
           </p>
 
           <p className="mt-5 text-[15px] leading-relaxed text-ink-soft">
@@ -367,16 +375,14 @@ export default async function PlatformBriefPage() {
               YouTube Live for broadcast events
             </b>
             <span className="ml-2 inline-block rounded-full border border-rule bg-paper-tint-soft px-2 py-0.5 align-[0.1em] text-[10px] font-bold uppercase tracking-[0.1em] text-ink-soft">
-              Proposed · small build
+              Future option · not in use
             </span>
             <br />
-            Teaching the session&rsquo;s meeting-link field to recognize a
-            YouTube Live URL puts the live stream directly in the
-            classroom&rsquo;s &ldquo;live now&rdquo; slot. The standout
-            benefit: when the stream ends, the same URL automatically becomes
-            the replay — the live session turns into the recording with zero
-            extra work. Roughly a half-day of work, fully additive, and
-            existing Zoom sessions are untouched.
+            If we ever want unlimited-audience broadcasts — showcases, demo
+            days — teaching the session&rsquo;s meeting-link field to
+            recognize a YouTube Live URL is roughly a half-day build, fully
+            additive, with existing Zoom sessions untouched. Worth doing when
+            a real event calls for it, not before.
           </p>
 
           <ComparisonTable
