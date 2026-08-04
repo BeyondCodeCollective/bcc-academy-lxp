@@ -158,7 +158,12 @@ export async function sendLoginLink({
       // Build a direct callback URL with token_hash in the query string.
       // Using action_link instead would redirect through Supabase's server,
       // which sends the session back as a #hash fragment — unreadable server-side.
+      // Email the /auth/confirm interstitial, not /auth/callback directly:
+      // mailbox link scanners (Outlook Safe Links etc.) GET every emailed URL
+      // and would consume the one-time token before the student's click. The
+      // confirm page auto-forwards real browsers to the callback.
       const callbackUrl = new URL(richRedirectTo);
+      callbackUrl.pathname = "/auth/confirm";
       callbackUrl.searchParams.set("token_hash", data.properties.hashed_token);
       callbackUrl.searchParams.set("type", "magiclink");
       try {
