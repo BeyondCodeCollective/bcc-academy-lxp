@@ -102,8 +102,32 @@ export function PendingPeopleSection({ pending, trackNames }: Props) {
     });
   };
 
+  // Allowlisted but never sent an invite (and no account) — this state is
+  // silent by default and has stranded people before (Endless Bootcamp,
+  // 2026-08-04): emails added to the allowlist after the cohort blast never
+  // got contacted and nothing flagged it. Surface it loudly.
+  const neverInvited = pending.filter((p) => p.status === "allowlisted").length;
+
   return (
     <section className="space-y-2">
+      {neverInvited > 0 && (
+        <div className="flex items-center justify-between gap-3 rounded-lg bg-amber-50 px-4 py-3">
+          <p className="text-sm text-amber-800">
+            <span className="font-semibold">{neverInvited}</span>{" "}
+            {neverInvited === 1 ? "person is" : "people are"} on the allowlist
+            but {neverInvited === 1 ? "has" : "have"} never been sent an invite.
+          </p>
+          <button
+            type="button"
+            onClick={sendAll}
+            disabled={isPending}
+            className={buttonClass("secondary", "sm")}
+          >
+            {sendingAll ? <Loader2 size={12} className="animate-spin" /> : null}
+            {sendingAll ? "Sending…" : `Send ${neverInvited === 1 ? "invite" : "invites"}`}
+          </button>
+        </div>
+      )}
       <div className="flex items-center justify-between gap-3">
         <p className="text-micro font-semibold uppercase tracking-[0.16em] text-ink-faint">
           Pending — invited or allowlisted, no account yet ({pending.length})
