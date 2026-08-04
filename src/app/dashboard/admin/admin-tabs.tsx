@@ -516,6 +516,7 @@ export function AdminTabs({
   pendingPeople = [],
   alumniEnrollments = [],
   unviewedAssessments = 0,
+  launchReadiness = {},
 }: {
   cohorts: CohortRow[];
   students: StudentRow[];
@@ -562,6 +563,9 @@ export function AdminTabs({
   pendingPeople?: PendingPerson[];
   alumniEnrollments?: { track_slug: string; email: string; source: string }[];
   unviewedAssessments?: number;
+  /** Pre-launch checks per track, present only for courses near their start
+   *  date. See lib/launch-readiness. */
+  launchReadiness?: Record<string, { label: string; ok: boolean; detail: string }[]>;
 }) {
   const router = useRouter();
   const programSlug = initialProgramSlug;
@@ -1324,6 +1328,45 @@ export function AdminTabs({
             title={liveTrackNames[activeTrack.slug]?.name ?? activeTrack.name}
             subtitle={`with ${liveTrackNames[activeTrack.slug]?.instructor ?? activeTrack.instructor} · ${activeTrack.sessionTimes.join(" & ")}`}
           />
+
+          {/* Launch readiness — only rendered near a start date. Live checks
+             so launch-morning triage is a refresh, not hand-run queries. */}
+          {launchReadiness[activeTrack.slug] && (() => {
+            const checks = launchReadiness[activeTrack.slug];
+            const redCount = checks.filter((c) => !c.ok).length;
+            return (
+              <div className="panel overflow-hidden">
+                <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-b border-rule-soft">
+                  <p className="text-micro font-semibold uppercase tracking-[0.16em] text-ink-faint">
+                    Launch readiness · starts {formatCohortDate(activeTrack.startDate, { month: "short", day: "numeric" }, "en-US")}
+                  </p>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-micro font-medium ${
+                      redCount === 0
+                        ? "bg-emerald-50 text-emerald-700"
+                        : "bg-amber-50 text-amber-800"
+                    }`}
+                  >
+                    {redCount === 0 ? "All clear" : `${redCount} need${redCount === 1 ? "s" : ""} attention`}
+                  </span>
+                </div>
+                <div className="divide-y divide-rule-soft">
+                  {checks.map((c) => (
+                    <div key={c.label} className="flex items-start gap-3 px-4 py-2.5">
+                      <span
+                        aria-hidden
+                        className={`mt-1 h-2 w-2 shrink-0 rounded-full ${c.ok ? "bg-emerald-500" : "bg-amber-500"}`}
+                      />
+                      <div className="min-w-0">
+                        <p className="text-sm text-ink">{c.label}</p>
+                        <p className="text-micro text-ink-faint">{c.detail}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Sub-tab bar within the track — the one segmented control */}
           <SegmentedTabs

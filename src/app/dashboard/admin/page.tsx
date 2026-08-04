@@ -18,6 +18,7 @@ import { buildInsightsData } from "@/lib/analytics/insights-data";
 import type { SurveyQuestion } from "@/components/survey-fields";
 import { fetchPendingPeople, type PendingPerson } from "@/lib/people-hub";
 import { getCourseEngagement, getCourseRosterStats } from "@/lib/course-engagement";
+import { getLaunchReadiness, isInLaunchWindow, type ReadinessCheck } from "@/lib/launch-readiness";
 import { resolveCurrentUnit, resolveTrackPhase, formatCohortDate } from "@/lib/utils";
 import { getEngagementAnalytics, type EngagementAnalytics } from "./actions-analytics";
 import { getCoursesAnalytics, type CoursesAnalytics } from "./actions-courses";
@@ -831,12 +832,25 @@ export default async function AdminPage({
     studentTracks = studentTracks.filter((e) => myTrackSet.has(e.track_slug));
   }
 
+  // Pre-launch checks for courses whose start date is near (2 weeks before
+  // through 2 days after). Live on every load, so launch-morning triage is one
+  // refresh instead of hand-run queries across three tools.
+  const launchReadiness: Record<string, ReadinessCheck[]> = {};
+  await Promise.all(
+    tracks
+      .filter((t) => isInLaunchWindow(t.startDate, t.startDateTbd))
+      .map(async (t) => {
+        launchReadiness[t.slug] = await getLaunchReadiness(t.slug);
+      }),
+  );
+
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-5xl space-y-6 px-4 sm:px-8 md:px-5 py-8">
       <AdminTabs
         cohorts={allCohorts}
         students={allStudents}
         tracks={tracks}
+        launchReadiness={launchReadiness}
         studentTracks={studentTracks}
         instructorTracks={instructorTracks}
         programSlug={program.slug}
