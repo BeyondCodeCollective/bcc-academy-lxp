@@ -667,6 +667,9 @@ export function AdminTabs({
     });
   }, [initialStudents]);
   const [expandedWeek, setExpandedWeek] = useState<number | null>(null);
+  // Launch-readiness accordion — collapsed by default so the checks never push
+  // the course view down; the badge in the header still shows red/green.
+  const [readinessOpen, setReadinessOpen] = useState(false);
   const [trackView, setTrackView] = useState<
     "overview" | "analytics" | "curriculum" | "students" | "surveys"
   >((initialTrackView as "overview" | "analytics" | "curriculum" | "students" | "surveys") ?? "overview");
@@ -1336,34 +1339,48 @@ export function AdminTabs({
             const redCount = checks.filter((c) => !c.ok).length;
             return (
               <div className="panel overflow-hidden">
-                <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-b border-rule-soft">
+                <button
+                  type="button"
+                  onClick={() => setReadinessOpen((v) => !v)}
+                  aria-expanded={readinessOpen}
+                  className={`flex w-full items-center justify-between gap-3 px-4 py-2.5 transition-colors hover:bg-paper-tint-soft ${readinessOpen ? "border-b border-rule-soft" : ""}`}
+                >
                   <p className="text-micro font-semibold uppercase tracking-[0.16em] text-ink-faint">
                     Launch readiness · starts {formatCohortDate(activeTrack.startDate, { month: "short", day: "numeric" }, "en-US")}
                   </p>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-micro font-medium ${
-                      redCount === 0
-                        ? "bg-emerald-50 text-emerald-700"
-                        : "bg-amber-50 text-amber-800"
-                    }`}
-                  >
-                    {redCount === 0 ? "All clear" : `${redCount} need${redCount === 1 ? "s" : ""} attention`}
+                  <span className="flex items-center gap-2">
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-micro font-medium ${
+                        redCount === 0
+                          ? "bg-emerald-50 text-emerald-700"
+                          : "bg-amber-50 text-amber-800"
+                      }`}
+                    >
+                      {redCount === 0 ? "All clear" : `${redCount} need${redCount === 1 ? "s" : ""} attention`}
+                    </span>
+                    <ChevronDown
+                      size={14}
+                      aria-hidden
+                      className={`text-ink-faint transition-transform ${readinessOpen ? "rotate-180" : ""}`}
+                    />
                   </span>
-                </div>
-                <div className="divide-y divide-rule-soft">
-                  {checks.map((c) => (
-                    <div key={c.label} className="flex items-start gap-3 px-4 py-2.5">
-                      <span
-                        aria-hidden
-                        className={`mt-1 h-2 w-2 shrink-0 rounded-full ${c.ok ? "bg-emerald-500" : "bg-amber-500"}`}
-                      />
-                      <div className="min-w-0">
-                        <p className="text-sm text-ink">{c.label}</p>
-                        <p className="text-micro text-ink-faint">{c.detail}</p>
+                </button>
+                {readinessOpen && (
+                  <div className="divide-y divide-rule-soft">
+                    {checks.map((c) => (
+                      <div key={c.label} className="flex items-start gap-3 px-4 py-2.5">
+                        <span
+                          aria-hidden
+                          className={`mt-1 h-2 w-2 shrink-0 rounded-full ${c.ok ? "bg-emerald-500" : "bg-amber-500"}`}
+                        />
+                        <div className="min-w-0">
+                          <p className="text-sm text-ink">{c.label}</p>
+                          <p className="text-micro text-ink-faint">{c.detail}</p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })()}
