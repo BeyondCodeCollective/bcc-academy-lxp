@@ -409,7 +409,16 @@ export async function applyWeeklyScheduleAction(
 
   const totalWeeks = row.total_weeks ?? 8;
   const existing = row.week_summaries ?? [];
-  const entries =
+  type ScheduleEntry = {
+    week: number;
+    topic: string;
+    icon: string;
+    date?: string;
+    label?: string;
+    time?: string;
+    durationMinutes?: number;
+  };
+  const entries: ScheduleEntry[] =
     existing.length > 0
       ? [...existing].sort((a, b) => a.week - b.week)
       : Array.from({ length: totalWeeks }, (_, i) => ({
@@ -420,17 +429,29 @@ export async function applyWeeklyScheduleAction(
 
   // Anchor at noon UTC so date math never slips a calendar day.
   const first = new Date(`${firstDate}T12:00:00Z`);
+  // Camps stamp consecutive DAILY dates (Mon–Fri); the weekly 7-day stride
+  // would silently rewrite Day 2-5 onto later weeks. If every regular unit
+  // already has a date, keep the existing day pattern (shifted so the first
+  // unit lands on firstDate) and only restamp time/duration.
+  const regular = entries.filter((e) => !("label" in e && e.label));
+  const keepPattern = regular.length > 0 && regular.every((e) => e.date);
+  const firstExisting = keepPattern
+    ? new Date(`${regular[0].date}T12:00:00Z`).getTime()
+    : 0;
   let n = 0;
   const stamped = entries.map((e) => {
     if ("label" in e && e.label) return e; // extras keep their own timing
-    const d = new Date(first.getTime() + n * 7 * 86_400_000);
+    const d = keepPattern
+      ? new Date(
+          first.getTime() + (new Date(`${e.date}T12:00:00Z`).getTime() - firstExisting),
+        )
+      : new Date(first.getTime() + n * 7 * 86_400_000);
     n += 1;
     return { ...e, date: d.toISOString().slice(0, 10), time, durationMinutes };
   });
 
-  // "Wednesdays 3:00–3:30 PM ET" — derived, so the meta line can't drift
-  // from the actual schedule.
-  const weekday = first.toLocaleDateString("en-US", { weekday: "long", timeZone: "UTC" });
+  // "Wednesdays 3:00–3:30 PM ET" (weekly) or "Mon–Fri · 3:00–3:30 PM ET"
+  // (daily camps) — derived, so the meta line can't drift from the schedule.
   const [h, m] = time.split(":").map(Number);
   const fmt = (mins: number) => {
     const hh = Math.floor(mins / 60) % 24;
@@ -439,7 +460,24 @@ export async function applyWeeklyScheduleAction(
     return `${h12}:${String(mm).padStart(2, "0")} ${hh >= 12 ? "PM" : "AM"}`;
   };
   const startMins = h * 60 + m;
-  const label = `${weekday}s ${fmt(startMins)}–${fmt(startMins + durationMinutes)} ET`;
+  const timeLabel = `${fmt(startMins)}–${fmt(startMins + durationMinutes)} ET`;
+  const stampedDates = stamped.flatMap((e) =>
+    ("label" in e && e.label) || !("date" in e) || !e.date
+      ? []
+      : [new Date(`${e.date}T12:00:00Z`)],
+  );
+  // ISO weekday indices present across the schedule (Mon=1 … Sun=7).
+  const dayIdx = [...new Set(stampedDates.map((d) => ((d.getUTCDay() + 6) % 7) + 1))].sort(
+    (a, b) => a - b,
+  );
+  const SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const contiguous = dayIdx.length > 1 && dayIdx[dayIdx.length - 1] - dayIdx[0] === dayIdx.length - 1;
+  const label =
+    dayIdx.length <= 1
+      ? `${first.toLocaleDateString("en-US", { weekday: "long", timeZone: "UTC" })}s ${timeLabel}`
+      : contiguous
+        ? `${SHORT[dayIdx[0] - 1]}–${SHORT[dayIdx[dayIdx.length - 1] - 1]} · ${timeLabel}`
+        : `${dayIdx.map((i) => SHORT[i - 1]).join(", ")} · ${timeLabel}`;
 
   const { error } = await svc
     .from("track_overrides")
