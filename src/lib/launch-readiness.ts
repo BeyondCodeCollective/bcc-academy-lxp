@@ -34,12 +34,12 @@ export async function getLaunchReadiness(trackSlug: string): Promise<ReadinessCh
       .eq("track_slug", trackSlug),
     svc
       .from("track_overrides")
-      .select("kickoff_time_utc")
+      .select("kickoff_time_utc, week_summaries")
       .eq("track_slug", trackSlug)
       .maybeSingle(),
     svc
       .from("session_content")
-      .select("week_number, meeting_link")
+      .select("week_number, meeting_link, recording_url")
       .eq("track", trackSlug),
   ]);
 
@@ -73,6 +73,28 @@ export async function getLaunchReadiness(trackSlug: string): Promise<ReadinessCh
 
   const kickoffSet = Boolean(overrideRes.data?.kickoff_time_utc);
 
+  // A recording sitting on a session that hasn't happened yet is the Endless
+  // Bootcamp Day-3 failure (2026-08-06): the week page prefers the replay and
+  // (before the rendering guardrail) hid the live Join. The guardrail protects
+  // the current day; this check makes the bad DATA visible so it gets cleaned
+  // before launch. Only live sessions count — a video on a session with no
+  // meeting link is pre-recorded lesson content, which is fine.
+  const unitDates = new Map<number, string>(
+    (
+      ((overrideRes.data?.week_summaries ?? []) as { week: number; date?: string }[])
+    ).flatMap((ws) => (ws.date ? [[ws.week, ws.date] as [number, string]] : [])),
+  );
+  const todayET = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+  const prematureRecordings = (sessionRes.data ?? []).filter((r) => {
+    const rec = ((r.recording_url as string | null) ?? "").trim();
+    const meeting = ((r.meeting_link as string | null) ?? "").trim();
+    if (!rec || !meeting) return false;
+    const unitDate = unitDates.get(r.week_number as number);
+    // No per-unit date: any recording on a live session before/at launch is
+    // suspect (the course is in its launch window when this runs).
+    return !unitDate || unitDate >= todayET;
+  });
+
   return [
     {
       label: "Everyone on the allowlist has been reached",
@@ -96,6 +118,16 @@ export async function getLaunchReadiness(trackSlug: string): Promise<ReadinessCh
         : foreignZoom
           ? "A session links a non-Zoom or partner meeting — attendance and recordings only auto-import from our Zoom account"
           : `${meetingLinks.length} session${meetingLinks.length === 1 ? "" : "s"} linked`,
+    },
+    {
+      label: "No recordings on upcoming sessions",
+      ok: prematureRecordings.length === 0,
+      detail:
+        prematureRecordings.length === 0
+          ? "Replay slots are empty until each session actually happens"
+          : `${prematureRecordings.length} session${prematureRecordings.length === 1 ? " has" : "s have"} a recording attached before happening (${prematureRecordings
+              .map((r) => `#${r.week_number}`)
+              .join(", ")}) — this hid the live Join on Endless Bootcamp Day 3; clear them in Curriculum`,
     },
     {
       label: "Kickoff time set",
