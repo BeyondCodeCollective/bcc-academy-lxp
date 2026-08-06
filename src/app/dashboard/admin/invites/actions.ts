@@ -42,7 +42,11 @@ export async function sendCohortInvites(
   // the old blanket-Catalyst fallback branded their invites as Catalyst.
   const programSlug = (await resolveHomeProgramSlug(trackSlug)) ?? "catalyst";
   // Prefer the DB-overridden program name (source of truth).
-  const programName = (await getProgramWithOverrides(programSlug)).name;
+  const homeProgram = await getProgramWithOverrides(programSlug);
+  const programName = homeProgram.name;
+  // Course name leads the invite subject — a program can run several courses
+  // at once, and program-only subjects made two different invites identical.
+  const courseName = homeProgram.tracks.find((t) => t.slug === trackSlug)?.name;
 
   const svc = createServiceClient();
 
@@ -119,7 +123,7 @@ export async function sendCohortInvites(
     processed++;
     const inviteLink = `${origin}/invite/${inv.token}`;
     try {
-      await sendInviteEmail({ to: inv.email, inviteLink, programName, programSlug });
+      await sendInviteEmail({ to: inv.email, inviteLink, programName, programSlug, courseName });
       await svc
         .from("invites")
         .update({ status: "sent", sent_at: new Date().toISOString(), error: null })
@@ -164,7 +168,9 @@ export async function sendTestInvite(
   // Builder courses live under any program (their home is on track_overrides);
   // the old blanket-Catalyst fallback branded their invites as Catalyst.
   const programSlug = (await resolveHomeProgramSlug(trackSlug)) ?? "catalyst";
-  const programName = (await getProgramWithOverrides(programSlug)).name;
+  const homeProgram = await getProgramWithOverrides(programSlug);
+  const programName = homeProgram.name;
+  const courseName = homeProgram.tracks.find((t) => t.slug === trackSlug)?.name;
 
   const svc = createServiceClient();
 
@@ -194,7 +200,7 @@ export async function sendTestInvite(
   const inviteLink = `${proto}://${host}/invite/${token}`;
 
   try {
-    await sendInviteEmail({ to: email, inviteLink, programName, programSlug });
+    await sendInviteEmail({ to: email, inviteLink, programName, programSlug, courseName });
     await svc
       .from("invites")
       .update({ status: "sent", sent_at: new Date().toISOString(), error: null })
