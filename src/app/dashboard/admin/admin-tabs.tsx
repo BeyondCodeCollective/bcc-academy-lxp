@@ -2298,8 +2298,6 @@ function PeopleTab({
     setBulkSaving(false);
   }
 
-  const studentCount = students.filter((s) => s.role === "student").length;
-  const instructorCount = students.filter((s) => s.role === "instructor").length;
 
   return (
     <div className="space-y-6">
@@ -2309,13 +2307,11 @@ function PeopleTab({
       {/* Header */}
       {(!embedded || isManager) && (
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          {!embedded && (
-            <p className="mt-0.5 text-sm text-ink-soft">
-              {studentCount} {studentCount === 1 ? "student" : "students"} · {instructorCount} {instructorCount === 1 ? "instructor" : "instructors"}
-            </p>
-          )}
-        </div>
+        {/* Program-wide totals used to render here — removed: they ignored the
+           filters below and fought the filtered counts (three unrelated
+           numbers on one screen). The summary strip by the filters is now the
+           only count, always describing the list it sits above. */}
+        <div />
         {!embedded && isManager && (
           <div className="flex flex-wrap items-center gap-2">
             {showBulkAssign ? (
@@ -2427,24 +2423,33 @@ function PeopleTab({
             <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-ink-faint" />
           </div>
         )}
-        <span className="text-xs text-ink-faint">{filtered.length} shown</span>
       </div>
 
-      {/* Pending — allowlisted/invited people with no account yet (front of
-         the pipeline), shown above the roster so every stage is in one place. */}
-      {/* Managers only — instructors can't resend or remove invites (the
-         server actions are manage_students), so the section is pure dead
-         weight and cross-track noise for them. */}
-      {isManager && (
-        <PendingPeopleSection
-          pending={filteredPending}
-          trackNames={Object.fromEntries(tracks.map((t) => [t.slug, t.shortName || t.name]))}
-        />
-      )}
+      {/* Summary strip — the ONE set of numbers on this page, always
+         describing the list below with the current filters applied. Replaces
+         the program-wide header count, "N shown", and the Pending section's
+         own count, which each measured a different population. */}
+      {(() => {
+        const joined = filtered.filter((s) => s.role === "student").length;
+        const staff = filtered.length - joined;
+        const invited = filteredPending.filter((p) => p.inviteSent).length;
+        const allowlisted = filteredPending.length - invited;
+        const parts = [
+          `${joined} joined`,
+          ...(invited > 0 ? [`${invited} invited`] : []),
+          ...(allowlisted > 0 ? [`${allowlisted} allowlisted, not yet invited`] : []),
+          ...(staff > 0 ? [`${staff} staff`] : []),
+        ];
+        return <p className="text-sm text-ink-soft">{parts.join(" · ")}</p>;
+      })()}
 
-      {/* Roster */}
+      {/* Roster — ONE list: account holders first, then pending people
+         (invited/allowlisted, no account yet) as rows in the same panel, so
+         the whole pipeline reads as a single list instead of stacked
+         sections. Pending rows are managers-only (the invite/remove actions
+         are manage_students). */}
       <div className="divide-y divide-neutral-100 overflow-hidden panel">
-        {filtered.length === 0 && (
+        {filtered.length === 0 && (!isManager || filteredPending.length === 0) && (
           <p className="p-4 text-sm text-ink-soft">No people found.</p>
         )}
         {filtered.map((s) => {
@@ -2736,6 +2741,13 @@ function PeopleTab({
             </div>
           );
         })}
+        {isManager && filteredPending.length > 0 && (
+          <PendingPeopleSection
+            inline
+            pending={filteredPending}
+            trackNames={Object.fromEntries(tracks.map((t) => [t.slug, t.shortName || t.name]))}
+          />
+        )}
       </div>
     </div>
   );
