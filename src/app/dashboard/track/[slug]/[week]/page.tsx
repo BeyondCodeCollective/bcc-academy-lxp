@@ -292,8 +292,16 @@ export default async function TrackWeekPage({
       index: i,
       session,
       parsed: meetingLinks[i] ? parseZoomLink(meetingLinks[i]!) : null,
+      // A recording's presence implies the session happened — but ONLY for
+      // past weeks. On the CURRENT unit a stray recording (seeded by course
+      // setup, or imported early) must never hide the live Join: it blocked
+      // students out of Endless Bootcamp's Presentation Day for two hours
+      // (2026-08-06). Current unit → Join stays up unless an admin explicitly
+      // marks the session completed.
       isActive:
-        sessionStatuses[i] !== "completed" && !recordingUrls[i] && !weekIsPast,
+        sessionStatuses[i] !== "completed" &&
+        !weekIsPast &&
+        (weekNum === currentWeek || !recordingUrls[i]),
     }))
     .filter((s) => s.parsed !== null && s.isActive);
 
