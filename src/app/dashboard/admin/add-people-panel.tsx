@@ -209,8 +209,16 @@ function InviteByEmail({ tracks }: { tracks: Track[] }) {
         </span>
         {confirming === "all" ? (
           <span className="ml-auto flex items-center gap-2">
+            {/* Naming the course in the confirm is the last line of defense
+               against sending a cohort's invites for the WRONG course (FPL
+               staff got MASS invites meant for Home for the Summer,
+               2026-08-06). */}
             <span className="text-xs font-semibold text-ink">
-              Email {audience?.pending ?? 0} people now?
+              Email {audience?.pending ?? 0} people an invite to{" "}
+              <span className="underline decoration-2 underline-offset-2">
+                {tracks.find((t) => t.slug === course)?.shortName ?? course}
+              </span>
+              ?
             </span>
             <button
               type="button"
@@ -255,7 +263,11 @@ function InviteByEmail({ tracks }: { tracks: Track[] }) {
         {confirming === "add" ? (
           <span className="flex items-center gap-2">
             <span className="text-xs font-semibold text-ink">
-              This emails everyone pasted above. Send now?
+              This emails everyone pasted above an invite to{" "}
+              <span className="underline decoration-2 underline-offset-2">
+                {tracks.find((t) => t.slug === course)?.shortName ?? course}
+              </span>
+              . Send now?
             </span>
             <button
               type="button"

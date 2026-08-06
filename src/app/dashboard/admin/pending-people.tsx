@@ -40,9 +40,12 @@ export function PendingPeopleSection({ pending, trackNames, inline = false }: Pr
 
   const sendAll = () => {
     if (allTracks.length === 0) return;
+    // Name the course(s) in the confirm — the last check against blasting a
+    // cohort's invites for the wrong course (FPL/MASS mix-up, 2026-08-06).
+    const courseList = allTracks.map((t) => trackNames[t] ?? t).join(", ");
     if (
       !window.confirm(
-        "Send invites to everyone on the allowlist who hasn't been invited yet?",
+        `Send invites for ${courseList} to everyone on the allowlist who hasn't been invited yet?`,
       )
     ) {
       return;
