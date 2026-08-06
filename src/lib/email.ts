@@ -117,17 +117,24 @@ The Beyond Code Team`,
 }
 
 /** Default invite copy for any program without a campaign-specific template. */
-function genericInvite(programName: string, inviteLink: string): InviteEmailContent {
+function genericInvite(
+  title: string,
+  inviteLink: string,
+  brandName?: string,
+): InviteEmailContent {
+  // `title` is the course name when known (a program can run several courses
+  // at once, and course-less subjects made two different invites identical);
+  // `brandName` keeps the email shell branded with the program.
   return {
-    subject: `You're invited to ${programName}`,
-    text: `Welcome to ${programName}.
+    subject: `You're invited to ${title}`,
+    text: `Welcome to ${title}.
 
 Your spot is ready. Open your dashboard — no password needed:
 
 ${inviteLink}
 
 If you didn't expect this, you can ignore it. Questions? Email info@bccacademy.io.`,
-    html: inviteShell(programName, `    <p style="margin:0 0 8px;font-size:22px;font-weight:700;color:#1a1a1a;">Welcome to ${programName}.</p>
+    html: inviteShell(brandName ?? title, `    <p style="margin:0 0 8px;font-size:22px;font-weight:700;color:#1a1a1a;">Welcome to ${title}.</p>
     <p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:#555;">Your spot is ready. Click the button below to open your dashboard — no password needed.</p>
     ${ctaButton(inviteLink, "Get started →")}
     <p style="margin:0;font-size:12px;color:#999;line-height:1.5;">If you didn't expect this, you can ignore it. Questions? Reply here or email <a href="mailto:info@bccacademy.io" style="color:#1a1a1a;">info@bccacademy.io</a>.</p>`),
@@ -139,6 +146,7 @@ export async function sendInviteEmail({
   inviteLink,
   programName,
   programSlug,
+  courseName,
 }: {
   to: string;
   inviteLink: string;
@@ -146,6 +154,10 @@ export async function sendInviteEmail({
   /** Selects campaign-specific copy. Forte = Upskill Bahamas summer template;
    *  anything else falls back to the generic invite. */
   programSlug?: string;
+  /** Course display name. Programs can run several courses at once (two
+   *  Catalyst invites looked IDENTICAL — one was for the wrong course and
+   *  nobody could tell), so the course leads the subject when known. */
+  courseName?: string;
 }): Promise<void> {
   if (!resend) {
     console.warn("[email] RESEND_API_KEY not set — skipping invite email");
@@ -154,7 +166,7 @@ export async function sendInviteEmail({
   const content =
     programSlug === "forte"
       ? forteSummerInvite(programName, inviteLink)
-      : genericInvite(programName, inviteLink);
+      : genericInvite(courseName ? `${courseName}` : programName, inviteLink, programName);
 
   const { error } = await resend.emails.send({
     from: FROM_ADDRESS,
