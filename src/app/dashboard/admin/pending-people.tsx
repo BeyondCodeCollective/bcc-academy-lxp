@@ -14,12 +14,15 @@ type Props = {
   pending: PendingPerson[];
   /** track slug → display name. */
   trackNames: Record<string, string>;
+  /** Render as bare rows (no section header/panel) for embedding inside the
+   *  roster list, so pending people read as part of ONE list. */
+  inline?: boolean;
 };
 
 // People who are allowlisted or invited for the program but don't have an
 // account yet — the front of the pipeline, shown above the roster so admins see
 // everyone at every stage in one place. Per-row Send invite / Resend.
-export function PendingPeopleSection({ pending, trackNames }: Props) {
+export function PendingPeopleSection({ pending, trackNames, inline = false }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [state, setState] = useState<Record<string, "sending" | "sent" | "error">>({});
@@ -108,47 +111,33 @@ export function PendingPeopleSection({ pending, trackNames }: Props) {
   // got contacted and nothing flagged it. Surface it loudly.
   const neverInvited = pending.filter((p) => p.status === "allowlisted").length;
 
-  return (
-    <section className="space-y-2">
-      {neverInvited > 0 && (
-        <div className="flex items-center justify-between gap-3 rounded-lg bg-amber-50 px-4 py-3">
-          <p className="text-sm text-amber-800">
-            <span className="font-semibold">{neverInvited}</span>{" "}
-            {neverInvited === 1 ? "person is" : "people are"} on the allowlist
-            but {neverInvited === 1 ? "has" : "have"} never been sent an invite.
-          </p>
-          <button
-            type="button"
-            onClick={sendAll}
-            disabled={isPending}
-            className={buttonClass("secondary", "sm")}
-          >
-            {sendingAll ? <Loader2 size={12} className="animate-spin" /> : null}
-            {sendingAll ? "Sending…" : `Send ${neverInvited === 1 ? "invite" : "invites"}`}
-          </button>
-        </div>
-      )}
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-micro font-semibold uppercase tracking-[0.16em] text-ink-faint">
-          Pending — invited or allowlisted, no account yet ({pending.length})
-        </p>
-        <button
-          type="button"
-          onClick={sendAll}
-          disabled={isPending || allTracks.length === 0}
-          // Secondary on purpose: "Add people" is this screen's ONE primary
-          // action; a second cobalt button at a different weight reads as two
-          // competing calls-to-action.
-          className={buttonClass("secondary", "sm")}
-        >
-          {sendingAll ? <Loader2 size={12} className="animate-spin" /> : null}
-          {sendingAll ? "Sending…" : "Send all invites"}
-        </button>
-      </div>
-      {allResult && <p className="text-xs text-ink-soft">{allResult}</p>}
-      {removeError && <p className="text-xs text-red-600">{removeError}</p>}
-      <div className="divide-y divide-rule-soft overflow-hidden panel">
-        {pending.map((p) => {
+  const banner = neverInvited > 0 && (
+    <div className={`flex items-center justify-between gap-3 bg-amber-50 px-4 py-3 ${inline ? "" : "rounded-lg"}`}>
+      <p className="text-sm text-amber-800">
+        <span className="font-semibold">{neverInvited}</span>{" "}
+        {neverInvited === 1 ? "person is" : "people are"} on the allowlist
+        but {neverInvited === 1 ? "has" : "have"} never been sent an invite.
+      </p>
+      <button
+        type="button"
+        onClick={sendAll}
+        disabled={isPending}
+        className={buttonClass("secondary", "sm")}
+      >
+        {sendingAll ? <Loader2 size={12} className="animate-spin" /> : null}
+        {sendingAll ? "Sending…" : `Send ${neverInvited === 1 ? "invite" : "invites"}`}
+      </button>
+    </div>
+  );
+
+  const feedback = (
+    <>
+      {allResult && <p className="px-4 py-1 text-xs text-ink-soft">{allResult}</p>}
+      {removeError && <p className="px-4 py-1 text-xs text-red-600">{removeError}</p>}
+    </>
+  );
+
+  const rows = pending.map((p) => {
           const st = state[p.email];
           const trackSlug = p.trackSlugs[0];
           const trackLabel = p.trackSlugs.map((s) => trackNames[s] ?? s).join(", ");
@@ -188,20 +177,56 @@ export function PendingPeopleSection({ pending, trackNames }: Props) {
               </button>
             </div>
           );
-        })}
-      </div>
+        });
 
-      {undo && (
-        <UndoBar
-          message={`Removed ${undo.email} from the allowlist.`}
-          onUndo={async () => {
-            const r = await restorePendingPerson(undo.email, undo.trackSlugs);
-            if (!r.ok) throw new Error(r.error ?? "unknown error");
-            router.refresh();
-          }}
-          onDismiss={() => setUndo(null)}
-        />
-      )}
+  const undoBar = undo && (
+    <UndoBar
+      message={`Removed ${undo.email} from the allowlist.`}
+      onUndo={async () => {
+        const r = await restorePendingPerson(undo.email, undo.trackSlugs);
+        if (!r.ok) throw new Error(r.error ?? "unknown error");
+        router.refresh();
+      }}
+      onDismiss={() => setUndo(null)}
+    />
+  );
+
+  // Inline: bare rows for embedding in the roster panel — pending people are
+  // part of ONE list, not a separate section with its own count.
+  if (inline) {
+    return (
+      <>
+        {banner}
+        {feedback}
+        {rows}
+        {undoBar}
+      </>
+    );
+  }
+
+  return (
+    <section className="space-y-2">
+      {banner}
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-micro font-semibold uppercase tracking-[0.16em] text-ink-faint">
+          Pending — invited or allowlisted, no account yet ({pending.length})
+        </p>
+        <button
+          type="button"
+          onClick={sendAll}
+          disabled={isPending || allTracks.length === 0}
+          // Secondary on purpose: "Add people" is this screen's ONE primary
+          // action; a second cobalt button at a different weight reads as two
+          // competing calls-to-action.
+          className={buttonClass("secondary", "sm")}
+        >
+          {sendingAll ? <Loader2 size={12} className="animate-spin" /> : null}
+          {sendingAll ? "Sending…" : "Send all invites"}
+        </button>
+      </div>
+      {feedback}
+      <div className="divide-y divide-rule-soft overflow-hidden panel">{rows}</div>
+      {undoBar}
     </section>
   );
 }
