@@ -44,6 +44,48 @@ async function trackHomeProgramId(
   return data?.program_id ?? null;
 }
 
+/**
+ * Name a brand-new account from an application this email already submitted
+ * (public application/survey forms). They told us their name once — don't
+ * greet them with a blank roster row and a "what's your name" overlay.
+ * Returns empty strings when no application matches; the upsert then behaves
+ * exactly as before (name captured by the dashboard overlay).
+ */
+async function applicationName(
+  admin: ReturnType<typeof createServiceClient>,
+  email: string,
+): Promise<{ first_name: string; last_name: string }> {
+  const empty = { first_name: "", last_name: "" };
+  try {
+    const { data } = await admin
+      .from("public_survey_responses")
+      .select("responses")
+      .or(`email.ilike.${email},responses->>email.ilike.${email}`)
+      .order("created_at", { ascending: false })
+      .limit(5);
+    for (const row of data ?? []) {
+      const r = (row.responses ?? {}) as Record<string, unknown>;
+      const first = typeof r.first_name === "string" ? r.first_name.trim() : "";
+      const last = typeof r.last_name === "string" ? r.last_name.trim() : "";
+      if (first || last) return { first_name: first, last_name: last };
+      const full =
+        (typeof r.full_name === "string" && r.full_name.trim()) ||
+        (typeof r.name === "string" && r.name.trim()) ||
+        "";
+      if (full) {
+        const parts = full.split(/\s+/);
+        return {
+          first_name: parts[0],
+          last_name: parts.slice(1).join(" "),
+        };
+      }
+    }
+  } catch (e) {
+    console.error("[auth/callback] applicationName lookup failed:", e);
+  }
+  return empty;
+}
+
 // Magic-link landing. Pin to iad1 only: Supabase is in Virginia (us-east-1),
 // co-located with iad1, so DB round-trips are sub-millisecond from this region.
 // The callback still issues 3–5 sequential round-trips (auth token exchange +
@@ -368,12 +410,15 @@ export async function GET(request: Request) {
         // learner's home is where their course lives, not where they clicked.
         const trackProgramId =
           !existing && trackParam ? await trackHomeProgramId(admin, trackParam) : null;
+        const appName = existing
+          ? { first_name: "", last_name: "" }
+          : await applicationName(admin, email);
         await admin.from("students").upsert(
           {
             id: user.id,
             email: user.email,
-            first_name: "",
-            last_name: "",
+            first_name: appName.first_name,
+            last_name: appName.last_name,
             role: determineRole(email),
             is_staff: await resolveIsStaff(email),
             cohort_id: null,
@@ -494,12 +539,14 @@ export async function GET(request: Request) {
       const pinnedTrackProgramId = trackParam
         ? await trackHomeProgramId(admin, trackParam)
         : null;
+      // ignoreDuplicates below means the name only lands on brand-new rows.
+      const pinnedAppName = await applicationName(admin, email);
       await admin.from("students").upsert(
         {
           id: user.id,
           email: user.email,
-          first_name: "",
-          last_name: "",
+          first_name: pinnedAppName.first_name,
+          last_name: pinnedAppName.last_name,
           role: determineRole(email),
           is_staff: await resolveIsStaff(email),
           cohort_id: null,

@@ -2241,10 +2241,6 @@ function PeopleTab({
   const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
   const [bulkSaving, setBulkSaving] = useState(false);
   // Inline "New group" form — student row edit panel
-  const [showNewGroupFormRow, setShowNewGroupFormRow] = useState<string | null>(null); // student id
-  const [newGroupTrackRow, setNewGroupTrackRow] = useState("");
-  const [newGroupNameRow, setNewGroupNameRow] = useState("");
-  const [newGroupSavingRow, setNewGroupSavingRow] = useState(false);
 
   const router = useRouter();
 
@@ -2613,94 +2609,11 @@ function PeopleTab({
                         <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-ink-faint" />
                       </div>
                     </div>
-                    {cohorts.length > 0 && s.role === "student" && (
-                      <div>
-                        <label className="text-micro font-medium uppercase tracking-wide text-ink-soft">
-                          Group
-                        </label>
-                        <div className="relative mt-1">
-                          <select
-                            value={s.cohort_id ?? ""}
-                            disabled={studentSaving === s.id}
-                            onChange={(e) => onUpdateStudent(s.id, "cohort_id", e.target.value)}
-                            className="appearance-none border border-rule bg-white pl-3 pr-7 py-2 text-xs font-medium text-ink focus:border-ink-faint disabled:opacity-60"
-                          >
-                            <option value="">No group</option>
-                            {cohorts.map((c) => (
-                              <option key={c.id} value={c.id}>
-                                {c.track_slug ? `${trackLabel(c.track_slug)} — ` : ""}{c.display_name || c.name}
-                              </option>
-                            ))}
-                          </select>
-                          <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-ink-faint" />
-                        </div>
-                        {showNewGroupFormRow !== s.id ? (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const slugs = getStudentTrackSlugs(s.id);
-                              setNewGroupTrackRow(slugs.length === 1 ? slugs[0] : "");
-                              setNewGroupNameRow("");
-                              setShowNewGroupFormRow(s.id);
-                            }}
-                            className="mt-1 text-micro text-ink-faint hover:text-ink-soft transition-colors"
-                          >
-                            + New group
-                          </button>
-                        ) : (
-                          <div className="mt-2 flex flex-wrap items-center gap-2">
-                            <select
-                              value={newGroupTrackRow}
-                              onChange={(e) => setNewGroupTrackRow(e.target.value)}
-                              className="border border-rule bg-neutral-50 pl-3 pr-2 py-1.5 text-xs text-ink focus:border-ink-faint"
-                            >
-                              <option value="">— select track —</option>
-                              {tracks.map((t) => (
-                                <option key={t.slug} value={t.slug}>{t.shortName || t.name}</option>
-                              ))}
-                            </select>
-                            <input
-                              type="text"
-                              value={newGroupNameRow}
-                              onChange={(e) => setNewGroupNameRow(e.target.value)}
-                              placeholder="e.g. Security+ · Cohort 1"
-                              className="border border-rule bg-neutral-50 pl-3 py-1.5 text-xs text-ink focus:border-ink-faint"
-                            />
-                            <button
-                              type="button"
-                              disabled={newGroupSavingRow || !newGroupTrackRow || !newGroupNameRow.trim()}
-                              onClick={async () => {
-                                setNewGroupSavingRow(true);
-                                try {
-                                  await createCohortAction({
-                                    track_slug: newGroupTrackRow,
-                                    display_name: newGroupNameRow.trim(),
-                                    start_date: null,
-                                    total_weeks: null,
-                                  });
-                                  setShowNewGroupFormRow(null);
-                                  setNewGroupTrackRow("");
-                                  setNewGroupNameRow("");
-                                  router.refresh();
-                                } finally {
-                                  setNewGroupSavingRow(false);
-                                }
-                              }}
-                              className={buttonClass("primary", "sm")}
-                            >
-                              {newGroupSavingRow ? "…" : "Create"}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => { setShowNewGroupFormRow(null); setNewGroupTrackRow(""); setNewGroupNameRow(""); }}
-                              className="text-micro text-ink-faint hover:text-ink-soft transition-colors"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                    {/* The Group (cohort) selector used to render here. Removed
+                       2026-08-06: enrollment lives in the Tracks chips below;
+                       the cohort dropdown only surfaced stale spring-era rows
+                       and confused course-based programs. cohort_id data is
+                       untouched (auto-assignment at signup still works). */}
                   </div>
 
                   {/* Track chips — every track is rendered; the filled "✓"
