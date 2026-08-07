@@ -389,8 +389,17 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
         [...enrolledSlugs, ...allowlistSlugs],
         program.tracks,
       );
+      // Candidate surveys come from the learner's enrolled courses' HOME
+      // programs, not just the browsing program — the apex resolves to
+      // `marketing` (no surveys), which made every course-registered survey
+      // invisible here and let the generic intake win (2026-08-07).
+      const { getProgramBySlug: programBySlugForSurveys } = await import("@/lib/programs");
+      const candidateSurveys = [
+        ...(program.surveys ?? []),
+        ...[...homePrograms].flatMap((s) => programBySlugForSurveys(s).surveys ?? []),
+      ].filter((s, i, all) => all.findIndex((x) => x.id === s.id) === i);
       const requiredSurvey = !isStaff
-        ? program.surveys?.find(
+        ? candidateSurveys.find(
             (s) =>
               s.required &&
               surveyAppliesToPrograms(s.appliesToPrograms, homePrograms) &&
@@ -409,12 +418,10 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
           (enrolledRes as { slug: string }[]).map((t) => t.slug),
         ));
 
-      if (surveyEnabled && !intakeRes.data) {
-        redirect(`/dashboard/survey/${BCC_INTAKE_SURVEY_ID}`);
-      }
       // Required cohort surveys are OPT-IN too — only fire when the program/track
-      // has survey_enabled toggled on (admin Tools/Features page). Off by default;
-      // no more hardcoded auto-survey for new users.
+      // has survey_enabled toggled on (admin Tools/Features page). A course's
+      // own survey outranks the generic intake, and a learner with ANY
+      // applicable course survey never sees the intake at all.
       if (requiredSurvey && surveyEnabled) {
         const { data: surveyDone } = await supabase
           .from("survey_responses")
@@ -424,6 +431,9 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
           .not("completed_at", "is", null)
           .maybeSingle();
         if (!surveyDone) redirect(`/dashboard/survey/${requiredSurvey.id}`);
+      }
+      if (surveyEnabled && !requiredSurvey && !intakeRes.data) {
+        redirect(`/dashboard/survey/${BCC_INTAKE_SURVEY_ID}`);
       }
       if (needsEnrollment) {
         enrolledTrackSlugs = enrolledRes.map((t) => t.slug);
