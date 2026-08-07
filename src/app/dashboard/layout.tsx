@@ -348,6 +348,26 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
           : Promise.resolve({ data: [] }),
       ]);
 
+      // Self-heal: an enrolled learner in the MARKETING context (apex login
+      // with no program cookies — e.g. a fresh bccacademy.io/login without a
+      // join link) gets a trackless shell: empty sidebar, no log out, no
+      // accessibility controls (2026-08-07). Route them through
+      // switch-program, which repoints the program cookie at their course's
+      // home program and returns them to a working dashboard.
+      if (program.slug === "marketing") {
+        const { data: anyEnrollment } = await createServiceClient()
+          .from("student_tracks")
+          .select("track_slug")
+          .eq("student_id", ctx.userId)
+          .limit(1)
+          .maybeSingle();
+        if (anyEnrollment?.track_slug) {
+          redirect(
+            `/dashboard/switch-program?track=${encodeURIComponent(anyEnrollment.track_slug)}`,
+          );
+        }
+      }
+
       // Build the set of home programs from enrolled tracks + allowlist so
       // surveys with skipForPrograms: ['forte'] are suppressed for Forte
       // students regardless of which program dashboard they landed on.

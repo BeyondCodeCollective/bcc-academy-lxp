@@ -314,6 +314,15 @@ export default async function TrackWeekPage({
     const graceMs = 30 * 60_000;
     return now.getTime() > start + durationMs + graceMs;
   })();
+  // Mirror gate for the other direction: a dated session must not offer a
+  // live join BEFORE its calendar day either. Monday's Day 1 rendered
+  // "LIVE NOW · Connecting…" on the Friday before (2026-08-07) — a spinner
+  // pretending a future class is live.
+  const sessionDayFuture = (() => {
+    if (!weekClock?.date) return false;
+    const todayET = now.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+    return weekClock.date > todayET;
+  })();
   const zoomSessions = weekContent.sessions
     .map((session, i) => ({
       index: i,
@@ -329,6 +338,7 @@ export default async function TrackWeekPage({
         sessionStatuses[i] !== "completed" &&
         !weekIsPast &&
         !sessionWindowPassed &&
+        !sessionDayFuture &&
         (weekNum === currentWeek || !recordingUrls[i]),
     }))
     .filter((s) => s.parsed !== null && s.isActive);
@@ -453,6 +463,7 @@ export default async function TrackWeekPage({
         sessionStatuses[0] !== "completed" &&
         !weekIsPast &&
         !sessionWindowPassed &&
+        !sessionDayFuture &&
         (weekNum === currentWeek || !recordingUrls[0]) && (
           <div className="mb-8 flex flex-wrap items-center justify-between gap-3 panel px-4 py-4">
             <div>
