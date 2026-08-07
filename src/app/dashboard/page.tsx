@@ -123,6 +123,9 @@ async function DashboardContent({
   let enrolledTrackSlugs: string[] = [];
   let learnerProgress: MyProgressCardProps | null = null;
   let pendingSurveys: { id: string; title: string; description: string }[] = [];
+  // True when the learner's program defines a required course survey for them
+  // (completed or not) — such learners never see the generic intake.
+  let hasCourseSurvey = false;
   let assessmentEnabled = false;
   let activeAnnouncements: { id: string; message: string; track_slug: string | null; created_at: string }[] = [];
   let assessmentCompleted = false;
@@ -259,15 +262,11 @@ async function DashboardContent({
 
         // Intake survey is OPT-IN — only fires when toggled on for this program
         // or one of the learner's tracks (admin Features page), same as the
-        // pathway assessment. Off by default.
+        // pathway assessment. Off by default. The redirect itself happens
+        // BELOW, after cohort surveys: a course's own required survey (e.g.
+        // the HFS pre-survey) outranks the generic intake — firing intake
+        // first stacked two surveys onto a student's first login (2026-08-07).
         const surveyEnabled = await isSurveyEnabledForLearner(program.slug, enrolledTrackSlugs);
-        if (
-          !isStaff &&
-          surveyEnabled &&
-          !completedTypes.has(BCC_INTAKE_SURVEY_ID)
-        ) {
-          redirect(`/dashboard/survey/${BCC_INTAKE_SURVEY_ID}`);
-        }
 
         if (!isStaff && program.surveys?.length) {
           const { getHomeProgramForTrack } = await import("@/lib/programs");
@@ -315,17 +314,22 @@ async function DashboardContent({
             program.tracks,
           );
 
-          pendingSurveys = program.surveys
-            .filter((s) => {
-              if (!s.required || completedTypes.has(s.id)) return false;
-              // Allowlist first: a survey that names its programs is only ever
-              // for those learners, whatever the skip lists say.
-              if (!surveyAppliesToPrograms(s.appliesToPrograms, enrolledHomePrograms)) return false;
-              if (!surveyAppliesToTracks(s.appliesToTracks, surveyTrackSlugs)) return false;
-              if (s.skipForPrograms?.some((p) => enrolledHomePrograms.has(p))) return false;
-              if (surveySkippedForTracks(s.skipForTracks, surveyTrackSlugs)) return false;
-              return true;
-            })
+          const applicableRequired = program.surveys.filter((s) => {
+            if (!s.required) return false;
+            // Allowlist first: a survey that names its programs is only ever
+            // for those learners, whatever the skip lists say.
+            if (!surveyAppliesToPrograms(s.appliesToPrograms, enrolledHomePrograms)) return false;
+            if (!surveyAppliesToTracks(s.appliesToTracks, surveyTrackSlugs)) return false;
+            if (s.skipForPrograms?.some((p) => enrolledHomePrograms.has(p))) return false;
+            if (surveySkippedForTracks(s.skipForTracks, surveyTrackSlugs)) return false;
+            return true;
+          });
+          // A learner whose program defines ANY required survey for them never
+          // gets the generic intake — completed or not, the course's own
+          // instrument owns their survey moment.
+          hasCourseSurvey = applicableRequired.length > 0;
+          pendingSurveys = applicableRequired
+            .filter((s) => !completedTypes.has(s.id))
             .map((s) => ({ id: s.id, title: s.title, description: s.description }));
 
           // Opt-in: only auto-redirect to a required cohort survey when the
@@ -333,6 +337,18 @@ async function DashboardContent({
           if (pendingSurveys.length > 0 && surveyEnabled) {
             redirect(`/dashboard/survey/${pendingSurveys[0].id}`);
           }
+        }
+
+        // Generic intake only for learners whose program defines NO required
+        // course survey for them (see the ordering note above) — a course with
+        // its own instrument owns the survey moment entirely.
+        if (
+          !isStaff &&
+          surveyEnabled &&
+          !completedTypes.has(BCC_INTAKE_SURVEY_ID) &&
+          !hasCourseSurvey
+        ) {
+          redirect(`/dashboard/survey/${BCC_INTAKE_SURVEY_ID}`);
         }
 
         // Assessment onboarding prompt — check program OR track-level flag
