@@ -287,6 +287,33 @@ export default async function TrackWeekPage({
   // calendar date to compare; `weekNum < currentWeek` is the date signal the
   // track config actually supports.
   const weekIsPast = trackStarted && weekNum < currentWeek;
+  // When the unit carries a real clock window (date + time + duration from the
+  // schedule editor), use it: once the session is over — plus a 30-minute
+  // grace for overruns — stop offering the live join even on the CURRENT
+  // unit. The welcome-day pages showed "LIVE NOW · Connecting…" all afternoon
+  // after the session ended (2026-08-07), which read as broken and buried the
+  // replay. Units without a clock keep the existing week-based behavior.
+  const weekClock = track.weekSummaries.find((ws) => ws.week === weekNum);
+  const sessionWindowPassed = (() => {
+    if (!weekClock?.date || !weekClock.time) return false;
+    const [h, m] = weekClock.time.split(":").map(Number);
+    if (!Number.isFinite(h) || !Number.isFinite(m)) return false;
+    // ET wall clock → instant: derive the UTC offset for that calendar day.
+    const noonUtc = new Date(`${weekClock.date}T12:00:00Z`);
+    const etHourAtNoonUtc = Number(
+      new Intl.DateTimeFormat("en-US", {
+        timeZone: "America/New_York",
+        hour: "numeric",
+        hour12: false,
+      }).format(noonUtc),
+    );
+    const offsetHours = 12 - etHourAtNoonUtc; // 4 during EDT, 5 during EST
+    const [y, mo, d] = weekClock.date.split("-").map(Number);
+    const start = Date.UTC(y, mo - 1, d, h + offsetHours, m);
+    const durationMs = (weekClock.durationMinutes ?? 90) * 60_000;
+    const graceMs = 30 * 60_000;
+    return now.getTime() > start + durationMs + graceMs;
+  })();
   const zoomSessions = weekContent.sessions
     .map((session, i) => ({
       index: i,
@@ -301,6 +328,7 @@ export default async function TrackWeekPage({
       isActive:
         sessionStatuses[i] !== "completed" &&
         !weekIsPast &&
+        !sessionWindowPassed &&
         (weekNum === currentWeek || !recordingUrls[i]),
     }))
     .filter((s) => s.parsed !== null && s.isActive);
@@ -430,7 +458,8 @@ export default async function TrackWeekPage({
               // Meet link for a class held two weeks ago.
               const action = sessionStatuses[i] === "completed" ||
                 recordingUrls[i] ||
-                weekIsPast ? (
+                weekIsPast ||
+                sessionWindowPassed ? (
                 <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
                   <CheckCircle size={14} />
                   Session Ended
