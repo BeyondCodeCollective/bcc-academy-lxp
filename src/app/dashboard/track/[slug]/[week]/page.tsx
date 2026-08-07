@@ -394,41 +394,23 @@ export default async function TrackWeekPage({
       {zoomSessions.length > 0 && (
         <div className="mb-8 space-y-6">
           {zoomSessions.map(({ index, session, parsed }) => (
-            <div key={index}>
-              <ZoomEmbed
-                meetingNumber={parsed!.meetingNumber}
-                password={parsed!.password}
-                userName={zoomUserName}
-                userEmail={zoomUserEmail}
-                trackSlug={trackSlug}
-                weekNumber={weekNum}
-                sessionNumber={index + 1}
-                // Single-session weeks: the week title sits directly above the
-                // embed, so repeating it next to LIVE NOW reads as clutter.
-                sessionTitle={
-                  weekContent.sessions.length > 1
-                    ? `Session ${index + 1}: ${session.title}`
-                    : undefined
-                }
-              />
-              {/* Escape hatch for restrictive networks. Corporate SSL
-                 inspection resets the embedded SDK's websocket, so people on
-                 those networks get kicked repeatedly (NextEra/FPL staff,
-                 2026-08-07) — while the Zoom app itself survives the same
-                 network fine. Always offer the way out. */}
-              <p className="mt-2 text-xs text-ink-faint">
-                Connection dropping?{" "}
-                <a
-                  href={`https://zoom.us/j/${parsed!.meetingNumber}${parsed!.password ? `?pwd=${encodeURIComponent(parsed!.password)}` : ""}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-medium text-ink underline underline-offset-2 hover:text-ink-soft"
-                >
-                  Open this session in the Zoom app
-                </a>{" "}
-                — it handles strict work networks better.
-              </p>
-            </div>
+            <ZoomEmbed
+              key={index}
+              meetingNumber={parsed!.meetingNumber}
+              password={parsed!.password}
+              userName={zoomUserName}
+              userEmail={zoomUserEmail}
+              trackSlug={trackSlug}
+              weekNumber={weekNum}
+              sessionNumber={index + 1}
+              // Single-session weeks: the week title sits directly above the
+              // embed, so repeating it next to LIVE NOW reads as clutter.
+              sessionTitle={
+                weekContent.sessions.length > 1
+                  ? `Session ${index + 1}: ${session.title}`
+                  : undefined
+              }
+            />
           ))}
         </div>
       )}
