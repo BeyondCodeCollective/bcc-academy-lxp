@@ -25,7 +25,7 @@ import { getEnrolledTracks } from "@/lib/enrollment";
 import { getHiddenTrackSlugs } from "@/lib/programs/hidden";
 import { getLearnerAccess } from "@/lib/auth/active-enrollment";
 import { getEnforcedOnboardingChecklist, getOnboardingStatus } from "@/lib/onboarding/checklists";
-import { BCC_INTAKE_SURVEY_ID, surveySkippedForTracks, surveyAppliesToPrograms } from "@/lib/surveys/platform";
+import { BCC_INTAKE_SURVEY_ID, surveySkippedForTracks, surveyAppliesToPrograms, surveyAppliesToTracks } from "@/lib/surveys/platform";
 import { collapseCompanionSlugs } from "@/lib/enrollment";
 import { isSurveyEnabledForLearner } from "@/lib/surveys/features";
 import { isStaffResolved } from "@/lib/auth/staff";
@@ -394,6 +394,7 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
             (s) =>
               s.required &&
               surveyAppliesToPrograms(s.appliesToPrograms, homePrograms) &&
+              surveyAppliesToTracks(s.appliesToTracks, surveyTrackSlugs) &&
               !s.skipForPrograms?.some((p) => homePrograms.has(p)) &&
               !surveySkippedForTracks(s.skipForTracks, surveyTrackSlugs),
           )

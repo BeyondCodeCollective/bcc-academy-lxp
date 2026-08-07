@@ -299,6 +299,11 @@ export type SurveyConfig = {
    * Adding a course can then never leak a survey it has nothing to do with.
    */
   appliesToPrograms?: string[];
+  /** Track-slug allowlist: only learners enrolled in one of these courses are
+   *  offered the survey. Same rationale as appliesToPrograms, one level finer —
+   *  a course-specific survey (Home for the Summer's pre-survey) must not go to
+   *  every other course in the same program. */
+  appliesToTracks?: string[];
   /** Track slugs that opt OUT of this survey. A learner skips the survey when
    *  every course they're enrolled in is on this list — e.g. an event/workshop
    *  course (Game On) whose registrants land on a holding page, not a cohort

@@ -28,7 +28,7 @@ import { MyProgressCard, type MyProgressCardProps } from "@/components/my-progre
 import { AnnouncementBanner } from "@/components/announcement-banner";
 import { getLearnerProgress } from "@/lib/learner-progress";
 import { PageHeader } from "@/components/page-header";
-import { BCC_INTAKE_SURVEY_ID, surveySkippedForTracks, surveyAppliesToPrograms } from "@/lib/surveys/platform";
+import { BCC_INTAKE_SURVEY_ID, surveySkippedForTracks, surveyAppliesToPrograms, surveyAppliesToTracks } from "@/lib/surveys/platform";
 import { isSurveyEnabledForLearner } from "@/lib/surveys/features";
 import { isStaffEmail } from "@/lib/auth/admins";
 import { completePendingSetup } from "@/lib/auth/deferred-setup";
@@ -321,6 +321,7 @@ async function DashboardContent({
               // Allowlist first: a survey that names its programs is only ever
               // for those learners, whatever the skip lists say.
               if (!surveyAppliesToPrograms(s.appliesToPrograms, enrolledHomePrograms)) return false;
+              if (!surveyAppliesToTracks(s.appliesToTracks, surveyTrackSlugs)) return false;
               if (s.skipForPrograms?.some((p) => enrolledHomePrograms.has(p))) return false;
               if (surveySkippedForTracks(s.skipForTracks, surveyTrackSlugs)) return false;
               return true;

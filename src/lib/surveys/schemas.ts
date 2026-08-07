@@ -1156,6 +1156,217 @@ const SECURITY_PLUS_MIDPOINT: SurveyQuestion[] = [
   },
 ];
 
+// ─── hfs-pre-survey (Home for the Summer auth pre-survey) ────────────────────
+// From the program team's doc (2026-08-07). Name/email are omitted — this is
+// an authenticated survey, identity comes from the account. The Likert
+// batteries are exported so the end-of-week survey can reuse them
+// statement-for-statement and keep pre→post deltas honest.
+
+export const HFS_WORK_READINESS_STATEMENTS = [
+  "I understand how a professional workplace is different from a classroom.",
+  "I know what remote and hybrid work look like day to day.",
+  "I understand what asynchronous communication means (self-paced) as compared to synchronous (at a set time) and when to use it.",
+  "I know what a good message to a manager or teammate looks like.",
+  "I feel ready to step into a professional environment.",
+];
+
+export const HFS_TOOLS_STATEMENTS = [
+  "Project and task management tools (Asana, Notion, Trello)",
+  "File sharing and documents (Google Workspace, Microsoft 365)",
+  "Team chat tools (Slack, Microsoft Teams, Google Chat)",
+  "Video and async video (Zoom, Loom, Microsoft Teams)",
+  "Shared calendars and scheduling",
+];
+
+export const HFS_AI_AT_WORK_STATEMENTS = [
+  "I understand what AI tools can and cannot do.",
+  "I know how to write a prompt that gets me a useful answer.",
+  "I can tell when an AI answer is wrong or needs checking.",
+  "I know when to use AI at work and when to use my own judgment.",
+  "I feel comfortable using AI tools in a professional setting.",
+];
+
+export const HFS_PRESENCE_STATEMENTS = [
+  "I can introduce myself professionally in about 60 seconds.",
+  "My LinkedIn profile shows who I am and what I am working toward.",
+  "I feel confident in a job or internship interview.",
+  "I know how to ask a manager a good question.",
+  "I know how to speak up for myself at work.",
+  "I feel ready to interview for an internship or an entry-level role.",
+];
+
+export const HFS_MINDSET_STATEMENTS = [
+  "Clarity — I can describe the kind of work I want to do.",
+  "Clarity — I can tell my story: who I am, what I have done, where I am going.",
+  "Courage — I would reach out to someone I do not know to ask for advice.",
+  "Courage — When something is hard, I stay with it instead of quitting.",
+  "Confidence — I can talk about my strengths without playing them down.",
+  "Confidence — I believe I belong in the career I am working toward.",
+];
+
+const AGREE_ANCHORS = { low: "1 — Strongly disagree", high: "5 — Strongly agree" };
+
+const HFS_PRE_SURVEY: SurveyQuestion[] = [
+  {
+    type: "consent",
+    id: "consent_participate",
+    label: "Before you start",
+    text: "This is not a test. We want to learn where you are right now — what you already know, what you are unsure about, and what you want out of this week. There are no right or wrong answers.",
+    bullets: [
+      "Your answers stay private.",
+      "We use them only to improve the program and to show our impact to the funders who make it possible.",
+      "We report results as group numbers only — never tied to your name.",
+      "You can skip any optional question. It will not affect your spot in the program.",
+      "You can ask us anytime to see your answers, change them, or delete them: info@beyondcodecollective.org.",
+      "We will ask you these same rating questions again at the end of the week, so we can measure your growth.",
+    ],
+    confirmLabel: "I understand and agree to take part.",
+    required: true,
+  },
+  {
+    type: "consent",
+    id: "consent_followup",
+    label: "Optional",
+    text: "Beyond Code may contact me after the program to ask how things are going.",
+    confirmLabel: "Yes, you can contact me after the program.",
+    required: false,
+  },
+  {
+    type: "consent",
+    id: "consent_quote",
+    label: "Optional",
+    text: "Beyond Code may use my written answers as an anonymous quote in reports or on our website. My name will not be attached.",
+    confirmLabel: "Yes, you may quote me anonymously.",
+    required: false,
+  },
+  {
+    type: "likert",
+    id: "work_readiness",
+    label: "How work works",
+    scale: LIKERT_1_5,
+    scaleAnchors: AGREE_ANCHORS,
+    statements: HFS_WORK_READINESS_STATEMENTS,
+    required: true,
+  },
+  {
+    type: "likert",
+    id: "workplace_tools",
+    label: "Workplace tools — how familiar are you right now?",
+    scale: LIKERT_1_5,
+    pointLabels: [
+      "Never used it",
+      "Heard of it",
+      "Know the basics",
+      "Can use it on my own",
+      "Could show someone else",
+    ],
+    statements: HFS_TOOLS_STATEMENTS,
+    required: true,
+  },
+  {
+    type: "likert",
+    id: "ai_at_work",
+    label: "AI at work",
+    scale: LIKERT_1_5,
+    scaleAnchors: AGREE_ANCHORS,
+    statements: HFS_AI_AT_WORK_STATEMENTS,
+    required: true,
+  },
+  {
+    type: "radio",
+    id: "ai_usage_frequency",
+    label: "How often do you use AI tools right now?",
+    options: [
+      "Daily",
+      "A few times a week",
+      "Once in a while",
+      "I have tried it once or twice",
+      "Never",
+    ],
+    required: true,
+  },
+  {
+    type: "text",
+    id: "ai_tools_used",
+    label: "What AI tools do you use the most?",
+    required: false,
+  },
+  {
+    type: "likert",
+    id: "ai_bias_concern",
+    label: "AI and society",
+    scale: LIKERT_1_5,
+    scaleAnchors: { low: "1 — Not at all concerned", high: "5 — Extremely concerned" },
+    statements: [
+      "How concerned are you that AI systems produce unfair or biased outcomes for certain groups of people?",
+    ],
+    required: true,
+  },
+  {
+    type: "likert",
+    id: "ai_regulation_support",
+    label: "AI and policy",
+    scale: LIKERT_1_5,
+    scaleAnchors: { low: "1 — Strongly oppose", high: "5 — Strongly support" },
+    statements: [
+      "How much do you support government regulation of how AI systems are developed and used?",
+    ],
+    required: true,
+  },
+  {
+    type: "likert",
+    id: "professional_presence",
+    label: "How you show up",
+    scale: LIKERT_1_5,
+    scaleAnchors: AGREE_ANCHORS,
+    statements: HFS_PRESENCE_STATEMENTS,
+    required: true,
+  },
+  {
+    type: "likert",
+    id: "mindset_mass",
+    label: "Mindset — clarity, courage, confidence",
+    scale: LIKERT_1_5,
+    scaleAnchors: AGREE_ANCHORS,
+    statements: HFS_MINDSET_STATEMENTS,
+    required: true,
+  },
+  {
+    type: "text",
+    id: "biggest_uncertainty",
+    label: "What part of stepping into a professional workplace makes you most unsure right now?",
+    required: true,
+  },
+  {
+    type: "text",
+    id: "success_definition",
+    label: "What does success look like for you when this program ends?",
+    required: true,
+  },
+  {
+    type: "multi-select",
+    id: "attendance_barriers",
+    label: "Is there anything that might make it hard for you to attend all five sessions? Select all that apply.",
+    options: [
+      "Work schedule",
+      "Family or caregiving responsibilities",
+      "Internet or device access",
+      "Travel or moving back to campus",
+      "Time zone",
+      "Nothing I know of right now",
+      "Prefer not to say",
+      "Something else",
+    ],
+    required: true,
+  },
+  {
+    type: "text",
+    id: "support_needs",
+    label: "Is there anything we should know to make this week work well for you? (Accessibility needs, learning preferences, or anything that would help us support you.)",
+    required: false,
+  },
+];
+
 const SCHEMAS: Record<string, SurveyQuestion[]> = {
   "bcc-learner-intake": BCC_LEARNER_INTAKE,
   "comptia-security-pre": COMPTIA_SECURITY_PRE,
@@ -1171,6 +1382,7 @@ const SCHEMAS: Record<string, SurveyQuestion[]> = {
   "security-plus-application": SECURITY_PLUS_APPLICATION,
   "security-plus-midpoint": SECURITY_PLUS_MIDPOINT,
   "home-for-summer-application": HOME_FOR_SUMMER_APPLICATION,
+  "hfs-pre-survey": HFS_PRE_SURVEY,
 };
 
 export function getSurveySchema(surveyId: string): SurveyQuestion[] | null {

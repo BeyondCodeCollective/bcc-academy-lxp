@@ -68,6 +68,20 @@ export function surveyAppliesToPrograms(
   return appliesToPrograms.some((p) => homes.has(p));
 }
 
+/**
+ * Course-level allowlist, same contract as surveyAppliesToPrograms one level
+ * finer: a survey that names its tracks is only ever for learners enrolled in
+ * one of them. No allowlist = applies to everyone (minus skips).
+ */
+export function surveyAppliesToTracks(
+  appliesToTracks: string[] | undefined,
+  enrolledTrackSlugs: Iterable<string>,
+): boolean {
+  if (!appliesToTracks?.length) return true;
+  const enrolled = new Set(enrolledTrackSlugs);
+  return appliesToTracks.some((t) => enrolled.has(t));
+}
+
 // The BCC Learner Intake is OPT-IN, toggled per program/track via
 // program_features/track_features.survey_enabled (admin Features page) — see
 // isSurveyEnabledForLearner in src/lib/surveys/features.ts. Off by default, so
