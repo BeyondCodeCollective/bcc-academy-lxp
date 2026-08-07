@@ -443,6 +443,36 @@ export default async function TrackWeekPage({
         </div>
       )}
 
+      {/* Non-Zoom live sessions (Teams, Meet): single-session weeks have no
+         sessions list below, so without this an external meeting link rendered
+         NO join control at all. Same activity rules as the Zoom embed. Added
+         for HFS camp week's Teams-hosted mock-interview days (2026-08-07). */}
+      {weekContent.sessions.length === 1 &&
+        meetingLinks[0] &&
+        !isZoomLink(meetingLinks[0]) &&
+        sessionStatuses[0] !== "completed" &&
+        !weekIsPast &&
+        !sessionWindowPassed &&
+        (weekNum === currentWeek || !recordingUrls[0]) && (
+          <div className="mb-8 flex flex-wrap items-center justify-between gap-3 panel px-4 py-4">
+            <div>
+              <p className="text-sm font-semibold text-ink">Live session</p>
+              <p className="mt-0.5 text-xs text-ink-faint">
+                {weekContent.sessions[0].time}
+              </p>
+            </div>
+            <a
+              href={meetingLinks[0]}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2.5 min-h-[44px] transition-colors"
+            >
+              <Video size={14} />
+              Join Session
+            </a>
+          </div>
+        )}
+
       {/* Between "session over" and "recording imported" the page would
          otherwise be empty — no embed, no replay — which reads as broken
          (welcome day, 2026-08-07). Say what's actually happening. */}
