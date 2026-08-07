@@ -15,6 +15,43 @@ function answer(answers: Record<string, unknown>, key: string): string | undefin
   return typeof v === "string" && v.trim() ? v.trim() : undefined;
 }
 
+/**
+ * Applications are closed (cohort filled 2026-08-07), but the page still
+ * captures interest: email + ZIP joins the newsletter so future cohorts of
+ * this and similar programs have a warm list. Stored as a public survey
+ * response for Insights, and subscribed to the newsletter audience.
+ */
+export async function saveInterestSignup(input: {
+  email: string;
+  zip: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const email = input.email.trim().toLowerCase();
+  const zip = input.zip.trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { ok: false, error: "Please enter a valid email address." };
+  }
+  if (!/^\d{5}(-\d{4})?$/.test(zip)) {
+    return { ok: false, error: "Please enter a valid ZIP code." };
+  }
+
+  const result = await savePublicSurveyResponse({
+    programSlug: "catalyst",
+    surveyType: "program-interest",
+    email,
+    fullName: "",
+    consentVersion: "program-interest-v1",
+    responses: { email, zip, source: "home-for-summer-closed" },
+  });
+
+  if (result.ok) {
+    after(async () => {
+      const { subscribeToNewsletter } = await import("@/lib/mailchimp");
+      await subscribeToNewsletter({ email, programSlug: "catalyst" });
+    });
+  }
+  return result;
+}
+
 export async function savePublicApplication(input: {
   email: string;
   answers: Record<string, unknown>;
