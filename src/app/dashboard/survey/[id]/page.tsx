@@ -3,6 +3,7 @@ import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { getProgram } from "@/lib/programs/server";
 import { SurveyWizard } from "@/components/survey-wizard";
 import { PLATFORM_AUTH_SURVEYS } from "@/lib/surveys/platform";
+import { getEveryProgramConfig } from "@/lib/programs";
 import { SurveyComplete } from "./survey-complete";
 
 export default async function SurveyPage({
@@ -13,9 +14,16 @@ export default async function SurveyPage({
   const { id: surveyId } = await params;
   const program = await getProgram();
 
+  // Search the CURRENT program first (its overrides/branding win), then every
+  // program config: the apex domain resolves to `marketing`, whose empty
+  // surveys list made every course-registered survey URL bounce to the
+  // dashboard for the very learners it was meant for (2026-08-07).
   const surveyConfig =
     PLATFORM_AUTH_SURVEYS[surveyId] ??
-    program.surveys?.find((s) => s.id === surveyId);
+    program.surveys?.find((s) => s.id === surveyId) ??
+    getEveryProgramConfig()
+      .flatMap((p) => p.surveys ?? [])
+      .find((s) => s.id === surveyId);
   if (!surveyConfig) redirect("/dashboard");
 
   let existingResponses: Record<string, unknown> | null = null;

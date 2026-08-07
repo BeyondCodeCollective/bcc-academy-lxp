@@ -268,7 +268,7 @@ async function DashboardContent({
         // first stacked two surveys onto a student's first login (2026-08-07).
         const surveyEnabled = await isSurveyEnabledForLearner(program.slug, enrolledTrackSlugs);
 
-        if (!isStaff && program.surveys?.length) {
+        {
           const { getHomeProgramForTrack } = await import("@/lib/programs");
 
           // Build the set of home programs from enrolled tracks AND the
@@ -314,7 +314,24 @@ async function DashboardContent({
             program.tracks,
           );
 
-          const applicableRequired = program.surveys.filter((s) => {
+          // Candidate surveys come from the learner's ENROLLED courses' home
+          // programs, not just the browsing program: the apex domain resolves
+          // to `marketing` (empty surveys), which made every course-registered
+          // survey invisible on bccacademy.io — HFS learners got the generic
+          // intake instead of their own pre-survey (2026-08-07).
+          const { getProgramBySlug } = await import("@/lib/programs");
+          const candidateSurveys = [
+            ...(program.surveys ?? []),
+            ...[...enrolledHomePrograms].flatMap(
+              (slug) => getProgramBySlug(slug).surveys ?? [],
+            ),
+          ].filter(
+            // Dedupe by id — a learner browsing their own home program would
+            // otherwise see each survey twice.
+            (s, i, all) => all.findIndex((x) => x.id === s.id) === i,
+          );
+
+          const applicableRequired = (isStaff ? [] : candidateSurveys).filter((s) => {
             if (!s.required) return false;
             // Allowlist first: a survey that names its programs is only ever
             // for those learners, whatever the skip lists say.
