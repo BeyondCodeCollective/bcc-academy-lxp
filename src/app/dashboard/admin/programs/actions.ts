@@ -479,10 +479,19 @@ export async function applyWeeklyScheduleAction(
         ? `${SHORT[dayIdx[0] - 1]}–${SHORT[dayIdx[dayIdx.length - 1] - 1]} · ${timeLabel}`
         : `${dayIdx.map((i) => SHORT[i - 1]).join(", ")} · ${timeLabel}`;
 
+  // start_date anchors "has the course begun" — it must be the earliest DATED
+  // unit including labeled extras, not the first regular session. Setting it
+  // to firstDate hid Home for the Summer's Friday welcome session behind the
+  // pre-start holding view when the Monday class schedule was saved
+  // (2026-08-07): the course read as "starts Monday" on welcome morning.
+  const earliestDate = stamped
+    .flatMap((e) => ("date" in e && e.date ? [e.date] : []))
+    .sort()[0] ?? firstDate;
+
   const { error } = await svc
     .from("track_overrides")
     .update({
-      start_date: firstDate,
+      start_date: earliestDate,
       week_summaries: stamped,
       session_times: [label],
     })
