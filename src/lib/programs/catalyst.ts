@@ -55,6 +55,17 @@ export const catalystConfig: ProgramConfig = {
       organization: "Beyond Code Centers",
     },
     {
+      id: "hfs-pre-survey",
+      title: "Home for the Summer — Pre-Program Survey",
+      description:
+        "Workplace readiness. About 8 minutes. This is not a test — we want to learn where you are right now so we can support you well from day one.",
+      required: true,
+      // Course-scoped: HFS shares Catalyst with MASS, Security+, and the
+      // hangout — only HFS learners should ever see this.
+      appliesToTracks: ["home-for-summer"],
+      organization: "Beyond Code Collective",
+    },
+    {
       // Replaces post-survey-spring-2026. That one only yielded an outcome if
       // the same cohort sat down twice — 9 of 9 took the pre-survey and 1 of 9
       // the post — so it asks before AND now in a single sitting instead.
