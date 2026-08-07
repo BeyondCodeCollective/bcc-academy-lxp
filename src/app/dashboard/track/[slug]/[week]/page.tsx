@@ -443,6 +443,22 @@ export default async function TrackWeekPage({
         </div>
       )}
 
+      {/* Between "session over" and "recording imported" the page would
+         otherwise be empty — no embed, no replay — which reads as broken
+         (welcome day, 2026-08-07). Say what's actually happening. */}
+      {sessionWindowPassed && !hasRecording && weekNum === currentWeek && (
+        <div className="mb-8 flex items-start gap-3 panel px-4 py-4">
+          <CheckCircle size={18} className="mt-0.5 shrink-0 text-green-600" aria-hidden />
+          <div>
+            <p className="text-sm font-semibold text-ink">Today&apos;s session has ended</p>
+            <p className="mt-0.5 text-sm text-ink-soft">
+              The recording is processing and will appear right here — usually
+              within an hour or two of the session wrapping up.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Sessions list — only for multi-session weeks (single-session weeks
          fold their metadata into the header above). */}
       {weekContent.sessions.length > 1 && (
