@@ -86,8 +86,25 @@ export default async function DashboardPage({
     // Marketing domain (bccacademy.io) has no tracks. If a non-admin
     // lands here without a program-override cookie, redirecting to "/"
     // creates an infinite loop (proxy sends authed users from "/" back
-    // to "/dashboard"). Send them to the login page instead.
+    // to "/dashboard"). ENROLLED learners self-heal through switch-program
+    // (same as the layout — both must target the same place, because layout
+    // and page redirects render concurrently and race; when this one won the
+    // race it stranded a real learner on the login page, 2026-08-07).
+    // Only the truly enrollment-less get the login page.
     if (program.slug === "marketing") {
+      if (ctx?.userId) {
+        const { data: anyEnrollment } = await createServiceClient()
+          .from("student_tracks")
+          .select("track_slug")
+          .eq("student_id", ctx.userId)
+          .limit(1)
+          .maybeSingle();
+        if (anyEnrollment?.track_slug) {
+          redirect(
+            `/dashboard/switch-program?track=${encodeURIComponent(anyEnrollment.track_slug)}`,
+          );
+        }
+      }
       redirect("/login?status=not-enrolled");
     }
     const survey = program.surveys?.[0];
