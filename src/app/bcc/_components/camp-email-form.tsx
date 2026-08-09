@@ -90,7 +90,7 @@ export function CampEmailForm({
             type="button"
             onClick={handleSwitchAccount}
             className="text-xs font-medium underline"
-            style={{ color: "#1a1a1a80", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+            style={{ color: "#1a1a1ab3", background: "none", border: "none", cursor: "pointer", padding: 0 }}
           >
             Not you? Sign out &amp; use a different email
           </button>
@@ -105,7 +105,7 @@ export function CampEmailForm({
         <p className="text-sm font-semibold" style={{ color: "#1a1a1a" }}>
           Check your inbox
         </p>
-        <p className="mt-1 text-sm leading-relaxed" style={{ color: "#1a1a1a80" }}>
+        <p className="mt-1 text-sm leading-relaxed" style={{ color: "#1a1a1ab3" }}>
           We sent a sign-in link to{" "}
           <span className="font-medium" style={{ color: "#1a1a1a" }}>{email}</span>.
           {" "}Check spam if it doesn&apos;t arrive within a minute.
@@ -113,7 +113,7 @@ export function CampEmailForm({
         <button
           onClick={() => { setStatus("idle"); setEmail(""); setError(""); }}
           className="mt-3 text-xs transition-colors"
-          style={{ color: "#1a1a1a55", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}
+          style={{ color: "#1a1a1aa6", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}
         >
           Use a different email
         </button>

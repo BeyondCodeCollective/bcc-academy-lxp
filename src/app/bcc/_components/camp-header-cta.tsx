@@ -22,7 +22,7 @@ export function CampHeaderCta() {
     <a
       href="/dashboard"
       className="text-[11px] font-medium uppercase tracking-[0.15em] transition-opacity hover:opacity-60"
-      style={{ color: "#1a1a1a44" }}
+      style={{ color: "#1a1a1aa6" }}
     >
       Go to portal →
     </a>

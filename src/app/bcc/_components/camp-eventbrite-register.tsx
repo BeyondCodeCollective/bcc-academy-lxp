@@ -95,7 +95,7 @@ export function CampEventbriteRegister({
         <p className="text-sm font-semibold" style={{ color: "#1a1a1a" }}>
           You&apos;re in 🎉
         </p>
-        <p className="mt-1 text-sm" style={{ color: "#1a1a1a80" }}>
+        <p className="mt-1 text-sm" style={{ color: "#1a1a1ab3" }}>
           Setting up your portal access…
         </p>
       </div>
@@ -108,7 +108,7 @@ export function CampEventbriteRegister({
         <p className="text-sm font-semibold" style={{ color: "#1a1a1a" }}>
           You&apos;re registered 🎉
         </p>
-        <p className="mt-1 text-sm leading-relaxed" style={{ color: "#1a1a1a80" }}>
+        <p className="mt-1 text-sm leading-relaxed" style={{ color: "#1a1a1ab3" }}>
           Check your email for your portal link — it&apos;s your door back in any time.
           Check spam if it doesn&apos;t arrive within a minute.
         </p>
@@ -125,7 +125,7 @@ export function CampEventbriteRegister({
       />
       <style>{`#${containerId}, #${containerId} iframe { width: 100%; min-height: ${embedHeight}px; border: 0; }`}</style>
       <div id={containerId} style={{ width: "100%" }} />
-      <p className="mt-3 text-xs leading-relaxed" style={{ color: "#1a1a1a70" }}>
+      <p className="mt-3 text-xs leading-relaxed" style={{ color: "#1a1a1ab3" }}>
         After you register, we&apos;ll email your one-click access link — your
         door into the portal any time.
       </p>

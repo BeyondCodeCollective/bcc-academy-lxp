@@ -71,7 +71,7 @@ export default async function CampLandingPage({
         >
           <span
             className="text-[11px] font-bold uppercase tracking-[0.2em]"
-            style={{ color: "#1a1a1a55" }}
+            style={{ color: "#1a1a1aa6" }}
           >
             {page.headerLabel}
           </span>
@@ -108,7 +108,7 @@ export default async function CampLandingPage({
             {page.subhead && (
               <p
                 className="mt-4 text-sm leading-relaxed"
-                style={{ color: "#1a1a1a70", maxWidth: "38ch" }}
+                style={{ color: "#1a1a1ab3", maxWidth: "38ch" }}
               >
                 {page.subhead}
               </p>
@@ -119,7 +119,7 @@ export default async function CampLandingPage({
               {page.formLabel && (
                 <p
                   className="mb-2.5 text-[11px] font-medium uppercase tracking-[0.14em]"
-                  style={{ color: "#1a1a1a55" }}
+                  style={{ color: "#1a1a1aa6" }}
                 >
                   {page.formLabel}
                 </p>
@@ -233,7 +233,7 @@ export default async function CampLandingPage({
 
             {/* Secondary CTA */}
             {page.secondaryCtaLabel && page.secondaryCtaUrl && (
-              <p className="mt-8 text-sm" style={{ color: "#1a1a1a55" }}>
+              <p className="mt-8 text-sm" style={{ color: "#1a1a1aa6" }}>
                 <a
                   href={page.secondaryCtaUrl}
                   target="_blank"
@@ -253,7 +253,7 @@ export default async function CampLandingPage({
           <div className="px-8 py-6 md:px-12" style={{ borderTop: "1px solid #1a1a1a0d" }}>
             <p
               className="mb-4 text-[10px] font-medium uppercase tracking-[0.18em]"
-              style={{ color: "#1a1a1a38" }}
+              style={{ color: "#1a1a1a99" }}
             >
               Presented in partnership with
             </p>
@@ -290,7 +290,7 @@ export default async function CampLandingPage({
         {/* Footer */}
         {page.footerText && (
           <footer className="px-8 py-4 md:px-12" style={{ borderTop: "1px solid #1a1a1a0d" }}>
-            <p className="text-[11px]" style={{ color: "#1a1a1a38" }}>
+            <p className="text-[11px]" style={{ color: "#1a1a1a99" }}>
               {page.footerText}
             </p>
           </footer>
