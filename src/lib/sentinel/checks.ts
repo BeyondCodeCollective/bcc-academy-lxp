@@ -11,11 +11,24 @@ type Svc = ReturnType<typeof createServiceClient>;
 
 export type SentinelSeverity = "high" | "medium" | "low";
 
+/** A one-click remedy for a finding. Only reversible, single-row operations
+ *  qualify — anything that destroys learner history stays report-only. */
+export type SentinelFix =
+  | {
+      kind: "assign_instructor";
+      label: string;
+      studentId: string;
+      trackSlug: string;
+      programId: string;
+    }
+  | { kind: "unenroll"; label: string; studentId: string; trackSlug: string };
+
 export type SentinelFinding = {
   check: string;
   severity: SentinelSeverity;
   message: string;
   rows: string[];
+  fixes?: SentinelFix[];
 };
 
 const SEVERITY_ORDER: Record<SentinelSeverity, number> = { high: 0, medium: 1, low: 2 };
@@ -56,7 +69,8 @@ export async function runSentinelChecks(svc: Svc): Promise<SentinelFinding[]> {
     severity: SentinelSeverity,
     message: string,
     found: string[],
-  ) => findings.push({ check, severity, message, rows: found });
+    fixes?: SentinelFix[],
+  ) => findings.push({ check, severity, message, rows: found, fixes });
 
   const programs = await rows<{ id: string; slug: string }>(
     svc.from("programs").select("id, slug").limit(LIMIT),
@@ -124,6 +138,12 @@ export async function runSentinelChecks(svc: Svc): Promise<SentinelFinding[]> {
       "medium",
       "Staff hold enrollments, which inflates roster and completion-rate denominators. Fine if intentional — the analytics exclude them — but every one is a course whose 'enrolled' count reads high in any surface that forgets to filter.",
       Object.entries(byTrack).map(([t, e]) => `${t}: ${e.join(", ")}`),
+      staffEnrolled.map((e) => ({
+        kind: "unenroll" as const,
+        label: `Unenroll ${personById[e.student_id].email} from ${e.track_slug}`,
+        studentId: e.student_id,
+        trackSlug: e.track_slug,
+      })),
     );
   }
 
@@ -235,6 +255,7 @@ export async function runSentinelChecks(svc: Svc): Promise<SentinelFinding[]> {
   const nameOf = (p: { first_name: string | null; last_name: string | null }) =>
     `${p.first_name ?? ""} ${p.last_name ?? ""}`.trim().toLowerCase();
   const unassigned: string[] = [];
+  const unassignedFixes: SentinelFix[] = [];
   for (const t of overrides) {
     if (t.archived_at || !t.instructor) continue;
     const named = t.instructor.trim().toLowerCase();
@@ -248,6 +269,13 @@ export async function runSentinelChecks(svc: Svc): Promise<SentinelFinding[]> {
       unassigned.push(
         `${t.track_slug}: ${t.instructor} is named but not assigned (instructor_tracks)`,
       );
+      unassignedFixes.push({
+        kind: "assign_instructor",
+        label: `Assign ${t.instructor} to ${t.track_slug}`,
+        studentId: account.id,
+        trackSlug: t.track_slug,
+        programId: t.program_id,
+      });
     }
   }
   if (unassigned.length) {
@@ -256,6 +284,7 @@ export async function runSentinelChecks(svc: Svc): Promise<SentinelFinding[]> {
       "medium",
       "An instructor WITH an account is named on a course but not assigned to it. Course scoping reads instructor_tracks, so they see the whole program's roster instead of their own course.",
       unassigned,
+      unassignedFixes,
     );
   }
 
