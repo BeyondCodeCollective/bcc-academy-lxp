@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSessionContext } from "@/lib/auth/session";
-import { canSwitchPrograms } from "@/lib/roles";
+import { isMasterEmail } from "@/lib/auth/admins";
 import { createServiceClient } from "@/lib/supabase/server";
 import { runSentinelChecks, type SentinelFinding } from "@/lib/sentinel/checks";
 import { PageHeader } from "@/components/page-header";
@@ -20,7 +20,9 @@ const SEVERITY_STYLE: Record<SentinelFinding["severity"], string> = {
 export default async function PlatformHealthPage() {
   const ctx = await getSessionContext();
   if (!ctx) redirect("/");
-  if (!canSwitchPrograms(ctx.student?.role ?? "")) redirect("/dashboard/admin");
+  // Master-only: the findings list learner emails across every program, so
+  // this sits with the platform owner, not super-admins.
+  if (!isMasterEmail(ctx.userEmail)) redirect("/dashboard/admin");
 
   let findings: SentinelFinding[] | null = null;
   let error: string | null = null;
@@ -31,7 +33,7 @@ export default async function PlatformHealthPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto w-full max-w-3xl px-4 sm:px-5 py-8 space-y-6">
       <PageHeader
         eyebrow="Sentinel"
         title="Platform Health"

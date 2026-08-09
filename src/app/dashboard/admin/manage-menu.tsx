@@ -8,27 +8,45 @@ import { buttonClass } from "@/components/ui";
 
 // Program-config actions collapsed into one "Manage" dropdown so the admin
 // home leads with the course list + daily-ops toolbar instead of two pill rows.
-const ITEMS: { href: string; label: string }[] = [
-  { href: "/dashboard/admin/programs", label: "Manage courses" },
-  { href: "/dashboard/admin/announcements", label: "Announcements" },
-  { href: "/dashboard/admin/landing", label: "Landing pages" },
-  { href: "/dashboard/admin/registrations", label: "Registrations" },
-  { href: "/dashboard/admin/agreements", label: "Participation agreements" },
-  { href: "/dashboard/admin/resources", label: "Resources" },
-  { href: "/dashboard/admin/features", label: "Tools" },
-];
+// Grouped: a flat ten-item list stopped scanning. `master` marks entry points
+// that sit with the platform owner (email-gated) — a second program is a
+// credential change, an organization is a whole new tenant, and Platform
+// health lists learner emails across every program.
+type Item = { href: string; label: string; master?: boolean };
 
-// Master-tier entry points. Handing someone a second program is a credential
-// change, and creating an organization spins up a whole new tenant — both sit
-// with the platform owner (email-gated), not with super-admins.
-const MASTER_ITEMS: { href: string; label: string }[] = [
-  { href: "/dashboard/admin/organizations", label: "Organizations" },
-  { href: "/dashboard/admin/health", label: "Platform health" },
-  { href: "/dashboard/admin/access", label: "Program access" },
+const GROUPS: { label: string; items: Item[] }[] = [
+  {
+    label: "Content",
+    items: [
+      { href: "/dashboard/admin/programs", label: "Manage courses" },
+      { href: "/dashboard/admin/announcements", label: "Announcements" },
+      { href: "/dashboard/admin/landing", label: "Landing pages" },
+      { href: "/dashboard/admin/resources", label: "Resources" },
+    ],
+  },
+  {
+    label: "People",
+    items: [
+      { href: "/dashboard/admin/registrations", label: "Registrations" },
+      { href: "/dashboard/admin/agreements", label: "Participation agreements" },
+      { href: "/dashboard/admin/access", label: "Program access", master: true },
+    ],
+  },
+  {
+    label: "Platform",
+    items: [
+      { href: "/dashboard/admin/features", label: "Tools" },
+      { href: "/dashboard/admin/organizations", label: "Organizations", master: true },
+      { href: "/dashboard/admin/health", label: "Platform health", master: true },
+    ],
+  },
 ];
 
 export function ManageMenu({ isMaster = false }: { isMaster?: boolean }) {
-  const items = isMaster ? [...ITEMS, ...MASTER_ITEMS] : ITEMS;
+  const groups = GROUPS.map((g) => ({
+    ...g,
+    items: g.items.filter((it) => isMaster || !it.master),
+  })).filter((g) => g.items.length > 0);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
@@ -73,23 +91,30 @@ export function ManageMenu({ isMaster = false }: { isMaster?: boolean }) {
           role="menu"
           className="absolute right-0 z-30 mt-1.5 w-52 overflow-hidden rounded-lg border border-rule bg-surface-elevated py-1 shadow-lg"
         >
-          {items.map((it) => {
-            const active = pathname.startsWith(it.href);
-            return (
-              <Link
-                key={it.href}
-                href={it.href}
-                role="menuitem"
-                aria-current={active ? "page" : undefined}
-                onClick={() => setOpen(false)}
-                className={`block px-3.5 py-2 text-sm transition-colors hover:bg-paper-tint ${
-                  active ? "bg-paper-tint font-semibold text-ink" : "text-ink"
-                }`}
-              >
-                {it.label}
-              </Link>
-            );
-          })}
+          {groups.map((g, gi) => (
+            <div key={g.label} className={gi > 0 ? "mt-1 border-t border-rule pt-1" : ""}>
+              <p className="px-3.5 pb-0.5 pt-1.5 text-micro font-semibold uppercase tracking-[0.12em] text-ink-faint">
+                {g.label}
+              </p>
+              {g.items.map((it) => {
+                const active = pathname.startsWith(it.href);
+                return (
+                  <Link
+                    key={it.href}
+                    href={it.href}
+                    role="menuitem"
+                    aria-current={active ? "page" : undefined}
+                    onClick={() => setOpen(false)}
+                    className={`block px-3.5 py-2 text-sm transition-colors hover:bg-paper-tint ${
+                      active ? "bg-paper-tint font-semibold text-ink" : "text-ink"
+                    }`}
+                  >
+                    {it.label}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </div>
       )}
     </div>
