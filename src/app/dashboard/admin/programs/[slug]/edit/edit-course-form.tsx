@@ -5,6 +5,7 @@ import { updateCourseAction, applyWeeklyScheduleAction } from "../../actions";
 import { uploadLandingImageAction } from "../../../landing/actions";
 import type { UpdateCourseResult, ApplyScheduleResult } from "../../actions";
 import { Field, buttonClass, fieldInput } from "@/components/ui";
+import { compressImage } from "@/lib/compress-image";
 
 const PHASE_OPTIONS = [
   { value: "foundation", label: "Foundation" },
@@ -197,7 +198,7 @@ export function EditCourseForm({
                 setError(null);
                 try {
                   const fd = new FormData();
-                  fd.set("file", file);
+                  fd.set("file", await compressImage(file));
                   const res = await uploadLandingImageAction(fd);
                   if (res.success) setCoverImageUrl(res.url);
                   else setError(res.error);
