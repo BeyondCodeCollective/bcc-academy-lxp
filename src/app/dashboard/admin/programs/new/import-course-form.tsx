@@ -3,6 +3,7 @@
 import { useState } from "react";
 import {
   previewCourseImportAction,
+  generateCourseDraftAction,
   createCourseFromDraftAction,
 } from "../import-actions";
 import type { CourseDraft } from "@/lib/course-import/parse";
@@ -20,12 +21,17 @@ type Created = { slug: string; joinUrl: string; allowlisted: number };
 
 export function ImportCourseForm({
   currentProgram,
+  variant = "import",
 }: {
   /** The program context the admin is standing in. Standalone programs (BGC,
    *  Forte, dynamic orgs) scope the picker to themselves; the hub programs
    *  keep the full hub list. */
   currentProgram?: { slug: string; name: string };
+  /** "import" reads an existing source; "generate" invents a course from a
+   *  plain-English description. Step 2 (review + create) is identical. */
+  variant?: "import" | "generate";
 } = {}) {
+  const generating = variant === "generate";
   const hubSlugs = PROGRAM_OPTIONS.map((o) => o.value);
   const programOptions =
     currentProgram && !hubSlugs.includes(currentProgram.slug)
@@ -50,7 +56,9 @@ export function ImportCourseForm({
     setNeedsPaste(false);
     setPending(true);
     try {
-      const res = await previewCourseImportAction(input);
+      const res = generating
+        ? await generateCourseDraftAction(input)
+        : await previewCourseImportAction(input);
       if (res.success) {
         setDraft(res.draft);
         setAttendees(res.attendeeEmails);
@@ -148,14 +156,26 @@ export function ImportCourseForm({
     return (
       <form onSubmit={handlePreview} className="space-y-5">
         <Field
-          label="Google Doc link, Eventbrite link, or pasted text"
-          hint="the AI fills in the course, then you review it before anything is created"
+          label={
+            generating
+              ? "Describe the program"
+              : "Google Doc link, Eventbrite link, or pasted text"
+          }
+          hint={
+            generating
+              ? "goal, audience, length, and schedule if you know it — the AI drafts the full course, then you review it before anything is created"
+              : "the AI fills in the course, then you review it before anything is created"
+          }
         >
           <textarea
             id="import-input"
             required
-            rows={needsPaste ? 12 : 4}
-            placeholder={"https://docs.google.com/document/d/…\n\nor paste the event details here"}
+            rows={generating ? 6 : needsPaste ? 12 : 4}
+            placeholder={
+              generating
+                ? "6-week AI literacy course for city staff, evenings, complete beginners. Tuesdays 6pm ET starting September 15."
+                : "https://docs.google.com/document/d/…\n\nor paste the event details here"
+            }
             value={input}
             onChange={(e) => setInput(e.target.value)}
             className={`${fieldInput} font-mono text-xs`}
@@ -173,7 +193,13 @@ export function ImportCourseForm({
           disabled={pending}
           className={`${buttonClass("primary", "md")} w-full`}
         >
-          {pending ? "Reading…" : "Read and fill in the course"}
+          {generating
+            ? pending
+              ? "Drafting…"
+              : "Draft the program"
+            : pending
+              ? "Reading…"
+              : "Read and fill in the course"}
         </button>
       </form>
     );

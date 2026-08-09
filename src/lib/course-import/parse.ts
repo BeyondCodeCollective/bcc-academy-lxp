@@ -40,7 +40,7 @@ export type CourseDraft = {
   timezoneStated: boolean;
 };
 
-const SCHEMA = jsonSchema<{
+export const SCHEMA = jsonSchema<{
   name: string;
   shortName: string;
   description: string;
