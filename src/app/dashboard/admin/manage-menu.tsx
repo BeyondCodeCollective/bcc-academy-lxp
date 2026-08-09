@@ -23,6 +23,7 @@ const ITEMS: { href: string; label: string }[] = [
 // with the platform owner (email-gated), not with super-admins.
 const MASTER_ITEMS: { href: string; label: string }[] = [
   { href: "/dashboard/admin/organizations", label: "Organizations" },
+  { href: "/dashboard/admin/health", label: "Platform health" },
   { href: "/dashboard/admin/access", label: "Program access" },
 ];
 
