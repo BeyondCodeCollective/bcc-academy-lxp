@@ -7,6 +7,7 @@ import type { LandingPageInput } from "./actions";
 import type { ScheduleDay, LandingPartner } from "@/lib/landing-pages";
 import { Field, fieldInput, buttonClass, Panel } from "@/components/ui";
 import { toSlug } from "@/lib/programs/slug";
+import { compressImage } from "@/lib/compress-image";
 
 /** Partner row in form state — both kinds carry every field so toggling kind
  *  doesn't lose what the user already typed. */
@@ -485,7 +486,7 @@ export function LandingForm({
                   setHeroUploadError(null);
                   try {
                     const fd = new FormData();
-                    fd.set("file", file);
+                    fd.set("file", await compressImage(file));
                     const res = await uploadLandingImageAction(fd);
                     if (res.success) setHeroImageUrl(res.url);
                     else setHeroUploadError(res.error);
