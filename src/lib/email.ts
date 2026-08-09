@@ -840,3 +840,59 @@ export async function sendStaffAccountNotification(input: {
     );
   }
 }
+
+/**
+ * The Sentinel's daily brief. One email per nightly run: a plain-language
+ * summary up top (AI-written when the model is reachable, deterministic
+ * otherwise), findings grouped by severity below. Goes to
+ * SENTINEL_NOTIFY_EMAIL (default info@bccacademy.io). Self-contained
+ * try/catch — a failed email must never fail the cron run.
+ */
+export async function sendSentinelReportEmail(input: {
+  brief: string;
+  findings: { check: string; severity: string; message: string; rows: string[] }[];
+}): Promise<void> {
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY not set — skipping sentinel report");
+    return;
+  }
+  const to = process.env.SENTINEL_NOTIFY_EMAIL ?? "info@bccacademy.io";
+  const esc = (s: string) =>
+    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const date = new Date().toISOString().slice(0, 10);
+  const n = input.findings.length;
+  const subject =
+    n === 0
+      ? `Sentinel ${date}: all clear`
+      : `Sentinel ${date}: ${n} finding${n === 1 ? "" : "s"}`;
+  const color = (sev: string) =>
+    sev === "high" ? "#b42318" : sev === "medium" ? "#b54708" : "#555";
+  const sections = input.findings
+    .map(
+      (f) => `
+  <div style="margin:0 0 16px;padding:12px 14px;background:#f5f5f7;border-radius:8px;">
+    <p style="margin:0 0 4px;font-size:13px;font-weight:700;color:${color(f.severity)};text-transform:uppercase;">${esc(f.severity)} · ${esc(f.check)}</p>
+    <p style="margin:0 0 6px;font-size:14px;line-height:1.5;color:#1a1a1a;">${esc(f.message)}</p>
+    ${f.rows.map((r) => `<p style="margin:0;font-size:13px;color:#555;">· ${esc(r)}</p>`).join("\n")}
+  </div>`,
+    )
+    .join("\n");
+  try {
+    await resend.emails.send({
+      from: FROM_ADDRESS,
+      to,
+      subject,
+      html: `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:600px;margin:0 auto;font-size:15px;line-height:1.6;color:#1a1a1a;">
+  <p style="margin:0 0 4px;font-weight:700;">Sentinel daily brief — ${date}</p>
+  <p style="margin:0 0 20px;white-space:pre-line;">${esc(input.brief)}</p>
+  ${sections}
+  <p style="margin:16px 0 0;font-size:12px;color:#999;">Full detail in the admin panel → Platform Health.</p>
+</div>`,
+    });
+  } catch (e) {
+    console.error(
+      "[email] sendSentinelReportEmail failed:",
+      e instanceof Error ? e.message : String(e),
+    );
+  }
+}
