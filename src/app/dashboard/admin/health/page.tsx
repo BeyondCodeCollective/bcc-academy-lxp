@@ -4,18 +4,13 @@ import { isMasterEmail } from "@/lib/auth/admins";
 import { createServiceClient } from "@/lib/supabase/server";
 import { runSentinelChecks, type SentinelFinding } from "@/lib/sentinel/checks";
 import { PageHeader } from "@/components/page-header";
+import { FindingsList } from "./findings-list";
 
 // Platform Health — the Sentinel's checks, run live on load. The nightly cron
 // emails the same findings; this page is for "is it still broken?" right after
 // a fix, without waiting for tomorrow's brief.
 
 export const dynamic = "force-dynamic";
-
-const SEVERITY_STYLE: Record<SentinelFinding["severity"], string> = {
-  high: "bg-red-50 text-red-700",
-  medium: "bg-amber-50 text-amber-700",
-  low: "bg-surface text-ink-faint",
-};
 
 export default async function PlatformHealthPage() {
   const ctx = await getSessionContext();
@@ -56,33 +51,7 @@ export default async function PlatformHealthPage() {
         </div>
       )}
 
-      {findings && findings.length > 0 && (
-        <div className="space-y-4">
-          {findings.map((f) => (
-            <div
-              key={f.check}
-              className="rounded-xl border border-rule bg-surface-elevated p-5"
-            >
-              <div className="flex items-center gap-2">
-                <span
-                  className={`rounded-full px-2 py-0.5 text-micro font-semibold uppercase tracking-wide ${SEVERITY_STYLE[f.severity]}`}
-                >
-                  {f.severity}
-                </span>
-                <p className="text-sm font-semibold text-ink">{f.check}</p>
-              </div>
-              <p className="mt-2 text-sm leading-relaxed text-ink-faint">{f.message}</p>
-              <ul className="mt-2 space-y-0.5">
-                {f.rows.map((r) => (
-                  <li key={r} className="text-xs text-ink-faint">
-                    · {r}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      )}
+      {findings && findings.length > 0 && <FindingsList findings={findings} />}
     </div>
   );
 }
