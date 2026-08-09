@@ -449,6 +449,36 @@ export default async function TrackWeekPage({
           </div>
         )}
 
+      {/* Upcoming live session. The pre-day gate (#955) hides the live player
+         until the session's calendar day, but a bare page made "hidden on
+         purpose" indistinguishable from "missing" — a learner checking the
+         night before saw no trace of where class happens. Name the state:
+         a quiet card holds the player's slot until the day arrives. */}
+      {sessionDayFuture &&
+        !weekIsPast &&
+        meetingLinks.some(Boolean) &&
+        weekClock?.date && (
+          <div className="mb-8 panel px-4 py-4">
+            <p className="text-sm font-semibold text-ink">Live session opens here</p>
+            <p className="mt-0.5 text-xs text-ink-faint">
+              {formatCohortDate(weekClock.date, {
+                weekday: "long",
+                month: "long",
+                day: "numeric",
+              })}
+              {weekClock.time
+                ? ` at ${(() => {
+                    const [h, m] = weekClock.time.split(":").map(Number);
+                    const ampm = h >= 12 ? "PM" : "AM";
+                    const h12 = h % 12 === 0 ? 12 : h % 12;
+                    return `${h12}:${String(m).padStart(2, "0")} ${ampm} ET`;
+                  })()}`
+                : ""}
+              {" · the Join button appears that morning."}
+            </p>
+          </div>
+        )}
+
       {/* Zoom embeds — rendered for any session with an active Zoom meeting link.
          The meeting ID never appears in the DOM; students join through the SDK. */}
       {zoomSessions.length > 0 && (
