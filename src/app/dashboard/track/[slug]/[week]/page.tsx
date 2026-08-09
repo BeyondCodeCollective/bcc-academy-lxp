@@ -427,6 +427,28 @@ export default async function TrackWeekPage({
         );
       })()}
 
+      {/* Admin-only empty-state callout. Admins bypass the pre-start and
+         coming-soon gates to prep future sessions, which means a contentless
+         session renders as a silent blank page — indistinguishable from a bug
+         (HFS Day 2, 2026-08-08). Name the state instead. Learners never see
+         this: the gates redirect them or show the "opens on" placeholder. */}
+      {isAdminViewer &&
+        !displayDescription &&
+        !(displayObjectives?.length) &&
+        resources.length === 0 &&
+        !hasRecording && (
+          <div className="mb-8 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+            <p className="text-sm font-semibold text-amber-800">
+              Nothing here yet — admin preview
+            </p>
+            <p className="mt-1 text-xs text-amber-800">
+              This session has no description, objectives, resources, or recording, so
+              learners will see an empty page once it unlocks. Add content in Manage
+              Course → Session Content.
+            </p>
+          </div>
+        )}
+
       {/* Zoom embeds — rendered for any session with an active Zoom meeting link.
          The meeting ID never appears in the DOM; students join through the SDK. */}
       {zoomSessions.length > 0 && (
