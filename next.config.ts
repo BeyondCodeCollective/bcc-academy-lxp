@@ -5,6 +5,14 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.resolve(__dirname),
   },
+  experimental: {
+    serverActions: {
+      // Default is 1MB, which silently killed admin image uploads (landing
+      // hero, course covers) before the action's own 8MB check ever ran —
+      // the client just saw "Upload failed". Sized above that app-level cap.
+      bodySizeLimit: "10mb",
+    },
+  },
   images: {
     formats: ["image/avif", "image/webp"],
     remotePatterns: [
