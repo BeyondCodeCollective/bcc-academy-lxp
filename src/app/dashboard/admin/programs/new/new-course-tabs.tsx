@@ -4,9 +4,16 @@ import { useState } from "react";
 import { CreateCourseForm } from "./create-course-form";
 import { ImportCourseForm } from "./import-course-form";
 
+type Mode = "generate" | "import" | "manual";
+
+const LABELS: Record<Mode, string> = {
+  generate: "Generate with AI",
+  import: "From a link",
+  manual: "Enter manually",
+};
+
 /** Manual entry stays super-admin-only because createCourseAction still
- *  requires it; importing is open to any admin. When only one mode is
- *  available there's nothing to switch between, so the tabs are hidden. */
+ *  requires it; generating and importing are open to any admin. */
 export function NewCourseTabs({
   canCreateManually,
   extraProgram,
@@ -20,14 +27,15 @@ export function NewCourseTabs({
 }) {
   // Landing here from an organization means the course belongs to that org, so
   // open on manual entry — the importer has no program picker.
-  const [mode, setMode] = useState<"import" | "manual">(extraProgram ? "manual" : "import");
-
-  if (!canCreateManually) return <ImportCourseForm currentProgram={currentProgram} />;
+  const [mode, setMode] = useState<Mode>(extraProgram ? "manual" : "generate");
+  const modes: Mode[] = canCreateManually
+    ? ["generate", "import", "manual"]
+    : ["generate", "import"];
 
   return (
     <div className="space-y-5">
       <div className="flex gap-1 rounded-lg bg-surface-muted p-1">
-        {(["import", "manual"] as const).map((m) => (
+        {modes.map((m) => (
           <button
             key={m}
             type="button"
@@ -37,15 +45,19 @@ export function NewCourseTabs({
               mode === m ? "bg-white text-ink shadow-sm" : "text-ink-soft hover:text-ink"
             }`}
           >
-            {m === "import" ? "From a link" : "Enter manually"}
+            {LABELS[m]}
           </button>
         ))}
       </div>
 
-      {mode === "import" ? (
-        <ImportCourseForm currentProgram={currentProgram} />
-      ) : (
+      {mode === "manual" ? (
         <CreateCourseForm extraProgram={extraProgram} currentProgram={currentProgram} />
+      ) : (
+        <ImportCourseForm
+          key={mode}
+          variant={mode}
+          currentProgram={currentProgram}
+        />
       )}
     </div>
   );

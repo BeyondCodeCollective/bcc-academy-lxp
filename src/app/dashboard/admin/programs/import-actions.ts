@@ -8,6 +8,7 @@ import { getProgramBySlug } from "@/lib/programs";
 import { toSlug } from "@/lib/programs/slug";
 import { resolveSource } from "@/lib/course-import/source";
 import { parseCourseDraft, type CourseDraft } from "@/lib/course-import/parse";
+import { generateCourseDraft } from "@/lib/course-import/generate";
 
 // Same three programs the manual builder allows — they're the ones that surface
 // on the bccacademy.io hub. See COURSE_PROGRAM_SLUGS in ./actions.ts.
@@ -81,6 +82,30 @@ export async function previewCourseImportAction(
         ? resolved.source.facts.coverImageUrl
         : undefined,
   };
+}
+
+/** Step 1 of the generator: describe the program, get a reviewable draft.
+ *  Writes nothing — the draft flows into the same review step and
+ *  createCourseFromDraftAction as an import. */
+export async function generateCourseDraftAction(
+  description: string,
+): Promise<PreviewResult> {
+  await requireCourseCreator();
+
+  if (!description.trim()) {
+    return { success: false, error: "Describe the program first." };
+  }
+
+  try {
+    const draft = await generateCourseDraft(description);
+    return { success: true, draft, attendeeEmails: [] };
+  } catch (err) {
+    console.error("[generateCourseDraftAction] generation failed:", err);
+    return {
+      success: false,
+      error: "Could not draft the program. Try again, or add more detail to the description.",
+    };
+  }
 }
 
 export type ImportResult =
