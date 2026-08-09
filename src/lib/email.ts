@@ -845,7 +845,7 @@ export async function sendStaffAccountNotification(input: {
  * The Sentinel's daily brief. One email per nightly run: a plain-language
  * summary up top (AI-written when the model is reachable, deterministic
  * otherwise), findings grouped by severity below. Goes to
- * SENTINEL_NOTIFY_EMAIL (default info@bccacademy.io). Self-contained
+ * SENTINEL_NOTIFY_EMAIL (default fonz.morris@wearebgc.org). Self-contained
  * try/catch — a failed email must never fail the cron run.
  */
 export async function sendSentinelReportEmail(input: {
@@ -856,7 +856,7 @@ export async function sendSentinelReportEmail(input: {
     console.warn("[email] RESEND_API_KEY not set — skipping sentinel report");
     return;
   }
-  const to = process.env.SENTINEL_NOTIFY_EMAIL ?? "info@bccacademy.io";
+  const to = process.env.SENTINEL_NOTIFY_EMAIL ?? "fonz.morris@wearebgc.org";
   const esc = (s: string) =>
     s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const date = new Date().toISOString().slice(0, 10);
