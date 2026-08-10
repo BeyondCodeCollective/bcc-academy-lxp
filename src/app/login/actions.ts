@@ -257,8 +257,10 @@ export async function verifyLoginCode({
 }): Promise<VerifyCodeResult> {
   const trimmed = email.trim().toLowerCase();
   const digits = code.replace(/\D/g, "");
-  if (digits.length !== 6) {
-    return { ok: false, error: "Enter the 6-digit code from the email." };
+  // Supabase's OTP length is configurable (this project mints 8 digits) —
+  // don't hardcode a length, just require something code-shaped.
+  if (digits.length < 6 || digits.length > 10) {
+    return { ok: false, error: "Enter the code from the sign-in email." };
   }
 
   const anon = await createClient();

@@ -20,9 +20,9 @@ export async function sendSignInEmail({
   to: string;
   magicLink: string;
   programName: string;
-  /** Same OTP the link carries, rendered as a typeable 6-digit code — the
-   *  fallback that survives prefetchers, link scanners, and cross-device
-   *  opens. Omitted on the Supabase-OTP fallback path (no code available). */
+  /** Same OTP the link carries, rendered as a typeable code — the fallback
+   *  that survives prefetchers, link scanners, and cross-device opens.
+   *  Omitted on the Supabase-OTP fallback path (no code available). */
   otpCode?: string;
 }): Promise<void> {
   if (!resend) {
@@ -32,7 +32,7 @@ export async function sendSignInEmail({
   const codeBlock = otpCode
     ? `
     <p style="margin:0 0 8px;font-size:13px;color:#555;text-align:center;">Link not working? Enter this code on the sign-in page instead:</p>
-    <p style="margin:0 0 28px;font-size:28px;font-weight:700;letter-spacing:0.3em;text-align:center;color:#1a1a1a;">${otpCode}</p>`
+    <p style="margin:0 0 28px;font-size:26px;font-weight:700;letter-spacing:0.2em;text-align:center;color:#1a1a1a;">${otpCode}</p>`
     : "";
   const { error } = await resend.emails.send({
     from: FROM_ADDRESS,
