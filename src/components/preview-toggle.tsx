@@ -44,6 +44,8 @@ export function PreviewToggle({
       : `Previewing: ${previewingSlugs.length} courses`;
 
   return (
+    // Floats over page content; the dashboard footer carries matching bottom
+    // padding on mobile so this never covers the Privacy/Terms links.
     <div ref={ref} className="fixed bottom-4 right-4 z-40">
       {open && (
         <div className="absolute bottom-full right-0 mb-2 w-64 overflow-hidden panel shadow-xl">
