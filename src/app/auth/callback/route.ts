@@ -113,6 +113,11 @@ export async function GET(request: Request) {
     : null;
   let trackParam = searchParams.get("track");
   let joinSlug = searchParams.get("join");
+  // Code-entry sign-in: verifyLoginCode already verified the 6-digit OTP and
+  // set the session cookies server-side, then sent the browser here with
+  // session=1 so this route runs its usual enrollment + routing on the
+  // now-authenticated session. No token in the URL by design.
+  const sessionMode = searchParams.get("session") === "1";
   const nextParam = searchParams.get("next");
   // Preserve a safe destination across failure redirects to /login: the login
   // form reads ?next=, so a student who has to manually re-request a sign-in
@@ -124,7 +129,7 @@ export async function GET(request: Request) {
   // falling back to a DIFFERENT account already signed in on this browser.
   const intendedEmail = searchParams.get("email")?.toLowerCase() ?? null;
 
-  if (code || token_hash) {
+  if (code || token_hash || sessionMode) {
     const cookieStore = await cookies();
 
     if (!joinSlug) {
@@ -215,6 +220,12 @@ export async function GET(request: Request) {
       const { data, error } = await supabase.auth.verifyOtp({ token_hash, type });
       if (error) { if (!(await fallbackToExisting())) authError = error; }
       else { authResult = data; }
+    } else if (sessionMode) {
+      // The session was established by verifyLoginCode; fallbackToExisting
+      // reads it and enforces the same wrong-account guard as the link path.
+      if (!(await fallbackToExisting())) {
+        authError = new Error("No session found after code sign-in.");
+      }
     }
 
     const user = authResult?.user ?? null;

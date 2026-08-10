@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Check } from "@phosphor-icons/react";
-import { sendLoginLink } from "@/app/login/actions";
+import { sendLoginLink, verifyLoginCode } from "@/app/login/actions";
 
 // Strip a ?error=… from the URL without a navigation, so the failure banner
 // (a sibling component reading the query param) disappears the moment the user
@@ -39,6 +39,9 @@ export function CentralLoginForm({
   const [sent, setSent] = useState(false);
   const [noAccount, setNoAccount] = useState(false);
   const [error, setError] = useState("");
+  const [code, setCode] = useState("");
+  const [codeError, setCodeError] = useState("");
+  const [verifying, setVerifying] = useState(false);
 
   const notEnrolled =
     noAccount ||
@@ -101,6 +104,27 @@ export function CentralLoginForm({
     setLoading(false);
   }
 
+  async function handleVerifyCode(e: React.FormEvent) {
+    e.preventDefault();
+    setVerifying(true);
+    setCodeError("");
+    const next =
+      new URLSearchParams(window.location.search).get("next") ?? undefined;
+    try {
+      const res = await verifyLoginCode({ email: email.trim().toLowerCase(), code, next });
+      if (res.ok) {
+        // Full navigation, not router.push — the session cookies set by the
+        // action must ride along on the callback request.
+        window.location.href = res.redirectTo;
+        return;
+      }
+      setCodeError(res.error);
+    } catch {
+      setCodeError("Something went wrong. Please try again.");
+    }
+    setVerifying(false);
+  }
+
   if (sent) {
     return (
       <div className={compact ? "space-y-3" : "space-y-6"}>
@@ -108,10 +132,39 @@ export function CentralLoginForm({
           <h1 className={headingCls}>Check your email.</h1>
           <p className={subCls}>
             We sent a sign-in link to <span className="text-white">{email}</span>.
+            Click it, or enter the 6-digit code from the email here:
           </p>
         </div>
+        <form onSubmit={handleVerifyCode} className="space-y-3">
+          <input
+            type="text"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            pattern="[0-9]*"
+            maxLength={6}
+            value={code}
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+            placeholder="000000"
+            aria-label="6-digit sign-in code"
+            className="w-full max-w-[240px] bg-white text-black placeholder-gray-400 px-5 py-3 text-lg tracking-[0.4em] text-center focus:outline-none focus:ring-2 focus:ring-electric-green border-0"
+          />
+          {codeError && (
+            <p role="alert" className="text-sm text-red-400">{codeError}</p>
+          )}
+          <button
+            type="submit"
+            disabled={verifying || code.length !== 6}
+            className={`block w-full max-w-[240px] py-3 text-sm font-bold uppercase tracking-wider transition-all ${
+              code.length === 6
+                ? "bg-electric-green text-true-black hover:brightness-110"
+                : "bg-white/10 text-white/30 cursor-not-allowed"
+            }`}
+          >
+            {verifying ? "Signing in..." : "Sign in with code"}
+          </button>
+        </form>
         <button
-          onClick={() => { setSent(false); setEmail(""); }}
+          onClick={() => { setSent(false); setEmail(""); setCode(""); setCodeError(""); }}
           className="text-sm text-white/40 hover:text-white transition-colors"
         >
           Use a different email
