@@ -324,7 +324,7 @@ export function InsightsDashboard({ sections, programs, scope }: Props) {
 
         {/* Tiles describe the selection above them, so changing Form or Cohort
            moves these numbers too. */}
-        <div className="mt-5 grid grid-cols-3 gap-3">
+        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
           <StatCard
             value={scopedCount.toLocaleString()}
             label="Responses"

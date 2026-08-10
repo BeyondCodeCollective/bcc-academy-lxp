@@ -199,7 +199,10 @@ export default async function DashboardLayout({
           )}
           {children}
           {!isSurveyPage && (
-            <footer className="border-t border-rule px-6 py-6 text-xs text-ink-soft">
+            // pb-20 on phones: the staff "Preview as student" pill floats
+            // fixed bottom-right and sat directly on top of Privacy/Terms at
+            // phone widths. Desktop has room; mobile gets a spacer.
+            <footer className="border-t border-rule px-6 py-6 pb-20 text-xs text-ink-soft sm:pb-6">
               <div className="flex flex-col items-center gap-1 sm:flex-row sm:justify-between">
                 <p>© 2026 Beyond Code Collective</p>
                 <nav className="flex items-center gap-4">
