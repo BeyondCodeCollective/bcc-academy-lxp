@@ -15,15 +15,25 @@ export async function sendSignInEmail({
   to,
   magicLink,
   programName,
+  otpCode,
 }: {
   to: string;
   magicLink: string;
   programName: string;
+  /** Same OTP the link carries, rendered as a typeable code — the fallback
+   *  that survives prefetchers, link scanners, and cross-device opens.
+   *  Omitted on the Supabase-OTP fallback path (no code available). */
+  otpCode?: string;
 }): Promise<void> {
   if (!resend) {
     console.warn("[email] RESEND_API_KEY not set — skipping sign-in email");
     return;
   }
+  const codeBlock = otpCode
+    ? `
+    <p style="margin:0 0 8px;font-size:13px;color:#555;text-align:center;">Link not working? Enter this code on the sign-in page instead:</p>
+    <p style="margin:0 0 28px;font-size:26px;font-weight:700;letter-spacing:0.2em;text-align:center;color:#1a1a1a;">${otpCode}</p>`
+    : "";
   const { error } = await resend.emails.send({
     from: FROM_ADDRESS,
     to,
@@ -38,7 +48,7 @@ export async function sendSignInEmail({
     <p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:#555;">Click the button below to sign in and open your portal. This link expires in 24 hours.</p>
     <div style="text-align:center;margin:0 0 28px;">
       <a href="${magicLink}" style="display:inline-block;padding:14px 36px;background:#1a1a1a;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:700;font-size:15px;letter-spacing:0.02em;">Open my portal →</a>
-    </div>
+    </div>${codeBlock}
     <p style="margin:0;font-size:12px;color:#999;line-height:1.5;">If you didn't request this, you can safely ignore this email. Questions? Reply here or email <a href="mailto:info@bccacademy.io" style="color:#1a1a1a;">info@bccacademy.io</a>.</p>
   </div>
 </div>`,
