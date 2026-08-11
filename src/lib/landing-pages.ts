@@ -49,6 +49,8 @@ export type LandingPage = {
   heroFit: "cover" | "contain";
   /** Letterbox background behind a 'contain' hero. */
   heroBg: string | null;
+  /** "dark" flips the page onto logo black; null/anything else = light. */
+  pageTheme: string | null;
   footerText: string | null;
   metaTitle: string | null;
   metaDescription: string | null;
@@ -97,6 +99,7 @@ export async function getLandingPage(slug: string): Promise<LandingPage | null> 
     heroImageUrl: (data.hero_image_url as string | null) ?? null,
     heroFit: (data.hero_fit as string | null) === "contain" ? "contain" : "cover",
     heroBg: (data.hero_bg as string | null) ?? null,
+    pageTheme: (data.page_theme as string | null) ?? null,
     footerText: (data.footer_text as string | null) ?? null,
     metaTitle: (data.meta_title as string | null) ?? null,
     metaDescription: (data.meta_description as string | null) ?? null,

@@ -10,11 +10,13 @@ import { enrollInCourse } from "@/app/bcc/[slug]/enroll-action";
  * Eventbrite embed; talks to the enrollInCourse server action.
  */
 export function CampEnrollForm({
+  ink = "#1a1a1a",
   slug,
   sessions,
   accent,
   ctaLabel,
 }: {
+  ink?: string;
   slug: string;
   sessions: LandingSession[];
   accent: string;
@@ -53,10 +55,10 @@ export function CampEnrollForm({
   if (status === "sent") {
     return (
       <div className="rounded-xl p-4" style={{ background: `${accent}0f` }}>
-        <p className="text-sm font-semibold" style={{ color: "#1a1a1a" }}>
+        <p className="text-sm font-semibold" style={{ color: `${ink}` }}>
           {enrolled ? "You're in — check your email." : "You're on the list."}
         </p>
-        <p className="mt-1 text-sm" style={{ color: "#1a1a1a99" }}>
+        <p className="mt-1 text-sm" style={{ color: `${ink}99` }}>
           {enrolled ? (
             <>
               We sent a link to <strong>{email.trim()}</strong> to open your course.
@@ -80,7 +82,7 @@ export function CampEnrollForm({
           onChange={(e) => setSessionId(e.target.value)}
           aria-label="Choose a date"
           className={inputStyle}
-          style={{ borderColor: "#1a1a1a22", color: "#1a1a1a" }}
+          style={{ borderColor: `${ink}22`, color: `${ink}` }}
         >
           {sessions.map((s) => (
             <option key={s.id} value={s.id}>
@@ -97,7 +99,7 @@ export function CampEnrollForm({
         onChange={(e) => setName(e.target.value)}
         disabled={status === "loading"}
         className={inputStyle}
-        style={{ borderColor: "#1a1a1a22", color: "#1a1a1a" }}
+        style={{ borderColor: `${ink}22`, color: `${ink}` }}
       />
       <input
         type="email"
@@ -107,7 +109,7 @@ export function CampEnrollForm({
         onChange={(e) => setEmail(e.target.value)}
         disabled={status === "loading"}
         className={inputStyle}
-        style={{ borderColor: "#1a1a1a22", color: "#1a1a1a" }}
+        style={{ borderColor: `${ink}22`, color: `${ink}` }}
       />
       {error && <p className="text-sm text-red-600">{error}</p>}
       <button

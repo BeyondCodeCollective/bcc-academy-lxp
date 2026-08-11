@@ -24,10 +24,12 @@ type EBWidgets = {
 };
 
 export function CampEventbriteRegister({
+  ink = "#1a1a1a",
   eventId,
   accent,
   height,
 }: {
+  ink?: string;
   eventId: string;
   accent: string;
   /** Inline embed height override (px). Defaults to 520. */
@@ -92,10 +94,10 @@ export function CampEventbriteRegister({
         className="border-l-4 p-4"
         style={{ borderColor: accent, background: `${accent}10` }}
       >
-        <p className="text-sm font-semibold" style={{ color: "#1a1a1a" }}>
+        <p className="text-sm font-semibold" style={{ color: `${ink}` }}>
           You&apos;re in 🎉
         </p>
-        <p className="mt-1 text-sm" style={{ color: "#1a1a1ab3" }}>
+        <p className="mt-1 text-sm" style={{ color: `${ink}b3` }}>
           Setting up your portal access…
         </p>
       </div>
@@ -105,10 +107,10 @@ export function CampEventbriteRegister({
   if (status === "sent") {
     return (
       <div className="border-l-4 p-4" style={{ borderColor: accent, background: `${accent}10` }}>
-        <p className="text-sm font-semibold" style={{ color: "#1a1a1a" }}>
+        <p className="text-sm font-semibold" style={{ color: `${ink}` }}>
           You&apos;re registered 🎉
         </p>
-        <p className="mt-1 text-sm leading-relaxed" style={{ color: "#1a1a1ab3" }}>
+        <p className="mt-1 text-sm leading-relaxed" style={{ color: `${ink}b3` }}>
           Check your email for your portal link — it&apos;s your door back in any time.
           Check spam if it doesn&apos;t arrive within a minute.
         </p>
@@ -125,7 +127,7 @@ export function CampEventbriteRegister({
       />
       <style>{`#${containerId}, #${containerId} iframe { width: 100%; min-height: ${embedHeight}px; border: 0; }`}</style>
       <div id={containerId} style={{ width: "100%" }} />
-      <p className="mt-3 text-xs leading-relaxed" style={{ color: "#1a1a1ab3" }}>
+      <p className="mt-3 text-xs leading-relaxed" style={{ color: `${ink}b3` }}>
         After you register, we&apos;ll email your one-click access link — your
         door into the portal any time.
       </p>
