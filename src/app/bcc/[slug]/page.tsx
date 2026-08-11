@@ -308,14 +308,30 @@ export default async function CampLandingPage({
             background: page.heroBg ?? undefined,
           }}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={page.heroImageUrl}
-            alt=""
-            className={`absolute inset-0 w-full h-full object-center ${
-              page.heroFit === "contain" ? "object-contain" : "object-cover"
-            }`}
-          />
+          {/* Hero media: video formats get a silent looping player (muted +
+             playsInline are required for mobile autoplay), everything else
+             stays an <img>. */}
+          {/\.(mp4|webm|mov|m4v)(\?|$)/i.test(page.heroImageUrl) ? (
+            <video
+              src={page.heroImageUrl}
+              autoPlay
+              muted
+              loop
+              playsInline
+              className={`absolute inset-0 w-full h-full object-center ${
+                page.heroFit === "contain" ? "object-contain" : "object-cover"
+              }`}
+            />
+          ) : (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={page.heroImageUrl}
+              alt=""
+              className={`absolute inset-0 w-full h-full object-center ${
+                page.heroFit === "contain" ? "object-contain" : "object-cover"
+              }`}
+            />
+          )}
           {page.sponsorLogoUrl && (
             <div className="absolute top-6 right-6 md:top-8 md:right-8">
               <span

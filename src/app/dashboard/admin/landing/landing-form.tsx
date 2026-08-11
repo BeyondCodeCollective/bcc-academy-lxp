@@ -475,7 +475,7 @@ export function LandingForm({
               {uploadingHero ? "Uploading…" : "Upload"}
               <input
                 type="file"
-                accept="image/jpeg,image/png,image/webp"
+                accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"
                 className="sr-only"
                 disabled={uploadingHero}
                 onChange={async (e) => {

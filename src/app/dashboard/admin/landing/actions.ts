@@ -191,11 +191,20 @@ export async function uploadLandingImageAction(
     "image/jpeg": "jpg",
     "image/png": "png",
     "image/webp": "webp",
+    "video/mp4": "mp4",
+    "video/webm": "webm",
+    "video/quicktime": "mov",
   };
   const ext = types[file.type];
-  if (!ext) return { success: false, error: "Use a JPG, PNG, or WebP image." };
-  if (file.size > 8 * 1024 * 1024) {
-    return { success: false, error: "Image must be under 8MB." };
+  if (!ext) {
+    return { success: false, error: "Use a JPG, PNG, or WebP image, or an MP4/WebM/MOV video." };
+  }
+  const isVideo = file.type.startsWith("video/");
+  // Video gets a higher cap: it can't be compressed in the browser the way
+  // images are, and a short hero loop runs 10-30MB.
+  const maxBytes = (isVideo ? 40 : 8) * 1024 * 1024;
+  if (file.size > maxBytes) {
+    return { success: false, error: `${isVideo ? "Video" : "Image"} must be under ${isVideo ? 40 : 8}MB.` };
   }
 
   const path = `${crypto.randomUUID()}.${ext}`;

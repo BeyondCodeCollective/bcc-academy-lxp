@@ -8,9 +8,10 @@ const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
       // Default is 1MB, which silently killed admin image uploads (landing
-      // hero, course covers) before the action's own 8MB check ever ran —
-      // the client just saw "Upload failed". Sized above that app-level cap.
-      bodySizeLimit: "10mb",
+      // hero, course covers) before the action's own checks ever ran — the
+      // client just saw "Upload failed". Sized above the app-level caps
+      // (8MB images, 40MB hero videos).
+      bodySizeLimit: "45mb",
     },
   },
   images: {
