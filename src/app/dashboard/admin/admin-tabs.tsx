@@ -1129,7 +1129,7 @@ export function AdminTabs({
             <AdminTopTabs
               current="courses"
               showInsights={canViewInsights(userRole)}
-              actions={canSwitchPrograms(userRole) && <ManageMenu isMaster={isMaster} />}
+              actions={canSwitchPrograms(userRole) && <ManageMenu isMaster={isMaster} programSlug={programSlug} />}
               isManager={isManager}
             />
 

@@ -3,6 +3,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { canAccessAdminPanel } from "@/lib/roles";
 import { getExam } from "@/lib/exams";
+import { getProgram } from "@/lib/programs/server";
 import { PageHeader } from "@/components/page-header";
 import { DataTable } from "@/components/ui";
 
@@ -15,6 +16,12 @@ export default async function ExamScoresPage() {
   const ctx = await getSessionContext();
   if (!ctx) redirect("/");
   if (!canAccessAdminPanel(ctx.student?.role ?? "")) redirect("/dashboard");
+
+  // The exam belongs to a Catalyst-hub course. Standing in another program's
+  // admin context (Forte, BGC, a dynamic org), this page has nothing you
+  // should see — Security+ scores don't belong in their panel.
+  const program = await getProgram();
+  if (!["catalyst", "marketing"].includes(program.slug)) redirect("/dashboard/admin");
 
   const exam = getExam("network-plus-post")!;
   const svc = createServiceClient();

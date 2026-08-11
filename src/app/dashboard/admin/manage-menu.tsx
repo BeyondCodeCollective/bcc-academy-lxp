@@ -12,7 +12,15 @@ import { buttonClass } from "@/components/ui";
 // that sit with the platform owner (email-gated) — a second program is a
 // credential change, an organization is a whole new tenant, and Platform
 // health lists learner emails across every program.
-type Item = { href: string; label: string; master?: boolean };
+type Item = {
+  href: string;
+  label: string;
+  master?: boolean;
+  /** Show only when the CURRENT program context is one of these slugs.
+   *  Practice exams currently exist only for Catalyst-hub courses — a Forte
+   *  admin has nothing behind the link and shouldn't see it. */
+  programs?: string[];
+};
 
 const GROUPS: { label: string; items: Item[] }[] = [
   {
@@ -28,7 +36,7 @@ const GROUPS: { label: string; items: Item[] }[] = [
     label: "People",
     items: [
       { href: "/dashboard/admin/registrations", label: "Registrations" },
-      { href: "/dashboard/admin/exams", label: "Practice exams" },
+      { href: "/dashboard/admin/exams", label: "Practice exams", programs: ["catalyst"] },
       { href: "/dashboard/admin/agreements", label: "Participation agreements" },
       { href: "/dashboard/admin/access", label: "Program access", master: true },
     ],
@@ -43,10 +51,21 @@ const GROUPS: { label: string; items: Item[] }[] = [
   },
 ];
 
-export function ManageMenu({ isMaster = false }: { isMaster?: boolean }) {
+export function ManageMenu({
+  isMaster = false,
+  programSlug,
+}: {
+  isMaster?: boolean;
+  /** Current program context; program-scoped items hide when absent. */
+  programSlug?: string;
+}) {
   const groups = GROUPS.map((g) => ({
     ...g,
-    items: g.items.filter((it) => isMaster || !it.master),
+    items: g.items.filter(
+      (it) =>
+        (isMaster || !it.master) &&
+        (!it.programs || (programSlug ? it.programs.includes(programSlug) : false)),
+    ),
   })).filter((g) => g.items.length > 0);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
