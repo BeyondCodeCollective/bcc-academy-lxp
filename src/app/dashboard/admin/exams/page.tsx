@@ -1,0 +1,109 @@
+import { redirect } from "next/navigation";
+import { createServiceClient } from "@/lib/supabase/server";
+import { getSessionContext } from "@/lib/auth/session";
+import { canAccessAdminPanel } from "@/lib/roles";
+import { getExam } from "@/lib/exams";
+import { PageHeader } from "@/components/page-header";
+import { DataTable } from "@/components/ui";
+
+// Instructor view of practice-exam scores: one row per student with attempt
+// count, best, and latest. Unlimited retakes means the trend is the story.
+
+export const dynamic = "force-dynamic";
+
+export default async function ExamScoresPage() {
+  const ctx = await getSessionContext();
+  if (!ctx) redirect("/");
+  if (!canAccessAdminPanel(ctx.student?.role ?? "")) redirect("/dashboard");
+
+  const exam = getExam("network-plus-post")!;
+  const svc = createServiceClient();
+
+  const { data: attempts } = await svc
+    .from("exam_attempts")
+    .select("student_id, submitted_at, score, total")
+    .eq("exam_id", exam.id)
+    .not("submitted_at", "is", null)
+    .order("submitted_at", { ascending: true });
+
+  type Row = {
+    studentId: string;
+    attempts: number;
+    best: number;
+    latest: number;
+    lastAt: string;
+  };
+  const byStudent = new Map<string, Row>();
+  for (const a of attempts ?? []) {
+    const pct = Math.round(((a.score as number) / (a.total as number)) * 1000) / 10;
+    const r = byStudent.get(a.student_id as string);
+    if (!r) {
+      byStudent.set(a.student_id as string, {
+        studentId: a.student_id as string,
+        attempts: 1,
+        best: pct,
+        latest: pct,
+        lastAt: a.submitted_at as string,
+      });
+    } else {
+      r.attempts++;
+      r.best = Math.max(r.best, pct);
+      r.latest = pct;
+      r.lastAt = a.submitted_at as string;
+    }
+  }
+
+  const ids = [...byStudent.keys()];
+  const { data: students } = ids.length
+    ? await svc.from("students").select("id, first_name, last_name, email").in("id", ids)
+    : { data: [] };
+  const nameOf = new Map(
+    (students ?? []).map((s) => [
+      s.id as string,
+      `${s.first_name ?? ""} ${s.last_name ?? ""}`.trim() || (s.email as string),
+    ]),
+  );
+
+  const rows = [...byStudent.values()].sort((a, b) => b.lastAt.localeCompare(a.lastAt));
+
+  return (
+    <div className="mx-auto w-full max-w-3xl px-4 sm:px-5 py-8 space-y-6">
+      <PageHeader
+        eyebrow="Practice Exams"
+        title={exam.title}
+        subtitle={`${rows.length} student${rows.length === 1 ? "" : "s"} with submitted attempts · retakes unlimited · share the exam at /dashboard/exam/${exam.id}`}
+      />
+
+      {rows.length === 0 ? (
+        <div className="panel p-6">
+          <p className="text-sm text-ink-soft">
+            No attempts yet. Students enrolled in {exam.appliesToTracks.join(", ")} can take
+            the exam at <span className="font-mono">/dashboard/exam/{exam.id}</span>.
+          </p>
+        </div>
+      ) : (
+        <DataTable
+          columns={[
+            "Student",
+            { label: "Attempts", align: "right" },
+            { label: "Best", align: "right" },
+            { label: "Latest", align: "right" },
+            { label: "Last attempt", align: "right" },
+          ]}
+        >
+          {rows.map((r) => (
+            <tr key={r.studentId}>
+              <td className="px-4 py-2.5 text-ink">{nameOf.get(r.studentId) ?? r.studentId}</td>
+              <td className="px-4 py-2.5 text-right tabular-nums text-ink-soft">{r.attempts}</td>
+              <td className="px-4 py-2.5 text-right tabular-nums font-semibold text-ink">{r.best}%</td>
+              <td className="px-4 py-2.5 text-right tabular-nums text-ink-soft">{r.latest}%</td>
+              <td className="px-4 py-2.5 text-right text-ink-faint">
+                {new Date(r.lastAt).toLocaleDateString()}
+              </td>
+            </tr>
+          ))}
+        </DataTable>
+      )}
+    </div>
+  );
+}
