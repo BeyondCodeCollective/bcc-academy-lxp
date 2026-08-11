@@ -24,6 +24,7 @@ export function CampEnrollForm({
 }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [zip, setZip] = useState("");
   const [sessionId, setSessionId] = useState(sessions[0]?.id ?? "");
   const [status, setStatus] = useState<"idle" | "loading" | "sent" | "error">("idle");
   const [enrolled, setEnrolled] = useState(true);
@@ -39,6 +40,7 @@ export function CampEnrollForm({
       slug,
       name,
       email: email.trim(),
+      zipCode: zip.trim(),
       sessionId: sessions.length > 0 ? sessionId : null,
       origin: window.location.origin,
     });
@@ -107,6 +109,20 @@ export function CampEnrollForm({
         placeholder="Email address"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
+        disabled={status === "loading"}
+        className={inputStyle}
+        style={{ borderColor: `${ink}22`, color: `${ink}` }}
+      />
+      <input
+        type="text"
+        required
+        inputMode="numeric"
+        autoComplete="postal-code"
+        pattern="\d{5}(-\d{4})?"
+        title="5-digit ZIP code"
+        placeholder="ZIP code"
+        value={zip}
+        onChange={(e) => setZip(e.target.value)}
         disabled={status === "loading"}
         className={inputStyle}
         style={{ borderColor: `${ink}22`, color: `${ink}` }}
