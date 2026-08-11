@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
-import { canAccessAdminPanel } from "@/lib/roles";
+import { canAccessAdminPanel, canSwitchPrograms } from "@/lib/roles";
 import { getExam } from "@/lib/exams";
 import { getProgram } from "@/lib/programs/server";
 import { PageHeader } from "@/components/page-header";
@@ -18,10 +18,17 @@ export default async function ExamScoresPage() {
   if (!canAccessAdminPanel(ctx.student?.role ?? "")) redirect("/dashboard");
 
   // The exam belongs to a Catalyst-hub course. Standing in another program's
-  // admin context (Forte, BGC, a dynamic org), this page has nothing you
-  // should see — Security+ scores don't belong in their panel.
+  // context, switch the viewer into Catalyst and land back here rather than
+  // dead-ending at the admin home.
   const program = await getProgram();
-  if (!["catalyst", "marketing"].includes(program.slug)) redirect("/dashboard/admin");
+  if (!["catalyst", "marketing"].includes(program.slug)) {
+    // Program-switching roles get moved into Catalyst; single-program staff
+    // stay in their own panel.
+    if (canSwitchPrograms(ctx.student?.role ?? "")) {
+      redirect("/api/switch-program?slug=catalyst&next=/dashboard/admin/exams");
+    }
+    redirect("/dashboard/admin");
+  }
 
   const exam = getExam("network-plus-post")!;
   const svc = createServiceClient();
