@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
-import { canAccessAdminPanel } from "@/lib/roles";
+import { canAccessAdminPanel, canSwitchPrograms } from "@/lib/roles";
 import { getExam, clientView } from "@/lib/exams";
 import { getProgram } from "@/lib/programs/server";
 import { PageHeader } from "@/components/page-header";
@@ -40,11 +40,19 @@ export default async function ExamPage({
       .in("track_slug", exam.appliesToTracks);
     if (!enr?.length) redirect("/dashboard");
   } else {
-    // Staff bypass the enrollment gate, so scope THEM by program context —
-    // otherwise the exam "shows up under Forte" for admins standing in
-    // another program's panel.
+    // Staff bypass the enrollment gate, so scope THEM by program context.
+    // Wrong context doesn't dead-end at the admin home — it switches the
+    // viewer into Catalyst and lands back here, since the exam only exists
+    // in one program and the intent of opening the link is unambiguous.
     const program = await getProgram();
-    if (!["catalyst", "marketing"].includes(program.slug)) redirect("/dashboard/admin");
+    if (!["catalyst", "marketing"].includes(program.slug)) {
+      // Program-switching roles get moved into Catalyst; single-program
+      // staff (a Forte admin) have no business in another program's exam.
+      if (canSwitchPrograms(ctx.student?.role ?? "")) {
+        redirect(`/api/switch-program?slug=catalyst&next=/dashboard/exam/${examId}`);
+      }
+      redirect("/dashboard/admin");
+    }
   }
 
   const { data: attempts } = await svc
