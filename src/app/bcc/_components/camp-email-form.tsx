@@ -7,10 +7,12 @@ import { createClient } from "@/lib/supabase/client";
 // DB-driven version of the camp signup form. Accent + linked track come from the
 // landing_pages row, so one component serves every camp/landing page.
 export function CampEmailForm({
+  ink = "#1a1a1a",
   accent,
   trackSlug,
   registerHint,
 }: {
+  ink?: string;
   accent: string;
   trackSlug: string | null;
   registerHint?: string | null;
@@ -68,7 +70,7 @@ export function CampEmailForm({
   if (sessionEmail) {
     return (
       <div className="border-l-4 p-4" style={{ borderColor: accent, background: `${accent}10` }}>
-        <p className="text-sm" style={{ color: "#1a1a1a" }}>
+        <p className="text-sm" style={{ color: `${ink}` }}>
           Signed in as <strong>{sessionEmail}</strong>
         </p>
         <div className="mt-3 flex flex-wrap items-center gap-4">
@@ -90,7 +92,7 @@ export function CampEmailForm({
             type="button"
             onClick={handleSwitchAccount}
             className="text-xs font-medium underline"
-            style={{ color: "#1a1a1ab3", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+            style={{ color: `${ink}b3`, background: "none", border: "none", cursor: "pointer", padding: 0 }}
           >
             Not you? Sign out &amp; use a different email
           </button>
@@ -102,18 +104,18 @@ export function CampEmailForm({
   if (status === "sent") {
     return (
       <div>
-        <p className="text-sm font-semibold" style={{ color: "#1a1a1a" }}>
+        <p className="text-sm font-semibold" style={{ color: `${ink}` }}>
           Check your inbox
         </p>
-        <p className="mt-1 text-sm leading-relaxed" style={{ color: "#1a1a1ab3" }}>
+        <p className="mt-1 text-sm leading-relaxed" style={{ color: `${ink}b3` }}>
           We sent a sign-in link to{" "}
-          <span className="font-medium" style={{ color: "#1a1a1a" }}>{email}</span>.
+          <span className="font-medium" style={{ color: `${ink}` }}>{email}</span>.
           {" "}Check spam if it doesn&apos;t arrive within a minute.
         </p>
         <button
           onClick={() => { setStatus("idle"); setEmail(""); setError(""); }}
           className="mt-3 text-xs transition-colors"
-          style={{ color: "#1a1a1aa6", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}
+          style={{ color: `${ink}a6`, background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}
         >
           Use a different email
         </button>
@@ -137,7 +139,7 @@ export function CampEmailForm({
             padding: "11px 14px",
             border: "1px solid #d4d4d4",
             background: "#fff",
-            color: "#1a1a1a",
+            color: `${ink}`,
             outline: "none",
             minHeight: "44px",
             fontSize: "15px",

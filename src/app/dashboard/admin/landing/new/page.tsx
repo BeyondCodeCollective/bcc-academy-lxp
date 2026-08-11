@@ -23,6 +23,7 @@ const EMPTY: LandingFormInitial = {
   secondaryCtaUrl: "",
   partners: [],
   heroImageUrl: "",
+  pageTheme: "",
   footerText: "",
   metaTitle: "",
   metaDescription: "",

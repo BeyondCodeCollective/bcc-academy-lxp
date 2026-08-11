@@ -62,6 +62,7 @@ export function LandingForm({
   const [secondaryCtaUrl, setSecondaryCtaUrl] = useState(initial.secondaryCtaUrl);
   const [partners, setPartners] = useState<PartnerDraft[]>(toDrafts(initial.partners));
   const [heroImageUrl, setHeroImageUrl] = useState(initial.heroImageUrl);
+  const [darkTheme, setDarkTheme] = useState(initial.pageTheme === "dark");
   const [uploadingHero, setUploadingHero] = useState(false);
   const [heroUploadError, setHeroUploadError] = useState<string | null>(null);
   const [footerText, setFooterText] = useState(initial.footerText);
@@ -117,6 +118,7 @@ export function LandingForm({
           secondaryCtaUrl,
           partners: partnersOut,
           heroImageUrl,
+          pageTheme: darkTheme ? "dark" : "",
           footerText,
           metaTitle,
           metaDescription,
@@ -158,6 +160,19 @@ export function LandingForm({
             </p>
           )}
         </Field>
+
+        <label className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            checked={darkTheme}
+            onChange={(e) => setDarkTheme(e.target.checked)}
+            className="h-4 w-4 accent-[var(--primary)]"
+          />
+          <span className="text-sm text-ink">
+            Dark page{" "}
+            <span className="text-ink-faint">— black background, cream text</span>
+          </span>
+        </label>
 
         <label className="flex items-center gap-3">
           <input

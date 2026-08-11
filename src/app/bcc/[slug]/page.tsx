@@ -57,25 +57,30 @@ export default async function CampLandingPage({
 
   const accent = page.accent;
 
+  // Per-page theme: `dark` flips the page onto logo black with cream ink.
+  // INK stays 6-digit hex so the 2-digit alpha suffixes below compose.
+  const dark = page.pageTheme === "dark";
+  const INK = dark ? "#fffdf7" : "#1a1a1a";
+  const BG = dark ? "#181818" : "#f5f5f7";
   return (
     <div
       className="min-h-[100dvh] flex flex-col md:flex-row"
-      style={{ backgroundColor: "#f5f5f7", color: "#1a1a1a" }}
+      style={{ backgroundColor: BG, color: INK }}
     >
       {/* ── Left: content panel ── */}
       <div className="flex flex-col flex-1 md:min-h-[100dvh]">
         {/* Header */}
         <header
           className="flex items-center justify-between px-8 py-5 md:px-12"
-          style={{ borderBottom: "1px solid #1a1a1a0d" }}
+          style={{ borderBottom: `1px solid ${INK}0d` }}
         >
           <span
             className="text-[11px] font-bold uppercase tracking-[0.2em]"
-            style={{ color: "#1a1a1aa6" }}
+            style={{ color: `${INK}a6` }}
           >
             {page.headerLabel}
           </span>
-          <CampHeaderCta />
+          <CampHeaderCta ink={INK} />
         </header>
 
         {/* Main content */}
@@ -94,7 +99,7 @@ export default async function CampLandingPage({
               className="font-bold leading-[1.0] tracking-tight"
               style={{
                 fontSize: "clamp(34px, 4vw, 48px)",
-                color: "#1a1a1a",
+                color: `${INK}`,
               }}
             >
               {page.headline.split("\n").map((line, i, arr) => (
@@ -108,7 +113,7 @@ export default async function CampLandingPage({
             {page.subhead && (
               <p
                 className="mt-4 text-sm leading-relaxed"
-                style={{ color: "#1a1a1ab3", maxWidth: "38ch" }}
+                style={{ color: `${INK}b3`, maxWidth: "38ch" }}
               >
                 {page.subhead}
               </p>
@@ -119,7 +124,7 @@ export default async function CampLandingPage({
               {page.formLabel && (
                 <p
                   className="mb-2.5 text-[11px] font-medium uppercase tracking-[0.14em]"
-                  style={{ color: "#1a1a1aa6" }}
+                  style={{ color: `${INK}a6` }}
                 >
                   {page.formLabel}
                 </p>
@@ -135,26 +140,28 @@ export default async function CampLandingPage({
                 </a>
               ) : page.eventbriteEventId ? (
                 <CampEventbriteRegister
+                  ink={INK}
                   eventId={page.eventbriteEventId}
                   accent={accent}
                   height={page.embedHeight}
                 />
               ) : page.nativeEnroll ? (
                 <CampEnrollForm
+                  ink={INK}
                   slug={page.slug}
                   sessions={page.sessions}
                   accent={accent}
                   ctaLabel={page.enrollCtaLabel}
                 />
               ) : (
-                <CampEmailForm accent={accent} trackSlug={page.trackSlug} />
+                <CampEmailForm ink={INK} accent={accent} trackSlug={page.trackSlug} />
               )}
             </div>
 
             {/* Schedule */}
             {page.schedule.length > 0 && (
               <>
-                <div className="mt-10 mb-7" style={{ height: "1px", background: "#1a1a1a12" }} />
+                <div className="mt-10 mb-7" style={{ height: "1px", background: `${INK}12` }} />
                 <div className="space-y-4">
                   {page.schedule.map((item) => (
                     <div key={item.label} className="flex items-baseline gap-5">
@@ -163,11 +170,11 @@ export default async function CampLandingPage({
                         // beside the session titles, on a page whose whole job
                         // is telling someone which five days to hold.
                         className="text-xs font-bold uppercase tracking-[0.1em] shrink-0"
-                        style={{ color: "#1a1a1a", minWidth: "104px" }}
+                        style={{ color: `${INK}`, minWidth: "104px" }}
                       >
                         {item.label}
                       </span>
-                      <span className="font-semibold" style={{ color: "#1a1a1a", fontSize: "16px" }}>
+                      <span className="font-semibold" style={{ color: `${INK}`, fontSize: "16px" }}>
                         {item.title}
                       </span>
                     </div>
@@ -189,7 +196,7 @@ export default async function CampLandingPage({
                     </h2>
                     <p
                       className="mt-2 text-sm leading-relaxed whitespace-pre-line"
-                      style={{ color: "#1a1a1a99" }}
+                      style={{ color: `${INK}99` }}
                     >
                       {section.body}
                     </p>
@@ -202,7 +209,7 @@ export default async function CampLandingPage({
             {page.instructor && (
               <div
                 className="mt-10 flex items-start gap-4 rounded-2xl p-5"
-                style={{ background: "#1a1a1a08" }}
+                style={{ background: `${INK}08` }}
               >
                 {page.instructor.photoUrl && (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -221,10 +228,10 @@ export default async function CampLandingPage({
                       {page.instructor.role}
                     </p>
                   )}
-                  <p className="text-[15px] font-semibold" style={{ color: "#1a1a1a" }}>
+                  <p className="text-[15px] font-semibold" style={{ color: `${INK}` }}>
                     {page.instructor.name}
                   </p>
-                  <p className="mt-1 text-sm leading-relaxed" style={{ color: "#1a1a1a99" }}>
+                  <p className="mt-1 text-sm leading-relaxed" style={{ color: `${INK}99` }}>
                     {page.instructor.bio}
                   </p>
                 </div>
@@ -233,7 +240,7 @@ export default async function CampLandingPage({
 
             {/* Secondary CTA */}
             {page.secondaryCtaLabel && page.secondaryCtaUrl && (
-              <p className="mt-8 text-sm" style={{ color: "#1a1a1aa6" }}>
+              <p className="mt-8 text-sm" style={{ color: `${INK}a6` }}>
                 <a
                   href={page.secondaryCtaUrl}
                   target="_blank"
@@ -250,17 +257,17 @@ export default async function CampLandingPage({
 
         {/* Partner logos */}
         {page.partners.length > 0 && (
-          <div className="px-8 py-6 md:px-12" style={{ borderTop: "1px solid #1a1a1a0d" }}>
+          <div className="px-8 py-6 md:px-12" style={{ borderTop: `1px solid ${INK}0d` }}>
             <p
               className="mb-4 text-[10px] font-medium uppercase tracking-[0.18em]"
-              style={{ color: "#1a1a1a99" }}
+              style={{ color: `${INK}99` }}
             >
               Presented in partnership with
             </p>
             <div className="flex items-center gap-6">
               {page.partners.map((p, i) => (
                 <span key={i} className="flex items-center gap-6">
-                  {i > 0 && <span style={{ color: "#1a1a1a18", fontSize: "18px" }}>×</span>}
+                  {i > 0 && <span style={{ color: `${INK}18`, fontSize: "18px" }}>×</span>}
                   {p.kind === "image" ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -275,7 +282,7 @@ export default async function CampLandingPage({
                         fontWeight: 900,
                         fontSize: `${(p.height ?? 26) + 2}px`,
                         letterSpacing: "-1px",
-                        color: "#1a1a1a",
+                        color: `${INK}`,
                       }}
                     >
                       {p.label}
@@ -289,8 +296,8 @@ export default async function CampLandingPage({
 
         {/* Footer */}
         {page.footerText && (
-          <footer className="px-8 py-4 md:px-12" style={{ borderTop: "1px solid #1a1a1a0d" }}>
-            <p className="text-[11px]" style={{ color: "#1a1a1a99" }}>
+          <footer className="px-8 py-4 md:px-12" style={{ borderTop: `1px solid ${INK}0d` }}>
+            <p className="text-[11px]" style={{ color: `${INK}99` }}>
               {page.footerText}
             </p>
           </footer>
@@ -318,10 +325,15 @@ export default async function CampLandingPage({
               muted
               loop
               playsInline
+              crossOrigin="anonymous"
               className={`absolute inset-0 w-full h-full object-center ${
                 page.heroFit === "contain" ? "object-contain" : "object-cover"
               }`}
-            />
+            >
+              {/* Sibling captions file; a missing track 404s silently. The
+                 video is muted for autoplay, so captions carry the audio. */}
+              <track kind="captions" srcLang="en" label="English" default src={`${page.heroImageUrl}.vtt`} />
+            </video>
           ) : (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
