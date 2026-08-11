@@ -189,9 +189,9 @@ export function ProgramAttendanceOverview({ students, tracks, enrollments }: Pro
 }
 
 /**
- * Every learner × every held session, all courses side by side — the
- * "is everyone looped in" grid. ✓ = attended; · = enrolled but absent;
- * — = not enrolled in that course. Totals close the loop both ways.
+ * Every learner × every held session — the "is everyone looped in" grid.
+ * One grid per course, listing only that course's enrolled learners.
+ * ✓ = attended; · = absent. Totals close the loop both ways.
  */
 function AllSessionsMatrix({
   tracks,
@@ -234,58 +234,23 @@ function AllSessionsMatrix({
     [students, groups, enrolledByStudent],
   );
 
-  // Side-by-side only earns its width when the SAME people span the courses
-  // (Security+ technical + MASS). Cluster courses by roster overlap: courses
-  // sharing at least one learner merge into one grid; everything else gets its
-  // own. A learner never sits in a grid full of courses they aren't part of.
-  const clusters = useMemo(() => {
-    const parent = new Map<string, string>();
-    const find = (x: string): string => {
-      const p = parent.get(x) ?? x;
-      if (p === x) return x;
-      const root = find(p);
-      parent.set(x, root);
-      return root;
-    };
-    for (const st of learners) {
-      const enrolled = groups.filter(({ track }) =>
-        enrolledByStudent.get(st.id)?.has(track.slug),
-      );
-      for (let i = 1; i < enrolled.length; i++) {
-        parent.set(find(enrolled[i].track.slug), find(enrolled[0].track.slug));
-      }
-    }
-    const byRoot = new Map<string, typeof groups>();
-    for (const g of groups) {
-      const root = find(g.track.slug);
-      byRoot.set(root, [...(byRoot.get(root) ?? []), g]);
-    }
-    // Keep the newest-first ordering groups already has.
-    return Array.from(byRoot.values()).sort((a, b) =>
-      b[0].track.startDate.localeCompare(a[0].track.startDate),
-    );
-  }, [groups, learners, enrolledByStudent]);
-
   if (groups.length === 0 || learners.length === 0) return null;
 
+  // One grid per course, only its enrolled learners. The old side-by-side
+  // matrix filled most of its width with "not enrolled" dashes; a roster is
+  // only ever read one course at a time.
   return (
     <div className="space-y-3">
       <SectionHeadline
         eyebrow="All sessions"
         headline="Every learner, every session held"
-        sub={
-          clusters.some((c) => c.length > 1)
-            ? "✓ attended · missed — not enrolled. Courses that share learners sit side by side; each grid lists only its own learners."
-            : "✓ attended · missed. Each course lists only its enrolled learners."
-        }
+        sub="✓ attended · missed. Each course lists only its enrolled learners."
       />
-      {clusters.map((cluster) => (
+      {groups.map((g) => (
         <MatrixTable
-          key={cluster.map((g) => g.track.slug).join("+")}
-          groups={cluster}
-          learners={learners.filter((st) =>
-            cluster.some(({ track }) => enrolledByStudent.get(st.id)?.has(track.slug)),
-          )}
+          key={g.track.slug}
+          groups={[g]}
+          learners={learners.filter((st) => enrolledByStudent.get(st.id)?.has(g.track.slug))}
           attended={attended}
           enrolledByStudent={enrolledByStudent}
         />
