@@ -5,6 +5,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { canAccessAdminPanel } from "@/lib/roles";
 import { getExam, clientView } from "@/lib/exams";
+import { getProgram } from "@/lib/programs/server";
 import { PageHeader } from "@/components/page-header";
 import { ExamRunner } from "./exam-runner";
 
@@ -29,12 +30,21 @@ export default async function ExamPage({
   const svc = createServiceClient();
   const isStaff = canAccessAdminPanel(ctx.student?.role ?? "");
   if (!isStaff) {
+    // Learner access keys off ENROLLMENT, never the browsing program — a
+    // Security+ student opening the link from the apex/marketing context
+    // must still get in.
     const { data: enr } = await svc
       .from("student_tracks")
       .select("track_slug")
       .eq("student_id", ctx.userId)
       .in("track_slug", exam.appliesToTracks);
     if (!enr?.length) redirect("/dashboard");
+  } else {
+    // Staff bypass the enrollment gate, so scope THEM by program context —
+    // otherwise the exam "shows up under Forte" for admins standing in
+    // another program's panel.
+    const program = await getProgram();
+    if (!["catalyst", "marketing"].includes(program.slug)) redirect("/dashboard/admin");
   }
 
   const { data: attempts } = await svc
