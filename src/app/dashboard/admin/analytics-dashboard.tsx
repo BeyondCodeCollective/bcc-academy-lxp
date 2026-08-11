@@ -119,14 +119,31 @@ export function AnalyticsDashboard({
   // Which learner's survey list is expanded (by email). Lets the Surveys count
   // drill through to "which surveys did they take?" inline.
   const [openSurveys, setOpenSurveys] = useState<string | null>(null);
+  // Slug → display name for the Course column and course-name filtering.
+  const trackNames = useMemo(
+    () => new Map(trackOptions.map((t) => [t.slug, t.name])),
+    [trackOptions],
+  );
+  const coursesOf = (l: EngagementLearner) =>
+    l.tracks.map((slug) => trackNames.get(slug) ?? slug);
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return learners.filter((l) => {
       if (track && !l.tracks.includes(track)) return false;
-      if (q && !(l.name.toLowerCase().includes(q) || l.email.toLowerCase().includes(q))) return false;
+      if (
+        q &&
+        !(
+          l.name.toLowerCase().includes(q) ||
+          l.email.toLowerCase().includes(q) ||
+          l.tracks.some((slug) =>
+            (trackNames.get(slug) ?? slug).toLowerCase().includes(q),
+          )
+        )
+      )
+        return false;
       return true;
     });
-  }, [learners, query, track]);
+  }, [learners, query, track, trackNames]);
   const trackName = trackOptions.find((t) => t.slug === track)?.name ?? null;
   const isFiltered = query.trim() !== "" || track !== "";
   // When a track is selected, show that track's activity, not the learner's
@@ -137,8 +154,12 @@ export function AnalyticsDashboard({
   const showVideos = learners.some((l) => l.videosWatched > 0);
   const showAttended = learners.some((l) => l.attended > 0);
   const showSubmitted = learners.some((l) => l.submitted > 0);
+  // Course column only at all-courses altitude — with a course scope selected
+  // it would print the same name on every row.
+  const showCourse = !track;
   const totalCols =
-    4 + [showVideos, showAttended, showSubmitted].filter(Boolean).length;
+    4 +
+    [showCourse, showVideos, showAttended, showSubmitted].filter(Boolean).length;
   const countsFor = (l: EngagementLearner) =>
     track
       ? l.byTrack[track] ?? { videosWatched: 0, attended: 0, submitted: 0 }
@@ -187,12 +208,12 @@ export function AnalyticsDashboard({
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Filter by name or email…"
+              placeholder="Filter by name, email, or course…"
               className="w-48 rounded-lg border border-rule bg-white px-2.5 py-1.5 text-sm text-ink placeholder:text-ink-faint focus:border-ink-faint sm:w-64"
             />
             <button
               type="button"
-              onClick={() => downloadCsv(filtered, data.programName, track, trackName)}
+              onClick={() => downloadCsv(filtered, data.programName, track, trackName, trackNames)}
               disabled={filtered.length === 0}
               className={buttonClass("secondary", "sm")}
             >
@@ -203,6 +224,7 @@ export function AnalyticsDashboard({
         <DataTable
           columns={[
             "Learner",
+            ...(showCourse ? ["Course"] : []),
             "Signed up",
             "Last active",
             ...(showVideos ? [{ label: "Videos", align: "center" as const }] : []),
@@ -220,6 +242,11 @@ export function AnalyticsDashboard({
               <td className="px-4 py-2.5">
                 <PersonCell name={l.name || null} email={l.email} />
               </td>
+              {showCourse && (
+                <td className="max-w-[16rem] px-4 py-2.5 text-xs text-ink-soft">
+                  {coursesOf(l).join(", ") || "—"}
+                </td>
+              )}
               <td className="px-4 py-2.5 text-ink-soft">{formatShortDate(l.signedUp)}</td>
               <td className="px-4 py-2.5 text-ink-soft">{formatShortDate(l.lastActive)}</td>
               {showVideos && <td className="px-4 py-2.5 text-center"><Num value={c.videosWatched} /></td>}
@@ -316,14 +343,15 @@ function surveyTitle(type: string): string {
 // Client-side CSV of the (filtered) learner rows — lets staff hand off
 // engagement data without re-running the export scripts. Quotes every field so
 // commas/quotes in names don't break columns.
-function downloadCsv(learners: EngagementLearner[], programName: string, track: string, trackName: string | null) {
-  const header = ["Name", "Email", "ZIP", "State", "Birthday", "Age", "Signed up", "Last active", "Videos", "Attended", "Submitted", "Surveys"];
+function downloadCsv(learners: EngagementLearner[], programName: string, track: string, trackName: string | null, trackNames: Map<string, string>) {
+  const header = ["Name", "Email", "Courses", "ZIP", "State", "Birthday", "Age", "Signed up", "Last active", "Videos", "Attended", "Submitted", "Surveys"];
   const esc = (v: string | number | null) => `"${String(v ?? "").replace(/"/g, '""')}"`;
   // Match the table: when a track is selected, export that track's counts, not
   // the learner's program-wide totals.
   const rows = learners.map((l) => {
     const c = track ? l.byTrack[track] ?? { videosWatched: 0, attended: 0, submitted: 0 } : l;
-    return [l.name, l.email, l.zip, l.state, l.dateOfBirth, l.age, l.signedUp, l.lastActive, c.videosWatched, c.attended, c.submitted, l.surveys]
+    const courses = l.tracks.map((slug) => trackNames.get(slug) ?? slug).join("; ");
+    return [l.name, l.email, courses, l.zip, l.state, l.dateOfBirth, l.age, l.signedUp, l.lastActive, c.videosWatched, c.attended, c.submitted, l.surveys]
       .map(esc)
       .join(",");
   });
