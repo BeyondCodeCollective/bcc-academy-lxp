@@ -19,7 +19,7 @@ import {
 import { trackHasStarted } from "@/lib/utils";
 import { SectionHeadline } from "@/components/stats/section-headline";
 import { StatusChip } from "@/components/stats/status";
-import { DataTable, Num } from "@/components/ui";
+import { DataTable, Num, fieldInput } from "@/components/ui";
 
 type Props = {
   students: StudentRow[];
@@ -234,27 +234,50 @@ function AllSessionsMatrix({
     [students, groups, enrolledByStudent],
   );
 
-  if (groups.length === 0 || learners.length === 0) return null;
+  // One course at a time behind a picker — stacking every grid reads as
+  // clutter at program altitude. Defaults to the newest cohort (groups are
+  // sorted newest first), which is the one being checked.
+  const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
+  const selected =
+    groups.find((g) => g.track.slug === selectedSlug) ?? groups[0] ?? null;
 
-  // One grid per course, only its enrolled learners. The old side-by-side
-  // matrix filled most of its width with "not enrolled" dashes; a roster is
-  // only ever read one course at a time.
+  if (!selected || learners.length === 0) return null;
+
+  const selectedLearners = learners.filter((st) =>
+    enrolledByStudent.get(st.id)?.has(selected.track.slug),
+  );
+
   return (
     <div className="space-y-3">
-      <SectionHeadline
-        eyebrow="All sessions"
-        headline="Every learner, every session held"
-        sub="✓ attended · missed. Each course lists only its enrolled learners."
-      />
-      {groups.map((g) => (
-        <MatrixTable
-          key={g.track.slug}
-          groups={[g]}
-          learners={learners.filter((st) => enrolledByStudent.get(st.id)?.has(g.track.slug))}
-          attended={attended}
-          enrolledByStudent={enrolledByStudent}
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <SectionHeadline
+          eyebrow="All sessions"
+          headline="Every learner, every session held"
+          sub="✓ attended · missed. Only this course's enrolled learners are listed."
         />
-      ))}
+        {groups.length > 1 && (
+          <label className="flex items-center gap-2 text-sm text-ink-soft">
+            Course
+            <select
+              value={selected.track.slug}
+              onChange={(e) => setSelectedSlug(e.target.value)}
+              className={`${fieldInput} w-auto`}
+            >
+              {groups.map((g) => (
+                <option key={g.track.slug} value={g.track.slug}>
+                  {g.track.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+      </div>
+      <MatrixTable
+        groups={[selected]}
+        learners={selectedLearners}
+        attended={attended}
+        enrolledByStudent={enrolledByStudent}
+      />
     </div>
   );
 }
