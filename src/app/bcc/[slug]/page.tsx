@@ -4,6 +4,7 @@ import { getLandingPage } from "@/lib/landing-pages";
 import { CampEmailForm } from "../_components/camp-email-form";
 import { CampEnrollForm } from "../_components/camp-enroll-form";
 import { CampEventbriteRegister } from "../_components/camp-eventbrite-register";
+import { HeroVideo } from "../_components/hero-video";
 import { CampHeaderCta } from "../_components/camp-header-cta";
 
 export const dynamic = "force-dynamic";
@@ -319,21 +320,7 @@ export default async function CampLandingPage({
              playsInline are required for mobile autoplay), everything else
              stays an <img>. */}
           {/\.(mp4|webm|mov|m4v)(\?|$)/i.test(page.heroImageUrl) ? (
-            <video
-              src={page.heroImageUrl}
-              autoPlay
-              muted
-              loop
-              playsInline
-              crossOrigin="anonymous"
-              className={`absolute inset-0 w-full h-full object-center ${
-                page.heroFit === "contain" ? "object-contain" : "object-cover"
-              }`}
-            >
-              {/* Sibling captions file; a missing track 404s silently. The
-                 video is muted for autoplay, so captions carry the audio. */}
-              <track kind="captions" srcLang="en" label="English" default src={`${page.heroImageUrl}.vtt`} />
-            </video>
+            <HeroVideo src={page.heroImageUrl} fit={page.heroFit === "contain" ? "contain" : "cover"} />
           ) : (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
