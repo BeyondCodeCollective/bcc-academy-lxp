@@ -28,6 +28,7 @@ const GROUPS: { label: string; items: Item[] }[] = [
     label: "People",
     items: [
       { href: "/dashboard/admin/registrations", label: "Registrations" },
+      { href: "/dashboard/admin/exams", label: "Practice exams" },
       { href: "/dashboard/admin/agreements", label: "Participation agreements" },
       { href: "/dashboard/admin/access", label: "Program access", master: true },
     ],

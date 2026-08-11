@@ -1,0 +1,73 @@
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
+import { createServiceClient } from "@/lib/supabase/server";
+import { getSessionContext } from "@/lib/auth/session";
+import { canAccessAdminPanel } from "@/lib/roles";
+import { getExam, clientView } from "@/lib/exams";
+import { PageHeader } from "@/components/page-header";
+import { ExamRunner } from "./exam-runner";
+
+// Practice-exam entry. Access mirrors the actions' gate: enrolled in a track
+// the exam applies to, or staff. The answer key never reaches this page —
+// clientView() strips it before anything renders.
+
+export const dynamic = "force-dynamic";
+
+export default async function ExamPage({
+  params,
+}: {
+  params: Promise<{ examId: string }>;
+}) {
+  const { examId } = await params;
+  const exam = getExam(examId);
+  if (!exam) redirect("/dashboard");
+
+  const ctx = await getSessionContext();
+  if (!ctx) redirect("/");
+
+  const svc = createServiceClient();
+  const isStaff = canAccessAdminPanel(ctx.student?.role ?? "");
+  if (!isStaff) {
+    const { data: enr } = await svc
+      .from("student_tracks")
+      .select("track_slug")
+      .eq("student_id", ctx.userId)
+      .in("track_slug", exam.appliesToTracks);
+    if (!enr?.length) redirect("/dashboard");
+  }
+
+  const { data: attempts } = await svc
+    .from("exam_attempts")
+    .select("submitted_at, score, total")
+    .eq("exam_id", examId)
+    .eq("student_id", ctx.userId)
+    .not("submitted_at", "is", null)
+    .order("submitted_at", { ascending: false });
+
+  const history = (attempts ?? []).map((a) => ({
+    when: a.submitted_at as string,
+    score: a.score as number,
+    total: a.total as number,
+  }));
+
+  return (
+    <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8">
+      <Link
+        href="/dashboard"
+        className="mb-6 inline-flex items-center gap-1.5 py-2 text-sm text-ink-faint transition-colors hover:text-ink"
+      >
+        <ArrowLeft size={16} />
+        Back to Dashboard
+      </Link>
+      <PageHeader
+        eyebrow="Practice Exam"
+        title={exam.title}
+        subtitle={`${exam.questions.length} questions · ${exam.minutes} minutes · one sitting`}
+      />
+      <div className="mt-6">
+        <ExamRunner exam={clientView(exam)} history={history} />
+      </div>
+    </div>
+  );
+}
