@@ -373,12 +373,10 @@ export default async function TrackWeekPage({
         const headerSession = isSingleSession ? weekContent.sessions[0] : null;
         const headerAction =
           isSingleSession
-            ? sessionStatuses[0] === "completed" ? (
-                <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
-                  <CheckCircle size={14} />
-                  Session Ended
-                </span>
-              ) : meetingLinks[0] && !isZoomLink(meetingLinks[0]) ? (
+            ? // A completed session already carries the "Session Ended" badge in
+              // the header — repeating it here said it twice on one card.
+              sessionStatuses[0] === "completed" ? null
+              : meetingLinks[0] && !isZoomLink(meetingLinks[0]) ? (
                 <a
                   href={meetingLinks[0]!}
                   target="_blank"
