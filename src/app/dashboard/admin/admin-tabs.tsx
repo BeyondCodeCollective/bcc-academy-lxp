@@ -1713,23 +1713,11 @@ export function AdminTabs({
           {/* Surveys sub-view — scoped to this track */}
           {trackView === "surveys" && (
             <div className="space-y-8">
-              {/* The same panel the program-level Insights tab shows, narrowed
-                 to this course. It leads because it answers "what did this
-                 cohort say" — the list below is the follow-up view: which forms
-                 are assigned and who still owes one. */}
-              {trackInsightsData && (
-                <InsightsDashboard
-                  sections={trackInsightsData.sections}
-                  programs={trackInsightsData.programs}
-                  totalResponses={trackInsightsData.totalResponses}
-                  scope={{
-                    trackSlug: activeTrack.slug,
-                    trackName: activeTrack.shortName,
-                    enrolledCount: trackEnrolledCount,
-                    returnTo: `/dashboard/admin?tab=${activeTrack.slug}&view=surveys`,
-                  }}
-                />
-              )}
+              {/* Master list first: it's the INDEX of every form/exam this
+                 course carries, one altitude above the filtered metrics — the
+                 insights panels below answer "what did the cohort say" for
+                 whatever the reader drills into. An index rendered under the
+                 detail it indexes read as upside down. */}
               <TrackInsightsSection
                 trackSlug={activeTrack.slug}
                 trackShortName={activeTrack.shortName}
@@ -1755,6 +1743,19 @@ export function AdminTabs({
                 respondentsBySurvey={trackSurveyRespondents}
                 exams={trackExams}
               />
+              {trackInsightsData && (
+                <InsightsDashboard
+                  sections={trackInsightsData.sections}
+                  programs={trackInsightsData.programs}
+                  totalResponses={trackInsightsData.totalResponses}
+                  scope={{
+                    trackSlug: activeTrack.slug,
+                    trackName: activeTrack.shortName,
+                    enrolledCount: trackEnrolledCount,
+                    returnTo: `/dashboard/admin?tab=${activeTrack.slug}&view=surveys`,
+                  }}
+                />
+              )}
             </div>
           )}
         </div>
