@@ -132,6 +132,43 @@ export function ExamRunner({
             ))}
           </div>
         </div>
+        {result.missed.length > 0 && (
+          <div className="panel p-5">
+            <p className="text-sm font-semibold text-ink">
+              Questions to review ({result.missed.length})
+            </p>
+            <p className="mt-0.5 text-xs text-ink-soft">
+              What you missed and what you answered — study these areas, then retake.
+              Correct answers aren&rsquo;t shown, so a retake stays a real test.
+            </p>
+            <div className="mt-4 space-y-5">
+              {Array.from(
+                result.missed.reduce((m, q) => {
+                  m.set(q.domain, [...(m.get(q.domain) ?? []), q]);
+                  return m;
+                }, new Map<string, typeof result.missed>()),
+              ).map(([domain, qs]) => (
+                <div key={domain}>
+                  <p className="text-micro font-semibold uppercase tracking-[0.14em] text-ink-faint">
+                    {domain} · {qs.length} missed
+                  </p>
+                  <ul className="mt-2 space-y-3">
+                    {qs.map((q) => (
+                      <li key={q.n} className="border-l-2 border-rule pl-3">
+                        <p className="text-sm text-ink">
+                          <span className="tabular-nums text-ink-faint">Q{q.n}.</span> {q.prompt}
+                        </p>
+                        <p className="mt-0.5 text-xs text-ink-soft">
+                          {q.answered ? <>You answered: {q.answered}</> : "Left blank"}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         <p className="text-sm text-ink-soft">
           Your instructor can see this score. You can retake the exam any time — a fresh
           attempt starts a new 90-minute clock.
