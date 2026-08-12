@@ -18,6 +18,7 @@ import { buildInsightsData } from "@/lib/analytics/insights-data";
 import type { SurveyQuestion } from "@/components/survey-fields";
 import { fetchPendingPeople, type PendingPerson } from "@/lib/people-hub";
 import { getCourseEngagement, getCourseRosterStats } from "@/lib/course-engagement";
+import { tracksWithExams } from "@/lib/exams";
 import { getLaunchReadiness, isInLaunchWindow, type ReadinessCheck } from "@/lib/launch-readiness";
 import { resolveCurrentUnit, resolveTrackPhase, formatCohortDate } from "@/lib/utils";
 import { getEngagementAnalytics, type EngagementAnalytics } from "./actions-analytics";
@@ -851,6 +852,7 @@ export default async function AdminPage({
         students={allStudents}
         tracks={tracks}
         launchReadiness={launchReadiness}
+        examTrackSlugs={tracksWithExams()}
         studentTracks={studentTracks}
         instructorTracks={instructorTracks}
         programSlug={program.slug}
