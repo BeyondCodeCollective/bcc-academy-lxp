@@ -504,7 +504,6 @@ export function AdminTabs({
   lunchLearnRecordings = [],
   insightsData = null,
   switchablePrograms = [],
-  trackInsightsData = null,
   analyticsData = null,
   analyticsCourse,
   coursesData = null,
@@ -554,7 +553,6 @@ export function AdminTabs({
   /** Programs a super-admin can switch into, for the no-program empty state. */
   switchablePrograms?: { slug: string; name: string }[];
   /** Survey Insights narrowed to the open course's roster; null off the course Surveys view. */
-  trackInsightsData?: InsightsData | null;
   /** Auth surveys with ≥1 response from the open course's students; null off track tabs. */
   trackAnsweredSurveyIds?: string[] | null;
   /** Enrolled learners in the open course — response-rate denominator. */
@@ -1710,26 +1708,14 @@ export function AdminTabs({
             );
           })()}
 
-          {/* Surveys sub-view — scoped to this track */}
+          {/* Surveys sub-view — scoped to this track. ONE surface: the index
+             of this course's forms and exams with response rates. Summaries
+             and answer-level data live one level down, in each form's report —
+             the embedded program-insights panel duplicated this list through
+             its Form dropdown and only rendered on a full-page load, so the
+             tab showed different content depending on how you arrived. */}
           {trackView === "surveys" && (
             <div className="space-y-8">
-              {/* The same panel the program-level Insights tab shows, narrowed
-                 to this course. It leads because it answers "what did this
-                 cohort say" — the list below is the follow-up view: which forms
-                 are assigned and who still owes one. */}
-              {trackInsightsData && (
-                <InsightsDashboard
-                  sections={trackInsightsData.sections}
-                  programs={trackInsightsData.programs}
-                  totalResponses={trackInsightsData.totalResponses}
-                  scope={{
-                    trackSlug: activeTrack.slug,
-                    trackName: activeTrack.shortName,
-                    enrolledCount: trackEnrolledCount,
-                    returnTo: `/dashboard/admin?tab=${activeTrack.slug}&view=surveys`,
-                  }}
-                />
-              )}
               <TrackInsightsSection
                 trackSlug={activeTrack.slug}
                 trackShortName={activeTrack.shortName}
