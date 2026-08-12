@@ -2,7 +2,12 @@ import { redirect } from "next/navigation";
 import { ArrowUpRight } from "@phosphor-icons/react/dist/ssr";
 import { getSessionContext } from "@/lib/auth/session";
 import { getProgram } from "@/lib/programs/server";
-import { fetchResourcesForProgram, type Resource } from "@/lib/resources";
+import {
+  enrolledTrackSlugs,
+  fetchResourcesForProgram,
+  visibleResources,
+  type Resource,
+} from "@/lib/resources";
 import { PageHeader, Section } from "@/components/page-header";
 
 export const dynamic = "force-dynamic";
@@ -12,12 +17,23 @@ export default async function ResourcesPage() {
   if (!ctx) redirect("/");
 
   const program = await getProgram();
-  const resources = await fetchResourcesForProgram(program.slug);
+  const [all, enrolled] = await Promise.all([
+    fetchResourcesForProgram(program.slug),
+    enrolledTrackSlugs(ctx.userId),
+  ]);
+  // Program-wide items plus those scoped to a course this learner is in.
+  const resources = visibleResources(all, enrolled);
 
   // Group by category, preserving sort order; blank category → "Resources".
+  // Course-scoped items lead with the course name so a learner in two courses
+  // can tell whose "Tools" is whose.
+  const trackNames = new Map(program.tracks.map((t) => [t.slug, t.name]));
   const groups = new Map<string, Resource[]>();
   for (const r of resources) {
-    const key = r.category?.trim() || "Resources";
+    const category = r.category?.trim() || "Resources";
+    const key = r.track_slug
+      ? `${trackNames.get(r.track_slug) ?? r.track_slug} · ${category}`
+      : category;
     const list = groups.get(key) ?? [];
     list.push(r);
     groups.set(key, list);

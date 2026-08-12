@@ -484,7 +484,8 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
   // First previewed slug — single-course consumers below key off it.
   const previewingSlug = previewingSlugs[0] ?? null;
   // (data-driven — no empty nav item). Independent of the AI Tutor.
-  const showResources = !pendingLearner && (await programHasResources(program.slug));
+  const showResources =
+    !pendingLearner && (await programHasResources(program.slug, enrolledTrackSlugs));
   // canAccessStaff gates the Workshops nav. Demote it in preview mode the
   // same way isAdmin / canSwitch are — otherwise a super-admin previewing
   // as an AI Literacy student still sees the Workshops link and the nav
