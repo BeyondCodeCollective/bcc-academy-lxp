@@ -16,6 +16,13 @@ export function getExam(id: string): Exam | null {
   return EXAMS[id] ?? null;
 }
 
+/** Track slugs that have at least one practice exam (for admin nav). */
+export function tracksWithExams(): string[] {
+  return Array.from(
+    new Set(Object.values(EXAMS).flatMap((e) => e.appliesToTracks)),
+  );
+}
+
 export type ClientQuestion = Omit<ExamQuestion, "correct">;
 
 /** The exam as the browser is allowed to see it. */
