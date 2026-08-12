@@ -61,6 +61,18 @@ export function buildTrail(
   // there's no "Home" crumb — Admin is the root. On the admin home itself this
   // leaves a single item, which the bar hides.
   if (rest[0] === "admin") {
+    // A drill-in page reached from deeper admin context (a course's Surveys
+    // view → exam scores) carries ?return with the path back. The root crumb
+    // then points THERE, not at the admin home — "back" should undo the click
+    // that got you here. Internal admin paths only.
+    if (returnTo?.startsWith("/dashboard/admin") && rest.length > 1) {
+      const view = new URLSearchParams(returnTo.split("?")[1] ?? "").get("view");
+      const leaf = rest[rest.length - 1];
+      return [
+        { label: view ? humanize(view) : "Admin", href: returnTo },
+        { label: ADMIN_SECTION_LABELS[leaf] ?? humanize(leaf) },
+      ];
+    }
     const out: Crumb[] = [{ label: "Admin", href: "/dashboard/admin" }];
     if (rest.length === 1) return out;
     const section = rest[1];
