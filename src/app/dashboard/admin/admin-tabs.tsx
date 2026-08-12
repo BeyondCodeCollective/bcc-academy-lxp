@@ -517,7 +517,7 @@ export function AdminTabs({
   alumniEnrollments = [],
   unviewedAssessments = 0,
   launchReadiness = {},
-  examTrackSlugs = [],
+  trackExams = [],
 }: {
   cohorts: CohortRow[];
   students: StudentRow[];
@@ -567,8 +567,8 @@ export function AdminTabs({
   /** Pre-launch checks per track, present only for courses near their start
    *  date. See lib/launch-readiness. */
   launchReadiness?: Record<string, { label: string; ok: boolean; detail: string }[]>;
-  /** Tracks that have a practice exam — shows the exam-scores panel in that course's Surveys view. */
-  examTrackSlugs?: string[];
+  /** The open course's practice exams, rendered as rows in the Surveys list. */
+  trackExams?: { id: string; title: string; attempted: number }[];
 }) {
   const router = useRouter();
   const programSlug = initialProgramSlug;
@@ -1753,23 +1753,8 @@ export function AdminTabs({
                 trackPublicSurveys={trackPublicSurveys}
                 enrolledCount={trackEnrolledCount}
                 respondentsBySurvey={trackSurveyRespondents}
+                exams={trackExams}
               />
-              {examTrackSlugs.includes(activeTrack.slug) && (
-                <div className="panel flex flex-wrap items-center justify-between gap-3 p-5">
-                  <div>
-                    <p className="text-sm font-semibold text-ink">Practice exams</p>
-                    <p className="mt-0.5 text-xs text-ink-soft">
-                      Attempt counts, best, and latest score per student.
-                    </p>
-                  </div>
-                  <Link
-                    href="/dashboard/admin/exams"
-                    className={buttonClass("secondary", "sm")}
-                  >
-                    View exam scores
-                  </Link>
-                </div>
-              )}
             </div>
           )}
         </div>

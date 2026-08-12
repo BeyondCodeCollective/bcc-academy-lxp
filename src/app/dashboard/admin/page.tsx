@@ -18,7 +18,7 @@ import { buildInsightsData } from "@/lib/analytics/insights-data";
 import type { SurveyQuestion } from "@/components/survey-fields";
 import { fetchPendingPeople, type PendingPerson } from "@/lib/people-hub";
 import { getCourseEngagement, getCourseRosterStats } from "@/lib/course-engagement";
-import { tracksWithExams } from "@/lib/exams";
+import { examsForTrack } from "@/lib/exams";
 import { getLaunchReadiness, isInLaunchWindow, type ReadinessCheck } from "@/lib/launch-readiness";
 import { resolveCurrentUnit, resolveTrackPhase, formatCohortDate } from "@/lib/utils";
 import { getEngagementAnalytics, type EngagementAnalytics } from "./actions-analytics";
@@ -653,6 +653,8 @@ export default async function AdminPage({
   let trackEnrolledCount = 0;
   /** survey id → distinct learners from this course who answered it. */
   let trackSurveyRespondents: Record<string, number> = {};
+  /** This course's practice exams + how many enrolled learners attempted. */
+  let trackExams: { id: string; title: string; attempted: number }[] = [];
 
   if (isSupabaseConfigured()) {
     activeTrack = isTrackTab
@@ -702,6 +704,22 @@ export default async function AdminPage({
         );
       } else {
         trackAnsweredSurveyIds = [];
+      }
+      // Practice exams sit in the same Surveys list as peer rows, so they
+      // carry the same participation shape: distinct enrolled learners with a
+      // submitted attempt.
+      for (const exam of examsForTrack(activeTrack.slug)) {
+        let attempted = 0;
+        if (trackStudentIds.length > 0) {
+          const { data: att } = await createServiceClient()
+            .from("exam_attempts")
+            .select("student_id")
+            .eq("exam_id", exam.id)
+            .not("submitted_at", "is", null)
+            .in("student_id", trackStudentIds);
+          attempted = new Set((att ?? []).map((r) => r.student_id as string)).size;
+        }
+        trackExams.push({ id: exam.id, title: exam.title, attempted });
       }
     }
     const publicSurveyCounts = activeTrackPublicSurveyIds.length > 0
@@ -852,7 +870,7 @@ export default async function AdminPage({
         students={allStudents}
         tracks={tracks}
         launchReadiness={launchReadiness}
-        examTrackSlugs={tracksWithExams()}
+        trackExams={trackExams}
         studentTracks={studentTracks}
         instructorTracks={instructorTracks}
         programSlug={program.slug}
