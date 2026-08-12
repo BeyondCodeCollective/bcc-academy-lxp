@@ -1763,7 +1763,7 @@ export function AdminTabs({
                     </p>
                   </div>
                   <Link
-                    href={`/dashboard/admin/exams?return=${encodeURIComponent(`/dashboard/admin?tab=${activeTrack.slug}&view=surveys`)}`}
+                    href="/dashboard/admin/exams"
                     className={buttonClass("secondary", "sm")}
                   >
                     View exam scores

@@ -61,26 +61,16 @@ export function buildTrail(
   // there's no "Home" crumb — Admin is the root. On the admin home itself this
   // leaves a single item, which the bar hides.
   if (rest[0] === "admin") {
-    // A drill-in page reached from deeper admin context (a course's Surveys
-    // view → exam scores) carries ?return with the path back. The root crumb
-    // then points THERE, not at the admin home — "back" should undo the click
-    // that got you here. Internal admin paths only.
-    if (returnTo?.startsWith("/dashboard/admin") && rest.length > 1) {
-      const view = new URLSearchParams(returnTo.split("?")[1] ?? "").get("view");
-      const leaf = rest[rest.length - 1];
-      return [
-        { label: view ? humanize(view) : "Admin", href: returnTo },
-        { label: ADMIN_SECTION_LABELS[leaf] ?? humanize(leaf) },
-      ];
-    }
     const out: Crumb[] = [{ label: "Admin", href: "/dashboard/admin" }];
     if (rest.length === 1) return out;
     const section = rest[1];
     // A survey dashboard renders its own BackLink, and it points somewhere this
     // generic trail can't: the course you came from ("← CompTIA Security+"),
     // not "Surveys". Two trails stacked over one title is one too many, and the
-    // less useful one is this.
+    // less useful one is this. Exam scores likewise carries its own "← Surveys"
+    // BackLink to its owning course.
     if (section === "surveys" && rest.length > 2) return [];
+    if (section === "exams") return [];
     const sectionHref = `/dashboard/admin/${section}`;
     const sectionLabel = ADMIN_SECTION_LABELS[section] ?? humanize(section);
     if (rest.length === 2) return [...out, { label: sectionLabel }];

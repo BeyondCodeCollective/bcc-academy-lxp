@@ -5,7 +5,7 @@ import { canAccessAdminPanel, canSwitchPrograms } from "@/lib/roles";
 import { getExam } from "@/lib/exams";
 import { getProgram } from "@/lib/programs/server";
 import { PageHeader } from "@/components/page-header";
-import { DataTable } from "@/components/ui";
+import { BackLink, DataTable } from "@/components/ui";
 
 // Instructor view of practice-exam scores: one row per student with attempt
 // count, best, and latest. Unlimited retakes means the trend is the story.
@@ -82,6 +82,13 @@ export default async function ExamScoresPage() {
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 sm:px-5 py-8 space-y-6">
+      {/* Always points at the owning course's Surveys view — that's where this
+         page is linked from, and it holds even on a direct/bookmarked visit
+         (the generic breadcrumb is suppressed for this route). */}
+      <BackLink
+        href={`/dashboard/admin?tab=${encodeURIComponent(exam.appliesToTracks[0])}&view=surveys`}
+        label="Surveys"
+      />
       <PageHeader
         eyebrow="Practice Exams"
         title={exam.title}
