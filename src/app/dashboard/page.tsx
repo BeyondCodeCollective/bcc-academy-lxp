@@ -852,6 +852,7 @@ async function DashboardContent({
           otherCourses={bentoOtherCourses}
           programName={program.name}
           showTutor={isTutorAvailable(program)}
+          dedupeHref={nextUp?.href}
         />
       ) : (
         trackStates.filter(({ track }) => track.type !== "single-event").length > 0 && (

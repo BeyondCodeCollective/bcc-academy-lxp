@@ -107,10 +107,12 @@ export default async function AdminPage({
   // students + studentTracks already in the core batch.
   const effectiveTab = initialTab ?? "home";
   const isTrackTab = program.tracks.some((t) => t.slug === effectiveTab);
-  // Engagement scores only feed the per-track People sub-view now that the
-  // cross-track People tab is gone.
-  const needsEngagement = isTrackTab;
-  const needsSurveyStats = false;
+  // Engagement scores feed the person rows in BOTH the per-track People
+  // sub-view and the cross-track People tab — fetching for only one made the
+  // same learner show an engagement block in one place and nothing in the
+  // other. (The per-course attendance % badge stays course-only: a percentage
+  // across courses with different session counts has no honest denominator.)
+  const needsEngagement = isTrackTab || effectiveTab === "students";
   // Home tab only needs id+role for enrollment-count filtering; tabs that
   // display student details need the full row. Similarly, student_tracks are
   // fetched as full rows only for tabs that manage individual enrollments.
@@ -123,7 +125,6 @@ export default async function AdminPage({
   const needsInsightsData = effectiveTab === "insights";
   const needsAnalyticsData = effectiveTab === "analytics";
   const needsCoursesData = effectiveTab === "course-progress";
-  void needsSurveyStats; // kept as a named constant for the gated query below
   let allStudents: Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "is_staff" | "cohort_id" | "last_seen_at" | "last_activity_at" | "zip" | "state" | "date_of_birth">[] = [];
   let allCohorts: { id: string; name: string; display_name: string | null; track_slug: string | null; start_date: string | null; total_weeks: number | null }[] = [];
   let studentTracks: StudentTrackRow[] = [];
@@ -152,7 +153,6 @@ export default async function AdminPage({
   let alumniEnrollments: { track_slug: string; email: string; source: string }[] = [];
   let pendingPeople: PendingPerson[] = [];
   let unviewedAssessments: number | null = null;
-  const surveyStats: Record<string, SurveyStatsRow[]> = {};
   const surveyList = [
     ...Object.values(PLATFORM_AUTH_SURVEYS),
     ...(program.surveys ?? []),
@@ -252,11 +252,8 @@ export default async function AdminPage({
       // always fetched — they're cheap and used as nav metadata everywhere.
       // Survey stats, engagement scores, lunch_learns are skipped on tabs
       // that don't render them.
-      const surveyIds = surveyList.map((s) => s.id);
-
       const [
         coreRes,
-        surveyResponsesRes,
         publicStatsRes,
         engagementRes,
         alumniRes,
@@ -324,14 +321,6 @@ export default async function AdminPage({
               .eq("student_id", userId)
           : Promise.resolve({ data: null as { track_slug: string }[] | null }),
       ]),
-      // Single .in() query replaces N per-survey queries. Bucketed below.
-      needsSurveyStats && surveyIds.length > 0
-        ? svc
-            .from("survey_responses")
-            .select("student_id, survey_type, completed_at")
-            .in("program_id", programIds)
-            .in("survey_type", surveyIds)
-        : Promise.resolve({ data: null as { student_id: string; survey_type: string; completed_at: string | null }[] | null }),
       needsPublicSurveyStats
         ? getPublicSurveyStats().catch((e) => {
             console.error("getPublicSurveyStats failed:", e);
@@ -428,14 +417,6 @@ export default async function AdminPage({
         program.tracks.map((t) => t.slug),
         studentEmails,
       );
-    }
-    // Bucket the single survey_responses fetch by survey_type.
-    if (needsSurveyStats) {
-      const allRows = (surveyResponsesRes.data ?? []) as SurveyStatsRow[];
-      for (const s of surveyList) surveyStats[s.id] = [];
-      for (const row of allRows) {
-        (surveyStats[row.survey_type] ??= []).push(row);
-      }
     }
     publicSurveyStats = publicStatsRes;
 
@@ -858,7 +839,6 @@ export default async function AdminPage({
         studentTracks={studentTracks}
         instructorTracks={instructorTracks}
         programSlug={program.slug}
-        surveyStats={surveyStats}
         surveyConfigs={surveyConfigs}
         trackPublicSurveys={trackPublicSurveys}
         trackAnsweredSurveyIds={trackAnsweredSurveyIds}

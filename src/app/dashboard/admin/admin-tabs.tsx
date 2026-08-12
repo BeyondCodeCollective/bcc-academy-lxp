@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { deleteStudentAction, updateStudentAction, updateCohortAction, saveSessionContent, assignStudentTrack, removeStudentTrack, bulkAssignTrack, exportSurveyResponses, exportPublicSurveyResponses, getAllSubmissions, addFeedback, assignInstructorTrack, removeInstructorTrack, deleteSurveyResponse, deletePublicSurveyResponse, listPublicSurveyResponses, sendInviteAction, createCohortAction } from "./actions";
-import type { SessionResource, StudentTrackRow, SurveyStatsRow, AdminSubmissionRow, InstructorTrackRow, PublicSurveyStatsRow } from "./actions";
+import { deleteStudentAction, updateStudentAction, updateCohortAction, saveSessionContent, assignStudentTrack, removeStudentTrack, bulkAssignTrack, exportPublicSurveyResponses, getAllSubmissions, addFeedback, assignInstructorTrack, removeInstructorTrack, deletePublicSurveyResponse, listPublicSurveyResponses, sendInviteAction, createCohortAction } from "./actions";
+import type { SessionResource, StudentTrackRow, AdminSubmissionRow, InstructorTrackRow, PublicSurveyStatsRow } from "./actions";
 import { canManageStudents, canSwitchPrograms, canViewInsights } from "@/lib/roles";
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { Users, BookOpen, GraduationCap, Gear as Settings, FloppyDisk as Save, CaretDown as ChevronDown, ArrowSquareOut as ExternalLink, Check, UserCheck, Trash as Trash2, UserPlus, Plus, X, Link as LinkIcon, UploadSimple as Upload, Download, CircleNotch as Loader2, Video, FileText, ClipboardText as ClipboardList, PaperPlaneTilt as Send, ChatCentered as MessageSquare, Coffee, Eye, ArrowRight } from "@phosphor-icons/react";
@@ -490,7 +490,6 @@ export function AdminTabs({
   studentTracks: initialStudentTracks,
   instructorTracks: initialInstructorTracks = [],
   programSlug: initialProgramSlug,
-  surveyStats,
   surveyConfigs,
   trackPublicSurveys = [],
   userRole = "admin",
@@ -524,7 +523,6 @@ export function AdminTabs({
   studentTracks: StudentTrackRow[];
   instructorTracks?: InstructorTrackRow[];
   programSlug: string;
-  surveyStats: Record<string, SurveyStatsRow[]>;
   surveyConfigs: { id: string; title: string; skipForTracks?: string[] }[];
   trackPublicSurveys?: { id: string; title: string; count: number }[];
   userRole?: string;
@@ -1252,18 +1250,15 @@ export function AdminTabs({
                     >
                       <Eye size={15} aria-hidden />
                     </Link>
-                    {/* Primary action: manage. */}
-                    <Link
-                      href={`/dashboard/admin?tab=${t.slug}`}
-                      aria-label={`Manage ${t.name}`}
-                      className="shrink-0 rounded-lg p-1.5 text-ink-faint transition-colors hover:bg-paper-tint hover:text-ink group-hover:text-ink-soft"
-                    >
+                    {/* Decorative affordance for the row link — the whole row
+                       already opens the course; a second Link to the same
+                       place read as a distinct action. */}
+                    <span className="shrink-0 rounded-lg p-1.5 text-ink-faint group-hover:text-ink-soft" aria-hidden>
                       <ArrowRight
                         size={15}
-                        aria-hidden
                         className="transition-transform group-hover:translate-x-0.5"
                       />
-                    </Link>
+                    </span>
                   </div>
                 );
               };
@@ -1845,68 +1840,6 @@ export function AdminTabs({
         <div className="space-y-6">
           <AdminTopTabs current="analytics" sub="insights" showInsights={canViewInsights(userRole)} isManager={isManager} />
 
-          {/* The "{Program} surveys" widget that used to live here pulled from
-             `surveyStats` (auth-only, never populated on the Insights tab since
-             needsSurveyStats is false). It always rendered "0 of 0 students
-             completed" while the Survey Insights cards directly below showed
-             real numbers — a confusing contradiction. The InsightsDashboard
-             component below now serves as the single source for these counts. */}
-          {false && surveyConfigs.length > 0 && (
-            <section className="space-y-3">
-              <h2 className="text-micro font-semibold uppercase tracking-[0.16em] text-ink-faint">
-                {programSlug === "catalyst" ? "Catalyst" : "Program"} surveys
-              </h2>
-              {surveyConfigs.map((survey) => {
-                const stats = surveyStats[survey.id] ?? [];
-                const completed = stats.filter((s) => s.completed_at).length;
-                const totalStudents = students.filter((s) => s.role === "student").length;
-                const pct = totalStudents > 0 ? Math.round((completed / totalStudents) * 100) : 0;
-                const completedStats = stats.filter((s) => s.completed_at);
-                return (
-                  <SurveyCard
-                    key={survey.id}
-                    title={survey.title}
-                    completed={completed}
-                    totalStudents={totalStudents}
-                    pct={pct}
-                    previewHref={`/dashboard/survey/${survey.id}`}
-                    onExport={async () => {
-                      const data = await exportSurveyResponses(programSlug, survey.id);
-                      if (data.length === 0) return;
-                      const allKeys = new Set<string>();
-                      data.forEach((row) => { Object.keys(row.responses).forEach((k) => allKeys.add(k)); });
-                      const headers = ["Name", "Email", "Completed At", ...Array.from(allKeys)];
-                      const rows = data.map((row) => [
-                        row.student_name, row.email, row.completed_at ?? "",
-                        ...Array.from(allKeys).map((k) => {
-                          const val = row.responses[k];
-                          if (Array.isArray(val)) return val.join("; ");
-                          if (typeof val === "object" && val !== null) return Object.entries(val).map(([s, a]) => {
-                            if (typeof a === "object" && a !== null) { const r2 = a as Record<string, string>; return `${s}: before ${r2.before ?? ""} now ${r2.now ?? ""}`; }
-                            return `${s}: ${String(a)}`;
-                          }).join("; ");
-                          return String(val ?? "");
-                        }),
-                      ]);
-                      downloadCsv([headers, ...rows], `${survey.id}-responses.csv`);
-                    }}
-                    responses={completedStats.map((s) => {
-                      const student = students.find((st) => st.id === s.student_id);
-                      return {
-                        id: s.student_id,
-                        label: student ? (student.first_name && student.last_name ? `${student.first_name} ${student.last_name}` : student.email) : s.student_id,
-                        sublabel: student?.email ?? "",
-                        completedAt: s.completed_at,
-                      };
-                    })}
-                    onDelete={async (id) => {
-                      await deleteSurveyResponse(id, survey.id, programSlug);
-                    }}
-                  />
-                );
-              })}
-            </section>
-          )}
 
           {insightsData ? (
             <InsightsDashboard
@@ -1952,7 +1885,12 @@ function StudentWorkTab({
   programSlug: string;
   viewSwitcher?: React.ReactNode;
 }) {
-  const [trackFilter, setTrackFilter] = useState<string>("all");
+  // Single-track callers (a course's Submissions view) hide the track filter,
+  // so "all" would silently fetch program-wide and show other courses' work
+  // under this course. Scope to the only track from the start.
+  const [trackFilter, setTrackFilter] = useState<string>(
+    tracks.length === 1 ? tracks[0].slug : "all",
+  );
   const [weekFilter, setWeekFilter] = useState<number | "all">("all");
   const [submissions, setSubmissions] = useState<AdminSubmissionRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -2744,150 +2682,6 @@ function PeopleTab({
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function downloadCsv(rows: string[][], filename: string) {
-  const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
-  const blob = new Blob([csv], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-// ─── Survey Cards ─────────────────────────────────────────────────────────────
-
-function SurveyCard({
-  title,
-  completed,
-  totalStudents,
-  pct,
-  onExport,
-  responses,
-  onDelete,
-  previewHref,
-}: {
-  title: string;
-  completed: number;
-  totalStudents: number;
-  pct: number;
-  onExport: () => Promise<void>;
-  responses: { id: string; label: string; sublabel: string; completedAt: string | null }[];
-  onDelete: (id: string) => Promise<void>;
-  previewHref: string;
-}) {
-  const [expanded, setExpanded] = useState(false);
-  const [deleting, setDeleting] = useState<string | null>(null);
-  const [clearingAll, setClearingAll] = useState(false);
-  const [localResponses, setLocalResponses] = useState(responses);
-
-  async function handleDelete(id: string) {
-    setDeleting(id);
-    try {
-      await onDelete(id);
-      setLocalResponses((prev) => prev.filter((r) => r.id !== id));
-    } finally {
-      setDeleting(null);
-    }
-  }
-
-  async function handleClearAll() {
-    // This one KEEPS a confirmation, because it genuinely cannot be undone —
-    // survey responses have no inverse action. Upgraded from click-OK to
-    // type-the-word: a bulk irreversible delete shouldn't be one stray Enter
-    // away, and "OK" is the default answer muscle memory gives.
-    const typed = prompt(
-      `Delete all ${localResponses.length} responses for "${title}"?\n\n` +
-        `This cannot be undone — there is no Undo for this one.\n` +
-        `Type DELETE to confirm.`,
-    );
-    if (typed?.trim().toUpperCase() !== "DELETE") return;
-    setClearingAll(true);
-    try {
-      for (const r of localResponses) {
-        await onDelete(r.id);
-      }
-      setLocalResponses([]);
-    } finally {
-      setClearingAll(false);
-    }
-  }
-
-  return (
-    <div className="panel p-4">
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-sm font-semibold text-ink">{title}</p>
-        <span className="text-xs text-ink-faint">{completed} of {totalStudents} completed</span>
-      </div>
-      <div className="h-2 w-full overflow-hidden rounded-full bg-paper-tint mb-3">
-        <div className="h-full rounded-full bg-ink transition-[width] duration-300 ease-out" style={{ width: `${pct}%` }} />
-      </div>
-      <div className="flex items-center gap-2">
-        <a
-          href={previewHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={buttonClass("secondary", "sm")}
-        >
-          <ExternalLink size={12} />
-          Preview
-        </a>
-        <button
-          type="button"
-          onClick={async () => { try { await onExport(); } catch (e) { console.error("Export failed:", e); } }}
-          className={buttonClass("secondary", "sm")}
-        >
-          <Download size={12} />
-          Export CSV
-        </button>
-        {localResponses.length > 0 && (
-          <button
-            type="button"
-            onClick={handleClearAll}
-            disabled={clearingAll}
-            className="inline-flex items-center gap-1 border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
-          >
-            <Trash2 size={12} />
-            {clearingAll ? "Deleting..." : "Delete All"}
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
-          className={buttonClass("secondary", "sm")}
-        >
-          <ChevronDown size={12} className={`transition-transform ${expanded ? "rotate-180" : ""}`} />
-          {expanded ? "Hide" : "Responses"}
-        </button>
-      </div>
-      {expanded && (
-        <div className="mt-3 border-t border-rule-soft pt-3 space-y-1">
-          {localResponses.length === 0 && (
-            <p className="text-xs text-ink-faint px-2">No responses yet.</p>
-          )}
-          {localResponses.map((r) => (
-            <div key={r.id} className="flex items-center justify-between gap-2 px-2 py-1.5 hover:bg-paper-tint-soft">
-              <div className="min-w-0">
-                <p className="text-xs font-medium text-ink truncate">{r.label}</p>
-                <p className="text-micro text-ink-faint truncate">{r.sublabel}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => handleDelete(r.id)}
-                disabled={deleting === r.id}
-                className="shrink-0 rounded p-1 text-ink-faint hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
-                title="Delete response"
-              >
-                {deleting === r.id ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 function PublicSurveyCard({
   title,
