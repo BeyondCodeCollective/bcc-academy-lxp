@@ -121,9 +121,6 @@ export default async function AdminPage({
   const needsCohorts = isHomeTab || isTrackTab || effectiveTab === "students";
   const needsLunchLearns = effectiveTab === "lunch-learn";
   const needsInsightsData = effectiveTab === "insights";
-  // Course-scoped survey panel — only on a course's Surveys sub-view, so the
-  // other course views don't pay for the insights queries.
-  const needsTrackInsights = isTrackTab && initialTrackView === "surveys";
   const needsAnalyticsData = effectiveTab === "analytics";
   const needsCoursesData = effectiveTab === "course-progress";
   void needsSurveyStats; // kept as a named constant for the gated query below
@@ -142,8 +139,6 @@ export default async function AdminPage({
   let publicSurveyStats: PublicSurveyStatsRow[] = [];
   let lunchLearnRecordings: LunchLearnRow[] = [];
   let insightsData: InsightsData | null = null;
-  /** The same Survey Insights panel, narrowed to the open course's roster. */
-  let trackInsightsData: InsightsData | null = null;
   let analyticsData: EngagementAnalytics | null = null;
   let coursesData: CoursesAnalytics | null = null;
   let courseEngagement: CourseEngagementProps | null = null;
@@ -515,17 +510,6 @@ export default async function AdminPage({
       insightsData = await buildInsightsData(programIds, aggregatedSlugs);
     }
 
-    // Course → Surveys gets the same panel, scoped to that course's enrolled
-    // learners. Same builder as the program view and the exports, so the three
-    // can't disagree about what belongs to the course.
-    if (canViewInsights(userRole) && needsTrackInsights) {
-      trackInsightsData = await buildInsightsData(
-        programIds,
-        aggregatedSlugs,
-        effectiveTab,
-      );
-    }
-
     // Program-level engagement analytics — scoped to the CURRENT program for
     // every role (the action enforces this), so it tracks the program switcher.
     if (canViewInsights(userRole) && needsAnalyticsData) {
@@ -891,7 +875,6 @@ export default async function AdminPage({
         lunchLearnRecordings={lunchLearnRecordings}
         insightsData={insightsData}
         switchablePrograms={switchablePrograms}
-        trackInsightsData={trackInsightsData}
         analyticsData={analyticsData}
         analyticsCourse={analyticsCourse}
         coursesData={coursesData}
