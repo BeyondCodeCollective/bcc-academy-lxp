@@ -91,6 +91,8 @@ export type ExamResult = {
   total: number;
   percent: number;
   domainScores: { domain: string; correct: number; total: number }[];
+  /** What was missed and what the learner answered — never the correct answer. */
+  missed: { n: number; domain: string; prompt: string; answered: string | null }[];
 };
 
 export async function submitExamAttempt(params: {
@@ -137,6 +139,7 @@ export async function submitExamAttempt(params: {
       total: graded.total,
       percent: Math.round((graded.score / graded.total) * 1000) / 10,
       domainScores: graded.domainScores,
+      missed: graded.missed,
     },
   };
 }

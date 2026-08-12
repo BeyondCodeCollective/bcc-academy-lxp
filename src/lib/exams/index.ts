@@ -44,12 +44,24 @@ export function clientView(exam: Exam): {
 
 export type DomainScore = { domain: string; correct: number; total: number };
 
+/** A missed question as the learner may see it: what was asked and what they
+ *  answered — NEVER the correct option. With unlimited retakes, revealing the
+ *  key would turn the exam into memorization and void the readiness signal. */
+export type MissedQuestion = {
+  n: number;
+  domain: string;
+  prompt: string;
+  /** The option text the learner chose; null if left blank. */
+  answered: string | null;
+};
+
 export function grade(
   exam: Exam,
   answers: Record<string, number>,
-): { score: number; total: number; domainScores: DomainScore[] } {
+): { score: number; total: number; domainScores: DomainScore[]; missed: MissedQuestion[] } {
   let score = 0;
   const byDomain = new Map<string, DomainScore>();
+  const missed: MissedQuestion[] = [];
   for (const q of exam.questions) {
     let d = byDomain.get(q.domain);
     if (!d) {
@@ -57,10 +69,18 @@ export function grade(
       byDomain.set(q.domain, d);
     }
     d.total++;
-    if (answers[String(q.n)] === q.correct) {
+    const picked = answers[String(q.n)];
+    if (picked === q.correct) {
       score++;
       d.correct++;
+    } else {
+      missed.push({
+        n: q.n,
+        domain: q.domain,
+        prompt: q.prompt,
+        answered: picked !== undefined ? q.options[picked] ?? null : null,
+      });
     }
   }
-  return { score, total: exam.questions.length, domainScores: [...byDomain.values()] };
+  return { score, total: exam.questions.length, domainScores: [...byDomain.values()], missed };
 }
