@@ -15,6 +15,8 @@ type Props = {
   enrolledCount?: number;
   /** survey id → distinct learners from this course who answered it. */
   respondentsBySurvey?: Record<string, number>;
+  /** Practice exams for this course — peer rows at the end of the list. */
+  exams?: { id: string; title: string; attempted: number }[];
 };
 
 // This is a follow-up list, so the colour marks what needs chasing. Under half
@@ -32,6 +34,7 @@ export function TrackInsightsSection({
   trackPublicSurveys = [],
   enrolledCount = 0,
   respondentsBySurvey = {},
+  exams = [],
 }: Props) {
   // If this track has its own public surveys, skip the program-level auth
   // surveys — they're usually duplicates (e.g. Catalyst Post Survey showing
@@ -48,7 +51,7 @@ export function TrackInsightsSection({
     })),
   ];
 
-  if (all.length === 0) {
+  if (all.length === 0 && exams.length === 0) {
     return (
       <p className="text-sm text-ink-faint py-8 text-center">
         No surveys configured for this track.
@@ -107,6 +110,38 @@ export function TrackInsightsSection({
                         <span className={`ml-1.5 font-semibold ${rateTone(pct)}`}>
                           {pct}%
                         </span>
+                      )}
+                    </>
+                  )}
+                </p>
+              </div>
+              <ArrowRight
+                size={14}
+                className="shrink-0 text-ink-faint transition-colors group-hover:text-ink-soft"
+              />
+            </Link>
+          );
+        })}
+        {exams.map((ex) => {
+          const pct =
+            enrolledCount > 0 ? Math.round((ex.attempted / enrolledCount) * 100) : null;
+          return (
+            <Link
+              key={ex.id}
+              href="/dashboard/admin/exams"
+              className="group flex items-center justify-between gap-4 px-4 py-3 transition-colors hover:bg-paper-tint-soft"
+            >
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-ink">{ex.title}</p>
+                <p className="mt-0.5 text-xs text-ink-faint">
+                  Practice exam ·{" "}
+                  {ex.attempted === 0 ? (
+                    "nobody has attempted yet"
+                  ) : (
+                    <>
+                      {ex.attempted} of {enrolledCount} attempted
+                      {pct !== null && (
+                        <span className={`ml-1.5 font-semibold ${rateTone(pct)}`}>{pct}%</span>
                       )}
                     </>
                   )}
