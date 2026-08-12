@@ -28,12 +28,14 @@ export default async function AdminResourcesPage() {
       <ResourcesEditor
         programSlug={program.slug}
         programName={program.name}
+        courses={program.tracks.map((t) => ({ slug: t.slug, name: t.name }))}
         initial={resources.map((r) => ({
           title: r.title,
           description: r.description ?? "",
           url: r.url ?? "",
           category: r.category ?? "",
           icon: r.icon ?? "",
+          trackSlug: r.track_slug ?? "",
         }))}
       />
     </div>

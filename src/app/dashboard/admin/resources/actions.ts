@@ -12,11 +12,17 @@ export type ResourceInput = {
 };
 
 /**
- * Replace the full resource list for a program. Simpler than per-row diffing:
- * the editor always sends the complete ordered list, so we delete the
- * program's rows and re-insert in order. Admin-only (service role).
+ * Replace the resource list for ONE scope of a program — program-wide
+ * (trackSlug null) or a single course. Simpler than per-row diffing: the
+ * editor always sends the complete ordered list for the scope it's editing,
+ * so we delete that scope's rows and re-insert in order. Other scopes'
+ * rows are untouched. Admin-only (service role).
  */
-export async function saveResources(programSlug: string, items: ResourceInput[]) {
+export async function saveResources(
+  programSlug: string,
+  trackSlug: string | null,
+  items: ResourceInput[],
+) {
   const actor = await requireAdmin();
   const { svc, userId } = actor;
   // Bind the client-supplied slug to the actor's own program — this action
@@ -29,6 +35,7 @@ export async function saveResources(programSlug: string, items: ResourceInput[])
     .filter((it) => it.title.trim() !== "")
     .map((it, i) => ({
       program_id: programId,
+      track_slug: trackSlug,
       title: it.title.trim(),
       description: clean(it.description),
       url: clean(it.url),
@@ -39,10 +46,9 @@ export async function saveResources(programSlug: string, items: ResourceInput[])
       updated_by: userId,
     }));
 
-  const { error: delError } = await svc
-    .from("resources")
-    .delete()
-    .eq("program_id", programId);
+  let del = svc.from("resources").delete().eq("program_id", programId);
+  del = trackSlug === null ? del.is("track_slug", null) : del.eq("track_slug", trackSlug);
+  const { error: delError } = await del;
   if (delError) throw new Error(delError.message);
 
   if (rows.length > 0) {
