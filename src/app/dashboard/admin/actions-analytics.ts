@@ -3,6 +3,7 @@
 import { requireCapability } from "./actions-shared";
 import { getProgram, getProgramWithOverrides } from "@/lib/programs/server";
 import { resolveProgramScope } from "@/lib/programs/scope";
+import { getHiddenTrackSlugs } from "@/lib/programs/hidden";
 import { isEngaged } from "@/lib/analytics/engagement";
 import {
   type RangePreset,
@@ -66,7 +67,7 @@ export type EngagementAnalytics = {
   learners: EngagementLearner[];
   // Tracks in this program, for the Analytics tab's track filter. Slug + display
   // name so the dropdown reads "CompTIA Security+" but filters on the slug.
-  trackOptions: { slug: string; name: string }[];
+  trackOptions: { slug: string; name: string; hidden?: boolean }[];
   /** The course the funnel is scoped to, or null for the whole program. */
   activeCourse: string | null;
 };
@@ -90,9 +91,15 @@ export async function getEngagementAnalytics(
   const allTracks = (await getProgramWithOverrides(program.slug)).tracks;
   const trackSlugs = allTracks.map((t) => t.slug);
 
-  // Names too — a learner's Course column should label a hidden course by
-  // name, not leak a raw slug. This is a label map, not a picker.
-  const trackOptions = allTracks.map((t) => ({ slug: t.slug, name: t.name }));
+  // Label map carries a hidden flag: hidden courses keep COUNTING (their
+  // sessions are real attendance) but never get named on screen — a hidden
+  // course appearing in the Course column reads as a bug.
+  const hidden = await getHiddenTrackSlugs();
+  const trackOptions = allTracks.map((t) => ({
+    slug: t.slug,
+    name: t.name,
+    hidden: hidden.has(t.slug),
+  }));
   // Only honour a course filter for a track that's actually in this program.
   const activeCourse = trackSlug && trackSlugs.includes(trackSlug) ? trackSlug : null;
   // "Invited" reach narrows to the selected course's allowlist when drilled in.

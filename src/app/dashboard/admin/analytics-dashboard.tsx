@@ -124,8 +124,16 @@ export function AnalyticsDashboard({
     () => new Map(trackOptions.map((t) => [t.slug, t.name])),
     [trackOptions],
   );
+  // Hidden courses keep counting in the activity numbers but are never NAMED —
+  // an admin who hid a course reads its name here as a bug.
+  const hiddenSlugs = useMemo(
+    () => new Set(trackOptions.filter((t) => t.hidden).map((t) => t.slug)),
+    [trackOptions],
+  );
   const coursesOf = (l: EngagementLearner) =>
-    l.tracks.map((slug) => trackNames.get(slug) ?? slug);
+    l.tracks
+      .filter((slug) => !hiddenSlugs.has(slug))
+      .map((slug) => trackNames.get(slug) ?? slug);
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return learners.filter((l) => {
@@ -135,15 +143,17 @@ export function AnalyticsDashboard({
         !(
           l.name.toLowerCase().includes(q) ||
           l.email.toLowerCase().includes(q) ||
-          l.tracks.some((slug) =>
-            (trackNames.get(slug) ?? slug).toLowerCase().includes(q),
+          l.tracks.some(
+            (slug) =>
+              !hiddenSlugs.has(slug) &&
+              (trackNames.get(slug) ?? slug).toLowerCase().includes(q),
           )
         )
       )
         return false;
       return true;
     });
-  }, [learners, query, track, trackNames]);
+  }, [learners, query, track, trackNames, hiddenSlugs]);
   const trackName = trackOptions.find((t) => t.slug === track)?.name ?? null;
   const isFiltered = query.trim() !== "" || track !== "";
   // When a track is selected, show that track's activity, not the learner's
@@ -213,7 +223,7 @@ export function AnalyticsDashboard({
             />
             <button
               type="button"
-              onClick={() => downloadCsv(filtered, data.programName, track, trackName, trackNames)}
+              onClick={() => downloadCsv(filtered, data.programName, track, trackName, trackNames, hiddenSlugs)}
               disabled={filtered.length === 0}
               className={buttonClass("secondary", "sm")}
             >
@@ -343,14 +353,17 @@ function surveyTitle(type: string): string {
 // Client-side CSV of the (filtered) learner rows — lets staff hand off
 // engagement data without re-running the export scripts. Quotes every field so
 // commas/quotes in names don't break columns.
-function downloadCsv(learners: EngagementLearner[], programName: string, track: string, trackName: string | null, trackNames: Map<string, string>) {
+function downloadCsv(learners: EngagementLearner[], programName: string, track: string, trackName: string | null, trackNames: Map<string, string>, hiddenSlugs: Set<string>) {
   const header = ["Name", "Email", "Courses", "ZIP", "State", "Birthday", "Age", "Signed up", "Last active", "Videos", "Attended", "Submitted", "Surveys"];
   const esc = (v: string | number | null) => `"${String(v ?? "").replace(/"/g, '""')}"`;
   // Match the table: when a track is selected, export that track's counts, not
   // the learner's program-wide totals.
   const rows = learners.map((l) => {
     const c = track ? l.byTrack[track] ?? { videosWatched: 0, attended: 0, submitted: 0 } : l;
-    const courses = l.tracks.map((slug) => trackNames.get(slug) ?? slug).join("; ");
+    const courses = l.tracks
+      .filter((slug) => !hiddenSlugs.has(slug))
+      .map((slug) => trackNames.get(slug) ?? slug)
+      .join("; ");
     return [l.name, l.email, courses, l.zip, l.state, l.dateOfBirth, l.age, l.signedUp, l.lastActive, c.videosWatched, c.attended, c.submitted, l.surveys]
       .map(esc)
       .join(",");
