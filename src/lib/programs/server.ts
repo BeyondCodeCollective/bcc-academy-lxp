@@ -4,6 +4,7 @@ import { getProgramBySlug, getProgramByDomain, isKnownProgramHost, hasTsConfigSl
 import type { ProgramConfig, TrackConfig, OfficeHour } from "./types";
 import { createServiceClient } from "@/lib/supabase/server";
 import { PREVIEW_COOKIE, LUNCH_LEARN_PREVIEW_SLUG } from "@/lib/auth/preview-mode";
+import { getHiddenTrackSlugs } from "@/lib/programs/hidden";
 
 /**
  * Get the current program config in a server component or server action.
@@ -29,7 +30,14 @@ import { PREVIEW_COOKIE, LUNCH_LEARN_PREVIEW_SLUG } from "@/lib/auth/preview-mod
  */
 export async function getProgram(): Promise<ProgramConfig> {
   const base = await resolveBaseProgram();
-  return applyTrackOverrides(base);
+  const program = await applyTrackOverrides(base);
+  // Hidden courses disappear from EVERY consumer of the current-program
+  // config — learner pages, admin dropdowns, pickers. Surfaces that must see
+  // hidden courses (Manage Courses' restore list) use getProgramWithOverrides,
+  // which stays unfiltered.
+  const hidden = await getHiddenTrackSlugs();
+  if (hidden.size === 0) return program;
+  return { ...program, tracks: program.tracks.filter((t) => !hidden.has(t.slug)) };
 }
 
 /**
