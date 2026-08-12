@@ -1,7 +1,7 @@
 "use server";
 
 import { requireCapability } from "./actions-shared";
-import { getProgram } from "@/lib/programs/server";
+import { getProgram, getProgramWithOverrides } from "@/lib/programs/server";
 import { resolveProgramScope } from "@/lib/programs/scope";
 import { isEngaged } from "@/lib/analytics/engagement";
 import {
@@ -84,9 +84,15 @@ export async function getEngagementAnalytics(
   const program = await getProgram();
   const scope = await resolveProgramScope(program.slug);
   const ids = scope.ids;
-  const trackSlugs = program.tracks.map((t) => t.slug);
+  // Count with the UNFILTERED track list: hiding a course removes it from
+  // navigation and pickers, but its sessions/enrollments must keep counting
+  // (MASS check-ins are real attendance even while MASS is hidden).
+  const allTracks = (await getProgramWithOverrides(program.slug)).tracks;
+  const trackSlugs = allTracks.map((t) => t.slug);
 
-  const trackOptions = program.tracks.map((t) => ({ slug: t.slug, name: t.name }));
+  // Names too — a learner's Course column should label a hidden course by
+  // name, not leak a raw slug. This is a label map, not a picker.
+  const trackOptions = allTracks.map((t) => ({ slug: t.slug, name: t.name }));
   // Only honour a course filter for a track that's actually in this program.
   const activeCourse = trackSlug && trackSlugs.includes(trackSlug) ? trackSlug : null;
   // "Invited" reach narrows to the selected course's allowlist when drilled in.
@@ -361,8 +367,8 @@ export async function getEngagementTrends(
 
   // Learners only, matching getEngagementAnalytics' membership (stamped under
   // this program OR enrolled in its tracks) so the two surfaces agree on who
-  // counts.
-  const trackSlugs = program.tracks.map((t) => t.slug);
+  // counts. Unfiltered list — hidden courses still count (see above).
+  const trackSlugs = (await getProgramWithOverrides(program.slug)).tracks.map((t) => t.slug);
   const { data: enrolledRows } = await svc
     .from("student_tracks")
     .select("student_id")
