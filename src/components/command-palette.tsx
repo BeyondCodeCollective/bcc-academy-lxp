@@ -167,7 +167,11 @@ export function CommandPalette({
               }
             }}
           >
-            <div className="flex items-center gap-2.5 border-b border-rule px-4">
+            {/* Focus indicator: the header's underline turns primary via
+               focus-within. The global :focus-visible box ring is suppressed
+               on the bare input — a 2px offset rectangle overflows this
+               rounded panel and reads as broken UI. */}
+            <div className="flex items-center gap-2.5 border-b border-rule px-4 transition-colors focus-within:border-primary">
               <MagnifyingGlass size={16} weight="bold" className="text-ink-faint" aria-hidden />
               <input
                 ref={inputRef}
@@ -177,7 +181,7 @@ export function CommandPalette({
                   setActive(0);
                 }}
                 placeholder="Search courses, pages…"
-                className="h-12 flex-1 bg-transparent text-[15px] text-ink outline-none placeholder:text-ink-faint"
+                className="h-12 flex-1 bg-transparent text-[15px] text-ink outline-none focus-visible:outline-none placeholder:text-ink-faint"
               />
             </div>
             <ul className="max-h-80 overflow-y-auto p-2">
