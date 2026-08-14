@@ -232,8 +232,10 @@ This link is permanent, so it can go on a resume or LinkedIn profile — anyone 
 
 We're proud of you!
 ${programName}`,
+    // Header banner carries the course name — the credential is the star,
+    // the program signs off in the body copy.
     html: inviteShell(
-      programName,
+      courseName,
       `    <p style="margin:0 0 6px;font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#16a34a;">🎉 Certificate earned</p>
     <p style="margin:0 0 8px;font-size:22px;font-weight:700;color:#1a1a1a;">Congratulations${name ? `, ${esc(name)}` : ""}!</p>
     <p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:#555;">You completed <strong>${esc(courseName)}</strong> — and your official certificate is ready. View it, print it, or share it with the button below. No login needed.</p>
