@@ -63,6 +63,9 @@ export function visibleResources(all: Resource[], enrolled: Set<string>): Resour
 export async function programHasResources(
   programSlug: string,
   enrolledSlugs: string[] = [],
+  /** Staff/admins manage resources for courses they aren't enrolled in —
+   *  they see (and get the nav item for) every scope. */
+  seeAll = false,
 ): Promise<boolean> {
   const programId = await programIdForSlug(programSlug);
   if (!programId) return false;
@@ -72,6 +75,7 @@ export async function programHasResources(
     .select("track_slug")
     .eq("program_id", programId);
   const rows = (data ?? []) as { track_slug: string | null }[];
+  if (seeAll) return rows.length > 0;
   const enrolled = new Set(enrolledSlugs);
   return rows.some((r) => r.track_slug === null || enrolled.has(r.track_slug));
 }

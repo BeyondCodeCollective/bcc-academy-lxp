@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { ArrowUpRight } from "@phosphor-icons/react/dist/ssr";
 import { getSessionContext } from "@/lib/auth/session";
+import { canAccessAdminPanel } from "@/lib/roles";
+import { isPreviewingAsStudent } from "@/lib/auth/preview-mode";
 import { getProgram } from "@/lib/programs/server";
 import {
   enrolledTrackSlugs,
@@ -22,7 +24,13 @@ export default async function ResourcesPage() {
     enrolledTrackSlugs(ctx.userId),
   ]);
   // Program-wide items plus those scoped to a course this learner is in.
-  const resources = visibleResources(all, enrolled);
+  // Admins see every scope — they manage resources for courses they aren't
+  // enrolled in, and an empty page right after publishing reads as broken.
+  // Preview-as-student keeps the real learner view.
+  const role = ctx.student?.role ?? "";
+  const seesAll =
+    canAccessAdminPanel(role) && !(await isPreviewingAsStudent(role));
+  const resources = seesAll ? all : visibleResources(all, enrolled);
 
   // Group by category, preserving sort order; blank category → "Resources".
   // Course-scoped items lead with the course name so a learner in two courses
