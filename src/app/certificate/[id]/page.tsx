@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
-import { getProgramBySlug } from "@/lib/programs";
+import { getProgramWithOverrides } from "@/lib/programs/server";
 import { numberedUnitCount } from "@/lib/programs/unit-display";
 import { COHORT_TIME_ZONE } from "@/lib/utils";
 import { PrintButton } from "./print-button";
@@ -43,8 +43,10 @@ export default async function CertificatePage({
     name: string;
   } | null;
 
+  // Overrides included so builder-created courses (their only record is a
+  // track_overrides row) print their real name instead of the raw slug.
   const program = programRow
-    ? getProgramBySlug(programRow.slug)
+    ? await getProgramWithOverrides(programRow.slug)
     : null;
 
   const trackConfig = program?.tracks.find(
