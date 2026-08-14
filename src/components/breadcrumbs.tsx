@@ -121,9 +121,10 @@ export function buildTrail(
   // already marks it active, so a "Home > Overview" trail is noise. Drill-in
   // surfaces use the in-page BackLink instead; trails are for nested routes.
   if (top === "insights" && isAdmin) return [];
-  // The exam page renders its own "← Back to Dashboard" BackLink — two trails
-  // stacked over one title is one too many (same rule as survey dashboards).
-  if (top === "exam") return [];
+  // Exam pages: the trail is just "Home" in the standard top-left spot — the
+  // same as any other one-level learner page. (/dashboard/exam has no index
+  // route, so an "Exam" ancestor would either 404 or be dead text.)
+  if (top === "exam") return [home, { label: "Exam" }];
   const sectionLabel = SECTION_LABELS[top] ?? humanize(top);
   if (rest.length === 1) return [home, { label: sectionLabel }];
   const sectionHref = `/dashboard/${top}`;

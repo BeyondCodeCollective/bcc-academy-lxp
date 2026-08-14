@@ -1,6 +1,4 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { canAccessAdminPanel, canSwitchPrograms } from "@/lib/roles";
@@ -71,13 +69,6 @@ export default async function ExamPage({
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8">
-      <Link
-        href="/dashboard"
-        className="mb-6 inline-flex items-center gap-1.5 py-2 text-sm text-ink-faint transition-colors hover:text-ink"
-      >
-        <ArrowLeft size={16} />
-        Back to Dashboard
-      </Link>
       <PageHeader
         eyebrow="Practice Exam"
         title={exam.title}
