@@ -123,7 +123,10 @@ export function buildTrail(
   if (top === "insights" && isAdmin) return [];
   const sectionLabel = SECTION_LABELS[top] ?? humanize(top);
   if (rest.length === 1) return [home, { label: sectionLabel }];
-  const sectionHref = `/dashboard/${top}`;
+  // Sections with no index page (only /dashboard/<section>/<id> exists) get a
+  // dead-text crumb — linking them 404s (e.g. /dashboard/exam).
+  const INDEXLESS = new Set(["exam"]);
+  const sectionHref = INDEXLESS.has(top) ? undefined : `/dashboard/${top}`;
   const leaf = rest[rest.length - 1];
   const leafLabel =
     nameFor(path) ??
