@@ -434,7 +434,7 @@ export function InsightsDashboard({ sections, programs, scope }: Props) {
               href="/dashboard/admin/agreements"
               className="ml-auto text-sm font-medium text-primary hover:underline"
             >
-              Who has signed &rarr;
+              Participation Agreements &rarr;
             </Link>
           ) : (
             !isAllForms &&
