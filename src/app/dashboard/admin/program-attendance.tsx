@@ -293,13 +293,54 @@ function MatrixTable({
   attended: Set<string>;
   enrolledByStudent: Map<string, Set<string>>;
 }) {
+  // Click Learner / Total to sort. Total defaults descending — "who completed
+  // the program" is the question this grid answers at cohort end.
+  const [sort, setSort] = useState<{ key: "name" | "total"; dir: 1 | -1 }>({
+    key: "name",
+    dir: 1,
+  });
+  const sortedLearners = useMemo(() => {
+    const displayName = (st: StudentRow) =>
+      `${st.first_name ?? ""} ${st.last_name ?? ""}`.trim() || st.email;
+    const totalFor = (st: StudentRow) => {
+      let att = 0;
+      for (const { track, sessions } of groups) {
+        if (!enrolledByStudent.get(st.id)?.has(track.slug)) continue;
+        for (const sess of sessions) {
+          if (attended.has(`${st.id}|${track.slug}|${sess.week}|${sess.session}`)) att += 1;
+        }
+      }
+      return att;
+    };
+    return [...learners].sort((a, b) =>
+      sort.key === "name"
+        ? sort.dir * displayName(a).localeCompare(displayName(b))
+        : sort.dir * (totalFor(a) - totalFor(b)) ||
+          displayName(a).localeCompare(displayName(b)),
+    );
+  }, [learners, groups, attended, enrolledByStudent, sort]);
+  const toggle = (key: "name" | "total") =>
+    setSort((prev) =>
+      prev.key === key
+        ? { key, dir: prev.dir === 1 ? -1 : 1 }
+        : { key, dir: key === "total" ? -1 : 1 },
+    );
+  const arrow = (key: "name" | "total") =>
+    sort.key === key ? (sort.dir === 1 ? " ↑" : " ↓") : "";
+
   return (
     <div className="panel overflow-x-auto">
         <table className="w-full border-collapse text-xs">
           <thead>
             <tr>
               <th className="sticky left-0 z-10 bg-white px-4 py-2 text-left font-semibold text-ink">
-                Learner
+                <button
+                  onClick={() => toggle("name")}
+                  className="font-semibold underline-offset-2 hover:underline"
+                  title="Sort by name"
+                >
+                  Learner{arrow("name")}
+                </button>
               </th>
               {groups.map(({ track, sessions }) => (
                 <th
@@ -311,7 +352,13 @@ function MatrixTable({
                 </th>
               ))}
               <th className="border-l border-rule px-3 py-2 text-right font-semibold text-ink">
-                Total
+                <button
+                  onClick={() => toggle("total")}
+                  className="font-semibold underline-offset-2 hover:underline"
+                  title="Sort by sessions attended"
+                >
+                  Total{arrow("total")}
+                </button>
               </th>
             </tr>
             <tr className="text-ink-faint">
@@ -332,7 +379,7 @@ function MatrixTable({
             </tr>
           </thead>
           <tbody>
-            {learners.map((st) => {
+            {sortedLearners.map((st) => {
               let att = 0;
               let exp = 0;
               return (
