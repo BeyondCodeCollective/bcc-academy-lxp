@@ -1377,8 +1377,8 @@ const HFS_PRE_SURVEY: SurveyQuestion[] = [
 // pairs before→now per statement. Question ids and copy mirror the wizard pages
 // in survey-wizard.tsx — keep the two in lockstep.
 
-const HFS_BEFORE = "BEFORE the week";
-const HFS_NOW = "RIGHT NOW";
+const HFS_BEFORE = "BEFORE THE PROGRAM";
+const HFS_NOW = "AFTER THE PROGRAM";
 
 const HFS_IMPACT_SURVEY: SurveyQuestion[] = [
   { type: "consent", id: "consent_participate", label: "Required — I understand and agree to take part.", text: "", required: true },

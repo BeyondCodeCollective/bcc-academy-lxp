@@ -1640,15 +1640,15 @@ const SECURITY_PLUS_MIDPOINT_PAGES: SurveyPage[] = [
 
 
 // ─── Home for the Summer — Impact Survey (retrospective pre/post) ─────────────
-// One sitting, every rating asked twice: BEFORE the week and RIGHT NOW. This
+// One sitting, every rating asked twice: BEFORE THE PROGRAM and AFTER THE PROGRAM. This
 // replaces hfs-pre-survey, which never got a branch below and silently rendered
 // the intake questions under the HFS title (2026-08-07 → 08-11) — so there is
 // no concurrent baseline. The program team's doc already specified the post as
 // retrospective for a five-day program; this is that instrument. Statement
 // banks are the doc's, verbatim, shared with the analytics schema.
 
-const HFS_BEFORE = "BEFORE the week";
-const HFS_NOW = "RIGHT NOW";
+const HFS_BEFORE = "BEFORE THE PROGRAM";
+const HFS_NOW = "AFTER THE PROGRAM";
 const HFS_AGREE = { low: "1 — Strongly disagree", high: "5 — Strongly agree" };
 
 const HFS_IMPACT_PAGES: SurveyPage[] = [
@@ -1661,7 +1661,7 @@ const HFS_IMPACT_PAGES: SurveyPage[] = [
         id: "consent_participate",
         label: "Why we ask",
         text:
-          "This is not a test. We want to know how the week went — what shifted, what you gained, and what we can do better. You'll rate each statement twice: how you were before the week, and how you are right now. That's how we measure your growth.",
+          "This is not a test. We want to know how the week went — what shifted, what you gained, and what we can do better. You'll rate each statement twice: how you were before the program, and how you are after it. That's how we measure your growth.",
         bullets: [
           "Your answers stay private.",
           "We use them only to improve the program and to show our impact to the funders who make it possible.",
@@ -1693,7 +1693,7 @@ const HFS_IMPACT_PAGES: SurveyPage[] = [
   {
     title: "Part 1: How work works",
     subtitle:
-      "How ready you feel for a real workplace — remote, hybrid, or in person. Rate each line twice: how you were BEFORE the week, and how you are RIGHT NOW.",
+      "How ready you feel for a real workplace — remote, hybrid, or in person. Rate each line twice: how you were BEFORE THE PROGRAM, and how you are AFTER THE PROGRAM.",
     questions: [
       {
         type: "dual-likert",
@@ -1711,7 +1711,7 @@ const HFS_IMPACT_PAGES: SurveyPage[] = [
   {
     title: "Part 2: Workplace tools",
     subtitle:
-      "The tools most workplaces use every day. Same again — how familiar you were before, and how familiar you are now.",
+      "The tools most workplaces use every day. Same again — how familiar you were before the program, and how familiar you are after it.",
     questions: [
       {
         type: "dual-likert",
