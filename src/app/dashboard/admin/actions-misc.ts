@@ -342,7 +342,46 @@ async function certEmailContext(
     programName: program.name,
     courseName: track?.certificateName ?? track?.name ?? trackSlug,
     domain: program.domain,
+    surveyUrl: await pendingSurveyLink(svc, studentId, student.email as string, trackSlug, program),
   };
+}
+
+/**
+ * One-click link to the course's post-program survey, for the certificate
+ * email — only when the course has a required survey the learner hasn't
+ * finished. Rides on the learner's existing invite token (/invite/<token>
+ * signs them in on every click, no expiry) so the email is one tap on a phone
+ * with no login step; the required-survey redirect then lands them in it.
+ * Undefined = nothing to ask, and the email is the plain certificate.
+ */
+async function pendingSurveyLink(
+  svc: Awaited<ReturnType<typeof requireAdmin>>["svc"],
+  studentId: string,
+  email: string,
+  trackSlug: string,
+  program: ReturnType<typeof getProgramBySlug>,
+): Promise<string | undefined> {
+  const survey = (program.surveys ?? []).find(
+    (sv) => sv.required && (sv.appliesToTracks ?? []).includes(trackSlug),
+  );
+  if (!survey) return undefined;
+  const { data: done } = await svc
+    .from("survey_responses")
+    .select("id")
+    .eq("student_id", studentId)
+    .eq("survey_type", survey.id)
+    .not("completed_at", "is", null)
+    .maybeSingle();
+  if (done) return undefined;
+  const { data: invite } = await svc
+    .from("invites")
+    .select("token")
+    .ilike("email", email)
+    .eq("track_slug", trackSlug)
+    .limit(1)
+    .maybeSingle();
+  if (!invite?.token) return undefined;
+  return `https://${program.domain}/invite/${invite.token}`;
 }
 
 export type IssueCertificateResult = {
