@@ -600,6 +600,9 @@ export default async function AdminPage({
     // Which tracks opt out — the per-track Surveys tab hides these, so a
     // Security+ instructor isn't offered AI Fundamentals surveys.
     skipForTracks: s.skipForTracks,
+    // Which tracks the survey is FOR — those always list it, even at zero
+    // responses, so an admin can watch a fresh survey fill in.
+    appliesToTracks: s.appliesToTracks,
   }));
 
   // Public surveys tied to a track (e.g. network-plus-post → Network+).
