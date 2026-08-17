@@ -234,7 +234,7 @@ ${certificateUrl}
 
 This link is permanent, so it can go on a resume or LinkedIn profile — anyone who clicks it sees the verified certificate.
 ${surveyUrl ? `
-One more thing — 5 minutes on your phone. Tell us how the week went and where you were before it started. Your answers are what keep this program funded for the next group:
+One last thing before you go — tell us how it went. Where you started, where you landed, and what you'd change. It takes about 5 minutes and it's how the next group gets a better week than you did:
 ${surveyUrl}
 ` : ""}
 We're proud of you!
@@ -248,9 +248,9 @@ ${programName}`,
     <p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:#555;">You completed <strong>${esc(courseName)}</strong> — and your official certificate is ready. View it, print it, or share it with the button below. No login needed.</p>
     ${ctaButton(certificateUrl, "View my certificate →")}
     ${surveyUrl ? `<div style="margin:0 0 28px;padding:18px 20px;background:#f5f5f7;border-radius:10px;">
-      <p style="margin:0 0 6px;font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#555;">One more thing</p>
-      <p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#1a1a1a;"><strong>5 minutes on your phone.</strong> Tell us how the week went and where you were before it started. Your answers are what keep this program funded for the next group.</p>
-      <div style="text-align:left;"><a href="${surveyUrl}" style="display:inline-block;padding:12px 24px;background:#1a1a1a;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:700;font-size:14px;">Take the 5-minute survey →</a></div>
+      <p style="margin:0 0 6px;font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#555;">One last thing</p>
+      <p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#1a1a1a;"><strong>Tell us how it went.</strong> Where you started, where you landed, and what you'd change. About 5 minutes — and it's how the next group gets a better week than you did.</p>
+      <div style="text-align:left;"><a href="${surveyUrl}" style="display:inline-block;padding:12px 24px;background:#1a1a1a;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:700;font-size:14px;">Tell us how it went →</a></div>
       <p style="margin:12px 0 0;font-size:12px;color:#999;line-height:1.5;">One tap — no password, no login code.</p>
     </div>` : ""}
     <p style="margin:0;font-size:12px;color:#999;line-height:1.5;">This link is permanent — it can go on a resume or LinkedIn profile, and anyone who clicks it sees the verified certificate. Questions? Reply here or email <a href="mailto:info@bccacademy.io" style="color:#1a1a1a;">info@bccacademy.io</a>.</p>`,
