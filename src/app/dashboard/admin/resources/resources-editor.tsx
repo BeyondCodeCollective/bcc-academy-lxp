@@ -28,7 +28,6 @@ const PROGRAM_SCOPE = "";
 // saving replaces only the scope being edited.
 export function ResourcesEditor({ programSlug, programName, courses, initial }: Props) {
   const router = useRouter();
-  const [scope, setScope] = useState<string>(PROGRAM_SCOPE);
   const [byScope, setByScope] = useState<Record<string, Row[]>>(() => {
     const m: Record<string, Row[]> = {};
     for (const r of initial) {
@@ -37,10 +36,24 @@ export function ResourcesEditor({ programSlug, programName, courses, initial }: 
     }
     return m;
   });
+  // Open on a scope that HAS resources. Defaulting to program-wide when it's
+  // empty hid the only resource in the program behind the picker — the page
+  // looked add-only and the real row was invisible. Program-wide wins when it
+  // has rows; otherwise the first course scope with rows; otherwise program-wide.
+  const [scope, setScope] = useState<string>(() => {
+    if (byScope[PROGRAM_SCOPE]?.length) return PROGRAM_SCOPE;
+    const withRows = courses.find((c) => byScope[c.slug]?.length);
+    return withRows ? withRows.slug : PROGRAM_SCOPE;
+  });
   const rows = byScope[scope]?.length ? byScope[scope] : [{ ...BLANK }];
   const setRows = (fn: (prev: Row[]) => Row[]) =>
     setByScope((prev) => ({ ...prev, [scope]: fn(prev[scope]?.length ? prev[scope] : [{ ...BLANK }]) }));
   const [state, setState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  // " · 3" suffix in the scope picker: where the resources actually live.
+  const countLabel = (key: string) => {
+    const n = (byScope[key] ?? []).filter((r) => r.title.trim() !== "").length;
+    return n > 0 ? ` · ${n}` : "";
+  };
 
   const update = (i: number, field: keyof Row, value: string) =>
     setRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, [field]: value } : r)));
@@ -84,10 +97,12 @@ export function ResourcesEditor({ programSlug, programName, courses, initial }: 
             onChange={(e) => setScope(e.target.value)}
             className={fieldInput}
           >
-            <option value={PROGRAM_SCOPE}>Everyone in {programName}</option>
+            <option value={PROGRAM_SCOPE}>
+              Everyone in {programName}{countLabel(PROGRAM_SCOPE)}
+            </option>
             {courses.map((c) => (
               <option key={c.slug} value={c.slug}>
-                {c.name} only
+                {c.name} only{countLabel(c.slug)}
               </option>
             ))}
           </select>
