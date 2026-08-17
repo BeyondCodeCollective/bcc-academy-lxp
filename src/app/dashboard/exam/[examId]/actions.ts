@@ -32,6 +32,8 @@ async function requireExamAccess(examId: string): Promise<Gate | { error: string
     .single<{ role: string }>();
   if (canAccessAdminPanel(student?.role ?? "")) return { svc, userId: user.id };
 
+  if (!exam.enabled) return { error: "This exam isn't open right now." };
+
   const { data: enr } = await svc
     .from("student_tracks")
     .select("track_slug")

@@ -28,6 +28,9 @@ export default async function ExamPage({
   const svc = createServiceClient();
   const isStaff = canAccessAdminPanel(ctx.student?.role ?? "");
   if (!isStaff) {
+    // Exam switched off for learners — nothing to see, regardless of
+    // enrollment. Staff still get through below to preview.
+    if (!exam.enabled) redirect("/dashboard");
     // Learner access keys off ENROLLMENT, never the browsing program — a
     // Security+ student opening the link from the apex/marketing context
     // must still get in.

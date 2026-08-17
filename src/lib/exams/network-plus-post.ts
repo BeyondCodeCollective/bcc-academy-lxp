@@ -22,6 +22,12 @@ export const NETWORK_PLUS_POST = {
   minutes: 90,
   /** Tracks whose enrolled students may take this exam. */
   appliesToTracks: ["comptia-security"],
+  /**
+   * Learner access switch. false = the exam is off for learners (page and
+   * grading actions both redirect/refuse); staff can still open it to
+   * preview. Flip to true when the cohort should sit the post-assessment.
+   */
+  enabled: false,
   questions: [
  {
   "n": 1,
