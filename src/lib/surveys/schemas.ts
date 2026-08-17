@@ -1367,6 +1367,109 @@ const HFS_PRE_SURVEY: SurveyQuestion[] = [
   },
 ];
 
+
+// ─── hfs-impact-survey (Home for the Summer retrospective pre/post) ──────────
+// Replaces hfs-pre-survey. That survey's schema below was correct but never got
+// a renderer branch, so 22 learners answered the intake questions under the HFS
+// title and there is no concurrent baseline. Per the program doc, the post for a
+// five-day program is retrospective anyway: every bank asked twice (BEFORE the
+// week / RIGHT NOW) in one sitting. Same statement banks, verbatim, so Insights
+// pairs before→now per statement. Question ids and copy mirror the wizard pages
+// in survey-wizard.tsx — keep the two in lockstep.
+
+const HFS_BEFORE = "BEFORE the week";
+const HFS_NOW = "RIGHT NOW";
+
+const HFS_IMPACT_SURVEY: SurveyQuestion[] = [
+  { type: "consent", id: "consent_participate", label: "Required — I understand and agree to take part.", text: "", required: true },
+  { type: "consent", id: "consent_followup", label: "Optional — Beyond Code may contact me after the program.", text: "", required: false },
+  { type: "consent", id: "consent_quote", label: "Optional — Beyond Code may use my written answers as an anonymous quote.", text: "", required: false },
+  {
+    type: "dual-likert",
+    id: "work_readiness_change",
+    label: "How work works",
+    scale: LIKERT_1_5,
+    beforeLabel: HFS_BEFORE,
+    nowLabel: HFS_NOW,
+    scaleAnchors: AGREE_ANCHORS,
+    statements: HFS_WORK_READINESS_STATEMENTS,
+    required: true,
+  },
+  {
+    type: "dual-likert",
+    id: "workplace_tools_change",
+    label: "Workplace tools",
+    scale: LIKERT_1_5,
+    beforeLabel: HFS_BEFORE,
+    nowLabel: HFS_NOW,
+    scaleAnchors: { low: "1 — Never used it", high: "5 — Could show someone else" },
+    statements: HFS_TOOLS_STATEMENTS,
+    required: true,
+  },
+  {
+    type: "dual-likert",
+    id: "ai_at_work_change",
+    label: "AI at work",
+    scale: LIKERT_1_5,
+    beforeLabel: HFS_BEFORE,
+    nowLabel: HFS_NOW,
+    scaleAnchors: AGREE_ANCHORS,
+    statements: HFS_AI_AT_WORK_STATEMENTS,
+    required: true,
+  },
+  {
+    type: "radio",
+    id: "ai_usage_frequency",
+    label: "How often do you use AI tools right now?",
+    options: ["Daily", "A few times a week", "Once in a while", "I have tried it once or twice", "Never"],
+    required: true,
+  },
+  { type: "text", id: "ai_tools_used", label: "What AI tools do you use the most?", required: false },
+  {
+    type: "likert",
+    id: "ai_bias_concern",
+    label: "AI and society",
+    scale: LIKERT_1_5,
+    scaleAnchors: { low: "1 — Not at all concerned", high: "5 — Extremely concerned" },
+    statements: ["How concerned are you that AI systems produce unfair or biased outcomes for certain groups of people?"],
+    required: true,
+  },
+  {
+    type: "likert",
+    id: "ai_regulation_support",
+    label: "AI and policy",
+    scale: LIKERT_1_5,
+    scaleAnchors: { low: "1 — Strongly oppose", high: "5 — Strongly support" },
+    statements: ["How much do you support government regulation of how AI systems are developed and used?"],
+    required: true,
+  },
+  {
+    type: "dual-likert",
+    id: "professional_presence_change",
+    label: "How you show up",
+    scale: LIKERT_1_5,
+    beforeLabel: HFS_BEFORE,
+    nowLabel: HFS_NOW,
+    scaleAnchors: AGREE_ANCHORS,
+    statements: HFS_PRESENCE_STATEMENTS,
+    required: true,
+  },
+  {
+    type: "dual-likert",
+    id: "mindset_mass_change",
+    label: "Mindset — clarity, courage, confidence",
+    scale: LIKERT_1_5,
+    beforeLabel: HFS_BEFORE,
+    nowLabel: HFS_NOW,
+    scaleAnchors: AGREE_ANCHORS,
+    statements: HFS_MINDSET_STATEMENTS,
+    required: true,
+  },
+  { type: "text", id: "most_prepared", label: "What part of this week helped you feel most prepared for a professional workplace?", required: true },
+  { type: "text", id: "looking_back", label: "Looking back, what does this week mean for where you're headed?", required: true },
+  { type: "text", id: "improve", label: "What's one thing we should change or do better next time?", required: false },
+];
+
 const SCHEMAS: Record<string, SurveyQuestion[]> = {
   "bcc-learner-intake": BCC_LEARNER_INTAKE,
   "comptia-security-pre": COMPTIA_SECURITY_PRE,
@@ -1382,7 +1485,11 @@ const SCHEMAS: Record<string, SurveyQuestion[]> = {
   "security-plus-application": SECURITY_PLUS_APPLICATION,
   "security-plus-midpoint": SECURITY_PLUS_MIDPOINT,
   "home-for-summer-application": HOME_FOR_SUMMER_APPLICATION,
+  // Never rendered — its wizard branch was missing, so its 22 "responses" are
+  // intake answers. Kept registered so existing rows keep a schema until they're
+  // re-tagged; hfs-impact-survey is the instrument that actually ran.
   "hfs-pre-survey": HFS_PRE_SURVEY,
+  "hfs-impact-survey": HFS_IMPACT_SURVEY,
 };
 
 export function getSurveySchema(surveyId: string): SurveyQuestion[] | null {
