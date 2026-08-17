@@ -23,6 +23,11 @@ import { BCC_INTAKE_SURVEY_ID } from "@/lib/surveys/platform";
 import {
   DIGITAL_EXPERIENCE_STATEMENTS,
   AI_EXPERIENCE_STATEMENTS,
+  HFS_WORK_READINESS_STATEMENTS,
+  HFS_TOOLS_STATEMENTS,
+  HFS_AI_AT_WORK_STATEMENTS,
+  HFS_PRESENCE_STATEMENTS,
+  HFS_MINDSET_STATEMENTS,
 } from "@/lib/surveys/schemas";
 
 // ─── BCC Learner Intake ───────────────────────────────────────────────────────
@@ -1633,6 +1638,207 @@ const SECURITY_PLUS_MIDPOINT_PAGES: SurveyPage[] = [
   },
 ];
 
+
+// ─── Home for the Summer — Impact Survey (retrospective pre/post) ─────────────
+// One sitting, every rating asked twice: BEFORE the week and RIGHT NOW. This
+// replaces hfs-pre-survey, which never got a branch below and silently rendered
+// the intake questions under the HFS title (2026-08-07 → 08-11) — so there is
+// no concurrent baseline. The program team's doc already specified the post as
+// retrospective for a five-day program; this is that instrument. Statement
+// banks are the doc's, verbatim, shared with the analytics schema.
+
+const HFS_BEFORE = "BEFORE the week";
+const HFS_NOW = "RIGHT NOW";
+const HFS_AGREE = { low: "1 — Strongly disagree", high: "5 — Strongly agree" };
+
+const HFS_IMPACT_PAGES: SurveyPage[] = [
+  {
+    title: "Before you start",
+    subtitle: "How we use your answers.",
+    questions: [
+      {
+        type: "consent",
+        id: "consent_participate",
+        label: "Why we ask",
+        text:
+          "This is not a test. We want to know how the week went — what shifted, what you gained, and what we can do better. You'll rate each statement twice: how you were before the week, and how you are right now. That's how we measure your growth.",
+        bullets: [
+          "Your answers stay private.",
+          "We use them only to improve the program and to show our impact to the funders who make it possible.",
+          "We report results as group numbers only — never tied to your name.",
+          "You can skip any question or mark “Prefer not to say.”",
+          "To see, change, or delete your answers, email info@beyondcodecollective.org.",
+        ],
+        confirmLabel: "Required — I understand and agree to take part.",
+        required: true,
+      },
+      {
+        type: "consent",
+        id: "consent_followup",
+        label: "Optional",
+        text: "Beyond Code may contact me after the program to ask how things are going.",
+        confirmLabel: "Yes, you can follow up with me.",
+        required: false,
+      },
+      {
+        type: "consent",
+        id: "consent_quote",
+        label: "Optional",
+        text: "Beyond Code may use my written answers as an anonymous quote in reports or on our website. My name will not be attached.",
+        confirmLabel: "Yes, you can quote me anonymously.",
+        required: false,
+      },
+    ],
+  },
+  {
+    title: "Part 1: How work works",
+    subtitle:
+      "How ready you feel for a real workplace — remote, hybrid, or in person. Rate each line twice: how you were BEFORE the week, and how you are RIGHT NOW.",
+    questions: [
+      {
+        type: "dual-likert",
+        id: "work_readiness_change",
+        label: "How work works",
+        scale: LIKERT_1_5,
+        beforeLabel: HFS_BEFORE,
+        nowLabel: HFS_NOW,
+        scaleAnchors: HFS_AGREE,
+        statements: HFS_WORK_READINESS_STATEMENTS,
+        required: true,
+      },
+    ],
+  },
+  {
+    title: "Part 2: Workplace tools",
+    subtitle:
+      "The tools most workplaces use every day. Same again — how familiar you were before, and how familiar you are now.",
+    questions: [
+      {
+        type: "dual-likert",
+        id: "workplace_tools_change",
+        label: "Workplace tools",
+        scale: LIKERT_1_5,
+        beforeLabel: HFS_BEFORE,
+        nowLabel: HFS_NOW,
+        scaleAnchors: { low: "1 — Never used it", high: "5 — Could show someone else" },
+        statements: HFS_TOOLS_STATEMENTS,
+        required: true,
+      },
+    ],
+  },
+  {
+    title: "Part 3: AI at work",
+    subtitle: "How AI shows up in real jobs and how to use it well.",
+    questions: [
+      {
+        type: "dual-likert",
+        id: "ai_at_work_change",
+        label: "AI at work",
+        scale: LIKERT_1_5,
+        beforeLabel: HFS_BEFORE,
+        nowLabel: HFS_NOW,
+        scaleAnchors: HFS_AGREE,
+        statements: HFS_AI_AT_WORK_STATEMENTS,
+        required: true,
+      },
+      {
+        type: "radio",
+        id: "ai_usage_frequency",
+        label: "How often do you use AI tools right now?",
+        options: ["Daily", "A few times a week", "Once in a while", "I have tried it once or twice", "Never"],
+        required: true,
+      },
+      {
+        type: "text",
+        id: "ai_tools_used",
+        label: "What AI tools do you use the most?",
+        required: false,
+      },
+      {
+        type: "likert",
+        id: "ai_bias_concern",
+        label: "AI and society",
+        scale: LIKERT_1_5,
+        scaleAnchors: { low: "1 — Not at all concerned", high: "5 — Extremely concerned" },
+        statements: ["How concerned are you that AI systems produce unfair or biased outcomes for certain groups of people?"],
+        required: true,
+      },
+      {
+        type: "likert",
+        id: "ai_regulation_support",
+        label: "AI and policy",
+        scale: LIKERT_1_5,
+        scaleAnchors: { low: "1 — Strongly oppose", high: "5 — Strongly support" },
+        statements: ["How much do you support government regulation of how AI systems are developed and used?"],
+        required: true,
+      },
+    ],
+  },
+  {
+    title: "Part 4: How you show up",
+    subtitle: "Professional presence, LinkedIn, and interviewing — including the mock interviews.",
+    questions: [
+      {
+        type: "dual-likert",
+        id: "professional_presence_change",
+        label: "How you show up",
+        scale: LIKERT_1_5,
+        beforeLabel: HFS_BEFORE,
+        nowLabel: HFS_NOW,
+        scaleAnchors: HFS_AGREE,
+        statements: HFS_PRESENCE_STATEMENTS,
+        required: true,
+      },
+    ],
+  },
+  {
+    title: "Part 5: Mindset — clarity, courage, confidence",
+    subtitle: "This connects to MASS, the mindset and soft skills framework that ran through the whole week.",
+    questions: [
+      {
+        type: "dual-likert",
+        id: "mindset_mass_change",
+        label: "Mindset",
+        scale: LIKERT_1_5,
+        beforeLabel: HFS_BEFORE,
+        nowLabel: HFS_NOW,
+        scaleAnchors: HFS_AGREE,
+        statements: HFS_MINDSET_STATEMENTS,
+        required: true,
+      },
+    ],
+  },
+  {
+    title: "Part 6: In your own words",
+    subtitle: "We read every response. What you write here shapes how we run the next one.",
+    questions: [
+      {
+        type: "text",
+        id: "most_prepared",
+        label: "What part of this week helped you feel most prepared for a professional workplace?",
+        placeholder: "We want to know what actually moved the needle for you.",
+        required: true,
+      },
+      {
+        type: "text",
+        id: "looking_back",
+        label: "Looking back, what does this week mean for where you're headed?",
+        required: true,
+      },
+      {
+        type: "text",
+        id: "improve",
+        label: "What's one thing we should change or do better next time?",
+        required: false,
+      },
+    ],
+  },
+];
+
+/** Test seam: the exact page routing the wizard uses. */
+export const getSurveyPagesForTest = (surveyId: string, programSlug: string) =>
+  getSurveyPages(surveyId, programSlug);
+
 function getSurveyPages(surveyId: string, programSlug: string): SurveyPage[] {
   if (surveyId === "security-plus-midpoint") {
     return SECURITY_PLUS_MIDPOINT_PAGES;
@@ -1662,9 +1868,30 @@ function getSurveyPages(surveyId: string, programSlug: string): SurveyPage[] {
   if (surveyId === "ai-impact-survey-2026") {
     return AI_IMPACT_PAGES;
   }
+  if (surveyId === "hfs-impact-survey") {
+    return HFS_IMPACT_PAGES;
+  }
+  // The generic pre-survey is only for the surveys that were built on it.
+  // Anything else reaching here is unwired — hfs-pre-survey fell through to
+  // this exact line and 22 learners answered the intake questions under the
+  // wrong title. Fail loudly instead of quietly serving the wrong survey.
+  if (!SHARED_PAGE_SURVEYS.has(surveyId)) {
+    throw new Error(
+      `[survey-wizard] "${surveyId}" has no question pages wired in getSurveyPages().`,
+    );
+  }
   const finalPage = programSlug === "atg" ? ATG_FINAL_PAGE : FORGE_FINAL_PAGE;
   return [...SHARED_PAGES, finalPage];
 }
+
+/**
+ * Surveys allowed to render SHARED_PAGES. pre-survey-spring-2026 is the survey
+ * those pages were written for. mid-program-spring-2026 is listed because it's
+ * registered under Beyond Code Centers where the atg-only branch above doesn't
+ * fire and it has always fallen through — kept as-is so nothing live changes,
+ * but that's the same wiring gap as HFS and should get its own pages.
+ */
+const SHARED_PAGE_SURVEYS = new Set(["pre-survey-spring-2026", "mid-program-spring-2026"]);
 
 // ─── Component ────────────────────────────────────────────────────────────────
 

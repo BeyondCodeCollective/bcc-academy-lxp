@@ -55,10 +55,13 @@ export const catalystConfig: ProgramConfig = {
       organization: "Beyond Code Centers",
     },
     {
-      id: "hfs-pre-survey",
-      title: "Home for the Summer — Pre-Program Survey",
+      // Replaces hfs-pre-survey (never wired to its questions — see the
+      // survey-wizard router). One sitting, every rating asked BEFORE the week
+      // and RIGHT NOW, per the program doc's retrospective design.
+      id: "hfs-impact-survey",
+      title: "Home for the Summer — How Did We Do?",
       description:
-        "Workplace readiness. About 8 minutes. This is not a test — we want to learn where you are right now so we can support you well from day one.",
+        "Workplace readiness, before and after. About 8 minutes. This is not a test — we want to know what shifted, what you gained, and what we can do better.",
       required: true,
       // Course-scoped: HFS shares Catalyst with MASS, Security+, and the
       // hangout — only HFS learners should ever see this.

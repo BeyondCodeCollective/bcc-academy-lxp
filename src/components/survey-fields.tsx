@@ -636,7 +636,7 @@ function DualLikertField({
                           aria-checked={isSelected}
                           aria-label={`${question.beforeLabel}: ${s}`}
                           onClick={() => setResponse(stmt, "before", s)}
-                          className={`h-9 w-9 rounded-full text-sm font-medium transition-colors ${
+                          className={`h-11 w-11 rounded-full text-sm font-medium transition-colors ${
                             isSelected
                               ? "bg-ink text-white"
                               : "bg-paper-tint text-ink hover:bg-paper-tint"
@@ -675,7 +675,7 @@ function DualLikertField({
                           aria-checked={isSelected}
                           aria-label={`${question.nowLabel}: ${s}`}
                           onClick={() => setResponse(stmt, "now", s)}
-                          className={`h-9 w-9 rounded-full text-sm font-medium transition-colors ${
+                          className={`h-11 w-11 rounded-full text-sm font-medium transition-colors ${
                             isSelected
                               ? "bg-[#1D59FF] text-white"
                               : "bg-paper-tint text-ink hover:bg-paper-tint"
