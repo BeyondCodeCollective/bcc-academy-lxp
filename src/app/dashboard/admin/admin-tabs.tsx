@@ -523,7 +523,7 @@ export function AdminTabs({
   studentTracks: StudentTrackRow[];
   instructorTracks?: InstructorTrackRow[];
   programSlug: string;
-  surveyConfigs: { id: string; title: string; skipForTracks?: string[] }[];
+  surveyConfigs: { id: string; title: string; skipForTracks?: string[]; appliesToTracks?: string[] }[];
   trackPublicSurveys?: { id: string; title: string; count: number }[];
   userRole?: string;
   isMaster?: boolean;
@@ -1722,14 +1722,19 @@ export function AdminTabs({
                 // Evidence-based, not opt-out: list only surveys this course's
                 // students have actually answered (plus the skip rule). The old
                 // opt-out-only filter surfaced every program survey under every
-                // course.
+                // course. Exception: a survey ASSIGNED to this course
+                // (appliesToTracks) always lists — at "0 of N" until people
+                // respond — otherwise a survey you're actively driving is
+                // invisible right when you need to watch it fill in (the HFS
+                // impact survey sat at zero with no row at all, 2026-08-17).
                 surveyConfigs={surveyConfigs.filter(
                   (s) =>
                     !s.skipForTracks?.includes(
                       activeTrack.companionOf ?? activeTrack.slug,
                     ) &&
                     (trackAnsweredSurveyIds === null ||
-                      trackAnsweredSurveyIds.includes(s.id)),
+                      trackAnsweredSurveyIds.includes(s.id) ||
+                      s.appliesToTracks?.includes(activeTrack.slug)),
                 )}
                 trackPublicSurveys={trackPublicSurveys}
                 enrolledCount={trackEnrolledCount}
