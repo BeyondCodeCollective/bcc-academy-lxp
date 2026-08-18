@@ -127,7 +127,13 @@ export function LandingForm({
       );
 
       if (res.success) {
-        router.push("/dashboard/admin/landing");
+        // A course was created for this page: send them straight to it so it
+        // gets a name, instructor, and schedule instead of sitting unscheduled.
+        router.push(
+          res.courseCreated
+            ? `/dashboard/admin/programs/${encodeURIComponent(res.courseSlug)}/edit?created=1&from=landing`
+            : "/dashboard/admin/landing",
+        );
         router.refresh();
       } else {
         setError(res.error);
@@ -264,10 +270,13 @@ export function LandingForm({
           />
         </Field>
 
-        <Field label="Track slug" hint="optional — tags the signup with a track">
+        <Field
+          label="Course"
+          hint="Signups are enrolled in this course. Leave blank to use the page slug. If no course with this slug exists, one is created for you (set its schedule in Manage Courses)."
+        >
           <input
             type="text"
-            placeholder="roblox-camp"
+            placeholder={slug || "mass-fall-2026"}
             value={trackSlug}
             onChange={(e) => setTrackSlug(e.target.value)}
             className={`${fieldInput} font-mono`}
