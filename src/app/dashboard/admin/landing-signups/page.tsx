@@ -167,7 +167,8 @@ export default async function SignupsPage({
   const pageRows = (pages ?? []) as PageRow[];
   const fromPage = sp.page ? (pageRows.find((p) => p.slug === sp.page)?.track_slug ?? null) : null;
   const requested = sp.course ?? fromPage ?? null;
-  const course = requested && courses.includes(requested) ? requested : (courses[0] ?? null);
+  // No default: the page opens on the picker alone; nothing shows until a course is chosen.
+  const course = requested && courses.includes(requested) ? requested : null;
   const rows = course ? allRegs.filter((r) => r.track === course).sort((a, b) => (a.at < b.at ? 1 : -1)) : [];
   const courseName = course ? (names.get(course)?.name ?? humanizeSlug(course)) : null;
   const coursePages = course ? pageRows.filter((p) => p.track_slug === course) : [];
@@ -219,16 +220,18 @@ export default async function SignupsPage({
           course
             ? `${real.length} signed up · ${enrolled} enrolled (${pct}%) · ${signedIn} signed in, not enrolled` +
               (waiting > 0 ? ` · ${waiting} waiting` : "")
-            : "No signups yet."
+            : courses.length
+              ? "Choose a course to see who signed up."
+              : "No signups yet."
         }
         noWrap
         actions={<ManageMenu isMaster={canManageRoles(ctx.userEmail)} />}
       />
 
       {/* Course picker: one course at a time. */}
-      {course && courses.length > 1 && (
+      {courses.length > 0 && (
         <CourseSelect
-          value={course}
+          value={course ?? ""}
           courses={courses.map((slug) => ({
             slug,
             name: names.get(slug)?.name ?? humanizeSlug(slug),

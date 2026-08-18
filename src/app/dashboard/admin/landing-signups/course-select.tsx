@@ -20,6 +20,9 @@ export function CourseSelect({
         onChange={(e) => router.push(`/dashboard/admin/landing-signups?course=${encodeURIComponent(e.target.value)}`)}
         className={`${fieldInput} w-auto`}
       >
+        <option value="" disabled>
+          Choose a course
+        </option>
         {courses.map((c) => (
           <option key={c.slug} value={c.slug}>
             {c.name} ({c.count})
