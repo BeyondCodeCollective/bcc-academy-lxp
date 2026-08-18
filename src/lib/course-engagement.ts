@@ -4,6 +4,7 @@
 // course has no learners.
 
 import { createServiceClient } from "@/lib/supabase/server";
+import { isLearner, LEARNER_FIELDS } from "@/lib/analytics/engagement";
 import type { ProgressDay, HeatLevel } from "@/components/stats/streak-heatmap";
 import type { CourseEngagementProps } from "@/components/stats/course-engagement";
 
@@ -65,11 +66,11 @@ export async function getCourseRosterStats(
   // program's row and would otherwise vanish from the count.
   const { data: studentRows } = await svc
     .from("students")
-    .select("id, role, is_test")
+    .select(LEARNER_FIELDS)
     .in("id", enrolledIds);
-  // Real learners only — internal QA logins (is_test) would inflate the course
-  // roster, active count, and the certificate-eligible "full attendance" number.
-  const learners = (studentRows ?? []).filter((s) => s.role === "student" && !s.is_test);
+  // Real learners only — QA logins and staff would inflate the course roster,
+  // active count, and the certificate-eligible "full attendance" number.
+  const learners = (studentRows ?? []).filter(isLearner);
   const learnerIds = learners.map((s) => s.id);
   if (learnerIds.length === 0) return empty;
 
@@ -217,10 +218,10 @@ export async function getCourseEngagement(
 
   const { data: studentRows } = await svc
     .from("students")
-    .select("id, first_name, last_name, email, role, is_test, last_seen_at")
+    .select("id, first_name, last_name, email, role, is_test, is_staff, last_seen_at")
     .in("id", enrolledIds);
-  // Real learners only — exclude internal QA (is_test) accounts.
-  const learners = (studentRows ?? []).filter((s) => s.role === "student" && !s.is_test) as {
+  // Real learners only — exclude QA and staff accounts.
+  const learners = (studentRows ?? []).filter(isLearner) as {
     id: string;
     first_name: string | null;
     last_name: string | null;

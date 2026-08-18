@@ -682,10 +682,15 @@ export async function getDashboardSurveyStats(
     .from("public_survey_responses")
     .select("survey_type, program_id, programs(slug, name)")
     .is("withdrawn_at", null);
+  // Learners only: staff test-fills of a survey (a real thing — admins try
+  // the form before sending it) must not count as responses.
   let authQuery = svc
     .from("survey_responses")
-    .select("survey_type, program_id, programs(slug, name)")
-    .not("completed_at", "is", null);
+    .select("survey_type, program_id, programs(slug, name), students!inner(role, is_test, is_staff)")
+    .not("completed_at", "is", null)
+    .eq("students.role", "student")
+    .eq("students.is_test", false)
+    .eq("students.is_staff", false);
   if (scopeIds) {
     publicQuery = publicQuery.in("program_id", scopeIds);
     authQuery = authQuery.in("program_id", scopeIds);

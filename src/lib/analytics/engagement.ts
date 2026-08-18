@@ -12,6 +12,23 @@
 //  - "Active (window)" = any activity signal — including login/browsing — inside
 //    the window.
 
+/**
+ * Who counts as a LEARNER in any denominator. Three flags, always together:
+ * role student, not a test/QA login, not staff. Staff (instructors, admins,
+ * partner staff on personal-email accounts) hold student_tracks rows so they
+ * can see a course; counting them inflates every rate. This predicate was
+ * hand-rolled in five places, each missing is_staff (analytics audit
+ * 2026-08-18, F6). Select "id, role, is_test, is_staff" and call this.
+ */
+export const LEARNER_FIELDS = "id, role, is_test, is_staff" as const;
+export function isLearner(row: {
+  role?: string | null;
+  is_test?: boolean | null;
+  is_staff?: boolean | null;
+}): boolean {
+  return row.role === "student" && !row.is_test && !row.is_staff;
+}
+
 export type DidWorkSignal = "attendance" | "video" | "submission" | "reflection";
 
 /** The signals that count as engagement. Order is display-priority. */

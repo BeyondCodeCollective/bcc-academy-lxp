@@ -30,7 +30,8 @@ export async function fetchAllInsightsData(scope: ProgramScope) {
       .select("id, role, email, first_name, last_name, last_seen_at, last_activity_at")
       .in("program_id", ids)
       .eq("role", "student")
-      .eq("is_test", false),
+      .eq("is_test", false)
+      .eq("is_staff", false),
     svc.from("student_tracks").select("student_id, track_slug").in("program_id", ids),
     svc.from("alumni_enrollments").select("email").in("program_id", ids),
     svc
