@@ -102,10 +102,13 @@ export async function completePendingSetup(
   //     marketing apex, or a join link missing `?track=`) still lands in the
   //     right course instead of an empty dashboard.
   //
-  // Open-enrollment programs (`requireInviteLink !== true`) keep the legacy
-  // "enroll in every program track" behavior.
+  // Open-enrollment programs (`requireInviteLink !== true`) fall back to the
+  // legacy "enroll in every program track" behavior ONLY when nothing names a
+  // course: no `?track=` and no allowlist row. Someone who signed up for MASS
+  // through /bcc/mass (allowlisted for mass-fall-2026) must not also be put on
+  // the Tech+ roster just because both live under ATG.
   let tracksToEnroll: ProgramConfig["tracks"] = [];
-  if (program.requireInviteLink === true) {
+  {
     const trackParamTracks = program.tracks.filter((t) => t.slug === trackParam);
 
     let allowlistTracks: ProgramConfig["tracks"] = [];
@@ -127,8 +130,9 @@ export async function completePendingSetup(
         [...trackParamTracks, ...allowlistTracks].map((t) => [t.slug, t]),
       ).values(),
     );
-  } else {
-    tracksToEnroll = program.tracks;
+    if (tracksToEnroll.length === 0 && program.requireInviteLink !== true) {
+      tracksToEnroll = program.tracks;
+    }
   }
 
   // Enroll on every sign-in (not just new users). Idempotent upsert on
