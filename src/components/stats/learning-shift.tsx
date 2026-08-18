@@ -81,7 +81,10 @@ export function LearningShift({ outcomes }: { outcomes: OutcomesData }) {
                     </div>
                     <p className="text-[11px] text-ink-faint tabular-nums">
                       {g.beforeLabel} {r.before.toFixed(2)} → {g.nowLabel}{" "}
-                      {r.now.toFixed(2)} · n={r.n}
+                      {r.now.toFixed(2)} ·{" "}
+                      {r.beforeN != null && r.afterN != null && r.beforeN !== r.afterN
+                        ? `n=${r.beforeN} before, ${r.afterN} after`
+                        : `n=${r.n}`}
                     </p>
                   </li>
                 );
