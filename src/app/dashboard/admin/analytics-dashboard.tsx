@@ -53,8 +53,8 @@ function TrendsRow() {
     href: string;
   }[] = [
     { key: "activeMembers", label: "Active learners", d: trends?.activeLearners ?? null, href: "/dashboard/admin?tab=students" },
-    { key: "activeStudents", label: "Sessions attended", d: trends?.attended ?? null, href: "/dashboard/admin?tab=attendance" },
-    { key: "activeStudents", label: "Work submitted", d: trends?.submitted ?? null, href: "/dashboard/admin?tab=student-work" },
+    { key: "sessionsAttended", label: "Sessions attended", d: trends?.attended ?? null, href: "/dashboard/admin?tab=attendance" },
+    { key: "workSubmitted", label: "Work submitted", d: trends?.submitted ?? null, href: "/dashboard/admin?tab=student-work" },
   ];
 
   return (
