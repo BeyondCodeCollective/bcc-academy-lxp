@@ -6,6 +6,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { hasCapability } from "@/lib/roles";
 import { toSlug } from "@/lib/programs/slug";
+import { getEveryProgramConfig } from "@/lib/programs";
+import { humanizeSlug } from "@/lib/utils";
 import type { ScheduleDay, LandingPartner } from "@/lib/landing-pages";
 
 async function requireSuperAdmin() {
@@ -53,7 +55,7 @@ export type LandingPageInput = {
 };
 
 export type SaveLandingResult =
-  | { success: true; slug: string }
+  | { success: true; slug: string; courseSlug: string; courseCreated: boolean }
   | { success: false; error: string };
 
 const trimToNull = (v: string) => {
@@ -113,6 +115,17 @@ export async function saveLandingPageAction(
     }
   }
 
+  // A landing page enrolls people into a course, so it must HAVE one — and one
+  // that exists. Before this, "track slug" was an optional free-text tag: the
+  // MASS page got pointed at the spring wraparound's slug and a new cohort's
+  // signups landed on last season's roster (2026-08-18). Now: no slug → the
+  // page's own slug; unknown slug → a course is created for it, named after
+  // the page, under Catalyst, unscheduled until you set dates in Manage Courses.
+  const trackSlug = toSlug(input.trackSlug?.trim() || slug);
+  if (!trackSlug) return { success: false, error: "Could not derive a course slug." };
+  const course = await ensureCourseForLanding(svc, trackSlug, input.headline.trim());
+  if (!course.ok) return { success: false, error: course.error };
+
   const row = {
     slug,
     published: input.published,
@@ -122,7 +135,7 @@ export async function saveLandingPageAction(
     subhead: trimToNull(input.subhead),
     accent: accent || "#1a1a1a",
     form_label: trimToNull(input.formLabel),
-    track_slug: trimToNull(input.trackSlug),
+    track_slug: trackSlug,
     eventbrite_event_id: trimToNull(input.eventbriteEventId),
     embed_height: input.embedHeight && input.embedHeight > 0 ? input.embedHeight : null,
     schedule,
@@ -160,7 +173,57 @@ export async function saveLandingPageAction(
 
   revalidatePath("/dashboard/admin/landing");
   revalidatePath(`/bcc/${slug}`);
-  return { success: true, slug };
+  if (course.created) revalidatePath("/dashboard/admin/programs");
+  return { success: true, slug, courseSlug: trackSlug, courseCreated: course.created };
+}
+
+/**
+ * Make sure a course exists for a landing page's track slug. Looks in the TS
+ * registry and track_overrides; if absent, creates a track_overrides row under
+ * Catalyst (the umbrella, same default as createCourseAction) with the
+ * landing page's headline as the name and no schedule. Idempotent.
+ */
+async function ensureCourseForLanding(
+  svc: ReturnType<typeof createServiceClient>,
+  trackSlug: string,
+  fallbackName: string,
+): Promise<{ ok: true; created: boolean } | { ok: false; error: string }> {
+  // Known anywhere already?
+  const inConfig = getEveryProgramConfig().some((p) => p.tracks.some((t) => t.slug === trackSlug));
+  if (inConfig) return { ok: true, created: false };
+  const { data: existing } = await svc
+    .from("track_overrides")
+    .select("id")
+    .eq("track_slug", trackSlug)
+    .maybeSingle();
+  if (existing) return { ok: true, created: false };
+
+  const { data: prog } = await svc
+    .from("programs")
+    .select("id")
+    .eq("slug", "catalyst")
+    .maybeSingle<{ id: string }>();
+  if (!prog) return { ok: false, error: "Could not find the Catalyst program to file the new course under." };
+
+  // Course name: the page slug humanized beats a marketing headline
+  // ("Your story gets you the offer." is not a course name).
+  const name = humanizeSlug(trackSlug) || fallbackName;
+  const { error } = await svc.from("track_overrides").insert({
+    program_id: prog.id,
+    track_slug: trackSlug,
+    name,
+    short_name: name,
+    instructor: "",
+    total_weeks: 8,
+    sessions_per_week: 1,
+    start_date: null,
+    phase: "core",
+  });
+  if (error) {
+    console.error("[ensureCourseForLanding] insert failed:", error);
+    return { ok: false, error: "Landing page saved but its course could not be created. Please try again." };
+  }
+  return { ok: true, created: true };
 }
 
 export async function deleteLandingPageAction(
