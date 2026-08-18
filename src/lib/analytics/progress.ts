@@ -7,7 +7,7 @@
 // "still doing the work", which is the honest signal this platform records.
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { getEveryProgramConfig } from "@/lib/programs";
+import { resolveTrackLengths } from "@/lib/programs/scope";
 import { resolveScopeTrackSlugs, type ProgramScope } from "@/lib/programs/scope";
 import { getLearnerActivity } from "@/lib/analytics/activity";
 import { humanizeSlug } from "@/lib/utils";
@@ -77,13 +77,10 @@ export async function fetchProgressData(scope: ProgramScope): Promise<ProgressDa
   const enrollments = (enrollRes.data ?? []).filter((e) => learnerIds.has(e.student_id));
   const completions = (completeRes.data ?? []).filter((c) => learnerIds.has(c.student_id));
 
-  // Track metadata (name + totalWeeks) from program configs.
-  const meta = new Map<string, { name: string; totalWeeks: number }>();
-  for (const p of getEveryProgramConfig()) {
-    for (const t of p.tracks) {
-      meta.set(t.slug, { name: t.shortName || t.name, totalWeeks: t.totalWeeks });
-    }
-  }
+  // Track metadata (name + length), DB-first so builder courses are covered.
+  // Never default a length: unknown → the track is reported with no dropoff
+  // curve rather than a fabricated 8-week one.
+  const meta = await resolveTrackLengths();
 
   // Furthest week reached per (student, track) across all activity.
   const furthest = new Map<string, number>(); // `${student}|${slug}` → max week
@@ -125,7 +122,8 @@ export async function fetchProgressData(scope: ProgramScope): Promise<ProgressDa
   const tracks: TrackProgress[] = [];
   for (const [slug, studentSet] of enrolledByTrack.entries()) {
     const m = meta.get(slug);
-    const totalWeeks = m?.totalWeeks ?? 8;
+    // Unknown length → empty dropoff (n/a), not a made-up denominator.
+    const totalWeeks = m?.totalUnits ?? 0;
     const students = [...studentSet];
     const enrolled = students.length;
     const completers = completedByTrack.get(slug);
