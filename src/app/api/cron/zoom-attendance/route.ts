@@ -5,10 +5,18 @@ import { zoomReportConfigured } from "@/lib/zoom-report";
 import { syncZoomAttendanceForSession } from "@/lib/attendance/zoom-sync";
 
 // Nightly cron: pull real attendance from Zoom's participant report for every
-// live session that met today (or yesterday, to survive the midnight ET flip)
-// and upsert it. This is the source of truth that captures joiners the embedded
-// player misses — desktop app, phone, raw meeting link. Idempotent, so running
-// it repeatedly (or alongside embed auto-attendance) never double-counts.
+// live session that met YESTERDAY (ET) and upsert it. This is the source of
+// truth that captures joiners the embedded player misses — desktop app, phone,
+// raw meeting link. Idempotent, so running it repeatedly (or alongside embed
+// auto-attendance) never double-counts.
+//
+// Yesterday only, on purpose. The cron fires at 04:00 UTC = midnight ET, before
+// "today's" session has happened. A numeric Zoom meeting id resolves to the
+// LATEST occurrence, so asking for today's session at midnight returned
+// yesterday's roster and wrote it into today's slot — every cron-synced course
+// carried session N-1's attendance under session N (found 2026-08-18). The
+// sync also now refuses a report whose join times don't fall on the unit's
+// date, so a cancelled session can't inherit the previous one either.
 //
 // Auth mirrors the other crons: Vercel Cron sends `Authorization: Bearer
 // <CRON_SECRET>`; with no secret set we accept all (preview/local).
@@ -35,10 +43,7 @@ export async function GET(request: Request) {
 
   const svc = createServiceClient();
   const now = new Date();
-  const todayKeys = new Set([
-    easternDayKey(now),
-    easternDayKey(new Date(now.getTime() - 24 * 60 * 60 * 1000)),
-  ]);
+  const yesterdayKey = easternDayKey(new Date(now.getTime() - 24 * 60 * 60 * 1000));
 
   const { data: tracks, error } = await svc
     .from("track_overrides")
@@ -52,18 +57,17 @@ export async function GET(request: Request) {
   for (const t of tracks ?? []) {
     const row = t as { track_slug: string; program_id: string | null; week_summaries: Unit[] | null };
     if (!row.program_id || !row.week_summaries) continue;
-    const dueUnits = row.week_summaries.filter(
-      (u) => u.date && todayKeys.has(u.date),
-    );
+    const dueUnits = row.week_summaries.filter((u) => u.date === yesterdayKey);
     for (const u of dueUnits) {
       const res = await syncZoomAttendanceForSession(svc, {
         programId: row.program_id,
         trackSlug: row.track_slug,
         weekNumber: u.week,
+        unitDate: u.date,
       });
       results[`${row.track_slug}#${u.week}`] = res;
     }
   }
 
-  return NextResponse.json({ ok: true, ran: easternDayKey(now), results });
+  return NextResponse.json({ ok: true, ran: easternDayKey(now), synced: yesterdayKey, results });
 }
