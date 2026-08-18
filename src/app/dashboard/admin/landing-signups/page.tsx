@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { canSwitchPrograms, canManageRoles } from "@/lib/roles";
 import { resolveTrackLengths } from "@/lib/programs/scope";
+import { humanizeSlug } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
 import { DataTable } from "@/components/ui";
 import { ManageMenu } from "../manage-menu";
@@ -88,7 +89,10 @@ export default async function LandingSignupsPage({
   const pageBySlug = new Map(
     ((pages ?? []) as { slug: string; headline: string | null; published: boolean }[]).map((p) => [p.slug, p]),
   );
-  const pageTitle = (slug: string) => pageBySlug.get(slug)?.headline?.replace(/\s*\n\s*/g, " ").trim() || `/bcc/${slug}`;
+  // The page's marketing headline ("Your story gets you the offer.") is not a
+  // label. The humanized slug is: MASS, Home for the Summer, BGC Roblox — short,
+  // unambiguous, and literally the URL you share.
+  const pageTitle = (slug: string) => humanizeSlug(slug);
 
   const stageOf = (r: SignupRow): { stage: Stage; internal: boolean } => {
     const s = studentByEmail.get(r.email.toLowerCase());
@@ -114,7 +118,7 @@ export default async function LandingSignupsPage({
   return (
     <div className="mx-auto w-full max-w-4xl px-4 sm:px-5 py-8 space-y-6">
       <PageHeader
-        title={pageSlug ? `${pageTitle(pageSlug)} — signups` : "Landing page signups"}
+        title={pageSlug ? `${pageTitle(pageSlug)} signups` : "Landing page signups"}
         subtitle={
           pageSlug
             ? `${real.length} signed up · ${tapped} tapped their link · ${enrolled} enrolled (${pct}%)` +
