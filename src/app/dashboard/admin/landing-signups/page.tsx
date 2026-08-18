@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/page-header";
 import { DataTable } from "@/components/ui";
 import { ManageMenu } from "../manage-menu";
 import { CopyLinkButton } from "./copy-link-button";
+import { CourseSelect } from "./course-select";
 
 export const dynamic = "force-dynamic";
 
@@ -225,25 +226,15 @@ export default async function SignupsPage({
       />
 
       {/* Course picker: one course at a time. */}
-      {courses.length > 1 && (
-        <nav aria-label="Course" className="flex flex-wrap gap-2">
-          {courses.map((slug) => {
-            const active = slug === course;
-            return (
-              <Link
-                key={slug}
-                href={`/dashboard/admin/landing-signups?course=${encodeURIComponent(slug)}`}
-                aria-current={active ? "page" : undefined}
-                className={`rounded-full px-3 py-1.5 text-sm font-medium tabular-nums transition-colors ${
-                  active ? "bg-ink text-white" : "border border-rule text-ink-soft hover:bg-paper-tint hover:text-ink"
-                }`}
-              >
-                {names.get(slug)?.name ?? humanizeSlug(slug)}{" "}
-                <span className={active ? "text-white/70" : "text-ink-faint"}>{countBy.get(slug) ?? 0}</span>
-              </Link>
-            );
-          })}
-        </nav>
+      {course && courses.length > 1 && (
+        <CourseSelect
+          value={course}
+          courses={courses.map((slug) => ({
+            slug,
+            name: names.get(slug)?.name ?? humanizeSlug(slug),
+            count: countBy.get(slug) ?? 0,
+          }))}
+        />
       )}
 
       {course && (
