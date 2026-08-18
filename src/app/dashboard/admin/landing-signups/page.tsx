@@ -41,7 +41,7 @@ const SOURCE_LABEL: Record<Source, string> = {
   allowlist: "Allowlisted",
 };
 
-type StudentRow = { id: string; email: string; name: string | null; is_staff: boolean; is_test: boolean };
+type StudentRow = { id: string; email: string; first_name: string | null; last_name: string | null; is_staff: boolean; is_test: boolean };
 type PageRow = { slug: string; track_slug: string | null; published: boolean };
 
 export default async function SignupsPage({
@@ -176,7 +176,7 @@ export default async function SignupsPage({
   const emails = [...new Set(rows.map((r) => r.email))];
   const [{ data: students }, { data: enrollments }] = await Promise.all([
     emails.length
-      ? svc.from("students").select("id, email, name, is_staff, is_test").in("email", emails)
+      ? svc.from("students").select("id, email, first_name, last_name, is_staff, is_test").in("email", emails)
       : Promise.resolve({ data: [] as StudentRow[] }),
     course
       ? svc.from("student_tracks").select("student_id").eq("track_slug", course)
@@ -188,7 +188,7 @@ export default async function SignupsPage({
   const stageOf = (r: Reg): { stage: Stage; internal: boolean; name: string | null } => {
     const s = studentByEmail.get(r.email);
     const internal = !!(s && (s.is_staff || s.is_test));
-    const name = r.name?.trim() || s?.name?.trim() || null;
+    const name = r.name?.trim() || [s?.first_name, s?.last_name].filter(Boolean).join(" ").trim() || null;
     if (s && enrolledIds.has(s.id)) return { stage: "enrolled", internal, name };
     if (s || (r.inviteToken && usedToken.has(r.inviteToken))) return { stage: "signed-in", internal, name };
     return { stage: "waiting", internal, name };
