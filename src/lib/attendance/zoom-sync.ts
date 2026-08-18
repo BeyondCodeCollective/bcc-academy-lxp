@@ -8,6 +8,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { parseZoomLink } from "@/lib/zoom";
+import { easternDayKey } from "@/lib/utils";
 import {
   getPastMeetingParticipants,
   zoomReportConfigured,
@@ -49,9 +50,17 @@ export async function syncZoomAttendanceForSession(
     trackSlug: string;
     weekNumber: number;
     sessionNumber?: number;
+    /**
+     * The unit's calendar date (yyyy-mm-dd, ET). When given, the report is
+     * only accepted if its participants actually joined on that day. A
+     * numeric meeting id resolves to Zoom's LATEST occurrence, so without
+     * this guard a cancelled or not-yet-held session silently inherits the
+     * previous session's roster.
+     */
+    unitDate?: string;
   },
 ): Promise<ZoomSyncResult> {
-  const { programId, trackSlug, weekNumber } = params;
+  const { programId, trackSlug, weekNumber, unitDate } = params;
   const sessionNumber = params.sessionNumber ?? 1;
   const empty = { matched: 0, marked: 0, unmatched: [] as ZoomSyncResult["unmatched"] };
 
@@ -81,6 +90,26 @@ export async function syncZoomAttendanceForSession(
   }
   if (participants.length === 0) {
     return { ok: true, reason: "no-participants-yet", ...empty };
+  }
+
+  // Occurrence-date guard: the report must be for THIS unit's day. Take the
+  // most common join date across participants (robust to a stray early
+  // joiner) and compare to the unit date in ET.
+  if (unitDate) {
+    const days = new Map<string, number>();
+    for (const p of participants) {
+      if (!p.joinTime) continue;
+      const d = easternDayKey(new Date(p.joinTime));
+      days.set(d, (days.get(d) ?? 0) + 1);
+    }
+    const reportDay = [...days.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+    if (reportDay && reportDay !== unitDate) {
+      return {
+        ok: true,
+        reason: `report-is-for-${reportDay}-not-${unitDate}`,
+        ...empty,
+      };
+    }
   }
 
   // Enrolled roster (real learners; is_test excluded so QA logins never mark).
@@ -119,6 +148,14 @@ export async function syncZoomAttendanceForSession(
     return { ok: true, reason: "no-matches", matched: 0, marked: 0, unmatched };
   }
 
+  // checked_in_at = the participant's real Zoom join time, not the cron
+  // run time — so heatmaps and "last here" read the session, not midnight.
+  const joinTimeById = new Map<string, string>();
+  for (const p of participants) {
+    const hit =
+      (p.email && byEmail.get(p.email)) || byName.get(normName(p.name)) || null;
+    if (hit && p.joinTime && !joinTimeById.has(hit.id)) joinTimeById.set(hit.id, p.joinTime);
+  }
   const rows = Array.from(matchedIds).map((student_id) => ({
     program_id: programId,
     student_id,
@@ -126,6 +163,7 @@ export async function syncZoomAttendanceForSession(
     week_number: weekNumber,
     session_number: sessionNumber,
     marked_by: null as string | null, // system-marked from the Zoom report
+    ...(joinTimeById.has(student_id) ? { checked_in_at: joinTimeById.get(student_id) } : {}),
   }));
   const { error } = await svc
     .from("attendance")
