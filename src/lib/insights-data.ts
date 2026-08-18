@@ -27,7 +27,7 @@ export async function fetchAllInsightsData(scope: ProgramScope) {
     // is_test QA logins) leak into per-track and phase totals via student_tracks.
     svc
       .from("students")
-      .select("id, role, email, first_name, last_name, last_seen_at")
+      .select("id, role, email, first_name, last_name, last_seen_at, last_activity_at")
       .in("program_id", ids)
       .eq("role", "student")
       .eq("is_test", false),

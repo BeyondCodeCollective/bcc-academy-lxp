@@ -128,7 +128,7 @@ export async function getEngagementAnalytics(
     .select("student_id")
     .in("track_slug", trackSlugs);
   const enrolledIds = Array.from(new Set((enrolledRows ?? []).map((r) => r.student_id as string)));
-  const STUDENT_FIELDS = "id, first_name, last_name, email, created_at, last_seen_at, zip, state, date_of_birth";
+  const STUDENT_FIELDS = "id, first_name, last_name, email, created_at, last_seen_at, last_activity_at, zip, state, date_of_birth";
   // Staff (BGC/BCC employees) are not learners — they only see Lunch & Learns,
   // so they must never inflate the activation funnel or the per-learner table.
   const [byProgram, byEnrollment] = await Promise.all([
@@ -149,6 +149,7 @@ export async function getEngagementAnalytics(
     email: string;
     created_at: string | null;
     last_seen_at: string | null;
+    last_activity_at: string | null;
     zip: string | null;
     state: string | null;
     date_of_birth: string | null;
@@ -306,7 +307,9 @@ export async function getEngagementAnalytics(
       dateOfBirth: s.date_of_birth ?? null,
       age: ageFromDob(s.date_of_birth),
       signedUp: s.created_at ? s.created_at.slice(0, 10) : null,
-      lastActive: s.last_seen_at ? s.last_seen_at.slice(0, 10) : null,
+      // Behavior only. last_seen_at is written at signup/login and made a
+      // freshly-enrolled cohort read 100% active in a partner export.
+      lastActive: s.last_activity_at ? s.last_activity_at.slice(0, 10) : null,
       tracks: tracksByStudent.get(s.id) ?? [],
       videosWatched: videosByUser.get(s.id) ?? 0,
       attended: attendanceByUser.get(s.id) ?? 0,
