@@ -11,12 +11,12 @@ import { CopyLinkButton } from "./copy-link-button";
 
 export const dynamic = "force-dynamic";
 
-// Landing-page signups, COURSE-FIRST. One course at a time: the course name is
-// the headline, its funnel is the subhead, its signups are the table. Multiple
-// live registrations never pile onto one screen — you pick the course. (The
-// first cut grouped by landing-page slug, which is a URL, not a thing anyone
-// thinks in.) A signup is allowlisted and emailed a one-click link on the spot;
-// this page shows who took the next step and hands you the link for the rest.
+// Landing-page signups, grouped by the LANDING PAGE people came through. One
+// page at a time: the page's own headline is the title ("Your story gets you
+// the offer"), the funnel is the subtitle, the course it enrolls into is a
+// detail line. Multiple live registrations never pile onto one screen — you
+// pick the page. A signup is allowlisted and emailed a one-click link on the
+// spot; this shows who took the next step and hands you the link for the rest.
 
 type SignupRow = {
   id: string;
@@ -33,7 +33,7 @@ type Stage = "signed-up" | "tapped-link" | "enrolled";
 export default async function LandingSignupsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ course?: string }>;
+  searchParams: Promise<{ page?: string }>;
 }) {
   const ctx = await getSessionContext();
   if (!ctx) redirect("/");
@@ -47,15 +47,16 @@ export default async function LandingSignupsPage({
     .limit(2000);
   const all = (data ?? []) as SignupRow[];
 
-  // Courses that have signups, newest activity first. The picker lists these.
-  const courseSlugs: string[] = [];
-  for (const r of all) if (!courseSlugs.includes(r.track_slug)) courseSlugs.push(r.track_slug);
-  const names = await resolveTrackLengths(courseSlugs);
-  const nameOf = (slug: string) => names.get(slug)?.name ?? slug;
-
-  const { course: requested } = await searchParams;
-  const course = requested && courseSlugs.includes(requested) ? requested : courseSlugs[0] ?? null;
-  const rows = course ? all.filter((r) => r.track_slug === course) : [];
+  // Landing pages that have signups, newest activity first. The picker lists these.
+  const pageSlugsAll: string[] = [];
+  for (const r of all) if (!pageSlugsAll.includes(r.slug)) pageSlugsAll.push(r.slug);
+  const { page: requested } = await searchParams;
+  const pageSlug = requested && pageSlugsAll.includes(requested) ? requested : pageSlugsAll[0] ?? null;
+  const rows = pageSlug ? all.filter((r) => r.slug === pageSlug) : [];
+  // The course this page enrolls into (a page has one track; rows agree).
+  const course = rows[0]?.track_slug ?? null;
+  const names = await resolveTrackLengths(course ? [course] : []);
+  const courseName = course ? (names.get(course)?.name ?? course) : null;
 
   const emails = [...new Set(rows.map((r) => r.email.toLowerCase()))];
   const tokens = rows.map((r) => r.invite_token).filter((t): t is string => !!t);
@@ -71,7 +72,7 @@ export default async function LandingSignupsPage({
       course
         ? svc.from("student_tracks").select("student_id").eq("track_slug", course)
         : Promise.resolve({ data: [] as { student_id: string }[] }),
-      svc.from("landing_pages").select("slug, published"),
+      svc.from("landing_pages").select("slug, headline, published"),
     ]);
 
   const studentByEmail = new Map(
@@ -84,9 +85,10 @@ export default async function LandingSignupsPage({
     ((invites ?? []) as { token: string; used_at: string | null }[]).filter((i) => i.used_at).map((i) => i.token),
   );
   const enrolledIds = new Set(((enrollments ?? []) as { student_id: string }[]).map((e) => e.student_id));
-  const publishedPage = new Set(
-    ((pages ?? []) as { slug: string; published: boolean }[]).filter((p) => p.published).map((p) => p.slug),
+  const pageBySlug = new Map(
+    ((pages ?? []) as { slug: string; headline: string | null; published: boolean }[]).map((p) => [p.slug, p]),
   );
+  const pageTitle = (slug: string) => pageBySlug.get(slug)?.headline?.replace(/\s*\n\s*/g, " ").trim() || `/bcc/${slug}`;
 
   const stageOf = (r: SignupRow): { stage: Stage; internal: boolean } => {
     const s = studentByEmail.get(r.email.toLowerCase());
@@ -103,7 +105,7 @@ export default async function LandingSignupsPage({
   const pending = real.filter((x) => x.stage === "signed-up").length;
   const internalCount = staged.length - real.length;
   const pct = real.length ? Math.round((enrolled / real.length) * 100) : 0;
-  const pageSlugs = [...new Set(rows.map((r) => r.slug))];
+  const thisPage = pageSlug ? pageBySlug.get(pageSlug) : undefined;
 
   const fmt = (iso: string) =>
     new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
@@ -112,9 +114,9 @@ export default async function LandingSignupsPage({
   return (
     <div className="mx-auto w-full max-w-4xl px-4 sm:px-5 py-8 space-y-6">
       <PageHeader
-        title={course ? `${nameOf(course)} signups` : "Landing page signups"}
+        title={pageSlug ? `${pageTitle(pageSlug)} — signups` : "Landing page signups"}
         subtitle={
-          course
+          pageSlug
             ? `${real.length} signed up · ${tapped} tapped their link · ${enrolled} enrolled (${pct}%)` +
               (pending > 0 ? ` · ${pending} still to chase` : "")
             : "No landing-page signups yet."
@@ -123,16 +125,16 @@ export default async function LandingSignupsPage({
         actions={<ManageMenu isMaster={canManageRoles(ctx.userEmail)} />}
       />
 
-      {/* Course picker — the organizing unit. One course at a time. */}
-      {courseSlugs.length > 1 && (
-        <nav aria-label="Course" className="flex flex-wrap gap-2">
-          {courseSlugs.map((slug) => {
-            const n = all.filter((r) => r.track_slug === slug).length;
-            const active = slug === course;
+      {/* Landing-page picker — one page at a time. Appears once two pages have signups. */}
+      {pageSlugsAll.length > 1 && (
+        <nav aria-label="Landing page" className="flex flex-wrap gap-2">
+          {pageSlugsAll.map((slug) => {
+            const n = all.filter((r) => r.slug === slug).length;
+            const active = slug === pageSlug;
             return (
               <Link
                 key={slug}
-                href={`/dashboard/admin/landing-signups?course=${encodeURIComponent(slug)}`}
+                href={`/dashboard/admin/landing-signups?page=${encodeURIComponent(slug)}`}
                 aria-current={active ? "page" : undefined}
                 className={`rounded-full px-3 py-1.5 text-sm font-medium tabular-nums transition-colors ${
                   active
@@ -140,30 +142,31 @@ export default async function LandingSignupsPage({
                     : "border border-rule text-ink-soft hover:bg-paper-tint hover:text-ink"
                 }`}
               >
-                {nameOf(slug)} <span className={active ? "text-white/70" : "text-ink-faint"}>{n}</span>
+                {pageTitle(slug)} <span className={active ? "text-white/70" : "text-ink-faint"}>{n}</span>
               </Link>
             );
           })}
         </nav>
       )}
 
-      {course && (
+      {pageSlug && (
         <>
           <p className="text-xs text-ink-faint">
-            From {pageSlugs.map((s, i) => (
-              <span key={s}>
-                {i > 0 && ", "}
-                <a href={`/bcc/${s}`} target="_blank" rel="noopener noreferrer" className="font-mono text-ink-soft hover:underline">
-                  /bcc/{s}
-                </a>
-                {!publishedPage.has(s) && <span className="ml-1 rounded-full bg-neutral-100 px-1.5 py-0.5 text-micro font-semibold text-neutral-600">unpublished</span>}
-              </span>
-            ))}
+            <a href={`/bcc/${pageSlug}`} target="_blank" rel="noopener noreferrer" className="font-mono text-ink-soft hover:underline">
+              /bcc/{pageSlug}
+            </a>
+            {thisPage && !thisPage.published && (
+              <span className="ml-1 rounded-full bg-neutral-100 px-1.5 py-0.5 text-micro font-semibold text-neutral-600">unpublished</span>
+            )}
+            {course && (
+              <>
+                {" · enrolls into "}
+                <Link href={`/dashboard/admin?tab=${encodeURIComponent(course)}&view=students`} className="font-medium text-primary hover:underline">
+                  {courseName}
+                </Link>
+              </>
+            )}
             {internalCount > 0 && ` · ${internalCount} internal test${internalCount === 1 ? "" : "s"} shown but not counted`}
-            {" · "}
-            <Link href={`/dashboard/admin?tab=${encodeURIComponent(course)}&view=students`} className="text-primary hover:underline">
-              Course roster →
-            </Link>
           </p>
 
           <DataTable columns={["Name", "Email", "Signed up", "Status", ""]}>
