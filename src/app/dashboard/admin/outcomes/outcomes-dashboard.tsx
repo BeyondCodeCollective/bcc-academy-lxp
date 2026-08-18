@@ -194,17 +194,28 @@ function AcquisitionSection({ acquisition }: { acquisition: AcquisitionData }) {
   ];
   const totalScored = riskSegments.reduce((s, r) => s + r.value, 0);
   const needs = acquisition.risk["at-risk"] + acquisition.risk.disengaged;
+  const done = acquisition.completedCohortCount ?? 0;
+  // Learners whose courses have all ended are not "gone quiet" — they're
+  // finished. Say so instead of counting them as needing a check-in.
+  const headline =
+    needs > 0
+      ? `${needs} learner${needs === 1 ? "" : "s"} need${needs === 1 ? "s" : ""} a check-in`
+      : totalScored > 0
+        ? "Everyone's engaged"
+        : done > 0
+          ? "No live cohorts right now"
+          : "Everyone's engaged";
+  const sub =
+    done > 0
+      ? `From invite acceptance through activation, plus who's gone quiet. ${done} learner${done === 1 ? "" : "s"} in finished cohorts ${done === 1 ? "is" : "are"} not scored.`
+      : "From invite acceptance through activation, plus who's gone quiet.";
 
   return (
     <section className="space-y-5">
       <SectionHeadline
         eyebrow="Acquisition & Risk"
-        headline={
-          needs > 0
-            ? `${needs} learner${needs === 1 ? "" : "s"} need${needs === 1 ? "s" : ""} a check-in`
-            : "Everyone's engaged"
-        }
-        sub="From invite acceptance through activation, plus who's gone quiet."
+        headline={headline}
+        sub={sub}
       />
 
       <div className="grid gap-3 lg:grid-cols-2">

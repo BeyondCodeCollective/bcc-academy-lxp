@@ -21,7 +21,7 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import type { ProgramScope } from "@/lib/programs/scope";
 import { getLearnerActivity } from "@/lib/analytics/activity";
-import { getProgram } from "@/lib/programs/server";
+import { getProgram, getProgramWithOverrides } from "@/lib/programs/server";
 import { trackModality } from "@/lib/analytics/modality";
 import {
   summarizeStudent,
@@ -46,6 +46,14 @@ export type AcquisitionData = {
   activationFunnel: FunnelStage[];
   risk: Record<RiskBucket, number>;
   needsAttention: AtRiskStudent[];
+  /**
+   * Learners whose every enrolled course has ENDED (last dated unit is in the
+   * past). They are set aside from the risk buckets: "no activity in 21 days"
+   * after a course finishes is not a signal anyone should act on. BGC's
+   * Overview read "90 learners need a check-in" for two bootcamps that were
+   * over (audit 2026-08-18, F8).
+   */
+  completedCohortCount: number;
 };
 
 const DAY = 86_400_000;
@@ -76,6 +84,10 @@ export async function fetchAcquisitionData(scope: ProgramScope): Promise<Acquisi
         .in("program_id", ids),
       getProgram(),
     ]);
+  // Hidden courses still exist and their learners still deserve the fair
+  // rate model. getProgram() is hidden-filtered (right for the learner nav),
+  // so score against the overrides-aware full course list instead.
+  const fullProgram = await getProgramWithOverrides(program.slug);
 
   const students = studentsRes.data ?? [];
   const invites = invitesRes.data ?? [];
@@ -85,10 +97,31 @@ export async function fetchAcquisitionData(scope: ProgramScope): Promise<Acquisi
   // The live tracks each learner is actually enrolled in — scoring against only
   // these is what makes rate-based risk fair for someone not in every track.
   const liveBySlug = new Map<string, TrackLike>(
-    (program.tracks ?? [])
+    (fullProgram.tracks ?? [])
       .filter((t) => trackModality(t) === "live")
       .map((t) => [t.slug, t as TrackLike]),
   );
+  // A course has ended when its last dated unit is in the past. Undated tracks
+  // (TS-config cohorts) fall back to startDate + totalWeeks*7 days.
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const endedSlugs = new Set<string>();
+  for (const t of fullProgram.tracks ?? []) {
+    const dated = (t.weekSummaries ?? []).map((u) => u.date).filter((d): d is string => !!d).sort();
+    let ended = false;
+    if (dated.length) ended = dated[dated.length - 1] < todayKey;
+    else if (t.startDate && !t.startDateTbd && t.totalWeeks) {
+      const end = new Date(t.startDate);
+      end.setDate(end.getDate() + t.totalWeeks * 7);
+      ended = end.toISOString().slice(0, 10) < todayKey;
+    }
+    if (ended) endedSlugs.add(t.slug);
+  }
+  const enrolledSlugsByStudent = new Map<string, Set<string>>();
+  for (const e of enrollments) {
+    let set = enrolledSlugsByStudent.get(e.student_id);
+    if (!set) { set = new Set(); enrolledSlugsByStudent.set(e.student_id, set); }
+    set.add(e.track_slug);
+  }
   const liveTracksByStudent = new Map<string, TrackLike[]>();
   for (const e of enrollments) {
     const t = liveBySlug.get(e.track_slug);
@@ -152,7 +185,14 @@ export async function fetchAcquisitionData(scope: ProgramScope): Promise<Acquisi
   // Severity carried alongside the row so sorting never has to re-parse the
   // human-readable signal string (which now differs per model).
   const atRisk: (AtRiskStudent & { severity: number })[] = [];
+  let completedCohortCount = 0;
   for (const s of students) {
+    // Every course this learner is in has ended → not a risk case at all.
+    const mine = enrolledSlugsByStudent.get(s.id);
+    if (mine && mine.size > 0 && [...mine].every((slug) => endedSlugs.has(slug))) {
+      completedCohortCount++;
+      continue;
+    }
     const liveTracks = liveTracksByStudent.get(s.id) ?? [];
     let bucket: RiskBucket;
     let signal: string;
@@ -207,6 +247,7 @@ export async function fetchAcquisitionData(scope: ProgramScope): Promise<Acquisi
     inviteFunnel,
     activationFunnel,
     risk,
+    completedCohortCount,
     // `severity` is an internal sort key, not part of the surface contract.
     needsAttention: atRisk
       .slice(0, 12)
