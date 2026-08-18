@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { canSwitchPrograms, canManageRoles } from "@/lib/roles";
+import { resolveTrackLengths } from "@/lib/programs/scope";
 import { PageHeader } from "@/components/page-header";
 import { DataTable } from "@/components/ui";
 import { ManageMenu } from "../manage-menu";
@@ -10,11 +11,12 @@ import { CopyLinkButton } from "./copy-link-button";
 
 export const dynamic = "force-dynamic";
 
-// Landing-page signups — the top of the funnel for every public landing page
-// (/bcc/<slug>). A signup is allowlisted and emailed a one-click invite link
-// on the spot; this page shows how many took the next step, and hands you the
-// link for the ones who haven't. Until now these rows lived only in the DB:
-// 16 people had raised a hand for MASS and there was no screen that said so.
+// Landing-page signups, COURSE-FIRST. One course at a time: the course name is
+// the headline, its funnel is the subhead, its signups are the table. Multiple
+// live registrations never pile onto one screen — you pick the course. (The
+// first cut grouped by landing-page slug, which is a URL, not a thing anyone
+// thinks in.) A signup is allowlisted and emailed a one-click link on the spot;
+// this page shows who took the next step and hands you the link for the rest.
 
 type SignupRow = {
   id: string;
@@ -28,7 +30,11 @@ type SignupRow = {
 
 type Stage = "signed-up" | "tapped-link" | "enrolled";
 
-export default async function LandingSignupsPage() {
+export default async function LandingSignupsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ course?: string }>;
+}) {
   const ctx = await getSessionContext();
   if (!ctx) redirect("/");
   if (!canSwitchPrograms(ctx.student?.role ?? "")) redirect("/dashboard/admin");
@@ -38,12 +44,21 @@ export default async function LandingSignupsPage() {
     .from("landing_signups")
     .select("id, slug, track_slug, email, name, invite_token, created_at")
     .order("created_at", { ascending: false })
-    .limit(1000);
-  const rows = (data ?? []) as SignupRow[];
+    .limit(2000);
+  const all = (data ?? []) as SignupRow[];
+
+  // Courses that have signups, newest activity first. The picker lists these.
+  const courseSlugs: string[] = [];
+  for (const r of all) if (!courseSlugs.includes(r.track_slug)) courseSlugs.push(r.track_slug);
+  const names = await resolveTrackLengths(courseSlugs);
+  const nameOf = (slug: string) => names.get(slug)?.name ?? slug;
+
+  const { course: requested } = await searchParams;
+  const course = requested && courseSlugs.includes(requested) ? requested : courseSlugs[0] ?? null;
+  const rows = course ? all.filter((r) => r.track_slug === course) : [];
 
   const emails = [...new Set(rows.map((r) => r.email.toLowerCase()))];
   const tokens = rows.map((r) => r.invite_token).filter((t): t is string => !!t);
-  const trackSlugs = [...new Set(rows.map((r) => r.track_slug))];
 
   const [{ data: students }, { data: invites }, { data: enrollments }, { data: pages }] =
     await Promise.all([
@@ -53,10 +68,10 @@ export default async function LandingSignupsPage() {
       tokens.length
         ? svc.from("invites").select("token, used_at").in("token", tokens)
         : Promise.resolve({ data: [] as { token: string; used_at: string | null }[] }),
-      trackSlugs.length
-        ? svc.from("student_tracks").select("student_id, track_slug").in("track_slug", trackSlugs)
-        : Promise.resolve({ data: [] as { student_id: string; track_slug: string }[] }),
-      svc.from("landing_pages").select("slug, headline, published"),
+      course
+        ? svc.from("student_tracks").select("student_id").eq("track_slug", course)
+        : Promise.resolve({ data: [] as { student_id: string }[] }),
+      svc.from("landing_pages").select("slug, published"),
     ]);
 
   const studentByEmail = new Map(
@@ -68,145 +83,127 @@ export default async function LandingSignupsPage() {
   const usedToken = new Set(
     ((invites ?? []) as { token: string; used_at: string | null }[]).filter((i) => i.used_at).map((i) => i.token),
   );
-  const enrolledKey = new Set(
-    ((enrollments ?? []) as { student_id: string; track_slug: string }[]).map((e) => `${e.student_id}|${e.track_slug}`),
-  );
-  const pageBySlug = new Map(
-    ((pages ?? []) as { slug: string; headline: string | null; published: boolean }[]).map((p) => [p.slug, p]),
+  const enrolledIds = new Set(((enrollments ?? []) as { student_id: string }[]).map((e) => e.student_id));
+  const publishedPage = new Set(
+    ((pages ?? []) as { slug: string; published: boolean }[]).filter((p) => p.published).map((p) => p.slug),
   );
 
   const stageOf = (r: SignupRow): { stage: Stage; internal: boolean } => {
     const s = studentByEmail.get(r.email.toLowerCase());
     const internal = !!(s && (s.is_staff || s.is_test));
-    if (s && enrolledKey.has(`${s.id}|${r.track_slug}`)) return { stage: "enrolled", internal };
+    if (s && enrolledIds.has(s.id)) return { stage: "enrolled", internal };
     if (r.invite_token && usedToken.has(r.invite_token)) return { stage: "tapped-link", internal };
     return { stage: "signed-up", internal };
   };
 
-  // Group by landing page, newest page first (by its latest signup).
-  const groups = new Map<string, SignupRow[]>();
-  for (const r of rows) {
-    const list = groups.get(r.slug) ?? [];
-    list.push(r);
-    groups.set(r.slug, list);
-  }
+  const staged = rows.map((r) => ({ r, ...stageOf(r) }));
+  const real = staged.filter((x) => !x.internal);
+  const enrolled = real.filter((x) => x.stage === "enrolled").length;
+  const tapped = real.filter((x) => x.stage !== "signed-up").length;
+  const pending = real.filter((x) => x.stage === "signed-up").length;
+  const internalCount = staged.length - real.length;
+  const pct = real.length ? Math.round((enrolled / real.length) * 100) : 0;
+  const pageSlugs = [...new Set(rows.map((r) => r.slug))];
 
   const fmt = (iso: string) =>
     new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
-
   const origin = "https://bccacademy.io";
-  const total = rows.length;
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 sm:px-5 py-8 space-y-8">
+    <div className="mx-auto w-full max-w-4xl px-4 sm:px-5 py-8 space-y-6">
       <PageHeader
-        title="Landing page signups"
-        subtitle={`${total} signup${total === 1 ? "" : "s"} across ${groups.size} landing page${groups.size === 1 ? "" : "s"} · most recent first`}
+        title={course ? `${nameOf(course)} signups` : "Landing page signups"}
+        subtitle={
+          course
+            ? `${real.length} signed up · ${tapped} tapped their link · ${enrolled} enrolled (${pct}%)` +
+              (pending > 0 ? ` · ${pending} still to chase` : "")
+            : "No landing-page signups yet."
+        }
         noWrap
         actions={<ManageMenu isMaster={canManageRoles(ctx.userEmail)} />}
       />
 
-      {rows.length === 0 ? (
-        <p className="rounded-lg border border-rule bg-paper-tint-soft px-4 py-8 text-center text-sm text-ink-soft">
-          No landing-page signups yet.
-        </p>
-      ) : (
-        [...groups.entries()].map(([slug, list]) => {
-          const page = pageBySlug.get(slug);
-          const staged = list.map((r) => ({ r, ...stageOf(r) }));
-          const real = staged.filter((x) => !x.internal);
-          const enrolled = real.filter((x) => x.stage === "enrolled").length;
-          const tapped = real.filter((x) => x.stage !== "signed-up").length;
-          const pending = real.filter((x) => x.stage === "signed-up").length;
-          const internalCount = staged.length - real.length;
-          const pct = real.length ? Math.round((enrolled / real.length) * 100) : 0;
-          return (
-            <section key={slug} className="space-y-3">
-              <div className="flex flex-wrap items-end justify-between gap-3">
-                <div>
-                  <h2 className="text-base font-semibold text-ink">
-                    {page?.headline?.replace(/\n/g, " ") ?? slug}
-                    <span className="ml-2 font-mono text-xs font-normal text-ink-faint">/bcc/{slug}</span>
-                    {page && !page.published && (
-                      <span className="ml-2 rounded-full bg-neutral-100 px-2 py-0.5 text-micro font-semibold text-neutral-600">
-                        unpublished
-                      </span>
-                    )}
-                  </h2>
-                  {/* The funnel in one line: the number that matters is how
-                     many turned a signup into an enrollment. */}
-                  <p className="mt-1 text-sm text-ink-soft tabular-nums">
-                    <span className="font-semibold text-ink">{real.length}</span> signed up ·{" "}
-                    <span className="font-semibold text-ink">{tapped}</span> tapped their link ·{" "}
-                    <span className="font-semibold text-ink">{enrolled}</span> enrolled ({pct}%)
-                    {pending > 0 && (
-                      <>
-                        {" "}· <span className="font-semibold text-amber-700">{pending}</span> still to chase
-                      </>
-                    )}
-                    {internalCount > 0 && (
-                      <span className="text-ink-faint"> · {internalCount} internal test{internalCount === 1 ? "" : "s"} not counted</span>
-                    )}
-                  </p>
-                </div>
-                <Link
-                  href={`/dashboard/admin?tab=${encodeURIComponent(list[0].track_slug)}&view=students`}
-                  className="text-sm font-medium text-primary hover:underline"
-                >
-                  Course roster →
-                </Link>
-              </div>
-
-              <DataTable columns={["Name", "Email", "Signed up", "Status", ""]}>
-                {staged.map(({ r, stage, internal }) => (
-                  <tr key={r.id} className={internal ? "text-ink-faint" : "text-ink"}>
-                    <td className="px-4 py-3 align-top font-medium">
-                      {r.name?.trim() || <span className="text-ink-faint">—</span>}
-                      {internal && (
-                        <span className="ml-2 rounded-full bg-neutral-100 px-2 py-0.5 text-micro font-semibold text-neutral-600">
-                          internal
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 align-top text-sm">{r.email}</td>
-                    <td className="px-4 py-3 align-top text-xs text-ink-soft whitespace-nowrap">{fmt(r.created_at)}</td>
-                    <td className="px-4 py-3 align-top">
-                      {stage === "enrolled" ? (
-                        <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-micro font-semibold text-green-800">
-                          Enrolled
-                        </span>
-                      ) : stage === "tapped-link" ? (
-                        <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-micro font-semibold text-blue-800">
-                          Tapped link
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-micro font-semibold text-amber-800">
-                          Signed up
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 align-top text-right">
-                      {/* Their own one-click link — for the DM/text nudge to
-                         anyone who hasn't come through. Enrolled rows don't
-                         need it. */}
-                      {stage !== "enrolled" && r.invite_token && (
-                        <CopyLinkButton url={`${origin}/invite/${r.invite_token}`} title="Copy their one-click link" />
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </DataTable>
-            </section>
-          );
-        })
+      {/* Course picker — the organizing unit. One course at a time. */}
+      {courseSlugs.length > 1 && (
+        <nav aria-label="Course" className="flex flex-wrap gap-2">
+          {courseSlugs.map((slug) => {
+            const n = all.filter((r) => r.track_slug === slug).length;
+            const active = slug === course;
+            return (
+              <Link
+                key={slug}
+                href={`/dashboard/admin/landing-signups?course=${encodeURIComponent(slug)}`}
+                aria-current={active ? "page" : undefined}
+                className={`rounded-full px-3 py-1.5 text-sm font-medium tabular-nums transition-colors ${
+                  active
+                    ? "bg-ink text-white"
+                    : "border border-rule text-ink-soft hover:bg-paper-tint hover:text-ink"
+                }`}
+              >
+                {nameOf(slug)} <span className={active ? "text-white/70" : "text-ink-faint"}>{n}</span>
+              </Link>
+            );
+          })}
+        </nav>
       )}
 
-      <p className="text-xs leading-relaxed text-ink-faint">
-        Every landing-page signup is allowlisted and emailed a one-click link immediately.
-        &ldquo;Signed up&rdquo; = hasn&apos;t used it yet (copy their link to nudge them).
-        &ldquo;Tapped link&rdquo; = signed in but not on the course roster.
-        &ldquo;Enrolled&rdquo; = on the roster. Staff and test accounts are shown but not counted.
-      </p>
+      {course && (
+        <>
+          <p className="text-xs text-ink-faint">
+            From {pageSlugs.map((s, i) => (
+              <span key={s}>
+                {i > 0 && ", "}
+                <a href={`/bcc/${s}`} target="_blank" rel="noopener noreferrer" className="font-mono text-ink-soft hover:underline">
+                  /bcc/{s}
+                </a>
+                {!publishedPage.has(s) && <span className="ml-1 rounded-full bg-neutral-100 px-1.5 py-0.5 text-micro font-semibold text-neutral-600">unpublished</span>}
+              </span>
+            ))}
+            {internalCount > 0 && ` · ${internalCount} internal test${internalCount === 1 ? "" : "s"} shown but not counted`}
+            {" · "}
+            <Link href={`/dashboard/admin?tab=${encodeURIComponent(course)}&view=students`} className="text-primary hover:underline">
+              Course roster →
+            </Link>
+          </p>
+
+          <DataTable columns={["Name", "Email", "Signed up", "Status", ""]}>
+            {staged.map(({ r, stage, internal }) => (
+              <tr key={r.id} className={internal ? "text-ink-faint" : "text-ink"}>
+                <td className="px-4 py-3 align-top font-medium">
+                  {r.name?.trim() || <span className="text-ink-faint">—</span>}
+                  {internal && (
+                    <span className="ml-2 rounded-full bg-neutral-100 px-2 py-0.5 text-micro font-semibold text-neutral-600">
+                      internal
+                    </span>
+                  )}
+                </td>
+                <td className="px-4 py-3 align-top text-sm">{r.email}</td>
+                <td className="px-4 py-3 align-top text-xs text-ink-soft whitespace-nowrap">{fmt(r.created_at)}</td>
+                <td className="px-4 py-3 align-top">
+                  {stage === "enrolled" ? (
+                    <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-micro font-semibold text-green-800">Enrolled</span>
+                  ) : stage === "tapped-link" ? (
+                    <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-micro font-semibold text-blue-800">Tapped link</span>
+                  ) : (
+                    <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-micro font-semibold text-amber-800">Signed up</span>
+                  )}
+                </td>
+                <td className="px-4 py-3 align-top text-right">
+                  {stage !== "enrolled" && r.invite_token && (
+                    <CopyLinkButton url={`${origin}/invite/${r.invite_token}`} title="Copy their one-click link" />
+                  )}
+                </td>
+              </tr>
+            ))}
+          </DataTable>
+
+          <p className="text-xs leading-relaxed text-ink-faint">
+            Every signup is allowlisted and emailed a one-click link immediately.
+            &ldquo;Signed up&rdquo; = hasn&apos;t used it yet (copy their link to nudge them).
+            &ldquo;Tapped link&rdquo; = signed in but not on the roster. &ldquo;Enrolled&rdquo; = on the roster.
+          </p>
+        </>
+      )}
     </div>
   );
 }
