@@ -1108,11 +1108,10 @@ export function AdminTabs({
           students
             .filter((s) => {
               if (s.role !== "student") return false;
-              // last_activity_at is the richer signal but is still backfilling
-              // (only written since its writer was added), so a NULL means
-              // "unknown", not "inactive" — fall back to last_seen_at (login)
-              // rather than silently undercounting active learners.
-              const signal = s.last_activity_at ?? s.last_seen_at;
+              // Behavior only. last_activity_at advances on every dashboard
+              // visit and is now reliably written; last_seen_at is a login
+              // stamp (set at signup) and read a fresh cohort as 100% active.
+              const signal = s.last_activity_at;
               return !!signal && new Date(signal).getTime() >= weekAgo;
             })
             .map((s) => s.id),
@@ -2464,7 +2463,7 @@ function PeopleTab({
                     {trackCount} {trackCount === 1 ? "track" : "tracks"}
                   </span>
                   {s.role === "student" && (
-                    <StatusPill status={(s.last_activity_at ?? s.last_seen_at) ? "active" : "joined"} />
+                    <StatusPill status={s.last_activity_at ? "active" : "joined"} />
                   )}
                   <span
                     className={`inline-block rounded-full px-2 py-0.5 text-micro font-medium ${

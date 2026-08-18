@@ -34,7 +34,7 @@ export async function GET(request: Request) {
   // avoids needing a Postgres RPC for the filtered counts.
   const [{ data: students, error: sErr }, { data: progress, error: pErr }] =
     await Promise.all([
-      svc.from("students").select("program_id, last_seen_at"),
+      svc.from("students").select("program_id, last_activity_at"),
       svc.from("week_progress").select("program_id"),
     ]);
   if (sErr || pErr) {
@@ -54,10 +54,11 @@ export async function GET(request: Request) {
     if (!s.program_id) continue;
     const a = get(s.program_id as string);
     a.total++;
-    const seen = s.last_seen_at as string | null;
-    if (seen) {
-      if (seen >= oneDayAgo) a.active1d++;
-      if (seen >= sevenDaysAgo) a.active7d++;
+    // Behavior, not login: last_seen_at is a signup/login stamp.
+    const act = s.last_activity_at as string | null;
+    if (act) {
+      if (act >= oneDayAgo) a.active1d++;
+      if (act >= sevenDaysAgo) a.active7d++;
     }
   }
   for (const p of progress ?? []) {

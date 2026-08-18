@@ -111,12 +111,13 @@ export default async function InsightsPage() {
   for (const r of activeAttendance) if (studentIds.has(r.student_id)) activeIds.add(r.student_id);
   for (const r of activeSubmissions) if (studentIds.has(r.student_id)) activeIds.add(r.student_id);
   for (const r of activeReflections) if (studentIds.has(r.student_id)) activeIds.add(r.student_id);
-  // Login counts as activity too (canonical isActiveWithin): a learner who
-  // signed in this week is active even without a graded event yet. Previously
-  // "Active 7d" missed them, undercounting live cohorts between sessions.
+  // Behavior beyond a graded event counts too: last_activity_at advances on
+  // any dashboard visit (watching, reading, navigating). Login alone does not
+  // — last_seen_at is stamped at signup, so folding it in made a freshly
+  // enrolled cohort read 100% active and contradicted this tile's own hint.
   for (const s of students) {
-    const seen = s.last_seen_at ? new Date(s.last_seen_at).getTime() : undefined;
-    if (isActiveWithin(seen, 7, nowMs)) activeIds.add(s.id);
+    const act = s.last_activity_at ? new Date(s.last_activity_at).getTime() : undefined;
+    if (isActiveWithin(act, 7, nowMs)) activeIds.add(s.id);
   }
   const activeCount = activeIds.size;
 
@@ -248,7 +249,7 @@ export default async function InsightsPage() {
         <StatCard
           value={activeCount.toLocaleString()}
           label="Active 7d"
-          hint="attendance, submission, or reflection"
+          hint="attendance, submission, reflection, or any dashboard activity"
         />
         <StatCard
           value={`${engagementPct}%`}
