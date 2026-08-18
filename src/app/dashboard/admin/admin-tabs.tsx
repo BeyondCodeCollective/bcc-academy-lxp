@@ -1181,7 +1181,9 @@ export function AdminTabs({
                 // "Active this week" is a rolling window, so a finished course
                 // decays to 0 and reads as failure rather than as "it's done".
                 // Once a course has ended, report its outcome instead: how many
-                // learners made every session.
+                // learners made every session. Labelled as exactly that —
+                // "completed" means a certificate, and Roblox read 36 "completed"
+                // next to 58 certificates (audit F16).
                 const completed = ended ? (courseStats[t.slug]?.fullAttendance ?? null) : null;
                 // A finished course with no certificates issued isn't a course
                 // nobody completed — it's one nobody has recorded yet, and it
@@ -1228,7 +1230,7 @@ export function AdminTabs({
                       {completed !== null ? (
                         <p className="shrink-0 w-24 text-right text-xs tabular-nums">
                           <span className="font-semibold text-primary">{completed}</span>
-                          <span className="text-ink-faint"> / {count} completed</span>
+                          <span className="text-ink-faint"> / {count} every session</span>
                         </p>
                       ) : showActive && isRunning ? (
                         <p className="shrink-0 w-24 text-right text-xs tabular-nums">

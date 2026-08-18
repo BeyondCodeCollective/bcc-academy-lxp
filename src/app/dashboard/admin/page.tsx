@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
+import { resolveTrackLengths } from "@/lib/programs/scope";
 import { createServiceClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { AdminTabs } from "./admin-tabs";
@@ -430,7 +431,19 @@ export default async function AdminPage({
       const reflectionRows = (reflectionsRes.data ?? []) as { student_id: string; track_slug: string; week_number: number }[];
       const videoRows = (videoRes.data ?? []) as { user_id: string; track_slug: string; week_number: number }[];
 
-      const maxWeeks = Math.max(...program.tracks.map((t) => t.totalWeeks), 1);
+      // Denominator per LEARNER: units held so far across the courses they're
+      // enrolled in. Scoring everyone against the longest course in the
+      // program made a 6-day Home for the Summer learner with perfect
+      // attendance read 8/25 (6 of Security+'s 19). Audit 2026-08-18, F17.
+      const lengths = await resolveTrackLengths();
+      const heldForStudent = (id: string): number => {
+        let held = 0;
+        for (const st of studentTracks) {
+          if (st.student_id !== id) continue;
+          held += lengths.get(st.track_slug)?.heldUnits ?? 0;
+        }
+        return Math.max(held, 1);
+      };
 
       // Canonical engagement (docs/analytics-plan.md): the four did-the-work
       // signals, each worth up to 25 pts → /100. Video replaces the old tutor
@@ -442,10 +455,11 @@ export default async function AdminPage({
         const ref = new Set(reflectionRows.filter((r) => r.student_id === s.id).map((r) => `${r.track_slug}-${r.week_number}`)).size;
         const vid = new Set(videoRows.filter((r) => r.user_id === s.id).map((r) => `${r.track_slug}-${r.week_number}`)).size;
 
-        const attScore = Math.min((att / maxWeeks) * 25, 25);
-        const subScore = Math.min((sub / maxWeeks) * 25, 25);
-        const refScore = Math.min((ref / maxWeeks) * 25, 25);
-        const vidScore = Math.min((vid / maxWeeks) * 25, 25);
+        const denom = heldForStudent(s.id);
+        const attScore = Math.min((att / denom) * 25, 25);
+        const subScore = Math.min((sub / denom) * 25, 25);
+        const refScore = Math.min((ref / denom) * 25, 25);
+        const vidScore = Math.min((vid / denom) * 25, 25);
 
         engagementScores[s.id] = {
           total: Math.round(attScore + subScore + refScore + vidScore),
