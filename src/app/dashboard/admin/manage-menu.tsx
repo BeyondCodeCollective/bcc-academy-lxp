@@ -29,6 +29,7 @@ const GROUPS: { label: string; items: Item[] }[] = [
       { href: "/dashboard/admin/programs", label: "Manage courses" },
       { href: "/dashboard/admin/announcements", label: "Announcements" },
       { href: "/dashboard/admin/landing", label: "Landing pages" },
+      { href: "/dashboard/admin/landing-signups", label: "Landing signups" },
       { href: "/dashboard/admin/resources", label: "Resources" },
     ],
   },
