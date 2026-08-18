@@ -130,8 +130,15 @@ export async function completePendingSetup(
         [...trackParamTracks, ...allowlistTracks].map((t) => [t.slug, t]),
       ).values(),
     );
+    // ...and only for someone enrolled in nothing. A returning learner whose
+    // course moved to another program must not be re-enrolled in every course
+    // of the program their account still points at.
     if (tracksToEnroll.length === 0 && program.requireInviteLink !== true) {
-      tracksToEnroll = program.tracks;
+      const { count } = await admin
+        .from("student_tracks")
+        .select("track_slug", { count: "exact", head: true })
+        .eq("student_id", userId);
+      if (!count) tracksToEnroll = program.tracks;
     }
   }
 
