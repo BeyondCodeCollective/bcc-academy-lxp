@@ -6,6 +6,7 @@ import Link from "next/link";
 import { deleteStudentAction, updateStudentAction, updateCohortAction, saveSessionContent, assignStudentTrack, removeStudentTrack, bulkAssignTrack, exportPublicSurveyResponses, getAllSubmissions, addFeedback, assignInstructorTrack, removeInstructorTrack, deletePublicSurveyResponse, listPublicSurveyResponses, sendInviteAction, createCohortAction } from "./actions";
 import type { SessionResource, StudentTrackRow, AdminSubmissionRow, InstructorTrackRow, PublicSurveyStatsRow } from "./actions";
 import { canManageStudents, canSwitchPrograms, canViewInsights } from "@/lib/roles";
+import { isLearner } from "@/lib/analytics/engagement";
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { Users, BookOpen, GraduationCap, Gear as Settings, FloppyDisk as Save, CaretDown as ChevronDown, ArrowSquareOut as ExternalLink, Check, UserCheck, Trash as Trash2, UserPlus, Plus, X, Link as LinkIcon, UploadSimple as Upload, Download, CircleNotch as Loader2, Video, FileText, ClipboardText as ClipboardList, PaperPlaneTilt as Send, ChatCentered as MessageSquare, Coffee, Eye, ArrowRight } from "@phosphor-icons/react";
 import { Avatar } from "@/components/avatar";
@@ -151,7 +152,7 @@ function trackLabel(slug: string | null): string {
   return map[slug] ?? humanizeSlug(slug);
 }
 
-type StudentRow = Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id" | "last_seen_at" | "last_activity_at" | "zip" | "state" | "date_of_birth">;
+type StudentRow = Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "is_staff" | "cohort_id" | "last_seen_at" | "last_activity_at" | "zip" | "state" | "date_of_birth">;
 
 // Track config passed from server (subset of TrackConfig)
 type AdminTrackConfig = {
@@ -1085,7 +1086,7 @@ export function AdminTabs({
          Lunch & Learn). */}
       {tab === "home" && !isDashboardless && (() => {
         const studentRoleIds = new Set(
-          students.filter((s) => s.role === "student").map((s) => s.id),
+          students.filter(isLearner).map((s) => s.id),
         );
         // `courseStats` is server-computed: it resolves role by enrolled id
         // rather than by program (so learners whose students.program_id points
@@ -1299,7 +1300,7 @@ export function AdminTabs({
         // include instructors/admins assigned to the track, which would
         // inflate the header and diverge from the People sub-tab's count.
         const studentRoleIds = new Set(
-          students.filter((s) => s.role === "student").map((s) => s.id),
+          students.filter(isLearner).map((s) => s.id),
         );
         const enrolledInTrack = enrollments.filter(
           (e) => e.track_slug === activeTrack.slug && studentRoleIds.has(e.student_id),
@@ -1665,7 +1666,7 @@ export function AdminTabs({
 
                 {subView === "attendance" && (
                   <AttendanceTab
-                    students={trackStudents.filter((s) => s.role === "student")}
+                    students={trackStudents.filter(isLearner)}
                     tracks={[activeTrack]}
                     scopeLabel={activeTrack.shortName}
                     embedded
@@ -1675,7 +1676,7 @@ export function AdminTabs({
 
                 {subView === "progress" && (
                   <ProgressTab
-                    students={trackStudents.filter((s) => s.role === "student")}
+                    students={trackStudents.filter(isLearner)}
                     trackSlug={activeTrack.slug}
                     totalWeeks={activeTrack.totalWeeks}
                     viewSwitcher={viewSwitcher}
@@ -1692,7 +1693,7 @@ export function AdminTabs({
 
                 {subView === "certificates" && (
                   <CertificatesPanel
-                    students={trackStudents.filter((s) => s.role === "student")}
+                    students={trackStudents.filter(isLearner)}
                     trackSlug={activeTrack.slug}
                     programSlug={programSlug}
                     viewSwitcher={viewSwitcher}
@@ -1786,7 +1787,7 @@ export function AdminTabs({
         <div className="space-y-6">
           <AdminTopTabs current="analytics" sub="attendance" showInsights={canViewInsights(userRole)} isManager={isManager} />
           <ProgramAttendanceOverview
-            students={students.filter((s) => s.role === "student")}
+            students={students.filter(isLearner)}
             // Self-paced (VOD) courses have no sessions to attend — their
             // measure is watched-progress (course → Students → Progress), so
             // an attendance table would only show a misleading zero.

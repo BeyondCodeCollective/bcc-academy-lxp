@@ -8,6 +8,7 @@
 
 import { createServiceClient } from "@/lib/supabase/server";
 import { resolveTrackLengths } from "@/lib/programs/scope";
+import { isLearner, LEARNER_FIELDS } from "@/lib/analytics/engagement";
 import { resolveScopeTrackSlugs, type ProgramScope } from "@/lib/programs/scope";
 import { getLearnerActivity } from "@/lib/analytics/activity";
 import { humanizeSlug } from "@/lib/utils";
@@ -67,10 +68,10 @@ export async function fetchProgressData(scope: ProgramScope): Promise<ProgressDa
   if (enrolledIds.length > 0) {
     const { data: people } = await svc
       .from("students")
-      .select("id, role, is_test")
+      .select(LEARNER_FIELDS)
       .in("id", enrolledIds);
     for (const p of people ?? []) {
-      if (p.role === "student" && !p.is_test) learnerIds.add(p.id as string);
+      if (isLearner(p)) learnerIds.add(p.id as string);
     }
   }
 
