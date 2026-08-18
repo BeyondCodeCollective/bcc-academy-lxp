@@ -179,10 +179,12 @@ export function AnalyticsDashboard({
   // a "36" account count — three numbers that don't reconcile. As a funnel it's
   // honest: Created = % of invited, Engaged = % of those who created an account.
   // null when the base is 0 ("% of 0" is meaningless, e.g. cohorts added directly
-  // rather than via an allowlist). Capped at 100 for the rare direct-add case
-  // where a stage exceeds its base.
+  // rather than via an allowlist) — and ALSO null when a stage exceeds its base:
+  // "invited" is allowlist-only, so a cohort added directly reads 6 invited →
+  // 23 created, and a capped "100%" there is a lie, not a rate. Show nothing
+  // until the allowlist backfill in docs/analytics-plan.md lands (audit F12).
   const pctOf = (v: number, base: number): number | null =>
-    base > 0 ? Math.min(100, Math.round((v / base) * 100)) : null;
+    base > 0 && v <= base ? Math.round((v / base) * 100) : null;
 
   const activatedPct = pctOf(funnel.activated, funnel.invited);
   const engagedPct = pctOf(funnel.engaged, funnel.activated);

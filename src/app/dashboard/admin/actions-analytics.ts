@@ -188,7 +188,7 @@ export async function getEngagementAnalytics(
       svc.from("submissions").select("student_id, track_slug").in("student_id", studentIds),
       // Reflections are a "did the work" signal too — omitting them undercounted
       // engagement and disagreed with the Insights page's definition.
-      svc.from("reflections").select("student_id").in("student_id", studentIds).not("submitted_at", "is", null),
+      svc.from("reflections").select("student_id, track_slug").in("student_id", studentIds).not("submitted_at", "is", null),
       svc.from("survey_responses").select("student_id, survey_type, completed_at").in("student_id", studentIds).not("completed_at", "is", null),
       svc.from("allowed_signup_emails").select("email").in("track_slug", invitedTrackSlugs),
       // Emails of internal QA accounts, so they're subtracted from "Invited"
@@ -253,10 +253,14 @@ export async function getEngagementAnalytics(
   // attendance OR video OR submission OR reflection. Build the per-learner signal
   // sets, then apply the shared predicate so this count means the same thing as
   // every other surface.
-  const watchedSet = new Set(((videoRows.data ?? []) as { user_id: string }[]).map((r) => r.user_id));
-  const attendedSet = new Set(((attendanceRows.data ?? []) as { student_id: string }[]).map((r) => r.student_id));
-  const submittedSet = new Set(((submissionRows.data ?? []) as { student_id: string }[]).map((r) => r.student_id));
-  const reflectedSet = new Set(((reflectionRows.data ?? []) as { student_id: string }[]).map((r) => r.student_id));
+  // Course drill-down: "engaged" means engaged IN THIS COURSE. Without the
+  // filter a Security+ learner who only attended MASS/Sec+ counted as engaged
+  // in the Security+ drill-down (audit 2026-08-18, F13).
+  const inCourse = (track: string | null | undefined) => !activeCourse || track === activeCourse;
+  const watchedSet = new Set(((videoRows.data ?? []) as { user_id: string; track_slug: string | null }[]).filter((r) => inCourse(r.track_slug)).map((r) => r.user_id));
+  const attendedSet = new Set(((attendanceRows.data ?? []) as { student_id: string; track: string | null }[]).filter((r) => inCourse(r.track)).map((r) => r.student_id));
+  const submittedSet = new Set(((submissionRows.data ?? []) as { student_id: string; track_slug: string | null }[]).filter((r) => inCourse(r.track_slug)).map((r) => r.student_id));
+  const reflectedSet = new Set(((reflectionRows.data ?? []) as { student_id: string; track_slug: string | null }[]).filter((r) => inCourse(r.track_slug)).map((r) => r.student_id));
   const engaged = new Set<string>(
     studentIds.filter((id) =>
       isEngaged({

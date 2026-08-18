@@ -31,7 +31,12 @@ export type ShiftRow = {
   before: number;
   now: number;
   delta: number;
+  /** min(beforeN, afterN) — the conservative sample size for the delta. */
   n: number;
+  /** Set for cross-survey pairs so a reader can see "17 pre vs 5 post" and
+   *  judge the delta accordingly. Same-survey (retrospective) rows have one n. */
+  beforeN?: number;
+  afterN?: number;
 };
 
 export type ShiftGroup = {
@@ -161,15 +166,23 @@ export function crossSurveyGroups(
         const a = afterMeans[i];
         const n = Math.min(b.n, a.n);
         if (n === 0) return null;
+        // A cross-survey delta needs a real post sample. 16 pre vs 5 post
+        // reads "confidence rose X" to a funder without any hint that the 5
+        // may not be the 16 (audit 2026-08-18, F18). Suppress the row when
+        // the after-sample is under 8 or under 30% of the before-sample.
+        if (a.n < 8 || a.n < 0.3 * b.n) return null;
         const oBefore = orient(b.mean, before);
         const oNow = orient(a.mean, after);
-        return {
+        const row: ShiftRow = {
           statement: stmt,
           before: oBefore,
           now: oNow,
           delta: oNow - oBefore,
           n,
+          beforeN: b.n,
+          afterN: a.n,
         };
+        return row;
       })
       .filter((r): r is ShiftRow => r !== null);
     if (rows.length === 0) continue;
