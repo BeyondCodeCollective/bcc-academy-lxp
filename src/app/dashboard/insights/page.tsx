@@ -191,6 +191,10 @@ export default async function InsightsPage() {
   const studentPhasePairs = new Set<string>();
   for (const r of studentTracks) {
     if (!r.student_id || !r.track_slug) continue;
+    // Learners only — same filter the per-track chart applies. Without it,
+    // staff/test enrollments counted in "Students by phase" (mass/techplus
+    // each carried 4 staff enrollments).
+    if (!studentIds.has(r.student_id)) continue;
     const phase = phaseBySlug.get(r.track_slug) ?? "other";
     studentPhasePairs.add(`${r.student_id}::${phase}`);
   }
