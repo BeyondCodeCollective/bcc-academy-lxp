@@ -91,6 +91,7 @@ export function surveyAppliesToTracks(
 
 export const SECURITY_PLUS_APPLICATION_SURVEY_ID = "security-plus-application";
 export const HOME_FOR_SUMMER_APPLICATION_SURVEY_ID = "home-for-summer-application";
+export const SBFT_APPLICATION_SURVEY_ID = "sbft-application";
 
 export const PLATFORM_AUTH_SURVEYS: Record<string, SurveyConfig> = {
   [BCC_INTAKE_SURVEY_ID]: {
@@ -110,6 +111,13 @@ export const PLATFORM_AUTH_SURVEYS: Record<string, SurveyConfig> = {
     title: "Home for the Summer Application",
     description:
       "Application for the Home for the Summer intensive — August 10–14, 2026, with NextEra Energy.",
+    required: false,
+  },
+  [SBFT_APPLICATION_SURVEY_ID]: {
+    id: SBFT_APPLICATION_SURVEY_ID,
+    title: "She's Built for This Application",
+    description:
+      "Application for the She's Built for This leadership cohort — Oakland, CA, September 26 through November 7, 2026.",
     required: false,
   },
   "comptia-security-pre": {
@@ -180,6 +188,14 @@ export const PLATFORM_PUBLIC_SURVEYS: Record<string, SurveyConfig> = {
     title: "Home for the Summer Application",
     description:
       "Application for the Home for the Summer intensive — August 10–14, 2026, with NextEra Energy.",
+    required: false,
+  },
+  // Collected via /apply/sbft (custom form, not /survey/<id>).
+  [SBFT_APPLICATION_SURVEY_ID]: {
+    id: SBFT_APPLICATION_SURVEY_ID,
+    title: "She's Built for This Application",
+    description:
+      "Application for the She's Built for This leadership cohort — Oakland, CA, September 26 through November 7, 2026.",
     required: false,
   },
 };

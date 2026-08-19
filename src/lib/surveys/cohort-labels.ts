@@ -39,6 +39,7 @@ export const SURVEY_COHORT_DEFAULTS: Record<string, string> = {
   "security-plus-midpoint": "CompTIA Security+",
   "network-plus-post": "CompTIA Network+",
   "home-for-summer-application": "Home for the Summer",
+  "sbft-application": "She's Built for This",
 };
 
 // Resolve a cohort label from a student's track enrollments, preferring a

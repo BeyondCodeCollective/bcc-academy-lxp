@@ -1470,6 +1470,132 @@ const HFS_IMPACT_SURVEY: SurveyQuestion[] = [
   { type: "text", id: "improve", label: "What's one thing we should change or do better next time?", required: false },
 ];
 
+// ─── sbft-application (She's Built for This, BGC Oakland) ────────────────────
+// Single source of truth: the wizard imports SBFT_APPLICATION_PAGES directly
+// and SBFT_APPLICATION is derived from it, so the form and the analytics
+// schema cannot drift the way the HFS pair did.
+const SBFT_RELATIONSHIP_OPTIONS = [
+  "Mother",
+  "Father",
+  "Stepparent",
+  "Grandparent",
+  "Aunt or uncle",
+  "Older sibling",
+  "Legal guardian",
+  "Other",
+];
+
+// The standardized BGC demographic options (Race / Ethnicity / Gender Identity /
+// Economic Status) from the BGC Registration Forms inventory. Race and ethnicity
+// are separate questions here, which is the new standard and differs from the
+// combined `race_ethnicity` field on older BGC forms.
+const SBFT_RACE_OPTIONS = [
+  "Indigenous American",
+  "Asian",
+  "Black or African American",
+  "Native Hawaiian or Pacific Islander",
+  "White non-Hispanic",
+  "Middle Eastern or MENA",
+  "Prefer not to respond",
+];
+
+export const SBFT_APPLICATION_PAGES: {
+  title: string;
+  subtitle?: string;
+  questions: SurveyQuestion[];
+}[] = [
+  {
+    title: "Student Information",
+    subtitle:
+      "She's Built for This is for girls in 6th through 8th grade in the Oakland area.",
+    questions: [
+      { type: "text", id: "student_first_name", label: "Student's first name", required: true, short: true },
+      { type: "text", id: "student_last_name", label: "Student's last name", required: true, short: true },
+      { type: "radio", id: "grade", label: "What grade is she in?", options: ["6th", "7th", "8th"], required: true },
+      { type: "text", id: "city", label: "City", placeholder: "e.g. Oakland", required: true, short: true },
+      { type: "select", id: "state", label: "State", options: US_STATES, placeholder: "Select a state", required: true },
+      { type: "text", id: "zip_code", label: "ZIP code", placeholder: "e.g. 94607", zip: true, required: true },
+    ],
+  },
+  {
+    title: "Parent or Guardian",
+    subtitle: "Who should we contact about her participation?",
+    questions: [
+      { type: "text", id: "parent_full_name", label: "Parent or guardian's full name", required: true, short: true },
+      { type: "text", id: "parent_email", label: "Parent or guardian's email address", required: true, short: true },
+      { type: "text", id: "parent_phone", label: "Parent or guardian's phone number", placeholder: "e.g. (510) 555-0134", required: true, short: true },
+      { type: "select", id: "parent_relationship", label: "Relationship to participant", options: SBFT_RELATIONSHIP_OPTIONS, placeholder: "Select one", required: true },
+      { type: "text", id: "parent_relationship_other", label: "If you chose Other, what is your relationship to her?", required: false, short: true },
+      { type: "text", id: "dietary_restrictions", label: "Any dietary restrictions or allergies we should know about?", placeholder: "Leave blank if none.", required: false, short: true },
+    ],
+  },
+  {
+    title: "The Commitment",
+    subtitle:
+      "She's Built for This is an in-person cohort program, which means the girls who join move through the semester together. Kickoff is Saturday September 26, with sessions on October 3, 10, 17, 24 and 31, and Celebration Day on November 7 (families welcome). Every session runs 10 AM to 1 PM in Oakland, CA. Her commitment matters to the whole group.",
+    questions: [
+      { type: "radio", id: "attend_all_sessions", label: "Is she able to attend all mandatory Saturday sessions?", options: ["Yes", "No"], required: true },
+      {
+        type: "multi-select",
+        id: "sessions_available",
+        label: "Check every session she can attend.",
+        options: [
+          "All sessions",
+          "September 26 (Kickoff)",
+          "October 3",
+          "October 10",
+          "October 17",
+          "October 24",
+          "October 31",
+          "November 7 (Celebration Day)",
+        ],
+        required: true,
+      },
+    ],
+  },
+  {
+    title: "Get To Know You",
+    questions: [
+      {
+        type: "text",
+        id: "why_join",
+        label: "Why do you want to participate in She's Built for This, and what do you hope to gain from it?",
+        placeholder: "Two to three sentences, in her own words.",
+        required: true,
+      },
+    ],
+  },
+  {
+    title: "About You",
+    subtitle:
+      "BGC reports on who we serve to funders and partners. Every question here has a way to decline, and none of it affects her application.",
+    questions: [
+      { type: "multi-select", id: "race", label: "Race (select all that apply)", options: SBFT_RACE_OPTIONS, required: true },
+      { type: "radio", id: "ethnicity", label: "Ethnicity", options: ["Hispanic or Latino", "Not Hispanic or Latino", "Prefer not to respond"], required: true },
+      { type: "radio", id: "gender_identity", label: "Gender identity", options: ["Woman", "Man", "Transgender", "Non-binary/non-conforming", "Prefer not to respond"], required: true },
+      {
+        type: "radio",
+        id: "economic_background",
+        label: "How would you describe your socioeconomic background growing up?",
+        options: ["Low income", "Lower-middle income", "Middle income", "Upper-middle income", "High income", "Prefer not to say"],
+        required: true,
+      },
+      {
+        type: "radio",
+        id: "heard_about_program",
+        label: "How did you hear about She's Built for This?",
+        options: ["BGC email", "Social media", "Friend", "Community organization", "Other"],
+        required: true,
+      },
+      { type: "text", id: "heard_about_program_other", label: "If you chose Other, where did you hear about us?", required: false, short: true },
+    ],
+  },
+];
+
+const SBFT_APPLICATION: SurveyQuestion[] = SBFT_APPLICATION_PAGES.flatMap(
+  (page) => page.questions,
+);
+
 const SCHEMAS: Record<string, SurveyQuestion[]> = {
   "bcc-learner-intake": BCC_LEARNER_INTAKE,
   "comptia-security-pre": COMPTIA_SECURITY_PRE,
@@ -1490,6 +1616,7 @@ const SCHEMAS: Record<string, SurveyQuestion[]> = {
   // re-tagged; hfs-impact-survey is the instrument that actually ran.
   "hfs-pre-survey": HFS_PRE_SURVEY,
   "hfs-impact-survey": HFS_IMPACT_SURVEY,
+  "sbft-application": SBFT_APPLICATION,
 };
 
 export function getSurveySchema(surveyId: string): SurveyQuestion[] | null {
