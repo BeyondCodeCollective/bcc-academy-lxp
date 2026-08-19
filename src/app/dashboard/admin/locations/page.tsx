@@ -4,6 +4,7 @@ import { canViewInsights } from "@/lib/roles";
 import { createServiceClient } from "@/lib/supabase/server";
 import { stateFromZip } from "@/lib/zip-to-state";
 import { PageHeader } from "@/components/page-header";
+import { buttonClass } from "@/components/ui";
 import { LocationsView, type StateRow } from "./locations-view";
 
 // Participant locations across the Catalyst hub programs (Catalyst + Beyond
@@ -65,6 +66,12 @@ export default async function LocationsPage() {
         eyebrow="Insights"
         title="Participant Locations"
         subtitle="Where hub participants live, from the ZIP codes collected at signup and in surveys. Toggle states to build a count for a specific region."
+        actions={
+          <a href="/api/locations/csv" download className={buttonClass("secondary", "sm")}>
+            Download CSV
+          </a>
+        }
+        noWrap
       />
       <LocationsView
         states={states}
