@@ -21,6 +21,7 @@ import { BCC_INTAKE_SURVEY_ID } from "@/lib/surveys/platform";
 // Shared with the analytics schema so the form and the dashboard measure the
 // same statements, word for word.
 import {
+  SBFT_APPLICATION_PAGES,
   DIGITAL_EXPERIENCE_STATEMENTS,
   AI_EXPERIENCE_STATEMENTS,
   HFS_WORK_READINESS_STATEMENTS,
@@ -1854,6 +1855,11 @@ function getSurveyPages(surveyId: string, programSlug: string): SurveyPage[] {
   }
   if (surveyId === "home-for-summer-application") {
     return HOME_FOR_SUMMER_APPLICATION_PAGES;
+  }
+  // Pages live in lib/surveys/schemas.ts so the form and the analytics schema
+  // are the same objects, not two hand-kept copies.
+  if (surveyId === "sbft-application") {
+    return SBFT_APPLICATION_PAGES;
   }
   if (surveyId === "mid-program-spring-2026" && programSlug === "atg") {
     return ATG_MID_PROGRAM_PAGES;
