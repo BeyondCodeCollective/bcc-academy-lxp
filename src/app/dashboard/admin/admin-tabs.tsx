@@ -504,6 +504,7 @@ export function AdminTabs({
   lunchLearnRecordings = [],
   insightsData = null,
   switchablePrograms = [],
+  hiddenCourseCount = 0,
   analyticsData = null,
   analyticsCourse,
   coursesData = null,
@@ -551,6 +552,9 @@ export function AdminTabs({
   attendanceRates?: { held: number; attended: Record<string, number> } | null;
   /** Programs a super-admin can switch into, for the no-program empty state. */
   switchablePrograms?: { slug: string; name: string }[];
+  /** Courses the CURRENT program owns that are hidden. Non-zero means the
+   *  empty state is a hide/show state, not a program with no courses. */
+  hiddenCourseCount?: number;
   /** Survey Insights narrowed to the open course's roster; null off the course Surveys view. */
   /** Auth surveys with ≥1 response from the open course's students; null off track tabs. */
   trackAnsweredSurveyIds?: string[] | null;
@@ -577,6 +581,8 @@ export function AdminTabs({
   // tracks, no cohorts. They render a single empty-state pointer to
   // Survey Insights via the `insights` tab.
   const isDashboardless = tracks.length === 0 && cohorts.length === 0;
+  // Nothing visible, but the program does own courses — they're just hidden.
+  const allCoursesHidden = isDashboardless && hiddenCourseCount > 0;
   // Build tab list dynamically. The old "Program" Overview tab is gone —
   // it duplicated /dashboard/insights for super-admins and was a wasted
   // landing for managers. Admins now land directly on People (or first
@@ -1038,15 +1044,34 @@ export function AdminTabs({
          per-track to show. Surface the next useful destinations instead. */}
       {isDashboardless && (
         <div className="space-y-4">
+          {/* Two different empty states wear the same shape. A program with no
+             courses at all (the marketing apex) needs the program picker. A
+             program whose courses are ALL hidden needs Manage Courses — it
+             used to get the picker, which switched back into the same program,
+             which was still empty, so there was no way out of the loop and no
+             Manage button on the screen that replaced the real admin home. */}
           <PageHeader
             eyebrow="Admin"
-            title="No program selected"
+            title={allCoursesHidden ? "Every course here is hidden" : "No program selected"}
             subtitle={
-              canSwitchPrograms(userRole)
-                ? "This domain has no courses of its own. Choose a program to manage, or open Analytics for cross-program data."
-                : "This domain doesn't have a learner dashboard. Contact a super-admin to switch programs."
+              allCoursesHidden
+                ? `This program has ${hiddenCourseCount} ${hiddenCourseCount === 1 ? "course" : "courses"}, all currently hidden, so there's nothing to manage on this screen. Show one in Manage Courses to bring the admin home back.`
+                : canSwitchPrograms(userRole)
+                  ? "This domain has no courses of its own. Choose a program to manage, or open Analytics for cross-program data."
+                  : "This domain doesn't have a learner dashboard. Contact a super-admin to switch programs."
             }
           />
+          {allCoursesHidden && canManageStudents(userRole) && (
+            <div className="flex flex-wrap gap-2">
+              <a href="/dashboard/admin/programs" className={buttonClass("dark", "md")}>
+                Manage Courses
+                <span aria-hidden>&rarr;</span>
+              </a>
+              <a href="/dashboard/admin/programs/new" className={buttonClass("secondary", "md")}>
+                New course
+              </a>
+            </div>
+          )}
           {/* The picker lives HERE, not just in the user menu.
              This screen used to say "pick a program from the sidebar" — the
              sidebar switcher only renders when the current program HAS tracks,
