@@ -5,7 +5,7 @@ import { canSwitchPrograms, canManageRoles } from "@/lib/roles";
 import { PageHeader } from "@/components/page-header";
 import { LandingForm } from "../landing-form";
 import type { LandingFormInitial } from "../landing-form";
-import type { ScheduleDay, LandingPartner } from "@/lib/landing-pages";
+import type { ScheduleDay, LandingPartner, LandingSession, LandingSection, LandingInstructor } from "@/lib/landing-pages";
 import { DeleteLandingButton } from "../delete-landing-button";
 import { ManageMenu } from "../../manage-menu";
 
@@ -51,6 +51,14 @@ export default async function EditLandingPage({
     footerText: (data.footer_text as string | null) ?? "",
     metaTitle: (data.meta_title as string | null) ?? "",
     metaDescription: (data.meta_description as string | null) ?? "",
+    nativeEnroll: (data.native_enroll as boolean | null) ?? false,
+    sessions: ((data.sessions as LandingSession[] | null) ?? []).map((x) => ({ id: x.id, label: x.label })),
+    enrollCtaLabel: (data.enroll_cta_label as string | null) ?? "",
+    bodySections: (data.body_sections as LandingSection[] | null) ?? [],
+    instructor: (() => {
+      const i = data.instructor as LandingInstructor | null;
+      return { name: i?.name ?? "", role: i?.role ?? "", bio: i?.bio ?? "", photoUrl: i?.photoUrl ?? "" };
+    })(),
   };
 
   return (

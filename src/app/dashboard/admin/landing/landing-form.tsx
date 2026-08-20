@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { saveLandingPageAction, uploadLandingImageAction } from "./actions";
 import type { LandingPageInput } from "./actions";
-import type { ScheduleDay, LandingPartner } from "@/lib/landing-pages";
+import type { ScheduleDay, LandingPartner, LandingSession, LandingSection } from "@/lib/landing-pages";
 import { Field, fieldInput, buttonClass, Panel } from "@/components/ui";
 import { toSlug } from "@/lib/programs/slug";
 import { compressImage } from "@/lib/compress-image";
@@ -58,6 +58,12 @@ export function LandingForm({
   const [schedule, setSchedule] = useState<ScheduleDay[]>(
     initial.schedule.length ? initial.schedule : [],
   );
+  const [nativeEnroll, setNativeEnroll] = useState(initial.nativeEnroll);
+  const [sessions, setSessions] = useState<LandingSession[]>(initial.sessions);
+  const [enrollCtaLabel, setEnrollCtaLabel] = useState(initial.enrollCtaLabel);
+  const [bodySections, setBodySections] = useState<LandingSection[]>(initial.bodySections);
+  const [instructor, setInstructor] = useState(initial.instructor);
+  const [uploadingInstructor, setUploadingInstructor] = useState(false);
   const [secondaryCtaLabel, setSecondaryCtaLabel] = useState(initial.secondaryCtaLabel);
   const [secondaryCtaUrl, setSecondaryCtaUrl] = useState(initial.secondaryCtaUrl);
   const [partners, setPartners] = useState<PartnerDraft[]>(toDrafts(initial.partners));
@@ -80,6 +86,12 @@ export function LandingForm({
   }
   function updatePartner(i: number, patch: Partial<PartnerDraft>) {
     setPartners((prev) => prev.map((p, idx) => (idx === i ? { ...p, ...patch } : p)));
+  }
+  function updateSession(i: number, patch: Partial<LandingSession>) {
+    setSessions((prev) => prev.map((x, idx) => (idx === i ? { ...x, ...patch } : x)));
+  }
+  function updateSection(i: number, patch: Partial<LandingSection>) {
+    setBodySections((prev) => prev.map((x, idx) => (idx === i ? { ...x, ...patch } : x)));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -122,6 +134,11 @@ export function LandingForm({
           footerText,
           metaTitle,
           metaDescription,
+          nativeEnroll,
+          sessions,
+          enrollCtaLabel,
+          bodySections,
+          instructor,
         },
         originalSlug,
       );
@@ -270,6 +287,74 @@ export function LandingForm({
           />
         </Field>
 
+        <label className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            checked={nativeEnroll}
+            onChange={(e) => setNativeEnroll(e.target.checked)}
+            className="h-4 w-4 accent-[var(--primary)]"
+          />
+          <span className="text-sm text-ink">
+            Cohort sign-up form{" "}
+            <span className="text-ink-faint">
+              — the MASS-style form: name + email + cohort date, enrolls on the spot. Needs at
+              least one cohort date below.
+            </span>
+          </span>
+        </label>
+
+        {nativeEnroll && (
+          <div className="space-y-3 rounded-lg border border-rule p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-medium uppercase tracking-[0.1em] text-ink-soft">Cohort dates</p>
+              <button
+                type="button"
+                onClick={() => setSessions((p) => [...p, { id: "", label: "" }])}
+                className={buttonClass("secondary", "sm")}
+              >
+                + Add date
+              </button>
+            </div>
+            {sessions.length === 0 && (
+              <p className="text-sm text-ink-faint">Add the date the cohort starts — it shows as the pick-a-date option.</p>
+            )}
+            {sessions.map((x, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <input
+                  type="date"
+                  value={x.id}
+                  onChange={(e) => updateSession(i, { id: e.target.value })}
+                  className={`${fieldInput} flex-[0_0_38%] font-mono`}
+                />
+                <input
+                  type="text"
+                  placeholder="Cohort starts Saturday, August 29, 2026"
+                  value={x.label}
+                  onChange={(e) => updateSession(i, { label: e.target.value })}
+                  className={fieldInput}
+                />
+                <button
+                  type="button"
+                  onClick={() => setSessions((p) => p.filter((_, idx) => idx !== i))}
+                  className={`${buttonClass("ghost", "sm")} shrink-0`}
+                  aria-label="Remove cohort date"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+            <Field label="Button label" hint='e.g. "Enroll in MASS"'>
+              <input
+                type="text"
+                placeholder="Enroll"
+                value={enrollCtaLabel}
+                onChange={(e) => setEnrollCtaLabel(e.target.value)}
+                className={fieldInput}
+              />
+            </Field>
+          </div>
+        )}
+
         <Field
           label="Course"
           hint="Signups are enrolled in this course. Leave blank to use the page slug. If no course with this slug exists, one is created for you (set its schedule in Manage Courses)."
@@ -356,6 +441,124 @@ export function LandingForm({
             </div>
           ))}
         </div>
+      </Panel>
+
+      {/* ── Content sections ── */}
+      <Panel className="space-y-4 p-5">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-ink">Content sections</h2>
+          <button
+            type="button"
+            onClick={() => setBodySections((p) => [...p, { heading: "", body: "" }])}
+            className={buttonClass("secondary", "sm")}
+          >
+            + Add section
+          </button>
+        </div>
+        <p className="text-sm text-ink-faint">
+          Short blocks under the form — an accent heading and a paragraph, like MASS&apos;s
+          &ldquo;Why it matters&rdquo; and &ldquo;What you&apos;ll build&rdquo;.
+        </p>
+        <div className="space-y-4">
+          {bodySections.map((x, i) => (
+            <div key={i} className="rounded-lg border border-rule p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="Why it matters"
+                  value={x.heading}
+                  onChange={(e) => updateSection(i, { heading: e.target.value })}
+                  className={fieldInput}
+                />
+                <button
+                  type="button"
+                  onClick={() => setBodySections((p) => p.filter((_, idx) => idx !== i))}
+                  className={`${buttonClass("ghost", "sm")} shrink-0`}
+                  aria-label="Remove section"
+                >
+                  ✕
+                </button>
+              </div>
+              <textarea
+                rows={3}
+                placeholder="A few sentences. Line breaks are kept."
+                value={x.body}
+                onChange={(e) => updateSection(i, { body: e.target.value })}
+                className={`${fieldInput} resize-y`}
+              />
+            </div>
+          ))}
+        </div>
+      </Panel>
+
+      {/* ── Instructor ── */}
+      <Panel className="space-y-5 p-5">
+        <h2 className="text-sm font-semibold text-ink">Instructor</h2>
+        <p className="text-sm text-ink-faint">
+          The headshot + bio card at the bottom. Leave the name blank to hide it.
+        </p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="Name">
+            <input
+              type="text"
+              placeholder="Angel Aviles"
+              value={instructor.name}
+              onChange={(e) => setInstructor((p) => ({ ...p, name: e.target.value }))}
+              className={fieldInput}
+            />
+          </Field>
+          <Field label="Role" hint='e.g. "Your Coach"'>
+            <input
+              type="text"
+              placeholder="Your Coach"
+              value={instructor.role}
+              onChange={(e) => setInstructor((p) => ({ ...p, role: e.target.value }))}
+              className={fieldInput}
+            />
+          </Field>
+        </div>
+        <Field label="Bio">
+          <textarea
+            rows={3}
+            value={instructor.bio}
+            onChange={(e) => setInstructor((p) => ({ ...p, bio: e.target.value }))}
+            className={`${fieldInput} resize-y`}
+          />
+        </Field>
+        <Field label="Photo" hint="square headshot works best">
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              placeholder="https://…/headshot.jpg"
+              value={instructor.photoUrl}
+              onChange={(e) => setInstructor((p) => ({ ...p, photoUrl: e.target.value }))}
+              className={fieldInput}
+            />
+            <label className={`${buttonClass("secondary", "sm")} shrink-0 cursor-pointer`}>
+              {uploadingInstructor ? "Uploading…" : "Upload"}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="sr-only"
+                disabled={uploadingInstructor}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = "";
+                  if (!file) return;
+                  setUploadingInstructor(true);
+                  try {
+                    const fd = new FormData();
+                    fd.set("file", await compressImage(file));
+                    const res = await uploadLandingImageAction(fd);
+                    if (res.success) setInstructor((p) => ({ ...p, photoUrl: res.url }));
+                  } finally {
+                    setUploadingInstructor(false);
+                  }
+                }}
+              />
+            </label>
+          </div>
+        </Field>
       </Panel>
 
       {/* ── Secondary CTA ── */}
