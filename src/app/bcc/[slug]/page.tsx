@@ -6,6 +6,7 @@ import { CampEnrollForm } from "../_components/camp-enroll-form";
 import { CampEventbriteRegister } from "../_components/camp-eventbrite-register";
 import { HeroVideo } from "../_components/hero-video";
 import { CampHeaderCta } from "../_components/camp-header-cta";
+import { RichText } from "../_components/rich-text";
 
 export const dynamic = "force-dynamic";
 
@@ -112,12 +113,11 @@ export default async function CampLandingPage({
             </h1>
 
             {page.subhead && (
-              <p
+              <RichText
+                text={page.subhead}
                 className="mt-4 text-sm leading-relaxed"
-                style={{ color: `${INK}b3`, maxWidth: "38ch" }}
-              >
-                {page.subhead}
-              </p>
+                style={{ color: `${INK}b3`, maxWidth: "42ch" }}
+              />
             )}
 
             {/* Email form */}
@@ -195,12 +195,11 @@ export default async function CampLandingPage({
                     >
                       {section.heading}
                     </h2>
-                    <p
-                      className="mt-2 text-sm leading-relaxed whitespace-pre-line"
+                    <RichText
+                      text={section.body}
+                      className="mt-2 text-sm leading-relaxed"
                       style={{ color: `${INK}99` }}
-                    >
-                      {section.body}
-                    </p>
+                    />
                   </div>
                 ))}
               </div>

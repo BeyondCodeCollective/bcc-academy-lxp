@@ -246,7 +246,10 @@ export function LandingForm({
           />
         </Field>
 
-        <Field label="Subhead" hint="optional supporting paragraph">
+        <Field
+          label="Subhead"
+          hint="optional — blank line = new paragraph, lines starting with - become bullets, **text** = bold"
+        >
           <textarea
             rows={2}
             value={subhead}
@@ -481,7 +484,7 @@ export function LandingForm({
               </div>
               <textarea
                 rows={3}
-                placeholder="A few sentences. Line breaks are kept."
+                placeholder="A few sentences. Blank line = paragraph, - bullets, **bold**."
                 value={x.body}
                 onChange={(e) => updateSection(i, { body: e.target.value })}
                 className={`${fieldInput} resize-y`}
