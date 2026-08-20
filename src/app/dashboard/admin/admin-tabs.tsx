@@ -1057,11 +1057,14 @@ export function AdminTabs({
               allCoursesHidden
                 ? `This program has ${hiddenCourseCount} ${hiddenCourseCount === 1 ? "course" : "courses"}, all currently hidden, so there's nothing to manage on this screen. Show one in Manage Courses to bring the admin home back.`
                 : canSwitchPrograms(userRole)
-                  ? "This domain has no courses of its own. Choose a program to manage, or open Analytics for cross-program data."
+                  ? "This domain has no courses of its own. Open Manage Courses, or switch programs from your avatar menu."
                   : "This domain doesn't have a learner dashboard. Contact a super-admin to switch programs."
             }
           />
-          {allCoursesHidden && canManageStudents(userRole) && (
+          {/* Two buttons, nothing else. The program pills that used to sit here
+             duplicated the avatar-menu switcher and drowned the two actions
+             people actually came for (removed 2026-08-20 at Fonz's request). */}
+          {canManageStudents(userRole) && (
             <div className="flex flex-wrap gap-2">
               <a href="/dashboard/admin/programs" className={buttonClass("dark", "md")}>
                 Manage Courses
@@ -1071,35 +1074,6 @@ export function AdminTabs({
                 New course
               </a>
             </div>
-          )}
-          {/* The picker lives HERE, not just in the user menu.
-             This screen used to say "pick a program from the sidebar" — the
-             sidebar switcher only renders when the current program HAS tracks,
-             which on this domain it never does, so the instruction couldn't be
-             followed. The switcher does exist in the avatar menu, but sending
-             someone hunting for it on the one screen that's useless without it
-             is the same as not having one. */}
-          {switchablePrograms.length > 1 && (
-            <div className="flex flex-wrap gap-2">
-              {switchablePrograms.map((p) => (
-                <a
-                  key={p.slug}
-                  href={`/api/switch-program?slug=${encodeURIComponent(p.slug)}&next=${encodeURIComponent("/dashboard/admin")}`}
-                  className={buttonClass("secondary", "md")}
-                >
-                  {p.name}
-                </a>
-              ))}
-            </div>
-          )}
-          {canSwitchPrograms(userRole) && (
-            <a
-              href="/dashboard/insights"
-              className={buttonClass("dark", "md")}
-            >
-              View Analytics
-              <span aria-hidden>&rarr;</span>
-            </a>
           )}
         </div>
       )}
