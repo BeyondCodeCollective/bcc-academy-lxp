@@ -64,6 +64,7 @@ export function LandingForm({
   const [bodySections, setBodySections] = useState<LandingSection[]>(initial.bodySections);
   const [instructor, setInstructor] = useState(initial.instructor);
   const [uploadingInstructor, setUploadingInstructor] = useState(false);
+  const [uploadingPartner, setUploadingPartner] = useState<number | null>(null);
   const [secondaryCtaLabel, setSecondaryCtaLabel] = useState(initial.secondaryCtaLabel);
   const [secondaryCtaUrl, setSecondaryCtaUrl] = useState(initial.secondaryCtaUrl);
   const [partners, setPartners] = useState<PartnerDraft[]>(toDrafts(initial.partners));
@@ -642,14 +643,40 @@ export function LandingForm({
 
               {p.kind === "image" ? (
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <Field label="Image URL">
-                    <input
-                      type="text"
-                      placeholder="https://…/logo.png"
-                      value={p.src}
-                      onChange={(e) => updatePartner(i, { src: e.target.value })}
-                      className={fieldInput}
-                    />
+                  <Field label="Image">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        placeholder="https://…/logo.png"
+                        value={p.src}
+                        onChange={(e) => updatePartner(i, { src: e.target.value })}
+                        className={fieldInput}
+                      />
+                      <label className={`${buttonClass("secondary", "sm")} shrink-0 cursor-pointer`}>
+                        {uploadingPartner === i ? "Uploading…" : "Upload"}
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/svg+xml"
+                          className="sr-only"
+                          disabled={uploadingPartner !== null}
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            e.target.value = "";
+                            if (!file) return;
+                            setUploadingPartner(i);
+                            try {
+                              const fd = new FormData();
+                              // SVG logos pass through untouched; raster logos compress.
+                              fd.set("file", file.type === "image/svg+xml" ? file : await compressImage(file));
+                              const res = await uploadLandingImageAction(fd);
+                              if (res.success) updatePartner(i, { src: res.url });
+                            } finally {
+                              setUploadingPartner(null);
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
                   </Field>
                   <Field label="Alt text">
                     <input

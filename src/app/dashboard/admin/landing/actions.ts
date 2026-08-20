@@ -288,13 +288,14 @@ export async function uploadLandingImageAction(
     "image/jpeg": "jpg",
     "image/png": "png",
     "image/webp": "webp",
+    "image/svg+xml": "svg",
     "video/mp4": "mp4",
     "video/webm": "webm",
     "video/quicktime": "mov",
   };
   const ext = types[file.type];
   if (!ext) {
-    return { success: false, error: "Use a JPG, PNG, or WebP image, or an MP4/WebM/MOV video." };
+    return { success: false, error: "Use a JPG, PNG, WebP, or SVG image, or an MP4/WebM/MOV video." };
   }
   const isVideo = file.type.startsWith("video/");
   // Video gets a higher cap: it can't be compressed in the browser the way
