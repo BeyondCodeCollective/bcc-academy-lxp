@@ -30,6 +30,8 @@ type Reg = {
   source: Source;
   landingSlug: string | null;
   inviteToken: string | null;
+  /** Only landing signups carry attribution; every other source is null. */
+  heardAbout: string | null;
   at: string;
 };
 
@@ -58,7 +60,7 @@ export default async function SignupsPage({
     await Promise.all([
       svc
         .from("landing_signups")
-        .select("slug, track_slug, email, name, invite_token, created_at")
+        .select("slug, track_slug, email, name, invite_token, heard_about, created_at")
         .order("created_at", { ascending: false })
         .limit(5000),
       svc
@@ -92,6 +94,7 @@ export default async function SignupsPage({
       ...win,
       name: win.name || lose.name,
       inviteToken: win.inviteToken || lose.inviteToken,
+      heardAbout: win.heardAbout || lose.heardAbout,
       at: r.at < prev.at ? r.at : prev.at,
     });
   };
@@ -101,6 +104,7 @@ export default async function SignupsPage({
     email: string;
     name: string | null;
     invite_token: string | null;
+    heard_about: string | null;
     created_at: string;
   }[]) {
     add({
@@ -110,6 +114,7 @@ export default async function SignupsPage({
       source: "landing",
       landingSlug: r.slug,
       inviteToken: r.invite_token,
+      heardAbout: r.heard_about,
       at: r.created_at,
     });
   }
@@ -120,6 +125,7 @@ export default async function SignupsPage({
       track: r.track_slug,
       source: "eventbrite",
       landingSlug: null,
+      heardAbout: null,
       inviteToken: r.invite_token,
       at: r.created_at,
     });
@@ -132,6 +138,7 @@ export default async function SignupsPage({
       track: r.track_slug,
       source: "invite",
       landingSlug: null,
+      heardAbout: null,
       inviteToken: r.token,
       at: r.created_at,
     });
@@ -143,6 +150,7 @@ export default async function SignupsPage({
       track: r.track_slug,
       source: "allowlist",
       landingSlug: null,
+      heardAbout: null,
       inviteToken: null,
       at: r.added_at,
     });
@@ -271,7 +279,7 @@ export default async function SignupsPage({
             {internalCount > 0 && ` · ${internalCount} internal test${internalCount === 1 ? "" : "s"} shown but not counted`}
           </p>
 
-          <DataTable columns={["Name", "Email", "Signed up", "Via", "Status", ""]}>
+          <DataTable columns={["Name", "Email", "Signed up", "Via", "Heard about", "Status", ""]}>
             {staged.map(({ r, stage, internal, name }) => (
               <tr key={r.email} className={internal ? "text-ink-faint" : "text-ink"}>
                 <td className="px-4 py-3 align-top font-medium">
@@ -286,6 +294,9 @@ export default async function SignupsPage({
                 <td className="px-4 py-3 align-top text-xs text-ink-soft whitespace-nowrap">{fmt(r.at)}</td>
                 <td className="px-4 py-3 align-top text-xs text-ink-soft whitespace-nowrap">
                   {r.source === "landing" && r.landingSlug ? `/bcc/${r.landingSlug}` : SOURCE_LABEL[r.source]}
+                </td>
+                <td className="px-4 py-3 align-top text-xs text-ink-soft">
+                  {r.heardAbout || <span className="text-ink-faint">&mdash;</span>}
                 </td>
                 <td className="px-4 py-3 align-top">
                   {stage === "enrolled" ? (

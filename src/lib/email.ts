@@ -65,14 +65,29 @@ type InviteEmailContent = { subject: string; text: string; html: string };
 
 /** Shared dark-header shell. The header shows the program/org brand (white-
  *  label — BCC Academy is the infrastructure, not the brand on student email). */
+// Absolute, production origin for anything an email has to load or link to.
+// Never the request origin: a preview deployment is auth-gated, so a logo
+// sourced from one renders as a broken image in the recipient's inbox forever.
+const PUBLIC_ORIGIN = "https://bccacademy.io";
+const BCC_SITE_URL = "https://www.wearebcc.org";
+
 function inviteShell(brand: string, bodyHtml: string): string {
   return `
 <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:520px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;">
-  <div style="background:#1a1a1a;padding:28px 24px;text-align:center;">
+  <div style="background:#1a1a1a;padding:24px;text-align:center;" bgcolor="#1a1a1a">
+    <img src="${PUBLIC_ORIGIN}/images/bcc/bcc-logo-email.png" alt="" width="40" height="40" style="display:block;margin:0 auto 12px;border:0;outline:none;text-decoration:none;" />
     <p style="margin:0;font-size:24px;font-weight:700;letter-spacing:-0.02em;text-transform:uppercase;color:#ffffff;">${brand}</p>
   </div>
   <div style="padding:32px 24px;">
 ${bodyHtml}
+  </div>
+  <div style="padding:20px 24px 24px;border-top:1px solid #ededed;">
+    <p style="margin:0 0 6px;font-size:12px;line-height:1.55;color:#888;">
+      <strong style="color:#555;">Beyond Code Collective</strong> is a place-based nonprofit bringing families, working adults, and community leaders into direct relationship with AI and emerging tech, at any age and any starting point.
+    </p>
+    <p style="margin:0;font-size:12px;color:#888;">
+      <a href="${BCC_SITE_URL}" style="color:#1a1a1a;font-weight:600;text-decoration:none;">wearebcc.org</a>
+    </p>
   </div>
 </div>`;
 }
@@ -375,7 +390,10 @@ ${inviteLink}
 
 You'll see a countdown to kickoff — come back here when we start.${cal ? `\n\nAdd to Google Calendar: ${cal.google}\nAdd to Apple/iCal: ${cal.ics}` : ""}
 
-Questions? Reply to this email or contact info@bccacademy.io.`,
+Questions? Reply to this email or contact info@bccacademy.io.
+
+—
+Beyond Code Collective brings families, working adults, and community leaders into direct relationship with AI and emerging tech. More at https://www.wearebcc.org`,
     html: inviteShell(
       programName,
       `    <p style="margin:0 0 6px;font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#16a34a;">✓ You're registered</p>
