@@ -5,14 +5,14 @@ import { createServiceClient, isSupabaseConfigured } from "@/lib/supabase/server
 import { getSessionContext } from "@/lib/auth/session";
 import { AdminTabs } from "./admin-tabs";
 import type { Student } from "@/lib/types";
-import { getProgram, listDynamicPrograms } from "@/lib/programs/server";
+import { getProgram, getProgramWithOverrides, listDynamicPrograms } from "@/lib/programs/server";
 import type { StudentTrackRow, SurveyStatsRow, InstructorTrackRow, PublicSurveyStatsRow, BCCSurveyResponse } from "./actions";
 import { getPublicSurveyStats, getPublicSurveyCountsByType } from "./actions";
 import { canAccessAdminPanel, canManageStudents, canSwitchPrograms, canViewInsights, assignableRoles } from "@/lib/roles";
 import { isMasterEmail } from "@/lib/auth/admins";
 import { getProgramGrants, allowedProgramIds, allowedTrackSlugs, getGrantedProgramSlugs } from "@/lib/auth/program-access";
 import { PLATFORM_AUTH_SURVEYS, PLATFORM_PUBLIC_SURVEYS } from "@/lib/surveys/platform";
-import { getHomeProgramForTrack, getJoinablePrograms } from "@/lib/programs";
+import { getEveryProgramConfig, getHomeProgramForTrack, getJoinablePrograms } from "@/lib/programs";
 import { getHiddenTrackSlugs } from "@/lib/programs/hidden";
 import type { SurveyConfig } from "@/lib/programs/types";
 import { buildInsightsData } from "@/lib/analytics/insights-data";
@@ -791,12 +791,33 @@ export default async function AdminPage({
   const hiddenSlugs = await getHiddenTrackSlugs();
   const visibleTracks = ownTracks.filter((t) => !hiddenSlugs.has(t.slug));
 
-  // How many of THIS program's courses are hidden. When it accounts for all of
-  // them, the admin home has nothing to show and used to fall through to the
-  // "No program selected" picker — which switches back into the same program,
-  // which is still empty. That loop had no Manage Courses link in it, so a
-  // super-admin could not reach the toggle that would undo it.
-  const hiddenCourseCount = ownTracks.length - visibleTracks.length;
+  // How many of THIS program's courses are hidden — drives the "every course is
+  // hidden" empty state instead of the "no program selected" picker.
+  //
+  // It canNOT be derived from ownTracks/visibleTracks: getProgram() has ALREADY
+  // dropped hidden courses, so both lists arrive hidden-free and the difference
+  // is always 0 (which is also why the visibleTracks filter above is a no-op).
+  // Re-resolve the program unfiltered instead, and only when there's nothing
+  // left to show, so a normal admin home pays nothing for it.
+  //
+  // Guarded to statically-configured programs: getProgramBySlug falls back to
+  // Catalyst for an unknown slug, so an admin-created org would otherwise be
+  // told every course is hidden and handed Catalyst's count.
+  let hiddenCourseCount = 0;
+  if (
+    visibleTracks.length === 0 &&
+    getEveryProgramConfig().some((p) => p.slug === program.slug)
+  ) {
+    const unfiltered = await getProgramWithOverrides(program.slug);
+    const unfilteredOwn =
+      program.slug === "catalyst"
+        ? unfiltered.tracks.filter((t) => {
+            const home = getHomeProgramForTrack(t.slug);
+            return !home || home.slug === "catalyst";
+          })
+        : unfiltered.tracks;
+    hiddenCourseCount = unfilteredOwn.filter((t) => hiddenSlugs.has(t.slug)).length;
+  }
 
   // A course-scoped grant confines someone to the named courses inside a
   // program they don't otherwise belong to — the same narrowing instructors
