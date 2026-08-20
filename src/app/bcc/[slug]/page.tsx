@@ -120,8 +120,80 @@ export default async function CampLandingPage({
               />
             )}
 
-            {/* Email form */}
-            <div className="mt-8">
+            {/* The form moved below the content, so the hero keeps a way down
+               to it for anyone who arrives already decided. An anchor, not a
+               second form: one signup on the page, one place it lives.
+               (The header CTA is no help here — it only renders for people who
+               are already signed in.) */}
+            <div className="mt-7">
+              <a
+                href="#signup"
+                className="inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold text-white"
+                style={{ background: accent }}
+              >
+                {page.enrollCtaLabel ?? page.applyCtaLabel ?? "Sign up"}
+                <span aria-hidden="true">↓</span>
+              </a>
+            </div>
+
+            {/* Schedule */}
+            {page.schedule.length > 0 && (
+              <>
+                <div className="mt-10 mb-7" style={{ height: "1px", background: `${INK}12` }} />
+                <div className="space-y-4">
+                  {page.schedule.map((item) => (
+                    <div key={item.label} className="flex items-baseline gap-5">
+                      <span
+                        // The dates were ink at ~27% alpha — nearly invisible
+                        // beside the session titles, on a page whose whole job
+                        // is telling someone which five days to hold.
+                        className="text-xs font-bold uppercase tracking-[0.1em] shrink-0"
+                        style={{ color: `${INK}`, minWidth: "104px" }}
+                      >
+                        {item.label}
+                      </span>
+                      <span className="font-semibold" style={{ color: `${INK}`, fontSize: "16px" }}>
+                        {item.title}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* Detailed content — overview, what you'll learn, etc. */}
+            {page.bodySections.length > 0 && (
+              // Each section is its own band with a rule above it, so "What
+              // you'll do" and "Who this is for" read as separate answers
+              // instead of one wall of grey text under tiny headings.
+              <div className="mt-12">
+                {page.bodySections.map((section, i) => (
+                  <div
+                    key={i}
+                    className={i === 0 ? "" : "mt-9 pt-9"}
+                    style={i === 0 ? undefined : { borderTop: `1px solid ${INK}12` }}
+                  >
+                    <h2
+                      className="text-[11px] font-bold uppercase tracking-[0.16em]"
+                      style={{ color: accent }}
+                    >
+                      {section.heading}
+                    </h2>
+                    <RichText
+                      text={section.body}
+                      className="mt-3 text-[15px] leading-[1.7]"
+                      style={{ color: `${INK}c4` }}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Signup — deliberately BELOW the content. Someone landing cold
+               needs to know what the thing is before being asked for an email.
+               The hero anchor above jumps anyone who is already sold. */}
+            <div id="signup" className="mt-12 pt-9" style={{ borderTop: `1px solid ${INK}12` }}>
+
               {page.formLabel && (
                 <p
                   className="mb-2.5 text-[11px] font-medium uppercase tracking-[0.14em]"
@@ -158,52 +230,6 @@ export default async function CampLandingPage({
                 <CampEmailForm ink={INK} accent={accent} trackSlug={page.trackSlug} />
               )}
             </div>
-
-            {/* Schedule */}
-            {page.schedule.length > 0 && (
-              <>
-                <div className="mt-10 mb-7" style={{ height: "1px", background: `${INK}12` }} />
-                <div className="space-y-4">
-                  {page.schedule.map((item) => (
-                    <div key={item.label} className="flex items-baseline gap-5">
-                      <span
-                        // The dates were ink at ~27% alpha — nearly invisible
-                        // beside the session titles, on a page whose whole job
-                        // is telling someone which five days to hold.
-                        className="text-xs font-bold uppercase tracking-[0.1em] shrink-0"
-                        style={{ color: `${INK}`, minWidth: "104px" }}
-                      >
-                        {item.label}
-                      </span>
-                      <span className="font-semibold" style={{ color: `${INK}`, fontSize: "16px" }}>
-                        {item.title}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-
-            {/* Detailed content — overview, what you'll learn, etc. */}
-            {page.bodySections.length > 0 && (
-              <div className="mt-10 space-y-6">
-                {page.bodySections.map((section, i) => (
-                  <div key={i}>
-                    <h2
-                      className="text-[13px] font-semibold uppercase tracking-[0.12em]"
-                      style={{ color: accent }}
-                    >
-                      {section.heading}
-                    </h2>
-                    <RichText
-                      text={section.body}
-                      className="mt-2 text-sm leading-relaxed"
-                      style={{ color: `${INK}99` }}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
 
             {/* Instructor */}
             {page.instructor && (

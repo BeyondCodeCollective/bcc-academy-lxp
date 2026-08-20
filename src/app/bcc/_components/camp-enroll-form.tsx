@@ -4,6 +4,20 @@ import { useState } from "react";
 import type { LandingSession } from "@/lib/landing-pages";
 import { enrollInCourse } from "@/app/bcc/[slug]/enroll-action";
 
+/** Kept in one place so the landing form, the action, and the admin column
+ *  all speak the same vocabulary. Free text would make this unreportable. */
+export const HEARD_ABOUT_OPTIONS = [
+  "Instagram or social media",
+  "Email from Beyond Code Collective",
+  "Friend or family",
+  "Community organization",
+  "School or university",
+  "Employer or coworker",
+  "Search engine",
+  "Event or workshop",
+  "Other",
+] as const;
+
 /**
  * Native course enrollment — pick a date (if the course has sessions), enter
  * name + email, and get enrolled with a magic access link. Replaces the
@@ -25,6 +39,7 @@ export function CampEnrollForm({
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [zip, setZip] = useState("");
+  const [heardAbout, setHeardAbout] = useState("");
   const [sessionId, setSessionId] = useState(sessions[0]?.id ?? "");
   const [status, setStatus] = useState<"idle" | "loading" | "sent" | "error">("idle");
   const [enrolled, setEnrolled] = useState(true);
@@ -41,6 +56,7 @@ export function CampEnrollForm({
       name,
       email: email.trim(),
       zipCode: zip.trim(),
+      heardAbout,
       sessionId: sessions.length > 0 ? sessionId : null,
       origin: window.location.origin,
     });
@@ -127,6 +143,27 @@ export function CampEnrollForm({
         className={inputStyle}
         style={{ borderColor: `${ink}22`, color: `${ink}` }}
       />
+      {/* Attribution, asked at the moment of intent rather than in a survey
+         later. Required with an explicit opt-out so the answer means something
+         instead of skewing to whoever bothered. */}
+      <select
+        required
+        aria-label="How did you hear about us?"
+        value={heardAbout}
+        onChange={(e) => setHeardAbout(e.target.value)}
+        disabled={status === "loading"}
+        className={inputStyle}
+        style={{ borderColor: `${ink}22`, color: heardAbout ? ink : `${ink}80` }}
+      >
+        <option value="" disabled>
+          How did you hear about us?
+        </option>
+        {HEARD_ABOUT_OPTIONS.map((o) => (
+          <option key={o} value={o}>
+            {o}
+          </option>
+        ))}
+      </select>
       {error && <p className="text-sm text-red-600">{error}</p>}
       <button
         type="submit"
