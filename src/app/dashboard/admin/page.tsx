@@ -791,6 +791,13 @@ export default async function AdminPage({
   const hiddenSlugs = await getHiddenTrackSlugs();
   const visibleTracks = ownTracks.filter((t) => !hiddenSlugs.has(t.slug));
 
+  // How many of THIS program's courses are hidden. When it accounts for all of
+  // them, the admin home has nothing to show and used to fall through to the
+  // "No program selected" picker — which switches back into the same program,
+  // which is still empty. That loop had no Manage Courses link in it, so a
+  // super-admin could not reach the toggle that would undo it.
+  const hiddenCourseCount = ownTracks.length - visibleTracks.length;
+
   // A course-scoped grant confines someone to the named courses inside a
   // program they don't otherwise belong to — the same narrowing instructors
   // get from their assignments, just sourced from the grant.
@@ -872,6 +879,7 @@ export default async function AdminPage({
         lunchLearnRecordings={lunchLearnRecordings}
         insightsData={insightsData}
         switchablePrograms={switchablePrograms}
+        hiddenCourseCount={hiddenCourseCount}
         analyticsData={analyticsData}
         analyticsCourse={analyticsCourse}
         coursesData={coursesData}
