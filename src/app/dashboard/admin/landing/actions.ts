@@ -8,7 +8,7 @@ import { hasCapability } from "@/lib/roles";
 import { toSlug } from "@/lib/programs/slug";
 import { getEveryProgramConfig } from "@/lib/programs";
 import { humanizeSlug } from "@/lib/utils";
-import type { ScheduleDay, LandingPartner } from "@/lib/landing-pages";
+import type { ScheduleDay, LandingPartner, LandingSession, LandingSection } from "@/lib/landing-pages";
 
 async function requireSuperAdmin() {
   const supabase = await createClient();
@@ -52,6 +52,14 @@ export type LandingPageInput = {
   footerText: string;
   metaTitle: string;
   metaDescription: string;
+  /** MASS-style native enrollment: pick-a-cohort form instead of the bare email box. */
+  nativeEnroll: boolean;
+  /** Cohort dates offered by the native form. */
+  sessions: LandingSession[];
+  enrollCtaLabel: string;
+  /** Detailed blocks under the form ("Why it matters", "What you'll build"). */
+  bodySections: LandingSection[];
+  instructor: { name: string; role: string; bio: string; photoUrl: string };
 };
 
 export type SaveLandingResult =
@@ -88,6 +96,24 @@ export async function saveLandingPageAction(
   const schedule: ScheduleDay[] = (input.schedule ?? [])
     .map((s) => ({ label: s.label.trim(), title: s.title.trim() }))
     .filter((s) => s.label || s.title);
+
+  const sessions: LandingSession[] = (input.sessions ?? [])
+    .map((x) => ({ id: x.id.trim(), label: x.label.trim() }))
+    .filter((x) => x.id && x.label);
+
+  const bodySections: LandingSection[] = (input.bodySections ?? [])
+    .map((x) => ({ heading: x.heading.trim(), body: x.body.trim() }))
+    .filter((x) => x.heading && x.body);
+
+  const instructorName = input.instructor?.name.trim() ?? "";
+  const instructor = instructorName
+    ? {
+        name: instructorName,
+        role: trimToNull(input.instructor.role),
+        bio: input.instructor.bio.trim(),
+        photoUrl: trimToNull(input.instructor.photoUrl),
+      }
+    : null;
 
   const partners: LandingPartner[] = (input.partners ?? [])
     .map((p): LandingPartner | null => {
@@ -147,6 +173,11 @@ export async function saveLandingPageAction(
     footer_text: trimToNull(input.footerText),
     meta_title: trimToNull(input.metaTitle),
     meta_description: trimToNull(input.metaDescription),
+    native_enroll: input.nativeEnroll && sessions.length > 0,
+    sessions,
+    enroll_cta_label: trimToNull(input.enrollCtaLabel),
+    body_sections: bodySections,
+    instructor,
     updated_at: new Date().toISOString(),
   };
 
