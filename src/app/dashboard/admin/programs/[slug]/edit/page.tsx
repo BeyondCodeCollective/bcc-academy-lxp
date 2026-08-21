@@ -5,9 +5,15 @@ import { getProgramWithOverrides, resolveHomeProgramSlug, fetchDynamicProgram } 
 import { hasTsConfigSlug } from "@/lib/programs";
 import { EditCourseForm } from "./edit-course-form";
 import { PageHeader } from "@/components/page-header";
+import { COHORT_TIME_ZONE } from "@/lib/utils";
 import { ManageMenu } from "../../../manage-menu";
 
 export const dynamic = "force-dynamic";
+
+/** Today in the cohort timezone as YYYY-MM-DD, for the empty-schedule default. */
+function todayInEasternISO(): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: COHORT_TIME_ZONE });
+}
 
 export default async function EditCoursePage({
   params,
@@ -61,7 +67,13 @@ export default async function EditCoursePage({
           initialSessionsPerWeek={track.sessionsPerWeek}
           initialPhase={track.phase ?? "core"}
           initialCoverImageUrl={track.coverImageUrl ?? ""}
-          initialFirstDate={firstDated?.date ?? ""}
+          // Empty defaults to today rather than a blank year. A blank one is
+          // how a course got stamped 2024: the admin typed the month and day,
+          // the year came from somewhere else, and a program starting in
+          // September 2026 pinned itself to "Week 7 of 7" because it had
+          // apparently ended two years ago.
+          initialFirstDate={firstDated?.date ?? todayInEasternISO()}
+          todayIso={todayInEasternISO()}
           initialTime={firstDated?.time ?? ""}
           initialDuration={firstDated?.durationMinutes ? String(firstDated.durationMinutes) : ""}
         />

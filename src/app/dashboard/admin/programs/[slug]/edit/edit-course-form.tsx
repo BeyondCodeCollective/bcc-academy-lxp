@@ -25,6 +25,7 @@ export function EditCourseForm({
   initialPhase,
   initialCoverImageUrl = "",
   initialFirstDate = "",
+  todayIso,
   initialTime = "",
   initialDuration = "",
 }: {
@@ -39,6 +40,9 @@ export function EditCourseForm({
   initialCoverImageUrl?: string;
   /** First dated unit, YYYY-MM-DD. Empty = no schedule set yet. */
   initialFirstDate?: string;
+  /** Today in the cohort timezone, resolved on the server so the past-date
+   *  check can't disagree between render and hydration. */
+  todayIso: string;
   /** "HH:MM" ET wall clock from the first dated unit. */
   initialTime?: string;
   initialDuration?: string;
@@ -57,6 +61,9 @@ export function EditCourseForm({
   // Schedule section — separate save so a schedule mistake can't block a
   // name edit and vice versa.
   const [firstDate, setFirstDate] = useState(initialFirstDate);
+  // Compared as YYYY-MM-DD strings, which sort chronologically, so no Date
+  // parsing and no timezone to get wrong.
+  const firstDateIsPast = !!firstDate && firstDate < todayIso;
   const [time, setTime] = useState(initialTime);
   const [duration, setDuration] = useState(initialDuration);
   const [schedPending, setSchedPending] = useState(false);
@@ -273,6 +280,16 @@ export function EditCourseForm({
             onChange={(e) => setFirstDate(e.target.value)}
             className={fieldInput}
           />
+          {firstDateIsPast && (
+            // Not a block: backfilling a cohort that already ran is legitimate.
+            // But a course whose first session is in the past computes its
+            // current week from that date, so a mistyped year reads as
+            // "Week 7 of 7" on a program that hasn't started.
+            <p className="mt-1.5 text-xs text-amber-700">
+              That date is in the past. Check the year — a past start date makes
+              the course look finished.
+            </p>
+          )}
         </Field>
         <Field label="Start time (ET)">
           <input
