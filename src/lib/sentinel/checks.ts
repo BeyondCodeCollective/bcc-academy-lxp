@@ -23,11 +23,20 @@ export type SentinelFix =
     }
   | { kind: "unenroll"; label: string; studentId: string; trackSlug: string };
 
+/** One reported item inside a finding.
+ *
+ *  `label` is what a human reads and often embeds a live count ("3 session(s)
+ *  held"). `key` is the STABLE identity of the underlying issue, which is what
+ *  a dismissal is recorded against — keying a dismissal on the label would
+ *  un-dismiss the row the moment one of those numbers moved. Checks whose label
+ *  carries no volatile number can pass a plain string and get key === label. */
+export type SentinelRow = { label: string; key: string };
+
 export type SentinelFinding = {
   check: string;
   severity: SentinelSeverity;
   message: string;
-  rows: string[];
+  rows: SentinelRow[];
   fixes?: SentinelFix[];
 };
 
@@ -68,9 +77,16 @@ export async function runSentinelChecks(svc: Svc): Promise<SentinelFinding[]> {
     check: string,
     severity: SentinelSeverity,
     message: string,
-    found: string[],
+    found: (string | SentinelRow)[],
     fixes?: SentinelFix[],
-  ) => findings.push({ check, severity, message, rows: found, fixes });
+  ) =>
+    findings.push({
+      check,
+      severity,
+      message,
+      rows: found.map((r) => (typeof r === "string" ? { label: r, key: r } : r)),
+      fixes,
+    });
 
   const programs = await rows<{ id: string; slug: string }>(
     svc.from("programs").select("id, slug").limit(LIMIT),
@@ -87,16 +103,23 @@ export async function runSentinelChecks(svc: Svc): Promise<SentinelFinding[]> {
       return owner && slugOf[r.program_id ?? ""] !== owner;
     });
     if (bad.length) {
-      const byForm: Record<string, number> = {};
+      // Keyed on (form, program it was filed under) so the row survives the
+      // count moving; the count lives in the label only.
+      const byForm: Record<string, { label: string; n: number }> = {};
       for (const r of bad) {
-        const k = `${r.survey_type}: filed under ${slugOf[r.program_id ?? ""] ?? "?"}, owned by ${FORM_OWNERS[r.survey_type]}`;
-        byForm[k] = (byForm[k] ?? 0) + 1;
+        const filedUnder = slugOf[r.program_id ?? ""] ?? "?";
+        const k = `${r.survey_type}|${filedUnder}`;
+        byForm[k] ??= {
+          label: `${r.survey_type}: filed under ${filedUnder}, owned by ${FORM_OWNERS[r.survey_type]}`,
+          n: 0,
+        };
+        byForm[k].n += 1;
       }
       report(
         `misfiled-responses (${table})`,
         "high",
         "A response is filed under the respondent's program instead of the form's owner — it shows up in Insights for a program that doesn't own that form.",
-        Object.entries(byForm).map(([k, n]) => `${n} × ${k}`),
+        Object.entries(byForm).map(([key, v]) => ({ label: `${v.n} × ${v.label}`, key })),
       );
     }
   }
@@ -137,7 +160,9 @@ export async function runSentinelChecks(svc: Svc): Promise<SentinelFinding[]> {
       "staff-enrolled-as-learners",
       "medium",
       "Staff hold enrollments, which inflates roster and completion-rate denominators. Fine if intentional — the analytics exclude them — but every one is a course whose 'enrolled' count reads high in any surface that forgets to filter.",
-      Object.entries(byTrack).map(([t, e]) => `${t}: ${e.join(", ")}`),
+      // Keyed on the course alone: dismissing this says "staff on this course
+      // is intentional", which stays true when another staff member is added.
+      Object.entries(byTrack).map(([t, e]) => ({ label: `${t}: ${e.join(", ")}`, key: t })),
       staffEnrolled.map((e) => ({
         kind: "unenroll" as const,
         label: `Unenroll ${personById[e.student_id].email} from ${e.track_slug}`,
@@ -178,7 +203,7 @@ export async function runSentinelChecks(svc: Svc): Promise<SentinelFinding[]> {
         const held = new Set(
           attendance.filter((a) => a.track === t).map((a) => `${a.week_number}-${a.session_number}`),
         ).size;
-        return `${t}: ${held} session(s) held, 0 certificates`;
+        return { label: `${t}: ${held} session(s) held, 0 certificates`, key: t };
       }),
     );
   }
@@ -297,9 +322,11 @@ export async function runSentinelChecks(svc: Svc): Promise<SentinelFinding[]> {
       const n = enrollments.filter(
         (e) => e.track_slug === h.track_slug && learnerIds.has(e.student_id),
       ).length;
-      return n > 0 ? `${h.track_slug}: ${n} enrolled learner(s)` : null;
+      return n > 0
+        ? { label: `${h.track_slug}: ${n} enrolled learner(s)`, key: h.track_slug }
+        : null;
     })
-    .filter((x): x is string => x !== null);
+    .filter((x): x is SentinelRow => x !== null);
   if (hiddenWithLearners.length) {
     report(
       "hidden-course-with-learners",
@@ -321,7 +348,7 @@ export async function runSentinelChecks(svc: Svc): Promise<SentinelFinding[]> {
       "Enrollments point at a slug with no track_overrides row. Harmless if the course is defined in TypeScript; a leak if it was deleted.",
       unknown.map((s) => {
         const n = enrollments.filter((e) => e.track_slug === s).length;
-        return `${s}: ${n} enrollment(s)`;
+        return { label: `${s}: ${n} enrollment(s)`, key: s };
       }),
     );
   }
@@ -352,7 +379,12 @@ export async function runSentinelChecks(svc: Svc): Promise<SentinelFinding[]> {
       "upcoming-course-empty-roster",
       "high",
       "A course starts within 7 days and has zero enrolled learners. If invites went out, nobody has joined; if they didn't, there's still time.",
-      emptyRoster.map((t) => `${t.name ?? t.track_slug}: starts ${t.start_date}, 0 learners`),
+      // Keyed with the start date so acknowledging one kickoff never silences
+      // the next cohort's.
+      emptyRoster.map((t) => ({
+        label: `${t.name ?? t.track_slug}: starts ${t.start_date}, 0 learners`,
+        key: `${t.track_slug}|${t.start_date}`,
+      })),
     );
   }
 
@@ -382,7 +414,10 @@ export async function runSentinelChecks(svc: Svc): Promise<SentinelFinding[]> {
         "upcoming-course-no-meeting-link",
         "medium",
         "A course starts within 7 days and session 1 has no meeting link — learners will hit a join page with nowhere to go.",
-        noLink.map((t) => `${t.name ?? t.track_slug}: starts ${t.start_date}`),
+        noLink.map((t) => ({
+          label: `${t.name ?? t.track_slug}: starts ${t.start_date}`,
+          key: `${t.track_slug}|${t.start_date}`,
+        })),
       );
     }
   }

@@ -880,7 +880,12 @@ export async function sendStaffAccountNotification(input: {
  */
 export async function sendSentinelReportEmail(input: {
   brief: string;
-  findings: { check: string; severity: string; message: string; rows: string[] }[];
+  findings: {
+    check: string;
+    severity: string;
+    message: string;
+    rows: { label: string }[];
+  }[];
 }): Promise<void> {
   if (!resend) {
     console.warn("[email] RESEND_API_KEY not set — skipping sentinel report");
@@ -903,7 +908,7 @@ export async function sendSentinelReportEmail(input: {
   <div style="margin:0 0 16px;padding:12px 14px;background:#f5f5f7;border-radius:8px;">
     <p style="margin:0 0 4px;font-size:13px;font-weight:700;color:${color(f.severity)};text-transform:uppercase;">${esc(f.severity)} · ${esc(f.check)}</p>
     <p style="margin:0 0 6px;font-size:14px;line-height:1.5;color:#1a1a1a;">${esc(f.message)}</p>
-    ${f.rows.map((r) => `<p style="margin:0;font-size:13px;color:#555;">· ${esc(r)}</p>`).join("\n")}
+    ${f.rows.map((r) => `<p style="margin:0;font-size:13px;color:#555;">· ${esc(r.label)}</p>`).join("\n")}
   </div>`,
     )
     .join("\n");

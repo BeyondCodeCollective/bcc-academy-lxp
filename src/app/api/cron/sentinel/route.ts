@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { generateText } from "ai";
 import { createServiceClient } from "@/lib/supabase/server";
 import { runSentinelChecks } from "@/lib/sentinel/checks";
+import { applyDismissals, getDismissals } from "@/lib/sentinel/dismissals";
 import { sendSentinelReportEmail } from "@/lib/email";
 
 // Nightly cron (Vercel): runs every Sentinel data-integrity and launch-readiness
@@ -30,7 +31,10 @@ export async function GET(request: Request) {
   const svc = createServiceClient();
   let findings;
   try {
-    findings = await runSentinelChecks(svc);
+    // Dismissed rows are acknowledged won't-fixes. Filtering here as well as on
+    // the page is the point: re-reporting them every morning is exactly what
+    // dismissing them was meant to stop.
+    findings = applyDismissals(await runSentinelChecks(svc), await getDismissals(svc)).visible;
   } catch (err) {
     console.error("[cron/sentinel] checks failed", err);
     return NextResponse.json(
@@ -69,7 +73,7 @@ async function writeBrief(
           check: f.check,
           severity: f.severity,
           message: f.message,
-          examples: f.rows.slice(0, 5),
+          examples: f.rows.slice(0, 5).map((r) => r.label),
         })),
       ),
     });
