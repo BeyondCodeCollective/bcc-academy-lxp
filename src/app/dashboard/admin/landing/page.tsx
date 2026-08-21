@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { canSwitchPrograms, canManageRoles } from "@/lib/roles";
 import { PageHeader } from "@/components/page-header";
+import { embeddedProgramSlug } from "@/lib/landing-pages";
 import { ManageMenu } from "../manage-menu";
 import { buttonClass, DataTable } from "@/components/ui";
 
@@ -14,6 +15,8 @@ type LandingRow = {
   published: boolean;
   headline: string;
   updated_at: string;
+  /** Owning program, joined — its slug is the page's URL brand segment. */
+  programs: unknown;
 };
 
 export default async function LandingPagesListPage() {
@@ -24,7 +27,7 @@ export default async function LandingPagesListPage() {
   const svc = createServiceClient();
   const { data } = await svc
     .from("landing_pages")
-    .select("slug, published, headline, updated_at")
+    .select("slug, published, headline, updated_at, programs(slug)")
     .order("updated_at", { ascending: false });
   const rows = (data ?? []) as LandingRow[];
 
@@ -33,7 +36,7 @@ export default async function LandingPagesListPage() {
       <div>
         <PageHeader
           title="Landing pages"
-          subtitle="Marketing landing pages served from /bcc/<slug>. Create or edit any page here — changes go live with no code deploy."
+          subtitle="Marketing landing pages. A page owned by a program is served from /<program>/<slug>; the rest sit at /bcc/<slug>. Changes go live with no code deploy."
           noWrap
           actions={
             <div className="flex items-center gap-2">
@@ -62,12 +65,14 @@ export default async function LandingPagesListPage() {
             <tr key={r.slug} className="text-ink">
               <td className="px-4 py-3 align-top">
                 <Link
-                  href={`/bcc/${r.slug}`}
+                  href={`/${embeddedProgramSlug(r.programs) ?? "bcc"}/${r.slug}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-mono text-sm font-semibold text-ink hover:text-primary"
                 >
-                  {r.slug}
+                  {embeddedProgramSlug(r.programs)
+                    ? `${embeddedProgramSlug(r.programs)}/${r.slug}`
+                    : r.slug}
                 </Link>
                 <span className="ml-1 text-ink-faint">↗</span>
               </td>

@@ -27,8 +27,43 @@ export type LandingSession = {
   timezone?: string | null;
 };
 
+/** The URL segment a landing page with no program is served under — the
+ *  platform brand, Beyond Code Collective. */
+export const PLATFORM_LANDING_PREFIX = "bcc";
+
+/**
+ * The brand segment a page's URL wears. A page that belongs to a program is
+ * served under that program's slug (/bgc/<slug>); a page with no program is a
+ * platform page and stays at /bcc/<slug>. Requesting the other prefix redirects
+ * here, so a URL already on a flyer keeps working.
+ */
+export function landingPrefix(page: { programSlug: string | null }): string {
+  return page.programSlug ?? PLATFORM_LANDING_PREFIX;
+}
+
+/** Canonical path for a page. */
+export function landingPath(page: {
+  programSlug: string | null;
+  slug: string;
+}): string {
+  return `/${landingPrefix(page)}/${page.slug}`;
+}
+
+/** Slug out of an embedded `programs(slug)` join.
+ *
+ *  PostgREST returns a to-one embed as an object, but the client types it as an
+ *  array. Reading only one shape would silently drop every page back onto
+ *  /bcc/ if the other came back, so accept both. */
+export function embeddedProgramSlug(v: unknown): string | null {
+  const row = Array.isArray(v) ? v[0] : v;
+  const slug = (row as { slug?: unknown } | null | undefined)?.slug;
+  return typeof slug === "string" && slug ? slug : null;
+}
+
 export type LandingPage = {
   slug: string;
+  /** Owning program's slug, or null for a platform page. Drives the URL. */
+  programSlug: string | null;
   headerLabel: string;
   eyebrow: string | null;
   headline: string;
@@ -77,7 +112,9 @@ export async function getLandingPage(slug: string): Promise<LandingPage | null> 
   const svc = createServiceClient();
   const { data } = await svc
     .from("landing_pages")
-    .select("*")
+    // The owning program comes back on the same round-trip; its slug is the
+    // page's URL brand segment.
+    .select("*, programs(slug)")
     .eq("slug", slug)
     .eq("published", true)
     .maybeSingle();
@@ -85,6 +122,7 @@ export async function getLandingPage(slug: string): Promise<LandingPage | null> 
 
   return {
     slug: data.slug as string,
+    programSlug: embeddedProgramSlug(data.programs),
     headerLabel: (data.header_label as string) ?? "BCC Academy",
     eyebrow: (data.eyebrow as string | null) ?? null,
     headline: data.headline as string,
