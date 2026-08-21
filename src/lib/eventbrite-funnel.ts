@@ -56,7 +56,14 @@ export async function processEventbriteOrder(
 
   // Resolve builder courses via track_overrides — blanket Catalyst filed
   // other programs' buyers under the wrong program.
-  const programSlug = (await resolveHomeProgramSlug(trackSlug)) ?? "catalyst";
+  // No blanket Catalyst fallback. Catalyst is a program like every other, not
+  // the bucket unattached things fall into: a course that resolves to no
+  // program is a data problem, and quietly stamping it Catalyst is how another
+  // program's people ended up filed under Catalyst.
+  const programSlug = await resolveHomeProgramSlug(trackSlug);
+  if (!programSlug) {
+    return { ok: false, error: `Course "${trackSlug}" isn't attached to a program.` };
+  }
 
   // Allowlist so future magic-link logins for this email also pass the track gate.
   await svc
