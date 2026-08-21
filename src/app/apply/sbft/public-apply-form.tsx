@@ -7,6 +7,42 @@ import { savePublicApplication } from "./actions";
 
 const EYEBROW = "Black Girls Code · Oakland";
 
+const PROGRAM_DATES: [string, string][] = [
+  ["Kickoff", "September 26"],
+  ["Sessions", "Oct 3 · Oct 10 · Oct 17 · Oct 24 · Oct 31"],
+  ["Celebration Day", "November 7 (families welcome!)"],
+  ["Time", "10 AM - 1 PM"],
+  ["Location", "Oakland, CA"],
+];
+
+/** What the program is and when it runs. Rendered on the email screen AND above
+ *  the wizard's first page, so the dates are in front of a family before they
+ *  spend time on the form and still there while they fill it out. */
+function ProgramSummary() {
+  return (
+    <div className="mt-6 border border-rule bg-surface-elevated p-5 sm:p-6">
+      <p className="text-sm leading-relaxed text-neutral-700">
+        She&apos;s Built for This is a cohort program for 6th-8th grade girls
+        that combines leadership development, STEM/tech exploration, and
+        goal-setting in a structured, community-driven experience. This program
+        meets our girls exactly where confidence begins to slip, offering them
+        the tools, community, and belief system to persevere in STEM.
+      </p>
+      <p className="mt-5 text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">
+        Program dates
+      </p>
+      <dl className="mt-2.5 space-y-1.5">
+        {PROGRAM_DATES.map(([label, value]) => (
+          <div key={label} className="flex flex-wrap gap-x-2 text-sm">
+            <dt className="font-semibold text-neutral-900">{label}:</dt>
+            <dd className="text-neutral-600">{value}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
 export function PublicApplyForm() {
   const [email, setEmail] = useState("");
   const [emailInput, setEmailInput] = useState("");
@@ -61,13 +97,8 @@ export function PublicApplyForm() {
           <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
             Apply for She&apos;s Built for This
           </h1>
-          <p className="mt-3 text-sm leading-relaxed text-neutral-600 max-w-[55ch]">
-            A Saturday leadership cohort in Oakland for girls in 6th through 8th
-            grade. Seven sessions, one group, start to finish: kickoff on
-            September 26, sessions through October, and a Celebration Day on
-            November 7 with families welcome.
-          </p>
-          <p className="mt-2 text-sm text-neutral-500">
+          <ProgramSummary />
+          <p className="mt-5 text-sm text-neutral-500">
             Plan for about 10 minutes. A parent or guardian can fill this out
             with her.
           </p>
@@ -134,6 +165,7 @@ export function PublicApplyForm() {
             Change
           </button>
         </p>
+        <ProgramSummary />
       </div>
       <SurveyWizard
         surveyId={SBFT_APPLICATION_SURVEY_ID}
