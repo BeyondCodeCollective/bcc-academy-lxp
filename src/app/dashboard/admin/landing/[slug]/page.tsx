@@ -47,6 +47,7 @@ export default async function EditLandingPage({
     secondaryCtaUrl: (data.secondary_cta_url as string | null) ?? "",
     partners: (data.partners as LandingPartner[] | null) ?? [],
     heroImageUrl: (data.hero_image_url as string | null) ?? "",
+    logoUrl: (data.logo_url as string | null) ?? "",
     pageTheme: (data.page_theme as string | null) ?? "",
     footerText: (data.footer_text as string | null) ?? "",
     metaTitle: (data.meta_title as string | null) ?? "",

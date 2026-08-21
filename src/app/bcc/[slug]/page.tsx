@@ -88,6 +88,17 @@ export default async function CampLandingPage({
         {/* Main content */}
         <main className="flex flex-1 flex-col justify-center px-8 py-12 md:px-12">
           <div style={{ maxWidth: "460px" }}>
+            {page.logoUrl && (
+              // The program's own lockup, above everything. Height-capped
+              // rather than width-capped: these are usually stacked marks, and
+              // a width cap makes a tall one swallow the fold.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={page.logoUrl}
+                alt=""
+                className="mb-6 h-auto w-auto max-h-28 max-w-[200px] object-contain object-left"
+              />
+            )}
             {page.eyebrow && (
               <p
                 className="mb-5 text-[11px] font-semibold uppercase tracking-[0.2em]"
