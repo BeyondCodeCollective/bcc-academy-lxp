@@ -69,6 +69,9 @@ export function LandingForm({
   const [secondaryCtaUrl, setSecondaryCtaUrl] = useState(initial.secondaryCtaUrl);
   const [partners, setPartners] = useState<PartnerDraft[]>(toDrafts(initial.partners));
   const [heroImageUrl, setHeroImageUrl] = useState(initial.heroImageUrl);
+  const [logoUrl, setLogoUrl] = useState(initial.logoUrl);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [logoUploadError, setLogoUploadError] = useState<string | null>(null);
   const [darkTheme, setDarkTheme] = useState(initial.pageTheme === "dark");
   const [uploadingHero, setUploadingHero] = useState(false);
   const [heroUploadError, setHeroUploadError] = useState<string | null>(null);
@@ -131,6 +134,7 @@ export function LandingForm({
           secondaryCtaUrl,
           partners: partnersOut,
           heroImageUrl,
+          logoUrl,
           pageTheme: darkTheme ? "dark" : "",
           footerText,
           metaTitle,
@@ -718,6 +722,50 @@ export function LandingForm({
       {/* ── Media & footer ── */}
       <Panel className="space-y-5 p-5">
         <h2 className="text-sm font-semibold text-ink">Media & footer</h2>
+
+        <Field label="Logo" hint="optional — the program's own lockup, above the headline">
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              placeholder="https://…/logo.png"
+              value={logoUrl}
+              onChange={(e) => setLogoUrl(e.target.value)}
+              className={fieldInput}
+            />
+            <label className={`${buttonClass("secondary", "sm")} shrink-0 cursor-pointer`}>
+              {uploadingLogo ? "Uploading…" : "Upload"}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/svg+xml"
+                className="sr-only"
+                disabled={uploadingLogo}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = "";
+                  if (!file) return;
+                  setUploadingLogo(true);
+                  setLogoUploadError(null);
+                  try {
+                    const fd = new FormData();
+                    // SVG has no raster to compress and compressImage would
+                    // flatten it; send it as-is.
+                    fd.set("file", file.type === "image/svg+xml" ? file : await compressImage(file));
+                    const res = await uploadLandingImageAction(fd);
+                    if (res.success) setLogoUrl(res.url);
+                    else setLogoUploadError(res.error);
+                  } catch {
+                    setLogoUploadError("Upload failed. Please try again.");
+                  } finally {
+                    setUploadingLogo(false);
+                  }
+                }}
+              />
+            </label>
+          </div>
+          {logoUploadError && (
+            <p className="mt-1.5 text-xs text-red-600">{logoUploadError}</p>
+          )}
+        </Field>
 
         <Field label="Hero image" hint="optional — fills the right panel">
           <div className="flex items-center gap-2">

@@ -47,6 +47,7 @@ export type LandingPageInput = {
   secondaryCtaUrl: string;
   partners: LandingPartner[];
   heroImageUrl: string;
+  logoUrl: string;
   /** "dark" or "" (light). */
   pageTheme: string;
   footerText: string;
@@ -169,6 +170,7 @@ export async function saveLandingPageAction(
     secondary_cta_url: trimToNull(input.secondaryCtaUrl),
     partners,
     hero_image_url: trimToNull(input.heroImageUrl),
+    logo_url: trimToNull(input.logoUrl),
     page_theme: input.pageTheme === "dark" ? "dark" : null,
     footer_text: trimToNull(input.footerText),
     meta_title: trimToNull(input.metaTitle),
