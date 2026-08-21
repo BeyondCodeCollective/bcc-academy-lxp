@@ -272,3 +272,45 @@ export const CATEGORY_LABELS: Record<string, string> = {
   career_prep: "Career Prep",
   program_info: "Program Info",
 };
+
+/**
+ * Eastern wall-clock -> UTC instant. Uses the IANA zone so the offset follows
+ * DST: 11:00 on 2026-07-20 is EDT (-04:00), the same time in January is EST
+ * (-05:00). Hardcoding either one puts half the year's courses an hour off.
+ */
+export function easternToUtc(date: string, time: string): string {
+  const naive = Date.parse(`${date}T${time}:00Z`);
+
+  const dtf = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    hour12: false,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+
+  // Zone offset in force at a given instant (negative for Eastern).
+  const offsetAt = (ms: number): number => {
+    const p = Object.fromEntries(
+      dtf.formatToParts(new Date(ms)).map((x) => [x.type, x.value]),
+    ) as Record<string, string>;
+    const wall = Date.UTC(
+      +p.year,
+      +p.month - 1,
+      +p.day,
+      +(p.hour === "24" ? "00" : p.hour),
+      +p.minute,
+      +p.second,
+    );
+    return wall - ms;
+  };
+
+  // Two passes: the first lands in the right neighbourhood, the second
+  // re-measures the offset there so DST changeover days resolve correctly.
+  let guess = naive - offsetAt(naive);
+  guess = naive - offsetAt(guess);
+  return new Date(guess).toISOString();
+}
