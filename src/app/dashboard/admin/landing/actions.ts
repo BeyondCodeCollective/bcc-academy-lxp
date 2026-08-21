@@ -32,6 +32,9 @@ async function requireSuperAdmin() {
  *  landing_pages columns the LandingPage type exposes. */
 export type LandingPageInput = {
   slug: string;
+  /** Owning program's slug, or "" for a platform page. Drives the page's URL:
+   *  a page with a program is served at /<program-slug>/<slug>. */
+  programSlug: string;
   published: boolean;
   headerLabel: string;
   eyebrow: string;
@@ -153,8 +156,26 @@ export async function saveLandingPageAction(
   const course = await ensureCourseForLanding(svc, trackSlug, input.headline.trim());
   if (!course.ok) return { success: false, error: course.error };
 
+  // The owning program is what the URL brand segment is derived from, so an
+  // unknown slug has to fail loudly rather than silently publish the page back
+  // under /bcc/.
+  let programId: string | null = null;
+  const wantedProgram = input.programSlug?.trim();
+  if (wantedProgram) {
+    const { data: programRow } = await svc
+      .from("programs")
+      .select("id")
+      .eq("slug", wantedProgram)
+      .maybeSingle<{ id: string }>();
+    if (!programRow) {
+      return { success: false, error: `No program with slug "${wantedProgram}".` };
+    }
+    programId = programRow.id;
+  }
+
   const row = {
     slug,
+    program_id: programId,
     published: input.published,
     header_label: input.headerLabel.trim() || "BCC Academy",
     eyebrow: trimToNull(input.eyebrow),
@@ -202,10 +223,14 @@ export async function saveLandingPageAction(
       console.error("[saveLandingPageAction] old-slug cleanup failed:", delError);
     }
     revalidatePath(`/bcc/${originalSlug}`);
+    if (wantedProgram) revalidatePath(`/${wantedProgram}/${originalSlug}`);
   }
 
   revalidatePath("/dashboard/admin/landing");
+  // Both paths: one is canonical, the other redirects to it, and which is which
+  // changes the moment a program is set or cleared.
   revalidatePath(`/bcc/${slug}`);
+  if (wantedProgram) revalidatePath(`/${wantedProgram}/${slug}`);
   if (course.created) revalidatePath("/dashboard/admin/programs");
   return { success: true, slug, courseSlug: trackSlug, courseCreated: course.created };
 }

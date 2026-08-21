@@ -34,15 +34,19 @@ function toDrafts(partners: LandingPartner[]): PartnerDraft[] {
 export function LandingForm({
   initial,
   originalSlug,
+  programs,
 }: {
   initial: LandingFormInitial;
   /** Present when editing — lets the action delete the old row on a slug rename. */
   originalSlug?: string;
+  /** Every program, for the owner picker that decides the page's URL. */
+  programs: { slug: string; name: string }[];
 }) {
   const router = useRouter();
   const isEdit = !!originalSlug;
 
   const [slug, setSlug] = useState(initial.slug);
+  const [programSlug, setProgramSlug] = useState(initial.programSlug);
   const [published, setPublished] = useState(initial.published);
   const [headerLabel, setHeaderLabel] = useState(initial.headerLabel);
   const [eyebrow, setEyebrow] = useState(initial.eyebrow);
@@ -119,6 +123,7 @@ export function LandingForm({
       const res = await saveLandingPageAction(
         {
           slug,
+          programSlug,
           published,
           headerLabel,
           eyebrow,
@@ -173,6 +178,24 @@ export function LandingForm({
       <Panel className="space-y-5 p-5">
         <h2 className="text-sm font-semibold text-ink">Basics</h2>
 
+        <Field
+          label="Program"
+          hint="whose campaign this is — it decides the URL"
+        >
+          <select
+            value={programSlug}
+            onChange={(e) => setProgramSlug(e.target.value)}
+            className={fieldInput}
+          >
+            <option value="">BCC Academy (platform)</option>
+            {programs.map((p) => (
+              <option key={p.slug} value={p.slug}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+
         <Field label="Slug" hint="the URL path">
           <input
             type="text"
@@ -184,7 +207,9 @@ export function LandingForm({
           />
           {previewSlug && (
             <p className="mt-1.5 font-mono text-xs text-ink-soft">
-              bccacademy.io/bcc/<span className="text-primary">{previewSlug}</span>
+              bccacademy.io/
+              <span className="text-primary">{programSlug || "bcc"}</span>/
+              <span className="text-primary">{previewSlug}</span>
             </p>
           )}
         </Field>
@@ -859,7 +884,7 @@ export function LandingForm({
         </button>
         {isEdit && previewSlug && (
           <a
-            href={`/bcc/${previewSlug}`}
+            href={`/${programSlug || "bcc"}/${previewSlug}`}
             target="_blank"
             rel="noopener noreferrer"
             className={buttonClass("secondary", "md")}
