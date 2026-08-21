@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { hasCapability } from "@/lib/roles";
 import { getProgramBySlug, getHomeProgramForTrack } from "@/lib/programs";
 import { toSlug } from "@/lib/programs/slug";
+import { easternToUtc } from "@/lib/utils";
 
 // Bust every cached surface that lists or renders course metadata so edits made
 // in Manage Courses (rename, hide/show, create) show up immediately. Without
@@ -562,12 +563,27 @@ export async function applyWeeklyScheduleAction(
     .flatMap((e) => ("date" in e && e.date ? [e.date] : []))
     .sort()[0] ?? firstDate;
 
+  // The machine-readable twin of `session_times`. The label above is prose for
+  // a human; the countdown, the .ics feed and add-to-calendar need an absolute
+  // instant, and until now this action wrote only the prose — so a course could
+  // show "Saturdays 12:00 PM ET" in its header while Launch Readiness correctly
+  // reported no kickoff time and calendar entries fell back to date-only.
+  // Derived from whichever unit owns `earliestDate` (a labeled extra can come
+  // first and carry its own time). No time on that unit means we genuinely
+  // don't know: leave the column alone rather than guess.
+  const earliestEntry = stamped.find((e) => "date" in e && e.date === earliestDate);
+  const kickoffTime =
+    earliestEntry && "time" in earliestEntry ? earliestEntry.time : undefined;
+
   const { error } = await svc
     .from("track_overrides")
     .update({
       start_date: earliestDate,
       week_summaries: stamped,
       session_times: [label],
+      ...(kickoffTime
+        ? { kickoff_time_utc: easternToUtc(earliestDate, kickoffTime) }
+        : {}),
     })
     .eq("program_id", programRow.id)
     .eq("track_slug", trackSlug);

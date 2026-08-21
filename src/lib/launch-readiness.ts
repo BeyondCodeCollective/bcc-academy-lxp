@@ -134,7 +134,11 @@ export async function getLaunchReadiness(trackSlug: string): Promise<ReadinessCh
       ok: kickoffSet,
       detail: kickoffSet
         ? "Countdown and calendar entries show the real time"
-        : "kickoff time missing — countdown and calendar entries show date only",
+        : // The header's "Saturdays 12:00 PM ET" is prose stored in session_times;
+          // this check reads kickoff_time_utc, the absolute instant the countdown
+          // and .ics feed need. A course can show one and be missing the other,
+          // which reads as a bug — so say where to set it.
+          "kickoff time missing — countdown and calendar entries show date only. Re-save the weekly schedule in Curriculum to set it.",
     },
   ];
 }
