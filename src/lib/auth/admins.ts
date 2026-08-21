@@ -70,6 +70,40 @@ export const STAFF_EMAILS = (process.env.STAFF_EMAILS || "")
   .map((e) => e.trim().toLowerCase())
   .filter(Boolean);
 
+// Which program a staff email belongs to, by domain. Staff used to land on
+// Catalyst whatever their address, so a Black Girls Code employee signing in
+// got a Catalyst row and then went missing from BGC's People list — the account
+// existed, but nowhere its own org could see it.
+//
+// wearebgc.org is Black Girls Code. wearebcc.org is Beyond Code Collective,
+// whose staff home IS Catalyst. Override with STAFF_DOMAIN_PROGRAMS as
+// "domain:slug,domain:slug".
+//
+// This is a DEFAULT, not a pin: an explicit join link, an allowlist entry, or a
+// privileged (super_admin/admin) address all still win over it.
+const DEFAULT_STAFF_DOMAIN_PROGRAMS: Record<string, string> = {
+  "wearebgc.org": "bgc",
+  "wearebcc.org": "catalyst",
+};
+
+export const STAFF_DOMAIN_PROGRAMS: Record<string, string> = {
+  ...DEFAULT_STAFF_DOMAIN_PROGRAMS,
+  ...Object.fromEntries(
+    (process.env.STAFF_DOMAIN_PROGRAMS || "")
+      .split(",")
+      .map((pair) => pair.split(":").map((x) => x.trim().toLowerCase()))
+      .filter((parts): parts is [string, string] => parts.length === 2 && !!parts[0] && !!parts[1]),
+  ),
+};
+
+/** Home program slug for a staff email, or null when the domain isn't mapped. */
+export function staffHomeProgramSlug(email: string | null | undefined): string | null {
+  if (!email) return null;
+  const domain = email.toLowerCase().split("@")[1];
+  if (!domain) return null;
+  return STAFF_DOMAIN_PROGRAMS[domain] ?? null;
+}
+
 export function isStaffEmail(email: string | null | undefined): boolean {
   if (!email) return false;
   const lower = email.toLowerCase();

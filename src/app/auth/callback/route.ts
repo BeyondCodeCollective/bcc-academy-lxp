@@ -9,7 +9,7 @@ import { getProgramBySlug, getHomeProgramForTrack, getTrackBySlug, isKnownProgra
 import { safeNextPath } from "@/lib/auth/next-path";
 import { courseLandingPath, primaryTrack } from "@/lib/enrollment";
 import { completePendingSetup } from "@/lib/auth/deferred-setup";
-import { determineRole, isPrivilegedEmail, isStaffEmail } from "@/lib/auth/admins";
+import { determineRole, isPrivilegedEmail, isStaffEmail, staffHomeProgramSlug } from "@/lib/auth/admins";
 import { resolveIsStaff } from "@/lib/auth/staff";
 import { subscribeToNewsletter } from "@/lib/mailchimp";
 import { sendStaffAccountNotification } from "@/lib/email";
@@ -384,7 +384,11 @@ export async function GET(request: Request) {
             ? "catalyst"
             : (joinSlug && joinSlug !== "marketing")
               ? joinSlug
-              : singleNonCatalystHome;
+              : // Staff with no join link and no allowlist entry fall to their
+                // own org, by email domain, instead of defaulting into Catalyst
+                // (or, with nothing resolved at all, bouncing to
+                // /login?status=not-enrolled).
+                singleNonCatalystHome ?? staffHomeProgramSlug(email);
         } else {
           // Honor an explicit join slug over the stored program so a student
           // coming through /join/forte (or via the allowlist which sets the
