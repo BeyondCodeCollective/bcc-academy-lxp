@@ -40,7 +40,15 @@ async function requireSuperAdmin() {
 }
 
 export type CreateCourseResult =
-  | { success: true; slug: string; joinUrl: string }
+  | {
+      success: true;
+      slug: string;
+      joinUrl: string;
+      /** Landing page paired with the course; null only if creating it failed. */
+      landingSlug: string | null;
+      /** False when a page already existed at that slug or for that course. */
+      landingCreated: boolean;
+    }
   | { success: false; error: string };
 
 // Programs a builder course can be filed under. Catalyst, ATG, and Beyond
@@ -129,12 +137,78 @@ export async function createCourseAction(formData: {
     return { success: false, error: "Failed to create course. Please try again." };
   }
 
+  // The pair is the unit: a cohort with no landing page has no way for anyone
+  // to sign up for it, and saving a landing page has created its course since
+  // #1029. This closes the other direction so the two can't be made apart.
+  const landing = await ensureLandingForCourse(svc, slug, name.trim(), programSlug);
+
   revalidateCourseSurfaces(slug);
+  if (landing.created) revalidatePath("/dashboard/admin/landing");
   return {
     success: true,
     slug,
     joinUrl: `https://bccacademy.io/join/${programSlug}?track=${slug}`,
+    landingSlug: landing.slug,
+    landingCreated: landing.created,
   };
+}
+
+/**
+ * Mirror of ensureCourseForLanding: give a freshly created course a landing
+ * page at the same slug, so /bcc/<slug> exists to send people to.
+ *
+ * Created UNPUBLISHED. The copy is a placeholder derived from the course name,
+ * and a live page carrying "Sign up for X" with nothing else on it is worse
+ * than no page — the admin fills it in and publishes when it's ready.
+ *
+ * Idempotent, and never steals a slug: if anything already occupies it, or a
+ * page already points at this course, it leaves both alone.
+ */
+async function ensureLandingForCourse(
+  svc: ReturnType<typeof createServiceClient>,
+  trackSlug: string,
+  courseName: string,
+  programSlug: string,
+): Promise<{ created: boolean; slug: string | null }> {
+  const { data: bySlug } = await svc
+    .from("landing_pages")
+    .select("slug")
+    .eq("slug", trackSlug)
+    .maybeSingle<{ slug: string }>();
+  if (bySlug) return { created: false, slug: bySlug.slug };
+
+  const { data: byTrack } = await svc
+    .from("landing_pages")
+    .select("slug")
+    .eq("track_slug", trackSlug)
+    .maybeSingle<{ slug: string }>();
+  if (byTrack) return { created: false, slug: byTrack.slug };
+
+  const { error } = await svc.from("landing_pages").insert({
+    slug: trackSlug,
+    published: false,
+    header_label: "BCC Academy",
+    headline: courseName,
+    track_slug: trackSlug,
+    accent: "#1a1a1a",
+    // No sessions yet (the course has no schedule until Edit Course sets one),
+    // and native_enroll is only honoured with sessions, so leave it off rather
+    // than shipping a signup form that can't take a date.
+    native_enroll: false,
+    schedule: [],
+    partners: [],
+    sessions: [],
+    body_sections: [],
+    updated_at: new Date().toISOString(),
+  });
+
+  if (error) {
+    // Never fail the course on this. The course is real and already saved; the
+    // admin can add a landing page by hand from Manage Landing Pages.
+    console.error(`[ensureLandingForCourse] insert failed for ${programSlug}/${trackSlug}:`, error);
+    return { created: false, slug: null };
+  }
+  return { created: true, slug: trackSlug };
 }
 
 // Hide / show a course. Reversible, never deletes. Backed by hidden_courses,
