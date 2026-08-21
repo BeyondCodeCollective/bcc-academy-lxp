@@ -46,6 +46,7 @@ const GROUPS: { label: string; items: Item[] }[] = [
     items: [
       { href: "/dashboard/admin/features", label: "Tools" },
       { href: "/dashboard/admin/organizations", label: "Organizations", master: true },
+      { href: "/dashboard/admin/platform-analytics", label: "Platform analytics", master: true },
       { href: "/dashboard/admin/health", label: "Platform health", master: true },
     ],
   },
