@@ -61,9 +61,12 @@ export async function requireSuperAdmin() {
 export function logAdminAccess(
   svc: ReturnType<typeof createServiceClient>,
   args: {
-    actorUserId: string;
+    // Null when the actor is the platform itself — the nightly Sentinel applying
+    // an auto-fix has no signed-in user. admin_access_log.actor_user_id is
+    // nullable, so this needs no migration.
+    actorUserId: string | null;
     programId: string | null;
-    action: "view" | "export" | "delete" | "send_invite";
+    action: "view" | "export" | "delete" | "send_invite" | "apply_fix" | "auto_fix";
     resource: string;
     rowCount?: number;
     metadata?: Record<string, unknown>;

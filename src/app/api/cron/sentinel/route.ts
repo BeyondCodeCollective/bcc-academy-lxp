@@ -3,6 +3,7 @@ import { generateText } from "ai";
 import { createServiceClient } from "@/lib/supabase/server";
 import { runSentinelChecks } from "@/lib/sentinel/checks";
 import { applyDismissals, getDismissals } from "@/lib/sentinel/dismissals";
+import { runAutoFixes, type AutoFixOutcome } from "@/lib/sentinel/auto-fix";
 import { sendSentinelReportEmail } from "@/lib/email";
 
 // Nightly cron (Vercel): runs every Sentinel data-integrity and launch-readiness
@@ -30,7 +31,14 @@ export async function GET(request: Request) {
 
   const svc = createServiceClient();
   let findings;
+  let autoFix: AutoFixOutcome = { applied: [], failed: [], disabled: false };
   try {
+    // Repair first, then report. Running the checks a second time afterwards
+    // means the brief describes what is still broken this morning rather than
+    // what was broken before the Sentinel fixed it — a report listing problems
+    // it had already solved would train you to ignore the report.
+    autoFix = await runAutoFixes(svc, await runSentinelChecks(svc));
+
     // Dismissed rows are acknowledged won't-fixes. Filtering here as well as on
     // the page is the point: re-reporting them every morning is exactly what
     // dismissing them was meant to stop.
@@ -43,10 +51,25 @@ export async function GET(request: Request) {
     );
   }
 
-  const brief = await writeBrief(findings);
+  // What the Sentinel did goes at the top of the brief, before what it wants
+  // you to do. An unattended write you only discover by reading a database is
+  // not an acceptable way to learn that something changed overnight.
+  const repaired = autoFix.applied.length
+    ? `Fixed automatically overnight: ${autoFix.applied.join("; ")}.`
+    : "";
+  const refused = autoFix.failed.length
+    ? `Could not apply: ${autoFix.failed.join("; ")}.`
+    : "";
+  const brief = [repaired, refused, await writeBrief(findings)].filter(Boolean).join("\n\n");
   await sendSentinelReportEmail({ brief, findings });
 
-  return NextResponse.json({ ok: true, findings: findings.length });
+  return NextResponse.json({
+    ok: true,
+    findings: findings.length,
+    autoFixed: autoFix.applied.length,
+    autoFixFailed: autoFix.failed.length,
+    autoFixDisabled: autoFix.disabled,
+  });
 }
 
 /** One short paragraph a human reads before coffee. Falls back to a counted

@@ -12,7 +12,14 @@ type Svc = ReturnType<typeof createServiceClient>;
 export type SentinelSeverity = "high" | "medium" | "low";
 
 /** A one-click remedy for a finding. Only reversible, single-row operations
- *  qualify — anything that destroys learner history stays report-only. */
+ *  qualify — anything that destroys learner history stays report-only.
+ *
+ *  `auto` marks a fix the nightly cron may apply WITHOUT a human. That is a
+ *  strictly narrower bar than "has a fix button", and three rules decide it:
+ *  the write must be reversible, it must be a single row, and it must not send
+ *  email. The last one is the important one — an email can't be unsent, so
+ *  anything that mails a learner or a family stays a human decision no matter
+ *  how safe the database write is. */
 export type SentinelFix =
   | {
       kind: "assign_instructor";
@@ -20,8 +27,20 @@ export type SentinelFix =
       studentId: string;
       trackSlug: string;
       programId: string;
+      /** Auto-eligible: an idempotent upsert of one scoping row, undone by
+       *  deleting it, and nobody is emailed. */
+      auto?: boolean;
     }
-  | { kind: "unenroll"; label: string; studentId: string; trackSlug: string };
+  | {
+      kind: "unenroll";
+      label: string;
+      studentId: string;
+      trackSlug: string;
+      /** Never auto. It is a DELETE against enrollment, and "this staff
+       *  enrollment is intentional" is a judgement the finding's own message
+       *  says out loud. */
+      auto?: boolean;
+    };
 
 /** One reported item inside a finding.
  *
@@ -296,6 +315,7 @@ export async function runSentinelChecks(svc: Svc): Promise<SentinelFinding[]> {
       );
       unassignedFixes.push({
         kind: "assign_instructor",
+        auto: true,
         label: `Assign ${t.instructor} to ${t.track_slug}`,
         studentId: account.id,
         trackSlug: t.track_slug,
