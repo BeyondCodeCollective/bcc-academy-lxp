@@ -1,0 +1,46 @@
+name: CI
+
+# Runs on every PR. This is the gate that did not exist: until now the only
+# check on a pull request was Vercel's build, and the smoke workflow triggered
+# off deployment_status for non-Production only — so it never ran on main, and
+# on previews it failed for missing secrets. It last executed 2026-07-06.
+#
+# Everything here is fast, offline, and deterministic. Model evals are NOT in
+# this workflow: they cost money, need gateway credentials, and this account is
+# on the free tier. See evals.yml.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test
+
+      # Deliberately no lint job. `pnpm lint` currently crashes the Node heap
+      # (it lints the whole working tree, node_modules included) and `eslint src`
+      # reports 185 pre-existing errors. Adding it as a gate today would mean
+      # shipping a permanently red check, which is the habit this workflow
+      # exists to break. Fix the lint config, then add it here.

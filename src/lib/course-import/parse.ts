@@ -138,8 +138,29 @@ Rules:
 - For a recurring course, expand the cadence into individual dated sessions.
 - Keep the source's wording in description and objectives. Do not add marketing language.`;
 
+
+/** Model settings, so an eval run can pin them without changing production.
+ *  Omitted fields keep exactly the values the product ships with. */
+export type DraftModelOptions = {
+  model?: string;
+  /** 0 for reproducible eval runs. Unset in production, as it always was. */
+  temperature?: number;
+  seed?: number;
+};
+
+/** Spread into generateObject. Only includes what the caller actually set, so
+ *  the default call is byte-for-byte the one that shipped before. */
+export function draftModelSettings(opts: DraftModelOptions | undefined, fallbackModel: string) {
+  return {
+    model: opts?.model ?? fallbackModel,
+    ...(opts?.temperature !== undefined ? { temperature: opts.temperature } : {}),
+    ...(opts?.seed !== undefined ? { seed: opts.seed } : {}),
+  };
+}
+
 export async function parseCourseDraft(
   source: ImportSource,
+  opts?: DraftModelOptions,
 ): Promise<CourseDraft> {
   // Structured facts from Eventbrite beat model inference for the fields that
   // hurt most when wrong, so hand them over as ground truth.
@@ -153,7 +174,7 @@ timezone: ${source.facts.timezone}`
       : "";
 
   const { object } = await generateObject({
-    model: MODEL,
+    ...draftModelSettings(opts, MODEL),
     schema: SCHEMA,
     system: SYSTEM,
     prompt: `Convert this into course data.${factBlock}\n\nSOURCE:\n${source.text.slice(0, 20000)}`,

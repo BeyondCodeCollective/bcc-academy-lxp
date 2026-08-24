@@ -8,7 +8,12 @@
 // for review before anything is written. Nothing here writes to the database.
 
 import { generateObject } from "ai";
-import { SCHEMA, type CourseDraft } from "./parse";
+import {
+  SCHEMA,
+  draftModelSettings,
+  type CourseDraft,
+  type DraftModelOptions,
+} from "./parse";
 
 // Same gateway routing as the tutor (src/app/api/tutor/route.ts).
 const MODEL = "google/gemini-2.5-flash";
@@ -28,9 +33,12 @@ NOT YOUR JOB — never invent logistics:
 - unitLabel: "Week" for weekly cohorts, "Day" for multi-day camps, "Session" otherwise.
 - Even when dates are unknown, still return one sessions[] entry per unit with the topic filled in and date/time left empty — the admin fills the schedule during review.`;
 
-export async function generateCourseDraft(description: string): Promise<CourseDraft> {
+export async function generateCourseDraft(
+  description: string,
+  opts?: DraftModelOptions,
+): Promise<CourseDraft> {
   const { object } = await generateObject({
-    model: MODEL,
+    ...draftModelSettings(opts, MODEL),
     schema: SCHEMA,
     system: SYSTEM,
     prompt: `Draft a course from this program description:\n\n${description.slice(0, 20000)}`,

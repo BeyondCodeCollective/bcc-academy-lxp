@@ -1,5 +1,23 @@
 import { createClient } from "@supabase/supabase-js";
 
+const REQUIRED_ENV = [
+  "SMOKE_SUPABASE_URL",
+  "SMOKE_SUPABASE_SERVICE_ROLE_KEY",
+] as const;
+
+/** Can the Supabase-backed specs run here?
+ *
+ *  These specs mint magic links and mutate roles with a service key, so without
+ *  credentials they cannot run at all. They used to THROW on the missing var,
+ *  which turned an unprovisioned secret into 38 red tests — and a suite that is
+ *  red for configuration reasons is a suite nobody reads. Skipping says the
+ *  same thing without crying wolf. */
+export const SMOKE_ENV_READY = REQUIRED_ENV.every((k) => Boolean(process.env[k]));
+
+export const SMOKE_ENV_REASON =
+  `Smoke credentials not set (${REQUIRED_ENV.join(", ")}) — skipping. ` +
+  "Set them as repo secrets to run these.";
+
 function requireEnv(name: string): string {
   const value = process.env[name];
   if (!value) throw new Error(`Missing required env var: ${name}`);

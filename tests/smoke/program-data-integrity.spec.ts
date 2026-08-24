@@ -1,6 +1,12 @@
 import { test, expect } from "@playwright/test";
 import { admin } from "./helpers/supabase";
 import { getHomeProgramForTrack } from "../../src/lib/programs";
+import { SMOKE_ENV_READY, SMOKE_ENV_REASON } from "./helpers/supabase";
+
+// Without service-role credentials these cannot run at all. Skip rather
+// than fail: a suite that is red for configuration reasons is a suite
+// nobody reads.
+test.skip(!SMOKE_ENV_READY, SMOKE_ENV_REASON);
 
 /**
  * Guards against the "moving a track between programs orphans its data" bug.
