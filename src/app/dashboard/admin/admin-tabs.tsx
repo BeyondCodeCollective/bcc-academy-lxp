@@ -1423,6 +1423,9 @@ export function AdminTabs({
                 key={activeTrack.slug}
                 track={activeTrack}
                 programSlug={programSlug}
+                sessionTitles={Object.fromEntries(
+                  activeWeeks.map((aw) => [aw.week, aw.overrideTitle || aw.title]),
+                )}
                 onLiveChange={(patch) =>
                   setLiveTrackNames((prev) => ({ ...prev, [activeTrack.slug]: patch }))
                 }

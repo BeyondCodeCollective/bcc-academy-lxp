@@ -242,6 +242,40 @@ export async function saveSessionContent(
     throw new Error(error.message);
   }
 
+  // Keep week_summaries[].topic in step with the title.
+  //
+  // These are two stores of the same idea: session_content.title is what a
+  // learner sees, week_summaries[].topic is the last-resort fallback behind it
+  // and used to be typed by hand in a second form. Editing one left the other
+  // stale, so the admin was asked to do the same job twice and the fallback
+  // drifted. Mirroring it on write means nobody maintains it and it is never
+  // wrong. Best-effort: a course whose title is being cleared keeps whatever
+  // topic it had, and a failure here must never fail the save the admin asked
+  // for.
+  if (data.title !== undefined && data.title) {
+    try {
+      const { data: row } = await svc
+        .from("track_overrides")
+        .select("week_summaries")
+        .eq("program_id", programId)
+        .eq("track_slug", track)
+        .maybeSingle<{ week_summaries: { week: number; topic?: string }[] | null }>();
+      const summaries = row?.week_summaries;
+      if (Array.isArray(summaries)) {
+        const next = summaries.map((w) =>
+          w.week === weekNumber ? { ...w, topic: data.title as string } : w,
+        );
+        await svc
+          .from("track_overrides")
+          .update({ week_summaries: next })
+          .eq("program_id", programId)
+          .eq("track_slug", track);
+      }
+    } catch (err) {
+      console.error(`[saveSessionContent] topic sync ${track} week ${weekNumber}:`, err);
+    }
+  }
+
   // Bust cached pages so students see the new meeting link / recording / title
   // immediately — the week page, the track overview (week cards read the title
   // override), the dashboard, and the admin tab that shows the week list.
