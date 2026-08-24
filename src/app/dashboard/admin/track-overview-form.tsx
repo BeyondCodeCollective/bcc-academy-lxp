@@ -23,6 +23,10 @@ type Props = {
     sequentialGating?: boolean;
   };
   programSlug: string;
+  /** week number → the session's real title, resolved by the caller from
+   *  session_content. Shown read-only so this panel can say WHICH unit an icon
+   *  belongs to without inviting the title to be typed a second time. */
+  sessionTitles?: Record<number, string>;
   onLiveChange?: (patch: { name: string; instructor: string }) => void;
 };
 
@@ -32,7 +36,7 @@ type Props = {
  * Typing debounces at 150ms. Blur saves immediately + triggers a non-blocking
  * page refresh so the header/title reflects the new value.
  */
-export function TrackOverviewForm({ track, programSlug, onLiveChange }: Props) {
+export function TrackOverviewForm({ track, programSlug, sessionTitles, onLiveChange }: Props) {
   const router = useRouter();
   const [name, setName] = useState(track.name);
   const [instructor, setInstructor] = useState(track.instructor);
@@ -178,7 +182,8 @@ export function TrackOverviewForm({ track, programSlug, onLiveChange }: Props) {
                 {(unitLabel || "Week")}s
               </p>
               <p className="mt-1 text-xs text-ink-faint">
-                Topic and icon shown for each {(unitLabel || "Week").toLowerCase()} on the track and {(unitLabel || "Week").toLowerCase()} pages.
+                The icon shown beside each {(unitLabel || "Week").toLowerCase()}. Titles
+                are set in Curriculum and appear here read-only.
               </p>
             </div>
             <div className="w-28 shrink-0">
@@ -196,35 +201,40 @@ export function TrackOverviewForm({ track, programSlug, onLiveChange }: Props) {
           </div>
 
           <div className="space-y-3">
-            {weekSummaries.map((w, i) => (
-              <div key={w.week} className="flex items-end gap-3">
-                <span className="mb-2.5 w-14 shrink-0 text-xs font-medium text-ink-faint">
-                  {(unitLabel || "Week")} {w.week}
-                </span>
-                <div className="w-16 shrink-0">
-                  <Field label="Icon">
-                    <input
-                      type="text"
-                      value={w.icon}
-                      onChange={(e) => updateWeek(i, "icon", e.target.value)}
-                      onBlur={handleBlur}
-                      className={`${fieldInput} text-center`}
-                    />
-                  </Field>
+            {weekSummaries.map((w, i) => {
+              // The title comes from session_content, which is what the learner
+              // actually sees. This panel used to carry its own Topic field —
+              // a third-priority fallback that the track page almost never
+              // reaches, so filling it in was work that changed nothing and
+              // editing a session title left it looking stale.
+              const resolved = sessionTitles?.[w.week]?.trim();
+              const placeholder = `${unitLabel || "Week"} ${w.week}`;
+              return (
+                <div key={w.week} className="flex items-end gap-3">
+                  <span className="mb-2.5 w-14 shrink-0 text-xs font-medium text-ink-faint">
+                    {placeholder}
+                  </span>
+                  <div className="w-16 shrink-0">
+                    <Field label="Icon">
+                      <input
+                        type="text"
+                        value={w.icon}
+                        onChange={(e) => updateWeek(i, "icon", e.target.value)}
+                        onBlur={handleBlur}
+                        className={`${fieldInput} text-center`}
+                      />
+                    </Field>
+                  </div>
+                  <p className="mb-2.5 min-w-0 flex-1 truncate text-sm text-ink-soft">
+                    {resolved || (
+                      <span className="text-ink-faint">
+                        Untitled — set it in Curriculum
+                      </span>
+                    )}
+                  </p>
                 </div>
-                <div className="flex-1">
-                  <Field label="Topic">
-                    <input
-                      type="text"
-                      value={w.topic}
-                      onChange={(e) => updateWeek(i, "topic", e.target.value)}
-                      onBlur={handleBlur}
-                      className={fieldInput}
-                    />
-                  </Field>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
