@@ -2,11 +2,12 @@
 // shown to an admin for review before anything is written. Nothing here writes
 // to the database.
 
-import { generateObject, jsonSchema } from "ai";
+import { generateObject, jsonSchema, type LanguageModel } from "ai";
+import { aiModel } from "@/lib/ai/model";
 import type { ImportSource } from "./source";
 
 // Same gateway routing as the tutor (src/app/api/tutor/route.ts).
-const MODEL = "google/gemini-2.5-flash";
+
 
 /** Every course we run is Eastern. Stored as IANA so the offset follows DST —
  *  a fixed "EST" would put every summer course an hour off. */
@@ -142,17 +143,18 @@ Rules:
 /** Model settings, so an eval run can pin them without changing production.
  *  Omitted fields keep exactly the values the product ships with. */
 export type DraftModelOptions = {
-  model?: string;
+  model?: LanguageModel;
   /** 0 for reproducible eval runs. Unset in production, as it always was. */
   temperature?: number;
   seed?: number;
 };
 
-/** Spread into generateObject. Only includes what the caller actually set, so
- *  the default call is byte-for-byte the one that shipped before. */
-export function draftModelSettings(opts: DraftModelOptions | undefined, fallbackModel: string) {
+/** Spread into generateObject. The model defaults to whatever
+ *  src/lib/ai/model.ts resolves, so the provider is one env var rather than an
+ *  edit here. Only includes what the caller actually set. */
+export function draftModelSettings(opts: DraftModelOptions | undefined) {
   return {
-    model: opts?.model ?? fallbackModel,
+    model: opts?.model ?? aiModel(),
     ...(opts?.temperature !== undefined ? { temperature: opts.temperature } : {}),
     ...(opts?.seed !== undefined ? { seed: opts.seed } : {}),
   };
@@ -174,7 +176,7 @@ timezone: ${source.facts.timezone}`
       : "";
 
   const { object } = await generateObject({
-    ...draftModelSettings(opts, MODEL),
+    ...draftModelSettings(opts),
     schema: SCHEMA,
     system: SYSTEM,
     prompt: `Convert this into course data.${factBlock}\n\nSOURCE:\n${source.text.slice(0, 20000)}`,

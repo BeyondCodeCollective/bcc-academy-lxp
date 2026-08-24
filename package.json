@@ -16,6 +16,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "3.0.111",
     "@phosphor-icons/react": "^2.1.10",
     "@react-pdf/renderer": "^4.5.1",
     "@supabase/ssr": "^0.9.0",

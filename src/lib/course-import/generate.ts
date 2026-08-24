@@ -16,7 +16,7 @@ import {
 } from "./parse";
 
 // Same gateway routing as the tutor (src/app/api/tutor/route.ts).
-const MODEL = "google/gemini-2.5-flash";
+
 
 const SYSTEM = `You design courses for BCC Academy, a learning platform serving beginners through wisdom learners. Given a plain-English description of a program, draft the complete course.
 
@@ -38,7 +38,7 @@ export async function generateCourseDraft(
   opts?: DraftModelOptions,
 ): Promise<CourseDraft> {
   const { object } = await generateObject({
-    ...draftModelSettings(opts, MODEL),
+    ...draftModelSettings(opts),
     schema: SCHEMA,
     system: SYSTEM,
     prompt: `Draft a course from this program description:\n\n${description.slice(0, 20000)}`,
