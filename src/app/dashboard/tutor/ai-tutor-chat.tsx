@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Send } from "lucide-react";
 import { useProgram } from "@/lib/programs/context";
+import { MAX_HISTORY_MESSAGES } from "@/lib/tutor/prompt";
 
 type Message = {
   id: string;
@@ -51,10 +52,13 @@ export default function TutorPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: [...messages, userMsg].map(({ role, content }) => ({
-            role,
-            content,
-          })),
+          // Trailing window only. The API caps history at MAX_HISTORY_MESSAGES,
+          // and a tutor turn needs recent context rather than the whole
+          // transcript — sending everything would start 400ing mid-session once
+          // a chat got long enough.
+          messages: [...messages, userMsg]
+            .slice(-MAX_HISTORY_MESSAGES)
+            .map(({ role, content }) => ({ role, content })),
         }),
       });
 

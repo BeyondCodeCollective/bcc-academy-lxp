@@ -66,3 +66,6 @@ next-env.d.ts
 # checkouts (a committed project-ref silently points every clone at whatever
 # project was last linked).
 supabase/.temp/
+
+# Eval scorecard — a run artifact, regenerated on every `pnpm eval`.
+evals/last-run.json

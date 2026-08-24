@@ -9,7 +9,11 @@
     "start": "next start",
     "lint": "eslint",
     "test:smoke": "playwright test",
-    "test:smoke:install": "playwright install --with-deps chromium"
+    "test:smoke:install": "playwright install --with-deps chromium",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "eval": "vitest run --config vitest.evals.config.ts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
@@ -46,7 +50,8 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.1",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.11"
   },
   "pnpm": {
     "overrides": {
