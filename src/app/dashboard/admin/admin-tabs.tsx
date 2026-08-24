@@ -1061,9 +1061,11 @@ export function AdminTabs({
                   : "This domain doesn't have a learner dashboard. Contact a super-admin to switch programs."
             }
           />
-          {/* Two buttons, nothing else. The program pills that used to sit here
-             duplicated the avatar-menu switcher and drowned the two actions
-             people actually came for (removed 2026-08-20 at Fonz's request). */}
+          {/* Two buttons for super-admins, whose avatar menu already switches
+             programs (pills removed 2026-08-20 at Fonz's request). A
+             cross-program grant holder (Jihan) has NO other switcher, so for
+             them the granted programs render here — it's the only way out of
+             an all-hidden home program (2026-08-24). */}
           {canManageStudents(userRole) && (
             <div className="flex flex-wrap gap-2">
               <a href="/dashboard/admin/programs" className={buttonClass("dark", "md")}>
@@ -1073,6 +1075,22 @@ export function AdminTabs({
               <a href="/dashboard/admin/programs/new" className={buttonClass("secondary", "md")}>
                 New course
               </a>
+            </div>
+          )}
+          {!canSwitchPrograms(userRole) && switchablePrograms.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-sm text-ink-soft">Your other programs</p>
+              <div className="flex flex-wrap gap-2">
+                {switchablePrograms.map((p) => (
+                  <a
+                    key={p.slug}
+                    href={`/api/switch-program?slug=${encodeURIComponent(p.slug)}&next=${encodeURIComponent("/dashboard/admin")}`}
+                    className={buttonClass("secondary", "md")}
+                  >
+                    {p.name}
+                  </a>
+                ))}
+              </div>
             </div>
           )}
         </div>
