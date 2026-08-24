@@ -45,6 +45,9 @@ export function ImportCourseForm({
   const [coverImageUrl, setCoverImageUrl] = useState<string | undefined>();
   const [program, setProgram] = useState(currentProgram?.slug ?? "catalyst");
   const [meetingLink, setMeetingLink] = useState("");
+  // Raw newline-separated text behind the objectives textarea. Seeded from the
+  // draft when one arrives; the draft itself keeps the cleaned array.
+  const [objectivesText, setObjectivesText] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<Created | null>(null);
@@ -61,6 +64,7 @@ export function ImportCourseForm({
         : await previewCourseImportAction(input);
       if (res.success) {
         setDraft(res.draft);
+        setObjectivesText((res.draft.objectives ?? []).join("\n"));
         setAttendees(res.attendeeEmails);
         setCoverImageUrl(res.coverImageUrl);
       } else {
@@ -214,7 +218,8 @@ export function ImportCourseForm({
       <div className="rounded-lg border border-ink/10 bg-surface-muted px-4 py-3">
         <p className="text-sm font-semibold">Review before creating</p>
         <p className="mt-1 text-xs text-ink-soft">
-          Nothing has been saved yet. Check the dates and times especially.
+          Nothing has been saved yet. Read the learner-facing text as carefully as
+          the dates — both go live exactly as they appear here.
         </p>
       </div>
 
@@ -246,6 +251,81 @@ export function ImportCourseForm({
           </p>
         )}
       </Field>
+
+      {/* The teaching material, which the model writes and nobody could see.
+          Everything in this block lands in track_overrides / session_content
+          and renders on the learner's course and week pages — the description
+          and objectives are INVENTED by the generator, whose system prompt
+          asks it for "2-4 warm, concrete sentences" and "3-6 learning
+          objectives". Until now step 2 showed only the name and the timetable,
+          so an admin could click Create believing they had reviewed the
+          course, having read the schedule and none of the teaching. */}
+      <div className="rounded-lg border border-ink/10 px-4 py-4 space-y-5">
+        <div>
+          <p className="text-sm font-semibold text-ink">What learners will see</p>
+          <p className="mt-1 text-xs text-ink-soft">
+            {generating
+              ? "Drafted by the model from your description. Read it before you create the course — this is the course, as far as a learner is concerned."
+              : "Pulled from the source. Read it before you create the course — this is the course, as far as a learner is concerned."}
+          </p>
+        </div>
+
+        <Field label="Short name" hint="course cards and navigation">
+          <input
+            type="text"
+            value={draft.shortName ?? ""}
+            onChange={(e) => patch({ shortName: e.target.value })}
+            className={fieldInput}
+          />
+        </Field>
+
+        <Field label="Description" hint="the course page">
+          <textarea
+            rows={4}
+            value={draft.description ?? ""}
+            onChange={(e) => patch({ description: e.target.value })}
+            className={fieldInput}
+          />
+        </Field>
+
+        <Field label="Learning objectives" hint="one per line, shown on week 1">
+          <textarea
+            rows={5}
+            // The textarea owns the raw text so pressing Enter for a new line
+            // doesn't fight a filter that strips empties; the draft only ever
+            // holds the cleaned array.
+            value={objectivesText}
+            onChange={(e) => {
+              setObjectivesText(e.target.value);
+              patch({
+                objectives: e.target.value
+                  .split("\n")
+                  .map((o) => o.trim())
+                  .filter(Boolean),
+              });
+            }}
+            className={fieldInput}
+          />
+        </Field>
+
+        <Field label="Session 1 title">
+          <input
+            type="text"
+            value={draft.sessionTitle ?? ""}
+            onChange={(e) => patch({ sessionTitle: e.target.value })}
+            className={fieldInput}
+          />
+        </Field>
+
+        <Field label="Session 1 subtitle">
+          <input
+            type="text"
+            value={draft.sessionSubtitle ?? ""}
+            onChange={(e) => patch({ sessionSubtitle: e.target.value })}
+            className={fieldInput}
+          />
+        </Field>
+      </div>
 
       <Field label="Program">
         <select
@@ -359,6 +439,7 @@ export function ImportCourseForm({
         type="button"
         onClick={() => {
           setDraft(null);
+          setObjectivesText("");
           setError(null);
         }}
         className="w-full py-1 text-center text-sm text-ink-soft transition-colors hover:text-ink"
