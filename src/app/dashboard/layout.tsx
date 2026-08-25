@@ -245,14 +245,35 @@ async function allSwitchablePrograms(): Promise<
     domain: p.domain,
     dnsReady: p.dnsReady,
   }));
-  const { data: dynamicOrgs } = await createServiceClient()
+  const svcClient = createServiceClient();
+  const { data: dynamicOrgs } = await svcClient
     .from("programs")
-    .select("slug, name")
+    .select("id, slug, name")
     .eq("is_dynamic", true)
     .order("name", { ascending: true });
+  const orgSlugs = (dynamicOrgs ?? []).map((o) => o.slug as string);
+  // Hide-aware, same as the preview menu at the nav bottom: a RETIRED org —
+  // it has courses and every one is hidden — stays out of the switcher. A
+  // brand-new org with no courses yet still shows, so there's a way in to
+  // build its first course.
+  const [{ data: orgTracks }, { data: hiddenRows }] = await Promise.all([
+    svcClient
+      .from("track_overrides")
+      .select("program_id, track_slug")
+      .in("program_id", (dynamicOrgs ?? []).map((o) => o.id as string)),
+    orgSlugs.length
+      ? svcClient.from("hidden_courses").select("program_slug, track_slug").in("program_slug", orgSlugs)
+      : Promise.resolve({ data: [] }),
+  ]);
+  const hidden = new Set((hiddenRows ?? []).map((r) => `${r.program_slug}:${r.track_slug}`));
   const known = new Set(programs.map((p) => p.slug));
   for (const org of dynamicOrgs ?? []) {
     if (known.has(org.slug as string)) continue;
+    const tracks = (orgTracks ?? []).filter((t) => t.program_id === org.id);
+    const retired =
+      tracks.length > 0 &&
+      tracks.every((t) => hidden.has(`${org.slug}:${t.track_slug}`));
+    if (retired) continue;
     programs.push({
       slug: org.slug as string,
       name: org.name as string,
