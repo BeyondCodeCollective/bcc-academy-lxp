@@ -95,7 +95,10 @@ export default async function TrackOverviewPage({
       ctx.userId,
       slug,
     );
-    if (status) {
+    // Completed-but-not-started learners stay on the all-done screen — done
+    // materials aren't acceptance, so the course stays closed until start day
+    // (when this condition stops matching and the course renders normally).
+    if (status && (!status.allComplete || !trackHasStarted(track))) {
       const studentName = [ctx.student?.first_name, ctx.student?.last_name]
         .filter(Boolean)
         .join(" ")
@@ -117,6 +120,9 @@ export default async function TrackOverviewPage({
           trackSlug={slug}
           programSlug={program.slug}
           cohort={checklist.cohort}
+          eyebrow={checklist.eyebrow}
+          footnote={checklist.footnote}
+          completeTitle={checklist.completeTitle}
           defaultName={studentName || undefined}
         />
       );

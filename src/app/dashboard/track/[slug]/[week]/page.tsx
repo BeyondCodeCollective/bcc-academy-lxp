@@ -8,6 +8,7 @@ import { isStorageUrl, isUploadedVideo } from "@/lib/storage-utils";
 import { resolveTrackProgram } from "@/lib/programs/server";
 import { getSubmission, getReflection, getFeedback, getWeekProgress, getTrackProgressMap } from "@/app/dashboard/track/actions";
 import { isSequentialGated, highestUnlockedWeek } from "@/lib/track-gating";
+import { getEnforcedOnboardingChecklist, getOnboardingStatus } from "@/lib/onboarding/checklists";
 import { canAccessAdminPanel } from "@/lib/roles";
 import { SubmissionForm } from "@/components/submission-form";
 import { PageHeader } from "@/components/page-header";
@@ -64,6 +65,15 @@ export default async function TrackWeekPage({
       .maybeSingle();
     if (!enr) redirect("/dashboard");
   }
+  // Checklist gate: an unfinished acceptance checklist keeps lessons sealed
+  // even by direct URL. The layout's confinement allows same-track paths (so
+  // the checklist itself renders), which would otherwise leave week URLs as a
+  // way past the track overview's gate once the course has started.
+  if (!gateIsAdmin && gateCtx?.userId && getEnforcedOnboardingChecklist(trackSlug)) {
+    const status = await getOnboardingStatus(createServiceClient(), gateCtx.userId, trackSlug);
+    if (status && !status.allComplete) redirect(`/dashboard/track/${trackSlug}`);
+  }
+
   const hasStarted = trackHasStarted(track);
   if (!gateIsAdmin && !hasStarted) {
     // Back to the course, which carries the pre-start banner ("Starts Monday,

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { saveSurveyResponse } from "@/app/dashboard/actions";
 import { getOnboardingChecklist } from "@/lib/onboarding/checklists";
+import { RELEASES_VERSION } from "@/lib/onboarding/releases";
 import { resolveCatalystCohortLabel } from "@/lib/onboarding/cohort-label";
 import { createClient } from "@/lib/supabase/server";
 
@@ -56,6 +57,10 @@ export async function signParticipationAgreement(
   trackSlug: string,
   fullName: string,
   programSlug: string,
+  /** Acknowledgments of the liability and media releases, when the cohort's
+   *  agreement collects them (AgreementConfig.requireReleases). Re-checked here
+   *  because the client checkbox is a courtesy, not the record. */
+  releases?: { liability: boolean; media: boolean },
 ) {
   const name = fullName.trim();
   if (!name) throw new Error("Please type your full name to sign.");
@@ -66,13 +71,28 @@ export async function signParticipationAgreement(
     throw new Error("No participation agreement is configured for this course.");
   }
 
+  const needsReleases = !!checklist.agreement.requireReleases;
+  if (needsReleases && !(releases?.liability && releases?.media)) {
+    throw new Error(
+      "Please acknowledge the Release of Liability and the Media and Publicity Release to sign.",
+    );
+  }
+
+  const agreedAt = new Date().toISOString();
   await saveSurveyResponse(
     item.surveyType,
     {
       full_name: name,
-      agreed_at: new Date().toISOString(),
+      agreed_at: agreedAt,
       cohort: checklist.cohort,
-      version: "cyber-final-v1",
+      version: checklist.agreement.version,
+      ...(needsReleases
+        ? {
+            releases_version: RELEASES_VERSION,
+            liability_release_accepted_at: agreedAt,
+            media_release_accepted_at: agreedAt,
+          }
+        : {}),
     },
     programSlug,
   );

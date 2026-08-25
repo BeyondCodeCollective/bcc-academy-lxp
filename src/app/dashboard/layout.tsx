@@ -115,6 +115,11 @@ export default async function DashboardLayout({
     // The standalone participation-agreement page is a shareable sign-here link
     // (does its own auth check) — never bounce a learner off it to another gate.
     pathname.startsWith("/dashboard/agreement");
+  // True while a learner is held on an incomplete acceptance checklist: the
+  // chrome drops to the survey pages' minimal shell (logo rail, no course
+  // sidebar/search/breadcrumbs) — they're not in the course yet, so the course's
+  // week list has no business rendering next to the checklist.
+  let confinedToChecklist = false;
   if (isSupabaseConfigured() && !confineExemptPath) {
     const ctx = await getSessionContext();
     if (ctx) {
@@ -136,24 +141,28 @@ export default async function DashboardLayout({
             redirect(`/dashboard/track/${access.pendingSlug}`);
           }
         }
-        // Confine onboarding-checklist learners (e.g. the Cybersecurity
-        // acceptance checklist) to that checklist until every item is done — no
-        // wandering into other dashboard pages via the back button. Survey +
-        // settings pages are exempt above, so they can still complete items.
-        if (!access.pendingOnly) {
-          for (const t of access.enrolled) {
-            if (!getEnforcedOnboardingChecklist(t.slug)) continue;
-            const status = await getOnboardingStatus(supabase, ctx.userId, t.slug);
-            if (status && !status.allComplete) {
-              const reqTrack = pathname.match(/^\/dashboard\/track\/([^/]+)/)?.[1];
-              if (reqTrack !== t.slug) redirect(`/dashboard/track/${t.slug}`);
-              break;
-            }
+        // Hold onboarding-checklist learners (e.g. the MASS pre-program
+        // checklist) on that checklist page — items pending OR done — until the
+        // course has actually started. Completing the materials is not
+        // acceptance: the course experience (sidebar, weeks, program chrome)
+        // stays closed, and every other dashboard path bounces back here.
+        // Survey + settings pages are exempt above, so items stay completable.
+        // On start day the hold lifts by itself for anyone who finished.
+        for (const t of access.enrolled) {
+          if (!getEnforcedOnboardingChecklist(t.slug)) continue;
+          const status = await getOnboardingStatus(supabase, ctx.userId, t.slug);
+          if (status && (!status.allComplete || !trackHasStarted(t))) {
+            const reqTrack = pathname.match(/^\/dashboard\/track\/([^/]+)/)?.[1];
+            if (reqTrack !== t.slug) redirect(`/dashboard/track/${t.slug}`);
+            confinedToChecklist = true;
+            break;
           }
         }
       }
     }
   }
+
+  const hideChrome = isSurveyPage || confinedToChecklist;
 
   return (
     <ProgramProvider program={baseProgram}>
@@ -174,25 +183,28 @@ export default async function DashboardLayout({
           } as React.CSSProperties
         }
       >
-        <Suspense fallback={isSurveyPage ? null : <NavSkeleton />}>
-          <NavShell isSurveyPage={isSurveyPage} />
+        <Suspense fallback={hideChrome ? null : <NavSkeleton />}>
+          <NavShell isSurveyPage={hideChrome} />
         </Suspense>
         <main
           id="dashboard-main"
-          className={`flex-1 bg-paper ${isSurveyPage ? "" : "md:pl-60"}`}
+          // Always clear the fixed w-60 nav rail — survey pages render the
+          // minimal (logo-only) rail but previously dropped this padding, so
+          // their centered content sat half-tucked behind the white column.
+          className="flex-1 bg-paper md:pl-60"
           style={{ fontSize: "16px" }}
         >
-          {!isSurveyPage && (
+          {!hideChrome && (
             <Suspense fallback={null}>
               <PreviewBanner />
             </Suspense>
           )}
-          {!isSurveyPage && (
+          {!hideChrome && (
             <Suspense fallback={null}>
               <TopBarShell />
             </Suspense>
           )}
-          {!isSurveyPage && (
+          {!hideChrome && (
             <Suspense fallback={null}>
               <BreadcrumbBar />
             </Suspense>
@@ -219,7 +231,7 @@ export default async function DashboardLayout({
         </main>
       </div>
       <Suspense fallback={null}>
-        <Overlays isSurveyPage={isSurveyPage} />
+        <Overlays isSurveyPage={hideChrome} />
       </Suspense>
     </ProgramProvider>
   );

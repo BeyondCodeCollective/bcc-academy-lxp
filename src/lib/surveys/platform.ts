@@ -131,6 +131,16 @@ export const PLATFORM_AUTH_SURVEYS: Record<string, SurveyConfig> = {
   // purpose: everyone answering is already enrolled and already logged in to
   // attend, so the response binds to their account instead of asking them to
   // retype a name and email we have.
+  // MASS Fall 2026 learners take this as the third item in their pre-program
+  // checklist, so it stays `required: false` — the checklist is what asks for
+  // it, not a forced dashboard redirect.
+  "mass-fall-2026-pre": {
+    id: "mass-fall-2026-pre",
+    title: "MASS Coaching Cohort — Pre-Program Survey",
+    description:
+      "Mindset and soft skills, about 10 minutes. Not a test — where you're starting from, so we can support you from day one. Private; used only to improve the coaching and report impact.",
+    required: false,
+  },
   "security-plus-midpoint": {
     id: "security-plus-midpoint",
     title: "CompTIA Security+ Midpoint Check-In",
