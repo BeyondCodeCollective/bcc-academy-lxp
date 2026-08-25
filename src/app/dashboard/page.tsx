@@ -32,6 +32,7 @@ import { BCC_INTAKE_SURVEY_ID, surveySkippedForTracks, surveyAppliesToPrograms, 
 import { isSurveyEnabledForLearner } from "@/lib/surveys/features";
 import { isStaffEmail } from "@/lib/auth/admins";
 import { completePendingSetup } from "@/lib/auth/deferred-setup";
+import { heldChecklistTrackSlug } from "@/lib/onboarding/held";
 import { isAssessmentEnabledForLearner } from "@/lib/assessment/features";
 
 export const dynamic = "force-dynamic";
@@ -178,6 +179,15 @@ async function DashboardContent({
         student?.role ?? "student",
         student?.welcome_seen_at,
       );
+      // A held-checklist learner's FIRST render races the layout's
+      // confinement gate: completePendingSetup created the enrollment just
+      // now, AFTER the layout checked and saw none — so a fresh MASS signup
+      // landed on the open dashboard instead of their checklist. Re-check
+      // now that the enrollment exists.
+      if (!canAccessAdminPanel(student?.role ?? "")) {
+        const heldTrack = await heldChecklistTrackSlug(userId);
+        if (heldTrack) redirect(`/dashboard/track/${heldTrack}`);
+      }
     }
 
     const { cohorts: cohort, cohort_id: cohortId } = student ?? {};

@@ -1,7 +1,8 @@
 import { after } from "next/server";
 import { generateInviteToken } from "@/lib/invite-token";
 import { createServiceClient } from "@/lib/supabase/server";
-import type { ProgramConfig } from "@/lib/programs/types";
+import type { ProgramConfig, TrackConfig } from "@/lib/programs/types";
+import { getProgramWithOverrides } from "@/lib/programs/server";
 import { BCC_INTAKE_SURVEY_ID } from "@/lib/surveys/platform";
 import { BCC_INTAKE_QUESTION_IDS } from "@/lib/surveys/schemas";
 import { sendWelcomeEmail } from "@/lib/email";
@@ -107,11 +108,17 @@ export async function completePendingSetup(
   // course: no `?track=` and no allowlist row. Someone who signed up for MASS
   // through /bcc/mass (allowlisted for mass-fall-2026) must not also be put on
   // the Tech+ roster just because both live under ATG.
-  let tracksToEnroll: ProgramConfig["tracks"] = [];
+  // Rows to upsert: slug + the program that OWNS the track. Resolved per
+  // slug (not through program.tracks): the caller's config only lists
+  // DB-driven Course Builder tracks when it happens to be override-merged.
+  // The auth callback hands the PLAIN TS config, which silently dropped a
+  // MASS Fall 2026 signup's intended enrollment — whether they got enrolled
+  // at all then depended on which render's config won the race.
+  let tracksToEnroll: { slug: string; programId: string; config: TrackConfig | null }[] = [];
   {
-    const trackParamTracks = program.tracks.filter((t) => t.slug === trackParam);
+    const wantedSlugs = new Set<string>();
+    if (trackParam) wantedSlugs.add(trackParam);
 
-    let allowlistTracks: ProgramConfig["tracks"] = [];
     if (email) {
       const { data: rows, error: allowErr } = await admin
         .from("allowed_signup_emails")
@@ -120,16 +127,43 @@ export async function completePendingSetup(
       if (allowErr) {
         console.error("[deferred-setup] allowlist lookup:", allowErr.message);
       } else {
-        const slugs = new Set((rows ?? []).map((r) => r.track_slug as string));
-        allowlistTracks = program.tracks.filter((t) => slugs.has(t.slug));
+        for (const r of rows ?? []) wantedSlugs.add(r.track_slug as string);
       }
     }
 
-    tracksToEnroll = Array.from(
-      new Map(
-        [...trackParamTracks, ...allowlistTracks].map((t) => [t.slug, t]),
-      ).values(),
-    );
+    for (const slug of wantedSlugs) {
+      // TS-config track of the caller's program → enroll under that program.
+      const own = program.tracks.find((t) => t.slug === slug);
+      if (own) {
+        tracksToEnroll.push({ slug, programId, config: own });
+        continue;
+      }
+      // Anything else — a DB-driven course, or a track from another program —
+      // enrolls under the program that owns it per track_overrides. The full
+      // track config (welcome email needs name/schedule) comes from that
+      // program's override-merged config; best-effort for dynamic orgs.
+      const { data: ov } = await admin
+        .from("track_overrides")
+        .select("program_id")
+        .eq("track_slug", slug)
+        .maybeSingle<{ program_id: string | null }>();
+      if (!ov?.program_id) continue; // no TS config, no override row: not a real course
+      let config: TrackConfig | null = null;
+      const { data: prow } = await admin
+        .from("programs")
+        .select("slug")
+        .eq("id", ov.program_id)
+        .maybeSingle<{ slug: string }>();
+      if (prow?.slug) {
+        try {
+          const merged = await getProgramWithOverrides(prow.slug);
+          config = merged.tracks.find((t) => t.slug === slug) ?? null;
+        } catch {
+          // Dynamic org with no TS config — enroll anyway, email lists what it can.
+        }
+      }
+      tracksToEnroll.push({ slug, programId: ov.program_id, config });
+    }
     // ...and only for someone enrolled in nothing. A returning learner whose
     // course moved to another program must not be re-enrolled in every course
     // of the program their account still points at.
@@ -138,7 +172,7 @@ export async function completePendingSetup(
         .from("student_tracks")
         .select("track_slug", { count: "exact", head: true })
         .eq("student_id", userId);
-      if (!count) tracksToEnroll = program.tracks;
+      if (!count) tracksToEnroll = program.tracks.map((t) => ({ slug: t.slug, programId, config: t }));
     }
   }
 
@@ -152,7 +186,7 @@ export async function completePendingSetup(
       tracksToEnroll.map((t) => ({
         student_id: userId,
         track_slug: t.slug,
-        program_id: programId,
+        program_id: t.programId,
       })),
       { onConflict: "student_id,track_slug" },
     );
@@ -297,7 +331,9 @@ export async function completePendingSetup(
             to: email,
             firstName: welcomeName,
             program,
-            enrolledTracks: tracksToEnroll,
+            enrolledTracks: tracksToEnroll
+              .map((t) => t.config)
+              .filter((c): c is TrackConfig => !!c),
             signInUrl,
           }).then(() =>
             admin
