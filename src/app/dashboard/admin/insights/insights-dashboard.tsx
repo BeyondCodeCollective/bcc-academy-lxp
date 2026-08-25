@@ -291,12 +291,14 @@ export function InsightsDashboard({ sections, programs, scope }: Props) {
       <div className="panel p-5 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
           <div className="flex flex-wrap items-end gap-3">
-            <label className="flex flex-col gap-1.5">
+            <label className="flex w-full flex-col gap-1.5 sm:w-auto">
               <span className={microLabel}>Form</span>
+              {/* w-full on phone: a native select sizes to its LONGEST option,
+                 so course-length titles pushed it past the viewport edge. */}
               <select
                 value={activeId ?? ""}
                 onChange={(e) => selectSurvey(e.target.value)}
-                className="min-w-[16rem] rounded-lg border border-rule bg-white px-3 py-2 text-sm font-semibold text-ink focus:border-ink-faint"
+                className="w-full rounded-lg border border-rule bg-white px-3 py-2 text-sm font-semibold text-ink focus:border-ink-faint sm:w-auto sm:min-w-[16rem]"
               >
                 <option value={ALL_FORMS}>All forms</option>
                 {ledger.map((row) => (
@@ -305,12 +307,12 @@ export function InsightsDashboard({ sections, programs, scope }: Props) {
               </select>
             </label>
             {cohortSelectable && (
-              <label className="flex flex-col gap-1.5">
+              <label className="flex w-full flex-col gap-1.5 sm:w-auto">
                 <span className={microLabel}>Cohort</span>
                 <select
                   value={cohortFilter}
                   onChange={(e) => setCohortFilter(e.target.value)}
-                  className="rounded-lg border border-rule bg-white px-3 py-2 text-sm text-ink focus:border-ink-faint"
+                  className="w-full rounded-lg border border-rule bg-white px-3 py-2 text-sm text-ink focus:border-ink-faint sm:w-auto"
                 >
                   <option value="all">All cohorts</option>
                   {surveyCohorts.map((c) => (

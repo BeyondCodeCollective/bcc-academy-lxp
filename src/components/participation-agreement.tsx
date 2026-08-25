@@ -2,20 +2,27 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { X } from "@phosphor-icons/react";
+import { X, CaretDown } from "@phosphor-icons/react";
 import { buttonClass } from "@/components/ui";
 import { signParticipationAgreement } from "@/lib/onboarding/actions";
+import { getOnboardingChecklist } from "@/lib/onboarding/checklists";
+import { RELEASE_DOCUMENTS } from "@/lib/onboarding/releases";
 
-// Catalyst Program Participation Agreement — Cybersecurity Final Version.
+// Catalyst Program Participation Agreement. Section 1's duration/hours line is
+// per-cohort (AgreementConfig.timeCommitment) — everything else is shared.
 type Point = string | { text: string; bold: true };
 
-const SECTIONS: { n: string; heading: string; lede: string; points: Point[] }[] = [
+type Section = { n: string; heading: string; lede: string; points: Point[] };
+
+// `timeCommitment` is the cohort's own duration/hours sentence — 12 weeks at
+// 6–8 hours for Security+, 8 weeks at 1–2 for MASS. Everything else is shared.
+const buildSections = (timeCommitment: string): Section[] => [
   {
     n: "1",
     heading: "My Time Commitment",
     lede: "This program requires real time. Before you commit, make sure the schedule works for you.",
     points: [
-      "The program runs approximately 12 weeks, with an estimated 6–8 hours per week which includes instructor-led technology sessions, coursework, coaching, and community.",
+      timeCommitment,
       "I have reviewed the program schedule and confirmed that I can participate for the full duration.",
       "I understand that the time commitment is a condition of completing the program and receiving any associated certificate or credential.",
     ],
@@ -105,19 +112,26 @@ export function ParticipationAgreementModal({
 }) {
   const router = useRouter();
   const [agreed, setAgreed] = useState(false);
+  const [releases, setReleases] = useState<Record<string, boolean>>({});
   const [name, setName] = useState(defaultName ?? "");
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
   if (!open) return null;
 
-  const canSubmit = agreed && name.trim().length > 1 && !pending;
+  const config = getOnboardingChecklist(trackSlug)?.agreement;
+  const requiredReleases = config?.requireReleases ? RELEASE_DOCUMENTS : [];
+  const releasesAccepted = requiredReleases.every((r) => releases[r.id]);
+  const canSubmit = agreed && releasesAccepted && name.trim().length > 1 && !pending;
 
   const submit = () => {
     setError(null);
     start(async () => {
       try {
-        await signParticipationAgreement(trackSlug, name, programSlug);
+        await signParticipationAgreement(trackSlug, name, programSlug, {
+          liability: !!releases.liability,
+          media: !!releases.media,
+        });
         onClose();
         router.refresh();
       } catch (e) {
@@ -162,7 +176,7 @@ export function ParticipationAgreementModal({
           </p>
 
           <div className="mt-5 space-y-5">
-            {SECTIONS.map((s) => (
+            {buildSections(config?.timeCommitment ?? "").map((s) => (
               <section key={s.n}>
                 <h3 className="text-sm font-bold text-ink">
                   <span className="text-primary">{s.n} —</span> {s.heading}
@@ -184,9 +198,35 @@ export function ParticipationAgreementModal({
             ))}
           </div>
 
+          {requiredReleases.length > 0 && (
+            <div className="mt-6 space-y-3">
+              {requiredReleases.map((doc) => (
+                <details key={doc.id} className="rounded-lg border border-rule bg-surface-soft">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3">
+                    <span>
+                      <span className="block text-sm font-bold text-ink">{doc.title}</span>
+                      <span className="block text-[12px] leading-relaxed text-ink-soft">
+                        {doc.lede}
+                      </span>
+                    </span>
+                    <CaretDown size={16} weight="bold" className="flex-none text-ink-faint" aria-hidden />
+                  </summary>
+                  <div className="space-y-2.5 border-t border-rule px-4 py-3">
+                    {doc.paragraphs.map((para, i) => (
+                      <p key={i} className="text-[12px] leading-relaxed text-ink-soft">
+                        {para}
+                      </p>
+                    ))}
+                  </div>
+                </details>
+              ))}
+            </div>
+          )}
+
           <p className="mt-6 text-sm font-medium leading-relaxed text-ink">
-            By checking the box below, I confirm that I have read this agreement, understand what is
-            being asked of me, and am choosing to participate with that full understanding.
+            By checking the {requiredReleases.length > 0 ? "boxes" : "box"} below, I confirm that I
+            have read this agreement, understand what is being asked of me, and am choosing to
+            participate with that full understanding.
           </p>
         </div>
 
@@ -201,6 +241,20 @@ export function ParticipationAgreementModal({
             />
             <span>I have read and agree to the Catalyst Program Participation Agreement.</span>
           </label>
+
+          {requiredReleases.map((doc) => (
+            <label key={doc.id} className="mt-2.5 flex items-start gap-3 text-sm text-ink">
+              <input
+                type="checkbox"
+                checked={!!releases[doc.id]}
+                onChange={(e) =>
+                  setReleases((prev) => ({ ...prev, [doc.id]: e.target.checked }))
+                }
+                className="mt-0.5 h-4 w-4 flex-none accent-[#1D59FF]"
+              />
+              <span>{doc.confirmLabel}</span>
+            </label>
+          ))}
 
           <label className="mt-3 block">
             <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
