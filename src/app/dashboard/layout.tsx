@@ -13,7 +13,7 @@ import { NameCaptureOverlay } from "@/components/name-capture-overlay";
 import { ProfileCaptureOverlay } from "@/components/profile-capture-overlay";
 import { PreviewToggle } from "@/components/preview-toggle";
 import { PreviewBanner } from "@/components/preview-banner";
-import { getProgram, getProgramWithOverrides, resolveHomeProgramSlug, fetchDynamicProgram, listDynamicPrograms } from "@/lib/programs/server";
+import { getProgram, getProgramWithOverrides, resolveHomeProgramSlug, resolveTrackProgram, fetchDynamicProgram, listDynamicPrograms } from "@/lib/programs/server";
 import { getProgramBySlug, getAllPrograms, getJoinablePrograms, isTutorAvailable } from "@/lib/programs";
 import { ProgramProvider } from "@/lib/programs/context";
 import { canAccessAdminPanel, canSwitchPrograms, canAccessStaffContent } from "@/lib/roles";
@@ -148,12 +148,30 @@ export default async function DashboardLayout({
         // stays closed, and every other dashboard path bounces back here.
         // Survey + settings pages are exempt above, so items stay completable.
         // On start day the hold lifts by itself for anyone who finished.
-        for (const t of access.enrolled) {
-          if (!getEnforcedOnboardingChecklist(t.slug)) continue;
-          const status = await getOnboardingStatus(supabase, ctx.userId, t.slug);
-          if (status && (!status.allComplete || !trackHasStarted(t))) {
+        //
+        // Enrollments are read RAW (service client), not via access.enrolled:
+        // that list filters against the BROWSING program's tracks, and a brand-
+        // new learner's first request has no program cookie — the apex resolves
+        // to a context that doesn't list DB-driven courses, the list came back
+        // empty, and a fresh MASS signup landed on the open dashboard instead
+        // of their checklist. The hold must not depend on browsing context.
+        const { data: checklistEnrollments } = await createServiceClient()
+          .from("student_tracks")
+          .select("track_slug")
+          .eq("student_id", ctx.userId);
+        for (const row of (checklistEnrollments ?? []) as { track_slug: string }[]) {
+          if (!getEnforcedOnboardingChecklist(row.track_slug)) continue;
+          const status = await getOnboardingStatus(
+            createServiceClient(),
+            ctx.userId,
+            row.track_slug,
+          );
+          if (!status) continue;
+          const resolved = await resolveTrackProgram(row.track_slug);
+          const started = resolved ? trackHasStarted(resolved.track) : false;
+          if (!status.allComplete || !started) {
             const reqTrack = pathname.match(/^\/dashboard\/track\/([^/]+)/)?.[1];
-            if (reqTrack !== t.slug) redirect(`/dashboard/track/${t.slug}`);
+            if (reqTrack !== row.track_slug) redirect(`/dashboard/track/${row.track_slug}`);
             confinedToChecklist = true;
             break;
           }
