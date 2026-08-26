@@ -52,9 +52,17 @@ export async function buildInsightsData(
     return { sections: [], programs: [], totalResponses: 0 };
   }
 
-  // Lead-capture forms (e.g. the homepage "Learn More" signup) aren't surveys —
-  // keep them out of Survey Insights so the numbers reflect real responses.
-  const EXCLUDED_FROM_INSIGHTS = new Set(["learn-more"]);
+  // Not every survey_type is a survey. Filtering here rather than downstream
+  // keeps them out of the orphan synthesis below too, so they never reach the
+  // survey picker at all.
+  //   learn-more: a lead-capture form (the homepage "Learn More" signup).
+  //   *-agreement: consent records. They have their own admin page and no
+  //     questions to report on, so they skew the response counts and give the
+  //     picker an entry that opens onto nothing.
+  const EXCLUDED_FROM_INSIGHTS = new Set([
+    "learn-more",
+    "catalyst-participation-agreement",
+  ]);
   const stats = (await getDashboardSurveyStats(programIds)).filter(
     (r) => !EXCLUDED_FROM_INSIGHTS.has(r.survey_type),
   );
