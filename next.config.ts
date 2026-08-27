@@ -69,6 +69,9 @@ const nextConfig: NextConfig = {
     return [
       // Friendly URL for the BGC × BCC operating-system follow-along deck.
       { source: "/empower", destination: "/follow/empower-7ee93ad328.html" },
+      // Public (sanitized) architecture atlas — the full internal version is
+      // admin-gated at /platform-atlas; this cut is scrubbed for sharing.
+      { source: "/atlas", destination: "/atlas.html" },
       // public/ has no directory index — the bare sandbox URL needs this.
       {
         source: "/sb-70b5998ecca0279f85404f66",
