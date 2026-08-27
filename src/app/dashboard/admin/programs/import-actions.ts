@@ -7,6 +7,7 @@ import { hasCapability } from "@/lib/roles";
 import { getProgramBySlug } from "@/lib/programs";
 import { toSlug } from "@/lib/programs/slug";
 import { easternToUtc } from "@/lib/utils";
+import { ensureLandingForCourse } from "@/lib/landing-pages";
 import { resolveSource } from "@/lib/course-import/source";
 import { parseCourseDraft, type CourseDraft } from "@/lib/course-import/parse";
 import { generateCourseDraft } from "@/lib/course-import/generate";
@@ -110,7 +111,14 @@ export async function generateCourseDraftAction(
 }
 
 export type ImportResult =
-  | { success: true; slug: string; joinUrl: string; allowlisted: number }
+  | {
+      success: true;
+      slug: string;
+      joinUrl: string;
+      allowlisted: number;
+      landingSlug: string | null;
+      landingCreated: boolean;
+    }
   | { success: false; error: string };
 
 /** Step 2: write the reviewed draft. Called only after an admin confirms it. */
@@ -264,14 +272,22 @@ export async function createCourseFromDraftAction(params: {
     }
   }
 
+  // Same pairing the manual builder enforces: a cohort with no landing page has
+  // no way for anyone to sign up for it. Imported and AI-generated courses used
+  // to skip this and land without a page.
+  const landing = await ensureLandingForCourse(svc, slug, draft.name.trim(), programSlug);
+
   revalidatePath("/dashboard", "page");
   revalidatePath("/dashboard/admin", "page");
   revalidatePath(`/dashboard/track/${slug}`, "page");
+  if (landing.created) revalidatePath("/dashboard/admin/landing");
 
   return {
     success: true,
     slug,
     joinUrl: `https://bccacademy.io/join/${programSlug}?track=${slug}`,
     allowlisted,
+    landingSlug: landing.slug,
+    landingCreated: landing.created,
   };
 }
