@@ -112,6 +112,11 @@ export const PLATFORM_AUTH_SURVEYS: Record<string, SurveyConfig> = {
     description:
       "Application for the Home for the Summer intensive — August 10–14, 2026, with NextEra Energy.",
     required: false,
+    // Course-scoped so the admin Surveys tab lists it only under HFS —
+    // applicants who also enrolled in MASS were surfacing it there. Collected
+    // via /apply/home-for-summer, never served through the dashboard survey
+    // pipeline, so this changes admin listing only.
+    appliesToTracks: ["home-for-summer"],
   },
   [SBFT_APPLICATION_SURVEY_ID]: {
     id: SBFT_APPLICATION_SURVEY_ID,

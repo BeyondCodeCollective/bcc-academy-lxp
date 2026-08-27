@@ -29,6 +29,7 @@ import { TrackOverviewForm } from "./track-overview-form";
 import { OfficeHoursEditor } from "./office-hours-editor";
 import { ManageMenu } from "./manage-menu";
 import { PendingPeopleSection, StatusPill } from "./pending-people";
+import { sendCohortInvites } from "./invites/actions";
 import type { PendingPerson } from "@/lib/people-hub";
 import { AddPeoplePanel } from "./add-people-panel";
 import type { OfficeHour } from "@/lib/programs/types";
@@ -567,7 +568,7 @@ export function AdminTabs({
   unviewedAssessments?: number;
   /** Pre-launch checks per track, present only for courses near their start
    *  date. See lib/launch-readiness. */
-  launchReadiness?: Record<string, { label: string; ok: boolean; detail: string }[]>;
+  launchReadiness?: Record<string, { label: string; ok: boolean; detail: string; action?: "send-invites" }[]>;
   /** The open course's practice exams, rendered as rows in the Surveys list. */
   trackExams?: { id: string; title: string; attempted: number }[];
 }) {
@@ -676,6 +677,8 @@ export function AdminTabs({
   // Launch-readiness accordion — collapsed by default so the checks never push
   // the course view down; the badge in the header still shows red/green.
   const [readinessOpen, setReadinessOpen] = useState(false);
+  const [readinessSending, setReadinessSending] = useState(false);
+  const [readinessResult, setReadinessResult] = useState<string | null>(null);
   const [trackView, setTrackView] = useState<
     "overview" | "analytics" | "curriculum" | "students" | "surveys"
   >((initialTrackView as "overview" | "analytics" | "curriculum" | "students" | "surveys") ?? "overview");
@@ -1388,10 +1391,43 @@ export function AdminTabs({
                           aria-hidden
                           className={`mt-1 h-2 w-2 shrink-0 rounded-full ${c.ok ? "bg-emerald-500" : "bg-amber-500"}`}
                         />
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <p className="text-sm text-ink">{c.label}</p>
                           <p className="text-micro text-ink-faint">{c.detail}</p>
+                          {c.action === "send-invites" && readinessResult && (
+                            <p className="mt-1 text-micro text-ink-soft">{readinessResult}</p>
+                          )}
                         </div>
+                        {/* Fix it where it's flagged — same idempotent cohort
+                           send the People tab uses (skips already-invited). */}
+                        {c.action === "send-invites" && canSwitchPrograms(userRole) && (
+                          <button
+                            type="button"
+                            disabled={readinessSending}
+                            onClick={async () => {
+                              const name = liveTrackNames[activeTrack.slug]?.name ?? activeTrack.name;
+                              if (
+                                !window.confirm(
+                                  `Send invites for ${name} to everyone on the allowlist who hasn't been invited yet?`,
+                                )
+                              )
+                                return;
+                              setReadinessSending(true);
+                              setReadinessResult(null);
+                              const r = await sendCohortInvites(activeTrack.slug);
+                              setReadinessSending(false);
+                              setReadinessResult(
+                                r.ok
+                                  ? `${r.sent ?? 0} sent${r.failed ? `, ${r.failed} failed` : ""}${r.remaining ? ` · ${r.remaining} remaining — click again to continue` : ""}`
+                                  : r.error ?? "Failed to send invites.",
+                              );
+                              router.refresh();
+                            }}
+                            className={buttonClass("secondary", "sm")}
+                          >
+                            {readinessSending ? "Sending…" : "Send invites"}
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -1746,15 +1782,24 @@ export function AdminTabs({
                 // respond — otherwise a survey you're actively driving is
                 // invisible right when you need to watch it fill in (the HFS
                 // impact survey sat at zero with no row at all, 2026-08-17).
-                surveyConfigs={surveyConfigs.filter(
-                  (s) =>
-                    !s.skipForTracks?.includes(
-                      activeTrack.companionOf ?? activeTrack.slug,
-                    ) &&
-                    (trackAnsweredSurveyIds === null ||
-                      trackAnsweredSurveyIds.includes(s.id) ||
-                      s.appliesToTracks?.includes(activeTrack.slug)),
-                )}
+                surveyConfigs={surveyConfigs.filter((s) => {
+                  const home = activeTrack.companionOf ?? activeTrack.slug;
+                  if (s.skipForTracks?.includes(home)) return false;
+                  // A survey assigned to specific courses lists ONLY under
+                  // those courses. Assignment beats evidence: cross-enrolled
+                  // learners' answers otherwise surface another course's
+                  // survey here (HFS "How Did We Do?" under MASS, 2026-08-27).
+                  if (s.appliesToTracks?.length) {
+                    return (
+                      s.appliesToTracks.includes(activeTrack.slug) ||
+                      s.appliesToTracks.includes(home)
+                    );
+                  }
+                  return (
+                    trackAnsweredSurveyIds === null ||
+                    trackAnsweredSurveyIds.includes(s.id)
+                  );
+                })}
                 trackPublicSurveys={trackPublicSurveys}
                 enrolledCount={trackEnrolledCount}
                 respondentsBySurvey={trackSurveyRespondents}
