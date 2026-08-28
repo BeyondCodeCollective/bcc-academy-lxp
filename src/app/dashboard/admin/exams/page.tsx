@@ -71,7 +71,10 @@ export default async function ExamScoresPage() {
 
   const ids = [...byStudent.keys()];
   const { data: students } = ids.length
-    ? await svc.from("students").select("id, first_name, last_name, email").in("id", ids)
+    ? await svc
+        .from("students")
+        .select("id, first_name, last_name, email, is_staff, is_test")
+        .in("id", ids)
     : { data: [] };
   const nameOf = new Map(
     (students ?? []).map((s) => [
@@ -79,8 +82,16 @@ export default async function ExamScoresPage() {
       `${s.first_name ?? ""} ${s.last_name ?? ""}`.trim() || (s.email as string),
     ]),
   );
+  // Staff walk the exam to check it works, and those two-minute 20% runs sat in
+  // the class list looking like learners who bombed it. Same rule the response
+  // rates use: this is a roster of learners, so staff and test accounts are out.
+  const isLearner = new Set(
+    (students ?? []).filter((s) => !s.is_staff && !s.is_test).map((s) => s.id as string),
+  );
 
-  const rows = [...byStudent.values()].sort((a, b) => b.lastAt.localeCompare(a.lastAt));
+  const rows = [...byStudent.values()]
+    .filter((r) => isLearner.has(r.studentId))
+    .sort((a, b) => b.lastAt.localeCompare(a.lastAt));
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 sm:px-5 py-8 space-y-6">
