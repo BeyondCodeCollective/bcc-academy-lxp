@@ -197,3 +197,62 @@ export async function getLandingByEventbriteId(
     trackSlug: (data.track_slug as string | null) ?? null,
   };
 }
+
+/**
+ * Mirror of ensureCourseForLanding: give a freshly created course a landing
+ * page at the same slug, so /bcc/<slug> exists to send people to.
+ *
+ * Created UNPUBLISHED, with no owning program — the admin picks the program
+ * (which sets the URL brand segment) when they fill the page in. The copy is a
+ * placeholder derived from the course name, and a live page carrying "Sign up
+ * for X" with nothing else on it is worse than no page.
+ *
+ * Idempotent, and never steals a slug: if anything already occupies it, or a
+ * page already points at this course, it leaves both alone.
+ */
+export async function ensureLandingForCourse(
+  svc: ReturnType<typeof createServiceClient>,
+  trackSlug: string,
+  courseName: string,
+  programSlug: string,
+): Promise<{ created: boolean; slug: string | null }> {
+  const { data: bySlug } = await svc
+    .from("landing_pages")
+    .select("slug")
+    .eq("slug", trackSlug)
+    .maybeSingle<{ slug: string }>();
+  if (bySlug) return { created: false, slug: bySlug.slug };
+
+  const { data: byTrack } = await svc
+    .from("landing_pages")
+    .select("slug")
+    .eq("track_slug", trackSlug)
+    .maybeSingle<{ slug: string }>();
+  if (byTrack) return { created: false, slug: byTrack.slug };
+
+  const { error } = await svc.from("landing_pages").insert({
+    slug: trackSlug,
+    published: false,
+    header_label: "BCC Academy",
+    headline: courseName,
+    track_slug: trackSlug,
+    accent: "#1a1a1a",
+    // No sessions yet (the course has no schedule until Edit Course sets one),
+    // and native_enroll is only honoured with sessions, so leave it off rather
+    // than shipping a signup form that can't take a date.
+    native_enroll: false,
+    schedule: [],
+    partners: [],
+    sessions: [],
+    body_sections: [],
+    updated_at: new Date().toISOString(),
+  });
+
+  if (error) {
+    // Never fail the course on this. The course is real and already saved; the
+    // admin can add a landing page by hand from Manage Landing Pages.
+    console.error(`[ensureLandingForCourse] insert failed for ${programSlug}/${trackSlug}:`, error);
+    return { created: false, slug: null };
+  }
+  return { created: true, slug: trackSlug };
+}
