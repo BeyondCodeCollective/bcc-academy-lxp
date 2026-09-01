@@ -328,7 +328,7 @@ export function InsightsDashboard({ sections, programs, scope }: Props) {
            moves these numbers too. */}
         <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
           <StatCard
-            value={scopedCount.toLocaleString()}
+            value={scopedCount}
             label="Responses"
             href={`/api/insights/csv${isAllForms ? "" : `?survey=${encodeURIComponent(activeId ?? "")}${cohortParam}`}`}
             download
@@ -347,7 +347,7 @@ export function InsightsDashboard({ sections, programs, scope }: Props) {
             }
           />
           <StatCard
-            value={(isAllForms ? scopedFormCount : scopedCohortCount).toLocaleString()}
+            value={(isAllForms ? scopedFormCount : scopedCohortCount)}
             label={isAllForms ? "Forms answered" : "Cohorts"}
             href={isAllForms ? "/dashboard/admin/surveys" : undefined}
           />

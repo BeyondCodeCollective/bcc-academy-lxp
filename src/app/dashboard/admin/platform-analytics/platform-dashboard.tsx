@@ -63,13 +63,13 @@ export function PlatformDashboard({ data }: { data: PlatformAnalytics }) {
         />
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
           <StatCard
-            value={totals.learners.toLocaleString()}
+            value={totals.learners}
             label="Learners"
             hint={`+${totals.newLearners30.toLocaleString()} in the last 30 days`}
             info="Accounts with role student, excluding staff and test logins, across every program."
           />
           <StatCard
-            value={totals.enrollments.toLocaleString()}
+            value={totals.enrollments}
             label="Enrollments"
             hint={
               totals.learners > 0
@@ -79,24 +79,24 @@ export function PlatformDashboard({ data }: { data: PlatformAnalytics }) {
             info="student_tracks rows held by learners. One learner in three courses counts three."
           />
           <StatCard
-            value={totals.engagedLearners.toLocaleString()}
+            value={totals.engagedLearners}
             label="Engaged learners"
             hint={`${pct(totals.engagementRate)} of all learners`}
             info="Learners who did the work at least once: attended, watched a lesson, submitted, or reflected."
           />
           <StatCard
-            value={totals.certificates.toLocaleString()}
+            value={totals.certificates}
             label="Certificates issued"
             info="track_completions rows — completion is a decision an admin makes, not something the platform infers."
           />
           <StatCard
-            value={totals.programs.toLocaleString()}
+            value={totals.programs}
             label="Programs"
             hint={`${totals.courses.toLocaleString()} active courses`}
             info="Programs with at least one learner or course. Archived courses are excluded from the course count."
           />
           <StatCard
-            value={totals.activeLast30.toLocaleString()}
+            value={totals.activeLast30}
             label="Active (30 days)"
             hint={`${totals.activeLast7.toLocaleString()} in the last 7`}
             info="Learners with any recorded activity in the window (students.last_activity_at — behaviour, not sign-in)."
@@ -128,7 +128,7 @@ export function PlatformDashboard({ data }: { data: PlatformAnalytics }) {
           ).map(([label, d]) => (
             <StatCard
               key={label}
-              value={d.value.toLocaleString()}
+              value={d.value}
               label={label}
               trend={trendFor(d)}
             />
@@ -144,23 +144,23 @@ export function PlatformDashboard({ data }: { data: PlatformAnalytics }) {
           sub="Lifetime counts, not windowed. Learner-owned activity is attributed to the learner's program, so staff and test accounts never appear in a total."
         />
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard value={totals.lessonsWatched.toLocaleString()} label="Lessons watched" />
-          <StatCard value={totals.sessionsAttended.toLocaleString()} label="Session check-ins" />
-          <StatCard value={totals.submissions.toLocaleString()} label="Work submitted" />
-          <StatCard value={totals.reflections.toLocaleString()} label="Reflections" />
+          <StatCard value={totals.lessonsWatched} label="Lessons watched" />
+          <StatCard value={totals.sessionsAttended} label="Session check-ins" />
+          <StatCard value={totals.submissions} label="Work submitted" />
+          <StatCard value={totals.reflections} label="Reflections" />
           <StatCard
-            value={totals.surveysCompleted.toLocaleString()}
+            value={totals.surveysCompleted}
             label="Surveys completed"
             info="Authenticated survey responses from learners plus anonymous public responses."
           />
-          <StatCard value={totals.tutorMessages.toLocaleString()} label="Tutor messages" />
+          <StatCard value={totals.tutorMessages} label="Tutor messages" />
           <StatCard
-            value={totals.activityEvents.toLocaleString()}
+            value={totals.activityEvents}
             label="Activity events"
             info="The append-only event log (logins, page views, video progress). Platform-wide, including staff."
           />
           <StatCard
-            value={(totals.staffAccounts + totals.adminAccounts).toLocaleString()}
+            value={(totals.staffAccounts + totals.adminAccounts)}
             label="Staff & admins"
             hint={`${totals.staffAccounts.toLocaleString()} staff · ${totals.adminAccounts.toLocaleString()} admin roles`}
             info="Accounts held out of every learner total above."

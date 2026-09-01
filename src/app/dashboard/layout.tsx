@@ -16,6 +16,7 @@ import { PreviewBanner } from "@/components/preview-banner";
 import { getProgram, getProgramWithOverrides, resolveHomeProgramSlug, fetchDynamicProgram, listDynamicPrograms } from "@/lib/programs/server";
 import { getProgramBySlug, getAllPrograms, getJoinablePrograms, isTutorAvailable } from "@/lib/programs";
 import { ProgramProvider } from "@/lib/programs/context";
+import { ToastProvider } from "@/components/motion/toast";
 import { canAccessAdminPanel, canSwitchPrograms, canAccessStaffContent } from "@/lib/roles";
 import { getSessionContext } from "@/lib/auth/session";
 import { getGrantedProgramSlugs } from "@/lib/auth/program-access";
@@ -161,6 +162,7 @@ export default async function DashboardLayout({
 
   return (
     <ProgramProvider program={baseProgram}>
+    <ToastProvider>
       {/* Set the collapsed-rail attribute before paint so the sidebar width
           doesn't flash on navigation. */}
       <script
@@ -228,6 +230,7 @@ export default async function DashboardLayout({
       <Suspense fallback={null}>
         <Overlays isSurveyPage={hideChrome} />
       </Suspense>
+    </ToastProvider>
     </ProgramProvider>
   );
 }

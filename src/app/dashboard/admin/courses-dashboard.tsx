@@ -42,7 +42,7 @@ export function CoursesDashboard({ data }: { data: CoursesAnalytics }) {
       {data.totalFinished > 0 && (
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <StatCard
-          value={data.totalFinished.toLocaleString()}
+          value={data.totalFinished}
           label="Finished the course"
           info={METRIC_DEFS.courseFinished}
           // One definition of "done" on this page: reached the end of the

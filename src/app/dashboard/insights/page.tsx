@@ -246,12 +246,12 @@ export default async function InsightsPage() {
       {/* Metric strip */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard
-          value={totalStudents.toLocaleString()}
+          value={totalStudents}
           label="Students"
           hint="enrolled"
         />
         <StatCard
-          value={activeCount.toLocaleString()}
+          value={activeCount}
           label="Active 7d"
           hint="attendance, submission, reflection, or any dashboard activity"
         />
@@ -261,7 +261,7 @@ export default async function InsightsPage() {
           hint={`${studentsEngaged.toLocaleString()} of ${totalStudents.toLocaleString()}`}
         />
         <StatCard
-          value={uniqueAlumni.size.toLocaleString()}
+          value={uniqueAlumni.size}
           label="Alumni"
           hint="unique by email"
         />
