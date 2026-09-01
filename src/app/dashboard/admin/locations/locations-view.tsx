@@ -53,7 +53,7 @@ export function LocationsView({
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
         <StatCard
-          value={activeCount.toLocaleString()}
+          value={activeCount}
           label={off.size > 0 ? "In selected states" : "Participants located"}
           hint={
             off.size > 0
@@ -62,7 +62,7 @@ export function LocationsView({
           }
         />
         <StatCard
-          value={withZip.toLocaleString()}
+          value={withZip}
           label="With a ZIP on file"
           hint={`of ${totalParticipants.toLocaleString()} hub participants`}
           info="Location comes from the ZIP collected at signup or in surveys; participants without one aren't on this page."

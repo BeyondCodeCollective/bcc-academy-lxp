@@ -192,10 +192,10 @@ export function CourseEngagement({
           />
         )}
         {showLessonsWatched && (
-          <StatCard value={lessonsWatched.toLocaleString()} label="Lessons watched" href={rosterHref} />
+          <StatCard value={lessonsWatched} label="Lessons watched" href={rosterHref} />
         )}
         {showSubmissions && (
-          <StatCard value={submissions.toLocaleString()} label="Submissions" href={workHref} />
+          <StatCard value={submissions} label="Submissions" href={workHref} />
         )}
         <StatCard
           value={status.bounced + status.neverLoggedIn}

@@ -4,6 +4,7 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { AnimatedNumber } from "@/components/motion/animated-number";
 import { InfoDot } from "./info-dot";
 
 export type StatTrend = {
@@ -58,7 +59,7 @@ export function StatCard({
     <>
       <div className="flex items-start justify-between gap-3">
         <p className="text-3xl font-semibold leading-none text-ink tabular-nums sm:text-4xl">
-          {value}
+          {typeof value === "number" ? <AnimatedNumber value={value} /> : value}
         </p>
         {trend && (
           <span
