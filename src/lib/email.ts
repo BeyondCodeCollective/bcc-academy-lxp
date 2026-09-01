@@ -794,12 +794,14 @@ export async function sendApplicationNotification(input: {
   applicationName: string;
   /** Short triage lines, e.g. { University: "Mercer", "Available for all sessions": "Yes" }. */
   details?: Record<string, string | undefined>;
+  /** Override recipient for programs with their own owner (default APPLICATION_NOTIFY_EMAIL). */
+  to?: string;
 }): Promise<void> {
   if (!resend) {
     console.warn("[email] RESEND_API_KEY not set — skipping application notification");
     return;
   }
-  const to = process.env.APPLICATION_NOTIFY_EMAIL ?? "jihan.johnston@wearebcc.org";
+  const to = input.to ?? process.env.APPLICATION_NOTIFY_EMAIL ?? "jihan.johnston@wearebcc.org";
   const esc = (s: string) =>
     s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const rows = Object.entries(input.details ?? {})

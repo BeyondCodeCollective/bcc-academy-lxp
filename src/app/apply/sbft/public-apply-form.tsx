@@ -75,12 +75,12 @@ export function PublicApplyForm() {
             <span className="text-green-600 text-2xl">✓</span>
           </div>
           <h2 className="text-2xl font-bold text-neutral-900 mb-3">
-            Application received.
+            Your application is in. She&apos;s one step closer.
           </h2>
           <p className="text-sm text-neutral-500 max-w-sm mx-auto">
-            We read every application and email families with a decision before
-            the September 26 kickoff. Check the inbox you applied with, and your
-            spam folder just in case.
+            We&apos;ll review every application carefully and be in touch within
+            a few days. Keep an eye on the inbox you used to apply — and check
+            your spam folder just in case.
           </p>
         </div>
       </div>
