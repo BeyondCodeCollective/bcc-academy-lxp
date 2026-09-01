@@ -333,25 +333,52 @@ export default async function TrackWeekPage({
     const todayET = now.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
     return weekClock.date > todayET;
   })();
+  // Mirror gate for a day that's fully over: a dated session must not offer a
+  // live join AFTER its calendar day either, even when the schedule carries no
+  // time. Security+'s Aug 27 study session (dated, untimed) kept a live Zoom
+  // embed up five days later — above that same session's replay — and the
+  // recurring room happened to be live with a different class (2026-09-01).
+  const sessionDayPassed = (() => {
+    if (!weekClock?.date) return false;
+    const todayET = now.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+    return weekClock.date < todayET;
+  })();
+  // A recording's presence implies the session happened — but ONLY for
+  // past weeks. On the CURRENT unit a stray recording (seeded by course
+  // setup, or imported early) must never hide the live Join: it blocked
+  // students out of Endless Bootcamp's Presentation Day for two hours
+  // (2026-08-06). Current unit → Join stays up unless an admin explicitly
+  // marks the session completed or the unit's calendar day is over.
+  const liveGateOpen = (i: number) =>
+    sessionStatuses[i] !== "completed" &&
+    !weekIsPast &&
+    !sessionWindowPassed &&
+    !sessionDayFuture &&
+    !sessionDayPassed &&
+    (weekNum === currentWeek || !recordingUrls[i]);
   const zoomSessions = weekContent.sessions
     .map((session, i) => ({
       index: i,
       session,
       parsed: meetingLinks[i] ? parseZoomLink(meetingLinks[i]!) : null,
-      // A recording's presence implies the session happened — but ONLY for
-      // past weeks. On the CURRENT unit a stray recording (seeded by course
-      // setup, or imported early) must never hide the live Join: it blocked
-      // students out of Endless Bootcamp's Presentation Day for two hours
-      // (2026-08-06). Current unit → Join stays up unless an admin explicitly
-      // marks the session completed.
-      isActive:
-        sessionStatuses[i] !== "completed" &&
-        !weekIsPast &&
-        !sessionWindowPassed &&
-        !sessionDayFuture &&
-        (weekNum === currentWeek || !recordingUrls[i]),
+      isActive: liveGateOpen(i),
     }))
     .filter((s) => s.parsed !== null && s.isActive);
+  // Non-Zoom links render a "Join Session" panel instead of an embed (single-
+  // session units only — mirrors the JSX gate below).
+  const nonZoomLive =
+    weekContent.sessions.length === 1 &&
+    !!meetingLinks[0] &&
+    !isZoomLink(meetingLinks[0]) &&
+    liveGateOpen(0);
+  // A live join and that session's replay must NEVER render together: while a
+  // join is up the replay hides; once the join retires the replay is the only
+  // surface left. (Both at once read as broken and invite students into
+  // whatever is currently live on a recurring room.)
+  const liveNow = new Set<number>([
+    ...zoomSessions.map((s) => s.index),
+    ...(nonZoomLive ? [0] : []),
+  ]);
 
   const prevWeek = weekNum > 1 ? weekNum - 1 : null;
   const nextWeek = weekNum < track.totalWeeks ? weekNum + 1 : null;
@@ -517,14 +544,7 @@ export default async function TrackWeekPage({
          sessions list below, so without this an external meeting link rendered
          NO join control at all. Same activity rules as the Zoom embed. Added
          for HFS camp week's Teams-hosted mock-interview days (2026-08-07). */}
-      {weekContent.sessions.length === 1 &&
-        meetingLinks[0] &&
-        !isZoomLink(meetingLinks[0]) &&
-        sessionStatuses[0] !== "completed" &&
-        !weekIsPast &&
-        !sessionWindowPassed &&
-        !sessionDayFuture &&
-        (weekNum === currentWeek || !recordingUrls[0]) && (
+      {nonZoomLive && meetingLinks[0] && (
           <div className="mb-8 flex flex-wrap items-center justify-between gap-3 panel px-4 py-4">
             <div>
               <p className="text-sm font-semibold text-ink">Live session</p>
@@ -624,7 +644,8 @@ export default async function TrackWeekPage({
          those are intentional overrides for this cohort and rendering both
          stacks duplicate cards on the page. */}
       {weekContent.videoUrl &&
-        !recordingUrls.some((u) => !!u) && (
+        !recordingUrls.some((u) => !!u) &&
+        liveNow.size === 0 && (
           <RecordingCard
             url={weekContent.videoUrl}
             title="Session Recording"
@@ -641,6 +662,8 @@ export default async function TrackWeekPage({
       {weekContent.sessions.map((session, i) => {
         const url = playbackUrls[i];
         if (!url) return null;
+        // Never a replay under a live join for the same session.
+        if (liveNow.has(i)) return null;
 
         const recordingLabel = weekContent.sessions.length > 1
           ? `Session ${i + 1} Recording`
