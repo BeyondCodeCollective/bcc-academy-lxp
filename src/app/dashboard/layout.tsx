@@ -21,7 +21,7 @@ import { canAccessAdminPanel, canSwitchPrograms, canAccessStaffContent } from "@
 import { getSessionContext } from "@/lib/auth/session";
 import { getGrantedProgramSlugs } from "@/lib/auth/program-access";
 import { getPreviewTrackSlug, getPreviewTrackSlugs, LUNCH_LEARN_PREVIEW_SLUG } from "@/lib/auth/preview-mode";
-import { getMyInstructorTracks } from "@/app/dashboard/admin/actions-tracks";
+import { getPreviewScope } from "@/lib/auth/preview-scope";
 import { getEnrolledTracks } from "@/lib/enrollment";
 import { getHiddenTrackSlugs } from "@/lib/programs/hidden";
 import { getLearnerAccess } from "@/lib/auth/active-enrollment";
@@ -895,11 +895,10 @@ async function Overlays({ isSurveyPage }: { isSurveyPage: boolean }) {
   );
   const programBySlug = new Map(overriddenPrograms.map((p) => [p.slug, p] as const));
 
-  // Instructors may preview only the courses they teach; super-admins/admins
-  // see the full menu. `instructorScope` is null for the latter (no filter).
-  const instructorScope = canSwitchPrograms(role)
-    ? null
-    : new Set(await getMyInstructorTracks());
+  // Scope the menu to what the preview actions will actually accept: null for
+  // super-admins (full menu), the home + granted programs' courses for program
+  // admins, only assigned courses for instructors.
+  const previewScope = await getPreviewScope(ctx.userId, role);
 
   const previewGroupMap = new Map<
     string,
@@ -910,10 +909,11 @@ async function Overlays({ isSurveyPage }: { isSurveyPage: boolean }) {
     for (const t of p.tracks) {
       if (hiddenTrackSlugs.has(t.slug)) continue;
       if (seenTrackSlugs.has(t.slug)) continue;
-      if (instructorScope && !instructorScope.has(t.slug)) continue;
-      seenTrackSlugs.add(t.slug);
       const home = getHomeProgramForTrack(t.slug);
       const homeSlug = home?.slug ?? p.slug;
+      if (previewScope && "tracks" in previewScope && !previewScope.tracks.has(t.slug)) continue;
+      if (previewScope && "programs" in previewScope && !previewScope.programs.has(homeSlug)) continue;
+      seenTrackSlugs.add(t.slug);
       // Read the name + program label from the track's HOME program's
       // override-applied config — Catalyst aggregates other programs' tracks
       // but without their overrides, so the home program is authoritative.
@@ -928,9 +928,9 @@ async function Overlays({ isSurveyPage }: { isSurveyPage: boolean }) {
     }
   }
   const previewGroups = [
-    // Lunch & Learns is a super-admin-only preview convenience, not something
-    // an instructor is scoped to teach — omit it for them.
-    ...(instructorScope
+    // Lunch & Learns is a super-admin-only preview convenience — omit it for
+    // scoped staff (the preview action refuses it for them anyway).
+    ...(previewScope
       ? []
       : [
           {
