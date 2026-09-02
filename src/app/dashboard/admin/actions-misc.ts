@@ -7,7 +7,7 @@ import { requireAdmin, requireCapability, logAdminAccess, resolveProgramForActor
 import { logActivityEvent } from "@/lib/analytics/log-event";
 import { notifyAnnouncement, notifyFeedback } from "@/lib/notifications";
 import { sendCertificateEmail } from "@/lib/email";
-import { getProgramBySlug, getTrackBySlug } from "@/lib/programs";
+import { issueCertificateCore, certEmailContext, type IssueCertificateResult } from "@/lib/certificates";
 
 // ─── Submissions & Reflections (Admin) ──────────────────────────────────────
 
@@ -320,39 +320,7 @@ export async function getCertificateEligibility(
 const CERT_EMAIL_PACE_MS = 550; // ~2/sec — Resend rate limit
 const sleepMs = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** The name/email bits the certificate email needs, or null when the student
- *  row is missing (deleted between render and click). */
-async function certEmailContext(
-  svc: Awaited<ReturnType<typeof requireAdmin>>["svc"],
-  studentId: string,
-  trackSlug: string,
-  programSlug: string,
-) {
-  const { data: student } = await svc
-    .from("students")
-    .select("first_name, email")
-    .eq("id", studentId)
-    .maybeSingle();
-  if (!student?.email) return null;
-  const program = getProgramBySlug(programSlug);
-  const track = getTrackBySlug(program, trackSlug);
-  return {
-    to: student.email as string,
-    firstName: (student.first_name as string | null) ?? "",
-    programName: program.name,
-    courseName: track?.certificateName ?? track?.name ?? trackSlug,
-    domain: program.domain,
-  };
-}
-
-export type IssueCertificateResult = {
-  success: boolean;
-  certificateId?: string;
-  /** True when the certificate already existed before this call. */
-  alreadyIssued?: boolean;
-  emailed?: boolean;
-  error?: string;
-};
+export type { IssueCertificateResult } from "@/lib/certificates";
 
 /**
  * Issue a certificate to one student: create the completion row (idempotent —
@@ -371,53 +339,17 @@ export async function issueCertificate(
   const { svc } = actor;
   const programId = await resolveProgramForActor(actor, svc, programSlug);
 
-  const { data: existing } = await svc
-    .from("track_completions")
-    .select("certificate_id")
-    .eq("student_id", studentId)
-    .eq("track_slug", trackSlug)
-    .eq("program_id", programId)
-    .maybeSingle();
-  if (existing?.certificate_id) {
-    return { success: true, certificateId: existing.certificate_id, alreadyIssued: true, emailed: false };
-  }
-
-  const { data: created, error } = await svc
-    .from("track_completions")
-    .insert({ student_id: studentId, track_slug: trackSlug, program_id: programId })
-    .select("certificate_id")
-    .single();
-  if (error) return { success: false, error: error.message };
-
-  after(() => logActivityEvent({
-    userId: studentId,
-    eventType: "certificate_issued",
-    programId,
+  const result = await issueCertificateCore(svc, {
+    studentId,
     trackSlug,
-    metadata: { issuedBy: actor.userId },
-  }));
+    programId,
+    programSlug,
+    issuedBy: actor.userId,
+    skipEmail: opts?.skipEmail,
+  });
 
-  let emailed = false;
-  if (!opts?.skipEmail) {
-    try {
-      const ctx = await certEmailContext(svc, studentId, trackSlug, programSlug);
-      if (ctx) {
-        const { domain, ...email } = ctx;
-        await sendCertificateEmail({
-          ...email,
-          certificateUrl: `https://${domain}/certificate/${created.certificate_id}`,
-        });
-        emailed = true;
-      }
-    } catch (e) {
-      // The certificate exists either way — surface the email failure so the
-      // admin can hit "Email again" rather than silently losing it.
-      console.error("[certificates] email failed:", e instanceof Error ? e.message : String(e));
-    }
-  }
-
-  revalidatePath("/dashboard");
-  return { success: true, certificateId: created.certificate_id, alreadyIssued: false, emailed };
+  if (result.success) revalidatePath("/dashboard");
+  return result;
 }
 
 /**

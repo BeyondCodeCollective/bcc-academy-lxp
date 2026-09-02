@@ -933,3 +933,65 @@ export async function sendSentinelReportEmail(input: {
     );
   }
 }
+
+/**
+ * Automation nudge to a learner: enrolled but never started, or started and
+ * went quiet. Sent by the nightly automation cron, at most once per rule per
+ * learner (automation_nudges is the guard). Self-contained try/catch — a mail
+ * failure must never abort the automation pass.
+ */
+export async function sendNudgeEmail(input: {
+  to: string;
+  firstName: string;
+  programName: string;
+  courseName: string;
+  kind: "never-started" | "stalled";
+}): Promise<void> {
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY not set — skipping nudge email");
+    return;
+  }
+  const esc = (s: string) =>
+    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const name = input.firstName.trim();
+  const hey = `Hey${name ? ` ${esc(name)}` : ""}!`;
+  const dashboardUrl = "https://bccacademy.io/dashboard";
+  const copy =
+    input.kind === "never-started"
+      ? {
+          subject: `Your seat in ${input.courseName} is waiting`,
+          lead: `You're enrolled in <strong>${esc(input.courseName)}</strong>, and your first lesson is ready whenever you are. It only takes a few minutes to get going — and the first step is the hardest one.`,
+          cta: "Start my first lesson →",
+        }
+      : {
+          subject: `Pick up where you left off in ${input.courseName}`,
+          lead: `You made a real start on <strong>${esc(input.courseName)}</strong> — nice. Your next lesson is queued up right where you left off, and a little momentum now goes a long way.`,
+          cta: "Continue my course →",
+        };
+  try {
+    await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: input.to,
+      subject: copy.subject,
+      text: `${name ? `Hey ${name}!` : "Hey!"}
+
+${copy.lead.replace(/<[^>]+>/g, "")}
+
+${dashboardUrl}
+
+— ${input.programName}`,
+      html: inviteShell(
+        input.courseName,
+        `    <p style="margin:0 0 8px;font-size:22px;font-weight:700;color:#1a1a1a;">${hey}</p>
+    <p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:#555;">${copy.lead}</p>
+    ${ctaButton(dashboardUrl, copy.cta)}
+    <p style="margin:0;font-size:12px;color:#999;line-height:1.5;">Questions or stuck on something? Just reply to this email — a real person from ${esc(input.programName)} reads these.</p>`,
+      ),
+    });
+  } catch (e) {
+    console.error(
+      "[email] sendNudgeEmail failed:",
+      e instanceof Error ? e.message : String(e),
+    );
+  }
+}
