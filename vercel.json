@@ -31,6 +31,10 @@
     {
       "path": "/api/cron/zoom-recordings",
       "schedule": "30 * * * *"
+    },
+    {
+      "path": "/api/cron/automation",
+      "schedule": "0 13 * * *"
     }
   ]
 }

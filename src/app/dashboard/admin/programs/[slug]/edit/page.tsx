@@ -9,9 +9,12 @@ import {
 } from "@/lib/programs/server";
 import { hasTsConfigSlug } from "@/lib/programs";
 import { EditCourseForm } from "./edit-course-form";
+import { AutomationPanel } from "./automation-panel";
 import { PageHeader } from "@/components/page-header";
 import { COHORT_TIME_ZONE } from "@/lib/utils";
 import { ManageMenu } from "../../../manage-menu";
+import { createServiceClient } from "@/lib/supabase/server";
+import { getTrackAutomation, DEFAULT_NUDGES } from "@/lib/automation/rules";
 
 export const dynamic = "force-dynamic";
 
@@ -68,6 +71,20 @@ export default async function EditCoursePage({
     .sort((a, b) => a.week - b.week)
     .find((ws) => !ws.label && ws.date);
 
+  // Automation rules (nightly certificates + nudges). Fails soft to defaults
+  // when the table hasn't been migrated yet — the panel still renders and the
+  // save action reports the real error.
+  const svc = createServiceClient();
+  const { data: programRow } = await svc
+    .from("programs")
+    .select("id")
+    .eq("slug", programSlug)
+    .maybeSingle();
+  const automation = programRow?.id
+    ? await getTrackAutomation(svc, programRow.id as string, slug)
+    : null;
+  const videoWeeks = track.weeks.filter((w) => !!w.videoUrl).length;
+
   return (
     <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8 space-y-6">
       <div>
@@ -96,6 +113,25 @@ export default async function EditCoursePage({
           todayIso={todayInEasternISO()}
           initialTime={firstDated?.time ?? ""}
           initialDuration={firstDated?.durationMinutes ? String(firstDated.durationMinutes) : ""}
+        />
+      </div>
+
+      <div className="rounded-lg border border-rule bg-white p-6">
+        <h2 className="mb-1 text-sm font-bold text-ink">Automation</h2>
+        <p className="mb-5 text-xs text-ink-soft">
+          Nightly, opt-in. Nothing runs until a switch below is on.
+        </p>
+        <AutomationPanel
+          programSlug={programSlug}
+          trackSlug={slug}
+          videoWeeks={videoWeeks}
+          initial={{
+            autoCertificate: automation?.autoCertificate ?? false,
+            completionLessons: automation?.completion.lessons ?? "all",
+            completionSubmissions: automation?.completion.submissions ?? null,
+            nudgesEnabled: automation?.nudgesEnabled ?? false,
+            nudges: automation?.nudges ?? DEFAULT_NUDGES,
+          }}
         />
       </div>
     </div>
