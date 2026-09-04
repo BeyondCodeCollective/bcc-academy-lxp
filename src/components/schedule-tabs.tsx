@@ -21,7 +21,9 @@ export function ScheduleTabs({
   todayISO: string;
   focusDate?: string | null;
 }) {
-  const [view, setView] = useState<"calendar" | "list">("calendar");
+  // List is the default: every session's topic, date, and time reads at a
+  // glance, where the month grid buries them in small chips.
+  const [view, setView] = useState<"calendar" | "list">("list");
 
   return (
     <section aria-label="Schedule">
