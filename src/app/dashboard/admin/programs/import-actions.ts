@@ -308,9 +308,27 @@ export async function createCourseFromDraftAction(params: {
   }
 
   // Same pairing the manual builder enforces: a cohort with no landing page has
-  // no way for anyone to sign up for it. Imported and AI-generated courses used
-  // to skip this and land without a page.
-  const landing = await ensureLandingForCourse(svc, slug, draft.name.trim(), programSlug);
+  // no way for anyone to sign up for it. The drafted copy was reviewed on the
+  // same screen as the course; the schedule is derived from the sessions here
+  // rather than drafted, so it can't disagree with the calendar.
+  const landing = await ensureLandingForCourse(svc, slug, draft.name.trim(), programSlug, {
+    headline: draft.landing?.headline,
+    subhead: draft.landing?.subhead,
+    eyebrow: draft.landing?.eyebrow,
+    bodySections: (draft.landing?.bodySections ?? []).filter(
+      (s) => s.heading.trim() && s.body.trim(),
+    ),
+    schedule: orderedSessions.map((s) => ({
+      // Noon UTC so the label can't slip a day in any server timezone.
+      label: new Date(`${s.date}T12:00:00Z`).toLocaleDateString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        timeZone: "UTC",
+      }),
+      title: s.topic,
+    })),
+  });
 
   revalidatePath("/dashboard", "page");
   revalidatePath("/dashboard/admin", "page");

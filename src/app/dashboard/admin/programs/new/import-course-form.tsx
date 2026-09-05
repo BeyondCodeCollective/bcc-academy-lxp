@@ -128,6 +128,28 @@ export function ImportCourseForm({
     );
   }
 
+  const emptyLanding = { headline: "", subhead: "", eyebrow: "", bodySections: [] };
+
+  function patchLanding(changes: Partial<CourseDraft["landing"]>) {
+    setDraft((d) => (d ? { ...d, landing: { ...(d.landing ?? emptyLanding), ...changes } } : d));
+  }
+
+  function patchLandingSection(i: number, changes: Partial<{ heading: string; body: string }>) {
+    setDraft((d) =>
+      d
+        ? {
+            ...d,
+            landing: {
+              ...(d.landing ?? emptyLanding),
+              bodySections: (d.landing?.bodySections ?? []).map((s, n) =>
+                n === i ? { ...s, ...changes } : s,
+              ),
+            },
+          }
+        : d,
+    );
+  }
+
   if (created) {
     return (
       <div className="space-y-4">
@@ -373,6 +395,68 @@ export function ImportCourseForm({
             className={fieldInput}
           />
         </Field>
+      </div>
+
+      {/* The landing page draft. Copy only — the schedule is derived from the
+          sessions at create time, and images/accent/links are added later in
+          the landing editor. The page is created UNPUBLISHED, so nothing here
+          is public until the admin publishes it. */}
+      <div className="rounded-lg border border-ink/10 px-4 py-4 space-y-5">
+        <div>
+          <p className="text-sm font-semibold text-ink">Landing page</p>
+          <p className="mt-1 text-xs text-ink-soft">
+            Drafted from the same source. Created unpublished at /bcc/{slug || "…"} —
+            add the hero image and publish from Manage Landing Pages.
+          </p>
+        </div>
+
+        <Field label="Eyebrow" hint="tiny kicker above the headline — optional">
+          <input
+            type="text"
+            value={draft.landing?.eyebrow ?? ""}
+            onChange={(e) => patchLanding({ eyebrow: e.target.value })}
+            className={fieldInput}
+          />
+        </Field>
+
+        <Field label="Headline">
+          <input
+            type="text"
+            value={draft.landing?.headline ?? ""}
+            onChange={(e) => patchLanding({ headline: e.target.value })}
+            className={fieldInput}
+          />
+        </Field>
+
+        <Field label="Subhead">
+          <input
+            type="text"
+            value={draft.landing?.subhead ?? ""}
+            onChange={(e) => patchLanding({ subhead: e.target.value })}
+            className={fieldInput}
+          />
+        </Field>
+
+        {(draft.landing?.bodySections ?? []).map((section, i) => (
+          <Field key={i} label={`Section ${i + 1}`}>
+            <div className="space-y-2">
+              <input
+                type="text"
+                value={section.heading}
+                onChange={(e) => patchLandingSection(i, { heading: e.target.value })}
+                placeholder="Heading"
+                className={fieldInput}
+              />
+              <textarea
+                rows={3}
+                value={section.body}
+                onChange={(e) => patchLandingSection(i, { body: e.target.value })}
+                placeholder="Body"
+                className={fieldInput}
+              />
+            </div>
+          </Field>
+        ))}
       </div>
 
       <Field label="Program">
