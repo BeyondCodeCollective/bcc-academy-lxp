@@ -20,6 +20,18 @@ export type DraftSession = {
   durationMinutes: number;
 };
 
+/** Marketing copy for the course's landing page (/bcc/[slug]). Drafted from
+ *  the same source, reviewed on the same screen. Links, images, and brand
+ *  color are set by code or by hand in the landing editor — never drafted. */
+export type LandingDraft = {
+  headline: string;
+  subhead: string;
+  /** Tiny kicker above the headline, e.g. "Free 6-week program". Empty if
+   *  nothing in the source fits. */
+  eyebrow: string;
+  bodySections: { heading: string; body: string }[];
+};
+
 export type CourseDraft = {
   name: string;
   shortName: string;
@@ -34,6 +46,7 @@ export type CourseDraft = {
   objectives: string[];
   sessionTitle: string;
   sessionSubtitle: string;
+  landing: LandingDraft;
   /** Fields the source never stated. Rendered as blanks the admin must fill,
    *  never silently defaulted to a plausible-looking value. */
   missing: string[];
@@ -54,6 +67,7 @@ export const SCHEMA = jsonSchema<{
   objectives: string[];
   sessionTitle: string;
   sessionSubtitle: string;
+  landing: LandingDraft;
   missing: string[];
   timezoneStated: boolean;
 }>({
@@ -73,6 +87,7 @@ export const SCHEMA = jsonSchema<{
     "objectives",
     "sessionTitle",
     "sessionSubtitle",
+    "landing",
     "missing",
     "timezoneStated",
   ],
@@ -114,6 +129,41 @@ export const SCHEMA = jsonSchema<{
     },
     sessionTitle: { type: "string" },
     sessionSubtitle: { type: "string", description: "One line. Empty string if none." },
+    landing: {
+      type: "object",
+      additionalProperties: false,
+      required: ["headline", "subhead", "eyebrow", "bodySections"],
+      description:
+        "Marketing copy for the course's public landing page. Copy only — never links, images, or prices unless the source states them.",
+      properties: {
+        headline: {
+          type: "string",
+          description: "Short, concrete page headline. Usually the course name or the source's own hook.",
+        },
+        subhead: {
+          type: "string",
+          description: "One sentence under the headline saying who this is for and what they get.",
+        },
+        eyebrow: {
+          type: "string",
+          description: 'Tiny kicker above the headline, e.g. "Free 6-week program". Empty string if nothing in the source fits.',
+        },
+        bodySections: {
+          type: "array",
+          description:
+            "2-4 content blocks below the hero (overview, what you'll learn, who it's for). Drawn from the source.",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["heading", "body"],
+            properties: {
+              heading: { type: "string" },
+              body: { type: "string", description: "1-3 plain-prose sentences. No markdown." },
+            },
+          },
+        },
+      },
+    },
     missing: {
       type: "array",
       items: { type: "string" },
@@ -136,7 +186,8 @@ Rules:
 - If the source gives a time in another zone (e.g. "8:00 AM PDT"), convert it to Eastern.
 - "sessions" must contain one entry per session with a real date. This drives the calendar; an empty array makes the course invisible.
 - For a recurring course, expand the cadence into individual dated sessions.
-- Keep the source's wording in description and objectives. Do not add marketing language.`;
+- Keep the source's wording in description and objectives. Do not add marketing language.
+- "landing" is the course's public landing page copy. Reshape the source's own words into a headline, subhead, optional eyebrow, and 2-4 body sections. Stay in the source's voice; never add claims, prices, or facts the source doesn't state.`;
 
 
 /** Model settings, so an eval run can pin them without changing production.
@@ -173,11 +224,32 @@ end (local): ${source.facts.endLocal}
 timezone: ${source.facts.timezone}`
       : "";
 
+  // PDFs go to the model as raw bytes — Gemini reads them natively, so the
+  // layout (tables, schedules) survives where a text dump would scramble it.
   const { object } = await generateObject({
     ...draftModelSettings(opts, MODEL),
     schema: SCHEMA,
     system: SYSTEM,
-    prompt: `Convert this into course data.${factBlock}\n\nSOURCE:\n${source.text.slice(0, 20000)}`,
+    ...(source.kind === "pdf"
+      ? {
+          messages: [
+            {
+              role: "user" as const,
+              content: [
+                { type: "text" as const, text: `Convert this into course data.${factBlock}` },
+                {
+                  type: "file" as const,
+                  data: source.dataBase64,
+                  mediaType: "application/pdf",
+                  filename: source.fileName,
+                },
+              ],
+            },
+          ],
+        }
+      : {
+          prompt: `Convert this into course data.${factBlock}\n\nSOURCE:\n${source.text.slice(0, 20000)}`,
+        }),
   });
 
   // The Eventbrite API is authoritative for time; don't let the model's copy of

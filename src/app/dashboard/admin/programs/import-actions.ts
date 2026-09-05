@@ -9,6 +9,7 @@ import { toSlug } from "@/lib/programs/slug";
 import { easternToUtc } from "@/lib/utils";
 import { ensureLandingForCourse } from "@/lib/landing-pages";
 import { resolveSource } from "@/lib/course-import/source";
+import { extractFileSource, MAX_FILE_BYTES } from "@/lib/course-import/file";
 import { parseCourseDraft, type CourseDraft } from "@/lib/course-import/parse";
 import { generateCourseDraft } from "@/lib/course-import/generate";
 
@@ -84,6 +85,40 @@ export async function previewCourseImportAction(
         ? resolved.source.facts.coverImageUrl
         : undefined,
   };
+}
+
+/** Step 1, file flavor: upload a PDF/DOCX/PPTX and parse it. Writes nothing.
+ *  Takes FormData because server actions can't take a File directly. */
+export async function previewCourseFileImportAction(
+  formData: FormData,
+): Promise<PreviewResult> {
+  await requireCourseCreator();
+
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) {
+    return { success: false, error: "Choose a file first." };
+  }
+  if (file.size > MAX_FILE_BYTES) {
+    return { success: false, error: "That file is over 15MB. Export a smaller version or paste the text." };
+  }
+
+  const resolved = await extractFileSource(file.name, Buffer.from(await file.arrayBuffer()));
+  if (!resolved.ok) {
+    return { success: false, error: resolved.error, needsPaste: resolved.needsPaste };
+  }
+
+  let draft: CourseDraft;
+  try {
+    draft = await parseCourseDraft(resolved.source);
+  } catch (err) {
+    console.error("[previewCourseFileImportAction] parse failed:", err);
+    return {
+      success: false,
+      error: "Could not read that file. Try pasting the text directly.",
+    };
+  }
+
+  return { success: true, draft, attendeeEmails: [] };
 }
 
 /** Step 1 of the generator: describe the program, get a reviewable draft.
@@ -273,9 +308,27 @@ export async function createCourseFromDraftAction(params: {
   }
 
   // Same pairing the manual builder enforces: a cohort with no landing page has
-  // no way for anyone to sign up for it. Imported and AI-generated courses used
-  // to skip this and land without a page.
-  const landing = await ensureLandingForCourse(svc, slug, draft.name.trim(), programSlug);
+  // no way for anyone to sign up for it. The drafted copy was reviewed on the
+  // same screen as the course; the schedule is derived from the sessions here
+  // rather than drafted, so it can't disagree with the calendar.
+  const landing = await ensureLandingForCourse(svc, slug, draft.name.trim(), programSlug, {
+    headline: draft.landing?.headline,
+    subhead: draft.landing?.subhead,
+    eyebrow: draft.landing?.eyebrow,
+    bodySections: (draft.landing?.bodySections ?? []).filter(
+      (s) => s.heading.trim() && s.body.trim(),
+    ),
+    schedule: orderedSessions.map((s) => ({
+      // Noon UTC so the label can't slip a day in any server timezone.
+      label: new Date(`${s.date}T12:00:00Z`).toLocaleDateString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        timeZone: "UTC",
+      }),
+      title: s.topic,
+    })),
+  });
 
   revalidatePath("/dashboard", "page");
   revalidatePath("/dashboard/admin", "page");

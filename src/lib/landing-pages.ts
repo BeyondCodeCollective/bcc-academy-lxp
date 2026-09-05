@@ -215,6 +215,15 @@ export async function ensureLandingForCourse(
   trackSlug: string,
   courseName: string,
   programSlug: string,
+  /** Drafted copy from the course importer/generator, already reviewed by the
+   *  admin. Absent for the manual builder, which keeps the bare stub. */
+  content?: {
+    headline?: string;
+    subhead?: string;
+    eyebrow?: string;
+    bodySections?: LandingSection[];
+    schedule?: ScheduleDay[];
+  },
 ): Promise<{ created: boolean; slug: string | null }> {
   const { data: bySlug } = await svc
     .from("landing_pages")
@@ -234,17 +243,19 @@ export async function ensureLandingForCourse(
     slug: trackSlug,
     published: false,
     header_label: "BCC Academy",
-    headline: courseName,
+    headline: content?.headline?.trim() || courseName,
+    subhead: content?.subhead?.trim() || null,
+    eyebrow: content?.eyebrow?.trim() || null,
     track_slug: trackSlug,
     accent: "#1a1a1a",
     // No sessions yet (the course has no schedule until Edit Course sets one),
     // and native_enroll is only honoured with sessions, so leave it off rather
     // than shipping a signup form that can't take a date.
     native_enroll: false,
-    schedule: [],
+    schedule: content?.schedule ?? [],
     partners: [],
     sessions: [],
-    body_sections: [],
+    body_sections: content?.bodySections ?? [],
     updated_at: new Date().toISOString(),
   });
 

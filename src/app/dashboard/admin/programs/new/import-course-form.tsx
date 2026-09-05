@@ -3,6 +3,7 @@
 import { useState } from "react";
 import {
   previewCourseImportAction,
+  previewCourseFileImportAction,
   generateCourseDraftAction,
   createCourseFromDraftAction,
 } from "../import-actions";
@@ -38,6 +39,7 @@ export function ImportCourseForm({
       ? [{ value: currentProgram.slug, label: currentProgram.name }]
       : PROGRAM_OPTIONS;
   const [input, setInput] = useState("");
+  const [file, setFile] = useState<File | null>(null);
   const [needsPaste, setNeedsPaste] = useState(false);
   const [draft, setDraft] = useState<CourseDraft | null>(null);
   const [attendees, setAttendees] = useState<string[]>([]);
@@ -59,9 +61,16 @@ export function ImportCourseForm({
     setNeedsPaste(false);
     setPending(true);
     try {
-      const res = generating
-        ? await generateCourseDraftAction(input)
-        : await previewCourseImportAction(input);
+      let res;
+      if (generating) {
+        res = await generateCourseDraftAction(input);
+      } else if (file) {
+        const fd = new FormData();
+        fd.set("file", file);
+        res = await previewCourseFileImportAction(fd);
+      } else {
+        res = await previewCourseImportAction(input);
+      }
       if (res.success) {
         setDraft(res.draft);
         setObjectivesText((res.draft.objectives ?? []).join("\n"));
@@ -70,10 +79,13 @@ export function ImportCourseForm({
       } else {
         setError(res.error);
         setNeedsPaste(Boolean(res.needsPaste));
+        // "Paste it instead" needs the textarea back, so drop the file.
+        if (res.needsPaste) setFile(null);
       }
     } catch {
       setError("Something went wrong reading that. Try pasting the text instead.");
       setNeedsPaste(true);
+      setFile(null);
     } finally {
       setPending(false);
     }
@@ -112,6 +124,28 @@ export function ImportCourseForm({
     setDraft((d) =>
       d
         ? { ...d, sessions: d.sessions.map((s, n) => (n === i ? { ...s, ...changes } : s)) }
+        : d,
+    );
+  }
+
+  const emptyLanding = { headline: "", subhead: "", eyebrow: "", bodySections: [] };
+
+  function patchLanding(changes: Partial<CourseDraft["landing"]>) {
+    setDraft((d) => (d ? { ...d, landing: { ...(d.landing ?? emptyLanding), ...changes } } : d));
+  }
+
+  function patchLandingSection(i: number, changes: Partial<{ heading: string; body: string }>) {
+    setDraft((d) =>
+      d
+        ? {
+            ...d,
+            landing: {
+              ...(d.landing ?? emptyLanding),
+              bodySections: (d.landing?.bodySections ?? []).map((s, n) =>
+                n === i ? { ...s, ...changes } : s,
+              ),
+            },
+          }
         : d,
     );
   }
@@ -163,7 +197,7 @@ export function ImportCourseForm({
           label={
             generating
               ? "Describe the program"
-              : "Google Doc link, Eventbrite link, or pasted text"
+              : "Google Doc link, Eventbrite link, pasted text, or a file"
           }
           hint={
             generating
@@ -173,7 +207,8 @@ export function ImportCourseForm({
         >
           <textarea
             id="import-input"
-            required
+            required={generating || !file}
+            disabled={!generating && Boolean(file)}
             rows={generating ? 6 : needsPaste ? 12 : 4}
             placeholder={
               generating
@@ -182,9 +217,44 @@ export function ImportCourseForm({
             }
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            className={`${fieldInput} font-mono text-xs`}
+            className={`${fieldInput} font-mono text-xs disabled:opacity-50`}
           />
         </Field>
+
+        {!generating && (
+          <div className="flex items-center gap-3">
+            <label className="cursor-pointer rounded-lg border border-ink/10 px-3 py-2 text-sm text-ink-soft transition-colors hover:border-ink/25 hover:text-ink">
+              {file ? "Choose a different file" : "…or upload a file"}
+              <input
+                type="file"
+                accept=".pdf,.docx,.pptx"
+                className="sr-only"
+                onChange={(e) => {
+                  setFile(e.target.files?.[0] ?? null);
+                  setError(null);
+                  setNeedsPaste(false);
+                  // Same input can be re-picked after clearing.
+                  e.target.value = "";
+                }}
+              />
+            </label>
+            {file ? (
+              <span className="flex min-w-0 items-center gap-2 text-sm">
+                <span className="truncate font-mono text-xs">{file.name}</span>
+                <button
+                  type="button"
+                  onClick={() => setFile(null)}
+                  aria-label="Remove file"
+                  className="shrink-0 text-ink-soft transition-colors hover:text-ink"
+                >
+                  ✕
+                </button>
+              </span>
+            ) : (
+              <span className="text-xs text-ink-soft">PDF, Word, or PowerPoint · up to 15MB</span>
+            )}
+          </div>
+        )}
 
         {error && (
           <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
@@ -327,6 +397,68 @@ export function ImportCourseForm({
         </Field>
       </div>
 
+      {/* The landing page draft. Copy only — the schedule is derived from the
+          sessions at create time, and images/accent/links are added later in
+          the landing editor. The page is created UNPUBLISHED, so nothing here
+          is public until the admin publishes it. */}
+      <div className="rounded-lg border border-ink/10 px-4 py-4 space-y-5">
+        <div>
+          <p className="text-sm font-semibold text-ink">Landing page</p>
+          <p className="mt-1 text-xs text-ink-soft">
+            Drafted from the same source. Created unpublished at /bcc/{slug || "…"} —
+            add the hero image and publish from Manage Landing Pages.
+          </p>
+        </div>
+
+        <Field label="Eyebrow" hint="tiny kicker above the headline — optional">
+          <input
+            type="text"
+            value={draft.landing?.eyebrow ?? ""}
+            onChange={(e) => patchLanding({ eyebrow: e.target.value })}
+            className={fieldInput}
+          />
+        </Field>
+
+        <Field label="Headline">
+          <input
+            type="text"
+            value={draft.landing?.headline ?? ""}
+            onChange={(e) => patchLanding({ headline: e.target.value })}
+            className={fieldInput}
+          />
+        </Field>
+
+        <Field label="Subhead">
+          <input
+            type="text"
+            value={draft.landing?.subhead ?? ""}
+            onChange={(e) => patchLanding({ subhead: e.target.value })}
+            className={fieldInput}
+          />
+        </Field>
+
+        {(draft.landing?.bodySections ?? []).map((section, i) => (
+          <Field key={i} label={`Section ${i + 1}`}>
+            <div className="space-y-2">
+              <input
+                type="text"
+                value={section.heading}
+                onChange={(e) => patchLandingSection(i, { heading: e.target.value })}
+                placeholder="Heading"
+                className={fieldInput}
+              />
+              <textarea
+                rows={3}
+                value={section.body}
+                onChange={(e) => patchLandingSection(i, { body: e.target.value })}
+                placeholder="Body"
+                className={fieldInput}
+              />
+            </div>
+          </Field>
+        ))}
+      </div>
+
       <Field label="Program">
         <select
           value={program}
@@ -440,6 +572,7 @@ export function ImportCourseForm({
         onClick={() => {
           setDraft(null);
           setObjectivesText("");
+          setFile(null);
           setError(null);
         }}
         className="w-full py-1 text-center text-sm text-ink-soft transition-colors hover:text-ink"
