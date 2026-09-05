@@ -12,6 +12,7 @@ import { resolveSource } from "@/lib/course-import/source";
 import { extractFileSource, MAX_FILE_BYTES } from "@/lib/course-import/file";
 import { parseCourseDraft, type CourseDraft } from "@/lib/course-import/parse";
 import { generateCourseDraft } from "@/lib/course-import/generate";
+import { resolveHeroPhoto, generateCoverGraphic } from "@/lib/course-import/hero";
 
 // Same three programs the manual builder allows — they're the ones that surface
 // on the bccacademy.io hub. See COURSE_PROGRAM_SLUGS in ./actions.ts.
@@ -153,6 +154,9 @@ export type ImportResult =
       allowlisted: number;
       landingSlug: string | null;
       landingCreated: boolean;
+      /** Where the auto-set art came from, for the success message. */
+      heroSource: "library" | "pexels" | null;
+      coverGenerated: boolean;
     }
   | { success: false; error: string };
 
@@ -330,6 +334,37 @@ export async function createCourseFromDraftAction(params: {
     })),
   });
 
+  // Auto-art, part of the same creation flow: a hero photo for the landing
+  // page (curated library first, Pexels fallback) and a branded cover
+  // illustration for the course banner + OG card. Best-effort — a course with
+  // no art is exactly what we shipped before, so failures never surface.
+  const [heroPhoto, coverGraphic] = await Promise.all([
+    resolveHeroPhoto(svc, draft),
+    generateCoverGraphic(svc, draft, programSlug),
+  ]);
+
+  // Only dress a landing page this flow just created — never clobber art an
+  // admin already chose on an existing page.
+  if (landing.created && landing.slug && (heroPhoto || coverGraphic)) {
+    await svc
+      .from("landing_pages")
+      .update({
+        ...(heroPhoto ? { hero_image_url: heroPhoto.url } : {}),
+        ...(coverGraphic ? { og_image: coverGraphic } : {}),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("slug", landing.slug);
+  }
+
+  // Course banner: an Eventbrite cover the admin reviewed stays authoritative.
+  if (coverGraphic && !params.coverImageUrl) {
+    await svc
+      .from("track_overrides")
+      .update({ cover_image_url: coverGraphic })
+      .eq("program_id", programRow.id)
+      .eq("track_slug", slug);
+  }
+
   revalidatePath("/dashboard", "page");
   revalidatePath("/dashboard/admin", "page");
   revalidatePath(`/dashboard/track/${slug}`, "page");
@@ -342,5 +377,7 @@ export async function createCourseFromDraftAction(params: {
     allowlisted,
     landingSlug: landing.slug,
     landingCreated: landing.created,
+    heroSource: heroPhoto?.source ?? null,
+    coverGenerated: Boolean(coverGraphic),
   };
 }

@@ -18,7 +18,13 @@ const PROGRAM_OPTIONS = [
   { value: "atg", label: "Beyond the Game" },
 ];
 
-type Created = { slug: string; joinUrl: string; allowlisted: number };
+type Created = {
+  slug: string;
+  joinUrl: string;
+  allowlisted: number;
+  heroSource: "library" | "pexels" | null;
+  coverGenerated: boolean;
+};
 
 export function ImportCourseForm({
   currentProgram,
@@ -174,6 +180,14 @@ export function ImportCourseForm({
               {created.allowlisted} registrant{created.allowlisted === 1 ? "" : "s"} added to the allowlist.
             </p>
           )}
+          <p className="text-xs text-green-700">
+            {created.heroSource
+              ? `Hero photo set from ${created.heroSource === "library" ? "the photo library" : "Pexels"}. `
+              : "No hero photo matched — set one in the landing editor. "}
+            {created.coverGenerated
+              ? "Cover art generated for the course banner."
+              : ""}
+          </p>
         </div>
         <button
           type="button"
@@ -564,7 +578,7 @@ export function ImportCourseForm({
         disabled={pending}
         className={`${buttonClass("primary", "md")} w-full`}
       >
-        {pending ? "Creating…" : "Create course"}
+        {pending ? "Creating course + art…" : "Create course"}
       </button>
 
       <button
