@@ -173,11 +173,32 @@ end (local): ${source.facts.endLocal}
 timezone: ${source.facts.timezone}`
       : "";
 
+  // PDFs go to the model as raw bytes — Gemini reads them natively, so the
+  // layout (tables, schedules) survives where a text dump would scramble it.
   const { object } = await generateObject({
     ...draftModelSettings(opts, MODEL),
     schema: SCHEMA,
     system: SYSTEM,
-    prompt: `Convert this into course data.${factBlock}\n\nSOURCE:\n${source.text.slice(0, 20000)}`,
+    ...(source.kind === "pdf"
+      ? {
+          messages: [
+            {
+              role: "user" as const,
+              content: [
+                { type: "text" as const, text: `Convert this into course data.${factBlock}` },
+                {
+                  type: "file" as const,
+                  data: source.dataBase64,
+                  mediaType: "application/pdf",
+                  filename: source.fileName,
+                },
+              ],
+            },
+          ],
+        }
+      : {
+          prompt: `Convert this into course data.${factBlock}\n\nSOURCE:\n${source.text.slice(0, 20000)}`,
+        }),
   });
 
   // The Eventbrite API is authoritative for time; don't let the model's copy of
