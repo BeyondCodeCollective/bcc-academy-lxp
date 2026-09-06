@@ -2,13 +2,14 @@
 // self-paced course with weekly office hours. Idempotent: re-running updates
 // the track, the 13 sessions, and the instructor lesson bodies in place.
 //
-//   node scripts/seed-forward-deploy.mjs --program catalyst --start 2026-09-16 \
+//   node scripts/seed-forward-deploy.mjs --program catalyst --kickoff 2026-09-21 \
 //        [--time 12:00] [--source /path/to/forward-deploy-course] [--meeting <zoom url>]
 //
-// --start is the first Wednesday office hour (YYYY-MM-DD). Five weekly office
-// hours follow; week 5 is demo day. --time is Eastern, 24h. --source defaults to
-// the public course repo on GitHub, so the platform never needs the course
-// checked out locally.
+// --kickoff is the in-person kickoff (any weekday). Seven Wednesday classes
+// follow, starting the first Wednesday after kickoff; the last is demo day.
+// Eight live classes over seven weeks. --time is Eastern, 24h. --source
+// defaults to the public course repo on GitHub, so the platform never needs the
+// course checked out locally.
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { createClient } from "@supabase/supabase-js";
@@ -24,13 +25,13 @@ function arg(name, dflt) {
 }
 
 const PROGRAM_SLUG = arg("program", "catalyst");
-const START = arg("start", null);
+const KICKOFF = arg("kickoff", null);
 const TIME = arg("time", "12:00");
 const SOURCE = arg("source", "https://raw.githubusercontent.com/youngfonz/course-builder/main/forward-deploy-course");
 const MEETING = arg("meeting", null);
 const TRACK = "forward-deploy";
-if (!START || !/^\d{4}-\d{2}-\d{2}$/.test(START)) {
-  console.error("--start YYYY-MM-DD is required (first Wednesday office hour)");
+if (!KICKOFF || !/^\d{4}-\d{2}-\d{2}$/.test(KICKOFF)) {
+  console.error("--kickoff YYYY-MM-DD is required");
   process.exit(1);
 }
 
@@ -101,29 +102,30 @@ function splitLessons(md) {
   return out;
 }
 
-// Wednesdays: START must be a Wednesday; we don't silently move it.
-function officeHours(startIso, time, meeting) {
-  const d0 = new Date(`${startIso}T12:00:00Z`);
-  if (d0.getUTCDay() !== 3) {
-    console.error(`--start ${startIso} is not a Wednesday. Office hours are Wednesdays; pick the first one.`);
-    process.exit(1);
-  }
-  const titles = [
-    "Office hours · Week 1: name your workflow",
-    "Office hours · Week 2: where does intelligence belong?",
-    "Office hours · Week 3: show one unhappy path",
-    "Office hours · Week 4: read out your number",
-    "Demo day · five minutes each, through the unhappy paths",
+// Eight live classes: kickoff, then seven Wednesdays (the last is demo day).
+// Live sessions carry the human side of the course: check-ins, the four
+// facilitator sign-offs, and demo day.
+function liveClasses(kickoffIso, time, meeting) {
+  const k = new Date(`${kickoffIso}T12:00:00Z`);
+  const firstWed = new Date(k);
+  firstWed.setUTCDate(k.getUTCDate() + ((3 - k.getUTCDay() + 7) % 7 || 7));
+  const classes = [
+    { d: k, title: "Kickoff · why we're doing this, the data rule, everyone set up", desc: "In person. Each person reads out Homework Q1 and Q7. Sessions 0–2 this week." },
+    { w: 0, title: "Class 2 · name your workflow and its owner", desc: "45 minutes. Two minutes each. Facilitator sign-off: workflow approved. Session 3 this week." },
+    { w: 1, title: "Class 3 · where does intelligence belong?", desc: "Two sentences each; the group pokes holes. Facilitator sign-off: data sample approved. Sessions 4–5." },
+    { w: 2, title: "Class 4 · show one unhappy path", desc: "First ugly agent runs. Sessions 6–7." },
+    { w: 3, title: "Class 5 · twenty ways it breaks", desc: "Swap failure lists. What must it refuse to do alone? Sessions 8–9." },
+    { w: 4, title: "Class 6 · read out your number", desc: "Facilitator sign-off: cleared to ship. Session 10." },
+    { w: 5, title: "Class 7 · rehearse the hard questions", desc: "Deployment has been in a colleague's hands for a week. Session 11." },
+    { w: 6, title: "Demo day · five minutes each, through the unhappy paths", desc: "Sponsor in the room. Scored with the rubric. Session 12." },
   ];
-  return titles.map((title, i) => {
-    const d = new Date(d0); d.setUTCDate(d0.getUTCDate() + 7 * i);
+  return classes.map((c) => {
+    const d = c.d ?? (() => { const x = new Date(firstWed); x.setUTCDate(firstWed.getUTCDate() + 7 * c.w); return x; })();
     return {
       date: d.toISOString().slice(0, 10),
       time: `${time} ET`,
-      title,
-      description: i === 4
-        ? "Bring your deployment, your one-pager, and whoever is using it. Scored with the rubric, sponsor in the room."
-        : "45 minutes. Two minutes each on the question in the title, then unblocking. Flags the instructor raised this week are the agenda.",
+      title: c.title,
+      description: c.desc,
       ...(meeting ? { joinUrl: meeting } : {}),
     };
   });
@@ -156,11 +158,11 @@ const trackRow = {
   description:
     "Do the Forward Deployed Engineer job on one real workflow in your own organisation: understand the business reality, decide where AI belongs, direct the build (you never write code), make it survive failure, measure it, ship it to a colleague, and defend it to a director.\n\nThirteen hands-on sessions with an AI instructor, weekly office hours with a human, and a demo day. Any industry. Built on the Forward Deploy series by Fonz Morris.",
   instructor: "Fonz Morris",
-  start_date: START,
+  start_date: KICKOFF,
   total_weeks: SESSIONS.length,
   sessions_per_week: 1,
   unit_label: "Session",
-  session_times: ["Self-paced, about an hour per session", `Office hours Wednesdays ${TIME} ET`],
+  session_times: ["Self-paced, about an hour per session, two a week", `Live class Wednesdays ${TIME} ET`],
   week_summaries: weekSummaries,
   phase: "core",
   self_paced: true,
@@ -171,7 +173,7 @@ const trackRow = {
     "What did you predict, and what actually happened?",
     "One line for MY_DEPLOYMENT: how does this session apply to your workflow?",
   ],
-  office_hours: officeHours(START, TIME, MEETING),
+  office_hours: liveClasses(KICKOFF, TIME, MEETING),
   updated_at: new Date().toISOString(),
 };
 
