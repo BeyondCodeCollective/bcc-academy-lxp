@@ -100,7 +100,7 @@ export async function getEngagementAnalytics(
     name: t.name,
     hidden: hidden.has(t.slug),
   }));
-  // Only honour a course filter for a track that's actually in this program.
+  // Only honor a course filter for a track that's actually in this program.
   const activeCourse = trackSlug && trackSlugs.includes(trackSlug) ? trackSlug : null;
   // "Invited" reach narrows to the selected course's allowlist when drilled in.
   const invitedTrackSlugs = activeCourse ? [activeCourse] : trackSlugs;

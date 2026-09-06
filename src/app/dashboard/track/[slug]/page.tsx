@@ -561,7 +561,7 @@ export default async function TrackOverviewPage({
       )}
 
       {/* 3 — your own progress, ABOVE the schedule.
-         It sat at the very bottom, under the full schedule and the programme
+         It sat at the very bottom, under the full schedule and the program
          blurb, where learners scrolled past it without knowing it existed. It's
          about the reader, so it outranks a calendar that is the same for
          everyone. Still hidden before day one — a 0% streak is decoration. */}

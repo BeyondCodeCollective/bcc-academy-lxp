@@ -1,4 +1,4 @@
-// Pure before/after shift maths — no I/O, no server imports, so the SAME code
+// Pure before/after shift math — no I/O, no server imports, so the SAME code
 // can run on the server (fetchOutcomesData) and in the browser (the Insights
 // panel recomputing a shift for the cohort you just selected).
 //

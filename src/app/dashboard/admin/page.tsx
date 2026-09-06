@@ -200,7 +200,7 @@ export default async function AdminPage({
       const allowed = allowedProgramIds(homeProgramId, grants);
       // Only enforce once we actually know where this person belongs — an
       // account with neither a program stamp nor a grant keeps the old
-      // behaviour rather than being locked out of the panel.
+      // behavior rather than being locked out of the panel.
       if (allowed.length > 0 && !allowed.includes(programId)) {
         redirect("/dashboard");
       }

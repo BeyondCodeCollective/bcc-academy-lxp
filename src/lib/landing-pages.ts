@@ -249,7 +249,7 @@ export async function ensureLandingForCourse(
     track_slug: trackSlug,
     accent: "#1a1a1a",
     // No sessions yet (the course has no schedule until Edit Course sets one),
-    // and native_enroll is only honoured with sessions, so leave it off rather
+    // and native_enroll is only honored with sessions, so leave it off rather
     // than shipping a signup form that can't take a date.
     native_enroll: false,
     schedule: content?.schedule ?? [],

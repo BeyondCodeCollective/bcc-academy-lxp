@@ -37,7 +37,7 @@ export type SentinelFix =
       studentId: string;
       trackSlug: string;
       /** Never auto. It is a DELETE against enrollment, and "this staff
-       *  enrollment is intentional" is a judgement the finding's own message
+       *  enrollment is intentional" is a judgment the finding's own message
        *  says out loud. */
       auto?: boolean;
     };

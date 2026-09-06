@@ -125,7 +125,7 @@ async function resolveBaseProgram(): Promise<ProgramConfig> {
     const resolved = await resolveSlug(cookieSlug);
     if (resolved) return resolved;
     // Stale cookie for an unknown slug — fall through to next resolution step.
-    // Old behaviour was to silently return catalyst; now we try the header and
+    // Old behavior was to silently return catalyst; now we try the header and
     // cookie-slug before domain-fallback, which is more correct.
   }
 

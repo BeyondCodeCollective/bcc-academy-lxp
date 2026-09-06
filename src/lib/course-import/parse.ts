@@ -253,7 +253,8 @@ Rules:
 - For a recurring course, expand the cadence into individual dated sessions.
 - Keep the source's wording in description and objectives. Do not add marketing language.
 - "landing" is the course's public landing page copy. Reshape the source's own words into a headline, subhead, optional eyebrow, and 2-4 body sections. Stay in the source's voice; never add claims, prices, or facts the source doesn't state.
-- "application": if the source says the cohort selects applicants (an APPLICATION section, a deadline, applicant questions), set wanted=true and transcribe its questions in order — do not invent questions it doesn't ask. Open signup or no mention: wanted=false.`;
+- "application": if the source says the cohort selects applicants (an APPLICATION section, a deadline, applicant questions), set wanted=true and transcribe its questions in order — do not invent questions it doesn't ask. Open signup or no mention: wanted=false.
+- Write US English throughout, even when the source spells things the British way — use the American forms: organization, program, enrollment, behavior, color, center, math, analyze, recognize, -ize endings throughout. Spelling is the one thing you normalize when transcribing the source's wording.`;
 
 
 /** Model settings, so an eval run can pin them without changing production.

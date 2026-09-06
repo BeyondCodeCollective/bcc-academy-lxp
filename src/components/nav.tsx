@@ -399,7 +399,7 @@ export function Nav({
                 // Past/current come from sessions that ACTUALLY ran, not from
                 // `startDate + 7 days × week`. On a twice-weekly course that
                 // arithmetic lags reality badly: Security+ met for Session 4 on
-                // Jul 23 while the maths still called it August and upcoming.
+                // Jul 23 while the math still called it August and upcoming.
                 // Falls back to the arithmetic for a track with no signal yet.
                 const held = track.heldWeeks ?? [];
                 const latestHeld = held.length ? Math.max(...held) : 0;
