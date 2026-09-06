@@ -25,6 +25,7 @@ import { ZoomEmbed } from "@/components/zoom-embed";
 import { parseZoomLink, isZoomLink } from "@/lib/zoom";
 import { getSessionContext } from "@/lib/auth/session";
 import { signRecordingUrl } from "@/lib/blob-recordings";
+import { InstructorPanel } from "@/components/instructor-panel";
 
 export default async function TrackWeekPage({
   params,
@@ -218,6 +219,16 @@ export default async function TrackWeekPage({
     recordingUrls,
     resources,
   } = resolveSessionContent(weekContent, sessionContent);
+
+  // Instructor mode: a session_lessons row means the AI instructor runs this
+  // session in a hosted lab (src/lib/instructor). Data-driven, no flag.
+  const { data: lessonRow } = await createServiceClient()
+    .from("session_lessons")
+    .select("week_number")
+    .eq("track", trackSlug)
+    .eq("week_number", weekNum)
+    .maybeSingle();
+  const hasInstructor = !!lessonRow;
 
   // Submissions can be disabled per-week (e.g. Forte's conceptual weeks 1-2),
   // overriding the track-level default. When off, the homework checklist row
@@ -721,6 +732,17 @@ export default async function TrackWeekPage({
             })}
           </ul>
         </section>
+      )}
+
+      {hasInstructor && (
+        <InstructorPanel
+          trackSlug={trackSlug}
+          weekNumber={weekNum}
+          unitName={unitName}
+          sessionTitle={displayTitle}
+          firstName={gateCtx?.student?.first_name ?? null}
+          initiallyComplete={weekProgress?.videoWatched ?? false}
+        />
       )}
 
       {/* Brief description — renders rich text from the WYSIWYG editor */}
