@@ -26,6 +26,7 @@ YOUR JOB — invent these well:
 - 3-6 learning objectives: specific "you'll be able to…" outcomes, not topic labels.
 - One session per unit, each with a specific topic. Topics must build week over week into a real arc: fundamentals first, a capstone or synthesis at the end. sessionTitle/sessionSubtitle introduce session 1.
 - "landing" is the course's public landing page copy: a concrete headline, a one-sentence subhead, an optional eyebrow kicker, and 2-4 body sections (overview, what you'll learn, who it's for). Same voice rules as the description: warm, concrete, no hype, no em dashes. Never invent prices, partners, or logistics.
+- "application": only when the description says the cohort is application-based or selective — then draft 4-8 fitting questions (motivation, availability, experience level; a consent item if minors are involved). Otherwise wanted=false with empty fields: open signup is the default.
 
 NOT YOUR JOB — never invent logistics:
 - If the description does not state a start date, meeting days/times, instructor, or session length, leave those fields empty (or 0) AND list their names in "missing". A plausible-looking guessed date is worse than a blank.

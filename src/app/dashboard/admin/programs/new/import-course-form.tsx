@@ -10,6 +10,8 @@ import {
 import type { CourseDraft } from "@/lib/course-import/parse";
 import { toSlug } from "@/lib/programs/slug";
 import { Field, fieldInput, buttonClass } from "@/components/ui";
+import { newDraftQuestion, type DraftQuestion } from "@/lib/application-questions";
+import { QuestionRowsEditor } from "@/components/application-questions";
 
 // Must match COURSE_PROGRAM_SLUGS in ../import-actions.ts.
 const PROGRAM_OPTIONS = [
@@ -24,6 +26,8 @@ type Created = {
   allowlisted: number;
   heroSource: "library" | "pexels" | null;
   coverGenerated: boolean;
+  applicationSlug: string | null;
+  applicationError: string | null;
 };
 
 export function ImportCourseForm({
@@ -56,6 +60,9 @@ export function ImportCourseForm({
   // Raw newline-separated text behind the objectives textarea. Seeded from the
   // draft when one arrives; the draft itself keeps the cleaned array.
   const [objectivesText, setObjectivesText] = useState("");
+  // The application questions, in the editor's shape (with client ids). Seeded
+  // from the draft; folded back into it on create.
+  const [appQuestions, setAppQuestions] = useState<DraftQuestion[]>([]);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<Created | null>(null);
@@ -80,6 +87,15 @@ export function ImportCourseForm({
       if (res.success) {
         setDraft(res.draft);
         setObjectivesText((res.draft.objectives ?? []).join("\n"));
+        setAppQuestions(
+          (res.draft.application?.questions ?? []).map((q, i) => ({
+            id: `q-${i + 1}`,
+            kind: q.kind,
+            label: q.label,
+            options: q.options ?? [],
+            required: q.required,
+          })),
+        );
         setAttendees(res.attendeeEmails);
         setCoverImageUrl(res.coverImageUrl);
       } else {
@@ -103,8 +119,16 @@ export function ImportCourseForm({
     setError(null);
     setPending(true);
     try {
+      const application = draft.application?.wanted
+        ? {
+            ...draft.application,
+            questions: appQuestions
+              .filter((q) => q.label.trim())
+              .map(({ kind, label, options, required }) => ({ kind, label, options, required })),
+          }
+        : (draft.application ?? { wanted: false, deadline: "", notifyEmail: "", questions: [] });
       const res = await createCourseFromDraftAction({
-        draft,
+        draft: { ...draft, application },
         programSlug: program,
         meetingLink,
         coverImageUrl,
@@ -188,6 +212,18 @@ export function ImportCourseForm({
               ? "Cover art generated for the course banner."
               : ""}
           </p>
+          {created.applicationSlug && (
+            <p className="text-xs text-green-700">
+              Application live at{" "}
+              <span className="font-mono">bccacademy.io/apply/{created.applicationSlug}</span> —
+              review submissions under Manage → Applications.
+            </p>
+          )}
+          {created.applicationError && (
+            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              {created.applicationError}
+            </p>
+          )}
         </div>
         <button
           type="button"
@@ -471,6 +507,75 @@ export function ImportCourseForm({
             </div>
           </Field>
         ))}
+      </div>
+
+      {/* The application form (section 5 of the cohort brief). Off = open
+          signup via the join link, exactly as before. On = an application is
+          created at /apply/<slug> and the landing page's CTA becomes Apply. */}
+      <div className="rounded-lg border border-ink/10 px-4 py-4 space-y-5">
+        <label className="flex items-start gap-2">
+          <input
+            type="checkbox"
+            checked={draft.application?.wanted ?? false}
+            onChange={(e) =>
+              patch({
+                application: {
+                  ...(draft.application ?? { deadline: "", notifyEmail: "", questions: [] }),
+                  wanted: e.target.checked,
+                },
+              })
+            }
+            className="mt-1"
+          />
+          <span>
+            <span className="block text-sm font-semibold text-ink">Application-based cohort</span>
+            <span className="block text-xs text-ink-soft">
+              Creates the form at /apply/{slug || "…"} and points the landing page&apos;s
+              CTA at it. Accepting an applicant allowlists them and emails their join link.
+            </span>
+          </span>
+        </label>
+
+        {draft.application?.wanted && (
+          <>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Field label="Application deadline" hint="optional — end of day Eastern">
+                <input
+                  type="date"
+                  value={draft.application?.deadline ?? ""}
+                  onChange={(e) =>
+                    patch({ application: { ...draft.application!, deadline: e.target.value } })
+                  }
+                  className={fieldInput}
+                />
+              </Field>
+              <Field label="Reviewer email" hint="notified on each submission">
+                <input
+                  type="email"
+                  value={draft.application?.notifyEmail ?? ""}
+                  onChange={(e) =>
+                    patch({ application: { ...draft.application!, notifyEmail: e.target.value } })
+                  }
+                  className={fieldInput}
+                />
+              </Field>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-xs text-ink-soft">
+                Name and email are always collected — don&apos;t add them again.
+              </p>
+              <QuestionRowsEditor questions={appQuestions} onChange={setAppQuestions} />
+              <button
+                type="button"
+                onClick={() => setAppQuestions((qs) => [...qs, newDraftQuestion()])}
+                className={buttonClass("secondary", "sm")}
+              >
+                + Add question
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       <Field label="Program">

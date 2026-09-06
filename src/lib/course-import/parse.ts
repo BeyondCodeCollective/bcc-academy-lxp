@@ -32,6 +32,25 @@ export type LandingDraft = {
   bodySections: { heading: string; body: string }[];
 };
 
+/** A question in the drafted application form. Mirrors the admin builder's
+ *  vocabulary (src/components/application-questions.tsx) minus the client id,
+ *  which is assigned at create time. */
+export type ApplicationDraftQuestion = {
+  kind: "text" | "text-short" | "radio" | "multi-select" | "select" | "date" | "consent";
+  label: string;
+  options: string[];
+  required: boolean;
+};
+
+/** The drafted application form (section 5 of the cohort launch brief). */
+export type ApplicationDraft = {
+  /** False when the brief says open signup — no application is created. */
+  wanted: boolean;
+  deadline: string; // YYYY-MM-DD, or "" when not stated
+  notifyEmail: string;
+  questions: ApplicationDraftQuestion[];
+};
+
 export type CourseDraft = {
   name: string;
   shortName: string;
@@ -47,6 +66,7 @@ export type CourseDraft = {
   sessionTitle: string;
   sessionSubtitle: string;
   landing: LandingDraft;
+  application: ApplicationDraft;
   /** Fields the source never stated. Rendered as blanks the admin must fill,
    *  never silently defaulted to a plausible-looking value. */
   missing: string[];
@@ -68,6 +88,7 @@ export const SCHEMA = jsonSchema<{
   sessionTitle: string;
   sessionSubtitle: string;
   landing: LandingDraft;
+  application: ApplicationDraft;
   missing: string[];
   timezoneStated: boolean;
 }>({
@@ -88,6 +109,7 @@ export const SCHEMA = jsonSchema<{
     "sessionTitle",
     "sessionSubtitle",
     "landing",
+    "application",
     "missing",
     "timezoneStated",
   ],
@@ -164,6 +186,49 @@ export const SCHEMA = jsonSchema<{
         },
       },
     },
+    application: {
+      type: "object",
+      additionalProperties: false,
+      required: ["wanted", "deadline", "notifyEmail", "questions"],
+      description:
+        "The application form, when the source describes one (a cohort launch brief's APPLICATION section, an application deadline, or applicant questions). wanted=false with empty fields when the source says open signup or never mentions applying.",
+      properties: {
+        wanted: {
+          type: "boolean",
+          description: "True only if the source says this cohort selects applicants or lists application questions.",
+        },
+        deadline: { type: "string", description: "Application deadline YYYY-MM-DD. Empty string if not stated." },
+        notifyEmail: {
+          type: "string",
+          description: "Email of whoever reviews applications, if the source names one. Empty string otherwise.",
+        },
+        questions: {
+          type: "array",
+          description:
+            "One entry per applicant question from the source, in order. Transcribe the source's questions — do not invent extras. Never include name or email; those are always collected.",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["kind", "label", "options", "required"],
+            properties: {
+              kind: {
+                type: "string",
+                enum: ["text", "text-short", "radio", "multi-select", "select", "date", "consent"],
+                description:
+                  "'text' for open answers, 'text-short' for one-liners (age, school), 'radio' for pick-one lists, 'multi-select' for pick-any, 'date' for dates, 'consent' for agreement statements.",
+              },
+              label: { type: "string" },
+              options: {
+                type: "array",
+                items: { type: "string" },
+                description: "Choices for radio/multi-select/select (e.g. from 'pick one: a / b / c'). Empty for other kinds.",
+              },
+              required: { type: "boolean" },
+            },
+          },
+        },
+      },
+    },
     missing: {
       type: "array",
       items: { type: "string" },
@@ -187,7 +252,8 @@ Rules:
 - "sessions" must contain one entry per session with a real date. This drives the calendar; an empty array makes the course invisible.
 - For a recurring course, expand the cadence into individual dated sessions.
 - Keep the source's wording in description and objectives. Do not add marketing language.
-- "landing" is the course's public landing page copy. Reshape the source's own words into a headline, subhead, optional eyebrow, and 2-4 body sections. Stay in the source's voice; never add claims, prices, or facts the source doesn't state.`;
+- "landing" is the course's public landing page copy. Reshape the source's own words into a headline, subhead, optional eyebrow, and 2-4 body sections. Stay in the source's voice; never add claims, prices, or facts the source doesn't state.
+- "application": if the source says the cohort selects applicants (an APPLICATION section, a deadline, applicant questions), set wanted=true and transcribe its questions in order — do not invent questions it doesn't ask. Open signup or no mention: wanted=false.`;
 
 
 /** Model settings, so an eval run can pin them without changing production.
