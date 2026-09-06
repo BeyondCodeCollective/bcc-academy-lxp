@@ -71,8 +71,9 @@ export function MediaLibraryClient({ photos }: { photos: LibraryPhoto[] }) {
 
       {photos.length === 0 ? (
         <p className="rounded-lg border border-ink/10 bg-surface-muted px-4 py-6 text-center text-sm text-ink-soft">
-          No photos yet. Upload a Death to Stock pack to start — the course
-          builder picks from here automatically.
+          No photos yet. Run scripts/seed-photo-library.mjs to fill the
+          database, or upload photos — the course builder picks from here
+          automatically.
         </p>
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
