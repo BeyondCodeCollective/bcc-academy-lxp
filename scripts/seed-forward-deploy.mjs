@@ -143,10 +143,20 @@ const lessonsMd = await readSource("LESSONS.md");
 const lessons = splitLessons(lessonsMd);
 if (lessons.size !== SESSIONS.length) throw new Error(`expected ${SESSIONS.length} lessons, parsed ${lessons.size}`);
 
+// Finish-by dates for the self-paced sessions, two a week, paced to the live
+// classes. Without an explicit date the overview assumes one unit per week from
+// the start date and the calendar runs into December.
+const finishBy = (() => {
+  const k = new Date(`${KICKOFF}T12:00:00Z`);
+  const d = (days) => { const x = new Date(k); x.setUTCDate(k.getUTCDate() + days); return x.toISOString().slice(0, 10); };
+  //        S0    S1    S2    S3    S4     S5     S6     S7     S8     S9     S10    S11    S12
+  return [d(0), d(1), d(3), d(9), d(15), d(17), d(22), d(24), d(29), d(31), d(36), d(43), d(44)];
+})();
 const weekSummaries = SESSIONS.map((s, i) => ({
   week: i + 1,
   topic: s.title,
   icon: s.icon,
+  date: finishBy[i],
   ...(s.label ? { label: s.label } : {}),
 }));
 
@@ -193,7 +203,7 @@ const contentRows = SESSIONS.map((s, i) => ({
   objectives: s.objectives,
   updated_at: new Date().toISOString(),
 }));
-const { error: cErr } = await svc.from("session_content").upsert(contentRows, { onConflict: "track,week_number" });
+const { error: cErr } = await svc.from("session_content").upsert(contentRows, { onConflict: "program_id,track,week_number" });
 if (cErr) throw cErr;
 console.log(`session_content: ${contentRows.length} rows`);
 
