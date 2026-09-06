@@ -21,7 +21,7 @@ import { getDashboardAllSurveyResponses } from "@/app/dashboard/admin/actions-su
 import type { BCCSurveyResponse } from "@/app/dashboard/admin/actions-surveys";
 import type { ProgramScope } from "@/lib/programs/scope";
 
-// The shift maths lives in ./shift so the browser can run it too — the Insights
+// The shift math lives in ./shift so the browser can run it too — the Insights
 // panel recomputes for the selected cohort without a round trip.
 export type {
   ShiftRow,

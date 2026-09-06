@@ -308,7 +308,7 @@ export function easternToUtc(date: string, time: string): string {
     return wall - ms;
   };
 
-  // Two passes: the first lands in the right neighbourhood, the second
+  // Two passes: the first lands in the right neighborhood, the second
   // re-measures the offset there so DST changeover days resolve correctly.
   let guess = naive - offsetAt(naive);
   guess = naive - offsetAt(guess);

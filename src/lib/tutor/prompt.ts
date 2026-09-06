@@ -3,7 +3,7 @@
 // This lived inline in the route handler, which meant the only way to see what
 // the tutor is actually told was to make an authenticated HTTP request with a
 // real enrolled learner. Nothing could test it. Pulling it out here changes no
-// behaviour — the strings are lifted verbatim — but it makes the prompt a thing
+// behavior — the strings are lifted verbatim — but it makes the prompt a thing
 // you can call, print, and assert on.
 //
 // Also the chat request shape, validated rather than cast: the route previously
@@ -11,6 +11,11 @@
 // promise to the type checker and nothing to the runtime.
 
 import type { ProgramConfig, TrackConfig, WeekConfig } from "@/lib/programs/types";
+
+/** BCC Academy writes US English. Models drift British on their own, and a
+ *  tutor answer using British spelling reads as someone else's platform. */
+export const US_ENGLISH_RULE =
+  "\n\nWrite US English, never British spellings. Use the American forms: organization, program, enrollment, behavior, color, center, math, analyze, recognize, -ize endings throughout.";
 
 /** History ceiling. A tutor turn needs recent context, not a transcript, and an
  *  unbounded array is a free way to run up someone else's model bill. */
@@ -57,10 +62,16 @@ export function buildTutorSystemPrompt(args: {
   week?: WeekConfig;
   currentWeekNumber?: number | null;
 }): string {
+  // Appended centrally rather than written into each program's own prompt, so
+  // a program that customizes its tutor can't opt out of the house voice.
   const base =
     args.program.tutorConfig?.systemPrompt ??
     `You are an AI tutor for ${args.program.name}. Help students with their coursework.`;
-  return base + buildTutorContextBlock(args.track, args.week, args.currentWeekNumber ?? null);
+  return (
+    base +
+    US_ENGLISH_RULE +
+    buildTutorContextBlock(args.track, args.week, args.currentWeekNumber ?? null)
+  );
 }
 
 export type ParsedTutorRequest =

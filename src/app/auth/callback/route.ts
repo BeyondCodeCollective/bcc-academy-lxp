@@ -478,11 +478,11 @@ export async function GET(request: Request) {
         // generic dashboard setup screen (or their single course).
         const safeNext = nextDestination;
 
-        // Enrol BEFORE honouring `next`. This used to live inside the
+        // Enroll BEFORE honoring `next`. This used to live inside the
         // `!safeNext` branch below, so any emailed link carrying a `next` —
         // including the per-learner sign-in links minted by
         // scripts/make-track-signin-links.mjs — created the students row and
-        // then skipped enrolment entirely. The learner signed in fine and
+        // then skipped enrollment entirely. The learner signed in fine and
         // found no course, which is indistinguishable from "the platform is
         // broken" (it stranded two Wisdom Leaders learners on 2026-07-19).
         // completePendingSetup is idempotent and unions trackParam with every
@@ -532,7 +532,7 @@ export async function GET(request: Request) {
             ? getTrackBySlug(effectiveProgram, trackParam)
             : undefined;
           if ((enr ?? []).length === 0 && joinTrackCfg) {
-            // Enrolment already ran above; just land them in the course.
+            // Enrollment already ran above; just land them in the course.
             return withProgramCookies(
               redirectWithCookies(`${origin}${courseLandingPath(joinTrackCfg)}`),
             );

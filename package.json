@@ -7,7 +7,7 @@
     "prebuild": "node scripts/copy-zoom-sdk.mjs",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "eslint && node scripts/check-us-english.mjs",
     "test:smoke": "playwright test",
     "test:smoke:install": "playwright install --with-deps chromium",
     "test": "vitest run",

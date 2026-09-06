@@ -86,7 +86,7 @@ export async function exportSurveyResponses(
 // ─── Per-track public survey stats + export ─────────────────────────────────
 //
 // Public surveys (e.g. `network-plus-post`) live in `public_survey_responses`
-// and are filled out by anyone with the link — no `student_id`, no enrolment
+// and are filled out by anyone with the link — no `student_id`, no enrollment
 // row. The track-level auth aggregation in `surveyStats` deliberately misses
 // them. These helpers expose them by `survey_type` so the per-track Insights
 // view can render counts + CSV export alongside authenticated surveys.

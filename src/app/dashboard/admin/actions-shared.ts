@@ -114,7 +114,7 @@ type ActorContext = {
   programId: string | null;
   isMaster?: boolean;
   // Cross-program grants. Absent on hand-built contexts (older call sites) —
-  // treated as "no grants", i.e. the old home-program-only behaviour.
+  // treated as "no grants", i.e. the old home-program-only behavior.
   grants?: ProgramGrant[];
 };
 

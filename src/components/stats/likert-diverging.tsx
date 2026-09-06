@@ -14,14 +14,14 @@ import { LIKERT_SCALE_COLORS } from "./palette";
  *
  * Three decisions do the work:
  *
- *  · DIVERGING, centred on neutral. Agreement is polarity data. Disagreement
- *    grows left of centre, agreement right, so "which way" is legible without
+ *  · DIVERGING, centered on neutral. Agreement is polarity data. Disagreement
+ *    grows left of center, agreement right, so "which way" is legible without
  *    reading a single number.
  *  · SORTED, weakest first. The statement that needs attention is at the top of
  *    its block instead of buried at position 24.
  *  · THE AXIS ONCE. The scale is stated per block, not per row.
  *
- * Rows share one centre line, so bars are comparable across statements — the
+ * Rows share one center line, so bars are comparable across statements — the
  * thing the old layout made impossible.
  */
 
@@ -56,7 +56,7 @@ export function LikertDiverging({
   const mid = Math.floor(LIKERT_SCALE_COLORS.length / 2); // index of neutral
 
   // One shared scale for every row: the widest disagree side and the widest
-  // agree side across the block. Without this, each row would normalise to
+  // agree side across the block. Without this, each row would normalize to
   // itself and two bars of equal length would mean different things.
   let maxLeft = 0;
   let maxRight = 0;
@@ -92,7 +92,7 @@ export function LikertDiverging({
           const total = row.counts.reduce((a, b) => a + b, 0) || 1;
           const leftShare =
             row.counts.slice(0, mid).reduce((a, b) => a + b, 0) + row.counts[mid] / 2;
-          // Where this row's centre sits, so every bar shares one centre line.
+          // Where this row's center sits, so every bar shares one center line.
           const leftPct = pct(leftShare, total);
           return (
             <div key={row.statement} className="group">
@@ -110,7 +110,7 @@ export function LikertDiverging({
               {/* Widths are percentages of the ROW, not of a shrink-to-fit
                  absolute box — inside one, every percentage resolves against an
                  indeterminate width and the bars collapse to nothing. A leading
-                 spacer slides each bar so all rows share one centre line. */}
+                 spacer slides each bar so all rows share one center line. */}
               <div className="relative mt-1 flex h-3.5 items-stretch" title={`n=${row.n}`}>
                 <span
                   aria-hidden
@@ -133,7 +133,7 @@ export function LikertDiverging({
                     />
                   );
                 })}
-                {/* Neutral centre line — the axis every row is read against. */}
+                {/* Neutral center line — the axis every row is read against. */}
                 <div
                   className="pointer-events-none absolute inset-y-0 w-px bg-rule"
                   style={{ left: "50%" }}
@@ -153,7 +153,7 @@ export function LikertDiverging({
         })}
       </div>
 
-      {/* Legend — identity is never colour-alone. */}
+      {/* Legend — identity is never color-alone. */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-1 text-micro text-ink-faint">
         {["1", "2", "3", "4", "5"].map((label, i) => (
           <span key={label} className="inline-flex items-center gap-1.5">
