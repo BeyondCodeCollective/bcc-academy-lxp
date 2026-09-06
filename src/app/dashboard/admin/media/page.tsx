@@ -20,7 +20,7 @@ export default async function MediaLibraryPage() {
     <div className="mx-auto w-full max-w-5xl px-4 sm:px-5 py-8 space-y-6">
       <PageHeader
         title="Photo library"
-        subtitle="Licensed photos (Death to Stock packs) the course builder picks hero images from automatically. Each photo is AI-captioned on upload; the best match is set when a course and its landing page are created."
+        subtitle="The photo database the course builder picks hero images from automatically — nobody hunts for photos. Pre-seeded from Pexels (scripts/seed-photo-library.mjs tops it up); upload Death to Stock photos to add the brand look. The best match is set when a course and its landing page are created."
         noWrap
         actions={<ManageMenu />}
       />

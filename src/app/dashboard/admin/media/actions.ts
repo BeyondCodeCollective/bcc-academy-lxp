@@ -100,9 +100,12 @@ export async function deleteLibraryPhotoAction(
     .single<{ path: string }>();
   if (data) {
     // Pages already using the photo keep working until the file is gone, so
-    // remove the index row first, then the file.
+    // remove the index row first, then the file. Seeded rows (Pexels) hotlink
+    // the source CDN — nothing of ours to remove.
     await svc.from("media_library").delete().eq("id", id);
-    await svc.storage.from("landing").remove([data.path]);
+    if (data.path.startsWith("library/")) {
+      await svc.storage.from("landing").remove([data.path]);
+    }
   }
   revalidatePath("/dashboard/admin/media");
   return { success: true };

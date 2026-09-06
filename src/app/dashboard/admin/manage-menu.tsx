@@ -109,34 +109,44 @@ export function ManageMenu({
       </button>
 
       {open && (
+        // One column per visible group, side by side, so thirteen items read
+        // as three short lists instead of one viewport-height tower. On phones
+        // the columns stack back up and the panel scrolls within 70vh.
         <div
           role="menu"
-          className="absolute right-0 z-30 mt-1.5 w-52 overflow-hidden rounded-lg border border-rule bg-surface-elevated py-1 shadow-lg"
+          className="absolute right-0 z-30 mt-1.5 max-h-[70vh] w-56 overflow-y-auto rounded-lg border border-rule bg-surface-elevated shadow-lg motion-safe:animate-[fadeIn_150ms_ease-out] sm:max-h-none sm:w-max sm:max-w-[calc(100vw-2rem)] sm:overflow-hidden"
         >
-          {groups.map((g, gi) => (
-            <div key={g.label} className={gi > 0 ? "mt-1 border-t border-rule pt-1" : ""}>
-              <p className="px-3.5 pb-0.5 pt-1.5 text-micro font-semibold uppercase tracking-[0.12em] text-ink-faint">
-                {g.label}
-              </p>
-              {g.items.map((it) => {
-                const active = pathname.startsWith(it.href);
-                return (
-                  <Link
-                    key={it.href}
-                    href={it.href}
-                    role="menuitem"
-                    aria-current={active ? "page" : undefined}
-                    onClick={() => setOpen(false)}
-                    className={`block px-3.5 py-2 text-sm transition-colors hover:bg-paper-tint ${
-                      active ? "bg-paper-tint font-semibold text-ink" : "text-ink"
-                    }`}
-                  >
-                    {it.label}
-                  </Link>
-                );
-              })}
-            </div>
-          ))}
+          <div className="flex flex-col sm:flex-row">
+            {groups.map((g, gi) => (
+              <div
+                key={g.label}
+                className={`py-1.5 sm:w-48 ${
+                  gi > 0 ? "border-t border-rule sm:border-t-0 sm:border-l" : ""
+                }`}
+              >
+                <p className="px-3.5 pb-1 pt-1.5 text-micro font-semibold uppercase tracking-[0.12em] text-ink-faint">
+                  {g.label}
+                </p>
+                {g.items.map((it) => {
+                  const active = pathname.startsWith(it.href);
+                  return (
+                    <Link
+                      key={it.href}
+                      href={it.href}
+                      role="menuitem"
+                      aria-current={active ? "page" : undefined}
+                      onClick={() => setOpen(false)}
+                      className={`block px-3.5 py-2 text-sm transition-colors hover:bg-paper-tint ${
+                        active ? "bg-paper-tint font-semibold text-ink" : "text-ink"
+                      }`}
+                    >
+                      {it.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
