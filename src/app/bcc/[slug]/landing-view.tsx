@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { getLandingPage, landingPath, landingPrefix } from "@/lib/landing-pages";
+import { getProgramBySlug } from "@/lib/programs";
 import { CampEmailForm } from "../_components/camp-email-form";
 import { CampEnrollForm } from "../_components/camp-enroll-form";
 import { CampEventbriteRegister } from "../_components/camp-eventbrite-register";
@@ -73,6 +74,18 @@ export async function LandingView({
   const dark = page.pageTheme === "dark";
   const INK = dark ? "#fffdf7" : "#1a1a1a";
   const BG = dark ? "#181818" : "#f5f5f7";
+
+  // Ground for the one emphasized section a page may carry. The program's own
+  // deep tone when it has one (BGC's #1E1035), else ink — never a generic
+  // black stripe, since this band is the most brand-carrying object on the
+  // page. On an already-dark page the band would disappear, so it lifts to
+  // the accent's own tone instead.
+  // A platform page (no owning program) has no palette of its own — ink.
+  const programColors = page.programSlug
+    ? getProgramBySlug(page.programSlug).colors
+    : undefined;
+  const ground = dark ? "#241645" : (programColors?.ground ?? "#1a1a1a");
+  const onGround = "#fffdf7";
   return (
     <div
       className="min-h-[100dvh] flex flex-col md:flex-row"
@@ -186,31 +199,56 @@ export async function LandingView({
               </>
             )}
 
-            {/* Detailed content — overview, what you'll learn, etc. */}
+            {/* Detailed content — overview, what you'll learn, etc.
+                Headings are real headings (22px, ink) rather than the 11px
+                accent kickers this used to use: with a kicker as the only
+                heading there was no size between body and the page headline,
+                so an eight-section page read as eight identical grey blocks.
+                Ink headings also keep the accent scarce enough to mean
+                something. One section may set `emphasis` to sit on the
+                program's dark ground — the spine of a long page. */}
             {page.bodySections.length > 0 && (
-              // Each section is its own band with a rule above it, so "What
-              // you'll do" and "Who this is for" read as separate answers
-              // instead of one wall of grey text under tiny headings.
               <div className="mt-12">
-                {page.bodySections.map((section, i) => (
-                  <div
-                    key={i}
-                    className={i === 0 ? "" : "mt-9 pt-9"}
-                    style={i === 0 ? undefined : { borderTop: `1px solid ${INK}12` }}
-                  >
-                    <h2
-                      className="text-[11px] font-bold uppercase tracking-[0.16em]"
-                      style={{ color: accent }}
+                {page.bodySections.map((section, i) => {
+                  const lead = i === 0;
+                  if (section.emphasis) {
+                    return (
+                      <div
+                        key={i}
+                        className="mt-9 rounded-2xl px-6 py-7"
+                        style={{ backgroundColor: ground, color: onGround }}
+                      >
+                        <h2 className="text-[22px] font-bold leading-[1.15] tracking-[-0.01em]">
+                          {section.heading}
+                        </h2>
+                        <RichText
+                          text={section.body}
+                          className="mt-3 text-[17px] leading-[1.6]"
+                          style={{ color: `${onGround}c4` }}
+                        />
+                      </div>
+                    );
+                  }
+                  return (
+                    <div
+                      key={i}
+                      className={lead ? "" : "mt-9 pt-9"}
+                      style={lead ? undefined : { borderTop: `1px solid ${INK}12` }}
                     >
-                      {section.heading}
-                    </h2>
-                    <RichText
-                      text={section.body}
-                      className="mt-3 text-[15px] leading-[1.7]"
-                      style={{ color: `${INK}c4` }}
-                    />
-                  </div>
-                ))}
+                      <h2
+                        className="text-[22px] font-bold leading-[1.2] tracking-[-0.01em]"
+                        style={{ color: INK }}
+                      >
+                        {section.heading}
+                      </h2>
+                      <RichText
+                        text={section.body}
+                        className="mt-2.5 max-w-[62ch] text-[17px] leading-[1.62]"
+                        style={{ color: `${INK}e0` }}
+                      />
+                    </div>
+                  );
+                })}
               </div>
             )}
 

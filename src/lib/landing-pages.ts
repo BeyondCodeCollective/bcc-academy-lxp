@@ -7,8 +7,10 @@ export type LandingPartner =
   | { kind: "wordmark"; label: string; height?: number };
 
 /** A detailed-content block rendered below the hero (overview, what you'll
- *  learn, etc.). */
-export type LandingSection = { heading: string; body: string };
+ *  learn, etc.). At most one section per page should set `emphasis`: it
+ *  renders on the program's dark ground and acts as the spine of a long page.
+ *  Two of them makes stripes. */
+export type LandingSection = { heading: string; body: string; emphasis?: boolean };
 
 /** The person leading the course, shown as a headshot + bio block. */
 export type LandingInstructor = {

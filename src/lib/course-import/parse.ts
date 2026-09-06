@@ -29,7 +29,7 @@ export type LandingDraft = {
   /** Tiny kicker above the headline, e.g. "Free 6-week program". Empty if
    *  nothing in the source fits. */
   eyebrow: string;
-  bodySections: { heading: string; body: string }[];
+  bodySections: { heading: string; body: string; emphasis?: boolean }[];
 };
 
 /** A question in the drafted application form. Mirrors the admin builder's
@@ -177,9 +177,14 @@ export const SCHEMA = jsonSchema<{
           items: {
             type: "object",
             additionalProperties: false,
-            required: ["heading", "body"],
+            required: ["heading", "body", "emphasis"],
             properties: {
               heading: { type: "string" },
+              emphasis: {
+                type: "boolean",
+                description:
+                  "True on exactly ONE section — the outcome or the strongest claim. It renders on the program's dark ground and gives a long page its spine. Every other section must be false; two dark bands makes stripes.",
+              },
               body: { type: "string", description: "1-3 plain-prose sentences. No markdown." },
             },
           },
