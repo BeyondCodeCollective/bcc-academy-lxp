@@ -36,7 +36,7 @@ export default async function ApplicationReviewPage({
         title={app.title}
         subtitle={`${submissions.length} submission${submissions.length === 1 ? "" : "s"} · ${
           isAccepting(app) ? "accepting applications" : "closed"
-        } · /apply/${app.slug}${app.trackSlug ? ` · accepted → allowlisted for ${app.trackSlug}` : " · no course linked — accepting won't allowlist anyone"}`}
+        } · /apply/${app.slug}${app.trackSlug ? ` · accepting allowlists for ${app.trackSlug} and emails the join link` : " · no course linked — accepting emails the applicant but can't allowlist"}`}
         noWrap
         actions={<ManageMenu />}
       />

@@ -2,9 +2,11 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { canSwitchPrograms } from "@/lib/roles";
 import { toSlug } from "@/lib/programs/slug";
+import { sendAcceptanceEmail } from "@/lib/email";
 import type { SubmissionStatus } from "@/lib/applications";
 import type { SurveyQuestion } from "@/components/survey-fields";
 
@@ -115,14 +117,17 @@ export async function setSubmissionStatusAction(
 
   const { data: sub } = await svc
     .from("application_submissions")
-    .select("email, application_id, applications(slug, track_slug)")
+    .select("email, full_name, status, application_id, applications(slug, title, track_slug)")
     .eq("id", submissionId)
     .maybeSingle<{
       email: string;
+      full_name: string | null;
+      status: SubmissionStatus;
       application_id: string;
-      applications: { slug: string; track_slug: string | null } | null;
+      applications: { slug: string; title: string; track_slug: string | null } | null;
     }>();
   if (!sub) return { ok: false, error: "Submission not found." };
+  const wasAccepted = sub.status === "accepted";
 
   const { error } = await svc
     .from("application_submissions")
@@ -146,6 +151,29 @@ export async function setSubmissionStatusAction(
     if (allowError) {
       console.error("[setSubmissionStatusAction] allowlist failed:", allowError);
     }
+  }
+
+  // The acceptance email, once — flipping someone accepted → waitlisted →
+  // accepted again shouldn't congratulate them twice.
+  if (status === "accepted" && !wasAccepted && sub.applications) {
+    const applicationTitle = sub.applications.title;
+    let joinUrl: string | undefined;
+    if (trackSlug) {
+      const { data: track } = await svc
+        .from("track_overrides")
+        .select("programs(slug)")
+        .eq("track_slug", trackSlug)
+        .limit(1)
+        .maybeSingle<{ programs: { slug: string } | null }>();
+      if (track?.programs?.slug) {
+        joinUrl = `https://bccacademy.io/join/${track.programs.slug}?track=${trackSlug}`;
+      }
+    }
+    const to = sub.email;
+    const name = sub.full_name ?? "";
+    after(async () => {
+      await sendAcceptanceEmail({ to, name, applicationTitle, joinUrl });
+    });
   }
 
   if (sub.applications?.slug) {
