@@ -39,6 +39,7 @@ const GROUPS: { label: string; items: Item[] }[] = [
     items: [
       { href: "/dashboard/admin/locations", label: "Participant locations", programs: ["catalyst", "atg", "beyond-code-centers"] },
       { href: "/dashboard/admin/agreements", label: "Participation agreements" },
+      { href: "/dashboard/admin/instructor", label: "Instructor queue" },
       { href: "/dashboard/admin/access", label: "Program access", master: true },
     ],
   },
