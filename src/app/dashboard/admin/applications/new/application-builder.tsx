@@ -1,62 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import type { SurveyQuestion } from "@/components/survey-fields";
+import {
+  toSurveyQuestion,
+  newDraftQuestion,
+  type DraftQuestion,
+} from "@/lib/application-questions";
+import { QuestionRowsEditor } from "@/components/application-questions";
 import { toSlug } from "@/lib/programs/slug";
 import { Field, fieldInput, buttonClass } from "@/components/ui";
 import { createApplicationAction } from "../actions";
-
-// The subset of question types an admin builds by hand. The renderer supports
-// more (likert, file, …); those arrive via AI generation or code when needed.
-const QUESTION_TYPES = [
-  { value: "text", label: "Long answer" },
-  { value: "text-short", label: "Short answer" },
-  { value: "radio", label: "Pick one" },
-  { value: "multi-select", label: "Pick any" },
-  { value: "select", label: "Dropdown" },
-  { value: "date", label: "Date" },
-  { value: "consent", label: "Consent checkbox" },
-] as const;
-
-type BuilderQuestion = {
-  id: string;
-  kind: (typeof QUESTION_TYPES)[number]["value"];
-  label: string;
-  optionsText: string;
-  required: boolean;
-};
-
-function toSurveyQuestion(q: BuilderQuestion): SurveyQuestion {
-  const options = q.optionsText
-    .split("\n")
-    .map((o) => o.trim())
-    .filter(Boolean);
-  const base = { id: q.id, label: q.label.trim(), required: q.required };
-  switch (q.kind) {
-    case "text":
-      return { ...base, type: "text" };
-    case "text-short":
-      return { ...base, type: "text", short: true };
-    case "radio":
-      return { ...base, type: "radio", options };
-    case "multi-select":
-      return { ...base, type: "multi-select", options };
-    case "select":
-      return { ...base, type: "select", options };
-    case "date":
-      return { ...base, type: "date" };
-    case "consent":
-      // Consent must be affirmative to mean anything. The label doubles as
-      // the lead text; the checkbox line is a standard confirmation.
-      return {
-        ...base,
-        type: "consent",
-        text: q.label.trim(),
-        confirmLabel: "I understand and agree",
-        required: true,
-      };
-  }
-}
 
 export function ApplicationBuilder() {
   const [title, setTitle] = useState("");
@@ -64,27 +17,10 @@ export function ApplicationBuilder() {
   const [trackSlug, setTrackSlug] = useState("");
   const [notifyEmail, setNotifyEmail] = useState("");
   const [closesAt, setClosesAt] = useState("");
-  const [questions, setQuestions] = useState<BuilderQuestion[]>([]);
+  const [questions, setQuestions] = useState<DraftQuestion[]>([]);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [createdSlug, setCreatedSlug] = useState<string | null>(null);
-
-  function addQuestion() {
-    setQuestions((qs) => [
-      ...qs,
-      {
-        id: `q-${crypto.randomUUID().slice(0, 8)}`,
-        kind: "text",
-        label: "",
-        optionsText: "",
-        required: true,
-      },
-    ]);
-  }
-
-  function patchQuestion(i: number, changes: Partial<BuilderQuestion>) {
-    setQuestions((qs) => qs.map((q, n) => (n === i ? { ...q, ...changes } : q)));
-  }
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -126,8 +62,6 @@ export function ApplicationBuilder() {
   }
 
   const slug = toSlug(title);
-  const needsOptions = (k: BuilderQuestion["kind"]) =>
-    k === "radio" || k === "multi-select" || k === "select";
 
   return (
     <form onSubmit={handleCreate} className="space-y-5">
@@ -195,60 +129,11 @@ export function ApplicationBuilder() {
           </span>
         </p>
 
-        {questions.map((q, i) => (
-          <div key={q.id} className="rounded-lg border border-ink/10 p-4 space-y-3">
-            <div className="flex items-center gap-2">
-              <select
-                value={q.kind}
-                onChange={(e) =>
-                  patchQuestion(i, { kind: e.target.value as BuilderQuestion["kind"] })
-                }
-                className={`${fieldInput} w-44`}
-              >
-                {QUESTION_TYPES.map((t) => (
-                  <option key={t.value} value={t.value}>{t.label}</option>
-                ))}
-              </select>
-              <label className="flex items-center gap-1.5 text-xs text-ink-soft">
-                <input
-                  type="checkbox"
-                  checked={q.kind === "consent" ? true : q.required}
-                  disabled={q.kind === "consent"}
-                  onChange={(e) => patchQuestion(i, { required: e.target.checked })}
-                />
-                Required
-              </label>
-              <button
-                type="button"
-                onClick={() => setQuestions((qs) => qs.filter((_, n) => n !== i))}
-                className="ml-auto text-xs text-ink-soft transition-colors hover:text-red-600"
-              >
-                Remove
-              </button>
-            </div>
-            <input
-              type="text"
-              required
-              value={q.label}
-              onChange={(e) => patchQuestion(i, { label: e.target.value })}
-              placeholder="Question text"
-              className={fieldInput}
-            />
-            {needsOptions(q.kind) && (
-              <textarea
-                rows={3}
-                value={q.optionsText}
-                onChange={(e) => patchQuestion(i, { optionsText: e.target.value })}
-                placeholder={"One option per line"}
-                className={`${fieldInput} text-sm`}
-              />
-            )}
-          </div>
-        ))}
+        <QuestionRowsEditor questions={questions} onChange={setQuestions} />
 
         <button
           type="button"
-          onClick={addQuestion}
+          onClick={() => setQuestions((qs) => [...qs, newDraftQuestion()])}
           className={`${buttonClass("secondary", "sm")}`}
         >
           + Add question
