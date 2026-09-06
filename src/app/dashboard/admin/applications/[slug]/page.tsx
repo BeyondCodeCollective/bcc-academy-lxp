@@ -1,7 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
-import { canSwitchPrograms } from "@/lib/roles";
+import { canSwitchPrograms, canManageRoles } from "@/lib/roles";
 import { PageHeader } from "@/components/page-header";
 import { getApplicationBySlug, isAccepting, rowToSubmission } from "@/lib/applications";
 import { ManageMenu } from "../../manage-menu";
@@ -38,11 +38,12 @@ export default async function ApplicationReviewPage({
           isAccepting(app) ? "accepting applications" : "closed"
         } · /apply/${app.slug}${app.trackSlug ? ` · accepting allowlists for ${app.trackSlug} and emails the join link` : " · no course linked — accepting emails the applicant but can't allowlist"}`}
         noWrap
-        actions={<ManageMenu />}
+        actions={<ManageMenu isMaster={canManageRoles(ctx.userEmail)} />}
       />
       <ReviewQueue
         slug={app.slug}
         open={app.open}
+        accepting={isAccepting(app)}
         questions={app.questions}
         submissions={submissions}
       />

@@ -1,27 +1,14 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { canSwitchPrograms } from "@/lib/roles";
+import { requireSuperAdmin } from "../actions-shared";
 import { tagPhoto } from "@/lib/media-library";
 
 // Same tier as landing pages: the library feeds public marketing pages across
-// every program, so it sits with super-admins.
+// every program, so it sits with super-admins. requireSuperAdmin also enforces
+// the preview-as-student block and the master bypass.
 async function requireLibrarian() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/");
-
-  const svc = createServiceClient();
-  const { data: student } = await svc
-    .from("students")
-    .select("role")
-    .eq("id", user.id)
-    .single<{ role: string }>();
-  if (!canSwitchPrograms(student?.role ?? "")) throw new Error("Not authorized");
+  const { svc } = await requireSuperAdmin();
   return svc;
 }
 

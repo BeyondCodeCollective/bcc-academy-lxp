@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSessionContext } from "@/lib/auth/session";
-import { canSwitchPrograms } from "@/lib/roles";
+import { canSwitchPrograms, canManageRoles } from "@/lib/roles";
 import { PageHeader } from "@/components/page-header";
 import { ManageMenu } from "../../manage-menu";
 import { ApplicationBuilder } from "./application-builder";
@@ -18,7 +18,7 @@ export default async function NewApplicationPage() {
         title="New application"
         subtitle="Build the form people fill out to apply. It publishes at /apply/<slug> the moment you create it."
         noWrap
-        actions={<ManageMenu />}
+        actions={<ManageMenu isMaster={canManageRoles(ctx.userEmail)} />}
       />
       <ApplicationBuilder />
     </div>

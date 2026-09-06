@@ -26,21 +26,34 @@ function answerText(value: unknown): string {
 export function ReviewQueue({
   slug,
   open,
+  accepting,
   questions,
   submissions,
 }: {
   slug: string;
+  /** The stored open flag — what the toggle flips. */
   open: boolean;
+  /** Whether the public form actually accepts right now (open AND deadline
+   *  not passed) — what the banner must report. */
+  accepting: boolean;
   questions: SurveyQuestion[];
   submissions: ApplicationSubmission[];
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   async function decide(id: string, status: SubmissionStatus) {
     setBusy(id);
-    await setSubmissionStatusAction(id, status);
-    setBusy(null);
+    setError(null);
+    try {
+      const res = await setSubmissionStatusAction(id, status);
+      if (!res.ok) setError(res.error ?? "Could not update the submission.");
+    } catch {
+      setError("Could not update the submission. Please try again.");
+    } finally {
+      setBusy(null);
+    }
     router.refresh();
   }
 
@@ -48,7 +61,11 @@ export function ReviewQueue({
     <div className="space-y-4">
       <div className="flex items-center justify-between rounded-lg border border-ink/10 bg-surface-muted px-4 py-3">
         <p className="text-sm text-ink-soft">
-          {open ? "The form is live and accepting submissions." : "The form is closed."}
+          {accepting
+            ? "The form is live and accepting submissions."
+            : open
+              ? "The deadline has passed — the form no longer accepts submissions."
+              : "The form is closed."}
         </p>
         <button
           type="button"
@@ -61,6 +78,12 @@ export function ReviewQueue({
           {open ? "Close applications" : "Reopen applications"}
         </button>
       </div>
+
+      {error && (
+        <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </p>
+      )}
 
       {submissions.length === 0 ? (
         <p className="rounded-lg border border-ink/10 bg-surface-muted px-4 py-6 text-center text-sm text-ink-soft">

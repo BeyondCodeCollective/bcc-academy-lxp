@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
-import { canSwitchPrograms } from "@/lib/roles";
+import { canSwitchPrograms, canManageRoles } from "@/lib/roles";
 import { PageHeader } from "@/components/page-header";
 import { listLibraryPhotos } from "@/lib/media-library";
 import { ManageMenu } from "../manage-menu";
@@ -22,7 +22,7 @@ export default async function MediaLibraryPage() {
         title="Photo library"
         subtitle="The photo database the course builder picks hero images from automatically — nobody hunts for photos. Pre-seeded from Pexels (scripts/seed-photo-library.mjs tops it up); upload Death to Stock photos to add the brand look. The best match is set when a course and its landing page are created."
         noWrap
-        actions={<ManageMenu />}
+        actions={<ManageMenu isMaster={canManageRoles(ctx.userEmail)} />}
       />
       <MediaLibraryClient photos={photos} />
     </div>
