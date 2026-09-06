@@ -155,6 +155,7 @@ type TrackOverrideRow = {
   sequential_gating: boolean | null;
   phase: string | null;
   office_hours: OfficeHour[] | null;
+  self_paced: boolean | null;
 };
 
 // ─── Dynamic Program Resolution ──────────────────────────────────────────────
@@ -239,6 +240,9 @@ function buildTrackFromOverride(row: TrackOverrideRow): TrackConfig {
     reflectionsEnabled: row.reflections_enabled ?? true,
     sequentialGating: row.sequential_gating ?? undefined,
     officeHours: (row.office_hours as OfficeHour[] | null) ?? undefined,
+    // Builder courses default to cohort semantics; a self-paced course (e.g.
+    // an instructor-mode track) opts in via track_overrides.self_paced.
+    selfPaced: row.self_paced ?? undefined,
   };
 }
 
@@ -323,7 +327,7 @@ export async function fetchDynamicProgram(slug: string): Promise<ProgramConfig |
     const { data: trackRows } = await svc
       .from("track_overrides")
       .select(
-        "track_slug, name, short_name, description, instructor, start_date, kickoff_time_utc, companion_of, cover_image_url, total_weeks, unit_label, sessions_per_week, last_session_day_offset, session_times, week_summaries, default_reflection_prompts, submissions_enabled, reflections_enabled, sequential_gating",
+        "track_slug, name, short_name, description, instructor, start_date, kickoff_time_utc, companion_of, cover_image_url, total_weeks, unit_label, sessions_per_week, last_session_day_offset, session_times, week_summaries, default_reflection_prompts, submissions_enabled, reflections_enabled, sequential_gating, phase, office_hours, self_paced",
       )
       .eq("program_id", programRow.id);
 
@@ -359,7 +363,7 @@ const fetchOverrides = cache(
       const { data } = await svc
         .from("track_overrides")
         .select(
-          "track_slug, name, short_name, description, instructor, start_date, kickoff_time_utc, companion_of, cover_image_url, total_weeks, unit_label, sessions_per_week, last_session_day_offset, session_times, week_summaries, default_reflection_prompts, submissions_enabled, reflections_enabled, sequential_gating, phase, office_hours",
+          "track_slug, name, short_name, description, instructor, start_date, kickoff_time_utc, companion_of, cover_image_url, total_weeks, unit_label, sessions_per_week, last_session_day_offset, session_times, week_summaries, default_reflection_prompts, submissions_enabled, reflections_enabled, sequential_gating, phase, office_hours, self_paced",
         )
         .eq("program_id", programRow.id);
       const map = new Map<string, TrackOverrideRow>();
@@ -494,6 +498,7 @@ function mergeTrack(
     sequentialGating: override.sequential_gating ?? config.sequentialGating,
     phase: (override.phase as TrackConfig["phase"] | null) ?? config.phase,
     officeHours: override.office_hours ?? config.officeHours,
+    selfPaced: override.self_paced ?? config.selfPaced,
   };
 }
 
