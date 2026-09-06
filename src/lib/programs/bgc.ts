@@ -209,6 +209,12 @@ export const bgcConfig: ProgramConfig = {
     primaryHover: "#6D28D9",
     accent: "#7C3AED",
     tagline: "#7C3AED",
+    // One purple doing every job left BGC pages with no way to make anything
+    // secondary. These three are the same hue at other lightnesses, so the
+    // brand is unchanged — it just gains a range to build depth with.
+    ground: "#1E1035",
+    lift: "#A78BFA",
+    tint: "#F3EEFF",
   },
   defaultCohort: {
     name: "bgc-roblox-cohort-1",

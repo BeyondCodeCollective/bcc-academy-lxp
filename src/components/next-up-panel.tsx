@@ -36,35 +36,41 @@ export function NextUpPanel({
     ? whenLabel
     : [whenLabel, timeLabel].filter(Boolean).join(" · ");
 
-  const topRow = (
+  // This panel is the page's primary object, so it carries the one dark
+  // ground on the screen and the display size the course page already uses
+  // (30px). Everything under it stays small on purpose — the contrast IS the
+  // hierarchy. Electric green marks live state only, on filled shapes.
+  const hero = (
     <Link
       href={href}
-      className="flex flex-wrap items-center gap-x-4 gap-y-3 transition-colors hover:opacity-90"
+      className="block px-5 py-5 transition-opacity hover:opacity-95 sm:px-6 sm:py-6"
     >
-      <span className="min-w-[190px] flex-1">
-        <span className="flex items-center gap-2">
-          {isLive && (
-            <span
-              className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-highlight"
-              aria-hidden
-            />
-          )}
+      {isLive ? (
+        <span className="inline-flex items-center gap-2 rounded-full bg-highlight px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.1em] text-ink">
           <span
-            className={`text-[10px] font-semibold uppercase tracking-[0.12em] ${
-              isLive ? "text-ink" : "text-primary"
-            }`}
-          >
-            {kicker}
-          </span>
+            className="h-1.5 w-1.5 rounded-full bg-ink motion-safe:animate-pulse"
+            aria-hidden
+          />
+          {kicker}
         </span>
-        <span className="mt-1 block text-[15px] font-semibold leading-snug text-ink">
-          {/* MASS and home-composed touchpoints carry the full line in
-             unitLabel; a placeholder topic (title === unitLabel) adds nothing. */}
-          {isMass || !title || title === unitLabel ? unitLabel : `${unitLabel} · ${title}`}
+      ) : (
+        <span className="block text-[11px] font-bold uppercase tracking-[0.14em] text-paper/60">
+          {kicker}
         </span>
-        <span className="mt-0.5 block text-xs tabular-nums text-ink-faint">{sub}</span>
+      )}
+
+      <span className="mt-3 block text-[27px] font-bold leading-[1.08] tracking-[-0.02em] text-paper sm:text-[30px]">
+        {/* MASS and home-composed touchpoints carry the full line in
+           unitLabel; a placeholder topic (title === unitLabel) adds nothing. */}
+        {isMass || !title || title === unitLabel ? unitLabel : `${unitLabel} · ${title}`}
       </span>
-      <span className={`${buttonClass("primary", "sm")} shrink-0`}>
+      {sub && <span className="mt-2 block text-sm tabular-nums text-paper/70">{sub}</span>}
+
+      <span
+        className={`mt-5 inline-flex items-center gap-1.5 rounded-full px-5 py-2.5 text-sm font-bold ${
+          isLive ? "bg-highlight text-ink" : "bg-paper text-ink"
+        }`}
+      >
         {cta}
         <ArrowRight size={15} weight="bold" />
       </span>
@@ -72,17 +78,20 @@ export function NextUpPanel({
   );
 
   return (
-    <div className="rounded-xl border border-rule border-l-[3px] border-l-primary bg-surface-elevated px-4 py-3.5">
-      {topRow}
+    // One object, two grounds: the action on ink, the small stuff on white.
+    // rounded-2xl matches the course page's primary-object radius rather than
+    // the rounded-lg every secondary card wears.
+    <div className="overflow-hidden rounded-2xl border border-rule">
+      <div className="bg-ink">{hero}</div>
       {todos.length > 0 && (
-        <div className="mt-3 border-t border-rule pt-1">
+        <div className="bg-surface-elevated px-5 sm:px-6">
           {todos.map((todo) => (
             <div
               key={todo.href}
-              className="flex items-center gap-2.5 border-t border-rule py-2 text-[13px] text-ink-soft first:border-t-0"
+              className="flex items-center gap-2.5 border-t border-rule py-2.5 text-sm text-ink-soft first:border-t-0"
             >
               <span
-                className="h-[15px] w-[15px] shrink-0 rounded border-[1.5px] border-ink-faint"
+                className="h-4 w-4 shrink-0 rounded border-[1.5px] border-ink-faint"
                 aria-hidden
               />
               <span className="min-w-0 flex-1">
