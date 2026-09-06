@@ -41,6 +41,20 @@ const QUERIES = [
   "caribbean island city",
   "hands typing keyboard",
   "team collaboration whiteboard",
+  // Intergenerational + diverse learners — BCC serves beginners through
+  // wisdom learners, not one age or one community.
+  "senior citizen learning computer",
+  "older woman laptop class",
+  "grandmother grandchild tablet",
+  "intergenerational family technology",
+  "older man studying laptop",
+  "latina woman laptop working",
+  "hispanic students classroom",
+  "asian student coding",
+  "diverse group adults workshop",
+  "diverse coworkers office laptop",
+  "women tech meetup",
+  "middle aged professional training",
 ];
 const PER_QUERY = 12;
 
