@@ -14,8 +14,12 @@ export function MediaLibraryClient({ photos }: { photos: LibraryPhoto[] }) {
   const [errors, setErrors] = useState<string[]>([]);
   const [deleting, setDeleting] = useState<string | null>(null);
 
-  async function handleFiles(files: FileList | null) {
-    if (!files?.length) return;
+  async function handleFiles(fileList: FileList | null) {
+    // Snapshot immediately: input.files is a LIVE list, and the onChange
+    // handler clears the input right after calling us — without the copy the
+    // loop would see length 0 after the first await and upload one photo.
+    const files = fileList ? Array.from(fileList) : [];
+    if (!files.length) return;
     setErrors([]);
     const failed: string[] = [];
     for (let i = 0; i < files.length; i++) {

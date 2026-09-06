@@ -32,7 +32,7 @@ export async function sendJoinLink({
   origin: string;
 }): Promise<JoinResult> {
   const program = getProgramBySlug(programSlug);
-  const normalised = email.trim().toLowerCase();
+  const normalized = email.trim().toLowerCase();
 
   // Allowlist gate (per-track). If the target track has any rows in
   // `allowed_signup_emails`, signups are restricted to those addresses.
@@ -78,16 +78,16 @@ export async function sendJoinLink({
         .from("allowed_signup_emails")
         .select("email")
         .eq("track_slug", trackSlug)
-        .eq("email", normalised)
+        .eq("email", normalized)
         .maybeSingle(),
     ]);
     if (countErr || lookupErr) {
       console.error("[join] allowlist gate failed:", countErr ?? lookupErr);
       return { ok: false, error: "Couldn't verify your email. Please try again." };
     }
-    if ((allowlistSize ?? 0) > 0 && !allowed && !isPrivilegedEmail(normalised) && !isStaffEmail(normalised)) {
+    if ((allowlistSize ?? 0) > 0 && !allowed && !isPrivilegedEmail(normalized) && !isStaffEmail(normalized)) {
       console.warn("[join] blocked unallowlisted signup", {
-        email: normalised,
+        email: normalized,
         programSlug,
         trackSlug,
       });
@@ -109,7 +109,7 @@ export async function sendJoinLink({
     const callbackUrl = `${origin}/auth/callback?${callbackParams}`;
     const anon = await createClient();
     const { error: otpErr } = await anon.auth.signInWithOtp({
-      email: normalised,
+      email: normalized,
       options: { emailRedirectTo: callbackUrl },
     });
     if (otpErr) {
@@ -142,7 +142,7 @@ export async function sendJoinLink({
   const svc = createServiceClient();
   const { data, error } = await svc.auth.admin.generateLink({
     type: "magiclink",
-    email: normalised,
+    email: normalized,
     options: { redirectTo },
   });
 
@@ -155,7 +155,7 @@ export async function sendJoinLink({
     callbackUrl.searchParams.set("type", "magiclink");
     try {
       await sendSignInEmail({
-        to: normalised,
+        to: normalized,
         magicLink: callbackUrl.toString(),
         programName: program.name,
       });
@@ -171,7 +171,7 @@ export async function sendJoinLink({
   // Supabase sends the magic link, the auth callback handles the rest.
   const anon = await createClient();
   const { error: otpErr } = await anon.auth.signInWithOtp({
-    email: normalised,
+    email: normalized,
     options: { emailRedirectTo: `${origin}/auth/callback?join=${programSlug}${trackSlug ? `&track=${trackSlug}` : ""}` },
   });
   if (otpErr) {

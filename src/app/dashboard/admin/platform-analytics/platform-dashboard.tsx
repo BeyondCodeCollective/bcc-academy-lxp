@@ -99,7 +99,7 @@ export function PlatformDashboard({ data }: { data: PlatformAnalytics }) {
             value={totals.activeLast30}
             label="Active (30 days)"
             hint={`${totals.activeLast7.toLocaleString()} in the last 7`}
-            info="Learners with any recorded activity in the window (students.last_activity_at — behaviour, not sign-in)."
+            info="Learners with any recorded activity in the window (students.last_activity_at — behavior, not sign-in)."
           />
         </div>
       </section>

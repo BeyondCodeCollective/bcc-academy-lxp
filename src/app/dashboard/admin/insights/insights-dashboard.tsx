@@ -26,7 +26,7 @@ interface Section {
   schema: SurveyQuestion[] | null;
   responses: BCCSurveyResponse[];
   /** Course scope: these responses are anonymous, so they aren't narrowed to
-   *  the roster. Labelled, not hidden. */
+   *  the roster. Labeled, not hidden. */
   unscopedPublic?: boolean;
 }
 
@@ -263,7 +263,7 @@ export function InsightsDashboard({ sections, programs, scope }: Props) {
 
   const isAgreement = !!activeId && /agreement/i.test(activeId);
   // Every export and drill-down link below appends this. Course scope that the
-  // screen honours but a CSV forgets is worse than no scope at all — the file
+  // screen honors but a CSV forgets is worse than no scope at all — the file
   // looks like this course's data and isn't.
   const scopeParam = scope ? `&trackSlug=${encodeURIComponent(scope.trackSlug)}` : "";
   const cohortParam =

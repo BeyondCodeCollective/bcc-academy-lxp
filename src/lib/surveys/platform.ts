@@ -37,7 +37,7 @@ export function surveySkippedForTracks(
  * Beyond the Game, and it showed up in that program's Insights.
  *
  * Returns null when a survey doesn't claim a program, leaving the old
- * student-stamp behaviour for the platform-wide forms (intake, learn-more)
+ * student-stamp behavior for the platform-wide forms (intake, learn-more)
  * where "who replied" genuinely is the right filing.
  */
 export function surveyOwnerProgramSlug(surveyId: string): string | null {
@@ -55,7 +55,7 @@ export function surveyOwnerProgramSlug(surveyId: string): string | null {
  * Allowlist counterpart to surveySkippedForTracks: is this survey meant for a
  * learner in these programs at all?
  *
- * No allowlist = the old opt-out behaviour (applies to everyone, minus skips).
+ * No allowlist = the old opt-out behavior (applies to everyone, minus skips).
  * An allowlist with no matching home program = not this learner's survey, which
  * is the safe default a denylist can't give you.
  */

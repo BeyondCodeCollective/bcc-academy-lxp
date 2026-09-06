@@ -82,6 +82,31 @@ export async function listApplications(): Promise<Application[]> {
   return ((data as Record<string, unknown>[]) ?? []).map(rowToApplication);
 }
 
+/** Server-side required/consent enforcement for public submissions. The
+ *  client runs the survey renderer's isPageValid, but that lives in a client
+ *  module and a direct POST skips the client entirely — without this check a
+ *  crafted request could store blank answers or an unticked consent. */
+export function answersSatisfyRequired(
+  questions: SurveyQuestion[],
+  answers: Record<string, unknown>,
+): boolean {
+  for (const q of questions) {
+    if (!q.required) continue;
+    const val = answers[q.id];
+    if (q.type === "consent") {
+      // Consent means an affirmative true — anything else is not consent.
+      if (val !== true) return false;
+    } else if (q.type === "multi-select") {
+      if (!Array.isArray(val) || val.length === 0) return false;
+    } else if (typeof val === "string") {
+      if (!val.trim()) return false;
+    } else if (val == null || val === false) {
+      return false;
+    }
+  }
+  return true;
+}
+
 /** An application is accepting submissions when it's open and (if a deadline
  *  is set) the deadline hasn't passed. */
 export function isAccepting(app: Application): boolean {

@@ -16,6 +16,21 @@ const IMAGE_MODEL = "recraft/recraft-v3";
 
 type Svc = ReturnType<typeof createServiceClient>;
 
+// Art is best-effort inside a user-facing create action: a stalled provider
+// must never eat the function's whole time budget and strand a half-created
+// course behind a timeout. Late finishers resolve into the void.
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T | null> {
+  return Promise.race([
+    promise,
+    new Promise<null>((resolve) =>
+      setTimeout(() => {
+        console.warn(`[hero] ${label} timed out after ${ms}ms — course ships without it`);
+        resolve(null);
+      }, ms),
+    ),
+  ]);
+}
+
 function courseSummary(draft: CourseDraft): string {
   return [
     draft.name,
@@ -36,11 +51,18 @@ export async function resolveHeroPhoto(
   draft: CourseDraft,
 ): Promise<HeroPhotoResult | null> {
   try {
-    const { photo, searchQuery } = await pickLibraryPhoto(svc, courseSummary(draft));
-    if (photo) return { url: photo.url, source: "library" };
+    return await withTimeout(
+      (async (): Promise<HeroPhotoResult | null> => {
+        const { photo, searchQuery } = await pickLibraryPhoto(svc, courseSummary(draft));
+        if (photo) return { url: photo.url, source: "library" };
 
-    const pexels = await searchPexelsPhoto(searchQuery);
-    if (pexels) return { url: pexels.url, source: "pexels" };
+        const pexels = await searchPexelsPhoto(searchQuery);
+        if (pexels) return { url: pexels.url, source: "pexels" };
+        return null;
+      })(),
+      25_000,
+      "hero photo pick",
+    );
   } catch (err) {
     console.error("[resolveHeroPhoto] failed:", err);
   }
@@ -51,6 +73,19 @@ export async function resolveHeroPhoto(
  *  program-hue accents, flat CSS-shape look, no text). Uploaded to the public
  *  landing bucket; returns its URL. */
 export async function generateCoverGraphic(
+  svc: Svc,
+  draft: CourseDraft,
+  programSlug: string,
+): Promise<string | null> {
+  try {
+    return await withTimeout(generateCoverGraphicInner(svc, draft, programSlug), 60_000, "cover graphic");
+  } catch (err) {
+    console.error("[generateCoverGraphic] failed:", err);
+    return null;
+  }
+}
+
+async function generateCoverGraphicInner(
   svc: Svc,
   draft: CourseDraft,
   programSlug: string,

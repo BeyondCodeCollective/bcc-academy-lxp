@@ -346,7 +346,18 @@ export async function createCourseFromDraftAction(params: {
   let applicationError: string | null = null;
   const appDraft = draft.application;
   if (appDraft?.wanted) {
-    const validQuestions = (appDraft.questions ?? []).filter((q) => q.label?.trim());
+    // A choice question with fewer than two options renders as a required
+    // field nobody can answer — the whole form becomes unsubmittable. The
+    // manual builder rejects these; the importer drops them and says so.
+    const needsOptions = (k: string) => k === "radio" || k === "multi-select" || k === "select";
+    const labeled = (appDraft.questions ?? []).filter((q) => q.label?.trim());
+    const validQuestions = labeled.filter(
+      (q) => !needsOptions(q.kind) || (q.options ?? []).filter((o) => o.trim()).length >= 2,
+    );
+    const dropped = labeled.length - validQuestions.length;
+    if (dropped > 0) {
+      applicationError = `${dropped} question${dropped === 1 ? "" : "s"} had too few answer options and ${dropped === 1 ? "was" : "were"} left out — add options under Manage → Applications.`;
+    }
     if (validQuestions.length === 0) {
       applicationError = "The application had no questions — build it under Manage → Applications.";
     } else {
@@ -367,7 +378,9 @@ export async function createCourseFromDraftAction(params: {
         description: draft.description?.trim() || null,
         questions,
         notify_email: appDraft.notifyEmail?.trim() || null,
-        closes_at: appDraft.deadline ? `${appDraft.deadline}T23:59:59-04:00` : null,
+        // End of day Eastern; easternToUtc follows DST so a winter deadline
+        // doesn't close an hour early.
+        closes_at: appDraft.deadline ? easternToUtc(appDraft.deadline, "23:59") : null,
       });
       if (appError) {
         console.error("[createCourseFromDraftAction] application insert failed:", appError);
@@ -390,21 +403,25 @@ export async function createCourseFromDraftAction(params: {
     generateCoverGraphic(svc, draft, programSlug),
   ]);
 
-  // Only dress a landing page this flow just created — never clobber art an
-  // admin already chose on an existing page.
-  if (landing.created && landing.slug && (heroPhoto || coverGraphic || applicationSlug)) {
-    await svc
-      .from("landing_pages")
-      .update({
-        ...(heroPhoto ? { hero_image_url: heroPhoto.url } : {}),
-        ...(coverGraphic ? { og_image: coverGraphic } : {}),
-        // Application-based cohorts: the landing CTA is Apply, not signup.
-        ...(applicationSlug
-          ? { apply_url: `/apply/${applicationSlug}`, apply_cta_label: "Apply now" }
-          : {}),
-        updated_at: new Date().toISOString(),
-      })
-      .eq("slug", landing.slug);
+  // Art only dresses a landing page this flow just created — never clobber
+  // choices an admin made on an existing page. The Apply CTA is different:
+  // the application was created THIS run, so even a pre-existing landing page
+  // must point at it — otherwise visitors keep enrolling directly and the
+  // selection process is silently bypassed.
+  if (landing.slug) {
+    const updates = {
+      ...(landing.created && heroPhoto ? { hero_image_url: heroPhoto.url } : {}),
+      ...(landing.created && coverGraphic ? { og_image: coverGraphic } : {}),
+      ...(applicationSlug
+        ? { apply_url: `/apply/${applicationSlug}`, apply_cta_label: "Apply now" }
+        : {}),
+    };
+    if (Object.keys(updates).length > 0) {
+      await svc
+        .from("landing_pages")
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq("slug", landing.slug);
+    }
   }
 
   // Course banner: an Eventbrite cover the admin reviewed stays authoritative.

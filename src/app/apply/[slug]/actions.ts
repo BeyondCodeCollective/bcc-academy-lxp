@@ -2,7 +2,7 @@
 
 import { after } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
-import { getApplicationBySlug, isAccepting } from "@/lib/applications";
+import { getApplicationBySlug, isAccepting, answersSatisfyRequired } from "@/lib/applications";
 import { sendApplicationNotification } from "@/lib/email";
 
 export async function submitApplicationAction(input: {
@@ -26,6 +26,12 @@ export async function submitApplicationAction(input: {
   const answers = Object.fromEntries(
     Object.entries(input.answers).filter(([k]) => validIds.has(k)),
   );
+
+  // The client validates too, but a direct POST skips it — required answers
+  // and consent boxes are enforced here or they aren't enforced at all.
+  if (!answersSatisfyRequired(app.questions, answers)) {
+    return { ok: false, error: "Answer every required question before submitting." };
+  }
 
   const svc = createServiceClient();
   // A resubmit from the same email updates the answers rather than erroring —

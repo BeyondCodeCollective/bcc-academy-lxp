@@ -11,7 +11,7 @@
 // normal My Drive folder that's been "shared with" the service account fails
 // with "Service Accounts do not have storage quota". The upload target MUST be
 // a SHARED DRIVE with the service account added as a member (Content Manager),
-// because files in a Shared Drive consume the organisation's pooled storage
+// because files in a Shared Drive consume the organization's pooled storage
 // rather than an individual's. This is the single most common reason a
 // Drive-upload integration appears configured and then fails on first use.
 // ─────────────────────────────────────────────────────────────────────────────

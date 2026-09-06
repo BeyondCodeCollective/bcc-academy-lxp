@@ -1167,7 +1167,7 @@ export function AdminTabs({
               const renderRow = (t: (typeof tracks)[number]) => {
                 const TrackIcon = iconForTrack(t.slug);
                 const started = trackHasStarted(t, now);
-                // `currentUnit` comes from resolveCurrentUnit, which honours
+                // `currentUnit` comes from resolveCurrentUnit, which honors
                 // dated syllabi and per-unit unlocks. computeCurrentWeek only
                 // knows a 7-day cycle, so on a day-gated camp it reports Day 1
                 // for the whole camp. Fall back to it only when the server
@@ -1201,7 +1201,7 @@ export function AdminTabs({
                 // "Active this week" is a rolling window, so a finished course
                 // decays to 0 and reads as failure rather than as "it's done".
                 // Once a course has ended, report its outcome instead: how many
-                // learners made every session. Labelled as exactly that —
+                // learners made every session. Labeled as exactly that —
                 // "completed" means a certificate, and Roblox read 36 "completed"
                 // next to 58 certificates (audit F16).
                 const completed = ended ? (courseStats[t.slug]?.fullAttendance ?? null) : null;

@@ -1,34 +1,29 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { canSwitchPrograms } from "@/lib/roles";
+import { createServiceClient } from "@/lib/supabase/server";
+import { requireSuperAdmin } from "../actions-shared";
 import { toSlug } from "@/lib/programs/slug";
+import { easternToUtc } from "@/lib/utils";
 import { sendAcceptanceEmail } from "@/lib/email";
 import type { SubmissionStatus } from "@/lib/applications";
 import type { SurveyQuestion } from "@/components/survey-fields";
 
-// Same tier as landing pages: applications are public marketing surfaces.
+// Same tier as landing pages. requireSuperAdmin (actions-shared) also enforces
+// the preview-as-student block and the master bypass — the hand-rolled gate
+// this replaced skipped both.
 async function requireReviewer(): Promise<{
   svc: ReturnType<typeof createServiceClient>;
   email: string;
 }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/");
-
-  const svc = createServiceClient();
-  const { data: student } = await svc
+  const { svc, userId } = await requireSuperAdmin();
+  const { data } = await svc
     .from("students")
-    .select("role")
-    .eq("id", user.id)
-    .single<{ role: string }>();
-  if (!canSwitchPrograms(student?.role ?? "")) throw new Error("Not authorized");
-  return { svc, email: user.email ?? "" };
+    .select("email")
+    .eq("id", userId)
+    .single<{ email: string | null }>();
+  return { svc, email: data?.email ?? "" };
 }
 
 export type ApplicationInput = {
@@ -75,8 +70,9 @@ export async function createApplicationAction(
     description: input.description.trim() || null,
     track_slug: input.trackSlug.trim() || null,
     notify_email: input.notifyEmail.trim() || null,
-    // End of day Eastern, matching how the platform treats course dates.
-    closes_at: input.closesAt ? `${input.closesAt}T23:59:59-04:00` : null,
+    // End of day Eastern; easternToUtc follows DST so a winter deadline
+    // doesn't close an hour early.
+    closes_at: input.closesAt ? easternToUtc(input.closesAt, "23:59") : null,
     questions: input.questions,
   });
   if (error) {
@@ -96,10 +92,14 @@ export async function setApplicationOpenAction(
   open: boolean,
 ): Promise<{ ok: boolean }> {
   const { svc } = await requireReviewer();
-  await svc
+  const { error } = await svc
     .from("applications")
     .update({ open, updated_at: new Date().toISOString() })
     .eq("slug", slug);
+  if (error) {
+    console.error("[setApplicationOpenAction] failed:", error);
+    return { ok: false };
+  }
   revalidatePath("/dashboard/admin/applications");
   revalidatePath(`/dashboard/admin/applications/${slug}`);
   revalidatePath(`/apply/${slug}`);
@@ -117,14 +117,19 @@ export async function setSubmissionStatusAction(
 
   const { data: sub } = await svc
     .from("application_submissions")
-    .select("email, full_name, status, application_id, applications(slug, title, track_slug)")
+    .select("email, full_name, status, application_id, applications(slug, title, track_slug, program_id)")
     .eq("id", submissionId)
     .maybeSingle<{
       email: string;
       full_name: string | null;
       status: SubmissionStatus;
       application_id: string;
-      applications: { slug: string; title: string; track_slug: string | null } | null;
+      applications: {
+        slug: string;
+        title: string;
+        track_slug: string | null;
+        program_id: string | null;
+      } | null;
     }>();
   if (!sub) return { ok: false, error: "Submission not found." };
   const wasAccepted = sub.status === "accepted";
@@ -159,10 +164,17 @@ export async function setSubmissionStatusAction(
     const applicationTitle = sub.applications.title;
     let joinUrl: string | undefined;
     if (trackSlug) {
-      const { data: track } = await svc
+      // track_overrides is keyed (program_id, track_slug) — scope by the
+      // application's program when it has one, so a slug shared across
+      // programs can't send the applicant to the wrong door.
+      let query = svc
         .from("track_overrides")
         .select("programs(slug)")
-        .eq("track_slug", trackSlug)
+        .eq("track_slug", trackSlug);
+      if (sub.applications.program_id) {
+        query = query.eq("program_id", sub.applications.program_id);
+      }
+      const { data: track } = await query
         .limit(1)
         .maybeSingle<{ programs: { slug: string } | null }>();
       if (track?.programs?.slug) {

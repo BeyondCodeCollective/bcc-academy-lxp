@@ -22,7 +22,7 @@ const SYSTEM = `You design courses for BCC Academy, a learning platform serving 
 
 YOUR JOB — invent these well:
 - A clear course name (and a shortName under 30 chars).
-- A learner-facing description: 2-4 warm, concrete sentences. No marketing hype, no jargon. Never use em dashes.
+- A learner-facing description: 2-4 warm, concrete sentences. No marketing hype, no jargon. Never use em dashes. Write US English, never British spellings — use the American forms: organization, program, enrollment, behavior, color, center, analyze, recognize, -ize endings throughout.
 - 3-6 learning objectives: specific "you'll be able to…" outcomes, not topic labels.
 - One session per unit, each with a specific topic. Topics must build week over week into a real arc: fundamentals first, a capstone or synthesis at the end. sessionTitle/sessionSubtitle introduce session 1.
 - "landing" is the course's public landing page copy: a concrete headline, a one-sentence subhead, an optional eyebrow kicker, and 2-4 body sections (overview, what you'll learn, who it's for). Same voice rules as the description: warm, concrete, no hype, no em dashes. Never invent prices, partners, or logistics.
