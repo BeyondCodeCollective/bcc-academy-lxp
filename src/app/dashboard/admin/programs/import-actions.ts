@@ -13,6 +13,7 @@ import { extractFileSource, MAX_FILE_BYTES } from "@/lib/course-import/file";
 import { parseCourseDraft, type CourseDraft } from "@/lib/course-import/parse";
 import { generateCourseDraft } from "@/lib/course-import/generate";
 import { resolveHeroPhoto, generateCoverGraphic } from "@/lib/course-import/hero";
+import { toSurveyQuestion, type DraftQuestion } from "@/lib/application-questions";
 
 // Same three programs the manual builder allows — they're the ones that surface
 // on the bccacademy.io hub. See COURSE_PROGRAM_SLUGS in ./actions.ts.
@@ -157,6 +158,10 @@ export type ImportResult =
       /** Where the auto-set art came from, for the success message. */
       heroSource: "library" | "pexels" | null;
       coverGenerated: boolean;
+      /** /apply/<slug> when the draft included an application; null otherwise
+       *  (or when the application couldn't be created — the message says so). */
+      applicationSlug: string | null;
+      applicationError: string | null;
     }
   | { success: false; error: string };
 
@@ -334,6 +339,48 @@ export async function createCourseFromDraftAction(params: {
     })),
   });
 
+  // The application form, when the brief asked for one. Created before the
+  // landing page is dressed so the Apply button can point at it. Failure here
+  // never sinks the course — the admin can build the form by hand.
+  let applicationSlug: string | null = null;
+  let applicationError: string | null = null;
+  const appDraft = draft.application;
+  if (appDraft?.wanted) {
+    const validQuestions = (appDraft.questions ?? []).filter((q) => q.label?.trim());
+    if (validQuestions.length === 0) {
+      applicationError = "The application had no questions — build it under Manage → Applications.";
+    } else {
+      const questions = validQuestions.map((q, i) =>
+        toSurveyQuestion({
+          id: `q-${i + 1}`,
+          kind: q.kind,
+          label: q.label,
+          options: q.options ?? [],
+          required: q.required,
+        } satisfies DraftQuestion),
+      );
+      const { error: appError } = await svc.from("applications").insert({
+        slug,
+        program_id: programRow.id,
+        track_slug: slug,
+        title: draft.name.trim(),
+        description: draft.description?.trim() || null,
+        questions,
+        notify_email: appDraft.notifyEmail?.trim() || null,
+        closes_at: appDraft.deadline ? `${appDraft.deadline}T23:59:59-04:00` : null,
+      });
+      if (appError) {
+        console.error("[createCourseFromDraftAction] application insert failed:", appError);
+        applicationError =
+          appError.code === "23505"
+            ? `An application already exists at /apply/${slug} — link it under Manage → Applications.`
+            : "The application form couldn't be created — build it under Manage → Applications.";
+      } else {
+        applicationSlug = slug;
+      }
+    }
+  }
+
   // Auto-art, part of the same creation flow: a hero photo for the landing
   // page (curated library first, Pexels fallback) and a branded cover
   // illustration for the course banner + OG card. Best-effort — a course with
@@ -345,12 +392,16 @@ export async function createCourseFromDraftAction(params: {
 
   // Only dress a landing page this flow just created — never clobber art an
   // admin already chose on an existing page.
-  if (landing.created && landing.slug && (heroPhoto || coverGraphic)) {
+  if (landing.created && landing.slug && (heroPhoto || coverGraphic || applicationSlug)) {
     await svc
       .from("landing_pages")
       .update({
         ...(heroPhoto ? { hero_image_url: heroPhoto.url } : {}),
         ...(coverGraphic ? { og_image: coverGraphic } : {}),
+        // Application-based cohorts: the landing CTA is Apply, not signup.
+        ...(applicationSlug
+          ? { apply_url: `/apply/${applicationSlug}`, apply_cta_label: "Apply now" }
+          : {}),
         updated_at: new Date().toISOString(),
       })
       .eq("slug", landing.slug);
@@ -368,6 +419,7 @@ export async function createCourseFromDraftAction(params: {
   revalidatePath("/dashboard", "page");
   revalidatePath("/dashboard/admin", "page");
   revalidatePath(`/dashboard/track/${slug}`, "page");
+  if (applicationSlug) revalidatePath("/dashboard/admin/applications");
   if (landing.created) revalidatePath("/dashboard/admin/landing");
 
   return {
@@ -379,5 +431,7 @@ export async function createCourseFromDraftAction(params: {
     landingCreated: landing.created,
     heroSource: heroPhoto?.source ?? null,
     coverGenerated: Boolean(coverGraphic),
+    applicationSlug,
+    applicationError,
   };
 }
