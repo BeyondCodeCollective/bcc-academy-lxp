@@ -530,7 +530,13 @@ export default async function TrackWeekPage({
             : null;
         return (
           <div className="mb-6">
+            {/* The session's header sits on the field, always. It was a plain
+               ink PageHeader with the field appearing only in three gated
+               states (a future date, an idle AI instructor, a passed window),
+               so most sessions never showed it and the product read as half
+               redesigned. Same ground as the course page and the admin home. */}
             <PageHeader
+              onField
               // The STUDENT-FACING number, not the internal week number. On a
               // course with a kickoff, internal week 2 is "Session 1" — the
               // recording card, the prev/next nav and the breadcrumb all said
