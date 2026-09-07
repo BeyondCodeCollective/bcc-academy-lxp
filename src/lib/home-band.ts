@@ -65,7 +65,15 @@ export type RailDay = {
  * becomes "CS". Never longer than four characters, because the chip is 38px.
  */
 export function trackCode(track: Pick<BandTrack, "slug" | "shortName" | "name">): string {
-  const source = track.shortName?.trim() || track.name?.trim() || track.slug;
+  const named = track.shortName?.trim() || track.name?.trim();
+  // Slug fallback is its own case. Initialing a slug's segments turns
+  // "fde-101" into "F1", which reads as nothing — the first word IS the code.
+  if (!named) {
+    const first =
+      track.slug.split(/[^A-Za-z0-9]+/).find((w) => /[A-Za-z]/.test(w)) ?? track.slug;
+    return first.slice(0, 4).toUpperCase();
+  }
+  const source = named;
   // A short single word is already a code ("MASS", "FDE 101" -> "FDE").
   const words = source.split(/[\s—–·-]+/).filter(Boolean);
   if (words.length === 1) return words[0].slice(0, 4).toUpperCase();

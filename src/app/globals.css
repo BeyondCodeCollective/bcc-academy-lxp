@@ -42,7 +42,7 @@ body {
                                      so only as filled shapes/borders, never text on white. */
   /* The "live / needs you" signal. Defaults to BCC's electric green, but the
      dashboard layout overrides it per program: green is BCC's signal, not a
-     neutral UI colour, and it must never appear on a BGC page
+     neutral UI color, and it must never appear on a BGC page
      (docs/brand-and-landing-playbook.md). */
   --signal: var(--highlight);
   --cream: #f5f5f7;

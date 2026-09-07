@@ -598,11 +598,11 @@ export function SessionStage({
   }, [countIn, phase, voice, name]);
 
   return (
-    <div style={{ minHeight: "100dvh", background: CREAM, WebkitFontSmoothing: "antialiased", color: INK }}>
+    <div style={{ height: "100dvh", overflow: "hidden", background: CREAM, WebkitFontSmoothing: "antialiased", color: INK }}>
       <Keyframes />
       {welcome && <Welcome onEnter={enter} resumeAt={resumeAt} knownName={firstName} />}
       {countIn !== null && <CountIn n={countIn} />}
-      <div aria-hidden={welcome || countIn !== null} style={{ maxWidth: 680, margin: "0 auto", padding: "0 20px 64px", minHeight: "100dvh", display: "flex", flexDirection: "column", filter: welcome ? "blur(6px)" : countIn !== null ? "blur(3px)" : "none", transition: "filter .6s ease" }}>
+      <div aria-hidden={welcome || countIn !== null} style={{ maxWidth: 680, margin: "0 auto", padding: "0 20px 20px", height: "100%", display: "flex", flexDirection: "column", filter: welcome ? "blur(6px)" : countIn !== null ? "blur(3px)" : "none", transition: "filter .6s ease" }}>
         {phase !== "done" && <PartRail active={partIndex} />}
         {phase === "part1" && <PartOne voice={voice} spoken={!welcome && countIn === null} name={name} onDone={() => go("part2")} />}
         {phase === "part2" && <PartTwo voice={voice} onDone={() => go("part3")} />}
@@ -667,7 +667,7 @@ function PartRail({ active }: { active: number }) {
 function Heading({ children, sub, size = 46 }: { children: React.ReactNode; sub?: string; size?: number }) {
   return (
     <div style={{ marginTop: 34 }}>
-      <h1 style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: `clamp(29px, 5.4vw, ${size}px)`, lineHeight: 1.11, letterSpacing: "-.04em", color: INK, margin: 0, textWrap: "pretty", animation: "fde-rise .5s cubic-bezier(.16,1,.3,1)" }}>
+      <h1 style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: `clamp(26px, min(5.4vw, 6.6vh), ${size}px)`, lineHeight: 1.11, letterSpacing: "-.04em", color: INK, margin: 0, textWrap: "pretty", animation: "fde-rise .5s cubic-bezier(.16,1,.3,1)" }}>
         {children}
       </h1>
       {sub && <p style={{ fontSize: 15, lineHeight: 1.6, color: INK_SOFT, marginTop: 14, marginBottom: 0, animation: "fde-rise .75s cubic-bezier(.16,1,.3,1)" }}>{sub}</p>}
@@ -967,7 +967,7 @@ function PartOne({ voice, spoken, name, onDone }: { voice: Voice; spoken: boolea
       )}
       {hasVisual && <Heading sub={sub}>{line}</Heading>}
 
-      <div style={{ flexGrow: hasVisual ? 1 : 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: 14, padding: hasVisual ? "26px 0" : 0 }}>
+      <div style={{ flexGrow: hasVisual ? 1 : 0, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", justifyContent: "center", gap: 14, padding: hasVisual ? "18px 0" : 0 }}>
         {b.card === 1 && <ChartCard sel={sel} onPick={setSel} />}
         {b.card === 2 && <BigNumber guessed={guess} />}
         {b.card === 3 && <HoursCard />}
@@ -1134,7 +1134,7 @@ function PartTwo({ voice, onDone }: { voice: Voice; onDone: () => void }) {
 
       <CaseTabs i={i} onPick={setI} done={calls} />
 
-      <div style={{ flexGrow: 1, display: "flex", flexDirection: "column", gap: 14, padding: "18px 0" }}>
+      <div style={{ flexGrow: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 14, padding: "18px 0" }}>
         <EmailCard c={c} />
         <div className="fde-card" style={{ background: "#fff", borderRadius: 20, padding: 22 }}>
           <div style={{ fontSize: 12.5, color: INK_SOFT, marginBottom: 12 }}>Your call on {c.tab}. Nobody sees this but you.</div>
@@ -1182,7 +1182,7 @@ function PartThree({ voice, onDone }: { voice: Voice; onDone: () => void }) {
 
       <CaseTabs i={i} onPick={setI} done={revealed} />
 
-      <div style={{ flexGrow: 1, display: "flex", flexDirection: "column", gap: 14, padding: "18px 0" }}>
+      <div style={{ flexGrow: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 14, padding: "18px 0" }}>
         {!open ? (
           <div className="fde-card" style={{ background: "#fff", borderRadius: 20, padding: 22 }}>
             <div style={{ fontFamily: DISPLAY, fontWeight: 600, fontSize: 16, marginBottom: 4 }}>{c.tab} — what will it do?</div>
@@ -1297,7 +1297,7 @@ function PartFour({
         Your turn
       </Heading>
 
-      <div style={{ flexGrow: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: "26px 0" }}>
+      <div style={{ flexGrow: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", justifyContent: "center", padding: "18px 0" }}>
         <div className="fde-card" style={{ background: "#fff", borderRadius: 20, padding: 26 }}>
           <label htmlFor="fde-sentence" style={{ display: "block", fontFamily: DISPLAY, fontWeight: 600, fontSize: 19, lineHeight: 1.42, letterSpacing: "-.02em" }}>
             {prompt}
