@@ -146,12 +146,12 @@ body {
 }
 
 @supports (color: oklch(from white l c h)) {
-  :root {
-    /* Grid dot: the same hue, lit for a dark ground. */
-    --stage-dot: oklch(from var(--stage-base, var(--primary)) 0.78 0.17 h / 0.5);
-  }
-
   .stage-surface {
+    /* Grid dot: the same hue, lit for a dark ground. Declared HERE, not on
+       :root — --primary and --stage-base are set on a wrapper per program (and
+       per landing page), so a :root declaration would freeze every field's
+       dots at the default cobalt while the gradient underneath went purple. */
+    --stage-dot: oklch(from var(--stage-base, var(--primary)) 0.78 0.17 h / 0.5);
     background: linear-gradient(
       145deg,
       oklch(from var(--stage-base, var(--primary)) 0.42 0.115 h) 0%,

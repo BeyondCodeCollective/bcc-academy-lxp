@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { cookies } from "next/headers";
 import { createClient, createServiceClient, isSupabaseConfigured } from "@/lib/supabase/server";
-import { computeCurrentWeek, trackHasStarted, easternDayKey } from "@/lib/utils";
+import { computeCurrentWeek, trackHasStarted, easternDayKey, formatCohortDate } from "@/lib/utils";
 import { numberedUnitCount, unitDisplayMap } from "@/lib/programs/unit-display";
 import Link from "next/link";
 import { WelcomeVideo } from "@/components/welcome-video";
@@ -28,7 +28,8 @@ import { isTutorAvailable } from "@/lib/programs";
 import { MyProgressCard, type MyProgressCardProps } from "@/components/my-progress-card";
 import { AnnouncementBanner } from "@/components/announcement-banner";
 import { getLearnerProgress } from "@/lib/learner-progress";
-import { PageHeader } from "@/components/page-header";
+import { HomeBand } from "@/components/home-band";
+import { scheduledSessions, nextSession, weekRail, bandSentence } from "@/lib/home-band";
 import { BCC_INTAKE_SURVEY_ID, surveySkippedForTracks, surveyAppliesToPrograms, surveyAppliesToTracks } from "@/lib/surveys/platform";
 import { isSurveyEnabledForLearner } from "@/lib/surveys/features";
 import { isStaffEmail } from "@/lib/auth/admins";
@@ -833,6 +834,15 @@ async function DashboardContent({
         track.weekSummaries[0]?.topic ??
         "",
     }));
+  // The band. Same component and same question as the admin home — "what's
+  // going on" — answered from this learner's own enrolments. The sentence is
+  // the answer; the rail underneath is the evidence for it.
+  const bandTracks = [...visibleTracks, ...otherProgramCourses.map((c) => c.track)];
+  const bandSessions = scheduledSessions(bandTracks);
+  const bandNext = nextSession(bandSessions, now);
+  const bandRail = weekRail(bandSessions, now);
+  const { headline: bandHeadline, sub: bandSub } = bandSentence(bandNext, now);
+
   const bentoOtherCourses = otherProgramCourses.map((c) => ({
     trackSlug: c.track.slug,
     trackName: c.track.name,
@@ -856,17 +866,28 @@ async function DashboardContent({
       )}
 
       <div>
-        <PageHeader
-          title={`Welcome back${firstName ? `, ${firstName}` : ""}`}
-          subtitle={
-            !isAdmin && !previewSlugOuter
-              ? visibleTracks.length > 0 || otherProgramCourses.length > 0
-                ? [...visibleTracks, ...otherProgramCourses.map((c) => c.track)]
-                    .map((t) => t.name)
-                    .join(" · ")
-                : cohortName
-              : undefined
-          }
+        <HomeBand
+          eyebrow={`${firstName ? `Welcome back, ${firstName}` : "Welcome back"} · ${formatCohortDate(
+            easternDayKey(now),
+            { weekday: "long", month: "long", day: "numeric" },
+            "en-US",
+          )}`}
+          headline={bandHeadline}
+          sub={bandSub || (bandTracks.length > 0 ? bandTracks.map((t) => t.name).join(" · ") : cohortName)}
+          rail={bandRail}
+          stats={[
+            ...(bandTracks.length > 0
+              ? [
+                  {
+                    value: String(bandTracks.length),
+                    label: bandTracks.length === 1 ? "Course" : "Courses",
+                  },
+                ]
+              : []),
+            ...(homeTodos.length > 0
+              ? [{ value: String(homeTodos.length), label: "To do", urgent: true }]
+              : []),
+          ]}
         />
         {previewSlugOuter && (
           <p className="mt-1.5 text-sm font-medium text-primary">
@@ -898,12 +919,12 @@ async function DashboardContent({
             <p className="font-semibold text-ink text-sm">Complete your pathway profile</p>
             <p className="text-xs text-ink/60 mt-0.5">Takes about 10–15 minutes. Helps us give you better support.</p>
           </div>
-          <a
+          <Link
             href="/dashboard/assessment"
             className="flex-shrink-0 rounded-lg bg-accent text-white text-sm font-semibold px-4 py-2"
           >
             Start
-          </a>
+          </Link>
         </div>
       )}
 
