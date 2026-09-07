@@ -531,6 +531,16 @@ export function SessionStage({
   const partIndex = Math.max(0, ORDER.indexOf(phase));
   const voice = useNarration();
 
+  // Escape leaves. With no sidebar and no top bar there is nothing else to
+  // reach for, and people press it before they hunt for a button.
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      if (e.key === "Escape") window.location.assign(`/dashboard/track/${trackSlug}/${weekNumber}`);
+    };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [trackSlug, weekNumber]);
+
   // Where they got to lives on the device, not the server: it is a
   // convenience, and a ninety-minute session does not move between laptops.
   // The sentence — the part that matters — is saved properly.
