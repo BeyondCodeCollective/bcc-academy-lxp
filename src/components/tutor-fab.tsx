@@ -7,8 +7,10 @@ import { MessageCircle } from "lucide-react";
 export function TutorFab() {
   const pathname = usePathname();
 
-  // Hide on the tutor page itself
-  if (pathname === "/dashboard/tutor") return null;
+  // Hide on the tutor page itself, and everywhere in the admin panel — the
+  // tutor is a learner surface, and back there the bubble sits on top of the
+  // staff "Preview as student" pill.
+  if (pathname === "/dashboard/tutor" || pathname.startsWith("/dashboard/admin")) return null;
 
   return (
     <Link

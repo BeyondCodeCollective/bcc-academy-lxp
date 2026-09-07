@@ -271,6 +271,16 @@ export type ProgramColors = {
   primaryHover: string;
   accent: string;
   tagline: string;
+  /** Deep ground for the one dark band a page is allowed. Without it a
+   *  program has only its accent, so nothing on the page can be secondary and
+   *  every branded element competes — see docs/brand-and-landing-playbook.md.
+   *  Optional: falls back to ink (#1a1a1a) where a program hasn't set one. */
+  ground?: string;
+  /** The accent lifted for legibility ON that dark ground. The base accent is
+   *  usually too dark to read against it. */
+  lift?: string;
+  /** Barely-there tint of the accent for light section grounds and chips. */
+  tint?: string;
 };
 
 export type SurveyConfig = {

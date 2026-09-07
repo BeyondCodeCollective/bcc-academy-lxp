@@ -109,6 +109,27 @@ export function CreateCourseForm({
           <p className="text-xs text-green-700">
             Share this link to start enrolling students.
           </p>
+
+          {result.landingSlug && (
+            <div className="rounded-lg border border-green-200 bg-white p-4">
+              <p className="text-sm font-semibold text-neutral-900">
+                {result.landingCreated
+                  ? "A landing page was created with it"
+                  : "This course already has a landing page"}
+              </p>
+              <p className="mt-1 text-xs text-neutral-600">
+                {result.landingCreated
+                  ? "It's a draft, so nothing is public yet. Add the copy and publish when it's ready."
+                  : "It's already pointing at this course."}
+              </p>
+              <a
+                href={`/dashboard/admin/landing/${result.landingSlug}`}
+                className={`${buttonClass("secondary", "md")} mt-3 w-full`}
+              >
+                {result.landingCreated ? "Write the landing page →" : "Open the landing page →"}
+              </a>
+            </div>
+          )}
         </div>
 
         <button

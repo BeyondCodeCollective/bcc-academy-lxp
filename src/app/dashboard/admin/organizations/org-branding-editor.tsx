@@ -4,6 +4,7 @@ import { useState } from "react";
 import { updateOrganizationBrandingAction } from "./actions";
 import { uploadLandingImageAction } from "../landing/actions";
 import { buttonClass, fieldInput } from "@/components/ui";
+import { compressImage } from "@/lib/compress-image";
 
 /**
  * Inline branding controls for one organization row: accent color + logo.
@@ -99,7 +100,7 @@ export function OrgBrandingEditor({
               setStatus(null);
               try {
                 const fd = new FormData();
-                fd.set("file", file);
+                fd.set("file", await compressImage(file));
                 const res = await uploadLandingImageAction(fd);
                 if (res.success) setLogoUrl(res.url);
                 else setStatus({ kind: "error", msg: res.error });

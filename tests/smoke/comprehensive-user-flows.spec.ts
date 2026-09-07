@@ -92,7 +92,11 @@ test.describe('Login Flows', () => {
   test('login page renders', async ({ page }) => {
     await page.goto(`${BASE_URL}/login`);
     // Look for login-related elements
-    const loginElements = await page.locator('button:has-text(/sign in|log in|login/i)').count();
+    // getByRole, not a regex inside :has-text() — that is not valid CSS and
+    // threw "Unexpected token" on every run, so this test could never pass.
+    const loginElements = await page
+      .getByRole('button', { name: /sign in|log in|login/i })
+      .count();
     expect(loginElements).toBeGreaterThan(0);
   });
 });

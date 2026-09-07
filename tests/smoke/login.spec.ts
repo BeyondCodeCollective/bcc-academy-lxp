@@ -6,6 +6,12 @@ import {
   randomEmail,
   removeFromAllowlist,
 } from "./helpers/supabase";
+import { SMOKE_ENV_READY, SMOKE_ENV_REASON } from "./helpers/supabase";
+
+// Without service-role credentials these cannot run at all. Skip rather
+// than fail: a suite that is red for configuration reasons is a suite
+// nobody reads.
+test.skip(!SMOKE_ENV_READY, SMOKE_ENV_REASON);
 
 // Pre-launch login smoke tests. Each test exercises a real magic-link
 // round-trip via the Supabase admin API (no inbox needed) and asserts

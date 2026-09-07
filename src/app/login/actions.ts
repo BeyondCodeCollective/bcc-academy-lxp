@@ -10,6 +10,44 @@ type SendLoginLinkResult =
   | { ok: false; error: string };
 
 /**
+ * Explicit intent (joinTrack, from the page they signed up on) wins over
+ * allowlist inference. Otherwise an email that's also on another program's
+ * allowlist (e.g. Upskill Bahamas) gets routed there instead of the program
+ * they're actually signing up for. Shared by the link and code sign-in paths
+ * so both bake identical join/track context into the callback.
+ */
+async function resolveIntendedJoin(
+  joinTrack: string | undefined,
+  allowedTracks: string[],
+): Promise<{ joinSlug: string | null; trackSlug: string | null; programName: string | null }> {
+  const intendedTrack = joinTrack ?? allowedTracks[0];
+  if (!intendedTrack) return { joinSlug: null, trackSlug: null, programName: null };
+
+  const { getHomeProgramForTrack } = await import("@/lib/programs");
+  const homeProgram = getHomeProgramForTrack(intendedTrack);
+  if (homeProgram) {
+    return {
+      joinSlug: homeProgram.slug,
+      trackSlug: intendedTrack,
+      programName: homeProgram.name,
+    };
+  }
+  // Course-Builder / dynamic-org tracks have no TS config, so the in-memory
+  // lookup misses them — resolve the home program from the DB (same fallback
+  // as /dashboard/switch-program).
+  const { resolveHomeProgramSlug, fetchDynamicProgram } = await import(
+    "@/lib/programs/server"
+  );
+  const homeSlug = await resolveHomeProgramSlug(intendedTrack);
+  if (!homeSlug) return { joinSlug: null, trackSlug: null, programName: null };
+  return {
+    joinSlug: homeSlug,
+    trackSlug: intendedTrack,
+    programName: (await fetchDynamicProgram(homeSlug))?.name ?? null,
+  };
+}
+
+/**
  * Send a magic-link sign-in email.
  *
  *   1. Email is on the allowlist → send the magic link; the auth
@@ -93,34 +131,10 @@ export async function sendLoginLink({
   // magic link URL. Encoding it in the URL (not just a cookie) means the params
   // survive when the user opens the link in a different browser than the one
   // they submitted the form in — common on mobile (Gmail app → Safari, etc).
-  //
-  // Explicit intent (joinTrack, from the page they signed up on) wins over
-  // allowlist inference. Otherwise an email that's also on another program's
-  // allowlist (e.g. Upskill Bahamas) gets routed there instead of the program
-  // they're actually signing up for (e.g. the Roblox camp).
-  const intendedTrack = joinTrack ?? allowedTracks[0];
-  if (intendedTrack) {
-    const { getHomeProgramForTrack } = await import("@/lib/programs");
-    const homeProgram = getHomeProgramForTrack(intendedTrack);
-    if (homeProgram) {
-      callbackJoinSlug = homeProgram.slug;
-      callbackTrackSlug = intendedTrack;
-      intendedProgramName = homeProgram.name;
-    } else {
-      // Course-Builder / dynamic-org tracks have no TS config, so the
-      // in-memory lookup misses them — resolve the home program from the DB
-      // (same fallback as /dashboard/switch-program).
-      const { resolveHomeProgramSlug, fetchDynamicProgram } = await import(
-        "@/lib/programs/server"
-      );
-      const homeSlug = await resolveHomeProgramSlug(intendedTrack);
-      if (homeSlug) {
-        callbackJoinSlug = homeSlug;
-        callbackTrackSlug = intendedTrack;
-        intendedProgramName = (await fetchDynamicProgram(homeSlug))?.name ?? null;
-      }
-    }
-  }
+  const resolved = await resolveIntendedJoin(joinTrack, allowedTracks);
+  callbackJoinSlug = resolved.joinSlug;
+  callbackTrackSlug = resolved.trackSlug;
+  intendedProgramName = resolved.programName;
 
   // Build the callback URL with join/track/next baked in when we have them.
   const callbackBase = new URL(redirectTo);
@@ -171,6 +185,10 @@ export async function sendLoginLink({
           to: trimmed,
           magicLink: callbackUrl.toString(),
           programName: intendedProgramName ?? program.name,
+          // Same OTP the link carries, as a typeable 6-digit code. Codes
+          // survive everything that kills links (prefetch, scanners, opening
+          // on a different device), so the email offers both.
+          otpCode: data.properties.email_otp ?? undefined,
         });
         console.log("[login] sign-in email sent via Resend");
         return { ok: true };
@@ -212,4 +230,68 @@ export async function sendLoginLink({
   }
 
   return { ok: true };
+}
+
+type VerifyCodeResult =
+  | { ok: true; redirectTo: string }
+  | { ok: false; error: string };
+
+/**
+ * Sign in with the 6-digit code from the sign-in email. The code is the same
+ * OTP the magic link carries, so it works even when the link died in transit
+ * (prefetched, scanned, wrapped, or opened on the wrong device). Verification
+ * happens on the SSR client so the session cookies are set here; the browser
+ * then navigates to /auth/callback?session=1 which runs the exact same
+ * enrollment + routing as a clicked link.
+ */
+export async function verifyLoginCode({
+  email,
+  code,
+  next,
+  joinTrack,
+}: {
+  email: string;
+  code: string;
+  next?: string;
+  joinTrack?: string;
+}): Promise<VerifyCodeResult> {
+  const trimmed = email.trim().toLowerCase();
+  const digits = code.replace(/\D/g, "");
+  // Supabase's OTP length is configurable (this project mints 8 digits) —
+  // don't hardcode a length, just require something code-shaped.
+  if (digits.length < 6 || digits.length > 10) {
+    return { ok: false, error: "Enter the code from the sign-in email." };
+  }
+
+  const anon = await createClient();
+  const { error } = await anon.auth.verifyOtp({
+    email: trimmed,
+    token: digits,
+    type: "email",
+  });
+  if (error) {
+    return {
+      ok: false,
+      error:
+        "That code didn't work. Codes expire after an hour and each one only works once — request a new sign-in email to get a fresh code.",
+    };
+  }
+
+  // Session cookies are set. Hand off to the callback with the same
+  // join/track context the emailed link would have carried.
+  const svc = createServiceClient();
+  const { data: allowRows } = await svc
+    .from("allowed_signup_emails")
+    .select("track_slug")
+    .eq("email", trimmed);
+  const resolved = await resolveIntendedJoin(
+    joinTrack,
+    (allowRows ?? []).map((r) => r.track_slug as string),
+  );
+
+  const params = new URLSearchParams({ session: "1", email: trimmed });
+  if (resolved.joinSlug) params.set("join", resolved.joinSlug);
+  if (resolved.trackSlug) params.set("track", resolved.trackSlug);
+  if (next) params.set("next", next);
+  return { ok: true, redirectTo: `/auth/callback?${params.toString()}` };
 }

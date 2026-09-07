@@ -27,7 +27,18 @@ export async function enrollEmailInTrack(
   const svc = createServiceClient();
   const normalized = email.trim().toLowerCase();
 
-  const programSlug = (await resolveHomeProgramSlug(trackSlug)) ?? "catalyst";
+  // No blanket Catalyst fallback. Catalyst is a program like every other, not
+  // the bucket unattached things fall into: a course that resolves to no
+  // program is a data problem, and quietly stamping it Catalyst is how another
+  // program's people ended up filed under Catalyst.
+  // Throwing rather than returning: the only caller wraps this in a try/catch
+  // that logs and shows a retry message, so a course with no program surfaces
+  // as an error in the logs instead of a learner quietly filed under the wrong
+  // org — which is unrecoverable once the invite has gone out.
+  const programSlug = await resolveHomeProgramSlug(trackSlug);
+  if (!programSlug) {
+    throw new Error(`Course "${trackSlug}" is not attached to a program.`);
+  }
 
   // Allowlist so future magic-link logins for this email pass the track gate.
   await svc

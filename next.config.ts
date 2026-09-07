@@ -5,6 +5,21 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.resolve(__dirname),
   },
+  // The platform atlas route serves a generated standalone HTML file via
+  // readFile; without an explicit trace entry the bundler drops it from the
+  // serverless output and the route 500s only in production.
+  outputFileTracingIncludes: {
+    "/platform-atlas": ["./src/app/platform-atlas/atlas.html"],
+  },
+  experimental: {
+    serverActions: {
+      // Default is 1MB, which silently killed admin image uploads (landing
+      // hero, course covers) before the action's own checks ever ran — the
+      // client just saw "Upload failed". Sized above the app-level caps
+      // (8MB images, 40MB hero videos).
+      bodySizeLimit: "45mb",
+    },
+  },
   images: {
     formats: ["image/avif", "image/webp"],
     remotePatterns: [
@@ -54,6 +69,11 @@ const nextConfig: NextConfig = {
     return [
       // Friendly URL for the BGC × BCC operating-system follow-along deck.
       { source: "/empower", destination: "/follow/empower-7ee93ad328.html" },
+      // public/ has no directory index — the bare sandbox URL needs this.
+      {
+        source: "/sb-70b5998ecca0279f85404f66",
+        destination: "/sb-70b5998ecca0279f85404f66/index.html",
+      },
     ];
   },
   async headers() {
@@ -121,6 +141,21 @@ const nextConfig: NextConfig = {
       {
         source: "/api/zoom-frame",
         headers: [{ key: "X-Frame-Options", value: "SAMEORIGIN" }],
+      },
+      // Unlisted team sandbox: token-named static folder, kept out of search
+      // engines by header (deliberately NOT in robots.ts, which would leak the
+      // path). CSP is relaxed here because the folder serves hand-uploaded
+      // standalone HTML prototypes that pull from arbitrary CDNs.
+      {
+        source: "/sb-70b5998ecca0279f85404f66/:path*",
+        headers: [
+          { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" },
+          {
+            key: "Content-Security-Policy",
+            value:
+              "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; frame-ancestors 'self'",
+          },
+        ],
       },
     ];
   },

@@ -3,15 +3,29 @@ name: Login smoke tests
 # Runs the Playwright login smoke suite against each PR's Vercel preview
 # deployment. Triggers off Vercel's deployment_status webhook so the
 # tests run against the URL Vercel actually built, not a local dev server.
+#
+# The Supabase-backed specs now SKIP when SMOKE_* secrets are absent instead of
+# throwing, so an unprovisioned repo reports skipped rather than 38 failures.
+# Provision SMOKE_SUPABASE_URL and SMOKE_SUPABASE_SERVICE_ROLE_KEY to actually
+# run them. workflow_dispatch is here so the suite can be run by hand against
+# any URL without waiting for a deployment webhook.
 
 on:
   deployment_status:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "URL to test against"
+        required: false
+        default: "https://bccacademy.io"
 
 jobs:
   smoke:
     if: |
-      github.event.deployment_status.state == 'success' &&
-      github.event.deployment.environment != 'Production'
+      github.event_name == 'workflow_dispatch' || (
+        github.event.deployment_status.state == 'success' &&
+        github.event.deployment.environment != 'Production'
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -34,7 +48,7 @@ jobs:
 
       - name: Run smoke tests
         env:
-          SMOKE_BASE_URL: ${{ github.event.deployment_status.target_url }}
+          SMOKE_BASE_URL: ${{ github.event.deployment_status.target_url || inputs.base_url }}
           SMOKE_SUPABASE_URL: ${{ secrets.SMOKE_SUPABASE_URL }}
           SMOKE_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SMOKE_SUPABASE_SERVICE_ROLE_KEY }}
           SMOKE_SUPER_ADMIN_EMAIL: ${{ secrets.SMOKE_SUPER_ADMIN_EMAIL }}

@@ -7,6 +7,12 @@ import {
   removeFromAllowlist,
   admin,
 } from "./helpers/supabase";
+import { SMOKE_ENV_READY, SMOKE_ENV_REASON } from "./helpers/supabase";
+
+// Without service-role credentials these cannot run at all. Skip rather
+// than fail: a suite that is red for configuration reasons is a suite
+// nobody reads.
+test.skip(!SMOKE_ENV_READY, SMOKE_ENV_REASON);
 
 // Comprehensive role-gated E2E smoke tests.
 // Walks through every dashboard route for each role (student, instructor,

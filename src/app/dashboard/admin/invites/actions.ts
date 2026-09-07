@@ -40,7 +40,14 @@ export async function sendCohortInvites(
 
   // Builder courses live under any program (their home is on track_overrides);
   // the old blanket-Catalyst fallback branded their invites as Catalyst.
-  const programSlug = (await resolveHomeProgramSlug(trackSlug)) ?? "catalyst";
+  // No blanket Catalyst fallback. Catalyst is a program like every other, not
+  // the bucket unattached things fall into: a course that resolves to no
+  // program is a data problem, and quietly stamping it Catalyst is how another
+  // program's people ended up filed under Catalyst.
+  const programSlug = await resolveHomeProgramSlug(trackSlug);
+  if (!programSlug) {
+    return { ok: false, error: "That course isn't attached to a program yet." };
+  }
   // Prefer the DB-overridden program name (source of truth).
   const homeProgram = await getProgramWithOverrides(programSlug);
   const programName = homeProgram.name;
@@ -167,7 +174,14 @@ export async function sendTestInvite(
 
   // Builder courses live under any program (their home is on track_overrides);
   // the old blanket-Catalyst fallback branded their invites as Catalyst.
-  const programSlug = (await resolveHomeProgramSlug(trackSlug)) ?? "catalyst";
+  // No blanket Catalyst fallback. Catalyst is a program like every other, not
+  // the bucket unattached things fall into: a course that resolves to no
+  // program is a data problem, and quietly stamping it Catalyst is how another
+  // program's people ended up filed under Catalyst.
+  const programSlug = await resolveHomeProgramSlug(trackSlug);
+  if (!programSlug) {
+    return { ok: false, error: "That course isn't attached to a program yet." };
+  }
   const homeProgram = await getProgramWithOverrides(programSlug);
   const programName = homeProgram.name;
   const courseName = homeProgram.tracks.find((t) => t.slug === trackSlug)?.name;

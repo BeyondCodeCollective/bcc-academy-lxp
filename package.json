@@ -7,9 +7,13 @@
     "prebuild": "node scripts/copy-zoom-sdk.mjs",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "eslint && node scripts/check-us-english.mjs",
     "test:smoke": "playwright test",
-    "test:smoke:install": "playwright install --with-deps chromium"
+    "test:smoke:install": "playwright install --with-deps chromium",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "eval": "vitest run --config vitest.evals.config.ts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
@@ -26,9 +30,11 @@
     "@tiptap/starter-kit": "^3.27.3",
     "@vercel/analytics": "^2.0.1",
     "@vercel/blob": "^2.6.1",
+    "@vercel/sandbox": "^3.2.1",
     "@zoom/meetingsdk": "^6.1.0",
     "ai": "^6.0.208",
     "framer-motion": "^12.38.0",
+    "jszip": "^3.10.1",
     "lucide-react": "^0.577.0",
     "next": "^16.2.6",
     "react": "19.2.4",
@@ -37,6 +43,7 @@
     "web-push": "^3.6.7"
   },
   "devDependencies": {
+    "@anthropic-ai/sdk": "^0.124.0",
     "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
@@ -46,7 +53,8 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.1",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.11"
   },
   "pnpm": {
     "overrides": {

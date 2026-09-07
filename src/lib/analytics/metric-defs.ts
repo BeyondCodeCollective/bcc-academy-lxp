@@ -23,6 +23,10 @@ export const METRIC_DEFS = {
     "Enrolled members grouped by how far through their course they've reached.",
   activeStudents:
     "Members with any activity in the window: a lesson watched, session attended, work submitted, or reflection.",
+  sessionsAttended:
+    "Live-session check-ins recorded in the window (embedded player join, Zoom report, or manual), across every course in scope. One learner attending three sessions counts three.",
+  workSubmitted:
+    "Assignments submitted in the window, across every course in scope. One learner submitting twice counts two.",
 } as const;
 
 export type MetricKey = keyof typeof METRIC_DEFS;

@@ -44,6 +44,7 @@ export function DashboardBento({
   otherCourses,
   programName,
   showTutor = false,
+  dedupeHref,
 }: {
   tracks: TrackTile[];
   otherCourses: OtherCourse[];
@@ -52,6 +53,10 @@ export function DashboardBento({
    *  used to check only the global prelaunch flag, advertising a tutor to
    *  programs that don't have one. */
   showTutor?: boolean;
+  /** A CTA already on the page (the Up-next panel). When the hero's Resume
+   *  resolves to the same place, the hero hides its button — two primary
+   *  buttons to one destination read as redundant. */
+  dedupeHref?: string;
 }) {
   if (tracks.length === 0 && otherCourses.length === 0) return null;
 
@@ -59,7 +64,7 @@ export function DashboardBento({
 
   return (
     <div>
-      {hero && <HeroCourseCard t={hero} program={programName} />}
+      {hero && <HeroCourseCard t={hero} program={programName} dedupeHref={dedupeHref} />}
 
       {(rest.length > 0 || otherCourses.length > 0) && (
         <section className="mt-8">
@@ -127,7 +132,15 @@ export function DashboardBento({
  * Same materials as every card (white panel, monogram, cobalt), amplified:
  * Archivo display name, the current topic stated in words, a real button.
  */
-function HeroCourseCard({ t, program }: { t: TrackTile; program: string }) {
+function HeroCourseCard({
+  t,
+  program,
+  dedupeHref,
+}: {
+  t: TrackTile;
+  program: string;
+  dedupeHref?: string;
+}) {
   const done = t.started ? t.unitsDone : 0;
   const resumeWeek = t.started ? Math.max(1, t.currentWeek) : 1;
   const pct = t.numberedUnits > 0 ? Math.round((done / t.numberedUnits) * 100) : 0;
@@ -175,10 +188,14 @@ function HeroCourseCard({ t, program }: { t: TrackTile; program: string }) {
         </p>
 
         <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-4">
-          <Link href={href} className={buttonClass("primary", "md")}>
-            {t.started ? `Resume ${t.unitNoun} ${resumeWeek}` : "Start course"}
-            <ArrowRight size={16} weight="bold" aria-hidden />
-          </Link>
+          {/* The Up-next panel above may already carry this exact CTA — one
+             primary button per destination. */}
+          {href !== dedupeHref && (
+            <Link href={href} className={buttonClass("primary", "md")}>
+              {t.started ? `Resume ${t.unitNoun} ${resumeWeek}` : "Start course"}
+              <ArrowRight size={16} weight="bold" aria-hidden />
+            </Link>
+          )}
           {t.started && (
             <div className="min-w-[160px] max-w-[240px] flex-1">
               <p className="text-xs font-semibold tabular-nums text-ink-faint">

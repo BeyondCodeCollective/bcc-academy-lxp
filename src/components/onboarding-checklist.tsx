@@ -23,6 +23,9 @@ export function OnboardingChecklist({
   trackSlug,
   programSlug,
   cohort,
+  eyebrow,
+  footnote,
+  completeTitle,
   defaultName,
 }: {
   title: string;
@@ -32,6 +35,10 @@ export function OnboardingChecklist({
   trackSlug: string;
   programSlug: string;
   cohort: string;
+  /** Cohort-specific copy; the defaults are the acceptance framing Security+ used. */
+  eyebrow?: string;
+  footnote?: string;
+  completeTitle?: string;
   defaultName?: string;
 }) {
   const [agreementOpen, setAgreementOpen] = useState(false);
@@ -47,7 +54,7 @@ export function OnboardingChecklist({
             <Confetti size={24} weight="bold" className="text-[#1a1a1a]" aria-hidden />
           </span>
           <h1 className="text-xl font-bold text-ink sm:text-2xl">
-            Thank you for completing your application materials.
+            {completeTitle ?? "Thank you for completing your application materials."}
           </h1>
           <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-ink-soft">
             We will reach out with more details shortly! Keep an eye on your inbox — welcome to the{" "}
@@ -65,7 +72,7 @@ export function OnboardingChecklist({
       {/* Header — short and flat, no gradient */}
       <div>
         <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-primary">
-          You&apos;re accepted · {doneCount} of {items.length} complete
+          {eyebrow ?? "You're accepted"} · {doneCount} of {items.length} complete
         </p>
         <h1 className="mt-1.5 text-xl font-bold tracking-tight text-ink sm:text-2xl">{title}</h1>
         <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-ink-soft">{intro}</p>
@@ -122,8 +129,8 @@ export function OnboardingChecklist({
       </ul>
 
       <p className="text-center text-xs leading-relaxed text-ink-faint">
-        Your acceptance is contingent on completing all three. Anything you&apos;ve already done is
-        checked off automatically.
+        {footnote ??
+          "Your acceptance is contingent on completing all three. Anything you've already done is checked off automatically."}
       </p>
 
       <ParticipationAgreementModal

@@ -13,18 +13,47 @@ const BLANK: Row = { title: "", description: "", url: "", category: "", icon: ""
 type Props = {
   programSlug: string;
   programName: string;
-  initial: Row[];
+  /** Courses in this program; resources can be scoped to one of them. */
+  courses: { slug: string; name: string }[];
+  /** All the program's rows, tagged with their scope ("" = program-wide). */
+  initial: (Row & { trackSlug: string })[];
 };
 
-// Flexible per-program resources editor: each row is "anything" (a tool, a
-// link, a document, a contact) with an optional category for grouping. The
-// whole list is saved at once (replace-all).
-export function ResourcesEditor({ programSlug, programName, initial }: Props) {
+// "" = program-wide scope key.
+const PROGRAM_SCOPE = "";
+
+// Flexible resources editor: each row is "anything" (a tool, a link, a
+// document, a contact) with an optional category for grouping. A scope
+// picker switches between the program-wide list and one list per course;
+// saving replaces only the scope being edited.
+export function ResourcesEditor({ programSlug, programName, courses, initial }: Props) {
   const router = useRouter();
-  const [rows, setRows] = useState<Row[]>(() =>
-    initial.length ? initial.map((r) => ({ ...BLANK, ...r })) : [{ ...BLANK }],
-  );
+  const [byScope, setByScope] = useState<Record<string, Row[]>>(() => {
+    const m: Record<string, Row[]> = {};
+    for (const r of initial) {
+      const { trackSlug, ...row } = r;
+      (m[trackSlug] ??= []).push({ ...BLANK, ...row });
+    }
+    return m;
+  });
+  // Open on a scope that HAS resources. Defaulting to program-wide when it's
+  // empty hid the only resource in the program behind the picker — the page
+  // looked add-only and the real row was invisible. Program-wide wins when it
+  // has rows; otherwise the first course scope with rows; otherwise program-wide.
+  const [scope, setScope] = useState<string>(() => {
+    if (byScope[PROGRAM_SCOPE]?.length) return PROGRAM_SCOPE;
+    const withRows = courses.find((c) => byScope[c.slug]?.length);
+    return withRows ? withRows.slug : PROGRAM_SCOPE;
+  });
+  const rows = byScope[scope]?.length ? byScope[scope] : [{ ...BLANK }];
+  const setRows = (fn: (prev: Row[]) => Row[]) =>
+    setByScope((prev) => ({ ...prev, [scope]: fn(prev[scope]?.length ? prev[scope] : [{ ...BLANK }]) }));
   const [state, setState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  // " · 3" suffix in the scope picker: where the resources actually live.
+  const countLabel = (key: string) => {
+    const n = (byScope[key] ?? []).filter((r) => r.title.trim() !== "").length;
+    return n > 0 ? ` · ${n}` : "";
+  };
 
   const update = (i: number, field: keyof Row, value: string) =>
     setRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, [field]: value } : r)));
@@ -44,6 +73,7 @@ export function ResourcesEditor({ programSlug, programName, initial }: Props) {
     try {
       await saveResources(
         programSlug,
+        scope === PROGRAM_SCOPE ? null : scope,
         rows.filter((r) => r.title.trim() !== ""),
       );
       setState("saved");
@@ -57,11 +87,36 @@ export function ResourcesEditor({ programSlug, programName, initial }: Props) {
 
   return (
     <div className="space-y-4">
+      {courses.length > 0 && (
+        <label className="block max-w-sm">
+          <span className="mb-1 block text-micro font-medium uppercase tracking-wider text-ink-faint">
+            Shown to
+          </span>
+          <select
+            value={scope}
+            onChange={(e) => setScope(e.target.value)}
+            className={fieldInput}
+          >
+            <option value={PROGRAM_SCOPE}>
+              Everyone in {programName}{countLabel(PROGRAM_SCOPE)}
+            </option>
+            {courses.map((c) => (
+              <option key={c.slug} value={c.slug}>
+                {c.name} only{countLabel(c.slug)}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       <div className="flex items-end justify-between gap-3">
         <p className="text-xs text-ink-soft">
-          Resources shown on the <strong>{programName}</strong> Resources page. Add
-          anything — tools, materials, links, docs, contacts. The optional
-          category groups items on the page.
+          {scope === PROGRAM_SCOPE ? (
+            <>Shown to every learner on the <strong>{programName}</strong> Resources page.</>
+          ) : (
+            <>Shown only to learners enrolled in <strong>{courses.find((c) => c.slug === scope)?.name ?? scope}</strong>.</>
+          )}{" "}
+          Add anything — tools, materials, links, docs, contacts. The optional
+          category groups items on the page. Each scope saves separately.
         </p>
         <button type="button" onClick={add} className={buttonClass("secondary", "sm")}>
           <Plus size={13} aria-hidden /> Add

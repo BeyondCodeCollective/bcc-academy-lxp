@@ -15,15 +15,25 @@ export async function sendSignInEmail({
   to,
   magicLink,
   programName,
+  otpCode,
 }: {
   to: string;
   magicLink: string;
   programName: string;
+  /** Same OTP the link carries, rendered as a typeable code — the fallback
+   *  that survives prefetchers, link scanners, and cross-device opens.
+   *  Omitted on the Supabase-OTP fallback path (no code available). */
+  otpCode?: string;
 }): Promise<void> {
   if (!resend) {
     console.warn("[email] RESEND_API_KEY not set — skipping sign-in email");
     return;
   }
+  const codeBlock = otpCode
+    ? `
+    <p style="margin:0 0 8px;font-size:13px;color:#555;text-align:center;">Link not working? Enter this code on the sign-in page instead:</p>
+    <p style="margin:0 0 28px;font-size:26px;font-weight:700;letter-spacing:0.2em;text-align:center;color:#1a1a1a;">${otpCode}</p>`
+    : "";
   const { error } = await resend.emails.send({
     from: FROM_ADDRESS,
     to,
@@ -38,7 +48,7 @@ export async function sendSignInEmail({
     <p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:#555;">Click the button below to sign in and open your portal. This link expires in 24 hours.</p>
     <div style="text-align:center;margin:0 0 28px;">
       <a href="${magicLink}" style="display:inline-block;padding:14px 36px;background:#1a1a1a;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:700;font-size:15px;letter-spacing:0.02em;">Open my portal →</a>
-    </div>
+    </div>${codeBlock}
     <p style="margin:0;font-size:12px;color:#999;line-height:1.5;">If you didn't request this, you can safely ignore this email. Questions? Reply here or email <a href="mailto:info@bccacademy.io" style="color:#1a1a1a;">info@bccacademy.io</a>.</p>
   </div>
 </div>`,
@@ -55,14 +65,29 @@ type InviteEmailContent = { subject: string; text: string; html: string };
 
 /** Shared dark-header shell. The header shows the program/org brand (white-
  *  label — BCC Academy is the infrastructure, not the brand on student email). */
+// Absolute, production origin for anything an email has to load or link to.
+// Never the request origin: a preview deployment is auth-gated, so a logo
+// sourced from one renders as a broken image in the recipient's inbox forever.
+const PUBLIC_ORIGIN = "https://bccacademy.io";
+const BCC_SITE_URL = "https://www.wearebcc.org";
+
 function inviteShell(brand: string, bodyHtml: string): string {
   return `
 <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:520px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;">
-  <div style="background:#1a1a1a;padding:28px 24px;text-align:center;">
+  <div style="background:#1a1a1a;padding:24px;text-align:center;" bgcolor="#1a1a1a">
+    <img src="${PUBLIC_ORIGIN}/images/bcc/bcc-logo-email.png" alt="" width="40" height="40" style="display:block;margin:0 auto 12px;border:0;outline:none;text-decoration:none;" />
     <p style="margin:0;font-size:24px;font-weight:700;letter-spacing:-0.02em;text-transform:uppercase;color:#ffffff;">${brand}</p>
   </div>
   <div style="padding:32px 24px;">
 ${bodyHtml}
+  </div>
+  <div style="padding:20px 24px 24px;border-top:1px solid #ededed;">
+    <p style="margin:0 0 6px;font-size:12px;line-height:1.55;color:#888;">
+      <strong style="color:#555;">Beyond Code Collective</strong> is a place-based nonprofit bringing families, working adults, and community leaders into direct relationship with AI and emerging tech, at any age and any starting point.
+    </p>
+    <p style="margin:0;font-size:12px;color:#888;">
+      <a href="${BCC_SITE_URL}" style="color:#1a1a1a;font-weight:600;text-decoration:none;">wearebcc.org</a>
+    </p>
   </div>
 </div>`;
 }
@@ -187,6 +212,66 @@ export async function sendInviteEmail({
  * family can view, print, and share it. Program-branded like every other
  * student email (white-label: the org is the brand, not BCC Academy).
  */
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/**
+ * Acceptance email — sent automatically when a reviewer accepts an
+ * application submission. Carries the join link when the application is
+ * linked to a course (the applicant is already allowlisted by then).
+ */
+export async function sendAcceptanceEmail({
+  to,
+  name,
+  applicationTitle,
+  joinUrl,
+}: {
+  to: string;
+  name: string;
+  applicationTitle: string;
+  /** Absent when the application has no linked course yet. */
+  joinUrl?: string;
+}): Promise<void> {
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY not set — skipping acceptance email");
+    return;
+  }
+  const first = name.split(" ")[0] || "there";
+  const joinBlock = joinUrl
+    ? `\n\nYour next step is to join the course portal:\n${joinUrl}\n\nUse this email address when you sign in.`
+    : "\n\nWe'll follow up shortly with your next steps.";
+  const text = `Hi ${first},\n\nGreat news — your application to ${applicationTitle} has been accepted. We're excited to have you.${joinBlock}\n\nSee you soon,\nThe team`;
+  const html = `
+    <div style="font-family:-apple-system,Segoe UI,sans-serif;max-width:520px;margin:0 auto;color:#1a1a1a;">
+      <p>Hi ${escapeHtml(first)},</p>
+      <p>Great news — your application to <strong>${escapeHtml(applicationTitle)}</strong> has been accepted. We're excited to have you.</p>
+      ${
+        joinUrl
+          ? `<p>Your next step is to join the course portal:</p>
+             <p><a href="${joinUrl}" style="display:inline-block;background:#1a1a1a;color:#ffffff;padding:12px 24px;text-decoration:none;border-radius:8px;font-weight:600;">Join the course</a></p>
+             <p style="color:#555;font-size:13px;">Use this email address when you sign in.</p>`
+          : `<p>We'll follow up shortly with your next steps.</p>`
+      }
+      <p>See you soon,<br/>The team</p>
+    </div>`;
+
+  const { error } = await resend.emails.send({
+    from: FROM_ADDRESS,
+    to,
+    subject: `You're in — ${applicationTitle}`,
+    text,
+    html,
+  });
+  if (error) {
+    console.error("[email] sendAcceptanceEmail failed:", JSON.stringify(error));
+  }
+}
+
 export async function sendCertificateEmail({
   to,
   firstName,
@@ -222,8 +307,10 @@ This link is permanent, so it can go on a resume or LinkedIn profile — anyone 
 
 We're proud of you!
 ${programName}`,
+    // Header banner carries the course name — the credential is the star,
+    // the program signs off in the body copy.
     html: inviteShell(
-      programName,
+      courseName,
       `    <p style="margin:0 0 6px;font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#16a34a;">🎉 Certificate earned</p>
     <p style="margin:0 0 8px;font-size:22px;font-weight:700;color:#1a1a1a;">Congratulations${name ? `, ${esc(name)}` : ""}!</p>
     <p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:#555;">You completed <strong>${esc(courseName)}</strong> — and your official certificate is ready. View it, print it, or share it with the button below. No login needed.</p>
@@ -363,7 +450,10 @@ ${inviteLink}
 
 You'll see a countdown to kickoff — come back here when we start.${cal ? `\n\nAdd to Google Calendar: ${cal.google}\nAdd to Apple/iCal: ${cal.ics}` : ""}
 
-Questions? Reply to this email or contact info@bccacademy.io.`,
+Questions? Reply to this email or contact info@bccacademy.io.
+
+—
+Beyond Code Collective brings families, working adults, and community leaders into direct relationship with AI and emerging tech. More at https://www.wearebcc.org`,
     html: inviteShell(
       programName,
       `    <p style="margin:0 0 6px;font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#16a34a;">✓ You're registered</p>
@@ -764,12 +854,14 @@ export async function sendApplicationNotification(input: {
   applicationName: string;
   /** Short triage lines, e.g. { University: "Mercer", "Available for all sessions": "Yes" }. */
   details?: Record<string, string | undefined>;
+  /** Override recipient for programs with their own owner (default APPLICATION_NOTIFY_EMAIL). */
+  to?: string;
 }): Promise<void> {
   if (!resend) {
     console.warn("[email] RESEND_API_KEY not set — skipping application notification");
     return;
   }
-  const to = process.env.APPLICATION_NOTIFY_EMAIL ?? "jihan.johnston@wearebcc.org";
+  const to = input.to ?? process.env.APPLICATION_NOTIFY_EMAIL ?? "jihan.johnston@wearebcc.org";
   const esc = (s: string) =>
     s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const rows = Object.entries(input.details ?? {})
@@ -850,7 +942,12 @@ export async function sendStaffAccountNotification(input: {
  */
 export async function sendSentinelReportEmail(input: {
   brief: string;
-  findings: { check: string; severity: string; message: string; rows: string[] }[];
+  findings: {
+    check: string;
+    severity: string;
+    message: string;
+    rows: { label: string }[];
+  }[];
 }): Promise<void> {
   if (!resend) {
     console.warn("[email] RESEND_API_KEY not set — skipping sentinel report");
@@ -873,7 +970,7 @@ export async function sendSentinelReportEmail(input: {
   <div style="margin:0 0 16px;padding:12px 14px;background:#f5f5f7;border-radius:8px;">
     <p style="margin:0 0 4px;font-size:13px;font-weight:700;color:${color(f.severity)};text-transform:uppercase;">${esc(f.severity)} · ${esc(f.check)}</p>
     <p style="margin:0 0 6px;font-size:14px;line-height:1.5;color:#1a1a1a;">${esc(f.message)}</p>
-    ${f.rows.map((r) => `<p style="margin:0;font-size:13px;color:#555;">· ${esc(r)}</p>`).join("\n")}
+    ${f.rows.map((r) => `<p style="margin:0;font-size:13px;color:#555;">· ${esc(r.label)}</p>`).join("\n")}
   </div>`,
     )
     .join("\n");

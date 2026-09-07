@@ -3,9 +3,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { deleteStudentAction, updateStudentAction, updateCohortAction, saveSessionContent, assignStudentTrack, removeStudentTrack, bulkAssignTrack, exportSurveyResponses, exportPublicSurveyResponses, getAllSubmissions, addFeedback, assignInstructorTrack, removeInstructorTrack, deleteSurveyResponse, deletePublicSurveyResponse, listPublicSurveyResponses, sendInviteAction, createCohortAction } from "./actions";
-import type { SessionResource, StudentTrackRow, SurveyStatsRow, AdminSubmissionRow, InstructorTrackRow, PublicSurveyStatsRow } from "./actions";
+import { deleteStudentAction, updateStudentAction, updateCohortAction, saveSessionContent, assignStudentTrack, removeStudentTrack, bulkAssignTrack, exportPublicSurveyResponses, getAllSubmissions, addFeedback, assignInstructorTrack, removeInstructorTrack, deletePublicSurveyResponse, listPublicSurveyResponses, sendInviteAction, createCohortAction } from "./actions";
+import type { SessionResource, StudentTrackRow, AdminSubmissionRow, InstructorTrackRow, PublicSurveyStatsRow } from "./actions";
 import { canManageStudents, canSwitchPrograms, canViewInsights } from "@/lib/roles";
+import { isLearner } from "@/lib/analytics/engagement";
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { Users, BookOpen, GraduationCap, Gear as Settings, FloppyDisk as Save, CaretDown as ChevronDown, ArrowSquareOut as ExternalLink, Check, UserCheck, Trash as Trash2, UserPlus, Plus, X, Link as LinkIcon, UploadSimple as Upload, Download, CircleNotch as Loader2, Video, FileText, ClipboardText as ClipboardList, PaperPlaneTilt as Send, ChatCentered as MessageSquare, Coffee, Eye, ArrowRight } from "@phosphor-icons/react";
 import { Avatar } from "@/components/avatar";
@@ -28,6 +29,7 @@ import { TrackOverviewForm } from "./track-overview-form";
 import { OfficeHoursEditor } from "./office-hours-editor";
 import { ManageMenu } from "./manage-menu";
 import { PendingPeopleSection, StatusPill } from "./pending-people";
+import { sendCohortInvites } from "./invites/actions";
 import type { PendingPerson } from "@/lib/people-hub";
 import { AddPeoplePanel } from "./add-people-panel";
 import type { OfficeHour } from "@/lib/programs/types";
@@ -151,7 +153,7 @@ function trackLabel(slug: string | null): string {
   return map[slug] ?? humanizeSlug(slug);
 }
 
-type StudentRow = Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "cohort_id" | "last_seen_at" | "last_activity_at" | "zip" | "state" | "date_of_birth">;
+type StudentRow = Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "is_staff" | "cohort_id" | "last_seen_at" | "last_activity_at" | "zip" | "state" | "date_of_birth">;
 
 // Track config passed from server (subset of TrackConfig)
 type AdminTrackConfig = {
@@ -490,7 +492,6 @@ export function AdminTabs({
   studentTracks: initialStudentTracks,
   instructorTracks: initialInstructorTracks = [],
   programSlug: initialProgramSlug,
-  surveyStats,
   surveyConfigs,
   trackPublicSurveys = [],
   userRole = "admin",
@@ -504,7 +505,7 @@ export function AdminTabs({
   lunchLearnRecordings = [],
   insightsData = null,
   switchablePrograms = [],
-  trackInsightsData = null,
+  hiddenCourseCount = 0,
   analyticsData = null,
   analyticsCourse,
   coursesData = null,
@@ -517,6 +518,7 @@ export function AdminTabs({
   alumniEnrollments = [],
   unviewedAssessments = 0,
   launchReadiness = {},
+  trackExams = [],
 }: {
   cohorts: CohortRow[];
   students: StudentRow[];
@@ -524,8 +526,7 @@ export function AdminTabs({
   studentTracks: StudentTrackRow[];
   instructorTracks?: InstructorTrackRow[];
   programSlug: string;
-  surveyStats: Record<string, SurveyStatsRow[]>;
-  surveyConfigs: { id: string; title: string; skipForTracks?: string[] }[];
+  surveyConfigs: { id: string; title: string; skipForTracks?: string[]; appliesToTracks?: string[] }[];
   trackPublicSurveys?: { id: string; title: string; count: number }[];
   userRole?: string;
   isMaster?: boolean;
@@ -552,8 +553,10 @@ export function AdminTabs({
   attendanceRates?: { held: number; attended: Record<string, number> } | null;
   /** Programs a super-admin can switch into, for the no-program empty state. */
   switchablePrograms?: { slug: string; name: string }[];
+  /** Courses the CURRENT program owns that are hidden. Non-zero means the
+   *  empty state is a hide/show state, not a program with no courses. */
+  hiddenCourseCount?: number;
   /** Survey Insights narrowed to the open course's roster; null off the course Surveys view. */
-  trackInsightsData?: InsightsData | null;
   /** Auth surveys with ≥1 response from the open course's students; null off track tabs. */
   trackAnsweredSurveyIds?: string[] | null;
   /** Enrolled learners in the open course — response-rate denominator. */
@@ -565,7 +568,9 @@ export function AdminTabs({
   unviewedAssessments?: number;
   /** Pre-launch checks per track, present only for courses near their start
    *  date. See lib/launch-readiness. */
-  launchReadiness?: Record<string, { label: string; ok: boolean; detail: string }[]>;
+  launchReadiness?: Record<string, { label: string; ok: boolean; detail: string; action?: "send-invites" }[]>;
+  /** The open course's practice exams, rendered as rows in the Surveys list. */
+  trackExams?: { id: string; title: string; attempted: number }[];
 }) {
   const router = useRouter();
   const programSlug = initialProgramSlug;
@@ -577,6 +582,8 @@ export function AdminTabs({
   // tracks, no cohorts. They render a single empty-state pointer to
   // Survey Insights via the `insights` tab.
   const isDashboardless = tracks.length === 0 && cohorts.length === 0;
+  // Nothing visible, but the program does own courses — they're just hidden.
+  const allCoursesHidden = isDashboardless && hiddenCourseCount > 0;
   // Build tab list dynamically. The old "Program" Overview tab is gone —
   // it duplicated /dashboard/insights for super-admins and was a wasted
   // landing for managers. Admins now land directly on People (or first
@@ -670,6 +677,8 @@ export function AdminTabs({
   // Launch-readiness accordion — collapsed by default so the checks never push
   // the course view down; the badge in the header still shows red/green.
   const [readinessOpen, setReadinessOpen] = useState(false);
+  const [readinessSending, setReadinessSending] = useState(false);
+  const [readinessResult, setReadinessResult] = useState<string | null>(null);
   const [trackView, setTrackView] = useState<
     "overview" | "analytics" | "curriculum" | "students" | "surveys"
   >((initialTrackView as "overview" | "analytics" | "curriculum" | "students" | "surveys") ?? "overview");
@@ -1038,43 +1047,54 @@ export function AdminTabs({
          per-track to show. Surface the next useful destinations instead. */}
       {isDashboardless && (
         <div className="space-y-4">
+          {/* Two different empty states wear the same shape. A program with no
+             courses at all (the marketing apex) needs the program picker. A
+             program whose courses are ALL hidden needs Manage Courses — it
+             used to get the picker, which switched back into the same program,
+             which was still empty, so there was no way out of the loop and no
+             Manage button on the screen that replaced the real admin home. */}
           <PageHeader
             eyebrow="Admin"
-            title="No program selected"
+            title={allCoursesHidden ? "Every course here is hidden" : "No program selected"}
             subtitle={
-              canSwitchPrograms(userRole)
-                ? "This domain has no courses of its own. Choose a program to manage, or open Analytics for cross-program data."
-                : "This domain doesn't have a learner dashboard. Contact a super-admin to switch programs."
+              allCoursesHidden
+                ? `This program has ${hiddenCourseCount} ${hiddenCourseCount === 1 ? "course" : "courses"}, all currently hidden, so there's nothing to manage on this screen. Show one in Manage Courses to bring the admin home back.`
+                : canSwitchPrograms(userRole)
+                  ? "This domain has no courses of its own. Open Manage Courses, or switch programs from your avatar menu."
+                  : "This domain doesn't have a learner dashboard. Contact a super-admin to switch programs."
             }
           />
-          {/* The picker lives HERE, not just in the user menu.
-             This screen used to say "pick a program from the sidebar" — the
-             sidebar switcher only renders when the current program HAS tracks,
-             which on this domain it never does, so the instruction couldn't be
-             followed. The switcher does exist in the avatar menu, but sending
-             someone hunting for it on the one screen that's useless without it
-             is the same as not having one. */}
-          {switchablePrograms.length > 1 && (
+          {/* Two buttons for super-admins, whose avatar menu already switches
+             programs (pills removed 2026-08-20 at Fonz's request). A
+             cross-program grant holder (Jihan) has NO other switcher, so for
+             them the granted programs render here — it's the only way out of
+             an all-hidden home program (2026-08-24). */}
+          {canManageStudents(userRole) && (
             <div className="flex flex-wrap gap-2">
-              {switchablePrograms.map((p) => (
-                <a
-                  key={p.slug}
-                  href={`/api/switch-program?slug=${encodeURIComponent(p.slug)}&next=${encodeURIComponent("/dashboard/admin")}`}
-                  className={buttonClass("secondary", "md")}
-                >
-                  {p.name}
-                </a>
-              ))}
+              <a href="/dashboard/admin/programs" className={buttonClass("dark", "md")}>
+                Manage Courses
+                <span aria-hidden>&rarr;</span>
+              </a>
+              <a href="/dashboard/admin/programs/new" className={buttonClass("secondary", "md")}>
+                New course
+              </a>
             </div>
           )}
-          {canSwitchPrograms(userRole) && (
-            <a
-              href="/dashboard/insights"
-              className={buttonClass("dark", "md")}
-            >
-              View Analytics
-              <span aria-hidden>&rarr;</span>
-            </a>
+          {!canSwitchPrograms(userRole) && switchablePrograms.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-sm text-ink-soft">Your other programs</p>
+              <div className="flex flex-wrap gap-2">
+                {switchablePrograms.map((p) => (
+                  <a
+                    key={p.slug}
+                    href={`/api/switch-program?slug=${encodeURIComponent(p.slug)}&next=${encodeURIComponent("/dashboard/admin")}`}
+                    className={buttonClass("secondary", "md")}
+                  >
+                    {p.name}
+                  </a>
+                ))}
+              </div>
+            </div>
           )}
         </div>
       )}
@@ -1086,7 +1106,7 @@ export function AdminTabs({
          Lunch & Learn). */}
       {tab === "home" && !isDashboardless && (() => {
         const studentRoleIds = new Set(
-          students.filter((s) => s.role === "student").map((s) => s.id),
+          students.filter(isLearner).map((s) => s.id),
         );
         // `courseStats` is server-computed: it resolves role by enrolled id
         // rather than by program (so learners whose students.program_id points
@@ -1109,11 +1129,10 @@ export function AdminTabs({
           students
             .filter((s) => {
               if (s.role !== "student") return false;
-              // last_activity_at is the richer signal but is still backfilling
-              // (only written since its writer was added), so a NULL means
-              // "unknown", not "inactive" — fall back to last_seen_at (login)
-              // rather than silently undercounting active learners.
-              const signal = s.last_activity_at ?? s.last_seen_at;
+              // Behavior only. last_activity_at advances on every dashboard
+              // visit and is now reliably written; last_seen_at is a login
+              // stamp (set at signup) and read a fresh cohort as 100% active.
+              const signal = s.last_activity_at;
               return !!signal && new Date(signal).getTime() >= weekAgo;
             })
             .map((s) => s.id),
@@ -1129,7 +1148,7 @@ export function AdminTabs({
             <AdminTopTabs
               current="courses"
               showInsights={canViewInsights(userRole)}
-              actions={canSwitchPrograms(userRole) && <ManageMenu isMaster={isMaster} />}
+              actions={canSwitchPrograms(userRole) && <ManageMenu isMaster={isMaster} programSlug={programSlug} />}
               isManager={isManager}
             />
 
@@ -1148,7 +1167,7 @@ export function AdminTabs({
               const renderRow = (t: (typeof tracks)[number]) => {
                 const TrackIcon = iconForTrack(t.slug);
                 const started = trackHasStarted(t, now);
-                // `currentUnit` comes from resolveCurrentUnit, which honours
+                // `currentUnit` comes from resolveCurrentUnit, which honors
                 // dated syllabi and per-unit unlocks. computeCurrentWeek only
                 // knows a 7-day cycle, so on a day-gated camp it reports Day 1
                 // for the whole camp. Fall back to it only when the server
@@ -1182,7 +1201,9 @@ export function AdminTabs({
                 // "Active this week" is a rolling window, so a finished course
                 // decays to 0 and reads as failure rather than as "it's done".
                 // Once a course has ended, report its outcome instead: how many
-                // learners made every session.
+                // learners made every session. Labeled as exactly that —
+                // "completed" means a certificate, and Roblox read 36 "completed"
+                // next to 58 certificates (audit F16).
                 const completed = ended ? (courseStats[t.slug]?.fullAttendance ?? null) : null;
                 // A finished course with no certificates issued isn't a course
                 // nobody completed — it's one nobody has recorded yet, and it
@@ -1229,7 +1250,7 @@ export function AdminTabs({
                       {completed !== null ? (
                         <p className="shrink-0 w-24 text-right text-xs tabular-nums">
                           <span className="font-semibold text-primary">{completed}</span>
-                          <span className="text-ink-faint"> / {count} completed</span>
+                          <span className="text-ink-faint"> / {count} every session</span>
                         </p>
                       ) : showActive && isRunning ? (
                         <p className="shrink-0 w-24 text-right text-xs tabular-nums">
@@ -1251,18 +1272,15 @@ export function AdminTabs({
                     >
                       <Eye size={15} aria-hidden />
                     </Link>
-                    {/* Primary action: manage. */}
-                    <Link
-                      href={`/dashboard/admin?tab=${t.slug}`}
-                      aria-label={`Manage ${t.name}`}
-                      className="shrink-0 rounded-lg p-1.5 text-ink-faint transition-colors hover:bg-paper-tint hover:text-ink group-hover:text-ink-soft"
-                    >
+                    {/* Decorative affordance for the row link — the whole row
+                       already opens the course; a second Link to the same
+                       place read as a distinct action. */}
+                    <span className="shrink-0 rounded-lg p-1.5 text-ink-faint group-hover:text-ink-soft" aria-hidden>
                       <ArrowRight
                         size={15}
-                        aria-hidden
                         className="transition-transform group-hover:translate-x-0.5"
                       />
-                    </Link>
+                    </span>
                   </div>
                 );
               };
@@ -1304,7 +1322,7 @@ export function AdminTabs({
         // include instructors/admins assigned to the track, which would
         // inflate the header and diverge from the People sub-tab's count.
         const studentRoleIds = new Set(
-          students.filter((s) => s.role === "student").map((s) => s.id),
+          students.filter(isLearner).map((s) => s.id),
         );
         const enrolledInTrack = enrollments.filter(
           (e) => e.track_slug === activeTrack.slug && studentRoleIds.has(e.student_id),
@@ -1373,10 +1391,43 @@ export function AdminTabs({
                           aria-hidden
                           className={`mt-1 h-2 w-2 shrink-0 rounded-full ${c.ok ? "bg-emerald-500" : "bg-amber-500"}`}
                         />
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <p className="text-sm text-ink">{c.label}</p>
                           <p className="text-micro text-ink-faint">{c.detail}</p>
+                          {c.action === "send-invites" && readinessResult && (
+                            <p className="mt-1 text-micro text-ink-soft">{readinessResult}</p>
+                          )}
                         </div>
+                        {/* Fix it where it's flagged — same idempotent cohort
+                           send the People tab uses (skips already-invited). */}
+                        {c.action === "send-invites" && canSwitchPrograms(userRole) && (
+                          <button
+                            type="button"
+                            disabled={readinessSending}
+                            onClick={async () => {
+                              const name = liveTrackNames[activeTrack.slug]?.name ?? activeTrack.name;
+                              if (
+                                !window.confirm(
+                                  `Send invites for ${name} to everyone on the allowlist who hasn't been invited yet?`,
+                                )
+                              )
+                                return;
+                              setReadinessSending(true);
+                              setReadinessResult(null);
+                              const r = await sendCohortInvites(activeTrack.slug);
+                              setReadinessSending(false);
+                              setReadinessResult(
+                                r.ok
+                                  ? `${r.sent ?? 0} sent${r.failed ? `, ${r.failed} failed` : ""}${r.remaining ? ` · ${r.remaining} remaining — click again to continue` : ""}`
+                                  : r.error ?? "Failed to send invites.",
+                              );
+                              router.refresh();
+                            }}
+                            className={buttonClass("secondary", "sm")}
+                          >
+                            {readinessSending ? "Sending…" : "Send invites"}
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -1670,7 +1721,7 @@ export function AdminTabs({
 
                 {subView === "attendance" && (
                   <AttendanceTab
-                    students={trackStudents.filter((s) => s.role === "student")}
+                    students={trackStudents.filter(isLearner)}
                     tracks={[activeTrack]}
                     scopeLabel={activeTrack.shortName}
                     embedded
@@ -1680,7 +1731,7 @@ export function AdminTabs({
 
                 {subView === "progress" && (
                   <ProgressTab
-                    students={trackStudents.filter((s) => s.role === "student")}
+                    students={trackStudents.filter(isLearner)}
                     trackSlug={activeTrack.slug}
                     totalWeeks={activeTrack.totalWeeks}
                     viewSwitcher={viewSwitcher}
@@ -1697,7 +1748,7 @@ export function AdminTabs({
 
                 {subView === "certificates" && (
                   <CertificatesPanel
-                    students={trackStudents.filter((s) => s.role === "student")}
+                    students={trackStudents.filter(isLearner)}
                     trackSlug={activeTrack.slug}
                     programSlug={programSlug}
                     viewSwitcher={viewSwitcher}
@@ -1707,26 +1758,14 @@ export function AdminTabs({
             );
           })()}
 
-          {/* Surveys sub-view — scoped to this track */}
+          {/* Surveys sub-view — scoped to this track. ONE surface: the index
+             of this course's forms and exams with response rates. Summaries
+             and answer-level data live one level down, in each form's report —
+             the embedded program-insights panel duplicated this list through
+             its Form dropdown and only rendered on a full-page load, so the
+             tab showed different content depending on how you arrived. */}
           {trackView === "surveys" && (
             <div className="space-y-8">
-              {/* The same panel the program-level Insights tab shows, narrowed
-                 to this course. It leads because it answers "what did this
-                 cohort say" — the list below is the follow-up view: which forms
-                 are assigned and who still owes one. */}
-              {trackInsightsData && (
-                <InsightsDashboard
-                  sections={trackInsightsData.sections}
-                  programs={trackInsightsData.programs}
-                  totalResponses={trackInsightsData.totalResponses}
-                  scope={{
-                    trackSlug: activeTrack.slug,
-                    trackName: activeTrack.shortName,
-                    enrolledCount: trackEnrolledCount,
-                    returnTo: `/dashboard/admin?tab=${activeTrack.slug}&view=surveys`,
-                  }}
-                />
-              )}
               <TrackInsightsSection
                 trackSlug={activeTrack.slug}
                 trackShortName={activeTrack.shortName}
@@ -1738,18 +1777,33 @@ export function AdminTabs({
                 // Evidence-based, not opt-out: list only surveys this course's
                 // students have actually answered (plus the skip rule). The old
                 // opt-out-only filter surfaced every program survey under every
-                // course.
-                surveyConfigs={surveyConfigs.filter(
-                  (s) =>
-                    !s.skipForTracks?.includes(
-                      activeTrack.companionOf ?? activeTrack.slug,
-                    ) &&
-                    (trackAnsweredSurveyIds === null ||
-                      trackAnsweredSurveyIds.includes(s.id)),
-                )}
+                // course. Exception: a survey ASSIGNED to this course
+                // (appliesToTracks) always lists — at "0 of N" until people
+                // respond — otherwise a survey you're actively driving is
+                // invisible right when you need to watch it fill in (the HFS
+                // impact survey sat at zero with no row at all, 2026-08-17).
+                surveyConfigs={surveyConfigs.filter((s) => {
+                  const home = activeTrack.companionOf ?? activeTrack.slug;
+                  if (s.skipForTracks?.includes(home)) return false;
+                  // A survey assigned to specific courses lists ONLY under
+                  // those courses. Assignment beats evidence: cross-enrolled
+                  // learners' answers otherwise surface another course's
+                  // survey here (HFS "How Did We Do?" under MASS, 2026-08-27).
+                  if (s.appliesToTracks?.length) {
+                    return (
+                      s.appliesToTracks.includes(activeTrack.slug) ||
+                      s.appliesToTracks.includes(home)
+                    );
+                  }
+                  return (
+                    trackAnsweredSurveyIds === null ||
+                    trackAnsweredSurveyIds.includes(s.id)
+                  );
+                })}
                 trackPublicSurveys={trackPublicSurveys}
                 enrolledCount={trackEnrolledCount}
                 respondentsBySurvey={trackSurveyRespondents}
+                exams={trackExams}
               />
             </div>
           )}
@@ -1797,7 +1851,7 @@ export function AdminTabs({
         <div className="space-y-6">
           <AdminTopTabs current="analytics" sub="attendance" showInsights={canViewInsights(userRole)} isManager={isManager} />
           <ProgramAttendanceOverview
-            students={students.filter((s) => s.role === "student")}
+            students={students.filter(isLearner)}
             // Self-paced (VOD) courses have no sessions to attend — their
             // measure is watched-progress (course → Students → Progress), so
             // an attendance table would only show a misleading zero.
@@ -1855,68 +1909,6 @@ export function AdminTabs({
         <div className="space-y-6">
           <AdminTopTabs current="analytics" sub="insights" showInsights={canViewInsights(userRole)} isManager={isManager} />
 
-          {/* The "{Program} surveys" widget that used to live here pulled from
-             `surveyStats` (auth-only, never populated on the Insights tab since
-             needsSurveyStats is false). It always rendered "0 of 0 students
-             completed" while the Survey Insights cards directly below showed
-             real numbers — a confusing contradiction. The InsightsDashboard
-             component below now serves as the single source for these counts. */}
-          {false && surveyConfigs.length > 0 && (
-            <section className="space-y-3">
-              <h2 className="text-micro font-semibold uppercase tracking-[0.16em] text-ink-faint">
-                {programSlug === "catalyst" ? "Catalyst" : "Program"} surveys
-              </h2>
-              {surveyConfigs.map((survey) => {
-                const stats = surveyStats[survey.id] ?? [];
-                const completed = stats.filter((s) => s.completed_at).length;
-                const totalStudents = students.filter((s) => s.role === "student").length;
-                const pct = totalStudents > 0 ? Math.round((completed / totalStudents) * 100) : 0;
-                const completedStats = stats.filter((s) => s.completed_at);
-                return (
-                  <SurveyCard
-                    key={survey.id}
-                    title={survey.title}
-                    completed={completed}
-                    totalStudents={totalStudents}
-                    pct={pct}
-                    previewHref={`/dashboard/survey/${survey.id}`}
-                    onExport={async () => {
-                      const data = await exportSurveyResponses(programSlug, survey.id);
-                      if (data.length === 0) return;
-                      const allKeys = new Set<string>();
-                      data.forEach((row) => { Object.keys(row.responses).forEach((k) => allKeys.add(k)); });
-                      const headers = ["Name", "Email", "Completed At", ...Array.from(allKeys)];
-                      const rows = data.map((row) => [
-                        row.student_name, row.email, row.completed_at ?? "",
-                        ...Array.from(allKeys).map((k) => {
-                          const val = row.responses[k];
-                          if (Array.isArray(val)) return val.join("; ");
-                          if (typeof val === "object" && val !== null) return Object.entries(val).map(([s, a]) => {
-                            if (typeof a === "object" && a !== null) { const r2 = a as Record<string, string>; return `${s}: before ${r2.before ?? ""} now ${r2.now ?? ""}`; }
-                            return `${s}: ${String(a)}`;
-                          }).join("; ");
-                          return String(val ?? "");
-                        }),
-                      ]);
-                      downloadCsv([headers, ...rows], `${survey.id}-responses.csv`);
-                    }}
-                    responses={completedStats.map((s) => {
-                      const student = students.find((st) => st.id === s.student_id);
-                      return {
-                        id: s.student_id,
-                        label: student ? (student.first_name && student.last_name ? `${student.first_name} ${student.last_name}` : student.email) : s.student_id,
-                        sublabel: student?.email ?? "",
-                        completedAt: s.completed_at,
-                      };
-                    })}
-                    onDelete={async (id) => {
-                      await deleteSurveyResponse(id, survey.id, programSlug);
-                    }}
-                  />
-                );
-              })}
-            </section>
-          )}
 
           {insightsData ? (
             <InsightsDashboard
@@ -1962,7 +1954,12 @@ function StudentWorkTab({
   programSlug: string;
   viewSwitcher?: React.ReactNode;
 }) {
-  const [trackFilter, setTrackFilter] = useState<string>("all");
+  // Single-track callers (a course's Submissions view) hide the track filter,
+  // so "all" would silently fetch program-wide and show other courses' work
+  // under this course. Scope to the only track from the start.
+  const [trackFilter, setTrackFilter] = useState<string>(
+    tracks.length === 1 ? tracks[0].slug : "all",
+  );
   const [weekFilter, setWeekFilter] = useState<number | "all">("all");
   const [submissions, setSubmissions] = useState<AdminSubmissionRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -2531,7 +2528,7 @@ function PeopleTab({
                     {trackCount} {trackCount === 1 ? "track" : "tracks"}
                   </span>
                   {s.role === "student" && (
-                    <StatusPill status={(s.last_activity_at ?? s.last_seen_at) ? "active" : "joined"} />
+                    <StatusPill status={s.last_activity_at ? "active" : "joined"} />
                   )}
                   <span
                     className={`inline-block rounded-full px-2 py-0.5 text-micro font-medium ${
@@ -2754,150 +2751,6 @@ function PeopleTab({
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function downloadCsv(rows: string[][], filename: string) {
-  const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
-  const blob = new Blob([csv], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-// ─── Survey Cards ─────────────────────────────────────────────────────────────
-
-function SurveyCard({
-  title,
-  completed,
-  totalStudents,
-  pct,
-  onExport,
-  responses,
-  onDelete,
-  previewHref,
-}: {
-  title: string;
-  completed: number;
-  totalStudents: number;
-  pct: number;
-  onExport: () => Promise<void>;
-  responses: { id: string; label: string; sublabel: string; completedAt: string | null }[];
-  onDelete: (id: string) => Promise<void>;
-  previewHref: string;
-}) {
-  const [expanded, setExpanded] = useState(false);
-  const [deleting, setDeleting] = useState<string | null>(null);
-  const [clearingAll, setClearingAll] = useState(false);
-  const [localResponses, setLocalResponses] = useState(responses);
-
-  async function handleDelete(id: string) {
-    setDeleting(id);
-    try {
-      await onDelete(id);
-      setLocalResponses((prev) => prev.filter((r) => r.id !== id));
-    } finally {
-      setDeleting(null);
-    }
-  }
-
-  async function handleClearAll() {
-    // This one KEEPS a confirmation, because it genuinely cannot be undone —
-    // survey responses have no inverse action. Upgraded from click-OK to
-    // type-the-word: a bulk irreversible delete shouldn't be one stray Enter
-    // away, and "OK" is the default answer muscle memory gives.
-    const typed = prompt(
-      `Delete all ${localResponses.length} responses for "${title}"?\n\n` +
-        `This cannot be undone — there is no Undo for this one.\n` +
-        `Type DELETE to confirm.`,
-    );
-    if (typed?.trim().toUpperCase() !== "DELETE") return;
-    setClearingAll(true);
-    try {
-      for (const r of localResponses) {
-        await onDelete(r.id);
-      }
-      setLocalResponses([]);
-    } finally {
-      setClearingAll(false);
-    }
-  }
-
-  return (
-    <div className="panel p-4">
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-sm font-semibold text-ink">{title}</p>
-        <span className="text-xs text-ink-faint">{completed} of {totalStudents} completed</span>
-      </div>
-      <div className="h-2 w-full overflow-hidden rounded-full bg-paper-tint mb-3">
-        <div className="h-full rounded-full bg-ink transition-[width] duration-300 ease-out" style={{ width: `${pct}%` }} />
-      </div>
-      <div className="flex items-center gap-2">
-        <a
-          href={previewHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={buttonClass("secondary", "sm")}
-        >
-          <ExternalLink size={12} />
-          Preview
-        </a>
-        <button
-          type="button"
-          onClick={async () => { try { await onExport(); } catch (e) { console.error("Export failed:", e); } }}
-          className={buttonClass("secondary", "sm")}
-        >
-          <Download size={12} />
-          Export CSV
-        </button>
-        {localResponses.length > 0 && (
-          <button
-            type="button"
-            onClick={handleClearAll}
-            disabled={clearingAll}
-            className="inline-flex items-center gap-1 border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
-          >
-            <Trash2 size={12} />
-            {clearingAll ? "Deleting..." : "Delete All"}
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
-          className={buttonClass("secondary", "sm")}
-        >
-          <ChevronDown size={12} className={`transition-transform ${expanded ? "rotate-180" : ""}`} />
-          {expanded ? "Hide" : "Responses"}
-        </button>
-      </div>
-      {expanded && (
-        <div className="mt-3 border-t border-rule-soft pt-3 space-y-1">
-          {localResponses.length === 0 && (
-            <p className="text-xs text-ink-faint px-2">No responses yet.</p>
-          )}
-          {localResponses.map((r) => (
-            <div key={r.id} className="flex items-center justify-between gap-2 px-2 py-1.5 hover:bg-paper-tint-soft">
-              <div className="min-w-0">
-                <p className="text-xs font-medium text-ink truncate">{r.label}</p>
-                <p className="text-micro text-ink-faint truncate">{r.sublabel}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => handleDelete(r.id)}
-                disabled={deleting === r.id}
-                className="shrink-0 rounded p-1 text-ink-faint hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
-                title="Delete response"
-              >
-                {deleting === r.id ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 function PublicSurveyCard({
   title,

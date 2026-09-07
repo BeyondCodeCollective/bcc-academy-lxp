@@ -7,6 +7,12 @@ import {
   deleteUserByEmail,
   randomEmail,
 } from "./helpers/supabase";
+import { SMOKE_ENV_READY, SMOKE_ENV_REASON } from "./helpers/supabase";
+
+// Without service-role credentials these cannot run at all. Skip rather
+// than fail: a suite that is red for configuration reasons is a suite
+// nobody reads.
+test.skip(!SMOKE_ENV_READY, SMOKE_ENV_REASON);
 
 // Regression guard for the "pending registrant confinement" access control.
 //

@@ -1,23 +1,25 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
+import { resolveTrackLengths } from "@/lib/programs/scope";
 import { createServiceClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { AdminTabs } from "./admin-tabs";
 import type { Student } from "@/lib/types";
-import { getProgram, listDynamicPrograms } from "@/lib/programs/server";
+import { getProgram, getProgramWithOverrides, listDynamicPrograms } from "@/lib/programs/server";
 import type { StudentTrackRow, SurveyStatsRow, InstructorTrackRow, PublicSurveyStatsRow, BCCSurveyResponse } from "./actions";
 import { getPublicSurveyStats, getPublicSurveyCountsByType } from "./actions";
 import { canAccessAdminPanel, canManageStudents, canSwitchPrograms, canViewInsights, assignableRoles } from "@/lib/roles";
 import { isMasterEmail } from "@/lib/auth/admins";
 import { getProgramGrants, allowedProgramIds, allowedTrackSlugs, getGrantedProgramSlugs } from "@/lib/auth/program-access";
 import { PLATFORM_AUTH_SURVEYS, PLATFORM_PUBLIC_SURVEYS } from "@/lib/surveys/platform";
-import { getHomeProgramForTrack, getJoinablePrograms } from "@/lib/programs";
+import { getEveryProgramConfig, getHomeProgramForTrack, getJoinablePrograms } from "@/lib/programs";
 import { getHiddenTrackSlugs } from "@/lib/programs/hidden";
 import type { SurveyConfig } from "@/lib/programs/types";
 import { buildInsightsData } from "@/lib/analytics/insights-data";
 import type { SurveyQuestion } from "@/components/survey-fields";
 import { fetchPendingPeople, type PendingPerson } from "@/lib/people-hub";
 import { getCourseEngagement, getCourseRosterStats } from "@/lib/course-engagement";
+import { examsForTrack } from "@/lib/exams";
 import { getLaunchReadiness, isInLaunchWindow, type ReadinessCheck } from "@/lib/launch-readiness";
 import { resolveCurrentUnit, resolveTrackPhase, formatCohortDate } from "@/lib/utils";
 import { getEngagementAnalytics, type EngagementAnalytics } from "./actions-analytics";
@@ -106,10 +108,12 @@ export default async function AdminPage({
   // students + studentTracks already in the core batch.
   const effectiveTab = initialTab ?? "home";
   const isTrackTab = program.tracks.some((t) => t.slug === effectiveTab);
-  // Engagement scores only feed the per-track People sub-view now that the
-  // cross-track People tab is gone.
-  const needsEngagement = isTrackTab;
-  const needsSurveyStats = false;
+  // Engagement scores feed the person rows in BOTH the per-track People
+  // sub-view and the cross-track People tab — fetching for only one made the
+  // same learner show an engagement block in one place and nothing in the
+  // other. (The per-course attendance % badge stays course-only: a percentage
+  // across courses with different session counts has no honest denominator.)
+  const needsEngagement = isTrackTab || effectiveTab === "students";
   // Home tab only needs id+role for enrollment-count filtering; tabs that
   // display student details need the full row. Similarly, student_tracks are
   // fetched as full rows only for tabs that manage individual enrollments.
@@ -120,12 +124,8 @@ export default async function AdminPage({
   const needsCohorts = isHomeTab || isTrackTab || effectiveTab === "students";
   const needsLunchLearns = effectiveTab === "lunch-learn";
   const needsInsightsData = effectiveTab === "insights";
-  // Course-scoped survey panel — only on a course's Surveys sub-view, so the
-  // other course views don't pay for the insights queries.
-  const needsTrackInsights = isTrackTab && initialTrackView === "surveys";
   const needsAnalyticsData = effectiveTab === "analytics";
   const needsCoursesData = effectiveTab === "course-progress";
-  void needsSurveyStats; // kept as a named constant for the gated query below
   let allStudents: Pick<Student, "id" | "first_name" | "last_name" | "email" | "role" | "is_staff" | "cohort_id" | "last_seen_at" | "last_activity_at" | "zip" | "state" | "date_of_birth">[] = [];
   let allCohorts: { id: string; name: string; display_name: string | null; track_slug: string | null; start_date: string | null; total_weeks: number | null }[] = [];
   let studentTracks: StudentTrackRow[] = [];
@@ -141,8 +141,6 @@ export default async function AdminPage({
   let publicSurveyStats: PublicSurveyStatsRow[] = [];
   let lunchLearnRecordings: LunchLearnRow[] = [];
   let insightsData: InsightsData | null = null;
-  /** The same Survey Insights panel, narrowed to the open course's roster. */
-  let trackInsightsData: InsightsData | null = null;
   let analyticsData: EngagementAnalytics | null = null;
   let coursesData: CoursesAnalytics | null = null;
   let courseEngagement: CourseEngagementProps | null = null;
@@ -156,7 +154,6 @@ export default async function AdminPage({
   let alumniEnrollments: { track_slug: string; email: string; source: string }[] = [];
   let pendingPeople: PendingPerson[] = [];
   let unviewedAssessments: number | null = null;
-  const surveyStats: Record<string, SurveyStatsRow[]> = {};
   const surveyList = [
     ...Object.values(PLATFORM_AUTH_SURVEYS),
     ...(program.surveys ?? []),
@@ -203,7 +200,7 @@ export default async function AdminPage({
       const allowed = allowedProgramIds(homeProgramId, grants);
       // Only enforce once we actually know where this person belongs — an
       // account with neither a program stamp nor a grant keeps the old
-      // behaviour rather than being locked out of the panel.
+      // behavior rather than being locked out of the panel.
       if (allowed.length > 0 && !allowed.includes(programId)) {
         redirect("/dashboard");
       }
@@ -256,11 +253,8 @@ export default async function AdminPage({
       // always fetched — they're cheap and used as nav metadata everywhere.
       // Survey stats, engagement scores, lunch_learns are skipped on tabs
       // that don't render them.
-      const surveyIds = surveyList.map((s) => s.id);
-
       const [
         coreRes,
-        surveyResponsesRes,
         publicStatsRes,
         engagementRes,
         alumniRes,
@@ -328,14 +322,6 @@ export default async function AdminPage({
               .eq("student_id", userId)
           : Promise.resolve({ data: null as { track_slug: string }[] | null }),
       ]),
-      // Single .in() query replaces N per-survey queries. Bucketed below.
-      needsSurveyStats && surveyIds.length > 0
-        ? svc
-            .from("survey_responses")
-            .select("student_id, survey_type, completed_at")
-            .in("program_id", programIds)
-            .in("survey_type", surveyIds)
-        : Promise.resolve({ data: null as { student_id: string; survey_type: string; completed_at: string | null }[] | null }),
       needsPublicSurveyStats
         ? getPublicSurveyStats().catch((e) => {
             console.error("getPublicSurveyStats failed:", e);
@@ -433,14 +419,6 @@ export default async function AdminPage({
         studentEmails,
       );
     }
-    // Bucket the single survey_responses fetch by survey_type.
-    if (needsSurveyStats) {
-      const allRows = (surveyResponsesRes.data ?? []) as SurveyStatsRow[];
-      for (const s of surveyList) surveyStats[s.id] = [];
-      for (const row of allRows) {
-        (surveyStats[row.survey_type] ??= []).push(row);
-      }
-    }
     publicSurveyStats = publicStatsRes;
 
     alumniEnrollments = (alumniRes.data ?? []) as { track_slug: string; email: string; source: string }[];
@@ -453,7 +431,19 @@ export default async function AdminPage({
       const reflectionRows = (reflectionsRes.data ?? []) as { student_id: string; track_slug: string; week_number: number }[];
       const videoRows = (videoRes.data ?? []) as { user_id: string; track_slug: string; week_number: number }[];
 
-      const maxWeeks = Math.max(...program.tracks.map((t) => t.totalWeeks), 1);
+      // Denominator per LEARNER: units held so far across the courses they're
+      // enrolled in. Scoring everyone against the longest course in the
+      // program made a 6-day Home for the Summer learner with perfect
+      // attendance read 8/25 (6 of Security+'s 19). Audit 2026-08-18, F17.
+      const lengths = await resolveTrackLengths();
+      const heldForStudent = (id: string): number => {
+        let held = 0;
+        for (const st of studentTracks) {
+          if (st.student_id !== id) continue;
+          held += lengths.get(st.track_slug)?.heldUnits ?? 0;
+        }
+        return Math.max(held, 1);
+      };
 
       // Canonical engagement (docs/analytics-plan.md): the four did-the-work
       // signals, each worth up to 25 pts → /100. Video replaces the old tutor
@@ -465,10 +455,11 @@ export default async function AdminPage({
         const ref = new Set(reflectionRows.filter((r) => r.student_id === s.id).map((r) => `${r.track_slug}-${r.week_number}`)).size;
         const vid = new Set(videoRows.filter((r) => r.user_id === s.id).map((r) => `${r.track_slug}-${r.week_number}`)).size;
 
-        const attScore = Math.min((att / maxWeeks) * 25, 25);
-        const subScore = Math.min((sub / maxWeeks) * 25, 25);
-        const refScore = Math.min((ref / maxWeeks) * 25, 25);
-        const vidScore = Math.min((vid / maxWeeks) * 25, 25);
+        const denom = heldForStudent(s.id);
+        const attScore = Math.min((att / denom) * 25, 25);
+        const subScore = Math.min((sub / denom) * 25, 25);
+        const refScore = Math.min((ref / denom) * 25, 25);
+        const vidScore = Math.min((vid / denom) * 25, 25);
 
         engagementScores[s.id] = {
           total: Math.round(attScore + subScore + refScore + vidScore),
@@ -512,17 +503,6 @@ export default async function AdminPage({
       // operational dashboard at /dashboard/insights is scoped separately.
       // Same assembly the PDF export route uses, so screen + PDF never drift.
       insightsData = await buildInsightsData(programIds, aggregatedSlugs);
-    }
-
-    // Course → Surveys gets the same panel, scoped to that course's enrolled
-    // learners. Same builder as the program view and the exports, so the three
-    // can't disagree about what belongs to the course.
-    if (canViewInsights(userRole) && needsTrackInsights) {
-      trackInsightsData = await buildInsightsData(
-        programIds,
-        aggregatedSlugs,
-        effectiveTab,
-      );
     }
 
     // Program-level engagement analytics — scoped to the CURRENT program for
@@ -634,6 +614,9 @@ export default async function AdminPage({
     // Which tracks opt out — the per-track Surveys tab hides these, so a
     // Security+ instructor isn't offered AI Fundamentals surveys.
     skipForTracks: s.skipForTracks,
+    // Which tracks the survey is FOR — those always list it, even at zero
+    // responses, so an admin can watch a fresh survey fill in.
+    appliesToTracks: s.appliesToTracks,
   }));
 
   // Public surveys tied to a track (e.g. network-plus-post → Network+).
@@ -652,6 +635,8 @@ export default async function AdminPage({
   let trackEnrolledCount = 0;
   /** survey id → distinct learners from this course who answered it. */
   let trackSurveyRespondents: Record<string, number> = {};
+  /** This course's practice exams + how many enrolled learners attempted. */
+  let trackExams: { id: string; title: string; attempted: number }[] = [];
 
   if (isSupabaseConfigured()) {
     activeTrack = isTrackTab
@@ -701,6 +686,22 @@ export default async function AdminPage({
         );
       } else {
         trackAnsweredSurveyIds = [];
+      }
+      // Practice exams sit in the same Surveys list as peer rows, so they
+      // carry the same participation shape: distinct enrolled learners with a
+      // submitted attempt.
+      for (const exam of examsForTrack(activeTrack.slug)) {
+        let attempted = 0;
+        if (trackStudentIds.length > 0) {
+          const { data: att } = await createServiceClient()
+            .from("exam_attempts")
+            .select("student_id")
+            .eq("exam_id", exam.id)
+            .not("submitted_at", "is", null)
+            .in("student_id", trackStudentIds);
+          attempted = new Set((att ?? []).map((r) => r.student_id as string)).size;
+        }
+        trackExams.push({ id: exam.id, title: exam.title, attempted });
       }
     }
     const publicSurveyCounts = activeTrackPublicSurveyIds.length > 0
@@ -790,6 +791,34 @@ export default async function AdminPage({
   const hiddenSlugs = await getHiddenTrackSlugs();
   const visibleTracks = ownTracks.filter((t) => !hiddenSlugs.has(t.slug));
 
+  // How many of THIS program's courses are hidden — drives the "every course is
+  // hidden" empty state instead of the "no program selected" picker.
+  //
+  // It canNOT be derived from ownTracks/visibleTracks: getProgram() has ALREADY
+  // dropped hidden courses, so both lists arrive hidden-free and the difference
+  // is always 0 (which is also why the visibleTracks filter above is a no-op).
+  // Re-resolve the program unfiltered instead, and only when there's nothing
+  // left to show, so a normal admin home pays nothing for it.
+  //
+  // Guarded to statically-configured programs: getProgramBySlug falls back to
+  // Catalyst for an unknown slug, so an admin-created org would otherwise be
+  // told every course is hidden and handed Catalyst's count.
+  let hiddenCourseCount = 0;
+  if (
+    visibleTracks.length === 0 &&
+    getEveryProgramConfig().some((p) => p.slug === program.slug)
+  ) {
+    const unfiltered = await getProgramWithOverrides(program.slug);
+    const unfilteredOwn =
+      program.slug === "catalyst"
+        ? unfiltered.tracks.filter((t) => {
+            const home = getHomeProgramForTrack(t.slug);
+            return !home || home.slug === "catalyst";
+          })
+        : unfiltered.tracks;
+    hiddenCourseCount = unfilteredOwn.filter((t) => hiddenSlugs.has(t.slug)).length;
+  }
+
   // A course-scoped grant confines someone to the named courses inside a
   // program they don't otherwise belong to — the same narrowing instructors
   // get from their assignments, just sourced from the grant.
@@ -851,10 +880,10 @@ export default async function AdminPage({
         students={allStudents}
         tracks={tracks}
         launchReadiness={launchReadiness}
+        trackExams={trackExams}
         studentTracks={studentTracks}
         instructorTracks={instructorTracks}
         programSlug={program.slug}
-        surveyStats={surveyStats}
         surveyConfigs={surveyConfigs}
         trackPublicSurveys={trackPublicSurveys}
         trackAnsweredSurveyIds={trackAnsweredSurveyIds}
@@ -871,7 +900,7 @@ export default async function AdminPage({
         lunchLearnRecordings={lunchLearnRecordings}
         insightsData={insightsData}
         switchablePrograms={switchablePrograms}
-        trackInsightsData={trackInsightsData}
+        hiddenCourseCount={hiddenCourseCount}
         analyticsData={analyticsData}
         analyticsCourse={analyticsCourse}
         coursesData={coursesData}

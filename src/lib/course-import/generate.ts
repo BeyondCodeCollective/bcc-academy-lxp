@@ -8,7 +8,12 @@
 // for review before anything is written. Nothing here writes to the database.
 
 import { generateObject } from "ai";
-import { SCHEMA, type CourseDraft } from "./parse";
+import {
+  SCHEMA,
+  draftModelSettings,
+  type CourseDraft,
+  type DraftModelOptions,
+} from "./parse";
 
 // Same gateway routing as the tutor (src/app/api/tutor/route.ts).
 const MODEL = "google/gemini-2.5-flash";
@@ -17,9 +22,11 @@ const SYSTEM = `You design courses for BCC Academy, a learning platform serving 
 
 YOUR JOB — invent these well:
 - A clear course name (and a shortName under 30 chars).
-- A learner-facing description: 2-4 warm, concrete sentences. No marketing hype, no jargon. Never use em dashes.
+- A learner-facing description: 2-4 warm, concrete sentences. No marketing hype, no jargon. Never use em dashes. Write US English, never British spellings — use the American forms: organization, program, enrollment, behavior, color, center, analyze, recognize, -ize endings throughout.
 - 3-6 learning objectives: specific "you'll be able to…" outcomes, not topic labels.
 - One session per unit, each with a specific topic. Topics must build week over week into a real arc: fundamentals first, a capstone or synthesis at the end. sessionTitle/sessionSubtitle introduce session 1.
+- "landing" is the course's public landing page copy: a concrete headline, a one-sentence subhead, an optional eyebrow kicker, and 2-4 body sections (overview, what you'll learn, who it's for). Same voice rules as the description: warm, concrete, no hype, no em dashes. Sections must differ in kind (an overview, a bulleted list of what happens, a short outcome), each 2-3 sentences at most, using "- " bulleted lines wherever the content is really a list — walls of paragraph text are what make a long page unreadable. Never invent prices, partners, or logistics.
+- "application": only when the description says the cohort is application-based or selective — then draft 4-8 fitting questions (motivation, availability, experience level; a consent item if minors are involved). Otherwise wanted=false with empty fields: open signup is the default.
 
 NOT YOUR JOB — never invent logistics:
 - If the description does not state a start date, meeting days/times, instructor, or session length, leave those fields empty (or 0) AND list their names in "missing". A plausible-looking guessed date is worse than a blank.
@@ -28,9 +35,12 @@ NOT YOUR JOB — never invent logistics:
 - unitLabel: "Week" for weekly cohorts, "Day" for multi-day camps, "Session" otherwise.
 - Even when dates are unknown, still return one sessions[] entry per unit with the topic filled in and date/time left empty — the admin fills the schedule during review.`;
 
-export async function generateCourseDraft(description: string): Promise<CourseDraft> {
+export async function generateCourseDraft(
+  description: string,
+  opts?: DraftModelOptions,
+): Promise<CourseDraft> {
   const { object } = await generateObject({
-    model: MODEL,
+    ...draftModelSettings(opts, MODEL),
     schema: SCHEMA,
     system: SYSTEM,
     prompt: `Draft a course from this program description:\n\n${description.slice(0, 20000)}`,

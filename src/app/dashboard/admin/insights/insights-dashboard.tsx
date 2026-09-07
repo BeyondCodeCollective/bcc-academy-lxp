@@ -26,7 +26,7 @@ interface Section {
   schema: SurveyQuestion[] | null;
   responses: BCCSurveyResponse[];
   /** Course scope: these responses are anonymous, so they aren't narrowed to
-   *  the roster. Labelled, not hidden. */
+   *  the roster. Labeled, not hidden. */
   unscopedPublic?: boolean;
 }
 
@@ -263,7 +263,7 @@ export function InsightsDashboard({ sections, programs, scope }: Props) {
 
   const isAgreement = !!activeId && /agreement/i.test(activeId);
   // Every export and drill-down link below appends this. Course scope that the
-  // screen honours but a CSV forgets is worse than no scope at all — the file
+  // screen honors but a CSV forgets is worse than no scope at all — the file
   // looks like this course's data and isn't.
   const scopeParam = scope ? `&trackSlug=${encodeURIComponent(scope.trackSlug)}` : "";
   const cohortParam =
@@ -291,12 +291,14 @@ export function InsightsDashboard({ sections, programs, scope }: Props) {
       <div className="panel p-5 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
           <div className="flex flex-wrap items-end gap-3">
-            <label className="flex flex-col gap-1.5">
+            <label className="flex w-full flex-col gap-1.5 sm:w-auto">
               <span className={microLabel}>Form</span>
+              {/* w-full on phone: a native select sizes to its LONGEST option,
+                 so course-length titles pushed it past the viewport edge. */}
               <select
                 value={activeId ?? ""}
                 onChange={(e) => selectSurvey(e.target.value)}
-                className="min-w-[16rem] rounded-lg border border-rule bg-white px-3 py-2 text-sm font-semibold text-ink focus:border-ink-faint"
+                className="w-full rounded-lg border border-rule bg-white px-3 py-2 text-sm font-semibold text-ink focus:border-ink-faint sm:w-auto sm:min-w-[16rem]"
               >
                 <option value={ALL_FORMS}>All forms</option>
                 {ledger.map((row) => (
@@ -305,12 +307,12 @@ export function InsightsDashboard({ sections, programs, scope }: Props) {
               </select>
             </label>
             {cohortSelectable && (
-              <label className="flex flex-col gap-1.5">
+              <label className="flex w-full flex-col gap-1.5 sm:w-auto">
                 <span className={microLabel}>Cohort</span>
                 <select
                   value={cohortFilter}
                   onChange={(e) => setCohortFilter(e.target.value)}
-                  className="rounded-lg border border-rule bg-white px-3 py-2 text-sm text-ink focus:border-ink-faint"
+                  className="w-full rounded-lg border border-rule bg-white px-3 py-2 text-sm text-ink focus:border-ink-faint sm:w-auto"
                 >
                   <option value="all">All cohorts</option>
                   {surveyCohorts.map((c) => (
@@ -324,9 +326,9 @@ export function InsightsDashboard({ sections, programs, scope }: Props) {
 
         {/* Tiles describe the selection above them, so changing Form or Cohort
            moves these numbers too. */}
-        <div className="mt-5 grid grid-cols-3 gap-3">
+        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
           <StatCard
-            value={scopedCount.toLocaleString()}
+            value={scopedCount}
             label="Responses"
             href={`/api/insights/csv${isAllForms ? "" : `?survey=${encodeURIComponent(activeId ?? "")}${cohortParam}`}`}
             download
@@ -345,7 +347,7 @@ export function InsightsDashboard({ sections, programs, scope }: Props) {
             }
           />
           <StatCard
-            value={(isAllForms ? scopedFormCount : scopedCohortCount).toLocaleString()}
+            value={(isAllForms ? scopedFormCount : scopedCohortCount)}
             label={isAllForms ? "Forms answered" : "Cohorts"}
             href={isAllForms ? "/dashboard/admin/surveys" : undefined}
           />
@@ -434,7 +436,7 @@ export function InsightsDashboard({ sections, programs, scope }: Props) {
               href="/dashboard/admin/agreements"
               className="ml-auto text-sm font-medium text-primary hover:underline"
             >
-              Who has signed &rarr;
+              Participation Agreements &rarr;
             </Link>
           ) : (
             !isAllForms &&

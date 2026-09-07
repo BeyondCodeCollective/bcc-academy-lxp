@@ -1,0 +1,395 @@
+@import "tailwindcss";
+
+@theme {
+  /* BCC Brand — Primary */
+  --color-cobalt: #1D59FF;
+  --color-electric-green: #E5F701;
+  --color-true-black: #000000;
+  --color-off-white: #FFFDF7;
+
+  /* BCC Brand — Secondary */
+  --color-dark-cobalt: #012966;
+  --color-forest-green: #193F0F;
+  --color-orange: #FF4C00;
+  --color-dark-orange: #D32F2F;
+
+  /* BCC Brand — Neutrals */
+  --color-grey-1: #ECECEC;
+  --color-grey-2: #D8D8D8;
+  --color-grey-3: #646464;
+  --color-charcoal: #2F2F2F;
+
+  /* Semantic tokens */
+  --color-text-primary: #000000;
+  --color-text-secondary: #646464;
+
+  /* Typography */
+  --font-display: var(--font-special-gothic), "Special Gothic", "Impact", "Arial Narrow", sans-serif;
+  --font-body: var(--font-gt-standard), "GT Standard", system-ui, sans-serif;
+  --font-mono: var(--font-space-mono), "Space Mono", "JetBrains Mono", ui-monospace, monospace;
+}
+
+/* ─────────────────────────────────────────────────────────
+   THEME: v2 — Fonz Design System (pure)
+   Coral accent, matte charcoal, Bricolage + Jakarta fonts.
+   ───────────────────────────────────────────────────────── */
+.theme-v2 {
+  --color-cobalt: #E54D2E;          /* coral replaces brand-primary */
+  --color-dark-cobalt: #C23E22;     /* deeper coral for pressed/dark */
+  --color-electric-green: #F0613E;  /* brighter coral replaces accent-pop */
+  --color-true-black: #1a1a1a;      /* matte charcoal — never pure black */
+  --color-off-white: #f5f5f7;       /* Apple-ish light bg */
+  --color-charcoal: #1a1a1a;
+  --color-orange: #E54D2E;
+  --color-dark-orange: #C23E22;
+
+  --font-display: var(--font-bricolage), "Bricolage Grotesque", Georgia, serif;
+  --font-body: var(--font-jakarta), "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), "Geist Mono", ui-monospace, monospace;
+
+  background: var(--color-off-white);
+  color: #1a1a1a;
+  font-family: var(--font-body);
+}
+
+/* ─────────────────────────────────────────────────────────
+   THEME: v3 — Hybrid (BCC + Fonz)
+   Keeps cobalt as primary brand; coral for CTAs/accents;
+   matte #1a1a1a instead of pure black; Special Gothic display +
+   Plus Jakarta body for a modernized read.
+   ───────────────────────────────────────────────────────── */
+.theme-v3 {
+  --color-cobalt: #1D59FF;           /* keep BCC brand primary */
+  --color-dark-cobalt: #012966;
+  --color-electric-green: #E54D2E;   /* coral replaces electric-green pop */
+  --color-true-black: #1a1a1a;       /* matte charcoal */
+  --color-off-white: #f5f5f7;
+  --color-charcoal: #1a1a1a;
+  --color-orange: #E54D2E;
+  --color-dark-orange: #C23E22;
+
+  --font-display: var(--font-special-gothic), "Special Gothic", "Impact", sans-serif;
+  --font-body: var(--font-jakarta), "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), "Geist Mono", ui-monospace, monospace;
+
+  background: var(--color-off-white);
+  color: #1a1a1a;
+  font-family: var(--font-body);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display) !important;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: #FFFDF7;
+  color: #000000;
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: var(--color-cobalt);
+  color: #FFFFFF;
+}
+
+/* Smooth scroll offset for anchor links */
+[id] {
+  scroll-margin-top: 80px;
+}
+
+/* Infinite marquee */
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-33.333%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 20s linear infinite;
+}
+
+/* Photo strip scroll */
+@keyframes strip-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-strip {
+  animation: strip-scroll 30s linear infinite;
+}
+
+.animate-strip:hover {
+  animation-play-state: paused;
+}
+
+/* Marquee pause on hover */
+.animate-marquee-wrap:hover .animate-marquee {
+  animation-play-state: paused;
+}
+
+/* Focus-visible — sharp ring, consistent everywhere */
+:focus-visible {
+  outline: 2px solid var(--color-cobalt);
+  outline-offset: 2px;
+}
+
+/* On dark/cobalt backgrounds, use electric green for visibility */
+.bg-true-black :focus-visible,
+.bg-dark-cobalt :focus-visible,
+.bg-cobalt :focus-visible,
+.bg-charcoal :focus-visible {
+  outline-color: #E5F701;
+}
+
+/* Remove default focus outline, only show on keyboard nav */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ─────────────────────────────────────────────────────────
+   v6 — v1 + editorial garnish (no replaced sections)
+   Adds folio, kickers, captions, colophon. v1 components
+   render as-is; only chrome additions are themed.
+   ───────────────────────────────────────────────────────── */
+.theme-v6 {
+  --ink: #000000;
+  --paper: #FFFDF7;
+  --cobalt: #1D59FF;
+  --marker: #E5F701;
+  --muted: #646464;
+}
+
+/* ─────────────────────────────────────────────────────────
+   v5 — BCC + Editorial · merge of v1 and v4
+   Keeps BCC brand colors and interactive components;
+   adopts v4's editorial typography for prose, captions,
+   kickers, drop caps, marker highlights.
+   ───────────────────────────────────────────────────────── */
+.theme-v5 {
+  --ink: #000000;
+  --paper: #FFFDF7;
+  --rule: #000000;
+  --cobalt: #1D59FF;
+  --marker: #E5F701;
+  --muted: #646464;
+
+  /* Body becomes editorial serif; display stays BCC's Special Gothic */
+  --font-body: var(--font-source-serif), "Source Serif 4", Georgia, serif;
+  --font-serif: var(--font-source-serif), "Source Serif 4", Georgia, serif;
+  --font-condensed: var(--font-special-gothic), "Impact", "Arial Narrow", sans-serif;
+  /* keep mono as Space Mono for kickers/labels (matches BCC brand) */
+
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-feature-settings: "kern", "liga", "onum";
+  hanging-punctuation: first last;
+}
+
+/* ─────────────────────────────────────────────────────────
+   v4 — BCC QUARTERLY · editorial broadsheet
+   Rules used only inside `.theme-v4`. Typography-first.
+   ───────────────────────────────────────────────────────── */
+.theme-v4 {
+  --ink: #111111;
+  --paper: #FBFAF6;
+  --rule: #111111;
+  --cobalt: #1D59FF;
+  --marker: #E5F701;
+  --muted: #6B6660;
+
+  --font-serif: var(--font-source-serif), "Source Serif 4", Georgia, "Times New Roman", serif;
+  --font-condensed: var(--font-special-gothic), "Impact", "Arial Narrow", sans-serif;
+  --font-mono: var(--font-space-mono), "Space Mono", ui-monospace, monospace;
+
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-serif);
+  font-feature-settings: "kern", "liga", "onum";
+  hanging-punctuation: first last;
+  text-rendering: optimizeLegibility;
+}
+
+.theme-v4 ::selection { background: var(--marker); color: var(--ink); }
+
+/* Display headlines — condensed, edge-to-edge */
+.v4-headline {
+  font-family: var(--font-condensed);
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  line-height: 0.86;
+  text-transform: uppercase;
+}
+
+/* Editorial body column — measured for readability */
+.v4-prose {
+  font-family: var(--font-serif);
+  font-size: clamp(1.0625rem, 0.95rem + 0.5vw, 1.1875rem);
+  line-height: 1.55;
+  letter-spacing: -0.005em;
+  hyphens: auto;
+}
+.v4-prose p { margin-block: 0.85em; }
+.v4-prose p + p { text-indent: 1.5em; margin-top: 0; }
+.v4-prose em { font-style: italic; }
+.v4-prose a {
+  color: var(--cobalt);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+/* Drop cap — opens any .v4-prose paragraph that has .v4-dropcap on its first letter */
+.v4-dropcap::first-letter {
+  font-family: var(--font-condensed);
+  font-size: 5.6em;
+  line-height: 0.78;
+  float: left;
+  padding: 0.06em 0.12em 0 0;
+  margin: 0.04em 0.08em 0 0;
+  color: var(--cobalt);
+  font-weight: 400;
+}
+
+/* Marker highlight — actual highlighter feel */
+.v4-marker {
+  background: linear-gradient(180deg, transparent 56%, var(--marker) 56%, var(--marker) 92%, transparent 92%);
+  padding: 0 0.06em;
+}
+
+/* Section rule — thin black hairline with bracketed kicker */
+.v4-rule {
+  border: 0;
+  border-top: 1px solid var(--rule);
+  margin: 0;
+}
+
+/* Kicker — small mono label */
+.v4-kicker {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+/* Marginalia — small notes hanging in the margin */
+.v4-margin {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+/* Multi-column body */
+.v4-columns-2 { column-count: 2; column-gap: 2.5rem; column-rule: 1px solid #E6E1D8; }
+.v4-columns-3 { column-count: 3; column-gap: 2rem; column-rule: 1px solid #E6E1D8; }
+@media (max-width: 760px) {
+  .v4-columns-2, .v4-columns-3 { column-count: 1; }
+}
+
+/* Caption — italic serif, hanging hairline */
+.v4-caption {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--ink);
+  border-top: 1px solid var(--rule);
+  padding-top: 0.5rem;
+}
+.v4-caption em {
+  font-family: var(--font-serif);
+  font-style: italic;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 1rem;
+  color: var(--muted);
+  display: block;
+  margin-top: 0.35rem;
+}
+
+/* Folio — page number / dateline at the very top */
+.v4-folio {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+/* Big inline numeral — for stats set as typographic figures */
+.v4-figure-number {
+  font-family: var(--font-condensed);
+  font-weight: 400;
+  font-size: clamp(7rem, 18vw, 18rem);
+  line-height: 0.82;
+  letter-spacing: -0.04em;
+  color: var(--ink);
+  display: block;
+}
+
+/* Reduced motion — respect user preference */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Satisfying button press — universal active state */
+.btn-press {
+  transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.btn-press:active {
+  transform: translateY(1px) !important;
+  box-shadow: none !important;
+}
+
+/* Link underline reveal on hover */
+.link-reveal {
+  position: relative;
+}
+.link-reveal::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background: currentColor;
+  transition: width 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.link-reveal:hover::after {
+  width: 100%;
+}
+
+/* Parallax helper */
+.parallax-container {
+  overflow: hidden;
+  position: relative;
+}
+
+/* Grain texture overlay */
+.grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.06;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}

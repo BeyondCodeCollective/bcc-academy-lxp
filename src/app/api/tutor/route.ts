@@ -7,6 +7,7 @@ import { getLearnerAccess } from "@/lib/auth/active-enrollment";
 import { isStaffEmail } from "@/lib/auth/admins";
 import { computeCurrentWeek, trackHasStarted } from "@/lib/utils";
 import type { TrackConfig, WeekConfig } from "@/lib/programs/types";
+import { buildTutorSystemPrompt, parseTutorRequest } from "@/lib/tutor/prompt";
 
 // Per-student daily ceiling. Low-enough to keep costs sane if usage
 // surges; high-enough that a real student asking real questions won't
@@ -46,9 +47,23 @@ export async function POST(request: Request) {
     );
   }
 
-  const { messages } = (await request.json()) as {
-    messages: { role: string; content: string }[];
-  };
+  // Validated, not cast. The previous `as` told the type checker the body was
+  // well-formed and checked nothing at runtime, so a caller could forge system
+  // turns or post an unbounded history.
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    body = null;
+  }
+  const parsed = parseTutorRequest(body);
+  if (!parsed.ok) {
+    // `reply` as well as `error`: the chat UI renders data.reply and nothing
+    // else, so an error-only body shows the learner a generic "couldn't process
+    // that" instead of the actual reason.
+    return NextResponse.json({ error: parsed.error, reply: parsed.error }, { status: 400 });
+  }
+  const messages = parsed.messages;
 
   const svc = createServiceClient();
 
@@ -111,26 +126,12 @@ export async function POST(request: Request) {
       activeTrack.weeks[0];
   }
 
-  const contextBlock = activeTrack && activeWeek
-    ? [
-        "",
-        "—",
-        `The student is currently in the "${activeTrack.name}" track, Week ${currentWeekNumber ?? activeWeek.week}: "${activeWeek.title}"${activeWeek.subtitle ? ` — ${activeWeek.subtitle}` : ""}.`,
-        activeWeek.description ?? "",
-        activeWeek.objectives?.length
-          ? `This week's objectives:\n${activeWeek.objectives.map((o) => `- ${o}`).join("\n")}`
-          : "",
-        "Lean into this week's material when it helps — but answer earlier questions if they ask.",
-      ]
-        .filter(Boolean)
-        .join("\n")
-    : "";
-
-  const baseSystemPrompt =
-    program.tutorConfig?.systemPrompt ??
-    `You are an AI tutor for ${program.name}. Help students with their coursework.`;
-
-  const systemPrompt = baseSystemPrompt + contextBlock;
+  const systemPrompt = buildTutorSystemPrompt({
+    program,
+    track: activeTrack,
+    week: activeWeek,
+    currentWeekNumber,
+  });
 
   let result;
   try {
@@ -143,10 +144,7 @@ export async function POST(request: Request) {
       // faster and cheaper.
       providerOptions: { google: { thinkingConfig: { thinkingBudget: 0 } } },
       system: systemPrompt,
-      messages: messages.map((m) => ({
-        role: m.role as "user" | "assistant",
-        content: m.content,
-      })),
+      messages,
     });
   } catch (err) {
     // Model call failed (timeout, rate limit, gateway/provider outage). Log it

@@ -67,8 +67,10 @@ export function buildTrail(
     // A survey dashboard renders its own BackLink, and it points somewhere this
     // generic trail can't: the course you came from ("← CompTIA Security+"),
     // not "Surveys". Two trails stacked over one title is one too many, and the
-    // less useful one is this.
+    // less useful one is this. Exam scores likewise carries its own "← Surveys"
+    // BackLink to its owning course.
     if (section === "surveys" && rest.length > 2) return [];
+    if (section === "exams") return [];
     const sectionHref = `/dashboard/admin/${section}`;
     const sectionLabel = ADMIN_SECTION_LABELS[section] ?? humanize(section);
     if (rest.length === 2) return [...out, { label: sectionLabel }];
@@ -119,6 +121,10 @@ export function buildTrail(
   // already marks it active, so a "Home > Overview" trail is noise. Drill-in
   // surfaces use the in-page BackLink instead; trails are for nested routes.
   if (top === "insights" && isAdmin) return [];
+  // Exam pages: learners arrive from the Resources card, so the way back is
+  // Resources, not Home. Standard top-left trail treatment. (/dashboard/exam
+  // has no index route, so there's no "Exam" ancestor to link.)
+  if (top === "exam") return [{ label: "Resources", href: "/dashboard/resources" }, { label: "Exam" }];
   const sectionLabel = SECTION_LABELS[top] ?? humanize(top);
   if (rest.length === 1) return [home, { label: sectionLabel }];
   const sectionHref = `/dashboard/${top}`;

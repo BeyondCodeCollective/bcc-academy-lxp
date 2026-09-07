@@ -6,6 +6,12 @@ import {
   randomEmail,
   removeFromAllowlist,
 } from "./helpers/supabase";
+import { SMOKE_ENV_READY, SMOKE_ENV_REASON } from "./helpers/supabase";
+
+// Without service-role credentials these cannot run at all. Skip rather
+// than fail: a suite that is red for configuration reasons is a suite
+// nobody reads.
+test.skip(!SMOKE_ENV_READY, SMOKE_ENV_REASON);
 
 // Guards the cross-account login bug: a magic link must never silently sign
 // you in as a DIFFERENT account that's already logged in on the browser.

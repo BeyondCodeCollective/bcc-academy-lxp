@@ -1,8 +1,9 @@
 "use server";
 
 import { requireCapability } from "./actions-shared";
-import { getProgram } from "@/lib/programs/server";
+import { getProgram, getProgramWithOverrides } from "@/lib/programs/server";
 import { resolveProgramScope } from "@/lib/programs/scope";
+import { getHiddenTrackSlugs } from "@/lib/programs/hidden";
 import { isEngaged } from "@/lib/analytics/engagement";
 import {
   type RangePreset,
@@ -66,7 +67,7 @@ export type EngagementAnalytics = {
   learners: EngagementLearner[];
   // Tracks in this program, for the Analytics tab's track filter. Slug + display
   // name so the dropdown reads "CompTIA Security+" but filters on the slug.
-  trackOptions: { slug: string; name: string }[];
+  trackOptions: { slug: string; name: string; hidden?: boolean }[];
   /** The course the funnel is scoped to, or null for the whole program. */
   activeCourse: string | null;
 };
@@ -84,10 +85,22 @@ export async function getEngagementAnalytics(
   const program = await getProgram();
   const scope = await resolveProgramScope(program.slug);
   const ids = scope.ids;
-  const trackSlugs = program.tracks.map((t) => t.slug);
+  // Count with the UNFILTERED track list: hiding a course removes it from
+  // navigation and pickers, but its sessions/enrollments must keep counting
+  // (MASS check-ins are real attendance even while MASS is hidden).
+  const allTracks = (await getProgramWithOverrides(program.slug)).tracks;
+  const trackSlugs = allTracks.map((t) => t.slug);
 
-  const trackOptions = program.tracks.map((t) => ({ slug: t.slug, name: t.name }));
-  // Only honour a course filter for a track that's actually in this program.
+  // Label map carries a hidden flag: hidden courses keep COUNTING (their
+  // sessions are real attendance) but never get named on screen — a hidden
+  // course appearing in the Course column reads as a bug.
+  const hidden = await getHiddenTrackSlugs();
+  const trackOptions = allTracks.map((t) => ({
+    slug: t.slug,
+    name: t.name,
+    hidden: hidden.has(t.slug),
+  }));
+  // Only honor a course filter for a track that's actually in this program.
   const activeCourse = trackSlug && trackSlugs.includes(trackSlug) ? trackSlug : null;
   // "Invited" reach narrows to the selected course's allowlist when drilled in.
   const invitedTrackSlugs = activeCourse ? [activeCourse] : trackSlugs;
@@ -115,7 +128,7 @@ export async function getEngagementAnalytics(
     .select("student_id")
     .in("track_slug", trackSlugs);
   const enrolledIds = Array.from(new Set((enrolledRows ?? []).map((r) => r.student_id as string)));
-  const STUDENT_FIELDS = "id, first_name, last_name, email, created_at, last_seen_at, zip, state, date_of_birth";
+  const STUDENT_FIELDS = "id, first_name, last_name, email, created_at, last_seen_at, last_activity_at, zip, state, date_of_birth";
   // Staff (BGC/BCC employees) are not learners — they only see Lunch & Learns,
   // so they must never inflate the activation funnel or the per-learner table.
   const [byProgram, byEnrollment] = await Promise.all([
@@ -136,6 +149,7 @@ export async function getEngagementAnalytics(
     email: string;
     created_at: string | null;
     last_seen_at: string | null;
+    last_activity_at: string | null;
     zip: string | null;
     state: string | null;
     date_of_birth: string | null;
@@ -174,7 +188,7 @@ export async function getEngagementAnalytics(
       svc.from("submissions").select("student_id, track_slug").in("student_id", studentIds),
       // Reflections are a "did the work" signal too — omitting them undercounted
       // engagement and disagreed with the Insights page's definition.
-      svc.from("reflections").select("student_id").in("student_id", studentIds).not("submitted_at", "is", null),
+      svc.from("reflections").select("student_id, track_slug").in("student_id", studentIds).not("submitted_at", "is", null),
       svc.from("survey_responses").select("student_id, survey_type, completed_at").in("student_id", studentIds).not("completed_at", "is", null),
       svc.from("allowed_signup_emails").select("email").in("track_slug", invitedTrackSlugs),
       // Emails of internal QA accounts, so they're subtracted from "Invited"
@@ -239,10 +253,14 @@ export async function getEngagementAnalytics(
   // attendance OR video OR submission OR reflection. Build the per-learner signal
   // sets, then apply the shared predicate so this count means the same thing as
   // every other surface.
-  const watchedSet = new Set(((videoRows.data ?? []) as { user_id: string }[]).map((r) => r.user_id));
-  const attendedSet = new Set(((attendanceRows.data ?? []) as { student_id: string }[]).map((r) => r.student_id));
-  const submittedSet = new Set(((submissionRows.data ?? []) as { student_id: string }[]).map((r) => r.student_id));
-  const reflectedSet = new Set(((reflectionRows.data ?? []) as { student_id: string }[]).map((r) => r.student_id));
+  // Course drill-down: "engaged" means engaged IN THIS COURSE. Without the
+  // filter a Security+ learner who only attended MASS/Sec+ counted as engaged
+  // in the Security+ drill-down (audit 2026-08-18, F13).
+  const inCourse = (track: string | null | undefined) => !activeCourse || track === activeCourse;
+  const watchedSet = new Set(((videoRows.data ?? []) as { user_id: string; track_slug: string | null }[]).filter((r) => inCourse(r.track_slug)).map((r) => r.user_id));
+  const attendedSet = new Set(((attendanceRows.data ?? []) as { student_id: string; track: string | null }[]).filter((r) => inCourse(r.track)).map((r) => r.student_id));
+  const submittedSet = new Set(((submissionRows.data ?? []) as { student_id: string; track_slug: string | null }[]).filter((r) => inCourse(r.track_slug)).map((r) => r.student_id));
+  const reflectedSet = new Set(((reflectionRows.data ?? []) as { student_id: string; track_slug: string | null }[]).filter((r) => inCourse(r.track_slug)).map((r) => r.student_id));
   const engaged = new Set<string>(
     studentIds.filter((id) =>
       isEngaged({
@@ -293,7 +311,9 @@ export async function getEngagementAnalytics(
       dateOfBirth: s.date_of_birth ?? null,
       age: ageFromDob(s.date_of_birth),
       signedUp: s.created_at ? s.created_at.slice(0, 10) : null,
-      lastActive: s.last_seen_at ? s.last_seen_at.slice(0, 10) : null,
+      // Behavior only. last_seen_at is written at signup/login and made a
+      // freshly-enrolled cohort read 100% active in a partner export.
+      lastActive: s.last_activity_at ? s.last_activity_at.slice(0, 10) : null,
       tracks: tracksByStudent.get(s.id) ?? [],
       videosWatched: videosByUser.get(s.id) ?? 0,
       attended: attendanceByUser.get(s.id) ?? 0,
@@ -361,8 +381,8 @@ export async function getEngagementTrends(
 
   // Learners only, matching getEngagementAnalytics' membership (stamped under
   // this program OR enrolled in its tracks) so the two surfaces agree on who
-  // counts.
-  const trackSlugs = program.tracks.map((t) => t.slug);
+  // counts. Unfiltered list — hidden courses still count (see above).
+  const trackSlugs = (await getProgramWithOverrides(program.slug)).tracks.map((t) => t.slug);
   const { data: enrolledRows } = await svc
     .from("student_tracks")
     .select("student_id")

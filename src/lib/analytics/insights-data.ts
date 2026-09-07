@@ -18,7 +18,7 @@ export type InsightsSection = {
   responses: BCCSurveyResponse[];
   /** Course scope only: this survey's responses are anonymous, so they can't be
    *  narrowed to the course roster. Kept (the course declares the survey) and
-   *  labelled rather than dropped. */
+   *  labeled rather than dropped. */
   unscopedPublic?: boolean;
 };
 

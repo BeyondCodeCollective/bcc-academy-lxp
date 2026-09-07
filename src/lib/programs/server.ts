@@ -4,6 +4,7 @@ import { getProgramBySlug, getProgramByDomain, isKnownProgramHost, hasTsConfigSl
 import type { ProgramConfig, TrackConfig, OfficeHour } from "./types";
 import { createServiceClient } from "@/lib/supabase/server";
 import { PREVIEW_COOKIE, LUNCH_LEARN_PREVIEW_SLUG } from "@/lib/auth/preview-mode";
+import { getHiddenTrackSlugs } from "@/lib/programs/hidden";
 
 /**
  * Get the current program config in a server component or server action.
@@ -29,7 +30,14 @@ import { PREVIEW_COOKIE, LUNCH_LEARN_PREVIEW_SLUG } from "@/lib/auth/preview-mod
  */
 export async function getProgram(): Promise<ProgramConfig> {
   const base = await resolveBaseProgram();
-  return applyTrackOverrides(base);
+  const program = await applyTrackOverrides(base);
+  // Hidden courses disappear from EVERY consumer of the current-program
+  // config — learner pages, admin dropdowns, pickers. Surfaces that must see
+  // hidden courses (Manage Courses' restore list) use getProgramWithOverrides,
+  // which stays unfiltered.
+  const hidden = await getHiddenTrackSlugs();
+  if (hidden.size === 0) return program;
+  return { ...program, tracks: program.tracks.filter((t) => !hidden.has(t.slug)) };
 }
 
 /**
@@ -117,7 +125,7 @@ async function resolveBaseProgram(): Promise<ProgramConfig> {
     const resolved = await resolveSlug(cookieSlug);
     if (resolved) return resolved;
     // Stale cookie for an unknown slug — fall through to next resolution step.
-    // Old behaviour was to silently return catalyst; now we try the header and
+    // Old behavior was to silently return catalyst; now we try the header and
     // cookie-slug before domain-fallback, which is more correct.
   }
 
@@ -147,6 +155,7 @@ type TrackOverrideRow = {
   sequential_gating: boolean | null;
   phase: string | null;
   office_hours: OfficeHour[] | null;
+  self_paced: boolean | null;
 };
 
 // ─── Dynamic Program Resolution ──────────────────────────────────────────────
@@ -231,6 +240,9 @@ function buildTrackFromOverride(row: TrackOverrideRow): TrackConfig {
     reflectionsEnabled: row.reflections_enabled ?? true,
     sequentialGating: row.sequential_gating ?? undefined,
     officeHours: (row.office_hours as OfficeHour[] | null) ?? undefined,
+    // Builder courses default to cohort semantics; a self-paced course (e.g.
+    // an instructor-mode track) opts in via track_overrides.self_paced.
+    selfPaced: row.self_paced ?? undefined,
   };
 }
 
@@ -315,7 +327,7 @@ export async function fetchDynamicProgram(slug: string): Promise<ProgramConfig |
     const { data: trackRows } = await svc
       .from("track_overrides")
       .select(
-        "track_slug, name, short_name, description, instructor, start_date, kickoff_time_utc, companion_of, cover_image_url, total_weeks, unit_label, sessions_per_week, last_session_day_offset, session_times, week_summaries, default_reflection_prompts, submissions_enabled, reflections_enabled, sequential_gating",
+        "track_slug, name, short_name, description, instructor, start_date, kickoff_time_utc, companion_of, cover_image_url, total_weeks, unit_label, sessions_per_week, last_session_day_offset, session_times, week_summaries, default_reflection_prompts, submissions_enabled, reflections_enabled, sequential_gating, phase, office_hours, self_paced",
       )
       .eq("program_id", programRow.id);
 
@@ -351,7 +363,7 @@ const fetchOverrides = cache(
       const { data } = await svc
         .from("track_overrides")
         .select(
-          "track_slug, name, short_name, description, instructor, start_date, kickoff_time_utc, companion_of, cover_image_url, total_weeks, unit_label, sessions_per_week, last_session_day_offset, session_times, week_summaries, default_reflection_prompts, submissions_enabled, reflections_enabled, sequential_gating, phase, office_hours",
+          "track_slug, name, short_name, description, instructor, start_date, kickoff_time_utc, companion_of, cover_image_url, total_weeks, unit_label, sessions_per_week, last_session_day_offset, session_times, week_summaries, default_reflection_prompts, submissions_enabled, reflections_enabled, sequential_gating, phase, office_hours, self_paced",
         )
         .eq("program_id", programRow.id);
       const map = new Map<string, TrackOverrideRow>();
@@ -486,6 +498,7 @@ function mergeTrack(
     sequentialGating: override.sequential_gating ?? config.sequentialGating,
     phase: (override.phase as TrackConfig["phase"] | null) ?? config.phase,
     officeHours: override.office_hours ?? config.officeHours,
+    selfPaced: override.self_paced ?? config.selfPaced,
   };
 }
 

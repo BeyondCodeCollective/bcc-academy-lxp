@@ -3,6 +3,11 @@ import { getSessionContext } from "@/lib/auth/session";
 import { isMasterEmail } from "@/lib/auth/admins";
 import { createServiceClient } from "@/lib/supabase/server";
 import { runSentinelChecks, type SentinelFinding } from "@/lib/sentinel/checks";
+import {
+  applyDismissals,
+  getDismissals,
+  type SentinelDismissal,
+} from "@/lib/sentinel/dismissals";
 import { PageHeader } from "@/components/page-header";
 import { FindingsList } from "./findings-list";
 
@@ -20,9 +25,19 @@ export default async function PlatformHealthPage() {
   if (!isMasterEmail(ctx.userEmail)) redirect("/dashboard/admin");
 
   let findings: SentinelFinding[] | null = null;
+  let dismissals: SentinelDismissal[] = [];
+  let hiddenRows = 0;
   let error: string | null = null;
   try {
-    findings = await runSentinelChecks(createServiceClient());
+    const svc = createServiceClient();
+    const [raw, dismissed] = await Promise.all([
+      runSentinelChecks(svc),
+      getDismissals(svc),
+    ]);
+    dismissals = dismissed;
+    const filtered = applyDismissals(raw, dismissed);
+    findings = filtered.visible;
+    hiddenRows = filtered.hiddenRows;
   } catch (err) {
     error = err instanceof Error ? err.message : String(err);
   }
@@ -32,7 +47,7 @@ export default async function PlatformHealthPage() {
       <PageHeader
         eyebrow="Sentinel"
         title="Platform Health"
-        subtitle="Every check is a rule that broke in production once. Run fresh on each load; the nightly brief emails the same findings."
+        subtitle="Every check is a rule that broke in production once. Run fresh on each load; the nightly brief emails the same findings. Dismiss anything you can't fix — it stays hidden here and in the brief, and a new item under the same check still surfaces."
       />
 
       {error && (
@@ -47,11 +62,15 @@ export default async function PlatformHealthPage() {
           <p className="mt-1 text-sm text-ink-faint">
             Every data invariant holds and no upcoming course is missing a roster or
             meeting link.
+            {hiddenRows > 0 &&
+              ` ${hiddenRows} dismissed item${hiddenRows === 1 ? "" : "s"} not shown.`}
           </p>
         </div>
       )}
 
-      {findings && findings.length > 0 && <FindingsList findings={findings} />}
+      {findings && (findings.length > 0 || dismissals.length > 0) && (
+        <FindingsList findings={findings} dismissals={dismissals} />
+      )}
     </div>
   );
 }

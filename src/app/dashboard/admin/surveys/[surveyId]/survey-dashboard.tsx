@@ -16,6 +16,10 @@ interface Props {
   schema: SurveyQuestion[];
   responses: BCCSurveyResponse[];
   programs: { slug: string; name: string }[];
+  /** Set when this page was opened from a course's Surveys panel. The detailed
+   *  report has to carry the same scope, or the PDF comes back program-wide
+   *  while the screen shows one course. */
+  trackSlug?: string;
   /**
    * "standalone" renders the page's own CSV export; "embedded" drops it,
    * because the parent (e.g. the master-detail ledger view) already renders
@@ -37,6 +41,7 @@ export function SurveyDashboard({
   schema,
   responses,
   programs,
+  trackSlug,
   chrome = "standalone",
 }: Props) {
   const [filter, setFilter] = useState<string>("all");
@@ -167,15 +172,36 @@ export function SurveyDashboard({
                 client-side CSV too gave two buttons and leaked internal columns
                 like _cohort_track, so it only renders standalone. */}
             {chrome !== "embedded" && (
-              <button
-                type="button"
-                onClick={downloadCsv}
-                disabled={total === 0}
-                className={buttonClass("secondary", "sm")}
-              >
-                <Download size={13} />
-                CSV
-              </button>
+              <>
+                {/* The formatted question-by-question report — the same route
+                    Survey Insights offers. It lived only there, so from this
+                    page CSV looked like the only export, and a spreadsheet of
+                    forty columns is unreadable on a phone.
+
+                    Hidden while a program filter is active: the report is built
+                    from the admin's CURRENT program scope, so offering it beside
+                    a screen narrowed to a different program would hand out a PDF
+                    that disagrees with what's on screen. */}
+                {filter === "all" && total > 0 && (
+                  <a
+                    href={`/api/insights/pdf?detailed=1&survey=${encodeURIComponent(
+                      surveyId,
+                    )}${trackSlug ? `&trackSlug=${encodeURIComponent(trackSlug)}` : ""}`}
+                    className={buttonClass("primary", "sm")}
+                  >
+                    Detailed report ↓
+                  </a>
+                )}
+                <button
+                  type="button"
+                  onClick={downloadCsv}
+                  disabled={total === 0}
+                  className={buttonClass("secondary", "sm")}
+                >
+                  <Download size={13} />
+                  CSV
+                </button>
+              </>
             )}
           </>
         }

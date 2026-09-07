@@ -30,5 +30,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "gsd-2"]
+  "exclude": ["node_modules", "gsd-2", "archive"]
 }

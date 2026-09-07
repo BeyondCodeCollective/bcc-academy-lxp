@@ -7,6 +7,8 @@ import { revalidatePath } from "next/cache";
 import { hasCapability } from "@/lib/roles";
 import { getProgramBySlug, getHomeProgramForTrack } from "@/lib/programs";
 import { toSlug } from "@/lib/programs/slug";
+import { easternToUtc } from "@/lib/utils";
+import { ensureLandingForCourse } from "@/lib/landing-pages";
 
 // Bust every cached surface that lists or renders course metadata so edits made
 // in Manage Courses (rename, hide/show, create) show up immediately. Without
@@ -40,7 +42,15 @@ async function requireSuperAdmin() {
 }
 
 export type CreateCourseResult =
-  | { success: true; slug: string; joinUrl: string }
+  | {
+      success: true;
+      slug: string;
+      joinUrl: string;
+      /** Landing page paired with the course; null only if creating it failed. */
+      landingSlug: string | null;
+      /** False when a page already existed at that slug or for that course. */
+      landingCreated: boolean;
+    }
   | { success: false; error: string };
 
 // Programs a builder course can be filed under. Catalyst, ATG, and Beyond
@@ -129,13 +139,22 @@ export async function createCourseAction(formData: {
     return { success: false, error: "Failed to create course. Please try again." };
   }
 
+  // The pair is the unit: a cohort with no landing page has no way for anyone
+  // to sign up for it, and saving a landing page has created its course since
+  // #1029. This closes the other direction so the two can't be made apart.
+  const landing = await ensureLandingForCourse(svc, slug, name.trim(), programSlug);
+
   revalidateCourseSurfaces(slug);
+  if (landing.created) revalidatePath("/dashboard/admin/landing");
   return {
     success: true,
     slug,
     joinUrl: `https://bccacademy.io/join/${programSlug}?track=${slug}`,
+    landingSlug: landing.slug,
+    landingCreated: landing.created,
   };
 }
+
 
 // Hide / show a course. Reversible, never deletes. Backed by hidden_courses,
 // keyed by (program_slug, track_slug) so it works for BOTH hardcoded TS-config
@@ -488,12 +507,27 @@ export async function applyWeeklyScheduleAction(
     .flatMap((e) => ("date" in e && e.date ? [e.date] : []))
     .sort()[0] ?? firstDate;
 
+  // The machine-readable twin of `session_times`. The label above is prose for
+  // a human; the countdown, the .ics feed and add-to-calendar need an absolute
+  // instant, and until now this action wrote only the prose — so a course could
+  // show "Saturdays 12:00 PM ET" in its header while Launch Readiness correctly
+  // reported no kickoff time and calendar entries fell back to date-only.
+  // Derived from whichever unit owns `earliestDate` (a labeled extra can come
+  // first and carry its own time). No time on that unit means we genuinely
+  // don't know: leave the column alone rather than guess.
+  const earliestEntry = stamped.find((e) => "date" in e && e.date === earliestDate);
+  const kickoffTime =
+    earliestEntry && "time" in earliestEntry ? earliestEntry.time : undefined;
+
   const { error } = await svc
     .from("track_overrides")
     .update({
       start_date: earliestDate,
       week_summaries: stamped,
       session_times: [label],
+      ...(kickoffTime
+        ? { kickoff_time_utc: easternToUtc(earliestDate, kickoffTime) }
+        : {}),
     })
     .eq("program_id", programRow.id)
     .eq("track_slug", trackSlug);

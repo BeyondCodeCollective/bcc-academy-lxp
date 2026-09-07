@@ -1,0 +1,56 @@
+name: AI evals
+
+# Golden-set evals for the AI surfaces. Separate from ci.yml on purpose: these
+# make real gateway calls, so they cost money and need credentials.
+#
+# REPORTING ONLY, not a gate — deliberately. This account's AI Gateway is on the
+# free tier and cannot sustain a full run (the tutor suite alone is 24 calls),
+# so the suite has not yet completed a clean baseline. Rate-limited cases skip
+# rather than fail, so a green run here does not yet prove much. Make this a
+# required check once paid credits are enabled and a full run is green.
+
+on:
+  # Only when something that can change model output actually changes.
+  pull_request:
+    paths:
+      - "src/lib/course-import/**"
+      - "src/lib/tutor/**"
+      - "src/lib/programs/*.ts"
+      - "evals/**"
+  workflow_dispatch:
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Never fails the PR. Read the summary instead.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run evals
+        env:
+          # Without this the suites skip with a clear reason rather than failing.
+          AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY }}
+        run: pnpm eval
+
+      - name: Upload scorecard
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-scorecard
+          path: evals/last-run.json
+          retention-days: 14
+          if-no-files-found: ignore

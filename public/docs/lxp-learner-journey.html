@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BCC Academy learner journey</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:  #f5f5f7;
+      --color-ink:    #1a1a1a;
+      --color-muted:  #55555c;
+      --color-accent: #1D59FF;
+      --font-sans:  'Geist', system-ui, sans-serif;
+      --font-serif: 'Instrument Serif', serif;
+      --font-mono:  'Geist Mono', ui-monospace, monospace;
+    }
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 3rem 2rem;
+    }
+    .frame { max-width: 1000px; width: 100%; }
+    .eyebrow {
+      font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500;
+      letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink);
+      margin-bottom: 1.5rem;
+    }
+    svg { width: 100%; min-width: 760px; display: block; }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Beyond Code Collective Academy · Learner journey</p>
+    <h1>From hearing about a cohort to holding a credential</h1>
+
+    <svg viewBox="0 0 1000 864" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="lxp-journey-title lxp-journey-desc">
+      <title id="lxp-journey-title">BCC Academy learner journey</title>
+      <desc id="lxp-journey-desc">Flowchart of the learner experience on the platform: one-link signup, an emailed one-click link with a staff nudge loop for anyone who has not tapped it, automatic enrollment, live sessions with synced attendance, a same-day credential, and the impact survey and partner dashboard at the end.</desc>
+      <defs>
+        <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#55555c"/></marker>
+        <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#1D59FF"/></marker>
+        <marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#1D59FF"/></marker>
+      </defs>
+
+      <rect width="100%" height="100%" fill="#f5f5f7"/>
+
+      <!-- ── Arrows first ── -->
+      <!-- Start → Signup -->
+      <line x1="400" y1="96" x2="400" y2="128" stroke="#55555c" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <!-- Signup → Link emailed -->
+      <line x1="400" y1="200" x2="400" y2="232" stroke="#55555c" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <!-- Link emailed → Decision -->
+      <line x1="400" y1="304" x2="400" y2="336" stroke="#55555c" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <!-- Decision NO → Nudge (right) -->
+      <line x1="520" y1="384" x2="640" y2="384" stroke="#55555c" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="564" y="364" width="32" height="12" rx="2" fill="#f5f5f7"/>
+      <text x="580" y="373" fill="#55555c" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">NO</text>
+      <!-- Nudge → back into Link emailed (loop), dashed = return -->
+      <path d="M780,348 V276 Q780,268 772,268 H560" fill="none" stroke="#55555c" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+      <rect x="636" y="248" width="72" height="12" rx="2" fill="#f5f5f7"/>
+      <text x="672" y="257" fill="#55555c" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">SAME LINK</text>
+      <!-- Decision YES → Enrolled (accent: the moment friction ends) -->
+      <line x1="400" y1="432" x2="400" y2="464" stroke="#1D59FF" stroke-width="1.2" marker-end="url(#arrow-accent)"/>
+      <rect x="412" y="442" width="32" height="12" rx="2" fill="#f5f5f7"/>
+      <text x="428" y="451" fill="#1D59FF" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">YES</text>
+      <!-- Enrolled → Sessions -->
+      <line x1="400" y1="536" x2="400" y2="568" stroke="#55555c" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <!-- Sessions → Credential -->
+      <line x1="400" y1="640" x2="400" y2="672" stroke="#55555c" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <!-- Credential → End -->
+      <line x1="400" y1="744" x2="400" y2="776" stroke="#55555c" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+      <!-- ── Nodes ── -->
+      <!-- Start (oval) -->
+      <rect x="240" y="40" width="320" height="56" rx="20" fill="#f5f5f7"/>
+      <rect x="240" y="40" width="320" height="56" rx="20" fill="rgba(85,85,92,0.10)" stroke="#8a8a92" stroke-width="1"/>
+      <text x="400" y="73" fill="#1a1a1a" font-size="16" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">A resident hears about a cohort</text>
+
+      <!-- Signup -->
+      <rect x="240" y="128" width="320" height="72" rx="6" fill="#f5f5f7"/>
+      <rect x="240" y="128" width="320" height="72" rx="6" fill="#ffffff" stroke="#1a1a1a" stroke-width="1"/>
+      <text x="400" y="158" fill="#1a1a1a" font-size="16" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">One link, one tap</text>
+      <text x="400" y="180" fill="#55555c" font-size="12" font-family="'Geist', sans-serif" text-anchor="middle">Landing page: name, email, cohort date. No application.</text>
+
+      <!-- Link emailed -->
+      <rect x="240" y="232" width="320" height="72" rx="6" fill="#f5f5f7"/>
+      <rect x="240" y="232" width="320" height="72" rx="6" fill="#ffffff" stroke="#1a1a1a" stroke-width="1"/>
+      <text x="400" y="262" fill="#1a1a1a" font-size="16" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">One-click link emailed instantly</text>
+      <text x="400" y="284" fill="#55555c" font-size="12" font-family="'Geist', sans-serif" text-anchor="middle">Seat is held the moment they sign up</text>
+
+      <!-- Decision diamond -->
+      <polygon points="400,336 520,384 400,432 280,384" fill="#f5f5f7"/>
+      <polygon points="400,336 520,384 400,432 280,384" fill="#ffffff" stroke="#1a1a1a" stroke-width="1"/>
+      <text x="400" y="380" fill="#1a1a1a" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Tapped the</text>
+      <text x="400" y="396" fill="#1a1a1a" font-size="12" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">link?</text>
+
+      <!-- Nudge (staff side) -->
+      <rect x="640" y="348" width="280" height="72" rx="6" fill="#f5f5f7"/>
+      <rect x="640" y="348" width="280" height="72" rx="6" fill="rgba(26,26,26,0.05)" stroke="#55555c" stroke-width="1"/>
+      <rect x="648" y="354" width="40" height="12" rx="2" fill="transparent" stroke="rgba(85,85,92,0.40)" stroke-width="0.8"/>
+      <text x="668" y="363" fill="rgba(85,85,92,0.8)" font-size="7" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.08em">STAFF</text>
+      <text x="780" y="386" fill="#1a1a1a" font-size="16" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Staff nudge by text or DM</text>
+      <text x="780" y="406" fill="#55555c" font-size="12" font-family="'Geist', sans-serif" text-anchor="middle">Signups screen lists who's waiting, link ready</text>
+
+      <!-- Enrolled (focal) -->
+      <rect x="240" y="464" width="320" height="72" rx="6" fill="#f5f5f7"/>
+      <rect x="240" y="464" width="320" height="72" rx="6" fill="rgba(29,89,255,0.08)" stroke="#1D59FF" stroke-width="1"/>
+      <text x="400" y="494" fill="#1a1a1a" font-size="16" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Signed in, enrolled, seat confirmed</text>
+      <text x="400" y="516" fill="#55555c" font-size="12" font-family="'Geist', sans-serif" text-anchor="middle">Account created on the tap; countdown until day one</text>
+
+      <!-- Sessions -->
+      <rect x="240" y="568" width="320" height="72" rx="6" fill="#f5f5f7"/>
+      <rect x="240" y="568" width="320" height="72" rx="6" fill="#ffffff" stroke="#1a1a1a" stroke-width="1"/>
+      <text x="400" y="598" fill="#1a1a1a" font-size="16" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Live sessions inside the portal</text>
+      <text x="400" y="620" fill="#55555c" font-size="12" font-family="'Geist', sans-serif" text-anchor="middle">Zoom attendance synced; recordings and practice exams</text>
+
+      <!-- Credential -->
+      <rect x="240" y="672" width="320" height="72" rx="6" fill="#f5f5f7"/>
+      <rect x="240" y="672" width="320" height="72" rx="6" fill="#ffffff" stroke="#1a1a1a" stroke-width="1"/>
+      <text x="400" y="702" fill="#1a1a1a" font-size="16" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Credential issued the day of completion</text>
+      <text x="400" y="724" fill="#55555c" font-size="12" font-family="'Geist', sans-serif" text-anchor="middle">Verifiable, portable to an employer</text>
+
+      <!-- End (oval) -->
+      <rect x="240" y="776" width="320" height="56" rx="20" fill="#f5f5f7"/>
+      <rect x="240" y="776" width="320" height="56" rx="20" fill="rgba(85,85,92,0.10)" stroke="#8a8a92" stroke-width="1"/>
+      <text x="400" y="801" fill="#1a1a1a" font-size="16" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Impact survey; partner dashboard</text>
+      <text x="400" y="819" fill="#55555c" font-size="12" font-family="'Geist', sans-serif" text-anchor="middle">Placement and wage outcomes added at follow-up</text>
+    </svg>
+  </div>
+</body>
+</html>

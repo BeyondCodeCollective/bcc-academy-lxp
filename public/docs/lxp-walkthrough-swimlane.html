@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>From a LinkedIn post to a certificate</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:  #f5f5f7;
+      --color-ink:    #1a1a1a;
+      --color-muted:  #55555c;
+      --color-accent: #1D59FF;
+      --font-sans:  'Geist', system-ui, sans-serif;
+      --font-serif: 'Instrument Serif', serif;
+      --font-mono:  'Geist Mono', ui-monospace, monospace;
+    }
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 3rem 2rem;
+    }
+    .frame { max-width: 1280px; width: 100%; }
+    .eyebrow {
+      font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500;
+      letter-spacing: 0.18em; text-transform: uppercase; color: var(--color-muted);
+      margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 400; letter-spacing: -0.02em; line-height: 1.15; color: var(--color-ink);
+      margin-bottom: 1.5rem;
+    }
+    svg { width: 100%; min-width: 900px; display: block; }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Beyond Code Collective Academy · Swimlane</p>
+    <h1>From a LinkedIn post to a certificate, and who does what</h1>
+
+    <svg viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="lxp-swim-title lxp-swim-desc">
+      <title id="lxp-swim-title">From a LinkedIn post to a certificate</title>
+      <desc id="lxp-swim-desc">Swimlane showing the learner, the platform, and staff across five stages: the learner fills four fields, the platform emails a one-click link and holds a seat, staff nudge anyone who has not tapped, the tap signs them in and enrolls them, live sessions run in the portal with attendance synced from Zoom, staff issue certificates from the eligibility list, and the platform emails a public certificate link the learner can share the same day.</desc>
+      <defs>
+        <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#55555c"/></marker>
+        <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#1D59FF"/></marker>
+        <marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#1D59FF"/></marker>
+      </defs>
+
+      <rect width="100%" height="100%" fill="#f5f5f7"/>
+
+      <!-- Stage eyebrows -->
+      <text x="232" y="104" fill="#55555c" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.18em">THE POST</text>
+      <text x="440" y="104" fill="#55555c" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.18em">THE EMAIL</text>
+      <text x="648" y="104" fill="#55555c" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.18em">FIRST SIGN-IN</text>
+      <text x="856" y="104" fill="#55555c" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.18em">THE PROGRAM</text>
+      <text x="1064" y="104" fill="#1D59FF" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.18em">THE CREDENTIAL</text>
+
+      <!-- Lanes (painted first) -->
+      <rect x="112" y="120" width="1064" height="180" fill="#ffffff" opacity="0.5"/>
+      <rect x="112" y="480" width="1064" height="180" fill="#ffffff" opacity="0.5"/>
+      <line x1="112" y1="120" x2="1176" y2="120" stroke="rgba(26,26,26,0.12)" stroke-width="1"/>
+      <line x1="112" y1="300" x2="1176" y2="300" stroke="rgba(26,26,26,0.12)" stroke-width="1"/>
+      <line x1="112" y1="480" x2="1176" y2="480" stroke="rgba(26,26,26,0.12)" stroke-width="1"/>
+      <line x1="112" y1="660" x2="1176" y2="660" stroke="rgba(26,26,26,0.12)" stroke-width="1"/>
+      <text x="24" y="214" fill="#55555c" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.18em">LEARNER</text>
+      <text x="24" y="394" fill="#55555c" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.18em">PLATFORM</text>
+      <text x="24" y="574" fill="#55555c" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.18em">STAFF</text>
+
+      <!-- ── Arrows first ── -->
+      <!-- 1. Sees the post → Link emailed -->
+      <path d="M320,210 H328 Q336,210 336,218 V382 Q336,390 344,390 H352" fill="none" stroke="#55555c" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <!-- 2. Link emailed → Taps the link (attach 374 on P1's right edge) -->
+      <path d="M528,374 H536 Q544,374 544,366 V218 Q544,210 552,210 H560" fill="none" stroke="#55555c" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <!-- 3. Link emailed → Staff nudge, only if no tap (attach 406; dashed) -->
+      <path d="M528,406 H536 Q544,406 544,414 V562 Q544,570 552,570 H560" fill="none" stroke="#55555c" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+      <rect x="552" y="462" width="56" height="12" rx="2" fill="#f5f5f7"/>
+      <text x="580" y="471" fill="#55555c" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">NO TAP</text>
+      <!-- 4. Staff nudge → Taps the link (dashed, straight up through the empty platform cell) -->
+      <line x1="648" y1="522" x2="648" y2="258" stroke="#55555c" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+      <rect x="656" y="384" width="72" height="12" rx="2" fill="#f5f5f7"/>
+      <text x="692" y="393" fill="#55555c" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">SAME LINK</text>
+      <!-- 5. Taps the link → Live sessions -->
+      <line x1="736" y1="210" x2="768" y2="210" stroke="#55555c" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <!-- 6. Live sessions → Attendance synced -->
+      <line x1="856" y1="258" x2="856" y2="342" stroke="#55555c" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <!-- 7. Attendance synced → Issues certificates -->
+      <path d="M944,390 H952 Q960,390 960,398 V562 Q960,570 968,570 H976" fill="none" stroke="#55555c" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <rect x="968" y="472" width="72" height="12" rx="2" fill="#f5f5f7"/>
+      <text x="1004" y="481" fill="#55555c" font-size="8" font-family="'Geist Mono', monospace" text-anchor="middle" letter-spacing="0.06em">ELIGIBLE</text>
+      <!-- 8. Issues certificates → Certificate emailed -->
+      <line x1="1064" y1="522" x2="1064" y2="438" stroke="#55555c" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <!-- 9. Certificate emailed → Shares it (accent) -->
+      <line x1="1064" y1="342" x2="1064" y2="258" stroke="#1D59FF" stroke-width="1.2" marker-end="url(#arrow-accent)"/>
+
+      <!-- ── Nodes ── -->
+      <!-- L1 Sees the post -->
+      <rect x="144" y="162" width="176" height="96" rx="6" fill="#f5f5f7"/>
+      <rect x="144" y="162" width="176" height="96" rx="6" fill="rgba(85,85,92,0.10)" stroke="#8a8a92" stroke-width="1"/>
+      <text x="232" y="202" fill="#1a1a1a" font-size="16" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Sees the post</text>
+      <text x="232" y="224" fill="#55555c" font-size="12" font-family="'Geist', sans-serif" text-anchor="middle">Taps one link, fills</text>
+      <text x="232" y="240" fill="#55555c" font-size="12" font-family="'Geist', sans-serif" text-anchor="middle">name, email, zip, date</text>
+
+      <!-- P1 Link emailed -->
+      <rect x="352" y="342" width="176" height="96" rx="6" fill="#f5f5f7"/>
+      <rect x="352" y="342" width="176" height="96" rx="6" fill="#ffffff" stroke="#1a1a1a" stroke-width="1"/>
+      <text x="440" y="382" fill="#1a1a1a" font-size="16" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Link emailed</text>
+      <text x="440" y="404" fill="#55555c" font-size="12" font-family="'Geist', sans-serif" text-anchor="middle">Instantly; seat held,</text>
+      <text x="440" y="420" fill="#55555c" font-size="12" font-family="'Geist', sans-serif" text-anchor="middle">listed as Waiting</text>
+
+      <!-- S1 Staff nudge -->
+      <rect x="560" y="522" width="176" height="96" rx="6" fill="#f5f5f7"/>
+      <rect x="560" y="522" width="176" height="96" rx="6" fill="rgba(26,26,26,0.02)" stroke="rgba(26,26,26,0.30)" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="648" y="562" fill="#1a1a1a" font-size="16" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Staff nudge</text>
+      <text x="648" y="584" fill="#55555c" font-size="12" font-family="'Geist', sans-serif" text-anchor="middle">Text or DM, same link,</text>
+      <text x="648" y="600" fill="#55555c" font-size="12" font-family="'Geist', sans-serif" text-anchor="middle">copied from Signups</text>
+
+      <!-- L2 Taps the link -->
+      <rect x="560" y="162" width="176" height="96" rx="6" fill="#f5f5f7"/>
+      <rect x="560" y="162" width="176" height="96" rx="6" fill="#ffffff" stroke="#1a1a1a" stroke-width="1"/>
+      <text x="648" y="202" fill="#1a1a1a" font-size="16" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Taps the link</text>
+      <text x="648" y="224" fill="#55555c" font-size="12" font-family="'Geist', sans-serif" text-anchor="middle">Signed in, enrolled,</text>
+      <text x="648" y="240" fill="#55555c" font-size="12" font-family="'Geist', sans-serif" text-anchor="middle">countdown to day one</text>
+
+      <!-- L3 Live sessions -->
+      <rect x="768" y="162" width="176" height="96" rx="6" fill="#f5f5f7"/>
+      <rect x="768" y="162" width="176" height="96" rx="6" fill="#ffffff" stroke="#1a1a1a" stroke-width="1"/>
+      <text x="856" y="202" fill="#1a1a1a" font-size="16" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Live sessions</text>
+      <text x="856" y="224" fill="#55555c" font-size="12" font-family="'Geist', sans-serif" text-anchor="middle">Zoom in the portal,</text>
+      <text x="856" y="240" fill="#55555c" font-size="12" font-family="'Geist', sans-serif" text-anchor="middle">recordings, practice</text>
+
+      <!-- P3 Attendance synced -->
+      <rect x="768" y="342" width="176" height="96" rx="6" fill="#f5f5f7"/>
+      <rect x="768" y="342" width="176" height="96" rx="6" fill="#ffffff" stroke="#1a1a1a" stroke-width="1"/>
+      <text x="856" y="382" fill="#1a1a1a" font-size="16" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Attendance synced</text>
+      <text x="856" y="404" fill="#55555c" font-size="12" font-family="'Geist', sans-serif" text-anchor="middle">Pulled from Zoom,</text>
+      <text x="856" y="420" fill="#55555c" font-size="12" font-family="'Geist', sans-serif" text-anchor="middle">no roll call</text>
+
+      <!-- S2 Issues certificates -->
+      <rect x="976" y="522" width="176" height="96" rx="6" fill="#f5f5f7"/>
+      <rect x="976" y="522" width="176" height="96" rx="6" fill="rgba(26,26,26,0.05)" stroke="#55555c" stroke-width="1"/>
+      <text x="1064" y="562" fill="#1a1a1a" font-size="16" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Issues certificates</text>
+      <text x="1064" y="584" fill="#55555c" font-size="12" font-family="'Geist', sans-serif" text-anchor="middle">From the eligibility</text>
+      <text x="1064" y="600" fill="#55555c" font-size="12" font-family="'Geist', sans-serif" text-anchor="middle">list, whole cohort</text>
+
+      <!-- P4 Certificate emailed (focal) -->
+      <rect x="976" y="342" width="176" height="96" rx="6" fill="#f5f5f7"/>
+      <rect x="976" y="342" width="176" height="96" rx="6" fill="rgba(29,89,255,0.08)" stroke="#1D59FF" stroke-width="1"/>
+      <text x="1064" y="382" fill="#1a1a1a" font-size="16" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Certificate emailed</text>
+      <text x="1064" y="404" fill="#55555c" font-size="12" font-family="'Geist', sans-serif" text-anchor="middle">Same day; public link,</text>
+      <text x="1064" y="420" fill="#55555c" font-size="12" font-family="'Geist', sans-serif" text-anchor="middle">printable, no login</text>
+
+      <!-- L4 Shares it -->
+      <rect x="976" y="162" width="176" height="96" rx="20" fill="#f5f5f7"/>
+      <rect x="976" y="162" width="176" height="96" rx="20" fill="rgba(85,85,92,0.10)" stroke="#8a8a92" stroke-width="1"/>
+      <text x="1064" y="202" fill="#1a1a1a" font-size="16" font-weight="600" font-family="'Geist', sans-serif" text-anchor="middle">Shares it</text>
+      <text x="1064" y="224" fill="#55555c" font-size="12" font-family="'Geist', sans-serif" text-anchor="middle">Employer or LinkedIn,</text>
+      <text x="1064" y="240" fill="#55555c" font-size="12" font-family="'Geist', sans-serif" text-anchor="middle">the same day</text>
+
+      <!-- Legend strip -->
+      <line x1="32" y1="684" x2="1248" y2="684" stroke="rgba(26,26,26,0.10)" stroke-width="0.8"/>
+      <text x="32" y="704" fill="#55555c" font-size="8" font-family="'Geist Mono', monospace" letter-spacing="0.14em">LEGEND</text>
+      <line x1="112" y1="700" x2="144" y2="700" stroke="#55555c" stroke-width="1.2" marker-end="url(#arrow)"/>
+      <text x="152" y="704" fill="#55555c" font-size="12" font-family="'Geist', sans-serif">Flow</text>
+      <line x1="320" y1="700" x2="352" y2="700" stroke="#55555c" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+      <text x="360" y="704" fill="#55555c" font-size="12" font-family="'Geist', sans-serif">Only if they have not tapped yet</text>
+      <rect x="592" y="692" width="24" height="16" rx="4" fill="rgba(29,89,255,0.08)" stroke="#1D59FF" stroke-width="1"/>
+      <text x="624" y="704" fill="#55555c" font-size="12" font-family="'Geist', sans-serif">The credential</text>
+      <rect x="768" y="692" width="24" height="16" rx="4" fill="rgba(26,26,26,0.05)" stroke="#55555c" stroke-width="1"/>
+      <text x="800" y="704" fill="#55555c" font-size="12" font-family="'Geist', sans-serif">Staff touch (two in total, one optional)</text>
+    </svg>
+  </div>
+</body>
+</html>

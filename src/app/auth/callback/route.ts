@@ -9,7 +9,7 @@ import { getProgramBySlug, getHomeProgramForTrack, getTrackBySlug, isKnownProgra
 import { safeNextPath } from "@/lib/auth/next-path";
 import { courseLandingPath, primaryTrack } from "@/lib/enrollment";
 import { completePendingSetup } from "@/lib/auth/deferred-setup";
-import { determineRole, isPrivilegedEmail, isStaffEmail } from "@/lib/auth/admins";
+import { determineRole, isPrivilegedEmail, isStaffEmail, staffHomeProgramSlug } from "@/lib/auth/admins";
 import { resolveIsStaff } from "@/lib/auth/staff";
 import { subscribeToNewsletter } from "@/lib/mailchimp";
 import { sendStaffAccountNotification } from "@/lib/email";
@@ -113,6 +113,11 @@ export async function GET(request: Request) {
     : null;
   let trackParam = searchParams.get("track");
   let joinSlug = searchParams.get("join");
+  // Code-entry sign-in: verifyLoginCode already verified the 6-digit OTP and
+  // set the session cookies server-side, then sent the browser here with
+  // session=1 so this route runs its usual enrollment + routing on the
+  // now-authenticated session. No token in the URL by design.
+  const sessionMode = searchParams.get("session") === "1";
   const nextParam = searchParams.get("next");
   // Preserve a safe destination across failure redirects to /login: the login
   // form reads ?next=, so a student who has to manually re-request a sign-in
@@ -124,7 +129,7 @@ export async function GET(request: Request) {
   // falling back to a DIFFERENT account already signed in on this browser.
   const intendedEmail = searchParams.get("email")?.toLowerCase() ?? null;
 
-  if (code || token_hash) {
+  if (code || token_hash || sessionMode) {
     const cookieStore = await cookies();
 
     if (!joinSlug) {
@@ -215,6 +220,12 @@ export async function GET(request: Request) {
       const { data, error } = await supabase.auth.verifyOtp({ token_hash, type });
       if (error) { if (!(await fallbackToExisting())) authError = error; }
       else { authResult = data; }
+    } else if (sessionMode) {
+      // The session was established by verifyLoginCode; fallbackToExisting
+      // reads it and enforces the same wrong-account guard as the link path.
+      if (!(await fallbackToExisting())) {
+        authError = new Error("No session found after code sign-in.");
+      }
     }
 
     const user = authResult?.user ?? null;
@@ -373,7 +384,11 @@ export async function GET(request: Request) {
             ? "catalyst"
             : (joinSlug && joinSlug !== "marketing")
               ? joinSlug
-              : singleNonCatalystHome;
+              : // Staff with no join link and no allowlist entry fall to their
+                // own org, by email domain, instead of defaulting into Catalyst
+                // (or, with nothing resolved at all, bouncing to
+                // /login?status=not-enrolled).
+                singleNonCatalystHome ?? staffHomeProgramSlug(email);
         } else {
           // Honor an explicit join slug over the stored program so a student
           // coming through /join/forte (or via the allowlist which sets the
@@ -463,11 +478,11 @@ export async function GET(request: Request) {
         // generic dashboard setup screen (or their single course).
         const safeNext = nextDestination;
 
-        // Enrol BEFORE honouring `next`. This used to live inside the
+        // Enroll BEFORE honoring `next`. This used to live inside the
         // `!safeNext` branch below, so any emailed link carrying a `next` —
         // including the per-learner sign-in links minted by
         // scripts/make-track-signin-links.mjs — created the students row and
-        // then skipped enrolment entirely. The learner signed in fine and
+        // then skipped enrollment entirely. The learner signed in fine and
         // found no course, which is indistinguishable from "the platform is
         // broken" (it stranded two Wisdom Leaders learners on 2026-07-19).
         // completePendingSetup is idempotent and unions trackParam with every
@@ -517,7 +532,7 @@ export async function GET(request: Request) {
             ? getTrackBySlug(effectiveProgram, trackParam)
             : undefined;
           if ((enr ?? []).length === 0 && joinTrackCfg) {
-            // Enrolment already ran above; just land them in the course.
+            // Enrollment already ran above; just land them in the course.
             return withProgramCookies(
               redirectWithCookies(`${origin}${courseLandingPath(joinTrackCfg)}`),
             );

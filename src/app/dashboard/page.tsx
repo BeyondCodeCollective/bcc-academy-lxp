@@ -13,7 +13,8 @@ import { getProgram, getProgramWithOverrides, resolveHomeProgramSlug } from "@/l
 import { buttonClass } from "@/components/ui";
 import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import type { ProgramConfig, TrackConfig } from "@/lib/programs/types";
-import { canAccessAdminPanel } from "@/lib/roles";
+import { canAccessAdminPanel, canManageStudents } from "@/lib/roles";
+import { visibleCourseSlugs } from "@/lib/dashboard-visibility";
 import { getSessionContext } from "@/lib/auth/session";
 import { getPreviewTrackSlug, getPreviewTrackSlugs, LUNCH_LEARN_PREVIEW_SLUG } from "@/lib/auth/preview-mode";
 import { resolveCurrentUser } from "@/lib/current-user";
@@ -32,6 +33,7 @@ import { BCC_INTAKE_SURVEY_ID, surveySkippedForTracks, surveyAppliesToPrograms, 
 import { isSurveyEnabledForLearner } from "@/lib/surveys/features";
 import { isStaffEmail } from "@/lib/auth/admins";
 import { completePendingSetup } from "@/lib/auth/deferred-setup";
+import { heldChecklistTrackSlug } from "@/lib/onboarding/held";
 import { isAssessmentEnabledForLearner } from "@/lib/assessment/features";
 
 export const dynamic = "force-dynamic";
@@ -156,6 +158,12 @@ async function DashboardContent({
   // Logged-in user id, hoisted for the "What's New" feed (built below, after
   // tracks resolve). Null for demo sessions.
   let feedUserId: string | null = null;
+  // Tracks an INSTRUCTOR is actually assigned to teach (instructor_tracks).
+  // null for everyone else. Instructors hold access_admin_panel, so before
+  // this they fell into the admin branch below and saw every course in the
+  // program — including rosters for cohorts they don't teach — which is the
+  // opposite of the documented rule (CLAUDE.md: assigned tracks only).
+  let instructorTrackSlugs: string[] | null = null;
 
   if (!currentUser.isDemo) {
     const ctx = await getSessionContext();
@@ -163,6 +171,21 @@ async function DashboardContent({
 
     const { userId, student } = ctx;
     feedUserId = userId;
+
+    // Assigned tracks, intersected with this program's courses further down.
+    // Not filtered by program_id here: program.tracks is already the program's
+    // course list, so the intersection does that job and this survives a
+    // grant filed under a sibling program id.
+    if (userRole === "instructor") {
+      const svcForAssignments = createServiceClient();
+      const { data: assigned } = await svcForAssignments
+        .from("instructor_tracks")
+        .select("track_slug")
+        .eq("student_id", userId);
+      instructorTrackSlugs = (assigned ?? []).map(
+        (r) => (r as { track_slug: string }).track_slug,
+      );
+    }
 
     // Deferred setup: cohort, track enrollment, survey claims, welcome email
     // runs on first dashboard paint after login instead of blocking the callback.
@@ -178,6 +201,15 @@ async function DashboardContent({
         student?.role ?? "student",
         student?.welcome_seen_at,
       );
+      // A held-checklist learner's FIRST render races the layout's
+      // confinement gate: completePendingSetup created the enrollment just
+      // now, AFTER the layout checked and saw none — so a fresh MASS signup
+      // landed on the open dashboard instead of their checklist. Re-check
+      // now that the enrollment exists.
+      if (!canAccessAdminPanel(student?.role ?? "")) {
+        const heldTrack = await heldChecklistTrackSlug(userId);
+        if (heldTrack) redirect(`/dashboard/track/${heldTrack}`);
+      }
     }
 
     const { cohorts: cohort, cohort_id: cohortId } = student ?? {};
@@ -440,9 +472,19 @@ async function DashboardContent({
       return parent && enrolledSet.has(parent) ? parent : s;
     }),
   );
-  const visibleTracks = isAdmin
-    ? program.tracks
-    : program.tracks.filter((t) => visibleSlugs.has(t.slug));
+  // The rule itself lives in lib/dashboard-visibility so it can be unit
+  // tested — an instructor holds access_admin_panel, so `isAdmin` is true for
+  // them and assignment has to win over it.
+  const allowedSlugs = new Set(
+    visibleCourseSlugs({
+      programSlugs: program.tracks.map((t) => t.slug),
+      enrolledSlugs: [...visibleSlugs],
+      assignedSlugs: instructorTrackSlugs,
+      isAdmin,
+      seesWholeProgram: canManageStudents(userRole),
+    }),
+  );
+  const visibleTracks = program.tracks.filter((t) => allowedSlugs.has(t.slug));
   // A learner whose only course lives under a different program than the
   // session resolved (stale program-override cookie — e.g. after browsing
   // another program's pages in the same browser) shouldn't see an empty
@@ -617,6 +659,38 @@ async function DashboardContent({
           <p className="mt-2 text-sm text-ink-soft max-w-sm mx-auto">
             Your program cohort is being set up. You&apos;ll see your full dashboard here once it&apos;s ready.
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  // An instructor with no assignments. They hold access_admin_panel, so
+  // `notEnrolled` (which is learner-only) never fires for them and they would
+  // otherwise land on the full dashboard with an empty course grid — or, worse,
+  // be told to sign a participation agreement. Say the true thing instead.
+  if (
+    instructorTrackSlugs !== null &&
+    visibleTracks.length === 0 &&
+    otherProgramCourses.length === 0
+  ) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-ink tracking-tight">
+            Welcome{firstName ? `, ${firstName}` : ""}
+          </h1>
+          <p className="mt-1 text-sm text-ink-soft">{program.name}</p>
+        </div>
+        <div className="panel p-6 sm:p-8">
+          <h2 className="text-lg font-semibold text-ink">No courses assigned yet</h2>
+          <p className="mt-2 max-w-prose text-sm text-ink-soft">
+            You are set up as an instructor for {program.name}, but no courses
+            have been assigned to you. An admin can assign them from Manage
+            Courses, and they will appear here as soon as they do.
+          </p>
+          <Link href="/dashboard/admin" className={`${buttonClass("secondary", "md")} mt-4`}>
+            Go to the admin panel
+          </Link>
         </div>
       </div>
     );
@@ -852,6 +926,7 @@ async function DashboardContent({
           otherCourses={bentoOtherCourses}
           programName={program.name}
           showTutor={isTutorAvailable(program)}
+          dedupeHref={nextUp?.href}
         />
       ) : (
         trackStates.filter(({ track }) => track.type !== "single-event").length > 0 && (

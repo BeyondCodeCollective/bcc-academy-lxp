@@ -6,7 +6,9 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { hasCapability } from "@/lib/roles";
 import { toSlug } from "@/lib/programs/slug";
-import type { ScheduleDay, LandingPartner } from "@/lib/landing-pages";
+import { getEveryProgramConfig } from "@/lib/programs";
+import { humanizeSlug } from "@/lib/utils";
+import type { ScheduleDay, LandingPartner, LandingSession, LandingSection } from "@/lib/landing-pages";
 
 async function requireSuperAdmin() {
   const supabase = await createClient();
@@ -30,6 +32,9 @@ async function requireSuperAdmin() {
  *  landing_pages columns the LandingPage type exposes. */
 export type LandingPageInput = {
   slug: string;
+  /** Owning program's slug, or "" for a platform page. Drives the page's URL:
+   *  a page with a program is served at /<program-slug>/<slug>. */
+  programSlug: string;
   published: boolean;
   headerLabel: string;
   eyebrow: string;
@@ -45,13 +50,24 @@ export type LandingPageInput = {
   secondaryCtaUrl: string;
   partners: LandingPartner[];
   heroImageUrl: string;
+  logoUrl: string;
+  /** "dark" or "" (light). */
+  pageTheme: string;
   footerText: string;
   metaTitle: string;
   metaDescription: string;
+  /** MASS-style native enrollment: pick-a-cohort form instead of the bare email box. */
+  nativeEnroll: boolean;
+  /** Cohort dates offered by the native form. */
+  sessions: LandingSession[];
+  enrollCtaLabel: string;
+  /** Detailed blocks under the form ("Why it matters", "What you'll build"). */
+  bodySections: LandingSection[];
+  instructor: { name: string; role: string; bio: string; photoUrl: string };
 };
 
 export type SaveLandingResult =
-  | { success: true; slug: string }
+  | { success: true; slug: string; courseSlug: string; courseCreated: boolean }
   | { success: false; error: string };
 
 const trimToNull = (v: string) => {
@@ -85,6 +101,33 @@ export async function saveLandingPageAction(
     .map((s) => ({ label: s.label.trim(), title: s.title.trim() }))
     .filter((s) => s.label || s.title);
 
+  const sessions: LandingSession[] = (input.sessions ?? [])
+    .map((x) => ({ id: x.id.trim(), label: x.label.trim() }))
+    .filter((x) => x.id && x.label);
+
+  // Only the FIRST emphasized section keeps the flag — a second dark band
+  // turns the page's spine into stripes, and the form can't enforce that
+  // across rows on its own.
+  let emphasisTaken = false;
+  const bodySections: LandingSection[] = (input.bodySections ?? [])
+    .map((x) => ({ heading: x.heading.trim(), body: x.body.trim(), emphasis: x.emphasis }))
+    .filter((x) => x.heading && x.body)
+    .map((x) => {
+      const emphasis = Boolean(x.emphasis) && !emphasisTaken;
+      if (emphasis) emphasisTaken = true;
+      return emphasis ? { ...x, emphasis: true } : { heading: x.heading, body: x.body };
+    });
+
+  const instructorName = input.instructor?.name.trim() ?? "";
+  const instructor = instructorName
+    ? {
+        name: instructorName,
+        role: trimToNull(input.instructor.role),
+        bio: input.instructor.bio.trim(),
+        photoUrl: trimToNull(input.instructor.photoUrl),
+      }
+    : null;
+
   const partners: LandingPartner[] = (input.partners ?? [])
     .map((p): LandingPartner | null => {
       if (p.kind === "image") {
@@ -111,8 +154,37 @@ export async function saveLandingPageAction(
     }
   }
 
+  // A landing page enrolls people into a course, so it must HAVE one — and one
+  // that exists. Before this, "track slug" was an optional free-text tag: the
+  // MASS page got pointed at the spring wraparound's slug and a new cohort's
+  // signups landed on last season's roster (2026-08-18). Now: no slug → the
+  // page's own slug; unknown slug → a course is created for it, named after
+  // the page, under Catalyst, unscheduled until you set dates in Manage Courses.
+  const trackSlug = toSlug(input.trackSlug?.trim() || slug);
+  if (!trackSlug) return { success: false, error: "Could not derive a course slug." };
+  const course = await ensureCourseForLanding(svc, trackSlug, input.headline.trim());
+  if (!course.ok) return { success: false, error: course.error };
+
+  // The owning program is what the URL brand segment is derived from, so an
+  // unknown slug has to fail loudly rather than silently publish the page back
+  // under /bcc/.
+  let programId: string | null = null;
+  const wantedProgram = input.programSlug?.trim();
+  if (wantedProgram) {
+    const { data: programRow } = await svc
+      .from("programs")
+      .select("id")
+      .eq("slug", wantedProgram)
+      .maybeSingle<{ id: string }>();
+    if (!programRow) {
+      return { success: false, error: `No program with slug "${wantedProgram}".` };
+    }
+    programId = programRow.id;
+  }
+
   const row = {
     slug,
+    program_id: programId,
     published: input.published,
     header_label: input.headerLabel.trim() || "BCC Academy",
     eyebrow: trimToNull(input.eyebrow),
@@ -120,7 +192,7 @@ export async function saveLandingPageAction(
     subhead: trimToNull(input.subhead),
     accent: accent || "#1a1a1a",
     form_label: trimToNull(input.formLabel),
-    track_slug: trimToNull(input.trackSlug),
+    track_slug: trackSlug,
     eventbrite_event_id: trimToNull(input.eventbriteEventId),
     embed_height: input.embedHeight && input.embedHeight > 0 ? input.embedHeight : null,
     schedule,
@@ -128,9 +200,16 @@ export async function saveLandingPageAction(
     secondary_cta_url: trimToNull(input.secondaryCtaUrl),
     partners,
     hero_image_url: trimToNull(input.heroImageUrl),
+    logo_url: trimToNull(input.logoUrl),
+    page_theme: input.pageTheme === "dark" ? "dark" : null,
     footer_text: trimToNull(input.footerText),
     meta_title: trimToNull(input.metaTitle),
     meta_description: trimToNull(input.metaDescription),
+    native_enroll: input.nativeEnroll && sessions.length > 0,
+    sessions,
+    enroll_cta_label: trimToNull(input.enrollCtaLabel),
+    body_sections: bodySections,
+    instructor,
     updated_at: new Date().toISOString(),
   };
 
@@ -153,11 +232,65 @@ export async function saveLandingPageAction(
       console.error("[saveLandingPageAction] old-slug cleanup failed:", delError);
     }
     revalidatePath(`/bcc/${originalSlug}`);
+    if (wantedProgram) revalidatePath(`/${wantedProgram}/${originalSlug}`);
   }
 
   revalidatePath("/dashboard/admin/landing");
+  // Both paths: one is canonical, the other redirects to it, and which is which
+  // changes the moment a program is set or cleared.
   revalidatePath(`/bcc/${slug}`);
-  return { success: true, slug };
+  if (wantedProgram) revalidatePath(`/${wantedProgram}/${slug}`);
+  if (course.created) revalidatePath("/dashboard/admin/programs");
+  return { success: true, slug, courseSlug: trackSlug, courseCreated: course.created };
+}
+
+/**
+ * Make sure a course exists for a landing page's track slug. Looks in the TS
+ * registry and track_overrides; if absent, creates a track_overrides row under
+ * Catalyst (the umbrella, same default as createCourseAction) with the
+ * landing page's headline as the name and no schedule. Idempotent.
+ */
+async function ensureCourseForLanding(
+  svc: ReturnType<typeof createServiceClient>,
+  trackSlug: string,
+  fallbackName: string,
+): Promise<{ ok: true; created: boolean } | { ok: false; error: string }> {
+  // Known anywhere already?
+  const inConfig = getEveryProgramConfig().some((p) => p.tracks.some((t) => t.slug === trackSlug));
+  if (inConfig) return { ok: true, created: false };
+  const { data: existing } = await svc
+    .from("track_overrides")
+    .select("id")
+    .eq("track_slug", trackSlug)
+    .maybeSingle();
+  if (existing) return { ok: true, created: false };
+
+  const { data: prog } = await svc
+    .from("programs")
+    .select("id")
+    .eq("slug", "catalyst")
+    .maybeSingle<{ id: string }>();
+  if (!prog) return { ok: false, error: "Could not find the Catalyst program to file the new course under." };
+
+  // Course name: the page slug humanized beats a marketing headline
+  // ("Your story gets you the offer." is not a course name).
+  const name = humanizeSlug(trackSlug) || fallbackName;
+  const { error } = await svc.from("track_overrides").insert({
+    program_id: prog.id,
+    track_slug: trackSlug,
+    name,
+    short_name: name,
+    instructor: "",
+    total_weeks: 8,
+    sessions_per_week: 1,
+    start_date: null,
+    phase: "core",
+  });
+  if (error) {
+    console.error("[ensureCourseForLanding] insert failed:", error);
+    return { ok: false, error: "Landing page saved but its course could not be created. Please try again." };
+  }
+  return { ok: true, created: true };
 }
 
 export async function deleteLandingPageAction(
@@ -191,11 +324,21 @@ export async function uploadLandingImageAction(
     "image/jpeg": "jpg",
     "image/png": "png",
     "image/webp": "webp",
+    "image/svg+xml": "svg",
+    "video/mp4": "mp4",
+    "video/webm": "webm",
+    "video/quicktime": "mov",
   };
   const ext = types[file.type];
-  if (!ext) return { success: false, error: "Use a JPG, PNG, or WebP image." };
-  if (file.size > 8 * 1024 * 1024) {
-    return { success: false, error: "Image must be under 8MB." };
+  if (!ext) {
+    return { success: false, error: "Use a JPG, PNG, WebP, or SVG image, or an MP4/WebM/MOV video." };
+  }
+  const isVideo = file.type.startsWith("video/");
+  // Video gets a higher cap: it can't be compressed in the browser the way
+  // images are, and a short hero loop runs 10-30MB.
+  const maxBytes = (isVideo ? 40 : 8) * 1024 * 1024;
+  if (file.size > maxBytes) {
+    return { success: false, error: `${isVideo ? "Video" : "Image"} must be under ${isVideo ? 40 : 8}MB.` };
   }
 
   const path = `${crypto.randomUUID()}.${ext}`;

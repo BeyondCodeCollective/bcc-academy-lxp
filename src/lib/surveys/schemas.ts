@@ -1367,6 +1367,354 @@ const HFS_PRE_SURVEY: SurveyQuestion[] = [
   },
 ];
 
+
+// ─── hfs-impact-survey (Home for the Summer retrospective pre/post) ──────────
+// Replaces hfs-pre-survey. That survey's schema below was correct but never got
+// a renderer branch, so 22 learners answered the intake questions under the HFS
+// title and there is no concurrent baseline. Per the program doc, the post for a
+// five-day program is retrospective anyway: every bank asked twice (BEFORE the
+// week / RIGHT NOW) in one sitting. Same statement banks, verbatim, so Insights
+// pairs before→now per statement. Question ids and copy mirror the wizard pages
+// in survey-wizard.tsx — keep the two in lockstep.
+
+const HFS_BEFORE = "BEFORE THE PROGRAM";
+const HFS_NOW = "AFTER THE PROGRAM";
+
+const HFS_IMPACT_SURVEY: SurveyQuestion[] = [
+  { type: "consent", id: "consent_participate", label: "Required — I understand and agree to take part.", text: "", required: true },
+  { type: "consent", id: "consent_followup", label: "Optional — Beyond Code may contact me after the program.", text: "", required: false },
+  { type: "consent", id: "consent_quote", label: "Optional — Beyond Code may use my written answers as an anonymous quote.", text: "", required: false },
+  {
+    type: "dual-likert",
+    id: "work_readiness_change",
+    label: "How work works",
+    scale: LIKERT_1_5,
+    beforeLabel: HFS_BEFORE,
+    nowLabel: HFS_NOW,
+    scaleAnchors: AGREE_ANCHORS,
+    statements: HFS_WORK_READINESS_STATEMENTS,
+    required: true,
+  },
+  {
+    type: "dual-likert",
+    id: "workplace_tools_change",
+    label: "Workplace tools",
+    scale: LIKERT_1_5,
+    beforeLabel: HFS_BEFORE,
+    nowLabel: HFS_NOW,
+    scaleAnchors: { low: "1 — Never used it", high: "5 — Could show someone else" },
+    statements: HFS_TOOLS_STATEMENTS,
+    required: true,
+  },
+  {
+    type: "dual-likert",
+    id: "ai_at_work_change",
+    label: "AI at work",
+    scale: LIKERT_1_5,
+    beforeLabel: HFS_BEFORE,
+    nowLabel: HFS_NOW,
+    scaleAnchors: AGREE_ANCHORS,
+    statements: HFS_AI_AT_WORK_STATEMENTS,
+    required: true,
+  },
+  {
+    type: "radio",
+    id: "ai_usage_frequency",
+    label: "How often do you use AI tools right now?",
+    options: ["Daily", "A few times a week", "Once in a while", "I have tried it once or twice", "Never"],
+    required: true,
+  },
+  { type: "text", id: "ai_tools_used", label: "What AI tools do you use the most?", required: false },
+  {
+    type: "likert",
+    id: "ai_bias_concern",
+    label: "AI and society",
+    scale: LIKERT_1_5,
+    scaleAnchors: { low: "1 — Not at all concerned", high: "5 — Extremely concerned" },
+    statements: ["How concerned are you that AI systems produce unfair or biased outcomes for certain groups of people?"],
+    required: true,
+  },
+  {
+    type: "likert",
+    id: "ai_regulation_support",
+    label: "AI and policy",
+    scale: LIKERT_1_5,
+    scaleAnchors: { low: "1 — Strongly oppose", high: "5 — Strongly support" },
+    statements: ["How much do you support government regulation of how AI systems are developed and used?"],
+    required: true,
+  },
+  {
+    type: "dual-likert",
+    id: "professional_presence_change",
+    label: "How you show up",
+    scale: LIKERT_1_5,
+    beforeLabel: HFS_BEFORE,
+    nowLabel: HFS_NOW,
+    scaleAnchors: AGREE_ANCHORS,
+    statements: HFS_PRESENCE_STATEMENTS,
+    required: true,
+  },
+  {
+    type: "dual-likert",
+    id: "mindset_mass_change",
+    label: "Mindset — clarity, courage, confidence",
+    scale: LIKERT_1_5,
+    beforeLabel: HFS_BEFORE,
+    nowLabel: HFS_NOW,
+    scaleAnchors: AGREE_ANCHORS,
+    statements: HFS_MINDSET_STATEMENTS,
+    required: true,
+  },
+  { type: "text", id: "most_prepared", label: "What part of this week helped you feel most prepared for a professional workplace?", required: true },
+  { type: "text", id: "looking_back", label: "Looking back, what does this week mean for where you're headed?", required: true },
+  { type: "text", id: "improve", label: "What's one thing we should change or do better next time?", required: false },
+];
+
+// ─── sbft-application (She's Built for This, BGC Oakland) ────────────────────
+// Single source of truth: the wizard imports SBFT_APPLICATION_PAGES directly
+// and SBFT_APPLICATION is derived from it, so the form and the analytics
+// schema cannot drift the way the HFS pair did.
+const SBFT_RELATIONSHIP_OPTIONS = [
+  "Mother",
+  "Father",
+  "Stepparent",
+  "Grandparent",
+  "Aunt or uncle",
+  "Older sibling",
+  "Legal guardian",
+  "Other",
+];
+
+// The standardized BGC demographic options (Race / Ethnicity / Gender Identity /
+// Economic Status) from the BGC Registration Forms inventory. Race and ethnicity
+// are separate questions here, which is the new standard and differs from the
+// combined `race_ethnicity` field on older BGC forms.
+const SBFT_RACE_OPTIONS = [
+  "Indigenous American",
+  "Asian",
+  "Black or African American",
+  "Native Hawaiian or Pacific Islander",
+  "White non-Hispanic",
+  "Middle Eastern or MENA",
+  "Prefer not to respond",
+];
+
+export const SBFT_APPLICATION_PAGES: {
+  title: string;
+  subtitle?: string;
+  questions: SurveyQuestion[];
+}[] = [
+  {
+    title: "Student Information",
+    subtitle:
+      "She's Built for This is for girls in 6th through 8th grade in the Oakland area.",
+    questions: [
+      { type: "text", id: "student_first_name", label: "Student's first name", required: true, short: true },
+      { type: "text", id: "student_last_name", label: "Student's last name", required: true, short: true },
+      { type: "radio", id: "grade", label: "What grade is she in?", options: ["6th", "7th", "8th"], required: true },
+      { type: "text", id: "city", label: "City", placeholder: "e.g. Oakland", required: true, short: true },
+      { type: "select", id: "state", label: "State", options: US_STATES, placeholder: "Select a state", required: true },
+      { type: "text", id: "zip_code", label: "ZIP code", placeholder: "e.g. 94607", zip: true, required: true },
+    ],
+  },
+  {
+    title: "Parent or Guardian",
+    subtitle: "Who should we contact about her participation?",
+    questions: [
+      { type: "text", id: "parent_full_name", label: "Parent or guardian's full name", required: true, short: true },
+      { type: "text", id: "parent_email", label: "Parent or guardian's email address", required: true, short: true },
+      { type: "text", id: "parent_phone", label: "Parent or guardian's phone number", placeholder: "e.g. (510) 555-0134", required: true, short: true },
+      { type: "select", id: "parent_relationship", label: "Relationship to participant", options: SBFT_RELATIONSHIP_OPTIONS, placeholder: "Select one", required: true },
+      { type: "text", id: "parent_relationship_other", label: "If you chose Other, what is your relationship to her?", required: false, short: true },
+      { type: "text", id: "dietary_restrictions", label: "Any dietary restrictions or allergies we should know about?", placeholder: "Leave blank if none.", required: false, short: true },
+    ],
+  },
+  {
+    title: "The Commitment",
+    subtitle:
+      "She's Built for This is an in-person cohort program, which means the girls who join move through the semester together. Kickoff is Saturday September 26, with sessions on October 3, 10, 17, 24 and 31, and Celebration Day on November 7 (families welcome). Every session runs 10 AM to 1 PM in Oakland, CA. Her commitment matters to the whole group.",
+    questions: [
+      { type: "radio", id: "attend_all_sessions", label: "Is she able to attend all mandatory Saturday sessions?", options: ["Yes", "No"], required: true },
+      {
+        type: "multi-select",
+        id: "sessions_available",
+        label: "Check every session she can attend.",
+        options: [
+          "All sessions",
+          "September 26 (Kickoff)",
+          "October 3",
+          "October 10",
+          "October 17",
+          "October 24",
+          "October 31",
+          "November 7 (Celebration Day)",
+        ],
+        required: true,
+      },
+    ],
+  },
+  {
+    title: "Get To Know You",
+    questions: [
+      {
+        type: "text",
+        id: "why_join",
+        label: "Why do you want to participate in She's Built for This, and what do you hope to gain from it?",
+        placeholder: "Two to three sentences, in her own words.",
+        required: true,
+      },
+    ],
+  },
+  {
+    title: "About You",
+    subtitle:
+      "BGC reports on who we serve to funders and partners. Every question here has a way to decline, and none of it affects her application.",
+    questions: [
+      { type: "multi-select", id: "race", label: "Race (select all that apply)", options: SBFT_RACE_OPTIONS, required: true },
+      { type: "radio", id: "ethnicity", label: "Ethnicity", options: ["Hispanic or Latino", "Not Hispanic or Latino", "Prefer not to respond"], required: true },
+      { type: "radio", id: "gender_identity", label: "Gender identity", options: ["Woman", "Man", "Transgender", "Non-binary/non-conforming", "Prefer not to respond"], required: true },
+      {
+        type: "radio",
+        id: "economic_background",
+        label: "How would you describe your socioeconomic background growing up?",
+        options: ["Low income", "Lower-middle income", "Middle income", "Upper-middle income", "High income", "Prefer not to say"],
+        required: true,
+      },
+      {
+        type: "radio",
+        id: "heard_about_program",
+        label: "How did you hear about She's Built for This?",
+        options: ["BGC email", "Social media", "Friend", "Community organization", "Other"],
+        required: true,
+      },
+      { type: "text", id: "heard_about_program_other", label: "If you chose Other, where did you hear about us?", required: false, short: true },
+    ],
+  },
+];
+
+const SBFT_APPLICATION: SurveyQuestion[] = SBFT_APPLICATION_PAGES.flatMap(
+  (page) => page.questions,
+);
+
+// ─── mass-fall-2026-pre (MASS Coaching Cohort — Pre-Program Survey) ──────────
+// Single source of truth, same as SBFT: the wizard imports MASS_PRE_PAGES and
+// MASS_FALL_2026_PRE is derived from it, so the form and the analytics schema
+// cannot drift.
+export const MASS_PRE_PAGES: {
+  title: string;
+  subtitle?: string;
+  questions: SurveyQuestion[];
+}[] = [
+  {
+    title: "Before you start",
+    subtitle: "Mindset and Soft Skills · About 10 minutes",
+    questions: [
+      {
+        type: "consent",
+        id: "consent_participate",
+        label: "Before you start",
+        text: "This is not a test. We want to learn where you are right now — how you see yourself, what your goals are, and what you need from this coaching. There are no right or wrong answers. Please be honest. Your honest starting point helps us support you well from day one.",
+        bullets: [
+          "Your answers stay private.",
+          "We use them only to improve the coaching and to show our impact to the funders who make it possible.",
+          "You can skip any question or mark “Prefer not to say.”",
+          "You can ask us anytime to see your answers, change them, or delete them. Just email info@beyondcodecollective.org.",
+          "We will ask you these same rating questions again at the end. That lets us measure your growth.",
+        ],
+        confirmLabel: "I understand and agree to take part.",
+        required: true,
+      },
+      { type: "text", id: "full_name", label: "Full name", required: true, short: true },
+      { type: "text", id: "email", label: "Email address", required: true, short: true },
+    ],
+  },
+  {
+    title: "How you see yourself as a professional",
+    subtitle: "This part is about how you see yourself and what you bring right now.",
+    questions: [
+      {
+        type: "likert",
+        id: "professional_self",
+        label: "For each line, mark how much you agree right now.",
+        scale: LIKERT_1_5,
+        scaleAnchors: { low: "1 — Strongly Disagree", high: "5 — Strongly Agree" },
+        statements: [
+          "I have a clear sense of who I am as a professional and what I bring.",
+          "I can tell my professional story — who I am, what I have done, and where I am headed.",
+          "I can talk about my strengths and wins without playing them down.",
+          "I believe I belong in the career space I am working toward.",
+          "I can see a version of myself doing well in a professional setting.",
+        ],
+        required: true,
+      },
+    ],
+  },
+  {
+    title: "Mindset and bouncing back",
+    subtitle: "This part is about how you handle hard moments and setbacks.",
+    questions: [
+      {
+        type: "likert",
+        id: "mindset_resilience",
+        label: "For each line, mark how much you agree right now.",
+        scale: LIKERT_1_5,
+        scaleAnchors: { low: "1 — Strongly Disagree", high: "5 — Strongly Agree" },
+        statements: [
+          "When something goes wrong, I know how to step back, adjust, and keep going.",
+          "When a challenge is hard, I stay with it instead of giving up.",
+          "I feel comfortable asking for help or support when I need it.",
+        ],
+        required: true,
+      },
+    ],
+  },
+  {
+    title: "Your direction and reaching out",
+    subtitle: "This part is about your career direction and connecting with other people.",
+    questions: [
+      {
+        type: "likert",
+        id: "direction_outreach",
+        label: "For each line, mark how much you agree right now.",
+        scale: LIKERT_1_5,
+        scaleAnchors: { low: "1 — Strongly Disagree", high: "5 — Strongly Agree" },
+        statements: [
+          "I can clearly describe the type of role or work I am aiming for.",
+          "When I think about my next career step, I know what to do first.",
+          "I feel confident reaching out to someone I do not know to ask for a talk or a chance.",
+        ],
+        required: true,
+      },
+    ],
+  },
+  {
+    title: "In your own words",
+    questions: [
+      {
+        type: "text",
+        id: "mindset_focus",
+        label: "Is there anything about your mindset, habits, or how you show up as a professional that you want to work on in this coaching?",
+        required: false,
+      },
+      {
+        type: "text",
+        id: "success_definition",
+        label: "What does success look like for you when this coaching ends?",
+        placeholder: "Be as clear as you can.",
+        required: true,
+      },
+      {
+        type: "text",
+        id: "most_need",
+        label: "What is the one thing you most need from this coaching to be successful?",
+        required: true,
+      },
+    ],
+  },
+];
+
+const MASS_FALL_2026_PRE: SurveyQuestion[] = MASS_PRE_PAGES.flatMap((page) => page.questions);
+
 const SCHEMAS: Record<string, SurveyQuestion[]> = {
   "bcc-learner-intake": BCC_LEARNER_INTAKE,
   "comptia-security-pre": COMPTIA_SECURITY_PRE,
@@ -1382,7 +1730,13 @@ const SCHEMAS: Record<string, SurveyQuestion[]> = {
   "security-plus-application": SECURITY_PLUS_APPLICATION,
   "security-plus-midpoint": SECURITY_PLUS_MIDPOINT,
   "home-for-summer-application": HOME_FOR_SUMMER_APPLICATION,
+  // Never rendered — its wizard branch was missing, so its 22 "responses" are
+  // intake answers. Kept registered so existing rows keep a schema until they're
+  // re-tagged; hfs-impact-survey is the instrument that actually ran.
   "hfs-pre-survey": HFS_PRE_SURVEY,
+  "hfs-impact-survey": HFS_IMPACT_SURVEY,
+  "sbft-application": SBFT_APPLICATION,
+  "mass-fall-2026-pre": MASS_FALL_2026_PRE,
 };
 
 export function getSurveySchema(surveyId: string): SurveyQuestion[] | null {

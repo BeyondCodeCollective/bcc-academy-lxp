@@ -4,9 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { saveLandingPageAction, uploadLandingImageAction } from "./actions";
 import type { LandingPageInput } from "./actions";
-import type { ScheduleDay, LandingPartner } from "@/lib/landing-pages";
+import type { ScheduleDay, LandingPartner, LandingSession, LandingSection } from "@/lib/landing-pages";
 import { Field, fieldInput, buttonClass, Panel } from "@/components/ui";
 import { toSlug } from "@/lib/programs/slug";
+import { compressImage } from "@/lib/compress-image";
 
 /** Partner row in form state — both kinds carry every field so toggling kind
  *  doesn't lose what the user already typed. */
@@ -33,15 +34,19 @@ function toDrafts(partners: LandingPartner[]): PartnerDraft[] {
 export function LandingForm({
   initial,
   originalSlug,
+  programs,
 }: {
   initial: LandingFormInitial;
   /** Present when editing — lets the action delete the old row on a slug rename. */
   originalSlug?: string;
+  /** Every program, for the owner picker that decides the page's URL. */
+  programs: { slug: string; name: string }[];
 }) {
   const router = useRouter();
   const isEdit = !!originalSlug;
 
   const [slug, setSlug] = useState(initial.slug);
+  const [programSlug, setProgramSlug] = useState(initial.programSlug);
   const [published, setPublished] = useState(initial.published);
   const [headerLabel, setHeaderLabel] = useState(initial.headerLabel);
   const [eyebrow, setEyebrow] = useState(initial.eyebrow);
@@ -57,10 +62,21 @@ export function LandingForm({
   const [schedule, setSchedule] = useState<ScheduleDay[]>(
     initial.schedule.length ? initial.schedule : [],
   );
+  const [nativeEnroll, setNativeEnroll] = useState(initial.nativeEnroll);
+  const [sessions, setSessions] = useState<LandingSession[]>(initial.sessions);
+  const [enrollCtaLabel, setEnrollCtaLabel] = useState(initial.enrollCtaLabel);
+  const [bodySections, setBodySections] = useState<LandingSection[]>(initial.bodySections);
+  const [instructor, setInstructor] = useState(initial.instructor);
+  const [uploadingInstructor, setUploadingInstructor] = useState(false);
+  const [uploadingPartner, setUploadingPartner] = useState<number | null>(null);
   const [secondaryCtaLabel, setSecondaryCtaLabel] = useState(initial.secondaryCtaLabel);
   const [secondaryCtaUrl, setSecondaryCtaUrl] = useState(initial.secondaryCtaUrl);
   const [partners, setPartners] = useState<PartnerDraft[]>(toDrafts(initial.partners));
   const [heroImageUrl, setHeroImageUrl] = useState(initial.heroImageUrl);
+  const [logoUrl, setLogoUrl] = useState(initial.logoUrl);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [logoUploadError, setLogoUploadError] = useState<string | null>(null);
+  const [darkTheme, setDarkTheme] = useState(initial.pageTheme === "dark");
   const [uploadingHero, setUploadingHero] = useState(false);
   const [heroUploadError, setHeroUploadError] = useState<string | null>(null);
   const [footerText, setFooterText] = useState(initial.footerText);
@@ -78,6 +94,12 @@ export function LandingForm({
   }
   function updatePartner(i: number, patch: Partial<PartnerDraft>) {
     setPartners((prev) => prev.map((p, idx) => (idx === i ? { ...p, ...patch } : p)));
+  }
+  function updateSession(i: number, patch: Partial<LandingSession>) {
+    setSessions((prev) => prev.map((x, idx) => (idx === i ? { ...x, ...patch } : x)));
+  }
+  function updateSection(i: number, patch: Partial<LandingSection>) {
+    setBodySections((prev) => prev.map((x, idx) => (idx === i ? { ...x, ...patch } : x)));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -101,6 +123,7 @@ export function LandingForm({
       const res = await saveLandingPageAction(
         {
           slug,
+          programSlug,
           published,
           headerLabel,
           eyebrow,
@@ -116,15 +139,28 @@ export function LandingForm({
           secondaryCtaUrl,
           partners: partnersOut,
           heroImageUrl,
+          logoUrl,
+          pageTheme: darkTheme ? "dark" : "",
           footerText,
           metaTitle,
           metaDescription,
+          nativeEnroll,
+          sessions,
+          enrollCtaLabel,
+          bodySections,
+          instructor,
         },
         originalSlug,
       );
 
       if (res.success) {
-        router.push("/dashboard/admin/landing");
+        // A course was created for this page: send them straight to it so it
+        // gets a name, instructor, and schedule instead of sitting unscheduled.
+        router.push(
+          res.courseCreated
+            ? `/dashboard/admin/programs/${encodeURIComponent(res.courseSlug)}/edit?created=1&from=landing`
+            : "/dashboard/admin/landing",
+        );
         router.refresh();
       } else {
         setError(res.error);
@@ -142,6 +178,24 @@ export function LandingForm({
       <Panel className="space-y-5 p-5">
         <h2 className="text-sm font-semibold text-ink">Basics</h2>
 
+        <Field
+          label="Program"
+          hint="whose campaign this is — it decides the URL"
+        >
+          <select
+            value={programSlug}
+            onChange={(e) => setProgramSlug(e.target.value)}
+            className={fieldInput}
+          >
+            <option value="">BCC Academy (platform)</option>
+            {programs.map((p) => (
+              <option key={p.slug} value={p.slug}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+
         <Field label="Slug" hint="the URL path">
           <input
             type="text"
@@ -153,10 +207,25 @@ export function LandingForm({
           />
           {previewSlug && (
             <p className="mt-1.5 font-mono text-xs text-ink-soft">
-              bccacademy.io/bcc/<span className="text-primary">{previewSlug}</span>
+              bccacademy.io/
+              <span className="text-primary">{programSlug || "bcc"}</span>/
+              <span className="text-primary">{previewSlug}</span>
             </p>
           )}
         </Field>
+
+        <label className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            checked={darkTheme}
+            onChange={(e) => setDarkTheme(e.target.checked)}
+            className="h-4 w-4 accent-[var(--primary)]"
+          />
+          <span className="text-sm text-ink">
+            Dark page{" "}
+            <span className="text-ink-faint">— black background, cream text</span>
+          </span>
+        </label>
 
         <label className="flex items-center gap-3">
           <input
@@ -207,7 +276,10 @@ export function LandingForm({
           />
         </Field>
 
-        <Field label="Subhead" hint="optional supporting paragraph">
+        <Field
+          label="Subhead"
+          hint="optional — blank line = new paragraph, lines starting with - become bullets, **text** = bold"
+        >
           <textarea
             rows={2}
             value={subhead}
@@ -248,10 +320,81 @@ export function LandingForm({
           />
         </Field>
 
-        <Field label="Track slug" hint="optional — tags the signup with a track">
+        <label className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            checked={nativeEnroll}
+            onChange={(e) => setNativeEnroll(e.target.checked)}
+            className="h-4 w-4 accent-[var(--primary)]"
+          />
+          <span className="text-sm text-ink">
+            Cohort sign-up form{" "}
+            <span className="text-ink-faint">
+              — the MASS-style form: name + email + cohort date, enrolls on the spot. Needs at
+              least one cohort date below.
+            </span>
+          </span>
+        </label>
+
+        {nativeEnroll && (
+          <div className="space-y-3 rounded-lg border border-rule p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-medium uppercase tracking-[0.1em] text-ink-soft">Cohort dates</p>
+              <button
+                type="button"
+                onClick={() => setSessions((p) => [...p, { id: "", label: "" }])}
+                className={buttonClass("secondary", "sm")}
+              >
+                + Add date
+              </button>
+            </div>
+            {sessions.length === 0 && (
+              <p className="text-sm text-ink-faint">Add the date the cohort starts — it shows as the pick-a-date option.</p>
+            )}
+            {sessions.map((x, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <input
+                  type="date"
+                  value={x.id}
+                  onChange={(e) => updateSession(i, { id: e.target.value })}
+                  className={`${fieldInput} flex-[0_0_38%] font-mono`}
+                />
+                <input
+                  type="text"
+                  placeholder="Cohort starts Saturday, August 29, 2026"
+                  value={x.label}
+                  onChange={(e) => updateSession(i, { label: e.target.value })}
+                  className={fieldInput}
+                />
+                <button
+                  type="button"
+                  onClick={() => setSessions((p) => p.filter((_, idx) => idx !== i))}
+                  className={`${buttonClass("ghost", "sm")} shrink-0`}
+                  aria-label="Remove cohort date"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+            <Field label="Button label" hint='e.g. "Enroll in MASS"'>
+              <input
+                type="text"
+                placeholder="Enroll"
+                value={enrollCtaLabel}
+                onChange={(e) => setEnrollCtaLabel(e.target.value)}
+                className={fieldInput}
+              />
+            </Field>
+          </div>
+        )}
+
+        <Field
+          label="Course"
+          hint="Signups are enrolled in this course. Leave blank to use the page slug. If no course with this slug exists, one is created for you (set its schedule in Manage Courses)."
+        >
           <input
             type="text"
-            placeholder="roblox-camp"
+            placeholder={slug || "mass-fall-2026"}
             value={trackSlug}
             onChange={(e) => setTrackSlug(e.target.value)}
             className={`${fieldInput} font-mono`}
@@ -333,6 +476,145 @@ export function LandingForm({
         </div>
       </Panel>
 
+      {/* ── Content sections ── */}
+      <Panel className="space-y-4 p-5">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-ink">Content sections</h2>
+          <button
+            type="button"
+            onClick={() => setBodySections((p) => [...p, { heading: "", body: "" }])}
+            className={buttonClass("secondary", "sm")}
+          >
+            + Add section
+          </button>
+        </div>
+        <p className="text-sm text-ink-faint">
+          Short blocks under the form — an accent heading and a paragraph, like MASS&apos;s
+          &ldquo;Why it matters&rdquo; and &ldquo;What you&apos;ll build&rdquo;.
+        </p>
+        <div className="space-y-4">
+          {bodySections.map((x, i) => (
+            <div key={i} className="rounded-lg border border-rule p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="Why it matters"
+                  value={x.heading}
+                  onChange={(e) => updateSection(i, { heading: e.target.value })}
+                  className={fieldInput}
+                />
+                <button
+                  type="button"
+                  onClick={() => setBodySections((p) => p.filter((_, idx) => idx !== i))}
+                  className={`${buttonClass("ghost", "sm")} shrink-0`}
+                  aria-label="Remove section"
+                >
+                  ✕
+                </button>
+              </div>
+              <textarea
+                rows={3}
+                placeholder="A few sentences. Blank line = paragraph, - bullets, **bold**."
+                value={x.body}
+                onChange={(e) => updateSection(i, { body: e.target.value })}
+                className={`${fieldInput} resize-y`}
+              />
+              <label className="flex items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={Boolean(x.emphasis)}
+                  onChange={(e) => {
+                    // One band per page: ticking a section unticks the others.
+                    const on = e.target.checked;
+                    setBodySections((p) =>
+                      p.map((s, idx) => ({ ...s, emphasis: on && idx === i })),
+                    );
+                  }}
+                  className="mt-1"
+                />
+                <span>
+                  Feature this section
+                  <span className="block text-xs text-ink-faint">
+                    Renders on the program&apos;s dark color — the spine of a long page. One
+                    per page; ticking this unticks any other.
+                  </span>
+                </span>
+              </label>
+            </div>
+          ))}
+        </div>
+      </Panel>
+
+      {/* ── Instructor ── */}
+      <Panel className="space-y-5 p-5">
+        <h2 className="text-sm font-semibold text-ink">Instructor</h2>
+        <p className="text-sm text-ink-faint">
+          The headshot + bio card at the bottom. Leave the name blank to hide it.
+        </p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="Name">
+            <input
+              type="text"
+              placeholder="Angel Aviles"
+              value={instructor.name}
+              onChange={(e) => setInstructor((p) => ({ ...p, name: e.target.value }))}
+              className={fieldInput}
+            />
+          </Field>
+          <Field label="Role" hint='e.g. "Your Coach"'>
+            <input
+              type="text"
+              placeholder="Your Coach"
+              value={instructor.role}
+              onChange={(e) => setInstructor((p) => ({ ...p, role: e.target.value }))}
+              className={fieldInput}
+            />
+          </Field>
+        </div>
+        <Field label="Bio">
+          <textarea
+            rows={3}
+            value={instructor.bio}
+            onChange={(e) => setInstructor((p) => ({ ...p, bio: e.target.value }))}
+            className={`${fieldInput} resize-y`}
+          />
+        </Field>
+        <Field label="Photo" hint="square headshot works best">
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              placeholder="https://…/headshot.jpg"
+              value={instructor.photoUrl}
+              onChange={(e) => setInstructor((p) => ({ ...p, photoUrl: e.target.value }))}
+              className={fieldInput}
+            />
+            <label className={`${buttonClass("secondary", "sm")} shrink-0 cursor-pointer`}>
+              {uploadingInstructor ? "Uploading…" : "Upload"}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="sr-only"
+                disabled={uploadingInstructor}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = "";
+                  if (!file) return;
+                  setUploadingInstructor(true);
+                  try {
+                    const fd = new FormData();
+                    fd.set("file", await compressImage(file));
+                    const res = await uploadLandingImageAction(fd);
+                    if (res.success) setInstructor((p) => ({ ...p, photoUrl: res.url }));
+                  } finally {
+                    setUploadingInstructor(false);
+                  }
+                }}
+              />
+            </label>
+          </div>
+        </Field>
+      </Panel>
+
       {/* ── Secondary CTA ── */}
       <Panel className="space-y-5 p-5">
         <h2 className="text-sm font-semibold text-ink">Secondary link</h2>
@@ -411,14 +693,40 @@ export function LandingForm({
 
               {p.kind === "image" ? (
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <Field label="Image URL">
-                    <input
-                      type="text"
-                      placeholder="https://…/logo.png"
-                      value={p.src}
-                      onChange={(e) => updatePartner(i, { src: e.target.value })}
-                      className={fieldInput}
-                    />
+                  <Field label="Image">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        placeholder="https://…/logo.png"
+                        value={p.src}
+                        onChange={(e) => updatePartner(i, { src: e.target.value })}
+                        className={fieldInput}
+                      />
+                      <label className={`${buttonClass("secondary", "sm")} shrink-0 cursor-pointer`}>
+                        {uploadingPartner === i ? "Uploading…" : "Upload"}
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/svg+xml"
+                          className="sr-only"
+                          disabled={uploadingPartner !== null}
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            e.target.value = "";
+                            if (!file) return;
+                            setUploadingPartner(i);
+                            try {
+                              const fd = new FormData();
+                              // SVG logos pass through untouched; raster logos compress.
+                              fd.set("file", file.type === "image/svg+xml" ? file : await compressImage(file));
+                              const res = await uploadLandingImageAction(fd);
+                              if (res.success) updatePartner(i, { src: res.url });
+                            } finally {
+                              setUploadingPartner(null);
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
                   </Field>
                   <Field label="Alt text">
                     <input
@@ -461,6 +769,50 @@ export function LandingForm({
       <Panel className="space-y-5 p-5">
         <h2 className="text-sm font-semibold text-ink">Media & footer</h2>
 
+        <Field label="Logo" hint="optional — the program's own lockup, above the headline">
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              placeholder="https://…/logo.png"
+              value={logoUrl}
+              onChange={(e) => setLogoUrl(e.target.value)}
+              className={fieldInput}
+            />
+            <label className={`${buttonClass("secondary", "sm")} shrink-0 cursor-pointer`}>
+              {uploadingLogo ? "Uploading…" : "Upload"}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/svg+xml"
+                className="sr-only"
+                disabled={uploadingLogo}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = "";
+                  if (!file) return;
+                  setUploadingLogo(true);
+                  setLogoUploadError(null);
+                  try {
+                    const fd = new FormData();
+                    // SVG has no raster to compress and compressImage would
+                    // flatten it; send it as-is.
+                    fd.set("file", file.type === "image/svg+xml" ? file : await compressImage(file));
+                    const res = await uploadLandingImageAction(fd);
+                    if (res.success) setLogoUrl(res.url);
+                    else setLogoUploadError(res.error);
+                  } catch {
+                    setLogoUploadError("Upload failed. Please try again.");
+                  } finally {
+                    setUploadingLogo(false);
+                  }
+                }}
+              />
+            </label>
+          </div>
+          {logoUploadError && (
+            <p className="mt-1.5 text-xs text-red-600">{logoUploadError}</p>
+          )}
+        </Field>
+
         <Field label="Hero image" hint="optional — fills the right panel">
           <div className="flex items-center gap-2">
             <input
@@ -474,7 +826,7 @@ export function LandingForm({
               {uploadingHero ? "Uploading…" : "Upload"}
               <input
                 type="file"
-                accept="image/jpeg,image/png,image/webp"
+                accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"
                 className="sr-only"
                 disabled={uploadingHero}
                 onChange={async (e) => {
@@ -485,7 +837,7 @@ export function LandingForm({
                   setHeroUploadError(null);
                   try {
                     const fd = new FormData();
-                    fd.set("file", file);
+                    fd.set("file", await compressImage(file));
                     const res = await uploadLandingImageAction(fd);
                     if (res.success) setHeroImageUrl(res.url);
                     else setHeroUploadError(res.error);
@@ -553,7 +905,7 @@ export function LandingForm({
         </button>
         {isEdit && previewSlug && (
           <a
-            href={`/bcc/${previewSlug}`}
+            href={`/${programSlug || "bcc"}/${previewSlug}`}
             target="_blank"
             rel="noopener noreferrer"
             className={buttonClass("secondary", "md")}

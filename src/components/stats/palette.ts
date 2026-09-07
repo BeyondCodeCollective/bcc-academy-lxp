@@ -44,7 +44,7 @@ export const STATUS_COLORS = {
  *  A 1–5 agreement question is polarity data, not magnitude: it has a neutral
  *  middle and two opposing directions. A single-hue ramp can show "more" but
  *  can't show "which way", which is why 35 identical cobalt bars told a reader
- *  nothing. Two hues either side of a gray midpoint, centred on neutral, make
+ *  nothing. Two hues either side of a gray midpoint, centered on neutral, make
  *  a weak area visible at a glance.
  *
  *  Agree keeps the brand cobalt. The warm pole is a deep terracotta —

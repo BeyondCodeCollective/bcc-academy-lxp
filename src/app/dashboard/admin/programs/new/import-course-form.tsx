@@ -3,12 +3,15 @@
 import { useState } from "react";
 import {
   previewCourseImportAction,
+  previewCourseFileImportAction,
   generateCourseDraftAction,
   createCourseFromDraftAction,
 } from "../import-actions";
 import type { CourseDraft } from "@/lib/course-import/parse";
 import { toSlug } from "@/lib/programs/slug";
 import { Field, fieldInput, buttonClass } from "@/components/ui";
+import { newDraftQuestion, type DraftQuestion } from "@/lib/application-questions";
+import { QuestionRowsEditor } from "@/components/application-questions";
 
 // Must match COURSE_PROGRAM_SLUGS in ../import-actions.ts.
 const PROGRAM_OPTIONS = [
@@ -17,7 +20,15 @@ const PROGRAM_OPTIONS = [
   { value: "atg", label: "Beyond the Game" },
 ];
 
-type Created = { slug: string; joinUrl: string; allowlisted: number };
+type Created = {
+  slug: string;
+  joinUrl: string;
+  allowlisted: number;
+  heroSource: "library" | "pexels" | null;
+  coverGenerated: boolean;
+  applicationSlug: string | null;
+  applicationError: string | null;
+};
 
 export function ImportCourseForm({
   currentProgram,
@@ -38,6 +49,7 @@ export function ImportCourseForm({
       ? [{ value: currentProgram.slug, label: currentProgram.name }]
       : PROGRAM_OPTIONS;
   const [input, setInput] = useState("");
+  const [file, setFile] = useState<File | null>(null);
   const [needsPaste, setNeedsPaste] = useState(false);
   const [draft, setDraft] = useState<CourseDraft | null>(null);
   const [attendees, setAttendees] = useState<string[]>([]);
@@ -45,6 +57,12 @@ export function ImportCourseForm({
   const [coverImageUrl, setCoverImageUrl] = useState<string | undefined>();
   const [program, setProgram] = useState(currentProgram?.slug ?? "catalyst");
   const [meetingLink, setMeetingLink] = useState("");
+  // Raw newline-separated text behind the objectives textarea. Seeded from the
+  // draft when one arrives; the draft itself keeps the cleaned array.
+  const [objectivesText, setObjectivesText] = useState("");
+  // The application questions, in the editor's shape (with client ids). Seeded
+  // from the draft; folded back into it on create.
+  const [appQuestions, setAppQuestions] = useState<DraftQuestion[]>([]);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<Created | null>(null);
@@ -56,20 +74,40 @@ export function ImportCourseForm({
     setNeedsPaste(false);
     setPending(true);
     try {
-      const res = generating
-        ? await generateCourseDraftAction(input)
-        : await previewCourseImportAction(input);
+      let res;
+      if (generating) {
+        res = await generateCourseDraftAction(input);
+      } else if (file) {
+        const fd = new FormData();
+        fd.set("file", file);
+        res = await previewCourseFileImportAction(fd);
+      } else {
+        res = await previewCourseImportAction(input);
+      }
       if (res.success) {
         setDraft(res.draft);
+        setObjectivesText((res.draft.objectives ?? []).join("\n"));
+        setAppQuestions(
+          (res.draft.application?.questions ?? []).map((q, i) => ({
+            id: `q-${i + 1}`,
+            kind: q.kind,
+            label: q.label,
+            options: q.options ?? [],
+            required: q.required,
+          })),
+        );
         setAttendees(res.attendeeEmails);
         setCoverImageUrl(res.coverImageUrl);
       } else {
         setError(res.error);
         setNeedsPaste(Boolean(res.needsPaste));
+        // "Paste it instead" needs the textarea back, so drop the file.
+        if (res.needsPaste) setFile(null);
       }
     } catch {
       setError("Something went wrong reading that. Try pasting the text instead.");
       setNeedsPaste(true);
+      setFile(null);
     } finally {
       setPending(false);
     }
@@ -81,8 +119,16 @@ export function ImportCourseForm({
     setError(null);
     setPending(true);
     try {
+      const application = draft.application?.wanted
+        ? {
+            ...draft.application,
+            questions: appQuestions
+              .filter((q) => q.label.trim())
+              .map(({ kind, label, options, required }) => ({ kind, label, options, required })),
+          }
+        : (draft.application ?? { wanted: false, deadline: "", notifyEmail: "", questions: [] });
       const res = await createCourseFromDraftAction({
-        draft,
+        draft: { ...draft, application },
         programSlug: program,
         meetingLink,
         coverImageUrl,
@@ -112,6 +158,28 @@ export function ImportCourseForm({
     );
   }
 
+  const emptyLanding = { headline: "", subhead: "", eyebrow: "", bodySections: [] };
+
+  function patchLanding(changes: Partial<CourseDraft["landing"]>) {
+    setDraft((d) => (d ? { ...d, landing: { ...(d.landing ?? emptyLanding), ...changes } } : d));
+  }
+
+  function patchLandingSection(i: number, changes: Partial<{ heading: string; body: string }>) {
+    setDraft((d) =>
+      d
+        ? {
+            ...d,
+            landing: {
+              ...(d.landing ?? emptyLanding),
+              bodySections: (d.landing?.bodySections ?? []).map((s, n) =>
+                n === i ? { ...s, ...changes } : s,
+              ),
+            },
+          }
+        : d,
+    );
+  }
+
   if (created) {
     return (
       <div className="space-y-4">
@@ -134,6 +202,26 @@ export function ImportCourseForm({
           {created.allowlisted > 0 && (
             <p className="text-xs text-green-700">
               {created.allowlisted} registrant{created.allowlisted === 1 ? "" : "s"} added to the allowlist.
+            </p>
+          )}
+          <p className="text-xs text-green-700">
+            {created.heroSource
+              ? `Hero photo set from ${created.heroSource === "library" ? "the photo library" : "Pexels"}. `
+              : "No hero photo matched — set one in the landing editor. "}
+            {created.coverGenerated
+              ? "Cover art generated for the course banner."
+              : ""}
+          </p>
+          {created.applicationSlug && (
+            <p className="text-xs text-green-700">
+              Application live at{" "}
+              <span className="font-mono">bccacademy.io/apply/{created.applicationSlug}</span> —
+              review submissions under Manage → Applications.
+            </p>
+          )}
+          {created.applicationError && (
+            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              {created.applicationError}
             </p>
           )}
         </div>
@@ -159,7 +247,7 @@ export function ImportCourseForm({
           label={
             generating
               ? "Describe the program"
-              : "Google Doc link, Eventbrite link, or pasted text"
+              : "Google Doc link, Eventbrite link, pasted text, or a file"
           }
           hint={
             generating
@@ -169,7 +257,8 @@ export function ImportCourseForm({
         >
           <textarea
             id="import-input"
-            required
+            required={generating || !file}
+            disabled={!generating && Boolean(file)}
             rows={generating ? 6 : needsPaste ? 12 : 4}
             placeholder={
               generating
@@ -178,9 +267,44 @@ export function ImportCourseForm({
             }
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            className={`${fieldInput} font-mono text-xs`}
+            className={`${fieldInput} font-mono text-xs disabled:opacity-50`}
           />
         </Field>
+
+        {!generating && (
+          <div className="flex items-center gap-3">
+            <label className="cursor-pointer rounded-lg border border-ink/10 px-3 py-2 text-sm text-ink-soft transition-colors hover:border-ink/25 hover:text-ink">
+              {file ? "Choose a different file" : "…or upload a file"}
+              <input
+                type="file"
+                accept=".pdf,.docx,.pptx"
+                className="sr-only"
+                onChange={(e) => {
+                  setFile(e.target.files?.[0] ?? null);
+                  setError(null);
+                  setNeedsPaste(false);
+                  // Same input can be re-picked after clearing.
+                  e.target.value = "";
+                }}
+              />
+            </label>
+            {file ? (
+              <span className="flex min-w-0 items-center gap-2 text-sm">
+                <span className="truncate font-mono text-xs">{file.name}</span>
+                <button
+                  type="button"
+                  onClick={() => setFile(null)}
+                  aria-label="Remove file"
+                  className="shrink-0 text-ink-soft transition-colors hover:text-ink"
+                >
+                  ✕
+                </button>
+              </span>
+            ) : (
+              <span className="text-xs text-ink-soft">PDF, Word, or PowerPoint · up to 15MB</span>
+            )}
+          </div>
+        )}
 
         {error && (
           <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
@@ -214,7 +338,8 @@ export function ImportCourseForm({
       <div className="rounded-lg border border-ink/10 bg-surface-muted px-4 py-3">
         <p className="text-sm font-semibold">Review before creating</p>
         <p className="mt-1 text-xs text-ink-soft">
-          Nothing has been saved yet. Check the dates and times especially.
+          Nothing has been saved yet. Read the learner-facing text as carefully as
+          the dates — both go live exactly as they appear here.
         </p>
       </div>
 
@@ -246,6 +371,212 @@ export function ImportCourseForm({
           </p>
         )}
       </Field>
+
+      {/* The teaching material, which the model writes and nobody could see.
+          Everything in this block lands in track_overrides / session_content
+          and renders on the learner's course and week pages — the description
+          and objectives are INVENTED by the generator, whose system prompt
+          asks it for "2-4 warm, concrete sentences" and "3-6 learning
+          objectives". Until now step 2 showed only the name and the timetable,
+          so an admin could click Create believing they had reviewed the
+          course, having read the schedule and none of the teaching. */}
+      <div className="rounded-lg border border-ink/10 px-4 py-4 space-y-5">
+        <div>
+          <p className="text-sm font-semibold text-ink">What learners will see</p>
+          <p className="mt-1 text-xs text-ink-soft">
+            {generating
+              ? "Drafted by the model from your description. Read it before you create the course — this is the course, as far as a learner is concerned."
+              : "Pulled from the source. Read it before you create the course — this is the course, as far as a learner is concerned."}
+          </p>
+        </div>
+
+        <Field label="Short name" hint="course cards and navigation">
+          <input
+            type="text"
+            value={draft.shortName ?? ""}
+            onChange={(e) => patch({ shortName: e.target.value })}
+            className={fieldInput}
+          />
+        </Field>
+
+        <Field label="Description" hint="the course page">
+          <textarea
+            rows={4}
+            value={draft.description ?? ""}
+            onChange={(e) => patch({ description: e.target.value })}
+            className={fieldInput}
+          />
+        </Field>
+
+        <Field label="Learning objectives" hint="one per line, shown on week 1">
+          <textarea
+            rows={5}
+            // The textarea owns the raw text so pressing Enter for a new line
+            // doesn't fight a filter that strips empties; the draft only ever
+            // holds the cleaned array.
+            value={objectivesText}
+            onChange={(e) => {
+              setObjectivesText(e.target.value);
+              patch({
+                objectives: e.target.value
+                  .split("\n")
+                  .map((o) => o.trim())
+                  .filter(Boolean),
+              });
+            }}
+            className={fieldInput}
+          />
+        </Field>
+
+        <Field label="Session 1 title">
+          <input
+            type="text"
+            value={draft.sessionTitle ?? ""}
+            onChange={(e) => patch({ sessionTitle: e.target.value })}
+            className={fieldInput}
+          />
+        </Field>
+
+        <Field label="Session 1 subtitle">
+          <input
+            type="text"
+            value={draft.sessionSubtitle ?? ""}
+            onChange={(e) => patch({ sessionSubtitle: e.target.value })}
+            className={fieldInput}
+          />
+        </Field>
+      </div>
+
+      {/* The landing page draft. Copy only — the schedule is derived from the
+          sessions at create time, and images/accent/links are added later in
+          the landing editor. The page is created UNPUBLISHED, so nothing here
+          is public until the admin publishes it. */}
+      <div className="rounded-lg border border-ink/10 px-4 py-4 space-y-5">
+        <div>
+          <p className="text-sm font-semibold text-ink">Landing page</p>
+          <p className="mt-1 text-xs text-ink-soft">
+            Drafted from the same source. Created unpublished at /bcc/{slug || "…"} —
+            add the hero image and publish from Manage Landing Pages.
+          </p>
+        </div>
+
+        <Field label="Eyebrow" hint="tiny kicker above the headline — optional">
+          <input
+            type="text"
+            value={draft.landing?.eyebrow ?? ""}
+            onChange={(e) => patchLanding({ eyebrow: e.target.value })}
+            className={fieldInput}
+          />
+        </Field>
+
+        <Field label="Headline">
+          <input
+            type="text"
+            value={draft.landing?.headline ?? ""}
+            onChange={(e) => patchLanding({ headline: e.target.value })}
+            className={fieldInput}
+          />
+        </Field>
+
+        <Field label="Subhead">
+          <input
+            type="text"
+            value={draft.landing?.subhead ?? ""}
+            onChange={(e) => patchLanding({ subhead: e.target.value })}
+            className={fieldInput}
+          />
+        </Field>
+
+        {(draft.landing?.bodySections ?? []).map((section, i) => (
+          <Field key={i} label={`Section ${i + 1}`}>
+            <div className="space-y-2">
+              <input
+                type="text"
+                value={section.heading}
+                onChange={(e) => patchLandingSection(i, { heading: e.target.value })}
+                placeholder="Heading"
+                className={fieldInput}
+              />
+              <textarea
+                rows={3}
+                value={section.body}
+                onChange={(e) => patchLandingSection(i, { body: e.target.value })}
+                placeholder="Body"
+                className={fieldInput}
+              />
+            </div>
+          </Field>
+        ))}
+      </div>
+
+      {/* The application form (section 5 of the cohort brief). Off = open
+          signup via the join link, exactly as before. On = an application is
+          created at /apply/<slug> and the landing page's CTA becomes Apply. */}
+      <div className="rounded-lg border border-ink/10 px-4 py-4 space-y-5">
+        <label className="flex items-start gap-2">
+          <input
+            type="checkbox"
+            checked={draft.application?.wanted ?? false}
+            onChange={(e) =>
+              patch({
+                application: {
+                  ...(draft.application ?? { deadline: "", notifyEmail: "", questions: [] }),
+                  wanted: e.target.checked,
+                },
+              })
+            }
+            className="mt-1"
+          />
+          <span>
+            <span className="block text-sm font-semibold text-ink">Application-based cohort</span>
+            <span className="block text-xs text-ink-soft">
+              Creates the form at /apply/{slug || "…"} and points the landing page&apos;s
+              CTA at it. Accepting an applicant allowlists them and emails their join link.
+            </span>
+          </span>
+        </label>
+
+        {draft.application?.wanted && (
+          <>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Field label="Application deadline" hint="optional — end of day Eastern">
+                <input
+                  type="date"
+                  value={draft.application?.deadline ?? ""}
+                  onChange={(e) =>
+                    patch({ application: { ...draft.application!, deadline: e.target.value } })
+                  }
+                  className={fieldInput}
+                />
+              </Field>
+              <Field label="Reviewer email" hint="notified on each submission">
+                <input
+                  type="email"
+                  value={draft.application?.notifyEmail ?? ""}
+                  onChange={(e) =>
+                    patch({ application: { ...draft.application!, notifyEmail: e.target.value } })
+                  }
+                  className={fieldInput}
+                />
+              </Field>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-xs text-ink-soft">
+                Name and email are always collected — don&apos;t add them again.
+              </p>
+              <QuestionRowsEditor questions={appQuestions} onChange={setAppQuestions} />
+              <button
+                type="button"
+                onClick={() => setAppQuestions((qs) => [...qs, newDraftQuestion()])}
+                className={buttonClass("secondary", "sm")}
+              >
+                + Add question
+              </button>
+            </div>
+          </>
+        )}
+      </div>
 
       <Field label="Program">
         <select
@@ -352,13 +683,15 @@ export function ImportCourseForm({
         disabled={pending}
         className={`${buttonClass("primary", "md")} w-full`}
       >
-        {pending ? "Creating…" : "Create course"}
+        {pending ? "Creating course + art…" : "Create course"}
       </button>
 
       <button
         type="button"
         onClick={() => {
           setDraft(null);
+          setObjectivesText("");
+          setFile(null);
           setError(null);
         }}
         className="w-full py-1 text-center text-sm text-ink-soft transition-colors hover:text-ink"

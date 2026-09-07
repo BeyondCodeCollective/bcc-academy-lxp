@@ -13,7 +13,7 @@ type Props = {
   /** Optional label suffix in the value column (e.g. "students"). */
   unit?: string;
   /** Optional override for the top-right caption. Defaults to the sum of
-   *  data values labelled "total" — but that's misleading when one person
+   *  data values labeled "total" — but that's misleading when one person
    *  can appear in multiple rows. Pass { value, label } to show e.g.
    *  "170 unique" instead. */
   totalCaption?: { value: number; label: string };

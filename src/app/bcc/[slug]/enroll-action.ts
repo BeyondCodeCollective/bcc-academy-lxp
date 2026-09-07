@@ -23,11 +23,20 @@ export async function enrollInCourse(input: {
   slug: string;
   name: string;
   email: string;
+  zipCode?: string;
+  heardAbout?: string;
   sessionId?: string | null;
   origin: string;
 }): Promise<EnrollActionResult> {
   const email = (input.email ?? "").trim().toLowerCase();
   const name = (input.name ?? "").trim().slice(0, 200);
+  // Optional at the action level so older cached pages that submit without it
+  // still succeed; the form itself requires a valid ZIP.
+  const zipRaw = (input.zipCode ?? "").trim();
+  const zipCode = /^\d{5}(-\d{4})?$/.test(zipRaw) ? zipRaw : null;
+  // Same reasoning as the ZIP: optional here so a cached page that predates the
+  // field still submits, required by the form itself.
+  const heardAbout = (input.heardAbout ?? "").trim().slice(0, 120) || null;
 
   if (!EMAIL_RE.test(email)) {
     return { ok: false, error: "Please enter a valid email address." };
@@ -86,7 +95,9 @@ export async function enrollInCourse(input: {
         track_slug: page.trackSlug,
         email,
         name: name || null,
+        zip_code: zipCode,
         session_id: session?.id ?? null,
+        heard_about: heardAbout,
         invite_token: inviteToken,
       });
     }

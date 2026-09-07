@@ -19,7 +19,7 @@ import {
 import { trackHasStarted } from "@/lib/utils";
 import { SectionHeadline } from "@/components/stats/section-headline";
 import { StatusChip } from "@/components/stats/status";
-import { DataTable, Num } from "@/components/ui";
+import { DataTable, Num, fieldInput } from "@/components/ui";
 
 type Props = {
   students: StudentRow[];
@@ -189,9 +189,9 @@ export function ProgramAttendanceOverview({ students, tracks, enrollments }: Pro
 }
 
 /**
- * Every learner × every held session, all courses side by side — the
- * "is everyone looped in" grid. ✓ = attended; · = enrolled but absent;
- * — = not enrolled in that course. Totals close the loop both ways.
+ * Every learner × every held session — the "is everyone looped in" grid.
+ * One grid per course, listing only that course's enrolled learners.
+ * ✓ = attended; · = absent. Totals close the loop both ways.
  */
 function AllSessionsMatrix({
   tracks,
@@ -234,49 +234,47 @@ function AllSessionsMatrix({
     [students, groups, enrolledByStudent],
   );
 
-  if (groups.length === 0 || learners.length === 0) return null;
+  // One course at a time behind a picker — stacking every grid reads as
+  // clutter at program altitude. Defaults to the newest cohort (groups are
+  // sorted newest first), which is the one being checked.
+  const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
+  const selected =
+    groups.find((g) => g.track.slug === selectedSlug) ?? groups[0] ?? null;
 
-  // Side-by-side only earns its width when the SAME people span the courses
-  // (Security+ technical + MASS). Disjoint cohorts sharing a grid just fill
-  // it with "not enrolled" dashes — those get one clean grid per course.
-  const rosterOverlaps =
-    groups.length > 1 &&
-    learners.some(
-      (st) =>
-        groups.filter(({ track }) => enrolledByStudent.get(st.id)?.has(track.slug)).length > 1,
-    );
+  if (!selected || learners.length === 0) return null;
 
-  if (!rosterOverlaps && groups.length > 1) {
-    return (
-      <div className="space-y-3">
-        <SectionHeadline
-          eyebrow="All sessions"
-          headline="Every learner, every session held"
-          sub="✓ attended · missed. These cohorts share no learners, so each course gets its own grid."
-        />
-        {groups.map((g) => (
-          <MatrixTable
-            key={g.track.slug}
-            groups={[g]}
-            learners={learners.filter((st) => enrolledByStudent.get(st.id)?.has(g.track.slug))}
-            attended={attended}
-            enrolledByStudent={enrolledByStudent}
-          />
-        ))}
-      </div>
-    );
-  }
+  const selectedLearners = learners.filter((st) =>
+    enrolledByStudent.get(st.id)?.has(selected.track.slug),
+  );
 
   return (
     <div className="space-y-3">
-      <SectionHeadline
-        eyebrow="All sessions"
-        headline="Every learner, every session held"
-        sub="Courses side by side. ✓ attended · missed — not enrolled in that course."
-      />
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <SectionHeadline
+          eyebrow="All sessions"
+          headline="Every learner, every session held"
+          sub="✓ attended · missed. Only this course's enrolled learners are listed."
+        />
+        {groups.length > 1 && (
+          <label className="flex items-center gap-2 text-sm text-ink-soft">
+            Course
+            <select
+              value={selected.track.slug}
+              onChange={(e) => setSelectedSlug(e.target.value)}
+              className={`${fieldInput} w-auto`}
+            >
+              {groups.map((g) => (
+                <option key={g.track.slug} value={g.track.slug}>
+                  {g.track.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+      </div>
       <MatrixTable
-        groups={groups}
-        learners={learners}
+        groups={[selected]}
+        learners={selectedLearners}
         attended={attended}
         enrolledByStudent={enrolledByStudent}
       />
@@ -295,13 +293,54 @@ function MatrixTable({
   attended: Set<string>;
   enrolledByStudent: Map<string, Set<string>>;
 }) {
+  // Click Learner / Total to sort. Total defaults descending — "who completed
+  // the program" is the question this grid answers at cohort end.
+  const [sort, setSort] = useState<{ key: "name" | "total"; dir: 1 | -1 }>({
+    key: "name",
+    dir: 1,
+  });
+  const sortedLearners = useMemo(() => {
+    const displayName = (st: StudentRow) =>
+      `${st.first_name ?? ""} ${st.last_name ?? ""}`.trim() || st.email;
+    const totalFor = (st: StudentRow) => {
+      let att = 0;
+      for (const { track, sessions } of groups) {
+        if (!enrolledByStudent.get(st.id)?.has(track.slug)) continue;
+        for (const sess of sessions) {
+          if (attended.has(`${st.id}|${track.slug}|${sess.week}|${sess.session}`)) att += 1;
+        }
+      }
+      return att;
+    };
+    return [...learners].sort((a, b) =>
+      sort.key === "name"
+        ? sort.dir * displayName(a).localeCompare(displayName(b))
+        : sort.dir * (totalFor(a) - totalFor(b)) ||
+          displayName(a).localeCompare(displayName(b)),
+    );
+  }, [learners, groups, attended, enrolledByStudent, sort]);
+  const toggle = (key: "name" | "total") =>
+    setSort((prev) =>
+      prev.key === key
+        ? { key, dir: prev.dir === 1 ? -1 : 1 }
+        : { key, dir: key === "total" ? -1 : 1 },
+    );
+  const arrow = (key: "name" | "total") =>
+    sort.key === key ? (sort.dir === 1 ? " ↑" : " ↓") : "";
+
   return (
     <div className="panel overflow-x-auto">
         <table className="w-full border-collapse text-xs">
           <thead>
             <tr>
               <th className="sticky left-0 z-10 bg-white px-4 py-2 text-left font-semibold text-ink">
-                Learner
+                <button
+                  onClick={() => toggle("name")}
+                  className="font-semibold underline-offset-2 hover:underline"
+                  title="Sort by name"
+                >
+                  Learner{arrow("name")}
+                </button>
               </th>
               {groups.map(({ track, sessions }) => (
                 <th
@@ -313,7 +352,13 @@ function MatrixTable({
                 </th>
               ))}
               <th className="border-l border-rule px-3 py-2 text-right font-semibold text-ink">
-                Total
+                <button
+                  onClick={() => toggle("total")}
+                  className="font-semibold underline-offset-2 hover:underline"
+                  title="Sort by sessions attended"
+                >
+                  Total{arrow("total")}
+                </button>
               </th>
             </tr>
             <tr className="text-ink-faint">
@@ -334,7 +379,7 @@ function MatrixTable({
             </tr>
           </thead>
           <tbody>
-            {learners.map((st) => {
+            {sortedLearners.map((st) => {
               let att = 0;
               let exp = 0;
               return (

@@ -2,11 +2,9 @@
 
 import { requireCapability } from "./actions-shared";
 import { getProgram } from "@/lib/programs/server";
-import { resolveProgramScope, resolveScopeTrackSlugs } from "@/lib/programs/scope";
+import { resolveProgramScope, resolveScopeTrackSlugs, resolveTrackLengths } from "@/lib/programs/scope";
 import { fetchProgressData } from "@/lib/analytics/progress";
 import { getLearnerActivity } from "@/lib/analytics/activity";
-import { getEveryProgramConfig } from "@/lib/programs";
-import { countedUnits } from "@/lib/attendance/compute";
 
 // Courses & Progress analytics — the "are they moving through and finishing?"
 // view, laid out like Circle's Courses page but built from our tables. Reuses
@@ -111,15 +109,14 @@ export async function getCoursesAnalytics(): Promise<CoursesAnalytics> {
   // reads perfect attendance as 38% mid-course.
   const heldBySlug = new Map<string, number>();
   const nameBySlug = new Map<string, string>();
-  for (const p of getEveryProgramConfig()) {
-    for (const t of p.tracks) {
-      weeksBySlug.set(t.slug, t.totalWeeks);
-      if (!t.startDateTbd && t.startDate) {
-        try { heldBySlug.set(t.slug, countedUnits(t).length); } catch { /* config gaps */ }
-      }
-      if (t.selfPaced && trackSlugs.includes(t.slug)) hasSelfPacedCourse = true;
-      nameBySlug.set(t.slug, t.shortName || t.name);
-    }
+  // DB-first lengths: builder courses (Security+, HFS, Endless, …) live only
+  // in track_overrides. The TS-only map defaulted them all to 8 weeks.
+  const lengths = await resolveTrackLengths(trackSlugs);
+  for (const [slug, L] of lengths) {
+    if (L.totalUnits != null) weeksBySlug.set(slug, L.totalUnits);
+    if (L.heldUnits > 0) heldBySlug.set(slug, L.heldUnits);
+    if (L.selfPaced && trackSlugs.includes(slug)) hasSelfPacedCourse = true;
+    nameBySlug.set(slug, L.name);
   }
 
   // Learners only. Instructors and admins hold student_tracks rows so they can
@@ -160,7 +157,10 @@ export async function getCoursesAnalytics(): Promise<CoursesAnalytics> {
   // furthest week ÷ course length. Clamped so partial data never reads >100.
   const fractionFor = (key: string, slug: string): number => {
     if (completedPairs.has(key)) return 100;
-    const weeks = weeksBySlug.get(slug) ?? 8;
+    const weeks = weeksBySlug.get(slug);
+    // Unknown length: report 0 rather than fabricate a denominator. (The
+    // pair still counts as enrolled; it just can't be placed on the curve.)
+    if (!weeks) return 0;
     const reached = furthest.get(key) ?? 0;
     return Math.min(100, Math.round((reached / weeks) * 100));
   };

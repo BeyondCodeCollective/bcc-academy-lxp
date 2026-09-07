@@ -5,6 +5,8 @@ export type ReadinessCheck = {
   ok: boolean;
   /** Live numbers / what to do when not ok. */
   detail: string;
+  /** Inline fix the panel can render as a button next to the row. */
+  action?: "send-invites";
 };
 
 /** Panel shows from 14 days before start through 2 days after (launch-morning
@@ -102,7 +104,8 @@ export async function getLaunchReadiness(trackSlug: string): Promise<ReadinessCh
       detail:
         unreached.length === 0
           ? `${allowlisted.size} allowlisted, all invited or signed up`
-          : `${unreached.length} allowlisted but never invited and no account — send invites from the People tab`,
+          : `${unreached.length} allowlisted but never invited and no account`,
+      ...(unreached.length > 0 ? { action: "send-invites" as const } : {}),
     },
     {
       label: "Sign-ups",
@@ -134,7 +137,11 @@ export async function getLaunchReadiness(trackSlug: string): Promise<ReadinessCh
       ok: kickoffSet,
       detail: kickoffSet
         ? "Countdown and calendar entries show the real time"
-        : "kickoff time missing — countdown and calendar entries show date only",
+        : // The header's "Saturdays 12:00 PM ET" is prose stored in session_times;
+          // this check reads kickoff_time_utc, the absolute instant the countdown
+          // and .ics feed need. A course can show one and be missing the other,
+          // which reads as a bug — so say where to set it.
+          "kickoff time missing — countdown and calendar entries show date only. Re-save the weekly schedule in Curriculum to set it.",
     },
   ];
 }

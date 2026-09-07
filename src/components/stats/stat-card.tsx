@@ -4,6 +4,7 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { AnimatedNumber } from "@/components/motion/animated-number";
 import { InfoDot } from "./info-dot";
 
 export type StatTrend = {
@@ -58,7 +59,7 @@ export function StatCard({
     <>
       <div className="flex items-start justify-between gap-3">
         <p className="text-3xl font-semibold leading-none text-ink tabular-nums sm:text-4xl">
-          {value}
+          {typeof value === "number" ? <AnimatedNumber value={value} /> : value}
         </p>
         {trend && (
           <span
@@ -73,7 +74,10 @@ export function StatCard({
           </span>
         )}
       </div>
-      <p className="mt-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
+      {/* Tracking narrows on phones: at 0.16em an eleven-letter label
+         ("RESPONDENTS") is wider than a third-width card at 390px and spills
+         across the card border. */}
+      <p className="mt-2 flex min-w-0 items-center gap-1.5 text-micro font-semibold uppercase tracking-[0.08em] text-ink-faint sm:tracking-[0.16em]">
         {label}
         {info && <InfoDot text={info} />}
       </p>

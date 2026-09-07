@@ -1,8 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getSessionContext } from "@/lib/auth/session";
-import { canSwitchPrograms } from "@/lib/roles";
+import { canSwitchPrograms, canAccessAdminPanel } from "@/lib/roles";
 import { getJoinablePrograms } from "@/lib/programs";
 import { listDynamicPrograms } from "@/lib/programs/server";
+import { getGrantedProgramSlugs } from "@/lib/auth/program-access";
+import { createServiceClient } from "@/lib/supabase/server";
 
 // Sets the program-override cookie and sends you on.
 //
@@ -22,13 +24,31 @@ export async function GET(request: NextRequest) {
   if (!ctx?.userId) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
-  // Only a program-switching role may do this. Without the check, any signed-in
-  // learner could hand themselves another program's admin context by URL.
-  if (!canSwitchPrograms(ctx.student?.role ?? "")) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+  const slug = request.nextUrl.searchParams.get("slug") ?? "";
+  // Who may switch: super-admins anywhere; a cross-program grant holder
+  // (staff_program_access) into exactly their granted programs or home
+  // program. Anyone else is bounced — without this, any signed-in learner
+  // could hand themselves another program's admin context by URL.
+  const role = ctx.student?.role ?? "";
+  if (!canSwitchPrograms(role)) {
+    if (!canAccessAdminPanel(role)) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
+    const allowed = new Set(await getGrantedProgramSlugs(ctx.userId));
+    const { data: me } = await createServiceClient()
+      .from("students")
+      .select("programs(slug)")
+      .eq("id", ctx.userId)
+      .maybeSingle();
+    const home = (Array.isArray(me?.programs) ? me?.programs[0] : me?.programs) as
+      | { slug: string }
+      | undefined;
+    if (home?.slug) allowed.add(home.slug);
+    if (!allowed.has(slug)) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
   }
 
-  const slug = request.nextUrl.searchParams.get("slug") ?? "";
   // Allowlist from the real program registry — never trust the query string as
   // a cookie value.
   const target =

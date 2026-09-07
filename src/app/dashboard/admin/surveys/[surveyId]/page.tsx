@@ -72,6 +72,7 @@ export default async function SurveyDashboardPage({
         schema={schema}
         responses={responses}
         programs={programs}
+        trackSlug={trackSlug ? decodeURIComponent(trackSlug) : undefined}
       />
     </div>
   );

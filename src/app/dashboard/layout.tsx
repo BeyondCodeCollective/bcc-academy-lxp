@@ -16,15 +16,16 @@ import { PreviewBanner } from "@/components/preview-banner";
 import { getProgram, getProgramWithOverrides, resolveHomeProgramSlug, fetchDynamicProgram, listDynamicPrograms } from "@/lib/programs/server";
 import { getProgramBySlug, getAllPrograms, getJoinablePrograms, isTutorAvailable } from "@/lib/programs";
 import { ProgramProvider } from "@/lib/programs/context";
+import { ToastProvider } from "@/components/motion/toast";
 import { canAccessAdminPanel, canSwitchPrograms, canAccessStaffContent } from "@/lib/roles";
 import { getSessionContext } from "@/lib/auth/session";
 import { getGrantedProgramSlugs } from "@/lib/auth/program-access";
 import { getPreviewTrackSlug, getPreviewTrackSlugs, LUNCH_LEARN_PREVIEW_SLUG } from "@/lib/auth/preview-mode";
-import { getMyInstructorTracks } from "@/app/dashboard/admin/actions-tracks";
+import { getPreviewScope } from "@/lib/auth/preview-scope";
 import { getEnrolledTracks } from "@/lib/enrollment";
 import { getHiddenTrackSlugs } from "@/lib/programs/hidden";
 import { getLearnerAccess } from "@/lib/auth/active-enrollment";
-import { getEnforcedOnboardingChecklist, getOnboardingStatus } from "@/lib/onboarding/checklists";
+import { heldChecklistTrackSlug } from "@/lib/onboarding/held";
 import { BCC_INTAKE_SURVEY_ID, surveySkippedForTracks, surveyAppliesToPrograms, surveyAppliesToTracks } from "@/lib/surveys/platform";
 import { collapseCompanionSlugs } from "@/lib/enrollment";
 import { isSurveyEnabledForLearner } from "@/lib/surveys/features";
@@ -89,6 +90,11 @@ export default async function DashboardLayout({
   const headersList = await headers();
   const pathname = headersList.get("x-pathname") ?? "";
   const isSurveyPage = pathname.startsWith("/dashboard/survey");
+  // The FDE session stage is its own room: cream, one column, no rail. Any
+  // dashboard chrome around it would compete with the thing the learner is
+  // meant to be looking at, so this drops the shell entirely (not just the
+  // top bars, the way survey pages do).
+  const isImmersive = /^\/dashboard\/track\/[^/]+\/[^/]+\/live/.test(pathname);
   const programSlug = headersList.get("x-program-slug") ?? "bcc-academy";
   const baseProgram = await resolveLearnerBrand(getProgramBySlug(programSlug));
 
@@ -115,6 +121,11 @@ export default async function DashboardLayout({
     // The standalone participation-agreement page is a shareable sign-here link
     // (does its own auth check) — never bounce a learner off it to another gate.
     pathname.startsWith("/dashboard/agreement");
+  // True while a learner is held on an incomplete acceptance checklist: the
+  // chrome drops to the survey pages' minimal shell (logo rail, no course
+  // sidebar/search/breadcrumbs) — they're not in the course yet, so the course's
+  // week list has no business rendering next to the checklist.
+  let confinedToChecklist = false;
   if (isSupabaseConfigured() && !confineExemptPath) {
     const ctx = await getSessionContext();
     if (ctx) {
@@ -136,27 +147,27 @@ export default async function DashboardLayout({
             redirect(`/dashboard/track/${access.pendingSlug}`);
           }
         }
-        // Confine onboarding-checklist learners (e.g. the Cybersecurity
-        // acceptance checklist) to that checklist until every item is done — no
-        // wandering into other dashboard pages via the back button. Survey +
-        // settings pages are exempt above, so they can still complete items.
-        if (!access.pendingOnly) {
-          for (const t of access.enrolled) {
-            if (!getEnforcedOnboardingChecklist(t.slug)) continue;
-            const status = await getOnboardingStatus(supabase, ctx.userId, t.slug);
-            if (status && !status.allComplete) {
-              const reqTrack = pathname.match(/^\/dashboard\/track\/([^/]+)/)?.[1];
-              if (reqTrack !== t.slug) redirect(`/dashboard/track/${t.slug}`);
-              break;
-            }
-          }
+        // Hold onboarding-checklist learners (e.g. the MASS pre-program
+        // checklist) on that checklist page — items pending OR done — until the
+        // course has actually started. Completing the materials is not
+        // acceptance: the course experience stays closed, and every other
+        // dashboard path bounces back here. Survey + settings pages are exempt
+        // above, so items stay completable. The hold lifts itself on start day.
+        const heldTrack = await heldChecklistTrackSlug(ctx.userId);
+        if (heldTrack) {
+          const reqTrack = pathname.match(/^\/dashboard\/track\/([^/]+)/)?.[1];
+          if (reqTrack !== heldTrack) redirect(`/dashboard/track/${heldTrack}`);
+          confinedToChecklist = true;
         }
       }
     }
   }
 
+  const hideChrome = isSurveyPage || confinedToChecklist || isImmersive;
+
   return (
     <ProgramProvider program={baseProgram}>
+    <ToastProvider>
       {/* Set the collapsed-rail attribute before paint so the sidebar width
           doesn't flash on navigation. */}
       <script
@@ -174,32 +185,40 @@ export default async function DashboardLayout({
           } as React.CSSProperties
         }
       >
-        <Suspense fallback={isSurveyPage ? null : <NavSkeleton />}>
-          <NavShell isSurveyPage={isSurveyPage} />
-        </Suspense>
+        {!isImmersive && (
+          <Suspense fallback={hideChrome ? null : <NavSkeleton />}>
+            <NavShell isSurveyPage={hideChrome} />
+          </Suspense>
+        )}
         <main
           id="dashboard-main"
-          className={`flex-1 bg-paper ${isSurveyPage ? "" : "md:pl-60"}`}
+          // Always clear the fixed w-60 nav rail — survey pages render the
+          // minimal (logo-only) rail but previously dropped this padding, so
+          // their centered content sat half-tucked behind the white column.
+          className={`flex-1 bg-paper${isImmersive ? "" : " md:pl-60"}`}
           style={{ fontSize: "16px" }}
         >
-          {!isSurveyPage && (
+          {!hideChrome && (
             <Suspense fallback={null}>
               <PreviewBanner />
             </Suspense>
           )}
-          {!isSurveyPage && (
+          {!hideChrome && (
             <Suspense fallback={null}>
               <TopBarShell />
             </Suspense>
           )}
-          {!isSurveyPage && (
+          {!hideChrome && (
             <Suspense fallback={null}>
               <BreadcrumbBar />
             </Suspense>
           )}
           {children}
-          {!isSurveyPage && (
-            <footer className="border-t border-rule px-6 py-6 text-xs text-ink-soft">
+          {!isSurveyPage && !isImmersive && (
+            // pb-20 on phones: the staff "Preview as student" pill floats
+            // fixed bottom-right and sat directly on top of Privacy/Terms at
+            // phone widths. Desktop has room; mobile gets a spacer.
+            <footer className="border-t border-rule px-6 py-6 pb-20 text-xs text-ink-soft sm:pb-6">
               <div className="flex flex-col items-center gap-1 sm:flex-row sm:justify-between">
                 <p>© 2026 Beyond Code Collective</p>
                 <nav className="flex items-center gap-4">
@@ -216,8 +235,9 @@ export default async function DashboardLayout({
         </main>
       </div>
       <Suspense fallback={null}>
-        <Overlays isSurveyPage={isSurveyPage} />
+        <Overlays isSurveyPage={hideChrome} />
       </Suspense>
+    </ToastProvider>
     </ProgramProvider>
   );
 }
@@ -235,14 +255,35 @@ async function allSwitchablePrograms(): Promise<
     domain: p.domain,
     dnsReady: p.dnsReady,
   }));
-  const { data: dynamicOrgs } = await createServiceClient()
+  const svcClient = createServiceClient();
+  const { data: dynamicOrgs } = await svcClient
     .from("programs")
-    .select("slug, name")
+    .select("id, slug, name")
     .eq("is_dynamic", true)
     .order("name", { ascending: true });
+  const orgSlugs = (dynamicOrgs ?? []).map((o) => o.slug as string);
+  // Hide-aware, same as the preview menu at the nav bottom: a RETIRED org —
+  // it has courses and every one is hidden — stays out of the switcher. A
+  // brand-new org with no courses yet still shows, so there's a way in to
+  // build its first course.
+  const [{ data: orgTracks }, { data: hiddenRows }] = await Promise.all([
+    svcClient
+      .from("track_overrides")
+      .select("program_id, track_slug")
+      .in("program_id", (dynamicOrgs ?? []).map((o) => o.id as string)),
+    orgSlugs.length
+      ? svcClient.from("hidden_courses").select("program_slug, track_slug").in("program_slug", orgSlugs)
+      : Promise.resolve({ data: [] }),
+  ]);
+  const hidden = new Set((hiddenRows ?? []).map((r) => `${r.program_slug}:${r.track_slug}`));
   const known = new Set(programs.map((p) => p.slug));
   for (const org of dynamicOrgs ?? []) {
     if (known.has(org.slug as string)) continue;
+    const tracks = (orgTracks ?? []).filter((t) => t.program_id === org.id);
+    const retired =
+      tracks.length > 0 &&
+      tracks.every((t) => hidden.has(`${org.slug}:${t.track_slug}`));
+    if (retired) continue;
     programs.push({
       slug: org.slug as string,
       name: org.name as string,
@@ -481,7 +522,9 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
   // First previewed slug — single-course consumers below key off it.
   const previewingSlug = previewingSlugs[0] ?? null;
   // (data-driven — no empty nav item). Independent of the AI Tutor.
-  const showResources = !pendingLearner && (await programHasResources(program.slug));
+  const showResources =
+    !pendingLearner &&
+    (await programHasResources(program.slug, enrolledTrackSlugs, isAdmin));
   // canAccessStaff gates the Workshops nav. Demote it in preview mode the
   // same way isAdmin / canSwitch are — otherwise a super-admin previewing
   // as an AI Literacy student still sees the Workshops link and the nav
@@ -859,11 +902,10 @@ async function Overlays({ isSurveyPage }: { isSurveyPage: boolean }) {
   );
   const programBySlug = new Map(overriddenPrograms.map((p) => [p.slug, p] as const));
 
-  // Instructors may preview only the courses they teach; super-admins/admins
-  // see the full menu. `instructorScope` is null for the latter (no filter).
-  const instructorScope = canSwitchPrograms(role)
-    ? null
-    : new Set(await getMyInstructorTracks());
+  // Scope the menu to what the preview actions will actually accept: null for
+  // super-admins (full menu), the home + granted programs' courses for program
+  // admins, only assigned courses for instructors.
+  const previewScope = await getPreviewScope(ctx.userId, role);
 
   const previewGroupMap = new Map<
     string,
@@ -874,10 +916,11 @@ async function Overlays({ isSurveyPage }: { isSurveyPage: boolean }) {
     for (const t of p.tracks) {
       if (hiddenTrackSlugs.has(t.slug)) continue;
       if (seenTrackSlugs.has(t.slug)) continue;
-      if (instructorScope && !instructorScope.has(t.slug)) continue;
-      seenTrackSlugs.add(t.slug);
       const home = getHomeProgramForTrack(t.slug);
       const homeSlug = home?.slug ?? p.slug;
+      if (previewScope && "tracks" in previewScope && !previewScope.tracks.has(t.slug)) continue;
+      if (previewScope && "programs" in previewScope && !previewScope.programs.has(homeSlug)) continue;
+      seenTrackSlugs.add(t.slug);
       // Read the name + program label from the track's HOME program's
       // override-applied config — Catalyst aggregates other programs' tracks
       // but without their overrides, so the home program is authoritative.
@@ -892,9 +935,9 @@ async function Overlays({ isSurveyPage }: { isSurveyPage: boolean }) {
     }
   }
   const previewGroups = [
-    // Lunch & Learns is a super-admin-only preview convenience, not something
-    // an instructor is scoped to teach — omit it for them.
-    ...(instructorScope
+    // Lunch & Learns is a super-admin-only preview convenience — omit it for
+    // scoped staff (the preview action refuses it for them anyway).
+    ...(previewScope
       ? []
       : [
           {

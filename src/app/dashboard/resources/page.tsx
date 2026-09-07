@@ -1,8 +1,15 @@
 import { redirect } from "next/navigation";
 import { ArrowUpRight } from "@phosphor-icons/react/dist/ssr";
 import { getSessionContext } from "@/lib/auth/session";
+import { canAccessAdminPanel } from "@/lib/roles";
+import { getPreviewTrackSlugs } from "@/lib/auth/preview-mode";
 import { getProgram } from "@/lib/programs/server";
-import { fetchResourcesForProgram, type Resource } from "@/lib/resources";
+import {
+  enrolledTrackSlugs,
+  fetchResourcesForProgram,
+  visibleResources,
+  type Resource,
+} from "@/lib/resources";
 import { PageHeader, Section } from "@/components/page-header";
 
 export const dynamic = "force-dynamic";
@@ -12,12 +19,33 @@ export default async function ResourcesPage() {
   if (!ctx) redirect("/");
 
   const program = await getProgram();
-  const resources = await fetchResourcesForProgram(program.slug);
+  const [all, enrolled] = await Promise.all([
+    fetchResourcesForProgram(program.slug),
+    enrolledTrackSlugs(ctx.userId),
+  ]);
+  // Program-wide items plus those scoped to a course this learner is in.
+  // Admins see every scope — they manage resources for courses they aren't
+  // enrolled in, and an empty page right after publishing reads as broken.
+  // Preview-as-student shows the PREVIEWED course's view: visibility keys off
+  // the preview enrollment, not the admin's own (usually empty) enrollments.
+  const role = ctx.student?.role ?? "";
+  const previewSlugs = await getPreviewTrackSlugs(role);
+  const previewing = previewSlugs.length > 0;
+  const seesAll = canAccessAdminPanel(role) && !previewing;
+  const resources = seesAll
+    ? all
+    : visibleResources(all, previewing ? new Set(previewSlugs) : enrolled);
 
   // Group by category, preserving sort order; blank category → "Resources".
+  // Course-scoped items lead with the course name so a learner in two courses
+  // can tell whose "Tools" is whose.
+  const trackNames = new Map(program.tracks.map((t) => [t.slug, t.name]));
   const groups = new Map<string, Resource[]>();
   for (const r of resources) {
-    const key = r.category?.trim() || "Resources";
+    const category = r.category?.trim() || "Resources";
+    const key = r.track_slug
+      ? `${trackNames.get(r.track_slug) ?? r.track_slug} · ${category}`
+      : category;
     const list = groups.get(key) ?? [];
     list.push(r);
     groups.set(key, list);

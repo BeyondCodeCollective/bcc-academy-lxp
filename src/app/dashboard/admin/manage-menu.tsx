@@ -12,7 +12,15 @@ import { buttonClass } from "@/components/ui";
 // that sit with the platform owner (email-gated) — a second program is a
 // credential change, an organization is a whole new tenant, and Platform
 // health lists learner emails across every program.
-type Item = { href: string; label: string; master?: boolean };
+type Item = {
+  href: string;
+  label: string;
+  master?: boolean;
+  /** Show only when the CURRENT program context is one of these slugs.
+   *  Practice exams currently exist only for Catalyst-hub courses — a Forte
+   *  admin has nothing behind the link and shouldn't see it. */
+  programs?: string[];
+};
 
 const GROUPS: { label: string; items: Item[] }[] = [
   {
@@ -21,14 +29,18 @@ const GROUPS: { label: string; items: Item[] }[] = [
       { href: "/dashboard/admin/programs", label: "Manage courses" },
       { href: "/dashboard/admin/announcements", label: "Announcements" },
       { href: "/dashboard/admin/landing", label: "Landing pages" },
+      { href: "/dashboard/admin/media", label: "Photo library" },
+      { href: "/dashboard/admin/landing-signups", label: "Signups" },
       { href: "/dashboard/admin/resources", label: "Resources" },
     ],
   },
   {
     label: "People",
     items: [
-      { href: "/dashboard/admin/registrations", label: "Registrations" },
+      { href: "/dashboard/admin/applications", label: "Applications" },
+      { href: "/dashboard/admin/locations", label: "Participant locations", programs: ["catalyst", "atg", "beyond-code-centers"] },
       { href: "/dashboard/admin/agreements", label: "Participation agreements" },
+      { href: "/dashboard/admin/instructor", label: "Instructor queue" },
       { href: "/dashboard/admin/access", label: "Program access", master: true },
     ],
   },
@@ -37,15 +49,27 @@ const GROUPS: { label: string; items: Item[] }[] = [
     items: [
       { href: "/dashboard/admin/features", label: "Tools" },
       { href: "/dashboard/admin/organizations", label: "Organizations", master: true },
+      { href: "/dashboard/admin/platform-analytics", label: "Platform analytics", master: true },
       { href: "/dashboard/admin/health", label: "Platform health", master: true },
     ],
   },
 ];
 
-export function ManageMenu({ isMaster = false }: { isMaster?: boolean }) {
+export function ManageMenu({
+  isMaster = false,
+  programSlug,
+}: {
+  isMaster?: boolean;
+  /** Current program context; program-scoped items hide when absent. */
+  programSlug?: string;
+}) {
   const groups = GROUPS.map((g) => ({
     ...g,
-    items: g.items.filter((it) => isMaster || !it.master),
+    items: g.items.filter(
+      (it) =>
+        (isMaster || !it.master) &&
+        (!it.programs || (programSlug ? it.programs.includes(programSlug) : false)),
+    ),
   })).filter((g) => g.items.length > 0);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -87,34 +111,44 @@ export function ManageMenu({ isMaster = false }: { isMaster?: boolean }) {
       </button>
 
       {open && (
+        // One column per visible group, side by side, so thirteen items read
+        // as three short lists instead of one viewport-height tower. On phones
+        // the columns stack back up and the panel scrolls within 70vh.
         <div
           role="menu"
-          className="absolute right-0 z-30 mt-1.5 w-52 overflow-hidden rounded-lg border border-rule bg-surface-elevated py-1 shadow-lg"
+          className="absolute right-0 z-30 mt-1.5 max-h-[70vh] w-56 overflow-y-auto rounded-lg border border-rule bg-surface-elevated shadow-lg motion-safe:animate-[fadeIn_150ms_ease-out] sm:max-h-none sm:w-max sm:max-w-[calc(100vw-2rem)] sm:overflow-hidden"
         >
-          {groups.map((g, gi) => (
-            <div key={g.label} className={gi > 0 ? "mt-1 border-t border-rule pt-1" : ""}>
-              <p className="px-3.5 pb-0.5 pt-1.5 text-micro font-semibold uppercase tracking-[0.12em] text-ink-faint">
-                {g.label}
-              </p>
-              {g.items.map((it) => {
-                const active = pathname.startsWith(it.href);
-                return (
-                  <Link
-                    key={it.href}
-                    href={it.href}
-                    role="menuitem"
-                    aria-current={active ? "page" : undefined}
-                    onClick={() => setOpen(false)}
-                    className={`block px-3.5 py-2 text-sm transition-colors hover:bg-paper-tint ${
-                      active ? "bg-paper-tint font-semibold text-ink" : "text-ink"
-                    }`}
-                  >
-                    {it.label}
-                  </Link>
-                );
-              })}
-            </div>
-          ))}
+          <div className="flex flex-col sm:flex-row">
+            {groups.map((g, gi) => (
+              <div
+                key={g.label}
+                className={`py-1.5 sm:w-48 ${
+                  gi > 0 ? "border-t border-rule sm:border-t-0 sm:border-l" : ""
+                }`}
+              >
+                <p className="px-3.5 pb-1 pt-1.5 text-micro font-semibold uppercase tracking-[0.12em] text-ink-faint">
+                  {g.label}
+                </p>
+                {g.items.map((it) => {
+                  const active = pathname.startsWith(it.href);
+                  return (
+                    <Link
+                      key={it.href}
+                      href={it.href}
+                      role="menuitem"
+                      aria-current={active ? "page" : undefined}
+                      onClick={() => setOpen(false)}
+                      className={`block px-3.5 py-2 text-sm transition-colors hover:bg-paper-tint ${
+                        active ? "bg-paper-tint font-semibold text-ink" : "text-ink"
+                      }`}
+                    >
+                      {it.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
