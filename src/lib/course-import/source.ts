@@ -20,7 +20,12 @@ export type EventbriteFacts = {
 export type ImportSource =
   | { kind: "text"; text: string }
   | { kind: "google-doc"; text: string; docId: string }
-  | { kind: "eventbrite"; text: string; facts: EventbriteFacts };
+  | { kind: "eventbrite"; text: string; facts: EventbriteFacts }
+  // Uploaded files (see ./file.ts). PDFs carry the raw bytes — Gemini reads
+  // them natively, so we never extract text from a PDF ourselves. DOCX/PPTX
+  // arrive as text we pulled out of the Office XML.
+  | { kind: "pdf"; text: string; dataBase64: string; fileName: string }
+  | { kind: "file"; text: string; fileName: string };
 
 export type SourceResult =
   | { ok: true; source: ImportSource }

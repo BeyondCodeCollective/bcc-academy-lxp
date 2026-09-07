@@ -7,8 +7,10 @@ export type LandingPartner =
   | { kind: "wordmark"; label: string; height?: number };
 
 /** A detailed-content block rendered below the hero (overview, what you'll
- *  learn, etc.). */
-export type LandingSection = { heading: string; body: string };
+ *  learn, etc.). At most one section per page should set `emphasis`: it
+ *  renders on the program's dark ground and acts as the spine of a long page.
+ *  Two of them makes stripes. */
+export type LandingSection = { heading: string; body: string; emphasis?: boolean };
 
 /** The person leading the course, shown as a headshot + bio block. */
 export type LandingInstructor = {
@@ -196,4 +198,78 @@ export async function getLandingByEventbriteId(
     slug: data.slug as string,
     trackSlug: (data.track_slug as string | null) ?? null,
   };
+}
+
+/**
+ * Mirror of ensureCourseForLanding: give a freshly created course a landing
+ * page at the same slug, so /bcc/<slug> exists to send people to.
+ *
+ * Created UNPUBLISHED, with no owning program — the admin picks the program
+ * (which sets the URL brand segment) when they fill the page in. The copy is a
+ * placeholder derived from the course name, and a live page carrying "Sign up
+ * for X" with nothing else on it is worse than no page.
+ *
+ * Idempotent, and never steals a slug: if anything already occupies it, or a
+ * page already points at this course, it leaves both alone.
+ */
+export async function ensureLandingForCourse(
+  svc: ReturnType<typeof createServiceClient>,
+  trackSlug: string,
+  courseName: string,
+  programSlug: string,
+  /** Drafted copy from the course importer/generator, already reviewed by the
+   *  admin. Absent for the manual builder, which keeps the bare stub. */
+  content?: {
+    headline?: string;
+    subhead?: string;
+    eyebrow?: string;
+    bodySections?: LandingSection[];
+    schedule?: ScheduleDay[];
+    /** Cohort start date(s) the signup form lets people pick. Non-empty turns
+     *  on native enrollment. */
+    sessions?: LandingSession[];
+  },
+): Promise<{ created: boolean; slug: string | null }> {
+  const { data: bySlug } = await svc
+    .from("landing_pages")
+    .select("slug")
+    .eq("slug", trackSlug)
+    .maybeSingle<{ slug: string }>();
+  if (bySlug) return { created: false, slug: bySlug.slug };
+
+  const { data: byTrack } = await svc
+    .from("landing_pages")
+    .select("slug")
+    .eq("track_slug", trackSlug)
+    .maybeSingle<{ slug: string }>();
+  if (byTrack) return { created: false, slug: byTrack.slug };
+
+  const { error } = await svc.from("landing_pages").insert({
+    slug: trackSlug,
+    published: false,
+    header_label: "BCC Academy",
+    headline: content?.headline?.trim() || courseName,
+    subhead: content?.subhead?.trim() || null,
+    eyebrow: content?.eyebrow?.trim() || null,
+    track_slug: trackSlug,
+    accent: "#1a1a1a",
+    // With a cohort date the page offers the real signup form (name, email,
+    // ZIP, date) rather than the bare email box — an email alone can't tell
+    // us who enrolled or where they are. Without a date native_enroll must
+    // stay off: the form can't render a date picker with nothing to pick.
+    native_enroll: (content?.sessions?.length ?? 0) > 0,
+    schedule: content?.schedule ?? [],
+    partners: [],
+    sessions: content?.sessions ?? [],
+    body_sections: content?.bodySections ?? [],
+    updated_at: new Date().toISOString(),
+  });
+
+  if (error) {
+    // Never fail the course on this. The course is real and already saved; the
+    // admin can add a landing page by hand from Manage Landing Pages.
+    console.error(`[ensureLandingForCourse] insert failed for ${programSlug}/${trackSlug}:`, error);
+    return { created: false, slug: null };
+  }
+  return { created: true, slug: trackSlug };
 }

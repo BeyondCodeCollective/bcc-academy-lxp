@@ -8,6 +8,7 @@ import { isStorageUrl, isUploadedVideo } from "@/lib/storage-utils";
 import { resolveTrackProgram } from "@/lib/programs/server";
 import { getSubmission, getReflection, getFeedback, getWeekProgress, getTrackProgressMap } from "@/app/dashboard/track/actions";
 import { isSequentialGated, highestUnlockedWeek } from "@/lib/track-gating";
+import { getEnforcedOnboardingChecklist, getOnboardingStatus } from "@/lib/onboarding/checklists";
 import { canAccessAdminPanel } from "@/lib/roles";
 import { SubmissionForm } from "@/components/submission-form";
 import { PageHeader } from "@/components/page-header";
@@ -24,6 +25,16 @@ import { ZoomEmbed } from "@/components/zoom-embed";
 import { parseZoomLink, isZoomLink } from "@/lib/zoom";
 import { getSessionContext } from "@/lib/auth/session";
 import { signRecordingUrl } from "@/lib/blob-recordings";
+import { InstructorPanel } from "@/components/instructor-panel";
+import { SessionStage } from "@/components/session-stage";
+import { SessionTabs } from "@/components/session-tabs";
+
+/**
+ * Sessions that have a built stage (`./live`). Those open into the immersive
+ * surface instead of the instructor chat panel — two entry points on one page
+ * only makes a learner wonder which one is the real session.
+ */
+const STAGED_SESSIONS = new Set(["forward-deploy:1"]);
 
 export default async function TrackWeekPage({
   params,
@@ -64,6 +75,15 @@ export default async function TrackWeekPage({
       .maybeSingle();
     if (!enr) redirect("/dashboard");
   }
+  // Checklist gate: an unfinished acceptance checklist keeps lessons sealed
+  // even by direct URL. The layout's confinement allows same-track paths (so
+  // the checklist itself renders), which would otherwise leave week URLs as a
+  // way past the track overview's gate once the course has started.
+  if (!gateIsAdmin && gateCtx?.userId && getEnforcedOnboardingChecklist(trackSlug)) {
+    const status = await getOnboardingStatus(createServiceClient(), gateCtx.userId, trackSlug);
+    if (status && !status.allComplete) redirect(`/dashboard/track/${trackSlug}`);
+  }
+
   const hasStarted = trackHasStarted(track);
   if (!gateIsAdmin && !hasStarted) {
     // Back to the course, which carries the pre-start banner ("Starts Monday,
@@ -209,6 +229,17 @@ export default async function TrackWeekPage({
     resources,
   } = resolveSessionContent(weekContent, sessionContent);
 
+  // Instructor mode: a session_lessons row means the AI instructor runs this
+  // session in a hosted lab (src/lib/instructor). Data-driven, no flag.
+  const { data: lessonRow } = await createServiceClient()
+    .from("session_lessons")
+    .select("week_number")
+    .eq("track", trackSlug)
+    .eq("week_number", weekNum)
+    .maybeSingle();
+  const hasInstructor = !!lessonRow;
+  const hasStage = STAGED_SESSIONS.has(`${trackSlug}:${weekNum}`);
+
   // Submissions can be disabled per-week (e.g. Forte's conceptual weeks 1-2),
   // overriding the track-level default. When off, the homework checklist row
   // and the SubmissionForm both hide, and "completed" only requires the video.
@@ -323,28 +354,110 @@ export default async function TrackWeekPage({
     const todayET = now.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
     return weekClock.date > todayET;
   })();
+  // Mirror gate for a day that's fully over: a dated session must not offer a
+  // live join AFTER its calendar day either, even when the schedule carries no
+  // time. Security+'s Aug 27 study session (dated, untimed) kept a live Zoom
+  // embed up five days later — above that same session's replay — and the
+  // recurring room happened to be live with a different class (2026-09-01).
+  const sessionDayPassed = (() => {
+    if (!weekClock?.date) return false;
+    const todayET = now.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+    return weekClock.date < todayET;
+  })();
+  // A recording's presence implies the session happened — but ONLY for
+  // past weeks. On the CURRENT unit a stray recording (seeded by course
+  // setup, or imported early) must never hide the live Join: it blocked
+  // students out of Endless Bootcamp's Presentation Day for two hours
+  // (2026-08-06). Current unit → Join stays up unless an admin explicitly
+  // marks the session completed or the unit's calendar day is over.
+  const liveGateOpen = (i: number) =>
+    sessionStatuses[i] !== "completed" &&
+    !weekIsPast &&
+    !sessionWindowPassed &&
+    !sessionDayFuture &&
+    !sessionDayPassed &&
+    (weekNum === currentWeek || !recordingUrls[i]);
   const zoomSessions = weekContent.sessions
     .map((session, i) => ({
       index: i,
       session,
       parsed: meetingLinks[i] ? parseZoomLink(meetingLinks[i]!) : null,
-      // A recording's presence implies the session happened — but ONLY for
-      // past weeks. On the CURRENT unit a stray recording (seeded by course
-      // setup, or imported early) must never hide the live Join: it blocked
-      // students out of Endless Bootcamp's Presentation Day for two hours
-      // (2026-08-06). Current unit → Join stays up unless an admin explicitly
-      // marks the session completed.
-      isActive:
-        sessionStatuses[i] !== "completed" &&
-        !weekIsPast &&
-        !sessionWindowPassed &&
-        !sessionDayFuture &&
-        (weekNum === currentWeek || !recordingUrls[i]),
+      isActive: liveGateOpen(i),
     }))
     .filter((s) => s.parsed !== null && s.isActive);
+  // Non-Zoom links render a "Join Session" panel instead of an embed (single-
+  // session units only — mirrors the JSX gate below).
+  const nonZoomLive =
+    weekContent.sessions.length === 1 &&
+    !!meetingLinks[0] &&
+    !isZoomLink(meetingLinks[0]) &&
+    liveGateOpen(0);
+  // A live join and that session's replay must NEVER render together: while a
+  // join is up the replay hides; once the join retires the replay is the only
+  // surface left. (Both at once read as broken and invite students into
+  // whatever is currently live on a recurring room.)
+  const liveNow = new Set<number>([
+    ...zoomSessions.map((s) => s.index),
+    ...(nonZoomLive ? [0] : []),
+  ]);
 
   const prevWeek = weekNum > 1 ? weekNum - 1 : null;
   const nextWeek = weekNum < track.totalWeeks ? weekNum + 1 : null;
+
+  // ─── Stage copy ──────────────────────────────────────────────────────
+  // The first paragraph of the session description is the hook — the thing
+  // worth reading before anything else on the page. It moves onto the stage;
+  // the rest of the description stays in the Brief tab, which picks up right
+  // where the hook left off. A description with no leading <p> just leaves the
+  // stage without a blurb; nothing breaks.
+  const { lede: stageBlurb, rest: briefHtml } = splitLede(displayDescription);
+
+  const liveLabel = (() => {
+    if (!weekClock?.date) return undefined;
+    const day = formatCohortDate(weekClock.date, {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+    });
+    if (!weekClock.time) return `Live cohort session — ${day}`;
+    const [h, m] = weekClock.time.split(":").map(Number);
+    const ampm = h >= 12 ? "PM" : "AM";
+    const h12 = h % 12 === 0 ? 12 : h % 12;
+    return `Live cohort session — ${day} at ${h12}:${String(m).padStart(2, "0")} ${ampm} ET`;
+  })();
+
+  // Rendered server-side, so it is a snapshot rather than a ticking clock —
+  // days and hours are what a learner actually needs, and both survive the
+  // page being open for a while.
+  const countdown = (() => {
+    if (!weekClock?.date) return undefined;
+    const [y, mo, d] = weekClock.date.split("-").map(Number);
+    const [h, mi] = (weekClock.time ?? "18:30").split(":").map(Number);
+    const target = Date.UTC(y, mo - 1, d, (h ?? 18) + 4, mi ?? 30);
+    const ms = target - now.getTime();
+    if (ms <= 0) return undefined;
+    const days = Math.floor(ms / 86_400_000);
+    const hours = Math.floor((ms % 86_400_000) / 3_600_000);
+    const mins = Math.floor((ms % 3_600_000) / 60_000);
+    return [
+      { value: String(days).padStart(2, "0"), unit: "Days" },
+      { value: String(hours).padStart(2, "0"), unit: "Hours" },
+      { value: String(mins).padStart(2, "0"), unit: "Min" },
+    ];
+  })();
+
+  // The checklist stopped being its own section at the bottom of the page and
+  // became one line on the tab rail. Same two signals, counted.
+  const checklistTotal = showChecklist
+    ? (weekContent.videoUrl || hasRecording ? 1 : 0) + 1
+    : 0;
+  const checklistDone = showChecklist
+    ? (weekContent.videoUrl || hasRecording
+        ? weekProgress?.videoWatched
+          ? 1
+          : 0
+        : 0) + (weekProgress?.homeworkSubmitted ? 1 : 0)
+    : 0;
 
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-5xl px-4 sm:px-5 pt-4 pb-8">
@@ -447,34 +560,26 @@ export default async function TrackWeekPage({
           </div>
         )}
 
-      {/* Upcoming live session. The pre-day gate (#955) hides the live player
-         until the session's calendar day, but a bare page made "hidden on
-         purpose" indistinguishable from "missing" — a learner checking the
-         night before saw no trace of where class happens. Name the state:
-         a quiet card holds the player's slot until the day arrives. */}
+      {/* Before the session's day: the stage in its "not open yet" state. This
+         replaced a quiet white card that sat in the player's slot — same job
+         (name the state, don't leave a blank page), but it holds the top of
+         the page instead of being one more panel in a stack, and it offers a
+         countdown and a calendar link rather than nothing to do. */}
       {sessionDayFuture &&
         !weekIsPast &&
-        meetingLinks.some(Boolean) &&
+        (meetingLinks.some(Boolean) || hasInstructor) &&
         weekClock?.date && (
-          <div className="mb-8 panel px-4 py-4">
-            <p className="text-sm font-semibold text-ink">Live session opens here</p>
-            <p className="mt-0.5 text-xs text-ink-faint">
-              {formatCohortDate(weekClock.date, {
-                weekday: "long",
-                month: "long",
-                day: "numeric",
-              })}
-              {weekClock.time
-                ? ` at ${(() => {
-                    const [h, m] = weekClock.time.split(":").map(Number);
-                    const ampm = h >= 12 ? "PM" : "AM";
-                    const h12 = h % 12 === 0 ? 12 : h % 12;
-                    return `${h12}:${String(m).padStart(2, "0")} ${ampm} ET`;
-                  })()}`
-                : ""}
-              {" · the Join button appears that morning."}
-            </p>
-          </div>
+          <SessionStage
+            state="before"
+            headline={`${unitName} opens ${formatCohortDate(weekClock.date, {
+              weekday: "long",
+              month: "long",
+              day: "numeric",
+            })}`}
+            blurb={stageBlurb || undefined}
+            liveLabel={liveLabel}
+            countdown={countdown}
+          />
         )}
 
       {/* Zoom embeds — rendered for any session with an active Zoom meeting link.
@@ -507,14 +612,7 @@ export default async function TrackWeekPage({
          sessions list below, so without this an external meeting link rendered
          NO join control at all. Same activity rules as the Zoom embed. Added
          for HFS camp week's Teams-hosted mock-interview days (2026-08-07). */}
-      {weekContent.sessions.length === 1 &&
-        meetingLinks[0] &&
-        !isZoomLink(meetingLinks[0]) &&
-        sessionStatuses[0] !== "completed" &&
-        !weekIsPast &&
-        !sessionWindowPassed &&
-        !sessionDayFuture &&
-        (weekNum === currentWeek || !recordingUrls[0]) && (
+      {nonZoomLive && meetingLinks[0] && (
           <div className="mb-8 flex flex-wrap items-center justify-between gap-3 panel px-4 py-4">
             <div>
               <p className="text-sm font-semibold text-ink">Live session</p>
@@ -536,18 +634,15 @@ export default async function TrackWeekPage({
 
       {/* Between "session over" and "recording imported" the page would
          otherwise be empty — no embed, no replay — which reads as broken
-         (welcome day, 2026-08-07). Say what's actually happening. */}
+         (welcome day, 2026-08-07). Say what's actually happening, in the
+         stage's completed state so the top of the page still has an anchor. */}
       {sessionWindowPassed && !hasRecording && weekNum === currentWeek && (
-        <div className="mb-8 flex items-start gap-3 panel px-4 py-4">
-          <CheckCircle size={18} className="mt-0.5 shrink-0 text-green-600" aria-hidden />
-          <div>
-            <p className="text-sm font-semibold text-ink">Today&apos;s session has ended</p>
-            <p className="mt-0.5 text-sm text-ink-soft">
-              The recording is processing and will appear right here — usually
-              within an hour or two of the session wrapping up.
-            </p>
-          </div>
-        </div>
+        <SessionStage
+          state="after"
+          headline="Today's session has ended"
+          blurb="The recording is processing and will appear right here — usually within an hour or two of the session wrapping up."
+          completedNote={liveLabel}
+        />
       )}
 
       {/* Sessions list — only for multi-session weeks (single-session weeks
@@ -614,7 +709,8 @@ export default async function TrackWeekPage({
          those are intentional overrides for this cohort and rendering both
          stacks duplicate cards on the page. */}
       {weekContent.videoUrl &&
-        !recordingUrls.some((u) => !!u) && (
+        !recordingUrls.some((u) => !!u) &&
+        liveNow.size === 0 && (
           <RecordingCard
             url={weekContent.videoUrl}
             title="Session Recording"
@@ -631,6 +727,8 @@ export default async function TrackWeekPage({
       {weekContent.sessions.map((session, i) => {
         const url = playbackUrls[i];
         if (!url) return null;
+        // Never a replay under a live join for the same session.
+        if (liveNow.has(i)) return null;
 
         const recordingLabel = weekContent.sessions.length > 1
           ? `Session ${i + 1} Recording`
@@ -655,112 +753,129 @@ export default async function TrackWeekPage({
         );
       })}
 
-      {/* Resources — placed prominently before description so they're the
-         first thing students see after the session video/embed. */}
-      {resources.length > 0 && (
-        <section className="mb-8">
-          <h2 className="mb-3 text-sm font-bold text-ink">
-            Course Materials
-          </h2>
-          <ul className="grid gap-3 sm:grid-cols-2">
-            {resources.map((r, i) => {
-              const isFile = r.type === "file" || isStorageUrl(r.url);
-              const isVid = isUploadedVideo(r);
-              const Icon = isVid ? Video : isFile ? FileText : LinkIcon;
-              const action = isFile ? "Download" : "Open";
-              return (
-                <li key={i}>
-                  <a
-                    href={r.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    download={isFile ? (r.name || true) : undefined}
-                    className="group flex min-h-[60px] items-center gap-4 panel px-4 py-4 text-sm font-semibold text-ink transition-colors hover:border-primary hover:bg-paper-tint-soft"
-                  >
-                    <Icon size={24} aria-hidden className="shrink-0 text-ink-faint group-hover:text-ink-soft transition-colors" />
-                    <span className="flex-1 leading-snug">{r.name || r.url}</span>
-                    <span className="shrink-0 text-xs font-bold uppercase tracking-wide text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-                      {action}
-                    </span>
-                  </a>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
+      {/* The lab itself. Idle, this renders AS the stage (the dark slab that
+         anchors the page); once the learner starts, it becomes the live
+         conversation exactly as before. */}
+      {hasInstructor && (
+        <InstructorPanel
+          trackSlug={trackSlug}
+          weekNumber={weekNum}
+          unitName={unitName}
+          sessionTitle={displayTitle}
+          firstName={gateCtx?.student?.first_name ?? null}
+          initiallyComplete={weekProgress?.videoWatched ?? false}
+          stage={{
+            headline: stageBlurb ? undefined : displayTitle,
+            blurb: stageBlurb || undefined,
+            liveLabel,
+            startNote: "You can stop and pick it up later.",
+          }}
+        />
       )}
 
-      {/* Brief description — renders rich text from the WYSIWYG editor */}
-      <div
-        className="mb-8 prose prose-sm max-w-[65ch] text-ink-soft leading-relaxed prose-headings:text-ink prose-a:text-accent prose-strong:text-ink"
-        dangerouslySetInnerHTML={{ __html: displayDescription }}
-      />
-
-      {/* What You'll Cover — divider + eyebrow + list, no card. */}
-      <section className="mb-8 border-t border-rule pt-6">
-        <h2 className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
-          What you&apos;ll cover
-        </h2>
-        <ul className="space-y-2">
-          {displayObjectives.map((obj, i) => (
-            <li key={i} className="flex gap-2.5 text-sm text-ink-soft leading-relaxed">
-              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-ink-faint" />
-              {obj}
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      {/* Completion checklist — inline, no card. */}
-      {showChecklist && (
-        <section className="mt-2 border-t border-rule pt-6">
-          <h2 className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
-            {unit} completion
-          </h2>
-          <div className="space-y-2">
-            {(weekContent.videoUrl || hasRecording) && (
-              <div className="flex items-center gap-2.5">
-                <CheckCircle
-                  size={16}
-                  className={weekProgress?.videoWatched ? "text-green-500" : "text-ink-faint/50"}
+      {/* Everything that used to stack as its own full-width panel down the
+         page — brief, materials, reflection — is one tab strip under the
+         stage. Nothing about how these render changed; only where they live. */}
+      <SessionTabs
+        progressLabel={
+          checklistTotal > 0
+            ? `${checklistDone} of ${checklistTotal} complete`
+            : undefined
+        }
+        progressComplete={checklistTotal > 0 && checklistDone === checklistTotal}
+        tabs={[
+          {
+            id: "brief",
+            label: "Brief",
+            content:
+              briefHtml || displayObjectives.length > 0 ? (
+                <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_372px] lg:gap-11">
+                  {briefHtml ? (
+                    <div
+                      className="prose prose-sm max-w-[640px] leading-relaxed text-ink-soft prose-headings:text-ink prose-a:text-accent prose-strong:text-ink"
+                      dangerouslySetInnerHTML={{ __html: briefHtml }}
+                    />
+                  ) : (
+                    <div />
+                  )}
+                  {displayObjectives.length > 0 && (
+                    <div className="panel flex flex-col gap-4 px-5 py-5">
+                      <h2 className="text-[10.5px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
+                        What you&apos;ll cover
+                      </h2>
+                      <ul className="flex flex-col gap-3.5">
+                        {displayObjectives.map((obj, i) => (
+                          <li key={i} className="flex items-start gap-3.5">
+                            <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border border-rule text-[11px] font-bold tabular-nums text-ink-faint">
+                              {i + 1}
+                            </span>
+                            <span className="text-[14.5px] leading-relaxed text-ink">
+                              {obj}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              ) : null,
+          },
+          {
+            id: "materials",
+            label: "Materials",
+            count: resources.length,
+            content:
+              resources.length > 0 ? (
+                <ul className="grid max-w-4xl gap-3 sm:grid-cols-2">
+                  {resources.map((r, i) => {
+                    const isFile = r.type === "file" || isStorageUrl(r.url);
+                    const isVid = isUploadedVideo(r);
+                    const Icon = isVid ? Video : isFile ? FileText : LinkIcon;
+                    const action = isFile ? "Download" : "Open";
+                    return (
+                      <li key={i}>
+                        <a
+                          href={r.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          download={isFile ? (r.name || true) : undefined}
+                          className="group flex min-h-[60px] items-center gap-4 panel px-4 py-4 text-sm font-semibold text-ink transition-colors hover:border-primary hover:bg-paper-tint-soft"
+                        >
+                          <Icon
+                            size={22}
+                            aria-hidden
+                            className="shrink-0 text-ink-faint transition-colors group-hover:text-ink-soft"
+                          />
+                          <span className="flex-1 leading-snug">{r.name || r.url}</span>
+                          <span className="shrink-0 text-xs font-bold uppercase tracking-wide text-primary opacity-0 transition-opacity group-hover:opacity-100">
+                            {action}
+                          </span>
+                        </a>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : null,
+          },
+          {
+            id: "reflection",
+            label: weekSubmissionsEnabled ? "Submit" : "Reflection",
+            content:
+              unlocked &&
+              isSupabaseConfigured() &&
+              (weekSubmissionsEnabled || track.reflectionsEnabled !== false) ? (
+                <SubmissionsReflectionsSection
+                  trackSlug={trackSlug}
+                  weekNum={weekNum}
+                  weekContent={weekContent}
+                  showSubmissions={weekSubmissionsEnabled}
+                  showReflections={track.reflectionsEnabled !== false}
+                  defaultReflectionPrompts={track.defaultReflectionPrompts}
                 />
-                <span className={`text-sm ${weekProgress?.videoWatched ? "text-ink" : "text-ink-faint"}`}>
-                  Watch the recording
-                </span>
-              </div>
-            )}
-            <div className="flex items-center gap-2.5">
-              <CheckCircle
-                size={16}
-                className={weekProgress?.homeworkSubmitted ? "text-green-500" : "text-ink-faint/50"}
-              />
-              <span className={`text-sm ${weekProgress?.homeworkSubmitted ? "text-ink" : "text-ink-faint"}`}>
-                Submit your homework
-              </span>
-            </div>
-          </div>
-          {studentCompleted && (
-            <p className="mt-3 text-xs font-medium text-green-600">
-              You&apos;ve completed this week.
-            </p>
-          )}
-        </section>
-      )}
-
-      {/* Submissions & Reflections — current/past weeks for cohort tracks,
-         every week for self-paced tracks (see `unlocked` above). */}
-      {unlocked &&
-        isSupabaseConfigured() &&
-        (weekSubmissionsEnabled || track.reflectionsEnabled !== false) && (
-          <SubmissionsReflectionsSection
-            trackSlug={trackSlug}
-            weekNum={weekNum}
-            weekContent={weekContent}
-            showSubmissions={weekSubmissionsEnabled}
-            showReflections={track.reflectionsEnabled !== false}
-            defaultReflectionPrompts={track.defaultReflectionPrompts}
-          />
-        )}
+              ) : null,
+          },
+        ]}
+      />
     </div>
   );
 }
@@ -827,3 +942,21 @@ async function SubmissionsReflectionsSection({
   );
 }
 
+/**
+ * Pull the first paragraph off a rich-text description. It becomes the stage's
+ * blurb; the remainder stays in the Brief tab so nothing is duplicated and
+ * nothing is lost. Tag-stripped because the stage renders it as text, not HTML.
+ */
+function splitLede(html: string | undefined | null): { lede: string; rest: string } {
+  const source = html ?? "";
+  const match = /^\s*<p[^>]*>([\s\S]*?)<\/p>/i.exec(source);
+  if (!match) return { lede: "", rest: source };
+  const lede = match[1]
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .trim();
+  // A one-word or empty first paragraph is a formatting artifact, not a hook.
+  if (lede.split(/\s+/).length < 4) return { lede: "", rest: source };
+  return { lede, rest: source.slice(match[0].length) };
+}

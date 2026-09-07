@@ -105,9 +105,18 @@ export async function saveLandingPageAction(
     .map((x) => ({ id: x.id.trim(), label: x.label.trim() }))
     .filter((x) => x.id && x.label);
 
+  // Only the FIRST emphasized section keeps the flag — a second dark band
+  // turns the page's spine into stripes, and the form can't enforce that
+  // across rows on its own.
+  let emphasisTaken = false;
   const bodySections: LandingSection[] = (input.bodySections ?? [])
-    .map((x) => ({ heading: x.heading.trim(), body: x.body.trim() }))
-    .filter((x) => x.heading && x.body);
+    .map((x) => ({ heading: x.heading.trim(), body: x.body.trim(), emphasis: x.emphasis }))
+    .filter((x) => x.heading && x.body)
+    .map((x) => {
+      const emphasis = Boolean(x.emphasis) && !emphasisTaken;
+      if (emphasis) emphasisTaken = true;
+      return emphasis ? { ...x, emphasis: true } : { heading: x.heading, body: x.body };
+    });
 
   const instructorName = input.instructor?.name.trim() ?? "";
   const instructor = instructorName

@@ -57,7 +57,19 @@ describe("buildTutorSystemPrompt", () => {
 
   it("falls back to a generic persona when a program configures none", () => {
     const prompt = buildTutorSystemPrompt({ program: { name: "Catalyst" } });
-    expect(prompt).toBe("You are an AI tutor for Catalyst. Help students with their coursework.");
+    expect(prompt.startsWith("You are an AI tutor for Catalyst. Help students with their coursework.")).toBe(
+      true,
+    );
+  });
+
+  // Appended centrally so a program that customizes its tutor can't opt out of
+  // US spelling — the house voice, not a per-program choice.
+  it("appends the US English rule to every persona, custom or generic", () => {
+    const custom = buildTutorSystemPrompt({ program, track, week, currentWeekNumber: 3 });
+    const generic = buildTutorSystemPrompt({ program: { name: "Catalyst" } });
+    for (const prompt of [custom, generic]) {
+      expect(prompt).toContain("Write US English");
+    }
   });
 });
 

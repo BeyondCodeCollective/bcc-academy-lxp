@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useTransition, useRef } from "react";
-import { CheckCircle, Warning as AlertCircle, UploadSimple as Upload, CircleNotch as Loader2 } from "@phosphor-icons/react";
+import { UploadSimple as Upload, CircleNotch as Loader2 } from "@phosphor-icons/react";
 import { replaceAllowedEmails, parseEmailList } from "./actions";
 import { Field, fieldInput, buttonClass } from "@/components/ui";
+import { useToast } from "@/components/motion/toast";
 
 export function AllowlistForm({
   trackSlug,
@@ -15,29 +16,35 @@ export function AllowlistForm({
   initialEmails: string[];
 }) {
   const [value, setValue] = useState(initialEmails.join("\n"));
-  const [status, setStatus] = useState<
-    { kind: "idle" } | { kind: "ok"; count: number } | { kind: "error"; msg: string }
-  >({ kind: "idle" });
   const [isPending, startTransition] = useTransition();
   const [previewCount, setPreviewCount] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { showToast, updateToast } = useToast();
 
   async function handleFile(file: File) {
     const text = await file.text();
     const parsed = await parseEmailList(text);
     setValue(parsed.join("\n"));
     setPreviewCount(parsed.length);
-    setStatus({ kind: "idle" });
   }
 
   function handleSave() {
-    setStatus({ kind: "idle" });
     startTransition(async () => {
+      const id = showToast({ title: "Saving allowlist…", status: "loading", duration: 0 });
       const result = await replaceAllowedEmails(trackSlug, value);
       if (result.ok) {
-        setStatus({ kind: "ok", count: result.count });
+        updateToast(id, {
+          title: `Allowlist saved — ${result.count} email${result.count === 1 ? "" : "s"} on the list`,
+          status: "success",
+          duration: 4200,
+        });
       } else {
-        setStatus({ kind: "error", msg: result.error ?? "Save failed" });
+        updateToast(id, {
+          title: "Allowlist not saved",
+          description: result.error ?? "Save failed",
+          status: "error",
+          duration: 8000,
+        });
       }
     });
   }
@@ -85,7 +92,6 @@ export function AllowlistForm({
           onChange={(e) => {
             setValue(e.target.value);
             setPreviewCount(null);
-            setStatus({ kind: "idle" });
           }}
           rows={14}
           className={`${fieldInput} font-mono text-xs leading-relaxed resize-y`}
@@ -135,18 +141,6 @@ export function AllowlistForm({
             "Replace allowlist"
           )}
         </button>
-        {status.kind === "ok" && (
-          <span className="inline-flex items-center gap-1.5 text-sm text-green-700">
-            <CheckCircle size={14} />
-            Saved · {status.count} email{status.count === 1 ? "" : "s"} on the list
-          </span>
-        )}
-        {status.kind === "error" && (
-          <span className="inline-flex items-center gap-1.5 text-sm text-red-600">
-            <AlertCircle size={14} />
-            {status.msg}
-          </span>
-        )}
       </div>
 
       <p className="text-xs text-ink-soft">

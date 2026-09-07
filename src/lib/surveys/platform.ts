@@ -37,7 +37,7 @@ export function surveySkippedForTracks(
  * Beyond the Game, and it showed up in that program's Insights.
  *
  * Returns null when a survey doesn't claim a program, leaving the old
- * student-stamp behaviour for the platform-wide forms (intake, learn-more)
+ * student-stamp behavior for the platform-wide forms (intake, learn-more)
  * where "who replied" genuinely is the right filing.
  */
 export function surveyOwnerProgramSlug(surveyId: string): string | null {
@@ -55,7 +55,7 @@ export function surveyOwnerProgramSlug(surveyId: string): string | null {
  * Allowlist counterpart to surveySkippedForTracks: is this survey meant for a
  * learner in these programs at all?
  *
- * No allowlist = the old opt-out behaviour (applies to everyone, minus skips).
+ * No allowlist = the old opt-out behavior (applies to everyone, minus skips).
  * An allowlist with no matching home program = not this learner's survey, which
  * is the safe default a denylist can't give you.
  */
@@ -112,6 +112,11 @@ export const PLATFORM_AUTH_SURVEYS: Record<string, SurveyConfig> = {
     description:
       "Application for the Home for the Summer intensive — August 10–14, 2026, with NextEra Energy.",
     required: false,
+    // Course-scoped so the admin Surveys tab lists it only under HFS —
+    // applicants who also enrolled in MASS were surfacing it there. Collected
+    // via /apply/home-for-summer, never served through the dashboard survey
+    // pipeline, so this changes admin listing only.
+    appliesToTracks: ["home-for-summer"],
   },
   [SBFT_APPLICATION_SURVEY_ID]: {
     id: SBFT_APPLICATION_SURVEY_ID,
@@ -131,6 +136,16 @@ export const PLATFORM_AUTH_SURVEYS: Record<string, SurveyConfig> = {
   // purpose: everyone answering is already enrolled and already logged in to
   // attend, so the response binds to their account instead of asking them to
   // retype a name and email we have.
+  // MASS Fall 2026 learners take this as the third item in their pre-program
+  // checklist, so it stays `required: false` — the checklist is what asks for
+  // it, not a forced dashboard redirect.
+  "mass-fall-2026-pre": {
+    id: "mass-fall-2026-pre",
+    title: "MASS Coaching Cohort — Pre-Program Survey",
+    description:
+      "Mindset and soft skills, about 10 minutes. Not a test — where you're starting from, so we can support you from day one. Private; used only to improve the coaching and report impact.",
+    required: false,
+  },
   "security-plus-midpoint": {
     id: "security-plus-midpoint",
     title: "CompTIA Security+ Midpoint Check-In",

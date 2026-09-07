@@ -212,6 +212,66 @@ export async function sendInviteEmail({
  * family can view, print, and share it. Program-branded like every other
  * student email (white-label: the org is the brand, not BCC Academy).
  */
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/**
+ * Acceptance email — sent automatically when a reviewer accepts an
+ * application submission. Carries the join link when the application is
+ * linked to a course (the applicant is already allowlisted by then).
+ */
+export async function sendAcceptanceEmail({
+  to,
+  name,
+  applicationTitle,
+  joinUrl,
+}: {
+  to: string;
+  name: string;
+  applicationTitle: string;
+  /** Absent when the application has no linked course yet. */
+  joinUrl?: string;
+}): Promise<void> {
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY not set — skipping acceptance email");
+    return;
+  }
+  const first = name.split(" ")[0] || "there";
+  const joinBlock = joinUrl
+    ? `\n\nYour next step is to join the course portal:\n${joinUrl}\n\nUse this email address when you sign in.`
+    : "\n\nWe'll follow up shortly with your next steps.";
+  const text = `Hi ${first},\n\nGreat news — your application to ${applicationTitle} has been accepted. We're excited to have you.${joinBlock}\n\nSee you soon,\nThe team`;
+  const html = `
+    <div style="font-family:-apple-system,Segoe UI,sans-serif;max-width:520px;margin:0 auto;color:#1a1a1a;">
+      <p>Hi ${escapeHtml(first)},</p>
+      <p>Great news — your application to <strong>${escapeHtml(applicationTitle)}</strong> has been accepted. We're excited to have you.</p>
+      ${
+        joinUrl
+          ? `<p>Your next step is to join the course portal:</p>
+             <p><a href="${joinUrl}" style="display:inline-block;background:#1a1a1a;color:#ffffff;padding:12px 24px;text-decoration:none;border-radius:8px;font-weight:600;">Join the course</a></p>
+             <p style="color:#555;font-size:13px;">Use this email address when you sign in.</p>`
+          : `<p>We'll follow up shortly with your next steps.</p>`
+      }
+      <p>See you soon,<br/>The team</p>
+    </div>`;
+
+  const { error } = await resend.emails.send({
+    from: FROM_ADDRESS,
+    to,
+    subject: `You're in — ${applicationTitle}`,
+    text,
+    html,
+  });
+  if (error) {
+    console.error("[email] sendAcceptanceEmail failed:", JSON.stringify(error));
+  }
+}
+
 export async function sendCertificateEmail({
   to,
   firstName,
@@ -794,12 +854,14 @@ export async function sendApplicationNotification(input: {
   applicationName: string;
   /** Short triage lines, e.g. { University: "Mercer", "Available for all sessions": "Yes" }. */
   details?: Record<string, string | undefined>;
+  /** Override recipient for programs with their own owner (default APPLICATION_NOTIFY_EMAIL). */
+  to?: string;
 }): Promise<void> {
   if (!resend) {
     console.warn("[email] RESEND_API_KEY not set — skipping application notification");
     return;
   }
-  const to = process.env.APPLICATION_NOTIFY_EMAIL ?? "jihan.johnston@wearebcc.org";
+  const to = input.to ?? process.env.APPLICATION_NOTIFY_EMAIL ?? "jihan.johnston@wearebcc.org";
   const esc = (s: string) =>
     s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const rows = Object.entries(input.details ?? {})

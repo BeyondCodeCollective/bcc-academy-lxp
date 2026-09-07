@@ -22,6 +22,7 @@ import { BCC_INTAKE_SURVEY_ID } from "@/lib/surveys/platform";
 // same statements, word for word.
 import {
   SBFT_APPLICATION_PAGES,
+  MASS_PRE_PAGES,
   DIGITAL_EXPERIENCE_STATEMENTS,
   AI_EXPERIENCE_STATEMENTS,
   HFS_WORK_READINESS_STATEMENTS,
@@ -1876,6 +1877,11 @@ function getSurveyPages(surveyId: string, programSlug: string): SurveyPage[] {
   }
   if (surveyId === "hfs-impact-survey") {
     return HFS_IMPACT_PAGES;
+  }
+  // No programSlug condition: MASS Fall 2026 sits under Catalyst but the
+  // agreement link is shareable, so the survey must render wherever it's opened.
+  if (surveyId === "mass-fall-2026-pre") {
+    return MASS_PRE_PAGES;
   }
   // The generic pre-survey is only for the surveys that were built on it.
   // Anything else reaching here is unwired — hfs-pre-survey fell through to

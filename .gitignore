@@ -69,3 +69,4 @@ supabase/.temp/
 
 # Eval scorecard — a run artifact, regenerated on every `pnpm eval`.
 evals/last-run.json
+# identity ok

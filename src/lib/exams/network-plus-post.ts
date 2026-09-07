@@ -27,7 +27,7 @@ export const NETWORK_PLUS_POST = {
    * grading actions both redirect/refuse); staff can still open it to
    * preview. Flip to true when the cohort should sit the post-assessment.
    */
-  enabled: false,
+  enabled: true,
   questions: [
  {
   "n": 1,

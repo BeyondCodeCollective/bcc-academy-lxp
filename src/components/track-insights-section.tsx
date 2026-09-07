@@ -19,7 +19,7 @@ type Props = {
   exams?: { id: string; title: string; attempted: number }[];
 };
 
-// This is a follow-up list, so the colour marks what needs chasing. Under half
+// This is a follow-up list, so the color marks what needs chasing. Under half
 // the class is where a survey stops being a data source.
 function rateTone(pct: number): string {
   if (pct >= 75) return "text-success-text";

@@ -5,6 +5,12 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.resolve(__dirname),
   },
+  // The platform atlas route serves a generated standalone HTML file via
+  // readFile; without an explicit trace entry the bundler drops it from the
+  // serverless output and the route 500s only in production.
+  outputFileTracingIncludes: {
+    "/platform-atlas": ["./src/app/platform-atlas/atlas.html"],
+  },
   experimental: {
     serverActions: {
       // Default is 1MB, which silently killed admin image uploads (landing

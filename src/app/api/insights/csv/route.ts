@@ -24,7 +24,15 @@ function flattenResponse(response: Record<string, unknown>): Record<string, stri
     } else if (typeof value === "object" && value !== null) {
       // Handle nested objects (like Likert scales)
       for (const [subKey, subValue] of Object.entries(value)) {
-        flat[`${key}_${subKey}`] = String(subValue ?? "");
+        if (subValue !== null && typeof subValue === "object" && !Array.isArray(subValue)) {
+          // Dual-likert: each statement holds { before, now }. One column per
+          // side — String() on the object exported "[object Object]".
+          for (const [pairKey, pairValue] of Object.entries(subValue as Record<string, unknown>)) {
+            flat[`${key}_${subKey}_${pairKey}`] = String(pairValue ?? "");
+          }
+        } else {
+          flat[`${key}_${subKey}`] = String(subValue ?? "");
+        }
       }
     } else {
       flat[key] = String(value ?? "");

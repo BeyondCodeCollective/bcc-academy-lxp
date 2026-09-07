@@ -1596,6 +1596,125 @@ const SBFT_APPLICATION: SurveyQuestion[] = SBFT_APPLICATION_PAGES.flatMap(
   (page) => page.questions,
 );
 
+// ─── mass-fall-2026-pre (MASS Coaching Cohort — Pre-Program Survey) ──────────
+// Single source of truth, same as SBFT: the wizard imports MASS_PRE_PAGES and
+// MASS_FALL_2026_PRE is derived from it, so the form and the analytics schema
+// cannot drift.
+export const MASS_PRE_PAGES: {
+  title: string;
+  subtitle?: string;
+  questions: SurveyQuestion[];
+}[] = [
+  {
+    title: "Before you start",
+    subtitle: "Mindset and Soft Skills · About 10 minutes",
+    questions: [
+      {
+        type: "consent",
+        id: "consent_participate",
+        label: "Before you start",
+        text: "This is not a test. We want to learn where you are right now — how you see yourself, what your goals are, and what you need from this coaching. There are no right or wrong answers. Please be honest. Your honest starting point helps us support you well from day one.",
+        bullets: [
+          "Your answers stay private.",
+          "We use them only to improve the coaching and to show our impact to the funders who make it possible.",
+          "You can skip any question or mark “Prefer not to say.”",
+          "You can ask us anytime to see your answers, change them, or delete them. Just email info@beyondcodecollective.org.",
+          "We will ask you these same rating questions again at the end. That lets us measure your growth.",
+        ],
+        confirmLabel: "I understand and agree to take part.",
+        required: true,
+      },
+      { type: "text", id: "full_name", label: "Full name", required: true, short: true },
+      { type: "text", id: "email", label: "Email address", required: true, short: true },
+    ],
+  },
+  {
+    title: "How you see yourself as a professional",
+    subtitle: "This part is about how you see yourself and what you bring right now.",
+    questions: [
+      {
+        type: "likert",
+        id: "professional_self",
+        label: "For each line, mark how much you agree right now.",
+        scale: LIKERT_1_5,
+        scaleAnchors: { low: "1 — Strongly Disagree", high: "5 — Strongly Agree" },
+        statements: [
+          "I have a clear sense of who I am as a professional and what I bring.",
+          "I can tell my professional story — who I am, what I have done, and where I am headed.",
+          "I can talk about my strengths and wins without playing them down.",
+          "I believe I belong in the career space I am working toward.",
+          "I can see a version of myself doing well in a professional setting.",
+        ],
+        required: true,
+      },
+    ],
+  },
+  {
+    title: "Mindset and bouncing back",
+    subtitle: "This part is about how you handle hard moments and setbacks.",
+    questions: [
+      {
+        type: "likert",
+        id: "mindset_resilience",
+        label: "For each line, mark how much you agree right now.",
+        scale: LIKERT_1_5,
+        scaleAnchors: { low: "1 — Strongly Disagree", high: "5 — Strongly Agree" },
+        statements: [
+          "When something goes wrong, I know how to step back, adjust, and keep going.",
+          "When a challenge is hard, I stay with it instead of giving up.",
+          "I feel comfortable asking for help or support when I need it.",
+        ],
+        required: true,
+      },
+    ],
+  },
+  {
+    title: "Your direction and reaching out",
+    subtitle: "This part is about your career direction and connecting with other people.",
+    questions: [
+      {
+        type: "likert",
+        id: "direction_outreach",
+        label: "For each line, mark how much you agree right now.",
+        scale: LIKERT_1_5,
+        scaleAnchors: { low: "1 — Strongly Disagree", high: "5 — Strongly Agree" },
+        statements: [
+          "I can clearly describe the type of role or work I am aiming for.",
+          "When I think about my next career step, I know what to do first.",
+          "I feel confident reaching out to someone I do not know to ask for a talk or a chance.",
+        ],
+        required: true,
+      },
+    ],
+  },
+  {
+    title: "In your own words",
+    questions: [
+      {
+        type: "text",
+        id: "mindset_focus",
+        label: "Is there anything about your mindset, habits, or how you show up as a professional that you want to work on in this coaching?",
+        required: false,
+      },
+      {
+        type: "text",
+        id: "success_definition",
+        label: "What does success look like for you when this coaching ends?",
+        placeholder: "Be as clear as you can.",
+        required: true,
+      },
+      {
+        type: "text",
+        id: "most_need",
+        label: "What is the one thing you most need from this coaching to be successful?",
+        required: true,
+      },
+    ],
+  },
+];
+
+const MASS_FALL_2026_PRE: SurveyQuestion[] = MASS_PRE_PAGES.flatMap((page) => page.questions);
+
 const SCHEMAS: Record<string, SurveyQuestion[]> = {
   "bcc-learner-intake": BCC_LEARNER_INTAKE,
   "comptia-security-pre": COMPTIA_SECURITY_PRE,
@@ -1617,6 +1736,7 @@ const SCHEMAS: Record<string, SurveyQuestion[]> = {
   "hfs-pre-survey": HFS_PRE_SURVEY,
   "hfs-impact-survey": HFS_IMPACT_SURVEY,
   "sbft-application": SBFT_APPLICATION,
+  "mass-fall-2026-pre": MASS_FALL_2026_PRE,
 };
 
 export function getSurveySchema(surveyId: string): SurveyQuestion[] | null {

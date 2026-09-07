@@ -519,6 +519,27 @@ export function LandingForm({
                 onChange={(e) => updateSection(i, { body: e.target.value })}
                 className={`${fieldInput} resize-y`}
               />
+              <label className="flex items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={Boolean(x.emphasis)}
+                  onChange={(e) => {
+                    // One band per page: ticking a section unticks the others.
+                    const on = e.target.checked;
+                    setBodySections((p) =>
+                      p.map((s, idx) => ({ ...s, emphasis: on && idx === i })),
+                    );
+                  }}
+                  className="mt-1"
+                />
+                <span>
+                  Feature this section
+                  <span className="block text-xs text-ink-faint">
+                    Renders on the program&apos;s dark color — the spine of a long page. One
+                    per page; ticking this unticks any other.
+                  </span>
+                </span>
+              </label>
             </div>
           ))}
         </div>

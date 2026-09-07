@@ -5,6 +5,8 @@ export type ReadinessCheck = {
   ok: boolean;
   /** Live numbers / what to do when not ok. */
   detail: string;
+  /** Inline fix the panel can render as a button next to the row. */
+  action?: "send-invites";
 };
 
 /** Panel shows from 14 days before start through 2 days after (launch-morning
@@ -102,7 +104,8 @@ export async function getLaunchReadiness(trackSlug: string): Promise<ReadinessCh
       detail:
         unreached.length === 0
           ? `${allowlisted.size} allowlisted, all invited or signed up`
-          : `${unreached.length} allowlisted but never invited and no account — send invites from the People tab`,
+          : `${unreached.length} allowlisted but never invited and no account`,
+      ...(unreached.length > 0 ? { action: "send-invites" as const } : {}),
     },
     {
       label: "Sign-ups",

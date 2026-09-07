@@ -162,10 +162,16 @@ Marketing surfaces stop at Caption.
 Stat VALUES are exempt — a `StatCard` number, a donut centre, or a countdown
 is data, not a heading, and shrinking those defeats the point of the tile.
 
+**Display is one step, used once per screen.** Exactly one object on a page —
+the course name, the session you are about to join — earns it; everything else
+stays at Body or below. Two competing display sizes (30px here, 34px there) is
+what makes a screen read flat, so do not introduce a second one.
+
 **Shared scale:**
 
 | Role | Size | Weight | Family |
 |---|---|---|---|
+| Display | 27px → 30px at `sm` | Bold (700), `leading-[1.08]`, `tracking-[-0.02em]` | Archivo |
 | Body | 16px | Regular (400) | SF / system stack |
 | Label / Small | 14px | Medium (500) | SF / system stack |
 | Caption | 12px | Medium (500) | SF / system stack |

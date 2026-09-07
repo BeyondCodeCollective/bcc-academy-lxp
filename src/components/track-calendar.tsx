@@ -24,14 +24,16 @@ const MONTHS = [
 // Chip + legend styling per type. Session = neutral, MASS = cobalt,
 // speaker = purple, event/office-hours = dashed outline ("other").
 const CHIP: Record<CalendarEvent["type"], string> = {
-  session: "bg-paper-tint text-ink-soft",
+  // Program accent, not neutral grey — a session chip has to read as "there's
+  // something on this date" from across the room.
+  session: "bg-primary/12 font-semibold text-primary",
   mass: "bg-cobalt/12 text-cobalt",
   speaker: "bg-[#7C3AED]/14 text-[#7C3AED]",
   event: "border border-dashed border-ink-faint text-ink-soft",
   "office-hours": "border border-dashed border-ink-faint text-ink-soft",
 };
 const DOT: Record<CalendarEvent["type"], string> = {
-  session: "bg-ink-faint",
+  session: "bg-primary",
   mass: "bg-cobalt",
   speaker: "bg-[#7C3AED]",
   event: "border border-ink-faint",
@@ -81,7 +83,15 @@ export function TrackCalendar({
   }, [months, todayISO]);
 
   const [monthIdx, setMonthIdx] = useState(startIdx);
-  const [selected, setSelected] = useState<string | null>(null);
+  // Pre-select the next upcoming event so the day panel opens showing the
+  // session that matters instead of "Select a day" (nobody clicked it there).
+  const [selected, setSelected] = useState<string | null>(() => {
+    const next = events
+      .map((e) => e.date)
+      .filter((d) => d >= todayISO)
+      .sort()[0];
+    return next ?? null;
+  });
 
   if (months.length === 0) return null;
   const cur = months[Math.min(monthIdx, months.length - 1)];
@@ -154,6 +164,38 @@ export function TrackCalendar({
         </div>
       </div>
 
+      {/* Selected-day panel — ABOVE the grid, accent-marked. Below it, nobody
+         scrolled far enough to notice the next session was right there. */}
+      <div className="rounded-lg border border-primary/25 bg-primary/8 p-4">
+        <h4 className="text-sm font-semibold text-ink">{selectedLabel ?? "Select a day"}</h4>
+        {!selected ? (
+          <p className="mt-1 text-sm text-ink-faint">Click any date below to see what’s on.</p>
+        ) : selectedEvents.length === 0 ? (
+          <p className="mt-1 text-sm text-ink-faint">Nothing scheduled this day.</p>
+        ) : (
+          <ul className="mt-2 space-y-2">
+            {selectedEvents.map((e, i) => {
+              const inner = (
+                <span className="flex items-center gap-2">
+                  <span className={`h-2.5 w-2.5 shrink-0 rounded-[3px] ${DOT[e.type]}`} />
+                  <span className="text-sm font-medium text-ink">{e.title}</span>
+                  {e.time && <span className="text-xs text-ink-soft">{e.time}</span>}
+                </span>
+              );
+              return (
+                <li key={i}>
+                  {e.href ? (
+                    <a href={e.href} className="hover:underline">{inner}</a>
+                  ) : (
+                    inner
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
       {/* Grid */}
       <div className="overflow-hidden rounded-lg border border-rule">
         <div className="grid grid-cols-7 bg-rule gap-px">
@@ -216,36 +258,6 @@ export function TrackCalendar({
         </div>
       </div>
 
-      {/* Selected-day panel */}
-      <div className="rounded-lg border border-rule bg-paper-tint p-4">
-        <h4 className="text-sm font-semibold text-ink">{selectedLabel ?? "Select a day"}</h4>
-        {!selected ? (
-          <p className="mt-1 text-sm text-ink-faint">Click any date above to see what’s on.</p>
-        ) : selectedEvents.length === 0 ? (
-          <p className="mt-1 text-sm text-ink-faint">Nothing scheduled this day.</p>
-        ) : (
-          <ul className="mt-2 space-y-2">
-            {selectedEvents.map((e, i) => {
-              const inner = (
-                <span className="flex items-center gap-2">
-                  <span className={`h-2.5 w-2.5 shrink-0 rounded-[3px] ${DOT[e.type]}`} />
-                  <span className="text-sm font-medium text-ink">{e.title}</span>
-                  {e.time && <span className="text-xs text-ink-soft">{e.time}</span>}
-                </span>
-              );
-              return (
-                <li key={i}>
-                  {e.href ? (
-                    <a href={e.href} className="hover:underline">{inner}</a>
-                  ) : (
-                    inner
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
     </div>
   );
 }

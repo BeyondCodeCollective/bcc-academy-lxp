@@ -325,7 +325,7 @@ export async function getPlatformAnalytics(
     }
   }
 
-  // Recency + growth, from behaviour only. last_seen_at is written at signup,
+  // Recency + growth, from behavior only. last_seen_at is written at signup,
   // so it reads a freshly-enrolled cohort as 100% active — last_activity_at is
   // the honest column (same call the program-scoped analytics makes).
   const learnersByProgram = new Map<string, number>();

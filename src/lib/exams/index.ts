@@ -53,6 +53,38 @@ export type MissedQuestion = {
   answered: string | null;
 };
 
+/** One question as an INSTRUCTOR may see it: the prompt, what the learner
+ *  picked, and the right answer. Staff-only — the learner-facing
+ *  MissedQuestion deliberately withholds `correct`, and this must never be
+ *  handed to a learner surface. */
+export type ReviewedQuestion = {
+  n: number;
+  domain: string;
+  prompt: string;
+  answered: string | null;
+  correct: string;
+  isCorrect: boolean;
+};
+
+/** Full item-level review of a submitted attempt, for the instructor's
+ *  per-student view. Ordered by question number. */
+export function reviewAttempt(
+  exam: Exam,
+  answers: Record<string, number>,
+): ReviewedQuestion[] {
+  return exam.questions.map((q) => {
+    const picked = answers[String(q.n)];
+    return {
+      n: q.n,
+      domain: q.domain,
+      prompt: q.prompt,
+      answered: picked !== undefined ? q.options[picked] ?? null : null,
+      correct: q.options[q.correct],
+      isCorrect: picked === q.correct,
+    };
+  });
+}
+
 export function grade(
   exam: Exam,
   answers: Record<string, number>,

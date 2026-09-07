@@ -1,7 +1,15 @@
 "use server";
 
+import { after } from "next/server";
 import { savePublicSurveyResponse } from "@/app/survey/[id]/actions";
+import { sendApplicationNotification } from "@/lib/email";
 import { SBFT_APPLICATION_SURVEY_ID } from "@/lib/surveys/platform";
+
+/** Reads a plain string answer, or undefined when absent/blank. */
+function answer(answers: Record<string, unknown>, key: string): string | undefined {
+  const v = answers[key];
+  return typeof v === "string" && v.trim() ? v.trim() : undefined;
+}
 
 export async function savePublicApplication(input: {
   email: string;
@@ -19,7 +27,7 @@ export async function savePublicApplication(input: {
       : "";
   const fullName = [first, last].filter(Boolean).join(" ");
 
-  return savePublicSurveyResponse({
+  const result = await savePublicSurveyResponse({
     programSlug: "bgc",
     surveyType: SBFT_APPLICATION_SURVEY_ID,
     email: input.email,
@@ -27,4 +35,24 @@ export async function savePublicApplication(input: {
     consentVersion: "sbft-v1",
     responses: input.answers,
   });
+
+  if (result.ok) {
+    // Heads-up for the program owner, so applications surface without anyone
+    // remembering to open admin → Insights.
+    after(async () => {
+      await sendApplicationNotification({
+        to: "richard@wearebgc.org",
+        name: fullName,
+        email: input.email,
+        applicationName: "She's Built for This",
+        details: {
+          Grade: answer(input.answers, "grade"),
+          "Parent/guardian": answer(input.answers, "parent_full_name"),
+          "Parent email": answer(input.answers, "parent_email"),
+        },
+      });
+    });
+  }
+
+  return result;
 }

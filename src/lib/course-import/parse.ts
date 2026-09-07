@@ -21,6 +21,37 @@ export type DraftSession = {
   durationMinutes: number;
 };
 
+/** Marketing copy for the course's landing page (/bcc/[slug]). Drafted from
+ *  the same source, reviewed on the same screen. Links, images, and brand
+ *  color are set by code or by hand in the landing editor — never drafted. */
+export type LandingDraft = {
+  headline: string;
+  subhead: string;
+  /** Tiny kicker above the headline, e.g. "Free 6-week program". Empty if
+   *  nothing in the source fits. */
+  eyebrow: string;
+  bodySections: { heading: string; body: string; emphasis?: boolean }[];
+};
+
+/** A question in the drafted application form. Mirrors the admin builder's
+ *  vocabulary (src/components/application-questions.tsx) minus the client id,
+ *  which is assigned at create time. */
+export type ApplicationDraftQuestion = {
+  kind: "text" | "text-short" | "radio" | "multi-select" | "select" | "date" | "consent";
+  label: string;
+  options: string[];
+  required: boolean;
+};
+
+/** The drafted application form (section 5 of the cohort launch brief). */
+export type ApplicationDraft = {
+  /** False when the brief says open signup — no application is created. */
+  wanted: boolean;
+  deadline: string; // YYYY-MM-DD, or "" when not stated
+  notifyEmail: string;
+  questions: ApplicationDraftQuestion[];
+};
+
 export type CourseDraft = {
   name: string;
   shortName: string;
@@ -35,6 +66,8 @@ export type CourseDraft = {
   objectives: string[];
   sessionTitle: string;
   sessionSubtitle: string;
+  landing: LandingDraft;
+  application: ApplicationDraft;
   /** Fields the source never stated. Rendered as blanks the admin must fill,
    *  never silently defaulted to a plausible-looking value. */
   missing: string[];
@@ -55,6 +88,8 @@ export const SCHEMA = jsonSchema<{
   objectives: string[];
   sessionTitle: string;
   sessionSubtitle: string;
+  landing: LandingDraft;
+  application: ApplicationDraft;
   missing: string[];
   timezoneStated: boolean;
 }>({
@@ -74,6 +109,8 @@ export const SCHEMA = jsonSchema<{
     "objectives",
     "sessionTitle",
     "sessionSubtitle",
+    "landing",
+    "application",
     "missing",
     "timezoneStated",
   ],
@@ -115,6 +152,89 @@ export const SCHEMA = jsonSchema<{
     },
     sessionTitle: { type: "string" },
     sessionSubtitle: { type: "string", description: "One line. Empty string if none." },
+    landing: {
+      type: "object",
+      additionalProperties: false,
+      required: ["headline", "subhead", "eyebrow", "bodySections"],
+      description:
+        "Marketing copy for the course's public landing page. Copy only — never links, images, or prices unless the source states them.",
+      properties: {
+        headline: {
+          type: "string",
+          description: "Short, concrete page headline. Usually the course name or the source's own hook.",
+        },
+        subhead: {
+          type: "string",
+          description: "One sentence under the headline saying who this is for and what they get.",
+        },
+        eyebrow: {
+          type: "string",
+          description: 'Tiny kicker above the headline, e.g. "Free 6-week program". Empty string if nothing in the source fits.',
+        },
+        bodySections: {
+          type: "array",
+          description:
+            "2-4 content blocks below the hero, drawn from the source. Make them differ in KIND so the page has rhythm: an overview, a bulleted list of what happens, a short outcome. Keep prose to 2-3 sentences per block and use \"- \" bulleted lines wherever the source is really a list \u2014 a wall of paragraph text is the main thing that makes a long page unreadable. Blank line = new paragraph.",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["heading", "body", "emphasis"],
+            properties: {
+              heading: { type: "string" },
+              emphasis: {
+                type: "boolean",
+                description:
+                  "True on exactly ONE section — the outcome or the strongest claim. It renders on the program's dark ground and gives a long page its spine. Every other section must be false; two dark bands makes stripes.",
+              },
+              body: { type: "string", description: "1-3 plain-prose sentences. No markdown." },
+            },
+          },
+        },
+      },
+    },
+    application: {
+      type: "object",
+      additionalProperties: false,
+      required: ["wanted", "deadline", "notifyEmail", "questions"],
+      description:
+        "The application form, when the source describes one (a cohort launch brief's APPLICATION section, an application deadline, or applicant questions). wanted=false with empty fields when the source says open signup or never mentions applying.",
+      properties: {
+        wanted: {
+          type: "boolean",
+          description: "True only if the source says this cohort selects applicants or lists application questions.",
+        },
+        deadline: { type: "string", description: "Application deadline YYYY-MM-DD. Empty string if not stated." },
+        notifyEmail: {
+          type: "string",
+          description: "Email of whoever reviews applications, if the source names one. Empty string otherwise.",
+        },
+        questions: {
+          type: "array",
+          description:
+            "One entry per applicant question from the source, in order. Transcribe the source's questions — do not invent extras. Never include name or email; those are always collected.",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["kind", "label", "options", "required"],
+            properties: {
+              kind: {
+                type: "string",
+                enum: ["text", "text-short", "radio", "multi-select", "select", "date", "consent"],
+                description:
+                  "'text' for open answers, 'text-short' for one-liners (age, school), 'radio' for pick-one lists, 'multi-select' for pick-any, 'date' for dates, 'consent' for agreement statements.",
+              },
+              label: { type: "string" },
+              options: {
+                type: "array",
+                items: { type: "string" },
+                description: "Choices for radio/multi-select/select (e.g. from 'pick one: a / b / c'). Empty for other kinds.",
+              },
+              required: { type: "boolean" },
+            },
+          },
+        },
+      },
+    },
     missing: {
       type: "array",
       items: { type: "string" },
@@ -137,7 +257,10 @@ Rules:
 - If the source gives a time in another zone (e.g. "8:00 AM PDT"), convert it to Eastern.
 - "sessions" must contain one entry per session with a real date. This drives the calendar; an empty array makes the course invisible.
 - For a recurring course, expand the cadence into individual dated sessions.
-- Keep the source's wording in description and objectives. Do not add marketing language.`;
+- Keep the source's wording in description and objectives. Do not add marketing language.
+- "landing" is the course's public landing page copy. Reshape the source's own words into a headline, subhead, optional eyebrow, and 2-4 body sections. Stay in the source's voice; never add claims, prices, or facts the source doesn't state.
+- "application": if the source says the cohort selects applicants (an APPLICATION section, a deadline, applicant questions), set wanted=true and transcribe its questions in order — do not invent questions it doesn't ask. Open signup or no mention: wanted=false.
+- Write US English throughout, even when the source spells things the British way — use the American forms: organization, program, enrollment, behavior, color, center, math, analyze, recognize, -ize endings throughout. Spelling is the one thing you normalize when transcribing the source's wording.`;
 
 
 /** Model settings, so an eval run can pin them without changing production.
@@ -175,11 +298,32 @@ end (local): ${source.facts.endLocal}
 timezone: ${source.facts.timezone}`
       : "";
 
+  // PDFs go to the model as raw bytes — Gemini reads them natively, so the
+  // layout (tables, schedules) survives where a text dump would scramble it.
   const { object } = await generateObject({
     ...draftModelSettings(opts),
     schema: SCHEMA,
     system: SYSTEM,
-    prompt: `Convert this into course data.${factBlock}\n\nSOURCE:\n${source.text.slice(0, 20000)}`,
+    ...(source.kind === "pdf"
+      ? {
+          messages: [
+            {
+              role: "user" as const,
+              content: [
+                { type: "text" as const, text: `Convert this into course data.${factBlock}` },
+                {
+                  type: "file" as const,
+                  data: source.dataBase64,
+                  mediaType: "application/pdf",
+                  filename: source.fileName,
+                },
+              ],
+            },
+          ],
+        }
+      : {
+          prompt: `Convert this into course data.${factBlock}\n\nSOURCE:\n${source.text.slice(0, 20000)}`,
+        }),
   });
 
   // The Eventbrite API is authoritative for time; don't let the model's copy of

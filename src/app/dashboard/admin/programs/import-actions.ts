@@ -7,9 +7,13 @@ import { hasCapability } from "@/lib/roles";
 import { getProgramBySlug } from "@/lib/programs";
 import { toSlug } from "@/lib/programs/slug";
 import { easternToUtc } from "@/lib/utils";
+import { ensureLandingForCourse } from "@/lib/landing-pages";
 import { resolveSource } from "@/lib/course-import/source";
-import { parseCourseDraft, type CourseDraft } from "@/lib/course-import/parse";
+import { extractFileSource, MAX_FILE_BYTES } from "@/lib/course-import/file";
+import { parseCourseDraft, COURSE_TIMEZONE, type CourseDraft } from "@/lib/course-import/parse";
 import { generateCourseDraft } from "@/lib/course-import/generate";
+import { resolveHeroPhoto, generateCoverGraphic } from "@/lib/course-import/hero";
+import { toSurveyQuestion, type DraftQuestion } from "@/lib/application-questions";
 
 // Same three programs the manual builder allows — they're the ones that surface
 // on the bccacademy.io hub. See COURSE_PROGRAM_SLUGS in ./actions.ts.
@@ -85,6 +89,40 @@ export async function previewCourseImportAction(
   };
 }
 
+/** Step 1, file flavor: upload a PDF/DOCX/PPTX and parse it. Writes nothing.
+ *  Takes FormData because server actions can't take a File directly. */
+export async function previewCourseFileImportAction(
+  formData: FormData,
+): Promise<PreviewResult> {
+  await requireCourseCreator();
+
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) {
+    return { success: false, error: "Choose a file first." };
+  }
+  if (file.size > MAX_FILE_BYTES) {
+    return { success: false, error: "That file is over 15MB. Export a smaller version or paste the text." };
+  }
+
+  const resolved = await extractFileSource(file.name, Buffer.from(await file.arrayBuffer()));
+  if (!resolved.ok) {
+    return { success: false, error: resolved.error, needsPaste: resolved.needsPaste };
+  }
+
+  let draft: CourseDraft;
+  try {
+    draft = await parseCourseDraft(resolved.source);
+  } catch (err) {
+    console.error("[previewCourseFileImportAction] parse failed:", err);
+    return {
+      success: false,
+      error: "Could not read that file. Try pasting the text directly.",
+    };
+  }
+
+  return { success: true, draft, attendeeEmails: [] };
+}
+
 /** Step 1 of the generator: describe the program, get a reviewable draft.
  *  Writes nothing — the draft flows into the same review step and
  *  createCourseFromDraftAction as an import. */
@@ -110,7 +148,21 @@ export async function generateCourseDraftAction(
 }
 
 export type ImportResult =
-  | { success: true; slug: string; joinUrl: string; allowlisted: number }
+  | {
+      success: true;
+      slug: string;
+      joinUrl: string;
+      allowlisted: number;
+      landingSlug: string | null;
+      landingCreated: boolean;
+      /** Where the auto-set art came from, for the success message. */
+      heroSource: "library" | "pexels" | null;
+      coverGenerated: boolean;
+      /** /apply/<slug> when the draft included an application; null otherwise
+       *  (or when the application couldn't be created — the message says so). */
+      applicationSlug: string | null;
+      applicationError: string | null;
+    }
   | { success: false; error: string };
 
 /** Step 2: write the reviewed draft. Called only after an admin confirms it. */
@@ -264,14 +316,154 @@ export async function createCourseFromDraftAction(params: {
     }
   }
 
+  // Same pairing the manual builder enforces: a cohort with no landing page has
+  // no way for anyone to sign up for it. The drafted copy was reviewed on the
+  // same screen as the course; the schedule is derived from the sessions here
+  // rather than drafted, so it can't disagree with the calendar.
+  const landing = await ensureLandingForCourse(svc, slug, draft.name.trim(), programSlug, {
+    headline: draft.landing?.headline,
+    subhead: draft.landing?.subhead,
+    eyebrow: draft.landing?.eyebrow,
+    bodySections: (draft.landing?.bodySections ?? []).filter(
+      (s) => s.heading.trim() && s.body.trim(),
+    ),
+    // One pickable cohort: the course's own start. That's what turns the
+    // landing page's bare email box into the real name/email/ZIP form.
+    sessions: [
+      {
+        id: `${slug}-${first.date}`,
+        label: `${new Date(`${first.date}T12:00:00Z`).toLocaleDateString("en-US", {
+          weekday: "long",
+          month: "long",
+          day: "numeric",
+          timeZone: "UTC",
+        })} · ${first.time}`,
+        startUtc: easternToUtc(first.date, first.time),
+        timezone: COURSE_TIMEZONE,
+      },
+    ],
+    schedule: orderedSessions.map((s) => ({
+      // Noon UTC so the label can't slip a day in any server timezone.
+      label: new Date(`${s.date}T12:00:00Z`).toLocaleDateString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        timeZone: "UTC",
+      }),
+      title: s.topic,
+    })),
+  });
+
+  // The application form, when the brief asked for one. Created before the
+  // landing page is dressed so the Apply button can point at it. Failure here
+  // never sinks the course — the admin can build the form by hand.
+  let applicationSlug: string | null = null;
+  let applicationError: string | null = null;
+  const appDraft = draft.application;
+  if (appDraft?.wanted) {
+    // A choice question with fewer than two options renders as a required
+    // field nobody can answer — the whole form becomes unsubmittable. The
+    // manual builder rejects these; the importer drops them and says so.
+    const needsOptions = (k: string) => k === "radio" || k === "multi-select" || k === "select";
+    const labeled = (appDraft.questions ?? []).filter((q) => q.label?.trim());
+    const validQuestions = labeled.filter(
+      (q) => !needsOptions(q.kind) || (q.options ?? []).filter((o) => o.trim()).length >= 2,
+    );
+    const dropped = labeled.length - validQuestions.length;
+    if (dropped > 0) {
+      applicationError = `${dropped} question${dropped === 1 ? "" : "s"} had too few answer options and ${dropped === 1 ? "was" : "were"} left out — add options under Manage → Applications.`;
+    }
+    if (validQuestions.length === 0) {
+      applicationError = "The application had no questions — build it under Manage → Applications.";
+    } else {
+      const questions = validQuestions.map((q, i) =>
+        toSurveyQuestion({
+          id: `q-${i + 1}`,
+          kind: q.kind,
+          label: q.label,
+          options: q.options ?? [],
+          required: q.required,
+        } satisfies DraftQuestion),
+      );
+      const { error: appError } = await svc.from("applications").insert({
+        slug,
+        program_id: programRow.id,
+        track_slug: slug,
+        title: draft.name.trim(),
+        description: draft.description?.trim() || null,
+        questions,
+        notify_email: appDraft.notifyEmail?.trim() || null,
+        // End of day Eastern; easternToUtc follows DST so a winter deadline
+        // doesn't close an hour early.
+        closes_at: appDraft.deadline ? easternToUtc(appDraft.deadline, "23:59") : null,
+      });
+      if (appError) {
+        console.error("[createCourseFromDraftAction] application insert failed:", appError);
+        applicationError =
+          appError.code === "23505"
+            ? `An application already exists at /apply/${slug} — link it under Manage → Applications.`
+            : "The application form couldn't be created — build it under Manage → Applications.";
+      } else {
+        applicationSlug = slug;
+      }
+    }
+  }
+
+  // Auto-art, part of the same creation flow: a hero photo for the landing
+  // page (curated library first, Pexels fallback) and a branded cover
+  // illustration for the course banner + OG card. Best-effort — a course with
+  // no art is exactly what we shipped before, so failures never surface.
+  const [heroPhoto, coverGraphic] = await Promise.all([
+    resolveHeroPhoto(svc, draft),
+    generateCoverGraphic(svc, draft, programSlug),
+  ]);
+
+  // Art only dresses a landing page this flow just created — never clobber
+  // choices an admin made on an existing page. The Apply CTA is different:
+  // the application was created THIS run, so even a pre-existing landing page
+  // must point at it — otherwise visitors keep enrolling directly and the
+  // selection process is silently bypassed.
+  if (landing.slug) {
+    const updates = {
+      ...(landing.created && heroPhoto ? { hero_image_url: heroPhoto.url } : {}),
+      ...(landing.created && coverGraphic ? { og_image: coverGraphic } : {}),
+      ...(applicationSlug
+        ? { apply_url: `/apply/${applicationSlug}`, apply_cta_label: "Apply now" }
+        : {}),
+    };
+    if (Object.keys(updates).length > 0) {
+      await svc
+        .from("landing_pages")
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq("slug", landing.slug);
+    }
+  }
+
+  // Course banner: an Eventbrite cover the admin reviewed stays authoritative.
+  if (coverGraphic && !params.coverImageUrl) {
+    await svc
+      .from("track_overrides")
+      .update({ cover_image_url: coverGraphic })
+      .eq("program_id", programRow.id)
+      .eq("track_slug", slug);
+  }
+
   revalidatePath("/dashboard", "page");
   revalidatePath("/dashboard/admin", "page");
   revalidatePath(`/dashboard/track/${slug}`, "page");
+  if (applicationSlug) revalidatePath("/dashboard/admin/applications");
+  if (landing.created) revalidatePath("/dashboard/admin/landing");
 
   return {
     success: true,
     slug,
     joinUrl: `https://bccacademy.io/join/${programSlug}?track=${slug}`,
     allowlisted,
+    landingSlug: landing.slug,
+    landingCreated: landing.created,
+    heroSource: heroPhoto?.source ?? null,
+    coverGenerated: Boolean(coverGraphic),
+    applicationSlug,
+    applicationError,
   };
 }
