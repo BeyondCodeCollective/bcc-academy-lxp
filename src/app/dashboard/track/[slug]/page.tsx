@@ -1,3 +1,4 @@
+import { CourseHero } from "@/components/course-hero";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import {
@@ -508,27 +509,38 @@ export default async function TrackOverviewPage({
       )}
 
       {/* 1 — what course is this. The page used to open on a rail of session
-         cards: navigation, above identity, duplicating the sidebar. */}
-      <header>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
-          {eyebrow}
-        </p>
-        <h1 className="mt-1.5 text-[27px] font-bold leading-[1.08] tracking-[-0.02em] text-ink sm:text-[30px]">
-          {track.name}
-        </h1>
-        {/* Three fact tiles said one sentence. This is the sentence. */}
-        <p className="mt-2 text-[13.2px] tabular-nums text-ink-faint">
-          {metaLine}
-        </p>
-      </header>
+         cards: navigation, above identity, duplicating the sidebar.
+
+         Two shapes, one rule. With cover art the art is the page's single dark
+         object and the header stays plain ink beneath it. WITHOUT art — which
+         is most courses — the page opened on a bare line of small type and had
+         no dark object at all, so the header itself becomes the field. Never
+         both: that is the stacking #1095 removed. */}
+      {track.coverImageUrl ? (
+        <header>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
+            {eyebrow}
+          </p>
+          <h1 className="mt-1.5 text-[27px] font-bold leading-[1.08] tracking-[-0.02em] text-ink sm:text-[30px]">
+            {track.name}
+          </h1>
+          {/* Three fact tiles said one sentence. This is the sentence. */}
+          <p className="mt-2 text-[13.2px] tabular-nums text-ink-faint">
+            {metaLine}
+          </p>
+        </header>
+      ) : (
+        <CourseHero eyebrow={eyebrow} title={track.name} meta={metaLine} />
+      )}
 
       {/* 2 — the one thing to do now. Before day one that's the start + a way to
          calendar it; once running, the live / today / next session. */}
       {preStart ? (
         <PreStartBanner track={track} />
       ) : touchpoint ? (
-        // Quiet here: the cover art above is already this page's one dark
-        // object, and the course name is already its one display size.
+        // Quiet here: whichever hero rendered above — cover art or the field —
+        // is already this page's one dark object, and the course name is
+        // already its one display size.
         <NextUpPanel touchpoint={touchpoint} variant="quiet" />
       ) : (
         <Link

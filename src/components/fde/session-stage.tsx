@@ -1,10 +1,10 @@
 "use client";
 
 /**
- * FDE 101 — "Where AI Belongs", the learner-facing session stage.
+ * Field Ready — "Where AI Belongs", the learner-facing session stage.
  *
  * Design comes from the canvas (artboards `Main` / `Build`): cream #FAF7F2,
- * one centered column at every width, cobalt #1D59FF as the only accent,
+ * one centerd column at every width, cobalt #1D59FF as the only accent,
  * Archivo display. Structure comes from the run of show — four parts, in the
  * order Fonz teaches them.
  *
@@ -26,6 +26,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { saveFourSecondCall, markSessionComplete } from "@/app/dashboard/track/[slug]/[week]/live/actions";
 
 /* ── palette ─────────────────────────────────────────────────────────── */
 
@@ -129,32 +130,24 @@ function useNarration() {
       const token = ++tokenRef.current;
       setSpeaking(true);
 
-      fetch("/api/fde/voice", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ text }),
-      })
-        .then((r) => {
-          if (!r.ok) throw new Error(String(r.status));
-          return r.blob();
-        })
-        .then((blob) => {
-          if (token !== tokenRef.current) return;
-          const audio = new Audio(URL.createObjectURL(blob));
-          audioRef.current = audio;
-          audio.onended = () => {
-            if (token === tokenRef.current) setSpeaking(false);
-          };
-          audio.onerror = () => {
-            if (token === tokenRef.current) setSpeaking(false);
-          };
-          return audio.play();
-        })
-        .catch(() => {
-          if (token !== tokenRef.current) return;
-          setSpeaking(false);
-          fallback(text);
-        });
+      // Same-origin URL rather than a blob: the app's CSP has no `blob:` in
+      // media-src, so a blob-backed <audio> is blocked outright.
+      const audio = new Audio(`/api/fde/voice?text=${encodeURIComponent(text)}`);
+      audioRef.current = audio;
+      audio.onended = () => {
+        if (token === tokenRef.current) setSpeaking(false);
+      };
+      audio.onerror = () => {
+        // Unconfigured key, network, a bad response — she still has to talk.
+        if (token !== tokenRef.current) return;
+        setSpeaking(false);
+        fallback(text);
+      };
+      audio.play().catch(() => {
+        if (token !== tokenRef.current) return;
+        setSpeaking(false);
+        fallback(text);
+      });
     },
     [muted, stop, fallback],
   );
@@ -209,6 +202,156 @@ function VoiceChip({ voice, yourTurn }: { voice: Voice; yourTurn?: boolean }) {
   );
 }
 
+
+/* ── listening ───────────────────────────────────────────────────────── */
+
+type RecognitionLike = {
+  lang: string;
+  interimResults: boolean;
+  continuous: boolean;
+  onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string }> & { isFinal: boolean }> }) => void) | null;
+  onend: (() => void) | null;
+  onerror: ((e: { error?: string }) => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+
+function getRecognition(): RecognitionLike | null {
+  if (typeof window === "undefined") return null;
+  const w = window as unknown as {
+    SpeechRecognition?: new () => RecognitionLike;
+    webkitSpeechRecognition?: new () => RecognitionLike;
+  };
+  const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
+  return Ctor ? new Ctor() : null;
+}
+
+/**
+ * The other half of the conversation.
+ *
+ * She asks the room questions and the chip said "say it out loud" — but
+ * nothing was listening, so answering did nothing and the session felt
+ * broken. This listens on exactly the beats that ask something, matches what
+ * it hears against that beat's options, and shows the words as they arrive so
+ * the learner can see it working.
+ *
+ * Tapping always still works. Recognition is unavailable in Firefox, needs a
+ * permission grant, and mishears people — it can be the fast path, never the
+ * only one.
+ */
+function useListening({
+  active,
+  onMatch,
+}: {
+  active: boolean;
+  onMatch: (heard: string) => boolean;
+}) {
+  const [heard, setHeard] = useState("");
+  const [state, setState] = useState<"off" | "listening" | "denied" | "unsupported">("off");
+  const recRef = useRef<RecognitionLike | null>(null);
+  // The matcher closes over this beat's state and changes every render, but
+  // recognition must not be torn down and restarted each time — keep the
+  // latest one in a ref, updated in an effect rather than during render.
+  const matchRef = useRef(onMatch);
+  useEffect(() => {
+    matchRef.current = onMatch;
+  }, [onMatch]);
+
+  /* eslint-disable react-hooks/set-state-in-effect --
+     SpeechRecognition is exactly the "external system" the rule carves out:
+     this effect subscribes to it and the setState calls report its status
+     (unsupported, started, denied) back to the UI. There is nowhere else to
+     learn any of it — the API is imperative and only exists on the client. */
+  useEffect(() => {
+    if (!active) {
+      recRef.current?.stop();
+      recRef.current = null;
+      setHeard("");
+      setState("off");
+      return;
+    }
+
+    let done = false;
+    const rec = getRecognition();
+    if (!rec) {
+      setState("unsupported");
+      return;
+    }
+
+    rec.lang = "en-US";
+    rec.interimResults = true;
+    rec.continuous = true;
+    rec.onresult = (e) => {
+      let text = "";
+      for (let i = 0; i < e.results.length; i++) text += e.results[i][0].transcript;
+      setHeard(text.trim());
+      // Stop the moment the answer is recognizable — leaving the mic open
+      // after a match means the next sentence overwrites the choice.
+      if (matchRef.current(text)) {
+        done = true;
+        rec.stop();
+      }
+    };
+    rec.onerror = (e) => {
+      setState(e?.error === "not-allowed" ? "denied" : "off");
+    };
+    // Chrome ends recognition on its own after a stretch of silence, and
+    // after any result it did not act on. Without restarting, the mic simply
+    // dies mid-question and the learner is left talking to a page that
+    // stopped listening — which reads as a freeze, not a timeout. `done`
+    // guards the restart so tearing down on unmount doesn't respawn it.
+    rec.onend = () => {
+      recRef.current = null;
+      if (done) return;
+      try {
+        rec.start();
+        recRef.current = rec;
+      } catch {
+        /* already restarting; the next onend will try again */
+      }
+    };
+
+    try {
+      rec.start();
+      recRef.current = rec;
+      setState("listening");
+    } catch {
+      // start() throws if one is already running; the existing one is fine.
+      setState("listening");
+    }
+
+    return () => {
+      done = true;
+      rec.onresult = null;
+      rec.onend = null;
+      rec.onerror = null;
+      rec.stop();
+      recRef.current = null;
+    };
+  }, [active]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  return { heard, state };
+}
+
+/** What counts as each answer when spoken aloud. */
+function matchOpener(said: string): number | null {
+  const t = said.toLowerCase();
+  if (/\b(no|nope|not that|never|none)\b/.test(t)) return 2;
+  if (/\b(probably|maybe|possibly|never counted|not sure|think so)\b/.test(t)) return 1;
+  if (/\b(yes|yeah|yep|yup|definitely|absolutely|for sure|we have|loads)\b/.test(t)) return 0;
+  return null;
+}
+
+function matchGuess(said: string): number | null {
+  const t = said.toLowerCase();
+  if (/\bhundred\b|\b1%|\bone percent\b/.test(t)) return 3;
+  if (/\bten\b|\b10%|\bten percent\b/.test(t)) return 2;
+  if (/\bquarter\b|\b25|\btwenty.?five\b/.test(t)) return 1;
+  if (/\bhalf\b|\b50|\bfifty\b/.test(t)) return 0;
+  return null;
+}
+
 /* ── the four parts ──────────────────────────────────────────────────── */
 
 const PARTS = [
@@ -241,14 +384,55 @@ const MONTHS = [
  * `gate` names an action the beat will not move past.
  */
 const BEATS = [
-  { line: "Before I show you anything — one question.", sub: "Has anywhere you have worked ever launched something new that almost nobody ended up using?", card: 0, mic: "live", gate: "opening" },
-  { line: "Almost everyone says yes.", sub: "So let me show you one with the numbers still attached. A youth center built a family portal — parents could enroll their kids online instead of emailing in. It shipped on time. Tests passed. No bugs.", card: 0, mic: "idle", gate: false },
-  { line: "This is six months of it.", sub: "Have a poke. Tap any month.", card: 1, mic: "idle", gate: false },
-  { line: "Eleven thousand families were eligible. How many actually used it?", sub: "Commit to a number before you move on. Say it out loud too — that is the bit that stings later.", card: 1, mic: "live", gate: "guess" },
+  { line: "Hey — good to meet you.", sub: "I'm going to show you something that went sideways at a place a lot like yours. Before I do, I want to know one thing about you.", card: 0, mic: "idle", gate: false },
+  { line: "Has anywhere you've worked ever launched something new that almost nobody ended up using?", sub: "Say it out loud, or pick the closest one. There's no wrong answer here.", card: 0, mic: "live", gate: "opening" },
+  { line: "Almost everyone says yes.", sub: "", card: 0, mic: "idle", gate: false },
+  { line: "This is six months of it.", sub: "Poke around. Tap any month.", card: 1, mic: "idle", gate: false },
+  { line: "Eleven thousand families were eligible. How many actually used it?", sub: "Commit to a number before you move on. Say it out loud too. That's the part that stings later.", card: 1, mic: "live", gate: "guess" },
   { line: "Not even close.", sub: "A quarter would have been 2,700 people. The team who built it guessed high too.", card: 2, mic: "idle", gate: false },
-  { line: "And here is the bit that gets me.", sub: "She was meant to get time back. These are the coordinator's hours over the same six months.", card: 3, mic: "idle", gate: false },
-  { line: "It worked perfectly. It just never landed.", sub: "Those are two different jobs, and almost nobody is assigned the second one. That second job is what we are doing today.", card: 3, mic: "live", gate: false },
+  { line: "And here's the part that gets me.", sub: "She was supposed to get time back. These are the coordinator's hours over the same six months.", card: 3, mic: "idle", gate: false },
+  { line: "It worked perfectly. It just never landed.", sub: "Those are two different jobs, and almost nobody is assigned the second one. That second job is what we're doing today.", card: 3, mic: "live", gate: false },
 ] as const;
+
+/**
+ * What she says back, per answer.
+ *
+ * The second beat used to be one fixed line — "Almost everyone says yes." —
+ * so someone who answered "not that I know of" got told they had said yes.
+ * Asking a question and ignoring the answer is worse than never asking: it
+ * teaches the learner that nothing they do here is heard. Each answer gets
+ * its own reply, and all three arrive at the same place.
+ */
+const REPLIES = [
+  {
+    line: "Almost everyone says yes.",
+    sub: (who: string) =>
+      `Thanks${who ? `, ${who}` : ""}. So let me show you one with the numbers still attached. A youth center built a family portal so parents could sign their kids up online instead of emailing. It shipped on time. Tests passed. No bugs.`,
+  },
+  {
+    line: "Almost nobody counts.",
+    sub: (who: string) =>
+      `And that's most of the problem right there${who ? `, ${who}` : ""}. So let me show you one where somebody did count. A youth center built a family portal so parents could sign their kids up online instead of emailing. It shipped on time. Tests passed. No bugs.`,
+  },
+  {
+    line: "Then you're lucky, or nobody checked.",
+    sub: (who: string) =>
+      `Usually it's the second one${who ? `, ${who}` : ""}. So let me show you a place that did check. A youth center built a family portal so parents could sign their kids up online instead of emailing. It shipped on time. Tests passed. No bugs.`,
+  },
+];
+
+/**
+ * A first name, or "" when we have none.
+ *
+ * She does not lead with it. Being addressed by name by a machine you have
+ * never spoken to before is startling — you brace instead of listening. So
+ * she says hello first, asks her question, and uses the name only in her
+ * reply, which is where a person uses yours: after you have told them
+ * something, as acknowledgment rather than address.
+ */
+function firstNameOf(name: string) {
+  return name.trim().split(/\s+/)[0] ?? "";
+}
 
 /** How they answer the opening question. Every road leads onward. */
 const OPENERS = [
@@ -270,9 +454,9 @@ const GUESSES = [
 type Call = "confirm" | "hold" | "human";
 
 const CALLS: { id: Call; label: string; hint: string }[] = [
-  { id: "confirm", label: "Confirm it", hint: "Enroll them, nothing is missing" },
+  { id: "confirm", label: "Confirm it", hint: "Enroll them, nothing's missing" },
   { id: "hold", label: "Hold it", hint: "Something needs asking first" },
-  { id: "human", label: "Give it to a person", hint: "Not for a machine at all" },
+  { id: "human", label: "Give it to a person", hint: "Not a machine's call at all" },
 ];
 
 const CASES: {
@@ -284,30 +468,30 @@ const CASES: {
     tab: "Kwame", file: "01_clean.txt", when: "Tuesday 9:04", from: "Grace O.",
     body: "Hi,\n\nI would like to enroll my son Kwame in the after school\nprogram at Riverbend Main. He was born 06/02/2016 and is\nin 4th grade. My number is 555-0142. Signed pickup form\nattached.\n\nThank you!",
     answer: "confirm", decision: "Ready to confirm", badge: "✓", tone: "good",
-    because: "Everything it needs is there and nothing breaks a rule.",
+    because: "Everything it needs is there, and nothing breaks a rule.",
     fields: [["program", "ASP"], ["site", "RB1"], ["grade", "4"], ["pickup form", "attached"]],
   },
   {
     tab: "Marley", file: "02_missing_dob.txt", when: "Tuesday 11:20", from: "unknown",
     body: "hey can you sign up my daughter Marley for the after\nschool thing at eastside she is in 5th grade.\ncall me 555-0209\n\nthx",
     answer: "hold", decision: "Hold, ask the family", badge: "?", tone: "warn",
-    because: "No date of birth, so it cannot check she is the right age. It drafted the reply asking for it — it did not send it.",
+    because: "No date of birth, so it can't check she's the right age. It drafted the reply asking for it. It didn't send it.",
     fields: [["program", "ASP"], ["site", "RB2"], ["grade", "5"], ["date of birth", "missing"]],
   },
   {
     tab: "Amara", file: "05_sibling.txt", when: "Wednesday 8:41", from: "Grace O.",
-    body: "Sorry, one more! Can you also add Kwame's sister Amara?\nShe is already enrolled at Riverbend Main I think\n(born 03/14/2015, grade 5). Same number, 555-0142.\nSame pickup form covers both kids.",
+    body: "Sorry, one more! Can you also add Kwame's sister Amara?\nShe's already enrolled at Riverbend Main I think\n(born 03/14/2015, grade 5). Same number, 555-0142.\nSame pickup form covers both kids.",
     answer: "confirm", decision: "Confirm as a sibling — and hold her first day", badge: "✓", tone: "good",
-    because: "Same phone number as an enrolled child means sibling, not duplicate. That is Denise's rule, written down nowhere until we wrote it down.",
-    sting: "Then it caught something almost nobody in the room does: the mother says the same pickup form covers both kids. That is her assumption, not something on file. So it holds Amara's first day until a person checks the form actually names her.",
+    because: "Same phone number as a kid already enrolled means sibling, not duplicate. That's Denise's rule, and it was written down nowhere until we wrote it down.",
+    sting: "Then it caught something almost nobody in the room does. The mom says the same pickup form covers both kids. That's her assumption, not something on file. So it holds Amara's first day until a person checks that the form actually names her.",
     fields: [["program", "ASP"], ["site", "RB1"], ["grade", "5"], ["flag", "sibling priority"], ["first day", "held for check"]],
   },
   {
     tab: "Theo", file: "08_medical.txt", when: "Wednesday 16:55", from: "D. Osei",
     body: "I would like to enroll Theo (DOB 2015-08-14, grade 5) in\nAfter School at Eastside. Pickup form attached. One thing:\nTheo has an inhaler he needs to keep with him and takes a\ntablet at 4pm. Is there a form for that?",
     answer: "human", decision: "Refused. Straight to a human.", badge: "!", tone: "stop",
-    because: "Medication came up, so it will not touch this one. Not because it could not — because you said anything medical goes to a person.",
-    sting: "Who decided that? Not the AI. Denise did, eleven years ago, and we wrote it down. That is the job.",
+    because: "Medication came up, so it won't touch this one. Not because it couldn't. Because you said anything medical goes to a person.",
+    sting: "Who decided that? Not the AI. Denise did, eleven years ago, and we wrote it down. That's the job.",
     fields: [["program", "ASP"], ["site", "RB2"], ["flag", "medication"], ["sent to", "a human"]],
   },
 ];
@@ -323,31 +507,116 @@ const TONES = {
 type Phase = "part1" | "part2" | "part3" | "part4" | "done";
 const ORDER: Phase[] = ["part1", "part2", "part3", "part4", "done"];
 
-export function SessionStage() {
+export function SessionStage({
+  trackSlug,
+  weekNumber,
+  prompt,
+  savedSentence,
+  firstName,
+}: {
+  trackSlug: string;
+  weekNumber: number;
+  prompt: string;
+  savedSentence: string;
+  firstName: string | null;
+}) {
   const [phase, setPhase] = useState<Phase>("part1");
   const [welcome, setWelcome] = useState(true);
+  const [countIn, setCountIn] = useState<number | null>(null);
+  // The platform usually knows who this is. When it doesn't — a shared
+  // laptop, a profile with no first name — she asks, rather than opening on
+  // "Hey there", which is the tell that nobody is really being spoken to.
+  const [name, setName] = useState((firstName ?? "").trim());
+  const [resumeAt, setResumeAt] = useState<Phase | null>(null);
   const partIndex = Math.max(0, ORDER.indexOf(phase));
   const voice = useNarration();
+
+  // Escape leaves. With no sidebar and no top bar there is nothing else to
+  // reach for, and people press it before they hunt for a button.
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      if (e.key === "Escape") window.location.assign(`/dashboard/track/${trackSlug}/${weekNumber}`);
+    };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [trackSlug, weekNumber]);
+
+  // Where they got to lives on the device, not the server: it is a
+  // convenience, and a ninety-minute session does not move between laptops.
+  // The sentence — the part that matters — is saved properly.
+  const key = `fde-stage:${trackSlug}:${weekNumber}`;
+
+  useEffect(() => {
+    try {
+      const at = localStorage.getItem(key);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- client-only storage, once on mount
+      if (at && ORDER.includes(at as Phase) && at !== "part1") setResumeAt(at as Phase);
+    } catch {
+      /* private mode — they simply start at the beginning */
+    }
+  }, [key]);
+
+  const go = useCallback(
+    (next: Phase) => {
+      setPhase(next);
+      try {
+        localStorage.setItem(key, next);
+      } catch {
+        /* resume is best-effort */
+      }
+    },
+    [key],
+  );
 
   // The overlay is the audio unlock: browsers refuse speech until the user
   // has acted, so this one click both opens the session and gives her a
   // voice. Part 1 is already mounted behind it and speaks the instant it
   // clears — the learner never meets a silent screen.
-  const enter = () => {
-    voice.say(`${BEATS[0].line} ${BEATS[0].sub}`, { force: true });
+  // Dismissing the overlay used to drop the learner straight into a voice
+  // already mid-sentence, which startles people. Three seconds of nothing
+  // first: they see the room they have walked into, then she speaks.
+  const enter = (who: string, at?: Phase) => {
+    setName(who.trim());
+    if (at && at !== "part1") setPhase(at);
     setWelcome(false);
+    setCountIn(3);
   };
+
+  useEffect(() => {
+    if (countIn === null) return;
+    if (countIn > 0) {
+      const t = window.setTimeout(() => setCountIn(countIn - 1), 800);
+      return () => window.clearTimeout(t);
+    }
+    // Speech is still allowed here: the browser's activation from the button
+    // press persists for the rest of the page's life, not just that tick.
+    const t = window.setTimeout(() => {
+      setCountIn(null);
+      if (phase === "part1") voice.say(`${BEATS[0].line} ${BEATS[0].sub}`, { force: true });
+    }, 500);
+    return () => window.clearTimeout(t);
+  }, [countIn, phase, voice, name]);
 
   return (
     <div style={{ minHeight: "100dvh", background: CREAM, WebkitFontSmoothing: "antialiased", color: INK }}>
       <Keyframes />
-      {welcome && <Welcome onEnter={enter} />}
-      <div aria-hidden={welcome} style={{ maxWidth: 680, margin: "0 auto", padding: "0 20px 64px", minHeight: "100dvh", display: "flex", flexDirection: "column", filter: welcome ? "blur(6px)" : "none", transition: "filter .5s ease" }}>
+      {welcome && <Welcome onEnter={enter} resumeAt={resumeAt} knownName={firstName} />}
+      {countIn !== null && <CountIn n={countIn} />}
+      <div aria-hidden={welcome || countIn !== null} style={{ maxWidth: 680, margin: "0 auto", padding: "0 20px 64px", minHeight: "100dvh", display: "flex", flexDirection: "column", filter: welcome ? "blur(6px)" : countIn !== null ? "blur(3px)" : "none", transition: "filter .6s ease" }}>
         {phase !== "done" && <PartRail active={partIndex} />}
-        {phase === "part1" && <PartOne voice={voice} spoken={!welcome} onDone={() => setPhase("part2")} />}
-        {phase === "part2" && <PartTwo voice={voice} onDone={() => setPhase("part3")} />}
-        {phase === "part3" && <PartThree voice={voice} onDone={() => setPhase("part4")} />}
-        {phase === "part4" && <PartFour voice={voice} onDone={() => setPhase("done")} />}
+        {phase === "part1" && <PartOne voice={voice} spoken={!welcome && countIn === null} name={name} onDone={() => go("part2")} />}
+        {phase === "part2" && <PartTwo voice={voice} onDone={() => go("part3")} />}
+        {phase === "part3" && <PartThree voice={voice} onDone={() => go("part4")} />}
+        {phase === "part4" && (
+          <PartFour
+            voice={voice}
+            trackSlug={trackSlug}
+            weekNumber={weekNumber}
+            prompt={prompt}
+            saved={savedSentence}
+            onDone={() => go("done")}
+          />
+        )}
         {phase === "done" && <Done voice={voice} />}
       </div>
     </div>
@@ -363,6 +632,9 @@ function Keyframes() {
       @keyframes fde-idle { 0%,100% { transform:scaleY(.16) } 50% { transform:scaleY(.42) } }
       @keyframes fde-countin { 0% { opacity:0; transform:scale(.72) } 65% { opacity:1; transform:scale(1.06) } 100% { transform:scale(1) } }
       @keyframes fde-nudge { 0%,100% { transform:translateX(0) } 50% { transform:translateX(3px) } }
+      @keyframes fde-ring { from { stroke-dashoffset: 465 } to { stroke-dashoffset: 0 } }
+      @keyframes fde-halo { 0% { opacity:.5; transform:scale(.7) } 100% { opacity:0; transform:scale(1.55) } }
+      @keyframes fde-count { 0% { opacity:0; transform:scale(.5) } 45% { opacity:1; transform:scale(1.07) } 78% { transform:scale(1) } 100% { opacity:.9; transform:scale(.97) } }
       .fde-card { box-shadow: 0 30px 70px -26px rgba(90,70,45,.36), 0 2px 5px rgba(90,70,45,.05); }
       .fde-btn { transition: transform .18s ease, background .18s ease, border-color .18s ease; }
       .fde-btn:hover:not(:disabled) { transform: translateY(-1px); }
@@ -432,70 +704,248 @@ function Footer({ note, children }: { note?: string; children?: React.ReactNode 
  * already there behind the blur, and the single button both opens it and
  * gives her a voice. Nobody meets a mute page.
  */
-function Welcome({ onEnter }: { onEnter: () => void }) {
+/**
+ * The count-in.
+ *
+ * Three seconds is dead air unless it is doing something, so it does: a
+ * cobalt ring closing on every beat, the numeral springing in, a halo
+ * pushing outward behind it, and one short line per count saying what they
+ * are walking into. By zero they should want it to start.
+ */
+const COUNT_LINES: Record<number, string> = {
+  3: "Four parts.",
+  2: "One real story.",
+  1: "Your call at the end.",
+};
+
+function CountIn({ n }: { n: number }) {
+  const CIRC = 465; // 2πr at r=74
+
+  return (
+    <div
+      aria-hidden
+      style={{ position: "fixed", inset: 0, zIndex: 45, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 28, background: "rgba(250,247,242,.9)", backdropFilter: "blur(10px)" }}
+    >
+      <div style={{ position: "relative", width: 190, height: 190, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        {/* One expanding ring per beat, so each count pushes the air outward. */}
+        <span key={`halo-${n}`} style={{ position: "absolute", inset: 26, borderRadius: "50%", border: `2px solid ${COBALT}`, animation: "fde-halo .9s cubic-bezier(.16,1,.3,1) forwards" }} />
+
+        <svg width="190" height="190" viewBox="0 0 190 190" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }}>
+          <circle cx="95" cy="95" r="74" fill="none" stroke="#E9E3D9" strokeWidth="3" />
+          <circle
+            key={`ring-${n}`}
+            cx="95" cy="95" r="74" fill="none" stroke={COBALT} strokeWidth="3" strokeLinecap="round"
+            strokeDasharray={CIRC}
+            style={{ animation: "fde-ring .8s linear forwards" }}
+          />
+        </svg>
+
+        {n > 0 ? (
+          <span key={`n-${n}`} style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 92, lineHeight: 1, letterSpacing: "-.06em", color: INK, animation: "fde-count .8s cubic-bezier(.34,1.56,.64,1)" }}>
+            {n}
+          </span>
+        ) : (
+          <span style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 25, letterSpacing: "-.03em", color: COBALT, animation: "fde-count .5s cubic-bezier(.34,1.56,.64,1)" }}>
+            Here we go
+          </span>
+        )}
+      </div>
+
+      {n > 0 && (
+        <span key={`t-${n}`} style={{ fontFamily: DISPLAY, fontWeight: 600, fontSize: 17, letterSpacing: "-.02em", color: INK_SOFT, animation: "fde-rise .5s cubic-bezier(.16,1,.3,1)" }}>
+          {COUNT_LINES[n] ?? ""}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function Welcome({
+  onEnter,
+  resumeAt,
+  knownName,
+}: {
+  onEnter: (who: string, at?: Phase) => void;
+  resumeAt: Phase | null;
+  knownName: string | null;
+}) {
+  const [typed, setTyped] = useState("");
+  const resumeLabel = resumeAt ? PARTS[Math.max(0, ORDER.indexOf(resumeAt))]?.title : null;
+
+  // A learner the platform already knows gets greeted, not interrogated.
+  const known = (knownName ?? "").trim().split(/\s+/)[0] ?? "";
+  const who = known || typed.trim();
+  const ready = who.length > 0;
+
   return (
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Welcome to FDE 101"
+      aria-label="Welcome to Field Ready"
       style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, background: "rgba(250,247,242,.82)", backdropFilter: "blur(10px)", animation: "fde-rise .4s ease" }}
     >
-      <div className="fde-card" style={{ background: "#fff", borderRadius: 26, padding: "38px 34px", maxWidth: 470, width: "100%", textAlign: "center", animation: "fde-land .7s cubic-bezier(.22,1.4,.4,1)" }}>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (ready) onEnter(who, resumeAt ?? undefined);
+        }}
+        className="fde-card"
+        style={{ background: "#fff", borderRadius: 26, padding: "38px 34px", maxWidth: 470, width: "100%", textAlign: "center", animation: "fde-land .7s cubic-bezier(.22,1.4,.4,1)" }}
+      >
         <span style={{ width: 44, height: 44, borderRadius: "50%", background: COBALT, display: "inline-flex", alignItems: "center", justifyContent: "center", fontFamily: DISPLAY, fontWeight: 700, fontSize: 17, color: "#fff" }}>F</span>
 
-        <h1 style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: "clamp(28px, 6vw, 38px)", lineHeight: 1.08, letterSpacing: "-.04em", margin: "20px 0 0" }}>
-          Welcome to FDE
+        <h1 style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: "clamp(27px, 6vw, 37px)", lineHeight: 1.08, letterSpacing: "-.04em", margin: "20px 0 0" }}>
+          Welcome to Field&nbsp;Ready
         </h1>
         <p style={{ fontSize: 15.5, lineHeight: 1.6, color: INK_SOFT, margin: "14px 0 0" }}>
-          Ninety minutes, four parts. I&rsquo;ll talk you through a real project that
-          failed, and you&rsquo;ll decide what an AI should and shouldn&rsquo;t be allowed
-          to touch.
+          {known ? `Good to see you, ${known}. ` : ""}Ninety minutes, four parts. I&rsquo;ll walk
+          you through a real project that failed, and you&rsquo;ll decide what an AI
+          should and shouldn&rsquo;t be allowed to touch.
         </p>
+
+        {!known && (
+          <div style={{ margin: "22px 0 0", textAlign: "left" }}>
+            <label htmlFor="fde-name" style={{ display: "block", fontSize: 13, color: INK_SOFT, marginBottom: 7 }}>
+              First — what should I call you?
+            </label>
+            <input
+              id="fde-name"
+              value={typed}
+              onChange={(e) => setTyped(e.target.value)}
+              autoFocus
+              autoComplete="given-name"
+              placeholder="Your first name"
+              style={{ width: "100%", padding: "13px 15px", borderRadius: 12, border: `1px solid ${EDGE}`, background: CREAM, fontSize: 15, color: INK, boxSizing: "border-box", fontFamily: "inherit" }}
+            />
+          </div>
+        )}
 
         <div style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "center", margin: "22px 0 0", padding: "12px 16px", borderRadius: 14, background: "#F4F0E8", fontSize: 13, color: INK_SOFT }}>
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={COBALT} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <path d="M11 5 6 9H2v6h4l5 4V5z" /><path d="M15.5 8.5a5 5 0 0 1 0 7" /><path d="M19 5a9 9 0 0 1 0 14" />
           </svg>
-          <span><strong style={{ color: INK }}>Turn your sound on.</strong> I speak — you can mute me any time.</span>
+          <span><strong style={{ color: INK }}>Turn your sound on.</strong> I speak, and I listen — you can answer out loud.</span>
         </div>
 
         <button
+          type="submit"
           className="fde-btn"
-          onClick={onEnter}
-          autoFocus
-          style={{ width: "100%", marginTop: 22, fontFamily: DISPLAY, fontWeight: 600, fontSize: 16, padding: "15px 26px", borderRadius: 99, background: INK, color: "#fff", border: "none", cursor: "pointer" }}
+          disabled={!ready}
+          style={{ width: "100%", marginTop: 22, fontFamily: DISPLAY, fontWeight: 600, fontSize: 16, padding: "15px 26px", borderRadius: 99, background: ready ? INK : "#D8D2C7", color: "#fff", border: "none", cursor: ready ? "pointer" : "not-allowed" }}
         >
-          I&rsquo;m ready — start talking
+          {resumeAt ? `Pick up at ${resumeLabel}` : "I\u2019m ready \u2014 start talking"}
         </button>
+
+        {resumeAt && (
+          <button
+            type="button"
+            className="fde-btn"
+            onClick={() => ready && onEnter(who, "part1")}
+            style={{ width: "100%", marginTop: 10, fontSize: 13.5, padding: "11px 20px", borderRadius: 99, background: "transparent", color: INK_SOFT, border: `1px solid ${EDGE}`, cursor: "pointer" }}
+          >
+            Start again from the beginning
+          </button>
+        )}
 
         <p style={{ fontSize: 12, color: INK_FAINT, margin: "16px 0 0" }}>
           Nothing to install. You never write code.
         </p>
-      </div>
+      </form>
     </div>
   );
 }
 
 /* ── part 1 ──────────────────────────────────────────────────────────── */
 
-function PartOne({ voice, spoken, onDone }: { voice: Voice; spoken: boolean; onDone: () => void }) {
+function PartOne({ voice, spoken, name, onDone }: { voice: Voice; spoken: boolean; name: string; onDone: () => void }) {
   const [i, setI] = useState(0);
-  const [sel, setSel] = useState(5);
+  // No month selected to begin with. Preselecting the last one printed
+  // "41 logged in · Feb" underneath the chart while she was still asking
+  // them to guess how many used it — the answer, given away, on the screen
+  // where the whole point is committing before you know.
+  const [sel, setSel] = useState<number | null>(null);
   const [guess, setGuess] = useState<number | null>(null);
   const [opener, setOpener] = useState<number | null>(null);
+  // Set only when an answer arrived by voice. Someone who has just spoken
+  // should not then have to reach for a button to be heard — but a tap is a
+  // deliberate choice they may want to change, so taps still wait.
+  const [spokenAnswer, setSpokenAnswer] = useState(false);
   const b = BEATS[i];
+  // Beat 2 is her reply to the question, so it is whichever answer they gave.
+  const reply = i === 2 && opener !== null ? REPLIES[opener] : null;
+  const line = reply?.line ?? b.line;
+  const sub = reply ? reply.sub(firstNameOf(name)) : b.sub;
+
   // The overlay speaks beat 0 itself (it owns the audio unlock), so hold off
   // until it has cleared or the first line would be said twice.
-  useSpeak(voice, spoken && i > 0 ? `${b.line} ${b.sub}` : "");
+  useSpeak(voice, spoken && i > 0 ? `${line} ${sub}` : "");
+
+  // Only listen once she has stopped talking, or the mic hears her, not them.
+  const wantsAnswer = b.gate === "opening" || b.gate === "guess";
+  const { heard, state: earState } = useListening({
+    active: spoken && wantsAnswer && !voice.speaking,
+    onMatch: (said) => {
+      if (b.gate === "opening") {
+        const n = matchOpener(said);
+        if (n !== null) {
+          setOpener(n);
+          setSpokenAnswer(true);
+          return true;
+        }
+      }
+      if (b.gate === "guess") {
+        const n = matchGuess(said);
+        if (n !== null) {
+          setGuess(n);
+          setSpokenAnswer(true);
+          return true;
+        }
+      }
+      return false;
+    },
+  });
   const blocked =
     (b.gate === "guess" && guess === null) || (b.gate === "opening" && opener === null);
+  // A beat carrying neither a card nor a question left most of the screen
+  // empty with the line stranded at the top. Nothing to show means the words
+  // are the thing to look at, so they sit in the middle.
+  const hasVisual = b.card > 0 || b.gate !== false;
   const last = i === BEATS.length - 1;
 
   const next = useCallback(() => {
     if (blocked) return;
+    setSpokenAnswer(false);
     if (last) onDone();
     else setI((n) => n + 1);
   }, [blocked, last, onDone]);
+
+  // Answered out loud? Then move on out loud. Long enough that the learner
+  // sees their answer land, short enough that it still reads as a reply
+  // rather than a page turning on its own.
+  useEffect(() => {
+    if (!spokenAnswer || blocked) return;
+    const t = window.setTimeout(next, 1100);
+    return () => window.clearTimeout(t);
+  }, [spokenAnswer, blocked, next]);
+
+  // She talks, she stops, and the session carries on — the way a person
+  // telling you something moves to the next thing without being asked.
+  // Waiting for a click after every sentence is what made this read as a
+  // deck being clicked through rather than someone talking to you.
+  //
+  // Only when she actually narrated it: muted, the learner is reading at
+  // their own speed and the page must not move under them. Beats that ask a
+  // question hold regardless — those wait on an answer, not on silence.
+  const wasSpeaking = useRef(false);
+  useEffect(() => {
+    const justFinished = wasSpeaking.current && !voice.speaking;
+    wasSpeaking.current = voice.speaking;
+    if (!justFinished || blocked || voice.muted || b.gate !== false) return;
+    // Longer at a part boundary: crossing a section should not feel like the
+    // same half-second step as moving between two lines.
+    const t = window.setTimeout(next, last ? 1500 : 850);
+    return () => window.clearTimeout(t);
+  }, [voice.speaking, voice.muted, blocked, b.gate, last, next]);
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
@@ -508,16 +958,24 @@ function PartOne({ voice, spoken, onDone }: { voice: Voice; spoken: boolean; onD
 
   return (
     <>
-      <Heading sub={b.sub}>{b.line}</Heading>
+      {!hasVisual && (
+        // One growing box holding just the words, so they sit in the middle
+        // of the room rather than splitting the gap with the footer.
+        <div style={{ flexGrow: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+          <Heading sub={sub}>{line}</Heading>
+        </div>
+      )}
+      {hasVisual && <Heading sub={sub}>{line}</Heading>}
 
-      <div style={{ flexGrow: 1, display: "flex", flexDirection: "column", justifyContent: "center", gap: 14, padding: "26px 0" }}>
+      <div style={{ flexGrow: hasVisual ? 1 : 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: 14, padding: hasVisual ? "26px 0" : 0 }}>
         {b.card === 1 && <ChartCard sel={sel} onPick={setSel} />}
         {b.card === 2 && <BigNumber guessed={guess} />}
         {b.card === 3 && <HoursCard />}
 
         {b.gate === "opening" && (
           <div className="fde-card" style={{ background: "#fff", borderRadius: 20, padding: 22, animation: "fde-land .6s cubic-bezier(.22,1.4,.4,1)" }}>
-            <div style={{ fontSize: 12.5, color: INK_SOFT, marginBottom: 12 }}>Answer out loud if you can. Then tap the closest one.</div>
+            <Ear state={earState} heard={heard} />
+            <div style={{ fontSize: 12.5, color: INK_SOFT, marginBottom: 12 }}>Say it out loud, or tap the closest one.</div>
             <div style={{ display: "grid", gap: 9 }}>
               {OPENERS.map((label, n) => (
                 <button
@@ -536,8 +994,9 @@ function PartOne({ voice, spoken, onDone }: { voice: Voice; spoken: boolean; onD
 
         {b.gate === "guess" && (
           <div className="fde-card" style={{ background: "#fff", borderRadius: 20, padding: 22, animation: "fde-land .6s cubic-bezier(.22,1.4,.4,1)" }}>
-            <div style={{ fontSize: 12.5, color: INK_SOFT, marginBottom: 12 }}>Pick one. You cannot move on until you do.</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 9 }}>
+            <Ear state={earState} heard={heard} />
+            <div style={{ fontSize: 12.5, color: INK_SOFT, marginBottom: 12 }}>Say a number out loud, or tap one. She won&rsquo;t move on until you do.</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 9 }}>
               {GUESSES.map((g, n) => (
                 <button
                   key={g.label}
@@ -555,7 +1014,7 @@ function PartOne({ voice, spoken, onDone }: { voice: Voice; spoken: boolean; onD
         )}
       </div>
 
-      <Footer note={blocked ? (b.gate === "opening" ? "Pick the closest one — she is waiting on you." : "Choose a number first — that is the whole point of the next screen.") : "Arrow keys work too."}>
+      <Footer note={blocked ? (b.gate === "opening" ? "Pick the closest one. She's waiting on you." : "Choose a number first. That's the whole point of the next screen.") : "Arrow keys work too."}>
         <VoiceChip voice={voice} yourTurn={b.mic === "live"} />
         <Primary onClick={next} disabled={blocked}>{last ? "Part 2 →" : "Next →"}</Primary>
       </Footer>
@@ -563,7 +1022,36 @@ function PartOne({ voice, spoken, onDone }: { voice: Voice; spoken: boolean; onD
   );
 }
 
-function ChartCard({ sel, onPick }: { sel: number; onPick: (i: number) => void }) {
+/** Proof the mic is on, and what it thinks you said. */
+function Ear({ state, heard }: { state: "off" | "listening" | "denied" | "unsupported"; heard: string }) {
+  if (state === "off") return null;
+
+  const note =
+    state === "denied"
+      ? "I can't hear you. The browser blocked the microphone, so tap your answer instead."
+      : state === "unsupported"
+        ? "This browser won't let me listen. Tap your answer instead."
+        : heard
+          ? null
+          : "Listening…";
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, padding: "10px 14px", borderRadius: 12, background: state === "listening" ? "#EEF3FF" : "#F4F0E8", border: `1px solid ${state === "listening" ? "#C9D8FF" : EDGE}` }}>
+      {state === "listening" && (
+        <span style={{ display: "flex", alignItems: "center", gap: 3, height: 14, flexShrink: 0 }} aria-hidden>
+          {[0, 0.12, 0.24].map((d) => (
+            <span key={d} style={{ width: 3, height: 14, borderRadius: 99, background: COBALT, transformOrigin: "center", animation: `fde-speak .9s ease-in-out ${d}s infinite` }} />
+          ))}
+        </span>
+      )}
+      <span aria-live="polite" style={{ fontSize: 13, color: heard ? INK : INK_SOFT, fontStyle: heard ? "normal" : "italic" }}>
+        {heard ? `“${heard}”` : note}
+      </span>
+    </div>
+  );
+}
+
+function ChartCard({ sel, onPick }: { sel: number | null; onPick: (i: number) => void }) {
   return (
     <div className="fde-card" style={{ background: "#fff", borderRadius: 20, padding: 26, animation: "fde-land .7s cubic-bezier(.22,1.4,.4,1)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
@@ -578,9 +1066,15 @@ function ChartCard({ sel, onPick }: { sel: number; onPick: (i: number) => void }
           </button>
         ))}
       </div>
-      <div style={{ borderTop: `1px solid ${RULE}`, marginTop: 16, paddingTop: 14, display: "flex", alignItems: "baseline", gap: 9 }}>
-        <span style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 28, letterSpacing: "-.03em" }}>{MONTHS[sel].users}</span>
-        <span style={{ fontSize: 13, color: INK_SOFT }}>logged in · {MONTHS[sel].label}</span>
+      <div style={{ borderTop: `1px solid ${RULE}`, marginTop: 16, paddingTop: 14, display: "flex", alignItems: "baseline", gap: 9, minHeight: 42 }}>
+        {sel === null ? (
+          <span style={{ fontSize: 13, color: INK_FAINT }}>Tap a bar to see that month.</span>
+        ) : (
+          <>
+            <span style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 28, letterSpacing: "-.03em" }}>{MONTHS[sel].users}</span>
+            <span style={{ fontSize: 13, color: INK_SOFT }}>logged in · {MONTHS[sel].label}</span>
+          </>
+        )}
       </div>
     </div>
   );
@@ -626,7 +1120,7 @@ function PartTwo({ voice, onDone }: { voice: Voice; onDone: () => void }) {
   const [i, setI] = useState(0);
   const [calls, setCalls] = useState<(Call | null)[]>([null, null, null, null]);
   const c = CASES[i];
-  useSpeak(voice, "Right. Four that actually arrived. No AI yet, just you. Read each one and tell me what you would do with it.");
+  useSpeak(voice, "All right. Four that really came in. No AI yet, just you. Read each one and tell me what you'd do with it.");
   const mine = calls[i];
   const allDone = calls.every(Boolean);
 
@@ -634,7 +1128,7 @@ function PartTwo({ voice, onDone }: { voice: Voice; onDone: () => void }) {
 
   return (
     <>
-      <Heading size={42} sub="Four that actually arrived at a youth center. No AI yet — just you. Read each one and say what you would do with it.">
+      <Heading size={42} sub="Four that really came in. No AI yet, just you. Read each one and say what you'd do with it.">
         What&rsquo;s actually in the inbox
       </Heading>
 
@@ -671,7 +1165,7 @@ function PartThree({ voice, onDone }: { voice: Voice; onDone: () => void }) {
   const [revealed, setRevealed] = useState<boolean[]>([false, false, false, false]);
   const [votes, setVotes] = useState<(Call | null)[]>([null, null, null, null]);
   const c = CASES[i];
-  useSpeak(voice, "Now I am giving it the same four emails and the rules Denise uses. Vote before I run each one. You are checking its judgment, not its typing.");
+  useSpeak(voice, "Now I'm giving it those same four emails and the rules Denise uses. Vote before I run each one. You're checking its judgment, not its typing.");
   const vote = votes[i];
   const open = revealed[i];
   const allOpen = revealed.every(Boolean);
@@ -682,7 +1176,7 @@ function PartThree({ voice, onDone }: { voice: Voice; onDone: () => void }) {
 
   return (
     <>
-      <Heading size={42} sub="Same four emails, same rules Denise uses, now given to the AI. Vote before you look. You are checking its judgment, not its typing.">
+      <Heading size={42} sub="Same four emails, same rules Denise uses, now handed to the AI. Vote before you look. You're checking its judgment, not its typing.">
         Point it at them
       </Heading>
 
@@ -725,7 +1219,7 @@ function PartThree({ voice, onDone }: { voice: Voice; onDone: () => void }) {
             {vote && (
               <div style={{ padding: "14px 18px", borderRadius: 14, background: vote === c.answer ? "#EEF3FF" : "#F4F0E8", border: `1px solid ${vote === c.answer ? "#C9D8FF" : EDGE}`, fontSize: 13.5, color: INK_SOFT }}>
                 {vote === c.answer
-                  ? <>You called it <strong style={{ color: COBALT }}>the same way</strong>. Good — that means the rule is in your head too.</>
+                  ? <>You called it <strong style={{ color: COBALT }}>the same way</strong>. Good. That means the rule is in your head too.</>
                   : <>You said <strong style={{ color: INK }}>{CALLS.find((k) => k.id === vote)?.label.toLowerCase()}</strong>. It went the other way. That gap is worth arguing about out loud.</>}
               </div>
             )}
@@ -733,7 +1227,7 @@ function PartThree({ voice, onDone }: { voice: Voice; onDone: () => void }) {
         )}
       </div>
 
-      <Footer note={open ? (allOpen ? "All four seen." : "Use the tabs to take the next one.") : "Vote first. No peeking — being wrong here is the lesson."}>
+      <Footer note={open ? (allOpen ? "All four seen." : "Use the tabs to take the next one.") : "Vote first. No peeking. Being wrong here is the lesson."}>
         <VoiceChip voice={voice} />
         {!open && <Primary onClick={reveal} disabled={!vote}>Show me what it did →</Primary>}
         {open && i < 3 && <Primary onClick={() => setI(i + 1)}>Next email →</Primary>}
@@ -770,30 +1264,56 @@ function EmailCard({ c, compact }: { c: (typeof CASES)[number]; compact?: boolea
 
 /* ── part 4 ──────────────────────────────────────────────────────────── */
 
-function PartFour({ voice, onDone }: { voice: Voice; onDone: () => void }) {
-  const [v, setV] = useState("");
+function PartFour({
+  voice, trackSlug, weekNumber, prompt, saved, onDone,
+}: {
+  voice: Voice; trackSlug: string; weekNumber: number; prompt: string; saved: string; onDone: () => void;
+}) {
+  const [v, setV] = useState(saved);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(false);
+
+  // Finishing writes the sentence to the week's reflection and marks the
+  // session complete, so it lands where a facilitator already looks. If the
+  // write fails the learner is told and kept on the page — losing the one
+  // thing they were asked to produce is not an acceptable silent failure.
+  const finish = async () => {
+    setSaving(true);
+    setError(false);
+    try {
+      await saveFourSecondCall(trackSlug, weekNumber, prompt, v);
+      await markSessionComplete(trackSlug, weekNumber);
+      onDone();
+    } catch {
+      setError(true);
+    } finally {
+      setSaving(false);
+    }
+  };
   useSpeak(voice, "Nobody in that room decided any of it on the spot. A person wrote the rules down years ago and the machine borrowed her judgment. So, what is yours?");
   return (
     <>
-      <Heading size={46} sub="Nobody in that room decided any of it on the spot. A person wrote the rules down years ago and the machine borrowed her judgment. So — what is yours?">
+      <Heading size={46} sub="Nobody in that room decided any of it on the spot. A person wrote those rules down years ago, and the machine borrowed her judgment. So what's yours?">
         Your turn
       </Heading>
 
       <div style={{ flexGrow: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: "26px 0" }}>
         <div className="fde-card" style={{ background: "#fff", borderRadius: 20, padding: 26 }}>
           <label htmlFor="fde-sentence" style={{ display: "block", fontFamily: DISPLAY, fontWeight: 600, fontSize: 19, lineHeight: 1.42, letterSpacing: "-.02em" }}>
-            The call I make in about four seconds that would take someone new an hour to get wrong is…
+            {prompt}
           </label>
           <textarea id="fde-sentence" value={v} onChange={(e) => setV(e.target.value)} rows={3} placeholder="One sentence. The thing you just know." style={{ width: "100%", marginTop: 16, padding: "14px 16px", borderRadius: 12, border: `1px solid ${EDGE}`, background: CREAM, fontSize: 15, lineHeight: 1.6, color: INK, resize: "vertical", boxSizing: "border-box", fontFamily: "inherit" }} />
-          <p style={{ fontSize: 12.5, color: INK_FAINT, marginTop: 12, marginBottom: 0 }}>
-            If you are stuck: what did you retype last week that you have retyped a hundred times?
+          <p style={{ fontSize: 12.5, color: error ? "#B4342C" : INK_FAINT, marginTop: 12, marginBottom: 0 }}>
+            {error
+              ? "That didn't save. Check your connection and try again — don't close the page."
+              : "Saved to your session when you finish. Stuck? What did you retype last week that you've retyped a hundred times?"}
           </p>
         </div>
       </div>
 
-      <Footer note="You will read this one out.">
+      <Footer note="You'll read this one out loud.">
         <VoiceChip voice={voice} yourTurn />
-        <Primary onClick={onDone} disabled={v.trim().length < 8}>Finish →</Primary>
+        <Primary onClick={finish} disabled={saving || v.trim().length < 8}>{saving ? "Saving…" : "Finish →"}</Primary>
       </Footer>
     </>
   );

@@ -40,6 +40,11 @@ body {
   --accent: #1D59FF;
   --highlight: #E5F701;           /* BCC electric green — active/live accent. Loud,
                                      so only as filled shapes/borders, never text on white. */
+  /* The "live / needs you" signal. Defaults to BCC's electric green, but the
+     dashboard layout overrides it per program: green is BCC's signal, not a
+     neutral UI colour, and it must never appear on a BGC page
+     (docs/brand-and-landing-playbook.md). */
+  --signal: var(--highlight);
   --cream: #f5f5f7;
   --muted: #888888;
   --muted-bg: #ebebed;
@@ -129,7 +134,57 @@ body {
    near-black of .nav-surface so the shell and the stage read as one system
    instead of two different darks. See src/components/session-stage.tsx. */
 .stage-surface {
-  background: linear-gradient(150deg, #232220 0%, #1a1a1a 55%, #0f0e0d 100%);
+  /* The field is the PROGRAM's accent re-lit dark, never a hardcoded cobalt —
+     "the accent is the program's, always" (docs/brand-and-landing-playbook.md).
+     --primary is set per program on the dashboard wrapper, so Catalyst comes
+     out cobalt, BGC purple, Forge orange, with no per-program CSS.
+
+     The three stops are one formula: L 0.42 / 0.34 / 0.25 at C 0.115, hue
+     inherited. Relative color syntax does the re-lighting in the browser so
+     the values can't drift from the generator that designed them. */
+  background: linear-gradient(145deg, #2C498B 0%, #1B346E 44%, #0A1D4D 100%);
+}
+
+@supports (color: oklch(from white l c h)) {
+  :root {
+    /* Grid dot: the same hue, lit for a dark ground. */
+    --stage-dot: oklch(from var(--stage-base, var(--primary)) 0.78 0.17 h / 0.5);
+  }
+
+  .stage-surface {
+    background: linear-gradient(
+      145deg,
+      oklch(from var(--stage-base, var(--primary)) 0.42 0.115 h) 0%,
+      oklch(from var(--stage-base, var(--primary)) 0.34 0.106 h) 44%,
+      oklch(from var(--stage-base, var(--primary)) 0.25 0.092 h) 100%
+    );
+  }
+}
+
+/* The two texture layers that keep the field from reading as a flat fill.
+   Both are decorative and sit under the content, which owns a stacking
+   context of its own. */
+.stage-grid::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, var(--stage-dot, rgba(148, 183, 254, 0.5)) 1.1px, rgba(0, 0, 0, 0) 1.1px);
+  background-size: 20px 20px;
+  -webkit-mask-image: radial-gradient(115% 100% at 88% 12%, #000 0%, rgba(0, 0, 0, 0.3) 44%, rgba(0, 0, 0, 0) 74%);
+  mask-image: radial-gradient(115% 100% at 88% 12%, #000 0%, rgba(0, 0, 0, 0.3) 44%, rgba(0, 0, 0, 0) 74%);
+}
+
+.stage-grid::after {
+  content: "";
+  position: absolute;
+  right: -120px;
+  top: -160px;
+  width: 560px;
+  height: 560px;
+  border-radius: 999px;
+  pointer-events: none;
+  background: radial-gradient(circle, color-mix(in srgb, var(--primary) 26%, transparent) 0%, rgba(0, 0, 0, 0) 64%);
 }
 
 /* The instructor's presence on the stage. Cobalt core with two soft cobalt
@@ -207,6 +262,7 @@ body {
   --color-primary-hover: var(--primary-hover);
   --color-accent: var(--accent);
   --color-highlight: var(--highlight);
+  --color-signal: var(--signal);
   --color-cream: var(--cream);
   --color-muted: var(--muted);
   --color-muted-bg: var(--muted-bg);
