@@ -10,7 +10,7 @@ import { easternToUtc } from "@/lib/utils";
 import { ensureLandingForCourse } from "@/lib/landing-pages";
 import { resolveSource } from "@/lib/course-import/source";
 import { extractFileSource, MAX_FILE_BYTES } from "@/lib/course-import/file";
-import { parseCourseDraft, type CourseDraft } from "@/lib/course-import/parse";
+import { parseCourseDraft, COURSE_TIMEZONE, type CourseDraft } from "@/lib/course-import/parse";
 import { generateCourseDraft } from "@/lib/course-import/generate";
 import { resolveHeroPhoto, generateCoverGraphic } from "@/lib/course-import/hero";
 import { toSurveyQuestion, type DraftQuestion } from "@/lib/application-questions";
@@ -327,6 +327,21 @@ export async function createCourseFromDraftAction(params: {
     bodySections: (draft.landing?.bodySections ?? []).filter(
       (s) => s.heading.trim() && s.body.trim(),
     ),
+    // One pickable cohort: the course's own start. That's what turns the
+    // landing page's bare email box into the real name/email/ZIP form.
+    sessions: [
+      {
+        id: `${slug}-${first.date}`,
+        label: `${new Date(`${first.date}T12:00:00Z`).toLocaleDateString("en-US", {
+          weekday: "long",
+          month: "long",
+          day: "numeric",
+          timeZone: "UTC",
+        })} · ${first.time}`,
+        startUtc: easternToUtc(first.date, first.time),
+        timezone: COURSE_TIMEZONE,
+      },
+    ],
     schedule: orderedSessions.map((s) => ({
       // Noon UTC so the label can't slip a day in any server timezone.
       label: new Date(`${s.date}T12:00:00Z`).toLocaleDateString("en-US", {

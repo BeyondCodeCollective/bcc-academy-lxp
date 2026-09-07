@@ -119,7 +119,7 @@ if (!noArt) {
       },
     }),
     system:
-      "You write landing page copy for BCC Academy. Use only what the course says — never invent prices, partners, or logistics. Warm, concrete, no hype, no em dashes. Write US English, never British spellings: use organization, program, enrollment, behavior, color, center, analyze, recognize. Sections must differ in kind (an overview, a structured what-you'll-do, an outcome) so the page has rhythm; mark exactly ONE section emphasis=true — the outcome or strongest claim.",
+      "You write landing page copy for BCC Academy. Use only what the course says — never invent prices, partners, or logistics. Warm, concrete, no hype, no em dashes. Write US English, never British spellings: use organization, program, enrollment, behavior, color, center, analyze, recognize. Sections must differ in kind (an overview, a bulleted what-happens list, a short outcome) so the page has rhythm. Keep each block to 2-3 sentences and use "- " bulleted lines wherever the content is really a list — walls of paragraph text are what make a long page unreadable. mark exactly ONE section emphasis=true — the outcome or strongest claim.",
     prompt: `Write the landing page copy for this course.\n\n${summary}`,
   });
   copy = object;
@@ -175,6 +175,23 @@ Style: near-black matte ground with one or two large soft radial glows behind th
   }
 }
 
+// One pickable cohort: the course's own start date.
+const sessionOptions = track.start_date
+  ? [
+      {
+        id: `${slug}-${track.start_date}`,
+        label: new Date(`${track.start_date}T12:00:00Z`).toLocaleDateString("en-US", {
+          weekday: "long",
+          month: "long",
+          day: "numeric",
+          timeZone: "UTC",
+        }),
+        startUtc: track.kickoff_time_utc ?? null,
+        timezone: "America/New_York",
+      },
+    ]
+  : [];
+
 // ── 4. Write ───────────────────────────────────────────────────────────
 await api("landing_pages", {
   method: "POST",
@@ -188,7 +205,9 @@ await api("landing_pages", {
     subhead: copy.subhead?.trim() || null,
     eyebrow: copy.eyebrow?.trim() || null,
     accent: "#1a1a1a",
-    native_enroll: false,
+    // A cohort date turns on the real signup form (name, email, ZIP, date)
+    // instead of the bare email box.
+    native_enroll: sessionOptions.length > 0,
     schedule: (track.week_summaries ?? [])
       .filter((w) => w.date && w.topic)
       .map((w) => ({
@@ -200,7 +219,7 @@ await api("landing_pages", {
         title: w.topic,
       })),
     partners: [],
-    sessions: [],
+    sessions: sessionOptions,
     body_sections: (copy.bodySections ?? []).filter((s) => s.heading?.trim() && s.body?.trim()),
     hero_image_url: heroUrl,
     og_image: coverUrl,

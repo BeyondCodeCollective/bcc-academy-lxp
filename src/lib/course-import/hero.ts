@@ -109,7 +109,7 @@ Style: near-black matte ground subtly tinted toward ${colors.primary}, one or tw
       size: COVER_SIZE,
     });
 
-    // Recraft returns WebP, not PNG. Labelling it .png/image/png still renders
+    // Recraft returns WebP, not PNG. Labeling it .png/image/png still renders
     // (browsers sniff), but it lies to any consumer that trusts the type, so
     // take the media type the model actually reports.
     const mediaType = image.mediaType ?? "image/png";

@@ -173,7 +173,7 @@ export const SCHEMA = jsonSchema<{
         bodySections: {
           type: "array",
           description:
-            "2-4 content blocks below the hero (overview, what you'll learn, who it's for). Drawn from the source.",
+            "2-4 content blocks below the hero, drawn from the source. Make them differ in KIND so the page has rhythm: an overview, a bulleted list of what happens, a short outcome. Keep prose to 2-3 sentences per block and use \"- \" bulleted lines wherever the source is really a list \u2014 a wall of paragraph text is the main thing that makes a long page unreadable. Blank line = new paragraph.",
           items: {
             type: "object",
             additionalProperties: false,

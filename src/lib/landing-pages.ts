@@ -225,6 +225,9 @@ export async function ensureLandingForCourse(
     eyebrow?: string;
     bodySections?: LandingSection[];
     schedule?: ScheduleDay[];
+    /** Cohort start date(s) the signup form lets people pick. Non-empty turns
+     *  on native enrollment. */
+    sessions?: LandingSession[];
   },
 ): Promise<{ created: boolean; slug: string | null }> {
   const { data: bySlug } = await svc
@@ -250,13 +253,14 @@ export async function ensureLandingForCourse(
     eyebrow: content?.eyebrow?.trim() || null,
     track_slug: trackSlug,
     accent: "#1a1a1a",
-    // No sessions yet (the course has no schedule until Edit Course sets one),
-    // and native_enroll is only honored with sessions, so leave it off rather
-    // than shipping a signup form that can't take a date.
-    native_enroll: false,
+    // With a cohort date the page offers the real signup form (name, email,
+    // ZIP, date) rather than the bare email box — an email alone can't tell
+    // us who enrolled or where they are. Without a date native_enroll must
+    // stay off: the form can't render a date picker with nothing to pick.
+    native_enroll: (content?.sessions?.length ?? 0) > 0,
     schedule: content?.schedule ?? [],
     partners: [],
-    sessions: [],
+    sessions: content?.sessions ?? [],
     body_sections: content?.bodySections ?? [],
     updated_at: new Date().toISOString(),
   });
