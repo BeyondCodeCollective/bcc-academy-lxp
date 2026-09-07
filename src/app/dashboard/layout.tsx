@@ -90,6 +90,11 @@ export default async function DashboardLayout({
   const headersList = await headers();
   const pathname = headersList.get("x-pathname") ?? "";
   const isSurveyPage = pathname.startsWith("/dashboard/survey");
+  // The FDE session stage is its own room: cream, one column, no rail. Any
+  // dashboard chrome around it would compete with the thing the learner is
+  // meant to be looking at, so this drops the shell entirely (not just the
+  // top bars, the way survey pages do).
+  const isImmersive = /^\/dashboard\/track\/[^/]+\/[^/]+\/live/.test(pathname);
   const programSlug = headersList.get("x-program-slug") ?? "bcc-academy";
   const baseProgram = await resolveLearnerBrand(getProgramBySlug(programSlug));
 
@@ -158,7 +163,7 @@ export default async function DashboardLayout({
     }
   }
 
-  const hideChrome = isSurveyPage || confinedToChecklist;
+  const hideChrome = isSurveyPage || confinedToChecklist || isImmersive;
 
   return (
     <ProgramProvider program={baseProgram}>
@@ -180,15 +185,17 @@ export default async function DashboardLayout({
           } as React.CSSProperties
         }
       >
-        <Suspense fallback={hideChrome ? null : <NavSkeleton />}>
-          <NavShell isSurveyPage={hideChrome} />
-        </Suspense>
+        {!isImmersive && (
+          <Suspense fallback={hideChrome ? null : <NavSkeleton />}>
+            <NavShell isSurveyPage={hideChrome} />
+          </Suspense>
+        )}
         <main
           id="dashboard-main"
           // Always clear the fixed w-60 nav rail — survey pages render the
           // minimal (logo-only) rail but previously dropped this padding, so
           // their centered content sat half-tucked behind the white column.
-          className="flex-1 bg-paper md:pl-60"
+          className={`flex-1 bg-paper${isImmersive ? "" : " md:pl-60"}`}
           style={{ fontSize: "16px" }}
         >
           {!hideChrome && (
@@ -207,7 +214,7 @@ export default async function DashboardLayout({
             </Suspense>
           )}
           {children}
-          {!isSurveyPage && (
+          {!isSurveyPage && !isImmersive && (
             // pb-20 on phones: the staff "Preview as student" pill floats
             // fixed bottom-right and sat directly on top of Privacy/Terms at
             // phone widths. Desktop has room; mobile gets a spacer.
