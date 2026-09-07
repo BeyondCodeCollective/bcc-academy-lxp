@@ -271,6 +271,7 @@ function useListening({
       return;
     }
 
+    let done = false;
     const rec = getRecognition();
     if (!rec) {
       setState("unsupported");
@@ -286,13 +287,28 @@ function useListening({
       setHeard(text.trim());
       // Stop the moment the answer is recognizable — leaving the mic open
       // after a match means the next sentence overwrites the choice.
-      if (matchRef.current(text)) rec.stop();
+      if (matchRef.current(text)) {
+        done = true;
+        rec.stop();
+      }
     };
     rec.onerror = (e) => {
       setState(e?.error === "not-allowed" ? "denied" : "off");
     };
+    // Chrome ends recognition on its own after a stretch of silence, and
+    // after any result it did not act on. Without restarting, the mic simply
+    // dies mid-question and the learner is left talking to a page that
+    // stopped listening — which reads as a freeze, not a timeout. `done`
+    // guards the restart so tearing down on unmount doesn't respawn it.
     rec.onend = () => {
       recRef.current = null;
+      if (done) return;
+      try {
+        rec.start();
+        recRef.current = rec;
+      } catch {
+        /* already restarting; the next onend will try again */
+      }
     };
 
     try {
@@ -305,6 +321,7 @@ function useListening({
     }
 
     return () => {
+      done = true;
       rec.onresult = null;
       rec.onend = null;
       rec.onerror = null;
@@ -832,7 +849,11 @@ function Welcome({
 
 function PartOne({ voice, spoken, name, onDone }: { voice: Voice; spoken: boolean; name: string; onDone: () => void }) {
   const [i, setI] = useState(0);
-  const [sel, setSel] = useState(5);
+  // No month selected to begin with. Preselecting the last one printed
+  // "41 logged in · Feb" underneath the chart while she was still asking
+  // them to guess how many used it — the answer, given away, on the screen
+  // where the whole point is committing before you know.
+  const [sel, setSel] = useState<number | null>(null);
   const [guess, setGuess] = useState<number | null>(null);
   const [opener, setOpener] = useState<number | null>(null);
   // Set only when an answer arrived by voice. Someone who has just spoken
@@ -964,8 +985,8 @@ function PartOne({ voice, spoken, name, onDone }: { voice: Voice; spoken: boolea
         {b.gate === "guess" && (
           <div className="fde-card" style={{ background: "#fff", borderRadius: 20, padding: 22, animation: "fde-land .6s cubic-bezier(.22,1.4,.4,1)" }}>
             <Ear state={earState} heard={heard} />
-            <div style={{ fontSize: 12.5, color: INK_SOFT, marginBottom: 12 }}>Say a number, or tap one. You cannot move on until you do.</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 9 }}>
+            <div style={{ fontSize: 12.5, color: INK_SOFT, marginBottom: 12 }}>Say a number out loud, or tap one. She won&rsquo;t move on until you do.</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 9 }}>
               {GUESSES.map((g, n) => (
                 <button
                   key={g.label}
@@ -1020,7 +1041,7 @@ function Ear({ state, heard }: { state: "off" | "listening" | "denied" | "unsupp
   );
 }
 
-function ChartCard({ sel, onPick }: { sel: number; onPick: (i: number) => void }) {
+function ChartCard({ sel, onPick }: { sel: number | null; onPick: (i: number) => void }) {
   return (
     <div className="fde-card" style={{ background: "#fff", borderRadius: 20, padding: 26, animation: "fde-land .7s cubic-bezier(.22,1.4,.4,1)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
@@ -1035,9 +1056,15 @@ function ChartCard({ sel, onPick }: { sel: number; onPick: (i: number) => void }
           </button>
         ))}
       </div>
-      <div style={{ borderTop: `1px solid ${RULE}`, marginTop: 16, paddingTop: 14, display: "flex", alignItems: "baseline", gap: 9 }}>
-        <span style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 28, letterSpacing: "-.03em" }}>{MONTHS[sel].users}</span>
-        <span style={{ fontSize: 13, color: INK_SOFT }}>logged in · {MONTHS[sel].label}</span>
+      <div style={{ borderTop: `1px solid ${RULE}`, marginTop: 16, paddingTop: 14, display: "flex", alignItems: "baseline", gap: 9, minHeight: 42 }}>
+        {sel === null ? (
+          <span style={{ fontSize: 13, color: INK_FAINT }}>Tap a bar to see that month.</span>
+        ) : (
+          <>
+            <span style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 28, letterSpacing: "-.03em" }}>{MONTHS[sel].users}</span>
+            <span style={{ fontSize: 13, color: INK_SOFT }}>logged in · {MONTHS[sel].label}</span>
+          </>
+        )}
       </div>
     </div>
   );
