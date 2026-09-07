@@ -14,6 +14,10 @@ import type { CourseDraft } from "./parse";
 // the AI-photo look the brand avoids.
 const IMAGE_MODEL = "recraft/recraft-v3";
 
+/** 16:9 at Recraft's supported dimensions — the course banner renders
+ *  full-width and uncropped, so a square would letterbox badly. */
+const COVER_SIZE = "1820x1024" as const;
+
 type Svc = ReturnType<typeof createServiceClient>;
 
 // Art is best-effort inside a user-facing create action: a stalled provider
@@ -99,13 +103,21 @@ Style: near-black matte ground subtly tinted toward ${colors.primary}, one or tw
     const { image } = await generateImage({
       model: gateway.imageModel(IMAGE_MODEL),
       prompt,
-      aspectRatio: "16:9",
+      // Recraft rejects aspectRatio ("this model does not support aspect
+      // ratio") and silently falls back to its own default — pass the 16:9
+      // size explicitly so the course banner is never a square.
+      size: COVER_SIZE,
     });
 
-    const path = `covers/${crypto.randomUUID()}.png`;
+    // Recraft returns WebP, not PNG. Labeling it .png/image/png still renders
+    // (browsers sniff), but it lies to any consumer that trusts the type, so
+    // take the media type the model actually reports.
+    const mediaType = image.mediaType ?? "image/png";
+    const ext = mediaType.split("/")[1]?.replace("jpeg", "jpg") ?? "png";
+    const path = `covers/${crypto.randomUUID()}.${ext}`;
     const { error } = await svc.storage
       .from("landing")
-      .upload(path, Buffer.from(image.uint8Array), { contentType: "image/png" });
+      .upload(path, Buffer.from(image.uint8Array), { contentType: mediaType });
     if (error) {
       console.error("[generateCoverGraphic] upload failed:", error);
       return null;
