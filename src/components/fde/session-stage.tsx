@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * FDE 101 — "Where AI Belongs", the learner-facing session stage.
+ * Field Ready — "Where AI Belongs", the learner-facing session stage.
  *
  * Design comes from the canvas (artboards `Main` / `Build`): cream #FAF7F2,
  * one centerd column at every width, cobalt #1D59FF as the only accent,
@@ -367,8 +367,9 @@ const MONTHS = [
  * `gate` names an action the beat will not move past.
  */
 const BEATS = [
-  { line: "Before I show you anything — one question.", sub: "Has anywhere you've worked ever launched something new that almost nobody ended up using?", card: 0, mic: "live", gate: "opening" },
-  { line: "Almost everyone says yes.", sub: "So let me show you one with the numbers still attached. A youth center built a family portal so parents could sign their kids up online instead of emailing. It shipped on time. Tests passed. No bugs.", card: 0, mic: "idle", gate: false },
+  { line: "Hey — good to meet you.", sub: "I'm going to show you something that went sideways at a place a lot like yours. Before I do, I want to know one thing about you.", card: 0, mic: "idle", gate: false },
+  { line: "Has anywhere you've worked ever launched something new that almost nobody ended up using?", sub: "Say it out loud, or pick the closest one. There's no wrong answer here.", card: 0, mic: "live", gate: "opening" },
+  { line: "Almost everyone says yes.", sub: "", card: 0, mic: "idle", gate: false },
   { line: "This is six months of it.", sub: "Poke around. Tap any month.", card: 1, mic: "idle", gate: false },
   { line: "Eleven thousand families were eligible. How many actually used it?", sub: "Commit to a number before you move on. Say it out loud too. That's the part that stings later.", card: 1, mic: "live", gate: "guess" },
   { line: "Not even close.", sub: "A quarter would have been 2,700 people. The team who built it guessed high too.", card: 2, mic: "idle", gate: false },
@@ -388,22 +389,32 @@ const BEATS = [
 const REPLIES = [
   {
     line: "Almost everyone says yes.",
-    sub: "So let me show you one with the numbers still attached. A youth center built a family portal so parents could sign their kids up online instead of emailing. It shipped on time. Tests passed. No bugs.",
+    sub: (who: string) =>
+      `Thanks${who ? `, ${who}` : ""}. So let me show you one with the numbers still attached. A youth center built a family portal so parents could sign their kids up online instead of emailing. It shipped on time. Tests passed. No bugs.`,
   },
   {
     line: "Almost nobody counts.",
-    sub: "That's most of the problem right there. So let me show you one where somebody did count. A youth center built a family portal so parents could sign their kids up online instead of emailing. It shipped on time. Tests passed. No bugs.",
+    sub: (who: string) =>
+      `And that's most of the problem right there${who ? `, ${who}` : ""}. So let me show you one where somebody did count. A youth center built a family portal so parents could sign their kids up online instead of emailing. It shipped on time. Tests passed. No bugs.`,
   },
   {
     line: "Then you're lucky, or nobody checked.",
-    sub: "Usually it's the second one. So let me show you a place that checked. A youth center built a family portal so parents could sign their kids up online instead of emailing. It shipped on time. Tests passed. No bugs.",
+    sub: (who: string) =>
+      `Usually it's the second one${who ? `, ${who}` : ""}. So let me show you a place that did check. A youth center built a family portal so parents could sign their kids up online instead of emailing. It shipped on time. Tests passed. No bugs.`,
   },
 ];
 
-/** Her first words. Named when we know it, rather than "Hey there". */
-function openingLine(name: string) {
-  const who = name.trim().split(/\s+/)[0];
-  return who ? `${who} — before I show you anything, one question.` : BEATS[0].line;
+/**
+ * A first name, or "" when we have none.
+ *
+ * She does not lead with it. Being addressed by name by a machine you have
+ * never spoken to before is startling — you brace instead of listening. So
+ * she says hello first, asks her question, and uses the name only in her
+ * reply, which is where a person uses yours: after you have told them
+ * something, as acknowledgement rather than address.
+ */
+function firstNameOf(name: string) {
+  return name.trim().split(/\s+/)[0] ?? "";
 }
 
 /** How they answer the opening question. Every road leads onward. */
@@ -554,7 +565,7 @@ export function SessionStage({
     // press persists for the rest of the page's life, not just that tick.
     const t = window.setTimeout(() => {
       setCountIn(null);
-      if (phase === "part1") voice.say(`${openingLine(name)} ${BEATS[0].sub}`, { force: true });
+      if (phase === "part1") voice.say(`${BEATS[0].line} ${BEATS[0].sub}`, { force: true });
     }, 500);
     return () => window.clearTimeout(t);
   }, [countIn, phase, voice, name]);
@@ -743,7 +754,7 @@ function Welcome({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Welcome to FDE 101"
+      aria-label="Welcome to Field Ready"
       style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, background: "rgba(250,247,242,.82)", backdropFilter: "blur(10px)", animation: "fde-rise .4s ease" }}
     >
       <form
@@ -757,12 +768,12 @@ function Welcome({
         <span style={{ width: 44, height: 44, borderRadius: "50%", background: COBALT, display: "inline-flex", alignItems: "center", justifyContent: "center", fontFamily: DISPLAY, fontWeight: 700, fontSize: 17, color: "#fff" }}>F</span>
 
         <h1 style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: "clamp(27px, 6vw, 37px)", lineHeight: 1.08, letterSpacing: "-.04em", margin: "20px 0 0" }}>
-          {known ? `Welcome, ${known}.` : "Welcome to FDE"}
+          Welcome to Field&nbsp;Ready
         </h1>
         <p style={{ fontSize: 15.5, lineHeight: 1.6, color: INK_SOFT, margin: "14px 0 0" }}>
-          Ninety minutes, four parts. I&rsquo;ll walk you through a real project that
-          failed, and you&rsquo;ll decide what an AI should and shouldn&rsquo;t be allowed
-          to touch.
+          {known ? `Good to see you, ${known}. ` : ""}Ninety minutes, four parts. I&rsquo;ll walk
+          you through a real project that failed, and you&rsquo;ll decide what an AI
+          should and shouldn&rsquo;t be allowed to touch.
         </p>
 
         {!known && (
@@ -829,10 +840,10 @@ function PartOne({ voice, spoken, name, onDone }: { voice: Voice; spoken: boolea
   // deliberate choice they may want to change, so taps still wait.
   const [spokenAnswer, setSpokenAnswer] = useState(false);
   const b = BEATS[i];
-  // Beat 1 is her reply to beat 0, so it is whichever answer they gave.
-  const reply = i === 1 && opener !== null ? REPLIES[opener] : null;
-  const line = reply?.line ?? (i === 0 ? openingLine(name) : b.line);
-  const sub = reply?.sub ?? b.sub;
+  // Beat 2 is her reply to the question, so it is whichever answer they gave.
+  const reply = i === 2 && opener !== null ? REPLIES[opener] : null;
+  const line = reply?.line ?? b.line;
+  const sub = reply ? reply.sub(firstNameOf(name)) : b.sub;
 
   // The overlay speaks beat 0 itself (it owns the audio unlock), so hold off
   // until it has cleared or the first line would be said twice.
