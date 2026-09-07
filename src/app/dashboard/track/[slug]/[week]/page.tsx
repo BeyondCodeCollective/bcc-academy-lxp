@@ -755,8 +755,14 @@ export default async function TrackWeekPage({
 
       {/* The lab itself. Idle, this renders AS the stage (the dark slab that
          anchors the page); once the learner starts, it becomes the live
-         conversation exactly as before. */}
-      {hasInstructor && (
+         conversation exactly as before.
+
+         !sessionDayFuture matters: the stage has a BEFORE state that renders
+         above (countdown, add-to-calendar), and without this gate both drew
+         at once — "Session 1 opens Monday" stacked on top of "Open now ·
+         Start Session 1", offering a lab that isn't open yet. One session,
+         one stage, exactly one state. */}
+      {hasInstructor && !sessionDayFuture && (
         <InstructorPanel
           trackSlug={trackSlug}
           weekNumber={weekNum}
