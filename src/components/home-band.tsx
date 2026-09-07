@@ -67,12 +67,12 @@ export function HomeBand({
                 <div
                   key={s.label}
                   className={`flex flex-1 flex-col justify-center gap-0.5 border-l-2 pl-3 sm:min-w-[86px] ${
-                    s.urgent ? "border-highlight" : "border-white/[0.28]"
+                    s.urgent ? "border-[color:var(--signal)]" : "border-white/[0.28]"
                   }`}
                 >
                   <span
                     className={`font-display text-[19px] font-extrabold tabular-nums tracking-[-0.03em] sm:text-[23px] ${
-                      s.urgent ? "text-highlight" : "text-white"
+                      s.urgent ? "text-[color:var(--signal)]" : "text-white"
                     }`}
                   >
                     {s.value}
@@ -123,7 +123,7 @@ export function HomeBand({
                 {/* Phones get a dot; there is no room for a label at 48px. */}
                 <span
                   className={`h-[5px] w-[5px] shrink-0 rounded-full sm:hidden ${
-                    day.sessions.length > 0 ? "bg-highlight" : "bg-white/[0.16]"
+                    day.sessions.length > 0 ? "bg-[color:var(--signal)]" : "bg-white/[0.16]"
                   }`}
                 />
 
@@ -136,7 +136,7 @@ export function HomeBand({
                         key={s.trackSlug + s.startsAt}
                         className="truncate text-[10.5px] leading-tight text-white/90"
                       >
-                        <span className="font-display font-extrabold text-highlight">
+                        <span className="font-display font-extrabold text-[color:var(--signal)]">
                           {s.code}
                         </span>{" "}
                         {s.unitLabel}
