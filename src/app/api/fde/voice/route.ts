@@ -31,19 +31,34 @@ function remember(key: string, buf: ArrayBuffer) {
   cache.set(key, buf);
 }
 
-export async function POST(req: Request) {
-  const key = process.env.ELEVENLABS_API_KEY;
-  if (!key) {
-    // Not an error the learner should see: the client falls back to browser
-    // speech, so the session still talks, just less well.
-    return NextResponse.json({ error: "voice_unconfigured" }, { status: 503 });
-  }
+/**
+ * GET, not POST, and deliberately.
+ *
+ * The obvious client is `fetch()` then `new Audio(URL.createObjectURL(blob))`
+ * — but the app's CSP has no `blob:` in `media-src`, so the element is
+ * blocked and the session falls back to the robot voice without ever saying
+ * why. A same-origin GET is playable directly by `new Audio(url)`, needs no
+ * CSP change, and lets the browser cache the audio for free.
+ */
+export async function GET(req: Request) {
+  const text = new URL(req.url).searchParams.get("text") ?? "";
+  return synthesise(text);
+}
 
+export async function POST(req: Request) {
   let text: string;
   try {
     ({ text } = await req.json());
   } catch {
     return NextResponse.json({ error: "bad_request" }, { status: 400 });
+  }
+  return synthesise(text);
+}
+
+async function synthesise(text: unknown) {
+  const key = process.env.ELEVENLABS_API_KEY;
+  if (!key) {
+    return NextResponse.json({ error: "voice_unconfigured" }, { status: 503 });
   }
   if (typeof text !== "string" || !text.trim()) {
     return NextResponse.json({ error: "bad_request" }, { status: 400 });

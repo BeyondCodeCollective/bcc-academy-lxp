@@ -26,6 +26,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { saveFourSecondCall, markSessionComplete } from "@/app/dashboard/track/[slug]/[week]/live/actions";
 
 /* ── palette ─────────────────────────────────────────────────────────── */
 
@@ -129,32 +130,24 @@ function useNarration() {
       const token = ++tokenRef.current;
       setSpeaking(true);
 
-      fetch("/api/fde/voice", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ text }),
-      })
-        .then((r) => {
-          if (!r.ok) throw new Error(String(r.status));
-          return r.blob();
-        })
-        .then((blob) => {
-          if (token !== tokenRef.current) return;
-          const audio = new Audio(URL.createObjectURL(blob));
-          audioRef.current = audio;
-          audio.onended = () => {
-            if (token === tokenRef.current) setSpeaking(false);
-          };
-          audio.onerror = () => {
-            if (token === tokenRef.current) setSpeaking(false);
-          };
-          return audio.play();
-        })
-        .catch(() => {
-          if (token !== tokenRef.current) return;
-          setSpeaking(false);
-          fallback(text);
-        });
+      // Same-origin URL rather than a blob: the app's CSP has no `blob:` in
+      // media-src, so a blob-backed <audio> is blocked outright.
+      const audio = new Audio(`/api/fde/voice?text=${encodeURIComponent(text)}`);
+      audioRef.current = audio;
+      audio.onended = () => {
+        if (token === tokenRef.current) setSpeaking(false);
+      };
+      audio.onerror = () => {
+        // Unconfigured key, network, a bad response — she still has to talk.
+        if (token !== tokenRef.current) return;
+        setSpeaking(false);
+        fallback(text);
+      };
+      audio.play().catch(() => {
+        if (token !== tokenRef.current) return;
+        setSpeaking(false);
+        fallback(text);
+      });
     },
     [muted, stop, fallback],
   );
@@ -323,31 +316,82 @@ const TONES = {
 type Phase = "part1" | "part2" | "part3" | "part4" | "done";
 const ORDER: Phase[] = ["part1", "part2", "part3", "part4", "done"];
 
-export function SessionStage() {
+export function SessionStage({
+  trackSlug,
+  weekNumber,
+  prompt,
+  savedSentence,
+}: {
+  trackSlug: string;
+  weekNumber: number;
+  prompt: string;
+  savedSentence: string;
+}) {
   const [phase, setPhase] = useState<Phase>("part1");
   const [welcome, setWelcome] = useState(true);
+  const [resumeAt, setResumeAt] = useState<Phase | null>(null);
   const partIndex = Math.max(0, ORDER.indexOf(phase));
   const voice = useNarration();
+
+  // Where they got to lives on the device, not the server: it is a
+  // convenience, and a ninety-minute session does not move between laptops.
+  // The sentence — the part that matters — is saved properly.
+  const key = `fde-stage:${trackSlug}:${weekNumber}`;
+
+  useEffect(() => {
+    try {
+      const at = localStorage.getItem(key);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- client-only storage, once on mount
+      if (at && ORDER.includes(at as Phase) && at !== "part1") setResumeAt(at as Phase);
+    } catch {
+      /* private mode — they simply start at the beginning */
+    }
+  }, [key]);
+
+  const go = useCallback(
+    (next: Phase) => {
+      setPhase(next);
+      try {
+        localStorage.setItem(key, next);
+      } catch {
+        /* resume is best-effort */
+      }
+    },
+    [key],
+  );
 
   // The overlay is the audio unlock: browsers refuse speech until the user
   // has acted, so this one click both opens the session and gives her a
   // voice. Part 1 is already mounted behind it and speaks the instant it
   // clears — the learner never meets a silent screen.
-  const enter = () => {
-    voice.say(`${BEATS[0].line} ${BEATS[0].sub}`, { force: true });
+  const enter = (at?: Phase) => {
+    if (at && at !== "part1") {
+      setPhase(at);
+    } else {
+      voice.say(`${BEATS[0].line} ${BEATS[0].sub}`, { force: true });
+    }
     setWelcome(false);
   };
 
   return (
     <div style={{ minHeight: "100dvh", background: CREAM, WebkitFontSmoothing: "antialiased", color: INK }}>
       <Keyframes />
-      {welcome && <Welcome onEnter={enter} />}
+      {welcome && <Welcome onEnter={enter} resumeAt={resumeAt} />}
       <div aria-hidden={welcome} style={{ maxWidth: 680, margin: "0 auto", padding: "0 20px 64px", minHeight: "100dvh", display: "flex", flexDirection: "column", filter: welcome ? "blur(6px)" : "none", transition: "filter .5s ease" }}>
         {phase !== "done" && <PartRail active={partIndex} />}
-        {phase === "part1" && <PartOne voice={voice} spoken={!welcome} onDone={() => setPhase("part2")} />}
-        {phase === "part2" && <PartTwo voice={voice} onDone={() => setPhase("part3")} />}
-        {phase === "part3" && <PartThree voice={voice} onDone={() => setPhase("part4")} />}
-        {phase === "part4" && <PartFour voice={voice} onDone={() => setPhase("done")} />}
+        {phase === "part1" && <PartOne voice={voice} spoken={!welcome} onDone={() => go("part2")} />}
+        {phase === "part2" && <PartTwo voice={voice} onDone={() => go("part3")} />}
+        {phase === "part3" && <PartThree voice={voice} onDone={() => go("part4")} />}
+        {phase === "part4" && (
+          <PartFour
+            voice={voice}
+            trackSlug={trackSlug}
+            weekNumber={weekNumber}
+            prompt={prompt}
+            saved={savedSentence}
+            onDone={() => go("done")}
+          />
+        )}
         {phase === "done" && <Done voice={voice} />}
       </div>
     </div>
@@ -432,7 +476,8 @@ function Footer({ note, children }: { note?: string; children?: React.ReactNode 
  * already there behind the blur, and the single button both opens it and
  * gives her a voice. Nobody meets a mute page.
  */
-function Welcome({ onEnter }: { onEnter: () => void }) {
+function Welcome({ onEnter, resumeAt }: { onEnter: (at?: Phase) => void; resumeAt: Phase | null }) {
+  const resumeLabel = resumeAt ? PARTS[Math.max(0, ORDER.indexOf(resumeAt))]?.title : null;
   return (
     <div
       role="dialog"
@@ -461,12 +506,21 @@ function Welcome({ onEnter }: { onEnter: () => void }) {
 
         <button
           className="fde-btn"
-          onClick={onEnter}
+          onClick={() => onEnter(resumeAt ?? undefined)}
           autoFocus
           style={{ width: "100%", marginTop: 22, fontFamily: DISPLAY, fontWeight: 600, fontSize: 16, padding: "15px 26px", borderRadius: 99, background: INK, color: "#fff", border: "none", cursor: "pointer" }}
         >
-          I&rsquo;m ready — start talking
+          {resumeAt ? `Pick up at ${resumeLabel}` : "I\u2019m ready \u2014 start talking"}
         </button>
+        {resumeAt && (
+          <button
+            className="fde-btn"
+            onClick={() => onEnter("part1")}
+            style={{ width: "100%", marginTop: 10, fontSize: 13.5, padding: "11px 20px", borderRadius: 99, background: "transparent", color: INK_SOFT, border: `1px solid ${EDGE}`, cursor: "pointer" }}
+          >
+            Start again from the beginning
+          </button>
+        )}
 
         <p style={{ fontSize: 12, color: INK_FAINT, margin: "16px 0 0" }}>
           Nothing to install. You never write code.
@@ -770,8 +824,32 @@ function EmailCard({ c, compact }: { c: (typeof CASES)[number]; compact?: boolea
 
 /* ── part 4 ──────────────────────────────────────────────────────────── */
 
-function PartFour({ voice, onDone }: { voice: Voice; onDone: () => void }) {
-  const [v, setV] = useState("");
+function PartFour({
+  voice, trackSlug, weekNumber, prompt, saved, onDone,
+}: {
+  voice: Voice; trackSlug: string; weekNumber: number; prompt: string; saved: string; onDone: () => void;
+}) {
+  const [v, setV] = useState(saved);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(false);
+
+  // Finishing writes the sentence to the week's reflection and marks the
+  // session complete, so it lands where a facilitator already looks. If the
+  // write fails the learner is told and kept on the page — losing the one
+  // thing they were asked to produce is not an acceptable silent failure.
+  const finish = async () => {
+    setSaving(true);
+    setError(false);
+    try {
+      await saveFourSecondCall(trackSlug, weekNumber, prompt, v);
+      await markSessionComplete(trackSlug, weekNumber);
+      onDone();
+    } catch {
+      setError(true);
+    } finally {
+      setSaving(false);
+    }
+  };
   useSpeak(voice, "Nobody in that room decided any of it on the spot. A person wrote the rules down years ago and the machine borrowed her judgement. So, what is yours?");
   return (
     <>
@@ -782,18 +860,20 @@ function PartFour({ voice, onDone }: { voice: Voice; onDone: () => void }) {
       <div style={{ flexGrow: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: "26px 0" }}>
         <div className="fde-card" style={{ background: "#fff", borderRadius: 20, padding: 26 }}>
           <label htmlFor="fde-sentence" style={{ display: "block", fontFamily: DISPLAY, fontWeight: 600, fontSize: 19, lineHeight: 1.42, letterSpacing: "-.02em" }}>
-            The call I make in about four seconds that would take someone new an hour to get wrong is…
+            {prompt}
           </label>
           <textarea id="fde-sentence" value={v} onChange={(e) => setV(e.target.value)} rows={3} placeholder="One sentence. The thing you just know." style={{ width: "100%", marginTop: 16, padding: "14px 16px", borderRadius: 12, border: `1px solid ${EDGE}`, background: CREAM, fontSize: 15, lineHeight: 1.6, color: INK, resize: "vertical", boxSizing: "border-box", fontFamily: "inherit" }} />
-          <p style={{ fontSize: 12.5, color: INK_FAINT, marginTop: 12, marginBottom: 0 }}>
-            If you are stuck: what did you retype last week that you have retyped a hundred times?
+          <p style={{ fontSize: 12.5, color: error ? "#B4342C" : INK_FAINT, marginTop: 12, marginBottom: 0 }}>
+            {error
+              ? "That didn't save. Check your connection and try again — don't close the page."
+              : "Saved to your session when you finish. If you are stuck: what did you retype last week that you have retyped a hundred times?"}
           </p>
         </div>
       </div>
 
       <Footer note="You will read this one out.">
         <VoiceChip voice={voice} yourTurn />
-        <Primary onClick={onDone} disabled={v.trim().length < 8}>Finish →</Primary>
+        <Primary onClick={finish} disabled={saving || v.trim().length < 8}>{saving ? "Saving…" : "Finish →"}</Primary>
       </Footer>
     </>
   );
