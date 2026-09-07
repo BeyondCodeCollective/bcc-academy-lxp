@@ -66,6 +66,7 @@ export default async function LiveSessionPage({
         weekNumber={weekNum}
         prompt={prompt}
         savedSentence={saved}
+        firstName={ctx?.student?.first_name?.trim() || null}
       />
       {/* The one piece of chrome: a way back that never competes with the stage. */}
       <Link

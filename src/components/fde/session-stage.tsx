@@ -376,6 +376,36 @@ const BEATS = [
   { line: "It worked perfectly. It just never landed.", sub: "Those are two different jobs, and almost nobody is assigned the second one. That second job is what we're doing today.", card: 3, mic: "live", gate: false },
 ] as const;
 
+/**
+ * What she says back, per answer.
+ *
+ * The second beat used to be one fixed line — "Almost everyone says yes." —
+ * so someone who answered "not that I know of" got told they had said yes.
+ * Asking a question and ignoring the answer is worse than never asking: it
+ * teaches the learner that nothing they do here is heard. Each answer gets
+ * its own reply, and all three arrive at the same place.
+ */
+const REPLIES = [
+  {
+    line: "Almost everyone says yes.",
+    sub: "So let me show you one with the numbers still attached. A youth center built a family portal so parents could sign their kids up online instead of emailing. It shipped on time. Tests passed. No bugs.",
+  },
+  {
+    line: "Almost nobody counts.",
+    sub: "That's most of the problem right there. So let me show you one where somebody did count. A youth center built a family portal so parents could sign their kids up online instead of emailing. It shipped on time. Tests passed. No bugs.",
+  },
+  {
+    line: "Then you're lucky, or nobody checked.",
+    sub: "Usually it's the second one. So let me show you a place that checked. A youth center built a family portal so parents could sign their kids up online instead of emailing. It shipped on time. Tests passed. No bugs.",
+  },
+];
+
+/** Her first words. Named when we know it, rather than "Hey there". */
+function openingLine(name: string) {
+  const who = name.trim().split(/\s+/)[0];
+  return who ? `${who} — before I show you anything, one question.` : BEATS[0].line;
+}
+
 /** How they answer the opening question. Every road leads onward. */
 const OPENERS = [
   "Yes — we have one of those",
@@ -454,15 +484,21 @@ export function SessionStage({
   weekNumber,
   prompt,
   savedSentence,
+  firstName,
 }: {
   trackSlug: string;
   weekNumber: number;
   prompt: string;
   savedSentence: string;
+  firstName: string | null;
 }) {
   const [phase, setPhase] = useState<Phase>("part1");
   const [welcome, setWelcome] = useState(true);
   const [countIn, setCountIn] = useState<number | null>(null);
+  // The platform usually knows who this is. When it doesn't — a shared
+  // laptop, a profile with no first name — she asks, rather than opening on
+  // "Hey there", which is the tell that nobody is really being spoken to.
+  const [name, setName] = useState((firstName ?? "").trim());
   const [resumeAt, setResumeAt] = useState<Phase | null>(null);
   const partIndex = Math.max(0, ORDER.indexOf(phase));
   const voice = useNarration();
@@ -501,7 +537,8 @@ export function SessionStage({
   // Dismissing the overlay used to drop the learner straight into a voice
   // already mid-sentence, which startles people. Three seconds of nothing
   // first: they see the room they have walked into, then she speaks.
-  const enter = (at?: Phase) => {
+  const enter = (who: string, at?: Phase) => {
+    setName(who.trim());
     if (at && at !== "part1") setPhase(at);
     setWelcome(false);
     setCountIn(3);
@@ -517,19 +554,19 @@ export function SessionStage({
     // press persists for the rest of the page's life, not just that tick.
     const t = window.setTimeout(() => {
       setCountIn(null);
-      if (phase === "part1") voice.say(`${BEATS[0].line} ${BEATS[0].sub}`, { force: true });
+      if (phase === "part1") voice.say(`${openingLine(name)} ${BEATS[0].sub}`, { force: true });
     }, 500);
     return () => window.clearTimeout(t);
-  }, [countIn, phase, voice]);
+  }, [countIn, phase, voice, name]);
 
   return (
     <div style={{ minHeight: "100dvh", background: CREAM, WebkitFontSmoothing: "antialiased", color: INK }}>
       <Keyframes />
-      {welcome && <Welcome onEnter={enter} resumeAt={resumeAt} />}
+      {welcome && <Welcome onEnter={enter} resumeAt={resumeAt} knownName={firstName} />}
       {countIn !== null && <CountIn n={countIn} />}
       <div aria-hidden={welcome || countIn !== null} style={{ maxWidth: 680, margin: "0 auto", padding: "0 20px 64px", minHeight: "100dvh", display: "flex", flexDirection: "column", filter: welcome ? "blur(6px)" : countIn !== null ? "blur(3px)" : "none", transition: "filter .6s ease" }}>
         {phase !== "done" && <PartRail active={partIndex} />}
-        {phase === "part1" && <PartOne voice={voice} spoken={!welcome} onDone={() => go("part2")} />}
+        {phase === "part1" && <PartOne voice={voice} spoken={!welcome && countIn === null} name={name} onDone={() => go("part2")} />}
         {phase === "part2" && <PartTwo voice={voice} onDone={() => go("part3")} />}
         {phase === "part3" && <PartThree voice={voice} onDone={() => go("part4")} />}
         {phase === "part4" && (
@@ -557,6 +594,9 @@ function Keyframes() {
       @keyframes fde-idle { 0%,100% { transform:scaleY(.16) } 50% { transform:scaleY(.42) } }
       @keyframes fde-countin { 0% { opacity:0; transform:scale(.72) } 65% { opacity:1; transform:scale(1.06) } 100% { transform:scale(1) } }
       @keyframes fde-nudge { 0%,100% { transform:translateX(0) } 50% { transform:translateX(3px) } }
+      @keyframes fde-ring { from { stroke-dashoffset: 465 } to { stroke-dashoffset: 0 } }
+      @keyframes fde-halo { 0% { opacity:.5; transform:scale(.7) } 100% { opacity:0; transform:scale(1.55) } }
+      @keyframes fde-count { 0% { opacity:0; transform:scale(.5) } 45% { opacity:1; transform:scale(1.07) } 78% { transform:scale(1) } 100% { opacity:.9; transform:scale(.97) } }
       .fde-card { box-shadow: 0 30px 70px -26px rgba(90,70,45,.36), 0 2px 5px rgba(90,70,45,.05); }
       .fde-btn { transition: transform .18s ease, background .18s ease, border-color .18s ease; }
       .fde-btn:hover:not(:disabled) { transform: translateY(-1px); }
@@ -586,9 +626,9 @@ function PartRail({ active }: { active: number }) {
 
 /* ── reusable bits ───────────────────────────────────────────────────── */
 
-function Heading({ children, sub, size = 46 }: { children: React.ReactNode; sub?: string; size?: number }) {
+function Heading({ children, sub, size = 46, centered }: { children: React.ReactNode; sub?: string; size?: number; centered?: boolean }) {
   return (
-    <div style={{ marginTop: 34 }}>
+    <div style={centered ? { marginTop: "auto", marginBottom: "auto", paddingTop: 34 } : { marginTop: 34 }}>
       <h1 style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: `clamp(29px, 5.4vw, ${size}px)`, lineHeight: 1.11, letterSpacing: "-.04em", color: INK, margin: 0, textWrap: "pretty", animation: "fde-rise .5s cubic-bezier(.16,1,.3,1)" }}>
         {children}
       </h1>
@@ -626,30 +666,79 @@ function Footer({ note, children }: { note?: string; children?: React.ReactNode 
  * already there behind the blur, and the single button both opens it and
  * gives her a voice. Nobody meets a mute page.
  */
-/** Three seconds of quiet so nobody is spoken at the instant they click. */
+/**
+ * The count-in.
+ *
+ * Three seconds is dead air unless it is doing something, so it does: a
+ * cobalt ring closing on every beat, the numeral springing in, a halo
+ * pushing outward behind it, and one short line per count saying what they
+ * are walking into. By zero they should want it to start.
+ */
+const COUNT_LINES: Record<number, string> = {
+  3: "Four parts.",
+  2: "One real story.",
+  1: "Your call at the end.",
+};
+
 function CountIn({ n }: { n: number }) {
+  const CIRC = 465; // 2πr at r=74
+
   return (
     <div
       aria-hidden
-      style={{ position: "fixed", inset: 0, zIndex: 45, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 18, background: "rgba(250,247,242,.72)", backdropFilter: "blur(8px)" }}
+      style={{ position: "fixed", inset: 0, zIndex: 45, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 28, background: "rgba(250,247,242,.9)", backdropFilter: "blur(10px)" }}
     >
-      <span style={{ fontSize: 12, letterSpacing: ".14em", textTransform: "uppercase", color: INK_FAINT }}>
-        {n > 0 ? "Starting" : "Here we go"}
-      </span>
+      <div style={{ position: "relative", width: 190, height: 190, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        {/* One expanding ring per beat, so each count pushes the air outward. */}
+        <span key={`halo-${n}`} style={{ position: "absolute", inset: 26, borderRadius: "50%", border: `2px solid ${COBALT}`, animation: "fde-halo .9s cubic-bezier(.16,1,.3,1) forwards" }} />
+
+        <svg width="190" height="190" viewBox="0 0 190 190" style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }}>
+          <circle cx="95" cy="95" r="74" fill="none" stroke="#E9E3D9" strokeWidth="3" />
+          <circle
+            key={`ring-${n}`}
+            cx="95" cy="95" r="74" fill="none" stroke={COBALT} strokeWidth="3" strokeLinecap="round"
+            strokeDasharray={CIRC}
+            style={{ animation: "fde-ring .8s linear forwards" }}
+          />
+        </svg>
+
+        {n > 0 ? (
+          <span key={`n-${n}`} style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 92, lineHeight: 1, letterSpacing: "-.06em", color: INK, animation: "fde-count .8s cubic-bezier(.34,1.56,.64,1)" }}>
+            {n}
+          </span>
+        ) : (
+          <span style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 25, letterSpacing: "-.03em", color: COBALT, animation: "fde-count .5s cubic-bezier(.34,1.56,.64,1)" }}>
+            Here we go
+          </span>
+        )}
+      </div>
+
       {n > 0 && (
-        <span
-          key={n}
-          style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: "clamp(72px, 18vw, 128px)", lineHeight: 1, letterSpacing: "-.06em", color: COBALT, animation: "fde-countin .5s cubic-bezier(.34,1.56,.64,1)" }}
-        >
-          {n}
+        <span key={`t-${n}`} style={{ fontFamily: DISPLAY, fontWeight: 600, fontSize: 17, letterSpacing: "-.02em", color: INK_SOFT, animation: "fde-rise .5s cubic-bezier(.16,1,.3,1)" }}>
+          {COUNT_LINES[n] ?? ""}
         </span>
       )}
     </div>
   );
 }
 
-function Welcome({ onEnter, resumeAt }: { onEnter: (at?: Phase) => void; resumeAt: Phase | null }) {
+function Welcome({
+  onEnter,
+  resumeAt,
+  knownName,
+}: {
+  onEnter: (who: string, at?: Phase) => void;
+  resumeAt: Phase | null;
+  knownName: string | null;
+}) {
+  const [typed, setTyped] = useState("");
   const resumeLabel = resumeAt ? PARTS[Math.max(0, ORDER.indexOf(resumeAt))]?.title : null;
+
+  // A learner the platform already knows gets greeted, not interrogated.
+  const known = (knownName ?? "").trim().split(/\s+/)[0] ?? "";
+  const who = known || typed.trim();
+  const ready = who.length > 0;
+
   return (
     <div
       role="dialog"
@@ -657,11 +746,18 @@ function Welcome({ onEnter, resumeAt }: { onEnter: (at?: Phase) => void; resumeA
       aria-label="Welcome to FDE 101"
       style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, background: "rgba(250,247,242,.82)", backdropFilter: "blur(10px)", animation: "fde-rise .4s ease" }}
     >
-      <div className="fde-card" style={{ background: "#fff", borderRadius: 26, padding: "38px 34px", maxWidth: 470, width: "100%", textAlign: "center", animation: "fde-land .7s cubic-bezier(.22,1.4,.4,1)" }}>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (ready) onEnter(who, resumeAt ?? undefined);
+        }}
+        className="fde-card"
+        style={{ background: "#fff", borderRadius: 26, padding: "38px 34px", maxWidth: 470, width: "100%", textAlign: "center", animation: "fde-land .7s cubic-bezier(.22,1.4,.4,1)" }}
+      >
         <span style={{ width: 44, height: 44, borderRadius: "50%", background: COBALT, display: "inline-flex", alignItems: "center", justifyContent: "center", fontFamily: DISPLAY, fontWeight: 700, fontSize: 17, color: "#fff" }}>F</span>
 
-        <h1 style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: "clamp(28px, 6vw, 38px)", lineHeight: 1.08, letterSpacing: "-.04em", margin: "20px 0 0" }}>
-          Welcome to FDE
+        <h1 style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: "clamp(27px, 6vw, 37px)", lineHeight: 1.08, letterSpacing: "-.04em", margin: "20px 0 0" }}>
+          {known ? `Welcome, ${known}.` : "Welcome to FDE"}
         </h1>
         <p style={{ fontSize: 15.5, lineHeight: 1.6, color: INK_SOFT, margin: "14px 0 0" }}>
           Ninety minutes, four parts. I&rsquo;ll walk you through a real project that
@@ -669,25 +765,44 @@ function Welcome({ onEnter, resumeAt }: { onEnter: (at?: Phase) => void; resumeA
           to touch.
         </p>
 
+        {!known && (
+          <div style={{ margin: "22px 0 0", textAlign: "left" }}>
+            <label htmlFor="fde-name" style={{ display: "block", fontSize: 13, color: INK_SOFT, marginBottom: 7 }}>
+              First — what should I call you?
+            </label>
+            <input
+              id="fde-name"
+              value={typed}
+              onChange={(e) => setTyped(e.target.value)}
+              autoFocus
+              autoComplete="given-name"
+              placeholder="Your first name"
+              style={{ width: "100%", padding: "13px 15px", borderRadius: 12, border: `1px solid ${EDGE}`, background: CREAM, fontSize: 15, color: INK, boxSizing: "border-box", fontFamily: "inherit" }}
+            />
+          </div>
+        )}
+
         <div style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "center", margin: "22px 0 0", padding: "12px 16px", borderRadius: 14, background: "#F4F0E8", fontSize: 13, color: INK_SOFT }}>
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={COBALT} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <path d="M11 5 6 9H2v6h4l5 4V5z" /><path d="M15.5 8.5a5 5 0 0 1 0 7" /><path d="M19 5a9 9 0 0 1 0 14" />
           </svg>
-          <span><strong style={{ color: INK }}>Turn your sound on.</strong> I speak — you can mute me any time.</span>
+          <span><strong style={{ color: INK }}>Turn your sound on.</strong> I speak, and I listen — you can answer out loud.</span>
         </div>
 
         <button
+          type="submit"
           className="fde-btn"
-          onClick={() => onEnter(resumeAt ?? undefined)}
-          autoFocus
-          style={{ width: "100%", marginTop: 22, fontFamily: DISPLAY, fontWeight: 600, fontSize: 16, padding: "15px 26px", borderRadius: 99, background: INK, color: "#fff", border: "none", cursor: "pointer" }}
+          disabled={!ready}
+          style={{ width: "100%", marginTop: 22, fontFamily: DISPLAY, fontWeight: 600, fontSize: 16, padding: "15px 26px", borderRadius: 99, background: ready ? INK : "#D8D2C7", color: "#fff", border: "none", cursor: ready ? "pointer" : "not-allowed" }}
         >
           {resumeAt ? `Pick up at ${resumeLabel}` : "I\u2019m ready \u2014 start talking"}
         </button>
+
         {resumeAt && (
           <button
+            type="button"
             className="fde-btn"
-            onClick={() => onEnter("part1")}
+            onClick={() => ready && onEnter(who, "part1")}
             style={{ width: "100%", marginTop: 10, fontSize: 13.5, padding: "11px 20px", borderRadius: 99, background: "transparent", color: INK_SOFT, border: `1px solid ${EDGE}`, cursor: "pointer" }}
           >
             Start again from the beginning
@@ -697,14 +812,14 @@ function Welcome({ onEnter, resumeAt }: { onEnter: (at?: Phase) => void; resumeA
         <p style={{ fontSize: 12, color: INK_FAINT, margin: "16px 0 0" }}>
           Nothing to install. You never write code.
         </p>
-      </div>
+      </form>
     </div>
   );
 }
 
 /* ── part 1 ──────────────────────────────────────────────────────────── */
 
-function PartOne({ voice, spoken, onDone }: { voice: Voice; spoken: boolean; onDone: () => void }) {
+function PartOne({ voice, spoken, name, onDone }: { voice: Voice; spoken: boolean; name: string; onDone: () => void }) {
   const [i, setI] = useState(0);
   const [sel, setSel] = useState(5);
   const [guess, setGuess] = useState<number | null>(null);
@@ -714,9 +829,14 @@ function PartOne({ voice, spoken, onDone }: { voice: Voice; spoken: boolean; onD
   // deliberate choice they may want to change, so taps still wait.
   const [spokenAnswer, setSpokenAnswer] = useState(false);
   const b = BEATS[i];
+  // Beat 1 is her reply to beat 0, so it is whichever answer they gave.
+  const reply = i === 1 && opener !== null ? REPLIES[opener] : null;
+  const line = reply?.line ?? (i === 0 ? openingLine(name) : b.line);
+  const sub = reply?.sub ?? b.sub;
+
   // The overlay speaks beat 0 itself (it owns the audio unlock), so hold off
   // until it has cleared or the first line would be said twice.
-  useSpeak(voice, spoken && i > 0 ? `${b.line} ${b.sub}` : "");
+  useSpeak(voice, spoken && i > 0 ? `${line} ${sub}` : "");
 
   // Only listen once she has stopped talking, or the mic hears her, not them.
   const wantsAnswer = b.gate === "opening" || b.gate === "guess";
@@ -744,6 +864,10 @@ function PartOne({ voice, spoken, onDone }: { voice: Voice; spoken: boolean; onD
   });
   const blocked =
     (b.gate === "guess" && guess === null) || (b.gate === "opening" && opener === null);
+  // A beat carrying neither a card nor a question left most of the screen
+  // empty with the line stranded at the top. Nothing to show means the words
+  // are the thing to look at, so they sit in the middle.
+  const hasVisual = b.card > 0 || b.gate !== false;
   const last = i === BEATS.length - 1;
 
   const next = useCallback(() => {
@@ -773,9 +897,9 @@ function PartOne({ voice, spoken, onDone }: { voice: Voice; spoken: boolean; onD
 
   return (
     <>
-      <Heading sub={b.sub}>{b.line}</Heading>
+      <Heading sub={sub} centered={!hasVisual}>{line}</Heading>
 
-      <div style={{ flexGrow: 1, display: "flex", flexDirection: "column", justifyContent: "center", gap: 14, padding: "26px 0" }}>
+      <div style={{ flexGrow: hasVisual ? 1 : 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: 14, padding: hasVisual ? "26px 0" : 0 }}>
         {b.card === 1 && <ChartCard sel={sel} onPick={setSel} />}
         {b.card === 2 && <BigNumber guessed={guess} />}
         {b.card === 3 && <HoursCard />}
