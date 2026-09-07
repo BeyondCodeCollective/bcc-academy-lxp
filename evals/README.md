@@ -43,6 +43,21 @@ Without credentials the suites **skip** rather than fail. A suite that goes red
 for a missing key teaches people to ignore red, which is how the Playwright
 smoke suite ended up unread for seven weeks.
 
+## Running on Anthropic instead
+
+The gateway's free tier cannot sustain a full run. Setting `AI_PROVIDER=anthropic`
+routes every AI surface — the tutor, the course importer, the Sentinel brief,
+and these evals — to Claude via `ANTHROPIC_API_KEY`, bypassing the gateway and
+its limit entirely.
+
+```bash
+AI_PROVIDER=anthropic pnpm eval
+```
+
+Default model is `claude-haiku-4-5` ($1/1M in, $5/1M out); override with
+`ANTHROPIC_MODEL`. Unset `AI_PROVIDER` and everything goes back through the
+gateway on Gemini Flash, unchanged.
+
 ## Rate limits
 
 This account's AI Gateway is on the **free tier**, which cannot sustain a full

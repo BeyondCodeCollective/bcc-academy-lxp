@@ -428,7 +428,7 @@ const REPLIES = [
  * never spoken to before is startling — you brace instead of listening. So
  * she says hello first, asks her question, and uses the name only in her
  * reply, which is where a person uses yours: after you have told them
- * something, as acknowledgement rather than address.
+ * something, as acknowledgment rather than address.
  */
 function firstNameOf(name: string) {
   return name.trim().split(/\s+/)[0] ?? "";
