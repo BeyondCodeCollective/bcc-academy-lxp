@@ -790,7 +790,46 @@ export default async function TrackWeekPage({
          at once — "Session 1 opens Monday" stacked on top of "Open now ·
          Start Session 1", offering a lab that isn't open yet. One session,
          one stage, exactly one state. */}
-      {hasInstructor && !sessionDayFuture && (
+      {/* A session with a built stage opens INTO it. Without this the route
+         existed but nothing in the platform led to it — `hasStage` was
+         computed and then never read, so the only way in was typing the URL,
+         which is not a way in at all.
+
+         Staff see it before session day too. A facilitator cannot rehearse a
+         path that only appears on the morning it has to work. */}
+      {hasStage && (!sessionDayFuture || isAdminViewer) && (
+        <section className="mb-8 overflow-hidden rounded-2xl border border-rule bg-surface-elevated">
+          <div className="border-b border-rule px-6 py-4">
+            <p className="text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
+              Your session
+            </p>
+            <h2 className="mt-1 text-lg font-semibold text-ink">{displayTitle}</h2>
+          </div>
+          <div className="px-6 py-6">
+            <p className="mb-5 max-w-[52ch] text-sm leading-relaxed text-ink-soft">
+              Ninety minutes, four parts, and an instructor who talks you through it.
+              You answer as you go — nothing to install, and you never write code.
+              Turn your sound on before you start.
+            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <Link
+                href={`/dashboard/track/${trackSlug}/${weekNum}/live`}
+                className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+              >
+                Start {unitName}
+                <span aria-hidden>&rarr;</span>
+              </Link>
+              {sessionDayFuture && isAdminViewer && (
+                <span className="text-xs text-ink-faint">
+                  Staff preview — learners see this on session day.
+                </span>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {hasInstructor && !hasStage && !sessionDayFuture && (
         <InstructorPanel
           trackSlug={trackSlug}
           weekNumber={weekNum}
