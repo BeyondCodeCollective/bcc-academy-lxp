@@ -11,8 +11,10 @@ import { RichTextEditor } from "@/components/rich-text-editor";
 import { Users, BookOpen, GraduationCap, Gear as Settings, FloppyDisk as Save, CaretDown as ChevronDown, ArrowSquareOut as ExternalLink, Check, UserCheck, Trash as Trash2, UserPlus, Plus, X, Link as LinkIcon, UploadSimple as Upload, Download, CircleNotch as Loader2, Video, FileText, ClipboardText as ClipboardList, PaperPlaneTilt as Send, ChatCentered as MessageSquare, Coffee, Eye, ArrowRight } from "@phosphor-icons/react";
 import { Avatar } from "@/components/avatar";
 import { BackLink, buttonClass, fieldInput, microLabel, SaveIndicator, SegmentedTabs, type SaveState } from "@/components/ui";
+import { HomeBand } from "@/components/home-band";
+import { scheduledSessions, nextSession, weekRail, bandSentence } from "@/lib/home-band";
 import { PageHeader, Section } from "@/components/page-header";
-import { computeCurrentWeek, trackHasStarted, formatCohortDate, humanizeSlug } from "@/lib/utils";
+import { computeCurrentWeek, trackHasStarted, formatCohortDate, humanizeSlug, easternDayKey } from "@/lib/utils";
 import { LunchLearnAdmin } from "@/app/dashboard/lunch-learn/admin/admin-client";
 import { AttendanceTab } from "./attendance-tab";
 import { ProgressTab } from "./progress-tab";
@@ -178,7 +180,18 @@ type AdminTrackConfig = {
   startDate: string;
   startDateTbd?: boolean;
   lastSessionDayOffset: number;
-  weekSummaries: { week: number; topic: string; icon: string; date?: string; label?: string }[];
+  /** `time` / `durationMinutes` come straight through from TrackConfig — the
+   *  admin page maps weekSummaries wholesale. They were simply untyped here,
+   *  which meant the schedule looked date-only from the admin side. */
+  weekSummaries: {
+    week: number;
+    topic: string;
+    icon: string;
+    date?: string;
+    label?: string;
+    time?: string;
+    durationMinutes?: number;
+  }[];
   defaultReflectionPrompts?: string[];
   submissionsEnabled?: boolean;
   reflectionsEnabled?: boolean;
@@ -1164,6 +1177,33 @@ export function AdminTabs({
               const upcoming = tracks.filter((t) => phaseOf(t) === "upcoming");
               const completed = tracks.filter((t) => phaseOf(t) === "ended");
 
+              // ── The band ──────────────────────────────────────────────
+              // This screen used to open with a list grouped by lifecycle and
+              // two unlabeled numbers — it answered "what courses exist", not
+              // "what needs me today". The band answers the second question in
+              // a sentence, and the rail shows the week it sits in.
+              //
+              // Only running and upcoming courses are scheduled: a finished
+              // cohort has dates in the past and would otherwise crowd the
+              // rail with sessions nobody is going to.
+              const bandSessions = scheduledSessions([...running, ...upcoming]);
+              const bandNext = nextSession(bandSessions, now);
+              const bandRail = weekRail(bandSessions, now);
+              const { headline: bandHeadline, sub: bandSub } = bandSentence(bandNext, now);
+              const activeTotal = running.reduce(
+                (sum, t) => sum + activeCountFor(t.slug),
+                0,
+              );
+              // "Needs you" is deliberately narrow: a course that opens inside
+              // a fortnight with nobody enrolled is the one thing on this page
+              // that gets worse while you don't look at it.
+              const needsYou = upcoming.filter((t) => {
+                if (!t.startDate) return false;
+                const days =
+                  (Date.parse(`${t.startDate}T12:00:00Z`) - now.getTime()) / 86_400_000;
+                return days <= 14 && studentCountFor(t.slug) === 0;
+              });
+
               const renderRow = (t: (typeof tracks)[number]) => {
                 const TrackIcon = iconForTrack(t.slug);
                 const started = trackHasStarted(t, now);
@@ -1287,6 +1327,35 @@ export function AdminTabs({
 
               return (
                 <div className="space-y-8">
+                  <HomeBand
+                    eyebrow={formatCohortDate(
+                      easternDayKey(now),
+                      { weekday: "long", month: "long", day: "numeric" },
+                      "en-US",
+                    )}
+                    headline={bandHeadline}
+                    sub={bandSub}
+                    rail={bandRail}
+                    stats={[
+                      { value: String(running.length), label: "Running" },
+                      { value: String(activeTotal), label: "Active" },
+                      ...(needsYou.length > 0
+                        ? [{ value: String(needsYou.length), label: "Need you", urgent: true }]
+                        : []),
+                    ]}
+                  >
+                    {needsYou.length > 0 && (
+                      <div className="relative flex flex-wrap items-center gap-2.5 border-t border-white/[0.14] pt-3">
+                        <span className="h-[7px] w-[7px] shrink-0 rounded-full bg-[color:var(--signal)]" />
+                        <p className="text-[13px] text-white/[0.86]">
+                          {needsYou.length === 1
+                            ? `${liveTrackNames[needsYou[0].slug]?.name ?? needsYou[0].name} opens soon and has nobody enrolled.`
+                            : `${needsYou.length} courses open soon with nobody enrolled.`}
+                        </p>
+                      </div>
+                    )}
+                  </HomeBand>
+
                   {running.length > 0 && (
                     <Section label="Running now" count={running.length}>
                       <div className="divide-y divide-rule overflow-hidden panel">

@@ -1,5 +1,23 @@
 import { easternToUtc, easternDayKey, COHORT_TIME_ZONE } from "@/lib/utils";
-import type { TrackConfig } from "@/lib/programs/types";
+
+/**
+ * The minimum a track has to have for the band to schedule it. Structural on
+ * purpose: the admin surface carries its own narrower track type, and both it
+ * and the learner's TrackConfig satisfy this.
+ */
+export type BandTrack = {
+  slug: string;
+  name: string;
+  shortName?: string;
+  unitLabel?: string;
+  weekSummaries?: {
+    week: number;
+    date?: string;
+    label?: string;
+    time?: string;
+    durationMinutes?: number;
+  }[];
+};
 
 /**
  * The home band's data — the sentence, the week rail, the counts.
@@ -46,7 +64,7 @@ export type RailDay = {
  * initials from the name — "MASS Wraparound" becomes "MW", "CompTIA Security+"
  * becomes "CS". Never longer than four characters, because the chip is 38px.
  */
-export function trackCode(track: Pick<TrackConfig, "slug" | "shortName" | "name">): string {
+export function trackCode(track: Pick<BandTrack, "slug" | "shortName" | "name">): string {
   const source = track.shortName?.trim() || track.name?.trim() || track.slug;
   // A short single word is already a code ("MASS", "FDE 101" -> "FDE").
   const words = source.split(/[\s—–·-]+/).filter(Boolean);
@@ -74,8 +92,8 @@ function timeLabel(time: string): string {
  * whose dates aren't filled in should show an empty week, not a fabricated one.
  */
 export function scheduledSessions(
-  tracks: TrackConfig[],
-  displayUnit?: (track: TrackConfig, week: number) => string,
+  tracks: BandTrack[],
+  displayUnit?: (track: BandTrack, week: number) => string,
 ): ScheduledSession[] {
   const out: ScheduledSession[] = [];
   for (const track of tracks) {
