@@ -4,7 +4,7 @@
  * FDE 101 — "Where AI Belongs", the learner-facing session stage.
  *
  * Design comes from the canvas (artboards `Main` / `Build`): cream #FAF7F2,
- * one centred column at every width, cobalt #1D59FF as the only accent,
+ * one centerd column at every width, cobalt #1D59FF as the only accent,
  * Archivo display. Structure comes from the run of show — four parts, in the
  * order Fonz teaches them.
  *
@@ -284,7 +284,7 @@ function useListening({
       let text = "";
       for (let i = 0; i < e.results.length; i++) text += e.results[i][0].transcript;
       setHeard(text.trim());
-      // Stop the moment the answer is recognisable — leaving the mic open
+      // Stop the moment the answer is recognizable — leaving the mic open
       // after a match means the next sentence overwrites the choice.
       if (matchRef.current(text)) rec.stop();
     };
@@ -339,8 +339,8 @@ function matchGuess(said: string): number | null {
 
 const PARTS = [
   { n: 1, title: "The one nobody used", blurb: "Six months of a portal that worked perfectly." },
-  { n: 2, title: "What's actually in the inbox", blurb: "Four enrolments that really arrived. You decide first." },
-  { n: 3, title: "Point it at them", blurb: "Vote before it answers. Check its judgement, not its typing." },
+  { n: 2, title: "What's actually in the inbox", blurb: "Four enrollments that really arrived. You decide first." },
+  { n: 3, title: "Point it at them", blurb: "Vote before it answers. Check its judgment, not its typing." },
   { n: 4, title: "Your turn", blurb: "The call only you can make." },
 ];
 
@@ -360,20 +360,20 @@ const MONTHS = [
  *
  * It opens on the learner, not on Riverbend. The earlier draft started with
  * "that portal you mentioned" — a reference to a conversation nobody had
- * had, about an organisation nobody had heard of. Now she asks them
- * something true about their own workplace first, and the youth centre
+ * had, about an organization nobody had heard of. Now she asks them
+ * something true about their own workplace first, and the youth center
  * arrives as the answer to their own answer.
  *
  * `gate` names an action the beat will not move past.
  */
 const BEATS = [
-  { line: "Before I show you anything — one question.", sub: "Has anywhere you have worked ever launched something new that almost nobody ended up using?", card: 0, mic: "live", gate: "opening" },
-  { line: "Almost everyone says yes.", sub: "So let me show you one with the numbers still attached. A youth centre built a family portal — parents could enrol their kids online instead of emailing in. It shipped on time. Tests passed. No bugs.", card: 0, mic: "idle", gate: false },
-  { line: "This is six months of it.", sub: "Have a poke. Tap any month.", card: 1, mic: "idle", gate: false },
-  { line: "Eleven thousand families were eligible. How many actually used it?", sub: "Commit to a number before you move on. Say it out loud too — that is the bit that stings later.", card: 1, mic: "live", gate: "guess" },
+  { line: "Before I show you anything — one question.", sub: "Has anywhere you've worked ever launched something new that almost nobody ended up using?", card: 0, mic: "live", gate: "opening" },
+  { line: "Almost everyone says yes.", sub: "So let me show you one with the numbers still attached. A youth center built a family portal so parents could sign their kids up online instead of emailing. It shipped on time. Tests passed. No bugs.", card: 0, mic: "idle", gate: false },
+  { line: "This is six months of it.", sub: "Poke around. Tap any month.", card: 1, mic: "idle", gate: false },
+  { line: "Eleven thousand families were eligible. How many actually used it?", sub: "Commit to a number before you move on. Say it out loud too. That's the part that stings later.", card: 1, mic: "live", gate: "guess" },
   { line: "Not even close.", sub: "A quarter would have been 2,700 people. The team who built it guessed high too.", card: 2, mic: "idle", gate: false },
-  { line: "And here is the bit that gets me.", sub: "She was meant to get time back. These are the coordinator's hours over the same six months.", card: 3, mic: "idle", gate: false },
-  { line: "It worked perfectly. It just never landed.", sub: "Those are two different jobs, and almost nobody is assigned the second one. That second job is what we are doing today.", card: 3, mic: "live", gate: false },
+  { line: "And here's the part that gets me.", sub: "She was supposed to get time back. These are the coordinator's hours over the same six months.", card: 3, mic: "idle", gate: false },
+  { line: "It worked perfectly. It just never landed.", sub: "Those are two different jobs, and almost nobody is assigned the second one. That second job is what we're doing today.", card: 3, mic: "live", gate: false },
 ] as const;
 
 /** How they answer the opening question. Every road leads onward. */
@@ -396,9 +396,9 @@ const GUESSES = [
 type Call = "confirm" | "hold" | "human";
 
 const CALLS: { id: Call; label: string; hint: string }[] = [
-  { id: "confirm", label: "Confirm it", hint: "Enrol them, nothing is missing" },
+  { id: "confirm", label: "Confirm it", hint: "Enroll them, nothing's missing" },
   { id: "hold", label: "Hold it", hint: "Something needs asking first" },
-  { id: "human", label: "Give it to a person", hint: "Not for a machine at all" },
+  { id: "human", label: "Give it to a person", hint: "Not a machine's call at all" },
 ];
 
 const CASES: {
@@ -408,32 +408,32 @@ const CASES: {
 }[] = [
   {
     tab: "Kwame", file: "01_clean.txt", when: "Tuesday 9:04", from: "Grace O.",
-    body: "Hi,\n\nI would like to enrol my son Kwame in the after school\nprogram at Riverbend Main. He was born 06/02/2016 and is\nin 4th grade. My number is 555-0142. Signed pickup form\nattached.\n\nThank you!",
+    body: "Hi,\n\nI would like to enroll my son Kwame in the after school\nprogram at Riverbend Main. He was born 06/02/2016 and is\nin 4th grade. My number is 555-0142. Signed pickup form\nattached.\n\nThank you!",
     answer: "confirm", decision: "Ready to confirm", badge: "✓", tone: "good",
-    because: "Everything it needs is there and nothing breaks a rule.",
+    because: "Everything it needs is there, and nothing breaks a rule.",
     fields: [["program", "ASP"], ["site", "RB1"], ["grade", "4"], ["pickup form", "attached"]],
   },
   {
     tab: "Marley", file: "02_missing_dob.txt", when: "Tuesday 11:20", from: "unknown",
     body: "hey can you sign up my daughter Marley for the after\nschool thing at eastside she is in 5th grade.\ncall me 555-0209\n\nthx",
     answer: "hold", decision: "Hold, ask the family", badge: "?", tone: "warn",
-    because: "No date of birth, so it cannot check she is the right age. It drafted the reply asking for it — it did not send it.",
+    because: "No date of birth, so it can't check she's the right age. It drafted the reply asking for it. It didn't send it.",
     fields: [["program", "ASP"], ["site", "RB2"], ["grade", "5"], ["date of birth", "missing"]],
   },
   {
     tab: "Amara", file: "05_sibling.txt", when: "Wednesday 8:41", from: "Grace O.",
-    body: "Sorry, one more! Can you also add Kwame's sister Amara?\nShe is already enrolled at Riverbend Main I think\n(born 03/14/2015, grade 5). Same number, 555-0142.\nSame pickup form covers both kids.",
+    body: "Sorry, one more! Can you also add Kwame's sister Amara?\nShe's already enrolled at Riverbend Main I think\n(born 03/14/2015, grade 5). Same number, 555-0142.\nSame pickup form covers both kids.",
     answer: "confirm", decision: "Confirm as a sibling — and hold her first day", badge: "✓", tone: "good",
-    because: "Same phone number as an enrolled child means sibling, not duplicate. That is Denise's rule, written down nowhere until we wrote it down.",
-    sting: "Then it caught something almost nobody in the room does: the mother says the same pickup form covers both kids. That is her assumption, not something on file. So it holds Amara's first day until a person checks the form actually names her.",
+    because: "Same phone number as a kid already enrolled means sibling, not duplicate. That's Denise's rule, and it was written down nowhere until we wrote it down.",
+    sting: "Then it caught something almost nobody in the room does. The mom says the same pickup form covers both kids. That's her assumption, not something on file. So it holds Amara's first day until a person checks that the form actually names her.",
     fields: [["program", "ASP"], ["site", "RB1"], ["grade", "5"], ["flag", "sibling priority"], ["first day", "held for check"]],
   },
   {
     tab: "Theo", file: "08_medical.txt", when: "Wednesday 16:55", from: "D. Osei",
-    body: "I would like to enrol Theo (DOB 2015-08-14, grade 5) in\nAfter School at Eastside. Pickup form attached. One thing:\nTheo has an inhaler he needs to keep with him and takes a\ntablet at 4pm. Is there a form for that?",
+    body: "I would like to enroll Theo (DOB 2015-08-14, grade 5) in\nAfter School at Eastside. Pickup form attached. One thing:\nTheo has an inhaler he needs to keep with him and takes a\ntablet at 4pm. Is there a form for that?",
     answer: "human", decision: "Refused. Straight to a human.", badge: "!", tone: "stop",
-    because: "Medication came up, so it will not touch this one. Not because it could not — because you said anything medical goes to a person.",
-    sting: "Who decided that? Not the AI. Denise did, eleven years ago, and we wrote it down. That is the job.",
+    because: "Medication came up, so it won't touch this one. Not because it couldn't. Because you said anything medical goes to a person.",
+    sting: "Who decided that? Not the AI. Denise did, eleven years ago, and we wrote it down. That's the job.",
     fields: [["program", "ASP"], ["site", "RB2"], ["flag", "medication"], ["sent to", "a human"]],
   },
 ];
@@ -625,7 +625,7 @@ function Welcome({ onEnter, resumeAt }: { onEnter: (at?: Phase) => void; resumeA
           Welcome to FDE
         </h1>
         <p style={{ fontSize: 15.5, lineHeight: 1.6, color: INK_SOFT, margin: "14px 0 0" }}>
-          Ninety minutes, four parts. I&rsquo;ll talk you through a real project that
+          Ninety minutes, four parts. I&rsquo;ll walk you through a real project that
           failed, and you&rsquo;ll decide what an AI should and shouldn&rsquo;t be allowed
           to touch.
         </p>
@@ -670,6 +670,10 @@ function PartOne({ voice, spoken, onDone }: { voice: Voice; spoken: boolean; onD
   const [sel, setSel] = useState(5);
   const [guess, setGuess] = useState<number | null>(null);
   const [opener, setOpener] = useState<number | null>(null);
+  // Set only when an answer arrived by voice. Someone who has just spoken
+  // should not then have to reach for a button to be heard — but a tap is a
+  // deliberate choice they may want to change, so taps still wait.
+  const [spokenAnswer, setSpokenAnswer] = useState(false);
   const b = BEATS[i];
   // The overlay speaks beat 0 itself (it owns the audio unlock), so hold off
   // until it has cleared or the first line would be said twice.
@@ -684,6 +688,7 @@ function PartOne({ voice, spoken, onDone }: { voice: Voice; spoken: boolean; onD
         const n = matchOpener(said);
         if (n !== null) {
           setOpener(n);
+          setSpokenAnswer(true);
           return true;
         }
       }
@@ -691,6 +696,7 @@ function PartOne({ voice, spoken, onDone }: { voice: Voice; spoken: boolean; onD
         const n = matchGuess(said);
         if (n !== null) {
           setGuess(n);
+          setSpokenAnswer(true);
           return true;
         }
       }
@@ -703,9 +709,19 @@ function PartOne({ voice, spoken, onDone }: { voice: Voice; spoken: boolean; onD
 
   const next = useCallback(() => {
     if (blocked) return;
+    setSpokenAnswer(false);
     if (last) onDone();
     else setI((n) => n + 1);
   }, [blocked, last, onDone]);
+
+  // Answered out loud? Then move on out loud. Long enough that the learner
+  // sees their answer land, short enough that it still reads as a reply
+  // rather than a page turning on its own.
+  useEffect(() => {
+    if (!spokenAnswer || blocked) return;
+    const t = window.setTimeout(next, 1100);
+    return () => window.clearTimeout(t);
+  }, [spokenAnswer, blocked, next]);
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
@@ -767,7 +783,7 @@ function PartOne({ voice, spoken, onDone }: { voice: Voice; spoken: boolean; onD
         )}
       </div>
 
-      <Footer note={blocked ? (b.gate === "opening" ? "Pick the closest one — she is waiting on you." : "Choose a number first — that is the whole point of the next screen.") : "Arrow keys work too."}>
+      <Footer note={blocked ? (b.gate === "opening" ? "Pick the closest one. She's waiting on you." : "Choose a number first. That's the whole point of the next screen.") : "Arrow keys work too."}>
         <VoiceChip voice={voice} yourTurn={b.mic === "live"} />
         <Primary onClick={next} disabled={blocked}>{last ? "Part 2 →" : "Next →"}</Primary>
       </Footer>
@@ -781,9 +797,9 @@ function Ear({ state, heard }: { state: "off" | "listening" | "denied" | "unsupp
 
   const note =
     state === "denied"
-      ? "I cannot hear you — the browser blocked the microphone. Tap your answer instead."
+      ? "I can't hear you. The browser blocked the microphone, so tap your answer instead."
       : state === "unsupported"
-        ? "This browser will not let me listen. Tap your answer instead."
+        ? "This browser won't let me listen. Tap your answer instead."
         : heard
           ? null
           : "Listening…";
@@ -867,7 +883,7 @@ function PartTwo({ voice, onDone }: { voice: Voice; onDone: () => void }) {
   const [i, setI] = useState(0);
   const [calls, setCalls] = useState<(Call | null)[]>([null, null, null, null]);
   const c = CASES[i];
-  useSpeak(voice, "Right. Four that actually arrived. No AI yet, just you. Read each one and tell me what you would do with it.");
+  useSpeak(voice, "All right. Four that really came in. No AI yet, just you. Read each one and tell me what you'd do with it.");
   const mine = calls[i];
   const allDone = calls.every(Boolean);
 
@@ -875,7 +891,7 @@ function PartTwo({ voice, onDone }: { voice: Voice; onDone: () => void }) {
 
   return (
     <>
-      <Heading size={42} sub="Four that actually arrived at a youth centre. No AI yet — just you. Read each one and say what you would do with it.">
+      <Heading size={42} sub="Four that really came in. No AI yet, just you. Read each one and say what you'd do with it.">
         What&rsquo;s actually in the inbox
       </Heading>
 
@@ -912,7 +928,7 @@ function PartThree({ voice, onDone }: { voice: Voice; onDone: () => void }) {
   const [revealed, setRevealed] = useState<boolean[]>([false, false, false, false]);
   const [votes, setVotes] = useState<(Call | null)[]>([null, null, null, null]);
   const c = CASES[i];
-  useSpeak(voice, "Now I am giving it the same four emails and the rules Denise uses. Vote before I run each one. You are checking its judgement, not its typing.");
+  useSpeak(voice, "Now I'm giving it those same four emails and the rules Denise uses. Vote before I run each one. You're checking its judgment, not its typing.");
   const vote = votes[i];
   const open = revealed[i];
   const allOpen = revealed.every(Boolean);
@@ -923,7 +939,7 @@ function PartThree({ voice, onDone }: { voice: Voice; onDone: () => void }) {
 
   return (
     <>
-      <Heading size={42} sub="Same four emails, same rules Denise uses, now given to the AI. Vote before you look. You are checking its judgement, not its typing.">
+      <Heading size={42} sub="Same four emails, same rules Denise uses, now handed to the AI. Vote before you look. You're checking its judgment, not its typing.">
         Point it at them
       </Heading>
 
@@ -966,7 +982,7 @@ function PartThree({ voice, onDone }: { voice: Voice; onDone: () => void }) {
             {vote && (
               <div style={{ padding: "14px 18px", borderRadius: 14, background: vote === c.answer ? "#EEF3FF" : "#F4F0E8", border: `1px solid ${vote === c.answer ? "#C9D8FF" : EDGE}`, fontSize: 13.5, color: INK_SOFT }}>
                 {vote === c.answer
-                  ? <>You called it <strong style={{ color: COBALT }}>the same way</strong>. Good — that means the rule is in your head too.</>
+                  ? <>You called it <strong style={{ color: COBALT }}>the same way</strong>. Good. That means the rule is in your head too.</>
                   : <>You said <strong style={{ color: INK }}>{CALLS.find((k) => k.id === vote)?.label.toLowerCase()}</strong>. It went the other way. That gap is worth arguing about out loud.</>}
               </div>
             )}
@@ -974,7 +990,7 @@ function PartThree({ voice, onDone }: { voice: Voice; onDone: () => void }) {
         )}
       </div>
 
-      <Footer note={open ? (allOpen ? "All four seen." : "Use the tabs to take the next one.") : "Vote first. No peeking — being wrong here is the lesson."}>
+      <Footer note={open ? (allOpen ? "All four seen." : "Use the tabs to take the next one.") : "Vote first. No peeking. Being wrong here is the lesson."}>
         <VoiceChip voice={voice} />
         {!open && <Primary onClick={reveal} disabled={!vote}>Show me what it did →</Primary>}
         {open && i < 3 && <Primary onClick={() => setI(i + 1)}>Next email →</Primary>}
@@ -1037,10 +1053,10 @@ function PartFour({
       setSaving(false);
     }
   };
-  useSpeak(voice, "Nobody in that room decided any of it on the spot. A person wrote the rules down years ago and the machine borrowed her judgement. So, what is yours?");
+  useSpeak(voice, "Nobody in that room decided any of it on the spot. A person wrote the rules down years ago and the machine borrowed her judgment. So, what is yours?");
   return (
     <>
-      <Heading size={46} sub="Nobody in that room decided any of it on the spot. A person wrote the rules down years ago and the machine borrowed her judgement. So — what is yours?">
+      <Heading size={46} sub="Nobody in that room decided any of it on the spot. A person wrote those rules down years ago, and the machine borrowed her judgment. So what's yours?">
         Your turn
       </Heading>
 
@@ -1053,12 +1069,12 @@ function PartFour({
           <p style={{ fontSize: 12.5, color: error ? "#B4342C" : INK_FAINT, marginTop: 12, marginBottom: 0 }}>
             {error
               ? "That didn't save. Check your connection and try again — don't close the page."
-              : "Saved to your session when you finish. If you are stuck: what did you retype last week that you have retyped a hundred times?"}
+              : "Saved to your session when you finish. Stuck? What did you retype last week that you've retyped a hundred times?"}
           </p>
         </div>
       </div>
 
-      <Footer note="You will read this one out.">
+      <Footer note="You'll read this one out loud.">
         <VoiceChip voice={voice} yourTurn />
         <Primary onClick={finish} disabled={saving || v.trim().length < 8}>{saving ? "Saving…" : "Finish →"}</Primary>
       </Footer>
