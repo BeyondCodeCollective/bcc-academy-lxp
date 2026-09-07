@@ -462,6 +462,7 @@ export function SessionStage({
 }) {
   const [phase, setPhase] = useState<Phase>("part1");
   const [welcome, setWelcome] = useState(true);
+  const [countIn, setCountIn] = useState<number | null>(null);
   const [resumeAt, setResumeAt] = useState<Phase | null>(null);
   const partIndex = Math.max(0, ORDER.indexOf(phase));
   const voice = useNarration();
@@ -497,20 +498,36 @@ export function SessionStage({
   // has acted, so this one click both opens the session and gives her a
   // voice. Part 1 is already mounted behind it and speaks the instant it
   // clears — the learner never meets a silent screen.
+  // Dismissing the overlay used to drop the learner straight into a voice
+  // already mid-sentence, which startles people. Three seconds of nothing
+  // first: they see the room they have walked into, then she speaks.
   const enter = (at?: Phase) => {
-    if (at && at !== "part1") {
-      setPhase(at);
-    } else {
-      voice.say(`${BEATS[0].line} ${BEATS[0].sub}`, { force: true });
-    }
+    if (at && at !== "part1") setPhase(at);
     setWelcome(false);
+    setCountIn(3);
   };
+
+  useEffect(() => {
+    if (countIn === null) return;
+    if (countIn > 0) {
+      const t = window.setTimeout(() => setCountIn(countIn - 1), 800);
+      return () => window.clearTimeout(t);
+    }
+    // Speech is still allowed here: the browser's activation from the button
+    // press persists for the rest of the page's life, not just that tick.
+    const t = window.setTimeout(() => {
+      setCountIn(null);
+      if (phase === "part1") voice.say(`${BEATS[0].line} ${BEATS[0].sub}`, { force: true });
+    }, 500);
+    return () => window.clearTimeout(t);
+  }, [countIn, phase, voice]);
 
   return (
     <div style={{ minHeight: "100dvh", background: CREAM, WebkitFontSmoothing: "antialiased", color: INK }}>
       <Keyframes />
       {welcome && <Welcome onEnter={enter} resumeAt={resumeAt} />}
-      <div aria-hidden={welcome} style={{ maxWidth: 680, margin: "0 auto", padding: "0 20px 64px", minHeight: "100dvh", display: "flex", flexDirection: "column", filter: welcome ? "blur(6px)" : "none", transition: "filter .5s ease" }}>
+      {countIn !== null && <CountIn n={countIn} />}
+      <div aria-hidden={welcome || countIn !== null} style={{ maxWidth: 680, margin: "0 auto", padding: "0 20px 64px", minHeight: "100dvh", display: "flex", flexDirection: "column", filter: welcome ? "blur(6px)" : countIn !== null ? "blur(3px)" : "none", transition: "filter .6s ease" }}>
         {phase !== "done" && <PartRail active={partIndex} />}
         {phase === "part1" && <PartOne voice={voice} spoken={!welcome} onDone={() => go("part2")} />}
         {phase === "part2" && <PartTwo voice={voice} onDone={() => go("part3")} />}
@@ -609,6 +626,28 @@ function Footer({ note, children }: { note?: string; children?: React.ReactNode 
  * already there behind the blur, and the single button both opens it and
  * gives her a voice. Nobody meets a mute page.
  */
+/** Three seconds of quiet so nobody is spoken at the instant they click. */
+function CountIn({ n }: { n: number }) {
+  return (
+    <div
+      aria-hidden
+      style={{ position: "fixed", inset: 0, zIndex: 45, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 18, background: "rgba(250,247,242,.72)", backdropFilter: "blur(8px)" }}
+    >
+      <span style={{ fontSize: 12, letterSpacing: ".14em", textTransform: "uppercase", color: INK_FAINT }}>
+        {n > 0 ? "Starting" : "Here we go"}
+      </span>
+      {n > 0 && (
+        <span
+          key={n}
+          style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: "clamp(72px, 18vw, 128px)", lineHeight: 1, letterSpacing: "-.06em", color: COBALT, animation: "fde-countin .5s cubic-bezier(.34,1.56,.64,1)" }}
+        >
+          {n}
+        </span>
+      )}
+    </div>
+  );
+}
+
 function Welcome({ onEnter, resumeAt }: { onEnter: (at?: Phase) => void; resumeAt: Phase | null }) {
   const resumeLabel = resumeAt ? PARTS[Math.max(0, ORDER.indexOf(resumeAt))]?.title : null;
   return (
