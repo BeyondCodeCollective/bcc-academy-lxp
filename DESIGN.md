@@ -196,6 +196,34 @@ No gloss. No glow. Depth is expressed through:
 
 Never use colored drop shadows, inner glows, or heavy box-shadows.
 
+## The field
+
+The one dark ground in the product. `.stage-surface .stage-grid` in
+globals.css: a three-stop gradient plus a masked dot grid and a soft bloom.
+There is no second dark treatment — no flat `bg-ink` page grounds, no
+hand-rolled two-stop gradients, no ad-hoc scrims standing in for one.
+
+**It is generated, not picked.** One OKLCH formula — L 0.42 / 0.34 / 0.25 at
+C 0.115 — with the hue inherited from `--primary`. Set `--primary` (and
+`--stage-base` when the program has a deeper `ground` tone) on a wrapper and
+Catalyst comes out cobalt, BGC purple, with no per-program CSS. Never hardcode
+a field colour.
+
+**One per screen.** The field is the screen's top object: the home band, a
+page header (`<PageHeader onField />`), a course hero, the session stage. Two
+fields on one screen is the bug that made the dashboard read as repetitive
+blue.
+
+**Loudness gradient.** The deeper into the product, the quieter the art:
+landing page (photo, full colour, beside the type — never under it) → course
+hero (field + title) → dashboard (field at card size) → session stage (field,
+no art). Admin tool pages — settings, tables, editors — stay on paper. A
+settings table is not a first screen.
+
+**Signal, not green.** Live/active/needs-you uses `var(--signal)`, which is
+BCC's electric green on BCC and Lift purple on BGC. `#E5F701` never appears
+hardcoded on a program surface.
+
 ## Shapes
 
 Consistent rounding is a signal of quality. Never mix sharp and rounded corners in the same component.
