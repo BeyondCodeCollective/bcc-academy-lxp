@@ -426,6 +426,33 @@ export default async function TrackWeekPage({
     return `Live cohort session — ${day} at ${h12}:${String(m).padStart(2, "0")} ${ampm} ET`;
   })();
 
+  // "Add to calendar" reuses the .ics endpoint the registration emails already
+  // link to (/api/calendar/event) — no auth, no DB, it only describes an event.
+  const calendarHref = (() => {
+    if (!weekClock?.date) return undefined;
+    const [y, mo, d] = weekClock.date.split("-").map(Number);
+    const [h, mi] = (weekClock.time ?? "18:30").split(":").map(Number);
+    const noonUtc = new Date(`${weekClock.date}T12:00:00Z`);
+    const etHourAtNoonUtc = Number(
+      new Intl.DateTimeFormat("en-US", {
+        timeZone: "America/New_York",
+        hour: "numeric",
+        hour12: false,
+      }).format(noonUtc),
+    );
+    const offsetHours = 12 - etHourAtNoonUtc;
+    const startMs = Date.UTC(y, mo - 1, d, (h ?? 18) + offsetHours, mi ?? 30);
+    const endMs = startMs + (weekClock.durationMinutes ?? 90) * 60_000;
+    const q = new URLSearchParams({
+      title: `${track.shortName}: ${displayTitle}`,
+      start: new Date(startMs).toISOString(),
+      end: new Date(endMs).toISOString(),
+      details: `${unitName} — ${track.name}`,
+      uid: `${trackSlug}-${weekNum}@bccacademy.io`,
+    });
+    return `/api/calendar/event?${q.toString()}`;
+  })();
+
   // Rendered server-side, so it is a snapshot rather than a ticking clock —
   // days and hours are what a learner actually needs, and both survive the
   // page being open for a while.
@@ -579,6 +606,7 @@ export default async function TrackWeekPage({
             blurb={stageBlurb || undefined}
             liveLabel={liveLabel}
             countdown={countdown}
+            calendarHref={calendarHref}
           />
         )}
 
@@ -755,8 +783,53 @@ export default async function TrackWeekPage({
 
       {/* The lab itself. Idle, this renders AS the stage (the dark slab that
          anchors the page); once the learner starts, it becomes the live
-         conversation exactly as before. */}
-      {hasInstructor && (
+         conversation exactly as before.
+
+         !sessionDayFuture matters: the stage has a BEFORE state that renders
+         above (countdown, add-to-calendar), and without this gate both drew
+         at once — "Session 1 opens Monday" stacked on top of "Open now ·
+         Start Session 1", offering a lab that isn't open yet. One session,
+         one stage, exactly one state. */}
+      {/* A session with a built stage opens INTO it. Without this the route
+         existed but nothing in the platform led to it — `hasStage` was
+         computed and then never read, so the only way in was typing the URL,
+         which is not a way in at all.
+
+         Staff see it before session day too. A facilitator cannot rehearse a
+         path that only appears on the morning it has to work. */}
+      {hasStage && (!sessionDayFuture || isAdminViewer) && (
+        <section className="mb-8 overflow-hidden rounded-2xl border border-rule bg-surface-elevated">
+          <div className="border-b border-rule px-6 py-4">
+            <p className="text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
+              Your session
+            </p>
+            <h2 className="mt-1 text-lg font-semibold text-ink">{displayTitle}</h2>
+          </div>
+          <div className="px-6 py-6">
+            <p className="mb-5 max-w-[52ch] text-sm leading-relaxed text-ink-soft">
+              Ninety minutes, four parts, and an instructor who talks you through it.
+              You answer as you go — nothing to install, and you never write code.
+              Turn your sound on before you start.
+            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <Link
+                href={`/dashboard/track/${trackSlug}/${weekNum}/live`}
+                className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+              >
+                Start {unitName}
+                <span aria-hidden>&rarr;</span>
+              </Link>
+              {sessionDayFuture && isAdminViewer && (
+                <span className="text-xs text-ink-faint">
+                  Staff preview — learners see this on session day.
+                </span>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {hasInstructor && !hasStage && !sessionDayFuture && (
         <InstructorPanel
           trackSlug={trackSlug}
           weekNumber={weekNum}
@@ -768,6 +841,7 @@ export default async function TrackWeekPage({
             headline: stageBlurb ? undefined : displayTitle,
             blurb: stageBlurb || undefined,
             liveLabel,
+            calendarHref,
             startNote: "You can stop and pick it up later.",
           }}
         />

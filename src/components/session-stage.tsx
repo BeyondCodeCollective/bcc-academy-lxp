@@ -72,10 +72,14 @@ export function SessionStage({
   return (
     <section
       aria-label="Session"
-      className="stage-surface mb-6 flex min-h-[320px] flex-col justify-between gap-6 rounded-xl px-5 py-5 sm:min-h-[408px] sm:px-6.5"
+      // stage-grid draws the dot field and the bloom as ::before/::after, so
+      // the surface needs a stacking context; every child below is relative
+      // to sit above them. min-h dropped from 408 to 322: justify-between was
+      // distributing the slack into an empty band across the middle.
+      className="stage-surface stage-grid relative isolate mb-6 flex min-h-[300px] flex-col justify-between gap-3.5 overflow-hidden rounded-xl px-5 py-[18px] sm:min-h-[322px] sm:px-6"
     >
       {/* ── status row ── */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="relative flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2.5">
           {state === "ready" && (
             <span className="inline-flex items-center gap-1.5 rounded-full border border-highlight/40 bg-highlight/[0.13] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-highlight">
@@ -84,7 +88,7 @@ export function SessionStage({
             </span>
           )}
           {state === "before" && (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.18] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-white/60">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.24] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-white/60">
               <span className="h-1.5 w-1.5 rounded-full bg-white/35" />
               Not open yet
             </span>
@@ -106,20 +110,20 @@ export function SessionStage({
       </div>
 
       {/* ── body ── */}
-      <div className="flex flex-col items-start gap-8 py-1.5 lg:flex-row lg:items-center">
+      <div className="relative flex flex-col items-start gap-6 py-1 lg:flex-row lg:items-center">
         <div className="flex min-w-0 max-w-[620px] flex-col gap-4">
           {headline && (
-            <h2 className="font-display text-[32px] font-extrabold leading-[1.03] tracking-[-0.045em] text-white sm:text-[44px]">
+            <h2 className="font-display text-[30px] font-extrabold leading-[1.04] tracking-[-0.045em] text-white sm:text-[38px]">
               {headline}
             </h2>
           )}
           {blurb &&
             (headline ? (
-              <p className="max-w-[56ch] text-[15px] leading-relaxed text-white/[0.66] sm:text-base">
+              <p className="max-w-[56ch] text-[15px] leading-relaxed text-white/80 sm:text-base">
                 {blurb}
               </p>
             ) : (
-              <p className="max-w-[52ch] text-[19px] leading-[1.5] tracking-[-0.015em] text-white sm:text-[24px]">
+              <p className="max-w-[56ch] text-[19px] leading-[1.5] tracking-[-0.015em] text-white sm:text-[23px]">
                 {blurb}
               </p>
             ))}
@@ -145,7 +149,7 @@ export function SessionStage({
               {calendarHref && (
                 <a
                   href={calendarHref}
-                  className="inline-flex min-h-[46px] items-center justify-center gap-2 rounded-full border border-white/[0.26] px-6 text-sm font-semibold text-white transition-colors hover:bg-white/[0.06]"
+                  className="inline-flex min-h-[46px] items-center justify-center gap-2 rounded-full border border-white/[0.34] px-6 text-sm font-semibold text-white transition-colors hover:bg-white/[0.06]"
                 >
                   <Calendar size={15} />
                   Add to calendar
@@ -184,12 +188,12 @@ export function SessionStage({
           <div className="flex shrink-0 items-start gap-2.5 lg:pr-4">
             {countdown.map((c) => (
               <div key={c.unit} className="flex flex-col items-center gap-1.5">
-                <div className="flex h-[74px] w-[74px] items-center justify-center rounded-[10px] border border-white/[0.12] bg-white/[0.03]">
+                <div className="flex h-[74px] w-[74px] items-center justify-center rounded-[10px] border border-white/[0.18] bg-white/[0.06]">
                   <span className="font-display text-[32px] font-extrabold tabular-nums tracking-[-0.04em] text-white">
                     {c.value}
                   </span>
                 </div>
-                <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/[0.38]">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/50">
                   {c.unit}
                 </span>
               </div>
@@ -211,7 +215,7 @@ export function SessionStage({
       </div>
 
       {/* ── footer strip ── */}
-      <div className="flex flex-wrap items-center gap-3 border-t border-white/[0.08] pt-4">
+      <div className="relative flex flex-wrap items-center gap-3 border-t border-white/[0.16] pt-3.5">
         {state === "after" && outstanding ? (
           <>
             <Check size={15} className="shrink-0 text-white/50" />

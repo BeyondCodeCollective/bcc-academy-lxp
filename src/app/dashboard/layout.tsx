@@ -182,6 +182,19 @@ export default async function DashboardLayout({
           {
             "--primary": skinAccent,
             "--accent": skinAccent,
+            // Green is BCC's signal, not a neutral UI color, and never
+            // appears on a BGC page — there the live/active role goes to the
+            // Lift purple (docs/brand-and-landing-playbook.md). `lift` already
+            // carries exactly that: BGC sets #A78BFA, Catalyst sets none, so
+            // the rule falls out of program config instead of a special case.
+            ...(activeProgram.colors.lift
+              ? { "--signal": activeProgram.colors.lift }
+              : {}),
+            // A program that hand-picked its dark ground gets that hue for the
+            // stage field; everyone else derives it from the accent.
+            ...(activeProgram.colors.ground
+              ? { "--stage-base": activeProgram.colors.ground }
+              : {}),
           } as React.CSSProperties
         }
       >

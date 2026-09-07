@@ -37,6 +37,12 @@ export function SessionTabs({
 
   const current = visible.find((t) => t.id === active) ?? visible[0];
 
+  // One tab is not a choice — a rail with a single item is chrome that asks to
+  // be clicked and does nothing. Render the panel on its own instead.
+  if (visible.length === 1) {
+    return <div className="mb-8">{visible[0].content}</div>;
+  }
+
   return (
     <div className="mb-8">
       <div
