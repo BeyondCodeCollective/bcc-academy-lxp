@@ -202,6 +202,139 @@ function VoiceChip({ voice, yourTurn }: { voice: Voice; yourTurn?: boolean }) {
   );
 }
 
+
+/* ── listening ───────────────────────────────────────────────────────── */
+
+type RecognitionLike = {
+  lang: string;
+  interimResults: boolean;
+  continuous: boolean;
+  onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string }> & { isFinal: boolean }> }) => void) | null;
+  onend: (() => void) | null;
+  onerror: ((e: { error?: string }) => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+
+function getRecognition(): RecognitionLike | null {
+  if (typeof window === "undefined") return null;
+  const w = window as unknown as {
+    SpeechRecognition?: new () => RecognitionLike;
+    webkitSpeechRecognition?: new () => RecognitionLike;
+  };
+  const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
+  return Ctor ? new Ctor() : null;
+}
+
+/**
+ * The other half of the conversation.
+ *
+ * She asks the room questions and the chip said "say it out loud" — but
+ * nothing was listening, so answering did nothing and the session felt
+ * broken. This listens on exactly the beats that ask something, matches what
+ * it hears against that beat's options, and shows the words as they arrive so
+ * the learner can see it working.
+ *
+ * Tapping always still works. Recognition is unavailable in Firefox, needs a
+ * permission grant, and mishears people — it can be the fast path, never the
+ * only one.
+ */
+function useListening({
+  active,
+  onMatch,
+}: {
+  active: boolean;
+  onMatch: (heard: string) => boolean;
+}) {
+  const [heard, setHeard] = useState("");
+  const [state, setState] = useState<"off" | "listening" | "denied" | "unsupported">("off");
+  const recRef = useRef<RecognitionLike | null>(null);
+  // The matcher closes over this beat's state and changes every render, but
+  // recognition must not be torn down and restarted each time — keep the
+  // latest one in a ref, updated in an effect rather than during render.
+  const matchRef = useRef(onMatch);
+  useEffect(() => {
+    matchRef.current = onMatch;
+  }, [onMatch]);
+
+  /* eslint-disable react-hooks/set-state-in-effect --
+     SpeechRecognition is exactly the "external system" the rule carves out:
+     this effect subscribes to it and the setState calls report its status
+     (unsupported, started, denied) back to the UI. There is nowhere else to
+     learn any of it — the API is imperative and only exists on the client. */
+  useEffect(() => {
+    if (!active) {
+      recRef.current?.stop();
+      recRef.current = null;
+      setHeard("");
+      setState("off");
+      return;
+    }
+
+    const rec = getRecognition();
+    if (!rec) {
+      setState("unsupported");
+      return;
+    }
+
+    rec.lang = "en-US";
+    rec.interimResults = true;
+    rec.continuous = true;
+    rec.onresult = (e) => {
+      let text = "";
+      for (let i = 0; i < e.results.length; i++) text += e.results[i][0].transcript;
+      setHeard(text.trim());
+      // Stop the moment the answer is recognisable — leaving the mic open
+      // after a match means the next sentence overwrites the choice.
+      if (matchRef.current(text)) rec.stop();
+    };
+    rec.onerror = (e) => {
+      setState(e?.error === "not-allowed" ? "denied" : "off");
+    };
+    rec.onend = () => {
+      recRef.current = null;
+    };
+
+    try {
+      rec.start();
+      recRef.current = rec;
+      setState("listening");
+    } catch {
+      // start() throws if one is already running; the existing one is fine.
+      setState("listening");
+    }
+
+    return () => {
+      rec.onresult = null;
+      rec.onend = null;
+      rec.onerror = null;
+      rec.stop();
+      recRef.current = null;
+    };
+  }, [active]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  return { heard, state };
+}
+
+/** What counts as each answer when spoken aloud. */
+function matchOpener(said: string): number | null {
+  const t = said.toLowerCase();
+  if (/\b(no|nope|not that|never|none)\b/.test(t)) return 2;
+  if (/\b(probably|maybe|possibly|never counted|not sure|think so)\b/.test(t)) return 1;
+  if (/\b(yes|yeah|yep|yup|definitely|absolutely|for sure|we have|loads)\b/.test(t)) return 0;
+  return null;
+}
+
+function matchGuess(said: string): number | null {
+  const t = said.toLowerCase();
+  if (/\bhundred\b|\b1%|\bone percent\b/.test(t)) return 3;
+  if (/\bten\b|\b10%|\bten percent\b/.test(t)) return 2;
+  if (/\bquarter\b|\b25|\btwenty.?five\b/.test(t)) return 1;
+  if (/\bhalf\b|\b50|\bfifty\b/.test(t)) return 0;
+  return null;
+}
+
 /* ── the four parts ──────────────────────────────────────────────────── */
 
 const PARTS = [
@@ -541,6 +674,29 @@ function PartOne({ voice, spoken, onDone }: { voice: Voice; spoken: boolean; onD
   // The overlay speaks beat 0 itself (it owns the audio unlock), so hold off
   // until it has cleared or the first line would be said twice.
   useSpeak(voice, spoken && i > 0 ? `${b.line} ${b.sub}` : "");
+
+  // Only listen once she has stopped talking, or the mic hears her, not them.
+  const wantsAnswer = b.gate === "opening" || b.gate === "guess";
+  const { heard, state: earState } = useListening({
+    active: spoken && wantsAnswer && !voice.speaking,
+    onMatch: (said) => {
+      if (b.gate === "opening") {
+        const n = matchOpener(said);
+        if (n !== null) {
+          setOpener(n);
+          return true;
+        }
+      }
+      if (b.gate === "guess") {
+        const n = matchGuess(said);
+        if (n !== null) {
+          setGuess(n);
+          return true;
+        }
+      }
+      return false;
+    },
+  });
   const blocked =
     (b.gate === "guess" && guess === null) || (b.gate === "opening" && opener === null);
   const last = i === BEATS.length - 1;
@@ -571,7 +727,8 @@ function PartOne({ voice, spoken, onDone }: { voice: Voice; spoken: boolean; onD
 
         {b.gate === "opening" && (
           <div className="fde-card" style={{ background: "#fff", borderRadius: 20, padding: 22, animation: "fde-land .6s cubic-bezier(.22,1.4,.4,1)" }}>
-            <div style={{ fontSize: 12.5, color: INK_SOFT, marginBottom: 12 }}>Answer out loud if you can. Then tap the closest one.</div>
+            <Ear state={earState} heard={heard} />
+            <div style={{ fontSize: 12.5, color: INK_SOFT, marginBottom: 12 }}>Say it out loud, or tap the closest one.</div>
             <div style={{ display: "grid", gap: 9 }}>
               {OPENERS.map((label, n) => (
                 <button
@@ -590,7 +747,8 @@ function PartOne({ voice, spoken, onDone }: { voice: Voice; spoken: boolean; onD
 
         {b.gate === "guess" && (
           <div className="fde-card" style={{ background: "#fff", borderRadius: 20, padding: 22, animation: "fde-land .6s cubic-bezier(.22,1.4,.4,1)" }}>
-            <div style={{ fontSize: 12.5, color: INK_SOFT, marginBottom: 12 }}>Pick one. You cannot move on until you do.</div>
+            <Ear state={earState} heard={heard} />
+            <div style={{ fontSize: 12.5, color: INK_SOFT, marginBottom: 12 }}>Say a number, or tap one. You cannot move on until you do.</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 9 }}>
               {GUESSES.map((g, n) => (
                 <button
@@ -614,6 +772,35 @@ function PartOne({ voice, spoken, onDone }: { voice: Voice; spoken: boolean; onD
         <Primary onClick={next} disabled={blocked}>{last ? "Part 2 →" : "Next →"}</Primary>
       </Footer>
     </>
+  );
+}
+
+/** Proof the mic is on, and what it thinks you said. */
+function Ear({ state, heard }: { state: "off" | "listening" | "denied" | "unsupported"; heard: string }) {
+  if (state === "off") return null;
+
+  const note =
+    state === "denied"
+      ? "I cannot hear you — the browser blocked the microphone. Tap your answer instead."
+      : state === "unsupported"
+        ? "This browser will not let me listen. Tap your answer instead."
+        : heard
+          ? null
+          : "Listening…";
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, padding: "10px 14px", borderRadius: 12, background: state === "listening" ? "#EEF3FF" : "#F4F0E8", border: `1px solid ${state === "listening" ? "#C9D8FF" : EDGE}` }}>
+      {state === "listening" && (
+        <span style={{ display: "flex", alignItems: "center", gap: 3, height: 14, flexShrink: 0 }} aria-hidden>
+          {[0, 0.12, 0.24].map((d) => (
+            <span key={d} style={{ width: 3, height: 14, borderRadius: 99, background: COBALT, transformOrigin: "center", animation: `fde-speak .9s ease-in-out ${d}s infinite` }} />
+          ))}
+        </span>
+      )}
+      <span aria-live="polite" style={{ fontSize: 13, color: heard ? INK : INK_SOFT, fontStyle: heard ? "normal" : "italic" }}>
+        {heard ? `“${heard}”` : note}
+      </span>
+    </div>
   );
 }
 
