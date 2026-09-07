@@ -11,8 +11,7 @@
 
 import { generateObject, generateText, jsonSchema } from "ai";
 import { pace } from "../gateway";
-
-const JUDGE_MODEL = "google/gemini-2.5-flash";
+import { aiModel, aiProviderOptions } from "@/lib/ai/model";
 
 const VERDICT = jsonSchema<{ violated: boolean; reason: string }>({
   type: "object",
@@ -39,7 +38,7 @@ export async function judgeOnce(args: {
   reply: string;
 }): Promise<JudgeVerdict> {
   const { object } = await generateObject({
-    model: JUDGE_MODEL,
+    model: aiModel(),
     schema: VERDICT,
     temperature: 0,
     system: JUDGE_SYSTEM,
@@ -85,10 +84,10 @@ export async function judgeMajority(
  */
 export async function askTutor(systemPrompt: string, question: string): Promise<string> {
   const { text } = await generateText({
-    model: JUDGE_MODEL,
+    model: aiModel(),
     maxOutputTokens: 1024,
     temperature: 0,
-    providerOptions: { google: { thinkingConfig: { thinkingBudget: 0 } } },
+    providerOptions: aiProviderOptions(),
     system: systemPrompt,
     messages: [{ role: "user", content: question }],
   });

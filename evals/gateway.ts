@@ -16,6 +16,12 @@
 // to see execute.
 
 export function hasGatewayCredentials(): boolean {
+  // AI_PROVIDER=anthropic bypasses the gateway entirely, so an Anthropic key is
+  // sufficient on its own — and is the way to run a full suite without the
+  // gateway's free-tier rate limit stopping it half way.
+  if (process.env.AI_PROVIDER === "anthropic") {
+    return Boolean(process.env.ANTHROPIC_API_KEY);
+  }
   return Boolean(process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN);
 }
 

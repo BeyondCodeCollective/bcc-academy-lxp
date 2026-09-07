@@ -8,16 +8,16 @@ import { isStaffEmail } from "@/lib/auth/admins";
 import { computeCurrentWeek, trackHasStarted } from "@/lib/utils";
 import type { TrackConfig, WeekConfig } from "@/lib/programs/types";
 import { buildTutorSystemPrompt, parseTutorRequest } from "@/lib/tutor/prompt";
+import { aiModel, aiModelName, aiProviderOptions } from "@/lib/ai/model";
 
 // Per-student daily ceiling. Low-enough to keep costs sane if usage
 // surges; high-enough that a real student asking real questions won't
 // bounce off it mid-session.
 const DAILY_MESSAGE_LIMIT = 30;
 
-// Routed through the Vercel AI Gateway via the AI SDK's plain "provider/model"
-// string. On Vercel the gateway authenticates automatically (OIDC); locally it
-// needs AI_GATEWAY_API_KEY. Swapping models later is a one-line change here.
-const MODEL = "google/gemini-2.5-flash";
+// Model + provider options come from src/lib/ai/model.ts so the provider is one
+// env var rather than four edits. Default is unchanged: Gemini Flash via the
+// Vercel AI Gateway.
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -136,13 +136,9 @@ export async function POST(request: Request) {
   let result;
   try {
     result = await generateText({
-      model: MODEL,
+      model: aiModel(),
       maxOutputTokens: 1024,
-      // Gemini 2.5 Flash is a reasoning model and burns most of its output
-      // budget "thinking" before replying — wasteful for a chat tutor and it
-      // can truncate answers. Disable thinking so the full reply comes through
-      // faster and cheaper.
-      providerOptions: { google: { thinkingConfig: { thinkingBudget: 0 } } },
+      providerOptions: aiProviderOptions(),
       system: systemPrompt,
       messages,
     });
@@ -177,7 +173,7 @@ export async function POST(request: Request) {
         week_number: currentWeekNumber,
         input_tokens: result.usage?.inputTokens ?? null,
         output_tokens: result.usage?.outputTokens ?? null,
-        model: MODEL,
+        model: aiModelName(),
       });
     });
   }

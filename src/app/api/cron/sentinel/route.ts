@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { runSentinelChecks } from "@/lib/sentinel/checks";
 import { applyDismissals, getDismissals } from "@/lib/sentinel/dismissals";
 import { runAutoFixes, type AutoFixOutcome } from "@/lib/sentinel/auto-fix";
+import { aiModel, aiProviderOptions } from "@/lib/ai/model";
 import { sendSentinelReportEmail } from "@/lib/email";
 
 // Nightly cron (Vercel): runs every Sentinel data-integrity and launch-readiness
@@ -17,8 +18,7 @@ import { sendSentinelReportEmail } from "@/lib/email";
 export const dynamic = "force-dynamic";
 export const preferredRegion = ["iad1"];
 
-// Same gateway routing as the tutor (src/app/api/tutor/route.ts).
-const MODEL = "google/gemini-2.5-flash";
+// Same provider resolution as the tutor (src/lib/ai/model.ts).
 
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
@@ -86,9 +86,9 @@ async function writeBrief(
   };
   try {
     const { text } = await generateText({
-      model: MODEL,
+      model: aiModel(),
       maxOutputTokens: 300,
-      providerOptions: { google: { thinkingConfig: { thinkingBudget: 0 } } },
+      providerOptions: aiProviderOptions(),
       system:
         "You summarize a learning platform's nightly self-audit for its operator. Write 2-4 plain sentences: lead with what needs action first, group the rest. No greetings, no markdown, no bullet points. Never use em dashes.",
       prompt: JSON.stringify(
