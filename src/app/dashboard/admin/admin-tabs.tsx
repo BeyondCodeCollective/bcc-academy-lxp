@@ -1344,14 +1344,51 @@ export function AdminTabs({
                         : []),
                     ]}
                   >
-                    {needsYou.length > 0 && (
-                      <div className="relative flex flex-wrap items-center gap-2.5 border-t border-white/[0.14] pt-3">
+                    {/* Naming a problem without offering the fix is half a
+                       feature: every one of these goes straight to the course
+                       whose roster is empty. One gets a whole clickable row;
+                       several get a row of links, because "3 courses" with no
+                       way through means opening the list and hunting anyway. */}
+                    {needsYou.length === 1 && (
+                      <Link
+                        href={`/dashboard/admin?tab=${needsYou[0].slug}`}
+                        className="group relative -mx-2 flex flex-wrap items-center gap-2.5 rounded-lg border-t border-white/[0.14] px-2 pb-1 pt-3 transition-colors hover:bg-white/[0.06]"
+                      >
                         <span className="h-[7px] w-[7px] shrink-0 rounded-full bg-[color:var(--signal)]" />
                         <p className="text-[13px] text-white/[0.86]">
-                          {needsYou.length === 1
-                            ? `${liveTrackNames[needsYou[0].slug]?.name ?? needsYou[0].name} opens soon and has nobody enrolled.`
-                            : `${needsYou.length} courses open soon with nobody enrolled.`}
+                          <span className="font-semibold text-white">
+                            {liveTrackNames[needsYou[0].slug]?.name ?? needsYou[0].name}
+                          </span>{" "}
+                          opens soon and has nobody enrolled.
                         </p>
+                        <span className="text-[12.5px] text-white/60 transition-colors group-hover:text-white">
+                          Open the course
+                        </span>
+                        <ArrowRight
+                          size={14}
+                          weight="bold"
+                          aria-hidden
+                          className="text-white/60 transition-transform group-hover:translate-x-0.5 group-hover:text-white"
+                        />
+                      </Link>
+                    )}
+
+                    {needsYou.length > 1 && (
+                      <div className="relative flex flex-wrap items-center gap-x-2.5 gap-y-2 border-t border-white/[0.14] pt-3">
+                        <span className="h-[7px] w-[7px] shrink-0 rounded-full bg-[color:var(--signal)]" />
+                        <p className="text-[13px] text-white/[0.86]">
+                          {needsYou.length} courses open soon with nobody enrolled:
+                        </p>
+                        {needsYou.map((t) => (
+                          <Link
+                            key={t.slug}
+                            href={`/dashboard/admin?tab=${t.slug}`}
+                            className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.24] px-2.5 py-1 text-[12.5px] font-medium text-white transition-colors hover:bg-white/[0.1]"
+                          >
+                            {liveTrackNames[t.slug]?.name ?? t.name}
+                            <ArrowRight size={12} weight="bold" aria-hidden />
+                          </Link>
+                        ))}
                       </div>
                     )}
                   </HomeBand>
