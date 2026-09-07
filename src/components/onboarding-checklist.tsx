@@ -49,7 +49,9 @@ export function OnboardingChecklist({
         <div className="panel p-7 text-center sm:p-9">
           <span
             className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full"
-            style={{ background: "#E5F701" }}
+            // The program's signal, not BCC's electric green — green never
+            // appears on a BGC page (docs/brand-and-landing-playbook.md).
+            style={{ background: "var(--signal)" }}
           >
             <Confetti size={24} weight="bold" className="text-[#1a1a1a]" aria-hidden />
           </span>
