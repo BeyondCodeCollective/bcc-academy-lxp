@@ -12,7 +12,7 @@ import { Users, BookOpen, GraduationCap, Gear as Settings, FloppyDisk as Save, C
 import { Avatar } from "@/components/avatar";
 import { BackLink, buttonClass, fieldInput, microLabel, SaveIndicator, SegmentedTabs, type SaveState } from "@/components/ui";
 import { HomeBand } from "@/components/home-band";
-import { scheduledSessions, nextSession, weekRail, bandSentence } from "@/lib/home-band";
+import { scheduledSessions, nextSession, weekRail, bandSentence, trackCode } from "@/lib/home-band";
 import { PageHeader, Section } from "@/components/page-header";
 import { computeCurrentWeek, trackHasStarted, formatCohortDate, humanizeSlug, easternDayKey } from "@/lib/utils";
 import { LunchLearnAdmin } from "@/app/dashboard/lunch-learn/admin/admin-client";
@@ -39,7 +39,6 @@ import type { InsightsData } from "./page";
 import type { Student } from "@/lib/types";
 import { isStorageUrl, isUploadedVideo } from "@/lib/storage-utils";
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
-import { iconForTrack } from "@/lib/track-visual";
 import { Users as UsersIcon, ChartBar as ChartBarIcon, ChartPie as ChartPieIcon, ChartLineUp as ChartLineUpIcon, GraduationCap as GraduationCapIcon } from "@phosphor-icons/react";
 
 const PLATFORM_SURVEY_TITLES: Record<string, string> = {
@@ -1205,7 +1204,6 @@ export function AdminTabs({
               });
 
               const renderRow = (t: (typeof tracks)[number]) => {
-                const TrackIcon = iconForTrack(t.slug);
                 const started = trackHasStarted(t, now);
                 // `currentUnit` comes from resolveCurrentUnit, which honors
                 // dated syllabi and per-unit unlocks. computeCurrentWeek only
@@ -1225,18 +1223,6 @@ export function AdminTabs({
                 // starts, "0 / 20 active" is as misleading as it is after it
                 // ends. Fall back to `started` when the server sent no phase.
                 const isRunning = t.phase ? t.phase === "running" : started;
-                const status =
-                  t.type === "single-event"
-                    ? "Single session"
-                    : t.startDateTbd
-                      ? "Starts TBD"
-                      : t.selfPaced
-                        ? `Self-paced · ${t.totalWeeks} ${(t.unitLabel || "Week").toLowerCase()}s`
-                        : ended
-                          ? "Completed"
-                          : started
-                            ? `${t.unitLabel || "Week"} ${currentWeek} of ${t.totalWeeks}`
-                            : `Starts ${formatCohortDate(t.startDate, { month: "short", day: "numeric" }, "en-US")}`;
                 const count = studentCountFor(t.slug);
                 // "Active this week" is a rolling window, so a finished course
                 // decays to 0 and reads as failure rather than as "it's done".
@@ -1251,24 +1237,75 @@ export function AdminTabs({
                 // where the person who can fix it is already looking.
                 const awaitingCertificates =
                   ended && count > 0 && (courseStats[t.slug]?.certificates ?? 0) === 0;
+                // A metric with no label is a riddle. "9 / 17" meant nothing
+                // without reading activeCountFor, so every number now says what
+                // it counts — and they get room to breathe rather than three
+                // columns jammed against each other.
+                const metrics: { label: string; value: React.ReactNode }[] = [];
+                if (t.type !== "single-event" && !t.startDateTbd && started && !ended) {
+                  metrics.push({
+                    label: t.selfPaced ? "Length" : "Progress",
+                    value: t.selfPaced
+                      ? `${t.totalWeeks} ${(t.unitLabel || "Week").toLowerCase()}s`
+                      : `${t.unitLabel || "Week"} ${currentWeek} of ${t.totalWeeks}`,
+                  });
+                }
+                if (completed !== null) {
+                  metrics.push({
+                    label: "Finished every session",
+                    value: (
+                      <>
+                        <span className="font-semibold">{completed}</span>
+                        <span className="text-ink-faint"> of {count}</span>
+                      </>
+                    ),
+                  });
+                } else if (showActive && isRunning) {
+                  metrics.push({
+                    label: "Active this week",
+                    value: (
+                      <>
+                        <span className="font-semibold">{activeCountFor(t.slug)}</span>
+                        <span className="text-ink-faint"> of {count}</span>
+                      </>
+                    ),
+                  });
+                } else {
+                  metrics.push({
+                    label: "Roster",
+                    value: `${count} ${count === 1 ? "student" : "students"}`,
+                  });
+                }
+                if (!started && !ended) {
+                  metrics.push({
+                    label: "Opens",
+                    value: t.startDateTbd
+                      ? "TBD"
+                      : formatCohortDate(t.startDate, { month: "short", day: "numeric" }, "en-US"),
+                  });
+                }
+
                 return (
                   <div
                     key={t.slug}
-                    className="group flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-paper-tint-soft"
+                    className="group flex items-center gap-4 px-4 py-4 transition-colors hover:bg-paper-tint-soft sm:gap-6 sm:px-5 sm:py-[18px]"
                   >
                     {/* Whole left region → Manage (the primary action). */}
                     <Link
                       href={`/dashboard/admin?tab=${t.slug}`}
-                      className="flex min-w-0 flex-1 items-center gap-4"
+                      className="flex min-w-0 flex-1 items-center gap-4 sm:gap-6"
                     >
-                      <TrackIcon
-                        size={18}
-                        weight="bold"
+                      {/* Every row used to carry the same icon, so nothing was
+                         scannable. A course code is. */}
+                      <span
                         aria-hidden
-                        className="shrink-0 text-ink-faint transition-colors group-hover:text-ink-soft"
-                      />
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-paper-tint font-display text-[10.5px] font-extrabold text-ink-soft transition-colors group-hover:bg-paper-tint-soft"
+                      >
+                        {trackCode(t)}
+                      </span>
+
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-ink leading-snug">
+                        <p className="text-sm font-semibold leading-snug text-ink">
                           {t.name}
                         </p>
                         <p className="text-xs text-ink-faint">
@@ -1280,47 +1317,32 @@ export function AdminTabs({
                           )}
                         </p>
                       </div>
-                      <p
-                        className={`hidden shrink-0 text-xs sm:block ${
-                          isRunning && !ended ? "font-semibold text-primary" : "text-ink-soft"
-                        }`}
-                      >
-                        {status}
-                      </p>
-                      {completed !== null ? (
-                        <p className="shrink-0 w-24 text-right text-xs tabular-nums">
-                          <span className="font-semibold text-primary">{completed}</span>
-                          <span className="text-ink-faint"> / {count} every session</span>
-                        </p>
-                      ) : showActive && isRunning ? (
-                        <p className="shrink-0 w-24 text-right text-xs tabular-nums">
-                          <span className="font-semibold text-primary">{activeCountFor(t.slug)}</span>
-                          <span className="text-ink-faint"> / {count} active</span>
-                        </p>
-                      ) : (
-                        <p className="shrink-0 w-20 text-right text-xs text-ink-faint tabular-nums">
-                          {count} {count === 1 ? "student" : "students"}
-                        </p>
-                      )}
+
+                      <div className="hidden shrink-0 items-center gap-8 lg:flex xl:gap-10">
+                        {metrics.map((m) => (
+                          <div key={m.label} className="flex w-[124px] flex-col gap-1">
+                            <span className="text-[10px] font-semibold uppercase tracking-[0.13em] text-ink-faint">
+                              {m.label}
+                            </span>
+                            <span className="text-[13px] tabular-nums text-ink">
+                              {m.value}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </Link>
-                    {/* Second action: open the student-facing course view. */}
+
+                    {/* One named action beats two mystery icons. The arrow was
+                       decorative and the eye needed a tooltip to explain
+                       itself; this says where it goes. */}
                     <Link
                       href={`/dashboard/track/${t.slug}`}
-                      title="Open student view"
-                      aria-label={`Open student view of ${t.name}`}
-                      className="shrink-0 rounded-lg p-1.5 text-ink-faint transition-colors hover:bg-paper-tint hover:text-ink"
+                      className="shrink-0 rounded-lg px-2.5 py-1.5 text-xs text-ink-faint transition-colors hover:bg-paper-tint hover:text-ink"
                     >
-                      <Eye size={15} aria-hidden />
+                      <Eye size={14} aria-hidden className="inline align-[-2px] sm:hidden" />
+                      <span className="hidden sm:inline">Student view</span>
+                      <span className="sr-only">Open student view of {t.name}</span>
                     </Link>
-                    {/* Decorative affordance for the row link — the whole row
-                       already opens the course; a second Link to the same
-                       place read as a distinct action. */}
-                    <span className="shrink-0 rounded-lg p-1.5 text-ink-faint group-hover:text-ink-soft" aria-hidden>
-                      <ArrowRight
-                        size={15}
-                        className="transition-transform group-hover:translate-x-0.5"
-                      />
-                    </span>
                   </div>
                 );
               };
