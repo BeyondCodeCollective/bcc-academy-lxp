@@ -426,6 +426,33 @@ export default async function TrackWeekPage({
     return `Live cohort session — ${day} at ${h12}:${String(m).padStart(2, "0")} ${ampm} ET`;
   })();
 
+  // "Add to calendar" reuses the .ics endpoint the registration emails already
+  // link to (/api/calendar/event) — no auth, no DB, it only describes an event.
+  const calendarHref = (() => {
+    if (!weekClock?.date) return undefined;
+    const [y, mo, d] = weekClock.date.split("-").map(Number);
+    const [h, mi] = (weekClock.time ?? "18:30").split(":").map(Number);
+    const noonUtc = new Date(`${weekClock.date}T12:00:00Z`);
+    const etHourAtNoonUtc = Number(
+      new Intl.DateTimeFormat("en-US", {
+        timeZone: "America/New_York",
+        hour: "numeric",
+        hour12: false,
+      }).format(noonUtc),
+    );
+    const offsetHours = 12 - etHourAtNoonUtc;
+    const startMs = Date.UTC(y, mo - 1, d, (h ?? 18) + offsetHours, mi ?? 30);
+    const endMs = startMs + (weekClock.durationMinutes ?? 90) * 60_000;
+    const q = new URLSearchParams({
+      title: `${track.shortName}: ${displayTitle}`,
+      start: new Date(startMs).toISOString(),
+      end: new Date(endMs).toISOString(),
+      details: `${unitName} — ${track.name}`,
+      uid: `${trackSlug}-${weekNum}@bccacademy.io`,
+    });
+    return `/api/calendar/event?${q.toString()}`;
+  })();
+
   // Rendered server-side, so it is a snapshot rather than a ticking clock —
   // days and hours are what a learner actually needs, and both survive the
   // page being open for a while.
@@ -579,6 +606,7 @@ export default async function TrackWeekPage({
             blurb={stageBlurb || undefined}
             liveLabel={liveLabel}
             countdown={countdown}
+            calendarHref={calendarHref}
           />
         )}
 
@@ -774,6 +802,7 @@ export default async function TrackWeekPage({
             headline: stageBlurb ? undefined : displayTitle,
             blurb: stageBlurb || undefined,
             liveLabel,
+            calendarHref,
             startNote: "You can stop and pick it up later.",
           }}
         />

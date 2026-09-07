@@ -129,7 +129,37 @@ body {
    near-black of .nav-surface so the shell and the stage read as one system
    instead of two different darks. See src/components/session-stage.tsx. */
 .stage-surface {
-  background: linear-gradient(150deg, #232220 0%, #1a1a1a 55%, #0f0e0d 100%);
+  /* Cobalt field, "lift 2" on the OKLCH ramp: same hue as --primary, re-lit
+     dark. Generated, not picked — every stop comes from one formula
+     (L 0.42 / 0.34 / 0.25 at C 0.115), so another program accent drops in by
+     changing the hue and nothing else. */
+  background: linear-gradient(145deg, #2C498B 0%, #1B346E 44%, #0A1D4D 100%);
+}
+
+/* The two texture layers that keep the field from reading as a flat fill.
+   Both are decorative and sit under the content, which owns a stacking
+   context of its own. */
+.stage-grid::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, rgba(148, 183, 254, 0.5) 1.1px, rgba(0, 0, 0, 0) 1.1px);
+  background-size: 20px 20px;
+  -webkit-mask-image: radial-gradient(115% 100% at 88% 12%, #000 0%, rgba(0, 0, 0, 0.3) 44%, rgba(0, 0, 0, 0) 74%);
+  mask-image: radial-gradient(115% 100% at 88% 12%, #000 0%, rgba(0, 0, 0, 0.3) 44%, rgba(0, 0, 0, 0) 74%);
+}
+
+.stage-grid::after {
+  content: "";
+  position: absolute;
+  right: -120px;
+  top: -160px;
+  width: 560px;
+  height: 560px;
+  border-radius: 999px;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(62, 112, 228, 0.26) 0%, rgba(0, 0, 0, 0) 64%);
 }
 
 /* The instructor's presence on the stage. Cobalt core with two soft cobalt
