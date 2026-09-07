@@ -640,7 +640,7 @@ function PartTwo({ voice, onDone }: { voice: Voice; onDone: () => void }) {
 
       <CaseTabs i={i} onPick={setI} done={calls} />
 
-      <div style={{ flexGrow: 1, display: "flex", flexDirection: "column", gap: 14, padding: "18px 0" }}>
+      <div style={{ flexGrow: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 14, padding: "18px 0" }}>
         <EmailCard c={c} />
         <div className="fde-card" style={{ background: "#fff", borderRadius: 20, padding: 22 }}>
           <div style={{ fontSize: 12.5, color: INK_SOFT, marginBottom: 12 }}>Your call on {c.tab}. Nobody sees this but you.</div>
@@ -688,7 +688,7 @@ function PartThree({ voice, onDone }: { voice: Voice; onDone: () => void }) {
 
       <CaseTabs i={i} onPick={setI} done={revealed} />
 
-      <div style={{ flexGrow: 1, display: "flex", flexDirection: "column", gap: 14, padding: "18px 0" }}>
+      <div style={{ flexGrow: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 14, padding: "18px 0" }}>
         {!open ? (
           <div className="fde-card" style={{ background: "#fff", borderRadius: 20, padding: 22 }}>
             <div style={{ fontFamily: DISPLAY, fontWeight: 600, fontSize: 16, marginBottom: 4 }}>{c.tab} — what will it do?</div>
@@ -779,7 +779,7 @@ function PartFour({ voice, onDone }: { voice: Voice; onDone: () => void }) {
         Your turn
       </Heading>
 
-      <div style={{ flexGrow: 1, display: "flex", flexDirection: "column", justifyContent: "center", padding: "26px 0" }}>
+      <div style={{ flexGrow: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", justifyContent: "center", padding: "18px 0" }}>
         <div className="fde-card" style={{ background: "#fff", borderRadius: 20, padding: 26 }}>
           <label htmlFor="fde-sentence" style={{ display: "block", fontFamily: DISPLAY, fontWeight: 600, fontSize: 19, lineHeight: 1.42, letterSpacing: "-.02em" }}>
             The call I make in about four seconds that would take someone new an hour to get wrong is…
