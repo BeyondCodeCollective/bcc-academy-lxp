@@ -24,7 +24,7 @@ const LAB_TIMEOUT_MS = 90 * 60 * 1000;
 // Any single command. Long enough for `pip install`, short enough that a
 // runaway loop can't hold a function open.
 export const COMMAND_TIMEOUT_MS = 90 * 1000;
-// Output we keep per command. The model summarises; it doesn't need 2 MB of
+// Output we keep per command. The model summarizes; it doesn't need 2 MB of
 // CSV echoed back.
 const MAX_OUTPUT_CHARS = 12_000;
 

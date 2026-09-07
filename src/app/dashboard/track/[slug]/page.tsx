@@ -321,6 +321,10 @@ export default async function TrackOverviewPage({
   // course would see only its declared companions (MASS) and miss cohort
   // electives like the Tech and AI Hangout. Show staff the whole program's
   // schedule; undated tracks yield no rows, so this only adds real sessions.
+  // Everything above is a course this viewer has a real relationship with —
+  // a declared companion, or one they're enrolled in. Keep that set separate:
+  // it's the only thing allowed to headline this page.
+  const relatedSlugs = new Set(otherSlugs);
   if (isAdminViewer) {
     for (const t of program.tracks) {
       if (t.slug !== slug) otherSlugs.add(t.slug);
@@ -329,6 +333,12 @@ export default async function TrackOverviewPage({
   const companionTracks: TrackConfig[] = program.tracks.filter((t) =>
     otherSlugs.has(t.slug),
   );
+  // The whole-program view above is for the SCHEDULE. It must not reach the
+  // "Up next" panel: on the Forward Deploy page an admin was told the next
+  // thing was CompTIA Security+, because Security+ meets sooner and every
+  // course in the program had been folded in. A course page headlines its own
+  // course.
+  const touchpointCompanions = companionTracks.filter((t) => relatedSlugs.has(t.slug));
 
   // ── The panel: live / today / upcoming, across the course + its companions ──
   // A candidate from ANOTHER course (e.g. the Tech and AI Hangout surfacing on
@@ -338,7 +348,7 @@ export default async function TrackOverviewPage({
   const touchpoint = resolveTouchpoint(
     [
       ...touchpointCandidates(track, titleByWeek),
-      ...companionTracks.flatMap((t) =>
+      ...touchpointCompanions.flatMap((t) =>
         touchpointCandidates(t).map((c) => {
           if (c.isMass) return c;
           // Fold the course name into one label and clear the title, so an
@@ -517,7 +527,9 @@ export default async function TrackOverviewPage({
       {preStart ? (
         <PreStartBanner track={track} />
       ) : touchpoint ? (
-        <NextUpPanel touchpoint={touchpoint} />
+        // Quiet here: the cover art above is already this page's one dark
+        // object, and the course name is already its one display size.
+        <NextUpPanel touchpoint={touchpoint} variant="quiet" />
       ) : (
         <Link
           href={`/dashboard/track/${slug}/${ctaWeek}`}

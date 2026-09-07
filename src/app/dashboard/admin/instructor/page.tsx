@@ -61,11 +61,11 @@ export default async function InstructorQueuePage() {
   ]);
 
   const flags = (flagsRes.data ?? []) as FlagRow[];
-  const enrolments = (enrolRes.data ?? []) as { student_id: string; track_slug: string; program_id: string }[];
+  const enrollments = (enrolRes.data ?? []) as { student_id: string; track_slug: string; program_id: string }[];
   const checkpoints = (cpRes.data ?? []) as { student_id: string; track_slug: string; checkpoint_key: string; approved_at: string; score: number | null }[];
   const notes = (notesRes.data ?? []) as { student_id: string; track_slug: string; key: string; value: string }[];
 
-  const studentIds = [...new Set([...enrolments.map((e) => e.student_id), ...flags.map((f) => f.student_id)])];
+  const studentIds = [...new Set([...enrollments.map((e) => e.student_id), ...flags.map((f) => f.student_id)])];
   const { data: students } = studentIds.length
     ? await svc.from("students").select("id, first_name, last_name, email").in("id", studentIds)
     : { data: [] as StudentRow[] };
@@ -86,7 +86,7 @@ export default async function InstructorQueuePage() {
     createdAt: f.created_at,
   }));
 
-  const learners: QueueLearner[] = enrolments.map((e) => {
+  const learners: QueueLearner[] = enrollments.map((e) => {
     const mine = checkpoints.filter((c) => c.student_id === e.student_id && c.track_slug === e.track_slug);
     const myNotes = notes.filter((n) => n.student_id === e.student_id && n.track_slug === e.track_slug);
     return {

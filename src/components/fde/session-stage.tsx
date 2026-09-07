@@ -4,7 +4,7 @@
  * FDE 101 — "Where AI Belongs", the learner-facing session stage.
  *
  * Design comes from the canvas (artboards `Main` / `Build`): cream #FAF7F2,
- * one centred column at every width, cobalt #1D59FF as the only accent,
+ * one centered column at every width, cobalt #1D59FF as the only accent,
  * Archivo display. Structure comes from the run of show — four parts, in the
  * order Fonz teaches them.
  *
@@ -213,8 +213,8 @@ function VoiceChip({ voice, yourTurn }: { voice: Voice; yourTurn?: boolean }) {
 
 const PARTS = [
   { n: 1, title: "The one nobody used", blurb: "Six months of a portal that worked perfectly." },
-  { n: 2, title: "What's actually in the inbox", blurb: "Four enrolments that really arrived. You decide first." },
-  { n: 3, title: "Point it at them", blurb: "Vote before it answers. Check its judgement, not its typing." },
+  { n: 2, title: "What's actually in the inbox", blurb: "Four enrollments that really arrived. You decide first." },
+  { n: 3, title: "Point it at them", blurb: "Vote before it answers. Check its judgment, not its typing." },
   { n: 4, title: "Your turn", blurb: "The call only you can make." },
 ];
 
@@ -234,15 +234,15 @@ const MONTHS = [
  *
  * It opens on the learner, not on Riverbend. The earlier draft started with
  * "that portal you mentioned" — a reference to a conversation nobody had
- * had, about an organisation nobody had heard of. Now she asks them
- * something true about their own workplace first, and the youth centre
+ * had, about an organization nobody had heard of. Now she asks them
+ * something true about their own workplace first, and the youth center
  * arrives as the answer to their own answer.
  *
  * `gate` names an action the beat will not move past.
  */
 const BEATS = [
   { line: "Before I show you anything — one question.", sub: "Has anywhere you have worked ever launched something new that almost nobody ended up using?", card: 0, mic: "live", gate: "opening" },
-  { line: "Almost everyone says yes.", sub: "So let me show you one with the numbers still attached. A youth centre built a family portal — parents could enrol their kids online instead of emailing in. It shipped on time. Tests passed. No bugs.", card: 0, mic: "idle", gate: false },
+  { line: "Almost everyone says yes.", sub: "So let me show you one with the numbers still attached. A youth center built a family portal — parents could enroll their kids online instead of emailing in. It shipped on time. Tests passed. No bugs.", card: 0, mic: "idle", gate: false },
   { line: "This is six months of it.", sub: "Have a poke. Tap any month.", card: 1, mic: "idle", gate: false },
   { line: "Eleven thousand families were eligible. How many actually used it?", sub: "Commit to a number before you move on. Say it out loud too — that is the bit that stings later.", card: 1, mic: "live", gate: "guess" },
   { line: "Not even close.", sub: "A quarter would have been 2,700 people. The team who built it guessed high too.", card: 2, mic: "idle", gate: false },
@@ -270,7 +270,7 @@ const GUESSES = [
 type Call = "confirm" | "hold" | "human";
 
 const CALLS: { id: Call; label: string; hint: string }[] = [
-  { id: "confirm", label: "Confirm it", hint: "Enrol them, nothing is missing" },
+  { id: "confirm", label: "Confirm it", hint: "Enroll them, nothing is missing" },
   { id: "hold", label: "Hold it", hint: "Something needs asking first" },
   { id: "human", label: "Give it to a person", hint: "Not for a machine at all" },
 ];
@@ -282,7 +282,7 @@ const CASES: {
 }[] = [
   {
     tab: "Kwame", file: "01_clean.txt", when: "Tuesday 9:04", from: "Grace O.",
-    body: "Hi,\n\nI would like to enrol my son Kwame in the after school\nprogram at Riverbend Main. He was born 06/02/2016 and is\nin 4th grade. My number is 555-0142. Signed pickup form\nattached.\n\nThank you!",
+    body: "Hi,\n\nI would like to enroll my son Kwame in the after school\nprogram at Riverbend Main. He was born 06/02/2016 and is\nin 4th grade. My number is 555-0142. Signed pickup form\nattached.\n\nThank you!",
     answer: "confirm", decision: "Ready to confirm", badge: "✓", tone: "good",
     because: "Everything it needs is there and nothing breaks a rule.",
     fields: [["program", "ASP"], ["site", "RB1"], ["grade", "4"], ["pickup form", "attached"]],
@@ -304,7 +304,7 @@ const CASES: {
   },
   {
     tab: "Theo", file: "08_medical.txt", when: "Wednesday 16:55", from: "D. Osei",
-    body: "I would like to enrol Theo (DOB 2015-08-14, grade 5) in\nAfter School at Eastside. Pickup form attached. One thing:\nTheo has an inhaler he needs to keep with him and takes a\ntablet at 4pm. Is there a form for that?",
+    body: "I would like to enroll Theo (DOB 2015-08-14, grade 5) in\nAfter School at Eastside. Pickup form attached. One thing:\nTheo has an inhaler he needs to keep with him and takes a\ntablet at 4pm. Is there a form for that?",
     answer: "human", decision: "Refused. Straight to a human.", badge: "!", tone: "stop",
     because: "Medication came up, so it will not touch this one. Not because it could not — because you said anything medical goes to a person.",
     sting: "Who decided that? Not the AI. Denise did, eleven years ago, and we wrote it down. That is the job.",
@@ -634,7 +634,7 @@ function PartTwo({ voice, onDone }: { voice: Voice; onDone: () => void }) {
 
   return (
     <>
-      <Heading size={42} sub="Four that actually arrived at a youth centre. No AI yet — just you. Read each one and say what you would do with it.">
+      <Heading size={42} sub="Four that actually arrived at a youth center. No AI yet — just you. Read each one and say what you would do with it.">
         What&rsquo;s actually in the inbox
       </Heading>
 
@@ -671,7 +671,7 @@ function PartThree({ voice, onDone }: { voice: Voice; onDone: () => void }) {
   const [revealed, setRevealed] = useState<boolean[]>([false, false, false, false]);
   const [votes, setVotes] = useState<(Call | null)[]>([null, null, null, null]);
   const c = CASES[i];
-  useSpeak(voice, "Now I am giving it the same four emails and the rules Denise uses. Vote before I run each one. You are checking its judgement, not its typing.");
+  useSpeak(voice, "Now I am giving it the same four emails and the rules Denise uses. Vote before I run each one. You are checking its judgment, not its typing.");
   const vote = votes[i];
   const open = revealed[i];
   const allOpen = revealed.every(Boolean);
@@ -682,7 +682,7 @@ function PartThree({ voice, onDone }: { voice: Voice; onDone: () => void }) {
 
   return (
     <>
-      <Heading size={42} sub="Same four emails, same rules Denise uses, now given to the AI. Vote before you look. You are checking its judgement, not its typing.">
+      <Heading size={42} sub="Same four emails, same rules Denise uses, now given to the AI. Vote before you look. You are checking its judgment, not its typing.">
         Point it at them
       </Heading>
 
@@ -772,10 +772,10 @@ function EmailCard({ c, compact }: { c: (typeof CASES)[number]; compact?: boolea
 
 function PartFour({ voice, onDone }: { voice: Voice; onDone: () => void }) {
   const [v, setV] = useState("");
-  useSpeak(voice, "Nobody in that room decided any of it on the spot. A person wrote the rules down years ago and the machine borrowed her judgement. So, what is yours?");
+  useSpeak(voice, "Nobody in that room decided any of it on the spot. A person wrote the rules down years ago and the machine borrowed her judgment. So, what is yours?");
   return (
     <>
-      <Heading size={46} sub="Nobody in that room decided any of it on the spot. A person wrote the rules down years ago and the machine borrowed her judgement. So — what is yours?">
+      <Heading size={46} sub="Nobody in that room decided any of it on the spot. A person wrote the rules down years ago and the machine borrowed her judgment. So — what is yours?">
         Your turn
       </Heading>
 
