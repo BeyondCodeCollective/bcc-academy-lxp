@@ -339,10 +339,10 @@ export function SessionStage() {
   };
 
   return (
-    <div style={{ minHeight: "100dvh", background: CREAM, WebkitFontSmoothing: "antialiased", color: INK }}>
+    <div style={{ height: "100dvh", overflow: "hidden", background: CREAM, WebkitFontSmoothing: "antialiased", color: INK }}>
       <Keyframes />
       {welcome && <Welcome onEnter={enter} />}
-      <div aria-hidden={welcome} style={{ maxWidth: 680, margin: "0 auto", padding: "0 20px 64px", minHeight: "100dvh", display: "flex", flexDirection: "column", filter: welcome ? "blur(6px)" : "none", transition: "filter .5s ease" }}>
+      <div aria-hidden={welcome} style={{ maxWidth: 680, margin: "0 auto", padding: "0 20px 20px", height: "100%", display: "flex", flexDirection: "column", filter: welcome ? "blur(6px)" : "none", transition: "filter .5s ease" }}>
         {phase !== "done" && <PartRail active={partIndex} />}
         {phase === "part1" && <PartOne voice={voice} spoken={!welcome} onDone={() => setPhase("part2")} />}
         {phase === "part2" && <PartTwo voice={voice} onDone={() => setPhase("part3")} />}
@@ -395,7 +395,7 @@ function PartRail({ active }: { active: number }) {
 function Heading({ children, sub, size = 46 }: { children: React.ReactNode; sub?: string; size?: number }) {
   return (
     <div style={{ marginTop: 34 }}>
-      <h1 style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: `clamp(29px, 5.4vw, ${size}px)`, lineHeight: 1.11, letterSpacing: "-.04em", color: INK, margin: 0, textWrap: "pretty", animation: "fde-rise .5s cubic-bezier(.16,1,.3,1)" }}>
+      <h1 style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: `clamp(26px, min(5.4vw, 6.6vh), ${size}px)`, lineHeight: 1.11, letterSpacing: "-.04em", color: INK, margin: 0, textWrap: "pretty", animation: "fde-rise .5s cubic-bezier(.16,1,.3,1)" }}>
         {children}
       </h1>
       {sub && <p style={{ fontSize: 15, lineHeight: 1.6, color: INK_SOFT, marginTop: 14, marginBottom: 0, animation: "fde-rise .75s cubic-bezier(.16,1,.3,1)" }}>{sub}</p>}
@@ -510,7 +510,7 @@ function PartOne({ voice, spoken, onDone }: { voice: Voice; spoken: boolean; onD
     <>
       <Heading sub={b.sub}>{b.line}</Heading>
 
-      <div style={{ flexGrow: 1, display: "flex", flexDirection: "column", justifyContent: "center", gap: 14, padding: "26px 0" }}>
+      <div style={{ flexGrow: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", justifyContent: "center", gap: 14, padding: "18px 0" }}>
         {b.card === 1 && <ChartCard sel={sel} onPick={setSel} />}
         {b.card === 2 && <BigNumber guessed={guess} />}
         {b.card === 3 && <HoursCard />}
