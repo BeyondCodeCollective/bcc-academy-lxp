@@ -125,6 +125,22 @@ body {
   background-color: var(--surface-elevated);
 }
 
+/* Session stage — the dark slab at the top of a session page. Shares the warm
+   near-black of .nav-surface so the shell and the stage read as one system
+   instead of two different darks. See src/components/session-stage.tsx. */
+.stage-surface {
+  background: linear-gradient(150deg, #232220 0%, #1a1a1a 55%, #0f0e0d 100%);
+}
+
+/* The instructor's presence on the stage. Cobalt core with two soft cobalt
+   rings — the one glow in the product, and only ever on the dark stage. */
+.mica-orb {
+  background: linear-gradient(140deg, var(--color-cobalt), var(--color-dark-cobalt));
+  box-shadow:
+    0 0 0 12px rgba(29, 89, 255, 0.1),
+    0 0 0 26px rgba(29, 89, 255, 0.05);
+}
+
 /* Collapsible sidebar rail. A client toggle sets data-nav-collapsed on
    <html>; the sidebar shrinks to an icon rail, labels fade out, and the
    content area reclaims the width — all on one transition. */

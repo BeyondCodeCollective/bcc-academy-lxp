@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Mic, MicOff, Send, Volume2, VolumeX, Flag, CheckCircle, NotebookPen, TerminalSquare } from "lucide-react";
 import { MAX_HISTORY_MESSAGES } from "@/lib/instructor/prompt";
+import { SessionStage } from "@/components/session-stage";
 
 // The instructor runs the session in this panel. Voice first: the learner
 // talks (browser speech recognition), the instructor's reply can be read
@@ -43,6 +44,7 @@ export function InstructorPanel({
   sessionTitle,
   firstName,
   initiallyComplete,
+  stage,
 }: {
   trackSlug: string;
   weekNumber: number;
@@ -50,6 +52,20 @@ export function InstructorPanel({
   sessionTitle: string;
   firstName: string | null;
   initiallyComplete: boolean;
+  /**
+   * When present, the panel's idle state renders as the session STAGE (the
+   * dark slab at the top of the page) instead of a white card with a
+   * paragraph and a button. Starting the lab swaps the stage for the live
+   * conversation, unchanged. Omit it and the old idle card renders, so every
+   * other caller keeps its current look.
+   */
+  stage?: {
+    headline?: string;
+    blurb?: string;
+    liveLabel?: string;
+    calendarHref?: string;
+    startNote?: string;
+  };
 }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -155,6 +171,24 @@ export function InstructorPanel({
     recRef.current = rec;
     setListening(true);
     rec.start();
+  }
+
+  // Idle + a stage config: the stage IS the idle state. It carries the hook,
+  // the one primary action, and the live-session line that used to live in
+  // three separate cards stacked down the page.
+  if (!started && stage) {
+    return (
+      <SessionStage
+        state="ready"
+        headline={stage.headline}
+        blurb={stage.blurb}
+        liveLabel={stage.liveLabel}
+        calendarHref={stage.calendarHref}
+        startNote={stage.startNote}
+        startLabel={`Start ${unitName}`}
+        onStart={begin}
+      />
+    );
   }
 
   return (
