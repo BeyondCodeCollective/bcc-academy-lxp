@@ -626,9 +626,9 @@ function PartRail({ active }: { active: number }) {
 
 /* ── reusable bits ───────────────────────────────────────────────────── */
 
-function Heading({ children, sub, size = 46, centered }: { children: React.ReactNode; sub?: string; size?: number; centered?: boolean }) {
+function Heading({ children, sub, size = 46 }: { children: React.ReactNode; sub?: string; size?: number }) {
   return (
-    <div style={centered ? { marginTop: "auto", marginBottom: "auto", paddingTop: 34 } : { marginTop: 34 }}>
+    <div style={{ marginTop: 34 }}>
       <h1 style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: `clamp(29px, 5.4vw, ${size}px)`, lineHeight: 1.11, letterSpacing: "-.04em", color: INK, margin: 0, textWrap: "pretty", animation: "fde-rise .5s cubic-bezier(.16,1,.3,1)" }}>
         {children}
       </h1>
@@ -886,6 +886,25 @@ function PartOne({ voice, spoken, name, onDone }: { voice: Voice; spoken: boolea
     return () => window.clearTimeout(t);
   }, [spokenAnswer, blocked, next]);
 
+  // She talks, she stops, and the session carries on — the way a person
+  // telling you something moves to the next thing without being asked.
+  // Waiting for a click after every sentence is what made this read as a
+  // deck being clicked through rather than someone talking to you.
+  //
+  // Only when she actually narrated it: muted, the learner is reading at
+  // their own speed and the page must not move under them. Beats that ask a
+  // question hold regardless — those wait on an answer, not on silence.
+  const wasSpeaking = useRef(false);
+  useEffect(() => {
+    const justFinished = wasSpeaking.current && !voice.speaking;
+    wasSpeaking.current = voice.speaking;
+    if (!justFinished || blocked || voice.muted || b.gate !== false) return;
+    // Longer at a part boundary: crossing a section should not feel like the
+    // same half-second step as moving between two lines.
+    const t = window.setTimeout(next, last ? 1500 : 850);
+    return () => window.clearTimeout(t);
+  }, [voice.speaking, voice.muted, blocked, b.gate, last, next]);
+
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
       if (e.key === "ArrowRight" || e.key === "Enter") next();
@@ -897,7 +916,14 @@ function PartOne({ voice, spoken, name, onDone }: { voice: Voice; spoken: boolea
 
   return (
     <>
-      <Heading sub={sub} centered={!hasVisual}>{line}</Heading>
+      {!hasVisual && (
+        // One growing box holding just the words, so they sit in the middle
+        // of the room rather than splitting the gap with the footer.
+        <div style={{ flexGrow: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+          <Heading sub={sub}>{line}</Heading>
+        </div>
+      )}
+      {hasVisual && <Heading sub={sub}>{line}</Heading>}
 
       <div style={{ flexGrow: hasVisual ? 1 : 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: 14, padding: hasVisual ? "26px 0" : 0 }}>
         {b.card === 1 && <ChartCard sel={sel} onPick={setSel} />}
