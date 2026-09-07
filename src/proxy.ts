@@ -19,8 +19,34 @@ const VALID_PREVIEW_SLUGS = new Set([
   "catalyst",
 ]);
 
+/** The one hostname the platform is served from. Everything from the
+ *  per-program-subdomain era (catalyst.bccacademy.io and friends) still has
+ *  live DNS pointing at Vercel, and because those hosts aren't in DOMAIN_MAP
+ *  they fell through to the default program and quietly served a SECOND, fully
+ *  working copy of the whole app. That splits sessions (auth cookies set on the
+ *  apex don't reach a subdomain, so people look logged out for no reason),
+ *  duplicates every public page for crawlers, and puts URLs into circulation
+ *  that nobody meant to publish. CLAUDE.md already says legacy subdomains
+ *  redirect; this is what makes that true. */
+const CANONICAL_HOST = "bccacademy.io";
+
 export async function proxy(request: NextRequest) {
   const host = request.headers.get("host") ?? "localhost:3000";
+
+  // Any *.bccacademy.io that isn't the apex or www is a legacy subdomain:
+  // send it to the apex, same path and query, permanently. Preview
+  // deployments (*.vercel.app) and localhost are untouched.
+  const bareHost = host.split(":")[0].toLowerCase();
+  if (
+    bareHost.endsWith(`.${CANONICAL_HOST}`) &&
+    bareHost !== `www.${CANONICAL_HOST}`
+  ) {
+    const target = new URL(request.nextUrl);
+    target.host = CANONICAL_HOST;
+    target.port = "";
+    target.protocol = "https:";
+    return NextResponse.redirect(target, 308);
+  }
 
   const asParam = request.nextUrl.searchParams.get("as");
   const previewOverride =
