@@ -188,6 +188,44 @@ function InviteByEmail({ tracks }: { tracks: Track[] }) {
     });
   };
 
+  // Save the list without emailing anyone. Importing a partner's roster and
+  // deciding when to invite are different decisions, and until now the only
+  // button did both — so a roster you were not ready to email could not be
+  // saved at all, and its names went nowhere.
+  const addOnly = () => {
+    if (!course || !emails.trim()) return;
+    setConfirming(null);
+    setResult(null);
+    setError(null);
+    startTransition(async () => {
+      try {
+        const current = await getAllowedEmails(course);
+        const incoming = emails.split(/[\n,]/).map((e) => e.trim()).filter(Boolean);
+        const merged = [...(current.emails ?? []), ...incoming]
+          .map((e) => e.trim())
+          .filter(Boolean)
+          .join("\n");
+        const res = await replaceAllowedEmails(course, merged, rosterNames);
+        if (!res.ok) {
+          setError(res.error ?? "Failed to save the list.");
+          return;
+        }
+        const named = incoming.filter((e) => rosterNames[e.toLowerCase()]).length;
+        setResult(
+          `Saved to the list — no invites sent.` +
+            (named ? ` ${named} arrived with names.` : ""),
+        );
+        setEmails("");
+        setRosterPreview([]);
+        setFileNote(null);
+        const a = await getAllowlistAudience(course);
+        setAudience({ pending: a.pending, joined: a.joined });
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Failed to save the list.");
+      }
+    });
+  };
+
   return (
     <div className="space-y-4">
       <Field label="Course">
@@ -397,14 +435,27 @@ function InviteByEmail({ tracks }: { tracks: Track[] }) {
             </button>
           </span>
         ) : (
-          <button
-            type="button"
-            onClick={() => setConfirming("add")}
-            disabled={pending || !emails.trim() || !course}
-            className={buttonClass("secondary", "sm")}
-          >
-            {pending ? "Working…" : "Allowlist + invite these"}
-          </button>
+          <>
+            {/* Saving and emailing are separate decisions. This one writes the
+               list (names included) and sends nothing, so a roster can be
+               imported the moment it arrives. */}
+            <button
+              type="button"
+              onClick={addOnly}
+              disabled={pending || !emails.trim() || !course}
+              className={buttonClass("primary", "sm")}
+            >
+              {pending ? "Working…" : "Add to list"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirming("add")}
+              disabled={pending || !emails.trim() || !course}
+              className={buttonClass("secondary", "sm")}
+            >
+              Add + invite
+            </button>
+          </>
         )}
         {result && <span className="text-xs text-ink-soft">{result}</span>}
         {error && <span className="text-xs text-red-600">{error}</span>}
