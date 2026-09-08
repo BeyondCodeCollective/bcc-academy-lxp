@@ -112,6 +112,7 @@ type DualLikertQ = Extract<SurveyQuestion, { type: "dual-likert" }>;
 // can't be, so they're declared explicitly.
 export const CROSS_SURVEY_PAIRS: { before: string; after: string }[] = [
   { before: "pre-survey-spring-2026", after: "post-survey-spring-2026" },
+  { before: "cyberdeck-pre", after: "cyberdeck-post" },
 ];
 
 // An inverted Likert reads the LOW number as agreement ("1 — Strongly Agree").
