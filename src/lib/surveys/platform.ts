@@ -15,6 +15,8 @@ import { getEveryProgramConfig } from "@/lib/programs";
 
 export const BCC_INTAKE_SURVEY_ID = "bcc-learner-intake";
 const BCC_WORKSHOP_SURVEY_ID = "bcc-workshop";
+const CYBERDECK_PRE_SURVEY_ID = "cyberdeck-pre";
+const CYBERDECK_POST_SURVEY_ID = "cyberdeck-post";
 
 /** A learner skips a program survey when EVERY course they're enrolled in opts
  *  out via the survey's skipForTracks. Empty enrollment never skips, so this
@@ -204,6 +206,25 @@ export const PLATFORM_PUBLIC_SURVEYS: Record<string, SurveyConfig> = {
     description:
       "Application for the Home for the Summer intensive — August 10–14, 2026, with NextEra Energy.",
     required: false,
+  },
+  // BUILD YOUR WORLD: Cyberdeck Series — given in-session, links dropped in the
+  // Zoom chat. Public rather than authenticated on purpose: a password reset
+  // mid-workshop costs more than the login buys us.
+  [CYBERDECK_PRE_SURVEY_ID]: {
+    id: CYBERDECK_PRE_SURVEY_ID,
+    title: "Cyberdeck Series — Pre-Program Survey",
+    description:
+      "2 min. Where you're starting from, before we build. No right or wrong answers.",
+    required: false,
+    appliesToTracks: ["build-your-world-cyberdeck-workshop-series"],
+  },
+  [CYBERDECK_POST_SURVEY_ID]: {
+    id: CYBERDECK_POST_SURVEY_ID,
+    title: "Cyberdeck Series — Post-Program Survey",
+    description:
+      "3–4 min. The same questions from day one, plus how the series went.",
+    required: false,
+    appliesToTracks: ["build-your-world-cyberdeck-workshop-series"],
   },
   // Collected via /apply/sbft (custom form, not /survey/<id>).
   [SBFT_APPLICATION_SURVEY_ID]: {

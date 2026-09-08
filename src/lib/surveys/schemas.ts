@@ -1715,6 +1715,92 @@ export const MASS_PRE_PAGES: {
 
 const MASS_FALL_2026_PRE: SurveyQuestion[] = MASS_PRE_PAGES.flatMap((page) => page.questions);
 
+// ─── cyberdeck-pre / cyberdeck-post (BUILD YOUR WORLD: Cyberdeck Series) ────
+//
+// A matched pair, given in-session: the pre 10 minutes into session 1, the post
+// 10 minutes before the last session ends. Both batteries are asked with the
+// SAME ids and the SAME statements in both instruments, which is the whole
+// point — a reworded statement on one side silently breaks the delta.
+export const CYBERDECK_SKILL_STATEMENTS = [
+  "Design a 3D model for a physical object using CAD software",
+  "Connect hardware components like screens, keyboards, and storage to a microprocessor",
+  "Install and navigate an operating system using terminal commands",
+  "Write a basic Python program using variables, loops, and functions",
+  "Troubleshoot a hardware or software problem on your own",
+];
+
+export const CYBERDECK_CONFIDENCE_STATEMENTS = [
+  "I feel like someone who belongs in hardware and electronics",
+  "I feel confident attempting a hardware project on my own",
+  "Hardware and electronics feel accessible to me",
+  "I can see myself using hardware skills in my career",
+];
+
+const CYBERDECK_SKILLS_QUESTION: SurveyQuestion = {
+  type: "likert",
+  id: "cyberdeck_skills",
+  label: "Technical Skills",
+  scale: LIKERT_1_5,
+  scaleAnchors: { low: "1 — No experience", high: "5 — Very confident" },
+  statements: CYBERDECK_SKILL_STATEMENTS,
+  required: true,
+};
+
+const CYBERDECK_CONFIDENCE_QUESTION: SurveyQuestion = {
+  type: "likert",
+  id: "cyberdeck_confidence",
+  label: "Confidence in Hardware",
+  scale: LIKERT_1_5,
+  scaleAnchors: { low: "1 — Strongly disagree", high: "5 — Strongly agree" },
+  statements: CYBERDECK_CONFIDENCE_STATEMENTS,
+  required: true,
+};
+
+export const CYBERDECK_EXPERIENCE_STATEMENTS = [
+  "The sessions were well-paced and easy to follow",
+  "The instructors made me feel supported and capable",
+  "I felt comfortable asking questions and making mistakes",
+];
+
+const CYBERDECK_PRE: SurveyQuestion[] = [
+  CYBERDECK_SKILLS_QUESTION,
+  CYBERDECK_CONFIDENCE_QUESTION,
+];
+
+const CYBERDECK_POST: SurveyQuestion[] = [
+  CYBERDECK_SKILLS_QUESTION,
+  CYBERDECK_CONFIDENCE_QUESTION,
+  {
+    type: "likert",
+    id: "cyberdeck_experience",
+    label: "Program Experience",
+    scale: LIKERT_1_5,
+    scaleAnchors: { low: "1 — Strongly disagree", high: "5 — Strongly agree" },
+    statements: CYBERDECK_EXPERIENCE_STATEMENTS,
+    required: true,
+  },
+  {
+    type: "radio",
+    id: "cyberdeck_overall_rating",
+    label: "Overall, how would you rate the Build Your World series?",
+    options: ["1 — Poor", "2", "3", "4", "5 — Excellent"],
+    required: true,
+  },
+  {
+    type: "text",
+    id: "cyberdeck_new_skill",
+    label:
+      "What is one thing you can do now that you couldn't do before this series?",
+    required: true,
+  },
+  {
+    type: "text",
+    id: "cyberdeck_improve",
+    label: "What would make this program even better?",
+    required: false,
+  },
+];
+
 const SCHEMAS: Record<string, SurveyQuestion[]> = {
   "bcc-learner-intake": BCC_LEARNER_INTAKE,
   "comptia-security-pre": COMPTIA_SECURITY_PRE,
@@ -1737,6 +1823,8 @@ const SCHEMAS: Record<string, SurveyQuestion[]> = {
   "hfs-impact-survey": HFS_IMPACT_SURVEY,
   "sbft-application": SBFT_APPLICATION,
   "mass-fall-2026-pre": MASS_FALL_2026_PRE,
+  "cyberdeck-pre": CYBERDECK_PRE,
+  "cyberdeck-post": CYBERDECK_POST,
 };
 
 export function getSurveySchema(surveyId: string): SurveyQuestion[] | null {
