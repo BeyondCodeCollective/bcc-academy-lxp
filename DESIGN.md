@@ -159,7 +159,7 @@ arbitrary `text-[Npx]` sizes across nine different values, 78 of them 11px: a
 de-facto token that was never named. Nothing in the product goes below 11px.
 Marketing surfaces stop at Caption.
 
-Stat VALUES are exempt — a `StatCard` number, a donut centre, or a countdown
+Stat VALUES are exempt — a `StatCard` number, a donut center, or a countdown
 is data, not a heading, and shrinking those defeats the point of the tile.
 
 **Display is one step, used once per screen.** Exactly one object on a page —
@@ -207,7 +207,7 @@ hand-rolled two-stop gradients, no ad-hoc scrims standing in for one.
 C 0.115 — with the hue inherited from `--primary`. Set `--primary` (and
 `--stage-base` when the program has a deeper `ground` tone) on a wrapper and
 Catalyst comes out cobalt, BGC purple, with no per-program CSS. Never hardcode
-a field colour.
+a field color.
 
 **One per screen.** The field is the screen's top object: the home band, a
 page header (`<PageHeader onField />`), a course hero, the session stage. Two
@@ -215,7 +215,7 @@ fields on one screen is the bug that made the dashboard read as repetitive
 blue.
 
 **Loudness gradient.** The deeper into the product, the quieter the art:
-landing page (photo, full colour, beside the type — never under it) → course
+landing page (photo, full color, beside the type — never under it) → course
 hero (field + title) → dashboard (field at card size) → session stage (field,
 no art). Admin tool pages — settings, tables, editors — stay on paper. A
 settings table is not a first screen.

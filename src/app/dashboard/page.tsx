@@ -835,7 +835,7 @@ async function DashboardContent({
         "",
     }));
   // The band. Same component and same question as the admin home — "what's
-  // going on" — answered from this learner's own enrolments. The sentence is
+  // going on" — answered from this learner's own enrollments. The sentence is
   // the answer; the rail underneath is the evidence for it.
   const bandTracks = [...visibleTracks, ...otherProgramCourses.map((c) => c.track)];
   const bandSessions = scheduledSessions(bandTracks);

@@ -10,9 +10,14 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, extname } from "node:path";
 
-const ROOTS = ["src", "scripts", "evals"];
-const EXTS = new Set([".ts", ".tsx", ".js", ".mjs", ".css", ".html", ".sql"]);
-const SKIP_DIRS = new Set(["node_modules", ".next", "archive", "dist", "build"]);
+// Docs count too: DESIGN.md and the playbook are read by people and by AI
+// features, and "colour" slipped into DESIGN.md precisely because the guard
+// only looked at code.
+const ROOTS = ["src", "scripts", "evals", "docs", "DESIGN.md", "CLAUDE.md", "AGENTS.md"];
+const EXTS = new Set([".ts", ".tsx", ".js", ".mjs", ".css", ".html", ".sql", ".md"]);
+// `docs/superpowers/plans` holds dated records of plans as they were written.
+// They are history, not living copy — rewriting them would be falsifying a log.
+const SKIP_DIRS = new Set(["node_modules", ".next", "archive", "dist", "build", "plans"]);
 
 // [pattern, correction]. Deliberately excludes `grey`, which is an established
 // design-token name (--color-grey-1/2/3), not prose — renaming those is a
@@ -79,7 +84,8 @@ for (const root of ROOTS) {
   }
   if (!exists) continue;
 
-  for (const file of walk(root)) {
+  const files = statSync(root).isDirectory() ? walk(root) : [root];
+  for (const file of files) {
     // This file lists the patterns it bans; so does the DB scanner.
     if (file.includes("check-us-english") || file.includes("find-british-spellings")) continue;
     const lines = readFileSync(file, "utf8").split("\n");
