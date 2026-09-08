@@ -86,6 +86,11 @@ export async function getAllowlistAudience(
 export async function replaceAllowedEmails(
   trackSlug: string,
   rawCsvOrList: string,
+  /** Names a roster file supplied, keyed by lowercased email. Carried onto the
+   *  row so auth/callback can name the account at signup instead of greeting a
+   *  learner the partner already named with a blank roster row. Emails absent
+   *  from the map simply have no name, exactly as before. */
+  names?: Record<string, { firstName: string; lastName: string }>,
 ): Promise<{ ok: boolean; count: number; error?: string }> {
   let svc: Awaited<ReturnType<typeof requireManager>>["svc"];
   let userId: string;
@@ -106,11 +111,16 @@ export async function replaceAllowedEmails(
   }
 
   if (emails.length > 0) {
-    const rows = emails.map((email) => ({
-      email,
-      track_slug: trackSlug,
-      added_by: userId ?? null,
-    }));
+    const rows = emails.map((email) => {
+      const n = names?.[email.trim().toLowerCase()];
+      return {
+        email,
+        track_slug: trackSlug,
+        added_by: userId ?? null,
+        ...(n?.firstName ? { first_name: n.firstName } : {}),
+        ...(n?.lastName ? { last_name: n.lastName } : {}),
+      };
+    });
     const { error: insertErr } = await svc
       .from("allowed_signup_emails")
       .insert(rows);

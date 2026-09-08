@@ -9,7 +9,17 @@ import { parseRoster } from "@/lib/roster-import";
 export async function parseRosterFileAction(
   formData: FormData,
 ): Promise<
-  | { ok: true; emails: string[]; duplicates: number; rejected: number; fileName: string }
+  | {
+      ok: true;
+      emails: string[];
+      /** Keyed by email so the caller can hand it straight to
+       *  replaceAllowedEmails without re-deriving anything. */
+      names: Record<string, { firstName: string; lastName: string }>;
+      named: number;
+      duplicates: number;
+      rejected: number;
+      fileName: string;
+    }
   | { ok: false; error: string }
 > {
   await requireManager();
@@ -26,9 +36,18 @@ export async function parseRosterFileAction(
   const res = await parseRoster(file.name, Buffer.from(await file.arrayBuffer()));
   if (!res.ok) return res;
 
+  const names: Record<string, { firstName: string; lastName: string }> = {};
+  for (const p of res.parse.people) {
+    if (p.firstName || p.lastName) {
+      names[p.email] = { firstName: p.firstName, lastName: p.lastName };
+    }
+  }
+
   return {
     ok: true,
-    emails: res.parse.emails,
+    emails: res.parse.people.map((p) => p.email),
+    names,
+    named: Object.keys(names).length,
     duplicates: res.parse.duplicates.length,
     rejected: res.parse.rejected.length,
     fileName: file.name,

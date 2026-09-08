@@ -97,6 +97,12 @@ function InviteByEmail({ tracks }: { tracks: Track[] }) {
   const [emails, setEmails] = useState("");
   const [parsingFile, setParsingFile] = useState(false);
   const [fileNote, setFileNote] = useState<string | null>(null);
+  // Names the roster file gave us, keyed by email. They ride along with the
+  // allowlist write so the learner is not asked for a name their program
+  // already told us.
+  const [rosterNames, setRosterNames] = useState<
+    Record<string, { firstName: string; lastName: string }>
+  >({});
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -161,7 +167,7 @@ function InviteByEmail({ tracks }: { tracks: Track[] }) {
           .map((e) => e.trim())
           .filter(Boolean)
           .join("\n");
-        await replaceAllowedEmails(course, merged);
+        await replaceAllowedEmails(course, merged, rosterNames);
         const sent = await sendCohortInvites(course);
         if (sent.ok) {
           setResult(`Allowlisted + invited. ${sent.sent} sent${sent.failed ? `, ${sent.failed} failed` : ""}.`);
@@ -296,12 +302,14 @@ function InviteByEmail({ tracks }: { tracks: Track[] }) {
                     const merged = [...new Set([...existing, ...res.emails])];
                     return merged.join("\n");
                   });
+                  setRosterNames((prev) => ({ ...prev, ...res.names }));
                   const skipped = [
                     res.duplicates ? `${res.duplicates} duplicate${res.duplicates === 1 ? "" : "s"}` : "",
                     res.rejected ? `${res.rejected} unreadable` : "",
                   ].filter(Boolean).join(", ");
                   setFileNote(
                     `${res.emails.length} address${res.emails.length === 1 ? "" : "es"} from ${res.fileName}` +
+                      (res.named ? `, ${res.named} with names` : "") +
                       (skipped ? ` · skipped ${skipped}` : ""),
                   );
                 }
