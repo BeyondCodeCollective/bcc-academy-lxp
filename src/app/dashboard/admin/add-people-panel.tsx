@@ -6,6 +6,7 @@ import { buttonClass, fieldInput } from "@/components/ui";
 import { addStudentAction, assignStudentTrack } from "./actions";
 import { getAllowedEmails, replaceAllowedEmails, getAllowlistAudience } from "./allowlist/actions";
 import { sendCohortInvites } from "./invites/actions";
+import { parseRosterFileAction } from "./roster-upload-action";
 import type { Student } from "@/lib/types";
 
 type StudentRow = Pick<
@@ -94,6 +95,14 @@ function ModeTab({
 function InviteByEmail({ tracks }: { tracks: Track[] }) {
   const [course, setCourse] = useState(tracks[0]?.slug ?? "");
   const [emails, setEmails] = useState("");
+  const [parsingFile, setParsingFile] = useState(false);
+  const [fileNote, setFileNote] = useState<string | null>(null);
+  // Names the roster file gave us, keyed by email. They ride along with the
+  // allowlist write so the learner is not asked for a name their program
+  // already told us.
+  const [rosterNames, setRosterNames] = useState<
+    Record<string, { firstName: string; lastName: string }>
+  >({});
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -158,7 +167,7 @@ function InviteByEmail({ tracks }: { tracks: Track[] }) {
           .map((e) => e.trim())
           .filter(Boolean)
           .join("\n");
-        await replaceAllowedEmails(course, merged);
+        await replaceAllowedEmails(course, merged, rosterNames);
         const sent = await sendCohortInvites(course);
         if (sent.ok) {
           setResult(`Allowlisted + invited. ${sent.sent} sent${sent.failed ? `, ${sent.failed} failed` : ""}.`);
@@ -249,7 +258,10 @@ function InviteByEmail({ tracks }: { tracks: Track[] }) {
         )}
       </div>
 
-      {/* Add new people to the list, then send. */}
+      {/* Add new people to the list, then send. A partner who sends their
+         roster as a spreadsheet used to mean opening it and hand-copying the
+         email column; the upload fills this same box instead, so everything
+         below it — review, confirm, send — is unchanged. */}
       <Field label="Add more emails (one per line, or comma-separated)">
         <textarea
           value={emails}
@@ -259,6 +271,60 @@ function InviteByEmail({ tracks }: { tracks: Track[] }) {
           className={fieldInput}
         />
       </Field>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <label className="cursor-pointer rounded-lg border border-rule px-3 py-2 text-sm text-ink-soft transition-colors hover:border-ink/25 hover:text-ink">
+          {parsingFile ? "Reading…" : "Upload a roster file"}
+          <input
+            type="file"
+            accept=".xlsx,.csv,.txt"
+            className="sr-only"
+            disabled={parsingFile}
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              if (!file) return;
+              setFileNote(null);
+              setError(null);
+              setParsingFile(true);
+              try {
+                const fd = new FormData();
+                fd.set("file", file);
+                const res = await parseRosterFileAction(fd);
+                if (!res.ok) {
+                  setError(res.error);
+                } else {
+                  // Append rather than replace: an admin may have already
+                  // pasted a few, and losing those to a file pick is the
+                  // kind of small betrayal people stop trusting a tool over.
+                  setEmails((prev) => {
+                    const existing = prev.split(/[\n,]/).map((x) => x.trim()).filter(Boolean);
+                    const merged = [...new Set([...existing, ...res.emails])];
+                    return merged.join("\n");
+                  });
+                  setRosterNames((prev) => ({ ...prev, ...res.names }));
+                  const skipped = [
+                    res.duplicates ? `${res.duplicates} duplicate${res.duplicates === 1 ? "" : "s"}` : "",
+                    res.rejected ? `${res.rejected} unreadable` : "",
+                  ].filter(Boolean).join(", ");
+                  setFileNote(
+                    `${res.emails.length} address${res.emails.length === 1 ? "" : "es"} from ${res.fileName}` +
+                      (res.named ? `, ${res.named} with names` : "") +
+                      (skipped ? ` · skipped ${skipped}` : ""),
+                  );
+                }
+              } catch {
+                setError("Could not read that file.");
+              } finally {
+                setParsingFile(false);
+              }
+            }}
+          />
+        </label>
+        <span className="text-xs text-ink-faint">
+          {fileNote ?? "Excel (.xlsx) or CSV — any column layout; emails are found wherever they sit."}
+        </span>
+      </div>
       <div className="flex items-center gap-3">
         {confirming === "add" ? (
           <span className="flex items-center gap-2">
