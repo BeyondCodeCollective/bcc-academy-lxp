@@ -472,51 +472,47 @@ export default async function AdminPage({
     }
     } // end !isDashboardlessProgram
 
-    // Unviewed assessment results — shown as a nudge on the home tab.
-    if (isHomeTab && canAccessAdminPanel(userRole)) {
-      const { count } = await svc
-        .from("assessment_results")
-        .select("*", { count: "exact", head: true })
-        .is("facilitator_viewed_at", null);
-      unviewedAssessments = count ?? 0;
-    }
+    // These five are independent of each other and were awaited one after the
+    // other, so a tab that needs two of them paid two round trips of latency
+    // before rendering. Each still runs only under the same condition it
+    // always did; they just no longer queue behind each other.
+    const [unviewedRes, llRes, insightsRes, analyticsRes, coursesRes] = await Promise.all([
+      isHomeTab && canAccessAdminPanel(userRole)
+        ? svc
+            .from("assessment_results")
+            .select("*", { count: "exact", head: true })
+            .is("facilitator_viewed_at", null)
+        : Promise.resolve(null),
+      canAccessAdminPanel(userRole) && needsLunchLearns
+        ? svc
+            .from("lunch_learns")
+            .select("id, title, presenter, recording_url, description, recorded_at")
+            .order("recorded_at", { ascending: false })
+        : Promise.resolve(null),
+      canViewInsights(userRole) && needsInsightsData
+        ? buildInsightsData(programIds, aggregatedSlugs)
+        : Promise.resolve(null),
+      canViewInsights(userRole) && needsAnalyticsData
+        ? getEngagementAnalytics(analyticsCourse).catch(() => null)
+        : Promise.resolve(null),
+      canViewInsights(userRole) && needsCoursesData
+        ? getCoursesAnalytics().catch(() => null)
+        : Promise.resolve(null),
+    ]);
 
-    // Lunch & Learns recordings — only fetch when actually on that tab.
-    if (canAccessAdminPanel(userRole) && needsLunchLearns) {
-      const { data: llRows } = await svc
-        .from("lunch_learns")
-        .select("id, title, presenter, recording_url, description, recorded_at")
-        .order("recorded_at", { ascending: false });
-      lunchLearnRecordings = (llRows ?? []) as LunchLearnRow[];
-    }
+    if (unviewedRes) unviewedAssessments = unviewedRes.count ?? 0;
+    if (llRes) lunchLearnRecordings = (llRes.data ?? []) as LunchLearnRow[];
+    if (insightsRes) insightsData = insightsRes;
+    if (analyticsRes) analyticsData = analyticsRes;
+    if (coursesRes) coursesData = coursesRes;
 
-    // Insights data — any admin (program-scoped) or super-admin (BCC-wide),
-    // AND only when on the insights tab. Previously fired on every admin nav
-    // (~10 extra queries cross-program); now skipped unless ?tab=insights.
-    if (needsInsightsData && !canViewInsights(userRole)) {
-      // Intentionally silent — admin loaded without insights access; skip fetch.
-    }
-    if (canViewInsights(userRole) && needsInsightsData) {
-      // Scope Survey Insights to the CURRENT program for everyone (incl.
-      // super-admins) via the resolved program ids — no cross-program firehose,
-      // and the cohort dropdown only lists this program's cohorts. The BCC-wide
-      // operational dashboard at /dashboard/insights is scoped separately.
-      // Same assembly the PDF export route uses, so screen + PDF never drift.
-      insightsData = await buildInsightsData(programIds, aggregatedSlugs);
-    }
-
-    // Program-level engagement analytics — scoped to the CURRENT program for
-    // every role (the action enforces this), so it tracks the program switcher.
-    if (canViewInsights(userRole) && needsAnalyticsData) {
-      // Same course scope the learner table already uses, so the funnel and
-      // the rows below it describe the same population.
-      analyticsData = await getEngagementAnalytics(analyticsCourse).catch(() => null);
-    }
-
-    // Courses & Progress analytics — same current-program scoping as Engagement.
-    if (canViewInsights(userRole) && needsCoursesData) {
-      coursesData = await getCoursesAnalytics().catch(() => null);
-    }
+    // Scoping note for the three above: Survey Insights, Engagement and
+    // Courses are all scoped to the CURRENT program (via programIds /
+    // analyticsCourse), for super-admins too — no cross-program firehose, and
+    // the cohort dropdown only lists this program's cohorts. The BCC-wide
+    // operational dashboard at /dashboard/insights is scoped separately, and
+    // Insights uses the same assembly as the PDF export so screen and PDF
+    // never drift.
 
     // Enrolled + active per course for the course-picker list. Computed here
     // rather than on the client, which only has program-scoped students and a
@@ -538,11 +534,21 @@ export default async function AdminPage({
         // not week alone — a course meeting twice a week would otherwise read
         // 100% for someone who only ever comes on Tuesdays. "Held" is derived
         // from check-ins, since the schedule can't say a session actually ran.
-        const { data: attRows } = await svc
-          .from("attendance")
-          .select("student_id, week_number, session_number")
-          .eq("track", t.slug)
-          .not("checked_in_at", "is", null);
+        // The roster badge and the engagement snapshot describe the same
+        // course but need nothing from each other, so they go together.
+        const [attRes, engagementSnapshot] = await Promise.all([
+          svc
+            .from("attendance")
+            .select("student_id, week_number, session_number")
+            .eq("track", t.slug)
+            .not("checked_in_at", "is", null),
+          getCourseEngagement(t.name, t.slug, {
+            hasVideoContent: t.weeks.some((w) => !!w.videoUrl),
+            submissionsEnabled: t.submissionsEnabled !== false,
+            unitLabel: t.unitLabel ?? "Week",
+          }).catch(() => null),
+        ]);
+        const attRows = attRes.data;
         const held = new Set(
           (attRows ?? []).map((r) => `${r.week_number}-${r.session_number}`),
         ).size;
@@ -555,11 +561,7 @@ export default async function AdminPage({
           attendanceRates = { held, attended: {} };
           for (const [id, set] of perLearner) attendanceRates.attended[id] = set.size;
         }
-        courseEngagement = await getCourseEngagement(t.name, t.slug, {
-          hasVideoContent: t.weeks.some((w) => !!w.videoUrl),
-          submissionsEnabled: t.submissionsEnabled !== false,
-          unitLabel: t.unitLabel ?? "Week",
-        }).catch(() => null);
+        courseEngagement = engagementSnapshot;
         // Pre-start, "3/16 active · 12 idle" reads as failure when it's a full
         // roster waiting on day one — lead with enrollment instead.
         if (courseEngagement && resolveTrackPhase(t) === "upcoming") {
