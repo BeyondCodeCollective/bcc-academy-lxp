@@ -30,7 +30,7 @@ export default async function InstructorQueuePage() {
   const ctx = await getSessionContext();
   if (!ctx) redirect("/");
   const role = ctx.student?.role ?? "";
-  if (!isMasterEmail(ctx.userEmail) && !hasCapability(role, "manage_students")) redirect("/dashboard/admin");
+  if (!isMasterEmail(ctx.userEmail) && !hasCapability(role, "facilitate_cohort")) redirect("/dashboard/admin");
 
   const svc = createServiceClient();
 
