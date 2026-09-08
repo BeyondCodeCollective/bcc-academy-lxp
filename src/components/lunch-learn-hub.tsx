@@ -2,7 +2,6 @@ import Link from "next/link";
 import { createServiceClient } from "@/lib/supabase/server";
 import { CatalogCard } from "@/components/catalog-card";
 import { PageHeader } from "@/components/page-header";
-import { buttonClass } from "@/components/ui";
 
 type Props = {
   isAdmin: boolean;
@@ -24,6 +23,7 @@ export async function LunchLearnHub({ isAdmin, firstName }: Props) {
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-5xl px-4 sm:px-5 py-8 space-y-10">
       <PageHeader
+        onField
         eyebrow="Lunch & Learns"
         title={firstName ? `Welcome, ${firstName}` : "Internal learning sessions"}
         subtitle="Recordings from the BCC team — peer-taught sessions on the tools, topics, and practices we use day-to-day."
@@ -31,7 +31,9 @@ export async function LunchLearnHub({ isAdmin, firstName }: Props) {
           isAdmin ? (
             <Link
               href="/dashboard/admin?tab=lunch-learn"
-              className={buttonClass("primary", "md")}
+              // On the field a cobalt button sits on cobalt. White outline is
+              // the field's own button treatment (see the session stage).
+              className="inline-flex items-center justify-center rounded-full border border-white/[0.34] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/[0.1]"
             >
               Add a recording
             </Link>

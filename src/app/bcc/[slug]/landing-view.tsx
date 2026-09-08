@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { CSSProperties } from "react";
 import { notFound, redirect } from "next/navigation";
 import { getLandingPage, landingPath, landingPrefix } from "@/lib/landing-pages";
 import { getProgramBySlug } from "@/lib/programs";
@@ -75,16 +76,18 @@ export async function LandingView({
   const INK = dark ? "#fffdf7" : "#1a1a1a";
   const BG = dark ? "#181818" : "#f5f5f7";
 
-  // Ground for the one emphasized section a page may carry. The program's own
-  // deep tone when it has one (BGC's #1E1035), else ink — never a generic
-  // black stripe, since this band is the most brand-carrying object on the
-  // page. On an already-dark page the band would disappear, so it lifts to
-  // the accent's own tone instead.
-  // A platform page (no owning program) has no palette of its own — ink.
+  // Ground for the one emphasized section a page may carry — the field, the
+  // same object as the session stage and the home band. It is the most
+  // brand-carrying thing on the page, so it is lit from the program's own deep
+  // tone (BGC's #1E1035) rather than a generic black stripe. A platform page
+  // has no palette of its own, so it lights the field from the page's accent —
+  // near-black ink would give a grey gradient with grey dots, which is the flat
+  // stripe this replaced wearing a texture. On an already-dark page the band
+  // would disappear, so it lifts to the accent's own tone.
   const programColors = page.programSlug
     ? getProgramBySlug(page.programSlug).colors
     : undefined;
-  const ground = dark ? "#241645" : (programColors?.ground ?? "#1a1a1a");
+  const fieldBase = dark ? "#241645" : (programColors?.ground ?? accent);
   const onGround = "#fffdf7";
   return (
     <div
@@ -215,17 +218,29 @@ export async function LandingView({
                     return (
                       <div
                         key={i}
-                        className="mt-9 rounded-2xl px-6 py-7"
-                        style={{ backgroundColor: ground, color: onGround }}
+                        // The field, not a flat stripe — the same object as
+                        // the session stage and the home band. Lit from this
+                        // page's own tone rather than a hardcoded cobalt, so a
+                        // BGC page comes out purple with no extra CSS.
+                        className="stage-surface stage-grid relative isolate mt-9 overflow-hidden rounded-2xl px-6 py-7"
+                        style={
+                          {
+                            color: onGround,
+                            "--primary": accent,
+                            "--stage-base": fieldBase,
+                          } as CSSProperties
+                        }
                       >
-                        <h2 className="text-[22px] font-bold leading-[1.15] tracking-[-0.01em]">
-                          {section.heading}
-                        </h2>
-                        <RichText
-                          text={section.body}
-                          className="mt-3 text-[17px] leading-[1.6]"
-                          style={{ color: `${onGround}c4` }}
-                        />
+                        <div className="relative">
+                          <h2 className="text-[22px] font-bold leading-[1.15] tracking-[-0.01em]">
+                            {section.heading}
+                          </h2>
+                          <RichText
+                            text={section.body}
+                            className="mt-3 text-[17px] leading-[1.6]"
+                            style={{ color: `${onGround}c4` }}
+                          />
+                        </div>
                       </div>
                     );
                   }

@@ -501,46 +501,29 @@ export default async function TrackOverviewPage({
          aspect (the instructor's banner is a composed poster — cropping it
          cuts its own text). Decorative: the header right below carries the
          course identity for screen readers. */}
-      {track.coverImageUrl && (
-        <div className="overflow-hidden rounded-2xl">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={track.coverImageUrl} alt={track.name} className="block h-auto w-full" />
-        </div>
-      )}
+      {/* 1 — what course is this.
 
-      {/* 1 — what course is this. The page used to open on a rail of session
-         cards: navigation, above identity, duplicating the sidebar.
+         The field, always. It used to be conditional: cover art for some
+         courses, a bare ink header for the rest, the field only where neither
+         applied. That made the product look half-redesigned — one course opens
+         on a generated illustration, the next on a line of grey type, and
+         nothing tells a learner they are in the same place.
 
-         Two shapes, one rule. With cover art the art is the page's single dark
-         object and the header stays plain ink beneath it. WITHOUT art — which
-         is most courses — the page opened on a bare line of small type and had
-         no dark object at all, so the header itself becomes the field. Never
-         both: that is the stacking #1095 removed. */}
-      {track.coverImageUrl ? (
-        <header>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
-            {eyebrow}
-          </p>
-          <h1 className="mt-1.5 text-[27px] font-bold leading-[1.08] tracking-[-0.02em] text-ink sm:text-[30px]">
-            {track.name}
-          </h1>
-          {/* Three fact tiles said one sentence. This is the sentence. */}
-          <p className="mt-2 text-[13.2px] tabular-nums text-ink-faint">
-            {metaLine}
-          </p>
-        </header>
-      ) : (
-        <CourseHero eyebrow={eyebrow} title={track.name} meta={metaLine} />
-      )}
+         The generated cover art is MARKETING. It belongs on the landing page,
+         where someone is choosing a course, and it still goes there —
+         `heroImageUrl` above feeds HoldingView and the public page unchanged.
+         In-product, the course's own name is what identifies it, and the field
+         is the ground it sits on. Same ground as the session page and the
+         admin home, so the three read as one product. */}
+      <CourseHero eyebrow={eyebrow} title={track.name} meta={metaLine} />
 
       {/* 2 — the one thing to do now. Before day one that's the start + a way to
          calendar it; once running, the live / today / next session. */}
       {preStart ? (
         <PreStartBanner track={track} />
       ) : touchpoint ? (
-        // Quiet here: whichever hero rendered above — cover art or the field —
-        // is already this page's one dark object, and the course name is
-        // already its one display size.
+        // Quiet here: the field above is this page's one dark object, and the
+        // course name is already its one display size.
         <NextUpPanel touchpoint={touchpoint} variant="quiet" />
       ) : (
         <Link

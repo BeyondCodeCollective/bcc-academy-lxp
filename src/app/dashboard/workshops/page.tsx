@@ -50,6 +50,7 @@ export default async function WorkshopsIndexPage() {
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-5xl px-4 sm:px-5 py-8 space-y-10">
       <PageHeader
+        onField
         title="Workshops"
         subtitle="Virtual and in-person workshops we’ve hosted or have coming up."
       />

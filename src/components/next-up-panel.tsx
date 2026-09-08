@@ -116,7 +116,19 @@ export function NextUpPanel({
     <div
       className={`overflow-hidden border border-rule ${quiet ? "rounded-xl" : "rounded-2xl"}`}
     >
-      <div className={quiet ? "bg-surface-elevated" : "bg-ink"}>{hero}</div>
+      {/* The dark ground is the FIELD, not flat ink — same surface as the
+         session page, the course header and the admin band, so the primary
+         object on every screen is recognisably the same object. bg-ink here
+         was the last place the old flat black survived. */}
+      <div
+        className={
+          quiet
+            ? "bg-surface-elevated"
+            : "stage-surface stage-grid relative isolate overflow-hidden"
+        }
+      >
+        {quiet ? hero : <div className="relative">{hero}</div>}
+      </div>
       {todos.length > 0 && (
         <div className="bg-surface-elevated px-5 sm:px-6">
           {todos.map((todo) => (

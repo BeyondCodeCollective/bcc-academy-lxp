@@ -93,24 +93,26 @@ export function HoldingView({
             className="absolute inset-0 h-full w-full object-cover object-center"
           />
         ) : (
+          // No cover art — the field, the same object as the session stage and
+          // the home band, rather than a one-off two-stop gradient.
+          <div className="stage-surface stage-grid absolute inset-0" />
+        )}
+        {/* Legibility scrim — only over a photo. The field is already dark
+           enough for white type, and a scrim on top of it just makes mud. */}
+        {heroImageUrl && (
           <div
+            aria-hidden
             className="absolute inset-0"
-            style={{ background: `linear-gradient(135deg, ${accent}, #1a1a1a)` }}
+            style={{
+              background:
+                "linear-gradient(180deg, rgba(26,26,26,0.25) 0%, rgba(26,26,26,0.55) 55%, rgba(26,26,26,0.88) 100%)",
+            }}
           />
         )}
-        {/* Legibility scrim */}
-        <div
-          aria-hidden
-          className="absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(180deg, rgba(26,26,26,0.25) 0%, rgba(26,26,26,0.55) 55%, rgba(26,26,26,0.88) 100%)",
-          }}
-        />
         <div className="relative flex min-h-[280px] flex-col justify-end p-6 sm:min-h-[340px] sm:p-8">
           <span
             className="mb-4 inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-[#1a1a1a]"
-            style={{ background: "#E5F701" }}
+            style={{ background: "var(--signal)" }}
           >
             <CalendarCheck size={13} weight="bold" aria-hidden />
             You&apos;re in

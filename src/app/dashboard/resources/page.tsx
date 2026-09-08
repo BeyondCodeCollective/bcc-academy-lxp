@@ -54,6 +54,7 @@ export default async function ResourcesPage() {
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-5xl px-4 sm:px-5 py-8 space-y-10">
       <PageHeader
+        onField
         title="Resources"
         subtitle={`Tools, materials, and links for ${program.name}.`}
       />
