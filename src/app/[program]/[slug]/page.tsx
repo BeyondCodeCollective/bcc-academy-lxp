@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { buildLandingMetadata, LandingView } from "../../bcc/[slug]/landing-view";
+import { cache } from "react";
 import { createServiceClient } from "@/lib/supabase/server";
 
 // A campaign page wearing its program's name: /bgc/shes-built-for-this rather
@@ -14,9 +15,15 @@ import { createServiceClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-/** Is this first segment a real program slug? Checked against the DB so a
+/** Memoized per request: generateMetadata and the page both call this, and
+ *  both also call getLandingPage. Un-memoized that was four sequential
+ *  Supabase round trips to render one page — measured at 1.5-2.7s TTFB on
+ *  /bgc/shes-built-for-this against 0.2s for /bcc/mass, which skips the
+ *  program check. React's cache() collapses each pair into one call.
+ *
+ *  Is this first segment a real program slug? Checked against the DB so a
  *  program created in the admin panel needs no deploy to get its own URLs. */
-async function isProgramSlug(slug: string): Promise<boolean> {
+const isProgramSlug = cache(async function isProgramSlug(slug: string): Promise<boolean> {
   const svc = createServiceClient();
   const { data } = await svc
     .from("programs")
@@ -24,7 +31,7 @@ async function isProgramSlug(slug: string): Promise<boolean> {
     .eq("slug", slug)
     .maybeSingle();
   return !!data;
-}
+});
 
 export async function generateMetadata({
   params,

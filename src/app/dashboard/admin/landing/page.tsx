@@ -30,6 +30,15 @@ export default async function LandingPagesListPage() {
     .select("slug, published, headline, updated_at, programs(slug)")
     .order("updated_at", { ascending: false });
   const rows = (data ?? []) as LandingRow[];
+  // Published and drafts answer different questions — "what is live right now"
+  // versus "what am I still working on". Interleaved by updated_at they had to
+  // be picked apart by eye every time. Each group stays newest-first.
+  const published = rows.filter((r) => r.published);
+  const drafts = rows.filter((r) => !r.published);
+  const groups = [
+    { label: "Published", rows: published, hint: "live on the public site" },
+    { label: "Drafts", rows: drafts, hint: "not reachable until published" },
+  ].filter((g) => g.rows.length > 0);
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 sm:px-5 py-8 space-y-6">
@@ -60,8 +69,18 @@ export default async function LandingPagesListPage() {
           </Link>
         </p>
       ) : (
-        <DataTable columns={["Slug", "Headline", "Status", ""]}>
-          {rows.map((r) => (
+        <div className="space-y-7">
+          {groups.map((group) => (
+            <section key={group.label}>
+              <div className="mb-2 flex items-baseline gap-2">
+                <h2 className="font-display text-[15px] font-bold text-ink">{group.label}</h2>
+                <span className="text-micro font-semibold text-ink-faint">
+                  {group.rows.length}
+                </span>
+                <span className="text-xs text-ink-faint">· {group.hint}</span>
+              </div>
+              <DataTable columns={["Slug", "Headline", "Status", ""]}>
+                {group.rows.map((r) => (
             <tr key={r.slug} className="text-ink">
               <td className="px-4 py-3 align-top">
                 <Link
@@ -99,8 +118,11 @@ export default async function LandingPagesListPage() {
                 </Link>
               </td>
             </tr>
+                ))}
+              </DataTable>
+            </section>
           ))}
-        </DataTable>
+        </div>
       )}
     </div>
   );
