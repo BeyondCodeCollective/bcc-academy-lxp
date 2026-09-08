@@ -50,10 +50,16 @@ function ymd(y: number, m: number, d: number) {
 export function TrackCalendar({
   events,
   todayISO,
+  focusDate,
 }: {
   events: CalendarEvent[];
   /** Today as YYYY-MM-DD, passed from the server so SSR + client agree. */
   todayISO: string;
+  /** The date the page's "Up next" panel points at — THIS course's next
+   *  session. The calendar carries the whole program's schedule, so without
+   *  it the day panel opened on whichever course happened to meet soonest,
+   *  contradicting the card directly above it. */
+  focusDate?: string | null;
 }) {
   // Contiguous list of months from the first event to the last, so empty
   // months in between are still reachable with the arrows.
@@ -80,15 +86,18 @@ export function TrackCalendar({
   }, [events]);
 
   const startIdx = useMemo(() => {
-    const cur = todayISO.slice(0, 7);
+    // The focused session's month when there is one — landing on the current
+    // month with the selected day three months away is its own confusion.
+    const cur = (focusDate ?? todayISO).slice(0, 7);
     const i = months.findIndex((mo) => `${mo.y}-${String(mo.m + 1).padStart(2, "0")}` === cur);
     return i >= 0 ? i : 0;
-  }, [months, todayISO]);
+  }, [months, todayISO, focusDate]);
 
   const [monthIdx, setMonthIdx] = useState(startIdx);
   // Pre-select the next upcoming event so the day panel opens showing the
   // session that matters instead of "Select a day" (nobody clicked it there).
   const [selected, setSelected] = useState<string | null>(() => {
+    if (focusDate) return focusDate;
     const next = events
       .map((e) => e.date)
       .filter((d) => d >= todayISO)

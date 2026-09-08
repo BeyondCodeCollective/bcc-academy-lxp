@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import { CaretRight } from "@phosphor-icons/react/dist/ssr";
 import { formatCohortDate } from "@/lib/utils";
@@ -62,12 +65,21 @@ export function CourseAgenda({
       a.date.localeCompare(b.date) ||
       (a.sortTime ?? "99:99").localeCompare(b.sortTime ?? "99:99"),
   );
+
+  // A cohort three months in opened this list on its own first week and made
+  // the reader scroll past twenty finished sessions to find the next one. The
+  // list leads with what's ahead; the past is one click away, not gone.
+  const firstUpcoming = sorted.findIndex((r) => r.date >= todayISO);
+  const pastCount = firstUpcoming === -1 ? sorted.length : firstUpcoming;
+  const [showPast, setShowPast] = useState(false);
+  const visible = showPast || pastCount === 0 ? sorted : sorted.slice(pastCount);
+
   if (sorted.length === 0) return null;
 
   const items: React.ReactNode[] = [];
   let lastMonth = "";
 
-  sorted.forEach((r, i) => {
+  visible.forEach((r, i) => {
     const month = r.date.slice(0, 7);
     if (month !== lastMonth) {
       lastMonth = month;
@@ -81,7 +93,7 @@ export function CourseAgenda({
       );
     }
 
-    const prev = sorted[i - 1];
+    const prev = visible[i - 1];
     if (prev) {
       const brk = breakBetween(prev.date, r.date);
       if (brk) {
@@ -142,6 +154,19 @@ export function CourseAgenda({
   return (
     // No border/background of its own: ScheduleTabs is the bordered object,
     // and nesting a panel inside a panel drew a box inside a box.
-    <ol>{items}</ol>
+    <div>
+      {pastCount > 0 && (
+        <button
+          type="button"
+          onClick={() => setShowPast((v) => !v)}
+          className="mb-1 px-1 text-[12px] font-semibold text-ink-faint transition-colors hover:text-ink"
+        >
+          {showPast
+            ? "Hide earlier sessions"
+            : `Show ${pastCount} earlier session${pastCount === 1 ? "" : "s"}`}
+        </button>
+      )}
+      <ol>{items}</ol>
+    </div>
   );
 }

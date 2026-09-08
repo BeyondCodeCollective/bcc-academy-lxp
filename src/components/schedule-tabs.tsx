@@ -56,7 +56,7 @@ export function ScheduleTabs({
 
       <div className="px-4 py-4">
         {view === "calendar" ? (
-          <TrackCalendar events={events} todayISO={todayISO} />
+          <TrackCalendar events={events} todayISO={todayISO} focusDate={focusDate} />
         ) : (
           <CourseAgenda rows={rows} todayISO={todayISO} focusDate={focusDate} />
         )}
