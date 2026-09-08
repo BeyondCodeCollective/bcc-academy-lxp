@@ -103,6 +103,11 @@ function InviteByEmail({ tracks }: { tracks: Track[] }) {
   const [rosterNames, setRosterNames] = useState<
     Record<string, { firstName: string; lastName: string }>
   >({});
+  // What the file was understood to contain, shown back before anything is
+  // sent. Trusting an invisible import is how the wrong cohort gets emailed.
+  const [rosterPreview, setRosterPreview] = useState<
+    { email: string; name: string }[]
+  >([]);
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -303,6 +308,14 @@ function InviteByEmail({ tracks }: { tracks: Track[] }) {
                     return merged.join("\n");
                   });
                   setRosterNames((prev) => ({ ...prev, ...res.names }));
+                  setRosterPreview(
+                    res.emails.map((e) => ({
+                      email: e,
+                      name: [res.names[e]?.firstName, res.names[e]?.lastName]
+                        .filter(Boolean)
+                        .join(" "),
+                    })),
+                  );
                   const skipped = [
                     res.duplicates ? `${res.duplicates} duplicate${res.duplicates === 1 ? "" : "s"}` : "",
                     res.rejected ? `${res.rejected} unreadable` : "",
@@ -322,9 +335,41 @@ function InviteByEmail({ tracks }: { tracks: Track[] }) {
           />
         </label>
         <span className="text-xs text-ink-faint">
-          {fileNote ?? "Excel (.xlsx) or CSV — any column layout; emails are found wherever they sit."}
+          {fileNote ?? "Excel (.xlsx) or CSV — any column layout; names and emails are found wherever they sit."}
         </span>
       </div>
+
+      {rosterPreview.length > 0 && (
+        <div className="rounded-lg border border-rule">
+          <div className="flex items-center justify-between border-b border-rule px-3 py-2">
+            <p className="text-micro font-semibold uppercase tracking-[0.12em] text-ink-faint">
+              From the file
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setRosterPreview([]);
+                setFileNote(null);
+              }}
+              className="text-xs text-ink-faint transition-colors hover:text-ink"
+            >
+              Hide
+            </button>
+          </div>
+          <ul className="max-h-52 divide-y divide-rule overflow-y-auto">
+            {rosterPreview.map((r) => (
+              <li key={r.email} className="flex items-baseline gap-3 px-3 py-1.5">
+                <span className="min-w-0 flex-1 truncate text-sm text-ink">
+                  {r.name || <span className="text-ink-faint">No name in file</span>}
+                </span>
+                <span className="shrink-0 truncate font-mono text-xs text-ink-soft">
+                  {r.email}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <div className="flex items-center gap-3">
         {confirming === "add" ? (
           <span className="flex items-center gap-2">

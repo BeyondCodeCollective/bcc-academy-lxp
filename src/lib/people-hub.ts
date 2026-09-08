@@ -13,6 +13,11 @@ export type PendingStatus = "invited" | "allowlisted";
 
 export type PendingPerson = {
   email: string;
+  /** Name a partner's roster file supplied, before this person ever signs up.
+   *  Without it the roster shows a column of bare addresses and the names
+   *  Forte sent are invisible until someone joins. */
+  firstName: string;
+  lastName: string;
   status: PendingStatus;
   /** Track slugs this person is allowlisted/invited for, within the program. */
   trackSlugs: string[];
@@ -33,7 +38,10 @@ export async function fetchPendingPeople(
   const svc = createServiceClient();
 
   const [allowRes, inviteRes] = await Promise.all([
-    svc.from("allowed_signup_emails").select("email, track_slug").in("track_slug", trackSlugs),
+    svc
+      .from("allowed_signup_emails")
+      .select("email, track_slug, first_name, last_name")
+      .in("track_slug", trackSlugs),
     svc
       .from("invites")
       .select("email, track_slug, status")
@@ -43,21 +51,31 @@ export async function fetchPendingPeople(
   // Build per-email rollup.
   const byEmail = new Map<
     string,
-    { tracks: Set<string>; invited: boolean; sent: boolean }
+    { tracks: Set<string>; invited: boolean; sent: boolean; firstName: string; lastName: string }
   >();
   const get = (email: string) => {
     const key = email.toLowerCase();
     let e = byEmail.get(key);
     if (!e) {
-      e = { tracks: new Set(), invited: false, sent: false };
+      e = { tracks: new Set(), invited: false, sent: false, firstName: "", lastName: "" };
       byEmail.set(key, e);
     }
     return e;
   };
 
-  for (const a of (allowRes.data ?? []) as { email: string; track_slug: string }[]) {
+  for (const a of (allowRes.data ?? []) as {
+    email: string;
+    track_slug: string;
+    first_name: string | null;
+    last_name: string | null;
+  }[]) {
     if (!a.email) continue;
-    get(a.email).tracks.add(a.track_slug);
+    const e = get(a.email);
+    e.tracks.add(a.track_slug);
+    // First non-empty wins: the same person can be allowlisted for two tracks
+    // and only one of those imports may have carried a name.
+    if (!e.firstName && a.first_name) e.firstName = a.first_name.trim();
+    if (!e.lastName && a.last_name) e.lastName = a.last_name.trim();
   }
   for (const i of (inviteRes.data ?? []) as {
     email: string;
@@ -76,6 +94,8 @@ export async function fetchPendingPeople(
     if (studentEmails.has(email)) continue; // already has an account → not pending
     out.push({
       email,
+      firstName: e.firstName,
+      lastName: e.lastName,
       status: e.invited ? "invited" : "allowlisted",
       trackSlugs: Array.from(e.tracks),
       inviteSent: e.sent,
