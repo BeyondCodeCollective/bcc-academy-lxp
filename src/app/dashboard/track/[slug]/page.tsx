@@ -33,7 +33,6 @@ import { getLearnerProgress } from "@/lib/learner-progress";
 import { getWhatsNew, type FeedItem } from "@/lib/whats-new";
 import { HoldingView } from "@/components/holding-view";
 import { PreStartBanner } from "@/components/pre-start-banner";
-import { NextUpPanel } from "@/components/next-up-panel";
 import {
   touchpointCandidates,
   resolveTouchpoint,
@@ -515,20 +514,42 @@ export default async function TrackOverviewPage({
          In-product, the course's own name is what identifies it, and the field
          is the ground it sits on. Same ground as the session page and the
          admin home, so the three read as one product. */}
-      <CourseHero eyebrow={eyebrow} title={track.name} meta={metaLine} />
+      {/* The one thing to do now rides INSIDE the hero. As its own card it made
+         the page three stacked modules that each announced something different
+         — and on a wraparound course the card said Wednesday while the schedule
+         directly beneath it led with Tuesday. One object, one answer. */}
+      <CourseHero
+        eyebrow={eyebrow}
+        title={track.name}
+        meta={metaLine}
+        action={
+          !preStart && touchpoint
+            ? {
+                kicker:
+                  touchpoint.kind === "live"
+                    ? "Live now"
+                    : touchpoint.kind === "today"
+                      ? "Today"
+                      : "Up next",
+                title:
+                  touchpoint.isMass || !touchpoint.title || touchpoint.title === touchpoint.unitLabel
+                    ? touchpoint.unitLabel
+                    : `${touchpoint.unitLabel} · ${touchpoint.title}`,
+                when: [touchpoint.whenLabel, touchpoint.timeLabel].filter(Boolean).join(" · "),
+                href: touchpoint.href,
+                cta: touchpoint.kind === "live" ? "Join now" : touchpoint.kind === "today" ? "Join" : "Open",
+                live: touchpoint.kind === "live",
+              }
+            : undefined
+        }
+      />
 
-      {/* 2 — the one thing to do now. Before day one that's the start + a way to
-         calendar it; once running, the live / today / next session. */}
       {preStart ? (
         <PreStartBanner track={track} />
-      ) : touchpoint ? (
-        // Quiet here: the field above is this page's one dark object, and the
-        // course name is already its one display size.
-        <NextUpPanel touchpoint={touchpoint} variant="quiet" />
-      ) : (
+      ) : touchpoint ? null : (
         <Link
           href={`/dashboard/track/${slug}/${ctaWeek}`}
-          className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-xl border border-rule border-l-[3px] border-l-primary bg-surface-elevated px-4 py-3.5 transition-colors hover:bg-paper-tint-soft"
+          className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-xl border border-rule bg-surface-elevated px-4 py-3.5 transition-colors hover:bg-paper-tint-soft"
         >
           <span className="min-w-[190px] flex-1 text-[14.5px] font-semibold leading-snug text-ink">
             {ctaLabel}

@@ -1,3 +1,4 @@
+import Link from "next/link";
 /**
  * Course hero — for a course with no cover art.
  *
@@ -16,6 +17,7 @@ export function CourseHero({
   meta,
   blurb,
   vendor,
+  action,
 }: {
   eyebrow: string;
   title: string;
@@ -24,6 +26,22 @@ export function CourseHero({
   blurb?: string;
   /** A vendor lockup (CompTIA and friends) where the course carries one. */
   vendor?: React.ReactNode;
+  /** The one thing to do now, rendered INSIDE the field.
+   *
+   *  It used to be its own card below the hero, which gave the page three
+   *  stacked modules — identity, action, schedule — each announcing something
+   *  different, and on the MASS page the card said Wednesday while the
+   *  schedule right beneath it led with Tuesday. The action belongs to the
+   *  course, so it lives on the course's own object. */
+  action?: {
+    /** "Live now" | "Today" | "Up next" */
+    kicker: string;
+    title: string;
+    when: string;
+    href: string;
+    cta: string;
+    live?: boolean;
+  };
 }) {
   return (
     <header className="stage-surface stage-grid relative isolate overflow-hidden rounded-2xl px-5 py-6 sm:px-7 sm:py-7">
@@ -48,6 +66,35 @@ export function CourseHero({
         <p className="border-t border-white/[0.16] pt-3 text-[13.2px] tabular-nums text-white/[0.78]">
           {meta}
         </p>
+
+        {action && (
+          <div className="mt-1 flex flex-wrap items-end justify-between gap-x-6 gap-y-3 border-t border-white/[0.16] pt-4">
+            <div className="min-w-0">
+              <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/60">
+                {action.live && (
+                  <span
+                    className="h-1.5 w-1.5 rounded-full bg-[var(--signal)] motion-safe:animate-pulse"
+                    aria-hidden
+                  />
+                )}
+                {action.kicker}
+              </p>
+              <p className="mt-1.5 text-[17px] font-semibold leading-snug text-white">
+                {action.title}
+              </p>
+              <p className="mt-0.5 text-[13.2px] tabular-nums text-white/[0.7]">{action.when}</p>
+            </div>
+            <Link
+              href={action.href}
+              className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-5 py-2.5 text-sm font-bold transition-opacity hover:opacity-90 ${
+                action.live ? "bg-[var(--signal)] text-ink" : "bg-white text-ink"
+              }`}
+            >
+              {action.cta}
+              <span aria-hidden>→</span>
+            </Link>
+          </div>
+        )}
       </div>
     </header>
   );
