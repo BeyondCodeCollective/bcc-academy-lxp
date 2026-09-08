@@ -32,9 +32,12 @@ const CHIP: Record<CalendarEvent["type"], string> = {
   event: "border border-dashed border-ink-faint text-ink-soft",
   "office-hours": "border border-dashed border-ink-faint text-ink-soft",
 };
+// Filled = your own sessions; a ring = things around them. `mass` was solid
+// cobalt, which in this theme is the same blue as `primary` — two identical
+// squares in the legend, labelled differently.
 const DOT: Record<CalendarEvent["type"], string> = {
   session: "bg-primary",
-  mass: "bg-cobalt",
+  mass: "border-[1.5px] border-cobalt",
   speaker: "bg-[#7C3AED]",
   event: "border border-ink-faint",
   "office-hours": "border border-ink-faint",
@@ -112,31 +115,6 @@ export function TrackCalendar({
 
   return (
     <div className="space-y-4">
-      {/* Legend — only the event types this program actually has. A single
-          type needs no key at all (a GOSA learner shouldn't see "MASS"). */}
-      {(() => {
-        const present = new Set(
-          events.map((e) => (e.type === "office-hours" ? "event" : e.type)),
-        );
-        const entries = ([
-          ["session", "Session"],
-          ["mass", "MASS"],
-          ["speaker", "Guest speaker"],
-          ["event", "Other event"],
-        ] as const).filter(([type]) => present.has(type));
-        if (entries.length < 2) return null;
-        return (
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-ink-soft">
-            {entries.map(([type, label]) => (
-              <span key={type} className="inline-flex items-center gap-1.5">
-                <span className={`h-2.5 w-2.5 rounded-[3px] ${DOT[type]}`} />
-                {label}
-              </span>
-            ))}
-          </div>
-        );
-      })()}
-
       {/* Month nav */}
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-bold text-ink">
@@ -258,6 +236,33 @@ export function TrackCalendar({
         </div>
       </div>
 
+      {/* Legend — under the grid, where a key belongs. Above it, it was the
+          first thing on the page after the "Schedule" heading, explaining
+          colors the reader had not seen yet. Only the event types this
+          program actually has; a single type needs no key at all (a GOSA
+          learner shouldn't see "MASS"). */}
+      {(() => {
+        const present = new Set(
+          events.map((e) => (e.type === "office-hours" ? "event" : e.type)),
+        );
+        const entries = ([
+          ["session", "Session"],
+          ["mass", "MASS"],
+          ["speaker", "Guest speaker"],
+          ["event", "Other event"],
+        ] as const).filter(([type]) => present.has(type));
+        if (entries.length < 2) return null;
+        return (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-ink-soft">
+            {entries.map(([type, label]) => (
+              <span key={type} className="inline-flex items-center gap-1.5">
+                <span className={`h-2.5 w-2.5 rounded-[3px] ${DOT[type]}`} />
+                {label}
+              </span>
+            ))}
+          </div>
+        );
+      })()}
     </div>
   );
 }

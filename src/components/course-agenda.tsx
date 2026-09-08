@@ -140,8 +140,8 @@ export function CourseAgenda({
   });
 
   return (
-    <section aria-label="Schedule" className="panel px-3 py-2 sm:px-4">
-      <ol>{items}</ol>
-    </section>
+    // No border/background of its own: ScheduleTabs is the bordered object,
+    // and nesting a panel inside a panel drew a box inside a box.
+    <ol>{items}</ol>
   );
 }
