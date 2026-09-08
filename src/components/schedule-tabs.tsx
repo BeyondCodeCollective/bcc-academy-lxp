@@ -21,9 +21,10 @@ export function ScheduleTabs({
   todayISO: string;
   focusDate?: string | null;
 }) {
-  // List is the default: every session's topic, date, and time reads at a
-  // glance, where the month grid buries them in small chips.
-  const [view, setView] = useState<"calendar" | "list">("list");
+  // Calendar is the default: it opens on the current month, so the first
+  // thing on screen is where the cohort actually is. The list always starts
+  // at the oldest session, which reads as "loading the wrong date".
+  const [view, setView] = useState<"calendar" | "list">("calendar");
 
   return (
     <section aria-label="Schedule">
