@@ -7,12 +7,16 @@ import { HUMAN_CHECKPOINTS } from "@/lib/instructor/prompt";
 // The facilitator's side of instructor mode: resolve a flag the AI filed, or
 // pass a checkpoint only a human may pass. Both write rows the instructor reads
 // on its next turn, so a sign-off here changes what the learner hears next.
+//
+// Gated on facilitate_cohort, not manage_students: these writes touch flags and
+// checkpoints, never the roster, and the people who run sessions hold the
+// instructor role.
 
 const PATH = "/dashboard/admin/instructor";
 const CHECKPOINT_KEYS = new Set(HUMAN_CHECKPOINTS.map((c) => c.key));
 
 export async function resolveFlagAction(flagId: string, note: string): Promise<{ ok: boolean; error?: string }> {
-  const { svc, userId, programId } = await requireCapability("manage_students");
+  const { svc, userId, programId } = await requireCapability("facilitate_cohort");
   const { error } = await svc
     .from("instructor_flags")
     .update({
@@ -37,7 +41,7 @@ export async function approveCheckpointAction(args: {
   note?: string;
   score?: number | null;
 }): Promise<{ ok: boolean; error?: string }> {
-  const { svc, userId } = await requireCapability("manage_students");
+  const { svc, userId } = await requireCapability("facilitate_cohort");
   if (!CHECKPOINT_KEYS.has(args.key)) return { ok: false, error: "Unknown checkpoint." };
   const score =
     args.key === "capstone_scored" && typeof args.score === "number" && Number.isInteger(args.score)
@@ -73,7 +77,7 @@ export async function revokeCheckpointAction(args: {
   trackSlug: string;
   key: string;
 }): Promise<{ ok: boolean; error?: string }> {
-  const { svc } = await requireCapability("manage_students");
+  const { svc } = await requireCapability("facilitate_cohort");
   const { error } = await svc
     .from("human_checkpoints")
     .delete()
