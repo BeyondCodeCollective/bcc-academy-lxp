@@ -2388,7 +2388,8 @@ function PeopleTab({
   // "student" vs a specific staff role.
   const filteredPending = pendingPeople.filter((p) => {
     const matchesSearch =
-      !searchQuery || p.email.toLowerCase().includes(searchQuery.toLowerCase());
+      !searchQuery ||
+      `${p.firstName} ${p.lastName} ${p.email}`.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesTrack = trackFilter === "all" || p.trackSlugs.includes(trackFilter);
     const matchesRole = roleFilter === "all" || roleFilter === "student";
     return matchesSearch && matchesTrack && matchesRole;

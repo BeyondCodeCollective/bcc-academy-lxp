@@ -103,6 +103,11 @@ function InviteByEmail({ tracks }: { tracks: Track[] }) {
   const [rosterNames, setRosterNames] = useState<
     Record<string, { firstName: string; lastName: string }>
   >({});
+  // What the file was understood to contain, shown back before anything is
+  // sent. Trusting an invisible import is how the wrong cohort gets emailed.
+  const [rosterPreview, setRosterPreview] = useState<
+    { email: string; name: string }[]
+  >([]);
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -179,6 +184,44 @@ function InviteByEmail({ tracks }: { tracks: Track[] }) {
         }
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to add people.");
+      }
+    });
+  };
+
+  // Save the list without emailing anyone. Importing a partner's roster and
+  // deciding when to invite are different decisions, and until now the only
+  // button did both — so a roster you were not ready to email could not be
+  // saved at all, and its names went nowhere.
+  const addOnly = () => {
+    if (!course || !emails.trim()) return;
+    setConfirming(null);
+    setResult(null);
+    setError(null);
+    startTransition(async () => {
+      try {
+        const current = await getAllowedEmails(course);
+        const incoming = emails.split(/[\n,]/).map((e) => e.trim()).filter(Boolean);
+        const merged = [...(current.emails ?? []), ...incoming]
+          .map((e) => e.trim())
+          .filter(Boolean)
+          .join("\n");
+        const res = await replaceAllowedEmails(course, merged, rosterNames);
+        if (!res.ok) {
+          setError(res.error ?? "Failed to save the list.");
+          return;
+        }
+        const named = incoming.filter((e) => rosterNames[e.toLowerCase()]).length;
+        setResult(
+          `Saved to the list — no invites sent.` +
+            (named ? ` ${named} arrived with names.` : ""),
+        );
+        setEmails("");
+        setRosterPreview([]);
+        setFileNote(null);
+        const a = await getAllowlistAudience(course);
+        setAudience({ pending: a.pending, joined: a.joined });
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Failed to save the list.");
       }
     });
   };
@@ -303,6 +346,14 @@ function InviteByEmail({ tracks }: { tracks: Track[] }) {
                     return merged.join("\n");
                   });
                   setRosterNames((prev) => ({ ...prev, ...res.names }));
+                  setRosterPreview(
+                    res.emails.map((e) => ({
+                      email: e,
+                      name: [res.names[e]?.firstName, res.names[e]?.lastName]
+                        .filter(Boolean)
+                        .join(" "),
+                    })),
+                  );
                   const skipped = [
                     res.duplicates ? `${res.duplicates} duplicate${res.duplicates === 1 ? "" : "s"}` : "",
                     res.rejected ? `${res.rejected} unreadable` : "",
@@ -322,9 +373,41 @@ function InviteByEmail({ tracks }: { tracks: Track[] }) {
           />
         </label>
         <span className="text-xs text-ink-faint">
-          {fileNote ?? "Excel (.xlsx) or CSV — any column layout; emails are found wherever they sit."}
+          {fileNote ?? "Excel (.xlsx) or CSV — any column layout; names and emails are found wherever they sit."}
         </span>
       </div>
+
+      {rosterPreview.length > 0 && (
+        <div className="rounded-lg border border-rule">
+          <div className="flex items-center justify-between border-b border-rule px-3 py-2">
+            <p className="text-micro font-semibold uppercase tracking-[0.12em] text-ink-faint">
+              From the file
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setRosterPreview([]);
+                setFileNote(null);
+              }}
+              className="text-xs text-ink-faint transition-colors hover:text-ink"
+            >
+              Hide
+            </button>
+          </div>
+          <ul className="max-h-52 divide-y divide-rule overflow-y-auto">
+            {rosterPreview.map((r) => (
+              <li key={r.email} className="flex items-baseline gap-3 px-3 py-1.5">
+                <span className="min-w-0 flex-1 truncate text-sm text-ink">
+                  {r.name || <span className="text-ink-faint">No name in file</span>}
+                </span>
+                <span className="shrink-0 truncate font-mono text-xs text-ink-soft">
+                  {r.email}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <div className="flex items-center gap-3">
         {confirming === "add" ? (
           <span className="flex items-center gap-2">
@@ -352,14 +435,27 @@ function InviteByEmail({ tracks }: { tracks: Track[] }) {
             </button>
           </span>
         ) : (
-          <button
-            type="button"
-            onClick={() => setConfirming("add")}
-            disabled={pending || !emails.trim() || !course}
-            className={buttonClass("secondary", "sm")}
-          >
-            {pending ? "Working…" : "Allowlist + invite these"}
-          </button>
+          <>
+            {/* Saving and emailing are separate decisions. This one writes the
+               list (names included) and sends nothing, so a roster can be
+               imported the moment it arrives. */}
+            <button
+              type="button"
+              onClick={addOnly}
+              disabled={pending || !emails.trim() || !course}
+              className={buttonClass("primary", "sm")}
+            >
+              {pending ? "Working…" : "Add to list"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirming("add")}
+              disabled={pending || !emails.trim() || !course}
+              className={buttonClass("secondary", "sm")}
+            >
+              Add + invite
+            </button>
+          </>
         )}
         {result && <span className="text-xs text-ink-soft">{result}</span>}
         {error && <span className="text-xs text-red-600">{error}</span>}

@@ -147,7 +147,20 @@ export function PendingPeopleSection({ pending, trackNames, inline = false }: Pr
           return (
             <div key={p.email} className="flex items-center gap-3 px-4 py-2.5">
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm text-ink">{p.email}</p>
+                {/* Lead with the name when a roster file gave us one. A column
+                   of bare addresses made the names a partner sent invisible
+                   until the person signed up, which is exactly when we no
+                   longer needed them. */}
+                {p.firstName || p.lastName ? (
+                  <>
+                    <p className="truncate text-sm font-medium text-ink">
+                      {[p.firstName, p.lastName].filter(Boolean).join(" ")}
+                    </p>
+                    <p className="truncate text-micro text-ink-soft">{p.email}</p>
+                  </>
+                ) : (
+                  <p className="truncate text-sm text-ink">{p.email}</p>
+                )}
                 {trackLabel && (
                   <p className="truncate text-micro text-ink-faint">{trackLabel}</p>
                 )}
