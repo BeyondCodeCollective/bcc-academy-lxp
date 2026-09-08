@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createServiceClient } from "@/lib/supabase/server";
 
 export type ScheduleDay = { label: string; title: string };
@@ -110,7 +111,9 @@ export type LandingPage = {
 
 /** Loads a published marketing landing page by slug (the /bcc/[slug] template
  *  reads this). Returns null if the slug doesn't exist or isn't published. */
-export async function getLandingPage(slug: string): Promise<LandingPage | null> {
+export const getLandingPage = cache(async function getLandingPage(
+  slug: string,
+): Promise<LandingPage | null> {
   const svc = createServiceClient();
   const { data } = await svc
     .from("landing_pages")
@@ -156,7 +159,7 @@ export async function getLandingPage(slug: string): Promise<LandingPage | null> 
     sponsorLogoUrl: (data.sponsor_logo_url as string | null) ?? null,
     logoUrl: (data.logo_url as string | null) ?? null,
   };
-}
+});
 
 /** The hero image + accent from the landing page that feeds a track, so the
  *  in-portal holding page can echo the page the learner just registered on.
