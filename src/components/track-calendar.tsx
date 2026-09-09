@@ -27,14 +27,18 @@ const CHIP: Record<CalendarEvent["type"], string> = {
   // Program accent, not neutral grey — a session chip has to read as "there's
   // something on this date" from across the room.
   session: "bg-primary/12 font-semibold text-primary",
-  mass: "bg-cobalt/12 text-cobalt",
+  // Hollow, not a second blue. On Catalyst --primary IS cobalt, so a cobalt
+  // MASS chip rendered the identical swatch as a session and the legend read
+  // as two colors for one color. Filled vs outlined also survives grayscale,
+  // which color-alone never does.
+  mass: "border border-primary/45 text-primary",
   speaker: "bg-[#7C3AED]/14 text-[#7C3AED]",
   event: "border border-dashed border-ink-faint text-ink-soft",
   "office-hours": "border border-dashed border-ink-faint text-ink-soft",
 };
 const DOT: Record<CalendarEvent["type"], string> = {
   session: "bg-primary",
-  mass: "bg-cobalt",
+  mass: "border-2 border-primary bg-transparent",
   speaker: "bg-[#7C3AED]",
   event: "border border-ink-faint",
   "office-hours": "border border-ink-faint",
