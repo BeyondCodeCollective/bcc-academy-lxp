@@ -34,7 +34,7 @@ const CHIP: Record<CalendarEvent["type"], string> = {
 };
 // Filled = your own sessions; a ring = things around them. `mass` was solid
 // cobalt, which in this theme is the same blue as `primary` — two identical
-// squares in the legend, labelled differently.
+// squares in the legend, labeled differently.
 const DOT: Record<CalendarEvent["type"], string> = {
   session: "bg-primary",
   mass: "border-[1.5px] border-cobalt",
