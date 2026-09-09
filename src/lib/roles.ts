@@ -7,6 +7,7 @@ export type Role = "student" | "instructor" | "admin" | "super_admin";
 // a capability here and call requireCapability() in the server action.
 export type Capability =
   | "access_admin_panel"   // see the admin UI
+  | "facilitate_cohort"    // work the instructor queue: resolve flags, pass checkpoints
   | "manage_students"      // add, update, delete students; manage cohorts
   | "view_insights"        // see the Survey Insights dashboard (scoped to own program for admins)
   | "switch_programs";     // use the super-admin program switcher
@@ -18,6 +19,11 @@ export type Capability =
 // owner) sits above all of them and bypasses every capability check.
 const ROLE_CAPABILITIES: Record<Capability, Role[]> = {
   access_admin_panel: ["instructor", "admin", "super_admin"],
+  // Facilitating is not administering. The instructor queue reads flags the AI
+  // raised and records checkpoints only a person may pass; it never touches a
+  // roster. Gating it on manage_students meant the role literally named
+  // "instructor" could see the menu item and got redirected on click.
+  facilitate_cohort:  ["instructor", "admin", "super_admin"],
   manage_students:    ["admin", "super_admin"],
   view_insights:      ["admin", "super_admin"],
   switch_programs:    ["super_admin"],
