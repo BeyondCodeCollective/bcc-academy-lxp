@@ -32,9 +32,12 @@ const CHIP: Record<CalendarEvent["type"], string> = {
   event: "border border-dashed border-ink-faint text-ink-soft",
   "office-hours": "border border-dashed border-ink-faint text-ink-soft",
 };
+// Filled = your own sessions; a ring = things around them. `mass` was solid
+// cobalt, which in this theme is the same blue as `primary` — two identical
+// squares in the legend, labeled differently.
 const DOT: Record<CalendarEvent["type"], string> = {
   session: "bg-primary",
-  mass: "bg-cobalt",
+  mass: "border-[1.5px] border-cobalt",
   speaker: "bg-[#7C3AED]",
   event: "border border-ink-faint",
   "office-hours": "border border-ink-faint",
@@ -47,10 +50,16 @@ function ymd(y: number, m: number, d: number) {
 export function TrackCalendar({
   events,
   todayISO,
+  focusDate,
 }: {
   events: CalendarEvent[];
   /** Today as YYYY-MM-DD, passed from the server so SSR + client agree. */
   todayISO: string;
+  /** The date the page's "Up next" panel points at — THIS course's next
+   *  session. The calendar carries the whole program's schedule, so without
+   *  it the day panel opened on whichever course happened to meet soonest,
+   *  contradicting the card directly above it. */
+  focusDate?: string | null;
 }) {
   // Contiguous list of months from the first event to the last, so empty
   // months in between are still reachable with the arrows.
@@ -77,15 +86,18 @@ export function TrackCalendar({
   }, [events]);
 
   const startIdx = useMemo(() => {
-    const cur = todayISO.slice(0, 7);
+    // The focused session's month when there is one — landing on the current
+    // month with the selected day three months away is its own confusion.
+    const cur = (focusDate ?? todayISO).slice(0, 7);
     const i = months.findIndex((mo) => `${mo.y}-${String(mo.m + 1).padStart(2, "0")}` === cur);
     return i >= 0 ? i : 0;
-  }, [months, todayISO]);
+  }, [months, todayISO, focusDate]);
 
   const [monthIdx, setMonthIdx] = useState(startIdx);
   // Pre-select the next upcoming event so the day panel opens showing the
   // session that matters instead of "Select a day" (nobody clicked it there).
   const [selected, setSelected] = useState<string | null>(() => {
+    if (focusDate) return focusDate;
     const next = events
       .map((e) => e.date)
       .filter((d) => d >= todayISO)
@@ -112,31 +124,6 @@ export function TrackCalendar({
 
   return (
     <div className="space-y-4">
-      {/* Legend — only the event types this program actually has. A single
-          type needs no key at all (a GOSA learner shouldn't see "MASS"). */}
-      {(() => {
-        const present = new Set(
-          events.map((e) => (e.type === "office-hours" ? "event" : e.type)),
-        );
-        const entries = ([
-          ["session", "Session"],
-          ["mass", "MASS"],
-          ["speaker", "Guest speaker"],
-          ["event", "Other event"],
-        ] as const).filter(([type]) => present.has(type));
-        if (entries.length < 2) return null;
-        return (
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-ink-soft">
-            {entries.map(([type, label]) => (
-              <span key={type} className="inline-flex items-center gap-1.5">
-                <span className={`h-2.5 w-2.5 rounded-[3px] ${DOT[type]}`} />
-                {label}
-              </span>
-            ))}
-          </div>
-        );
-      })()}
-
       {/* Month nav */}
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-bold text-ink">
@@ -258,6 +245,33 @@ export function TrackCalendar({
         </div>
       </div>
 
+      {/* Legend — under the grid, where a key belongs. Above it, it was the
+          first thing on the page after the "Schedule" heading, explaining
+          colors the reader had not seen yet. Only the event types this
+          program actually has; a single type needs no key at all (a GOSA
+          learner shouldn't see "MASS"). */}
+      {(() => {
+        const present = new Set(
+          events.map((e) => (e.type === "office-hours" ? "event" : e.type)),
+        );
+        const entries = ([
+          ["session", "Session"],
+          ["mass", "MASS"],
+          ["speaker", "Guest speaker"],
+          ["event", "Other event"],
+        ] as const).filter(([type]) => present.has(type));
+        if (entries.length < 2) return null;
+        return (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-ink-soft">
+            {entries.map(([type, label]) => (
+              <span key={type} className="inline-flex items-center gap-1.5">
+                <span className={`h-2.5 w-2.5 rounded-[3px] ${DOT[type]}`} />
+                {label}
+              </span>
+            ))}
+          </div>
+        );
+      })()}
     </div>
   );
 }

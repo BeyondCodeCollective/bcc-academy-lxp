@@ -524,7 +524,21 @@ export default async function TrackOverviewPage({
       ) : touchpoint ? (
         // Quiet here: the field above is this page's one dark object, and the
         // course name is already its one display size.
-        <NextUpPanel touchpoint={touchpoint} variant="quiet" />
+        <NextUpPanel
+          touchpoint={touchpoint}
+          variant="quiet"
+          notice={
+            latestNews
+              ? {
+                  title: latestNews.title,
+                  body: latestNews.body,
+                  whenLabel: latestNews.whenLabel.toLowerCase(),
+                  href: latestNews.href,
+                  external: latestNews.external,
+                }
+              : null
+          }
+        />
       ) : (
         <Link
           href={`/dashboard/track/${slug}/${ctaWeek}`}
@@ -541,8 +555,11 @@ export default async function TrackOverviewPage({
       )}
 
       {/* Announcements: track-scoped and time-sensitive, so they sit above the
-         syllabus — but a line, not a card. */}
-      {latestNews && (
+         syllabus — but a line, not a card. When there IS a next-up panel the
+         announcement rides inside it instead; two "something is happening
+         soon" blocks stacked back to back, usually about the same week, is
+         what made the top of this page read as clutter. */}
+      {latestNews && !touchpoint && (
         <Link
           href={latestNews.href}
           target={latestNews.external ? "_blank" : undefined}

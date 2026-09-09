@@ -9,6 +9,11 @@ import { TrackCalendar, type CalendarEvent } from "@/components/track-calendar";
  * whole term and the break week at a glance) or a List (every session's topic,
  * always visible). Same dates either way — the toggle just picks how to read
  * them, so nothing is duplicated.
+ *
+ * ONE bordered object. The heading and the toggle used to float above a
+ * calendar that was itself four unbounded bands (legend, month nav, selected
+ * day, grid), so the bottom of the page read as loose strips of content with
+ * nothing holding them together.
  */
 export function ScheduleTabs({
   rows,
@@ -27,8 +32,8 @@ export function ScheduleTabs({
   const [view, setView] = useState<"calendar" | "list">("calendar");
 
   return (
-    <section aria-label="Schedule">
-      <div className="flex items-center justify-between px-1">
+    <section aria-label="Schedule" className="panel overflow-hidden">
+      <div className="flex items-center justify-between gap-3 border-b border-rule px-4 py-3">
         <h2 className="text-[15px] font-semibold text-ink">Schedule</h2>
         <div className="inline-flex rounded-full bg-paper-tint-soft p-0.5">
           {(["calendar", "list"] as const).map((v) => (
@@ -49,9 +54,9 @@ export function ScheduleTabs({
         </div>
       </div>
 
-      <div className="mt-3">
+      <div className="px-4 py-4">
         {view === "calendar" ? (
-          <TrackCalendar events={events} todayISO={todayISO} />
+          <TrackCalendar events={events} todayISO={todayISO} focusDate={focusDate} />
         ) : (
           <CourseAgenda rows={rows} todayISO={todayISO} focusDate={focusDate} />
         )}

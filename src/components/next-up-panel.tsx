@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
+import { ArrowRight, Megaphone } from "@phosphor-icons/react/dist/ssr";
 import { buttonClass } from "@/components/ui";
 import type { Touchpoint } from "@/lib/course-touchpoint";
 
@@ -17,15 +17,32 @@ export type PanelTodo = {
   href: string;
 };
 
+/** The track's latest announcement. It used to sit as its own grey bar
+ *  directly under this panel, which put two "something is happening soon"
+ *  blocks back to back — usually about the same week. It belongs INSIDE the
+ *  one what-now object, as a row. */
+export type PanelNotice = {
+  title: string;
+  body?: string | null;
+  /** "coming up" / "tomorrow" — rendered faint after the body */
+  whenLabel?: string | null;
+  href: string;
+  external?: boolean;
+};
+
 export function NextUpPanel({
   touchpoint,
   todos = [],
+  notice = null,
   variant = "hero",
 }: {
   touchpoint: Touchpoint;
   /** Small tasks (profile, surveys) fold into the panel as quiet rows —
      each one as its own full-width banner buried the panel (2026-07-12). */
   todos?: PanelTodo[];
+  /** The track's latest announcement, folded in as a row rather than shipped
+   *  as a second banner below this one. */
+  notice?: PanelNotice | null;
   /** "hero" — the dark, display-size treatment. Correct on the dashboard
    *  home, where this IS the page's one dominant object.
    *  "quiet" — light surface, secondary size. Correct on a course page,
@@ -129,8 +146,25 @@ export function NextUpPanel({
       >
         {quiet ? hero : <div className="relative">{hero}</div>}
       </div>
-      {todos.length > 0 && (
-        <div className="bg-surface-elevated px-5 sm:px-6">
+      {(todos.length > 0 || notice) && (
+        <div className={`bg-surface-elevated ${quiet ? "px-4 sm:px-5" : "px-5 sm:px-6"}`}>
+          {notice && (
+            <Link
+              href={notice.href}
+              target={notice.external ? "_blank" : undefined}
+              rel={notice.external ? "noopener noreferrer" : undefined}
+              className="flex items-start gap-2.5 border-t border-rule py-2.5 text-sm text-ink-soft transition-colors first:border-t-0 hover:text-ink"
+            >
+              <Megaphone size={15} className="mt-0.5 shrink-0 text-ink-faint" aria-hidden />
+              <span className="min-w-0 flex-1">
+                <strong className="font-semibold text-ink">{notice.title}</strong>
+                {notice.body ? ` — ${notice.body}` : ""}
+                {notice.whenLabel && (
+                  <span className="text-ink-faint"> · {notice.whenLabel}</span>
+                )}
+              </span>
+            </Link>
+          )}
           {todos.map((todo) => (
             <div
               key={todo.href}
