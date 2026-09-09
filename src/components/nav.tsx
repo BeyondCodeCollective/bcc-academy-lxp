@@ -24,6 +24,7 @@ import { TextScaleToggle } from "@/components/text-scale-toggle";
 import { PushToggle } from "@/components/push-toggle";
 import { useReadAloud } from "@/components/assessment-a11y-bar";
 import { SidebarToggle } from "@/components/sidebar-toggle";
+import { setPreviewTrackSlug } from "@/app/dashboard/preview-actions";
 
 const UserMenu = dynamic(
   () => import("@/components/user-menu").then((m) => m.UserMenu),
@@ -46,6 +47,8 @@ const AdminProgramSwitcher = dynamic(
   },
 );
 
+// Leaving preview is a server action (it clears an httpOnly cookie), so the
+// one nav item that has to do it is a form button rather than a Link.
 type NavItem = {
   href: string;
   label: string;
@@ -202,6 +205,15 @@ export function Nav({
       ? `/dashboard/track/${primarySlug}`
       : "/dashboard";
 
+  // While previewing, Home follows the previewed course — useful from a week
+  // or session page, and a dead link on the course page itself, which is
+  // exactly where a previewing admin spends their time. Clicking Home there
+  // did nothing at all, which reads as a broken button (reported 2026-09-08).
+  // /dashboard/admin isn't a destination either: the admin subtree redirects
+  // preview mode straight back out. So on that one page Home leaves preview,
+  // which is what "take me home" means for staff.
+  const homeExitsPreview = !!previewingSlug && homeHref === pathname;
+
   const items: NavItem[] = [
     // For admins, Home IS the admin dashboard (the learner home is preview-only),
     // so there's no separate "Admin" item — one clear landing.
@@ -240,8 +252,34 @@ export function Nav({
     return pathname.startsWith(href);
   };
 
+  const navItemClass = (active: boolean) =>
+    `nav-item flex min-h-[44px] w-full items-center gap-3 py-2 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset rounded-lg border-l-2 pl-[10px] pr-3 ${
+      lightShell
+        ? active
+          ? "border-primary bg-primary/[0.08] text-primary"
+          : "border-transparent text-ink-soft hover:bg-paper-tint hover:text-ink"
+        : active
+          ? "border-primary bg-white/[0.08] text-white"
+          : "border-transparent text-ink-soft hover:bg-white/[0.06] hover:text-white"
+    }`;
+
   const renderItem = ({ href, label, icon: Icon }: NavItem) => {
     const active = isItemActive(href);
+    if (href === homeHref && homeExitsPreview) {
+      return (
+        <form key={href} action={setPreviewTrackSlug.bind(null, null)}>
+          <button
+            type="submit"
+            aria-label={`${label} — leave preview`}
+            onClick={() => setMobileOpen(false)}
+            className={navItemClass(false)}
+          >
+            <Icon size={20} weight="bold" aria-hidden />
+            <span className="nav-collapsible flex-1 text-left">{label}</span>
+          </button>
+        </form>
+      );
+    }
     return (
       <Link
         key={href}
