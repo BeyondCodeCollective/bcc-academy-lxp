@@ -6,6 +6,8 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/page-header";
 import { HUMAN_CHECKPOINTS } from "@/lib/instructor/prompt";
 import { InstructorQueue, type QueueFlag, type QueueLearner } from "./queue";
+import { SessionSentences, type SessionSentence } from "./sentences";
+import { resolveTrackProgram } from "@/lib/programs/server";
 
 // The facilitator's desk for instructor-mode tracks. Two lists, both written
 // by the AI instructor and read back by it: flags it raised because a call is a
@@ -48,7 +50,7 @@ export default async function InstructorQueuePage() {
     );
   }
 
-  const [flagsRes, enrolRes, cpRes, notesRes] = await Promise.all([
+  const [flagsRes, enrolRes, cpRes, notesRes, reflRes, doneRes] = await Promise.all([
     svc
       .from("instructor_flags")
       .select("id, student_id, program_id, track_slug, week_number, reason, note, created_at")
@@ -58,14 +60,21 @@ export default async function InstructorQueuePage() {
     svc.from("student_tracks").select("student_id, track_slug, program_id").in("track_slug", tracks),
     svc.from("human_checkpoints").select("student_id, track_slug, checkpoint_key, approved_at, score").in("track_slug", tracks),
     svc.from("deployment_notes").select("student_id, track_slug, key, value").in("track_slug", tracks).in("key", ["workflow", "business_number", "industry"]),
+    // The session writes a reflection, not a flag — so it never reaches the
+    // queue above. Read it here or the sentences are invisible outside the DB.
+    svc.from("reflections").select("student_id, track_slug, week_number, responses, submitted_at").in("track_slug", tracks),
+    svc.from("week_progress").select("user_id, track_slug, week_number, video_watched_at").in("track_slug", tracks).not("video_watched_at", "is", null),
   ]);
 
   const flags = (flagsRes.data ?? []) as FlagRow[];
   const enrollments = (enrolRes.data ?? []) as { student_id: string; track_slug: string; program_id: string }[];
   const checkpoints = (cpRes.data ?? []) as { student_id: string; track_slug: string; checkpoint_key: string; approved_at: string; score: number | null }[];
   const notes = (notesRes.data ?? []) as { student_id: string; track_slug: string; key: string; value: string }[];
+  const reflections = (reflRes.data ?? []) as { student_id: string; track_slug: string; week_number: number; responses: Record<string, string> | null; submitted_at: string | null }[];
+  const finished = new Set(((doneRes.data ?? []) as { user_id: string; track_slug: string; week_number: number }[])
+    .map((d) => `${d.user_id}:${d.track_slug}:${d.week_number}`));
 
-  const studentIds = [...new Set([...enrollments.map((e) => e.student_id), ...flags.map((f) => f.student_id)])];
+  const studentIds = [...new Set([...enrollments.map((e) => e.student_id), ...flags.map((f) => f.student_id), ...reflections.map((r) => r.student_id)])];
   const { data: students } = studentIds.length
     ? await svc.from("students").select("id, first_name, last_name, email").in("id", studentIds)
     : { data: [] as StudentRow[] };
@@ -105,6 +114,43 @@ export default async function InstructorQueuePage() {
     };
   });
 
+  // The prompt is the jsonb key, so read the track config rather than
+  // restating the text — a copy that drifts would show a blank sentence for a
+  // row that saved perfectly well.
+  const resolvedTracks = new Map(
+    (await Promise.all(tracks.map(async (t) => [t, await resolveTrackProgram(t).catch(() => null)] as const))),
+  );
+  const promptFor = (slug: string, week: number) => {
+    const t = resolvedTracks.get(slug)?.track;
+    return (
+      t?.weeks?.find((w) => w.week === week)?.reflectionPrompts?.[0] ??
+      t?.defaultReflectionPrompts?.[0] ??
+      null
+    );
+  };
+
+  const sentences: SessionSentence[] = reflections
+    .map((r) => {
+      const prompt = promptFor(r.track_slug, r.week_number);
+      const responses = r.responses ?? {};
+      // Fall back to the single answer when the prompt has been reworded since
+      // the row was written, so an edit upstream never hides someone's words.
+      const sentence = (prompt ? responses[prompt] : undefined) ?? Object.values(responses)[0] ?? "";
+      const s = byId.get(r.student_id);
+      return {
+        studentId: r.student_id,
+        name: nameOf(r.student_id),
+        email: s?.email ?? null,
+        trackSlug: r.track_slug,
+        weekNumber: r.week_number,
+        prompt: prompt ?? Object.keys(responses)[0] ?? "",
+        sentence: String(sentence),
+        submittedAt: r.submitted_at,
+        finished: finished.has(`${r.student_id}:${r.track_slug}:${r.week_number}`),
+      };
+    })
+    .sort((a, b) => (b.submittedAt ?? "").localeCompare(a.submittedAt ?? ""));
+
   return (
     <div className="mx-auto w-full max-w-4xl px-4 sm:px-5 py-8 space-y-6">
       <PageHeader
@@ -112,6 +158,7 @@ export default async function InstructorQueuePage() {
         title="Instructor queue"
         subtitle="What the AI instructor handed to a human. Open flags are the office-hours agenda; the four checkpoints are gates only you can pass. Every sign-off here changes what the learner hears on their next turn."
       />
+      <SessionSentences rows={sentences} enrolled={enrollments.length} />
       <InstructorQueue flags={queueFlags} learners={learners} />
     </div>
   );
