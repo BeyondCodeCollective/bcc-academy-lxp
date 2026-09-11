@@ -1,6 +1,6 @@
 # FACILITATOR_GUIDE.md — Running a Cohort
 
-> For the person running the program, inside one organisation or across a
+> For the person running the program, inside one organization or across a
 > mixed group from different industries. Learners never need this
 > file. It covers the cohort schedule, what you do each week, where people get
 > stuck, and how to report results to leadership.

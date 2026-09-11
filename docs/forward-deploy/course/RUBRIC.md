@@ -29,7 +29,7 @@
 | 5 | **Survives failure** | Twenty failure modes listed; each fixed, fenced or escalated. Audit trail exists; actions reversible. Death #3 avoided. | A handful of failures considered; no log. |
 | 6 | **Measured** | 50 eval cases from real examples; every failure investigated; result stated in hours, errors or days. | Pass rate quoted with no failure analysis, or fewer than 25 cases. |
 | 7 | **Owned** | Learner's name on it for 90 days; handover done; a colleague uses it without the learner present. Death #4 avoided. | Works only when the learner runs it. |
-| 8 | **Moves a number** | Ties to revenue, risk or cost with a before and after the sponsor recognises. Death #5 avoided. | "Saves time" with no baseline. |
+| 8 | **Moves a number** | Ties to revenue, risk or cost with a before and after the sponsor recognizes. Death #5 avoided. | "Saves time" with no baseline. |
 | 9 | **Defended like a VP** | Writeup and demo show before, after, number; demo goes through unhappy paths; no "audit", no "migration"; sponsor looks brilliant. | Demo of the happy path; jargon; learner is the hero. |
 
 **Total: ___ / 27**
@@ -47,7 +47,7 @@
 
 ## What the learner walks away with
 
-A working AI agent on a real workflow in their organisation, in use by a
+A working AI agent on a real workflow in their organization, in use by a
 colleague · a one-page writeup they can show anyone · a five-minute demo they
 have delivered · an eval report with a business number · a handover document ·
 and the habit of asking "where does intelligence belong, and who owns the

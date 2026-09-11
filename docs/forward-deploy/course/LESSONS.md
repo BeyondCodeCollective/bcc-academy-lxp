@@ -17,7 +17,7 @@ Matters · Key Tradeoff · Apply to Your Work · Check bank.
   deletes anything, or changes a system of record on its own. A human clicks send.
 - **No code.** The learner never reads or writes code. Claude Code builds; the
   learner describes, checks and decides. If code appears on screen, the
-  instructor summarises what it does in one plain sentence and moves on.
+  instructor summarizes what it does in one plain sentence and moves on.
 - **Personalise.** Once `user.json` exists, run every exercise on the learner's
   own workflow. The Riverbend practice data is the fallback and the warm-up.
 - **Paste-ready.** Anything the learner types or pastes goes in a fenced block.
@@ -30,7 +30,7 @@ Matters · Key Tradeoff · Apply to Your Work · Check bank.
 
 ### Do This First
 1. Sign in or create an account at **https://claude.ai**. Claude Code needs a
-   paid plan (Pro, Max, Team or Enterprise). If your organisation is paying,
+   paid plan (Pro, Max, Team or Enterprise). If your organization is paying,
    the facilitator will tell you which.
 2. Install Claude Code. Two routes; pick one.
    - **Desktop app (recommended for most staff):** download at
@@ -75,7 +75,7 @@ target companies expect. Either works for every session. Switch later if you lik
 ### Apply to Your Work
 The instructor now runs first-time setup: your name, role, industry, a 1–5
 comfort rating, and the one workflow you'll build on. Then find your industry's
-row in `data/OTHER_INDUSTRIES.md`: the loop you're about to practise on a youth
+row in `data/OTHER_INDUSTRIES.md`: the loop you're about to practice on a youth
 center is the same loop in your business.
 
 ### Check bank
@@ -111,7 +111,7 @@ Roughly 95% of AI pilots show no measurable business impact (MIT, 2025). The
 labs know it: one lab promised to train tens of thousands of people to install
 AI inside companies; the interview behind this course reports 86 had actually
 trained. Not because the model was bad. Because nobody decided where intelligence belonged,
-nobody built for the unhappy paths, nobody owned the result. Your organisation
+nobody built for the unhappy paths, nobody owned the result. Your organization
 has probably already bought one of these. You are going to build the other kind.
 
 ### Key Tradeoff
@@ -120,7 +120,7 @@ Email won, because it fit how parents actually behave: on a phone, in a car
 park, at 5:45. Landing beats capability. Every time.
 
 ### Apply to Your Work
-In `MY_DEPLOYMENT.md`, under Session 1, write one line: a tool your organisation
+In `MY_DEPLOYMENT.md`, under Session 1, write one line: a tool your organization
 bought or built that works and that people route around, and why.
 
 ### Check bank
@@ -152,7 +152,7 @@ recommendations deck (consultant), tickets (support), features shipped across
 all customers (product engineer), or renewals (customer success).
 
 ### Why It Matters
-You'll be pitching this work inside your organisation. People will assume you
+You'll be pitching this work inside your organization. People will assume you
 mean a consultant, or IT support, or "the AI person". The one-line distinction
 you can say in a lift: **an FDE builds it and stays until it's used, and their
 unit of success is the deployment.**
@@ -190,7 +190,7 @@ have a target company or role, add it under **Target role or company**.
 ### Do This First
 Start with the files, not the people. Paste:
 ```
-Read the NOTES column and the STS column in data/enrollment_export.csv. Classify what went wrong on every row that isn't clean: missing information, rule question, duplicate or sibling, waitlist, wrong program, something else. Count each type. Then, assuming each messy row costs Denise an extra 15 minutes, give me the rough hours lost per month if this is a typical five weeks. Napkin maths is fine.
+Read the NOTES column and the STS column in data/enrollment_export.csv. Classify what went wrong on every row that isn't clean: missing information, rule question, duplicate or sibling, waitlist, wrong program, something else. Count each type. Then, assuming each messy row costs Denise an extra 15 minutes, give me the rough hours lost per month if this is a typical five weeks. Napkin math is fine.
 ```
 Predict first: which type is most common? Paste the counts. That's your first
 leverage map. Now check it against reality. Paste:
@@ -221,9 +221,9 @@ Here are my discovery notes. Pull out: the unwritten rules, every input channel,
 ```
 
 ### What Just Happened
-You pulled the last forty instances, classified them, did rough maths, and then
+You pulled the last forty instances, classified them, did rough math, and then
 watched the person. Expect half your classifications to be wrong after the
-conversation; let reality change the assessment. The wiki says "parents enrol
+conversation; let reality change the assessment. The wiki says "parents enroll
 via the portal". Reality: forty senders, forwarded threads, and eleven years of
 rules in one head. **You sit in the room and watch
 someone do it the slow way, and you don't interrupt, because the reason they do
@@ -390,7 +390,7 @@ is the next three sessions.
 
 ### Why It Matters
 "Judgment transfers, tool-hopping doesn't." You now understand what an agent is
-by having one, which beats any explanation. Everyone else in your organisation
+by having one, which beats any explanation. Everyone else in your organization
 talking about AI is describing a demo. You have a thing that ran.
 
 ### Key Tradeoff
@@ -417,7 +417,7 @@ Paste:
 ```
 Run the Enrollment Agent on data/intake_emails/03_counselor_thread.txt and data/intake_emails/05_sibling.txt. Show me what it proposed for each.
 ```
-Predict first: will it treat the sibling as a duplicate? Will it try to enrol
+Predict first: will it treat the sibling as a duplicate? Will it try to enroll
 the counsellor's three kids? Paste the results. Then:
 ```
 Update the Enrollment Agent so that before it decides anything it reads data/program_rules.md and applies every rule in it. Add a DECISION column with one of: ready_to_confirm, hold_ask_family, waitlist, waitlist_priority, pending_not_enrolled, escalate_to_human, forward_kindly, duplicate_keep_earlier. Add a REASON column quoting the rule it used. Tell me in three lines what changed, no code.
@@ -660,7 +660,7 @@ the three hard questions. Note under Session 11 the question you fumbled.
 
 ### Check bank
 - Predict the director's first hard question ("what happens when it's wrong?"
-  is a favourite). Compare.
+  is a favorite). Compare.
 - Predict which banned word slipped into your draft anyway. Search for it.
 
 ---
@@ -697,7 +697,7 @@ a deployment, and it's live.**
 
 ### Why It Matters
 "Proof beats resumes." Whether your next step is a second workflow in your
-organisation or an FDE interview, you now have the thing almost nobody in that
+organization or an FDE interview, you now have the thing almost nobody in that
 room has: a deployment that is used, with a number, that you can talk about
 for five minutes without a slide.
 

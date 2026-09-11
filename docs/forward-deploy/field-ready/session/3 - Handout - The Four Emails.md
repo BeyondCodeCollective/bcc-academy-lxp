@@ -9,11 +9,11 @@ You are the front desk. These four landed this week. What would you do with each
 ## 1
 
 **From:** Renata Okafor
-**Subject:** After school enrolment — Kwame Okafor
+**Subject:** After school enrollment — Kwame Okafor
 
 Hi,
 
-I'd like to enrol my son Kwame Okafor in the after school program at Riverbend Main. He was born 06/02/2016 and is in 4th grade at Lincoln Elementary. My number is 555-0142. I've attached the signed pickup authorisation form.
+I'd like to enroll my son Kwame Okafor in the after school program at Riverbend Main. He was born 06/02/2016 and is in 4th grade at Lincoln Elementary. My number is 555-0142. I've attached the signed pickup authorization form.
 
 Thank you!
 Renata
@@ -40,7 +40,7 @@ thx
 ## 3
 
 **From:** Renata Okafor
-**Subject:** Re: After school enrolment — Kwame Okafor
+**Subject:** Re: After school enrollment — Kwame Okafor
 
 Hi again,
 
@@ -59,7 +59,7 @@ Renata
 
 Hi there,
 
-I'd like to enrol Theo Laurent (DOB 2015-08-14, grade 5) in After School at Eastside. Pickup form attached. One thing: Theo has an inhaler he needs to keep with him and takes a tablet at 4pm. Is there a form for that?
+I'd like to enroll Theo Laurent (DOB 2015-08-14, grade 5) in After School at Eastside. Pickup form attached. One thing: Theo has an inhaler he needs to keep with him and takes a tablet at 4pm. Is there a form for that?
 
 Phone: 555-0244
 

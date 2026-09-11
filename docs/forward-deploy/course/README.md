@@ -2,7 +2,7 @@
 
 A self-paced, **hands-on** program that teaches non-technical people in **any
 industry** to do the Forward Deployed Engineer job on one real workflow in their
-own business or organisation:
+own business or organization:
 understand the business reality, decide where intelligence belongs, build it
 with Claude Code (no code written by you), make it survive failure, measure it,
 ship it to a colleague, and defend it to a director. Claude Code is your

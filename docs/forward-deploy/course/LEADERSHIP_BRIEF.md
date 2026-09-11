@@ -6,7 +6,7 @@ where AI belongs in it, have an AI build the smallest thing that works, prove it
 with a number, and put it in a colleague's hands. No one writes code. Claude
 Code builds; our people supply the judgment.
 
-**Why now.** Every organisation can buy the same AI tools. Roughly 95% of AI
+**Why now.** Every organization can buy the same AI tools. Roughly 95% of AI
 pilots show no measurable business impact (MIT, 2025), and it is almost never
 the model's fault. Pilots die because nobody decided where AI belonged, nobody
 built for the unhappy paths, and nobody owned the result. This program trains
@@ -20,7 +20,7 @@ knowledge our people already have is the edge.
 - An eval report: 50 test cases, pass rate, every failure investigated, result in hours saved, errors caught or days recovered
 - A handover so it outlives them
 
-**What the organisation gets.** Deployments, not slides. A pilot cohort of
+**What the organization gets.** Deployments, not slides. A pilot cohort of
 three to six people produces three to six measured automations on real work,
 plus a leadership report with baseline and after numbers and quotes from the
 colleagues using them.

@@ -41,7 +41,7 @@ If you only get through three of the four blocks, fine. Do not rush block 3.
 
 Tell it as a story:
 
-> Six months ago a youth centre launched a family portal. Parents could enrol their kids online instead of emailing. It worked. Tests passed, no bugs, the team shipped it.
+> Six months ago a youth center launched a family portal. Parents could enroll their kids online instead of emailing. It worked. Tests passed, no bugs, the team shipped it.
 
 Then ask, and go round by name: **"Eleven thousand families were eligible. How many actually used it?"**
 
@@ -105,7 +105,7 @@ Read them out. Point at the pickup form rule and that Denise won't say why.
 Then one email at a time. **Before each, the group votes in chat: confirm, hold, or human.** Mica reads the vote out before you press enter.
 
 ```
-Read data/intake_emails/01_clean.txt. Using data/program_rules.md, tell me: what would you do with this enrolment, and which rule made you decide? Two lines. No code.
+Read data/intake_emails/01_clean.txt. Using data/program_rules.md, tell me: what would you do with this enrollment, and which rule made you decide? Two lines. No code.
 ```
 
 Then `02_missing_dob.txt`, then `05_sibling.txt`.
@@ -123,7 +123,7 @@ Then the last one. Set it up first:
 > This one's different. Vote before I run it.
 
 ```
-Read data/intake_emails/08_medical.txt. Using data/program_rules.md, tell me what you would do with this enrolment and why. Two lines. No code.
+Read data/intake_emails/08_medical.txt. Using data/program_rules.md, tell me what you would do with this enrollment and why. Two lines. No code.
 ```
 
 It refuses and sends it to a human. Stop. Don't move quickly.

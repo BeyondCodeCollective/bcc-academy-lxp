@@ -23,9 +23,9 @@ The course is built on the **Forward Deploy** series and roadmap by Fonz Morris
 > outcome. Not the failure case, the normal one."
 
 - Problem one: **making it work.** Problem two: **making it land** inside a real
-  organisation, with real data messier than your fixtures, and real people who
+  organization, with real data messier than your fixtures, and real people who
   already have a way of doing this they like better than yours.
-- Almost every engineer is optimised for the first problem. Almost every failure
+- Almost every engineer is optimized for the first problem. Almost every failure
   happens in the second. The FDE exists in that gap.
 
 ### 1.2 What an FDE is, and the four things it isn't
@@ -200,7 +200,7 @@ in demand?*, The Pragmatic Engineer newsletter
 
 - FDE job postings grew from roughly 640 in April 2025 to about 5,300 in April
   2026 (Aced/Exponent guide, tryexponent.com/blog/what-is-a-forward-deployed-engineer).
-- Roughly 90% of organisations report using AI somewhere, far fewer have it in
+- Roughly 90% of organizations report using AI somewhere, far fewer have it in
   production across operations; the bottleneck moved from model capability to
   execution inside complex environments (CIO Dive; TechTarget).
 - Companies hiring under FDE or adjacent titles include OpenAI, Anthropic,
@@ -330,7 +330,7 @@ Week 2: sit next to the person; napkin math; state the impact before building.
 Week 3: build the simplest solution with an AI agent; run it against the old
 cases, clean and ugly; look at failures; rerun after every meaningful change.
 Week 4: **let two or three people use it while you watch**; learn; fix the loop.
-Then summarise: "I came in, I sat down, I saw how real people worked. I mapped
+Then summarize: "I came in, I sat down, I saw how real people worked. I mapped
 out the problems. I built this to fix it. I put it into production and got it to
 work." Experienced people speedrun this in days.
 
@@ -341,7 +341,7 @@ work." Experienced people speedrun this in days.
   `data/OTHER_INDUSTRIES.md`. The learner never writes code. Claude Code
   builds; the learner directs, checks, decides and owns.
 - **Practice environment:** Claude Code, opened in this course folder.
-- **Running example:** one real workflow in the learner's business or organisation that is
+- **Running example:** one real workflow in the learner's business or organization that is
   done the slow way today. Captured in `MY_DEPLOYMENT.md`. Optionally, one
   target company or role the learner is aiming at.
 - **Data rule:** real personal data about customers, clients, members, employees or anyone else
@@ -505,5 +505,5 @@ Pankaj Jaiswal, Steven at LangChain, Tech With Tim):
   Treat the million-dollar headline with scepticism. *(Marina Wyss)*
 - Time split, one thousand-posting analysis: roughly 25% writing code, 50%
   integration and plumbing, 25% meetings and customer hand-holding; 68% of
-  postings require travel. A practising FDE's own estimate: 30% client
+  postings require travel. A practicing FDE's own estimate: 30% client
   communication, 70% engineering. *(Marina Wyss; Pankaj Jaiswal)*
