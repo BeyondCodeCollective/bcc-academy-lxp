@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- course-builder: SET <title> and description -->
+  <title>Course Title</title>
+  <meta name="description" content="A self-paced, hands-on course." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style> html { scroll-behavior: smooth; } pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; } </style>
+</head>
+<body class="bg-slate-50">
+  <!-- Tailwind safelist for dynamic phase/card colors. Keep; only use these colors. -->
+  <div class="hidden
+    bg-purple-100 text-purple-700 border-purple-200 bg-purple-50 text-purple-600 bg-purple-200
+    bg-blue-100 text-blue-700 border-blue-200 bg-blue-50 text-blue-600 bg-blue-200
+    bg-emerald-100 text-emerald-700 border-emerald-200 bg-emerald-50 text-emerald-600 bg-emerald-200
+    bg-amber-100 text-amber-700 border-amber-200 bg-amber-50 text-amber-600 bg-amber-200
+    bg-rose-100 text-rose-700 border-rose-200 bg-rose-50 text-rose-600 bg-rose-200"></div>
+
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+    /* =====================================================================
+       course-builder: EDIT SITE and phases below. Leave everything else.
+       ===================================================================== */
+
+    const SITE = {
+      brandFull: "Forward Deploy: The FDE Program",
+      brandShort: "Forward Deploy",
+      brandIcon: "workflow",
+      githubUrl: "https://github.com/youngfonz/course-builder",
+      siblingLink: { label: "Forward Deploy on YouTube", url: "https://www.youtube.com/@forwarddeploy" },
+
+      ascii: `███████╗██████╗ ███████╗
+██╔════╝██╔══██╗██╔════╝
+█████╗  ██║  ██║█████╗
+██╔══╝  ██║  ██║██╔══╝
+██║     ██████╔╝███████╗
+╚═╝     ╚═════╝ ╚══════╝`,
+      heroTitle: "Forward Deploy",
+      heroTagline: "13 Sessions · Hands-On · Claude Code · Any Industry · No Code Written by You",
+      heroHeading: "Do the Forward Deployed Engineer job before anyone gives you the title.",
+      heroLede: "Pick one workflow at work that's done the slow way. Understand how it really happens, decide where AI belongs, have Claude Code build it, make it survive failure, measure it, put it in a colleague's hands, and defend it to a director. Thirteen hours. One real deployment.",
+      calloutHtml: "<strong>Bring one real workflow.</strong> Something you do or watch every week that annoys you, with an owner who'll let you build on it. Every session applies to it, and in Session 12 it's live, used, measured and handed over.",
+      heroChecklist: [
+        "Session 0: install Claude Code and accept the data rule",
+        "Setup captures your workflow: inputs, output, volume, owner, the number it touches",
+        "Sessions 1–5 run on synthetic practice data, then every session applies to yours",
+      ],
+
+      who: {
+        lede: "<strong>Who it's for</strong> — anyone, in any industry, who does or runs the work. Contractors, shop owners, restaurant managers, hoteliers, security operators, nonprofit staff, clinic admins. You've never written code and you're not going to start now.",
+        bullets: [
+          "Tell a pilot that will land from one that will die, in the first meeting",
+          "Find the unwritten rules in a workflow and write them down for the first time",
+          "Direct an AI to build the smallest thing that moves the most work, without handing it your name",
+          "Measure it in hours, errors or days, and present it so the sponsor looks brilliant",
+        ],
+        note: "<strong>Bigger than any industry.</strong> Requests arrive messy, someone with judgment decides, a record gets updated. That loop is the same on a job site, in a kitchen, at a front desk or in a clinic. Learn it once and take it anywhere. Claude Code writes anything that needs writing; your job is judgment.",
+      },
+
+      learnCards: [
+        { icon: "layers",  color: "purple",  title: "Understand the business reality", body: "Discovery with the person who does it today. Reading a 2009 spreadsheet. Finding the load-bearing rules before you automate past them." },
+        { icon: "cpu",     color: "blue",    title: "Decide where intelligence belongs", body: "Triage a wishlist. Kill the quarter-eater. The smallest build with the least model authority, on top of what already exists." },
+        { icon: "shield",  color: "emerald", title: "Build it and make it survive", body: "An agent loop: email in, decision, row out. Then twenty ways it breaks, each fixed, fenced or escalated, with an audit log." },
+        { icon: "zap",     color: "amber",   title: "Own it and defend it", body: "Fifty eval cases. A number a director recognises. A colleague using it. A five-minute demo through the failures." },
+      ],
+
+      personalization: {
+        heading: "Your Workflow = Your Curriculum",
+        lede: "One worked example (a fictional youth center's enrollment inbox) gets you real output in minute one. From Session 6 you build the same thing for your own workflow, in your own industry, side by side.",
+        steps: [
+          { t: "Setup: Describe It", b: "The instructor captures your workflow, its owner and the business number it touches into MY_DEPLOYMENT.md." },
+          { t: "Session 5: Decide", b: "You write down the smallest build, what the agent decides, what it never does alone, and who clicks send." },
+          { t: "Sessions 6–12: Ship It", b: "Every Apply to Your Work builds, hardens, measures and hands over your deployment." },
+        ],
+        exampleLabel: "Your workflow",
+        exampleTask: "\"Bid requests arrive as emails, plan PDFs and texts; I read each one, decide if it's worth pricing, and log it in the bid spreadsheet before anyone replies.\"",
+        exampleLines: [
+          "→ Session 5 becomes: pull scope, deadline and contact from each request and flag the ones that match your 'this job goes sideways' rules; never send the quote automatically",
+          "→ Session 9 becomes: 50 real (de-identified) bid requests, pass rate, and estimating hours saved per week",
+        ],
+      },
+
+      prereqs: [
+        "A laptop you can install software on, and a paid Claude plan",
+        "One workflow you do or watch weekly, with an owner who'll let you build on it",
+        "Approval from whoever owns the data for a de-identified sample (if it's your business, that's you)",
+        "~13 hours over 5 weeks, plus 15 minutes with a colleague in week 1",
+      ],
+      prereqNote: "<strong>The data rule.</strong> No real personal data about customers, clients, members, employees or anyone else goes into Claude Code. The practice data is synthetic. Your own exercises use a de-identified sample whoever owns the data approved.",
+
+      getStarted: [
+        { icon: "terminal",  color: "purple",  title: "1. Install Claude Code", sub: "Desktop app or terminal. Session 0 walks you through it.", href: "https://claude.ai/download" },
+        { icon: "gitBranch", color: "blue",    title: "2. Get the course folder", sub: "Download the ZIP, move forward-deploy-course to Documents", href: "https://github.com/youngfonz/course-builder/archive/refs/heads/main.zip" },
+        { icon: "bookOpen",  color: "emerald", title: "3. Say \"Let's get started\"", sub: "Open the folder in Claude Code and type it", href: "#" },
+      ],
+      shellLines: [
+        "$ cd Documents/forward-deploy-course && claude",
+        "You: \"Let's get started\"",
+      ],
+      startCommand: "Let's get started",
+
+      about: [
+        "Built by Fonz Morris (Beyond Code Collective) from the <strong>Forward Deploy</strong> video series and the FDE 30-Day Roadmap at <a href=\"https://forwarddeploy.fonz.sh\" class=\"text-purple-600 hover:underline\">forwarddeploy.fonz.sh</a>. Generated with course-builder; Claude Code is the instructor.",
+        "What makes it different: you don't learn about forward deployment. You do one. It ends with a real workflow in a real colleague's hands, a number, and a five-minute demo, not a certificate.",
+        "For facilitators and sponsors: <code>FACILITATOR_GUIDE.md</code> (five-week cohort schedule, works for a single organisation or a mixed-industry group) and <code>RUBRIC.md</code> (completion criteria) are in the course folder.",
+      ],
+    };
+
+    const phases = [
+      {
+        id: 1, name: "Start Here", color: "purple",
+        sessions: [
+          { id: 0, title: "Get Set Up (and Keep the Data Safe)", desc: "Install Claude Code, open the course folder, accept the data rule", duration: "~45 min",
+            running: "Setup captures your workflow: inputs, output, volume, owner, the number it touches. No real personal data.",
+            keyTradeoff: "Desktop app is easier; the terminal is what engineers use. Either works for every session.",
+            topics: ["Claude Code is the builder; you are the judgment", "Where pasted text goes, and why the data rule exists", "The authority rule: it drafts, a human sends"],
+            exercises: ["Install Claude Code and type hello", "Accept the data rule in your own words", "First-run setup interview"],
+            outcome: "Claude Code open in the course folder, setup done, your workflow captured." },
+          { id: 1, title: "Works vs. Lands", desc: "41 of 11,000; why most pilots move nothing", duration: "~1 hour",
+            running: "Name one tool at your organisation that works and that people route around, and why.",
+            keyTradeoff: "A tool that does more, versus one that lands. Email beat the portal because it fit how parents behave.",
+            topics: ["Two problems inside 'build software': making it work and making it land", "Roughly 95% of pilots show no measurable impact (MIT, 2025)", "Routing-around is the normal outcome, not the failure case"],
+            exercises: ["Predict portal adoption, then read the usage report", "Find the line in Denise's transcript that explains it"],
+            outcome: "Explain, in two lines, why a working tool didn't land." },
+          { id: 2, title: "What an FDE Is (and the Four Things It Isn't)", desc: "Sort six job adverts; find the one whose unit of success is a deployment", duration: "~1 hour",
+            running: "Write your deployment in one sentence: 'live and used by ___ to do ___'. Optionally name a target role or company.",
+            keyTradeoff: "Range instead of depth, less visible work, exposure when it fails. If that sounds bad, that's a fine answer.",
+            topics: ["Not a sales engineer, consultant, support, or product engineer", "The unit of success is a deployment", "Palantir's Delta and Echo; why every AI company copied it"],
+            exercises: ["Sort adverts A–F before Claude Code does", "State the FDE advert's unit of success"],
+            outcome: "Say what an FDE is in a lift, and defend it against the four confusions." },
+        ],
+      },
+      {
+        id: 2, name: "Understand the Business Reality", color: "blue",
+        sessions: [
+          { id: 3, title: "Discovery: The Real Process, Not the Wiki Version", desc: "Four questions, 15 minutes with the person who does it, and don't interrupt", duration: "~1 hour + 15 min with a colleague",
+            running: "Fill in the top of MY_DEPLOYMENT.md from your own discovery notes: instance, inputs, output, volume, minutes, owner.",
+            keyTradeoff: "Asking versus watching. People describe the process they think they follow. When you can only do one, watch.",
+            topics: ["Unwritten rules and load-bearing walls ('2019')", "Forty senders and forwarded threads", "The one thing they actually asked for"],
+            exercises: ["Extract Denise's unwritten rules from the transcript", "Run the four questions with your workflow's owner"],
+            outcome: "A ten-line picture of how your workflow really happens." },
+          { id: 4, title: "Reading Someone Else's Data", desc: "A 2009 export with cryptic columns, three date formats and a 'duplicate' that's a sibling", duration: "~1 hour",
+            running: "Get a de-identified sample of your workflow's data approved; have Claude Code explain its columns and list the mess.",
+            keyTradeoff: "Clean it first, versus build on it as it is. Cleaning eats a quarter. Never propose a migration.",
+            topics: ["Reading a schema you didn't design", "Which system has the truth; what 'correct' means here", "Rows that break rules, and rows that only look like they do"],
+            exercises: ["Guess what PU_AUTH and FEE_WVR mean, then ask", "Find every row that breaks a rule in program_rules.md"],
+            outcome: "Comfortable in front of a spreadsheet nobody understands." },
+          { id: 5, title: "Decide Where Intelligence Belongs", desc: "Two systems disagree; a Friday-afternoon wishlist; kill the quarter-eater", duration: "~1 hour",
+            running: "Write the smallest build, what the agent decides, what it never does alone, and who clicks send.",
+            keyTradeoff: "More authority saves more time and exposes more. Build up to the line the owner drew, not past it.",
+            topics: ["Smallest build, most work moved, least model authority", "Saying no is the highest-value thing an FDE does", "Two sources disagreeing is normal; pick the one people act on"],
+            exercises: ["Compare enrollment and attendance exports", "Score all ten requests; pick three, refuse the rest"],
+            outcome: "A one-paragraph decision on where intelligence belongs in your workflow." },
+        ],
+      },
+      {
+        id: 3, name: "Build It", color: "emerald",
+        sessions: [
+          { id: 6, title: "One Model, One Platform: The Agent Loop", desc: "Email in, decision, row out. Ugly, working, by Friday", duration: "~1 hour",
+            running: "Describe your workflow as input → decision → output; Claude Code builds a second tool for it.",
+            keyTradeoff: "Automate one workflow you understand deeply, versus something impressive. The impressive one dies at death #1.",
+            topics: ["What an agent loop is, by having one", "One model, one platform, zero switching", "Judgment transfers, tool-hopping doesn't"],
+            exercises: ["Have Claude Code describe the build in five lines, then say go", "Run on the clean email, then the one with no birth date"],
+            outcome: "A tool that read an email and proposed a row. Yours next." },
+          { id: 7, title: "Give It the Veteran's Rules", desc: "Ground the agent in the rules that lived in one head", duration: "~1 hour",
+            running: "Write your workflow owner's rules into a file (no personal data) and give them to your tool.",
+            keyTradeoff: "Rules written down versus learned from examples. For anything with a person's name on it, auditable wins.",
+            topics: ["Grounding: answers from the customer's own documents", "A decision column and a reason column that quotes the rule", "Sibling, not duplicate; counsellor thread, not enrolment"],
+            exercises: ["Predict what the agent does with the sibling and the counsellor", "Add the rules; re-run; compare decisions"],
+            outcome: "Every decision points at the rule that caused it." },
+          { id: 8, title: "Make It Survive Failure", desc: "Twenty ways it breaks; fix, fence or escalate; an audit log", duration: "~1–1.5 hours",
+            running: "Twenty failure modes for your tool, each fixed, fenced or escalated; the three it must always refuse.",
+            keyTradeoff: "Handle everything, versus refuse gracefully. A clear refusal is a feature; a guessed birth date is a liability.",
+            topics: ["The exceptions are the job", "Fix / fence / escalate", "Every decision logged, every action reversible"],
+            exercises: ["List 20 ways it breaks on emails you haven't seen", "Implement all 20 and the audit log; re-run all eight"],
+            outcome: "A tool that fails safely and can be undone." },
+        ],
+      },
+      {
+        id: 4, name: "Own It", color: "amber",
+        sessions: [
+          { id: 9, title: "Make It Measurable", desc: "Fifty eval cases from real examples; the failures are the deliverable", duration: "~1–1.5 hours",
+            running: "Build the eval for your tool from de-identified real instances; state the result in hours, errors or days.",
+            keyTradeoff: "Celebrating the pass rate versus investigating the failures. The pass rate is for the slide.",
+            topics: ["What an eval is and why hand-waving on it gets pilots cancelled", "Real cases find real bugs", "Revenue, risk or cost. Nothing else."],
+            exercises: ["Run the 20 starter cases; investigate every failure", "Reach 50 cases; estimate hours saved in a quiet month and the rush"],
+            outcome: "A pass count, a failure list, and one sentence a director understands." },
+          { id: 10, title: "Ship It and Carry the Number", desc: "In a colleague's hands, on real work, with a Friday check-in", duration: "~1 hour + a week of use",
+            running: "One colleague uses your tool on real work for a week. You agree the number and check it on Friday.",
+            keyTradeoff: "Ship ugly and used this week, versus polish for a fortnight. You can polish what people use.",
+            topics: ["Production means used by the person it was built for", "Death #4: no owner. Death #5: no metric.", "The five-deaths check, honestly"],
+            exercises: ["Write HOW_TO.md for someone who isn't you", "Sit with the colleague for three items; don't touch the keyboard"],
+            outcome: "Live, used, and a number you carry." },
+        ],
+      },
+      {
+        id: 5, name: "Defend It", color: "rose",
+        sessions: [
+          { id: 11, title: "Defend It Like a VP", desc: "One-pager, five-minute demo through the failures, three hard questions", duration: "~1 hour",
+            running: "Write the one-pager and demo plan for your deployment; rehearse the hard questions.",
+            keyTradeoff: "Being the hero versus making the sponsor the hero. The second gets you the next deployment.",
+            topics: ["Before, after, the number", "Never 'audit', never 'migration'", "Why this is also the FDE interview: clarify, decompose, surface failures"],
+            exercises: ["Draft the one-pager; cut what a director skips", "Rehearse with Claude Code as a sceptical director"],
+            outcome: "A page and a demo that make the case in five minutes." },
+          { id: 12, title: "Capstone: Publish, Demo, Hand Over", desc: "Writeup published, demo delivered, handover done, rubric scored", duration: "~1.5 hours",
+            running: "Complete the Capstone section of MY_DEPLOYMENT.md and record your rubric score.",
+            keyTradeoff: "Stop here, or go again. The second deployment takes half the time because the judgment transfers.",
+            topics: ["Proof beats resumes", "Handover: someone else can run it and knows who to call", "Scoring yourself against RUBRIC.md"],
+            exercises: ["Publish the writeup as a web page", "Deliver the demo; write the handover; score the rubric"],
+            outcome: "A deployment you can talk about for five minutes without a slide." },
+        ],
+      },
+    ];
+
+    /* =====================================================================
+       Below this line is generic. No need to edit.
+       ===================================================================== */
+
+    const TOTAL = phases.reduce((n, p) => n + p.sessions.length, 0);
+
+    const ICONS = {
+      workflow: '<rect width="8" height="8" x="3" y="3" rx="2"/><path d="M7 11v4a2 2 0 0 0 2 2h4"/><rect width="8" height="8" x="13" y="13" rx="2"/>',
+      terminal: '<polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/>',
+      github: '<path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/>',
+      chevronRight: '<path d="m9 18 6-6-6-6"/>',
+      chevronDown: '<path d="m6 9 6 6 6-6"/>',
+      checkCircle: '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+      zap: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
+      cpu: '<rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/>',
+      layers: '<path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>',
+      shield: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',
+      package: '<path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M3.3 7 12 12l8.7-5"/><path d="M12 22V12"/>',
+      arrowLeft: '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
+      x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+      menu: '<line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/>',
+      externalLink: '<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
+      bookOpen: '<path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>',
+      gitBranch: '<line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/>',
+    };
+    function Icon({ name, className }) {
+      return <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{ __html: ICONS[name] || ICONS.cpu }} />;
+    }
+    const html = (s) => ({ __html: s });
+
+    const navSections = [
+      { id: 'overview', label: 'Overview' },
+      { id: 'who', label: 'Who This Is For' },
+      { id: 'learn', label: "What You'll Learn" },
+      { id: 'personalization', label: 'How It Adapts' },
+      { id: 'curriculum', label: 'Curriculum' },
+      { id: 'prereqs', label: 'Prerequisites' },
+      { id: 'start', label: 'Get Started' },
+      { id: 'about', label: 'About' },
+    ];
+    const sessionDetailSections = [
+      { id: 'session-overview', label: 'Overview' },
+      { id: 'session-outcome', label: 'Outcome' },
+      { id: 'session-topics', label: "What You'll Learn" },
+      { id: 'session-exercises', label: 'Exercises' },
+    ];
+    const colorMap = {
+      purple:  { badge: 'bg-purple-100 text-purple-700', soft: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200' },
+      blue:    { badge: 'bg-blue-100 text-blue-700', soft: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
+      emerald: { badge: 'bg-emerald-100 text-emerald-700', soft: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
+      amber:   { badge: 'bg-amber-100 text-amber-700', soft: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
+      rose:    { badge: 'bg-rose-100 text-rose-700', soft: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200' },
+    };
+
+    function SessionDetailContent({ session, phase, onBack, onNavigate, allSessions }) {
+      const colors = colorMap[phase.color] || colorMap.purple;
+      const prev = allSessions.find(s => s.session.id === session.id - 1);
+      const next = allSessions.find(s => s.session.id === session.id + 1);
+      return (
+        <>
+          <button onClick={onBack} className="flex items-center gap-2 text-slate-500 hover:text-purple-600 transition-colors mb-6">
+            <Icon name="arrowLeft" className="w-4 h-4" /><span className="text-sm">Back to Course Overview</span>
+          </button>
+          <section id="session-overview" className="mb-8 scroll-mt-20">
+            <div className="flex items-center gap-3 mb-3 flex-wrap">
+              <span className={`text-xs font-semibold px-3 py-1 rounded-full ${colors.badge}`}>Phase {phase.id}: {phase.name}</span>
+              <span className="text-sm text-slate-500">Session {session.id} of {TOTAL}</span>
+            </div>
+            <h1 className="text-3xl font-bold text-slate-900 mb-2">{session.title}</h1>
+            <p className="text-lg text-slate-600">{session.desc}</p>
+            <div className="mt-4 flex items-center gap-4 text-sm text-slate-500 flex-wrap">
+              <span>{session.duration}</span><span>{(session.topics || []).length} concepts</span><span>{(session.exercises || []).length} exercises</span>
+            </div>
+          </section>
+          {session.outcome && (
+            <section id="session-outcome" className={`mb-8 p-4 rounded-xl ${colors.soft} ${colors.border} border scroll-mt-20`}>
+              <div className="flex items-start gap-3">
+                <Icon name="checkCircle" className={`w-5 h-5 ${colors.text} mt-0.5 flex-shrink-0`} />
+                <div><div className={`font-semibold ${colors.text} mb-1`}>By the end of this session</div><p className="text-slate-700">{session.outcome}</p></div>
+              </div>
+            </section>
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <div className="p-4 bg-white rounded-xl border border-slate-200">
+              <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Applied to Your Example</div>
+              <p className="text-sm text-slate-600 mt-1">{session.running}</p>
+            </div>
+            <div className="p-4 bg-white rounded-xl border border-slate-200">
+              <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Key Tradeoff</div>
+              <p className="text-sm text-slate-700">{session.keyTradeoff}</p>
+            </div>
+          </div>
+          <section id="session-topics" className="mb-8 scroll-mt-20">
+            <h2 className="text-xl font-semibold text-slate-900 mb-4">What You'll Learn</h2>
+            <div className="space-y-2">
+              {session.topics.map((t, i) => (
+                <div key={i} className="flex items-start gap-3 p-3 bg-white rounded-lg border border-slate-200">
+                  <span className="text-sm font-mono text-slate-400 w-6">{i + 1}.</span><span className="text-slate-700">{t}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+          <section id="session-exercises" className="mb-8 scroll-mt-20">
+            <h2 className="text-xl font-semibold text-slate-900 mb-4">Hands-On Exercises</h2>
+            <div className="space-y-2">
+              {session.exercises.map((e, i) => (
+                <div key={i} className="flex items-start gap-3 p-3 bg-white rounded-lg border border-slate-200">
+                  <Icon name="zap" className="w-4 h-4 text-amber-500 mt-1 flex-shrink-0" /><span className="text-slate-700">{e}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+          <div className="flex items-center justify-between pt-8 border-t border-slate-200 gap-4">
+            {prev ? <button onClick={() => onNavigate(prev.session, prev.phase)} className="text-sm text-slate-600 hover:text-purple-600 flex items-center gap-2"><Icon name="arrowLeft" className="w-4 h-4 flex-shrink-0" /><span>Session {prev.session.id}</span></button> : <div />}
+            {next ? <button onClick={() => onNavigate(next.session, next.phase)} className="text-sm text-slate-600 hover:text-purple-600 flex items-center gap-2"><span>Session {next.session.id} →</span></button> : <div />}
+          </div>
+        </>
+      );
+    }
+
+    function CourseSite() {
+      const [selectedSession, setSelectedSession] = useState(null);
+      const [selectedPhase, setSelectedPhase] = useState(null);
+      const [expandedPhases, setExpandedPhases] = useState({ 1: true });
+      const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+      const allSessions = phases.flatMap(phase => phase.sessions.map(session => ({ session, phase })));
+      const scrollToSection = (id) => { const el = document.getElementById(id); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+      const togglePhase = (id) => setExpandedPhases(p => ({ ...p, [id]: !p[id] }));
+      const openSession = (session, phase) => { setSelectedSession(session); setSelectedPhase(phase); setExpandedPhases(p => ({ ...p, [phase.id]: true })); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+      const goHome = () => { setSelectedSession(null); setSelectedPhase(null); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+      const currentNavSections = selectedSession ? sessionDetailSections : navSections;
+
+      return (
+        <div className="min-h-screen bg-slate-50 text-slate-800">
+          <header className="fixed top-0 left-0 right-0 h-14 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-6 z-50">
+            <div className="flex items-center gap-3">
+              <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="lg:hidden p-2 -ml-2 text-slate-600 hover:text-purple-600"><Icon name={mobileMenuOpen ? 'x' : 'menu'} className="w-5 h-5" /></button>
+              <Icon name={SITE.brandIcon} className="w-6 h-6 text-purple-600" />
+              <span className="font-semibold text-slate-900 hidden sm:inline">{SITE.brandFull}</span>
+              <span className="font-semibold text-slate-900 sm:hidden">{SITE.brandShort}</span>
+            </div>
+            <div className="flex items-center gap-4">
+              <button onClick={() => scrollToSection('start')} className="text-sm text-slate-600 hover:text-purple-600 hidden sm:block">Get Started</button>
+              <a href={SITE.githubUrl} className="text-slate-400 hover:text-slate-600"><Icon name="github" className="w-5 h-5" /></a>
+            </div>
+          </header>
+
+          <div className="flex pt-14">
+            {mobileMenuOpen && <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setMobileMenuOpen(false)} />}
+            <aside className={`fixed left-0 top-14 bottom-0 w-80 bg-white border-r border-slate-200 overflow-y-auto p-4 z-40 transition-transform duration-300 lg:translate-x-0 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+              <nav className="space-y-1">
+                <button onClick={() => { goHome(); setMobileMenuOpen(false); }} className={`w-full text-left px-3 py-2 rounded-lg font-medium text-sm transition-colors ${!selectedSession ? 'bg-purple-50 text-purple-700' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}>Home</button>
+                {phases.map(phase => (
+                  <div key={phase.id} className="mt-3">
+                    <button onClick={() => togglePhase(phase.id)} className="w-full flex items-center justify-between px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 rounded-lg transition-colors gap-2">
+                      <span className="text-left">Phase {phase.id}: {phase.name}</span>
+                      <Icon name={expandedPhases[phase.id] ? 'chevronDown' : 'chevronRight'} className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                    </button>
+                    {expandedPhases[phase.id] && (
+                      <div className="mt-1 ml-2 border-l border-slate-200 pl-2">
+                        {phase.sessions.map(session => (
+                          <button key={session.id} onClick={() => { openSession(session, phase); setMobileMenuOpen(false); }} className={`w-full text-left px-3 py-2 text-sm rounded transition-colors leading-tight ${selectedSession?.id === session.id ? 'bg-purple-50 text-purple-700 font-medium' : 'text-slate-600 hover:text-purple-600 hover:bg-purple-50'}`}>
+                            <span className="text-slate-400 mr-1">{session.id}.</span>{session.title}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </nav>
+            </aside>
+
+            <main className="flex-1 px-4 sm:px-8 lg:px-12 py-8 lg:ml-80 lg:mr-56 max-w-4xl mx-auto lg:mx-0">
+              {selectedSession && selectedPhase ? (
+                <SessionDetailContent session={selectedSession} phase={selectedPhase} onBack={goHome} onNavigate={openSession} allSessions={allSessions} />
+              ) : (
+                <>
+                  <section id="overview" className="mb-16 scroll-mt-20">
+                    <div className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 rounded-2xl p-8 mb-8 text-center overflow-x-auto">
+                      <pre className="text-purple-400 text-[10px] sm:text-xs font-mono leading-tight mb-4 inline-block text-left">{SITE.ascii}</pre>
+                      <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">{SITE.heroTitle}</h1>
+                      <p className="text-purple-300">{SITE.heroTagline}</p>
+                    </div>
+                    <h2 className="text-3xl font-bold text-slate-900 mb-4 font-mono">{SITE.heroHeading}</h2>
+                    <p className="text-lg text-slate-600 mb-6">{SITE.heroLede}</p>
+                    <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4 mb-6">
+                      <p className="text-amber-900 font-medium" dangerouslySetInnerHTML={html(SITE.calloutHtml)} />
+                    </div>
+                    <ul className="space-y-3 text-slate-700 mb-8">
+                      {SITE.heroChecklist.map((t, i) => (
+                        <li key={i} className="flex items-start gap-3"><Icon name="checkCircle" className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" /><span dangerouslySetInnerHTML={html(t)} /></li>
+                      ))}
+                    </ul>
+                    <button onClick={() => scrollToSection('start')} className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl transition-colors">Get Started <Icon name="chevronRight" className="w-4 h-4" /></button>
+                  </section>
+
+                  <section id="who" className="mb-16 scroll-mt-20">
+                    <h2 className="text-2xl font-bold text-slate-900 mb-4 font-mono">Who This Course Is For</h2>
+                    <p className="text-slate-600 mb-6" dangerouslySetInnerHTML={html(SITE.who.lede)} />
+                    <ul className="space-y-2 text-slate-700 mb-6">
+                      {SITE.who.bullets.map((b, i) => (
+                        <li key={i} className="flex items-start gap-3"><Icon name="zap" className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" /><span dangerouslySetInnerHTML={html(b)} /></li>
+                      ))}
+                    </ul>
+                    <div className="bg-slate-100 rounded-xl p-4 text-sm text-slate-600" dangerouslySetInnerHTML={html(SITE.who.note)} />
+                  </section>
+
+                  <section id="learn" className="mb-16 scroll-mt-20">
+                    <h2 className="text-2xl font-bold text-slate-900 mb-6 font-mono">What You'll Learn</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                      {SITE.learnCards.map((c, i) => (
+                        <div key={i} className="bg-white border border-slate-200 rounded-xl p-5">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className={`w-10 h-10 rounded-lg bg-${c.color}-100 flex items-center justify-center`}><Icon name={c.icon} className={`w-5 h-5 text-${c.color}-600`} /></div>
+                            <h3 className="font-semibold text-slate-900">{c.title}</h3>
+                          </div>
+                          <p className="text-sm text-slate-600">{c.body}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+
+                  <section id="curriculum" className="mb-16 scroll-mt-20">
+                    <h2 className="text-2xl font-bold text-slate-900 mb-6 font-mono">Curriculum</h2>
+                    <p className="text-slate-600 mb-6">{TOTAL} sessions across {phases.length} phases. Each session is ~1 hour of hands-on work. <strong>Click any session</strong> to see full details.</p>
+                    {phases.map(phase => (
+                      <div key={phase.id} className="mb-8">
+                        <div className="flex items-center gap-3 mb-4">
+                          <span className={`text-xs font-semibold px-3 py-1 rounded-full ${(colorMap[phase.color] || colorMap.purple).badge}`}>Phase {phase.id}</span>
+                          <h3 className="font-semibold text-slate-900">{phase.name}</h3>
+                        </div>
+                        <div className="space-y-2">
+                          {phase.sessions.map(session => (
+                            <button key={session.id} onClick={() => openSession(session, phase)} className="w-full flex items-start gap-4 p-3 rounded-lg hover:bg-white hover:shadow-sm border border-transparent hover:border-slate-200 transition-all text-left group">
+                              <span className="text-sm font-mono text-slate-400 w-6">{session.id}</span>
+                              <div className="flex-1"><div className="font-medium text-slate-900 group-hover:text-purple-600 transition-colors">{session.title}</div><div className="text-sm text-slate-500">{session.desc}</div></div>
+                              <Icon name="chevronRight" className="w-4 h-4 text-slate-300 group-hover:text-purple-400 mt-1 transition-colors" />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </section>
+
+                  <section id="personalization" className="mb-16 scroll-mt-20">
+                    <h2 className="text-2xl font-bold text-slate-900 mb-6 font-mono">How It Adapts to You</h2>
+                    <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-6 border border-purple-100 mb-6">
+                      <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2"><Icon name="layers" className="w-5 h-5 text-purple-600" /> {SITE.personalization.heading}</h3>
+                      <p className="text-slate-600">{SITE.personalization.lede}</p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                      {SITE.personalization.steps.map((s, i) => (
+                        <div key={i} className="bg-white border border-slate-200 rounded-xl p-4">
+                          <div className="w-8 h-8 rounded-full bg-purple-100 text-purple-600 font-bold flex items-center justify-center mb-3">{i + 1}</div>
+                          <h4 className="font-semibold text-slate-900 mb-2">{s.t}</h4><p className="text-sm text-slate-600">{s.b}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                      <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Example</div>
+                      <p className="text-sm text-slate-700 mb-2"><strong>{SITE.personalization.exampleLabel}:</strong> {SITE.personalization.exampleTask}</p>
+                      <p className="text-sm text-slate-600">{SITE.personalization.exampleLines.map((l, i) => (<React.Fragment key={i}>{l}<br/></React.Fragment>))}</p>
+                    </div>
+                  </section>
+
+                  <section id="prereqs" className="mb-16 scroll-mt-20">
+                    <h2 className="text-2xl font-bold text-slate-900 mb-4 font-mono">Prerequisites</h2>
+                    <ul className="space-y-3 text-slate-700 mb-6">
+                      {SITE.prereqs.map((p, i) => (
+                        <li key={i} className="flex items-start gap-3"><Icon name="checkCircle" className="w-5 h-5 text-slate-400 mt-0.5 flex-shrink-0" /><span dangerouslySetInnerHTML={html(p)} /></li>
+                      ))}
+                    </ul>
+                    <div className="bg-emerald-50 rounded-xl p-4 text-sm text-emerald-800 border border-emerald-100" dangerouslySetInnerHTML={html(SITE.prereqNote)} />
+                  </section>
+
+                  <section id="start" className="mb-16 scroll-mt-20">
+                    <h2 className="text-2xl font-bold text-slate-900 mb-6 font-mono">Get Started</h2>
+                    <div className="space-y-4">
+                      {SITE.getStarted.map((g, i) => (
+                        <a key={i} href={g.href} className="flex items-center gap-4 p-4 bg-white border border-slate-200 rounded-xl hover:border-purple-300 hover:shadow-md transition-all group">
+                          <div className={`w-10 h-10 rounded-lg bg-${g.color}-100 flex items-center justify-center group-hover:bg-${g.color}-200 transition-colors`}><Icon name={g.icon} className={`w-5 h-5 text-${g.color}-600`} /></div>
+                          <div className="flex-1"><div className="font-semibold text-slate-900">{g.title}</div><div className="text-sm text-slate-500" dangerouslySetInnerHTML={html(g.sub)} /></div>
+                          <Icon name="chevronRight" className="w-4 h-4 text-slate-400" />
+                        </a>
+                      ))}
+                    </div>
+                    <div className="mt-6 p-4 bg-slate-100 rounded-xl">
+                      <p className="text-sm text-slate-600 font-mono">{SITE.shellLines.map((l, i) => (<React.Fragment key={i}><span dangerouslySetInnerHTML={html(l)} /><br/></React.Fragment>))}</p>
+                    </div>
+                  </section>
+
+                  <section id="about" className="mb-16 scroll-mt-20">
+                    <h2 className="text-2xl font-bold text-slate-900 mb-4 font-mono">About This Course</h2>
+                    {SITE.about.map((p, i) => (<p key={i} className="text-slate-600 mb-4" dangerouslySetInnerHTML={html(p)} />))}
+                    {SITE.siblingLink && <div className="text-sm text-slate-500">Sibling course: <a href={SITE.siblingLink.url} className="text-purple-600 hover:underline">{SITE.siblingLink.label}</a></div>}
+                    <div className="text-sm text-slate-500 mt-2">Questions or feedback? <a href={SITE.githubUrl + "/issues"} className="text-purple-600 hover:underline">Open an issue on GitHub</a>.</div>
+                  </section>
+                </>
+              )}
+            </main>
+
+            <aside className="hidden lg:block fixed right-0 top-14 bottom-0 w-56 bg-white border-l border-slate-200 overflow-y-auto p-4">
+              <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">On This Page</div>
+              <nav className="space-y-1">
+                {currentNavSections.map(section => (
+                  <button key={section.id} onClick={() => scrollToSection(section.id)} className="w-full text-left px-2 py-1.5 text-sm text-slate-600 hover:text-purple-600 hover:bg-purple-50 rounded transition-colors">{section.label}</button>
+                ))}
+              </nav>
+            </aside>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<CourseSite />);
+  </script>
+</body>
+</html>

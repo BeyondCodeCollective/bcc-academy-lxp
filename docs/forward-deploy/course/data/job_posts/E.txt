@@ -1,0 +1,6 @@
+Title: Product Engineer, Workflow Platform
+Company: Lattice Intelligence (fictional)
+
+Build and own features on our core workflow product. Talk to customers
+regularly to inform the roadmap. Ship to all customers behind feature flags.
+Measured on adoption of the features you ship across the customer base.

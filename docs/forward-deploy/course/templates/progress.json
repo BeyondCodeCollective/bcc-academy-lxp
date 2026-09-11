@@ -1,0 +1,125 @@
+{
+  "course": "Forward Deploy: The FDE Program",
+  "version": 1,
+  "current_session": 0,
+  "_comment": "One entry per session, matching LESSONS.md. status: not_started | in_progress | completed. checks holds predict-then-run outcomes.",
+  "sessions": [
+    {
+      "id": 0,
+      "title": "Get Set Up (and Keep the Data Safe)",
+      "phase": "Start Here",
+      "status": "not_started",
+      "checkpoints": [],
+      "checks": [],
+      "notes": ""
+    },
+    {
+      "id": 1,
+      "title": "Works vs. Lands",
+      "phase": "Start Here",
+      "status": "not_started",
+      "checkpoints": [],
+      "checks": [],
+      "notes": ""
+    },
+    {
+      "id": 2,
+      "title": "What an FDE Is (and the Four Things It Isn't)",
+      "phase": "Start Here",
+      "status": "not_started",
+      "checkpoints": [],
+      "checks": [],
+      "notes": ""
+    },
+    {
+      "id": 3,
+      "title": "Discovery: The Real Process, Not the Wiki Version",
+      "phase": "Understand the Business Reality",
+      "status": "not_started",
+      "checkpoints": [],
+      "checks": [],
+      "notes": ""
+    },
+    {
+      "id": 4,
+      "title": "Reading Someone Else's Data",
+      "phase": "Understand the Business Reality",
+      "status": "not_started",
+      "checkpoints": [],
+      "checks": [],
+      "notes": ""
+    },
+    {
+      "id": 5,
+      "title": "Decide Where Intelligence Belongs",
+      "phase": "Understand the Business Reality",
+      "status": "not_started",
+      "checkpoints": [],
+      "checks": [],
+      "notes": ""
+    },
+    {
+      "id": 6,
+      "title": "One Model, One Platform: The Agent Loop",
+      "phase": "Build It",
+      "status": "not_started",
+      "checkpoints": [],
+      "checks": [],
+      "notes": ""
+    },
+    {
+      "id": 7,
+      "title": "Give It the Veteran's Rules",
+      "phase": "Build It",
+      "status": "not_started",
+      "checkpoints": [],
+      "checks": [],
+      "notes": ""
+    },
+    {
+      "id": 8,
+      "title": "Make It Survive Failure",
+      "phase": "Build It",
+      "status": "not_started",
+      "checkpoints": [],
+      "checks": [],
+      "notes": ""
+    },
+    {
+      "id": 9,
+      "title": "Make It Measurable",
+      "phase": "Own It",
+      "status": "not_started",
+      "checkpoints": [],
+      "checks": [],
+      "notes": ""
+    },
+    {
+      "id": 10,
+      "title": "Ship It and Carry the Number",
+      "phase": "Own It",
+      "status": "not_started",
+      "checkpoints": [],
+      "checks": [],
+      "notes": ""
+    },
+    {
+      "id": 11,
+      "title": "Defend It Like a VP",
+      "phase": "Defend It",
+      "status": "not_started",
+      "checkpoints": [],
+      "checks": [],
+      "notes": ""
+    },
+    {
+      "id": 12,
+      "title": "Capstone: Publish, Demo, Hand Over",
+      "phase": "Defend It",
+      "status": "not_started",
+      "checkpoints": [],
+      "checks": [],
+      "notes": ""
+    }
+  ]
+}
