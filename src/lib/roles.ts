@@ -10,7 +10,8 @@ export type Capability =
   | "facilitate_cohort"    // work the instructor queue: resolve flags, pass checkpoints
   | "manage_students"      // add, update, delete students; manage cohorts
   | "view_insights"        // see the Survey Insights dashboard (scoped to own program for admins)
-  | "switch_programs";     // use the super-admin program switcher
+  | "switch_programs"     // use the super-admin program switcher
+  | "mvp_performance";   // use the performance dashboard (MVP)
 
 // The ladder is CUMULATIVE: every tier holds everything the tier below it does,
 // plus more. It didn't used to be — super_admin lacked manage_students, so
@@ -27,6 +28,9 @@ const ROLE_CAPABILITIES: Record<Capability, Role[]> = {
   manage_students:    ["admin", "super_admin"],
   view_insights:      ["admin", "super_admin"],
   switch_programs:    ["super_admin"],
+
+  // The MVP is the performance dashboard, which is a new feature.
+  mvp_performance:   ["admin", "super_admin"],
 };
 
 export function hasCapability(role: string, capability: Capability): boolean {
@@ -49,6 +53,13 @@ export function canViewInsights(role: string): boolean {
 
 export function canSwitchPrograms(role: string): boolean {
   return hasCapability(role, "switch_programs");
+}
+
+// Building MVP: the performance dashboard is a new feature, so we don't yet have a
+// role for it. For now, only admins and super-admins can see it, but we may
+// create a new role later (e.g. "performance_analyst") and add it to the list.
+export function canViewMvp(role: string): boolean {
+  return hasCapability(role, "mvp_performance");
 }
 
 // Role/credential management — the "master" tier ONLY (the platform owner).
