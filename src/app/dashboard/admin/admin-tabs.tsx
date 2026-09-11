@@ -52,14 +52,14 @@ const PLATFORM_SURVEY_TITLES: Record<string, string> = {
 // Engagement group under Analytics as segmented sub-views ("how are we
 // doing" is one kind of work). Old ?tab= URLs all keep working.
 
-function AdminTopTabs({
+export function AdminTopTabs({
   current,
   sub,
   showInsights,
   actions,
   isManager = true,
 }: {
-  current: "courses" | "students" | "student-work" | "analytics";
+  current: "courses" | "students" | "student-work" | "analytics" | "mvp";
   sub?: "attendance" | "insights" | "analytics" | "course-progress";
   showInsights: boolean;
   /** Right-aligned on the tab row (e.g. the Manage menu on Courses). */
@@ -86,6 +86,12 @@ function AdminTopTabs({
       label: showInsights ? "Analytics" : "Attendance",
       href: "/dashboard/admin?tab=attendance",
       Icon: ChartLineUpIcon,
+    },
+    // The MVP dashboard setup
+    { id: "mvp", 
+      label: "MVP Dashboard", 
+      href: "/dashboard/admin/mvp", 
+      Icon: ChartBarIcon 
     },
   ] as const;
   const tabs = isManager ? allTabs : allTabs.filter((t) => t.id === "courses");
