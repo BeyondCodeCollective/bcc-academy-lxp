@@ -32,7 +32,7 @@ export default async function MvpDashboardPage() {
                 Track and analyze the performance of your programs and learners.
                 </p>
             </header>
-            <section classTapenahme="rounded-xl border border-rule bg-white p-6">
+            <section className="rounded-xl border border-rule bg-white p-6">
                 <h2 className="text-lg font-semibold text-ink">Dashboard coming soon</h2>
                 <p className="mt-2 text-sm text-ink-soft">
                     We are currently working on the MVP dashboard. Please check back later for updates.
@@ -40,11 +40,4 @@ export default async function MvpDashboardPage() {
             </section>
         </main>
     );
-}
-
-// helper method
-function redirect(path: string): never {
-    const error = new Error("NEXT_REDIRECT") as Error & { digest: string };
-    error.digest = `NEXT_REDIRECT;replace;${path};307;`;
-    throw error;
 }
