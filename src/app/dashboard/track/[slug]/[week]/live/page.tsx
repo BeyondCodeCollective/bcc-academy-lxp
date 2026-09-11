@@ -16,6 +16,7 @@ import { getSessionContext } from "@/lib/auth/session";
 import { createServiceClient } from "@/lib/supabase/server";
 import { canAccessAdminPanel } from "@/lib/roles";
 import { SessionStage } from "@/components/fde/session-stage";
+import { RULEBOOK_PROMPT_TEXTS } from "@/components/fde/rulebook-prompts";
 import { getReflection } from "@/app/dashboard/track/actions";
 
 export default async function LiveSessionPage({
@@ -44,28 +45,24 @@ export default async function LiveSessionPage({
     if (!enr) redirect("/dashboard");
   }
 
-  // The prompt text doubles as the storage key for the answer, so read it
-  // from the track rather than restating it here — a copy that drifts would
-  // silently write the sentence somewhere the reflection view never looks.
-  const prompt =
-    resolved.track.weeks.find((w) => w.week === weekNum)?.reflectionPrompts?.[0] ??
-    resolved.track.defaultReflectionPrompts?.[0] ??
-    "The call I make in about four seconds that would take someone new an hour to get wrong is…";
-
-  // Someone who already wrote their sentence sees it again, not a blank box.
+  // Someone who already answered any of the three rulebook prompts sees
+  // those answers again, not blank boxes. Each prompt's own text is the
+  // storage key (see RULEBOOK_PROMPT_TEXTS) — a copy that drifted here would
+  // silently write an answer somewhere the reflection view never looks.
   const existing = await getReflection(trackSlug, weekNum).catch(() => null);
-  const saved =
-    existing?.responses && typeof existing.responses === "object"
-      ? String((existing.responses as Record<string, string>)[prompt] ?? "")
-      : "";
+  const responses = (existing?.responses && typeof existing.responses === "object"
+    ? (existing.responses as Record<string, string>)
+    : {});
+  const savedAnswers = Object.fromEntries(
+    RULEBOOK_PROMPT_TEXTS.map((prompt) => [prompt, responses[prompt] ?? ""]),
+  );
 
   return (
     <div style={{ position: "relative" }}>
       <SessionStage
         trackSlug={trackSlug}
         weekNumber={weekNum}
-        prompt={prompt}
-        savedSentence={saved}
+        savedAnswers={savedAnswers}
         firstName={ctx?.student?.first_name?.trim() || null}
       />
       {/* The way out.
