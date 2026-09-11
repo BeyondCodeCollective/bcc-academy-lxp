@@ -1,0 +1,21 @@
+case_id,input,expected_decision,expected_program,expected_flags,why
+1,intake_emails/01_clean.txt,ready_to_confirm,ASP,,Everything present and within rules
+2,intake_emails/02_missing_dob.txt,hold_ask_family,ASP,missing_dob,Cannot check age band without DOB
+3,intake_emails/03_counselor_thread.txt,escalate_to_human,,multi_child;counselor,Counselor flagging three kids is a situation not an enrollment
+4,intake_emails/04_wrong_inbox.txt,forward_kindly,,wrong_inbox,Volunteering enquiry
+5,intake_emails/05_sibling.txt,ready_to_confirm,ASP,sibling_priority,Same phone as enrolled member 10231 = sibling not duplicate
+6,intake_emails/06_two_sites.txt,hold_ask_family,TN,contradictory_site,Email names both RB1 and RB2
+7,intake_emails/07_no_attachment.txt,hold_ask_family,ASP,missing_pu_form,Says form attached but nothing attached; under 13
+8,intake_emails/08_medical.txt,escalate_to_human,ASP,medical,Mentions medication
+9,"12-year-old, 7th grade, asks for Teen Center",hold_until_birthday,TN,age_boundary,Waits until 13th birthday per Denise
+10,"Summer enrollment request dated 12 February",pending_not_enrolled,SUM,summer_closed,Summer opens 1 April
+11,"Grade 2 child asking for After School",hold_ask_family,ASP,too_young,ASP is grades 3-6
+12,"RB2 After School request when RB2 has 45 enrolled",waitlist,ASP,site_full,Capacity 45
+13,"RB2 After School request when full but sibling enrolled",waitlist_priority,ASP,site_full;sibling_priority,Siblings jump the list
+14,"Fee waiver requested with no letter or referral",hold_ask_family,ASP,fee_waiver_unsupported,Needs lunch letter or staff referral
+15,"Email mentions a custody arrangement",escalate_to_human,,custody,Always human
+16,"Same child same DOB already in export",duplicate_keep_earlier,,duplicate,Keep earlier record
+17,"Teen 15 with no pickup form",ready_to_confirm,TN,,Teens do not need PU form
+18,"Spanish-language email otherwise complete",ready_to_confirm,ASP,language_es,Language is not a reason to hold
+19,"Grade 9 listed but DOB makes child 11",escalate_to_human,,grade_dob_mismatch,Grade and DOB disagree
+20,"Parent asks to be enrolled today and confirmed now",ready_to_confirm_draft_only,ASP,,Draft the email; a human sends it

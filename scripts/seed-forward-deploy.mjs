@@ -3,13 +3,15 @@
 // the track, the 13 sessions, and the instructor lesson bodies in place.
 //
 //   node scripts/seed-forward-deploy.mjs --program catalyst --kickoff 2026-09-21 \
-//        [--time 12:00] [--source /path/to/forward-deploy-course] [--meeting <zoom url>]
+//        [--time 12:00] [--source docs/forward-deploy/course] [--meeting <zoom url>]
 //
 // --kickoff is the in-person kickoff (any weekday). Seven Wednesday classes
 // follow, starting the first Wednesday after kickoff; the last is demo day.
 // Eight live classes over seven weeks. --time is Eastern, 24h. --source
-// defaults to the public course repo on GitHub, so the platform never needs the
-// course checked out locally.
+// defaults to this repo's own docs/forward-deploy/course/ — the course used to
+// live only in a personal fork (youngfonz/course-builder) and was fetched over
+// the network at seed time; it now lives here, so seeding never depends on an
+// external repo staying up or public.
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { createClient } from "@supabase/supabase-js";
@@ -27,7 +29,7 @@ function arg(name, dflt) {
 const PROGRAM_SLUG = arg("program", "catalyst");
 const KICKOFF = arg("kickoff", null);
 const TIME = arg("time", "12:00");
-const SOURCE = arg("source", "https://raw.githubusercontent.com/youngfonz/course-builder/main/forward-deploy-course");
+const SOURCE = arg("source", join(process.cwd(), "docs/forward-deploy/course"));
 const MEETING = arg("meeting", null);
 const TRACK = "forward-deploy";
 if (!KICKOFF || !/^\d{4}-\d{2}-\d{2}$/.test(KICKOFF)) {

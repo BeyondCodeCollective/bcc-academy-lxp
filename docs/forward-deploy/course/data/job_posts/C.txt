@@ -1,0 +1,9 @@
+Title: Forward Deployed Engineer
+Company: Lattice Intelligence (fictional)
+
+Embed with two or three customers at a time. Understand how their teams
+actually work, then design, build and ship production systems on our platform
+against their real data and systems. You own the outcome: whether the
+deployment is live and used by the people it was built for. Bring what you
+learn back to the product team. Expect ambiguity, travel and a lot of reading
+other people's schemas.

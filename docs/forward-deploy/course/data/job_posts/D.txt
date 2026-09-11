@@ -1,0 +1,6 @@
+Title: Technical Support Engineer, Tier 2
+Company: Lattice Intelligence (fictional)
+
+Own the resolution of escalated customer tickets. Reproduce issues, work with
+engineering on fixes, and keep customers updated within SLA. Measured on time
+to resolution and CSAT. Contribute to the knowledge base.

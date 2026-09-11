@@ -1,0 +1,12 @@
+From: Tariq Haddad <thaddad@example.com>
+To: enroll@riverbendyouth.example
+Subject: Teen center for Yasmin
+
+Hello,
+
+Please enroll Yasmin Haddad (DOB 2011-10-05, 9th grade) in the Teen Center
+at Riverbend Main. Actually Eastside might be better because it's closer to
+her school. Either is fine. Phone 555-0155.
+
+Thanks,
+Tariq
