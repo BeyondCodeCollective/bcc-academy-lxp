@@ -778,7 +778,7 @@ function Welcome({
   knownName: string | null;
 }) {
   const [typed, setTyped] = useState("");
-  const resumeLabel = resumeAt ? PARTS[Math.max(0, ORDER.indexOf(resumeAt))]?.title : null;
+  const resumeLabel = resumeAt === "done" ? "your recap" : resumeAt ? PARTS[Math.max(0, ORDER.indexOf(resumeAt))]?.title : null;
 
   // A learner the platform already knows gets greeted, not interrogated.
   const known = (knownName ?? "").trim().split(/\s+/)[0] ?? "";
