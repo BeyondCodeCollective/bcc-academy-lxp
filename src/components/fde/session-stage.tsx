@@ -534,6 +534,53 @@ const TONES = {
 
 /* ── shell ───────────────────────────────────────────────────────────── */
 
+/**
+ * Screens used to cut.
+ *
+ * One screen unmounted and the next mounted in the same frame, and only the
+ * arriving half had any motion — so every step read as a slide advancing
+ * rather than one thing becoming another. This holds the outgoing screen
+ * just long enough to let it leave: a short lift and fade out, then the
+ * next one rises in on its own.
+ *
+ * Anyone who has asked their system not to animate gets the old instant
+ * swap, deliberately — the global reduced-motion rule kills the transition
+ * that would otherwise cover this gap, and a blank beat is worse than a cut.
+ */
+const LEAVE_MS = 190;
+const LEAVE_EASE = "cubic-bezier(.4,0,.2,1)";
+
+function leavingStyle(leaving: boolean) {
+  return {
+    opacity: leaving ? 0 : 1,
+    transform: leaving ? "translateY(-10px)" : "none",
+    transition: `opacity ${LEAVE_MS}ms ${LEAVE_EASE}, transform ${LEAVE_MS}ms ${LEAVE_EASE}`,
+  };
+}
+
+function useScene<T>(initial: T) {
+  const [scene, setScene] = useState(initial);
+  const [leaving, setLeaving] = useState(false);
+  const timer = useRef<number | null>(null);
+
+  useEffect(() => () => { if (timer.current !== null) window.clearTimeout(timer.current); }, []);
+
+  const to = useCallback((next: T) => {
+    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+    if (reduced) {
+      setScene(next);
+      return;
+    }
+    setLeaving(true);
+    timer.current = window.setTimeout(() => {
+      setScene(next);
+      setLeaving(false);
+    }, LEAVE_MS);
+  }, []);
+
+  return { scene, leaving, to, jump: setScene };
+}
+
 type Phase = "intro" | "part1" | "part2" | "part3" | "done";
 const ORDER: Phase[] = ["intro", "part1", "part2", "part3", "done"];
 
@@ -550,7 +597,7 @@ export function SessionStage({
   savedAnswers: Record<string, string>;
   firstName: string | null;
 }) {
-  const [phase, setPhase] = useState<Phase>("intro");
+  const { scene: phase, leaving, to: goScene, jump: setPhase } = useScene<Phase>("intro");
   const [welcome, setWelcome] = useState(true);
   const [countIn, setCountIn] = useState<number | null>(null);
   // The platform usually knows who this is. When it doesn't — a shared
@@ -588,14 +635,14 @@ export function SessionStage({
 
   const go = useCallback(
     (next: Phase) => {
-      setPhase(next);
+      goScene(next);
       try {
         localStorage.setItem(key, next);
       } catch {
         /* resume is best-effort */
       }
     },
-    [key],
+    [key, goScene],
   );
 
   // The overlay is the audio unlock: browsers refuse speech until the user
@@ -634,20 +681,25 @@ export function SessionStage({
       {welcome && <Welcome onEnter={enter} resumeAt={resumeAt} knownName={firstName} />}
       {countIn !== null && <CountIn n={countIn} />}
       <div aria-hidden={welcome || countIn !== null} style={{ maxWidth: 680, margin: "0 auto", padding: "0 20px 20px", height: "100%", display: "flex", flexDirection: "column", filter: welcome ? "blur(6px)" : countIn !== null ? "blur(3px)" : "none", transition: "filter .6s ease" }}>
+        {/* The rail holds still through the swap: it is the one thing on
+            screen that is meant to persist, and watching its step move is
+            half of what tells the learner they got somewhere. */}
         {phase !== "done" && <PartRail active={partIndex} />}
-        {phase === "intro" && <Intro voice={voice} onDone={() => go("part1")} />}
-        {phase === "part1" && <PartOne voice={voice} spoken={!welcome && countIn === null} name={name} onDone={() => go("part2")} />}
-        {phase === "part2" && <PartTwo voice={voice} onDone={() => go("part3")} />}
-        {phase === "part3" && (
-          <PartThree
-            voice={voice}
-            trackSlug={trackSlug}
-            weekNumber={weekNumber}
-            saved={savedAnswers}
-            onDone={() => go("done")}
-          />
-        )}
-        {phase === "done" && <Done voice={voice} />}
+        <div style={{ flexGrow: 1, minHeight: 0, display: "flex", flexDirection: "column", ...leavingStyle(leaving) }}>
+          {phase === "intro" && <Intro voice={voice} onDone={() => go("part1")} />}
+          {phase === "part1" && <PartOne voice={voice} spoken={!welcome && countIn === null} name={name} onDone={() => go("part2")} />}
+          {phase === "part2" && <PartTwo voice={voice} onDone={() => go("part3")} />}
+          {phase === "part3" && (
+            <PartThree
+              voice={voice}
+              trackSlug={trackSlug}
+              weekNumber={weekNumber}
+              saved={savedAnswers}
+              onDone={() => go("done")}
+            />
+          )}
+          {phase === "done" && <Done voice={voice} />}
+        </div>
       </div>
     </div>
   );
@@ -716,7 +768,7 @@ function Primary({ children, onClick, disabled }: { children: React.ReactNode; o
 /** The bottom bar. Always says what you can do and what happens next. */
 function Footer({ note, children }: { note?: string; children?: React.ReactNode }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 16, paddingTop: 26, marginTop: "auto", borderTop: `1px solid ${RULE}`, flexWrap: "wrap" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 16, paddingTop: 26, marginTop: "auto", borderTop: `1px solid ${RULE}`, flexWrap: "wrap", animation: "fde-rise .6s cubic-bezier(.16,1,.3,1) .1s both" }}>
       {note && <span style={{ fontSize: 12.5, color: INK_FAINT, flex: "1 1 200px" }}>{note}</span>}
       <div style={{ marginLeft: "auto", display: "flex", gap: 10, alignItems: "center" }}>{children}</div>
     </div>
@@ -901,24 +953,57 @@ const INTRO_LINE = "Before the story — six words worth knowing, then a quick w
  * voice once and interacted with the page.
  */
 function Intro({ voice, onDone }: { voice: Voice; onDone: () => void }) {
-  const [stage, setStage] = useState<"video" | "match" | "flash">("video");
-  if (stage === "video") return <IntroVideo onDone={() => setStage("match")} />;
-  if (stage === "match") return <TermMatchGame voice={voice} onDone={() => setStage("flash")} />;
-  return <FlashRound voice={voice} onDone={onDone} />;
+  const { scene: stage, leaving, to } = useScene<"video" | "bridge" | "match" | "flash">("video");
+
+  // Video straight into a board of chips was the hardest cut in the session:
+  // one thing they sat and watched, then a grid demanding input, no beat in
+  // between. One line, held long enough to land, does the handoff.
+  useEffect(() => {
+    if (stage !== "bridge") return;
+    const t = window.setTimeout(() => to("match"), 1900);
+    return () => window.clearTimeout(t);
+  }, [stage, to]);
+
+  return (
+    <div style={{ flexGrow: 1, minHeight: 0, display: "flex", flexDirection: "column", ...leavingStyle(leaving) }}>
+      {stage === "video" && <IntroVideo onDone={() => to("bridge")} />}
+      {stage === "bridge" && (
+        <Interlude line="Six words before the story." sub="Two quick rounds. They come back later, so they’re worth catching now." />
+      )}
+      {stage === "match" && <TermMatchGame voice={voice} onDone={() => to("flash")} />}
+      {stage === "flash" && <FlashRound voice={voice} onDone={onDone} />}
+    </div>
+  );
+}
+
+/** A held beat between two screens that would otherwise collide. */
+function Interlude({ line, sub }: { line: string; sub?: string }) {
+  return (
+    <div style={{ flexGrow: 1, display: "flex", flexDirection: "column", justifyContent: "center", gap: 12 }}>
+      <span style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: "clamp(28px, 5.4vw, 40px)", lineHeight: 1.1, letterSpacing: "-.04em", color: INK, animation: "fde-rise .55s cubic-bezier(.16,1,.3,1)" }}>
+        {line}
+      </span>
+      {sub && (
+        <span style={{ fontSize: 15, lineHeight: 1.6, color: INK_SOFT, maxWidth: 460, animation: "fde-rise .8s cubic-bezier(.16,1,.3,1)" }}>
+          {sub}
+        </span>
+      )}
+    </div>
+  );
 }
 
 function IntroVideo({ onDone }: { onDone: () => void }) {
   return (
     <>
-      <Heading size={40} sub="Six minutes on why this matters, from the person who ran the actual case.">
+      <Heading size={40} sub="Most AI pilots die before they ever land. Here's why, and whose job it is to stop it.">
         Watch this first
       </Heading>
 
       <div style={{ flexGrow: 1, minHeight: 0, display: "flex", flexDirection: "column", justifyContent: "center", padding: "18px 0" }}>
         <div className="fde-card" style={{ position: "relative", width: "100%", paddingTop: "56.25%", borderRadius: 20, overflow: "hidden", background: INK }}>
           <iframe
-            src="https://www.youtube.com/embed/hc1nx2tzoa8"
-            title="The One Job AI Can't Touch, No One Explains"
+            src="https://www.youtube.com/embed/5x0isKiD914"
+            title="The $10M Autopsy: Why 95% of AI Pilots Fail (And the $280K Job That Fixes It)"
             style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none" }}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
@@ -1084,11 +1169,14 @@ function FlashRound({ voice, onDone }: { voice: Voice; onDone: () => void }) {
     <>
       <Heading size={38} sub="Tap the term this definition is describing.">Quick-fire</Heading>
 
-      <div style={{ flexGrow: 1, minHeight: 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: 18, padding: "18px 0" }}>
-        <div className="fde-card" style={{ background: "#fff", borderRadius: 20, padding: 24, fontSize: 16, lineHeight: 1.55, fontFamily: DISPLAY, fontWeight: 600 }}>
+      {/* Keyed on the question so each one actually arrives — an unkeyed
+          card is the same DOM node with new text in it, which reads as a
+          teleprompter rather than a next question. */}
+      <div key={i} style={{ flexGrow: 1, minHeight: 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: 18, padding: "18px 0" }}>
+        <div className="fde-card" style={{ background: "#fff", borderRadius: 20, padding: 24, fontSize: 16, lineHeight: 1.55, fontFamily: DISPLAY, fontWeight: 600, animation: "fde-land .5s cubic-bezier(.22,1.4,.4,1)" }}>
           {q.def}
         </div>
-        <div style={{ display: "grid", gap: 9 }}>
+        <div style={{ display: "grid", gap: 9, animation: "fde-rise .55s cubic-bezier(.16,1,.3,1) .07s both" }}>
           {q.choices.map((choice) => {
             const isFlashed = flash?.choice === choice;
             const bg = isFlashed ? (flash!.right ? COBALT : "#B4342C") : "#fff";
@@ -1224,14 +1312,18 @@ function PartOne({ voice, spoken, name, onDone }: { voice: Voice; spoken: boolea
 
   return (
     <>
+      {/* Keyed on the beat. Without it React keeps the same <h1> and simply
+          swaps the words inside it, so the entrance animation never replays
+          and eight beats in a row land with no motion at all — the flattest
+          stretch of the session. */}
       {!hasVisual && (
         // One growing box holding just the words, so they sit in the middle
         // of the room rather than splitting the gap with the footer.
         <div style={{ flexGrow: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-          <Heading sub={sub}>{line}</Heading>
+          <Heading key={i} sub={sub}>{line}</Heading>
         </div>
       )}
-      {hasVisual && <Heading sub={sub}>{line}</Heading>}
+      {hasVisual && <Heading key={i} sub={sub}>{line}</Heading>}
 
       <div style={{ flexGrow: hasVisual ? 1 : 0, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", justifyContent: "center", gap: 14, padding: hasVisual ? "18px 0" : 0 }}>
         {b.card === 1 && <ChartCard sel={sel} onPick={setSel} />}
@@ -1440,7 +1532,7 @@ function PartTwo({ voice, onDone }: { voice: Voice; onDone: () => void }) {
 
       <CaseTabs i={i} onPick={setI} done={revealed} />
 
-      <div style={{ flexGrow: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 14, padding: "18px 0" }}>
+      <div key={c.tab} style={{ flexGrow: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 14, padding: "18px 0" }}>
         <EmailCard c={c} compact={open} />
         {!open ? (
           <div className="fde-card" style={{ background: "#fff", borderRadius: 20, padding: 22 }}>
@@ -1484,7 +1576,7 @@ function CaseTabs({ i, onPick, done }: { i: number; onPick: (n: number) => void;
 
 function EmailCard({ c, compact }: { c: (typeof CASES)[number]; compact?: boolean }) {
   return (
-    <div className="fde-card" style={{ background: "#fff", borderRadius: 20, padding: compact ? 20 : 24 }}>
+    <div className="fde-card" style={{ background: "#fff", borderRadius: 20, padding: compact ? 20 : 24, animation: "fde-land .5s cubic-bezier(.22,1.4,.4,1)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 13, gap: 12 }}>
         <span style={{ fontSize: 12.5, color: INK }}>From: {c.from}</span>
         <span style={{ fontFamily: MONO, fontSize: 11, color: INK_FAINT }}>{c.when}</span>
