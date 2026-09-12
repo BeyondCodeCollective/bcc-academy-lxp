@@ -1221,9 +1221,14 @@ function PartOne({ voice, spoken, name, onDone }: { voice: Voice; spoken: boolea
   const line = reply?.line ?? b.line;
   const sub = reply ? reply.sub(firstNameOf(name)) : b.sub;
 
-  // The overlay speaks beat 0 itself (it owns the audio unlock), so hold off
-  // until it has cleared or the first line would be said twice.
-  useSpeak(voice, spoken && i > 0 ? `${line} ${sub}` : "");
+  // Beat 0 used to be skipped here: Part 1 opened the session, so the
+  // count-in owned that first line and speaking it here too would have said
+  // it twice. The warm-up owns the opening now, so Part 1 has to say its own
+  // first line — skipping it left her silent on arrival, and because the
+  // auto-advance below waits on her finishing a sentence, silent also meant
+  // stuck. A resumed session still gets beat 0 forced by the count-in; `say`
+  // dedupes identical text, so it is still only ever heard once.
+  useSpeak(voice, spoken ? `${line} ${sub}` : "");
 
   // Only listen once she has stopped talking, or the mic hears her, not them.
   const wantsAnswer = b.gate === "opening" || b.gate === "guess";
