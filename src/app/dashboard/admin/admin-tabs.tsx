@@ -39,7 +39,7 @@ import type { InsightsData } from "./page";
 import type { Student } from "@/lib/types";
 import { isStorageUrl, isUploadedVideo } from "@/lib/storage-utils";
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
-import { Users as UsersIcon, ChartBar as ChartBarIcon, ChartPie as ChartPieIcon, ChartLineUp as ChartLineUpIcon, GraduationCap as GraduationCapIcon } from "@phosphor-icons/react";
+import { Users as UsersIcon, ChartPie as ChartPieIcon, ChartLineUp as ChartLineUpIcon, GraduationCap as GraduationCapIcon } from "@phosphor-icons/react";
 
 const PLATFORM_SURVEY_TITLES: Record<string, string> = {
   "bcc-learner-intake": "BCC Learner Intake",
@@ -86,12 +86,6 @@ export function AdminTopTabs({
       label: showInsights ? "Analytics" : "Attendance",
       href: "/dashboard/admin?tab=attendance",
       Icon: ChartLineUpIcon,
-    },
-    // The MVP dashboard setup
-    { id: "mvp", 
-      label: "MVP Dashboard", 
-      href: "/dashboard/admin/mvp", 
-      Icon: ChartBarIcon 
     },
   ] as const;
   const tabs = isManager ? allTabs : allTabs.filter((t) => t.id === "courses");
