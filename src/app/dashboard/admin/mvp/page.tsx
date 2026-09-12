@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSessionContext } from "@/lib/auth/session";
 import { canViewMvp } from "@/lib/roles";
 import { AdminTopTabs } from "../admin-tabs";  
+import { MvpDashboard } from "./mvp-dashboard";
 
 export default async function MvpDashboardPage() {
     const context = await getSessionContext();
@@ -22,11 +23,8 @@ export default async function MvpDashboardPage() {
         <main className="mx-auto w-full max-w-7xl px-6 py-8">
             <AdminTopTabs current="mvp" showInsights isManager/>
             <header className="mt-8 mb-8">
-                <p className="text-sm font-medium text-primary">
-                    MVP Dashboard
-                </p>
                 <h1 className="mt-2 text-3xl font-semibold text-ink">
-                    Program &amp; Learner Performance
+                    Program and Learner Performance
                 </h1>
                 <p className="mt-2 max-w-3xl font-semibold text-ink">
                 Track and analyze the performance of your programs and learners.
