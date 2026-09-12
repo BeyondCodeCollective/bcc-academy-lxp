@@ -26,7 +26,8 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { saveFourSecondCall, markSessionComplete } from "@/app/dashboard/track/[slug]/[week]/live/actions";
+import { saveWorkplaceRules, markSessionComplete } from "@/app/dashboard/track/[slug]/[week]/live/actions";
+import { RULEBOOK_PROMPTS } from "@/components/fde/rulebook-prompts";
 
 /* ── palette ─────────────────────────────────────────────────────────── */
 
@@ -463,6 +464,10 @@ const CASES: {
   tab: string; file: string; when: string; from: string; body: string;
   answer: Call; decision: string; badge: string; tone: "good" | "warn" | "stop";
   because: string; fields: [string, string][]; sting?: string;
+  /** The named concept this case teaches — reused in the reveal, the
+   * matching round, and the closing recap, so the same word is taught,
+   * tested, and left with them. */
+  term: string; termDef: string;
 }[] = [
   {
     tab: "Kwame", file: "01_clean.txt", when: "Tuesday 9:04", from: "Grace O.",
@@ -470,6 +475,7 @@ const CASES: {
     answer: "confirm", decision: "Ready to confirm", badge: "✓", tone: "good",
     because: "Everything it needs is there, and nothing breaks a rule.",
     fields: [["program", "ASP"], ["site", "RB1"], ["grade", "4"], ["pickup form", "attached"]],
+    term: "Clean confirm", termDef: "Nothing missing, no standing rule against it.",
   },
   {
     tab: "Marley", file: "02_missing_dob.txt", when: "Tuesday 11:20", from: "unknown",
@@ -477,6 +483,7 @@ const CASES: {
     answer: "hold", decision: "Hold, ask the family", badge: "?", tone: "warn",
     because: "No date of birth, so it can't check she's the right age. It drafted the reply asking for it. It didn't send it.",
     fields: [["program", "ASP"], ["site", "RB2"], ["grade", "5"], ["date of birth", "missing"]],
+    term: "Hold state", termDef: "Paused, not refused — missing information completes it.",
   },
   {
     tab: "Amara", file: "05_sibling.txt", when: "Wednesday 8:41", from: "Grace O.",
@@ -485,6 +492,7 @@ const CASES: {
     because: "Same phone number as a kid already enrolled means sibling, not duplicate. That's Denise's rule, and it was written down nowhere until we wrote it down.",
     sting: "Then it caught something almost nobody in the room does. The mom says the same pickup form covers both kids. That's her assumption, not something on file. So it holds Amara's first day until a person checks that the form actually names her.",
     fields: [["program", "ASP"], ["site", "RB1"], ["grade", "5"], ["flag", "sibling priority"], ["first day", "held for check"]],
+    term: "Scoped confirm", termDef: "Act on what's verified, hold what's only assumed.",
   },
   {
     tab: "Theo", file: "08_medical.txt", when: "Wednesday 16:55", from: "D. Osei",
@@ -493,6 +501,7 @@ const CASES: {
     because: "Medication came up, so it won't touch this one. Not because it couldn't. Because you said anything medical goes to a person.",
     sting: "Who decided that? Not the AI. Denise did, eleven years ago, and we wrote it down. That's the job.",
     fields: [["program", "ASP"], ["site", "RB2"], ["flag", "medication"], ["sent to", "a human"]],
+    term: "Standing rule", termDef: "A category permanently routed to a person, no matter how clear this case looks.",
   },
 ];
 
@@ -510,14 +519,14 @@ const ORDER: Phase[] = ["part1", "part2", "part3", "part4", "done"];
 export function SessionStage({
   trackSlug,
   weekNumber,
-  prompt,
-  savedSentence,
+  savedAnswers,
   firstName,
 }: {
   trackSlug: string;
   weekNumber: number;
-  prompt: string;
-  savedSentence: string;
+  /** Keyed by the exact prompt text in RULEBOOK_PROMPTS — same convention
+   * the rest of the platform uses: the prompt doubles as the storage key. */
+  savedAnswers: Record<string, string>;
   firstName: string | null;
 }) {
   const [phase, setPhase] = useState<Phase>("part1");
@@ -612,8 +621,7 @@ export function SessionStage({
             voice={voice}
             trackSlug={trackSlug}
             weekNumber={weekNumber}
-            prompt={prompt}
-            saved={savedSentence}
+            saved={savedAnswers}
             onDone={() => go("done")}
           />
         )}
@@ -1199,9 +1207,15 @@ function PartThree({ voice, onDone }: { voice: Voice; onDone: () => void }) {
           <>
             <EmailCard c={c} compact />
             <div className="fde-card" style={{ background: t.bg, borderRadius: 20, padding: 24, animation: "fde-land .6s cubic-bezier(.22,1.4,.4,1)" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                 <span style={{ width: 30, height: 30, borderRadius: "50%", background: t.badgeBg, color: t.badgeFg, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 700, flexShrink: 0 }} aria-hidden>{c.badge}</span>
                 <span style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 20, letterSpacing: "-.02em", color: t.fg }}>{c.decision}</span>
+              </div>
+              {/* The named concept. Taught here at the exact moment it applies,
+                  tested blind in the matching round right after Part 3, and
+                  listed once more on the closing screen — same word, three times. */}
+              <div style={{ display: "inline-flex", alignItems: "baseline", gap: 8, marginTop: 12, padding: "6px 12px", borderRadius: 99, background: c.tone === "stop" ? "rgba(255,255,255,.12)" : "#F4F0E8" }}>
+                <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: 11, letterSpacing: ".04em", textTransform: "uppercase", color: c.tone === "stop" ? "#fff" : COBALT }}>{c.term}</span>
               </div>
               <p style={{ fontSize: 14, lineHeight: 1.65, color: t.sub, marginTop: 14, marginBottom: 0 }}>{c.because}</p>
               {c.sting && (
@@ -1264,24 +1278,133 @@ function EmailCard({ c, compact }: { c: (typeof CASES)[number]; compact?: boolea
 
 /* ── part 4 ──────────────────────────────────────────────────────────── */
 
+function shuffled<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/**
+ * The matching round. Blind — no email bodies, just the four names — so it
+ * tests whether the call transferred, not whether they can re-read a card.
+ * Sits between Part 3's reveals and the rulebook: recognize the pattern
+ * once more, under a little pressure, right before you write your own.
+ */
+function MatchGame({ voice, onDone }: { voice: Voice; onDone: () => void }) {
+  const order = useState(() => shuffled(CASES.map((c) => c.tab)))[0];
+  const [placed, setPlaced] = useState<Record<string, Call>>({});
+  const [selected, setSelected] = useState<string | null>(null);
+  const [log, setLog] = useState<{ tab: string; right: boolean }[]>([]);
+  const [seconds, setSeconds] = useState(0);
+  const done = Object.keys(placed).length === CASES.length;
+
+  useEffect(() => {
+    if (done) return;
+    const t = window.setInterval(() => setSeconds((s) => s + 1), 1000);
+    return () => window.clearInterval(t);
+  }, [done]);
+
+  useSpeak(voice, "Four names, no story this time. Sort them — clean confirm, hold, or a standing rule for a human. You're not reading the case again, you're testing whether it stuck.");
+
+  const place = (call: Call) => {
+    if (!selected || placed[selected]) return;
+    const c = CASES.find((x) => x.tab === selected)!;
+    setPlaced((p) => ({ ...p, [selected]: call }));
+    setLog((l) => [...l, { tab: selected, right: call === c.answer }]);
+    setSelected(null);
+  };
+
+  const correct = log.filter((l) => l.right).length;
+
+  return (
+    <>
+      <Heading size={42} sub="Same four people, no case file this time. Tap a name, then the bucket you think it belongs in.">
+        Sort them blind
+      </Heading>
+
+      <div style={{ flexGrow: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 18, padding: "18px 0" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {order.map((tab) => {
+              const p = placed[tab];
+              return (
+                <button key={tab} disabled={!!p} onClick={() => setSelected(tab)} aria-pressed={selected === tab}
+                  style={{ padding: "10px 16px", borderRadius: 99, fontFamily: DISPLAY, fontWeight: 600, fontSize: 14, cursor: p ? "default" : "pointer",
+                    background: p ? "#EBE5DB" : selected === tab ? INK : "#fff", color: p ? INK_FAINT : selected === tab ? "#fff" : INK,
+                    border: `1px solid ${p ? "#EBE5DB" : selected === tab ? INK : EDGE}`, opacity: p ? 0.55 : 1 }}>
+                  {tab}
+                </button>
+              );
+            })}
+          </div>
+          <span style={{ fontFamily: MONO, fontSize: 12.5, color: INK_FAINT }}>{seconds}s</span>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}>
+          {CALLS.map((k) => (
+            <button key={k.id} onClick={() => place(k.id)} disabled={!selected}
+              style={{ textAlign: "left", padding: "16px 16px", borderRadius: 14, cursor: selected ? "pointer" : "default",
+                background: selected ? "#fff" : CREAM, border: `1px dashed ${selected ? COBALT : EDGE}`, opacity: selected ? 1 : 0.7 }}>
+              <div style={{ fontFamily: DISPLAY, fontWeight: 600, fontSize: 15 }}>{k.label}</div>
+              <div style={{ fontSize: 12.5, color: INK_SOFT, marginTop: 3 }}>{k.hint}</div>
+            </button>
+          ))}
+        </div>
+
+        {log.length > 0 && (
+          <div className="fde-card" style={{ background: "#fff", borderRadius: 18, padding: "6px 20px" }}>
+            {log.map(({ tab, right }, n) => {
+              const c = CASES.find((x) => x.tab === tab)!;
+              return (
+                <div key={tab + n} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "14px 0", borderTop: n > 0 ? `1px solid ${EDGE}` : "none" }}>
+                  <span style={{ fontSize: 15, flexShrink: 0 }} aria-hidden>{right ? "✓" : "✗"}</span>
+                  <div style={{ fontSize: 13.8, lineHeight: 1.55, color: INK_SOFT }}>
+                    <strong style={{ color: INK }}>{tab}</strong> — {right ? "that's right." : `it's actually ${CALLS.find((k) => k.id === c.answer)?.label.toLowerCase()}.`}{" "}
+                    <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: 11, letterSpacing: ".03em", textTransform: "uppercase", color: COBALT }}>{c.term}</span> — {c.termDef}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <Footer note={done ? `${correct} of 4, ${seconds} seconds.` : "Tap a name, then a bucket."}>
+        <VoiceChip voice={voice} />
+        <Primary onClick={onDone} disabled={!done}>Now write your own →</Primary>
+      </Footer>
+    </>
+  );
+}
+
 function PartFour({
-  voice, trackSlug, weekNumber, prompt, saved, onDone,
+  voice, trackSlug, weekNumber, saved, onDone,
 }: {
-  voice: Voice; trackSlug: string; weekNumber: number; prompt: string; saved: string; onDone: () => void;
+  voice: Voice; trackSlug: string; weekNumber: number; saved: Record<string, string>; onDone: () => void;
 }) {
-  const [v, setV] = useState(saved);
+  const [stage, setStage] = useState<"match" | "write">("match");
+  const [answers, setAnswers] = useState<Record<string, string>>(() =>
+    Object.fromEntries(RULEBOOK_PROMPTS.map((p) => [p.key, saved[p.prompt] ?? ""])),
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(false);
 
-  // Finishing writes the sentence to the week's reflection and marks the
-  // session complete, so it lands where a facilitator already looks. If the
-  // write fails the learner is told and kept on the page — losing the one
-  // thing they were asked to produce is not an acceptable silent failure.
+  const filled = RULEBOOK_PROMPTS.filter((p) => answers[p.key].trim().length >= 8).length;
+
+  // Finishing writes all three answers in one call — the reflection column
+  // is replaced wholesale on save, not merged, so writing them one at a time
+  // would let the last save erase the first two.
   const finish = async () => {
     setSaving(true);
     setError(false);
     try {
-      await saveFourSecondCall(trackSlug, weekNumber, prompt, v);
+      const record = Object.fromEntries(
+        RULEBOOK_PROMPTS.map((p) => [p.prompt, answers[p.key].trim()]).filter(([, v]) => v),
+      );
+      await saveWorkplaceRules(trackSlug, weekNumber, record);
       await markSessionComplete(trackSlug, weekNumber);
       onDone();
     } catch {
@@ -1290,30 +1413,41 @@ function PartFour({
       setSaving(false);
     }
   };
-  useSpeak(voice, "Nobody in that room decided any of it on the spot. A person wrote the rules down years ago and the machine borrowed her judgment. So, what is yours?");
+
+  useSpeak(voice, "Nobody in that room decided any of it on the spot. A person wrote the rules down years ago and the machine borrowed her judgment. So, what are yours?");
+
+  if (stage === "match") {
+    return <MatchGame voice={voice} onDone={() => setStage("write")} />;
+  }
+
   return (
     <>
-      <Heading size={46} sub="Nobody in that room decided any of it on the spot. A person wrote those rules down years ago, and the machine borrowed her judgment. So what's yours?">
+      <Heading size={44} sub="Nobody in that room decided any of it on the spot. A person wrote those rules down years ago, and the machine borrowed her judgment. Write the three that are yours.">
         Your turn
       </Heading>
 
-      <div style={{ flexGrow: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", justifyContent: "center", padding: "18px 0" }}>
-        <div className="fde-card" style={{ background: "#fff", borderRadius: 20, padding: 26 }}>
-          <label htmlFor="fde-sentence" style={{ display: "block", fontFamily: DISPLAY, fontWeight: 600, fontSize: 19, lineHeight: 1.42, letterSpacing: "-.02em" }}>
-            {prompt}
-          </label>
-          <textarea id="fde-sentence" value={v} onChange={(e) => setV(e.target.value)} rows={3} placeholder="One sentence. The thing you just know." style={{ width: "100%", marginTop: 16, padding: "14px 16px", borderRadius: 12, border: `1px solid ${EDGE}`, background: CREAM, fontSize: 15, lineHeight: 1.6, color: INK, resize: "vertical", boxSizing: "border-box", fontFamily: "inherit" }} />
-          <p style={{ fontSize: 12.5, color: error ? "#B4342C" : INK_FAINT, marginTop: 12, marginBottom: 0 }}>
-            {error
-              ? "That didn't save. Check your connection and try again — don't close the page."
-              : "Saved to your session when you finish. Stuck? What did you retype last week that you've retyped a hundred times?"}
-          </p>
-        </div>
+      <div style={{ flexGrow: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 16, padding: "18px 0" }}>
+        {RULEBOOK_PROMPTS.map((p) => (
+          <div key={p.key} className="fde-card" style={{ background: "#fff", borderRadius: 20, padding: 22 }}>
+            <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: 11, letterSpacing: ".05em", textTransform: "uppercase", color: COBALT }}>{p.label}</span>
+            <label htmlFor={`fde-${p.key}`} style={{ display: "block", fontFamily: DISPLAY, fontWeight: 600, fontSize: 17, lineHeight: 1.4, letterSpacing: "-.02em", marginTop: 8 }}>
+              {p.prompt}
+            </label>
+            <textarea id={`fde-${p.key}`} value={answers[p.key]} onChange={(e) => setAnswers((a) => ({ ...a, [p.key]: e.target.value }))}
+              rows={2} placeholder={p.placeholder}
+              style={{ width: "100%", marginTop: 12, padding: "13px 15px", borderRadius: 12, border: `1px solid ${EDGE}`, background: CREAM, fontSize: 14.5, lineHeight: 1.6, color: INK, resize: "vertical", boxSizing: "border-box", fontFamily: "inherit" }} />
+          </div>
+        ))}
+        <p style={{ fontSize: 12.5, color: error ? "#B4342C" : INK_FAINT, margin: "2px 4px 0" }}>
+          {error
+            ? "That didn't save. Check your connection and try again — don't close the page."
+            : "Saved to your session when you finish. One line each is plenty."}
+        </p>
       </div>
 
-      <Footer note="You'll read this one out loud.">
+      <Footer note="You'll read one of these out loud.">
         <VoiceChip voice={voice} yourTurn />
-        <Primary onClick={finish} disabled={saving || v.trim().length < 8}>{saving ? "Saving…" : "Finish →"}</Primary>
+        <Primary onClick={finish} disabled={saving || filled < 1}>{saving ? "Saving…" : "Finish →"}</Primary>
       </Footer>
     </>
   );
@@ -1331,7 +1465,22 @@ function Done({ voice }: { voice: Voice }) {
         in that story worked perfectly — it just never landed. Learning to tell those two
         apart, and then closing the gap, is the whole job.
       </p>
-      <div style={{ marginTop: 26, fontSize: 13, color: INK_FAINT }}>You can close this page. Your sentence stays on this device.</div>
+
+      {/* Same four words taught in Part 3, tested blind right after — left
+          with them once more on the way out. */}
+      <div style={{ marginTop: 30, maxWidth: 520 }}>
+        <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: 11, letterSpacing: ".07em", textTransform: "uppercase", color: INK_FAINT }}>What you&apos;re leaving with</span>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 12 }}>
+          {CASES.map((c) => (
+            <div key={c.tab} style={{ display: "flex", gap: 10, alignItems: "baseline" }}>
+              <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: 12, color: COBALT, minWidth: 130, flexShrink: 0 }}>{c.term}</span>
+              <span style={{ fontSize: 13.5, color: INK_SOFT }}>{c.termDef}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ marginTop: 26, fontSize: 13, color: INK_FAINT }}>You can close this page. What you wrote is saved to your account here.</div>
     </div>
   );
 }
