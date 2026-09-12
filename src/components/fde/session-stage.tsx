@@ -28,6 +28,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { saveWorkplaceRules, markSessionComplete } from "@/app/dashboard/track/[slug]/[week]/live/actions";
 import { RULEBOOK_PROMPTS } from "@/components/fde/rulebook-prompts";
+import { VOCAB_TERMS } from "@/components/fde/vocab-terms";
 
 /* ── palette ─────────────────────────────────────────────────────────── */
 
@@ -258,13 +259,33 @@ function useListening({
     matchRef.current = onMatch;
   }, [onMatch]);
 
+  // `voice.speaking` flips false the instant the TTS audio's `onended` fires
+  // — a buffer-completion signal, not an acoustic one. On speakers (no
+  // headphones) the narration is still audible for a beat after that, and
+  // arming the mic the same tick lets it hear her own voice. A short grace
+  // period after `active` goes true absorbs that tail; going false still
+  // disarms immediately (cleanup below cancels a pending arm).
+  const [armed, setArmed] = useState(false);
+  /* eslint-disable react-hooks/set-state-in-effect --
+     debouncing a prop against a timer, the same external-system exception
+     as the recognition effect right below. */
+  useEffect(() => {
+    if (!active) {
+      setArmed(false);
+      return;
+    }
+    const t = window.setTimeout(() => setArmed(true), 700);
+    return () => window.clearTimeout(t);
+  }, [active]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
   /* eslint-disable react-hooks/set-state-in-effect --
      SpeechRecognition is exactly the "external system" the rule carves out:
      this effect subscribes to it and the setState calls report its status
      (unsupported, started, denied) back to the UI. There is nowhere else to
      learn any of it — the API is imperative and only exists on the client. */
   useEffect(() => {
-    if (!active) {
+    if (!armed) {
       recRef.current?.stop();
       recRef.current = null;
       setHeard("");
@@ -329,7 +350,7 @@ function useListening({
       rec.stop();
       recRef.current = null;
     };
-  }, [active]);
+  }, [armed]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   return { heard, state };
@@ -356,10 +377,10 @@ function matchGuess(said: string): number | null {
 /* ── the four parts ──────────────────────────────────────────────────── */
 
 const PARTS = [
-  { n: 1, title: "The one nobody used", blurb: "Six months of a portal that worked perfectly." },
-  { n: 2, title: "What's actually in the inbox", blurb: "Four enrollments that really arrived. You decide first." },
-  { n: 3, title: "Point it at them", blurb: "Vote before it answers. Check its judgment, not its typing." },
-  { n: 4, title: "Your turn", blurb: "The call only you can make." },
+  { n: 1, title: "Warm up", blurb: "A short video, then a quick vocabulary game." },
+  { n: 2, title: "The one nobody used", blurb: "Six months of a portal that worked perfectly." },
+  { n: 3, title: "Point it at them", blurb: "Four enrollments that really arrived. Call it, then watch what it does." },
+  { n: 4, title: "Your turn", blurb: "Prove the calls stuck, then write the rules that are yours." },
 ];
 
 /* ── part 1 ──────────────────────────────────────────────────────────── */
@@ -513,8 +534,55 @@ const TONES = {
 
 /* ── shell ───────────────────────────────────────────────────────────── */
 
-type Phase = "part1" | "part2" | "part3" | "part4" | "done";
-const ORDER: Phase[] = ["part1", "part2", "part3", "part4", "done"];
+/**
+ * Screens used to cut.
+ *
+ * One screen unmounted and the next mounted in the same frame, and only the
+ * arriving half had any motion — so every step read as a slide advancing
+ * rather than one thing becoming another. This holds the outgoing screen
+ * just long enough to let it leave: a short lift and fade out, then the
+ * next one rises in on its own.
+ *
+ * Anyone who has asked their system not to animate gets the old instant
+ * swap, deliberately — the global reduced-motion rule kills the transition
+ * that would otherwise cover this gap, and a blank beat is worse than a cut.
+ */
+const LEAVE_MS = 190;
+const LEAVE_EASE = "cubic-bezier(.4,0,.2,1)";
+
+function leavingStyle(leaving: boolean) {
+  return {
+    opacity: leaving ? 0 : 1,
+    transform: leaving ? "translateY(-10px)" : "none",
+    transition: `opacity ${LEAVE_MS}ms ${LEAVE_EASE}, transform ${LEAVE_MS}ms ${LEAVE_EASE}`,
+  };
+}
+
+function useScene<T>(initial: T) {
+  const [scene, setScene] = useState(initial);
+  const [leaving, setLeaving] = useState(false);
+  const timer = useRef<number | null>(null);
+
+  useEffect(() => () => { if (timer.current !== null) window.clearTimeout(timer.current); }, []);
+
+  const to = useCallback((next: T) => {
+    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+    if (reduced) {
+      setScene(next);
+      return;
+    }
+    setLeaving(true);
+    timer.current = window.setTimeout(() => {
+      setScene(next);
+      setLeaving(false);
+    }, LEAVE_MS);
+  }, []);
+
+  return { scene, leaving, to, jump: setScene };
+}
+
+type Phase = "intro" | "part1" | "part2" | "part3" | "done";
+const ORDER: Phase[] = ["intro", "part1", "part2", "part3", "done"];
 
 export function SessionStage({
   trackSlug,
@@ -529,7 +597,7 @@ export function SessionStage({
   savedAnswers: Record<string, string>;
   firstName: string | null;
 }) {
-  const [phase, setPhase] = useState<Phase>("part1");
+  const { scene: phase, leaving, to: goScene, jump: setPhase } = useScene<Phase>("intro");
   const [welcome, setWelcome] = useState(true);
   const [countIn, setCountIn] = useState<number | null>(null);
   // The platform usually knows who this is. When it doesn't — a shared
@@ -559,7 +627,7 @@ export function SessionStage({
     try {
       const at = localStorage.getItem(key);
       // eslint-disable-next-line react-hooks/set-state-in-effect -- client-only storage, once on mount
-      if (at && ORDER.includes(at as Phase) && at !== "part1") setResumeAt(at as Phase);
+      if (at && ORDER.includes(at as Phase) && at !== "intro") setResumeAt(at as Phase);
     } catch {
       /* private mode — they simply start at the beginning */
     }
@@ -567,14 +635,14 @@ export function SessionStage({
 
   const go = useCallback(
     (next: Phase) => {
-      setPhase(next);
+      goScene(next);
       try {
         localStorage.setItem(key, next);
       } catch {
         /* resume is best-effort */
       }
     },
-    [key],
+    [key, goScene],
   );
 
   // The overlay is the audio unlock: browsers refuse speech until the user
@@ -586,7 +654,7 @@ export function SessionStage({
   // first: they see the room they have walked into, then she speaks.
   const enter = (who: string, at?: Phase) => {
     setName(who.trim());
-    if (at && at !== "part1") setPhase(at);
+    if (at && at !== "intro") setPhase(at);
     setWelcome(false);
     setCountIn(3);
   };
@@ -601,7 +669,8 @@ export function SessionStage({
     // press persists for the rest of the page's life, not just that tick.
     const t = window.setTimeout(() => {
       setCountIn(null);
-      if (phase === "part1") voice.say(`${BEATS[0].line} ${BEATS[0].sub}`, { force: true });
+      if (phase === "intro") voice.say(INTRO_LINE, { force: true });
+      else if (phase === "part1") voice.say(`${BEATS[0].line} ${BEATS[0].sub}`, { force: true });
     }, 500);
     return () => window.clearTimeout(t);
   }, [countIn, phase, voice, name]);
@@ -612,20 +681,25 @@ export function SessionStage({
       {welcome && <Welcome onEnter={enter} resumeAt={resumeAt} knownName={firstName} />}
       {countIn !== null && <CountIn n={countIn} />}
       <div aria-hidden={welcome || countIn !== null} style={{ maxWidth: 680, margin: "0 auto", padding: "0 20px 20px", height: "100%", display: "flex", flexDirection: "column", filter: welcome ? "blur(6px)" : countIn !== null ? "blur(3px)" : "none", transition: "filter .6s ease" }}>
+        {/* The rail holds still through the swap: it is the one thing on
+            screen that is meant to persist, and watching its step move is
+            half of what tells the learner they got somewhere. */}
         {phase !== "done" && <PartRail active={partIndex} />}
-        {phase === "part1" && <PartOne voice={voice} spoken={!welcome && countIn === null} name={name} onDone={() => go("part2")} />}
-        {phase === "part2" && <PartTwo voice={voice} onDone={() => go("part3")} />}
-        {phase === "part3" && <PartThree voice={voice} onDone={() => go("part4")} />}
-        {phase === "part4" && (
-          <PartFour
-            voice={voice}
-            trackSlug={trackSlug}
-            weekNumber={weekNumber}
-            saved={savedAnswers}
-            onDone={() => go("done")}
-          />
-        )}
-        {phase === "done" && <Done voice={voice} />}
+        <div style={{ flexGrow: 1, minHeight: 0, display: "flex", flexDirection: "column", ...leavingStyle(leaving) }}>
+          {phase === "intro" && <Intro voice={voice} onDone={() => go("part1")} />}
+          {phase === "part1" && <PartOne voice={voice} spoken={!welcome && countIn === null} name={name} onDone={() => go("part2")} />}
+          {phase === "part2" && <PartTwo voice={voice} onDone={() => go("part3")} />}
+          {phase === "part3" && (
+            <PartThree
+              voice={voice}
+              trackSlug={trackSlug}
+              weekNumber={weekNumber}
+              saved={savedAnswers}
+              onDone={() => go("done")}
+            />
+          )}
+          {phase === "done" && <Done voice={voice} />}
+        </div>
       </div>
     </div>
   );
@@ -694,7 +768,7 @@ function Primary({ children, onClick, disabled }: { children: React.ReactNode; o
 /** The bottom bar. Always says what you can do and what happens next. */
 function Footer({ note, children }: { note?: string; children?: React.ReactNode }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 16, paddingTop: 26, marginTop: "auto", borderTop: `1px solid ${RULE}`, flexWrap: "wrap" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 16, paddingTop: 26, marginTop: "auto", borderTop: `1px solid ${RULE}`, flexWrap: "wrap", animation: "fde-rise .6s cubic-bezier(.16,1,.3,1) .1s both" }}>
       {note && <span style={{ fontSize: 12.5, color: INK_FAINT, flex: "1 1 200px" }}>{note}</span>}
       <div style={{ marginLeft: "auto", display: "flex", gap: 10, alignItems: "center" }}>{children}</div>
     </div>
@@ -848,7 +922,7 @@ function Welcome({
           <button
             type="button"
             className="fde-btn"
-            onClick={() => ready && onEnter(who, "part1")}
+            onClick={() => ready && onEnter(who, "intro")}
             style={{ width: "100%", marginTop: 10, fontSize: 13.5, padding: "11px 20px", borderRadius: 99, background: "transparent", color: INK_SOFT, border: `1px solid ${EDGE}`, cursor: "pointer" }}
           >
             Start again from the beginning
@@ -860,6 +934,269 @@ function Welcome({
         </p>
       </form>
     </div>
+  );
+}
+
+/* ── intro — warm up before the story ───────────────────────────────── */
+
+const INTRO_LINE = "Before the story — six words worth knowing, then a quick warm-up.";
+
+/**
+ * Video, then two small vocabulary games in two different styles — a
+ * matching round, then a paced quick-fire round — so the same six words get
+ * taught, then tested twice, before the case study even starts.
+ *
+ * Only the video stage stays silent on its own mount: it owns the audio
+ * unlock (the same role Part 1's first beat used to play), so
+ * `SessionStage` speaks `INTRO_LINE` itself once the count-in clears. The
+ * later stages speak normally — by then the learner has already heard her
+ * voice once and interacted with the page.
+ */
+function Intro({ voice, onDone }: { voice: Voice; onDone: () => void }) {
+  const { scene: stage, leaving, to } = useScene<"video" | "bridge" | "match" | "flash">("video");
+
+  // Video straight into a board of chips was the hardest cut in the session:
+  // one thing they sat and watched, then a grid demanding input, no beat in
+  // between. One line, held long enough to land, does the handoff.
+  useEffect(() => {
+    if (stage !== "bridge") return;
+    const t = window.setTimeout(() => to("match"), 1900);
+    return () => window.clearTimeout(t);
+  }, [stage, to]);
+
+  return (
+    <div style={{ flexGrow: 1, minHeight: 0, display: "flex", flexDirection: "column", ...leavingStyle(leaving) }}>
+      {stage === "video" && <IntroVideo onDone={() => to("bridge")} />}
+      {stage === "bridge" && (
+        <Interlude line="Six words before the story." sub="Two quick rounds. They come back later, so they’re worth catching now." />
+      )}
+      {stage === "match" && <TermMatchGame voice={voice} onDone={() => to("flash")} />}
+      {stage === "flash" && <FlashRound voice={voice} onDone={onDone} />}
+    </div>
+  );
+}
+
+/** A held beat between two screens that would otherwise collide. */
+function Interlude({ line, sub }: { line: string; sub?: string }) {
+  return (
+    <div style={{ flexGrow: 1, display: "flex", flexDirection: "column", justifyContent: "center", gap: 12 }}>
+      <span style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: "clamp(28px, 5.4vw, 40px)", lineHeight: 1.1, letterSpacing: "-.04em", color: INK, animation: "fde-rise .55s cubic-bezier(.16,1,.3,1)" }}>
+        {line}
+      </span>
+      {sub && (
+        <span style={{ fontSize: 15, lineHeight: 1.6, color: INK_SOFT, maxWidth: 460, animation: "fde-rise .8s cubic-bezier(.16,1,.3,1)" }}>
+          {sub}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function IntroVideo({ onDone }: { onDone: () => void }) {
+  return (
+    <>
+      <Heading size={40} sub="Most AI pilots die before they ever land. Here's why, and whose job it is to stop it.">
+        Watch this first
+      </Heading>
+
+      <div style={{ flexGrow: 1, minHeight: 0, display: "flex", flexDirection: "column", justifyContent: "center", padding: "18px 0" }}>
+        <div className="fde-card" style={{ position: "relative", width: "100%", paddingTop: "56.25%", borderRadius: 20, overflow: "hidden", background: INK }}>
+          <iframe
+            src="https://www.youtube.com/embed/5x0isKiD914"
+            title="The $10M Autopsy: Why 95% of AI Pilots Fail (And the $280K Job That Fixes It)"
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none" }}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        </div>
+      </div>
+
+      <Footer note="Watch it, then a couple of quick warm-ups before the case study.">
+        <Primary onClick={onDone}>Continue →</Primary>
+      </Footer>
+    </>
+  );
+}
+
+/** Game 1: tap a term, then tap its definition. Once paired, both are spent —
+ *  right or wrong, like MatchGame's name-to-bucket round below, just with
+ *  two variable columns instead of one fixed set of buckets. */
+function TermMatchGame({ voice, onDone }: { voice: Voice; onDone: () => void }) {
+  const terms = useState(() => shuffled(VOCAB_TERMS.map((v) => v.term)))[0];
+  const defs = useState(() => shuffled(VOCAB_TERMS.map((v) => v.def)))[0];
+  const [placed, setPlaced] = useState<Record<string, boolean>>({});
+  const [usedDefs, setUsedDefs] = useState<Record<string, boolean>>({});
+  const [selected, setSelected] = useState<string | null>(null);
+  const [log, setLog] = useState<{ term: string; right: boolean }[]>([]);
+  const done = Object.keys(placed).length === VOCAB_TERMS.length;
+
+  useSpeak(voice, "Six words worth knowing before the story starts. Tap a term, then tap the definition you think goes with it.");
+
+  const pick = (def: string) => {
+    if (!selected || placed[selected] || usedDefs[def]) return;
+    const entry = VOCAB_TERMS.find((v) => v.term === selected)!;
+    const right = entry.def === def;
+    setPlaced((p) => ({ ...p, [selected]: true }));
+    setUsedDefs((p) => ({ ...p, [def]: true }));
+    setLog((l) => [...l, { term: selected, right }]);
+    setSelected(null);
+  };
+
+  const correct = log.filter((l) => l.right).length;
+
+  return (
+    <>
+      <Heading size={40} sub="Tap a term, then tap the definition you think goes with it.">
+        Match the terms
+      </Heading>
+
+      <div style={{ flexGrow: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 18, padding: "18px 0" }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {terms.map((term) => {
+            const p = placed[term];
+            return (
+              <button key={term} disabled={!!p} onClick={() => setSelected(term)} aria-pressed={selected === term}
+                style={{ padding: "10px 16px", borderRadius: 99, fontFamily: DISPLAY, fontWeight: 600, fontSize: 13.5, cursor: p ? "default" : "pointer",
+                  background: p ? "#EBE5DB" : selected === term ? INK : "#fff", color: p ? INK_FAINT : selected === term ? "#fff" : INK,
+                  border: `1px solid ${p ? "#EBE5DB" : selected === term ? INK : EDGE}`, opacity: p ? 0.55 : 1 }}>
+                {term}
+              </button>
+            );
+          })}
+        </div>
+
+        <div style={{ display: "grid", gap: 9 }}>
+          {defs.map((def) => {
+            const used = usedDefs[def];
+            return (
+              <button key={def} onClick={() => pick(def)} disabled={!selected || used}
+                style={{ textAlign: "left", padding: "13px 15px", borderRadius: 13, cursor: selected && !used ? "pointer" : "default",
+                  background: used ? "#EBE5DB" : selected ? "#fff" : CREAM, color: used ? INK_FAINT : INK,
+                  border: `1px dashed ${selected && !used ? COBALT : EDGE}`, opacity: used ? 0.55 : selected ? 1 : 0.7, fontSize: 13.5, lineHeight: 1.5 }}>
+                {def}
+              </button>
+            );
+          })}
+        </div>
+
+        {log.length > 0 && (
+          <div className="fde-card" style={{ background: "#fff", borderRadius: 18, padding: "6px 20px" }}>
+            {log.map(({ term, right }, n) => {
+              const v = VOCAB_TERMS.find((x) => x.term === term)!;
+              return (
+                <div key={term + n} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "14px 0", borderTop: n > 0 ? `1px solid ${EDGE}` : "none" }}>
+                  <span style={{ fontSize: 15, flexShrink: 0 }} aria-hidden>{right ? "✓" : "✗"}</span>
+                  <div style={{ fontSize: 13.8, lineHeight: 1.55, color: INK_SOFT }}>
+                    <strong style={{ color: INK }}>{term}</strong> — {v.def}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <Footer note={done ? `${correct} of ${VOCAB_TERMS.length} matched.` : "Tap a term, then its definition."}>
+        <VoiceChip voice={voice} />
+        <Primary onClick={onDone} disabled={!done}>Now quick-fire →</Primary>
+      </Footer>
+    </>
+  );
+}
+
+type FlashQuestion = { term: string; def: string; choices: string[] };
+
+function buildFlashQuestions(): FlashQuestion[] {
+  return shuffled(
+    VOCAB_TERMS.map((v) => {
+      const distractors = shuffled(VOCAB_TERMS.filter((x) => x.term !== v.term).map((x) => x.term)).slice(0, 2);
+      return { term: v.term, def: v.def, choices: shuffled([v.term, ...distractors]) };
+    }),
+  );
+}
+
+/** Game 2: same six words, opposite direction (definition → term) and a
+ *  different rhythm — one question at a time, instant flash, auto-advance —
+ *  so the recall is tested in a second style, not just re-run in the first. */
+function FlashRound({ voice, onDone }: { voice: Voice; onDone: () => void }) {
+  const questions = useState(buildFlashQuestions)[0];
+  const [i, setI] = useState(0);
+  const [streak, setStreak] = useState(0);
+  const [best, setBest] = useState(0);
+  const [correct, setCorrect] = useState(0);
+  const [flash, setFlash] = useState<{ choice: string; right: boolean } | null>(null);
+  const done = i >= questions.length;
+  const q = questions[Math.min(i, questions.length - 1)];
+
+  useSpeak(voice, done ? "" : "Same six words, the other way around. Tap the term this definition is describing.");
+
+  const pick = (choice: string) => {
+    if (flash) return;
+    const right = choice === q.term;
+    setFlash({ choice, right });
+    if (right) {
+      setCorrect((c) => c + 1);
+      setStreak((s) => {
+        const next = s + 1;
+        setBest((b) => Math.max(b, next));
+        return next;
+      });
+    } else {
+      setStreak(0);
+    }
+    window.setTimeout(() => {
+      setFlash(null);
+      setI((n) => n + 1);
+    }, 700);
+  };
+
+  if (done) {
+    return (
+      <>
+        <Heading size={40} sub="Six words down. On to the real story.">Quick-fire, done</Heading>
+        <div className="fde-card" style={{ flexGrow: 1, minHeight: 0, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: 8, background: COBALT, borderRadius: 20, margin: "18px 0", padding: 26 }}>
+          <span style={{ fontFamily: DISPLAY, fontWeight: 800, fontSize: 54, color: "#fff" }}>{correct}/{questions.length}</span>
+          <span style={{ fontSize: 14, color: "rgba(255,255,255,.85)" }}>best streak {best}</span>
+        </div>
+        <Footer note="Now the real story — a portal that shipped clean and still failed.">
+          <Primary onClick={onDone}>Start the story →</Primary>
+        </Footer>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <Heading size={38} sub="Tap the term this definition is describing.">Quick-fire</Heading>
+
+      {/* Keyed on the question so each one actually arrives — an unkeyed
+          card is the same DOM node with new text in it, which reads as a
+          teleprompter rather than a next question. */}
+      <div key={i} style={{ flexGrow: 1, minHeight: 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: 18, padding: "18px 0" }}>
+        <div className="fde-card" style={{ background: "#fff", borderRadius: 20, padding: 24, fontSize: 16, lineHeight: 1.55, fontFamily: DISPLAY, fontWeight: 600, animation: "fde-land .5s cubic-bezier(.22,1.4,.4,1)" }}>
+          {q.def}
+        </div>
+        <div style={{ display: "grid", gap: 9, animation: "fde-rise .55s cubic-bezier(.16,1,.3,1) .07s both" }}>
+          {q.choices.map((choice) => {
+            const isFlashed = flash?.choice === choice;
+            const bg = isFlashed ? (flash!.right ? COBALT : "#B4342C") : "#fff";
+            return (
+              <button key={choice} onClick={() => pick(choice)} disabled={!!flash}
+                style={{ textAlign: "left", padding: "14px 16px", borderRadius: 13, cursor: flash ? "default" : "pointer",
+                  background: bg, color: isFlashed ? "#fff" : INK, border: `1px solid ${isFlashed ? bg : EDGE}`,
+                  fontFamily: DISPLAY, fontWeight: 600, fontSize: 14.5, transition: "background .15s ease, color .15s ease" }}>
+                {choice}
+              </button>
+            );
+          })}
+        </div>
+        <div style={{ fontSize: 12.5, color: INK_FAINT }}>{i + 1} of {questions.length} · streak {streak}</div>
+      </div>
+
+      <Footer note="Tap the term, not the definition.">
+        <VoiceChip voice={voice} />
+      </Footer>
+    </>
   );
 }
 
@@ -893,6 +1230,15 @@ function PartOne({ voice, spoken, name, onDone }: { voice: Voice; spoken: boolea
   const { heard, state: earState } = useListening({
     active: spoken && wantsAnswer && !voice.speaking,
     onMatch: (said) => {
+      // A stray echo of her own narration bleeding back through the mic (on
+      // speakers, without headphones) must never be graded as an answer —
+      // check it against what this beat, or the one right after it, says.
+      const echoesLine = (text: string) =>
+        text.length > 12 && said.toLowerCase().includes(text.toLowerCase().slice(0, 20));
+      const next = BEATS[i + 1];
+      if (echoesLine(b.line) || echoesLine(b.sub) || (next && (echoesLine(next.line) || echoesLine(next.sub)))) {
+        return false;
+      }
       if (b.gate === "opening") {
         const n = matchOpener(said);
         if (n !== null) {
@@ -966,14 +1312,18 @@ function PartOne({ voice, spoken, name, onDone }: { voice: Voice; spoken: boolea
 
   return (
     <>
+      {/* Keyed on the beat. Without it React keeps the same <h1> and simply
+          swaps the words inside it, so the entrance animation never replays
+          and eight beats in a row land with no motion at all — the flattest
+          stretch of the session. */}
       {!hasVisual && (
         // One growing box holding just the words, so they sit in the middle
         // of the room rather than splitting the gap with the footer.
         <div style={{ flexGrow: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-          <Heading sub={sub}>{line}</Heading>
+          <Heading key={i} sub={sub}>{line}</Heading>
         </div>
       )}
-      {hasVisual && <Heading sub={sub}>{line}</Heading>}
+      {hasVisual && <Heading key={i} sub={sub}>{line}</Heading>}
 
       <div style={{ flexGrow: hasVisual ? 1 : 0, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", justifyContent: "center", gap: 14, padding: hasVisual ? "18px 0" : 0 }}>
         {b.card === 1 && <ChartCard sel={sel} onPick={setSel} />}
@@ -1122,130 +1472,90 @@ function HoursCard() {
   );
 }
 
-/* ── part 2 — you read them first, no AI in the room yet ─────────────── */
+/* ── part 2 — call it, then watch what it did ─────────────────────────── */
+
+/**
+ * The decision and the reveal used to be two separate parts (decide, then
+ * vote+watch) — both asking the same question ("what should happen here")
+ * against the same four cases, twice. One call now does both jobs: it's the
+ * learner's decision AND their prediction of the AI, so the same four cases
+ * only take one pick and one reveal each, not three passes.
+ */
+function CaseReveal({ c, myCall }: { c: (typeof CASES)[number]; myCall: Call }) {
+  const t = TONES[c.tone];
+  const matched = myCall === c.answer;
+  return (
+    <div className="fde-card" style={{ background: t.bg, borderRadius: 20, padding: 24, animation: "fde-land .6s cubic-bezier(.22,1.4,.4,1)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <span style={{ width: 30, height: 30, borderRadius: "50%", background: t.badgeBg, color: t.badgeFg, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 700, flexShrink: 0 }} aria-hidden>{c.badge}</span>
+          <span style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 20, letterSpacing: "-.02em", color: t.fg }}>{c.decision}</span>
+        </div>
+        {/* The correctness callout used to be its own card underneath —
+            folded into this row so the reveal reads as one screen, not two. */}
+        <span style={{ fontSize: 12, padding: "5px 11px", borderRadius: 99, flexShrink: 0, background: matched ? (c.tone === "stop" ? "rgba(255,255,255,.16)" : "#EEF3FF") : (c.tone === "stop" ? "rgba(255,255,255,.1)" : "#F4F0E8"), color: matched ? (c.tone === "stop" ? "#fff" : COBALT) : t.sub }}>
+          {matched ? "Matched your call" : "Went the other way"}
+        </span>
+      </div>
+      {/* The named concept. Taught here at the exact moment it applies,
+          tested blind in the matching round right after this part, and
+          listed once more on the closing screen — same word, three times. */}
+      <div style={{ display: "inline-flex", alignItems: "baseline", gap: 8, marginTop: 12, padding: "6px 12px", borderRadius: 99, background: c.tone === "stop" ? "rgba(255,255,255,.12)" : "#F4F0E8" }}>
+        <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: 11, letterSpacing: ".04em", textTransform: "uppercase", color: c.tone === "stop" ? "#fff" : COBALT }}>{c.term}</span>
+      </div>
+      <p style={{ fontSize: 14, lineHeight: 1.65, color: t.sub, marginTop: 14, marginBottom: 0 }}>{c.because}</p>
+      {c.sting && (
+        <p style={{ fontSize: 14, lineHeight: 1.65, color: t.fg, marginTop: 14, marginBottom: 0, paddingLeft: 14, borderLeft: `2px solid ${c.tone === "stop" ? "#fff" : COBALT}` }}>{c.sting}</p>
+      )}
+    </div>
+  );
+}
 
 function PartTwo({ voice, onDone }: { voice: Voice; onDone: () => void }) {
   const [i, setI] = useState(0);
   const [calls, setCalls] = useState<(Call | null)[]>([null, null, null, null]);
-  const c = CASES[i];
-  useSpeak(voice, "All right. Four that really came in. No AI yet, just you. Read each one and tell me what you'd do with it.");
-  const mine = calls[i];
-  const allDone = calls.every(Boolean);
-
-  const set = (v: Call) => setCalls((p) => p.map((x, n) => (n === i ? v : x)));
-
-  return (
-    <>
-      <Heading size={42} sub="Four that really came in. No AI yet, just you. Read each one and say what you'd do with it.">
-        What&rsquo;s actually in the inbox
-      </Heading>
-
-      <CaseTabs i={i} onPick={setI} done={calls} />
-
-      <div style={{ flexGrow: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 14, padding: "18px 0" }}>
-        <EmailCard c={c} />
-        <div className="fde-card" style={{ background: "#fff", borderRadius: 20, padding: 22 }}>
-          <div style={{ fontSize: 12.5, color: INK_SOFT, marginBottom: 12 }}>Your call on {c.tab}. Nobody sees this but you.</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 9 }}>
-            {CALLS.map((k) => (
-              <button key={k.id} className="fde-pick" onClick={() => set(k.id)} aria-pressed={mine === k.id} style={{ textAlign: "left", padding: "13px 15px", borderRadius: 13, cursor: "pointer", background: mine === k.id ? INK : "#fff", color: mine === k.id ? "#fff" : INK, border: `1px solid ${mine === k.id ? INK : EDGE}` }}>
-                <div style={{ fontFamily: DISPLAY, fontWeight: 600, fontSize: 14 }}>{k.label}</div>
-                <div style={{ fontSize: 11.5, color: mine === k.id ? "rgba(255,255,255,.65)" : INK_FAINT, marginTop: 3 }}>{k.hint}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <Footer note={allDone ? "All four called. Now watch what it does with the same rules." : `${calls.filter(Boolean).length} of 4 called — pick the rest above.`}>
-        <VoiceChip voice={voice} />
-        {i < 3 && <Primary onClick={() => setI(i + 1)} disabled={!mine}>Next email →</Primary>}
-        {i === 3 && <Primary onClick={onDone} disabled={!allDone}>Part 3 →</Primary>}
-      </Footer>
-    </>
-  );
-}
-
-/* ── part 3 — it answers, you get marked ─────────────────────────────── */
-
-function PartThree({ voice, onDone }: { voice: Voice; onDone: () => void }) {
-  const [i, setI] = useState(0);
   const [revealed, setRevealed] = useState<boolean[]>([false, false, false, false]);
-  const [votes, setVotes] = useState<(Call | null)[]>([null, null, null, null]);
   const c = CASES[i];
-  useSpeak(voice, "Now I'm giving it those same four emails and the rules Denise uses. Vote before I run each one. You're checking its judgment, not its typing.");
-  const vote = votes[i];
+  useSpeak(voice, "Four that really came in. Call each one yourself, then watch what the AI actually did with the same rules.");
+  const mine = calls[i];
   const open = revealed[i];
   const allOpen = revealed.every(Boolean);
 
+  const set = (v: Call) => setCalls((p) => p.map((x, n) => (n === i ? v : x)));
   const reveal = () => setRevealed((p) => p.map((x, n) => (n === i ? true : x)));
-  const set = (v: Call) => setVotes((p) => p.map((x, n) => (n === i ? v : x)));
-  const t = TONES[c.tone];
 
   return (
     <>
-      <Heading size={42} sub="Same four emails, same rules Denise uses, now handed to the AI. Vote before you look. You're checking its judgment, not its typing.">
+      <Heading size={42} sub="Four that really came in. Call it, then watch what it did with the same rules.">
         Point it at them
       </Heading>
 
       <CaseTabs i={i} onPick={setI} done={revealed} />
 
-      <div style={{ flexGrow: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 14, padding: "18px 0" }}>
+      <div key={c.tab} style={{ flexGrow: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 14, padding: "18px 0" }}>
+        <EmailCard c={c} compact={open} />
         {!open ? (
           <div className="fde-card" style={{ background: "#fff", borderRadius: 20, padding: 22 }}>
-            <div style={{ fontFamily: DISPLAY, fontWeight: 600, fontSize: 16, marginBottom: 4 }}>{c.tab} — what will it do?</div>
-            <div style={{ fontSize: 13, color: INK_SOFT, marginBottom: 14 }}>{c.when} · {c.file}</div>
+            <div style={{ fontSize: 12.5, color: INK_SOFT, marginBottom: 12 }}>Your call on {c.tab}. Nobody sees this but you.</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 9 }}>
               {CALLS.map((k) => (
-                <button key={k.id} className="fde-pick" onClick={() => set(k.id)} aria-pressed={vote === k.id} style={{ textAlign: "left", padding: "13px 15px", borderRadius: 13, cursor: "pointer", background: vote === k.id ? COBALT : "#fff", color: vote === k.id ? "#fff" : INK, border: `1px solid ${vote === k.id ? COBALT : EDGE}` }}>
+                <button key={k.id} className="fde-pick" onClick={() => set(k.id)} aria-pressed={mine === k.id} style={{ textAlign: "left", padding: "13px 15px", borderRadius: 13, cursor: "pointer", background: mine === k.id ? INK : "#fff", color: mine === k.id ? "#fff" : INK, border: `1px solid ${mine === k.id ? INK : EDGE}` }}>
                   <div style={{ fontFamily: DISPLAY, fontWeight: 600, fontSize: 14 }}>{k.label}</div>
+                  <div style={{ fontSize: 11.5, color: mine === k.id ? "rgba(255,255,255,.65)" : INK_FAINT, marginTop: 3 }}>{k.hint}</div>
                 </button>
               ))}
             </div>
           </div>
         ) : (
-          <>
-            <EmailCard c={c} compact />
-            <div className="fde-card" style={{ background: t.bg, borderRadius: 20, padding: 24, animation: "fde-land .6s cubic-bezier(.22,1.4,.4,1)" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                <span style={{ width: 30, height: 30, borderRadius: "50%", background: t.badgeBg, color: t.badgeFg, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 700, flexShrink: 0 }} aria-hidden>{c.badge}</span>
-                <span style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 20, letterSpacing: "-.02em", color: t.fg }}>{c.decision}</span>
-              </div>
-              {/* The named concept. Taught here at the exact moment it applies,
-                  tested blind in the matching round right after Part 3, and
-                  listed once more on the closing screen — same word, three times. */}
-              <div style={{ display: "inline-flex", alignItems: "baseline", gap: 8, marginTop: 12, padding: "6px 12px", borderRadius: 99, background: c.tone === "stop" ? "rgba(255,255,255,.12)" : "#F4F0E8" }}>
-                <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: 11, letterSpacing: ".04em", textTransform: "uppercase", color: c.tone === "stop" ? "#fff" : COBALT }}>{c.term}</span>
-              </div>
-              <p style={{ fontSize: 14, lineHeight: 1.65, color: t.sub, marginTop: 14, marginBottom: 0 }}>{c.because}</p>
-              {c.sting && (
-                <p style={{ fontSize: 14, lineHeight: 1.65, color: t.fg, marginTop: 14, marginBottom: 0, paddingLeft: 14, borderLeft: `2px solid ${c.tone === "stop" ? "#fff" : COBALT}` }}>{c.sting}</p>
-              )}
-              <div style={{ borderTop: `1px solid ${t.rule}`, marginTop: 18, paddingTop: 16, display: "flex", flexWrap: "wrap", gap: "10px 26px" }}>
-                {c.fields.map(([k, v]) => (
-                  <div key={k}>
-                    <div style={{ fontSize: 10.5, color: t.sub, textTransform: "uppercase", letterSpacing: ".08em" }}>{k}</div>
-                    <div style={{ fontFamily: MONO, fontSize: 13, color: t.fg, marginTop: 3 }}>{v}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            {vote && (
-              <div style={{ padding: "14px 18px", borderRadius: 14, background: vote === c.answer ? "#EEF3FF" : "#F4F0E8", border: `1px solid ${vote === c.answer ? "#C9D8FF" : EDGE}`, fontSize: 13.5, color: INK_SOFT }}>
-                {vote === c.answer
-                  ? <>You called it <strong style={{ color: COBALT }}>the same way</strong>. Good. That means the rule is in your head too.</>
-                  : <>You said <strong style={{ color: INK }}>{CALLS.find((k) => k.id === vote)?.label.toLowerCase()}</strong>. It went the other way. That gap is worth arguing about out loud.</>}
-              </div>
-            )}
-          </>
+          <CaseReveal c={c} myCall={mine!} />
         )}
       </div>
 
-      <Footer note={open ? (allOpen ? "All four seen." : "Use the tabs to take the next one.") : "Vote first. No peeking. Being wrong here is the lesson."}>
+      <Footer note={open ? (allOpen ? "All four seen." : "Use the tabs to take the next one.") : "Call it before you look. Being wrong here is the lesson."}>
         <VoiceChip voice={voice} />
-        {!open && <Primary onClick={reveal} disabled={!vote}>Show me what it did →</Primary>}
+        {!open && <Primary onClick={reveal} disabled={!mine}>Show me what it did →</Primary>}
         {open && i < 3 && <Primary onClick={() => setI(i + 1)}>Next email →</Primary>}
-        {open && i === 3 && <Primary onClick={onDone} disabled={!allOpen}>Part 4 →</Primary>}
+        {open && i === 3 && <Primary onClick={onDone} disabled={!allOpen}>Part 3 →</Primary>}
       </Footer>
     </>
   );
@@ -1266,7 +1576,7 @@ function CaseTabs({ i, onPick, done }: { i: number; onPick: (n: number) => void;
 
 function EmailCard({ c, compact }: { c: (typeof CASES)[number]; compact?: boolean }) {
   return (
-    <div className="fde-card" style={{ background: "#fff", borderRadius: 20, padding: compact ? 20 : 24 }}>
+    <div className="fde-card" style={{ background: "#fff", borderRadius: 20, padding: compact ? 20 : 24, animation: "fde-land .5s cubic-bezier(.22,1.4,.4,1)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 13, gap: 12 }}>
         <span style={{ fontSize: 12.5, color: INK }}>From: {c.from}</span>
         <span style={{ fontFamily: MONO, fontSize: 11, color: INK_FAINT }}>{c.when}</span>
@@ -1276,7 +1586,7 @@ function EmailCard({ c, compact }: { c: (typeof CASES)[number]; compact?: boolea
   );
 }
 
-/* ── part 4 ──────────────────────────────────────────────────────────── */
+/* ── part 3 — sort it blind, then write your own ──────────────────────── */
 
 function shuffled<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -1290,7 +1600,7 @@ function shuffled<T>(arr: T[]): T[] {
 /**
  * The matching round. Blind — no email bodies, just the four names — so it
  * tests whether the call transferred, not whether they can re-read a card.
- * Sits between Part 3's reveals and the rulebook: recognize the pattern
+ * Sits between Part 2's reveals and the rulebook: recognize the pattern
  * once more, under a little pressure, right before you write your own.
  */
 function MatchGame({ voice, onDone }: { voice: Voice; onDone: () => void }) {
@@ -1380,7 +1690,7 @@ function MatchGame({ voice, onDone }: { voice: Voice; onDone: () => void }) {
   );
 }
 
-function PartFour({
+function PartThree({
   voice, trackSlug, weekNumber, saved, onDone,
 }: {
   voice: Voice; trackSlug: string; weekNumber: number; saved: Record<string, string>; onDone: () => void;
