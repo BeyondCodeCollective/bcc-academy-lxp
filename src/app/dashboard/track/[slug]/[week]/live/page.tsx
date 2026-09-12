@@ -15,6 +15,9 @@ import { resolveTrackProgram } from "@/lib/programs/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { createServiceClient } from "@/lib/supabase/server";
 import { canAccessAdminPanel } from "@/lib/roles";
+import { trackHasStarted } from "@/lib/utils";
+import { isSequentialGated, highestUnlockedWeek } from "@/lib/track-gating";
+import { getTrackProgressMap } from "@/app/dashboard/track/actions";
 import { SessionStage } from "@/components/fde/session-stage";
 import { RULEBOOK_PROMPT_TEXTS } from "@/components/fde/rulebook-prompts";
 import { getReflection } from "@/app/dashboard/track/actions";
@@ -43,6 +46,33 @@ export default async function LiveSessionPage({
       .eq("track_slug", trackSlug)
       .maybeSingle();
     if (!enr) redirect("/dashboard");
+  }
+
+  // Same gates as the week page: a staged session is still a track week, and
+  // direct navigation here must not bypass the launch date, the coming-soon
+  // date, or sequential unlock.
+  const { track } = resolved;
+  if (!isStaff) {
+    if (!trackHasStarted(track)) redirect(`/dashboard/track/${trackSlug}`);
+
+    const weekContent = track.weeks.find((w) => w.week === weekNum);
+    if (weekContent?.comingSoonUntil && new Date() < new Date(weekContent.comingSoonUntil)) {
+      redirect(`/dashboard/track/${trackSlug}/${weekNum}`);
+    }
+
+    if (isSequentialGated(track) && ctx?.userId) {
+      const progressMap = await getTrackProgressMap(trackSlug).catch(() => null);
+      if (progressMap) {
+        const unlockedThrough = highestUnlockedWeek(
+          track,
+          new Set(progressMap.watched),
+          new Set(progressMap.submitted),
+        );
+        if (weekNum > unlockedThrough) {
+          redirect(`/dashboard/track/${trackSlug}/${weekNum}`);
+        }
+      }
+    }
   }
 
   // Someone who already answered any of the three rulebook prompts sees
