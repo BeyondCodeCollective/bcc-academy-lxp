@@ -112,7 +112,7 @@ export function touchpointKicker(t: Touchpoint): string {
 }
 
 export function touchpointCta(t: Touchpoint): string {
-  return t.kind === "live" ? "Join now" : t.kind === "today" ? "Join" : "Open";
+  return t.kind === "live" ? "Join now" : "Join session";
 }
 
 /** The session's own name — a real title replaces the generic unit label
