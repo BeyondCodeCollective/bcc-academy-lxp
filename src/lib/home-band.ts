@@ -39,6 +39,8 @@ export type ScheduledSession = {
   trackName: string;
   /** Student-facing unit label, e.g. "Session 13" or "Week 6". */
   unitLabel: string;
+  /** Internal unit number — the session page is /dashboard/track/<slug>/<week>. */
+  week?: number;
   /** ISO instant the session starts. */
   startsAt: string;
   /** "6:30 PM ET", already formatted for display. */
@@ -112,6 +114,7 @@ export function scheduledSessions(
         trackSlug: track.slug,
         code: trackCode(track),
         trackName: track.shortName || track.name,
+        week: ws.week,
         unitLabel:
           displayUnit?.(track, ws.week) ??
           ws.label ??
