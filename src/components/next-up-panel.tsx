@@ -99,9 +99,18 @@ export function NextUpPanel({
             : "mt-3 block text-[27px] font-bold leading-[1.08] tracking-[-0.02em] text-paper sm:text-[30px]"
         }
       >
-        {/* MASS and home-composed touchpoints carry the full line in
-           unitLabel; a placeholder topic (title === unitLabel) adds nothing. */}
-        {isMass || !title || title === unitLabel ? unitLabel : `${unitLabel} · ${title}`}
+        {/* Home-composed touchpoints carry the full line in unitLabel already
+           (see course-touchpoint.ts); a placeholder topic (title === unitLabel)
+           adds nothing. MASS's unitLabel is a fixed "MASS coaching" — when a
+           session has its own real title (e.g. a named capstone session, not
+           a generic coaching call), that title already names itself and
+           replaces the generic label rather than trailing after it, the way
+           the schedule below shows the same session. */}
+        {!title || title === unitLabel
+          ? unitLabel
+          : isMass
+            ? title
+            : `${unitLabel} · ${title}`}
       </span>
       {sub && (
         <span
