@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { CourseAgenda, type AgendaRow } from "@/components/course-agenda";
-import { TrackCalendar, type CalendarEvent } from "@/components/track-calendar";
+import { TrackCalendar, type CalendarEvent, type CalendarFocus } from "@/components/track-calendar";
 
 /**
  * The one schedule, in the viewer's choice of shape: a month Calendar (see the
@@ -15,21 +15,38 @@ import { TrackCalendar, type CalendarEvent } from "@/components/track-calendar";
  * day, grid), so the bottom of the page read as loose strips of content with
  * nothing holding them together.
  */
+const PHONE = "(max-width: 639px)";
+function subscribePhone(cb: () => void) {
+  const mq = window.matchMedia(PHONE);
+  mq.addEventListener("change", cb);
+  return () => mq.removeEventListener("change", cb);
+}
+function getIsPhone() {
+  return window.matchMedia(PHONE).matches;
+}
+
 export function ScheduleTabs({
   rows,
   events,
   todayISO,
-  focusDate,
+  focus,
 }: {
   rows: AgendaRow[];
   events: CalendarEvent[];
   todayISO: string;
-  focusDate?: string | null;
+  /** The session the page is about — the field cell in the grid, the accent
+   *  row in the list. */
+  focus?: CalendarFocus | null;
 }) {
+  const focusDate = focus?.date ?? null;
   // Calendar is the default: it opens on the current month, so the first
-  // thing on screen is where the cohort actually is. The list always starts
-  // at the oldest session, which reads as "loading the wrong date".
-  const [view, setView] = useState<"calendar" | "list">("calendar");
+  // thing on screen is where the cohort actually is. Phones get the list. A seven-column grid at 390px can only show dots, so
+  // the calendar there answers "is something on that day" but never "what".
+  // Month stays one tap away. The device default only applies until the
+  // viewer picks a view themselves.
+  const isPhone = useSyncExternalStore(subscribePhone, getIsPhone, () => false);
+  const [choice, setChoice] = useState<"calendar" | "list" | null>(null);
+  const view = choice ?? (isPhone ? "list" : "calendar");
 
   return (
     <section aria-label="Schedule" className="panel overflow-hidden">
@@ -40,7 +57,7 @@ export function ScheduleTabs({
             <button
               key={v}
               type="button"
-              onClick={() => setView(v)}
+              onClick={() => setChoice(v)}
               aria-pressed={view === v}
               className={`min-h-[30px] rounded-full px-3.5 text-[12px] font-semibold transition-colors ${
                 view === v
@@ -56,7 +73,7 @@ export function ScheduleTabs({
 
       <div className="px-4 py-4">
         {view === "calendar" ? (
-          <TrackCalendar events={events} todayISO={todayISO} focusDate={focusDate} />
+          <TrackCalendar events={events} todayISO={todayISO} focus={focus} />
         ) : (
           <CourseAgenda rows={rows} todayISO={todayISO} focusDate={focusDate} />
         )}

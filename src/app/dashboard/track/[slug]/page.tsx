@@ -1,4 +1,4 @@
-import { CourseHero } from "@/components/course-hero";
+import { CourseHeader } from "@/components/course-header";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import {
@@ -23,7 +23,7 @@ import { buttonClass } from "@/components/ui";
 import { getTrackProgressMap } from "@/app/dashboard/track/actions";
 import { addDays } from "@/lib/ical";
 import { type AgendaRow } from "@/components/course-agenda";
-import { type CalendarEvent } from "@/components/track-calendar";
+import { type CalendarEvent, type CalendarFocus } from "@/components/track-calendar";
 import { ScheduleTabs } from "@/components/schedule-tabs";
 import type { TrackConfig } from "@/lib/programs/types";
 import { getAllSessionContent } from "@/app/dashboard/admin/actions-tracks";
@@ -32,10 +32,12 @@ import { MyProgressCard } from "@/components/my-progress-card";
 import { getLearnerProgress } from "@/lib/learner-progress";
 import { getWhatsNew, type FeedItem } from "@/lib/whats-new";
 import { HoldingView } from "@/components/holding-view";
-import { PreStartBanner } from "@/components/pre-start-banner";
 import {
   touchpointCandidates,
   resolveTouchpoint,
+  touchpointCta,
+  touchpointHeadline,
+  touchpointKicker,
 } from "@/lib/course-touchpoint";
 import { getLandingHeroForTrack } from "@/lib/landing-pages";
 import {
@@ -463,6 +465,32 @@ export default async function TrackOverviewPage({
     time: r.time,
   }));
 
+  // The field, at cell size. Running: the live/today/next session, with its
+  // Join. Before day one: the first dated session, filled but locked — the
+  // same cell the learner will click on the day, so the page doesn't change
+  // shape when the course starts.
+  const firstRow = agendaRows.find((r) => r.kind === "session");
+  const calendarFocus: CalendarFocus | null = preStart
+    ? firstRow
+      ? {
+          date: firstRow.date,
+          kicker: "Starts",
+          title: firstRow.label ? `${firstRow.label} · ${firstRow.title}` : firstRow.title,
+          time: firstRow.time ?? null,
+          cta: "",
+        }
+      : null
+    : touchpoint
+      ? {
+          date: touchpoint.date,
+          kicker: touchpointKicker(touchpoint),
+          title: touchpointHeadline(touchpoint),
+          time: touchpoint.timeLabel,
+          href: touchpoint.href,
+          cta: touchpointCta(touchpoint),
+        }
+      : null;
+
   // The feed is a line, not a card: one item, the most recent.
   const latestNews = whatsNew[0] ?? null;
 
@@ -496,45 +524,21 @@ export default async function TrackOverviewPage({
         </a>
       )}
 
-      {/* 0 — course cover, when the course has artwork. Full design, natural
-         aspect (the instructor's banner is a composed poster — cropping it
-         cuts its own text). Decorative: the header right below carries the
-         course identity for screen readers. */}
-      {/* 1 — what course is this.
-
-         The field, always. It used to be conditional: cover art for some
-         courses, a bare ink header for the rest, the field only where neither
-         applied. That made the product look half-redesigned — one course opens
-         on a generated illustration, the next on a line of grey type, and
-         nothing tells a learner they are in the same place.
-
-         The generated cover art is MARKETING. It belongs on the landing page,
-         where someone is choosing a course, and it still goes there —
-         `heroImageUrl` above feeds HoldingView and the public page unchanged.
-         In-product, the course's own name is what identifies it, and the field
-         is the ground it sits on. Same ground as the session page and the
-         admin home, so the three read as one product.
-
-         Once the course is running and there's a live/today/next session,
-         the field becomes that instead of plain identity (see CourseHero) —
-         a separate "Up Next" card below it would be the exact two-dark-
-         objects, two-display-headings mistake the field system exists to
-         prevent, and it said the same date twice against the Schedule
-         section further down besides. */}
-      <CourseHero
+      {/* 1 — which course this is. One line, no dark object: the field lives in
+         the calendar below, on the cell of the session that matters, so the
+         page says each date exactly once. Before day one the header also
+         carries seat-saved + Add to calendar (the old PreStartBanner). */}
+      <CourseHeader
         eyebrow={eyebrow}
         title={track.name}
         meta={metaLine}
-        touchpoint={preStart ? null : touchpoint}
+        preStart={preStart}
+        track={track}
       />
 
-      {/* 2 — the one thing to do now, when the field above ISN'T already
-         answering that: before day one, the start + a way to calendar it;
-         running with nothing dated (self-paced, no scheduled sessions), a
-         plain open-the-course link. */}
-      {preStart ? (
-        <PreStartBanner track={track} />
-      ) : !touchpoint ? (
+      {/* 2 — running with nothing dated (self-paced, no scheduled sessions):
+         the calendar has no cell to carry the CTA, so a plain open link does. */}
+      {!preStart && !touchpoint && (
         <Link
           href={`/dashboard/track/${slug}/${ctaWeek}`}
           className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-xl border border-rule border-l-[3px] border-l-primary bg-surface-elevated px-4 py-3.5 transition-colors hover:bg-paper-tint-soft"
@@ -547,7 +551,7 @@ export default async function TrackOverviewPage({
             <ArrowRight size={15} weight="bold" />
           </span>
         </Link>
-      ) : null}
+      )}
 
       {/* Announcements: track-scoped and time-sensitive, so they sit above the
          syllabus — but a line, not a card. */}
@@ -590,7 +594,7 @@ export default async function TrackOverviewPage({
           rows={agendaRows}
           events={calendarEvents}
           todayISO={todayISO}
-          focusDate={touchpoint?.date ?? null}
+          focus={calendarFocus}
         />
       )}
 
