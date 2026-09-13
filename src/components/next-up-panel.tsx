@@ -58,10 +58,17 @@ export function NextUpPanel({
 
   const kicker = isLive ? "Live now" : kind === "today" ? "Today" : "Up next";
   const cta = isLive ? "Join now" : kind === "today" ? "Join" : "Open";
-  // Time is noise under "Happening now"; useful under a date.
+  // "Happening now" is urgency this panel is the only place to say — never
+  // dropped. A plain date/time, though, is what the Schedule section right
+  // below this panel already shows for this same session, highlighted — the
+  // "quiet" variant (course page) skips restating it. The "hero" variant
+  // (dashboard home) has no schedule on that page to defer to, so it keeps
+  // the full date/time.
   const sub = isLive
     ? whenLabel
-    : [whenLabel, timeLabel].filter(Boolean).join(" · ");
+    : quiet
+      ? undefined
+      : [whenLabel, timeLabel].filter(Boolean).join(" · ");
 
   // This panel is the page's primary object, so it carries the one dark
   // ground on the screen and the display size the course page already uses
@@ -99,9 +106,18 @@ export function NextUpPanel({
             : "mt-3 block text-[27px] font-bold leading-[1.08] tracking-[-0.02em] text-paper sm:text-[30px]"
         }
       >
-        {/* MASS and home-composed touchpoints carry the full line in
-           unitLabel; a placeholder topic (title === unitLabel) adds nothing. */}
-        {isMass || !title || title === unitLabel ? unitLabel : `${unitLabel} · ${title}`}
+        {/* Home-composed touchpoints carry the full line in unitLabel already
+           (see course-touchpoint.ts); a placeholder topic (title === unitLabel)
+           adds nothing. MASS's unitLabel is a fixed "MASS coaching" — when a
+           session has its own real title (e.g. a named capstone session, not
+           a generic coaching call), that title already names itself and
+           replaces the generic label rather than trailing after it, the way
+           the schedule below shows the same session. */}
+        {!title || title === unitLabel
+          ? unitLabel
+          : isMass
+            ? title
+            : `${unitLabel} · ${title}`}
       </span>
       {sub && (
         <span
