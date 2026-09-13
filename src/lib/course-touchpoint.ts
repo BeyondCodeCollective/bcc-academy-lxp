@@ -102,6 +102,37 @@ function toTouchpoint(kind: TouchpointKind, c: Candidate): Touchpoint {
   };
 }
 
+// ─── Shared display strings ──────────────────────────────────────────────
+// One source for how a touchpoint reads as text, so every surface that shows
+// one (the dashboard home panel, the course page's merged field) says the
+// same thing the same way.
+
+export function touchpointKicker(t: Touchpoint): string {
+  return t.kind === "live" ? "Live now" : t.kind === "today" ? "Today" : "Up next";
+}
+
+export function touchpointCta(t: Touchpoint): string {
+  return t.kind === "live" ? "Join now" : t.kind === "today" ? "Join" : "Open";
+}
+
+/** The session's own name — a real title replaces the generic unit label
+ *  rather than trailing after it (MASS's "MASS coaching" is a placeholder
+ *  the moment a session has a real one, e.g. a named capstone). */
+export function touchpointHeadline(t: Touchpoint): string {
+  return !t.title || t.title === t.unitLabel
+    ? t.unitLabel
+    : t.isMass
+      ? t.title
+      : `${t.unitLabel} · ${t.title}`;
+}
+
+/** Time is noise under "Happening now"; useful under a date. */
+export function touchpointWhen(t: Touchpoint): string {
+  return t.kind === "live"
+    ? t.whenLabel
+    : [t.whenLabel, t.timeLabel].filter(Boolean).join(" · ");
+}
+
 /** Live > today > next-upcoming. Null once nothing remains (course is over). */
 export function resolveTouchpoint(candidates: Candidate[], now: Date): Touchpoint | null {
   const byStart = (a: Candidate, b: Candidate) =>

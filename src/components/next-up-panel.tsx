@@ -1,14 +1,17 @@
 import Link from "next/link";
 import { ArrowRight, Megaphone } from "@phosphor-icons/react/dist/ssr";
-import { buttonClass } from "@/components/ui";
 import type { Touchpoint } from "@/lib/course-touchpoint";
+import { touchpointCta, touchpointHeadline, touchpointKicker, touchpointWhen } from "@/lib/course-touchpoint";
 
 /**
- * The one "what now" the course leads with once it's running — the started
- * counterpart to PreStartBanner. It names the session that's live, meeting
- * today, or up next, and its button is the single action that matters right
- * then (join / open). Computed server-side each load, so it's correct on
- * arrival without polling.
+ * The one "what now" the dashboard home leads with — names the session
+ * that's live, meeting today, or up next, and its button is the single
+ * action that matters right then (join / open). Computed server-side each
+ * load, so it's correct on arrival without polling.
+ *
+ * The course page's own version of this is folded into CourseHero instead —
+ * that page already has a field for course identity, and a second one here
+ * would be the two-dark-objects mistake the field system exists to prevent.
  */
 export type PanelTodo = {
   label: string;
@@ -34,7 +37,6 @@ export function NextUpPanel({
   touchpoint,
   todos = [],
   notice = null,
-  variant = "hero",
 }: {
   touchpoint: Touchpoint;
   /** Small tasks (profile, surveys) fold into the panel as quiet rows —
@@ -43,127 +45,60 @@ export function NextUpPanel({
   /** The track's latest announcement, folded in as a row rather than shipped
    *  as a second banner below this one. */
   notice?: PanelNotice | null;
-  /** "hero" — the dark, display-size treatment. Correct on the dashboard
-   *  home, where this IS the page's one dominant object.
-   *  "quiet" — light surface, secondary size. Correct on a course page,
-   *  where the cover art is already the one dark object and the course name
-   *  already owns the page's single display size. Two dark slabs and two
-   *  display headings on one screen is the exact thing the hierarchy work
-   *  was meant to prevent. */
-  variant?: "hero" | "quiet";
 }) {
-  const quiet = variant === "quiet";
-  const { kind, href, unitLabel, title, whenLabel, timeLabel, isMass } = touchpoint;
+  const { kind, href } = touchpoint;
   const isLive = kind === "live";
-
-  const kicker = isLive ? "Live now" : kind === "today" ? "Today" : "Up next";
-  const cta = isLive ? "Join now" : kind === "today" ? "Join" : "Open";
-  // "Happening now" is urgency this panel is the only place to say — never
-  // dropped. A plain date/time, though, is what the Schedule section right
-  // below this panel already shows for this same session, highlighted — the
-  // "quiet" variant (course page) skips restating it. The "hero" variant
-  // (dashboard home) has no schedule on that page to defer to, so it keeps
-  // the full date/time.
-  const sub = isLive
-    ? whenLabel
-    : quiet
-      ? undefined
-      : [whenLabel, timeLabel].filter(Boolean).join(" · ");
-
-  // This panel is the page's primary object, so it carries the one dark
-  // ground on the screen and the display size the course page already uses
-  // (30px). Everything under it stays small on purpose — the contrast IS the
-  // hierarchy. Electric green marks live state only, on filled shapes.
-  const hero = (
-    <Link
-      href={href}
-      className={`block transition-opacity hover:opacity-95 ${
-        quiet ? "px-4 py-4 sm:px-5" : "px-5 py-5 sm:px-6 sm:py-6"
-      }`}
-    >
-      {isLive ? (
-        <span className="inline-flex items-center gap-2 rounded-full bg-highlight px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.1em] text-ink">
-          <span
-            className="h-1.5 w-1.5 rounded-full bg-ink motion-safe:animate-pulse"
-            aria-hidden
-          />
-          {kicker}
-        </span>
-      ) : (
-        <span
-          className={`block text-[11px] font-bold uppercase tracking-[0.14em] ${
-            quiet ? "text-ink-faint" : "text-paper/60"
-          }`}
-        >
-          {kicker}
-        </span>
-      )}
-
-      <span
-        className={
-          quiet
-            ? "mt-2 block text-[19px] font-semibold leading-snug text-ink"
-            : "mt-3 block text-[27px] font-bold leading-[1.08] tracking-[-0.02em] text-paper sm:text-[30px]"
-        }
-      >
-        {/* Home-composed touchpoints carry the full line in unitLabel already
-           (see course-touchpoint.ts); a placeholder topic (title === unitLabel)
-           adds nothing. MASS's unitLabel is a fixed "MASS coaching" — when a
-           session has its own real title (e.g. a named capstone session, not
-           a generic coaching call), that title already names itself and
-           replaces the generic label rather than trailing after it, the way
-           the schedule below shows the same session. */}
-        {!title || title === unitLabel
-          ? unitLabel
-          : isMass
-            ? title
-            : `${unitLabel} · ${title}`}
-      </span>
-      {sub && (
-        <span
-          className={`mt-1 block text-sm tabular-nums ${
-            quiet ? "text-ink-faint" : "mt-2 text-paper/70"
-          }`}
-        >
-          {sub}
-        </span>
-      )}
-
-      <span
-        className={`inline-flex items-center gap-1.5 rounded-full text-sm font-bold ${
-          quiet
-            ? `mt-3 px-4 py-2 ${isLive ? "bg-highlight text-ink" : "bg-primary text-white"}`
-            : `mt-5 px-5 py-2.5 ${isLive ? "bg-highlight text-ink" : "bg-paper text-ink"}`
-        }`}
-      >
-        {cta}
-        <ArrowRight size={15} weight="bold" />
-      </span>
-    </Link>
-  );
+  const kicker = touchpointKicker(touchpoint);
+  const cta = touchpointCta(touchpoint);
+  const headline = touchpointHeadline(touchpoint);
+  const sub = touchpointWhen(touchpoint);
 
   return (
     // One object, two grounds: the action on ink, the small stuff on white.
-    // rounded-2xl matches the course page's primary-object radius rather than
-    // the rounded-lg every secondary card wears.
-    <div
-      className={`overflow-hidden border border-rule ${quiet ? "rounded-xl" : "rounded-2xl"}`}
-    >
+    <div className="overflow-hidden rounded-2xl border border-rule">
       {/* The dark ground is the FIELD, not flat ink — same surface as the
          session page, the course header and the admin band, so the primary
-         object on every screen is recognisably the same object. bg-ink here
-         was the last place the old flat black survived. */}
-      <div
-        className={
-          quiet
-            ? "bg-surface-elevated"
-            : "stage-surface stage-grid relative isolate overflow-hidden"
-        }
-      >
-        {quiet ? hero : <div className="relative">{hero}</div>}
+         object on every screen is recognisably the same object. */}
+      <div className="stage-surface stage-grid relative isolate overflow-hidden">
+        <Link
+          href={href}
+          className="relative block px-5 py-5 transition-opacity hover:opacity-95 sm:px-6 sm:py-6"
+        >
+          {isLive ? (
+            <span className="inline-flex items-center gap-2 rounded-full bg-highlight px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.1em] text-ink">
+              <span
+                className="h-1.5 w-1.5 rounded-full bg-ink motion-safe:animate-pulse"
+                aria-hidden
+              />
+              {kicker}
+            </span>
+          ) : (
+            <span className="block text-[11px] font-bold uppercase tracking-[0.14em] text-paper/60">
+              {kicker}
+            </span>
+          )}
+
+          <span className="mt-3 block text-[27px] font-bold leading-[1.08] tracking-[-0.02em] text-paper sm:text-[30px]">
+            {headline}
+          </span>
+          {sub && (
+            <span className="mt-2 block text-sm tabular-nums text-paper/70">
+              {sub}
+            </span>
+          )}
+
+          <span
+            className={`mt-5 inline-flex items-center gap-1.5 rounded-full px-5 py-2.5 text-sm font-bold ${
+              isLive ? "bg-highlight text-ink" : "bg-paper text-ink"
+            }`}
+          >
+            {cta}
+            <ArrowRight size={15} weight="bold" />
+          </span>
+        </Link>
       </div>
       {(todos.length > 0 || notice) && (
-        <div className={`bg-surface-elevated ${quiet ? "px-4 sm:px-5" : "px-5 sm:px-6"}`}>
+        <div className="bg-surface-elevated px-5 sm:px-6">
           {notice && (
             <Link
               href={notice.href}
