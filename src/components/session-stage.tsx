@@ -26,6 +26,7 @@ type StageState = "before" | "ready" | "after";
 export function SessionStage({
   state,
   headline,
+  meta,
   blurb,
   liveLabel,
   calendarHref,
@@ -40,6 +41,7 @@ export function SessionStage({
   outstandingLabel,
   nextLabel,
   completedNote,
+  secondaryAction,
 }: {
   state: StageState;
   /**
@@ -49,6 +51,9 @@ export function SessionStage({
    * printing the title twice.
    */
   headline?: string;
+  /** "Fonz Morris & Mica · Live on Zoom · 90 min" — carries the page header's
+   *  byline when the stage stands in for it instead of sitting below it. */
+  meta?: string;
   blurb?: string;
   /** "Live cohort session with Fonz — Monday, Sept 21 at 6:30 PM ET" */
   liveLabel?: string;
@@ -68,6 +73,9 @@ export function SessionStage({
   nextLabel?: string;
   /** after-state badge tail: "You finished Sept 21 · 84 minutes" */
   completedNote?: string;
+  /** before-state only: a quieter secondary link beside "Add to calendar",
+   *  e.g. a staff-only preview into the lab before it's open to everyone. */
+  secondaryAction?: { label: string; href: string };
 }) {
   return (
     <section
@@ -117,6 +125,11 @@ export function SessionStage({
               {headline}
             </h2>
           )}
+          {meta && (
+            <p className="-mt-2 max-w-[56ch] text-sm leading-relaxed text-white/[0.72]">
+              {meta}
+            </p>
+          )}
           {blurb &&
             (headline ? (
               <p className="max-w-[56ch] text-[15px] leading-relaxed text-white/80 sm:text-base">
@@ -145,7 +158,7 @@ export function SessionStage({
           )}
 
           {state === "before" && (
-            <div className="flex flex-wrap items-center gap-3 pt-1">
+            <div className="flex flex-wrap items-center gap-4 pt-1">
               {calendarHref && (
                 <a
                   href={calendarHref}
@@ -153,6 +166,14 @@ export function SessionStage({
                 >
                   <Calendar size={15} />
                   Add to calendar
+                </a>
+              )}
+              {secondaryAction && (
+                <a
+                  href={secondaryAction.href}
+                  className="border-b border-white/[0.32] pb-px text-[13px] font-semibold text-white/[0.75] transition-colors hover:text-white"
+                >
+                  {secondaryAction.label}
                 </a>
               )}
             </div>
