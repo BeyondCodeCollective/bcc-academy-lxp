@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
-import type { RailDay } from "@/lib/home-band";
+import Link from "next/link";
+import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
+import type { RailDay, ScheduledSession } from "@/lib/home-band";
 
 /**
  * The home band — the first thing on the first screen.
@@ -26,6 +28,8 @@ export function HomeBand({
   sub,
   stats,
   rail,
+  action,
+  sessionHref,
   children,
 }: {
   eyebrow: string;
@@ -34,6 +38,13 @@ export function HomeBand({
   sub?: string;
   stats?: BandStat[];
   rail?: RailDay[];
+  /** The one thing to do — rendered as the band's button. On the learner home
+   *  this is the next session's Join; it replaced a second dark panel
+   *  (NextUpPanel) that said the same date underneath. */
+  action?: { label: string; href: string; live?: boolean };
+  /** Where a rail day goes when tapped. Given, a day with sessions becomes a
+   *  link to its first one; without it the rail is read-only (admin home). */
+  sessionHref?: (s: ScheduledSession) => string | undefined;
   /** Optional trailing row inside the band (a callout, an action). */
   children?: ReactNode;
 }) {
@@ -60,6 +71,18 @@ export function HomeBand({
           </div>
 
           <div className="hidden flex-1 sm:block" />
+
+          {action && (
+            <Link
+              href={action.href}
+              className={`inline-flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-lg px-5 text-sm font-bold ${
+                action.live ? "bg-highlight text-ink" : "bg-paper text-ink hover:bg-white"
+              }`}
+            >
+              {action.label}
+              <ArrowRight size={15} weight="bold" aria-hidden />
+            </Link>
+          )}
 
           {stats && stats.length > 0 && (
             <div className="flex w-full shrink-0 items-stretch gap-2.5 sm:w-auto sm:gap-3">
@@ -92,15 +115,17 @@ export function HomeBand({
 
         {rail && rail.length > 0 && (
           <div className="flex gap-1.5 border-t border-white/[0.14] pt-3 sm:gap-2">
-            {rail.map((day) => (
-              <div
-                key={day.dateKey}
-                className={`flex min-w-0 flex-1 flex-col items-center gap-1.5 rounded-[7px] px-1 py-2 sm:items-start sm:px-2 ${
-                  day.isToday
-                    ? "bg-white/[0.12] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.3)]"
+            {rail.map((day) => {
+              const href = day.sessions[0] ? sessionHref?.(day.sessions[0]) : undefined;
+              const cls = `flex min-w-0 flex-1 flex-col items-center gap-1.5 rounded-[7px] px-1 py-2 sm:items-start sm:px-2 ${
+                day.isToday
+                  ? "bg-white/[0.12] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.3)]"
+                  : day.sessions.length > 0 && sessionHref
+                    ? "bg-white/[0.08]"
                     : "bg-white/[0.045]"
-                }`}
-              >
+              }`;
+              const inner = (
+                <>
                 <div className="flex items-baseline gap-1">
                   <span
                     className={`text-[9.5px] font-bold uppercase tracking-[0.1em] ${
@@ -149,8 +174,18 @@ export function HomeBand({
                     </span>
                   )}
                 </div>
-              </div>
-            ))}
+                </>
+              );
+              return href ? (
+                <Link key={day.dateKey} href={href} className={`${cls} transition-colors hover:bg-white/[0.16]`}>
+                  {inner}
+                </Link>
+              ) : (
+                <div key={day.dateKey} className={cls}>
+                  {inner}
+                </div>
+              );
+            })}
           </div>
         )}
 

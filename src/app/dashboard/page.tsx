@@ -21,10 +21,15 @@ import { resolveCurrentUser } from "@/lib/current-user";
 import { getEnrolledTracks, collapseCompanionSlugs } from "@/lib/enrollment";
 import { getHiddenTrackSlugs } from "@/lib/programs/hidden";
 import { WeekIcon } from "@/components/week-icon";
-import { DashboardBento } from "@/components/dashboard-bento";
-import { NextUpPanel } from "@/components/next-up-panel";
-import { touchpointCandidates, resolveTouchpoint } from "@/lib/course-touchpoint";
-import { isTutorAvailable } from "@/lib/programs";
+import { CourseCards } from "@/components/course-cards";
+import {
+  touchpointCandidates,
+  resolveTouchpoint,
+  touchpointCta,
+  touchpointHeadline,
+  touchpointKicker,
+  touchpointWhen,
+} from "@/lib/course-touchpoint";
 import { MyProgressCard, type MyProgressCardProps } from "@/components/my-progress-card";
 import { AnnouncementBanner } from "@/components/announcement-banner";
 import { getLearnerProgress } from "@/lib/learner-progress";
@@ -829,10 +834,14 @@ async function DashboardContent({
       })(),
       currentWeek: currentWeek || 1,
       started,
-      currentTopic:
-        track.weekSummaries[(currentWeek || 1) - 1]?.topic ??
-        track.weekSummaries[0]?.topic ??
-        "",
+      startsLabel:
+        !started && track.startDate && !track.startDateTbd
+          ? formatCohortDate(
+              track.startDate.slice(0, 10),
+              { weekday: "short", month: "short", day: "numeric" },
+              "en-US",
+            )
+          : undefined,
     }));
   // The band. Same component and same question as the admin home — "what's
   // going on" — answered from this learner's own enrollments. The sentence is
@@ -866,28 +875,36 @@ async function DashboardContent({
       )}
 
       <div>
+        {/* ONE field. The band used to be followed by NextUpPanel — a second
+           dark object naming the same session and date. Now the band's
+           sentence IS the next session, its button is the Join, and the rail
+           underneath is the evidence; every rail day with a session opens it. */}
         <HomeBand
-          eyebrow={`${firstName ? `Welcome back, ${firstName}` : "Welcome back"} · ${formatCohortDate(
+          eyebrow={`${nextUp ? touchpointKicker(nextUp) : firstName ? `Welcome back, ${firstName}` : "Welcome back"} · ${formatCohortDate(
             easternDayKey(now),
             { weekday: "long", month: "long", day: "numeric" },
             "en-US",
           )}`}
-          headline={bandHeadline}
-          sub={bandSub || (bandTracks.length > 0 ? bandTracks.map((t) => t.name).join(" · ") : cohortName)}
+          headline={nextUp ? touchpointHeadline(nextUp) : bandHeadline}
+          sub={
+            nextUp
+              ? touchpointWhen(nextUp)
+              : bandSub || (bandTracks.length > 0 ? bandTracks.map((t) => t.name).join(" · ") : cohortName)
+          }
+          action={
+            nextUp
+              ? { label: touchpointCta(nextUp), href: nextUp.href, live: nextUp.kind === "live" }
+              : undefined
+          }
           rail={bandRail}
-          stats={[
-            ...(bandTracks.length > 0
-              ? [
-                  {
-                    value: String(bandTracks.length),
-                    label: bandTracks.length === 1 ? "Course" : "Courses",
-                  },
-                ]
-              : []),
-            ...(homeTodos.length > 0
+          sessionHref={(s) =>
+            s.week != null ? `/dashboard/track/${s.trackSlug}/${s.week}` : undefined
+          }
+          stats={
+            homeTodos.length > 0
               ? [{ value: String(homeTodos.length), label: "To do", urgent: true }]
-              : []),
-          ]}
+              : undefined
+          }
         />
         {previewSlugOuter && (
           <p className="mt-1.5 text-sm font-medium text-primary">
@@ -904,16 +921,9 @@ async function DashboardContent({
         trackNames={Object.fromEntries(program.tracks.map((t) => [t.slug, t.shortName]))}
       />
 
-      {nextUp && <NextUpPanel touchpoint={nextUp} todos={homeTodos} />}
+      {pendingSurveys.map((survey) => <SurveyCard key={survey.id} survey={survey} />)}
 
-      {learnerProgress && <MyProgressCard {...learnerProgress} />}
-
-      {/* No panel to fold into (nothing scheduled) — fall back to survey
-         cards / the profile banner so the tasks stay reachable. */}
-      {!nextUp &&
-        pendingSurveys.map((survey) => <SurveyCard key={survey.id} survey={survey} />)}
-
-      {!nextUp && !isAdmin && assessmentEnabled && !assessmentCompleted && (
+      {!isAdmin && assessmentEnabled && !assessmentCompleted && (
         <div className="rounded-lg bg-accent/10 border border-accent/20 px-5 py-4 flex items-center justify-between gap-4">
           <div>
             <p className="font-semibold text-ink text-sm">Complete your pathway profile</p>
@@ -936,19 +946,11 @@ async function DashboardContent({
         />
       )}
 
-      {/* Learner home: bento composition (hero course + progress + quick
-         tiles) for everyone, admins included — your personal /dashboard is
-         a learner surface. The filterable management grid lives in the admin
-         panel. Fallback to the grid only when there are no weekly tracks to
-         build a bento from (e.g. an admin not enrolled in any course). */}
+      {/* Learner home: one plain card per course, all linking to the course
+         home. Grid fallback only when there are no weekly tracks to card
+         (e.g. an admin not enrolled in any course). */}
       {bentoTracks.length > 0 ? (
-        <DashboardBento
-          tracks={bentoTracks}
-          otherCourses={bentoOtherCourses}
-          programName={program.name}
-          showTutor={isTutorAvailable(program)}
-          dedupeHref={nextUp?.href}
-        />
+        <CourseCards tracks={bentoTracks} otherCourses={bentoOtherCourses} />
       ) : (
         trackStates.filter(({ track }) => track.type !== "single-event").length > 0 && (
           <TrackGrid
@@ -969,6 +971,8 @@ async function DashboardContent({
           />
         )
       )}
+
+      {learnerProgress && <MyProgressCard {...learnerProgress} />}
 
       {/* Upcoming single-event tracks only. Past events read as orphans on
          the dashboard — they have no week to navigate into and no ongoing
