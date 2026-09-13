@@ -33,7 +33,6 @@ import { getLearnerProgress } from "@/lib/learner-progress";
 import { getWhatsNew, type FeedItem } from "@/lib/whats-new";
 import { HoldingView } from "@/components/holding-view";
 import { PreStartBanner } from "@/components/pre-start-banner";
-import { NextUpPanel } from "@/components/next-up-panel";
 import {
   touchpointCandidates,
   resolveTouchpoint,
@@ -514,32 +513,28 @@ export default async function TrackOverviewPage({
          `heroImageUrl` above feeds HoldingView and the public page unchanged.
          In-product, the course's own name is what identifies it, and the field
          is the ground it sits on. Same ground as the session page and the
-         admin home, so the three read as one product. */}
-      <CourseHero eyebrow={eyebrow} title={track.name} meta={metaLine} />
+         admin home, so the three read as one product.
 
-      {/* 2 — the one thing to do now. Before day one that's the start + a way to
-         calendar it; once running, the live / today / next session. */}
+         Once the course is running and there's a live/today/next session,
+         the field becomes that instead of plain identity (see CourseHero) —
+         a separate "Up Next" card below it would be the exact two-dark-
+         objects, two-display-headings mistake the field system exists to
+         prevent, and it said the same date twice against the Schedule
+         section further down besides. */}
+      <CourseHero
+        eyebrow={eyebrow}
+        title={track.name}
+        meta={metaLine}
+        touchpoint={preStart ? null : touchpoint}
+      />
+
+      {/* 2 — the one thing to do now, when the field above ISN'T already
+         answering that: before day one, the start + a way to calendar it;
+         running with nothing dated (self-paced, no scheduled sessions), a
+         plain open-the-course link. */}
       {preStart ? (
         <PreStartBanner track={track} />
-      ) : touchpoint ? (
-        // Quiet here: the field above is this page's one dark object, and the
-        // course name is already its one display size.
-        <NextUpPanel
-          touchpoint={touchpoint}
-          variant="quiet"
-          notice={
-            latestNews
-              ? {
-                  title: latestNews.title,
-                  body: latestNews.body,
-                  whenLabel: latestNews.whenLabel.toLowerCase(),
-                  href: latestNews.href,
-                  external: latestNews.external,
-                }
-              : null
-          }
-        />
-      ) : (
+      ) : !touchpoint ? (
         <Link
           href={`/dashboard/track/${slug}/${ctaWeek}`}
           className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-xl border border-rule border-l-[3px] border-l-primary bg-surface-elevated px-4 py-3.5 transition-colors hover:bg-paper-tint-soft"
@@ -552,14 +547,11 @@ export default async function TrackOverviewPage({
             <ArrowRight size={15} weight="bold" />
           </span>
         </Link>
-      )}
+      ) : null}
 
       {/* Announcements: track-scoped and time-sensitive, so they sit above the
-         syllabus — but a line, not a card. When there IS a next-up panel the
-         announcement rides inside it instead; two "something is happening
-         soon" blocks stacked back to back, usually about the same week, is
-         what made the top of this page read as clutter. */}
-      {latestNews && !touchpoint && (
+         syllabus — but a line, not a card. */}
+      {latestNews && (
         <Link
           href={latestNews.href}
           target={latestNews.external ? "_blank" : undefined}
