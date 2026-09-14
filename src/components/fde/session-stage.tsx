@@ -607,6 +607,7 @@ export function SessionStage({
   const [resumeAt, setResumeAt] = useState<Phase | null>(null);
   const partIndex = Math.max(0, ORDER.indexOf(phase));
   const voice = useNarration();
+  const openerTimer = useRef<number | null>(null);
 
   // Escape leaves. With no sidebar and no top bar there is nothing else to
   // reach for, and people press it before they hunt for a button.
@@ -667,13 +668,27 @@ export function SessionStage({
     }
     // Speech is still allowed here: the browser's activation from the button
     // press persists for the rest of the page's life, not just that tick.
+    //
+    // The count-in used to clear and her first word land on the same tick,
+    // which is what made the opening feel like being talked at. Let the room
+    // arrive first, then she starts — the beat a person leaves before they
+    // begin.
+    // The opener's timer lives in a ref, not in this effect's cleanup:
+    // clearing the count-in re-runs the effect, and a cleanup here would
+    // cancel the very speech it just scheduled. It is cancelled on unmount
+    // instead, below.
+    const opener =
+      phase === "intro" ? INTRO_LINE
+      : phase === "part1" ? `${BEATS[0].line} ${BEATS[0].sub}`
+      : null;
     const t = window.setTimeout(() => {
       setCountIn(null);
-      if (phase === "intro") voice.say(INTRO_LINE, { force: true });
-      else if (phase === "part1") voice.say(`${BEATS[0].line} ${BEATS[0].sub}`, { force: true });
+      if (opener) openerTimer.current = window.setTimeout(() => voice.say(opener, { force: true }), 900);
     }, 500);
     return () => window.clearTimeout(t);
   }, [countIn, phase, voice, name]);
+
+  useEffect(() => () => { if (openerTimer.current !== null) window.clearTimeout(openerTimer.current); }, []);
 
   return (
     <div style={{ height: "100dvh", overflow: "hidden", background: CREAM, WebkitFontSmoothing: "antialiased", color: INK }}>
@@ -999,12 +1014,29 @@ function IntroVideo({ onDone }: { onDone: () => void }) {
         Watch this first
       </Heading>
 
-      <div style={{ flexGrow: 1, minHeight: 0, display: "flex", flexDirection: "column", justifyContent: "center", padding: "18px 0" }}>
-        <div className="fde-card" style={{ position: "relative", width: "100%", paddingTop: "56.25%", borderRadius: 20, overflow: "hidden", background: INK }}>
+      {/* The player breaks out of the 680px reading column — that width is
+          set for prose, and a video pinned to it left most of a laptop
+          screen empty. Width is whichever runs out first: the viewport, a
+          sane cap, or the height actually left between rail and footer, so
+          it fills the page without ever being cropped. */}
+      <div style={{ flexGrow: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: "14px 0" }}>
+        <div
+          className="fde-card"
+          style={{
+            width: "min(calc(100vw - 40px), 1180px, calc((100dvh - 330px) * 16 / 9))",
+            // Without this the flex parent shrinks it straight back to the
+            // 680px column and the breakout does nothing.
+            flexShrink: 0,
+            aspectRatio: "16 / 9",
+            borderRadius: 20,
+            overflow: "hidden",
+            background: INK,
+          }}
+        >
           <iframe
             src="https://www.youtube.com/embed/5x0isKiD914"
             title="The $10M Autopsy: Why 95% of AI Pilots Fail (And the $280K Job That Fixes It)"
-            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: "none" }}
+            style={{ width: "100%", height: "100%", border: "none", display: "block" }}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
           />
