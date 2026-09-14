@@ -16,6 +16,8 @@ type Item = {
   href: string;
   label: string;
   master?: boolean;
+  /** Page gates on switch_programs — a program admin would only be bounced. */
+  superOnly?: boolean;
   /** Show only when the CURRENT program context is one of these slugs.
    *  Practice exams currently exist only for Catalyst-hub courses — a Forte
    *  admin has nothing behind the link and shouldn't see it. */
@@ -28,16 +30,16 @@ const GROUPS: { label: string; items: Item[] }[] = [
     items: [
       { href: "/dashboard/admin/programs", label: "Manage courses" },
       { href: "/dashboard/admin/announcements", label: "Announcements" },
-      { href: "/dashboard/admin/landing", label: "Landing pages" },
-      { href: "/dashboard/admin/media", label: "Photo library" },
-      { href: "/dashboard/admin/landing-signups", label: "Signups" },
+      { href: "/dashboard/admin/landing", label: "Landing pages", superOnly: true },
+      { href: "/dashboard/admin/media", label: "Photo library", superOnly: true },
+      { href: "/dashboard/admin/landing-signups", label: "Signups", superOnly: true },
       { href: "/dashboard/admin/resources", label: "Resources" },
     ],
   },
   {
     label: "People",
     items: [
-      { href: "/dashboard/admin/applications", label: "Applications" },
+      { href: "/dashboard/admin/applications", label: "Applications", superOnly: true },
       { href: "/dashboard/admin/locations", label: "Participant locations", programs: ["catalyst", "atg", "beyond-code-centers"] },
       { href: "/dashboard/admin/agreements", label: "Participation agreements" },
       { href: "/dashboard/admin/instructor", label: "Instructor queue" },
@@ -47,7 +49,7 @@ const GROUPS: { label: string; items: Item[] }[] = [
   {
     label: "Platform",
     items: [
-      { href: "/dashboard/admin/features", label: "Tools" },
+      { href: "/dashboard/admin/features", label: "Tools", superOnly: true },
       { href: "/dashboard/admin/organizations", label: "Organizations", master: true },
       { href: "/dashboard/admin/platform-analytics", label: "Platform analytics", master: true },
       { href: "/dashboard/admin/health", label: "Platform health", master: true },
@@ -57,9 +59,12 @@ const GROUPS: { label: string; items: Item[] }[] = [
 
 export function ManageMenu({
   isMaster = false,
+  isSuper = false,
   programSlug,
 }: {
   isMaster?: boolean;
+  /** super_admin: sees the cross-program entry points a program admin can't open. */
+  isSuper?: boolean;
   /** Current program context; program-scoped items hide when absent. */
   programSlug?: string;
 }) {
@@ -68,6 +73,7 @@ export function ManageMenu({
     items: g.items.filter(
       (it) =>
         (isMaster || !it.master) &&
+        (isSuper || isMaster || !it.superOnly) &&
         (!it.programs || (programSlug ? it.programs.includes(programSlug) : false)),
     ),
   })).filter((g) => g.items.length > 0);

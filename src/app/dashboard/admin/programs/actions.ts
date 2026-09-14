@@ -1,10 +1,12 @@
 "use server";
 
-import { createServiceClient } from "@/lib/supabase/server";
 import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { hasCapability } from "@/lib/roles";
+import {
+  requireManager,
+  resolveProgramForActor,
+  assertTrackInActorProgram,
+} from "../actions-shared";
 import { getProgramBySlug, getHomeProgramForTrack } from "@/lib/programs";
 import { toSlug } from "@/lib/programs/slug";
 import { easternToUtc } from "@/lib/utils";
@@ -23,23 +25,11 @@ function revalidateCourseSurfaces(trackSlug?: string) {
   }
 }
 
-async function requireSuperAdmin() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/");
-
-  const svc = createServiceClient();
-  const { data: student } = await svc
-    .from("students")
-    .select("role")
-    .eq("id", user.id)
-    .single<{ role: string }>();
-
-  if (!hasCapability(student?.role ?? "", "switch_programs")) {
-    throw new Error("Not authorized");
-  }
-  return svc;
-}
+// Course management is a program-admin job, not a platform one. requireManager
+// proves the actor is admin+ somewhere; the boundary helpers bind each action
+// to the actor's own program(s) so a BGC admin can't touch a Catalyst course.
+// super_admins and the master pass every boundary.
+const requireCourseManager = requireManager;
 
 export type CreateCourseResult =
   | {
@@ -68,10 +58,13 @@ export async function createCourseAction(formData: {
   /** Program the course is filed under. Defaults to Catalyst (the umbrella). */
   programSlug?: string;
 }): Promise<CreateCourseResult> {
-  const svc = await requireSuperAdmin();
+  const actor = await requireCourseManager();
+  const { svc } = actor;
 
   const { name, instructor, totalWeeks, sessionsPerWeek, phase } = formData;
   const programSlug = formData.programSlug ?? "catalyst";
+  // Binds the new course to a program the actor may act in (throws otherwise).
+  await resolveProgramForActor(actor, svc, programSlug);
 
   if (!name.trim()) return { success: false, error: "Course name is required." };
   if (!instructor.trim()) return { success: false, error: "Instructor name is required." };
@@ -163,7 +156,9 @@ export async function hideCourseAction(
   programSlug: string,
   trackSlug: string,
 ): Promise<{ success: boolean; error?: string }> {
-  const svc = await requireSuperAdmin();
+  const actor = await requireCourseManager();
+  const { svc } = actor;
+  await assertTrackInActorProgram(actor, svc, trackSlug);
   const {
     data: { user },
   } = await (await createClient()).auth.getUser();
@@ -190,7 +185,9 @@ export async function showCourseAction(
   _programSlug: string,
   trackSlug: string,
 ): Promise<{ success: boolean; error?: string }> {
-  const svc = await requireSuperAdmin();
+  const actor = await requireCourseManager();
+  const { svc } = actor;
+  await assertTrackInActorProgram(actor, svc, trackSlug);
 
   // Un-hide everywhere — clear any hidden row for this course regardless of
   // which program it was hidden under.
@@ -248,7 +245,9 @@ export async function deleteCourseAction(
   programSlug: string,
   trackSlug: string,
 ): Promise<DeleteCourseResult> {
-  const svc = await requireSuperAdmin();
+  const actor = await requireCourseManager();
+  const { svc } = actor;
+  await assertTrackInActorProgram(actor, svc, trackSlug);
 
   // A course defined in TypeScript would regenerate itself from config the
   // moment the page re-rendered, so "deleted" would be a lie.
@@ -317,7 +316,9 @@ export async function updateCourseAction(
     coverImageUrl?: string;
   },
 ): Promise<UpdateCourseResult> {
-  const svc = await requireSuperAdmin();
+  const actor = await requireCourseManager();
+  const { svc } = actor;
+  await resolveProgramForActor(actor, svc, programSlug);
   const { name, instructor, totalWeeks, sessionsPerWeek, phase } = formData;
 
   if (!name.trim()) return { success: false, error: "Course name is required." };
@@ -386,7 +387,9 @@ export async function applyWeeklyScheduleAction(
   trackSlug: string,
   formData: { firstDate: string; time: string; durationMinutes: number },
 ): Promise<ApplyScheduleResult> {
-  const svc = await requireSuperAdmin();
+  const actor = await requireCourseManager();
+  const { svc } = actor;
+  await resolveProgramForActor(actor, svc, programSlug);
   const { firstDate, time, durationMinutes } = formData;
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(firstDate))
