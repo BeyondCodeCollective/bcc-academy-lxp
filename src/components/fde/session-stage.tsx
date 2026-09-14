@@ -175,12 +175,20 @@ function useNarration() {
 
 type Voice = ReturnType<typeof useNarration>;
 
-/** Speak a line whenever it changes. */
-function useSpeak(voice: Voice, text: string) {
+/**
+ * Speak a line whenever it changes.
+ *
+ * `enabled` is not a nicety: child effects run before parent ones, so a
+ * parent that speaks unconditionally cancels the line its own child just
+ * started (`say` stops whatever is playing, empty text included). A parent
+ * holding a line for a later stage must therefore not call `say` at all
+ * until that stage arrives.
+ */
+function useSpeak(voice: Voice, text: string, enabled = true) {
   const { say } = voice;
   useEffect(() => {
-    say(text);
-  }, [say, text]);
+    if (enabled) say(text);
+  }, [say, text, enabled]);
 }
 
 /** Persistent, always-visible: is she talking, are you meant to be. */
@@ -403,10 +411,14 @@ const MONTHS = [
  * something true about their own workplace first, and the youth center
  * arrives as the answer to their own answer.
  *
+ * It does not say hello. The warm-up did that ten minutes ago; greeting
+ * them a second time reads as a reset, as though the last three screens
+ * happened to somebody else.
+ *
  * `gate` names an action the beat will not move past.
  */
 const BEATS = [
-  { line: "Hey — good to meet you.", sub: "I'm going to show you something that went sideways at a place a lot like yours. Before I do, I want to know one thing about you.", card: 0, mic: "idle", gate: false },
+  { line: "Here's the one I want you to see.", sub: "It went sideways at a place a lot like yours. Before I show you, I want to know one thing about you.", card: 0, mic: "idle", gate: false },
   { line: "Has anywhere you've worked ever launched something new that almost nobody ended up using?", sub: "Say it out loud, or pick the closest one. There's no wrong answer here.", card: 0, mic: "live", gate: "opening" },
   { line: "Almost everyone says yes.", sub: "", card: 0, mic: "idle", gate: false },
   { line: "This is six months of it.", sub: "Poke around. Tap any month.", card: 1, mic: "idle", gate: false },
@@ -678,7 +690,7 @@ export function SessionStage({
     // cancel the very speech it just scheduled. It is cancelled on unmount
     // instead, below.
     const opener =
-      phase === "intro" ? INTRO_LINE
+      phase === "intro" ? WELCOME_LINE
       : phase === "part1" ? `${BEATS[0].line} ${BEATS[0].sub}`
       : null;
     const t = window.setTimeout(() => {
@@ -895,9 +907,8 @@ function Welcome({
           Welcome to Field&nbsp;Ready
         </h1>
         <p style={{ fontSize: 15.5, lineHeight: 1.6, color: INK_SOFT, margin: "14px 0 0" }}>
-          {known ? `Good to see you, ${known}. ` : ""}Ninety minutes, four parts. I&rsquo;ll walk
-          you through a real project that failed, and you&rsquo;ll decide what an AI
-          should and shouldn&rsquo;t be allowed to touch.
+          {known ? `Good to see you, ${known}. ` : ""}Ninety minutes, four parts. I&rsquo;ll tell
+          you what we&rsquo;re doing as soon as we start.
         </p>
 
         {!known && (
@@ -954,21 +965,33 @@ function Welcome({
 
 /* ── intro — warm up before the story ───────────────────────────────── */
 
-const INTRO_LINE = "Before the story — six words worth knowing, then a quick warm-up.";
+/**
+ * The first words of the session.
+ *
+ * It used to open on "Watch this first" — a video with no frame around it,
+ * before anyone had been told what the ninety minutes were for. She says
+ * hello, says what the day is for, walks the syllabus, and only then rolls
+ * the tape.
+ */
+const WELCOME_LINE =
+  "Welcome to Field Ready. Here is what today is for. By the time we are done you will be able to look at your own work and say what an AI should be allowed to touch, what has to stay with a person, and how you would know whether any of it ever landed. No code. Real cases, and your calls on them.";
+
+const SYLLABUS_LINE =
+  "Four parts. We warm up with a short video and a quick vocabulary round. Then the one nobody used — a project that worked perfectly and still failed. Then four enrollments that really arrived: you make the call on each one, then see what the AI did with the same rules. The last part is yours, the rules for your own desk. Let's get going.";
 
 /**
  * Video, then two small vocabulary games in two different styles — a
  * matching round, then a paced quick-fire round — so the same six words get
  * taught, then tested twice, before the case study even starts.
  *
- * Only the video stage stays silent on its own mount: it owns the audio
+ * Only the first stage stays silent on its own mount: it owns the audio
  * unlock (the same role Part 1's first beat used to play), so
- * `SessionStage` speaks `INTRO_LINE` itself once the count-in clears. The
+ * `SessionStage` speaks `WELCOME_LINE` itself once the count-in clears. The
  * later stages speak normally — by then the learner has already heard her
  * voice once and interacted with the page.
  */
 function Intro({ voice, onDone }: { voice: Voice; onDone: () => void }) {
-  const { scene: stage, leaving, to } = useScene<"video" | "bridge" | "match" | "flash">("video");
+  const { scene: stage, leaving, to } = useScene<"hello" | "syllabus" | "video" | "bridge" | "match" | "flash">("hello");
 
   // Video straight into a board of chips was the hardest cut in the session:
   // one thing they sat and watched, then a grid demanding input, no beat in
@@ -981,9 +1004,11 @@ function Intro({ voice, onDone }: { voice: Voice; onDone: () => void }) {
 
   return (
     <div style={{ flexGrow: 1, minHeight: 0, display: "flex", flexDirection: "column", ...leavingStyle(leaving) }}>
+      {stage === "hello" && <Hello onNext={() => to("syllabus")} />}
+      {stage === "syllabus" && <Syllabus voice={voice} onNext={() => to("video")} />}
       {stage === "video" && <IntroVideo onDone={() => to("bridge")} />}
       {stage === "bridge" && (
-        <Interlude line="Six words before the story." sub="Two quick rounds. They come back later, so they’re worth catching now." />
+        <Interlude line="Two quick rounds first." sub="These words come back later, so they’re worth catching now." />
       )}
       {stage === "match" && <TermMatchGame voice={voice} onDone={() => to("flash")} />}
       {stage === "flash" && <FlashRound voice={voice} onDone={onDone} />}
@@ -1004,6 +1029,89 @@ function Interlude({ line, sub }: { line: string; sub?: string }) {
         </span>
       )}
     </div>
+  );
+}
+
+/** What the ninety minutes are for, said before anything is asked of them. */
+const GOALS = [
+  "What an AI should be allowed to touch in your work — and what it never should.",
+  "The difference between a thing that works and a thing that actually landed.",
+  "Three rules for your own desk, written by you, that hold up on Monday.",
+];
+
+/**
+ * Stage one: hello, and the goal.
+ *
+ * Silent on mount by design — `SessionStage` speaks `WELCOME_LINE` after the
+ * count-in clears, so the room arrives before she does.
+ */
+function Hello({ onNext }: { onNext: () => void }) {
+  return (
+    <>
+      <Heading sub="One question runs under all of it: where does an AI belong in the work you already do?">
+        Welcome to Field&nbsp;Ready
+      </Heading>
+
+      <div style={{ flexGrow: 1, minHeight: 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: 12, padding: "20px 0" }}>
+        <span style={{ fontFamily: MONO, fontSize: 11.5, letterSpacing: ".12em", textTransform: "uppercase", color: INK_FAINT }}>
+          By the end you can say
+        </span>
+        {GOALS.map((g, i) => (
+          <div
+            key={g}
+            className="fde-card"
+            style={{ display: "flex", gap: 14, alignItems: "flex-start", background: "#fff", border: `1px solid ${EDGE}`, borderRadius: 16, padding: "16px 18px", animation: `fde-rise .6s cubic-bezier(.16,1,.3,1) ${0.08 * i + 0.1}s both` }}
+          >
+            <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: "50%", background: COBALT, color: "#fff", fontFamily: DISPLAY, fontWeight: 700, fontSize: 11, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+              {i + 1}
+            </span>
+            <span style={{ fontSize: 15.5, lineHeight: 1.55, color: INK }}>{g}</span>
+          </div>
+        ))}
+      </div>
+
+      <Footer note="You never write code. Nothing to install.">
+        <Primary onClick={onNext}>What we&rsquo;ll do →</Primary>
+      </Footer>
+    </>
+  );
+}
+
+/**
+ * Stage two: the syllabus.
+ *
+ * The same four parts the rail already shows, said out loud once, so the
+ * rail means something for the rest of the session instead of being four
+ * words nobody read.
+ */
+function Syllabus({ voice, onNext }: { voice: Voice; onNext: () => void }) {
+  useSpeak(voice, SYLLABUS_LINE);
+
+  return (
+    <>
+      <Heading sub="Four parts. Each one sets up the next, and the last one is about your job, not mine.">
+        How the ninety minutes go
+      </Heading>
+
+      <div style={{ flexGrow: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", justifyContent: "center", gap: 2, padding: "18px 0" }}>
+        {PARTS.map((p, i) => (
+          <div
+            key={p.n}
+            style={{ display: "flex", gap: 16, alignItems: "baseline", padding: "15px 4px", borderBottom: i < PARTS.length - 1 ? `1px solid ${RULE}` : "none", animation: `fde-rise .6s cubic-bezier(.16,1,.3,1) ${0.07 * i + 0.1}s both` }}
+          >
+            <span style={{ flexShrink: 0, fontFamily: MONO, fontSize: 12, color: INK_FAINT, width: 18 }}>{p.n}</span>
+            <span style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <span style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: 18.5, letterSpacing: "-.02em", color: INK }}>{p.title}</span>
+              <span style={{ fontSize: 14.5, lineHeight: 1.5, color: INK_SOFT }}>{p.blurb}</span>
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <Footer note="First up: a short video on why most of these die.">
+        <Primary onClick={onNext}>Start with the video →</Primary>
+      </Footer>
+    </>
   );
 }
 
@@ -1549,11 +1657,30 @@ function CaseReveal({ c, myCall }: { c: (typeof CASES)[number]; myCall: Call }) 
 }
 
 function PartTwo({ voice, onDone }: { voice: Voice; onDone: () => void }) {
+  const { scene: stage, leaving, to } = useScene<"bridge" | "cases">("bridge");
   const [i, setI] = useState(0);
   const [calls, setCalls] = useState<(Call | null)[]>([null, null, null, null]);
   const [revealed, setRevealed] = useState<boolean[]>([false, false, false, false]);
   const c = CASES[i];
-  useSpeak(voice, "Four that really came in. Call each one yourself, then watch what the AI actually did with the same rules.");
+  // Held until the inbox is actually on screen — see `useSpeak`.
+  useSpeak(voice, "Four that really came in. Call each one yourself, then watch what the AI actually did with the same rules.", stage === "cases");
+
+  // The story ended on "that second job is what we're doing today" and the
+  // next thing was a tab bar full of email. One line carries the sentence
+  // across the part boundary instead of leaving the learner to.
+  useEffect(() => {
+    if (stage !== "bridge") return;
+    const t = window.setTimeout(() => to("cases"), 1900);
+    return () => window.clearTimeout(t);
+  }, [stage, to]);
+
+  if (stage === "bridge") {
+    return (
+      <div style={{ flexGrow: 1, minHeight: 0, display: "flex", flexDirection: "column", ...leavingStyle(leaving) }}>
+        <Interlude line="That second job starts here." sub="No slides for this part. Real email, real calls — yours first." />
+      </div>
+    );
+  }
   const mine = calls[i];
   const open = revealed[i];
   const allOpen = revealed.every(Boolean);
@@ -1732,7 +1859,7 @@ function PartThree({
 }: {
   voice: Voice; trackSlug: string; weekNumber: number; saved: Record<string, string>; onDone: () => void;
 }) {
-  const [stage, setStage] = useState<"match" | "write">("match");
+  const { scene: stage, leaving, to } = useScene<"bridge" | "match" | "write">("bridge");
   const [answers, setAnswers] = useState<Record<string, string>>(() =>
     Object.fromEntries(RULEBOOK_PROMPTS.map((p) => [p.key, saved[p.prompt] ?? ""])),
   );
@@ -1761,10 +1888,28 @@ function PartThree({
     }
   };
 
-  useSpeak(voice, "Nobody in that room decided any of it on the spot. A person wrote the rules down years ago and the machine borrowed her judgment. So, what are yours?");
+  // Gated: this line belongs to the writing screen. Ungated it ran on mount
+  // and cancelled the match round's own narration a tick after it started.
+  useSpeak(voice, "Nobody in that room decided any of it on the spot. A person wrote the rules down years ago and the machine borrowed her judgment. So, what are yours?", stage === "write");
+
+  // Theo's reveal ends on "that's the job" — this catches that and hands it
+  // to the round that checks whether any of it stuck.
+  useEffect(() => {
+    if (stage !== "bridge") return;
+    const t = window.setTimeout(() => to("match"), 1900);
+    return () => window.clearTimeout(t);
+  }, [stage, to]);
+
+  if (stage === "bridge") {
+    return (
+      <div style={{ flexGrow: 1, minHeight: 0, display: "flex", flexDirection: "column", ...leavingStyle(leaving) }}>
+        <Interlude line="Prove it stuck." sub="Before you write rules of your own, one quick round on theirs." />
+      </div>
+    );
+  }
 
   if (stage === "match") {
-    return <MatchGame voice={voice} onDone={() => setStage("write")} />;
+    return <MatchGame voice={voice} onDone={() => to("write")} />;
   }
 
   return (
