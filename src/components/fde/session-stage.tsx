@@ -1052,22 +1052,30 @@ function Hello({ onNext }: { onNext: () => void }) {
         Welcome to Field&nbsp;Ready
       </Heading>
 
-      <div style={{ flexGrow: 1, minHeight: 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: 12, padding: "20px 0" }}>
+      {/* The three goals used to be a centered band: a void above them, a
+          void below, and the cards themselves small in the middle of it.
+          They are equal flex children now, so they share whatever height is
+          left between the heading and the footer and the screen reads as
+          one block. min/max keep them honest on a laptop and on a
+          projector. */}
+      <div style={{ flexGrow: 1, minHeight: 0, display: "flex", flexDirection: "column", gap: 10, padding: "20px 0 4px" }}>
         <span style={{ fontFamily: MONO, fontSize: 11.5, letterSpacing: ".12em", textTransform: "uppercase", color: INK_FAINT }}>
           By the end you can say
         </span>
-        {GOALS.map((g, i) => (
-          <div
-            key={g}
-            className="fde-card"
-            style={{ display: "flex", gap: 14, alignItems: "flex-start", background: "#fff", border: `1px solid ${EDGE}`, borderRadius: 16, padding: "16px 18px", animation: `fde-rise .6s cubic-bezier(.16,1,.3,1) ${0.08 * i + 0.1}s both` }}
-          >
-            <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: "50%", background: COBALT, color: "#fff", fontFamily: DISPLAY, fontWeight: 700, fontSize: 11, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-              {i + 1}
-            </span>
-            <span style={{ fontSize: 15.5, lineHeight: 1.55, color: INK }}>{g}</span>
-          </div>
-        ))}
+        <div style={{ flexGrow: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 12 }}>
+          {GOALS.map((g, i) => (
+            <div
+              key={g}
+              className="fde-card"
+              style={{ flex: "1 1 0", minHeight: 74, maxHeight: 188, display: "flex", gap: 16, alignItems: "center", background: "#fff", border: `1px solid ${EDGE}`, borderRadius: 16, padding: "14px 24px", animation: `fde-rise .6s cubic-bezier(.16,1,.3,1) ${0.08 * i + 0.1}s both` }}
+            >
+              <span style={{ flexShrink: 0, width: 26, height: 26, borderRadius: "50%", background: COBALT, color: "#fff", fontFamily: DISPLAY, fontWeight: 700, fontSize: 12.5, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                {i + 1}
+              </span>
+              <span style={{ fontSize: "clamp(15.5px, 2.1vh, 19px)", lineHeight: 1.5, color: INK }}>{g}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
       <Footer note="You never write code. Nothing to install.">
@@ -1093,11 +1101,13 @@ function Syllabus({ voice, onNext }: { voice: Voice; onNext: () => void }) {
         How the ninety minutes go
       </Heading>
 
-      <div style={{ flexGrow: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", justifyContent: "center", gap: 2, padding: "18px 0" }}>
+      {/* Same fix as the welcome screen: four rows sharing the height
+          rather than a small centered block with air around it. */}
+      <div style={{ flexGrow: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 2, padding: "16px 0 4px" }}>
         {PARTS.map((p, i) => (
           <div
             key={p.n}
-            style={{ display: "flex", gap: 16, alignItems: "baseline", padding: "15px 4px", borderBottom: i < PARTS.length - 1 ? `1px solid ${RULE}` : "none", animation: `fde-rise .6s cubic-bezier(.16,1,.3,1) ${0.07 * i + 0.1}s both` }}
+            style={{ flex: "1 1 0", minHeight: 76, maxHeight: 150, display: "flex", gap: 16, alignItems: "center", padding: "12px 4px", borderBottom: i < PARTS.length - 1 ? `1px solid ${RULE}` : "none", animation: `fde-rise .6s cubic-bezier(.16,1,.3,1) ${0.07 * i + 0.1}s both` }}
           >
             <span style={{ flexShrink: 0, fontFamily: MONO, fontSize: 12, color: INK_FAINT, width: 18 }}>{p.n}</span>
             <span style={{ display: "flex", flexDirection: "column", gap: 4 }}>
