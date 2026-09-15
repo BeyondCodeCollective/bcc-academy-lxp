@@ -147,6 +147,21 @@ export async function resolveProgramForActor(
 
 // Same boundary for actions keyed on a studentId rather than a programSlug:
 // confirm the target student belongs to the actor's program (super_admins pass).
+// Program SLUGS the actor may manage courses in, or null when they see every
+// program (super_admin / master). Server components use this to scope the
+// Manage Courses list and the Edit Course page the same way the course actions
+// scope their writes.
+export async function allowedProgramSlugsForActor(
+  actor: ActorContext,
+  svc: ReturnType<typeof createServiceClient>,
+): Promise<string[] | null> {
+  if (canSwitchPrograms(actor.role) || actor.isMaster) return null;
+  const ids = actorProgramIds(actor);
+  if (ids.length === 0) return [];
+  const { data } = await svc.from("programs").select("slug").in("id", ids);
+  return (data ?? []).map((r) => r.slug as string);
+}
+
 export async function assertStudentInActorProgram(
   actor: ActorContext,
   svc: ReturnType<typeof createServiceClient>,

@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSessionContext } from "@/lib/auth/session";
-import { canSwitchPrograms, canManageRoles } from "@/lib/roles";
+import { canSwitchPrograms, canManageStudents, canManageRoles } from "@/lib/roles";
+import { requireManager, allowedProgramSlugsForActor } from "../actions-shared";
 import { getJoinablePrograms, getHomeProgramForTrack } from "@/lib/programs";
 import { getProgramWithOverrides, fetchDynamicProgram } from "@/lib/programs/server";
 import { createServiceClient } from "@/lib/supabase/server";
@@ -17,10 +18,16 @@ export const dynamic = "force-dynamic";
 export default async function ProgramsListPage() {
   const ctx = await getSessionContext();
   if (!ctx) redirect("/");
-  if (!canSwitchPrograms(ctx.student?.role ?? "")) redirect("/dashboard/admin");
+  const role = ctx.student?.role ?? "";
+  if (!canManageStudents(role)) redirect("/dashboard/admin");
+  const isSuper = canSwitchPrograms(role);
+  // Program admins see their own program(s) only; super-admins see everything.
+  const actor = await requireManager();
+  const allowedSlugs = await allowedProgramSlugsForActor(actor, actor.svc);
+  const mayList = (slug: string) => allowedSlugs === null || allowedSlugs.includes(slug);
 
   const hidden = await getHiddenTrackSlugs();
-  const programs = getJoinablePrograms();
+  const programs = getJoinablePrograms().filter((p) => mayList(p.slug));
 
   // DB-overridden track data per program (names reflect track_overrides, and
   // builder-created courses are appended).
@@ -40,7 +47,7 @@ export default async function ProgramsListPage() {
     await Promise.all(
       (dynamicRows ?? []).map((r) => fetchDynamicProgram(r.slug as string)),
     )
-  ).filter((p): p is NonNullable<typeof p> => p !== null);
+  ).filter((p): p is NonNullable<typeof p> => p !== null && mayList(p.slug));
   withOverrides.push(...dynamicPrograms);
 
   const groups: ProgramGroup[] = withOverrides
@@ -79,7 +86,7 @@ export default async function ProgramsListPage() {
       <div>
         <PageHeader
           title="Courses"
-          subtitle="Every course across all programs. Click a course to manage it, copy its join link, or hide it from the admin and catalog (reversible — nothing is deleted)."
+          subtitle={`Every course ${isSuper ? "across all programs" : "in your program"}. Click a course to manage it, copy its join link, or hide it from the admin and catalog (reversible — nothing is deleted).`}
           noWrap
           actions={
             <div className="flex items-center gap-2">
@@ -89,7 +96,7 @@ export default async function ProgramsListPage() {
               >
                 New Course
               </Link>
-              <ManageMenu isMaster={canManageRoles(ctx.userEmail)} />
+              <ManageMenu isMaster={canManageRoles(ctx.userEmail)} isSuper={isSuper} />
             </div>
           }
         />
