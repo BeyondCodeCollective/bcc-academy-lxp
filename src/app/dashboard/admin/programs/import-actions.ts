@@ -174,7 +174,8 @@ export async function createCourseFromDraftAction(params: {
   allowlistEmails?: string[];
 }): Promise<ImportResult> {
   const { svc, role, programId: actorProgramId } = await requireCourseCreator();
-  const { draft, programSlug } = params;
+  const { programSlug } = params;
+  let { draft } = params;
 
   if (!(COURSE_PROGRAM_SLUGS as readonly string[]).includes(programSlug)) {
     return { success: false, error: "Invalid program." };
@@ -182,8 +183,6 @@ export async function createCourseFromDraftAction(params: {
   if (!draft.name?.trim()) return { success: false, error: "Course name is required." };
   if (!draft.instructor?.trim())
     return { success: false, error: "Instructor is required." };
-  if (!draft.startDate) return { success: false, error: "Start date is required." };
-
   // The whole point of the review step: a course with no dated sessions looks
   // complete everywhere and never appears on the calendar.
   if (!draft.sessions?.length) {
@@ -194,6 +193,12 @@ export async function createCourseFromDraftAction(params: {
   }
   if (draft.sessions.some((s) => !s.date || !s.time)) {
     return { success: false, error: "Every session needs a date and a time." };
+  }
+  // The start date is the earliest session. Derive it here too, so a draft whose
+  // sessions were added by hand on the review screen never fails on a field the
+  // screen doesn't show.
+  if (!draft.startDate) {
+    draft = { ...draft, startDate: [...draft.sessions.map((s) => s.date)].sort()[0] };
   }
 
   const { data: programRow } = await svc
