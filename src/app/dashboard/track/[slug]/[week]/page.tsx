@@ -41,6 +41,13 @@ import { SessionTabs } from "@/components/session-tabs";
  */
 const STAGED_SESSIONS = new Set(["forward-deploy:1"]);
 
+/**
+ * A date typed onto the end of a session subtitle, e.g. "Domain 4 · Sep 3".
+ * Content authored that way carries a second, frozen copy of the schedule.
+ */
+const TYPED_TRAILING_DATE =
+  /\s*·\s*(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2}(?:,?\s*\d{4})?\s*$/i;
+
 export default async function TrackWeekPage({
   params,
 }: {
@@ -326,6 +333,10 @@ export default async function TrackWeekPage({
 
   const sessionsLabel = weekContent.sessions.length === 1 ? "Session" : "Sessions";
 
+  // The unit's scheduled clock (date + time) as the course schedule holds it —
+  // the same row the live-join window and the unlock gate below read.
+  const weekClock = track.weekSummaries.find((ws) => ws.week === weekNum);
+
   // Header data, hoisted so both the normal header and the merged staged-
   // session stage below can use it — one subtitle line, computed once.
   const isSingleSession = weekContent.sessions.length === 1;
@@ -347,7 +358,19 @@ export default async function TrackWeekPage({
           </a>
         ) : null
       : null;
-  const headerSubtitle = [track.instructor, displaySubtitle, headerSession?.time]
+  // The date on this line comes from the schedule, never from the subtitle
+  // text. Sessions were authored with the day typed in ("Domain 4 · Sep 3"),
+  // which freezes on the day it was written: Security+ moved its back half two
+  // weeks and every header still announced the original date — session 16 read
+  // "Sep 3" on 2026-09-17, the evening it actually ran. Drop the typed date
+  // when the schedule has one, and print the scheduled day instead.
+  const scheduledDay = weekClock?.date
+    ? formatCohortDate(weekClock.date, { weekday: "short", month: "short", day: "numeric" })
+    : null;
+  const subtitleSansDate = scheduledDay
+    ? (displaySubtitle ?? "").replace(TYPED_TRAILING_DATE, "").trim()
+    : displaySubtitle;
+  const headerSubtitle = [track.instructor, subtitleSansDate, scheduledDay, headerSession?.time]
     .filter(Boolean)
     .join(" · ");
 
@@ -379,7 +402,6 @@ export default async function TrackWeekPage({
   // unit. The welcome-day pages showed "LIVE NOW · Connecting…" all afternoon
   // after the session ended (2026-08-07), which read as broken and buried the
   // replay. Units without a clock keep the existing week-based behavior.
-  const weekClock = track.weekSummaries.find((ws) => ws.week === weekNum);
   const sessionWindowPassed = (() => {
     if (!weekClock?.date || !weekClock.time) return false;
     const [h, m] = weekClock.time.split(":").map(Number);
