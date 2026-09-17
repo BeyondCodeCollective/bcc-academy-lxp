@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { LinkPending } from "@/components/link-pending";
 import Link from "next/link";
 import { deleteStudentAction, updateStudentAction, updateCohortAction, saveSessionContent, assignStudentTrack, removeStudentTrack, bulkAssignTrack, exportPublicSurveyResponses, getAllSubmissions, addFeedback, assignInstructorTrack, removeInstructorTrack, deletePublicSurveyResponse, listPublicSurveyResponses, sendInviteAction, createCohortAction } from "./actions";
 import type { SessionResource, StudentTrackRow, AdminSubmissionRow, InstructorTrackRow, PublicSurveyStatsRow } from "./actions";
@@ -116,6 +117,7 @@ export function AdminTopTabs({
           >
             <Icon size={14} weight="bold" aria-hidden />
             {label}
+            <LinkPending />
           </Link>
         ))}
       </div>
@@ -1330,6 +1332,8 @@ export function AdminTabs({
                           </div>
                         ))}
                       </div>
+
+                      <LinkPending className="ml-0" />
                     </Link>
 
                     {/* One named action beats two mystery icons. The arrow was
@@ -1342,6 +1346,7 @@ export function AdminTabs({
                       <Eye size={14} aria-hidden className="inline align-[-2px] sm:hidden" />
                       <span className="hidden sm:inline">Student view</span>
                       <span className="sr-only">Open student view of {t.name}</span>
+                      <LinkPending className="ml-1.5 align-[-2px]" />
                     </Link>
                   </div>
                 );
@@ -1377,6 +1382,7 @@ export function AdminTabs({
                         className="group relative -mx-2 flex flex-wrap items-center gap-2.5 rounded-lg border-t border-white/[0.14] px-2 pb-1 pt-3 transition-colors hover:bg-white/[0.06]"
                       >
                         <span className="h-[7px] w-[7px] shrink-0 rounded-full bg-[color:var(--signal)]" />
+                        <LinkPending tone="inverse" className="ml-0 order-last" />
                         <p className="text-[13px] text-white/[0.86]">
                           <span className="font-semibold text-white">
                             {liveTrackNames[needsYou[0].slug]?.name ?? needsYou[0].name}
@@ -1409,6 +1415,7 @@ export function AdminTabs({
                           >
                             {liveTrackNames[t.slug]?.name ?? t.name}
                             <ArrowRight size={12} weight="bold" aria-hidden />
+                            <LinkPending tone="inverse" className="ml-0" />
                           </Link>
                         ))}
                       </div>
