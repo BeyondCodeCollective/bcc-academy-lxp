@@ -3,7 +3,8 @@
 import { after } from "next/server";
 
 import { revalidatePath } from "next/cache";
-import { requireManager, assertStudentInActorProgram } from "./actions-shared";
+import { requireManager, assertStudentInActorProgram, resolveProgramForActor } from "./actions-shared";
+import { getHomeProgramForTrack } from "@/lib/programs";
 import { assignableRoles, canAssignRole } from "@/lib/roles";
 import { isMasterEmail } from "@/lib/auth/admins";
 import { subscribeToNewsletter } from "@/lib/mailchimp";
@@ -211,12 +212,31 @@ export async function createCohortAction(data: {
   start_date?: string | null;
   total_weeks?: number | null;
 }): Promise<{ success: true; cohort: CohortRow }> {
-  const { svc, programId } = await requireManager();
+  const actor = await requireManager();
+  const { svc } = actor;
 
   const name = data.display_name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+
+  // A cohort belongs to the program that owns its TRACK, not to whichever
+  // program the admin happens to be stamped with.
+  //
+  // Stamping the actor's own program meant a super-admin (stamped Catalyst)
+  // making a cohort for a standalone program's track — Field Ready, Beyond the
+  // Game — filed it under Catalyst while it pointed at another program's
+  // course. The admin page lists cohorts with `.in("program_id", programIds)`,
+  // so the new cohort then showed up in the wrong program's list and was
+  // missing from the right one. It looked like the create had failed.
+  //
+  // `resolveProgramForActor` also does the authorization: a program admin
+  // cannot create a cohort in a program they hold no grant for. super_admins
+  // legitimately cross programs, which is the case that was broken.
+  const home = getHomeProgramForTrack(data.track_slug);
+  const programId = home
+    ? await resolveProgramForActor(actor, svc, home.slug)
+    : actor.programId;
 
   const { data: cohort, error } = await svc
     .from("cohorts")
