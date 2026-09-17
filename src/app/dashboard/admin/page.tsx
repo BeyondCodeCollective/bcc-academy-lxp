@@ -727,18 +727,25 @@ export default async function AdminPage({
       // Practice exams sit in the same Surveys list as peer rows, so they
       // carry the same participation shape: distinct enrolled learners with a
       // submitted attempt.
-      for (const exam of examsForTrack(activeTrack.slug)) {
-        let attempted = 0;
-        if (trackStudentIds.length > 0) {
-          const { data: att } = await createServiceClient()
-            .from("exam_attempts")
-            .select("student_id")
-            .eq("exam_id", exam.id)
-            .not("submitted_at", "is", null)
-            .in("student_id", trackStudentIds);
-          attempted = new Set((att ?? []).map((r) => r.student_id as string)).size;
+      // One query for every exam on the course, not one per exam in sequence —
+      // a course with four practice exams paid four round trips here.
+      const exams = examsForTrack(activeTrack.slug);
+      const attemptsByExam = new Map<string, Set<string>>();
+      if (exams.length > 0 && trackStudentIds.length > 0) {
+        const { data: att } = await createServiceClient()
+          .from("exam_attempts")
+          .select("exam_id, student_id")
+          .in("exam_id", exams.map((e) => e.id))
+          .not("submitted_at", "is", null)
+          .in("student_id", trackStudentIds);
+        for (const r of att ?? []) {
+          const id = r.exam_id as string;
+          if (!attemptsByExam.has(id)) attemptsByExam.set(id, new Set());
+          attemptsByExam.get(id)!.add(r.student_id as string);
         }
-        trackExams.push({ id: exam.id, title: exam.title, attempted });
+      }
+      for (const exam of exams) {
+        trackExams.push({ id: exam.id, title: exam.title, attempted: attemptsByExam.get(exam.id)?.size ?? 0 });
       }
     }
     const publicSurveyCounts = activeTrackPublicSurveyIds.length > 0
