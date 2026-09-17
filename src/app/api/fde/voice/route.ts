@@ -5,15 +5,31 @@
  * a robot and macOS ships no voice that suits this course. This proxies
  * ElevenLabs instead, so the key never reaches the browser.
  *
- * The session speaks a fixed script — about fifteen lines, identical for
- * every learner — so the same handful of strings would otherwise be
- * regenerated (and re-billed) once per person per run. They're cached by
- * hash after the first synthesis. That also means the second learner into a
- * session hears it instantly.
+ * The session speaks a fixed script — about forty lines, identical for every
+ * learner — so the same strings would otherwise be regenerated, and re-billed,
+ * once per person per run.
+ *
+ * Caching is three-deep, because the first two layers do not survive scale:
+ *
+ *  1. An in-process Map. Free, and empty on every cold start. With one class
+ *     of learners hitting different lambda instances, most requests miss it.
+ *  2. Vercel Blob, keyed by the same hash. Durable and shared by every
+ *     instance and every deploy, so a line is bought from ElevenLabs once,
+ *     ever. This is the layer that makes the front door free at community
+ *     size.
+ *  3. The CDN. The response used to be `private`, which forbids any shared
+ *     cache; a line keyed by the hash of its own text can safely be public and
+ *     immutable — you cannot fetch audio without already knowing the exact
+ *     sentence that made it.
+ *
+ * Personalized lines (the ones carrying a learner's first name) opt out with
+ * `p=1`: no Blob copy, no shared cache. A name is not something to leave in a
+ * CDN, however unreachable it is in practice.
  */
 
 import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
+import { head, put } from "@vercel/blob";
 
 /** Brooklyn — American, warm and confident. Override per environment. */
 const DEFAULT_VOICE = "zWoalRDt5TZrmW4ROIA7";
@@ -41,21 +57,61 @@ function remember(key: string, buf: ArrayBuffer) {
  * CSP change, and lets the browser cache the audio for free.
  */
 export async function GET(req: Request) {
-  const text = new URL(req.url).searchParams.get("text") ?? "";
-  return synthesise(text);
+  const params = new URL(req.url).searchParams;
+  return synthesise(params.get("text") ?? "", params.get("p") === "1");
 }
 
 export async function POST(req: Request) {
   let text: string;
+  let personal = false;
   try {
-    ({ text } = await req.json());
+    const body = await req.json();
+    text = body.text;
+    personal = body.personal === true;
   } catch {
     return NextResponse.json({ error: "bad_request" }, { status: 400 });
   }
-  return synthesise(text);
+  return synthesise(text, personal);
 }
 
-async function synthesise(text: unknown) {
+/** One year, immutable: the URL contains the exact text, so the bytes behind
+ *  it can never change. Personalized lines never get this. */
+const SHARED_CACHE = "public, max-age=31536000, s-maxage=31536000, immutable";
+const PRIVATE_CACHE = "private, max-age=86400";
+
+const blobPath = (hash: string) => `fde-voice/${hash}.mp3`;
+
+/** The durable layer. Any failure here is a cache miss, never an error: the
+ *  session has to keep talking even if Blob is unreachable or unconfigured. */
+async function fromBlob(hash: string): Promise<ArrayBuffer | null> {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) return null;
+  try {
+    const meta = await head(blobPath(hash));
+    const res = await fetch(meta.url);
+    if (!res.ok) return null;
+    return await res.arrayBuffer();
+  } catch {
+    return null;
+  }
+}
+
+async function toBlob(hash: string, buf: ArrayBuffer): Promise<void> {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) return;
+  try {
+    await put(blobPath(hash), buf, {
+      access: "public",
+      contentType: "audio/mpeg",
+      addRandomSuffix: false,
+      cacheControlMaxAge: 31536000,
+    });
+  } catch (err) {
+    // Losing the durable copy costs money, not correctness. Say so in the
+    // logs and carry on serving the bytes we already have.
+    console.error("[fde/voice] blob write failed", (err as Error).message);
+  }
+}
+
+async function synthesise(text: unknown, personal = false) {
   const key = process.env.ELEVENLABS_API_KEY;
   if (!key) {
     return NextResponse.json({ error: "voice_unconfigured" }, { status: 503 });
@@ -71,11 +127,23 @@ async function synthesise(text: unknown) {
   const voiceId = process.env.ELEVENLABS_VOICE_ID || DEFAULT_VOICE;
   const hash = createHash("sha256").update(`${voiceId}:${MODEL}:${text}`).digest("hex");
 
+  const cacheControl = personal ? PRIVATE_CACHE : SHARED_CACHE;
+
   const hit = cache.get(hash);
   if (hit) {
     return new NextResponse(hit, {
-      headers: { "content-type": "audio/mpeg", "cache-control": "private, max-age=86400", "x-fde-cache": "hit" },
+      headers: { "content-type": "audio/mpeg", "cache-control": cacheControl, "x-fde-cache": "memory" },
     });
+  }
+
+  if (!personal) {
+    const stored = await fromBlob(hash);
+    if (stored) {
+      remember(hash, stored);
+      return new NextResponse(stored, {
+        headers: { "content-type": "audio/mpeg", "cache-control": cacheControl, "x-fde-cache": "blob" },
+      });
+    }
   }
 
   const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
@@ -95,7 +163,8 @@ async function synthesise(text: unknown) {
 
   const buf = await res.arrayBuffer();
   remember(hash, buf);
+  if (!personal) await toBlob(hash, buf);
   return new NextResponse(buf, {
-    headers: { "content-type": "audio/mpeg", "cache-control": "private, max-age=86400", "x-fde-cache": "miss" },
+    headers: { "content-type": "audio/mpeg", "cache-control": cacheControl, "x-fde-cache": "miss" },
   });
 }

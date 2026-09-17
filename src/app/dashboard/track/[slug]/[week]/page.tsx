@@ -6,6 +6,8 @@ import { isSupabaseConfigured, createServiceClient } from "@/lib/supabase/server
 import { getSessionContent } from "@/app/dashboard/admin/actions";
 import { isStorageUrl, isUploadedVideo } from "@/lib/storage-utils";
 import { resolveTrackProgram } from "@/lib/programs/server";
+import { getTrackBySlug } from "@/lib/programs";
+import { hasCompletedTrack } from "@/lib/tracks/completion";
 import { getSubmission, getReflection, getFeedback, getWeekProgress, getTrackProgressMap } from "@/app/dashboard/track/actions";
 import { isSequentialGated, highestUnlockedWeek } from "@/lib/track-gating";
 import { getEnforcedOnboardingChecklist, getOnboardingStatus } from "@/lib/onboarding/checklists";
@@ -15,6 +17,7 @@ import { PageHeader } from "@/components/page-header";
 import { RecordingCard } from "@/components/recording-card";
 import { ReflectionForm } from "@/components/reflection-form";
 import { IntakeForm } from "@/components/intake-form";
+import { LockedByPrerequisite } from "@/components/locked-by-prerequisite";
 import { WeekKeyboardNav } from "@/components/week-keyboard-nav";
 import { WeekNavPortal } from "@/components/week-nav-portal";
 import { trackUnitDisplay, unitText } from "@/lib/programs/unit-display";
@@ -142,6 +145,21 @@ export default async function TrackWeekPage({
 
   if (gates.length > 0 && isSupabaseConfigured()) {
     for (const gate of gates) {
+      if (gate.type === "prerequisite") {
+        const done = await hasCompletedTrack(gate.trackSlug);
+        if (!done) {
+          const required = getTrackBySlug(program, gate.trackSlug);
+          return (
+            <LockedByPrerequisite
+              trackName={track.name}
+              requiredSlug={gate.trackSlug}
+              requiredName={required?.name ?? "the previous phase"}
+            />
+          );
+        }
+        continue;
+      }
+
       if (gate.type === "intake") {
         const intakeStatus = await getSurveyStatus(`intake-${gate.surveyKey}`);
         if (!intakeStatus.completed) {
