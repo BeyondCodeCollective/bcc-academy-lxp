@@ -120,7 +120,7 @@ function useNarration() {
   }, []);
 
   const say = useCallback(
-    (text: string, opts?: { force?: boolean }) => {
+    (text: string, opts?: { force?: boolean; personal?: boolean }) => {
       if (typeof window === "undefined") return;
       if (!opts?.force && text === lastRef.current) return;
       lastRef.current = text;
@@ -134,7 +134,11 @@ function useNarration() {
 
       // Same-origin URL rather than a blob: the app's CSP has no `blob:` in
       // media-src, so a blob-backed <audio> is blocked outright.
-      const audio = new Audio(`/api/fde/voice?text=${encodeURIComponent(text)}`);
+      // `p=1` marks a line that carries the learner's own name, so the route
+      // keeps it out of Blob and out of any shared cache. Everything else is
+      // the same script for everyone and is cached once for all of them.
+      const personal = opts?.personal ? "&p=1" : "";
+      const audio = new Audio(`/api/fde/voice?text=${encodeURIComponent(text)}${personal}`);
       audioRef.current = audio;
       audio.onended = () => {
         if (token === tokenRef.current) setSpeaking(false);
@@ -184,11 +188,11 @@ type Voice = ReturnType<typeof useNarration>;
  * holding a line for a later stage must therefore not call `say` at all
  * until that stage arrives.
  */
-function useSpeak(voice: Voice, text: string, enabled = true) {
+function useSpeak(voice: Voice, text: string, enabled = true, personal = false) {
   const { say } = voice;
   useEffect(() => {
-    if (enabled) say(text);
-  }, [say, text, enabled]);
+    if (enabled) say(text, { personal });
+  }, [say, text, enabled, personal]);
 }
 
 /** Persistent, always-visible: is she talking, are you meant to be. */
@@ -1378,7 +1382,11 @@ function PartOne({ voice, spoken, name, onDone }: { voice: Voice; spoken: boolea
   // auto-advance below waits on her finishing a sentence, silent also meant
   // stuck. A resumed session still gets beat 0 forced by the count-in; `say`
   // dedupes identical text, so it is still only ever heard once.
-  useSpeak(voice, spoken ? `${line} ${sub}` : "");
+  // Beat 2 is her reply and interpolates the learner's first name; the rest of
+  // the beats are identical for everyone. Marking the whole run personal would
+  // give up shared caching on eight lines to protect one, so only the reply
+  // opts out.
+  useSpeak(voice, spoken ? `${line} ${sub}` : "", true, reply !== null);
 
   // Only listen once she has stopped talking, or the mic hears her, not them.
   const wantsAnswer = b.gate === "opening" || b.gate === "guess";

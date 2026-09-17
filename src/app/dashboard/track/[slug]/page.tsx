@@ -15,6 +15,10 @@ import {
 } from "@/lib/utils";
 import { trackUnitDisplay, unitText } from "@/lib/programs/unit-display";
 import { resolveTrackProgram } from "@/lib/programs/server";
+import { getTrackBySlug } from "@/lib/programs";
+import { DB_TRACK_PREREQUISITES } from "@/lib/programs/field-ready";
+import { hasCompletedTrack } from "@/lib/tracks/completion";
+import { LockedByPrerequisite } from "@/components/locked-by-prerequisite";
 import { getSessionContext } from "@/lib/auth/session";
 import { canAccessAdminPanel } from "@/lib/roles";
 import { getPreviewTrackSlugs } from "@/lib/auth/preview-mode";
@@ -83,6 +87,27 @@ export default async function TrackOverviewPage({
       .eq("track_slug", slug)
       .maybeSingle();
     if (!enr) redirect("/dashboard");
+  }
+
+  // Ladder gate: a phase stays shut until the one before it is finished.
+  //
+  // This lives here, not only on the week page, because the week page
+  // redirects an un-started track straight back to this overview — so a
+  // learner who has not earned the next phase would be bounced between the
+  // two and never told why. Admins and previewers walk through.
+  const requiredTrack = track.prerequisiteTrackSlug ?? DB_TRACK_PREREQUISITES[slug];
+  if (requiredTrack && !isAdminViewer && ctx?.userId) {
+    const earned = await hasCompletedTrack(requiredTrack, ctx.userId);
+    if (!earned) {
+      const required = getTrackBySlug(program, requiredTrack);
+      return (
+        <LockedByPrerequisite
+          trackName={track.name}
+          requiredSlug={requiredTrack}
+          requiredName={required?.name ?? "the previous phase"}
+        />
+      );
+    }
   }
 
   // Acceptance checklist gate: on a checklist-gated track (e.g. the Cybersecurity

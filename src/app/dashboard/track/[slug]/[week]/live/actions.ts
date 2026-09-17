@@ -13,6 +13,7 @@
  */
 
 import { submitReflection, markVideoWatched } from "@/app/dashboard/track/actions";
+import { recordOwnCompletion } from "@/lib/tracks/completion";
 
 /**
  * Save the workplace rulebook — up to three answers from Part 4.
@@ -48,5 +49,10 @@ export async function saveWorkplaceRules(
  */
 export async function markSessionComplete(trackSlug: string, weekNumber: number) {
   await markVideoWatched(trackSlug, weekNumber);
-  return { success: true as const };
+  // A track that opts in to self-completion gets its completion row here —
+  // this is the last screen, and on an async phase nobody else is coming to
+  // press the button. Every other track is a no-op: `recordOwnCompletion`
+  // refuses any slug whose config doesn't say `selfCompletable`.
+  const completion = await recordOwnCompletion(trackSlug);
+  return { success: true as const, completed: completion.recorded };
 }

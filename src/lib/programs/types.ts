@@ -22,7 +22,18 @@ export type IntakeGate = {
   questions: IntakeQuestion[];
 };
 
-export type TrackGate = IntakeGate;
+/**
+ * prerequisite — the learner must hold a `track_completions` row for
+ *                `trackSlug` before this track's content renders. This is
+ *                what turns a set of tracks into a ladder.
+ */
+export type PrerequisiteGate = {
+  type: "prerequisite";
+  /** Slug of the track that must be complete. */
+  trackSlug: string;
+};
+
+export type TrackGate = IntakeGate | PrerequisiteGate;
 // Future gate types (e.g. survey_completion, week_submission) extend this union.
 
 // ─── Intake Form Questions (used by IntakeGate) ───────────────────────────────
@@ -264,6 +275,19 @@ export type TrackConfig = {
   phase?: string;
   /** Slug of a track that must be completed before this one unlocks */
   prerequisiteTrackSlug?: string;
+  /**
+   * Whether finishing this track records its own completion.
+   *
+   * Completion is normally a decision an admin makes, not something the
+   * platform infers — that stance is deliberate and it holds for anything
+   * that ends in a certificate. It cannot hold for a free async phase that
+   * thousands of strangers walk through: nobody can keep up with the queue,
+   * and an unrecorded completion means the next phase never opens.
+   *
+   * So: opt-in, per track, and only for tracks whose finish line is
+   * unambiguous and machine-checkable.
+   */
+  selfCompletable?: boolean;
 };
 
 export type ProgramColors = {
