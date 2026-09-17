@@ -7,6 +7,8 @@ import { getSessionContent } from "@/app/dashboard/admin/actions";
 import { isStorageUrl, isUploadedVideo } from "@/lib/storage-utils";
 import { resolveTrackProgram } from "@/lib/programs/server";
 import { getTrackBySlug } from "@/lib/programs";
+import { DB_TRACK_PREREQUISITES } from "@/lib/programs/field-ready";
+import type { TrackGate } from "@/lib/programs/types";
 import { hasCompletedTrack } from "@/lib/tracks/completion";
 import { getSubmission, getReflection, getFeedback, getWeekProgress, getTrackProgressMap } from "@/app/dashboard/track/actions";
 import { isSequentialGated, highestUnlockedWeek } from "@/lib/track-gating";
@@ -137,11 +139,21 @@ export default async function TrackWeekPage({
 
   // Evaluate track gates. Each gate declares a condition that must be met
   // before the student can view content. We stop at the first unmet gate.
-  const gates = track.gates ?? (
+  const declaredGates = track.gates ?? (
     track.intakeRequired && track.intakeQuestions?.length
       ? [{ type: "intake" as const, surveyKey: trackSlug, questions: track.intakeQuestions }]
       : []
   );
+
+  // `prerequisiteTrackSlug` has been in TrackConfig since the Catalyst journey
+  // work and was read by nothing. This is where it starts meaning something.
+  // DB-built tracks have no config of their own, so they declare theirs in
+  // DB_TRACK_PREREQUISITES instead.
+  const requiredTrack =
+    track.prerequisiteTrackSlug ?? DB_TRACK_PREREQUISITES[trackSlug];
+  const gates: TrackGate[] = requiredTrack
+    ? [{ type: "prerequisite", trackSlug: requiredTrack }, ...declaredGates]
+    : declaredGates;
 
   if (gates.length > 0 && isSupabaseConfigured()) {
     for (const gate of gates) {

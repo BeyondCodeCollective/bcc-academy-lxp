@@ -87,7 +87,6 @@ const sessionTrack: TrackConfig = {
   // Held until the intro is done. The gate is what makes the ladder a ladder;
   // `prerequisiteTrackSlug` alone is inert — nothing has ever read it.
   prerequisiteTrackSlug: "field-ready-intro",
-  gates: [{ type: "prerequisite", trackSlug: "field-ready-intro" }],
   weekSummaries: [{ week: 1, topic: "The one nobody used", icon: "📥" }],
   weeks: [
     {
@@ -111,6 +110,19 @@ export const FIELD_READY_SLUG = "field-ready";
 
 /** The DB-seeded 13-session course. Named here so the ladder can point at it. */
 export const FIELD_READY_PROGRAM_TRACK = "field-ready-program";
+
+/**
+ * What each phase requires, for tracks that cannot declare it themselves.
+ *
+ * Phases 0 and 1 carry `prerequisiteTrackSlug` in their own config. Phase 2
+ * cannot: it is built from a `track_overrides` row, and a TS shell for it
+ * would have to restate all 13 units (mergeTrack takes `week_summaries` from
+ * the override but keeps `weeks` from config). One map, checked by slug,
+ * beats duplicating a course to hold one string.
+ */
+export const DB_TRACK_PREREQUISITES: Record<string, string> = {
+  [FIELD_READY_PROGRAM_TRACK]: "field-ready-session",
+};
 
 export const fieldReadyConfig: ProgramConfig = {
   slug: FIELD_READY_SLUG,
