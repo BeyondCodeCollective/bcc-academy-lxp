@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/server";
 import { blobConfigured, uploadRecordingToBlob } from "@/lib/blob-recordings";
 import { driveConfigured, uploadRecordingToDrive } from "@/lib/google-drive";
@@ -175,6 +176,15 @@ export async function GET(request: Request) {
       .update({ recording_url: storedValue })
       .eq("id", job.rowId);
     if (dbErr) throw new Error(`db update: ${dbErr.message}`);
+
+    // A student can already have this page's dynamic render cached from
+    // before the recording landed (client-side, from an earlier visit this
+    // browser session) — nothing about their next click tells Next.js to
+    // recheck the server. Dropping the server-side cache entry here means
+    // that stale copy expires at the source, so it clears the moment their
+    // session's cache would naturally refresh instead of persisting until
+    // someone happens to hard-refresh.
+    revalidatePath(`/dashboard/track/${job.track}/${job.week}`);
 
     return NextResponse.json({
       ok: true,
