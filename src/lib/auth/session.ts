@@ -2,7 +2,7 @@ import { cache } from "react";
 import { after } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { determineRole } from "@/lib/auth/admins";
-import { landingSignupName } from "@/lib/auth/seed-name";
+import { seedNameForEmail } from "@/lib/auth/seed-name";
 import { resolveIsStaff } from "@/lib/auth/staff";
 import type { Cohort } from "@/lib/types";
 
@@ -134,7 +134,7 @@ async function ensureProfile(
 
   // Someone who signed up on a landing page already told us their name; a
   // healed profile that drops it is how a roster ends up showing bare emails.
-  const seed = await landingSignupName(admin, email);
+  const seed = await seedNameForEmail(admin, email);
 
   await admin.from("students").upsert(
     {
