@@ -72,14 +72,17 @@ for (const track of [INTRO, SESSION]) {
   if (error) throw error;
 }
 
-// What approval *is*, in data terms. A cold walk without this lands on
-// /login?error=not-invited: signing in at all requires an allowed_signup_emails
-// row (or an invites row). That is the door, and it is why Phase 0 is not yet
-// reachable by a stranger.
-const { error: allowErr } = await svc
-  .from("allowed_signup_emails")
-  .upsert({ email: EMAIL, track_slug: INTRO }, { onConflict: "email,track_slug" });
-if (allowErr) throw allowErr;
+// Deliberately NO allowed_signup_emails row.
+//
+// An earlier version of this script added one, and that was a mistake with
+// teeth: the join gate treats a track's allowlist as all-or-nothing — "if the
+// track's list is empty, anyone can sign up" — so a single row would have
+// switched Phase 0 from open-to-the-public to invite-only for everyone.
+//
+// The magic link below carries `join` and `track`, which is what arriving via
+// /join/field-ready gives a real visitor. Without them the callback falls back
+// to the default program (Catalyst, requireInviteLink: true) and rejects with
+// error=not-invited — which is a fact about Catalyst, not about Field Ready.
 
 if (RESET) {
   const { error } = await svc.from("track_completions").delete().eq("student_id", userId);
@@ -99,5 +102,5 @@ if (lErr) throw lErr;
 console.log(JSON.stringify({
   userId,
   completions: (completions ?? []).map((c) => c.track_slug),
-  url: `http://localhost:${PORT}/auth/callback?token_hash=${link.properties.hashed_token}&type=magiclink&email=${encodeURIComponent(EMAIL)}&next=${encodeURIComponent(`/dashboard/track/${INTRO}/1`)}`,
+  url: `http://localhost:${PORT}/auth/callback?token_hash=${link.properties.hashed_token}&type=magiclink&email=${encodeURIComponent(EMAIL)}&join=field-ready&track=${INTRO}&next=${encodeURIComponent(`/dashboard/track/${INTRO}/1`)}`,
 }));
