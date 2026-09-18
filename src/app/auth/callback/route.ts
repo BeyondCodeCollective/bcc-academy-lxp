@@ -3,6 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { createServiceClient } from "@/lib/supabase/server";
+import { landingSignupName } from "@/lib/auth/seed-name";
 import { authCookieDomain } from "@/lib/supabase/cookie-domain";
 import { getProgram, fetchDynamicProgram, resolveHomeProgramSlug } from "@/lib/programs/server";
 import { getProgramBySlug, getHomeProgramForTrack, getTrackBySlug, isKnownProgramHost, hasTsConfigSlug } from "@/lib/programs";
@@ -454,16 +455,18 @@ export async function GET(request: Request) {
         // learner's home is where their course lives, not where they clicked.
         const trackProgramId =
           !existing && trackParam ? await trackHomeProgramId(admin, trackParam) : null;
-        // Two places may already know this person's name: an application they
-        // submitted, or a roster file their program uploaded. Application wins
-        // — they typed it themselves — and the allowlist backs it up.
-        const appName = existing
-          ? { first_name: "", last_name: "" }
-          : await applicationName(admin, email);
-        const seedName =
-          existing || appName.first_name || appName.last_name
-            ? appName
-            : await allowlistName(admin, email);
+        // Three places may already know this person's name: an application they
+        // submitted, the landing page they signed up on, or a roster file their
+        // program uploaded. The two they typed themselves win, application
+        // first; the allowlist backs them up.
+        const named = (n: { first_name: string; last_name: string }) =>
+          !!(n.first_name || n.last_name);
+        let seedName = { first_name: "", last_name: "" };
+        if (!existing) {
+          seedName = await applicationName(admin, email);
+          if (!named(seedName)) seedName = await landingSignupName(admin, email);
+          if (!named(seedName)) seedName = await allowlistName(admin, email);
+        }
         await admin.from("students").upsert(
           {
             id: user.id,
