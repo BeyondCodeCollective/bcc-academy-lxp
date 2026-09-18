@@ -148,6 +148,13 @@ export const PLATFORM_AUTH_SURVEYS: Record<string, SurveyConfig> = {
       "Mindset and soft skills, about 10 minutes. Not a test — where you're starting from, so we can support you from day one. Private; used only to improve the coaching and report impact.",
     required: false,
   },
+  "mass-sept-2026-pre": {
+    id: "mass-sept-2026-pre",
+    title: "MASS Coaching Cohort — Pre-Program Survey",
+    description:
+      "Mindset and soft skills, about 10 minutes. Not a test — where you're starting from, so we can support you from day one. Private; used only to improve the coaching and report impact.",
+    required: false,
+  },
   "security-plus-midpoint": {
     id: "security-plus-midpoint",
     title: "CompTIA Security+ Midpoint Check-In",

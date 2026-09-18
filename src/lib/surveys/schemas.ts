@@ -1823,6 +1823,9 @@ const SCHEMAS: Record<string, SurveyQuestion[]> = {
   "hfs-impact-survey": HFS_IMPACT_SURVEY,
   "sbft-application": SBFT_APPLICATION,
   "mass-fall-2026-pre": MASS_FALL_2026_PRE,
+  // Cohort 2 answers the SAME instrument under its own survey_type, so the two
+  // cohorts stay comparable while their responses stay separable.
+  "mass-sept-2026-pre": MASS_FALL_2026_PRE,
   "cyberdeck-pre": CYBERDECK_PRE,
   "cyberdeck-post": CYBERDECK_POST,
 };
