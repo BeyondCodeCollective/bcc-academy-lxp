@@ -36,7 +36,8 @@ export function CampEnrollForm({
   accent: string;
   ctaLabel: string | null;
 }) {
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [zip, setZip] = useState("");
   const [heardAbout, setHeardAbout] = useState("");
@@ -53,7 +54,8 @@ export function CampEnrollForm({
 
     const result = await enrollInCourse({
       slug,
-      name,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
       email: email.trim(),
       zipCode: zip.trim(),
       heardAbout,
@@ -109,12 +111,27 @@ export function CampEnrollForm({
           ))}
         </select>
       )}
+      {/* Asked separately: one "Full name" box meant the surname was a guess at
+         the first space, which turned "Ana M Mendoza-Santiago" into a first
+         name of Ana and a surname of M Mendoza-Santiago. */}
       <input
         type="text"
         required
-        placeholder="Full name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
+        autoComplete="given-name"
+        placeholder="First name"
+        value={firstName}
+        onChange={(e) => setFirstName(e.target.value)}
+        disabled={status === "loading"}
+        className={inputStyle}
+        style={{ borderColor: `${ink}22`, color: `${ink}` }}
+      />
+      <input
+        type="text"
+        required
+        autoComplete="family-name"
+        placeholder="Last name"
+        value={lastName}
+        onChange={(e) => setLastName(e.target.value)}
         disabled={status === "loading"}
         className={inputStyle}
         style={{ borderColor: `${ink}22`, color: `${ink}` }}

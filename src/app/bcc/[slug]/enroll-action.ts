@@ -21,7 +21,10 @@ export type EnrollActionResult =
  */
 export async function enrollInCourse(input: {
   slug: string;
-  name: string;
+  /** Older cached pages still post a single `name`; newer ones post both. */
+  name?: string;
+  firstName?: string;
+  lastName?: string;
   email: string;
   zipCode?: string;
   heardAbout?: string;
@@ -29,7 +32,15 @@ export async function enrollInCourse(input: {
   origin: string;
 }): Promise<EnrollActionResult> {
   const email = (input.email ?? "").trim().toLowerCase();
-  const name = (input.name ?? "").trim().slice(0, 200);
+  // The form now collects first and last separately. A cached page that still
+  // posts one `name` keeps working — split it the way this action always did.
+  const firstName = (input.firstName ?? "").trim().slice(0, 100);
+  const lastName = (input.lastName ?? "").trim().slice(0, 100);
+  const legacy = (input.name ?? "").trim().slice(0, 200);
+  const legacyParts = legacy.split(/\s+/).filter(Boolean);
+  const first = firstName || legacyParts[0] || "";
+  const last = lastName || legacyParts.slice(1).join(" ") || "";
+  const name = [first, last].filter(Boolean).join(" ");
   // Optional at the action level so older cached pages that submit without it
   // still succeed; the form itself requires a valid ZIP.
   const zipRaw = (input.zipCode ?? "").trim();
@@ -40,6 +51,11 @@ export async function enrollInCourse(input: {
 
   if (!EMAIL_RE.test(email)) {
     return { ok: false, error: "Please enter a valid email address." };
+  }
+  // Names were never checked here, so anything that reached the action without
+  // them wrote a row with a null name and the account it created was blank.
+  if (!first || !last) {
+    return { ok: false, error: "Please enter your first and last name." };
   }
 
   const page = await getLandingPage(input.slug);
@@ -76,7 +92,7 @@ export async function enrollInCourse(input: {
         const programName = (await getProgramWithOverrides(enrolled.programSlug)).name;
         await sendEventConfirmationEmail({
           to: email,
-          firstName: name.split(" ")[0] ?? "",
+          firstName: first,
           programName,
           eventName: session?.label ?? page.headline.replace(/\n/g, " "),
           eventStartUtc: session?.startUtc ?? null,
@@ -95,6 +111,8 @@ export async function enrollInCourse(input: {
         track_slug: page.trackSlug,
         email,
         name: name || null,
+        first_name: first,
+        last_name: last,
         zip_code: zipCode,
         session_id: session?.id ?? null,
         heard_about: heardAbout,

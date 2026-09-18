@@ -3,6 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { createServiceClient } from "@/lib/supabase/server";
+import { seedNameForEmail } from "@/lib/auth/seed-name";
 import { authCookieDomain } from "@/lib/supabase/cookie-domain";
 import { getProgram, fetchDynamicProgram, resolveHomeProgramSlug } from "@/lib/programs/server";
 import { getProgramBySlug, getHomeProgramForTrack, getTrackBySlug, isKnownProgramHost, hasTsConfigSlug } from "@/lib/programs";
@@ -56,64 +57,7 @@ async function trackHomeProgramId(
  * Forte Bahamas sends a spreadsheet with a Name column; carrying it this far
  * means the learner is not asked for something we were already told.
  */
-async function allowlistName(
-  admin: ReturnType<typeof createServiceClient>,
-  email: string,
-): Promise<{ first_name: string; last_name: string }> {
-  const empty = { first_name: "", last_name: "" };
-  try {
-    const { data } = await admin
-      .from("allowed_signup_emails")
-      .select("first_name, last_name")
-      .eq("email", email.toLowerCase())
-      .not("first_name", "is", null)
-      .limit(1)
-      .maybeSingle<{ first_name: string | null; last_name: string | null }>();
-    if (!data) return empty;
-    return {
-      first_name: (data.first_name ?? "").trim(),
-      last_name: (data.last_name ?? "").trim(),
-    };
-  } catch (e) {
-    console.error("[auth/callback] allowlistName lookup failed:", e);
-    return empty;
-  }
-}
 
-async function applicationName(
-  admin: ReturnType<typeof createServiceClient>,
-  email: string,
-): Promise<{ first_name: string; last_name: string }> {
-  const empty = { first_name: "", last_name: "" };
-  try {
-    const { data } = await admin
-      .from("public_survey_responses")
-      .select("responses")
-      .or(`email.ilike.${email},responses->>email.ilike.${email}`)
-      .order("created_at", { ascending: false })
-      .limit(5);
-    for (const row of data ?? []) {
-      const r = (row.responses ?? {}) as Record<string, unknown>;
-      const first = typeof r.first_name === "string" ? r.first_name.trim() : "";
-      const last = typeof r.last_name === "string" ? r.last_name.trim() : "";
-      if (first || last) return { first_name: first, last_name: last };
-      const full =
-        (typeof r.full_name === "string" && r.full_name.trim()) ||
-        (typeof r.name === "string" && r.name.trim()) ||
-        "";
-      if (full) {
-        const parts = full.split(/\s+/);
-        return {
-          first_name: parts[0],
-          last_name: parts.slice(1).join(" "),
-        };
-      }
-    }
-  } catch (e) {
-    console.error("[auth/callback] applicationName lookup failed:", e);
-  }
-  return empty;
-}
 
 // Magic-link landing. Pin to iad1 only: Supabase is in Virginia (us-east-1),
 // co-located with iad1, so DB round-trips are sub-millisecond from this region.
@@ -454,16 +398,11 @@ export async function GET(request: Request) {
         // learner's home is where their course lives, not where they clicked.
         const trackProgramId =
           !existing && trackParam ? await trackHomeProgramId(admin, trackParam) : null;
-        // Two places may already know this person's name: an application they
-        // submitted, or a roster file their program uploaded. Application wins
-        // — they typed it themselves — and the allowlist backs it up.
-        const appName = existing
+        // Everywhere that might already know this person's name, in one place
+        // (see seedNameForEmail) so both upserts in this file stay in step.
+        const seedName = existing
           ? { first_name: "", last_name: "" }
-          : await applicationName(admin, email);
-        const seedName =
-          existing || appName.first_name || appName.last_name
-            ? appName
-            : await allowlistName(admin, email);
+          : await seedNameForEmail(admin, email);
         await admin.from("students").upsert(
           {
             id: user.id,
@@ -591,7 +530,9 @@ export async function GET(request: Request) {
         ? await trackHomeProgramId(admin, trackParam)
         : null;
       // ignoreDuplicates below means the name only lands on brand-new rows.
-      const pinnedAppName = await applicationName(admin, email);
+      // Was applications-only, which is why a learner who signed up on a
+      // landing page or arrived on a roster still landed here nameless.
+      const pinnedAppName = await seedNameForEmail(admin, email);
       await admin.from("students").upsert(
         {
           id: user.id,
