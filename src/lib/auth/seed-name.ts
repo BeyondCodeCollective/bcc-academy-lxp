@@ -23,19 +23,22 @@ async function fromApplication(admin: Admin, email: string): Promise<SeededName>
   try {
     const { data } = await admin
       .from("public_survey_responses")
-      .select("responses")
+      .select("full_name, responses")
       .or(`email.ilike.${email},responses->>email.ilike.${email}`)
       .order("created_at", { ascending: false })
       .limit(5);
-    for (const row of data ?? []) {
+    for (const row of (data ?? []) as { full_name: string | null; responses: unknown }[]) {
       const r = (row.responses ?? {}) as Record<string, unknown>;
       const first = typeof r.first_name === "string" ? r.first_name.trim() : "";
       const last = typeof r.last_name === "string" ? r.last_name.trim() : "";
       if (first || last) return { first_name: first, last_name: last };
+      // full_name is a real column as well as a key inside `responses` — the
+      // application forms write the column, so reading only the JSON missed
+      // every applicant who told us their name on the way in.
       const full =
         (typeof r.full_name === "string" && r.full_name.trim()) ||
         (typeof r.name === "string" && r.name.trim()) ||
-        "";
+        (row.full_name ?? "").trim();
       if (full) return splitFullName(full);
     }
   } catch (e) {
