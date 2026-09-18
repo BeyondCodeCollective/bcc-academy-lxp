@@ -1880,7 +1880,7 @@ function getSurveyPages(surveyId: string, programSlug: string): SurveyPage[] {
   }
   // No programSlug condition: MASS Fall 2026 sits under Catalyst but the
   // agreement link is shareable, so the survey must render wherever it's opened.
-  if (surveyId === "mass-fall-2026-pre") {
+  if (surveyId === "mass-fall-2026-pre" || surveyId === "mass-sept-2026-pre") {
     return MASS_PRE_PAGES;
   }
   // The generic pre-survey is only for the surveys that were built on it.
