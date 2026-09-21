@@ -8,6 +8,7 @@ import { getEnrolledTracks } from "@/lib/enrollment";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { getPreviewTrackSlug, LUNCH_LEARN_PREVIEW_SLUG } from "@/lib/auth/preview-mode";
+import { signRecordingUrl } from "@/lib/blob-recordings";
 import type { TrackConfig } from "@/lib/programs/types";
 import {
   Envelope,
@@ -31,6 +32,12 @@ export default async function HelpPage() {
     ? program.tracks.find((t) => t.slug === previewSlug)
     : null;
   const isAdmin = actualIsAdmin && !previewSlug;
+  // Platform walkthrough, recorded for the programs team. It lives in the
+  // PRIVATE blob store because admin screens in it show real learner names, so
+  // the URL is minted per request for someone already inside the admin panel.
+  const walkthroughUrl = isAdmin
+    ? await signRecordingUrl("guides/bgc-programs-walkthrough-v10.mp4")
+    : null;
 
   let visibleTracks: TrackConfig[];
   if (previewingLunchLearn) {
@@ -265,6 +272,19 @@ export default async function HelpPage() {
                 <p className="text-[15px] leading-[1.6] text-ink-soft mb-6">
                   Reference for managing your tracks on {program.name}.
                 </p>
+                {walkthroughUrl && (
+                  <figure className="mb-8">
+                    <video
+                      controls
+                      preload="metadata"
+                      className="w-full rounded-lg bg-black"
+                      src={walkthroughUrl}
+                    />
+                    <figcaption className="mt-2 text-micro text-ink-faint">
+                      Platform walkthrough — every admin surface, start to finish.
+                    </figcaption>
+                  </figure>
+                )}
                 <div className="space-y-8">
                   <GuideBlock title="Adding meeting links & recordings">
                     <Steps
