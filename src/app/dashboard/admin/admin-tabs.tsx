@@ -538,7 +538,13 @@ export function AdminTabs({
   studentTracks: StudentTrackRow[];
   instructorTracks?: InstructorTrackRow[];
   programSlug: string;
-  surveyConfigs: { id: string; title: string; skipForTracks?: string[]; appliesToTracks?: string[] }[];
+  surveyConfigs: {
+    id: string;
+    title: string;
+    skipForTracks?: string[];
+    appliesToTracks?: string[];
+    appliesToPrograms?: string[];
+  }[];
   trackPublicSurveys?: { id: string; title: string; count: number }[];
   userRole?: string;
   isMaster?: boolean;
@@ -1917,10 +1923,15 @@ export function AdminTabs({
                   // those courses. Assignment beats evidence: cross-enrolled
                   // learners' answers otherwise surface another course's
                   // survey here (HFS "How Did We Do?" under MASS, 2026-08-27).
-                  if (s.appliesToTracks?.length) {
+                  // A survey may name its courses, its programs, or both. Both
+                  // union (see surveyTargetsLearner): the AI Fundamentals
+                  // pre-survey belongs to Beyond Code Centers AND to Catalyst
+                  // Labs, so it must list under every course on either side.
+                  if (s.appliesToTracks?.length || s.appliesToPrograms?.length) {
                     return (
-                      s.appliesToTracks.includes(activeTrack.slug) ||
-                      s.appliesToTracks.includes(home)
+                      (s.appliesToTracks ?? []).some(
+                        (t) => t === activeTrack.slug || t === home,
+                      ) || (s.appliesToPrograms ?? []).includes(programSlug)
                     );
                   }
                   return (
