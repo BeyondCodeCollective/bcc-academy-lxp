@@ -7,6 +7,7 @@ import type { ScoredOutput } from "@/lib/assessment/types";
 import { ARCHETYPE_CONTENT } from "@/lib/assessment/content";
 import { PageHeader } from "@/components/page-header";
 import { DataTable } from "@/components/ui";
+import { getProgram } from "@/lib/programs/server";
 
 export default async function AssessmentsAdminPage() {
   const ctx = await getSessionContext();
@@ -14,10 +15,12 @@ export default async function AssessmentsAdminPage() {
   if (!canAccessAdminPanel(ctx.student?.role ?? "")) redirect("/dashboard");
 
   const svc = createServiceClient();
+  const program = await getProgram();
 
   const { data: rows } = await svc
     .from("assessment_results")
     .select("student_id, completed_at, scored_output, facilitator_viewed_at")
+    .eq("program_slug", program.slug)
     .order("completed_at", { ascending: false });
 
   const studentIds = (rows ?? []).map((r) => r.student_id as string);

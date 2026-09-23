@@ -3,16 +3,28 @@
 import { useState } from "react";
 import { buttonClass } from "@/components/ui";
 
+// Each link lists the programs it belongs to; the page shows only the links for
+// the program the admin is in.
+const BCC = ["catalyst", "atg", "beyond-code-centers"];
+const AI_FUNDAMENTALS = ["catalyst", "beyond-code-centers"];
+
 const PUBLIC_SURVEY_LINKS = [
-  { id: "bcc-learner-intake",        label: "BCC Learner Intake",                        path: "/survey/bcc-learner-intake" },
-  { id: "bcc-workshop",              label: "Workshop Feedback",                          path: "/survey/bcc-workshop" },
-  { id: "pre-survey-spring-2026",    label: "AI Fundamentals — Pre-Program Survey",       path: "/survey/pre-survey-spring-2026" },
-  { id: "post-survey-spring-2026",   label: "AI Fundamentals — Post-Program Survey",      path: "/survey/post-survey-spring-2026" },
-  { id: "network-plus-post",         label: "CompTIA Network+ — End-of-Cohort Survey",    path: "/survey/network-plus-post" },
-  { id: "security-plus-application", label: "CompTIA Security+ — Application",            path: "/apply/security-plus" },
+  { id: "bcc-learner-intake",        label: "BCC Learner Intake",                        path: "/survey/bcc-learner-intake",        programs: BCC },
+  { id: "bcc-workshop",              label: "Workshop Feedback",                          path: "/survey/bcc-workshop",              programs: BCC },
+  { id: "pre-survey-spring-2026",    label: "AI Fundamentals — Pre-Program Survey",       path: "/survey/pre-survey-spring-2026",    programs: AI_FUNDAMENTALS },
+  { id: "post-survey-spring-2026",   label: "AI Fundamentals — Post-Program Survey",      path: "/survey/post-survey-spring-2026",   programs: AI_FUNDAMENTALS },
+  { id: "network-plus-post",         label: "CompTIA Network+ — End-of-Cohort Survey",    path: "/survey/network-plus-post",         programs: ["catalyst"] },
+  { id: "security-plus-application", label: "CompTIA Security+ — Application",            path: "/apply/security-plus",              programs: ["catalyst"] },
+  { id: "bgc-participant-2026",      label: "Black Girls Code 2026 Participant Survey",   path: "/survey/bgc-participant-2026",      programs: ["bgc"] },
 ];
 
-export function SurveyLinksSection({ surveyConfigs }: { surveyConfigs: { id: string; title: string }[] }) {
+export function SurveyLinksSection({
+  programSlug,
+  surveyConfigs,
+}: {
+  programSlug: string;
+  surveyConfigs: { id: string; title: string }[];
+}) {
   const [copied, setCopied] = useState<string | null>(null);
 
   const copy = (path: string, id: string) => {
@@ -27,7 +39,9 @@ export function SurveyLinksSection({ surveyConfigs }: { surveyConfigs: { id: str
     { id: "pathway-assessment", label: "Pathway Assessment", path: "/dashboard/assessment", auth: true },
     // Platform-level auth survey: not in program.surveys, so surveyConfigs
     // below won't surface it.
-    { id: "security-plus-midpoint", label: "CompTIA Security+ — Midpoint Check-In", path: "/dashboard/survey/security-plus-midpoint", auth: true },
+    ...(programSlug === "catalyst"
+      ? [{ id: "security-plus-midpoint", label: "CompTIA Security+ — Midpoint Check-In", path: "/dashboard/survey/security-plus-midpoint", auth: true }]
+      : []),
     ...surveyConfigs.map((s) => ({
       id: s.id,
       label: s.title,
@@ -37,7 +51,9 @@ export function SurveyLinksSection({ surveyConfigs }: { surveyConfigs: { id: str
   ];
 
   const allLinks = [
-    ...PUBLIC_SURVEY_LINKS.map((s) => ({ ...s, auth: false })),
+    ...PUBLIC_SURVEY_LINKS.filter((s) => s.programs.includes(programSlug)).map(
+      ({ id, label, path }) => ({ id, label, path, auth: false }),
+    ),
     ...authLinks,
   ];
 
