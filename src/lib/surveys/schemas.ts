@@ -1866,7 +1866,7 @@ export const BGC_PARTICIPANT_2026_EXPERIENCE: SurveyQuestion[] = [
     id: "bgc_steam_career",
     label:
       "After attending this program, can you see yourself having a career in coding or a STEAM field (Science, Technology, Engineering, Art, and Mathematics)?",
-    options: ["Agree", "Maybe", "Disagree"],
+    options: ["Yes", "Maybe", "No"],
     required: true,
   },
   {
