@@ -97,6 +97,9 @@ export function PublicSurveyWizard({
   successBody = "Thanks for sharing.",
 }: PublicSurveyWizardProps) {
   const storageKey = `public-survey-${programSlug}-${surveyId}`;
+  // Withdrawal looks a response up by email — an anonymous survey (no contact
+  // page) has none to match, so don't offer it.
+  const canWithdraw = pages.some((p) => p.kind === "contact");
 
   // ── Initial state (hydrated from localStorage on mount) ──────────────────
   const initialState = useMemo(() => {
@@ -276,18 +279,20 @@ export function PublicSurveyWizard({
           </div>
           <h2 className="text-xl font-bold text-ink">{successTitle}</h2>
           <p className="mt-2 text-sm text-ink-soft">{successBody}</p>
-          <p className="mt-4 text-xs text-ink-soft">
-            Change your mind?{" "}
-            <a
-              href="/privacy/withdraw"
-              className="font-medium text-ink underline hover:text-ink"
-            >
-              Remove my response
-            </a>
-            .
-          </p>
+          {canWithdraw && (
+            <p className="mt-4 text-xs text-ink-soft">
+              Change your mind?{" "}
+              <a
+                href="/privacy/withdraw"
+                className="font-medium text-ink underline hover:text-ink"
+              >
+                Remove my response
+              </a>
+              .
+            </p>
+          )}
         </div>
-        <FooterLinks />
+        <FooterLinks canWithdraw={canWithdraw} />
       </div>
     );
   }
@@ -400,7 +405,7 @@ export function PublicSurveyWizard({
           )}
         </button>
       </div>
-      <FooterLinks />
+      <FooterLinks canWithdraw={canWithdraw} />
     </div>
   );
 }
@@ -409,7 +414,7 @@ export function PublicSurveyWizard({
 // Shared sub-components
 // ---------------------------------------------------------------------------
 
-function FooterLinks() {
+function FooterLinks({ canWithdraw }: { canWithdraw: boolean }) {
   return (
     <div className="mt-8 flex items-center justify-center gap-3 text-xs text-ink-soft">
       <a
@@ -424,10 +429,14 @@ function FooterLinks() {
       <a href="/privacy" className="hover:text-ink-soft">
         Privacy
       </a>
-      <span aria-hidden>·</span>
-      <a href="/privacy/withdraw" className="hover:text-ink-soft">
-        Remove my response
-      </a>
+      {canWithdraw && (
+        <>
+          <span aria-hidden>·</span>
+          <a href="/privacy/withdraw" className="hover:text-ink-soft">
+            Remove my response
+          </a>
+        </>
+      )}
     </div>
   );
 }

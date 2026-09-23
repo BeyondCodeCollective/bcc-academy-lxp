@@ -1801,6 +1801,106 @@ const CYBERDECK_POST: SurveyQuestion[] = [
   },
 ];
 
+// Black Girls Code 2026 Participant Survey — one instrument across every BGC
+// program type and city, taken by girls aged 7–18. Anonymous by design: no
+// name or email is asked (COPPA), so there is nothing to pair across surveys.
+// Questions as supplied by the BGC programs team.
+export const BGC_PARTICIPANT_2026_ABOUT: SurveyQuestion[] = [
+  {
+    type: "select",
+    id: "bgc_age",
+    label: "What is your age?",
+    options: ["7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18"],
+    placeholder: "Choose your age",
+    required: true,
+  },
+  {
+    type: "radio",
+    id: "bgc_city",
+    label: "Which city did you attend the program in?",
+    options: [
+      "Virtual",
+      "Atlanta",
+      "Bay Area",
+      "Chicago",
+      "Dallas",
+      "Detroit",
+      "DMV",
+      "Houston",
+      "Los Angeles",
+      "Memphis",
+      "New York",
+      "Philadelphia",
+      "Raleigh Durham",
+      "Other",
+    ],
+    required: true,
+  },
+  {
+    type: "radio",
+    id: "bgc_program_type",
+    label: "Which type of program did you participate in?",
+    options: [
+      "Workshops (In-person)",
+      "Workshops (Virtual)",
+      "After-School Code Clubs",
+      "Summer Camp",
+      "Field Trip or Panel",
+      "She's Built for This (Leadership Cohort)",
+      "AI Fundamentals Fellowship",
+    ],
+    required: true,
+  },
+];
+
+export const BGC_PARTICIPANT_2026_EXPERIENCE: SurveyQuestion[] = [
+  {
+    type: "radio",
+    id: "bgc_recommend",
+    label: "Would you recommend this program to a friend?",
+    options: ["Yes", "Maybe", "No"],
+    required: true,
+  },
+  {
+    type: "radio",
+    id: "bgc_steam_career",
+    label:
+      "After attending this program, can you see yourself having a career in coding or a STEAM field (Science, Technology, Engineering, Art, and Mathematics)?",
+    options: ["Agree", "Maybe", "Disagree"],
+    required: true,
+  },
+  {
+    type: "radio",
+    id: "bgc_new_skill",
+    label: "I learned a new skill in this program (Coding, Leadership, AI Fundamentals).",
+    options: ["Yes", "No"],
+    required: true,
+  },
+  {
+    type: "radio",
+    id: "bgc_belong",
+    label:
+      "This program showed me people, stories, and ideas that are like me and my life — and it made me feel like I belong in tech.",
+    options: ["Yes", "No"],
+    required: true,
+  },
+];
+
+export const BGC_PARTICIPANT_2026_THOUGHTS: SurveyQuestion[] = [
+  {
+    type: "text",
+    id: "bgc_other_thoughts",
+    label: "Any other thoughts or ideas you'd like to share about the program?",
+    required: false,
+  },
+];
+
+const BGC_PARTICIPANT_2026: SurveyQuestion[] = [
+  ...BGC_PARTICIPANT_2026_ABOUT,
+  ...BGC_PARTICIPANT_2026_EXPERIENCE,
+  ...BGC_PARTICIPANT_2026_THOUGHTS,
+];
+
 const SCHEMAS: Record<string, SurveyQuestion[]> = {
   "bcc-learner-intake": BCC_LEARNER_INTAKE,
   "comptia-security-pre": COMPTIA_SECURITY_PRE,
@@ -1828,6 +1928,7 @@ const SCHEMAS: Record<string, SurveyQuestion[]> = {
   "mass-sept-2026-pre": MASS_FALL_2026_PRE,
   "cyberdeck-pre": CYBERDECK_PRE,
   "cyberdeck-post": CYBERDECK_POST,
+  "bgc-participant-2026": BGC_PARTICIPANT_2026,
 };
 
 export function getSurveySchema(surveyId: string): SurveyQuestion[] | null {

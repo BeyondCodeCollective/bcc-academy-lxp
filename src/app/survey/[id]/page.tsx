@@ -13,6 +13,7 @@ import { PublicPostSurvey } from "./public-post-survey";
 import { PublicImpactSurvey } from "./public-impact-survey";
 import { PublicCyberdeckPre } from "./public-cyberdeck-pre";
 import { PublicCyberdeckPost } from "./public-cyberdeck-post";
+import { PublicBgcParticipantSurvey } from "./public-bgc-participant-survey";
 
 // Public survey route. Outside /dashboard/* so the proxy/middleware does not
 // gate it — anyone who lands on catalyst.bccacademy.io/survey/network-plus-post
@@ -38,6 +39,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     "ai-impact-survey-2026": "Program Impact Survey",
     "cyberdeck-pre": "Cyberdeck Series — Pre-Program Survey",
     "cyberdeck-post": "Cyberdeck Series — Post-Program Survey",
+    "bgc-participant-2026": "Black Girls Code 2026 Participant Survey",
   };
   const title = titles[id] ?? "Survey";
   return {
@@ -58,6 +60,7 @@ const SURVEY_COMPONENTS: Record<string, ComponentType<SurveyProps>> = {
   "ai-impact-survey-2026": PublicImpactSurvey,
   "cyberdeck-pre": PublicCyberdeckPre,
   "cyberdeck-post": PublicCyberdeckPost,
+  "bgc-participant-2026": PublicBgcParticipantSurvey,
 };
 
 // post-survey-spring-2026 is retired: it's no longer assigned to a program, so

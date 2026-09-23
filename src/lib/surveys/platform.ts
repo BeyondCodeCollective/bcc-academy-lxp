@@ -17,6 +17,7 @@ export const BCC_INTAKE_SURVEY_ID = "bcc-learner-intake";
 const BCC_WORKSHOP_SURVEY_ID = "bcc-workshop";
 const CYBERDECK_PRE_SURVEY_ID = "cyberdeck-pre";
 const CYBERDECK_POST_SURVEY_ID = "cyberdeck-post";
+const BGC_PARTICIPANT_2026_SURVEY_ID = "bgc-participant-2026";
 
 /** A learner skips a program survey when EVERY course they're enrolled in opts
  *  out via the survey's skipForTracks. Empty enrollment never skips, so this
@@ -232,6 +233,17 @@ export const PLATFORM_PUBLIC_SURVEYS: Record<string, SurveyConfig> = {
       "3–4 min. The same questions from day one, plus how the series went.",
     required: false,
     appliesToTracks: ["build-your-world-cyberdeck-workshop-series"],
+  },
+  // Black Girls Code 2026 Participant Survey — anonymous (respondents are 7–18)
+  // and filed under BGC whatever host the link is opened on.
+  [BGC_PARTICIPANT_2026_SURVEY_ID]: {
+    id: BGC_PARTICIPANT_2026_SURVEY_ID,
+    title: "Black Girls Code 2026 Participant Survey",
+    description: "2 min. Tell us how your program went. We don't ask your name.",
+    required: false,
+    appliesToPrograms: ["bgc"],
+    organization: "Black Girls Code",
+    anonymous: true,
   },
   // Collected via /apply/sbft (custom form, not /survey/<id>).
   [SBFT_APPLICATION_SURVEY_ID]: {

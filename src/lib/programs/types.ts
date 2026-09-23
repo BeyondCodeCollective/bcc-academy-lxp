@@ -348,6 +348,9 @@ export type SurveyConfig = {
    *  (e.g. an AI Fundamentals survey always shows "Beyond Code Centers", even
    *  when opened from another program context). */
   organization?: string;
+  /** Public surveys only: ask no name or email (e.g. respondents under 13).
+   *  Every submission is its own row, filed under appliesToPrograms[0]. */
+  anonymous?: boolean;
 };
 
 export type ProgramConfig = {
