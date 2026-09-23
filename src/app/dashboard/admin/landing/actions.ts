@@ -5,12 +5,14 @@ import { revalidatePath } from "next/cache";
 import { toSlug } from "@/lib/programs/slug";
 import { getEveryProgramConfig } from "@/lib/programs";
 import { humanizeSlug } from "@/lib/utils";
+import { embeddedProgramSlug } from "@/lib/landing-pages";
 import type { ScheduleDay, LandingPartner, LandingSession, LandingSection } from "@/lib/landing-pages";
 import {
   requireManager,
   resolveProgramForActor,
   allowedProgramIdsForActor,
   assertLandingPageInActorProgram,
+  assertTrackInActorProgram,
 } from "../actions-shared";
 
 // Landing pages are a program-admin job, same tier as Manage Courses: a course
@@ -107,8 +109,17 @@ export async function saveLandingPageAction(
     .map((s) => ({ label: s.label.trim(), title: s.title.trim() }))
     .filter((s) => s.label || s.title);
 
+  // Keep the dates: the importer/generator stamps startUtc/endUtc/timezone on
+  // each session and the confirmation email's calendar links read them. The
+  // form doesn't edit them, so a save must not strip them.
   const sessions: LandingSession[] = (input.sessions ?? [])
-    .map((x) => ({ id: x.id.trim(), label: x.label.trim() }))
+    .map((x) => ({
+      id: x.id.trim(),
+      label: x.label.trim(),
+      startUtc: x.startUtc ?? null,
+      endUtc: x.endUtc ?? null,
+      timezone: x.timezone ?? null,
+    }))
     .filter((x) => x.id && x.label);
 
   // Only the FIRST emphasized section keeps the flag — a second dark band
@@ -187,6 +198,17 @@ export async function saveLandingPageAction(
   // unscheduled until you set dates in Manage Courses.
   const trackSlug = toSlug(input.trackSlug?.trim() || slug);
   if (!trackSlug) return { success: false, error: "Could not derive a course slug." };
+  // An existing course must be one the actor may act in — otherwise a program
+  // admin could point their page at another program's course and enroll
+  // signups into it. A course that doesn't exist yet is created in the
+  // page's own program below.
+  if (await courseExists(svc, trackSlug)) {
+    try {
+      await assertTrackInActorProgram(actor, svc, trackSlug);
+    } catch {
+      return { success: false, error: "That course belongs to another program." };
+    }
+  }
   const course = await ensureCourseForLanding(svc, trackSlug, input.headline.trim(), programId);
   if (!course.ok) return { success: false, error: course.error };
 
@@ -252,6 +274,20 @@ export async function saveLandingPageAction(
   return { success: true, slug, courseSlug: trackSlug, courseCreated: course.created };
 }
 
+/** Known anywhere already: the TS registry or a Course Builder row. */
+async function courseExists(
+  svc: ReturnType<typeof createServiceClient>,
+  trackSlug: string,
+): Promise<boolean> {
+  if (getEveryProgramConfig().some((p) => p.tracks.some((t) => t.slug === trackSlug))) return true;
+  const { data: existing } = await svc
+    .from("track_overrides")
+    .select("id")
+    .eq("track_slug", trackSlug)
+    .maybeSingle();
+  return !!existing;
+}
+
 /**
  * Make sure a course exists for a landing page's track slug. Looks in the TS
  * registry and track_overrides; if absent, creates a track_overrides row under
@@ -265,15 +301,7 @@ async function ensureCourseForLanding(
   fallbackName: string,
   programId: string | null,
 ): Promise<{ ok: true; created: boolean } | { ok: false; error: string }> {
-  // Known anywhere already?
-  const inConfig = getEveryProgramConfig().some((p) => p.tracks.some((t) => t.slug === trackSlug));
-  if (inConfig) return { ok: true, created: false };
-  const { data: existing } = await svc
-    .from("track_overrides")
-    .select("id")
-    .eq("track_slug", trackSlug)
-    .maybeSingle();
-  if (existing) return { ok: true, created: false };
+  if (await courseExists(svc, trackSlug)) return { ok: true, created: false };
 
   const { data: prog } = programId
     ? { data: { id: programId } }
@@ -312,9 +340,9 @@ export async function deleteLandingPageAction(
   const { svc } = actor;
   const { data: existing } = await svc
     .from("landing_pages")
-    .select("program_id")
+    .select("program_id, programs(slug)")
     .eq("slug", slug)
-    .maybeSingle<{ program_id: string | null }>();
+    .maybeSingle<{ program_id: string | null; programs: unknown }>();
   if (existing) assertLandingPageInActorProgram(actor, existing);
   const { error } = await svc.from("landing_pages").delete().eq("slug", slug);
   if (error) {
@@ -323,6 +351,8 @@ export async function deleteLandingPageAction(
   }
   revalidatePath("/dashboard/admin/landing");
   revalidatePath(`/bcc/${slug}`);
+  const programSlug = embeddedProgramSlug(existing?.programs);
+  if (programSlug) revalidatePath(`/${programSlug}/${slug}`);
   return { success: true };
 }
 

@@ -247,8 +247,18 @@ export async function ensureLandingForCourse(
     .maybeSingle<{ slug: string }>();
   if (byTrack) return { created: false, slug: byTrack.slug };
 
+  // The page is the course's, so it lives in the course's program. Without
+  // this it was a platform (/bcc/) page, which a program admin can't see or
+  // edit: the "Write the landing page" link after creating a course 404'd.
+  const { data: programRow } = await svc
+    .from("programs")
+    .select("id")
+    .eq("slug", programSlug)
+    .maybeSingle<{ id: string }>();
+
   const { error } = await svc.from("landing_pages").insert({
     slug: trackSlug,
+    program_id: programRow?.id ?? null,
     published: false,
     header_label: "BCC Academy",
     headline: content?.headline?.trim() || courseName,
