@@ -508,6 +508,7 @@ function AddDirectly({
           last_name: lastName.trim(),
           role: role as "student" | "instructor" | "admin" | "super_admin",
           cohort_id: null,
+          programSlug,
         });
         if (!result.success) {
           setError(result.error);

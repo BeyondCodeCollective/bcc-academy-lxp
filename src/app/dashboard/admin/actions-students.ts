@@ -133,9 +133,18 @@ export async function addStudentAction(data: {
   last_name: string;
   role: "student" | "instructor" | "admin" | "super_admin";
   cohort_id: string | null;
+  /** The program the admin is standing in. A super-admin's home stamp is
+   *  usually Catalyst, so filing under it put a person added from the BGC
+   *  People list into Catalyst, where the BGC list can't show them. */
+  programSlug?: string;
 }) {
   const actor = await requireManager();
-  const { svc, programId, userId, role: actorRole } = actor;
+  const { svc, userId, role: actorRole } = actor;
+  // resolveProgramForActor also authorizes: a program admin can only file a
+  // person under a program they hold.
+  const programId = data.programSlug
+    ? await resolveProgramForActor(actor, svc, data.programSlug)
+    : actor.programId;
   if (!programId) {
     throw new Error("Calling admin has no program — refusing to create student");
   }
