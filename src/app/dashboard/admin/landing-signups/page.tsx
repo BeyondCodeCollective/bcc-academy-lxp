@@ -2,7 +2,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
-import { canSwitchPrograms, canManageRoles } from "@/lib/roles";
+import { canManageStudents, canManageRoles } from "@/lib/roles";
+import { requireManager, allowedTrackSlugsForActor } from "../actions-shared";
 import { resolveTrackLengths } from "@/lib/programs/scope";
 import { humanizeSlug } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
@@ -53,7 +54,12 @@ export default async function SignupsPage({
 }) {
   const ctx = await getSessionContext();
   if (!ctx) redirect("/");
-  if (!canSwitchPrograms(ctx.student?.role ?? "")) redirect("/dashboard/admin");
+  if (!canManageStudents(ctx.student?.role ?? "")) redirect("/dashboard/admin");
+
+  // Registrations key on track_slug, not program, so a program admin's view is
+  // "every course in my program". Super-admins see every course.
+  const actor = await requireManager();
+  const allowedTracks = await allowedTrackSlugsForActor(actor, actor.svc);
 
   const svc = createServiceClient();
   const [{ data: landing }, { data: invites }, { data: eventbrite }, { data: allowlist }, { data: pages }] =
@@ -79,6 +85,7 @@ export default async function SignupsPage({
   const usedToken = new Set<string>();
   const add = (r: Reg) => {
     if (!r.track || !r.email) return;
+    if (allowedTracks && !allowedTracks.has(r.track)) return;
     const key = `${r.track} ${r.email}`;
     const prev = regs.get(key);
     if (!prev) {
@@ -172,7 +179,9 @@ export default async function SignupsPage({
 
   const sp = await searchParams;
   // Old ?page=<landing slug> links resolve to that page's course.
-  const pageRows = (pages ?? []) as PageRow[];
+  const pageRows = ((pages ?? []) as PageRow[]).filter(
+    (p) => !allowedTracks || (p.track_slug !== null && allowedTracks.has(p.track_slug)),
+  );
   const fromPage = sp.page ? (pageRows.find((p) => p.slug === sp.page)?.track_slug ?? null) : null;
   const requested = sp.course ?? fromPage ?? null;
   // No default: the page opens on the picker alone; nothing shows until a course is chosen.

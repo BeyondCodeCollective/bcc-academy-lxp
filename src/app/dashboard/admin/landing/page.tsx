@@ -2,10 +2,11 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
-import { canSwitchPrograms, canManageRoles } from "@/lib/roles";
+import { canManageStudents, canManageRoles } from "@/lib/roles";
 import { PageHeader } from "@/components/page-header";
 import { embeddedProgramSlug } from "@/lib/landing-pages";
 import { ManageMenu } from "../manage-menu";
+import { requireManager, allowedProgramIdsForActor } from "../actions-shared";
 import { buttonClass, DataTable } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -22,13 +23,19 @@ type LandingRow = {
 export default async function LandingPagesListPage() {
   const ctx = await getSessionContext();
   if (!ctx) redirect("/");
-  if (!canSwitchPrograms(ctx.student?.role ?? "")) redirect("/dashboard/admin");
+  if (!canManageStudents(ctx.student?.role ?? "")) redirect("/dashboard/admin");
 
+  // Program admins see their own program's pages only; super-admins see
+  // everything, platform (/bcc/) pages included.
+  const actor = await requireManager();
+  const allowedIds = allowedProgramIdsForActor(actor);
   const svc = createServiceClient();
-  const { data } = await svc
+  let query = svc
     .from("landing_pages")
     .select("slug, published, headline, updated_at, programs(slug)")
     .order("updated_at", { ascending: false });
+  if (allowedIds !== null) query = query.in("program_id", allowedIds);
+  const { data } = await query;
   const rows = (data ?? []) as LandingRow[];
   // Published and drafts answer different questions — "what is live right now"
   // versus "what am I still working on". Interleaved by updated_at they had to
