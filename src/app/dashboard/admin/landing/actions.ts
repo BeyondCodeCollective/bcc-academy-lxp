@@ -1,32 +1,26 @@
 "use server";
 
 import { createServiceClient } from "@/lib/supabase/server";
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { hasCapability } from "@/lib/roles";
 import { toSlug } from "@/lib/programs/slug";
 import { getEveryProgramConfig } from "@/lib/programs";
 import { humanizeSlug } from "@/lib/utils";
+import { embeddedProgramSlug } from "@/lib/landing-pages";
 import type { ScheduleDay, LandingPartner, LandingSession, LandingSection } from "@/lib/landing-pages";
+import {
+  requireManager,
+  resolveProgramForActor,
+  allowedProgramIdsForActor,
+  assertLandingPageInActorProgram,
+  assertTrackInActorProgram,
+} from "../actions-shared";
 
-async function requireSuperAdmin() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/");
-
-  const svc = createServiceClient();
-  const { data: student } = await svc
-    .from("students")
-    .select("role")
-    .eq("id", user.id)
-    .single<{ role: string }>();
-
-  if (!hasCapability(student?.role ?? "", "switch_programs")) {
-    throw new Error("Not authorized");
-  }
-  return svc;
-}
+// Landing pages are a program-admin job, same tier as Manage Courses: a course
+// with no landing page has no way for anyone to sign up for it. requireManager
+// proves the actor is admin+ somewhere; the boundary helpers bind every read
+// and write to the actor's own program(s), so a BGC admin edits BGC pages and
+// never sees a Catalyst draft. super_admins and the master pass every boundary.
+const requireLandingManager = requireManager;
 
 /** The full editable shape posted from the builder form. Mirrors the
  *  landing_pages columns the LandingPage type exposes. */
@@ -85,11 +79,25 @@ export async function saveLandingPageAction(
   input: LandingPageInput,
   originalSlug?: string,
 ): Promise<SaveLandingResult> {
-  const svc = await requireSuperAdmin();
+  const actor = await requireLandingManager();
+  const { svc } = actor;
 
   const slug = toSlug(input.slug);
   if (!slug) return { success: false, error: "A valid slug is required." };
   if (!input.headline.trim()) return { success: false, error: "Headline is required." };
+
+  // Boundary, before anything is written. The upsert is keyed on slug, so a
+  // program admin posting a slug that already exists under another program
+  // would otherwise overwrite that program's page. Both the row being edited
+  // and the row at the target slug must be theirs.
+  for (const s of [...new Set([originalSlug, slug].filter((v): v is string => !!v))]) {
+    const { data: existing } = await svc
+      .from("landing_pages")
+      .select("program_id")
+      .eq("slug", s)
+      .maybeSingle<{ program_id: string | null }>();
+    if (existing) assertLandingPageInActorProgram(actor, existing);
+  }
 
   const accent = input.accent.trim();
   if (accent && !/^#[0-9a-fA-F]{6}$/.test(accent)) {
@@ -101,8 +109,17 @@ export async function saveLandingPageAction(
     .map((s) => ({ label: s.label.trim(), title: s.title.trim() }))
     .filter((s) => s.label || s.title);
 
+  // Keep the dates: the importer/generator stamps startUtc/endUtc/timezone on
+  // each session and the confirmation email's calendar links read them. The
+  // form doesn't edit them, so a save must not strip them.
   const sessions: LandingSession[] = (input.sessions ?? [])
-    .map((x) => ({ id: x.id.trim(), label: x.label.trim() }))
+    .map((x) => ({
+      id: x.id.trim(),
+      label: x.label.trim(),
+      startUtc: x.startUtc ?? null,
+      endUtc: x.endUtc ?? null,
+      timezone: x.timezone ?? null,
+    }))
     .filter((x) => x.id && x.label);
 
   // Only the FIRST emphasized section keeps the flag — a second dark band
@@ -154,33 +171,46 @@ export async function saveLandingPageAction(
     }
   }
 
-  // A landing page enrolls people into a course, so it must HAVE one — and one
-  // that exists. Before this, "track slug" was an optional free-text tag: the
-  // MASS page got pointed at the spring wraparound's slug and a new cohort's
-  // signups landed on last season's roster (2026-08-18). Now: no slug → the
-  // page's own slug; unknown slug → a course is created for it, named after
-  // the page, under Catalyst, unscheduled until you set dates in Manage Courses.
-  const trackSlug = toSlug(input.trackSlug?.trim() || slug);
-  if (!trackSlug) return { success: false, error: "Could not derive a course slug." };
-  const course = await ensureCourseForLanding(svc, trackSlug, input.headline.trim());
-  if (!course.ok) return { success: false, error: course.error };
-
   // The owning program is what the URL brand segment is derived from, so an
   // unknown slug has to fail loudly rather than silently publish the page back
   // under /bcc/.
   let programId: string | null = null;
   const wantedProgram = input.programSlug?.trim();
   if (wantedProgram) {
-    const { data: programRow } = await svc
-      .from("programs")
-      .select("id")
-      .eq("slug", wantedProgram)
-      .maybeSingle<{ id: string }>();
-    if (!programRow) {
+    // Throws when the actor may not act in that program (super_admins pass).
+    try {
+      programId = await resolveProgramForActor(actor, svc, wantedProgram);
+    } catch {
       return { success: false, error: `No program with slug "${wantedProgram}".` };
     }
-    programId = programRow.id;
+  } else if (allowedProgramIdsForActor(actor) !== null) {
+    // A platform page (/bcc/<slug>) belongs to no program, so no program admin
+    // can own one.
+    return { success: false, error: "Choose the program this page belongs to." };
   }
+
+  // A landing page enrolls people into a course, so it must HAVE one — and one
+  // that exists. Before this, "track slug" was an optional free-text tag: the
+  // MASS page got pointed at the spring wraparound's slug and a new cohort's
+  // signups landed on last season's roster (2026-08-18). Now: no slug → the
+  // page's own slug; unknown slug → a course is created for it, named after
+  // the page, under the page's program (Catalyst for a platform page),
+  // unscheduled until you set dates in Manage Courses.
+  const trackSlug = toSlug(input.trackSlug?.trim() || slug);
+  if (!trackSlug) return { success: false, error: "Could not derive a course slug." };
+  // An existing course must be one the actor may act in — otherwise a program
+  // admin could point their page at another program's course and enroll
+  // signups into it. A course that doesn't exist yet is created in the
+  // page's own program below.
+  if (await courseExists(svc, trackSlug)) {
+    try {
+      await assertTrackInActorProgram(actor, svc, trackSlug);
+    } catch {
+      return { success: false, error: "That course belongs to another program." };
+    }
+  }
+  const course = await ensureCourseForLanding(svc, trackSlug, input.headline.trim(), programId);
+  if (!course.ok) return { success: false, error: course.error };
 
   const row = {
     slug,
@@ -244,32 +274,42 @@ export async function saveLandingPageAction(
   return { success: true, slug, courseSlug: trackSlug, courseCreated: course.created };
 }
 
-/**
- * Make sure a course exists for a landing page's track slug. Looks in the TS
- * registry and track_overrides; if absent, creates a track_overrides row under
- * Catalyst (the umbrella, same default as createCourseAction) with the
- * landing page's headline as the name and no schedule. Idempotent.
- */
-async function ensureCourseForLanding(
+/** Known anywhere already: the TS registry or a Course Builder row. */
+async function courseExists(
   svc: ReturnType<typeof createServiceClient>,
   trackSlug: string,
-  fallbackName: string,
-): Promise<{ ok: true; created: boolean } | { ok: false; error: string }> {
-  // Known anywhere already?
-  const inConfig = getEveryProgramConfig().some((p) => p.tracks.some((t) => t.slug === trackSlug));
-  if (inConfig) return { ok: true, created: false };
+): Promise<boolean> {
+  if (getEveryProgramConfig().some((p) => p.tracks.some((t) => t.slug === trackSlug))) return true;
   const { data: existing } = await svc
     .from("track_overrides")
     .select("id")
     .eq("track_slug", trackSlug)
     .maybeSingle();
-  if (existing) return { ok: true, created: false };
+  return !!existing;
+}
 
-  const { data: prog } = await svc
-    .from("programs")
-    .select("id")
-    .eq("slug", "catalyst")
-    .maybeSingle<{ id: string }>();
+/**
+ * Make sure a course exists for a landing page's track slug. Looks in the TS
+ * registry and track_overrides; if absent, creates a track_overrides row under
+ * the page's program — Catalyst (the umbrella, same default as
+ * createCourseAction) for a platform page — with the landing page's headline
+ * as the name and no schedule. Idempotent.
+ */
+async function ensureCourseForLanding(
+  svc: ReturnType<typeof createServiceClient>,
+  trackSlug: string,
+  fallbackName: string,
+  programId: string | null,
+): Promise<{ ok: true; created: boolean } | { ok: false; error: string }> {
+  if (await courseExists(svc, trackSlug)) return { ok: true, created: false };
+
+  const { data: prog } = programId
+    ? { data: { id: programId } }
+    : await svc
+        .from("programs")
+        .select("id")
+        .eq("slug", "catalyst")
+        .maybeSingle<{ id: string }>();
   if (!prog) return { ok: false, error: "Could not find the Catalyst program to file the new course under." };
 
   // Course name: the page slug humanized beats a marketing headline
@@ -296,7 +336,14 @@ async function ensureCourseForLanding(
 export async function deleteLandingPageAction(
   slug: string,
 ): Promise<{ success: boolean; error?: string }> {
-  const svc = await requireSuperAdmin();
+  const actor = await requireLandingManager();
+  const { svc } = actor;
+  const { data: existing } = await svc
+    .from("landing_pages")
+    .select("program_id, programs(slug)")
+    .eq("slug", slug)
+    .maybeSingle<{ program_id: string | null; programs: unknown }>();
+  if (existing) assertLandingPageInActorProgram(actor, existing);
   const { error } = await svc.from("landing_pages").delete().eq("slug", slug);
   if (error) {
     console.error("[deleteLandingPageAction] failed:", error);
@@ -304,6 +351,8 @@ export async function deleteLandingPageAction(
   }
   revalidatePath("/dashboard/admin/landing");
   revalidatePath(`/bcc/${slug}`);
+  const programSlug = embeddedProgramSlug(existing?.programs);
+  if (programSlug) revalidatePath(`/${programSlug}/${slug}`);
   return { success: true };
 }
 
@@ -314,7 +363,7 @@ export async function deleteLandingPageAction(
 export async function uploadLandingImageAction(
   formData: FormData,
 ): Promise<{ success: true; url: string } | { success: false; error: string }> {
-  const svc = await requireSuperAdmin();
+  const { svc } = await requireLandingManager();
 
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) {

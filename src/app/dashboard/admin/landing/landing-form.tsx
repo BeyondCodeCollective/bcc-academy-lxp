@@ -35,12 +35,17 @@ export function LandingForm({
   initial,
   originalSlug,
   programs,
+  allowPlatform = true,
 }: {
   initial: LandingFormInitial;
   /** Present when editing — lets the action delete the old row on a slug rename. */
   originalSlug?: string;
-  /** Every program, for the owner picker that decides the page's URL. */
+  /** Programs the actor may file the page under, for the owner picker that
+   *  decides the page's URL. */
   programs: { slug: string; name: string }[];
+  /** Offer "BCC Academy (platform)" (a page owned by no program, served at
+   *  /bcc/). Off for program admins, whose pages are always their program's. */
+  allowPlatform?: boolean;
 }) {
   const router = useRouter();
   const isEdit = !!originalSlug;
@@ -187,7 +192,7 @@ export function LandingForm({
             onChange={(e) => setProgramSlug(e.target.value)}
             className={fieldInput}
           >
-            <option value="">BCC Academy (platform)</option>
+            {allowPlatform && <option value="">BCC Academy (platform)</option>}
             {programs.map((p) => (
               <option key={p.slug} value={p.slug}>
                 {p.name}

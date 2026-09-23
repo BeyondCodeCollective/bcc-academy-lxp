@@ -12,8 +12,9 @@ const LABELS: Record<Mode, string> = {
   manual: "Enter manually",
 };
 
-/** Manual entry stays super-admin-only because createCourseAction still
- *  requires it; generating and importing are open to any admin. */
+/** All three modes are open to any admin: createCourseAction binds the
+ *  course to a program the actor may act in, and the manual form scopes its
+ *  picker to the program they're standing in. */
 export function NewCourseTabs({
   canCreateManually,
   extraProgram,

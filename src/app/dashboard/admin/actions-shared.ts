@@ -2,7 +2,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { hasCapability, canSwitchPrograms } from "@/lib/roles";
-import { getHomeProgramForTrack } from "@/lib/programs";
+import { getHomeProgramForTrack, getProgramBySlug } from "@/lib/programs";
 import type { Capability } from "@/lib/roles";
 import { isMasterEmail } from "@/lib/auth/admins";
 import { isPreviewingAsStudent } from "@/lib/auth/preview-mode";
@@ -160,6 +160,69 @@ export async function allowedProgramSlugsForActor(
   if (ids.length === 0) return [];
   const { data } = await svc.from("programs").select("slug").in("id", ids);
   return (data ?? []).map((r) => r.slug as string);
+}
+
+// Program IDs the actor may act in, or null when they see every program
+// (super_admin / master). The ID-keyed twin of allowedProgramSlugsForActor,
+// for tables that carry program_id (landing_pages) rather than a slug.
+export function allowedProgramIdsForActor(actor: ActorContext): string[] | null {
+  if (canSwitchPrograms(actor.role) || actor.isMaster) return null;
+  return actorProgramIds(actor);
+}
+
+// Track slugs the actor may see, or null for everything (super_admin / master).
+// A program admin sees every course in their program(s): the TS-config tracks
+// homed there plus the Course Builder tracks in track_overrides. Track-scoped
+// grants narrow a granted program to the named courses. Used to scope
+// registration-shaped surfaces (Signups) that key on track_slug, not program.
+export async function allowedTrackSlugsForActor(
+  actor: ActorContext,
+  svc: ReturnType<typeof createServiceClient>,
+): Promise<Set<string> | null> {
+  if (canSwitchPrograms(actor.role) || actor.isMaster) return null;
+  const ids = actorProgramIds(actor);
+  const out = new Set<string>();
+  if (ids.length === 0) return out;
+
+  const [{ data: programRows }, { data: overrideRows }] = await Promise.all([
+    svc.from("programs").select("id, slug").in("id", ids),
+    svc.from("track_overrides").select("track_slug, program_id").in("program_id", ids),
+  ]);
+  const slugById = new Map(
+    ((programRows ?? []) as { id: string; slug: string }[]).map((r) => [r.id, r.slug]),
+  );
+  const narrowed = (programId: string) =>
+    allowedTrackSlugs(actor.programId ?? null, actor.grants ?? [], programId);
+
+  for (const programId of ids) {
+    const slug = slugById.get(programId);
+    const only = narrowed(programId);
+    if (slug) {
+      for (const t of getProgramBySlug(slug).tracks) {
+        if (getHomeProgramForTrack(t.slug)?.slug !== slug) continue;
+        if (!only || only.includes(t.slug)) out.add(t.slug);
+      }
+    }
+    for (const r of (overrideRows ?? []) as { track_slug: string; program_id: string }[]) {
+      if (r.program_id !== programId) continue;
+      if (!only || only.includes(r.track_slug)) out.add(r.track_slug);
+    }
+  }
+  return out;
+}
+
+// Landing pages belong to a program (program_id) or to the platform (null).
+// A program admin may touch only pages filed under their program(s); a
+// platform page is out of reach. super_admins and the master pass.
+export function assertLandingPageInActorProgram(
+  actor: ActorContext,
+  page: { program_id: string | null },
+): void {
+  const allowed = allowedProgramIdsForActor(actor);
+  if (allowed === null) return;
+  if (!page.program_id || !allowed.includes(page.program_id)) {
+    throw new Error("Not authorized for this landing page");
+  }
 }
 
 export async function assertStudentInActorProgram(

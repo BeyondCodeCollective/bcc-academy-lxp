@@ -1,7 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
-import { canSwitchPrograms, canManageRoles } from "@/lib/roles";
+import { canManageStudents, canManageRoles } from "@/lib/roles";
 import { PageHeader } from "@/components/page-header";
 import { LandingForm } from "../landing-form";
 import type { LandingFormInitial } from "../landing-form";
@@ -9,15 +9,19 @@ import { embeddedProgramSlug } from "@/lib/landing-pages";
 import type { ScheduleDay, LandingPartner, LandingSession, LandingSection, LandingInstructor } from "@/lib/landing-pages";
 import { DeleteLandingButton } from "../delete-landing-button";
 import { ManageMenu } from "../../manage-menu";
+import { requireManager, allowedProgramIdsForActor } from "../../actions-shared";
 
 export const dynamic = "force-dynamic";
 
-/** Every program, for the landing form's owner picker. The picker decides the
- *  page's URL brand segment, so it reads the live table — a program created in
- *  the admin panel gets its own campaign URLs with no deploy. */
-async function listPrograms(): Promise<{ slug: string; name: string }[]> {
+/** Programs for the landing form's owner picker: every one for a super-admin,
+ *  the actor's own for a program admin. The picker decides the page's URL
+ *  brand segment, so it reads the live table — a program created in the admin
+ *  panel gets its own campaign URLs with no deploy. */
+async function listPrograms(allowedIds: string[] | null): Promise<{ slug: string; name: string }[]> {
   const svc = createServiceClient();
-  const { data } = await svc.from("programs").select("slug, name").order("name");
+  let query = svc.from("programs").select("slug, name").order("name");
+  if (allowedIds !== null) query = query.in("id", allowedIds);
+  const { data } = await query;
   return (data ?? []) as { slug: string; name: string }[];
 }
 
@@ -29,16 +33,24 @@ export default async function EditLandingPage({
 }) {
   const ctx = await getSessionContext();
   if (!ctx) redirect("/");
-  if (!canSwitchPrograms(ctx.student?.role ?? "")) redirect("/dashboard/admin");
+  if (!canManageStudents(ctx.student?.role ?? "")) redirect("/dashboard/admin");
 
+  const actor = await requireManager();
+  const allowedIds = allowedProgramIdsForActor(actor);
   const { slug } = await params;
   const svc = createServiceClient();
   // Fetch directly (not getLandingPage) so unpublished drafts are editable too.
   const [{ data }, programs] = await Promise.all([
     svc.from("landing_pages").select("*, programs(slug)").eq("slug", slug).maybeSingle(),
-    listPrograms(),
+    listPrograms(allowedIds),
   ]);
   if (!data) notFound();
+  // Another program's page (or a platform page) is a 404 to a program admin,
+  // not a form they can't save.
+  if (allowedIds !== null) {
+    const pid = data.program_id as string | null;
+    if (!pid || !allowedIds.includes(pid)) notFound();
+  }
 
   const initial: LandingFormInitial = {
     slug: data.slug as string,
@@ -87,7 +99,7 @@ export default async function EditLandingPage({
           }
         />
       </div>
-      <LandingForm initial={initial} originalSlug={initial.slug} programs={programs} />
+      <LandingForm initial={initial} originalSlug={initial.slug} programs={programs} allowPlatform={allowedIds === null} />
     </div>
   );
 }
