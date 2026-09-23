@@ -1,11 +1,13 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { headers } from "next/headers";
 import { createServiceClient } from "@/lib/supabase/server";
 import { sendSignupNotification } from "@/lib/email";
 import { subscribeToNewsletter } from "@/lib/mailchimp";
 import { rateLimit } from "@/lib/rate-limit";
 import { promoteProfileFields, studentIdByEmail } from "@/lib/profile-promotion";
+import { PLATFORM_PUBLIC_SURVEYS } from "@/lib/surveys/platform";
 
 // Public (unauthenticated) survey submission.
 // Writes to public_survey_responses; uniqueness on (program_id, survey_type,
@@ -24,8 +26,15 @@ export async function savePublicSurveyResponse(input: {
   consentVersion: string;
   responses: Record<string, unknown>;
 }): Promise<Result> {
-  const email = input.email.trim().toLowerCase();
-  const fullName = input.fullName.trim();
+  // Anonymous surveys (respondents under 13) ask for no identity. Decided from
+  // server-side config, never the client. A unique placeholder email keeps each
+  // submission its own row under the (program, survey, email) uniqueness.
+  const surveyConfig = PLATFORM_PUBLIC_SURVEYS[input.surveyType];
+  const anonymous = surveyConfig?.anonymous === true;
+  const email = anonymous
+    ? `anon-${randomUUID()}@anonymous.invalid`
+    : input.email.trim().toLowerCase();
+  const fullName = anonymous ? "Anonymous" : input.fullName.trim();
 
   if (!EMAIL_RE.test(email)) return { ok: false, error: "Invalid email address." };
   if (!fullName) return { ok: false, error: "Full name is required." };
@@ -73,8 +82,12 @@ export async function savePublicSurveyResponse(input: {
   // are recorded against Catalyst, the umbrella program that owns the
   // pre-survey config. Anyone hitting /survey/<id> from the apex should be
   // able to submit without needing to be "in a program."
-  const lookupSlug =
-    input.programSlug === "marketing" ? "catalyst" : input.programSlug;
+  //
+  // An anonymous survey files under the program that owns it instead: the BGC
+  // participant survey has no BGC host, so its link opens on the apex.
+  const lookupSlug = anonymous && surveyConfig?.appliesToPrograms?.[0]
+    ? surveyConfig.appliesToPrograms[0]
+    : input.programSlug === "marketing" ? "catalyst" : input.programSlug;
 
   const { data: programRow, error: programErr } = await svc
     .from("programs")
@@ -127,7 +140,7 @@ export async function savePublicSurveyResponse(input: {
       { onConflict: "program_id,survey_type,email" },
     );
 
-  if (!upsertErr) {
+  if (!upsertErr && !anonymous) {
     // If this email already has a learner account, copy zip/dob/state onto it
     // for grant reporting. Public surveys are often taken before signup, in
     // which case there's no account yet and this is a no-op — the backfill and
