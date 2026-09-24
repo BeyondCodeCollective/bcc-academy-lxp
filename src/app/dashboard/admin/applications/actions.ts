@@ -3,27 +3,51 @@
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
-import { requireSuperAdmin } from "../actions-shared";
+import {
+  requireManager,
+  allowedProgramIdsForActor,
+  allowedTrackSlugsForActor,
+  assertApplicationInActorProgram,
+  programIdFromSlug,
+} from "../actions-shared";
+import { getHomeProgramForTrack } from "@/lib/programs";
 import { toSlug } from "@/lib/programs/slug";
 import { easternToUtc } from "@/lib/utils";
 import { sendAcceptanceEmail } from "@/lib/email";
 import type { SubmissionStatus } from "@/lib/applications";
 import type { SurveyQuestion } from "@/components/survey-fields";
 
-// Same tier as landing pages. requireSuperAdmin (actions-shared) also enforces
-// the preview-as-student block and the master bypass — the hand-rolled gate
-// this replaced skipped both.
-async function requireReviewer(): Promise<{
-  svc: ReturnType<typeof createServiceClient>;
-  email: string;
-}> {
-  const { svc, userId } = await requireSuperAdmin();
-  const { data } = await svc
+// Same tier as landing pages: program admins review their own program's
+// applications, super-admins review all. requireManager (actions-shared) also
+// enforces the preview-as-student block and the master bypass.
+async function requireReviewer() {
+  const actor = await requireManager();
+  const { data } = await actor.svc
     .from("students")
     .select("email")
-    .eq("id", userId)
+    .eq("id", actor.userId)
     .single<{ email: string | null }>();
-  return { svc, email: data?.email ?? "" };
+  return { ...actor, email: data?.email ?? "" };
+}
+
+/** The program a linked course lives in: its Course Builder row first, then
+ *  the TS-config home program. null when the course is unknown. */
+async function programIdForTrack(
+  svc: ReturnType<typeof createServiceClient>,
+  trackSlug: string,
+  within: string[] | null,
+): Promise<string | null> {
+  let query = svc.from("track_overrides").select("program_id").eq("track_slug", trackSlug);
+  if (within !== null) query = query.in("program_id", within);
+  const { data } = await query.limit(1).maybeSingle<{ program_id: string | null }>();
+  if (data?.program_id) return data.program_id;
+  const home = getHomeProgramForTrack(trackSlug);
+  if (!home) return null;
+  try {
+    return await programIdFromSlug(svc, home.slug);
+  } catch {
+    return null;
+  }
 }
 
 export type ApplicationInput = {
@@ -55,7 +79,8 @@ function questionErrors(questions: SurveyQuestion[]): string | null {
 export async function createApplicationAction(
   input: ApplicationInput,
 ): Promise<{ ok: true; slug: string } | { ok: false; error: string }> {
-  const { svc } = await requireReviewer();
+  const actor = await requireReviewer();
+  const { svc } = actor;
 
   if (!input.title.trim()) return { ok: false, error: "Title is required." };
   const qError = questionErrors(input.questions);
@@ -64,11 +89,31 @@ export async function createApplicationAction(
   const slug = toSlug(input.title);
   if (!slug) return { ok: false, error: "Could not derive a slug from the title." };
 
+  // File the form under a program so its admins can review it. A program
+  // admin may only link a course in their own program (accepting allowlists
+  // the applicant for it), and the form lands in that course's program, or
+  // their own when no course is linked.
+  const allowed = allowedProgramIdsForActor(actor);
+  const trackSlug = input.trackSlug.trim();
+  if (allowed !== null && trackSlug) {
+    const tracks = await allowedTrackSlugsForActor(actor, svc);
+    if (!tracks?.has(trackSlug)) {
+      return { ok: false, error: `"${trackSlug}" isn't a course in your program.` };
+    }
+  }
+  let programId = trackSlug ? await programIdForTrack(svc, trackSlug, allowed) : null;
+  if (allowed !== null && (!programId || !allowed.includes(programId))) {
+    programId =
+      actor.programId && allowed.includes(actor.programId) ? actor.programId : (allowed[0] ?? null);
+    if (!programId) return { ok: false, error: "Your account isn't filed under a program." };
+  }
+
   const { error } = await svc.from("applications").insert({
     slug,
+    program_id: programId,
     title: input.title.trim(),
     description: input.description.trim() || null,
-    track_slug: input.trackSlug.trim() || null,
+    track_slug: trackSlug || null,
     notify_email: input.notifyEmail.trim() || null,
     // End of day Eastern; easternToUtc follows DST so a winter deadline
     // doesn't close an hour early.
@@ -91,7 +136,15 @@ export async function setApplicationOpenAction(
   slug: string,
   open: boolean,
 ): Promise<{ ok: boolean }> {
-  const { svc } = await requireReviewer();
+  const actor = await requireReviewer();
+  const { svc } = actor;
+  const { data: app } = await svc
+    .from("applications")
+    .select("program_id")
+    .eq("slug", slug)
+    .maybeSingle<{ program_id: string | null }>();
+  if (!app) return { ok: false };
+  assertApplicationInActorProgram(actor, app);
   const { error } = await svc
     .from("applications")
     .update({ open, updated_at: new Date().toISOString() })
@@ -113,7 +166,8 @@ export async function setSubmissionStatusAction(
   submissionId: string,
   status: SubmissionStatus,
 ): Promise<{ ok: boolean; error?: string }> {
-  const { svc, email: reviewer } = await requireReviewer();
+  const actor = await requireReviewer();
+  const { svc, email: reviewer } = actor;
 
   const { data: sub } = await svc
     .from("application_submissions")
@@ -132,6 +186,7 @@ export async function setSubmissionStatusAction(
       } | null;
     }>();
   if (!sub) return { ok: false, error: "Submission not found." };
+  assertApplicationInActorProgram(actor, { program_id: sub.applications?.program_id ?? null });
   const wasAccepted = sub.status === "accepted";
 
   const { error } = await svc
