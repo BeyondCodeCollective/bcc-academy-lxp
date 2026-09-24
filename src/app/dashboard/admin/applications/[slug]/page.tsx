@@ -1,11 +1,12 @@
 import { redirect, notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
-import { canSwitchPrograms, canManageRoles } from "@/lib/roles";
+import { canManageStudents, canManageRoles } from "@/lib/roles";
 import { PageHeader } from "@/components/page-header";
 import { getApplicationBySlug, isAccepting, rowToSubmission } from "@/lib/applications";
 import { ManageMenu } from "../../manage-menu";
 import { ReviewQueue } from "./review-queue";
+import { requireManager, allowedProgramIdsForActor } from "../../actions-shared";
 
 export const dynamic = "force-dynamic";
 
@@ -16,11 +17,15 @@ export default async function ApplicationReviewPage({
 }) {
   const ctx = await getSessionContext();
   if (!ctx) redirect("/");
-  if (!canSwitchPrograms(ctx.student?.role ?? "")) redirect("/dashboard/admin");
+  if (!canManageStudents(ctx.student?.role ?? "")) redirect("/dashboard/admin");
 
+  const actor = await requireManager();
+  const allowedIds = allowedProgramIdsForActor(actor);
   const { slug } = await params;
   const app = await getApplicationBySlug(slug);
   if (!app) notFound();
+  // Another program's application is a 404 to a program admin.
+  if (allowedIds !== null && (!app.programId || !allowedIds.includes(app.programId))) notFound();
 
   const svc = createServiceClient();
   const { data } = await svc

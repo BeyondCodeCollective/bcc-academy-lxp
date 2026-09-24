@@ -73,12 +73,16 @@ export async function getApplicationBySlug(slug: string): Promise<Application | 
   return data ? rowToApplication(data as Record<string, unknown>) : null;
 }
 
-export async function listApplications(): Promise<Application[]> {
+/** Every application, or only those filed under `programIds` (a program
+ *  admin's scope). null means no filter (super_admin / master). */
+export async function listApplications(programIds: string[] | null = null): Promise<Application[]> {
   const svc = createServiceClient();
-  const { data } = await svc
+  let query = svc
     .from("applications")
     .select("*")
     .order("created_at", { ascending: false });
+  if (programIds !== null) query = query.in("program_id", programIds);
+  const { data } = await query;
   return ((data as Record<string, unknown>[]) ?? []).map(rowToApplication);
 }
 

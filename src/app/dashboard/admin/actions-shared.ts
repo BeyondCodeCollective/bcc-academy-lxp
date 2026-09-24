@@ -225,6 +225,20 @@ export function assertLandingPageInActorProgram(
   }
 }
 
+// Applications belong to a program (program_id). Same rule as landing pages:
+// a program admin may review only their own program's forms, and an
+// unfiled (null) form is out of reach. super_admins and the master pass.
+export function assertApplicationInActorProgram(
+  actor: ActorContext,
+  app: { program_id: string | null },
+): void {
+  const allowed = allowedProgramIdsForActor(actor);
+  if (allowed === null) return;
+  if (!app.program_id || !allowed.includes(app.program_id)) {
+    throw new Error("Not authorized for this application");
+  }
+}
+
 export async function assertStudentInActorProgram(
   actor: ActorContext,
   svc: ReturnType<typeof createServiceClient>,

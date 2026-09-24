@@ -2,10 +2,11 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
-import { canSwitchPrograms, canManageRoles } from "@/lib/roles";
+import { canManageStudents, canManageRoles } from "@/lib/roles";
 import { PageHeader } from "@/components/page-header";
 import { listApplications, isAccepting } from "@/lib/applications";
 import { ManageMenu } from "../manage-menu";
+import { requireManager, allowedProgramIdsForActor } from "../actions-shared";
 import { buttonClass, DataTable } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -13,15 +14,20 @@ export const dynamic = "force-dynamic";
 export default async function ApplicationsPage() {
   const ctx = await getSessionContext();
   if (!ctx) redirect("/");
-  if (!canSwitchPrograms(ctx.student?.role ?? "")) redirect("/dashboard/admin");
+  if (!canManageStudents(ctx.student?.role ?? "")) redirect("/dashboard/admin");
 
-  const apps = await listApplications();
+  // Program admins see their own program's applications; super-admins see all.
+  const actor = await requireManager();
+  const apps = await listApplications(allowedProgramIdsForActor(actor));
 
   // One count query, grouped in memory — the table is small.
   const svc = createServiceClient();
-  const { data: subs } = await svc
-    .from("application_submissions")
-    .select("application_id, status");
+  const { data: subs } = apps.length
+    ? await svc
+        .from("application_submissions")
+        .select("application_id, status")
+        .in("application_id", apps.map((a) => a.id))
+    : { data: [] };
   const counts = new Map<string, { total: number; fresh: number }>();
   for (const s of (subs ?? []) as { application_id: string; status: string }[]) {
     const c = counts.get(s.application_id) ?? { total: 0, fresh: 0 };
