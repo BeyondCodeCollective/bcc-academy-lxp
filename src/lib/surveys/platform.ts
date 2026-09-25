@@ -85,6 +85,40 @@ export function surveyAppliesToTracks(
   return appliesToTracks.some((t) => enrolled.has(t));
 }
 
+/**
+ * Both allowlists together, and the reason this exists: a survey that belongs
+ * to a PROGRAM can still owe itself to one course somewhere else. AI
+ * Fundamentals is Beyond Code Centers', but Catalyst Labs teaches it under
+ * Catalyst — so its learners need the same pre-survey.
+ *
+ * Checking the two lists separately ANDs them, which cannot express that: the
+ * track list would then have to name every Beyond Code Centers course too, and
+ * the day someone adds a course there its learners silently lose the survey.
+ * That is the enumeration failure appliesToPrograms was introduced to end.
+ *
+ * So when a survey names BOTH, they UNION: this learner's program qualifies, or
+ * this learner's course does. Naming only one is unchanged — every survey
+ * configured today names exactly one, so nothing else moves.
+ */
+export function surveyTargetsLearner(
+  survey: { appliesToPrograms?: string[]; appliesToTracks?: string[] },
+  enrolledHomeProgramSlugs: Iterable<string>,
+  enrolledTrackSlugs: Iterable<string>,
+): boolean {
+  const byProgram = survey.appliesToPrograms?.length;
+  const byTrack = survey.appliesToTracks?.length;
+  if (byProgram && byTrack) {
+    return (
+      surveyAppliesToPrograms(survey.appliesToPrograms, enrolledHomeProgramSlugs) ||
+      surveyAppliesToTracks(survey.appliesToTracks, enrolledTrackSlugs)
+    );
+  }
+  return (
+    surveyAppliesToPrograms(survey.appliesToPrograms, enrolledHomeProgramSlugs) &&
+    surveyAppliesToTracks(survey.appliesToTracks, enrolledTrackSlugs)
+  );
+}
+
 // The BCC Learner Intake is OPT-IN, toggled per program/track via
 // program_features/track_features.survey_enabled (admin Features page) — see
 // isSurveyEnabledForLearner in src/lib/surveys/features.ts. Off by default, so
@@ -144,6 +178,10 @@ export const PLATFORM_AUTH_SURVEYS: Record<string, SurveyConfig> = {
   // it, not a forced dashboard redirect.
   "mass-fall-2026-pre": {
     id: "mass-fall-2026-pre",
+    // One cohort's instrument, and only that cohort's. Without this the admin
+    // Surveys tab falls back to evidence — "somebody enrolled here answered it"
+    // — so a single cross-enrolled learner hung this row under Catalyst Labs.
+    appliesToTracks: ["mass-fall-2026"],
     title: "MASS Coaching Cohort — Pre-Program Survey",
     description:
       "Mindset and soft skills, about 10 minutes. Not a test — where you're starting from, so we can support you from day one. Private; used only to improve the coaching and report impact.",
@@ -151,6 +189,10 @@ export const PLATFORM_AUTH_SURVEYS: Record<string, SurveyConfig> = {
   },
   "mass-sept-2026-pre": {
     id: "mass-sept-2026-pre",
+    // One cohort's instrument, and only that cohort's. Without this the admin
+    // Surveys tab falls back to evidence — "somebody enrolled here answered it"
+    // — so a single cross-enrolled learner hung this row under Catalyst Labs.
+    appliesToTracks: ["mass-sept-2026"],
     title: "MASS Coaching Cohort — Pre-Program Survey",
     description:
       "Mindset and soft skills, about 10 minutes. Not a test — where you're starting from, so we can support you from day one. Private; used only to improve the coaching and report impact.",

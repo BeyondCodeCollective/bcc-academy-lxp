@@ -30,7 +30,7 @@ import { AnnouncementBanner } from "@/components/announcement-banner";
 import { getLearnerProgress } from "@/lib/learner-progress";
 import { HomeBand } from "@/components/home-band";
 import { scheduledSessions, nextSession, weekRail, bandSentence } from "@/lib/home-band";
-import { BCC_INTAKE_SURVEY_ID, surveySkippedForTracks, surveyAppliesToPrograms, surveyAppliesToTracks } from "@/lib/surveys/platform";
+import { BCC_INTAKE_SURVEY_ID, surveySkippedForTracks, surveyTargetsLearner } from "@/lib/surveys/platform";
 import { isSurveyEnabledForLearner } from "@/lib/surveys/features";
 import { isStaffEmail } from "@/lib/auth/admins";
 import { completePendingSetup } from "@/lib/auth/deferred-setup";
@@ -385,8 +385,7 @@ async function DashboardContent({
             if (!s.required) return false;
             // Allowlist first: a survey that names its programs is only ever
             // for those learners, whatever the skip lists say.
-            if (!surveyAppliesToPrograms(s.appliesToPrograms, enrolledHomePrograms)) return false;
-            if (!surveyAppliesToTracks(s.appliesToTracks, surveyTrackSlugs)) return false;
+            if (!surveyTargetsLearner(s, enrolledHomePrograms, surveyTrackSlugs)) return false;
             if (s.skipForPrograms?.some((p) => enrolledHomePrograms.has(p))) return false;
             if (surveySkippedForTracks(s.skipForTracks, surveyTrackSlugs)) return false;
             return true;
