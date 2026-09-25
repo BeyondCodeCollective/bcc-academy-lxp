@@ -52,6 +52,8 @@ export type LandingPageInput = {
   metaDescription: string;
   /** MASS-style native enrollment: pick-a-cohort form instead of the bare email box. */
   nativeEnroll: boolean;
+  /** Interest capture only — the signup form enrolls no one. */
+  comingSoon: boolean;
   /** Cohort dates offered by the native form. */
   sessions: LandingSession[];
   enrollCtaLabel: string;
@@ -236,6 +238,7 @@ export async function saveLandingPageAction(
     meta_title: trimToNull(input.metaTitle),
     meta_description: trimToNull(input.metaDescription),
     native_enroll: input.nativeEnroll && sessions.length > 0,
+    coming_soon: input.comingSoon,
     sessions,
     enroll_cta_label: trimToNull(input.enrollCtaLabel),
     body_sections: bodySections,

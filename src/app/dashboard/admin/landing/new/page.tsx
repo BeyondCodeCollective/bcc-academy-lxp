@@ -47,6 +47,7 @@ const EMPTY: LandingFormInitial = {
   // MASS-style by default: the cohort sign-up form with a pick-a-date, content
   // sections under it, and an instructor card. Delete what a page doesn't need.
   nativeEnroll: true,
+  comingSoon: false,
   sessions: [{ id: "", label: "" }],
   enrollCtaLabel: "Enroll",
   bodySections: [

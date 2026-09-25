@@ -172,7 +172,7 @@ export async function LandingView({
                 className="inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold text-white"
                 style={{ background: accent }}
               >
-                {page.enrollCtaLabel ?? page.applyCtaLabel ?? "Sign up"}
+                {page.comingSoon ? "Notify me" : (page.enrollCtaLabel ?? page.applyCtaLabel ?? "Sign up")}
                 <span aria-hidden="true">↓</span>
               </a>
             </div>
@@ -280,7 +280,16 @@ export async function LandingView({
                   {page.formLabel}
                 </p>
               )}
-              {page.applyUrl ? (
+              {page.comingSoon ? (
+                <CampEnrollForm
+                  ink={INK}
+                  slug={page.slug}
+                  sessions={[]}
+                  accent={accent}
+                  ctaLabel="Notify me"
+                  comingSoon
+                />
+              ) : page.applyUrl ? (
                 <a
                   href={page.applyUrl}
                   className="inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold text-white"

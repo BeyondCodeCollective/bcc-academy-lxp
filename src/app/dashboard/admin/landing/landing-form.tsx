@@ -68,6 +68,7 @@ export function LandingForm({
     initial.schedule.length ? initial.schedule : [],
   );
   const [nativeEnroll, setNativeEnroll] = useState(initial.nativeEnroll);
+  const [comingSoon, setComingSoon] = useState(initial.comingSoon);
   const [sessions, setSessions] = useState<LandingSession[]>(initial.sessions);
   const [enrollCtaLabel, setEnrollCtaLabel] = useState(initial.enrollCtaLabel);
   const [bodySections, setBodySections] = useState<LandingSection[]>(initial.bodySections);
@@ -150,6 +151,7 @@ export function LandingForm({
           metaTitle,
           metaDescription,
           nativeEnroll,
+          comingSoon,
           sessions,
           enrollCtaLabel,
           bodySections,
@@ -324,6 +326,22 @@ export function LandingForm({
             className={fieldInput}
           />
         </Field>
+
+        <label className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            checked={comingSoon}
+            onChange={(e) => setComingSoon(e.target.checked)}
+            className="h-4 w-4 accent-[var(--primary)]"
+          />
+          <span className="text-sm text-ink">
+            Coming soon{" "}
+            <span className="text-ink-faint">
+              — no date yet: the form collects name + email only and enrolls no one. Overrides the
+              options below. Untick it once the cohort is scheduled.
+            </span>
+          </span>
+        </label>
 
         <label className="flex items-center gap-3">
           <input

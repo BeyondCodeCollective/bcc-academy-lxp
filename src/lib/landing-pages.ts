@@ -97,6 +97,8 @@ export type LandingPage = {
   sessions: LandingSession[];
   /** When true, render the native pick-a-date + enroll form (no Eventbrite). */
   nativeEnroll: boolean;
+  /** No date yet: the form only collects interest — no enrollment, no login link. */
+  comingSoon: boolean;
   enrollCtaLabel: string | null;
   /** Application-based programs: primary CTA links here instead of a form. */
   applyUrl: string | null;
@@ -152,6 +154,7 @@ export const getLandingPage = cache(async function getLandingPage(
     instructor: (data.instructor as LandingInstructor | null) ?? null,
     sessions: (data.sessions as LandingSession[] | null) ?? [],
     nativeEnroll: (data.native_enroll as boolean | null) ?? false,
+    comingSoon: (data.coming_soon as boolean | null) ?? false,
     enrollCtaLabel: (data.enroll_cta_label as string | null) ?? null,
     applyUrl: (data.apply_url as string | null) ?? null,
     applyCtaLabel: (data.apply_cta_label as string | null) ?? null,
