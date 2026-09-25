@@ -29,12 +29,15 @@ export function CampEnrollForm({
   sessions,
   accent,
   ctaLabel,
+  comingSoon = false,
 }: {
   ink?: string;
   slug: string;
   sessions: LandingSession[];
   accent: string;
   ctaLabel: string | null;
+  /** Interest capture only — nothing to enroll in yet. */
+  comingSoon?: boolean;
 }) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -188,7 +191,7 @@ export function CampEnrollForm({
         className="w-full rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-opacity disabled:opacity-60"
         style={{ background: accent }}
       >
-        {status === "loading" ? "Enrolling…" : (ctaLabel ?? "Enroll")}
+        {status === "loading" ? (comingSoon ? "Sending…" : "Enrolling…") : (ctaLabel ?? "Enroll")}
       </button>
     </form>
   );

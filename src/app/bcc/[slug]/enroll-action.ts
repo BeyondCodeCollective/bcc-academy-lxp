@@ -59,13 +59,13 @@ export async function enrollInCourse(input: {
   }
 
   const page = await getLandingPage(input.slug);
-  if (!page || !page.nativeEnroll) {
+  if (!page || !(page.nativeEnroll || page.comingSoon)) {
     return { ok: false, error: "This course isn't open for signup right now." };
   }
 
   // A page may require choosing one of its sessions.
   const session = page.sessions.find((s) => s.id === input.sessionId) ?? null;
-  if (page.sessions.length > 0 && !session) {
+  if (!page.comingSoon && page.sessions.length > 0 && !session) {
     return { ok: false, error: "Please choose a date." };
   }
 
@@ -82,9 +82,11 @@ export async function enrollInCourse(input: {
       .maybeSingle();
 
     // With a track → enroll (allowlist + invite + magic link). Without one
-    // (a "notify me" page whose course isn't built yet) → capture interest only.
+    // (a "notify me" page whose course isn't built yet), or on a "coming soon"
+    // page → capture interest only.
     let inviteToken: string | null = null;
-    if (page.trackSlug) {
+    const enrolls = !!page.trackSlug && !page.comingSoon;
+    if (enrolls && page.trackSlug) {
       const enrolled = await enrollEmailInTrack(email, page.trackSlug);
       inviteToken = enrolled.inviteToken;
 
@@ -120,7 +122,7 @@ export async function enrollInCourse(input: {
       });
     }
 
-    return { ok: true, enrolled: !!page.trackSlug };
+    return { ok: true, enrolled: enrolls };
   } catch (err) {
     console.error("[enrollInCourse] failed", err);
     return { ok: false, error: "Something went wrong. Please try again." };
