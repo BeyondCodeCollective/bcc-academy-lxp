@@ -49,19 +49,14 @@ export function ZoomEmbed({
 
   return (
     <div className="mb-8">
-      {/* Live indicator */}
-      <div className="mb-3 flex items-center gap-2">
-        <span className="inline-flex h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />
-        <span className="text-sm font-bold uppercase tracking-[0.14em] text-red-600">
-          Live Now
-        </span>
-        {sessionTitle && (
-          <span className="text-sm text-ink-faint">&middot; {sessionTitle}</span>
-        )}
-      </div>
+      {/* Multi-session weeks name each player; a single session's "Live now"
+         sits in the page header instead, so it isn't said twice. */}
+      {sessionTitle && (
+        <p className="mb-3 text-sm font-semibold text-ink">{sessionTitle}</p>
+      )}
 
       {/* Zoom embed — isolated iframe */}
-      <div className="relative w-full overflow-hidden bg-neutral-950 aspect-video min-h-[220px] sm:min-h-[440px]">
+      <div className="relative w-full overflow-hidden rounded-xl border border-rule bg-neutral-950 aspect-video min-h-[220px] sm:min-h-[440px]">
         <iframe
           src={src}
           title={sessionTitle ? `Live session: ${sessionTitle}` : "Live session"}

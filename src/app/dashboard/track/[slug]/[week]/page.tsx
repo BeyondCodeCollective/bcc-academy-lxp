@@ -470,6 +470,8 @@ export default async function TrackWeekPage({
       isActive: liveGateOpen(i),
     }))
     .filter((s) => s.parsed !== null && s.isActive);
+  // The Zoom player is on the page right now.
+  const isLive = zoomSessions.length > 0;
   // Non-Zoom links render a "Join Session" panel instead of an embed (single-
   // session units only — mirrors the JSX gate below).
   const nonZoomLive =
@@ -605,7 +607,11 @@ export default async function TrackWeekPage({
              so most sessions never showed it and the product read as half
              redesigned. Same ground as the course page and the admin home. */}
           <PageHeader
-            onField
+            // Live: the Zoom player is the page's one dark object, so the
+            // header steps off the field and shrinks to a line — a filled
+            // "Live now" pill, the title, the byline — with the player right
+            // under it. Any other state keeps the field.
+            onField={!isLive}
             // The STUDENT-FACING number, not the internal week number. On a
             // course with a kickoff, internal week 2 is "Session 1" — the
             // recording card, the prev/next nav and the breadcrumb all said
@@ -616,7 +622,12 @@ export default async function TrackWeekPage({
               return n ? String(n).padStart(2, "0") : undefined;
             })()}
             badge={
-              isCompleted || isCurrent ? (
+              isLive ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-highlight px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-ink">
+                  <span className="h-1.5 w-1.5 rounded-full bg-ink motion-safe:animate-pulse" aria-hidden />
+                  Live now
+                </span>
+              ) : isCompleted || isCurrent ? (
                 <span
                   className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
                     isCompleted
