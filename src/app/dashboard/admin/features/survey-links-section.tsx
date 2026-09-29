@@ -11,7 +11,7 @@ const AI_FUNDAMENTALS = ["catalyst", "beyond-code-centers"];
 const PUBLIC_SURVEY_LINKS = [
   { id: "bcc-learner-intake",        label: "BCC Learner Intake",                        path: "/survey/bcc-learner-intake",        programs: BCC },
   { id: "bcc-workshop",              label: "Workshop Feedback",                          path: "/survey/bcc-workshop",              programs: BCC },
-  { id: "pre-survey-spring-2026",    label: "AI Fundamentals — Pre-Program Survey",       path: "/survey/pre-survey-spring-2026",    programs: AI_FUNDAMENTALS },
+  { id: "pre-survey-spring-2026",    label: "AI Fundamentals — Pre-Program Survey",       path: "/survey/ai-fundamentals",            programs: AI_FUNDAMENTALS },
   { id: "post-survey-spring-2026",   label: "AI Fundamentals — Post-Program Survey",      path: "/survey/post-survey-spring-2026",   programs: AI_FUNDAMENTALS },
   { id: "network-plus-post",         label: "CompTIA Network+ — End-of-Cohort Survey",    path: "/survey/network-plus-post",         programs: ["catalyst"] },
   { id: "security-plus-application", label: "CompTIA Security+ — Application",            path: "/apply/security-plus",              programs: ["catalyst"] },

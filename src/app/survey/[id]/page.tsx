@@ -41,7 +41,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     "cyberdeck-post": "Cyberdeck Series — Post-Program Survey",
     "bgc-participant-2026": "Black Girls Code 2026 Participant Survey",
   };
-  const title = titles[id] ?? "Survey";
+  const title = titles[SURVEY_ALIASES[id] ?? id] ?? "Survey";
   return {
     title: `${title} — BCC Academy`,
     description: `Complete the ${title.toLowerCase()} for BCC Academy.`,
@@ -77,6 +77,14 @@ const RETIRED_SURVEY_REDIRECTS: Record<string, string> = {
 // links copied in between now 404, which is what staff hit when they shared it.
 // Send them to the real page instead of a dead end; the login gate there
 // returns them to the survey afterwards.
+// Friendly URLs for surveys whose ID reads wrong in a shared link. The page
+// renders the canonical survey and saves under its ID, so responses stay in
+// one place. pre-survey-spring-2026 is still the live AI Fundamentals
+// pre-survey every cohort takes; "Spring" in the link confused Fall staff.
+const SURVEY_ALIASES: Record<string, string> = {
+  "ai-fundamentals": "pre-survey-spring-2026",
+};
+
 const MOVED_TO_AUTHENTICATED: Record<string, string> = {
   "security-plus-midpoint": "/dashboard/survey/security-plus-midpoint",
 };
@@ -86,7 +94,8 @@ export default async function PublicSurveyPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params;
+  const { id: rawId } = await params;
+  const id = SURVEY_ALIASES[rawId] ?? rawId;
   const replacement = RETIRED_SURVEY_REDIRECTS[id];
   if (replacement) redirect(`/survey/${replacement}`);
   const authRoute = MOVED_TO_AUTHENTICATED[id];
