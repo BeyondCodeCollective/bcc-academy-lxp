@@ -49,6 +49,7 @@ export default async function ProgramsListPage() {
     )
   ).filter((p): p is NonNullable<typeof p> => p !== null && mayList(p.slug));
   withOverrides.push(...dynamicPrograms);
+  const dynamicSlugs = new Set(dynamicPrograms.map((p) => p.slug));
 
   const groups: ProgramGroup[] = withOverrides
     .map((prog) => {
@@ -79,7 +80,12 @@ export default async function ProgramsListPage() {
         hidden: rows.filter((r) => r.hidden).sort(byName),
       };
     })
-    .filter((g) => g.active.length > 0 || g.hidden.length > 0);
+    // A RETIRED organization (every course hidden) drops out entirely, the same
+    // rule the program switcher uses; built-in programs keep their Hidden list.
+    .filter(
+      (g) =>
+        g.active.length > 0 || (g.hidden.length > 0 && !dynamicSlugs.has(g.programSlug)),
+    );
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8 space-y-6">
