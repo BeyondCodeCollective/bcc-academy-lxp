@@ -16,7 +16,10 @@
  *  2. Vercel Blob, keyed by the same hash. Durable and shared by every
  *     instance and every deploy, so a line is bought from ElevenLabs once,
  *     ever. This is the layer that makes the front door free at community
- *     size.
+ *     size. The store is private (it also holds class recordings), so the
+ *     copy is written private and read back through a presigned URL; a
+ *     public write is refused by a private store, and for weeks that refusal
+ *     was swallowed here, so every line was bought again on every play.
  *  3. The CDN. The response used to be `private`, which forbids any shared
  *     cache; a line keyed by the hash of its own text can safely be public and
  *     immutable — you cannot fetch audio without already knowing the exact
@@ -29,7 +32,8 @@
 
 import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
-import { head, put } from "@vercel/blob";
+import { put } from "@vercel/blob";
+import { signRecordingUrl } from "@/lib/blob-recordings";
 
 /** Brooklyn — American, warm and confident. Override per environment. */
 const DEFAULT_VOICE = "zWoalRDt5TZrmW4ROIA7";
@@ -86,8 +90,9 @@ const blobPath = (hash: string) => `fde-voice/${hash}.mp3`;
 async function fromBlob(hash: string): Promise<ArrayBuffer | null> {
   if (!process.env.BLOB_READ_WRITE_TOKEN) return null;
   try {
-    const meta = await head(blobPath(hash));
-    const res = await fetch(meta.url);
+    const url = await signRecordingUrl(blobPath(hash), 60);
+    if (!url) return null;
+    const res = await fetch(url);
     if (!res.ok) return null;
     return await res.arrayBuffer();
   } catch {
@@ -99,7 +104,7 @@ async function toBlob(hash: string, buf: ArrayBuffer): Promise<void> {
   if (!process.env.BLOB_READ_WRITE_TOKEN) return;
   try {
     await put(blobPath(hash), buf, {
-      access: "public",
+      access: "private",
       contentType: "audio/mpeg",
       addRandomSuffix: false,
       cacheControlMaxAge: 31536000,
