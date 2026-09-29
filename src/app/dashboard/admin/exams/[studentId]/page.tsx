@@ -42,10 +42,10 @@ export default async function StudentExamDetailPage({
   searchParams,
 }: {
   params: Promise<{ studentId: string }>;
-  searchParams: Promise<{ attempt?: string }>;
+  searchParams: Promise<{ attempt?: string; exam?: string }>;
 }) {
   const { studentId } = await params;
-  const { attempt: wantedAttempt } = await searchParams;
+  const { attempt: wantedAttempt, exam: examParam } = await searchParams;
 
   const ctx = await getSessionContext();
   if (!ctx) redirect("/");
@@ -59,13 +59,14 @@ export default async function StudentExamDetailPage({
   if (!["catalyst", "marketing"].includes(program.slug)) {
     if (canSwitchPrograms(role)) {
       redirect(
-        `/api/switch-program?slug=catalyst&next=/dashboard/admin/exams/${studentId}`,
+        `/api/switch-program?slug=catalyst&next=${encodeURIComponent(`/dashboard/admin/exams/${studentId}${examParam ? `?exam=${examParam}` : ""}`)}`,
       );
     }
     redirect("/dashboard/admin");
   }
 
-  const exam = getExam("network-plus-post")!;
+  const exam = getExam(examParam ?? "network-plus-post");
+  if (!exam) redirect("/dashboard/admin/exams");
   const svc = createServiceClient();
 
   const [{ data: student }, { data: attemptRows }] = await Promise.all([
@@ -88,7 +89,7 @@ export default async function StudentExamDetailPage({
       .order("submitted_at", { ascending: false }),
   ]);
 
-  if (!student) redirect("/dashboard/admin/exams");
+  if (!student) redirect(`/dashboard/admin/exams?exam=${exam.id}`);
   const attempts = (attemptRows ?? []) as Attempt[];
   const name =
     `${student.first_name ?? ""} ${student.last_name ?? ""}`.trim() || student.email;
@@ -101,7 +102,7 @@ export default async function StudentExamDetailPage({
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 sm:px-5 py-8 space-y-6">
-      <BackLink href="/dashboard/admin/exams" label="Practice exams" />
+      <BackLink href={`/dashboard/admin/exams?exam=${exam.id}`} label="Practice exams" />
       <PageHeader
         eyebrow={exam.title}
         title={name}
@@ -129,7 +130,7 @@ export default async function StudentExamDetailPage({
                 return (
                   <Link
                     key={a.id}
-                    href={`/dashboard/admin/exams/${studentId}?attempt=${a.id}`}
+                    href={`/dashboard/admin/exams/${studentId}?exam=${exam.id}&attempt=${a.id}`}
                     className={`rounded-md border px-3 py-1.5 text-xs transition-colors ${
                       active
                         ? "border-ink bg-ink text-paper"
