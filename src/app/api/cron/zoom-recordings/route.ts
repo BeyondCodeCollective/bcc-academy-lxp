@@ -97,7 +97,11 @@ export async function GET(request: Request) {
   const from = new Date(to.getTime() - 45 * 24 * 60 * 60 * 1000);
   const recordings = await listRecordings(from.toISOString(), to.toISOString());
 
-  const pending: { rec: ZoomRecording; rowId: string; track: string; week: number }[] = [];
+  // One candidate per session: the longest recording that day. A host who
+  // joins early and starts/stops the recorder leaves a short clip ahead of the
+  // real class; taking the first match imported that clip and then skipped
+  // the class itself as "already imported".
+  const byRow = new Map<string, { rec: ZoomRecording; rowId: string; track: string; week: number }>();
   for (const rec of recordings) {
     if (rec.durationMinutes < MIN_MINUTES) continue;
     const track = trackByMeetingId.get(rec.meetingId);
@@ -108,8 +112,12 @@ export async function GET(request: Request) {
       (r) => r.track === track && r.week_number === week,
     );
     if (!row || row.recording_url) continue; // already imported
-    pending.push({ rec, rowId: row.id, track, week });
+    const prev = byRow.get(row.id);
+    if (!prev || rec.durationMinutes > prev.rec.durationMinutes) {
+      byRow.set(row.id, { rec, rowId: row.id, track, week });
+    }
   }
+  const pending = [...byRow.values()];
 
   if (pending.length === 0) {
     return NextResponse.json({ ok: true, imported: 0, remaining: 0 });
