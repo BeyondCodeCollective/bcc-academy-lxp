@@ -163,6 +163,36 @@ export function easternDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/New_York" });
 }
 
+/** A meeting's cloud auto-record setting, read before class so a session that
+ *  won't record is caught while there's still time to flip it. Zoom records a
+ *  session only if this is "cloud" when the host joins; there is no after-the-
+ *  fact recovery.
+ *
+ *  Requires the `meeting:read:meeting:admin` scope. Returns:
+ *    · "cloud" | "local" | "none" — the setting
+ *    · "not_found" — the meeting isn't in this Zoom account (so any recording
+ *      would land in someone else's cloud, not ours)
+ *    · "no_scope" — the app can't read meetings yet
+ *    · null — Zoom unconfigured or unreachable */
+export async function meetingAutoRecording(
+  meetingId: string,
+): Promise<"cloud" | "local" | "none" | "not_found" | "no_scope" | null> {
+  const token = await zoomToken();
+  if (!token) return null;
+  const res = await fetch(`${ZOOM_API_BASE}/meetings/${meetingId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const json = (await res.json().catch(() => ({}))) as {
+    code?: number;
+    settings?: { auto_recording?: "cloud" | "local" | "none" };
+  };
+  if (res.ok) return json.settings?.auto_recording ?? "none";
+  if (json.code === 4711) return "no_scope";
+  if (res.status === 404 || json.code === 3001) return "not_found";
+  console.error("[zoom-recordings] meeting read failed", meetingId, res.status);
+  return null;
+}
+
 /** Zoom meeting id out of a stored meeting link (`/j/<id>`). */
 export function meetingIdFromLink(link: string | null): string | null {
   return link?.match(/\/j\/(\d+)/)?.[1] ?? null;
