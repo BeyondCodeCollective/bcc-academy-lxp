@@ -256,7 +256,14 @@ export async function createCourseFromDraftAction(params: {
     instructor: draft.instructor.trim(),
     start_date: first.date,
     kickoff_time_utc: easternToUtc(first.date, first.time),
-    total_weeks: draft.totalWeeks || draft.sessions.length,
+    // Session-modeled courses have one unit per session, so the unit count is
+    // the session count. The draft's totalWeeks can mean calendar weeks (2 for
+    // a twice-weekly, two-week course), which hid sessions 3-4 from the
+    // curriculum editor on Exam Prep: Network+ Study Group.
+    total_weeks:
+      (draft.unitLabel || "Session") === "Session"
+        ? orderedSessions.length
+        : draft.totalWeeks || orderedSessions.length,
     sessions_per_week: draft.sessionsPerWeek || 1,
     unit_label: draft.unitLabel || "Session",
     session_times: draft.sessionTimes ?? [],
