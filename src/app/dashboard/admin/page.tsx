@@ -45,6 +45,15 @@ type LunchLearnRow = {
   recorded_at: string;
 };
 
+
+/** Start a request now, await it later. The pre-attached catch keeps an early
+ *  redirect() from surfacing an in-flight promise as an unhandled rejection —
+ *  the awaited copy still rejects at its original call site. */
+function eager<T>(p: Promise<T>): Promise<T> {
+  p.catch(() => {});
+  return p;
+}
+
 export default async function AdminPage({
   searchParams,
 }: {
@@ -66,6 +75,17 @@ export default async function AdminPage({
     getProgram(),
     isSupabaseConfigured() ? getSessionContext() : Promise.resolve(null),
   ]);
+
+  // Fetches below are started here and awaited where they are used. Nothing
+  // about them depends on the queries in between, and each `await` on this
+  // page costs a full round trip to Supabase — on a weak connection that is
+  // ~1s of dead screen apiece. Ordering and error behavior are unchanged:
+  // `eager` only pre-attaches a no-op catch so an early redirect() can't turn
+  // an in-flight promise into an unhandled rejection. The awaited copy still
+  // throws at the original call site.
+  const hiddenSlugsPromise = eager(getHiddenTrackSlugs());
+  // Assigned inside the session block below, awaited after it.
+  let dynamicProgramsPromise: Promise<{ slug: string; name: string }[]> | null = null;
 
   // Land a super-admin in a real program instead of the "No program selected"
   // dead end.
@@ -182,6 +202,34 @@ export default async function AdminPage({
     const programId = programRows?.find((p) => p.slug === program.slug)?.id;
 
     if (!canAccessAdminPanel(userRole)) redirect("/dashboard");
+
+    // Second set of started-now-awaited-later fetches (see `eager` above).
+    // These depend only on the program's own config, never on the roster
+    // batch they used to queue behind.
+    const activeTrackForFetch = isTrackTab
+      ? program.tracks.find((tk) => tk.slug === effectiveTab)
+      : undefined;
+    const courseStatsPromise = eager(
+      getCourseRosterStats(programTrackSlugs).catch(() => ({})),
+    );
+    const trackLengthsPromise = needsEngagement ? eager(resolveTrackLengths()) : null;
+    dynamicProgramsPromise = eager(listDynamicPrograms());
+    const activeTrackStatsPromise = activeTrackForFetch
+      ? eager(
+          Promise.all([
+            svc
+              .from("attendance")
+              .select("student_id, week_number, session_number")
+              .eq("track", activeTrackForFetch.slug)
+              .not("checked_in_at", "is", null),
+            getCourseEngagement(activeTrackForFetch.name, activeTrackForFetch.slug, {
+              hasVideoContent: activeTrackForFetch.weeks.some((w) => !!w.videoUrl),
+              submissionsEnabled: activeTrackForFetch.submissionsEnabled !== false,
+              unitLabel: activeTrackForFetch.unitLabel ?? "Week",
+            }).catch(() => null),
+          ]),
+        )
+      : null;
 
     // Program boundary for non-super-admins. Holding an admin/instructor role
     // proves you run SOME program — it never proved you run THIS one, so
@@ -435,7 +483,7 @@ export default async function AdminPage({
       // enrolled in. Scoring everyone against the longest course in the
       // program made a 6-day Home for the Summer learner with perfect
       // attendance read 8/25 (6 of Security+'s 19). Audit 2026-08-18, F17.
-      const lengths = await resolveTrackLengths();
+      const lengths = await (trackLengthsPromise ?? resolveTrackLengths());
       const heldForStudent = (id: string): number => {
         let held = 0;
         for (const st of studentTracks) {
@@ -520,9 +568,7 @@ export default async function AdminPage({
     // students.program_id points at another program) and reports a live Zoom
     // camp as "0 active". Same signals as getCourseEngagement, so the list and
     // the course Overview agree.
-    courseStats = await getCourseRosterStats(
-      program.tracks.map((t) => t.slug),
-    ).catch(() => ({}));
+    courseStats = await courseStatsPromise;
 
     // Per-course engagement snapshot for the open course tab — the admin
     // feedback loop on the learner streak cards. Only the active course's
@@ -536,18 +582,7 @@ export default async function AdminPage({
         // from check-ins, since the schedule can't say a session actually ran.
         // The roster badge and the engagement snapshot describe the same
         // course but need nothing from each other, so they go together.
-        const [attRes, engagementSnapshot] = await Promise.all([
-          svc
-            .from("attendance")
-            .select("student_id, week_number, session_number")
-            .eq("track", t.slug)
-            .not("checked_in_at", "is", null),
-          getCourseEngagement(t.name, t.slug, {
-            hasVideoContent: t.weeks.some((w) => !!w.videoUrl),
-            submissionsEnabled: t.submissionsEnabled !== false,
-            unitLabel: t.unitLabel ?? "Week",
-          }).catch(() => null),
-        ]);
+        const [attRes, engagementSnapshot] = await activeTrackStatsPromise!;
         const attRows = attRes.data;
         const held = new Set(
           (attRows ?? []).map((r) => `${r.week_number}-${r.session_number}`),
@@ -586,7 +621,7 @@ export default async function AdminPage({
   if (canSwitchPrograms(userRole)) {
     switchablePrograms = [
       ...getJoinablePrograms().map((p) => ({ slug: p.slug, name: p.name })),
-      ...(await listDynamicPrograms()),
+      ...(await (dynamicProgramsPromise ?? listDynamicPrograms())),
     ];
   } else if (canAccessAdminPanel(userRole) && actorId) {
     const granted = new Set(await getGrantedProgramSlugs(actorId));
@@ -601,7 +636,7 @@ export default async function AdminPage({
     if (home?.slug) granted.add(home.slug);
     switchablePrograms = [
       ...getJoinablePrograms().map((p) => ({ slug: p.slug, name: p.name })),
-      ...(await listDynamicPrograms()),
+      ...(await (dynamicProgramsPromise ?? listDynamicPrograms())),
     ].filter((p) => granted.has(p.slug));
   }
 
@@ -692,18 +727,25 @@ export default async function AdminPage({
       // Practice exams sit in the same Surveys list as peer rows, so they
       // carry the same participation shape: distinct enrolled learners with a
       // submitted attempt.
-      for (const exam of examsForTrack(activeTrack.slug)) {
-        let attempted = 0;
-        if (trackStudentIds.length > 0) {
-          const { data: att } = await createServiceClient()
-            .from("exam_attempts")
-            .select("student_id")
-            .eq("exam_id", exam.id)
-            .not("submitted_at", "is", null)
-            .in("student_id", trackStudentIds);
-          attempted = new Set((att ?? []).map((r) => r.student_id as string)).size;
+      // One query for every exam on the course, not one per exam in sequence —
+      // a course with four practice exams paid four round trips here.
+      const exams = examsForTrack(activeTrack.slug);
+      const attemptsByExam = new Map<string, Set<string>>();
+      if (exams.length > 0 && trackStudentIds.length > 0) {
+        const { data: att } = await createServiceClient()
+          .from("exam_attempts")
+          .select("exam_id, student_id")
+          .in("exam_id", exams.map((e) => e.id))
+          .not("submitted_at", "is", null)
+          .in("student_id", trackStudentIds);
+        for (const r of att ?? []) {
+          const id = r.exam_id as string;
+          if (!attemptsByExam.has(id)) attemptsByExam.set(id, new Set());
+          attemptsByExam.get(id)!.add(r.student_id as string);
         }
-        trackExams.push({ id: exam.id, title: exam.title, attempted });
+      }
+      for (const exam of exams) {
+        trackExams.push({ id: exam.id, title: exam.title, attempted: attemptsByExam.get(exam.id)?.size ?? 0 });
       }
     }
     const publicSurveyCounts = activeTrackPublicSurveyIds.length > 0
@@ -790,7 +832,7 @@ export default async function AdminPage({
   // Drop courses the super-admin has hidden via Manage Courses — they vanish
   // from the admin home (and catalog) but keep all data and are one click to
   // restore. Works for hardcoded and DB courses alike.
-  const hiddenSlugs = await getHiddenTrackSlugs();
+  const hiddenSlugs = await hiddenSlugsPromise;
   const visibleTracks = ownTracks.filter((t) => !hiddenSlugs.has(t.slug));
 
   // How many of THIS program's courses are hidden — drives the "every course is
