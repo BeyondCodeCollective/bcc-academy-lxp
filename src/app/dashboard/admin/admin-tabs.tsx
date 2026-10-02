@@ -15,6 +15,7 @@ import { BackLink, buttonClass, fieldInput, microLabel, SaveIndicator, Segmented
 import { HomeBand } from "@/components/home-band";
 import { scheduledSessions, nextSession, weekRail, bandSentence, trackCode } from "@/lib/home-band";
 import { PageHeader, Section } from "@/components/page-header";
+import type { CourseSidebar } from "@/lib/course-needs";
 import { computeCurrentWeek, trackHasStarted, formatCohortDate, humanizeSlug, easternDayKey } from "@/lib/utils";
 import { LunchLearnAdmin } from "@/app/dashboard/lunch-learn/admin/admin-client";
 import { AttendanceTab } from "./attendance-tab";
@@ -590,7 +591,7 @@ export function AdminTabs({
   /** Pre-launch checks per track, present only for courses near their start
    *  date. See lib/launch-readiness. */
   launchReadiness?: Record<string, { label: string; ok: boolean; detail: string; action?: "send-invites" }[]>;
-  courseNeeds?: Record<string, { label: string; detail: string }[]>;
+  courseNeeds?: Record<string, CourseSidebar>;
   /** The open course's practice exams, rendered as rows in the Surveys list. */
   trackExams?: { id: string; title: string; attempted: number }[];
 }) {
@@ -1482,8 +1483,10 @@ export function AdminTabs({
         const startLabel = activeTrack.startDateTbd
           ? "TBD"
           : formatCohortDate(activeTrack.startDate, { month: "short", day: "numeric" }, "en-US");
+        const sidebar = courseNeeds[activeTrack.slug] ?? { needs: [], next: null };
+        const hasRightBar = sidebar.needs.length > 0 || sidebar.next !== null;
         return (
-        <div className="space-y-4">
+        <div className={`space-y-4 ${hasRightBar ? "lg:relative lg:pr-[304px]" : ""}`}>
           {/* Back to Admin home */}
           <BackLink href="/dashboard/admin" label="Admin" />
 
@@ -1493,28 +1496,48 @@ export function AdminTabs({
             subtitle={`with ${liveTrackNames[activeTrack.slug]?.instructor ?? activeTrack.instructor} · ${activeTrack.sessionTimes.join(" & ")}`}
           />
 
-          {/* Needs you — only the problems, only when there are any. Covers a
-             course once it's underway, where launch readiness stops. */}
-          {(courseNeeds[activeTrack.slug]?.length ?? 0) > 0 && (
-            <div className="panel overflow-hidden">
-              <div className="flex items-center justify-between gap-3 border-b border-rule-soft px-4 py-2.5">
-                <p className="text-micro font-semibold uppercase tracking-[0.16em] text-ink-faint">Needs you</p>
-                <span className="rounded-full bg-amber-50 px-2 py-0.5 text-micro font-medium text-amber-800">
-                  {courseNeeds[activeTrack.slug].length}
-                </span>
-              </div>
-              <div className="divide-y divide-rule-soft">
-                {courseNeeds[activeTrack.slug].map((n) => (
-                  <div key={n.label} className="flex items-start gap-3 px-4 py-2.5">
-                    <span aria-hidden className="mt-1 h-2 w-2 shrink-0 rounded-full bg-amber-500" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm text-ink">{n.label}</p>
-                      <p className="text-micro text-ink-faint">{n.detail}</p>
+          {/* Right bar: what needs an admin, and what's next. Beside the
+             content from lg up (absolute within the padded container, sticky
+             inside); stacked under the header below that. */}
+          {hasRightBar && (
+            <aside className="lg:absolute lg:inset-y-0 lg:right-0 lg:w-[280px]">
+              <div className="space-y-4 lg:sticky lg:top-4">
+                {sidebar.needs.length > 0 && (
+                  <div className="panel overflow-hidden">
+                    <div className="flex items-center justify-between gap-3 border-b border-rule-soft px-4 py-2.5">
+                      <p className="text-micro font-semibold uppercase tracking-[0.16em] text-ink-faint">Needs you</p>
+                      <span className="rounded-full bg-amber-50 px-2 py-0.5 text-micro font-medium text-amber-800">
+                        {sidebar.needs.length}
+                      </span>
+                    </div>
+                    <div className="divide-y divide-rule-soft">
+                      {sidebar.needs.map((n) => (
+                        <div key={n.label} className="flex items-start gap-3 px-4 py-2.5">
+                          <span aria-hidden className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-amber-500" />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm text-ink">{n.label}</p>
+                            <p className="text-micro text-ink-faint">{n.detail}</p>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ))}
+                )}
+                {sidebar.next && (
+                  <div className="panel px-4 py-3">
+                    <p className="text-micro font-semibold uppercase tracking-[0.16em] text-ink-faint">Next session</p>
+                    <p className="mt-1.5 text-sm font-semibold text-ink">{sidebar.next.title}</p>
+                    <p className="text-micro text-ink-soft">
+                      {sidebar.next.when} · {sidebar.next.away}
+                    </p>
+                    <p className="mt-2 text-micro text-ink-faint">
+                      {sidebar.next.hasZoom ? "Zoom link set" : "No Zoom link yet"}
+                      {sidebar.next.autoRecord === "cloud" && " · auto-record on"}
+                    </p>
+                  </div>
+                )}
               </div>
-            </div>
+            </aside>
           )}
 
           {/* Launch readiness — only rendered near a start date. Live checks
