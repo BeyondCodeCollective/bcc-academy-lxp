@@ -21,7 +21,7 @@ import { fetchPendingPeople, type PendingPerson } from "@/lib/people-hub";
 import { getCourseEngagement, getCourseRosterStats } from "@/lib/course-engagement";
 import { examsForTrack } from "@/lib/exams";
 import { getLaunchReadiness, isInLaunchWindow, type ReadinessCheck } from "@/lib/launch-readiness";
-import { getCourseNeeds, type CourseNeed } from "@/lib/course-needs";
+import { getCourseSidebar, type CourseSidebar } from "@/lib/course-needs";
 import { resolveCurrentUnit, resolveTrackPhase, formatCohortDate } from "@/lib/utils";
 import { getEngagementAnalytics, type EngagementAnalytics } from "./actions-analytics";
 import { getCoursesAnalytics, type CoursesAnalytics } from "./actions-courses";
@@ -920,13 +920,12 @@ export default async function AdminPage({
 
   // Needs-you list for the course being viewed only: three small queries per
   // course, so computing it for every tab would tax every admin page load.
-  const courseNeeds: Record<string, CourseNeed[]> = {};
-  if (tracks.some((t) => t.slug === effectiveTab)) {
-    courseNeeds[effectiveTab] = await getCourseNeeds(effectiveTab);
-  }
+  const courseNeeds: Record<string, CourseSidebar> = {};
+  const isCourseView = tracks.some((t) => t.slug === effectiveTab);
+  if (isCourseView) courseNeeds[effectiveTab] = await getCourseSidebar(effectiveTab);
 
   return (
-    <div className="mx-auto w-full max-w-2xl md:max-w-5xl space-y-6 px-4 sm:px-8 md:px-5 py-8">
+    <div className={`mx-auto w-full max-w-2xl ${isCourseView ? "md:max-w-5xl lg:max-w-6xl" : "md:max-w-5xl"} space-y-6 px-4 sm:px-8 md:px-5 py-8`}>
       <AdminTabs
         cohorts={allCohorts}
         students={allStudents}
