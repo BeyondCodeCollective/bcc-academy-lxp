@@ -32,17 +32,15 @@ export default async function SurveyPage({
 
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (!session?.user) redirect("/");
-    userId = session.user.id;
+    const { data: verified } = await supabase.auth.getClaims();
+    if (!verified?.claims.sub) redirect("/");
+    userId = verified.claims.sub;
 
     // Check for existing partial/complete response
     const { data } = await supabase
       .from("survey_responses")
       .select("responses, completed_at")
-      .eq("student_id", session.user.id)
+      .eq("student_id", userId)
       .eq("survey_type", surveyId)
       .maybeSingle();
 
@@ -72,7 +70,7 @@ export default async function SurveyPage({
       const { data: student } = await supabase
         .from("students")
         .select("first_name, last_name, email")
-        .eq("id", session.user.id)
+        .eq("id", userId)
         .maybeSingle();
       if (student) {
         const name = [student.first_name, student.last_name].filter(Boolean).join(" ").trim();
@@ -85,7 +83,7 @@ export default async function SurveyPage({
       const { data: intake } = await supabase
         .from("survey_responses")
         .select("responses")
-        .eq("student_id", session.user.id)
+        .eq("student_id", userId)
         .eq("survey_type", "bcc-learner-intake")
         .not("completed_at", "is", null)
         .maybeSingle();

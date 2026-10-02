@@ -46,13 +46,16 @@ const _PROFILE_TTL = 60_000;
 // student independently.
 export const getSessionContext = cache(async (): Promise<SessionContext | null> => {
   const supabase = await createClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  if (!session?.user) return null;
+  // getClaims verifies the ES256 token against the cached JWKS, so the
+  // identity is authentic without a round trip. getSession() handed back the
+  // unverified cookie payload and auth-js logged a warning on every request.
+  const { data: verified } = await supabase.auth.getClaims();
+  const claims = verified?.claims;
+  if (!claims?.sub) return null;
+  const userEmail = typeof claims.email === "string" ? claims.email : undefined;
 
   // Check cross-request cache before hitting the students table.
-  const userId = session.user.id;
+  const userId = claims.sub;
   const cached = _profileStore.get(userId);
   if (cached && Date.now() - cached.ts < _PROFILE_TTL) {
     return cached.data;
@@ -61,7 +64,7 @@ export const getSessionContext = cache(async (): Promise<SessionContext | null> 
   const { data: student } = await supabase
     .from("students")
     .select(STUDENT_SELECT)
-    .eq("id", session.user.id)
+    .eq("id", userId)
     .maybeSingle<SessionStudent>();
 
   // Self-heal: a valid session with no profile row is a "ghost" — the user is
@@ -70,11 +73,11 @@ export const getSessionContext = cache(async (): Promise<SessionContext | null> 
   // Guarantee the invariant "authenticated ⇒ profile exists" right here, the
   // chokepoint every dashboard surface flows through. deferred-setup refines
   // cohort/program/enrollment afterwards; role is the email-list truth.
-  const healed = !student ? await ensureProfile(session.user.id, session.user.email) : student;
+  const healed = !student ? await ensureProfile(userId, userEmail) : student;
 
   const result = {
-    userId: session.user.id,
-    userEmail: session.user.email ?? null,
+    userId,
+    userEmail: userEmail ?? null,
     student: healed ?? null,
   };
   _profileStore.set(userId, { data: result, ts: Date.now() });
