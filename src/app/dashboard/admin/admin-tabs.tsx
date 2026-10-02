@@ -532,6 +532,7 @@ export function AdminTabs({
   alumniEnrollments = [],
   unviewedAssessments = 0,
   launchReadiness = {},
+  courseNeeds = {},
   trackExams = [],
 }: {
   cohorts: CohortRow[];
@@ -589,6 +590,7 @@ export function AdminTabs({
   /** Pre-launch checks per track, present only for courses near their start
    *  date. See lib/launch-readiness. */
   launchReadiness?: Record<string, { label: string; ok: boolean; detail: string; action?: "send-invites" }[]>;
+  courseNeeds?: Record<string, { label: string; detail: string }[]>;
   /** The open course's practice exams, rendered as rows in the Surveys list. */
   trackExams?: { id: string; title: string; attempted: number }[];
 }) {
@@ -1490,6 +1492,30 @@ export function AdminTabs({
             title={liveTrackNames[activeTrack.slug]?.name ?? activeTrack.name}
             subtitle={`with ${liveTrackNames[activeTrack.slug]?.instructor ?? activeTrack.instructor} · ${activeTrack.sessionTimes.join(" & ")}`}
           />
+
+          {/* Needs you — only the problems, only when there are any. Covers a
+             course once it's underway, where launch readiness stops. */}
+          {(courseNeeds[activeTrack.slug]?.length ?? 0) > 0 && (
+            <div className="panel overflow-hidden">
+              <div className="flex items-center justify-between gap-3 border-b border-rule-soft px-4 py-2.5">
+                <p className="text-micro font-semibold uppercase tracking-[0.16em] text-ink-faint">Needs you</p>
+                <span className="rounded-full bg-amber-50 px-2 py-0.5 text-micro font-medium text-amber-800">
+                  {courseNeeds[activeTrack.slug].length}
+                </span>
+              </div>
+              <div className="divide-y divide-rule-soft">
+                {courseNeeds[activeTrack.slug].map((n) => (
+                  <div key={n.label} className="flex items-start gap-3 px-4 py-2.5">
+                    <span aria-hidden className="mt-1 h-2 w-2 shrink-0 rounded-full bg-amber-500" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm text-ink">{n.label}</p>
+                      <p className="text-micro text-ink-faint">{n.detail}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Launch readiness — only rendered near a start date. Live checks
              so launch-morning triage is a refresh, not hand-run queries. */}
