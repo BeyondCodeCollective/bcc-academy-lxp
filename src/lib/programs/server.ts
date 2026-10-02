@@ -30,12 +30,14 @@ import { getHiddenTrackSlugs } from "@/lib/programs/hidden";
  */
 export async function getProgram(): Promise<ProgramConfig> {
   const base = await resolveBaseProgram();
-  const program = await applyTrackOverrides(base);
   // Hidden courses disappear from EVERY consumer of the current-program
   // config — learner pages, admin dropdowns, pickers. Surfaces that must see
   // hidden courses (Manage Courses' restore list) use getProgramWithOverrides,
-  // which stays unfiltered.
-  const hidden = await getHiddenTrackSlugs();
+  // which stays unfiltered. Independent of the overrides, so fetched alongside.
+  const [program, hidden] = await Promise.all([
+    applyTrackOverrides(base),
+    getHiddenTrackSlugs(),
+  ]);
   if (hidden.size === 0) return program;
   return { ...program, tracks: program.tracks.filter((t) => !hidden.has(t.slug)) };
 }
@@ -299,46 +301,35 @@ function buildProgramFromDB(
  * config registry must append this list or dynamic orgs silently vanish
  * (switcher, Manage Courses, program access, search).
  */
-export async function listDynamicPrograms(): Promise<{ slug: string; name: string }[]> {
+/**
+ * Every admin-created organization row, one query per request. The switcher
+ * lists them and then resolves each one; before this each org cost its own
+ * programs lookup plus its own track_overrides query (2N round trips).
+ */
+const fetchDynamicProgramRows = cache(async (): Promise<DynamicProgramRow[]> => {
   try {
     const { data } = await createServiceClient()
       .from("programs")
-      .select("slug, name")
+      .select("id, slug, name, accent, logo_url")
       .eq("is_dynamic", true)
       .order("name", { ascending: true });
-    return (data ?? []).map((r) => ({ slug: r.slug as string, name: (r.name as string) ?? (r.slug as string) }));
-  } catch {
+    return (data ?? []) as DynamicProgramRow[];
+  } catch (err) {
+    console.warn("[fetchDynamicProgramRows] failed:", err);
     return [];
   }
+});
+
+export async function listDynamicPrograms(): Promise<{ slug: string; name: string }[]> {
+  const rows = await fetchDynamicProgramRows();
+  return rows.map((r) => ({ slug: r.slug, name: r.name ?? r.slug }));
 }
 
 export async function fetchDynamicProgram(slug: string): Promise<ProgramConfig | null> {
-  try {
-    const svc = createServiceClient();
-    const { data: programRow } = await svc
-      .from("programs")
-      .select("id, slug, name, accent, logo_url")
-      .eq("slug", slug)
-      .eq("is_dynamic", true)
-      .maybeSingle();
-
-    if (!programRow) return null;
-
-    const { data: trackRows } = await svc
-      .from("track_overrides")
-      .select(
-        "track_slug, name, short_name, description, instructor, start_date, kickoff_time_utc, companion_of, cover_image_url, total_weeks, unit_label, sessions_per_week, last_session_day_offset, session_times, week_summaries, default_reflection_prompts, submissions_enabled, reflections_enabled, sequential_gating, phase, office_hours, self_paced",
-      )
-      .eq("program_id", programRow.id);
-
-    return buildProgramFromDB(
-      programRow as DynamicProgramRow,
-      (trackRows ?? []) as TrackOverrideRow[],
-    );
-  } catch (err) {
-    console.warn("[fetchDynamicProgram] failed for slug=%s:", slug, err);
-    return null;
-  }
+  const [rows, overrides] = await Promise.all([fetchDynamicProgramRows(), fetchAllOverrides()]);
+  const programRow = rows.find((r) => r.slug === slug);
+  if (!programRow) return null;
+  return buildProgramFromDB(programRow, [...(overrides.get(slug)?.values() ?? [])]);
 }
 
 /**
@@ -346,37 +337,36 @@ export async function fetchDynamicProgram(slug: string): Promise<ProgramConfig |
  * field null-fallback: any non-null DB value wins; null = use TS default.
  * Same semantics as `resolveSessionContent` (src/lib/session-content.ts:42).
  *
- * Cached per-request via React.cache (layout + page share one roundtrip)
- * AND cross-request via module-level TTL cache (navigation re-renders skip
- * Supabase entirely for up to 60 seconds).
+ * Cached per-request via React.cache (layout + page share one roundtrip).
  */
-const fetchOverrides = cache(
-  async (programSlug: string): Promise<Map<string, TrackOverrideRow>> => {
+const OVERRIDE_COLUMNS =
+  "track_slug, name, short_name, description, instructor, start_date, kickoff_time_utc, companion_of, cover_image_url, total_weeks, unit_label, sessions_per_week, last_session_day_offset, session_times, week_summaries, default_reflection_prompts, submissions_enabled, reflections_enabled, sequential_gating, phase, office_hours, self_paced";
+
+/**
+ * Every track_overrides row, grouped by owning program slug, in ONE round trip
+ * per request (React.cache). The table is small (tens of rows), and before
+ * this each program config resolved slug → id and then its rows separately,
+ * so a plain admin page issued ~17 queries against programs/track_overrides.
+ */
+const fetchAllOverrides = cache(
+  async (): Promise<Map<string, Map<string, TrackOverrideRow>>> => {
+    const bySlug = new Map<string, Map<string, TrackOverrideRow>>();
     try {
-      const svc = createServiceClient();
-      const { data: programRow } = await svc
-        .from("programs")
-        .select("id")
-        .eq("slug", programSlug)
-        .maybeSingle();
-      if (!programRow?.id) return new Map();
-      const { data } = await svc
+      const { data } = await createServiceClient()
         .from("track_overrides")
-        .select(
-          "track_slug, name, short_name, description, instructor, start_date, kickoff_time_utc, companion_of, cover_image_url, total_weeks, unit_label, sessions_per_week, last_session_day_offset, session_times, week_summaries, default_reflection_prompts, submissions_enabled, reflections_enabled, sequential_gating, phase, office_hours, self_paced",
-        )
-        .eq("program_id", programRow.id);
-      const map = new Map<string, TrackOverrideRow>();
-      for (const row of data ?? []) {
-        map.set((row as TrackOverrideRow).track_slug, row as TrackOverrideRow);
+        .select(`${OVERRIDE_COLUMNS}, programs!inner(slug)`);
+      for (const raw of data ?? []) {
+        const { programs, ...row } = raw as unknown as TrackOverrideRow & { programs: { slug: string } | null };
+        const slug = programs?.slug;
+        if (!slug) continue;
+        let map = bySlug.get(slug);
+        if (!map) bySlug.set(slug, (map = new Map()));
+        map.set(row.track_slug, row as TrackOverrideRow);
       }
-      return map;
     } catch (err) {
-      // Don't take down the app if the table is missing (e.g. migration
-      // hasn't been applied yet) — fall back to TS configs untouched.
       console.warn("[getProgram] track_overrides fetch failed:", err);
-      return new Map();
     }
+    return bySlug;
   },
 );
 
@@ -415,21 +405,10 @@ async function applyTrackOverrides(program: ProgramConfig): Promise<ProgramConfi
 
   // A track's override may live under a different HOME program than the one
   // currently rendering it (e.g. ai-literacy's override is stored under forte).
-  // Fetch this program's own overrides plus every listed track's home-program
-  // overrides, so names/dates reflect the DB on every surface (catalog, admin
-  // home, sidebar, preview) — not just the program that owns the override row.
-  const homeSlugs = new Set<string>([program.slug]);
-  for (const t of program.tracks) {
-    const home = getHomeProgramForTrack(t.slug);
-    if (home) homeSlugs.add(home.slug);
-  }
-  const overridesBySlug = new Map(
-    await Promise.all(
-      [...homeSlugs].map(
-        async (slug) => [slug, await fetchOverrides(slug)] as const,
-      ),
-    ),
-  );
+  // The per-request map holds every program's overrides, so names/dates
+  // reflect the DB on every surface (catalog, admin home, sidebar, preview),
+  // not just the program that owns the override row.
+  const overridesBySlug = await fetchAllOverrides();
   const ownOverrides =
     overridesBySlug.get(program.slug) ?? new Map<string, TrackOverrideRow>();
 
