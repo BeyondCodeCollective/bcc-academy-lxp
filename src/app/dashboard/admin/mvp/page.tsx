@@ -3,8 +3,11 @@ import { getSessionContext } from "@/lib/auth/session";
 import { canViewMvp } from "@/lib/roles";
 import { AdminTopTabs } from "../admin-tabs";  
 import { MvpDashboard } from "./mvp-dashboard";
+import { getMvpDashboardData } from "@/lib/mvp/queries";
 
-export default async function MvpDashboardPage() {
+export default async function MvpDashboardPage({ searchParams }: {
+    searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
     const context = await getSessionContext();
 
     // if user isn't signed in, redirect to login page
@@ -19,6 +22,7 @@ export default async function MvpDashboardPage() {
     if (!canViewMvp(role)) {
         redirect("/dashboard");
     }
+    const data = await getMvpDashboardData(await searchParams);
     return (
         <main className="mx-auto w-full max-w-7xl px-6 py-8">
             <AdminTopTabs current="mvp" showInsights isManager/>
@@ -30,12 +34,7 @@ export default async function MvpDashboardPage() {
                 Track and analyze the performance of your programs and learners.
                 </p>
             </header>
-            <section className="rounded-xl border border-rule bg-white p-6">
-                <h2 className="text-lg font-semibold text-ink">Dashboard coming soon</h2>
-                <p className="mt-2 text-sm text-ink-soft">
-                    We are currently working on the MVP dashboard. Please check back later for updates.
-                </p>
-            </section>
+            <MvpDashboard key={JSON.stringify(data.appliedFilters)} data={data} />
         </main>
     );
 }
