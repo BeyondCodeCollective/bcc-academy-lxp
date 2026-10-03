@@ -10,7 +10,6 @@
  */
 
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { resolveTrackProgram } from "@/lib/programs/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { createServiceClient } from "@/lib/supabase/server";
@@ -101,7 +100,10 @@ export default async function LiveSessionPage({
          was 12px grey on cream in a corner and read as decoration; a learner
          who cannot see how to leave is stuck in a session, which is a worse
          failure than an ugly button. Escape works too. */}
-      <Link
+      {/* A plain <a>, not <Link>: the dashboard layout is what hides the chrome
+          for /live, and a client navigation keeps that layout, so the sidebar
+          and top bar stayed gone on every page after leaving. */}
+      <a
         href={`/dashboard/track/${trackSlug}/${weekNum}`}
         aria-label="Leave the session and go back to the session page"
         style={{
@@ -127,7 +129,7 @@ export default async function LiveSessionPage({
           <path d="M18 6 6 18M6 6l12 12" />
         </svg>
         Leave session
-      </Link>
+      </a>
     </div>
   );
 }

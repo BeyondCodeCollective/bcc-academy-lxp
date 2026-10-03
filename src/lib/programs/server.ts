@@ -64,6 +64,26 @@ export async function resolveTrackProgram(
     const track = getTrackBySlug(withOverrides, slug);
     if (track) return { program: withOverrides, track };
   }
+
+  // A course built in the admin has no TS home: its program is whichever one
+  // owns its track_overrides row. Without this, opening it while standing in
+  // any other program resolved to null and bounced the viewer to /dashboard.
+  if (!home) {
+    const { data } = await createServiceClient()
+      .from("track_overrides")
+      .select("programs!inner(slug)")
+      .eq("track_slug", slug)
+      .limit(1)
+      .maybeSingle<{ programs: { slug: string } }>();
+    const ownerSlug = data?.programs.slug;
+    if (ownerSlug && ownerSlug !== current.slug) {
+      const owner = hasTsConfigSlug(ownerSlug)
+        ? await getProgramWithOverrides(ownerSlug)
+        : await fetchDynamicProgram(ownerSlug);
+      const track = owner ? getTrackBySlug(owner, slug) : undefined;
+      if (owner && track) return { program: owner, track };
+    }
+  }
   return null;
 }
 
