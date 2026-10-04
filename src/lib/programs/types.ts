@@ -316,6 +316,10 @@ export type SurveyConfig = {
   description: string;
   /** If true, card keeps reappearing until completed */
   required: boolean;
+  /** If true, the survey is not offered (no card, no redirect) until the learner
+   *  has attended a session, so new learners meet the course before the
+   *  questionnaire. Only meaningful with `required`. */
+  afterFirstSession?: boolean;
   /** Program slugs whose students should skip this survey even when they
    *  resolve to this program's dashboard (e.g. forte students on Catalyst) */
   skipForPrograms?: string[];

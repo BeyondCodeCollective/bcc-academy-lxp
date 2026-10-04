@@ -39,6 +39,7 @@ export const catalystConfig: ProgramConfig = {
       description:
         "Help us understand your background and experience so we can better support you.",
       required: true,
+      afterFirstSession: true,
       skipForPrograms: ["forte"],
       // This is Beyond Code Centers' AI Fundamentals survey, surfaced here
       // because Catalyst aggregates that program's courses. Naming the program
