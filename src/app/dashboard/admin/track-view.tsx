@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { StudentTrackRow, InstructorTrackRow } from "./actions";
 import { canSwitchPrograms } from "@/lib/roles";
@@ -29,6 +30,9 @@ type TrackViewProps = {
   activeTrack: AdminTrackConfig;
   activeWeeks: AdminWeek[];
   assignableRoles: string[];
+  initialStudentSubView?: string;
+  initialTab?: string;
+  initialTrackView?: string;
   attendanceRates: { held: number; attended: Record<string, number>; } | null;
   cohorts: CohortRow[];
   courseEngagement: CourseEngagementProps | null;
@@ -37,28 +41,17 @@ type TrackViewProps = {
   engagementScores: { [x: string]: { total: number; attendance: number; submissions: number; reflections: number; videos: number; }; };
   enrollmentSaving: string | null;
   enrollments: StudentTrackRow[];
-  expandedWeek: number | null;
   instrTrackSaving: string | null;
   instrTracks: InstructorTrackRow[];
   isManager: boolean;
   launchReadiness: { [x: string]: { label: string; ok: boolean; detail: string; action?: "send-invites"; }[]; };
   liveTrackNames: { [x: string]: { name: string; instructor: string; }; };
   programSlug: string;
-  readinessOpen: boolean;
-  readinessResult: string | null;
-  readinessSending: boolean;
   router: ReturnType<typeof useRouter>;
   saveStates: { [x: string]: Record<number, SaveState>; };
-  setExpandedWeek: (value: SetStateAction<number | null>) => void;
   setLiveTrackNames: (value: SetStateAction<Record<string, { name: string; instructor: string; }>>) => void;
-  setReadinessOpen: (value: SetStateAction<boolean>) => void;
-  setReadinessResult: (value: SetStateAction<string | null>) => void;
-  setReadinessSending: (value: SetStateAction<boolean>) => void;
-  setStudentSubView: (value: SetStateAction<StudentSubView>) => void;
   setStudents: (value: SetStateAction<StudentRow[]>) => void;
-  setTrackView: (value: SetStateAction<"students" | "analytics" | "overview" | "curriculum" | "surveys">) => void;
   studentSaving: string | null;
-  studentSubView: "students" | "attendance" | "progress" | "work" | "certificates";
   students: StudentRow[];
   surveyConfigs: { id: string; title: string; skipForTracks?: string[]; appliesToTracks?: string[]; appliesToPrograms?: string[]; }[];
   toggleInstructorTrack: (instructorId: string, trackSlug: string) => Promise<void>;
@@ -67,9 +60,7 @@ type TrackViewProps = {
   trackEnrolledCount: number;
   trackExams: { id: string; title: string; attempted: number; }[];
   trackPublicSurveys: { id: string; title: string; count: number; }[];
-  trackStudents: StudentRow[];
   trackSurveyRespondents: { [x: string]: number; };
-  trackView: "students" | "analytics" | "overview" | "curriculum" | "surveys";
   tracks: AdminTrackConfig[];
   updateSession: (trackSlug: string, weekNum: number, sessionNum: number, patch: Partial<AdminSession>) => void;
   updateStudent: (id: string, field: "role" | "cohort_id" | "first_name" | "last_name", value: string) => Promise<void>;
@@ -81,6 +72,9 @@ export function TrackView({
   activeTrack,
   activeWeeks,
   assignableRoles,
+  initialStudentSubView,
+  initialTab,
+  initialTrackView,
   attendanceRates,
   cohorts,
   courseEngagement,
@@ -89,28 +83,17 @@ export function TrackView({
   engagementScores,
   enrollmentSaving,
   enrollments,
-  expandedWeek,
   instrTrackSaving,
   instrTracks,
   isManager,
   launchReadiness,
   liveTrackNames,
   programSlug,
-  readinessOpen,
-  readinessResult,
-  readinessSending,
   router,
   saveStates,
-  setExpandedWeek,
   setLiveTrackNames,
-  setReadinessOpen,
-  setReadinessResult,
-  setReadinessSending,
-  setStudentSubView,
   setStudents,
-  setTrackView,
   studentSaving,
-  studentSubView,
   students,
   surveyConfigs,
   toggleInstructorTrack,
@@ -119,15 +102,48 @@ export function TrackView({
   trackEnrolledCount,
   trackExams,
   trackPublicSurveys,
-  trackStudents,
   trackSurveyRespondents,
-  trackView,
   tracks,
   updateSession,
   updateStudent,
   updateWeekOverride,
   userRole,
 }: TrackViewProps) {
+    const [expandedWeek, setExpandedWeek] = useState<number | null>(null);
+    // Launch-readiness accordion — collapsed by default so the checks never push
+    // the course view down; the badge in the header still shows red/green.
+    const [readinessOpen, setReadinessOpen] = useState(false);
+    const [readinessSending, setReadinessSending] = useState(false);
+    const [readinessResult, setReadinessResult] = useState<string | null>(null);
+    const [trackView, setTrackView] = useState<
+      "overview" | "analytics" | "curriculum" | "students" | "surveys"
+    >((initialTrackView as "overview" | "analytics" | "curriculum" | "students" | "surveys") ?? "overview");
+    // Landing on a course must honor the URL's view (or default to Overview) —
+    // trackView is client state, so without this, switching courses reopened
+    // whatever sub-tab was last visited (e.g. Surveys) on the NEW course.
+    useEffect(() => {
+      setTrackView(
+        (initialTrackView as "overview" | "analytics" | "curriculum" | "students" | "surveys") ??
+          "overview",
+      );
+    }, [initialTab, initialTrackView]); // eslint-disable-line react-hooks/exhaustive-deps
+    const SUB_VIEWS: StudentSubView[] = ["students", "attendance", "progress", "work", "certificates"];
+    const subViewFromUrl = SUB_VIEWS.includes(initialStudentSubView as StudentSubView)
+      ? (initialStudentSubView as StudentSubView)
+      : null;
+    const [studentSubView, setStudentSubView] = useState<StudentSubView>(subViewFromUrl ?? "students");
+    // Same reason trackView re-syncs: switching courses must not carry the last
+    // course's sub-view over, and a link that names one must win.
+    useEffect(() => {
+      setStudentSubView(subViewFromUrl ?? "students");
+    }, [initialTab, initialStudentSubView]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Students enrolled in the active track (for track-scoped views).
+    const trackStudentIds = new Set(
+      enrollments.filter((e) => e.track_slug === activeTrack.slug).map((e) => e.student_id),
+    );
+    const trackStudents = students.filter((s) => trackStudentIds.has(s.id));
+
     // Count only role=student enrollments. The raw student_tracks rows
     // include instructors/admins assigned to the track, which would
     // inflate the header and diverge from the People sub-tab's count.

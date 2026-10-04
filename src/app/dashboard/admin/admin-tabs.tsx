@@ -17,7 +17,7 @@ import type { PendingPerson } from "@/lib/people-hub";
 import type { InsightsData } from "./page";
 import type { Student } from "@/lib/types";
 import { isStorageUrl, isUploadedVideo } from "@/lib/storage-utils";
-import { type CohortRow, type StudentRow, type AdminTrackConfig, type AdminSession, type AdminWeek, type SessionContentMap, buildInitialWeeks, applyContentMap, getTrackIcon, type StudentSubView } from "./admin-shared";
+import { type CohortRow, type StudentRow, type AdminTrackConfig, type AdminSession, type AdminWeek, type SessionContentMap, buildInitialWeeks, applyContentMap, getTrackIcon } from "./admin-shared";
 import { AdminTopTabs } from "./admin-top-tabs";
 import { StudentWorkTab } from "./student-work-tab";
 import { PeopleTab } from "./people-tab";
@@ -227,34 +227,6 @@ export function AdminTabs({
       return initialStudents;
     });
   }, [initialStudents]);
-  const [expandedWeek, setExpandedWeek] = useState<number | null>(null);
-  // Launch-readiness accordion — collapsed by default so the checks never push
-  // the course view down; the badge in the header still shows red/green.
-  const [readinessOpen, setReadinessOpen] = useState(false);
-  const [readinessSending, setReadinessSending] = useState(false);
-  const [readinessResult, setReadinessResult] = useState<string | null>(null);
-  const [trackView, setTrackView] = useState<
-    "overview" | "analytics" | "curriculum" | "students" | "surveys"
-  >((initialTrackView as "overview" | "analytics" | "curriculum" | "students" | "surveys") ?? "overview");
-  // Landing on a course must honor the URL's view (or default to Overview) —
-  // trackView is client state, so without this, switching courses reopened
-  // whatever sub-tab was last visited (e.g. Surveys) on the NEW course.
-  useEffect(() => {
-    setTrackView(
-      (initialTrackView as "overview" | "analytics" | "curriculum" | "students" | "surveys") ??
-        "overview",
-    );
-  }, [initialTab, initialTrackView]); // eslint-disable-line react-hooks/exhaustive-deps
-  const SUB_VIEWS: StudentSubView[] = ["students", "attendance", "progress", "work", "certificates"];
-  const subViewFromUrl = SUB_VIEWS.includes(initialStudentSubView as StudentSubView)
-    ? (initialStudentSubView as StudentSubView)
-    : null;
-  const [studentSubView, setStudentSubView] = useState<StudentSubView>(subViewFromUrl ?? "students");
-  // Same reason trackView re-syncs: switching courses must not carry the last
-  // course's sub-view over, and a link that names one must win.
-  useEffect(() => {
-    setStudentSubView(subViewFromUrl ?? "students");
-  }, [initialTab, initialStudentSubView]); // eslint-disable-line react-hooks/exhaustive-deps
   const [studentSaving, setStudentSaving] = useState<string | null>(null);
 
   // Track data: keyed by track slug
@@ -583,14 +555,6 @@ export function AdminTabs({
   const activeTrack = tracks.find((t) => t.slug === tab);
   const activeWeeks = trackData[tab] ?? [];
 
-  // Students enrolled in the active track (for track-scoped views).
-  const trackStudentIds = activeTrack
-    ? new Set(enrollments.filter((e) => e.track_slug === activeTrack.slug).map((e) => e.student_id))
-    : null;
-  const trackStudents = trackStudentIds
-    ? students.filter((s) => trackStudentIds.has(s.id))
-    : students;
-
   return (
     <div>
       <div className="flex flex-col">
@@ -675,6 +639,9 @@ export function AdminTabs({
       {activeTrack && (
         <TrackView
           activeTrack={activeTrack}
+          initialStudentSubView={initialStudentSubView}
+          initialTab={initialTab}
+          initialTrackView={initialTrackView}
           activeWeeks={activeWeeks}
           assignableRoles={assignableRoles}
           attendanceRates={attendanceRates}
@@ -685,28 +652,17 @@ export function AdminTabs({
           engagementScores={engagementScores}
           enrollmentSaving={enrollmentSaving}
           enrollments={enrollments}
-          expandedWeek={expandedWeek}
           instrTrackSaving={instrTrackSaving}
           instrTracks={instrTracks}
           isManager={isManager}
           launchReadiness={launchReadiness}
           liveTrackNames={liveTrackNames}
           programSlug={programSlug}
-          readinessOpen={readinessOpen}
-          readinessResult={readinessResult}
-          readinessSending={readinessSending}
           router={router}
           saveStates={saveStates}
-          setExpandedWeek={setExpandedWeek}
           setLiveTrackNames={setLiveTrackNames}
-          setReadinessOpen={setReadinessOpen}
-          setReadinessResult={setReadinessResult}
-          setReadinessSending={setReadinessSending}
-          setStudentSubView={setStudentSubView}
           setStudents={setStudents}
-          setTrackView={setTrackView}
           studentSaving={studentSaving}
-          studentSubView={studentSubView}
           students={students}
           surveyConfigs={surveyConfigs}
           toggleInstructorTrack={toggleInstructorTrack}
@@ -715,9 +671,7 @@ export function AdminTabs({
           trackEnrolledCount={trackEnrolledCount}
           trackExams={trackExams}
           trackPublicSurveys={trackPublicSurveys}
-          trackStudents={trackStudents}
           trackSurveyRespondents={trackSurveyRespondents}
-          trackView={trackView}
           tracks={tracks}
           updateSession={updateSession}
           updateStudent={updateStudent}
