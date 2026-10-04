@@ -20,7 +20,7 @@ import type { SurveyQuestion } from "@/components/survey-fields";
 import { fetchPendingPeople, type PendingPerson } from "@/lib/people-hub";
 import { getCourseEngagement, getCourseRosterStats } from "@/lib/course-engagement";
 import { examsForTrack } from "@/lib/exams";
-import { getLaunchReadiness, isInLaunchWindow, type ReadinessCheck } from "@/lib/launch-readiness";
+import { getLaunchReadinessMany, isInLaunchWindow, type ReadinessCheck } from "@/lib/launch-readiness";
 import { getCourseSidebar, type CourseSidebar } from "@/lib/course-needs";
 import { resolveCurrentUnit, resolveTrackPhase, formatCohortDate } from "@/lib/utils";
 import { getEngagementAnalytics, type EngagementAnalytics } from "./actions-analytics";
@@ -909,13 +909,8 @@ export default async function AdminPage({
   // Pre-launch checks for courses whose start date is near (2 weeks before
   // through 2 days after). Live on every load, so launch-morning triage is one
   // refresh instead of hand-run queries across three tools.
-  const launchReadiness: Record<string, ReadinessCheck[]> = {};
-  await Promise.all(
-    tracks
-      .filter((t) => isInLaunchWindow(t.startDate, t.startDateTbd))
-      .map(async (t) => {
-        launchReadiness[t.slug] = await getLaunchReadiness(t.slug);
-      }),
+  const launchReadiness: Record<string, ReadinessCheck[]> = await getLaunchReadinessMany(
+    tracks.filter((t) => isInLaunchWindow(t.startDate, t.startDateTbd)).map((t) => t.slug),
   );
 
   // Needs-you list for the course being viewed only: three small queries per

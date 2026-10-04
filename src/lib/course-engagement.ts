@@ -75,7 +75,7 @@ export async function getCourseRosterStats(
   if (learnerIds.length === 0) return empty;
 
   const since = new Date(now.getTime() - 7 * MS_PER_DAY).toISOString();
-  const [watchedRes, subRes, tutorRes, attRes, eventRes, allAttRes, certRes] = await Promise.all([
+  const [watchedRes, subRes, tutorRes, eventRes, allAttRes, certRes] = await Promise.all([
     svc
       .from("week_progress")
       .select("user_id, track_slug")
@@ -93,12 +93,6 @@ export async function getCourseRosterStats(
       .select("student_id")
       .in("student_id", learnerIds)
       .gte("created_at", since),
-    svc
-      .from("attendance")
-      .select("student_id, track")
-      .in("track", trackSlugs)
-      .in("student_id", learnerIds)
-      .gte("checked_in_at", since),
     // Browsing/login. NOT students.last_activity_at — that column's only
     // writer was a dropped `void` builder, so it reads NULL for nearly every
     // learner. activity_events is the real log: its insert is awaited.
@@ -112,7 +106,9 @@ export async function getCourseRosterStats(
     // All-time attendance, for the completion figure on an ended course.
     svc
       .from("attendance")
-      .select("student_id, track, week_number, session_number")
+      // Also serves the 7-day activity signal (the recent slice is cut below),
+      // which used to be a second attendance query.
+      .select("student_id, track, week_number, session_number, checked_in_at")
       .in("track", trackSlugs)
       .in("student_id", learnerIds)
       .not("checked_in_at", "is", null),
@@ -134,7 +130,10 @@ export async function getCourseRosterStats(
   };
   for (const r of watchedRes.data ?? []) mark(r.track_slug, r.user_id);
   for (const r of subRes.data ?? []) mark(r.track_slug, r.student_id);
-  for (const r of attRes.data ?? []) mark(r.track, r.student_id);
+  const sinceMs = new Date(since).getTime();
+  for (const r of allAttRes.data ?? []) {
+    if (new Date(r.checked_in_at as string).getTime() >= sinceMs) mark(r.track, r.student_id);
+  }
 
   const activeAnywhere = new Set<string>((tutorRes.data ?? []).map((r) => r.student_id));
   for (const r of eventRes.data ?? []) activeAnywhere.add(r.user_id);

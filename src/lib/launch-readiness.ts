@@ -24,38 +24,86 @@ export function isInLaunchWindow(startDate: string, startDateTbd?: boolean): boo
  * Born from the 2026-08-04 Endless Bootcamp launch morning: every red row here
  * was something we discovered by hand, at 5 AM, from three different tools.
  */
-export async function getLaunchReadiness(trackSlug: string): Promise<ReadinessCheck[]> {
-  const svc = createServiceClient();
+type EnrollRow = { students: { email: string | null; role: string; is_test: boolean } };
+type OverrideRow = { kickoff_time_utc: string | null; week_summaries: unknown };
+type SessionRow = { week_number: number; meeting_link: string | null; recording_url: string | null };
+type ReadinessRows = {
+  allow: { email: string }[];
+  invites: { email: string; status: string }[];
+  enroll: EnrollRow[];
+  override: OverrideRow | null;
+  sessions: SessionRow[];
+};
 
+/**
+ * One round trip per table for EVERY track in the launch window, grouped by
+ * track. The admin home used to call the per-track version in a loop, so four
+ * launching courses cost twenty queries on every load.
+ */
+export async function getLaunchReadinessMany(
+  trackSlugs: string[],
+): Promise<Record<string, ReadinessCheck[]>> {
+  const out: Record<string, ReadinessCheck[]> = {};
+  if (trackSlugs.length === 0) return out;
+  const svc = createServiceClient();
   const [allowRes, inviteRes, enrollRes, overrideRes, sessionRes] = await Promise.all([
-    svc.from("allowed_signup_emails").select("email").eq("track_slug", trackSlug),
-    svc.from("invites").select("email, status").eq("track_slug", trackSlug),
+    svc.from("allowed_signup_emails").select("track_slug, email").in("track_slug", trackSlugs),
+    svc.from("invites").select("track_slug, email, status").in("track_slug", trackSlugs),
     svc
       .from("student_tracks")
-      .select("student_id, students!inner(email, role, is_test)")
-      .eq("track_slug", trackSlug),
+      .select("track_slug, student_id, students!inner(email, role, is_test)")
+      .in("track_slug", trackSlugs),
     svc
       .from("track_overrides")
-      .select("kickoff_time_utc, week_summaries")
-      .eq("track_slug", trackSlug)
-      .maybeSingle(),
+      .select("track_slug, kickoff_time_utc, week_summaries")
+      .in("track_slug", trackSlugs),
     svc
       .from("session_content")
-      .select("week_number, meeting_link, recording_url")
-      .eq("track", trackSlug),
+      .select("track, week_number, meeting_link, recording_url")
+      .in("track", trackSlugs),
   ]);
+  const group = <T extends Record<string, unknown>>(rows: T[] | null, key: string) => {
+    const m = new Map<string, T[]>();
+    for (const row of rows ?? []) {
+      const k = row[key] as string;
+      if (!m.has(k)) m.set(k, []);
+      m.get(k)!.push(row);
+    }
+    return m;
+  };
+  const allowBy = group(allowRes.data as ({ track_slug: string; email: string }[] | null), "track_slug");
+  const inviteBy = group(inviteRes.data as ({ track_slug: string; email: string; status: string }[] | null), "track_slug");
+  const enrollBy = group(enrollRes.data as unknown as (({ track_slug: string } & EnrollRow)[] | null), "track_slug");
+  const overrideBy = group(overrideRes.data as (({ track_slug: string } & OverrideRow)[] | null), "track_slug");
+  const sessionBy = group(sessionRes.data as (({ track: string } & SessionRow)[] | null), "track");
+  for (const slug of trackSlugs) {
+    out[slug] = computeReadiness({
+      allow: allowBy.get(slug) ?? [],
+      invites: inviteBy.get(slug) ?? [],
+      enroll: enrollBy.get(slug) ?? [],
+      override: overrideBy.get(slug)?.[0] ?? null,
+      sessions: sessionBy.get(slug) ?? [],
+    });
+  }
+  return out;
+}
+
+export async function getLaunchReadiness(trackSlug: string): Promise<ReadinessCheck[]> {
+  return (await getLaunchReadinessMany([trackSlug]))[trackSlug] ?? [];
+}
+
+function computeReadiness(r: ReadinessRows): ReadinessCheck[] {
 
   const allowlisted = new Set(
-    (allowRes.data ?? []).map((r) => (r.email as string).toLowerCase()),
+    r.allow.map((r) => (r.email as string).toLowerCase()),
   );
   const invited = new Set(
-    (inviteRes.data ?? [])
+    r.invites
       .filter((r) => r.status === "sent")
       .map((r) => (r.email as string).toLowerCase()),
   );
-  type EnrollRow = { students: { email: string | null; role: string; is_test: boolean } };
   const accountEmails = new Set(
-    ((enrollRes.data ?? []) as unknown as EnrollRow[])
+    r.enroll
       .filter((r) => r.students.role === "student" && !r.students.is_test)
       .map((r) => (r.students.email ?? "").toLowerCase())
       .filter(Boolean),
@@ -67,13 +115,13 @@ export async function getLaunchReadiness(trackSlug: string): Promise<ReadinessCh
   );
   const joined = [...allowlisted].filter((e) => accountEmails.has(e)).length;
 
-  const meetingLinks = (sessionRes.data ?? [])
+  const meetingLinks = r.sessions
     .map((r) => (r.meeting_link as string | null) ?? "")
     .filter(Boolean);
   const hasZoom = meetingLinks.length > 0;
   const foreignZoom = meetingLinks.some((l) => !/https?:\/\/(us02web\.)?zoom\.us\//.test(l));
 
-  const kickoffSet = Boolean(overrideRes.data?.kickoff_time_utc);
+  const kickoffSet = Boolean(r.override?.kickoff_time_utc);
 
   // A recording sitting on a session that hasn't happened yet is the Endless
   // Bootcamp Day-3 failure (2026-08-06): the week page prefers the replay and
@@ -83,11 +131,11 @@ export async function getLaunchReadiness(trackSlug: string): Promise<ReadinessCh
   // meeting link is pre-recorded lesson content, which is fine.
   const unitDates = new Map<number, string>(
     (
-      ((overrideRes.data?.week_summaries ?? []) as { week: number; date?: string }[])
+      ((r.override?.week_summaries ?? []) as { week: number; date?: string }[])
     ).flatMap((ws) => (ws.date ? [[ws.week, ws.date] as [number, string]] : [])),
   );
   const todayET = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
-  const prematureRecordings = (sessionRes.data ?? []).filter((r) => {
+  const prematureRecordings = r.sessions.filter((r) => {
     const rec = ((r.recording_url as string | null) ?? "").trim();
     const meeting = ((r.meeting_link as string | null) ?? "").trim();
     if (!rec || !meeting) return false;
