@@ -163,22 +163,27 @@ export function MvpDashboard({
               <Metric
                 label="Unique learners started"
                 value={data.summary.uniqueLearnersStarted}
+                reason={reasonFor(data.metricDefinitions, "uniqueLearnersStarted")}
               />
               <Metric
                 label="Learners with a course completion"
                 value={data.summary.uniqueLearnersCompleted}
+                reason={reasonFor(data.metricDefinitions, "uniqueLearnersCompleted")}
               />
               <Metric
                 label="Program participations started"
                 value={data.summary.programParticipationsStarted}
+                reason={reasonFor(data.metricDefinitions, "programParticipationsStarted")}
               />
               <Metric
                 label="Learner/program pairs with a course completion"
                 value={data.summary.programParticipationsCompleted}
+                reason={reasonFor(data.metricDefinitions, "programParticipationsCompleted")}
               />
               <Metric
                 label="Upcoming enrollments"
                 value={data.summary.upcomingEnrollments}
+                reason={reasonFor(data.metricDefinitions, "upcomingEnrollments")}
               />
             </dl>
             <div className="mt-8 space-y-3">
@@ -195,13 +200,19 @@ export function MvpDashboard({
   );
 }
 
+function reasonFor(definitions: MvpDashboardData["metricDefinitions"], key: string): string | null {
+  return definitions.find((definition) => definition.key === key)?.unavailableReason ?? null;
+}
+
 // Metric cards preserve the distinction between a real zero and unavailable data.
 function Metric({
   label,
   value,
+  reason,
 }: {
   label: string;
   value: number | null;
+  reason: string | null;
 }) {
   return (
     <div className="rounded-xl border border-rule bg-white p-5">
@@ -214,6 +225,7 @@ function Metric({
           new Intl.NumberFormat("en-US").format(value)
         )}
       </dd>
+      {value === null && reason && <p className="mt-2 text-xs text-ink-soft">{reason}</p>}
     </div>
   );
 }

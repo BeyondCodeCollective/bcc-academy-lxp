@@ -74,7 +74,9 @@ class Database {
 // Two completed, single-session courses share one learner across programs.
 const track = (slug: string) => ({ slug, name: slug, shortName: slug, startDate: "2026-09-01", totalWeeks: 1,
   sessionsPerWeek: 1, unitLabel: "Session", lastSessionDayOffset: 0, weekSummaries: [{ week: 1, date: "2026-09-01" }] });
-const enrollment = (id: string, student: string, course = "alpha"): Row => ({ id, student_id: student, track_slug: course,
+const courseProgram: Record<string, string> = { alpha: "p1", beta: "p2" };
+const enrollment = (id: string, student: string, course = "alpha", program = courseProgram[course] ?? "p1"): Row => ({
+  id, student_id: student, track_slug: course, program_id: program,
   students: { id: student, role: "student", is_staff: false, is_test: false } });
 const attendance = (id: string, student: string, course = "alpha"): Row => ({ id, student_id: student, track: course,
   week_number: 1, session_number: 1, checked_in_at: "2026-09-01T18:00:00Z" });
@@ -261,6 +263,17 @@ describe("MVP query access", () => {
 });
 
 describe("MVP query totals and filters", () => {
+  it("keeps a course slug offered by two programs from mixing their rosters", async () => {
+    configs[0].tracks.push(track("twin"));
+    configs[1].tracks.push(track("twin"));
+    db.tables.student_tracks.push(enrollment("e5", "u1", "twin", "p1"), enrollment("e6", "u8", "twin", "p2"), enrollment("e7", "u9", "twin", "p2"));
+    const result = await getMvpDashboardData({ programId: "p1", courseSlug: "twin" });
+    expect(result.programs).toHaveLength(1);
+    expect(result.programs[0]).toMatchObject({ programId: "p1", courseSlug: "twin", totalParticipants: 1 });
+    const other = await getMvpDashboardData({ programId: "p2", courseSlug: "twin" });
+    expect(other.programs[0]).toMatchObject({ programId: "p2", courseSlug: "twin", totalParticipants: 2 });
+    expect(db.requests.filter((r) => r.table === "student_tracks").every((r) => r.filters.some(([op, key]) => op === "eq" && key === "program_id"))).toBe(true);
+  });
   it("combines real calculations and deduplicates organization summaries", async () => {
     const result = await getMvpDashboardData({});
     expect(result.programs[0]).toMatchObject({ totalParticipants: 2, started: 1, completed: 1, attendanceRate: 50, completionRate: 50 });

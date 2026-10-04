@@ -61,6 +61,7 @@ type MvpCourseRecords = {
 async function loadMvpLearnerIds(
   db: MvpDatabase,
   courseSlug: string,
+  courseProgramId: string,
 ): Promise<string[]> {
   const learnerIds = new Set<string>();
   let cursor: string | null = null;
@@ -70,6 +71,7 @@ async function loadMvpLearnerIds(
       .from("student_tracks")
       .select("id, student_id, students!inner(id, location, date_of_birth)")
       .eq("track_slug", courseSlug)
+      .eq("program_id", courseProgramId)
       .eq("students.role", "student")
       .or("is_test.is.null,is_test.eq.false", {
         referencedTable: "students",
@@ -174,8 +176,9 @@ async function loadMvpAttendance(
 async function loadMvpCourseRecords(
   db: MvpDatabase,
   courseSlug: string,
+  courseProgramId: string,
 ): Promise<MvpCourseRecords> {
-  const learnerIds = await loadMvpLearnerIds(db, courseSlug);
+  const learnerIds = await loadMvpLearnerIds(db, courseSlug, courseProgramId);
   const attendance = await loadMvpAttendance(db, courseSlug, learnerIds);
 
   return { learnerIds, attendance };
@@ -280,11 +283,14 @@ for (const row of selectedRows) {
     continue;
   }
 
-  let records = courseRecords.get(row.courseSlug);
+  // student_tracks is program-scoped, and one slug can be offered by two
+  // programs, so the roster (and its cache entry) is per program and course.
+  const recordsKey = `${row.programId}:${row.courseSlug}`;
+  let records = courseRecords.get(recordsKey);
 
   if (!records) {
-    records = await loadMvpCourseRecords(db, row.courseSlug);
-    courseRecords.set(row.courseSlug, records);
+    records = await loadMvpCourseRecords(db, row.courseSlug, row.programId);
+    courseRecords.set(recordsKey, records);
   }
 
   row.totalParticipants = records.learnerIds.length;
@@ -373,7 +379,7 @@ for (const row of selectedRows) {
       const programRows = selectedRows.filter((row) => row.programId === program.id);
       if (!programRows.length) continue;
       const learnerIds = [...new Set(programRows.flatMap((row) =>
-        row.courseSlug ? courseRecords.get(row.courseSlug)?.learnerIds ?? [] : []))];
+        row.courseSlug ? courseRecords.get(`${row.programId}:${row.courseSlug}`)?.learnerIds ?? [] : []))];
       const surveys = configs.find((config) => config.slug === program.slug)?.surveys ?? [];
       if (!surveys.some((survey) => !survey.appliesToTracks?.length && !survey.skipForTracks?.length)) continue;
       surveyOutcomes.push(await loadMvpSurveyOutcomes(db, {
@@ -388,7 +394,7 @@ for (const row of selectedRows) {
   const incomeResponses: MvpIncomeResponse[] = [];
   for (const id of new Set(selectedRows.map((row) => row.programId))) {
     const ids = [...new Set(selectedRows.filter((row) => row.programId === id).flatMap((row) =>
-      row.courseSlug ? courseRecords.get(row.courseSlug)?.learnerIds ?? [] : []))];
+      row.courseSlug ? courseRecords.get(`${row.programId}:${row.courseSlug}`)?.learnerIds ?? [] : []))];
     incomeResponses.push(...await loadMvpIncome(db, id, ids));
   }
   const upcomingEnrollments = countMvpUpcomingEnrollments(selectedRows);
