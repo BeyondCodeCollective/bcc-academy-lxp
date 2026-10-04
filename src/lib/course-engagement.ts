@@ -41,33 +41,43 @@ export type CourseRosterStat = {
  * Membership comes from `student_tracks` (the enrollment), role from a lookup
  * keyed on the enrolled ids rather than on program.
  */
+/**
+ * Rows a caller already holds, so the roster stats skip their own
+ * student_tracks and students reads. The admin home fetches both for its
+ * roster anyway; refetching them cost two round trips per load.
+ */
+export type RosterSeed = {
+  enrollments: { student_id: string; track_slug: string }[];
+  students: { id: string; role?: string | null; is_test?: boolean | null; is_staff?: boolean | null }[];
+};
+
 export async function getCourseRosterStats(
   trackSlugs: string[],
   now: Date = new Date(),
+  seed?: RosterSeed,
 ): Promise<Record<string, CourseRosterStat>> {
   const empty: Record<string, CourseRosterStat> = {};
   if (trackSlugs.length === 0) return empty;
 
   const svc = createServiceClient();
+  const slugSet = new Set(trackSlugs);
 
   // Track slugs are globally unique (student_tracks is UNIQUE(student, slug)),
   // so slug alone is the scope. Filtering by program_id too dropped enrollments
   // stamped under another program (signups on the apex domain stamp Catalyst),
   // which zeroed whole rosters on standalone program views.
-  const { data: enroll } = await svc
-    .from("student_tracks")
-    .select("student_id, track_slug")
-    .in("track_slug", trackSlugs);
-  const enrollments = enroll ?? [];
+  const enrollments = seed
+    ? seed.enrollments.filter((e) => slugSet.has(e.track_slug))
+    : ((await svc.from("student_tracks").select("student_id, track_slug").in("track_slug", trackSlugs)).data ?? []);
   const enrolledIds = Array.from(new Set(enrollments.map((e) => e.student_id)));
   if (enrolledIds.length === 0) return empty;
 
   // Role by id, NOT by program — an enrolled learner may sit under another
   // program's row and would otherwise vanish from the count.
-  const { data: studentRows } = await svc
-    .from("students")
-    .select(LEARNER_FIELDS)
-    .in("id", enrolledIds);
+  const enrolledSet = new Set(enrolledIds);
+  const studentRows = seed
+    ? seed.students.filter((r) => enrolledSet.has(r.id))
+    : (await svc.from("students").select(LEARNER_FIELDS).in("id", enrolledIds)).data;
   // Real learners only — QA logins and staff would inflate the course roster,
   // active count, and the certificate-eligible "full attendance" number.
   const learners = (studentRows ?? []).filter(isLearner);
