@@ -1,16 +1,18 @@
 // src/lib/assessment/types.ts
 
-// Final Module 1 set (v2, June 2026): seven archetypes. Explorer and Igniter
-// were removed from scored Module 1; Culture Keeper was renamed Guardian
-// (construct: participation protection + group recovery, not mood/harmony).
+// Module 1 archetype set per LPAT delivery package v0.4: nine archetypes, three
+// items each. (v2, June 2026 had seven; Igniter and Explorer are back and
+// Guardian is Culture Keeper again.)
 export type ArchetypeKey =
   | "navigator"
   | "developer"
-  | "systems_thinker"
-  | "designer"
+  | "igniter"
   | "connector"
+  | "systems_thinker"
+  | "culture_keeper"
+  | "designer"
   | "support_specialist"
-  | "guardian";
+  | "explorer";
 
 export type ArchetypeConfidence =
   | "high"
@@ -18,7 +20,8 @@ export type ArchetypeConfidence =
   | "blended"
   | "low"
   | "broad_high"
-  | "flat";
+  | "flat"
+  | "emerging";
 
 export type WorkStylePole =
   | "solo" | "collaborative"
@@ -35,6 +38,8 @@ export type ScoredOutput = {
   archetype_primary: ArchetypeKey;
   archetype_secondary: ArchetypeKey | null;
   archetype_is_blended: boolean;
+  /** Three-way tie for first: the three strong patterns. Null otherwise. */
+  archetype_top_three: ArchetypeKey[] | null;
   archetype_confidence: ArchetypeConfidence;
   archetype_scores: Record<ArchetypeKey, number>; // averages — facilitator only
   facilitator_review: boolean;

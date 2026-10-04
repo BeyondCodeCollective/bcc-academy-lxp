@@ -72,6 +72,11 @@ export default async function AssessmentDetailPage({
           {scored.archetype_is_blended && secondary && (
             <p className="text-sm text-ink/60">Blended with: <strong>{secondary.name}</strong></p>
           )}
+          {scored.archetype_top_three && (
+            <p className="text-sm text-ink/60">
+              Three-way tie: <strong>{scored.archetype_top_three.map((k) => ARCHETYPE_CONTENT[k].name).join(", ")}</strong>
+            </p>
+          )}
           <p className="text-sm text-ink/70 leading-relaxed">{archetype.facilitator}</p>
           {secondary && scored.archetype_is_blended && (
             <p className="text-sm text-ink/70 leading-relaxed mt-2">{secondary.facilitator}</p>
@@ -183,6 +188,7 @@ function ConfidenceBadge({ confidence }: { confidence: ScoredOutput["archetype_c
     low: "Low confidence",
     broad_high: "Broad high",
     flat: "Flat pattern",
+    emerging: "Still emerging",
   };
   const colors: Record<string, string> = {
     high: "bg-green-100 text-green-800",
@@ -191,6 +197,7 @@ function ConfidenceBadge({ confidence }: { confidence: ScoredOutput["archetype_c
     low: "bg-amber-100 text-amber-800",
     broad_high: "bg-amber-100 text-amber-800",
     flat: "bg-ink/10 text-ink/60",
+    emerging: "bg-ink/10 text-ink/60",
   };
   return (
     <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${colors[confidence]}`}>
