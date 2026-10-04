@@ -210,9 +210,12 @@ export default async function AdminPage({
     const activeTrackForFetch = isTrackTab
       ? program.tracks.find((tk) => tk.slug === effectiveTab)
       : undefined;
-    const courseStatsPromise = eager(
-      getCourseRosterStats(programTrackSlugs).catch(() => ({})),
-    );
+    // When this load fetches the roster anyway, the course stats are seeded
+    // from those rows below instead of refetching students + student_tracks.
+    const courseStatsPromise =
+      needsStudents && needsStudentTracks
+        ? null
+        : eager(getCourseRosterStats(programTrackSlugs).catch(() => ({})));
     const trackLengthsPromise = needsEngagement ? eager(resolveTrackLengths()) : null;
     dynamicProgramsPromise = eager(listDynamicPrograms());
     const activeTrackStatsPromise = activeTrackForFetch
@@ -569,7 +572,12 @@ export default async function AdminPage({
     // students.program_id points at another program) and reports a live Zoom
     // camp as "0 active". Same signals as getCourseEngagement, so the list and
     // the course Overview agree.
-    courseStats = await courseStatsPromise;
+    courseStats = courseStatsPromise
+      ? await courseStatsPromise
+      : await getCourseRosterStats(programTrackSlugs, new Date(), {
+          enrollments: studentTracks,
+          students: allStudents,
+        }).catch(() => ({}));
 
     // Per-course engagement snapshot for the open course tab — the admin
     // feedback loop on the learner streak cards. Only the active course's
