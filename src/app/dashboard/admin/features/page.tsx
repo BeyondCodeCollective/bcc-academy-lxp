@@ -86,12 +86,9 @@ export default async function FeaturesPage() {
   const { count: unviewedAssessments } = await svc
     .from("assessment_results")
     .select("*", { count: "exact", head: true })
+    .eq("program_slug", program.slug)
     .is("facilitator_viewed_at", null);
 
-  const orderedSlugs = ["catalyst", "atg", "forte", "beyond-code-centers"].filter((s) =>
-    programSlugs.includes(s)
-  );
-  const remaining = programSlugs.filter((s) => !orderedSlugs.includes(s));
 
   // Survey configs for the current program
   const surveyConfigs = (program.surveys ?? []).map((s) => ({ id: s.id, title: s.title }));
@@ -109,7 +106,7 @@ export default async function FeaturesPage() {
         <h2 className="text-micro font-semibold uppercase tracking-[0.16em] text-ink-faint">
           Survey &amp; form links
         </h2>
-        <SurveyLinksSection surveyConfigs={surveyConfigs} />
+        <SurveyLinksSection programSlug={program.slug} surveyConfigs={surveyConfigs} />
       </section>
 
       {/* Program features (assessment + surveys, toggleable per program/track) */}
@@ -139,7 +136,7 @@ export default async function FeaturesPage() {
 
         <div className="mt-2">
           <FeatureToggles
-            programs={[...orderedSlugs, ...remaining]}
+            programs={programSlugs.filter((s) => s === program.slug)}
             programLabels={PROGRAM_LABELS}
             programTracks={programTracks}
             features={[

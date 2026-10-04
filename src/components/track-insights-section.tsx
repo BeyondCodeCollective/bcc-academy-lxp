@@ -128,7 +128,7 @@ export function TrackInsightsSection({
           return (
             <Link
               key={ex.id}
-              href="/dashboard/admin/exams"
+              href={`/dashboard/admin/exams?exam=${ex.id}`}
               className="group flex items-center justify-between gap-4 px-4 py-3 transition-colors hover:bg-paper-tint-soft"
             >
               <div className="min-w-0">

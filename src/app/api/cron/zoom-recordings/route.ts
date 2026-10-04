@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/server";
 import { blobConfigured, uploadRecordingToBlob } from "@/lib/blob-recordings";
 import { driveConfigured, uploadRecordingToDrive } from "@/lib/google-drive";
@@ -96,7 +97,11 @@ export async function GET(request: Request) {
   const from = new Date(to.getTime() - 45 * 24 * 60 * 60 * 1000);
   const recordings = await listRecordings(from.toISOString(), to.toISOString());
 
-  const pending: { rec: ZoomRecording; rowId: string; track: string; week: number }[] = [];
+  // One candidate per session: the longest recording that day. A host who
+  // joins early and starts/stops the recorder leaves a short clip ahead of the
+  // real class; taking the first match imported that clip and then skipped
+  // the class itself as "already imported".
+  const byRow = new Map<string, { rec: ZoomRecording; rowId: string; track: string; week: number }>();
   for (const rec of recordings) {
     if (rec.durationMinutes < MIN_MINUTES) continue;
     const track = trackByMeetingId.get(rec.meetingId);
@@ -107,8 +112,12 @@ export async function GET(request: Request) {
       (r) => r.track === track && r.week_number === week,
     );
     if (!row || row.recording_url) continue; // already imported
-    pending.push({ rec, rowId: row.id, track, week });
+    const prev = byRow.get(row.id);
+    if (!prev || rec.durationMinutes > prev.rec.durationMinutes) {
+      byRow.set(row.id, { rec, rowId: row.id, track, week });
+    }
   }
+  const pending = [...byRow.values()];
 
   if (pending.length === 0) {
     return NextResponse.json({ ok: true, imported: 0, remaining: 0 });
@@ -175,6 +184,15 @@ export async function GET(request: Request) {
       .update({ recording_url: storedValue })
       .eq("id", job.rowId);
     if (dbErr) throw new Error(`db update: ${dbErr.message}`);
+
+    // A student can already have this page's dynamic render cached from
+    // before the recording landed (client-side, from an earlier visit this
+    // browser session) — nothing about their next click tells Next.js to
+    // recheck the server. Dropping the server-side cache entry here means
+    // that stale copy expires at the source, so it clears the moment their
+    // session's cache would naturally refresh instead of persisting until
+    // someone happens to hard-refresh.
+    revalidatePath(`/dashboard/track/${job.track}/${job.week}`);
 
     return NextResponse.json({
       ok: true,

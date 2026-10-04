@@ -26,7 +26,7 @@ import { getEnrolledTracks } from "@/lib/enrollment";
 import { getHiddenTrackSlugs } from "@/lib/programs/hidden";
 import { getLearnerAccess } from "@/lib/auth/active-enrollment";
 import { heldChecklistTrackSlug } from "@/lib/onboarding/held";
-import { BCC_INTAKE_SURVEY_ID, surveySkippedForTracks, surveyAppliesToPrograms, surveyAppliesToTracks } from "@/lib/surveys/platform";
+import { BCC_INTAKE_SURVEY_ID, surveySkippedForTracks, surveyTargetsLearner } from "@/lib/surveys/platform";
 import { collapseCompanionSlugs } from "@/lib/enrollment";
 import { isSurveyEnabledForLearner } from "@/lib/surveys/features";
 import { isStaffResolved } from "@/lib/auth/staff";
@@ -96,6 +96,12 @@ export default async function DashboardLayout({
   // top bars, the way survey pages do).
   const isImmersive = /^\/dashboard\/track\/[^/]+\/[^/]+\/live/.test(pathname);
   const programSlug = headersList.get("x-program-slug") ?? "bcc-academy";
+  // The session read is independent of program resolution; start it now so
+  // a students-table miss overlaps the track_overrides round trip instead of
+  // following it. The no-op catch only stops Node flagging an early rejection
+  // as unhandled; the await below still sees it.
+  const sessionPromise = isSupabaseConfigured() ? getSessionContext() : Promise.resolve(null);
+  sessionPromise.catch(() => {});
   const baseProgram = await resolveLearnerBrand(getProgramBySlug(programSlug));
 
   // Skin accent follows the program the learner is actually in (the same
@@ -127,7 +133,7 @@ export default async function DashboardLayout({
   // week list has no business rendering next to the checklist.
   let confinedToChecklist = false;
   if (isSupabaseConfigured() && !confineExemptPath) {
-    const ctx = await getSessionContext();
+    const ctx = await sessionPromise;
     if (ctx) {
       const exempt =
         canAccessAdminPanel(ctx.student?.role ?? "") ||
@@ -476,8 +482,7 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
         ? candidateSurveys.find(
             (s) =>
               s.required &&
-              surveyAppliesToPrograms(s.appliesToPrograms, homePrograms) &&
-              surveyAppliesToTracks(s.appliesToTracks, surveyTrackSlugs) &&
+              surveyTargetsLearner(s, homePrograms, surveyTrackSlugs) &&
               !s.skipForPrograms?.some((p) => homePrograms.has(p)) &&
               !surveySkippedForTracks(s.skipForTracks, surveyTrackSlugs),
           )

@@ -2,28 +2,40 @@
 
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
-import { createServiceClient } from "@/lib/supabase/server";
-import { requireSuperAdmin } from "../actions-shared";
+import {
+  requireManager,
+  allowedProgramIdsForActor,
+  allowedTrackSlugsForActor,
+} from "../actions-shared";
 import { toSlug } from "@/lib/programs/slug";
 import { easternToUtc } from "@/lib/utils";
 import { sendAcceptanceEmail } from "@/lib/email";
 import type { SubmissionStatus } from "@/lib/applications";
 import type { SurveyQuestion } from "@/components/survey-fields";
 
-// Same tier as landing pages. requireSuperAdmin (actions-shared) also enforces
-// the preview-as-student block and the master bypass — the hand-rolled gate
-// this replaced skipped both.
-async function requireReviewer(): Promise<{
-  svc: ReturnType<typeof createServiceClient>;
-  email: string;
-}> {
-  const { svc, userId } = await requireSuperAdmin();
-  const { data } = await svc
+// Same tier as landing pages: every manager, bounded to their own program.
+// requireManager (actions-shared) also enforces the preview-as-student block
+// and the master bypass — the hand-rolled gate this replaced skipped both.
+type Actor = Awaited<ReturnType<typeof requireManager>>;
+
+async function requireReviewer(): Promise<Actor & { email: string }> {
+  const actor = await requireManager();
+  const { data } = await actor.svc
     .from("students")
     .select("email")
-    .eq("id", userId)
+    .eq("id", actor.userId)
     .single<{ email: string | null }>();
-  return { svc, email: data?.email ?? "" };
+  return { ...actor, email: data?.email ?? "" };
+}
+
+// An application belongs to a program. A program admin may touch only their
+// own; one filed under no program is super-admin territory.
+function assertApplicationInActorProgram(actor: Actor, programId: string | null): void {
+  const allowed = allowedProgramIdsForActor(actor);
+  if (allowed === null) return;
+  if (!programId || !allowed.includes(programId)) {
+    throw new Error("Not authorized for this application");
+  }
 }
 
 export type ApplicationInput = {
@@ -55,20 +67,37 @@ function questionErrors(questions: SurveyQuestion[]): string | null {
 export async function createApplicationAction(
   input: ApplicationInput,
 ): Promise<{ ok: true; slug: string } | { ok: false; error: string }> {
-  const { svc } = await requireReviewer();
+  const actor = await requireReviewer();
+  const { svc } = actor;
 
   if (!input.title.trim()) return { ok: false, error: "Title is required." };
   const qError = questionErrors(input.questions);
   if (qError) return { ok: false, error: qError };
+
+  // Stamp the owning program so the admin who made it can see it again, the
+  // way landing pages do. Null (platform-wide) stays a super-admin thing.
+  const allowedIds = allowedProgramIdsForActor(actor);
+  const programId = allowedIds === null ? null : actor.programId;
+  if (allowedIds !== null && !programId) {
+    return { ok: false, error: "Your account isn't attached to a program." };
+  }
+  // Accepting a submission allowlists the applicant for the linked course, so
+  // the course has to be one this admin runs.
+  const trackSlug = input.trackSlug.trim();
+  const allowedTracks = await allowedTrackSlugsForActor(actor, svc);
+  if (trackSlug && allowedTracks && !allowedTracks.has(trackSlug)) {
+    return { ok: false, error: "That course isn't in your program." };
+  }
 
   const slug = toSlug(input.title);
   if (!slug) return { ok: false, error: "Could not derive a slug from the title." };
 
   const { error } = await svc.from("applications").insert({
     slug,
+    program_id: programId,
     title: input.title.trim(),
     description: input.description.trim() || null,
-    track_slug: input.trackSlug.trim() || null,
+    track_slug: trackSlug || null,
     notify_email: input.notifyEmail.trim() || null,
     // End of day Eastern; easternToUtc follows DST so a winter deadline
     // doesn't close an hour early.
@@ -91,7 +120,15 @@ export async function setApplicationOpenAction(
   slug: string,
   open: boolean,
 ): Promise<{ ok: boolean }> {
-  const { svc } = await requireReviewer();
+  const actor = await requireReviewer();
+  const { svc } = actor;
+  const { data: app } = await svc
+    .from("applications")
+    .select("program_id")
+    .eq("slug", slug)
+    .maybeSingle<{ program_id: string | null }>();
+  if (!app) return { ok: false };
+  assertApplicationInActorProgram(actor, app.program_id);
   const { error } = await svc
     .from("applications")
     .update({ open, updated_at: new Date().toISOString() })
@@ -113,7 +150,8 @@ export async function setSubmissionStatusAction(
   submissionId: string,
   status: SubmissionStatus,
 ): Promise<{ ok: boolean; error?: string }> {
-  const { svc, email: reviewer } = await requireReviewer();
+  const actor = await requireReviewer();
+  const { svc, email: reviewer } = actor;
 
   const { data: sub } = await svc
     .from("application_submissions")
@@ -132,6 +170,7 @@ export async function setSubmissionStatusAction(
       } | null;
     }>();
   if (!sub) return { ok: false, error: "Submission not found." };
+  assertApplicationInActorProgram(actor, sub.applications?.program_id ?? null);
   const wasAccepted = sub.status === "accepted";
 
   const { error } = await svc

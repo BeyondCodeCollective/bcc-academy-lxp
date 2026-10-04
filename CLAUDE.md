@@ -128,7 +128,7 @@ Two-program staff use `staff_program_access` grants, not super_admin. "Preview a
 | `students` | All users — role, cohort, program, name, email, `is_staff`/`is_test` |
 | `track_overrides` | THE course record (DB-driven); keyed `(program_id, track_slug)` |
 | `session_content` | Per-session content; UNIQUE `(program_id, track, week_number)` |
-| `student_tracks` | Enrollments; UNIQUE `(student_id, track_slug)` — NO program_id, unlike its siblings |
+| `student_tracks` | Enrollments; UNIQUE `(student_id, track_slug)`; has a populated `program_id` (filter on it when scoping to a program, the unique key does not include it) |
 | `instructor_tracks` | Instructor assignments; UNIQUE `(student_id, track_slug, program_id)` |
 | `hidden_courses` | Reversible hide (hide, don't delete) |
 | `allowed_signup_emails` | Allowlist per track (invite list + self-signup gate) |

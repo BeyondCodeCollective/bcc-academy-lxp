@@ -14,7 +14,12 @@ import { BackLink, DataTable } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
-export default async function ExamScoresPage() {
+export default async function ExamScoresPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ exam?: string }>;
+}) {
+  const { exam: examParam } = await searchParams;
   const ctx = await getSessionContext();
   if (!ctx) redirect("/");
   if (!canAccessAdminPanel(ctx.student?.role ?? "")) redirect("/dashboard");
@@ -27,12 +32,16 @@ export default async function ExamScoresPage() {
     // Program-switching roles get moved into Catalyst; single-program staff
     // stay in their own panel.
     if (canSwitchPrograms(ctx.student?.role ?? "")) {
-      redirect("/api/switch-program?slug=catalyst&next=/dashboard/admin/exams");
+      redirect(
+        `/api/switch-program?slug=catalyst&next=${encodeURIComponent(`/dashboard/admin/exams${examParam ? `?exam=${examParam}` : ""}`)}`,
+      );
     }
     redirect("/dashboard/admin");
   }
 
-  const exam = getExam("network-plus-post")!;
+  // ?exam= picks the practice exam; Network+ was the first and stays the default.
+  const exam = getExam(examParam ?? "network-plus-post");
+  if (!exam) redirect("/dashboard/admin/exams");
   const svc = createServiceClient();
 
   const { data: attempts } = await svc
@@ -131,7 +140,7 @@ export default async function ExamScoresPage() {
                 {/* The score alone can't tell an instructor WHICH questions to
                    reteach — the paper itself is one click in. */}
                 <Link
-                  href={`/dashboard/admin/exams/${r.studentId}`}
+                  href={`/dashboard/admin/exams/${r.studentId}?exam=${exam.id}`}
                   className="group inline-flex items-center gap-1.5 font-medium text-ink underline-offset-2 hover:underline"
                 >
                   {nameOf.get(r.studentId) ?? r.studentId}

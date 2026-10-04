@@ -1,6 +1,8 @@
-# FDE 101 — Run of Show
+# FDE 101 · platform session — Run of Show
 **Monday 21 September · 12:00 ET · 90 minutes on Zoom**
 **Fonz sharing screen and driving · Mica on chat and people · 7 people**
+
+*The remote, watch-it format. The two-hour hands-on lab is `../lab/1 - Facilitator Guide.md`.*
 
 The goal is not to cover a syllabus. It is that seven people watch an AI make four real decisions, catch it being wrong once, and tell it what it must never do. Then write one line about their own job.
 

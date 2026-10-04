@@ -3,14 +3,27 @@
 import { headers } from "next/headers";
 import { generateInviteToken } from "@/lib/invite-token";
 import { createServiceClient } from "@/lib/supabase/server";
-import { getSessionContext } from "@/lib/auth/session";
-import { canSwitchPrograms } from "@/lib/roles";
-import { isPreviewingAsStudent } from "@/lib/auth/preview-mode";
+import { requireManager, assertTrackInActorProgram } from "../actions-shared";
 import { resolveHomeProgramSlug } from "@/lib/programs/server";
 import { getProgramWithOverrides } from "@/lib/programs/server";
 import { sendInviteEmail } from "@/lib/email";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// Inviting people to a course is a program-admin job, not a platform one. The
+// old super_admin gate meant every BGC admin got "Not authorized" from
+// Add + invite on the People tab. requireManager proves admin+ (and blocks
+// student preview); assertTrackInActorProgram keeps them inside their own
+// program — the same boundary the allowlist actions already use.
+async function canInvite(trackSlug: string): Promise<boolean> {
+  try {
+    const actor = await requireManager();
+    await assertTrackInActorProgram(actor, actor.svc, trackSlug);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 export type SendInvitesResult = {
   ok: boolean;
@@ -30,13 +43,7 @@ export type SendInvitesResult = {
 export async function sendCohortInvites(
   trackSlug: string,
 ): Promise<SendInvitesResult> {
-  const ctx = await getSessionContext();
-  if (
-    !canSwitchPrograms(ctx?.student?.role ?? "") ||
-    (await isPreviewingAsStudent(ctx?.student?.role ?? ""))
-  ) {
-    return { ok: false, error: "Not authorized" };
-  }
+  if (!(await canInvite(trackSlug))) return { ok: false, error: "Not authorized" };
 
   // Builder courses live under any program (their home is on track_overrides);
   // the old blanket-Catalyst fallback branded their invites as Catalyst.
@@ -160,13 +167,7 @@ export async function sendTestInvite(
   trackSlug: string,
   rawEmail: string,
 ): Promise<SendInvitesResult> {
-  const ctx = await getSessionContext();
-  if (
-    !canSwitchPrograms(ctx?.student?.role ?? "") ||
-    (await isPreviewingAsStudent(ctx?.student?.role ?? ""))
-  ) {
-    return { ok: false, error: "Not authorized" };
-  }
+  if (!(await canInvite(trackSlug))) return { ok: false, error: "Not authorized" };
   const email = rawEmail.trim().toLowerCase();
   if (!email || !email.includes("@") || /\s/.test(email)) {
     return { ok: false, error: "Enter a valid email address" };

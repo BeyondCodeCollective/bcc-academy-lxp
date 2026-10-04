@@ -21,7 +21,10 @@ export type EnrollActionResult =
  */
 export async function enrollInCourse(input: {
   slug: string;
-  name: string;
+  /** Older cached pages still post a single `name`; newer ones post both. */
+  name?: string;
+  firstName?: string;
+  lastName?: string;
   email: string;
   zipCode?: string;
   heardAbout?: string;
@@ -29,7 +32,15 @@ export async function enrollInCourse(input: {
   origin: string;
 }): Promise<EnrollActionResult> {
   const email = (input.email ?? "").trim().toLowerCase();
-  const name = (input.name ?? "").trim().slice(0, 200);
+  // The form now collects first and last separately. A cached page that still
+  // posts one `name` keeps working — split it the way this action always did.
+  const firstName = (input.firstName ?? "").trim().slice(0, 100);
+  const lastName = (input.lastName ?? "").trim().slice(0, 100);
+  const legacy = (input.name ?? "").trim().slice(0, 200);
+  const legacyParts = legacy.split(/\s+/).filter(Boolean);
+  const first = firstName || legacyParts[0] || "";
+  const last = lastName || legacyParts.slice(1).join(" ") || "";
+  const name = [first, last].filter(Boolean).join(" ");
   // Optional at the action level so older cached pages that submit without it
   // still succeed; the form itself requires a valid ZIP.
   const zipRaw = (input.zipCode ?? "").trim();
@@ -41,15 +52,20 @@ export async function enrollInCourse(input: {
   if (!EMAIL_RE.test(email)) {
     return { ok: false, error: "Please enter a valid email address." };
   }
+  // Names were never checked here, so anything that reached the action without
+  // them wrote a row with a null name and the account it created was blank.
+  if (!first || !last) {
+    return { ok: false, error: "Please enter your first and last name." };
+  }
 
   const page = await getLandingPage(input.slug);
-  if (!page || !page.nativeEnroll) {
+  if (!page || !(page.nativeEnroll || page.comingSoon)) {
     return { ok: false, error: "This course isn't open for signup right now." };
   }
 
   // A page may require choosing one of its sessions.
   const session = page.sessions.find((s) => s.id === input.sessionId) ?? null;
-  if (page.sessions.length > 0 && !session) {
+  if (!page.comingSoon && page.sessions.length > 0 && !session) {
     return { ok: false, error: "Please choose a date." };
   }
 
@@ -66,9 +82,11 @@ export async function enrollInCourse(input: {
       .maybeSingle();
 
     // With a track → enroll (allowlist + invite + magic link). Without one
-    // (a "notify me" page whose course isn't built yet) → capture interest only.
+    // (a "notify me" page whose course isn't built yet), or on a "coming soon"
+    // page → capture interest only.
     let inviteToken: string | null = null;
-    if (page.trackSlug) {
+    const enrolls = !!page.trackSlug && !page.comingSoon;
+    if (enrolls && page.trackSlug) {
       const enrolled = await enrollEmailInTrack(email, page.trackSlug);
       inviteToken = enrolled.inviteToken;
 
@@ -76,7 +94,7 @@ export async function enrollInCourse(input: {
         const programName = (await getProgramWithOverrides(enrolled.programSlug)).name;
         await sendEventConfirmationEmail({
           to: email,
-          firstName: name.split(" ")[0] ?? "",
+          firstName: first,
           programName,
           eventName: session?.label ?? page.headline.replace(/\n/g, " "),
           eventStartUtc: session?.startUtc ?? null,
@@ -95,6 +113,8 @@ export async function enrollInCourse(input: {
         track_slug: page.trackSlug,
         email,
         name: name || null,
+        first_name: first,
+        last_name: last,
         zip_code: zipCode,
         session_id: session?.id ?? null,
         heard_about: heardAbout,
@@ -102,7 +122,7 @@ export async function enrollInCourse(input: {
       });
     }
 
-    return { ok: true, enrolled: !!page.trackSlug };
+    return { ok: true, enrolled: enrolls };
   } catch (err) {
     console.error("[enrollInCourse] failed", err);
     return { ok: false, error: "Something went wrong. Please try again." };

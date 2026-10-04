@@ -5,7 +5,8 @@ import { saveSurveyResponse } from "@/app/dashboard/actions";
 import { getOnboardingChecklist } from "@/lib/onboarding/checklists";
 import { RELEASES_VERSION } from "@/lib/onboarding/releases";
 import { resolveCatalystCohortLabel } from "@/lib/onboarding/cohort-label";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { getSessionContext, bustProfileCache } from "@/lib/auth/session";
 
 // Records the signed participation agreement as a survey_responses row so it
 // flows through the same completion + insights pipeline as every other item
@@ -97,6 +98,33 @@ export async function signParticipationAgreement(
     programSlug,
   );
 
+  // They just typed their full name as a signature. An account created from a
+  // bare invite has no name at all, and this is the one moment someone in that
+  // state tells us — so keep it instead of leaving the roster showing an email
+  // and asking them again in the name modal. Never overwrites a name we have.
+  await adoptSignatureName(name);
+
   revalidatePath(`/dashboard/track/${trackSlug}`);
   return { success: true };
+}
+
+/** Fill a blank profile name from the signature just typed. Best effort: a
+ *  failure here must not fail the signing itself. */
+async function adoptSignatureName(fullName: string): Promise<void> {
+  try {
+    const ctx = await getSessionContext();
+    if (!ctx?.userId) return;
+    const has =
+      (ctx.student?.first_name ?? "").trim() || (ctx.student?.last_name ?? "").trim();
+    if (has) return;
+    const parts = fullName.trim().split(/\s+/);
+    if (!parts[0]) return;
+    await createServiceClient()
+      .from("students")
+      .update({ first_name: parts[0], last_name: parts.slice(1).join(" ") })
+      .eq("id", ctx.userId);
+    bustProfileCache(ctx.userId);
+  } catch (e) {
+    console.error("[signParticipationAgreement] adopting signature name failed:", e);
+  }
 }

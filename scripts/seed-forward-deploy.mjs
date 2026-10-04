@@ -4,6 +4,7 @@
 //
 //   node scripts/seed-forward-deploy.mjs --program catalyst --kickoff 2026-09-21 \
 //        [--time 12:00] [--source docs/forward-deploy/course] [--meeting <zoom url>]
+//        [--track field-ready-program]
 //
 // --kickoff is the in-person kickoff (any weekday). Seven Wednesday classes
 // follow, starting the first Wednesday after kickoff; the last is demo day.
@@ -31,7 +32,10 @@ const KICKOFF = arg("kickoff", null);
 const TIME = arg("time", "12:00");
 const SOURCE = arg("source", join(process.cwd(), "docs/forward-deploy/course"));
 const MEETING = arg("meeting", null);
-const TRACK = "forward-deploy";
+// The track slug this seeds into. Defaults to the original `forward-deploy`
+// so existing invocations are unchanged; Field Ready's Phase 2 seeds the same
+// 13 sessions as `field-ready-program` under the `field-ready` program.
+const TRACK = arg("track", "forward-deploy");
 if (!KICKOFF || !/^\d{4}-\d{2}-\d{2}$/.test(KICKOFF)) {
   console.error("--kickoff YYYY-MM-DD is required");
   process.exit(1);

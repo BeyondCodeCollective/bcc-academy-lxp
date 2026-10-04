@@ -97,6 +97,8 @@ export type LandingPage = {
   sessions: LandingSession[];
   /** When true, render the native pick-a-date + enroll form (no Eventbrite). */
   nativeEnroll: boolean;
+  /** No date yet: the form only collects interest — no enrollment, no login link. */
+  comingSoon: boolean;
   enrollCtaLabel: string | null;
   /** Application-based programs: primary CTA links here instead of a form. */
   applyUrl: string | null;
@@ -152,6 +154,7 @@ export const getLandingPage = cache(async function getLandingPage(
     instructor: (data.instructor as LandingInstructor | null) ?? null,
     sessions: (data.sessions as LandingSession[] | null) ?? [],
     nativeEnroll: (data.native_enroll as boolean | null) ?? false,
+    comingSoon: (data.coming_soon as boolean | null) ?? false,
     enrollCtaLabel: (data.enroll_cta_label as string | null) ?? null,
     applyUrl: (data.apply_url as string | null) ?? null,
     applyCtaLabel: (data.apply_cta_label as string | null) ?? null,
@@ -247,8 +250,18 @@ export async function ensureLandingForCourse(
     .maybeSingle<{ slug: string }>();
   if (byTrack) return { created: false, slug: byTrack.slug };
 
+  // The page is the course's, so it lives in the course's program. Without
+  // this it was a platform (/bcc/) page, which a program admin can't see or
+  // edit: the "Write the landing page" link after creating a course 404'd.
+  const { data: programRow } = await svc
+    .from("programs")
+    .select("id")
+    .eq("slug", programSlug)
+    .maybeSingle<{ id: string }>();
+
   const { error } = await svc.from("landing_pages").insert({
     slug: trackSlug,
+    program_id: programRow?.id ?? null,
     published: false,
     header_label: "BCC Academy",
     headline: content?.headline?.trim() || courseName,

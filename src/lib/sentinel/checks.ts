@@ -6,6 +6,7 @@
 // Read-only: nothing in this file writes.
 
 import type { createServiceClient } from "@/lib/supabase/server";
+import { meetingAutoRecording, meetingIdFromLink } from "@/lib/zoom-recordings";
 
 type Svc = ReturnType<typeof createServiceClient>;
 
@@ -271,11 +272,12 @@ export async function runSentinelChecks(svc: Svc): Promise<SentinelFinding[]> {
     program_id: string;
     archived_at: string | null;
     start_date: string | null;
+    total_weeks: number | null;
     name: string | null;
   }>(
     svc
       .from("track_overrides")
-      .select("track_slug, instructor, program_id, archived_at, start_date, name")
+      .select("track_slug, instructor, program_id, archived_at, start_date, total_weeks, name")
       .limit(LIMIT),
   );
   const instrTracks = await rows<{ student_id: string; track_slug: string }>(
@@ -438,6 +440,75 @@ export async function runSentinelChecks(svc: Svc): Promise<SentinelFinding[]> {
           label: `${t.name ?? t.track_slug}: starts ${t.start_date}`,
           key: `${t.track_slug}|${t.start_date}`,
         })),
+      );
+    }
+  }
+
+  // ── 11. Running or upcoming course whose Zoom won't cloud-record ─────────
+  // The Catalyst Labs lesson (2026-09-30): the class ran, nothing recorded, and
+  // Zoom kept no file at all. Auto-record is a per-meeting setting that can
+  // silently differ from the account default, and a meeting scheduled under a
+  // personal Zoom records into that person's cloud where the import never
+  // looks. Both are only fixable BEFORE class, so check every meeting a course
+  // will use in the next 7 days.
+  const running = overrides.filter((t) => {
+    if (t.archived_at || hiddenSlugs.has(t.track_slug) || !t.start_date) return false;
+    if (t.start_date > weekOutIso) return false;
+    const end = new Date(`${t.start_date}T00:00:00Z`);
+    end.setUTCDate(end.getUTCDate() + Math.max(1, t.total_weeks ?? 1) * 7);
+    return end.toISOString().slice(0, 10) >= todayIso;
+  });
+  if (running.length) {
+    const links = await rows<{ track: string; program_id: string; meeting_link: string | null }>(
+      svc
+        .from("session_content")
+        .select("track, program_id, meeting_link")
+        .in("track", running.map((t) => t.track_slug))
+        .limit(LIMIT),
+    );
+    const courseByKey = new Map(running.map((t) => [`${t.program_id}|${t.track_slug}`, t]));
+    const coursesByMeeting = new Map<string, Set<string>>();
+    for (const l of links) {
+      const course = courseByKey.get(`${l.program_id}|${l.track}`);
+      const id = meetingIdFromLink(l.meeting_link);
+      if (!course || !id) continue;
+      if (!coursesByMeeting.has(id)) coursesByMeeting.set(id, new Set());
+      coursesByMeeting.get(id)!.add(course.name ?? course.track_slug);
+    }
+
+    const notCloud: SentinelRow[] = [];
+    let noScope = false;
+    for (const [id, courses] of coursesByMeeting) {
+      const setting = await meetingAutoRecording(id);
+      if (setting === "no_scope") {
+        noScope = true;
+        break;
+      }
+      if (setting === null || setting === "cloud") continue;
+      const why =
+        setting === "not_found"
+          ? "not in the connected Zoom account, so recordings land elsewhere"
+          : setting === "local"
+            ? "auto-record is set to local (host's computer)"
+            : "auto-record is off";
+      notCloud.push({
+        label: `${[...courses].join(", ")}: meeting ${id} ${why}`,
+        key: `${id}|${setting}`,
+      });
+    }
+    if (noScope) {
+      report(
+        "zoom-autorecord-unverifiable",
+        "low",
+        "Can't verify Zoom auto-record: the Zoom app is missing the meeting:read:meeting:admin scope. Add it in the Zoom Marketplace app settings.",
+        ["Zoom app scope missing"],
+      );
+    } else if (notCloud.length) {
+      report(
+        "zoom-autorecord-off",
+        "high",
+        "A course meets in the next 7 days on a Zoom meeting that won't cloud-record. Set auto-record to Cloud on the meeting (or reschedule it under the connected account) before class; a missed recording can't be recovered.",
+        notCloud,
       );
     }
   }

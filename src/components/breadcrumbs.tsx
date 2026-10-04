@@ -156,10 +156,15 @@ export function Breadcrumbs({
   // says where you are.
   const trail = fullTrail.slice(0, -1);
 
+  // A lone "Home" crumb repeats the sidebar's own Home item — same word, same
+  // destination, a couple of inches apart. Below md the sidebar is a drawer,
+  // so there it is the only way back and earns its place.
+  const homeOnly = trail.length === 1 && trail[0].label === "Home";
+
   return (
     <nav
       aria-label="Breadcrumb"
-      className="mx-auto w-full max-w-2xl md:max-w-5xl px-4 pt-5 sm:px-5"
+      className={`mx-auto w-full max-w-2xl md:max-w-5xl px-4 pt-5 sm:px-5${homeOnly ? " md:hidden" : ""}`}
     >
       {/* Breadcrumb on the left; pages inject row actions (e.g. the week
          prev/next nav) into #breadcrumb-actions on the right so they share this

@@ -47,6 +47,12 @@ export const catalystConfig: ProgramConfig = {
       // MASS Wraparound learner under Beyond the Game was served an "AI
       // Fundamentals" pre-survey and answered it.
       appliesToPrograms: ["beyond-code-centers"],
+      // Catalyst Labs teaches AI Fundamentals under Catalyst, so its learners
+      // need this same instrument — they were being offered no pre-survey at
+      // all while a cross-enrolled learner's MASS answer hung a MASS row on
+      // their Surveys tab. Named as a course rather than adding "catalyst" to
+      // the program list, which would hand it to Security+, MASS and HFS too.
+      appliesToTracks: ["catalyst-labs"],
       // comptia-security learners take the pre-survey as an item inside their
       // acceptance checklist, so it must not force-redirect them away from that
       // checklist on login. (Catalyst-home, so the allowlist already excludes

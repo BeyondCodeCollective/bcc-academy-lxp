@@ -73,7 +73,14 @@ export function AssessmentWizard({
   // Shuffle each section's questions once, stable for the lifetime of the
   // wizard. Scoring keys off question IDs, so display order has no effect on
   // results — this just keeps learners from pattern-matching the source order.
-  const m1Items = useMemo(() => shuffle(MODULE_1_ITEMS), []);
+  // On resume the page reshuffles from scratch, so already-answered items go
+  // first: the saved first half stays in the first section and the second
+  // half never repeats a question the learner already answered.
+  const m1Items = useMemo(() => {
+    const answered = MODULE_1_ITEMS.filter(i => initialResponses[i.id] != null);
+    const unanswered = MODULE_1_ITEMS.filter(i => initialResponses[i.id] == null);
+    return [...shuffle(answered), ...shuffle(unanswered)];
+  }, [initialResponses]);
   const m2Items = useMemo(() => shuffle(MODULE_2_SCENARIOS), []);
   const m3Items = useMemo(() => shuffle(MODULE_3_ITEMS), []);
 

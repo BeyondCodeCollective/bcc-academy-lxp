@@ -36,14 +36,15 @@ export default async function SurveyDashboardPage({
   const backLabel = returnLabel ? decodeURIComponent(returnLabel) : "All surveys";
 
   const supabase = await createClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.user) redirect("/");
+  const { data: verified } = await supabase.auth.getClaims();
+  const userId = verified?.claims.sub;
+  if (!userId) redirect("/");
 
   const svc = createServiceClient();
   const { data: student } = await svc
     .from("students")
     .select("role")
-    .eq("id", session.user.id)
+    .eq("id", userId)
     .single();
   // Admin and up: the responses themselves are scoped to the actor's program
   // server-side (resolveInsightsScope), so a program admin sees their own
