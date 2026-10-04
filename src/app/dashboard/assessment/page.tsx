@@ -5,6 +5,8 @@ import { getProgram } from "@/lib/programs/server";
 import { isAssessmentEnabledForLearner } from "@/lib/assessment/features";
 import { AssessmentWizard } from "./assessment-wizard";
 import { getAssessmentProgress } from "./actions";
+import { EntryFlow } from "./entry-flow";
+import { hasCompletedEntryFlow } from "./entry-actions";
 
 export default async function AssessmentPage() {
   const ctx = await getSessionContext();
@@ -37,6 +39,15 @@ export default async function AssessmentPage() {
     .eq("student_id", ctx.userId)
     .maybeSingle();
   if (existing) redirect("/dashboard/assessment/results");
+
+  // Entry flow (intake + confidence baseline) comes before the assessment
+  if (!(await hasCompletedEntryFlow(ctx.userId))) {
+    return (
+      <div className="min-h-screen bg-paper">
+        <EntryFlow programSlug={program.slug} />
+      </div>
+    );
+  }
 
   // Resume in-progress if any
   const progress = await getAssessmentProgress();
