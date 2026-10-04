@@ -26,6 +26,8 @@ import { getEnrolledTracks } from "@/lib/enrollment";
 import { getHiddenTrackSlugs } from "@/lib/programs/hidden";
 import { getLearnerAccess } from "@/lib/auth/active-enrollment";
 import { heldChecklistTrackSlug } from "@/lib/onboarding/held";
+import { buildWelcome } from "@/lib/onboarding/welcome";
+import { surveyWaitsForFirstSession, hasAttendedAnySession } from "@/lib/onboarding/survey-timing";
 import { BCC_INTAKE_SURVEY_ID, surveySkippedForTracks, surveyTargetsLearner } from "@/lib/surveys/platform";
 import { collapseCompanionSlugs } from "@/lib/enrollment";
 import { isSurveyEnabledForLearner } from "@/lib/surveys/features";
@@ -501,7 +503,12 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
       // has survey_enabled toggled on (admin Tools/Features page). A course's
       // own survey outranks the generic intake, and a learner with ANY
       // applicable course survey never sees the intake at all.
-      if (requiredSurvey && surveyEnabled) {
+      // Some surveys wait until the learner has been to a session, so the first
+      // thing a new learner meets is the course, not a questionnaire.
+      const surveyWaiting =
+        !!requiredSurvey &&
+        surveyWaitsForFirstSession(requiredSurvey, await hasAttendedAnySession(ctx.userId));
+      if (requiredSurvey && surveyEnabled && !surveyWaiting) {
         const { data: surveyDone } = await supabase
           .from("survey_responses")
           .select("completed_at")
@@ -842,9 +849,12 @@ async function Overlays({ isSurveyPage }: { isSurveyPage: boolean }) {
   // The tutor is one of the surfaces pending registrants are confined away
   // from (layout-body gate) — don't float a button that only bounces them.
   let confined = false;
+  let enrolledTracks: TrackConfig[] = [];
   if (!canAccessAdminPanel(role) && !isStaffResolved(ctx.student?.is_staff, ctx.student?.email ?? ctx.userEmail)) {
     const supabase = await createClient();
-    confined = (await getLearnerAccess(supabase, ctx.userId, program)).pendingOnly;
+    const access = await getLearnerAccess(supabase, ctx.userId, program);
+    confined = access.pendingOnly;
+    enrolledTracks = access.enrolled;
   }
 
   // Learner accounts created from an email alone (bulk invites, Eventbrite
@@ -975,7 +985,12 @@ async function Overlays({ isSurveyPage }: { isSurveyPage: boolean }) {
 
   return (
     <>
-      {needsName && <NameCaptureOverlay campMode={program.slug === "bgc"} />}
+      {needsName && (
+        <NameCaptureOverlay
+          campMode={program.slug === "bgc"}
+          welcome={buildWelcome(enrolledTracks, new Date())}
+        />
+      )}
       {!needsName && needsProfile && (
         <ProfileCaptureOverlay needsZip={needsZip} needsDob={needsDob} />
       )}

@@ -35,6 +35,7 @@ import { isSurveyEnabledForLearner } from "@/lib/surveys/features";
 import { isStaffEmail } from "@/lib/auth/admins";
 import { completePendingSetup } from "@/lib/auth/deferred-setup";
 import { heldChecklistTrackSlug } from "@/lib/onboarding/held";
+import { surveyWaitsForFirstSession, hasAttendedAnySession } from "@/lib/onboarding/survey-timing";
 import { isAssessmentEnabledForLearner } from "@/lib/assessment/features";
 
 export const dynamic = "force-dynamic";
@@ -394,8 +395,13 @@ async function DashboardContent({
           // gets the generic intake — completed or not, the course's own
           // instrument owns their survey moment.
           hasCourseSurvey = applicableRequired.length > 0;
+          // Surveys flagged afterFirstSession stay hidden (no card, no redirect)
+          // until the learner has attended a session.
+          const hasAttended = applicableRequired.some((s) => s.afterFirstSession)
+            ? await hasAttendedAnySession(userId)
+            : true;
           pendingSurveys = applicableRequired
-            .filter((s) => !completedTypes.has(s.id))
+            .filter((s) => !completedTypes.has(s.id) && !surveyWaitsForFirstSession(s, hasAttended))
             .map((s) => ({ id: s.id, title: s.title, description: s.description }));
 
           // Opt-in: only auto-redirect to a required cohort survey when the
