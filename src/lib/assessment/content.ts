@@ -109,7 +109,7 @@ export const MODULE_2_SCENARIOS: M2Scenario[] = [
   {
     id: "M2-CON-01",
     scenario: "A new project is kicking off. Which part would you rather take on?",
-    optionA: { label: "Being the face of it — the one who talks to people and represents the work.", pole: "front_facing", dimension: "contribution_mode" },
+    optionA: { label: "Being the face of it, the one who talks to people and represents the work.", pole: "front_facing", dimension: "contribution_mode" },
     optionB: { label: "Building the parts that make it work, out of the spotlight.", pole: "behind_the_scenes", dimension: "contribution_mode" },
   },
   {
@@ -122,7 +122,7 @@ export const MODULE_2_SCENARIOS: M2Scenario[] = [
     id: "M2-CON-03",
     scenario: "When a project is running, which role fits you better?",
     optionA: { label: "Being the person heads-down on the work itself.", pole: "behind_the_scenes", dimension: "contribution_mode" },
-    optionB: { label: "Being the person others come to with questions — the point of contact.", pole: "front_facing", dimension: "contribution_mode" },
+    optionB: { label: "Being the person others come to with questions, the point of contact.", pole: "front_facing", dimension: "contribution_mode" },
   },
   // Pace
   {
