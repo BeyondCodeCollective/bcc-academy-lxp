@@ -27,6 +27,7 @@ import { getHiddenTrackSlugs } from "@/lib/programs/hidden";
 import { getLearnerAccess } from "@/lib/auth/active-enrollment";
 import { heldChecklistTrackSlug } from "@/lib/onboarding/held";
 import { buildWelcome } from "@/lib/onboarding/welcome";
+import { PROFILE_SNOOZE_COOKIE } from "@/lib/onboarding/profile-snooze";
 import { surveyWaitsForFirstSession, hasAttendedAnySession } from "@/lib/onboarding/survey-timing";
 import { BCC_INTAKE_SURVEY_ID, surveySkippedForTracks, surveyTargetsLearner } from "@/lib/surveys/platform";
 import { collapseCompanionSlugs } from "@/lib/enrollment";
@@ -869,14 +870,17 @@ async function Overlays({ isSurveyPage }: { isSurveyPage: boolean }) {
 
   // One-time ZIP + birthday capture for grant reporting. Learners only, never
   // staff, and never the Forte Bahamas program (a US ZIP doesn't apply there).
-  // Only checked once a learner HAS a name, so it never stacks with the name
-  // overlay. The session context doesn't carry these columns, so read them here
-  // only when the cheaper conditions already hold.
+  // A learner who also needs a name answers both in one step (the name overlay
+  // carries the ZIP/birthday fields), so the two never stack. "Not now" on the
+  // standalone prompt snoozes it for a week via cookie, which also skips the
+  // lookup below. The session context doesn't carry these columns, so read them
+  // here only when the cheaper conditions already hold.
+  const profileSnoozed = (await cookies()).has(PROFILE_SNOOZE_COOKIE);
   const profileEligible =
     !!ctx.student &&
     !canAccessAdminPanel(role) &&
     !isStaffResolved(ctx.student.is_staff, ctx.student.email ?? ctx.userEmail) &&
-    !needsName &&
+    !profileSnoozed &&
     program.slug !== "forte";
   let needsZip = false;
   let needsDob = false;
@@ -989,6 +993,8 @@ async function Overlays({ isSurveyPage }: { isSurveyPage: boolean }) {
         <NameCaptureOverlay
           campMode={program.slug === "bgc"}
           welcome={buildWelcome(enrolledTracks, new Date())}
+          needsZip={needsZip}
+          needsDob={needsDob}
         />
       )}
       {!needsName && needsProfile && (
