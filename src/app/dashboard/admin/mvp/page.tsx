@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSessionContext } from "@/lib/auth/session";
 import { canViewMvp } from "@/lib/roles";
-import { AdminTopTabs } from "../admin-tabs";  
+import { AdminTopTabs } from "../admin-top-tabs";  
 
 export default async function MvpDashboardPage() {
     const context = await getSessionContext();
