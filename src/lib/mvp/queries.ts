@@ -124,6 +124,7 @@ async function loadMvpLearnerIds(
 async function loadMvpAttendance(
   db: MvpDatabase,
   courseSlug: string,
+  courseProgramId: string,
   learnerIds: string[],
 ): Promise<MvpAttendanceRecord[]> {
   const records: MvpAttendanceRecord[] = [];
@@ -139,6 +140,7 @@ async function loadMvpAttendance(
           "id, student_id, track, week_number, session_number, checked_in_at",
         )
         .eq("track", courseSlug)
+        .eq("program_id", courseProgramId)
         .in("student_id", batch)
         .order("id", { ascending: true })
         .limit(500);
@@ -179,7 +181,7 @@ async function loadMvpCourseRecords(
   courseProgramId: string,
 ): Promise<MvpCourseRecords> {
   const learnerIds = await loadMvpLearnerIds(db, courseSlug, courseProgramId);
-  const attendance = await loadMvpAttendance(db, courseSlug, learnerIds);
+  const attendance = await loadMvpAttendance(db, courseSlug, courseProgramId, learnerIds);
 
   return { learnerIds, attendance };
 }
@@ -343,7 +345,7 @@ for (const row of selectedRows) {
   while (true) {
     let request = db.from("session_content")
       .select("id, week_number, status, status_2, status_3")
-      .eq("track", row.courseSlug).order("id").limit(500);
+      .eq("track", row.courseSlug).eq("program_id", row.programId).order("id").limit(500);
     if (deliveryCursor) request = request.gt("id", deliveryCursor);
     const result = await request;
     if (result.error) throw new Error("Unable to verify delivered course sessions.");
