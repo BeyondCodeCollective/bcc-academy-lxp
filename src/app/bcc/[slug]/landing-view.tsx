@@ -161,20 +161,57 @@ export async function LandingView({
               />
             )}
 
-            {/* The form moved below the content, so the hero keeps a way down
-               to it for anyone who arrives already decided. An anchor, not a
-               second form: one signup on the page, one place it lives.
-               (The header CTA is no help here — it only renders for people who
-               are already signed in.) */}
-            <div className="mt-7">
-              <a
-                href="#signup"
-                className="inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold text-white"
-                style={{ background: accent }}
-              >
-                {page.comingSoon ? "Notify me" : (page.enrollCtaLabel ?? page.applyCtaLabel ?? "Sign up")}
-                <span aria-hidden="true">↓</span>
-              </a>
+            {/* Signup — directly under the pitch, because almost nobody reads
+               to the bottom of a landing page before deciding. The long
+               explanation still exists below for the people who want it; it
+               just no longer stands between a decided visitor and the form.
+               Keeps id="signup" so older links still land here. */}
+            <div id="signup" className="mt-8">
+
+              {page.formLabel && (
+                <p
+                  className="mb-2.5 text-[11px] font-medium uppercase tracking-[0.14em]"
+                  style={{ color: `${INK}a6` }}
+                >
+                  {page.formLabel}
+                </p>
+              )}
+              {page.comingSoon ? (
+                <CampEnrollForm
+                  ink={INK}
+                  slug={page.slug}
+                  sessions={[]}
+                  accent={accent}
+                  ctaLabel="Notify me"
+                  comingSoon
+                />
+              ) : page.applyUrl ? (
+                <a
+                  href={page.applyUrl}
+                  className="inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold text-white"
+                  style={{ background: accent }}
+                >
+                  {page.applyCtaLabel ?? "Apply now"}
+                  <span aria-hidden="true">→</span>
+                </a>
+              ) : page.eventbriteEventId ? (
+                <CampEventbriteRegister
+                  ink={INK}
+                  eventId={page.eventbriteEventId}
+                  accent={accent}
+                  height={page.embedHeight}
+                />
+              ) : page.nativeEnroll ? (
+                <CampEnrollForm
+                  ink={INK}
+                  slug={page.slug}
+                  sessions={page.sessions}
+                  accent={accent}
+                  ctaLabel={page.enrollCtaLabel}
+                />
+              ) : (
+                <CampEmailForm ink={INK} accent={accent} trackSlug={page.trackSlug} />
+              )}
             </div>
 
             {/* Schedule */}
@@ -266,57 +303,6 @@ export async function LandingView({
                 })}
               </div>
             )}
-
-            {/* Signup — deliberately BELOW the content. Someone landing cold
-               needs to know what the thing is before being asked for an email.
-               The hero anchor above jumps anyone who is already sold. */}
-            <div id="signup" className="mt-12 pt-9" style={{ borderTop: `1px solid ${INK}12` }}>
-
-              {page.formLabel && (
-                <p
-                  className="mb-2.5 text-[11px] font-medium uppercase tracking-[0.14em]"
-                  style={{ color: `${INK}a6` }}
-                >
-                  {page.formLabel}
-                </p>
-              )}
-              {page.comingSoon ? (
-                <CampEnrollForm
-                  ink={INK}
-                  slug={page.slug}
-                  sessions={[]}
-                  accent={accent}
-                  ctaLabel="Notify me"
-                  comingSoon
-                />
-              ) : page.applyUrl ? (
-                <a
-                  href={page.applyUrl}
-                  className="inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold text-white"
-                  style={{ background: accent }}
-                >
-                  {page.applyCtaLabel ?? "Apply now"}
-                  <span aria-hidden="true">→</span>
-                </a>
-              ) : page.eventbriteEventId ? (
-                <CampEventbriteRegister
-                  ink={INK}
-                  eventId={page.eventbriteEventId}
-                  accent={accent}
-                  height={page.embedHeight}
-                />
-              ) : page.nativeEnroll ? (
-                <CampEnrollForm
-                  ink={INK}
-                  slug={page.slug}
-                  sessions={page.sessions}
-                  accent={accent}
-                  ctaLabel={page.enrollCtaLabel}
-                />
-              ) : (
-                <CampEmailForm ink={INK} accent={accent} trackSlug={page.trackSlug} />
-              )}
-            </div>
 
             {/* Instructor */}
             {page.instructor && (
