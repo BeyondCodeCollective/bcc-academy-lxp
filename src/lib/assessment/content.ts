@@ -325,75 +325,65 @@ export const SPECIAL_CASE_LANGUAGE = {
 };
 
 // ─── Work style language ──────────────────────────────────────────────────────
+// Source: LPAT delivery package v0.4, Part 4. Learner text is per pole; the
+// facilitator text is per axis. The "balanced" blocks are kept as optional
+// future display language and are not rendered (v0.4: report the leaned pole).
 
-export type WorkStyleContent = { learner: string; facilitator: string };
+export type WorkStyleContent = { learner: string };
 
 export const WORK_STYLE_CONTENT: Record<string, WorkStyleContent> = {
-  // Social energy
-  solo: {
-    learner: "You tend to do your best work with some space to yourself. You like to think things through and make progress on your own before bringing others in. That focus is a real strength, and a lot of deep work needs exactly that. One thing to keep in view as you grow is staying connected enough that you do not miss what other people could add.",
-    facilitator: "Solo lean: learner does best work independently. Coaching angle: match early tasks to solo mode, build in deliberate group touchpoints so they do not disappear when stuck.",
-  },
-  collaborative: {
-    learner: "You tend to do your best work alongside other people. Talking things through and thinking out loud is where your ideas come alive. That energy is a real strength, and good teams run on it. One thing to keep in view as you grow is carving out some focused solo time too, since some work gets done best in quiet.",
-    facilitator: "Collaborative lean: learner energized by group work and talking through ideas. Coaching angle: support building solo focus time so progress does not depend entirely on others being available.",
-  },
-  // Structure preference
-  structured: {
-    learner: "You do your best work when you know what is expected and have a clear plan to follow. Structure is not a crutch for you — it is what lets you move efficiently and well. That is a real strength, especially in work that rewards precision. As you grow, the edge is staying steady when a plan changes, since not every situation hands you the full map up front.",
-    facilitator: "Structured lean: learner needs clear expectations and advance notice of change. Coaching angle: provide clear expectations, scaffold ambiguity, build practice tolerating incomplete plans.",
-  },
-  adaptive: {
-    learner: "You do your best work with room to figure things out as you go. Open-ended situations that might unsettle others are where you do well. That adaptability is a real strength, especially in work that changes fast. As you grow, the edge is bringing enough structure to your own process that good ideas actually get finished.",
-    facilitator: "Adaptive lean: learner works best with open-ended room. Coaching angle: add light structure to support follow-through and completion.",
-  },
-  // Contribution mode
-  front_facing: {
-    learner: "You gravitate toward visible roles — being the one who talks to people, presents the work, or is the point of contact. You are comfortable being seen, and that willingness is a real strength, since someone has to be the face and not everyone wants to. As you grow, the edge is making sure the work behind the visibility is as solid as the way you represent it.",
-    facilitator: "Front-facing lean: comfortable with visibility and representation. Coaching angle: check that visible contribution is backed by substance; create accountability for the work behind the presentation.",
-  },
-  behind_the_scenes: {
-    learner: "You gravitate toward building the work itself rather than being the face of it. You would rather make something solid and let it speak than stand in the spotlight. That is a real strength, and the visible stuff falls apart without it. As you grow, the edge is letting yourself be seen and credited for what you make, so your work does not go unnoticed.",
-    facilitator: "Behind-the-scenes lean: builds the work, avoids spotlight. Coaching angle: ensure credit and visibility so they are not overlooked for advancement.",
-  },
-  // Pace
-  quick_moving: {
-    learner: "You tend to move fast, get a version done, and improve from there. You would rather keep things moving than wait for perfect. That momentum is a real strength, especially in work that rewards iteration. As you grow, the edge is knowing which moments call for slowing down and getting it exactly right the first time.",
-    facilitator: "Quick-moving lean: iterates fast, comfortable with rough versions. Coaching angle: practice slowing down when accuracy or quality requires it; watch for sustainability strain in slow, heavily structured environments.",
-  },
-  methodical: {
-    learner: "You work carefully and thoroughly, getting it right rather than rushing. You would rather take the time than redo it later. That care is a real strength, especially in work where mistakes are costly. As you grow, the edge is knowing when a rough first pass is enough to get moving, since not everything needs to be perfect before it is useful.",
-    facilitator: "Methodical lean: careful, thorough, quality-focused. Coaching angle: practice first drafts and deadlines; watch for sustainability strain in fast, adaptive environments. This is the sustainability dimension — flag for coaching attention when pace and structure both oppose a track's profile.",
-  },
+  solo: { learner: "You lean toward having some space to work on your own. This may help you focus, think through a problem, and make progress without many interruptions. When a task needs shared context, add a brief update for the team. In your next project, tell a teammate what you are working on and the one question you have. That widens your options without changing your preference." },
+  collaborative: { learner: "At your best, you use conversation to shape ideas and keep work moving with other people. This can help when a group needs quick feedback or a shared plan. Under pressure, a full schedule of discussion can leave little room to sort your own thinking. After your next team meeting, spend ten quiet minutes writing your next step before you join another conversation." },
+  structured: { learner: "You lean toward clear plans, known expectations, and steps you can follow. This may help you organize work and catch details when a project has precise needs. When plans change, add one flexible step: identify what remains true and what needs a new plan. Use that check the next time a task shifts. It can help you keep your footing while the work changes." },
+  adaptive: { learner: "You may recognize yourself in making a path while the situation is still taking shape. In a team, that can contribute useful options when a plan changes or little is known at the start. You are more likely to use it well when the goal and deadline are visible. At the start of your next open task, write one sentence that names the outcome you are aiming for." },
+  front_facing: { learner: "At your best, you may speak with clients, present an idea, or serve as a point of contact for a project. This can help when work needs a clear voice and people need updates. Under pressure, the visible part of the work can take attention away from the details behind it. Before you present next time, check one piece of evidence that supports your message." },
+  behind_the_scenes: { learner: "You lean toward building, testing, or improving the work itself rather than being its public voice. This may help a project become solid and reliable. When teammates need to understand what you made, add a simple explanation of your process. In your next project, share one progress note that names what changed and why. That lets others use and recognize the work." },
+  quick_moving: { learner: "You lean toward getting a version moving, learning from it, and improving from there. This may help when a team needs momentum or early feedback. When mistakes would be costly, add a brief quality check before you share the work. For your next draft, pause to test one key detail against the project goal. You still get to move forward while protecting the important part." },
+  methodical: { learner: "At your best, you may take time to check details and make a careful version of the work. This can help when accuracy matters and a mistake would create more work later. Under pressure, careful review can delay useful feedback from others. Share one early draft before it feels complete, then use the response to guide your next check." },
+};
+
+export type WorkStyleAxis = "social_energy" | "structure_preference" | "contribution_mode" | "pace";
+
+export const WORK_STYLE_BALANCED: Record<WorkStyleAxis, string> = {
+  social_energy: "Your answers suggest that you can move between solo focus and shared work, depending on the task. This can help when a project needs both careful preparation and active teamwork. In your next project, choose the work mode before you begin: work alone to draft, or meet with others to decide. Notice which choice helps the task move forward. Both approaches remain useful.",
+  structure_preference: "You lean toward using a clear plan in some tasks and adjusting as you learn more in others. This may help you respond to what the work needs instead of using one approach each time. When the goal is unclear, add a short plan before you begin. List the first two steps, then revise them when new information appears. Both structure and flexibility can support good work.",
+  contribution_mode: "Your answers suggest that you can contribute in a visible role or through the work behind the scenes. This can help a project when its needs change from building to sharing. In your next project, choose one role on purpose before the work begins. Ask whether the team needs someone to explain the work or someone to develop it. Notice how that choice affects the group.",
+  pace: "You lean toward speeding up or slowing down based on what the work needs. This may help when a project has both quick tasks and careful tasks. When you start a new assignment, add one pace decision: decide which part needs a fast first version and which part needs a close check. Use that choice to plan your time. Both speed and care can be valuable.",
+};
+
+export const WORK_STYLE_FACILITATOR: Record<WorkStyleAxis, string> = {
+  social_energy: "Reports where the learner does their best work, solo, collaborative, or flexibly between. Not a measure of whether they are social. Coaching angle: match early tasks to their mode where possible, then stretch the other mode gently. A strong solo lean may need deliberate inclusion in group work; a strong collaborative lean may need support building solo focus. Keep separate from Module 1 Connector, which is about seeing links, not preferring company.",
+  structure_preference: "Reports preference for defined process versus open-ended room. Coaching angle: a structured learner needs clear expectations and advance notice of change, and benefits from practice tolerating ambiguity; an adaptive learner needs room and benefits from light structure to ensure follow-through. Pair with pace, since structured plus methodical especially wants clarity up front.",
+  contribution_mode: "Reports preference for visible roles versus behind-the-scenes building. Both essential. Coaching angle: give front-facing learners visible roles but check the substance underneath; make sure behind-the-scenes learners get credit and visibility so they are not overlooked for advancement. Will correlate with some Module 1 archetypes, which is expected. The useful thing to surface is a mismatch, such as a front-facing identity with a behind-the-scenes work style.",
+  pace: "Reports work tempo, quick and iterative versus careful and thorough. This is the sustainability dimension. Critical guardrail: a pace mismatch with a track informs support, never exclusion. A methodical learner in a fast track is supported with pacing strategies and early check-ins, not steered away, and a quick-moving learner in a slow, heavily-structured environment can strain too, through boredom and friction. When pace and structure both oppose a track's profile, flag it as higher sustainability risk needing coaching attention before placement, never as a reason to block placement.",
 };
 
 // ─── Pathway orientation language ────────────────────────────────────────────
+// Source: LPAT delivery package v0.4, Part 5.
 
-export type PathwayContent = { learner: string; facilitator: string };
+export type PathwayContent = { learner: string };
 
 export const PATHWAY_CONTENT: Record<PathwayOrientation, PathwayContent> = {
-  ownership: {
-    learner: "You are drawn to building and directing your own work. The idea of owning something and shaping how it turns out pulls at you more than slotting into something already built. That drive is a real strength, and it is where a lot of new things come from. A path that gives you room to build and lead, or to grow toward running your own thing, is worth taking seriously. Beyond Code Collective coaches and instructors can help you find the version of that which fits your life right now.",
-    facilitator: "Ownership lean: high self-direction, lower stability-seeking. Learner energized by autonomy and building. Explore ownership paths, project leadership, building toward running their own work. Watch: high self-direction with low risk comfort means the path needs scaffolding and staged risk, not redirection away from ownership.",
-  },
-  placement: {
-    learner: "You are drawn to doing strong work on solid ground. A reliable role where you can contribute and build a stable foundation matters to you more than the pull of running your own thing. That is a real strength, and it is wise, especially when you are building a foundation for the rest of your life. A path that offers a dependable role with room to grow is worth taking seriously, and Beyond Code Collective coaches and instructors can help you find one that fits.",
-    facilitator: "Placement lean: high stability-seeking, lower self-direction. Learner energized by reliable contribution inside a structure. Explore stable tracks with clear growth paths. Important: never treat stability-seeking as a ceiling on capacity or as permanent — it is often shaped by real material conditions.",
-  },
-  blended: {
-    learner: "You want two things at once — to build something of your own and to have solid ground under you. That is one of the most common and most human combinations there is, and it is not a contradiction. It often means the right path lets you build toward ownership in steps, with stability while you do, rather than leaping all at once. Beyond Code Collective coaches and instructors can help you map what that staged path could look like.",
-    facilitator: "Blended: high self-direction and high stability-seeking. Learner wants to build and also needs solid ground. Staged pathway — ownership through incremental steps with stability support. This is a common and workable pattern.",
-  },
-  exploring: {
-    learner: "Your answers do not point strongly toward one kind of path yet, and that is completely normal. It often means you are still figuring out what you want, which is exactly the right thing to be doing right now. There is no wrong result here. Beyond Code Collective coaches and instructors can help you try things on and notice what actually pulls at you as you go.",
-    facilitator: "Still exploring: low self-direction and low stability-seeking. Do not force a direction. Use coaching, exposure, and small experiments. Connect with Module 1 archetype and Module 2 work style to surface more specific starting points.",
-  },
+  ownership: { learner: "Right now, you lean toward having room to shape and direct work you care about. This is a direction to explore, not a decision you have to make. You may find that in building something of your own or in taking ownership inside a team. Compare options by asking, “Where could I make choices and learn from the results?” Look for real examples in projects, roles, and conversations." },
+  placement: { learner: "Your answers point to wanting a role where you can contribute, learn, and build a foundation right now. That may mean joining a team with clear work and feedback, or choosing a role with room to develop over time. Both are valid ways to explore a placement path. Ask, “What support and learning would this role give me?” Compare job details and stories from people doing similar work." },
+  blended: { learner: "Right now, you lean toward exploring both ownership and placement. This is a direction to explore, not a choice you have to settle today. A blended path may include building your own project while learning within a team, or taking a role that lets you lead parts of the work. Ask, “What mix gives me room to contribute and the support I need?” Look for examples you can test." },
+  exploring: { learner: "You may recognize yourself in keeping options open while you learn what matters to you right now. In your pathway search, that can contribute better information before you make a choice. You are more likely to learn from this stage when you can compare real work, not only titles. This week, talk with one person about an ownership path and one about a placement path. Which details matter most for your life now?" },
 };
 
-// ─── Sustainability note (conditional — append when SDR high + RSK low) ───────
+// Module 3 facilitator blocks: a framing paragraph, one description per
+// motivation driver, and the pathway orientation derivation.
+export const MODULE_3_FACILITATOR = {
+  framing: "Module 3 reports three motivation drivers and a derived pathway orientation. Read the drivers as what currently serves and energizes the learner, not as fixed traits, and never as a verdict on capacity.",
+  self_direction: "How much the learner wants to build, own, and direct their own work. High suggests roles with autonomy and ownership, or growth toward running their own thing. Low is not lack of ambition; it suggests the learner thrives contributing within a structure someone else holds. Both legitimate.",
+  stability_seeking: "How much the learner wants reliable footing. Read with the circumstance caution: high stability-seeking is often shaped by real material conditions, not temperament. A learner supporting family or carrying debt may have strong ownership drive and simply cannot afford risk. Never treat it as a ceiling on capacity or as permanent.",
+  risk_comfort: "How much uncertainty the learner can sit with. The sustainability modifier. High self-direction with low risk comfort signals a learner who wants to build but will strain under sustained uncertainty; the response is scaffolding and a staged path, not redirection away from ownership. Watch the split between wanting the chance (RSK-02) and being able to sit with uncertainty (RSK-01, RSK-03, and reverse-scored RSK-04). Someone who wants the chance but cannot sit with the uncertainty is usually risk-constrained or risk-strained, not low in drive. Coaching angle: build the safety net into the plan.",
+  pathway_orientation: "Derived from self-direction and stability-seeking as two independent axes. Ownership lean, placement lean, blended (high on both, the staged-path learner), still exploring (low on both, do not force a pathway). Use with Modules 1 and 2 for any placement recommendation, and confirm after a coaching conversation. Never use the orientation to gatekeep; it informs the shape of support, not eligibility.",
+} as const;
+
+// ─── Sustainability note (conditional: append when SDR high + RSK low) ───────
 
 export const SUSTAINABILITY_NOTE =
-  "One thing worth naming. You are drawn to building your own thing, and you also like knowing where you stand. That usually means the path that lasts for you is a steady, staged one — building toward what you want with support and solid ground along the way, rather than a sudden leap. That is not a smaller version of the goal. For most people it is the wiser route to it.";
+  "Right now, your answers suggest that you want room to direct work and a steady sense of what comes next. This is a direction to explore, not a rule about how you have to proceed. You might build toward more ownership in stages, with support and stable steps along the way. Ask, “What support would make this next step workable?” Look for options that fit your resources and responsibilities right now.";
 
 // ─── Module 2 universal framing ──────────────────────────────────────────────
 
