@@ -140,7 +140,7 @@ export function EntryFlow({ programSlug }: { programSlug: string }) {
   );
 }
 
-function Question<V extends string | number>({
+export function Question<V extends string | number>({
   prompt, helper, options, value, onChange,
 }: {
   prompt: string;

@@ -44,6 +44,12 @@ export const ENTRY_COPY = {
   confidenceHelper: "There are no wrong answers, and this can change. We ask again at the end to see how it moves.",
 } as const;
 
+export const EXIT_COPY = {
+  intro: "The same two questions you answered when you started. There are no wrong answers.",
+  confidenceTraining: ENTRY_COPY.confidenceTraining,
+  confidenceJob: ENTRY_COPY.confidenceJob,
+} as const;
+
 const values = <T extends readonly Option<string | number>[]>(o: T) => o.map((x) => x.value) as (string | number)[];
 
 export const VALID = {
@@ -60,3 +66,5 @@ export type EntryFlowAnswers = {
   confidenceTraining: number;
   confidenceJob: number;
 };
+
+export type ExitConfidenceAnswers = { confidenceTraining: number; confidenceJob: number };

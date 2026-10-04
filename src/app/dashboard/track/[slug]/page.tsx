@@ -23,6 +23,7 @@ import { getSessionContext } from "@/lib/auth/session";
 import { canAccessAdminPanel } from "@/lib/roles";
 import { getPreviewTrackSlugs } from "@/lib/auth/preview-mode";
 import { createServiceClient } from "@/lib/supabase/server";
+import { isExitConfidencePending } from "@/lib/assessment/exit-confidence";
 import { buttonClass } from "@/components/ui";
 import { getTrackProgressMap } from "@/app/dashboard/track/actions";
 import { addDays } from "@/lib/ical";
@@ -204,6 +205,8 @@ export default async function TrackOverviewPage({
       .maybeSingle();
     certificateId = (completion?.certificate_id as string | null) ?? null;
   }
+  const exitConfidencePending =
+    !!certificateId && !!ctx?.userId && !isAdminViewer && (await isExitConfidencePending(ctx.userId));
 
   // Before day one a learner sees the real course with a banner on top, not a
   // countdown instead of it — the syllabus is what they're being asked to
@@ -539,6 +542,25 @@ export default async function TrackOverviewPage({
             <span className="block text-xs text-ink-soft">
               View, print, or share your official certificate — the link works
               anywhere, no login needed.
+            </span>
+          </span>
+          <ArrowRight
+            size={16}
+            className="shrink-0 text-ink-faint transition-transform group-hover:translate-x-0.5"
+            aria-hidden
+          />
+        </a>
+      )}
+
+      {exitConfidencePending && (
+        <a
+          href="/dashboard/assessment/exit"
+          className="group flex items-center gap-4 panel p-4 sm:p-5 transition-colors hover:border-ink-faint"
+        >
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-bold text-ink">One last check-in</span>
+            <span className="block text-xs text-ink-soft">
+              Two quick questions, the same ones you answered when you started.
             </span>
           </span>
           <ArrowRight

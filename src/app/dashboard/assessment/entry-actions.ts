@@ -2,7 +2,8 @@
 "use server";
 
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { VALID, type EntryFlowAnswers } from "@/lib/assessment/entry-flow";
+import { VALID, type EntryFlowAnswers, type ExitConfidenceAnswers } from "@/lib/assessment/entry-flow";
+import { isExitConfidencePending } from "@/lib/assessment/exit-confidence";
 
 export async function hasCompletedEntryFlow(studentId: string): Promise<boolean> {
   const svc = createServiceClient();
@@ -54,6 +55,35 @@ export async function saveEntryFlow(answers: EntryFlowAnswers, programSlug: stri
     { onConflict: "student_id,phase", ignoreDuplicates: true }
   );
   if (confidenceError) throw new Error(confidenceError.message);
+
+  return { success: true };
+}
+
+export async function saveExitConfidence(answers: ExitConfidenceAnswers) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  if (!VALID.confidence.includes(answers.confidenceTraining) || !VALID.confidence.includes(answers.confidenceJob)) {
+    throw new Error("Invalid answer");
+  }
+  if (!(await isExitConfidencePending(user.id))) {
+    throw new Error("Exit check-in is not available");
+  }
+
+  // phase 'exit' is its own row, so the entry baseline is never touched.
+  // ignoreDuplicates keeps a retry idempotent.
+  const svc = createServiceClient();
+  const { error } = await svc.from("lpat_confidence").upsert(
+    {
+      student_id: user.id,
+      phase: "exit",
+      training: answers.confidenceTraining,
+      job: answers.confidenceJob,
+    },
+    { onConflict: "student_id,phase", ignoreDuplicates: true }
+  );
+  if (error) throw new Error(error.message);
 
   return { success: true };
 }
