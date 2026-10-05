@@ -242,11 +242,11 @@ export function PeopleTab({
           </div>
         )}
         {!embedded && isManager && tracks.length > 0 && (
-          <div className="relative">
+          <div className="relative min-w-0">
             <select
               value={trackFilter}
               onChange={(e) => setTrackFilter(e.target.value)}
-              className="appearance-none border border-rule bg-neutral-50 pl-3 pr-7 py-2 text-sm text-ink focus:border-ink-faint"
+              className="max-w-[14rem] sm:max-w-none appearance-none border border-rule bg-neutral-50 pl-3 pr-7 py-2 text-sm text-ink focus:border-ink-faint"
             >
               <option value="all">All tracks</option>
               {tracks.map((t) => (

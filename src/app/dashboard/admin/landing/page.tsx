@@ -94,7 +94,7 @@ export default async function LandingPagesListPage() {
                   href={`/${embeddedProgramSlug(r.programs) ?? "bcc"}/${r.slug}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-mono text-sm font-semibold text-ink hover:text-primary"
+                  className="whitespace-nowrap font-mono text-sm font-semibold text-ink hover:text-primary"
                 >
                   {embeddedProgramSlug(r.programs)
                     ? `${embeddedProgramSlug(r.programs)}/${r.slug}`

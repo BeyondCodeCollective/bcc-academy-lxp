@@ -26,7 +26,9 @@ export function PageHeader({
   subtitle?: string;
   actions?: ReactNode;
   /** Keep actions pinned top-right (let the title text wrap) instead of dropping
-   *  the action group below the title when the row runs out of room. */
+   *  the action group below the title when the row runs out of room. Phones are
+   *  exempt: at 375px a two-button action group left the title a sliver wide,
+   *  so below `sm` the actions always drop under the title. */
   noWrap?: boolean;
   /** Render on the program's dark field instead of plain ink on paper. The
    *  session page uses it so every session opens on the same ground as the
@@ -37,7 +39,7 @@ export function PageHeader({
   const hasEyebrow = !!eyebrow || !!badge;
   return (
     <header
-      className={`flex items-start justify-between gap-4 ${noWrap ? "flex-nowrap" : "flex-wrap"} ${
+      className={`flex items-start justify-between gap-4 ${noWrap ? "flex-wrap sm:flex-nowrap" : "flex-wrap"} ${
         onField
           ? "stage-surface stage-grid relative isolate overflow-hidden rounded-xl px-5 py-5 sm:px-6"
           : ""

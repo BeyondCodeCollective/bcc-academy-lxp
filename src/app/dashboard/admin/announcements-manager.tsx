@@ -90,7 +90,7 @@ export function AnnouncementsManager({ announcements: initial, tracks, programSl
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-ink flex items-center gap-2">
             <Megaphone size={20} />

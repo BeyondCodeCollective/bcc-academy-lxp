@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+
+const subscribeNoop = () => () => {};
 import { SpeakerHigh, SpeakerSlash } from "@phosphor-icons/react";
 import { TextScaleToggle } from "@/components/text-scale-toggle";
 
@@ -35,7 +37,14 @@ export function AssessmentA11yBar({
   enabled: boolean;
   onToggle: () => void;
 }) {
-  const supported = typeof window !== "undefined" && "speechSynthesis" in window;
+  // Server snapshot is false and the client snapshot reads window, so the
+  // hydrating render matches the HTML and the button appears on the next
+  // render. Reading window during render mismatched on every assessment page.
+  const supported = useSyncExternalStore(
+    subscribeNoop,
+    () => "speechSynthesis" in window,
+    () => false,
+  );
 
   return (
     <div className="flex items-center justify-end gap-3 pb-4 border-b border-ink/10 mb-6">
