@@ -13,6 +13,7 @@ import { computeCurrentWeek, trackHasStarted, formatCohortDate, easternDayKey } 
 import { ManageMenu } from "./manage-menu";
 import { type StudentRow, type AdminTrackConfig } from "./admin-shared";
 import { AdminTopTabs } from "./admin-top-tabs";
+import { countLabel } from "@/lib/count-label";
 
 type HomeTabProps = {
   courseStats: { [x: string]: { total: number; active: number; fullAttendance: number | null; sessionsHeld: number; certificates?: number; }; };
@@ -166,7 +167,7 @@ export function HomeTab({
             metrics.push({
               label: t.selfPaced ? "Length" : "Progress",
               value: t.selfPaced
-                ? `${t.totalWeeks} ${(t.unitLabel || "Week").toLowerCase()}s`
+                ? countLabel(t.totalWeeks, (t.unitLabel || "Week").toLowerCase())
                 : `${t.unitLabel || "Week"} ${currentWeek} of ${t.totalWeeks}`,
             });
           }
