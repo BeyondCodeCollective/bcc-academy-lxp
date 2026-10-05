@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import {
   QuestionRenderer,
   isPageValid as validatePage,
+  unansweredRequired,
   US_STATES,
   type SurveyQuestion,
 } from "@/components/survey-fields";
@@ -1968,6 +1969,7 @@ export function SurveyWizard({ surveyId, programSlug, existingResponses, userId,
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [missing, setMissing] = useState<string[]>([]);
 
   const currentPage = SURVEY_PAGES[page];
   const isLastPage = page === SURVEY_PAGES.length - 1;
@@ -1988,7 +1990,17 @@ export function SurveyWizard({ surveyId, programSlug, existingResponses, userId,
     const updated = { ...answers, [questionId]: value };
     setAnswers(updated);
     saveProgress(updated, page);
-    if (error) setError("");
+    if (missing.length > 0 && currentPage) {
+      // Highlights follow the answers: a question drops out as soon as it is
+      // answered, and the message goes with the last one.
+      const stillMissing = unansweredRequired(currentPage.questions, updated)
+        .map((q) => q.id)
+        .filter((id) => missing.includes(id));
+      setMissing(stillMissing);
+      if (stillMissing.length === 0) setError("");
+    } else if (error) {
+      setError("");
+    }
   }
 
   function isPageValid(): boolean {
@@ -1997,11 +2009,28 @@ export function SurveyWizard({ surveyId, programSlug, existingResponses, userId,
   }
 
   function handleNext() {
-    if (!isPageValid()) {
-      setError("Please answer all required questions (marked with *) before continuing.");
+    if (!isPageValid() && currentPage) {
+      const unanswered = unansweredRequired(currentPage.questions, answers);
+      setMissing(unanswered.map((q) => q.id));
+      setError(
+        unanswered.length === 1
+          ? "One required question still needs an answer. It's highlighted below."
+          : `${unanswered.length} required questions still need an answer. They're highlighted below.`,
+      );
+      // Take the learner to the first one instead of leaving them to hunt for
+      // it on a long page.
+      const target = document.getElementById(`question-${unanswered[0].id}`);
+      if (target) {
+        const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        target.scrollIntoView({ behavior: calm ? "auto" : "smooth", block: "center" });
+        target
+          .querySelector<HTMLElement>("input, select, textarea, button")
+          ?.focus({ preventScroll: true });
+      }
       return;
     }
     setError("");
+    setMissing([]);
     if (isLastPage) {
       handleSubmit();
     } else {
@@ -2014,6 +2043,8 @@ export function SurveyWizard({ surveyId, programSlug, existingResponses, userId,
   function handleBack() {
     if (page > 0) {
       const prevPage = page - 1;
+      setMissing([]);
+      setError("");
       setPage(prevPage);
       saveProgress(answers, prevPage);
     }
@@ -2074,19 +2105,36 @@ export function SurveyWizard({ surveyId, programSlug, existingResponses, userId,
 
       {/* Questions */}
       <div className="space-y-6">
-        {currentPage.questions.map((q) => (
-          <QuestionRenderer
-            key={q.id}
-            question={q}
-            value={answers[q.id]}
-            onChange={(val) => updateAnswer(q.id, val)}
-          />
-        ))}
+        {currentPage.questions.map((q) => {
+          const isMissing = missing.includes(q.id);
+          return (
+            <div
+              key={q.id}
+              id={`question-${q.id}`}
+              className={
+                isMissing
+                  ? "-m-2 scroll-mt-24 rounded-md border border-red-500 bg-red-50/50 p-2"
+                  : undefined
+              }
+            >
+              <QuestionRenderer
+                question={q}
+                value={answers[q.id]}
+                onChange={(val) => updateAnswer(q.id, val)}
+              />
+              {isMissing && (
+                <p className="mt-2 text-xs font-medium text-red-600">
+                  This question needs an answer.
+                </p>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {/* Error */}
       {error && (
-        <p className="mt-4 text-sm text-red-600">{error}</p>
+        <p role="alert" className="mt-4 text-sm text-red-600">{error}</p>
       )}
 
       {/* Navigation */}
