@@ -1912,6 +1912,7 @@ const SCHEMAS: Record<string, SurveyQuestion[]> = {
   // pairing in Insights.
   "post-survey-spring-2026": POST_SURVEY_SPRING_2026,
   "ai-impact-survey-2026": AI_IMPACT_SURVEY_2026,
+  "ai-fundamentals-post-2026": AI_IMPACT_SURVEY_2026,
   "mid-program-spring-2026": MID_PROGRAM_SPRING_2026,
   "security-plus-application": SECURITY_PLUS_APPLICATION,
   "security-plus-midpoint": SECURITY_PLUS_MIDPOINT,
