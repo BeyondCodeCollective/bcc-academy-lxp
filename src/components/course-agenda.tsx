@@ -54,11 +54,14 @@ export function CourseAgenda({
   rows,
   todayISO,
   focusDate,
+  focusNote,
 }: {
   rows: AgendaRow[];
   todayISO: string;
   /** the live / next session, from the panel — gets the accent */
   focusDate?: string | null;
+  /** Small line under the focus row's title: "Up next · 6:30 PM ET". */
+  focusNote?: string | null;
 }) {
   const sorted = [...rows].sort(
     (a, b) =>
@@ -121,11 +124,16 @@ export function CourseAgenda({
           {dateLabel}
         </span>
         <span className={`h-[7px] w-[7px] shrink-0 rounded-full ${DOT[r.kind]}`} aria-hidden />
-        <span className={`min-w-0 flex-1 truncate text-[13.5px] ${isPast ? "text-ink-faint" : "text-ink"}`}>
-          {r.label && (
-            <span className={isFocus ? "font-semibold" : "text-ink-faint"}>{r.label} · </span>
+        <span className="min-w-0 flex-1">
+          <span className={`block truncate text-[13.5px] ${isPast ? "text-ink-faint" : "text-ink"}`}>
+            {r.label && (
+              <span className={isFocus ? "font-semibold" : "text-ink-faint"}>{r.label} · </span>
+            )}
+            <span className={isFocus ? "font-semibold" : ""}>{r.title}</span>
+          </span>
+          {isFocus && focusNote && (
+            <span className="block text-[11.5px] text-ink-soft">{focusNote}</span>
           )}
-          <span className={isFocus ? "font-semibold" : ""}>{r.title}</span>
         </span>
         {r.href && (
           <CaretRight size={13} className="shrink-0 text-ink-faint" aria-hidden />
@@ -155,6 +163,11 @@ export function CourseAgenda({
     // No border/background of its own: ScheduleTabs is the bordered object,
     // and nesting a panel inside a panel drew a box inside a box.
     <div>
+      {firstUpcoming === -1 && (
+        <p className="px-1 pb-3 text-[13px] text-ink-soft">
+          Nothing is scheduled yet. Dates appear here as soon as they&apos;re set.
+        </p>
+      )}
       {pastCount > 0 && (
         <button
           type="button"

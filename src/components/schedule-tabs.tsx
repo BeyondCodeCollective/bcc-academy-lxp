@@ -75,7 +75,12 @@ export function ScheduleTabs({
         {view === "calendar" ? (
           <TrackCalendar events={events} todayISO={todayISO} focus={focus} />
         ) : (
-          <CourseAgenda rows={rows} todayISO={todayISO} focusDate={focusDate} />
+          <CourseAgenda
+            rows={rows}
+            todayISO={todayISO}
+            focusDate={focusDate}
+            focusNote={[focus?.kicker, focus?.time].filter(Boolean).join(" · ") || null}
+          />
         )}
       </div>
     </section>

@@ -14,6 +14,7 @@ import {
   easternDayKey,
 } from "@/lib/utils";
 import { trackUnitDisplay, unitText } from "@/lib/programs/unit-display";
+import { countLabel } from "@/lib/count-label";
 import { resolveTrackProgram } from "@/lib/programs/server";
 import { getTrackBySlug } from "@/lib/programs";
 import { DB_TRACK_PREREQUISITES } from "@/lib/programs/field-ready";
@@ -255,7 +256,7 @@ export default async function TrackOverviewPage({
 
   // Header carries who + how long; every date lives in the panel or the
   // schedule below, never twice.
-  const metaLine = [track.instructor, `${numbered} ${unitLower}s`]
+  const metaLine = [track.instructor, countLabel(numbered, unitLower)]
     .filter(Boolean)
     .join(" · ");
 
@@ -292,7 +293,7 @@ export default async function TrackOverviewPage({
   // (kickoff) has no number, so it announces itself by name.
   const currentDisplay = display.get(currentWeek);
   const eyebrow = track.selfPaced
-    ? `Self-paced · ${numbered} ${unitLower}s`
+    ? `Self-paced · ${countLabel(numbered, unitLower)}`
     : currentDisplay?.number
       ? `${unit} ${currentDisplay.number} of ${numbered}`
       : currentDisplay
