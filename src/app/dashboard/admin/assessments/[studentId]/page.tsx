@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
+import { getProgram } from "@/lib/programs/server";
 import { canAccessAdminPanel } from "@/lib/roles";
 import type { ScoredOutput } from "@/lib/assessment/types";
 import {
@@ -29,6 +30,14 @@ export default async function AssessmentDetailPage({
     .maybeSingle();
 
   if (!result) redirect("/dashboard/admin/assessments");
+
+  // Same scope as the list page: only admins working in the learner's program
+  // (and super admins) can open a result. Checked before the "viewed" write
+  // below so a blocked request leaves no trace on the row.
+  const program = await getProgram();
+  if (ctx.student?.role !== "super_admin" && result.program_slug !== program.slug) {
+    redirect("/dashboard/admin/assessments");
+  }
 
   // Mark as viewed
   if (!result.facilitator_viewed_at) {
