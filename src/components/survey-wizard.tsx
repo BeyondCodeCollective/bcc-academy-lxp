@@ -1873,7 +1873,7 @@ function getSurveyPages(surveyId: string, programSlug: string): SurveyPage[] {
   // it's opened from (Catalyst aggregates Beyond Code Centers' courses). Without
   // an explicit branch it would fall through to SHARED_PAGES — the PRE-survey
   // questions under an impact-survey title.
-  if (surveyId === "ai-impact-survey-2026") {
+  if (surveyId === "ai-impact-survey-2026" || surveyId === "ai-fundamentals-post-2026") {
     return AI_IMPACT_PAGES;
   }
   if (surveyId === "hfs-impact-survey") {

@@ -233,6 +233,15 @@ export const PLATFORM_PUBLIC_SURVEYS: Record<string, SurveyConfig> = {
       "Help us understand your background and experience so we can better support you.",
     required: false,
   },
+  // Copy of ai-impact-survey-2026 for a program that isn't set up yet. Public
+  // link only: it isn't assigned to any program, so no learner is offered it.
+  "ai-fundamentals-post-2026": {
+    id: "ai-fundamentals-post-2026",
+    title: "AI Fundamentals — Post-Program Survey",
+    description:
+      "You made it — how far you've come, in your own words. One sitting, about 5 minutes.",
+    required: false,
+  },
   "network-plus-post": {
     id: "network-plus-post",
     title: "CompTIA Network+ End-of-Cohort Survey",
