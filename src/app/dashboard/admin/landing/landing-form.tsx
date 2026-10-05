@@ -375,19 +375,19 @@ export function LandingForm({
               <p className="text-sm text-ink-faint">Add the date the cohort starts — it shows as the pick-a-date option.</p>
             )}
             {sessions.map((x, i) => (
-              <div key={i} className="flex items-start gap-2">
+              <div key={i} className="flex flex-wrap items-start gap-2">
                 <input
                   type="date"
                   value={x.id}
                   onChange={(e) => updateSession(i, { id: e.target.value })}
-                  className={`${fieldInput} flex-[0_0_38%] font-mono`}
+                  className={`${fieldInput} min-w-[9.5rem] flex-[0_0_38%] font-mono`}
                 />
                 <input
                   type="text"
                   placeholder="Cohort starts Saturday, August 29, 2026"
                   value={x.label}
                   onChange={(e) => updateSession(i, { label: e.target.value })}
-                  className={fieldInput}
+                  className={`${fieldInput} min-w-[12rem] flex-1`}
                 />
                 <button
                   type="button"

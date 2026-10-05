@@ -71,9 +71,9 @@ export default async function ApplicationsPage() {
                   >
                     {a.title}
                   </Link>
-                  <p className="font-mono text-micro text-ink-faint">/apply/{a.slug}</p>
+                  <p className="whitespace-nowrap font-mono text-micro text-ink-faint">/apply/{a.slug}</p>
                 </td>
-                <td className="px-4 py-3 text-sm text-ink-soft">{a.trackSlug ?? "—"}</td>
+                <td className="whitespace-nowrap px-4 py-3 text-sm text-ink-soft">{a.trackSlug ?? "—"}</td>
                 <td className="px-4 py-3 text-sm">
                   {isAccepting(a) ? (
                     <span className="text-green-700">Open</span>

@@ -217,7 +217,11 @@ export default async function DashboardLayout({
           // Always clear the fixed w-60 nav rail — survey pages render the
           // minimal (logo-only) rail but previously dropped this padding, so
           // their centered content sat half-tucked behind the white column.
-          className={`flex-1 bg-paper${isImmersive ? "" : " md:pl-60"}`}
+          // min-w-0: as a flex item, main's default min-width is its content's
+          // intrinsic width, so one wide table (or a nowrap slug) pushed the
+          // whole page past the viewport at 768px instead of scrolling inside
+          // its own overflow-x-auto wrapper.
+          className={`min-w-0 flex-1 bg-paper${isImmersive ? "" : " md:pl-60"}`}
           style={{ fontSize: "16px" }}
         >
           {!hideChrome && (

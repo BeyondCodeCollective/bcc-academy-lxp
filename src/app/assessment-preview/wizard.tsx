@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
+
+const subscribeNoop = () => () => {};
 import { MODULE_1_ITEMS, MODULE_2_SCENARIOS, MODULE_3_ITEMS, TRANSITION_MESSAGES } from "@/lib/assessment/content";
 import { scoreAssessment } from "@/lib/assessment/scoring";
 import { ResultsProfile } from "@/app/dashboard/assessment/results/results-profile";
@@ -54,9 +56,14 @@ export function AssessmentPreviewWizard() {
     setResponses(prev => ({ ...prev, [id]: value }));
   }, []);
 
-  const m1Items = useMemo(() => shuffle(MODULE_1_ITEMS), []);
-  const m2Items = useMemo(() => shuffle(MODULE_2_SCENARIOS), []);
-  const m3Items = useMemo(() => shuffle(MODULE_3_ITEMS), []);
+  // Shuffle only once mounted: Math.random() during the server render gave
+  // the server one order and the client another, so every preview load
+  // hydration-failed and React rebuilt the tree. The hydrating render uses
+  // the authored order (server snapshot), then the client reorders once.
+  const mounted = useSyncExternalStore(subscribeNoop, () => true, () => false);
+  const m1Items = useMemo(() => (mounted ? shuffle(MODULE_1_ITEMS) : [...MODULE_1_ITEMS]), [mounted]);
+  const m2Items = useMemo(() => (mounted ? shuffle(MODULE_2_SCENARIOS) : [...MODULE_2_SCENARIOS]), [mounted]);
+  const m3Items = useMemo(() => (mounted ? shuffle(MODULE_3_ITEMS) : [...MODULE_3_ITEMS]), [mounted]);
 
   const m1aItems = m1Items.slice(0, 14);
   const m1bItems = m1Items.slice(14);
