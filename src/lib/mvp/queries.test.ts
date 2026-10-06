@@ -90,7 +90,7 @@ beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn(() => { throw new Error("Network calls are forbidden in query tests."); }));
   db = new Database();
   db.tables = {
-    survey_responses: [],
+    survey_responses: [], hidden_courses: [],
     students: [{ id: "actor", program_id: "p1" }], staff_program_access: [], track_overrides: [],
     programs: [{ id: "p1", slug: "one", name: "One" }, { id: "p2", slug: "two", name: "Two" }],
     student_tracks: [enrollment("e1", "u1"), enrollment("e2", "u2"), enrollment("e3", "u1", "beta")],
@@ -333,7 +333,7 @@ describe("MVP query totals and filters", () => {
       (row.students as Row).date_of_birth = "2000-01-01";
       (row.students as Row).location = row.student_id === "u1" ? "Boston" : "Oakland";
     }
-    const result = await getMvpDashboardData({ city: "Boston" });
+    const result = await getMvpDashboardData({ city: "Boston" }, { includeDemographics: true });
     expect(result.demographics?.[0]).toMatchObject({ respondentCount: 1, missingCount: 0 });
     expect(result.demographics?.[0].groups.find((group) => group.label === "25–34")?.count).toBe(1);
     expect(JSON.stringify(result.demographics)).not.toContain("2000-01-01");
@@ -346,16 +346,34 @@ describe("MVP query totals and filters", () => {
       survey_type: "bcc-learner-intake", completed_at: "2026-10-01T00:00:00Z", responses: { household_income: "Under $20,000" } }));
     db.tables.survey_responses.push({ id: "s4", student_id: "u1", program_id: "p2", survey_type: "bcc-learner-intake",
       completed_at: "2026-10-02T00:00:00Z", responses: { household_income: "$80,000 or more" } });
-    const result = await getMvpDashboardData({ programId: "p1", city: "Boston" });
+    const result = await getMvpDashboardData({ programId: "p1", city: "Boston" }, { includeDemographics: true });
     const income = result.demographics?.find((item) => item.id === "household-income");
     expect(income).toMatchObject({ respondentCount: 1, missingCount: 0 });
     expect(income?.groups[0].count).toBe(1);
     expect(income?.groups[4].count).toBe(0);
     expect(JSON.stringify(income)).not.toContain("student_id");
   });
+  it("reads no birth dates or income answers unless demographics are requested", async () => {
+    const result = await getMvpDashboardData({});
+    expect(result.demographics).toBeUndefined();
+    expect(db.requests.some((request) => request.columns.includes("date_of_birth"))).toBe(false);
+    expect(db.requests.some((request) => request.table === "survey_responses")).toBe(false);
+  });
+  it("leaves hidden courses out of rows, filters and records", async () => {
+    db.tables.hidden_courses = [{ track_slug: "beta" }];
+    const result = await getMvpDashboardData({});
+    expect(result.programs.map((row) => row.courseSlug)).toEqual(["alpha"]);
+    expect(result.filterOptions.courses.map((course) => course.slug)).toEqual(["alpha"]);
+    expect(db.requests.some((request) => request.filters.some(([, , value]) => value === "beta"))).toBe(false);
+    await expect(getMvpDashboardData({ programId: "p2", courseSlug: "beta" })).rejects.toThrow("selected course is unavailable");
+  });
+  it("fails visibly when hidden courses cannot be loaded", async () => {
+    db.fail = (request) => request.table === "hidden_courses";
+    await expect(getMvpDashboardData({})).rejects.toThrow("Unable to load hidden courses");
+  });
   it("fails visibly when income data cannot be loaded", async () => {
     db.fail = (request) => request.table === "survey_responses";
-    await expect(getMvpDashboardData({})).rejects.toThrow("Unable to load complete household-income data");
+    await expect(getMvpDashboardData({}, { includeDemographics: true })).rejects.toThrow("Unable to load complete household-income data");
   });
   it("keeps missing locations in all-location totals but not selected-location totals", async () => {
     (db.tables.student_tracks[0].students as Row).location = "Boston";
