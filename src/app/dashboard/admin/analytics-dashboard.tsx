@@ -8,6 +8,7 @@ import { METRIC_DEFS } from "@/lib/analytics/metric-defs";
 import { RANGE_LABELS, type RangePreset, type Delta } from "@/lib/analytics/period";
 import { buttonClass, DataTable, microLabel, Num, PersonCell } from "@/components/ui";
 import { formatShortDate } from "@/lib/utils";
+import { downloadCsv, fileSlug } from "@/lib/csv";
 
 // Turn a period-over-period Delta into a StatCard trend chip. No chip when the
 // prior window was zero — an "∞%" jump is noise, not signal, so we stay silent
@@ -225,7 +226,7 @@ export function AnalyticsDashboard({
             />
             <button
               type="button"
-              onClick={() => downloadCsv(filtered, data.programName, track, trackName, trackNames, hiddenSlugs)}
+              onClick={() => downloadEngagementCsv(filtered, data.programName, track, trackName, trackNames, hiddenSlugs)}
               disabled={filtered.length === 0}
               className={buttonClass("secondary", "sm")}
             >
@@ -352,12 +353,10 @@ function surveyTitle(type: string): string {
   );
 }
 
-// Client-side CSV of the (filtered) learner rows — lets staff hand off
-// engagement data without re-running the export scripts. Quotes every field so
-// commas/quotes in names don't break columns.
-function downloadCsv(learners: EngagementLearner[], programName: string, track: string, trackName: string | null, trackNames: Map<string, string>, hiddenSlugs: Set<string>) {
+// Client-side CSV of the (filtered) learner rows: lets staff hand off
+// engagement data without re-running the export scripts.
+function downloadEngagementCsv(learners: EngagementLearner[], programName: string, track: string, trackName: string | null, trackNames: Map<string, string>, hiddenSlugs: Set<string>) {
   const header = ["Name", "Email", "Courses", "ZIP", "State", "Birthday", "Age", "Signed up", "Last active", "Videos", "Attended", "Submitted", "Surveys"];
-  const esc = (v: string | number | null) => `"${String(v ?? "").replace(/"/g, '""')}"`;
   // Match the table: when a track is selected, export that track's counts, not
   // the learner's program-wide totals.
   const rows = learners.map((l) => {
@@ -366,20 +365,9 @@ function downloadCsv(learners: EngagementLearner[], programName: string, track: 
       .filter((slug) => !hiddenSlugs.has(slug))
       .map((slug) => trackNames.get(slug) ?? slug)
       .join("; ");
-    return [l.name, l.email, courses, l.zip, l.state, l.dateOfBirth, l.age, l.signedUp, l.lastActive, c.videosWatched, c.attended, c.submitted, l.surveys]
-      .map(esc)
-      .join(",");
+    return [l.name, l.email, courses, l.zip, l.state, l.dateOfBirth, l.age, l.signedUp, l.lastActive, c.videosWatched, c.attended, c.submitted, l.surveys];
   });
-  const csv = [header.map(esc).join(","), ...rows].join("\n");
   // Name the file after the scope actually exported (program, or the selected
   // track) so a track-filtered download isn't mistaken for the whole program.
-  const slugify = (v: string) => v.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-  const slug = slugify(trackName || programName);
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${slug || "program"}-engagement.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  downloadCsv(`${fileSlug(trackName || programName) || "program"}-engagement.csv`, header, rows);
 }

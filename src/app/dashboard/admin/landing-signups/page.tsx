@@ -10,7 +10,7 @@ import { PageHeader } from "@/components/page-header";
 import { DataTable } from "@/components/ui";
 import { ManageMenu } from "../manage-menu";
 import { CopyLinkButton } from "./copy-link-button";
-import { DownloadCsvButton } from "./download-csv-button";
+import { DownloadCsvButton } from "@/components/download-csv-button";
 import { CourseSelect } from "./course-select";
 
 export const dynamic = "force-dynamic";
