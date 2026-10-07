@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/page-header";
 import { DataTable } from "@/components/ui";
 import { ManageMenu } from "../manage-menu";
 import { CopyLinkButton } from "./copy-link-button";
+import { DownloadCsvButton } from "./download-csv-button";
 import { CourseSelect } from "./course-select";
 
 export const dynamic = "force-dynamic";
@@ -249,6 +250,18 @@ export default async function SignupsPage({
   const fmt = (iso: string) =>
     new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
   const origin = "https://bccacademy.io";
+  const STAGE_LABEL: Record<Stage, string> = { enrolled: "Enrolled", "signed-in": "Signed in", waiting: "Waiting" };
+  // The export is the people to contact: what the filters show, minus internal tests.
+  const csvHeader = ["Name", "Email", ...(sessionOptions.length > 0 ? ["Session"] : []), "Signed up", "Heard about", "Status"];
+  const csvRows = real.map(({ r, stage, name }) => [
+    name ?? "",
+    r.email,
+    ...(sessionOptions.length > 0 ? [(r.sessions ?? []).map(sessionLabel).join("; ")] : []),
+    fmt(r.at),
+    r.heardAbout ?? "",
+    STAGE_LABEL[stage],
+  ]);
+  const csvName = `${course ?? "signups"}${session ? `-${session}` : ""}-signups.csv`;
 
   return (
     <div className="mx-auto w-full max-w-4xl px-4 sm:px-5 py-8 space-y-6">
@@ -287,6 +300,12 @@ export default async function SignupsPage({
             >
               Open roster
             </Link>
+            {real.length > 0 && (
+              <>
+                {" · "}
+                <DownloadCsvButton fileName={csvName} header={csvHeader} rows={csvRows} />
+              </>
+            )}
             {coursePages.map((p) => (
               <span key={p.slug}>
                 {" · "}
