@@ -113,6 +113,7 @@ export function TrackView({
     // Launch-readiness accordion — collapsed by default so the checks never push
     // the course view down; the badge in the header still shows red/green.
     const [readinessOpen, setReadinessOpen] = useState(false);
+    const [statusOpen, setStatusOpen] = useState(false);
     const [readinessSending, setReadinessSending] = useState(false);
     const [readinessResult, setReadinessResult] = useState<string | null>(null);
     const [trackView, setTrackView] = useState<
@@ -166,9 +167,9 @@ export function TrackView({
       ? "TBD"
       : formatCohortDate(activeTrack.startDate, { month: "short", day: "numeric" }, "en-US");
     const sidebar = courseNeeds[activeTrack.slug] ?? { needs: [], next: null };
-    const hasRightBar = sidebar.needs.length > 0 || sidebar.next !== null;
+    const hasStatus = sidebar.needs.length > 0 || sidebar.next !== null;
     return (
-    <div className={`space-y-4 ${hasRightBar ? "lg:relative lg:pr-[304px]" : ""}`}>
+    <div className="space-y-4">
       {/* Back to Admin home */}
       <BackLink href="/dashboard/admin" label="Admin" />
 
@@ -178,48 +179,61 @@ export function TrackView({
         subtitle={`with ${liveTrackNames[activeTrack.slug]?.instructor ?? activeTrack.instructor} · ${activeTrack.sessionTimes.join(" & ")}`}
       />
 
-      {/* Right bar: what needs an admin, and what's next. Beside the
-         content from lg up (absolute within the padded container, sticky
-         inside); stacked under the header below that. */}
-      {hasRightBar && (
-        <aside className="lg:absolute lg:inset-y-0 lg:right-0 lg:w-[280px]">
-          <div className="space-y-4 lg:sticky lg:top-4">
-            {sidebar.needs.length > 0 && (
-              <div className="panel overflow-hidden">
-                <div className="flex items-center justify-between gap-3 border-b border-rule-soft px-4 py-2.5">
-                  <p className="text-micro font-semibold uppercase tracking-[0.16em] text-ink-faint">Needs you</p>
-                  <span className="rounded-full bg-amber-50 px-2 py-0.5 text-micro font-medium text-amber-800">
-                    {sidebar.needs.length}
-                  </span>
+      {/* Status line: what needs an admin, and what's next. One quiet line,
+         closed by default; opens in place for the detail. */}
+      {hasStatus && (
+        <div className="panel overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setStatusOpen((v) => !v)}
+            aria-expanded={statusOpen}
+            className={`flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left transition-colors hover:bg-paper-tint-soft ${statusOpen ? "border-b border-rule-soft" : ""}`}
+          >
+            <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-sm">
+              {sidebar.needs.length > 0 && (
+                <span className="flex items-center gap-2 font-medium text-amber-800">
+                  <span aria-hidden className="h-2 w-2 shrink-0 rounded-full bg-amber-500" />
+                  {sidebar.needs.length} needs you
+                </span>
+              )}
+              {sidebar.needs.length > 0 && sidebar.next && (
+                <span aria-hidden className="hidden text-ink-faint sm:inline">·</span>
+              )}
+              {sidebar.next && (
+                <span className="min-w-0 max-w-full truncate text-ink-soft">
+                  Next: <span className="text-ink">{sidebar.next.title}</span>, {sidebar.next.when} ({sidebar.next.away})
+                </span>
+              )}
+            </span>
+            <ChevronDown
+              size={14}
+              aria-hidden
+              className={`shrink-0 text-ink-faint transition-transform ${statusOpen ? "rotate-180" : ""}`}
+            />
+          </button>
+          {statusOpen && (
+            <div className="divide-y divide-rule-soft">
+              {sidebar.needs.map((n) => (
+                <div key={n.label} className="flex items-start gap-3 px-4 py-2.5">
+                  <span aria-hidden className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-amber-500" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm text-ink">{n.label}</p>
+                    <p className="text-micro text-ink-faint">{n.detail}</p>
+                  </div>
                 </div>
-                <div className="divide-y divide-rule-soft">
-                  {sidebar.needs.map((n) => (
-                    <div key={n.label} className="flex items-start gap-3 px-4 py-2.5">
-                      <span aria-hidden className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-amber-500" />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm text-ink">{n.label}</p>
-                        <p className="text-micro text-ink-faint">{n.detail}</p>
-                      </div>
-                    </div>
-                  ))}
+              ))}
+              {sidebar.next && (
+                <div className="px-4 py-2.5">
+                  <p className="text-sm text-ink">
+                    {sidebar.next.hasZoom ? "Zoom link set" : "No Zoom link yet"}
+                    {sidebar.next.autoRecord === "cloud" && " · auto-record on"}
+                  </p>
+                  <p className="text-micro text-ink-faint">For the next session</p>
                 </div>
-              </div>
-            )}
-            {sidebar.next && (
-              <div className="panel px-4 py-3">
-                <p className="text-micro font-semibold uppercase tracking-[0.16em] text-ink-faint">Next session</p>
-                <p className="mt-1.5 text-sm font-semibold text-ink">{sidebar.next.title}</p>
-                <p className="text-micro text-ink-soft">
-                  {sidebar.next.when} · {sidebar.next.away}
-                </p>
-                <p className="mt-2 text-micro text-ink-faint">
-                  {sidebar.next.hasZoom ? "Zoom link set" : "No Zoom link yet"}
-                  {sidebar.next.autoRecord === "cloud" && " · auto-record on"}
-                </p>
-              </div>
-            )}
-          </div>
-        </aside>
+              )}
+            </div>
+          )}
+        </div>
       )}
 
       {/* Launch readiness — only rendered near a start date. Live checks
