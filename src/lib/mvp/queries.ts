@@ -21,8 +21,11 @@ import { loadMvpSurveyOutcomes, type MvpSurveyOutcomeGroup } from "./survey-quer
 
 // This data slice accepts program/course/profile-location filters. Unsupported
 // filters are rejected instead of labeling unfiltered results as filtered.
+// Birth dates and household income are sensitive and nothing renders them yet,
+// so they are read only when a caller asks for the demographic summaries.
 export async function getMvpDashboardData(
   params: Record<string, string | string[] | undefined>,
+  { includeDemographics = false }: { includeDemographics?: boolean } = {},
 ): Promise<MvpDashboardData> {
   const context = await getSessionContext();
   const role = context?.student?.role ?? "student";
@@ -69,7 +72,9 @@ async function loadMvpLearnerIds(
   while (true) {
     let query = db
       .from("student_tracks")
-      .select("id, student_id, students!inner(id, location, date_of_birth)")
+      .select(includeDemographics
+        ? "id, student_id, students!inner(id, location, date_of_birth)"
+        : "id, student_id, students!inner(id, location)")
       .eq("track_slug", courseSlug)
       .eq("program_id", courseProgramId)
       .eq("students.role", "student")
@@ -101,7 +106,7 @@ async function loadMvpLearnerIds(
       if (learnerLocation) availableLocations.add(learnerLocation);
       if (!location || learnerLocation === location) {
         learnerIds.add(enrollment.student_id);
-        demographicLearners.set(enrollment.student_id, { id: enrollment.student_id,
+        if (includeDemographics) demographicLearners.set(enrollment.student_id, { id: enrollment.student_id,
           dateOfBirth: typeof profile?.date_of_birth === "string" ? profile.date_of_birth : null });
       }
     }
@@ -228,6 +233,11 @@ async function loadMvpCourseRecords(
   // Rows are course aggregates; cohort metrics are not inferred from profiles.
   const rows: MvpProgramRow[] = [];
   const configs = getEveryProgramConfig();
+  // Hiding is global per course slug (see getHiddenTrackSlugs); read it here
+  // so a failed lookup errors instead of quietly showing retired courses.
+  const hidden = await db.from("hidden_courses").select("track_slug");
+  if (hidden.error) throw new Error("Unable to load hidden courses.");
+  const hiddenSlugs = new Set((hidden.data ?? []).map((row) => row.track_slug as string));
   for (const program of programs) {
     const overrides = await db.from("track_overrides")
       .select("track_slug, name, start_date").eq("program_id", program.id);
@@ -248,7 +258,7 @@ async function loadMvpCourseRecords(
     }
     const trackScope = role === "super_admin" ? null : allowedTrackSlugs(homeId, mvpGrants, program.id);
     for (const [slug, course] of courses) {
-      if (trackScope && !trackScope.includes(slug)) continue;
+      if (hiddenSlugs.has(slug) || (trackScope && !trackScope.includes(slug))) continue;
       rows.push({
         id: `${program.id}:${slug}`, programId: program.id, programName: program.name,
         courseSlug: slug, courseName: course.name, cohortId: null, cohortName: null,
@@ -394,7 +404,7 @@ for (const row of selectedRows) {
   // Deduplicate across courses, but query each program with its own roster so
   // multi-program enrollment cannot broaden the response access boundary.
   const incomeResponses: MvpIncomeResponse[] = [];
-  for (const id of new Set(selectedRows.map((row) => row.programId))) {
+  for (const id of includeDemographics ? new Set(selectedRows.map((row) => row.programId)) : []) {
     const ids = [...new Set(selectedRows.filter((row) => row.programId === id).flatMap((row) =>
       row.courseSlug ? courseRecords.get(`${row.programId}:${row.courseSlug}`)?.learnerIds ?? [] : []))];
     incomeResponses.push(...await loadMvpIncome(db, id, ids));
@@ -414,8 +424,8 @@ for (const row of selectedRows) {
       ...startSummary, ...completionSummary, upcomingEnrollments,
     },
     programs: selectedRows, commitments: [], checkInEvaluations, surveyOutcomes,
-    demographics: [calculateMvpAges([...demographicLearners.values()], asOf),
-      calculateMvpIncome([...demographicLearners.keys()], incomeResponses)],
+    ...(includeDemographics && { demographics: [calculateMvpAges([...demographicLearners.values()], asOf),
+      calculateMvpIncome([...demographicLearners.keys()], incomeResponses)] }),
     freshness: { fetchedAt: new Date().toISOString(), sourceUpdatedAt: null, lastValidatedAt: null, lastValidatedBy: null },
     metricDefinitions: [
       { key: "uniqueLearnersCompleted", label: "Learners with a course completion", denominator: null,
