@@ -145,10 +145,13 @@ export async function setApplicationOpenAction(
 
 /** Review decision. Accepting also allowlists the applicant for the linked
  *  course, so they can sign in the moment they get the news — and they start
- *  showing up on the Signups page like any other registrant. */
+ *  showing up on the Signups page like any other registrant. `notify: false`
+ *  accepts and allowlists without sending the acceptance email, for staff who
+ *  tell people themselves. */
 export async function setSubmissionStatusAction(
   submissionId: string,
   status: SubmissionStatus,
+  { notify = true }: { notify?: boolean } = {},
 ): Promise<{ ok: boolean; error?: string }> {
   const actor = await requireReviewer();
   const { svc, email: reviewer } = actor;
@@ -199,7 +202,7 @@ export async function setSubmissionStatusAction(
 
   // The acceptance email, once — flipping someone accepted → waitlisted →
   // accepted again shouldn't congratulate them twice.
-  if (status === "accepted" && !wasAccepted && sub.applications) {
+  if (status === "accepted" && notify && !wasAccepted && sub.applications) {
     const applicationTitle = sub.applications.title;
     let joinUrl: string | undefined;
     if (trackSlug) {
