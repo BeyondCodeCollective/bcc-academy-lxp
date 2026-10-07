@@ -3,7 +3,7 @@ import "server-only";
 import { getEveryProgramConfig } from "@/lib/programs";
 import type { ProgramConfig, TrackConfig } from "@/lib/programs/types";
 import type { createServiceClient } from "@/lib/supabase/server";
-import { sendCertificateEmail } from "@/lib/email";
+import { sendCertificateEmail, sendCertificatePdfToStaff } from "@/lib/email";
 import { listDriveFileNames, uploadPdfToDrive } from "@/lib/google-drive";
 import { loadCertificate } from "./data";
 import { certificateFileName, renderCertificatePdf } from "./pdf";
@@ -60,6 +60,27 @@ export async function fileCertificateToDrive(certificateId: string): Promise<{ o
   return res.ok ? { ok: true } : { ok: false, error: res.error };
 }
 
+/** Email the PDF to CERTIFICATE_NOTIFY_EMAIL so a person knows a certificate
+ *  was issued and can file it. Never blocks or fails the issue. */
+async function copyToStaff(certificateId: string, programName: string, courseName: string): Promise<void> {
+  const to = process.env.CERTIFICATE_NOTIFY_EMAIL;
+  if (!to) return;
+  try {
+    const cert = await loadCertificate(certificateId);
+    if (!cert) return;
+    await sendCertificatePdfToStaff({
+      to,
+      studentName: cert.studentName,
+      courseName,
+      programName,
+      fileName: certificateFileName(cert),
+      pdf: await renderCertificatePdf(cert),
+    });
+  } catch (e) {
+    console.error("[auto-certificate] staff copy failed", certificateId, e);
+  }
+}
+
 /** Issue, email and file a certificate for a learner already known to have
  *  finished. Returns the new certificate id, or null when they already had one. */
 async function issueFor(svc: Svc, program: ProgramConfig, track: TrackConfig, pid: string, studentId: string) {
@@ -99,8 +120,11 @@ async function issueFor(svc: Svc, program: ProgramConfig, track: TrackConfig, pi
       console.error("[auto-certificate] email failed", row.certificate_id, e);
     }
   }
-  const filed = await fileCertificateToDrive(row.certificate_id);
-  if (!filed.ok) console.error("[auto-certificate] drive filing failed", row.certificate_id, filed.error);
+  await copyToStaff(row.certificate_id, program.name, track.certificateName ?? track.name);
+  if (process.env.CERTIFICATES_DRIVE_FOLDER_ID) {
+    const filed = await fileCertificateToDrive(row.certificate_id);
+    if (!filed.ok) console.error("[auto-certificate] drive filing failed", row.certificate_id, filed.error);
+  }
   return row.certificate_id;
 }
 

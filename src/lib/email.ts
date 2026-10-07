@@ -324,6 +324,38 @@ ${programName}`,
   }
 }
 
+/** A staff copy of a certificate PDF, sent when one is issued automatically,
+ *  so it can be filed or forwarded (e.g. to a partner). Plain text on
+ *  purpose: the attachment is the point. */
+export async function sendCertificatePdfToStaff({
+  to,
+  studentName,
+  courseName,
+  programName,
+  fileName,
+  pdf,
+}: {
+  to: string;
+  studentName: string;
+  courseName: string;
+  programName: string;
+  fileName: string;
+  pdf: Buffer;
+}): Promise<void> {
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY not set, skipping certificate PDF copy");
+    return;
+  }
+  const { error } = await resend.emails.send({
+    from: FROM_ADDRESS,
+    to,
+    subject: `Certificate issued: ${studentName}, ${courseName}`,
+    text: `${studentName} finished ${courseName} (${programName}). Their certificate was issued and emailed to them. The PDF is attached.`,
+    attachments: [{ filename: fileName, content: pdf }],
+  });
+  if (error) console.error("[email] sendCertificatePdfToStaff failed:", JSON.stringify(error));
+}
+
 /** Human-readable "when" for an event, in its own timezone with a tz label
  *  (e.g. "Thursday, July 9 · 2:00 PM EDT"). Falls back to UTC if no tz. */
 function formatEventWhen(startUtc: string | null, timezone: string | null): string | null {

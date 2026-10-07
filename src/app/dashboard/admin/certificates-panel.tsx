@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Medal as Award, Check, Copy, ArrowSquareOut as ExternalLink, CircleNotch as Loader2, Envelope as Mail } from "@phosphor-icons/react";
+import { Medal as Award, Check, Copy, ArrowSquareOut as ExternalLink, CircleNotch as Loader2, Envelope as Mail, DownloadSimple as Download } from "@phosphor-icons/react";
 import {
   getCertificateEligibility,
   getTrackCompletions,
@@ -322,6 +322,14 @@ export function CertificatesPanel({
                             className="rounded-lg p-1.5 text-ink-soft transition-colors hover:bg-paper-tint hover:text-ink"
                           >
                             <ExternalLink size={14} />
+                          </a>
+                          <a
+                            href={`/api/certificates/${completion.certificate_id}/pdf`}
+                            title="Download PDF"
+                            aria-label="Download PDF"
+                            className="rounded-lg p-1.5 text-ink-soft transition-colors hover:bg-paper-tint hover:text-ink"
+                          >
+                            <Download size={14} />
                           </a>
                           <button
                             onClick={() => copyLink(completion.certificate_id)}
