@@ -16,6 +16,7 @@ import { StatCard } from "@/components/stats/stat-card";
 import { SectionHeadline } from "@/components/stats/section-headline";
 import { ThresholdLegend, TONE_CHIP, TONE_DOT, type StatusTone } from "@/components/stats/status";
 import { buttonClass, microLabel } from "@/components/ui";
+import { downloadCsv } from "@/lib/csv";
 
 type AttendanceTabProps = {
   students: StudentRow[];
@@ -281,9 +282,7 @@ export function AttendanceTab({ students, tracks, enrollments, scopeLabel, embed
       "Sessions Expected",
       "Consecutive Misses",
       "Status",
-    ].join(",");
-    const q = (v: string | number | null | undefined) =>
-      `"${String(v ?? "").replace(/"/g, '""')}"`;
+    ];
     const rows = summaries.map((s) => {
       const name =
         s.student.first_name && s.student.last_name
@@ -291,27 +290,20 @@ export function AttendanceTab({ students, tracks, enrollments, scopeLabel, embed
           : s.student.email;
       const trackRates = tracks.map((t) => s.byTrack[t.slug]?.rate ?? "—");
       return [
-        q(name),
+        name,
         s.student.email,
-        q(s.student.zip),
-        q(s.student.state),
-        q(s.student.date_of_birth),
+        s.student.zip,
+        s.student.state,
+        s.student.date_of_birth,
         ...trackRates,
         s.rate,
         s.attended,
         s.expected,
         s.consecutiveMisses,
         STATUS_LABEL[s.status]?.label ?? s.status,
-      ].join(",");
+      ];
     });
-    const csv = [header, ...rows].join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${filenameSlug || "attendance"}-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadCsv(`${filenameSlug || "attendance"}-${new Date().toISOString().slice(0, 10)}.csv`, header, rows);
   }
 
   if (tracks.length === 0) {
