@@ -6,6 +6,7 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { getProgramId } from "@/lib/programs/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { logActivityEvent } from "@/lib/analytics/log-event";
+import { autoIssueIfFinished } from "@/lib/certificates/auto";
 import { revalidatePath } from "next/cache";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -300,6 +301,8 @@ export async function markVideoWatched(trackSlug: string, weekNumber: number) {
     trackSlug,
     metadata: { week: weekNumber, percent: 100 },
   }));
+  // Tracks with autoCertificate issue the certificate on the last video.
+  after(() => autoIssueIfFinished(svc, userId, trackSlug));
 
   revalidatePath(`/dashboard/track/${trackSlug}/${weekNumber}`);
   return { success: true };

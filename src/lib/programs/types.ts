@@ -288,6 +288,13 @@ export type TrackConfig = {
    * unambiguous and machine-checkable.
    */
   selfCompletable?: boolean;
+  /**
+   * Issue the certificate automatically once a learner has marked every
+   * week's video watched, email it, and file a PDF copy to the Drive folder in
+   * CERTIFICATES_DRIVE_FOLDER_ID. For self-paced video courses only, where
+   * watching all of it is the agreed bar (Forte: the partner asked for it).
+   */
+  autoCertificate?: boolean;
 };
 
 export type ProgramColors = {
