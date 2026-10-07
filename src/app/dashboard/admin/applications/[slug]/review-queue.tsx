@@ -47,11 +47,11 @@ export function ReviewQueue({
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function decide(id: string, status: SubmissionStatus) {
+  async function decide(id: string, status: SubmissionStatus, notify = true) {
     setBusy(id);
     setError(null);
     try {
-      const res = await setSubmissionStatusAction(id, status);
+      const res = await setSubmissionStatusAction(id, status, { notify });
       if (!res.ok) setError(res.error ?? "Could not update the submission.");
     } catch {
       setError("Could not update the submission. Please try again.");
@@ -146,10 +146,26 @@ export function ReviewQueue({
                 <button
                   type="button"
                   disabled={busy === s.id || s.status === "accepted"}
-                  onClick={() => decide(s.id, "accepted")}
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        `Email ${s.fullName ?? s.email} their acceptance and give them access? The email goes out right away.`,
+                      )
+                    ) {
+                      decide(s.id, "accepted");
+                    }
+                  }}
                   className={buttonClass("primary", "sm")}
                 >
-                  Accept
+                  Accept and email
+                </button>
+                <button
+                  type="button"
+                  disabled={busy === s.id || s.status === "accepted"}
+                  onClick={() => decide(s.id, "accepted", false)}
+                  className={buttonClass("secondary", "sm")}
+                >
+                  Accept without email
                 </button>
                 <button
                   type="button"
@@ -173,6 +189,10 @@ export function ReviewQueue({
                   </span>
                 )}
               </div>
+              <p className="text-micro text-ink-faint">
+                Accept and email sends the acceptance email with the join link and gives access. Accept without
+                email gives access and sends nothing. Waitlist and Decline never email anyone.
+              </p>
             </div>
           </details>
         ))
