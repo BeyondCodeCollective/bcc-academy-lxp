@@ -30,12 +30,15 @@ import { createSign } from "node:crypto";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const SCOPE = "https://www.googleapis.com/auth/drive";
 
+/** The service account itself. The certificate filing needs only this (its
+ *  folder comes from CERTIFICATES_DRIVE_FOLDER_ID). */
+function driveCredentials(): boolean {
+  return Boolean(process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_PRIVATE_KEY);
+}
+
+/** Recording uploads: the service account plus its recordings folder. */
 export function driveConfigured(): boolean {
-  return Boolean(
-    process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL &&
-      process.env.GOOGLE_PRIVATE_KEY &&
-      process.env.GOOGLE_DRIVE_FOLDER_ID,
-  );
+  return driveCredentials() && Boolean(process.env.GOOGLE_DRIVE_FOLDER_ID);
 }
 
 function base64url(input: string | Buffer): string {
@@ -49,7 +52,7 @@ function base64url(input: string | Buffer): string {
 let cached: { token: string; expiresAt: number } | null = null;
 
 export async function driveToken(): Promise<string | null> {
-  if (!driveConfigured()) return null;
+  if (!driveCredentials()) return null;
   if (cached && Date.now() < cached.expiresAt) return cached.token;
 
   // Env vars can't hold real newlines, so the PEM arrives with literal \n.
