@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ email: vi.fn(), upload: vi.fn(), list: vi.fn() }));
+const mocks = vi.hoisted(() => ({ email: vi.fn(), staff: vi.fn(), upload: vi.fn(), list: vi.fn() }));
 vi.mock("server-only", () => ({}));
-vi.mock("@/lib/email", () => ({ sendCertificateEmail: mocks.email }));
+vi.mock("@/lib/email", () => ({ sendCertificateEmail: mocks.email, sendCertificatePdfToStaff: mocks.staff }));
 vi.mock("@/lib/google-drive", () => ({ uploadPdfToDrive: mocks.upload, listDriveFileNames: mocks.list }));
 vi.mock("./data", () => ({
   loadCertificate: async (id: string) => ({
@@ -63,6 +63,7 @@ function forte(extra: Partial<Record<string, Row[]>> = {}) {
 beforeEach(() => {
   vi.clearAllMocks();
   process.env.CERTIFICATES_DRIVE_FOLDER_ID = "folder";
+  delete process.env.CERTIFICATE_NOTIFY_EMAIL;
   mocks.upload.mockResolvedValue({ ok: true, fileId: "f" });
   mocks.list.mockResolvedValue([]);
 });
@@ -74,6 +75,22 @@ describe("autoIssueIfFinished", () => {
     expect(t.track_completions).toHaveLength(1);
     expect(mocks.email).toHaveBeenCalledWith(expect.objectContaining({ to: "ada@example.com", programName: "Upskill Bahamas" }));
     expect(mocks.upload).toHaveBeenCalledTimes(1);
+  });
+
+  it("emails the PDF to staff when CERTIFICATE_NOTIFY_EMAIL is set, and skips Drive when no folder is set", async () => {
+    process.env.CERTIFICATE_NOTIFY_EMAIL = "staff@example.com";
+    delete process.env.CERTIFICATES_DRIVE_FOLDER_ID;
+    const t = forte();
+    await autoIssueIfFinished(fakeSvc(t), "done", "ai-literacy");
+    expect(mocks.staff).toHaveBeenCalledWith(
+      expect.objectContaining({ to: "staff@example.com", studentName: "Ada Lovelace", fileName: expect.stringMatching(/\.pdf$/) }),
+    );
+    expect(mocks.upload).not.toHaveBeenCalled();
+  });
+
+  it("sends no staff copy when it is not configured", async () => {
+    await autoIssueIfFinished(fakeSvc(forte()), "done", "ai-literacy");
+    expect(mocks.staff).not.toHaveBeenCalled();
   });
 
   it("does nothing at 9 of 10, for staff, or for a track that does not opt in", async () => {
