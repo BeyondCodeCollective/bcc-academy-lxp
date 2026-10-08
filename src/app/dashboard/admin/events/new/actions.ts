@@ -19,8 +19,47 @@ export type NewEventInput = {
   capacity: string; // "" = unlimited
   maxAttendees: string;
   waitlistEnabled: boolean;
-  status: "draft" | "open";
+  status: "draft" | "open" | "closed";
 };
+
+function validate(input: NewEventInput): { ok: true; row: Record<string, unknown> } | { ok: false; error: string } {
+  const title = input.title.trim();
+  const slug = input.slug.trim().toLowerCase();
+  if (!title) return { ok: false, error: "Enter a title." };
+  if (!/^[a-z0-9-]{3,64}$/.test(slug)) return { ok: false, error: "Slug: lowercase letters, numbers, and dashes only." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.date) || !/^\d{2}:\d{2}$/.test(input.startTime)) {
+    return { ok: false, error: "Enter a date and start time." };
+  }
+  if (input.endTime && !/^\d{2}:\d{2}$/.test(input.endTime)) return { ok: false, error: "End time looks wrong." };
+  if (!(EVENT_TIMEZONES as readonly string[]).includes(input.timezone)) return { ok: false, error: "Pick a timezone." };
+  const capacity = input.capacity.trim() === "" ? null : Number(input.capacity);
+  if (capacity != null && (!Number.isInteger(capacity) || capacity < 1)) return { ok: false, error: "Capacity must be a whole number." };
+  const maxAttendees = Number(input.maxAttendees);
+  if (!Number.isInteger(maxAttendees) || maxAttendees < 1 || maxAttendees > 10) {
+    return { ok: false, error: "Attendees per registration must be between 1 and 10." };
+  }
+  if (!["draft", "open", "closed"].includes(input.status)) return { ok: false, error: "Pick a status." };
+  const startsAt = zonedToUtc(input.date, input.startTime, input.timezone);
+  const endsAt = input.endTime ? zonedToUtc(input.date, input.endTime, input.timezone) : null;
+  if (endsAt && endsAt <= startsAt) return { ok: false, error: "End time must be after the start time." };
+  return {
+    ok: true,
+    row: {
+      slug,
+      title,
+      description: input.description.trim() || null,
+      starts_at: startsAt,
+      ends_at: endsAt,
+      timezone: input.timezone,
+      location: input.location.trim() || null,
+      join_url: input.joinUrl.trim() || null,
+      capacity,
+      max_attendees_per_registration: maxAttendees,
+      waitlist_enabled: input.waitlistEnabled,
+      status: input.status,
+    },
+  };
+}
 
 /** Local wall clock in an IANA zone → UTC ISO. Two-pass offset estimate handles DST. */
 function zonedToUtc(date: string, time: string, timeZone: string): string {
@@ -48,44 +87,12 @@ function zonedToUtc(date: string, time: string, timeZone: string): string {
 export async function createEvent(input: NewEventInput): Promise<{ ok: false; error: string } | never> {
   const { svc } = await requireManager();
   const programId = await getProgramId();
-
-  const title = input.title.trim();
-  const slug = input.slug.trim().toLowerCase();
-  if (!title) return { ok: false, error: "Enter a title." };
-  if (!/^[a-z0-9-]{3,64}$/.test(slug)) return { ok: false, error: "Slug: lowercase letters, numbers, and dashes only." };
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.date) || !/^\d{2}:\d{2}$/.test(input.startTime)) {
-    return { ok: false, error: "Enter a date and start time." };
-  }
-  if (input.endTime && !/^\d{2}:\d{2}$/.test(input.endTime)) return { ok: false, error: "End time looks wrong." };
-  if (!(EVENT_TIMEZONES as readonly string[]).includes(input.timezone)) return { ok: false, error: "Pick a timezone." };
-  const capacity = input.capacity.trim() === "" ? null : Number(input.capacity);
-  if (capacity != null && (!Number.isInteger(capacity) || capacity < 1)) return { ok: false, error: "Capacity must be a whole number." };
-  const maxAttendees = Number(input.maxAttendees);
-  if (!Number.isInteger(maxAttendees) || maxAttendees < 1 || maxAttendees > 10) {
-    return { ok: false, error: "Attendees per registration must be between 1 and 10." };
-  }
-
-  const startsAt = zonedToUtc(input.date, input.startTime, input.timezone);
-  const endsAt = input.endTime ? zonedToUtc(input.date, input.endTime, input.timezone) : null;
-  if (endsAt && endsAt <= startsAt) return { ok: false, error: "End time must be after the start time." };
+  const v = validate(input);
+  if (!v.ok) return v;
 
   const { data, error } = await svc
     .from("events")
-    .insert({
-      program_id: programId,
-      slug,
-      title,
-      description: input.description.trim() || null,
-      starts_at: startsAt,
-      ends_at: endsAt,
-      timezone: input.timezone,
-      location: input.location.trim() || null,
-      join_url: input.joinUrl.trim() || null,
-      capacity,
-      max_attendees_per_registration: maxAttendees,
-      waitlist_enabled: input.waitlistEnabled,
-      status: input.status,
-    })
+    .insert({ program_id: programId, ...v.row })
     .select("id")
     .single<{ id: string }>();
   if (error || !data) {
@@ -96,4 +103,28 @@ export async function createEvent(input: NewEventInput): Promise<{ ok: false; er
 
   revalidatePath("/dashboard/admin/events");
   redirect(`/dashboard/admin/events/${data.id}`);
+}
+
+export async function updateEvent(eventId: string, input: NewEventInput): Promise<{ ok: false; error: string } | never> {
+  const { svc } = await requireManager();
+  const programId = await getProgramId();
+  const v = validate(input);
+  if (!v.ok) return v;
+
+  const { data, error } = await svc
+    .from("events")
+    .update({ ...v.row, updated_at: new Date().toISOString() })
+    .eq("id", eventId)
+    .eq("program_id", programId)
+    .select("id")
+    .maybeSingle<{ id: string }>();
+  if (error || !data) {
+    if (error?.code === "23505") return { ok: false, error: "An event with that slug already exists in this program." };
+    console.error("[updateEvent] update failed:", error);
+    return { ok: false, error: "Could not save the event." };
+  }
+
+  revalidatePath("/dashboard/admin/events");
+  revalidatePath(`/dashboard/admin/events/${eventId}`);
+  redirect(`/dashboard/admin/events/${eventId}`);
 }

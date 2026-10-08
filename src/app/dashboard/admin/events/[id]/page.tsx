@@ -24,6 +24,7 @@ type AttendeeRow = {
   ticket_code: string;
   status: string;
   created_at: string;
+  student_id: string | null;
   event_registrations: {
     parent_first_name: string;
     parent_last_name: string;
@@ -55,7 +56,7 @@ export default async function EventRosterPage({ params }: { params: Promise<{ id
   const { data: attendees } = await svc
     .from("event_attendees")
     .select(
-      "id, first_name, last_name, grade, tshirt_size, allergies, ticket_code, status, created_at, event_registrations(parent_first_name, parent_last_name, parent_email, parent_phone)",
+      "id, first_name, last_name, grade, tshirt_size, allergies, ticket_code, status, created_at, student_id, event_registrations(parent_first_name, parent_last_name, parent_email, parent_phone)",
     )
     .eq("event_id", event.id)
     .order("created_at", { ascending: true });
@@ -89,6 +90,12 @@ export default async function EventRosterPage({ params }: { params: Promise<{ id
               <Download size={14} />
               Export CSV
             </a>
+            <Link href={`/dashboard/admin/events/${event.id}/edit`} className={buttonClass("secondary", "sm")}>
+              Edit
+            </Link>
+            <Link href={`/dashboard/admin/events/${event.id}/import`} className={buttonClass("secondary", "sm")}>
+              Import
+            </Link>
             <ManageMenu isMaster={canManageRoles(ctx.userEmail)} />
           </div>
         }
@@ -136,6 +143,14 @@ export default async function EventRosterPage({ params }: { params: Promise<{ id
                   <span className="font-medium">
                     {r.first_name} {r.last_name}
                   </span>
+                  {r.student_id && (
+                    <Link
+                      href={`/dashboard/admin/events/learner/${r.student_id}`}
+                      className="ml-2 inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-micro font-semibold text-primary no-underline hover:bg-primary/20"
+                    >
+                      Learner
+                    </Link>
+                  )}
                   {r.allergies && !cancelled && (
                     <div className="text-xs text-ink-soft no-underline">Allergies: {r.allergies}</div>
                   )}

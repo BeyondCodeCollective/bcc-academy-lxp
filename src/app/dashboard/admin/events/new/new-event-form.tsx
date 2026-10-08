@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { buttonClass } from "@/components/ui";
 import { EVENT_TIMEZONES } from "@/lib/events";
-import { createEvent, type NewEventInput } from "./actions";
+import { createEvent, updateEvent, type NewEventInput } from "./actions";
 
 const INPUT_CLASS =
   "w-full rounded-lg border border-rule bg-white px-3.5 py-3 text-sm text-ink placeholder:text-ink-faint focus:border-ink focus:ring-1 focus:ring-ink-faint focus:outline-none transition-all";
@@ -18,23 +18,26 @@ const slugify = (s: string) =>
     .replace(/^-+|-+$/g, "")
     .slice(0, 64);
 
-export function NewEventForm() {
-  const [v, setV] = useState<NewEventInput>({
-    title: "",
-    slug: "",
-    description: "",
-    date: "",
-    startTime: "10:00",
-    endTime: "12:00",
-    timezone: "America/New_York",
-    location: "",
-    joinUrl: "",
-    capacity: "",
-    maxAttendees: "5",
-    waitlistEnabled: true,
-    status: "open",
-  });
-  const [slugTouched, setSlugTouched] = useState(false);
+export function NewEventForm({ eventId, initial }: { eventId?: string; initial?: NewEventInput }) {
+  const editing = !!eventId;
+  const [v, setV] = useState<NewEventInput>(
+    initial ?? {
+      title: "",
+      slug: "",
+      description: "",
+      date: "",
+      startTime: "10:00",
+      endTime: "12:00",
+      timezone: "America/New_York",
+      location: "",
+      joinUrl: "",
+      capacity: "",
+      maxAttendees: "5",
+      waitlistEnabled: true,
+      status: "open",
+    },
+  );
+  const [slugTouched, setSlugTouched] = useState(editing);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,7 +48,7 @@ export function NewEventForm() {
     setError(null);
     setSubmitting(true);
     try {
-      const res = await createEvent(v);
+      const res = editing ? await updateEvent(eventId, v) : await createEvent(v);
       // A successful create redirects; only an error returns.
       if (res && !res.ok) setError(res.error);
     } catch (err) {
@@ -183,10 +186,16 @@ export function NewEventForm() {
           <input type="checkbox" checked={v.waitlistEnabled} onChange={(e) => set("waitlistEnabled", e.target.checked)} className="h-4 w-4 rounded border-rule" />
           Waitlist when full
         </label>
-        <label className="flex items-center gap-3 text-sm text-ink">
-          <input type="checkbox" checked={v.status === "open"} onChange={(e) => set("status", e.target.checked ? "open" : "draft")} className="h-4 w-4 rounded border-rule" />
-          Open for registration now
-        </label>
+        <div>
+          <label htmlFor="ev-status" className={LABEL_CLASS}>
+            Status
+          </label>
+          <select id="ev-status" value={v.status} onChange={(e) => set("status", e.target.value as NewEventInput["status"])} className={INPUT_CLASS}>
+            <option value="open">Open for registration</option>
+            <option value="draft">Draft (hidden)</option>
+            <option value="closed">Closed (visible, no registration)</option>
+          </select>
+        </div>
       </div>
 
       {error && (
@@ -196,15 +205,17 @@ export function NewEventForm() {
       )}
 
       <div className="mt-8 flex items-center justify-between border-t border-rule pt-6">
-        <Link href="/dashboard/admin/events" className={buttonClass("ghost", "md")}>
+        <Link href={editing ? `/dashboard/admin/events/${eventId}` : "/dashboard/admin/events"} className={buttonClass("ghost", "md")}>
           Cancel
         </Link>
         <button type="submit" disabled={submitting} className={buttonClass("primary", "md")}>
           {submitting ? (
             <>
               <Loader2 size={16} className="animate-spin" />
-              Creating...
+              {editing ? "Saving..." : "Creating..."}
             </>
+          ) : editing ? (
+            "Save changes"
           ) : (
             "Create event"
           )}

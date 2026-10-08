@@ -7,6 +7,7 @@ import { getProgram, getProgramId } from "@/lib/programs/server";
 import { rateLimit } from "@/lib/rate-limit";
 import { sendEventRegistrationEmail, sendEventWaitlistEmail } from "@/lib/email";
 import { seatsTaken } from "@/lib/events-waitlist";
+import { linkEventHistory } from "@/lib/events-bridge";
 import {
   ATTENDEE_FIELDS,
   ATTENDEE_SELECTS,
@@ -164,6 +165,12 @@ export async function registerForEvent(input: {
   }));
 
   after(async () => {
+    // If this family already has learner accounts, attach the history now.
+    try {
+      await linkEventHistory(reg.id);
+    } catch (e) {
+      console.error("[registerForEvent] link pass failed:", e);
+    }
     try {
       if (waitlisted) {
         await sendEventWaitlistEmail({
