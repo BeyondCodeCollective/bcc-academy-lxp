@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { Download } from "lucide-react";
+import { ClipboardCheck, Download } from "lucide-react";
 import { getSessionContext } from "@/lib/auth/session";
 import { canManageStudents, canManageRoles } from "@/lib/roles";
 import { createServiceClient } from "@/lib/supabase/server";
@@ -64,6 +64,11 @@ export default async function EventRosterPage({ params }: { params: Promise<{ id
   const active = rows.filter((r) => ["confirmed", "offered", "attended"].includes(r.status)).length;
   const waiting = rows.filter((r) => r.status === "waitlisted").length;
   const families = new Set(rows.map((r) => r.event_registrations?.parent_email)).size;
+  const attended = rows.filter((r) => r.status === "attended").length;
+
+  const { data: surveyRows } = await svc.from("event_survey_responses").select("rating").eq("event_id", event.id);
+  const ratings = (surveyRows ?? []).map((r) => r.rating as number);
+  const avgRating = ratings.length ? (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1) : null;
 
   const fmt = (iso: string) =>
     new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
@@ -76,6 +81,10 @@ export default async function EventRosterPage({ params }: { params: Promise<{ id
         noWrap
         actions={
           <div className="flex items-center gap-2">
+            <Link href={`/dashboard/admin/events/${event.id}/check-in`} className={buttonClass("primary", "sm")}>
+              <ClipboardCheck size={14} />
+              Check in
+            </Link>
             <a href={`/api/events/${event.id}/csv`} className={buttonClass("secondary", "sm")}>
               <Download size={14} />
               Export CSV
@@ -92,6 +101,24 @@ export default async function EventRosterPage({ params }: { params: Promise<{ id
         <span className="text-ink-soft">
           Public link: <span className="font-mono text-xs">/events/{event.slug}/register</span>
         </span>
+        {attended > 0 && (
+          <>
+            <span className="text-ink-faint"> · </span>
+            <span className="text-ink-soft">{attended} checked in</span>
+          </>
+        )}
+        {ratings.length > 0 && (
+          <>
+            <span className="text-ink-faint"> · </span>
+            <span className="text-ink-soft">
+              Survey: {ratings.length} response{ratings.length === 1 ? "" : "s"}, avg {avgRating} of 5
+            </span>
+            <span className="text-ink-faint"> · </span>
+            <a href={`/api/events/${event.id}/survey-csv`} className="text-ink-soft underline hover:text-ink">
+              Export survey
+            </a>
+          </>
+        )}
       </p>
 
       {rows.length === 0 ? (
