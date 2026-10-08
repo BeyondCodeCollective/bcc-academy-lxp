@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getProgram, getProgramId } from "@/lib/programs/server";
 import { formatEventWhen } from "@/lib/events";
 import { getEventBySlug } from "@/lib/events-server";
+import { seatsTaken } from "@/lib/events-waitlist";
 import { RegisterForm } from "./register-form";
 
 // Public event registration. Outside /dashboard/* so the proxy does not gate
@@ -26,6 +27,8 @@ export default async function EventRegisterPage({
   if (!event || event.status === "draft") notFound();
 
   const when = formatEventWhen(event.starts_at, event.ends_at, event.timezone);
+  const spotsLeft = event.capacity == null ? null : Math.max(0, event.capacity - (await seatsTaken(event.id)));
+  const full = spotsLeft === 0 && !event.waitlist_enabled;
 
   return (
     <div className="min-h-screen bg-neutral-50">
@@ -47,10 +50,10 @@ export default async function EventRegisterPage({
         {event.description && <p className="mt-4 text-sm text-ink-soft">{event.description}</p>}
       </div>
 
-      {event.status === "closed" ? (
+      {event.status === "closed" || full ? (
         <div className="mx-auto w-full max-w-2xl px-5 pb-20">
           <p className="rounded-lg border border-rule bg-white px-5 py-8 text-center text-sm text-ink-soft">
-            Registration for this event is closed.
+            {full ? "This event is full." : "Registration for this event is closed."}
           </p>
         </div>
       ) : (
@@ -58,6 +61,7 @@ export default async function EventRegisterPage({
           eventSlug={event.slug}
           eventTitle={event.title}
           maxAttendees={event.max_attendees_per_registration}
+          spotsLeft={spotsLeft}
         />
       )}
     </div>

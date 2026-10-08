@@ -1,9 +1,13 @@
 "use server";
 
+import { headers } from "next/headers";
+import { after } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
+import { promoteWaitlist } from "@/lib/events-waitlist";
 
 // Cancels one attendee's ticket by its cancel token. A POST behind a button,
 // never a GET side effect: mail scanners (Outlook Safe Links) prefetch links.
+// A freed seat is offered to the next waitlisted attendee right away.
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -12,9 +16,9 @@ export async function cancelAttendee(token: string): Promise<{ ok: true } | { ok
   const svc = createServiceClient();
   const { data: attendee } = await svc
     .from("event_attendees")
-    .select("id, registration_id, status")
+    .select("id, registration_id, event_id, status")
     .eq("cancel_token", token)
-    .maybeSingle<{ id: string; registration_id: string; status: string }>();
+    .maybeSingle<{ id: string; registration_id: string; event_id: string; status: string }>();
   if (!attendee) return { ok: false, error: "This cancel link is not valid." };
   if (attendee.status === "cancelled") return { ok: true };
 
@@ -40,5 +44,15 @@ export async function cancelAttendee(token: string): Promise<{ ok: true } | { ok
       .update({ status: "cancelled", cancelled_at: now })
       .eq("id", attendee.registration_id);
   }
+
+  const hdrs = await headers();
+  const origin = `${hdrs.get("x-forwarded-proto") ?? "https"}://${hdrs.get("host") ?? "bccacademy.io"}`;
+  after(async () => {
+    try {
+      await promoteWaitlist(attendee.event_id, origin);
+    } catch (e) {
+      console.error("[cancelAttendee] waitlist promotion failed:", e);
+    }
+  });
   return { ok: true };
 }

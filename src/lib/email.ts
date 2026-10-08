@@ -595,6 +595,123 @@ ${cal ? `\nAdd to Google Calendar: ${cal.google}\nAdd to Apple / iCal: ${cal.ics
   if (error) console.error("[email] sendEventRegistrationEmail failed:", JSON.stringify(error));
 }
 
+/**
+ * Waitlist confirmation: the event was full, so the family's attendees are
+ * queued. Promotion sends sendEventSeatOfferEmail when a seat opens.
+ */
+export async function sendEventWaitlistEmail({
+  to,
+  parentFirstName,
+  programName,
+  eventTitle,
+  eventStartUtc,
+  eventTimezone,
+  attendees,
+}: {
+  to: string;
+  parentFirstName: string;
+  programName: string;
+  eventTitle: string;
+  eventStartUtc: string;
+  eventTimezone: string;
+  attendees: { name: string; cancelUrl: string }[];
+}): Promise<void> {
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY not set, skipping waitlist email");
+    return;
+  }
+  const esc = escapeHtml;
+  const when = formatEventWhen(eventStartUtc, eventTimezone);
+  const rows = attendees
+    .map(
+      (a) => `<tr>
+        <td style="padding:10px 0;border-bottom:1px solid #ededed;font-size:14px;color:#1a1a1a;font-weight:600;">${esc(a.name)}</td>
+        <td style="padding:10px 0;border-bottom:1px solid #ededed;text-align:right;"><a href="${a.cancelUrl}" style="font-size:12px;color:#555;text-decoration:underline;">Leave waitlist</a></td>
+      </tr>`,
+    )
+    .join("");
+  const body = `
+    <p style="margin:0 0 16px;font-size:16px;line-height:1.5;color:#1a1a1a;">Hi ${esc(parentFirstName)},</p>
+    <p style="margin:0 0 24px;font-size:16px;line-height:1.5;color:#1a1a1a;"><strong>${esc(eventTitle)}</strong>${when ? ` (${esc(when)})` : ""} is full, so you're on the waitlist. If a spot opens, we'll email you a link to confirm it.</p>
+    <p style="margin:0 0 8px;font-size:12px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#999;">On the waitlist</p>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin:0 0 28px;">${rows}</table>
+    <p style="margin:0;font-size:13px;line-height:1.5;color:#888;">Plans changed? Use the link next to a name to leave the waitlist.</p>`;
+  const text = `Hi ${parentFirstName},
+
+${eventTitle}${when ? ` (${when})` : ""} is full, so you're on the waitlist. If a spot opens, we'll email you a link to confirm it.
+
+On the waitlist:
+${attendees.map((a) => `- ${a.name}. Leave waitlist: ${a.cancelUrl}`).join("\n")}`;
+  const { error } = await resend.emails.send({
+    from: FROM_ADDRESS,
+    to,
+    subject: `You're on the waitlist: ${eventTitle}`,
+    text,
+    html: inviteShell(programName, body),
+  });
+  if (error) console.error("[email] sendEventWaitlistEmail failed:", JSON.stringify(error));
+}
+
+/**
+ * A seat opened up for a waitlisted attendee. One email per family listing
+ * the attendees offered, each with their own confirm link, and the deadline.
+ */
+export async function sendEventSeatOfferEmail({
+  to,
+  parentFirstName,
+  programName,
+  eventTitle,
+  eventStartUtc,
+  eventTimezone,
+  expiresAtUtc,
+  attendees,
+}: {
+  to: string;
+  parentFirstName: string;
+  programName: string;
+  eventTitle: string;
+  eventStartUtc: string;
+  eventTimezone: string;
+  expiresAtUtc: string;
+  attendees: { name: string; confirmUrl: string }[];
+}): Promise<void> {
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY not set, skipping seat offer email");
+    return;
+  }
+  const esc = escapeHtml;
+  const when = formatEventWhen(eventStartUtc, eventTimezone);
+  const deadline = formatEventWhen(expiresAtUtc, eventTimezone);
+  const rows = attendees
+    .map(
+      (a) => `<tr>
+        <td style="padding:10px 0;border-bottom:1px solid #ededed;font-size:14px;color:#1a1a1a;font-weight:600;">${esc(a.name)}</td>
+        <td style="padding:10px 0;border-bottom:1px solid #ededed;text-align:right;"><a href="${a.confirmUrl}" style="display:inline-block;padding:8px 16px;background:#1a1a1a;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:700;font-size:13px;">Confirm seat</a></td>
+      </tr>`,
+    )
+    .join("");
+  const body = `
+    <p style="margin:0 0 16px;font-size:16px;line-height:1.5;color:#1a1a1a;">Hi ${esc(parentFirstName)},</p>
+    <p style="margin:0 0 24px;font-size:16px;line-height:1.5;color:#1a1a1a;">A spot opened up at <strong>${esc(eventTitle)}</strong>${when ? ` (${esc(when)})` : ""}. Confirm by <strong>${esc(deadline ?? "the deadline")}</strong> to keep it; after that it goes to the next family on the waitlist.</p>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin:0 0 28px;">${rows}</table>
+    <p style="margin:0;font-size:13px;line-height:1.5;color:#888;">Can't make it? Do nothing and the seat is released automatically.</p>`;
+  const text = `Hi ${parentFirstName},
+
+A spot opened up at ${eventTitle}${when ? ` (${when})` : ""}. Confirm by ${deadline ?? "the deadline"} to keep it.
+
+${attendees.map((a) => `- ${a.name}: ${a.confirmUrl}`).join("\n")}
+
+Can't make it? Do nothing and the seat is released automatically.`;
+  const { error } = await resend.emails.send({
+    from: FROM_ADDRESS,
+    to,
+    subject: `A spot opened up: ${eventTitle}`,
+    text,
+    html: inviteShell(programName, body),
+  });
+  if (error) console.error("[email] sendEventSeatOfferEmail failed:", JSON.stringify(error));
+}
+
 /** Confirmation email for the public-survey withdrawal flow.
  *  The action that triggers this always returns success regardless of
  *  whether the address has any data on file, so this email also doubles

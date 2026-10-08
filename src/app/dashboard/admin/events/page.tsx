@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Plus } from "lucide-react";
 import { getSessionContext } from "@/lib/auth/session";
 import { canManageStudents, canManageRoles } from "@/lib/roles";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getProgramId } from "@/lib/programs/server";
 import { formatEventWhen, type EventRow } from "@/lib/events";
 import { PageHeader } from "@/components/page-header";
-import { DataTable } from "@/components/ui";
+import { DataTable, buttonClass } from "@/components/ui";
 import { ManageMenu } from "../manage-menu";
 
 export const dynamic = "force-dynamic";
@@ -33,10 +34,12 @@ export default async function AdminEventsPage() {
       .eq("events.program_id", programId),
   ]);
 
-  const counts = new Map<string, number>();
+  const counts = new Map<string, { seated: number; waiting: number }>();
   for (const a of (attendees ?? []) as { event_id: string; status: string }[]) {
-    if (a.status === "cancelled") continue;
-    counts.set(a.event_id, (counts.get(a.event_id) ?? 0) + 1);
+    const c = counts.get(a.event_id) ?? { seated: 0, waiting: 0 };
+    if (a.status === "confirmed" || a.status === "offered" || a.status === "attended") c.seated += 1;
+    else if (a.status === "waitlisted") c.waiting += 1;
+    counts.set(a.event_id, c);
   }
   const rows = (events ?? []) as Pick<
     EventRow,
@@ -49,17 +52,25 @@ export default async function AdminEventsPage() {
         title="Events"
         subtitle={`${rows.length} event${rows.length === 1 ? "" : "s"} · attendees registered without accounts`}
         noWrap
-        actions={<ManageMenu isMaster={canManageRoles(ctx.userEmail)} />}
+        actions={
+          <div className="flex items-center gap-2">
+            <Link href="/dashboard/admin/events/new" className={buttonClass("primary", "sm")}>
+              <Plus size={14} />
+              New event
+            </Link>
+            <ManageMenu isMaster={canManageRoles(ctx.userEmail)} />
+          </div>
+        }
       />
 
       {rows.length === 0 ? (
         <p className="rounded-lg border border-rule bg-paper-tint-soft px-4 py-8 text-center text-sm text-ink-soft">
-          No events yet for this program.
+          No events yet for this program. Create one and share its public link.
         </p>
       ) : (
         <DataTable columns={["Event", "When", { label: "Attendees", align: "right" }, "Status"]}>
           {rows.map((e) => {
-            const n = counts.get(e.id) ?? 0;
+            const c = counts.get(e.id) ?? { seated: 0, waiting: 0 };
             return (
               <tr key={e.id} className="text-ink">
                 <td className="px-4 py-3 align-top">
@@ -72,8 +83,9 @@ export default async function AdminEventsPage() {
                   {formatEventWhen(e.starts_at, e.ends_at, e.timezone)}
                 </td>
                 <td className="px-4 py-3 align-top text-right tabular-nums">
-                  {n}
+                  {c.seated}
                   {e.capacity ? <span className="text-ink-soft"> / {e.capacity}</span> : null}
+                  {c.waiting > 0 && <div className="text-xs text-ink-soft">{c.waiting} waitlisted</div>}
                 </td>
                 <td className="px-4 py-3 align-top">
                   <span className="inline-flex items-center rounded-full bg-paper-tint px-2 py-0.5 text-micro font-semibold text-ink-soft">

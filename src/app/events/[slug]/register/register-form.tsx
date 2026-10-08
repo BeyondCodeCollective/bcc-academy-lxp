@@ -38,10 +38,13 @@ export function RegisterForm({
   eventSlug,
   eventTitle,
   maxAttendees,
+  spotsLeft,
 }: {
   eventSlug: string;
   eventTitle: string;
   maxAttendees: number;
+  /** null when the event has no capacity limit. */
+  spotsLeft: number | null;
 }) {
   const [parent, setParent] = useState<ParentInput>({
     firstName: "",
@@ -54,7 +57,8 @@ export function RegisterForm({
   const [attendees, setAttendees] = useState<AttendeeInput[]>([emptyAttendee()]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState<{ name: string; ticketCode: string }[] | null>(null);
+  const [done, setDone] = useState<{ waitlisted: boolean; attendees: { name: string; ticketCode: string }[] } | null>(null);
+  const willWaitlist = spotsLeft != null && attendees.length > spotsLeft;
 
   const setParentField = (key: keyof ParentInput, value: string) =>
     setParent((p) => ({ ...p, [key]: value }));
@@ -72,7 +76,7 @@ export function RegisterForm({
     try {
       const res = await registerForEvent({ eventSlug, parent, attendees });
       if (res.ok) {
-        setDone(res.attendees);
+        setDone({ waitlisted: res.waitlisted, attendees: res.attendees });
         window.scrollTo({ top: 0 });
       } else {
         setError(res.error);
@@ -91,13 +95,16 @@ export function RegisterForm({
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
             <Check className="h-6 w-6 text-primary" />
           </div>
-          <h2 className="text-xl font-bold text-ink">You&apos;re registered</h2>
+          <h2 className="text-xl font-bold text-ink">
+            {done.waitlisted ? "You're on the waitlist" : "You're registered"}
+          </h2>
           <p className="mt-2 text-sm text-ink-soft">
-            A confirmation for {eventTitle} is on its way to {parent.email}. Each attendee has their
-            own ticket and cancel link in that email.
+            {done.waitlisted
+              ? `${eventTitle} is full. We emailed ${parent.email}; if a spot opens, you'll get a link to confirm it.`
+              : `A confirmation for ${eventTitle} is on its way to ${parent.email}. Each attendee has their own ticket and cancel link in that email.`}
           </p>
           <ul className="mx-auto mt-6 max-w-sm divide-y divide-rule text-left text-sm">
-            {done.map((a) => (
+            {done.attendees.map((a) => (
               <li key={a.ticketCode} className="flex items-center justify-between py-2.5">
                 <span className="font-medium text-ink">{a.name}</span>
                 <span className="font-mono text-xs tracking-wider text-ink-soft">{a.ticketCode}</span>
@@ -348,20 +355,29 @@ export function RegisterForm({
         </p>
       )}
 
+      {willWaitlist && (
+        <p className="mt-6 rounded-lg bg-paper-tint px-4 py-3 text-sm text-ink">
+          {spotsLeft === 0
+            ? "This event is full. Registering adds your attendees to the waitlist, and we'll email you if a spot opens."
+            : `Only ${spotsLeft} spot${spotsLeft === 1 ? "" : "s"} left. Registering ${attendees.length} attendees puts all of them on the waitlist so siblings stay together.`}
+        </p>
+      )}
+
       <div className="mt-8 flex items-center justify-between border-t border-rule pt-6">
         <p className="text-xs text-ink-soft">
           {attendees.length} of {maxAttendees} attendees
+          {spotsLeft != null && !willWaitlist && ` · ${spotsLeft} spot${spotsLeft === 1 ? "" : "s"} left`}
         </p>
         <button type="submit" disabled={submitting} className={buttonClass("primary", "md")}>
           {submitting ? (
             <>
               <Loader2 size={16} className="animate-spin" />
-              Registering...
+              {willWaitlist ? "Joining waitlist..." : "Registering..."}
             </>
           ) : (
             <>
               <Check size={16} />
-              Register
+              {willWaitlist ? "Join waitlist" : "Register"}
             </>
           )}
         </button>

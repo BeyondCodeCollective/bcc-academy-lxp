@@ -17,10 +17,29 @@ export type EventRow = {
   capacity: number | null;
   max_attendees_per_registration: number;
   status: "draft" | "open" | "closed";
+  waitlist_enabled: boolean;
+  offer_window_hours: number;
 };
 
 export const EVENT_COLUMNS =
-  "id, program_id, slug, title, description, starts_at, ends_at, timezone, location, join_url, capacity, max_attendees_per_registration, status";
+  "id, program_id, slug, title, description, starts_at, ends_at, timezone, location, join_url, capacity, max_attendees_per_registration, status, waitlist_enabled, offer_window_hours";
+
+export const EVENT_TIMEZONES = [
+  "America/New_York",
+  "America/Chicago",
+  "America/Denver",
+  "America/Los_Angeles",
+  "America/Nassau",
+] as const;
+
+export const ATTENDEE_STATUS_LABEL: Record<string, string> = {
+  confirmed: "Confirmed",
+  waitlisted: "Waitlisted",
+  offered: "Seat offered",
+  expired: "Offer expired",
+  cancelled: "Cancelled",
+  attended: "Attended",
+};
 
 // Per-attendee fields, mirroring the participant block BGC already asks for on
 // Hivebrite so the roster carries the same information on day one.

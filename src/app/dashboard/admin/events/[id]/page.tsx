@@ -5,7 +5,7 @@ import { getSessionContext } from "@/lib/auth/session";
 import { canManageStudents, canManageRoles } from "@/lib/roles";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getProgramId } from "@/lib/programs/server";
-import { EVENT_COLUMNS, formatEventWhen, type EventRow } from "@/lib/events";
+import { ATTENDEE_STATUS_LABEL, EVENT_COLUMNS, formatEventWhen, type EventRow } from "@/lib/events";
 import { PageHeader } from "@/components/page-header";
 import { DataTable, buttonClass } from "@/components/ui";
 import { ManageMenu } from "../../manage-menu";
@@ -61,7 +61,8 @@ export default async function EventRosterPage({ params }: { params: Promise<{ id
     .order("created_at", { ascending: true });
   // registration_id is many-to-one, so PostgREST returns one object here, not an array.
   const rows = (attendees ?? []) as unknown as AttendeeRow[];
-  const active = rows.filter((r) => r.status !== "cancelled").length;
+  const active = rows.filter((r) => ["confirmed", "offered", "attended"].includes(r.status)).length;
+  const waiting = rows.filter((r) => r.status === "waitlisted").length;
   const families = new Set(rows.map((r) => r.event_registrations?.parent_email)).size;
 
   const fmt = (iso: string) =>
@@ -71,7 +72,7 @@ export default async function EventRosterPage({ params }: { params: Promise<{ id
     <div className="mx-auto w-full max-w-4xl px-4 sm:px-5 py-8 space-y-6">
       <PageHeader
         title={event.title}
-        subtitle={`${formatEventWhen(event.starts_at, event.ends_at, event.timezone)} · ${active} attendee${active === 1 ? "" : "s"} from ${families} famil${families === 1 ? "y" : "ies"}`}
+        subtitle={`${formatEventWhen(event.starts_at, event.ends_at, event.timezone)} · ${active}${event.capacity ? ` of ${event.capacity}` : ""} seated${waiting ? `, ${waiting} waitlisted` : ""} · ${families} famil${families === 1 ? "y" : "ies"}`}
         noWrap
         actions={
           <div className="flex items-center gap-2">
@@ -98,7 +99,7 @@ export default async function EventRosterPage({ params }: { params: Promise<{ id
           No one has registered yet.
         </p>
       ) : (
-        <DataTable columns={["Attendee", "Parent / guardian", "Grade", "Shirt", "Ticket", "Registered"]}>
+        <DataTable columns={["Attendee", "Parent / guardian", "Grade", "Shirt", "Ticket", "Status"]}>
           {rows.map((r) => {
             const p = r.event_registrations;
             const cancelled = r.status === "cancelled";
@@ -127,7 +128,7 @@ export default async function EventRosterPage({ params }: { params: Promise<{ id
                 <td className="px-4 py-3 align-top text-sm">{r.tshirt_size ?? ""}</td>
                 <td className="px-4 py-3 align-top font-mono text-xs tracking-wider">{r.ticket_code}</td>
                 <td className="px-4 py-3 align-top text-xs text-ink-soft">
-                  {cancelled ? "Cancelled" : fmt(r.created_at)}
+                  {r.status === "confirmed" ? fmt(r.created_at) : ATTENDEE_STATUS_LABEL[r.status] ?? r.status}
                 </td>
               </tr>
             );

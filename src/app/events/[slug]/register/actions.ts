@@ -5,7 +5,8 @@ import { after } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getProgram, getProgramId } from "@/lib/programs/server";
 import { rateLimit } from "@/lib/rate-limit";
-import { sendEventRegistrationEmail } from "@/lib/email";
+import { sendEventRegistrationEmail, sendEventWaitlistEmail } from "@/lib/email";
+import { seatsTaken } from "@/lib/events-waitlist";
 import {
   ATTENDEE_FIELDS,
   ATTENDEE_SELECTS,
@@ -31,7 +32,7 @@ export type ParentInput = {
 };
 
 export type RegisterResult =
-  | { ok: true; attendees: { name: string; ticketCode: string }[] }
+  | { ok: true; waitlisted: boolean; attendees: { name: string; ticketCode: string }[] }
   | { ok: false; error: string };
 
 export async function registerForEvent(input: {
@@ -90,6 +91,19 @@ export async function registerForEvent(input: {
   const rl = rateLimit({ key: ip, scope: "event-register", max: 10, windowMs: 10 * 60_000 });
   if (!rl.ok) return { ok: false, error: "Too many registrations from this network. Try again in a few minutes." };
 
+  // Capacity is per attendee. A family that does not fully fit is waitlisted
+  // together rather than split across confirmed and waitlisted.
+  let waitlisted = false;
+  if (event.capacity != null) {
+    const open = event.capacity - (await seatsTaken(event.id));
+    if (attendees.length > open) {
+      if (!event.waitlist_enabled) {
+        return { ok: false, error: open <= 0 ? "This event is full." : `Only ${open} spot${open === 1 ? "" : "s"} left.` };
+      }
+      waitlisted = true;
+    }
+  }
+
   const svc = createServiceClient();
   const { data: reg, error: regError } = await svc
     .from("event_registrations")
@@ -116,6 +130,7 @@ export async function registerForEvent(input: {
       attendees.map((a) => ({
         registration_id: reg.id,
         event_id: event.id,
+        status: waitlisted ? "waitlisted" : "confirmed",
         first_name: a.first_name,
         last_name: a.last_name,
         date_of_birth: a.date_of_birth,
@@ -150,6 +165,18 @@ export async function registerForEvent(input: {
 
   after(async () => {
     try {
+      if (waitlisted) {
+        await sendEventWaitlistEmail({
+          to: parent.email,
+          parentFirstName: parent.firstName,
+          programName: program.name,
+          eventTitle: event.title,
+          eventStartUtc: event.starts_at,
+          eventTimezone: event.timezone,
+          attendees: result,
+        });
+        return;
+      }
       await sendEventRegistrationEmail({
         to: parent.email,
         parentFirstName: parent.firstName,
@@ -168,5 +195,5 @@ export async function registerForEvent(input: {
     }
   });
 
-  return { ok: true, attendees: result.map(({ name, ticketCode }) => ({ name, ticketCode })) };
+  return { ok: true, waitlisted, attendees: result.map(({ name, ticketCode }) => ({ name, ticketCode })) };
 }
