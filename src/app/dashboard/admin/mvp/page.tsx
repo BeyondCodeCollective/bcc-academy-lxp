@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSessionContext } from "@/lib/auth/session";
 import { canViewMvp } from "@/lib/roles";
-import { AdminTopTabs } from "../admin-tabs";  
+import { AdminTopTabs } from "../admin-top-tabs";  
 import { MvpDashboard } from "./mvp-dashboard";
 import { getMvpDashboardData } from "@/lib/mvp/queries";
 

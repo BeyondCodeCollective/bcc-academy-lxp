@@ -26,7 +26,10 @@ import { getEnrolledTracks } from "@/lib/enrollment";
 import { getHiddenTrackSlugs } from "@/lib/programs/hidden";
 import { getLearnerAccess } from "@/lib/auth/active-enrollment";
 import { heldChecklistTrackSlug } from "@/lib/onboarding/held";
-import { BCC_INTAKE_SURVEY_ID, surveySkippedForTracks, surveyAppliesToPrograms, surveyAppliesToTracks } from "@/lib/surveys/platform";
+import { buildWelcome } from "@/lib/onboarding/welcome";
+import { PROFILE_SNOOZE_COOKIE } from "@/lib/onboarding/profile-snooze";
+import { surveyWaitsForFirstSession, hasAttendedAnySession } from "@/lib/onboarding/survey-timing";
+import { BCC_INTAKE_SURVEY_ID, surveySkippedForTracks, surveyTargetsLearner } from "@/lib/surveys/platform";
 import { collapseCompanionSlugs } from "@/lib/enrollment";
 import { isSurveyEnabledForLearner } from "@/lib/surveys/features";
 import { isStaffResolved } from "@/lib/auth/staff";
@@ -96,6 +99,12 @@ export default async function DashboardLayout({
   // top bars, the way survey pages do).
   const isImmersive = /^\/dashboard\/track\/[^/]+\/[^/]+\/live/.test(pathname);
   const programSlug = headersList.get("x-program-slug") ?? "bcc-academy";
+  // The session read is independent of program resolution; start it now so
+  // a students-table miss overlaps the track_overrides round trip instead of
+  // following it. The no-op catch only stops Node flagging an early rejection
+  // as unhandled; the await below still sees it.
+  const sessionPromise = isSupabaseConfigured() ? getSessionContext() : Promise.resolve(null);
+  sessionPromise.catch(() => {});
   const baseProgram = await resolveLearnerBrand(getProgramBySlug(programSlug));
 
   // Skin accent follows the program the learner is actually in (the same
@@ -127,7 +136,7 @@ export default async function DashboardLayout({
   // week list has no business rendering next to the checklist.
   let confinedToChecklist = false;
   if (isSupabaseConfigured() && !confineExemptPath) {
-    const ctx = await getSessionContext();
+    const ctx = await sessionPromise;
     if (ctx) {
       const exempt =
         canAccessAdminPanel(ctx.student?.role ?? "") ||
@@ -208,7 +217,11 @@ export default async function DashboardLayout({
           // Always clear the fixed w-60 nav rail — survey pages render the
           // minimal (logo-only) rail but previously dropped this padding, so
           // their centered content sat half-tucked behind the white column.
-          className={`flex-1 bg-paper${isImmersive ? "" : " md:pl-60"}`}
+          // min-w-0: as a flex item, main's default min-width is its content's
+          // intrinsic width, so one wide table (or a nowrap slug) pushed the
+          // whole page past the viewport at 768px instead of scrolling inside
+          // its own overflow-x-auto wrapper.
+          className={`min-w-0 flex-1 bg-paper${isImmersive ? "" : " md:pl-60"}`}
           style={{ fontSize: "16px" }}
         >
           {!hideChrome && (
@@ -476,8 +489,7 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
         ? candidateSurveys.find(
             (s) =>
               s.required &&
-              surveyAppliesToPrograms(s.appliesToPrograms, homePrograms) &&
-              surveyAppliesToTracks(s.appliesToTracks, surveyTrackSlugs) &&
+              surveyTargetsLearner(s, homePrograms, surveyTrackSlugs) &&
               !s.skipForPrograms?.some((p) => homePrograms.has(p)) &&
               !surveySkippedForTracks(s.skipForTracks, surveyTrackSlugs),
           )
@@ -496,7 +508,12 @@ async function NavShell({ isSurveyPage: isSurvey }: { isSurveyPage: boolean }) {
       // has survey_enabled toggled on (admin Tools/Features page). A course's
       // own survey outranks the generic intake, and a learner with ANY
       // applicable course survey never sees the intake at all.
-      if (requiredSurvey && surveyEnabled) {
+      // Some surveys wait until the learner has been to a session, so the first
+      // thing a new learner meets is the course, not a questionnaire.
+      const surveyWaiting =
+        !!requiredSurvey &&
+        surveyWaitsForFirstSession(requiredSurvey, await hasAttendedAnySession(ctx.userId));
+      if (requiredSurvey && surveyEnabled && !surveyWaiting) {
         const { data: surveyDone } = await supabase
           .from("survey_responses")
           .select("completed_at")
@@ -837,9 +854,12 @@ async function Overlays({ isSurveyPage }: { isSurveyPage: boolean }) {
   // The tutor is one of the surfaces pending registrants are confined away
   // from (layout-body gate) — don't float a button that only bounces them.
   let confined = false;
+  let enrolledTracks: TrackConfig[] = [];
   if (!canAccessAdminPanel(role) && !isStaffResolved(ctx.student?.is_staff, ctx.student?.email ?? ctx.userEmail)) {
     const supabase = await createClient();
-    confined = (await getLearnerAccess(supabase, ctx.userId, program)).pendingOnly;
+    const access = await getLearnerAccess(supabase, ctx.userId, program);
+    confined = access.pendingOnly;
+    enrolledTracks = access.enrolled;
   }
 
   // Learner accounts created from an email alone (bulk invites, Eventbrite
@@ -854,14 +874,17 @@ async function Overlays({ isSurveyPage }: { isSurveyPage: boolean }) {
 
   // One-time ZIP + birthday capture for grant reporting. Learners only, never
   // staff, and never the Forte Bahamas program (a US ZIP doesn't apply there).
-  // Only checked once a learner HAS a name, so it never stacks with the name
-  // overlay. The session context doesn't carry these columns, so read them here
-  // only when the cheaper conditions already hold.
+  // A learner who also needs a name answers both in one step (the name overlay
+  // carries the ZIP/birthday fields), so the two never stack. "Not now" on the
+  // standalone prompt snoozes it for a week via cookie, which also skips the
+  // lookup below. The session context doesn't carry these columns, so read them
+  // here only when the cheaper conditions already hold.
+  const profileSnoozed = (await cookies()).has(PROFILE_SNOOZE_COOKIE);
   const profileEligible =
     !!ctx.student &&
     !canAccessAdminPanel(role) &&
     !isStaffResolved(ctx.student.is_staff, ctx.student.email ?? ctx.userEmail) &&
-    !needsName &&
+    !profileSnoozed &&
     program.slug !== "forte";
   let needsZip = false;
   let needsDob = false;
@@ -970,7 +993,14 @@ async function Overlays({ isSurveyPage }: { isSurveyPage: boolean }) {
 
   return (
     <>
-      {needsName && <NameCaptureOverlay campMode={program.slug === "bgc"} />}
+      {needsName && (
+        <NameCaptureOverlay
+          campMode={program.slug === "bgc"}
+          welcome={buildWelcome(enrolledTracks, new Date())}
+          needsZip={needsZip}
+          needsDob={needsDob}
+        />
+      )}
       {!needsName && needsProfile && (
         <ProfileCaptureOverlay needsZip={needsZip} needsDob={needsDob} />
       )}

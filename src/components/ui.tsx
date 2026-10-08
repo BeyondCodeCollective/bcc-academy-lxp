@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { cloneElement, isValidElement, useId, type ReactNode } from "react";
 import Link from "next/link";
 import { ArrowLeft, Check } from "@phosphor-icons/react/dist/ssr";
 
@@ -27,7 +27,12 @@ export function Panel({
 export const fieldInput =
   "w-full rounded-md border border-rule bg-neutral-50 px-3 py-2.5 text-sm text-ink placeholder:text-ink-faint transition-colors focus:border-primary";
 
-/** Labeled form field — one label treatment across every form. */
+/**
+ * Labeled form field — one label treatment across every form. The label is tied
+ * to its control (htmlFor/id), so screen readers announce it, phone autofill can
+ * tell a ZIP from a name, and tapping the label focuses the input. A control
+ * that already has an id keeps it.
+ */
 export function Field({
   label,
   hint,
@@ -37,13 +42,16 @@ export function Field({
   hint?: string;
   children: ReactNode;
 }) {
+  const generatedId = useId();
+  const control = isValidElement<{ id?: string }>(children) ? children : null;
+  const id = control?.props.id ?? generatedId;
   return (
     <div>
-      <label className="mb-1.5 block text-xs font-medium text-ink-soft">
+      <label htmlFor={control ? id : undefined} className="mb-1.5 block text-xs font-medium text-ink-soft">
         {label}
         {hint && <span className="ml-1 font-normal text-ink-faint">{hint}</span>}
       </label>
-      {children}
+      {control && !control.props.id ? cloneElement(control, { id }) : children}
     </div>
   );
 }

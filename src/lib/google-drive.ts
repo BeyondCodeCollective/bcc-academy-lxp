@@ -30,12 +30,15 @@ import { createSign } from "node:crypto";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const SCOPE = "https://www.googleapis.com/auth/drive";
 
+/** The service account itself. The certificate filing needs only this (its
+ *  folder comes from CERTIFICATES_DRIVE_FOLDER_ID). */
+function driveCredentials(): boolean {
+  return Boolean(process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_PRIVATE_KEY);
+}
+
+/** Recording uploads: the service account plus its recordings folder. */
 export function driveConfigured(): boolean {
-  return Boolean(
-    process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL &&
-      process.env.GOOGLE_PRIVATE_KEY &&
-      process.env.GOOGLE_DRIVE_FOLDER_ID,
-  );
+  return driveCredentials() && Boolean(process.env.GOOGLE_DRIVE_FOLDER_ID);
 }
 
 function base64url(input: string | Buffer): string {
@@ -49,7 +52,7 @@ function base64url(input: string | Buffer): string {
 let cached: { token: string; expiresAt: number } | null = null;
 
 export async function driveToken(): Promise<string | null> {
-  if (!driveConfigured()) return null;
+  if (!driveCredentials()) return null;
   if (cached && Date.now() < cached.expiresAt) return cached.token;
 
   // Env vars can't hold real newlines, so the PEM arrives with literal \n.
@@ -173,4 +176,58 @@ export async function uploadRecordingToDrive(opts: {
     fileId: file.id,
     url: `https://drive.google.com/file/d/${file.id}/view`,
   };
+}
+
+// ─── Certificate PDFs ────────────────────────────────────────────────────────
+// Certificates go to their own folder (CERTIFICATES_DRIVE_FOLDER_ID, also in a
+// Shared Drive) so a partner can be handed one link to every certificate. No
+// "anyone with the link" permission here: the folder's own sharing decides who
+// can open them.
+
+/** Names of every file in a folder — one call, so a sweep can skip uploads. */
+export async function listDriveFileNames(folderId: string): Promise<string[] | null> {
+  const token = await driveToken();
+  if (!token) return null;
+  const names: string[] = [];
+  let pageToken: string | undefined;
+  do {
+    const q = encodeURIComponent(`'${folderId}' in parents and trashed = false`);
+    const res = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=${q}&fields=nextPageToken,files(name)&pageSize=1000` +
+        `&supportsAllDrives=true&includeItemsFromAllDrives=true${pageToken ? `&pageToken=${pageToken}` : ""}`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    if (!res.ok) return null;
+    const json = (await res.json()) as { files: { name: string }[]; nextPageToken?: string };
+    names.push(...json.files.map((f) => f.name));
+    pageToken = json.nextPageToken;
+  } while (pageToken);
+  return names;
+}
+
+export async function uploadPdfToDrive(opts: {
+  name: string;
+  bytes: Uint8Array;
+  folderId: string;
+}): Promise<{ ok: true; fileId: string } | { ok: false; error: string }> {
+  const token = await driveToken();
+  if (!token) return { ok: false, error: "Drive not configured" };
+  const boundary = `cert-${Date.now()}`;
+  const meta = JSON.stringify({ name: opts.name, parents: [opts.folderId], mimeType: "application/pdf" });
+  const body = Buffer.concat([
+    Buffer.from(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${meta}\r\n`),
+    Buffer.from(`--${boundary}\r\nContent-Type: application/pdf\r\n\r\n`),
+    Buffer.from(opts.bytes),
+    Buffer.from(`\r\n--${boundary}--`),
+  ]);
+  const res = await fetch(
+    "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true",
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": `multipart/related; boundary=${boundary}` },
+      body,
+    },
+  );
+  if (!res.ok) return { ok: false, error: `drive upload ${res.status}: ${(await res.text()).slice(0, 200)}` };
+  return { ok: true, fileId: ((await res.json()) as { id: string }).id };
 }

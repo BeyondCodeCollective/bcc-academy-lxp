@@ -74,6 +74,7 @@ export const forteConfig: ProgramConfig = {
       sessionTimes: ["Self-paced"],
       lastSessionDayOffset: 6,
       selfPaced: true,
+      autoCertificate: true,
       submissionsEnabled: true,
       // Forte's "Written Artifact" is modeled as the project submission
       // (structured prompts on the SubmissionForm), not as a separate

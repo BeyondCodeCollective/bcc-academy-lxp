@@ -48,7 +48,7 @@ export default async function NewCoursePage({
         <PageHeader title="New Course" subtitle="Takes about 30 seconds." actions={<ManageMenu isMaster={canManageRoles(ctx.userEmail)} />} />
       </div>
       <NewCourseTabs
-        canCreateManually={canSwitchPrograms(role)}
+        canCreateManually
         extraProgram={extraProgram}
         currentProgram={currentProgram}
       />

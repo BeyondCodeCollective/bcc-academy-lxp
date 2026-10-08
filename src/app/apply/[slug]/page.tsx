@@ -5,6 +5,7 @@
 
 import { notFound } from "next/navigation";
 import { getApplicationBySlug, isAccepting } from "@/lib/applications";
+import { getLandingPage } from "@/lib/landing-pages";
 import { GenericApplyForm } from "./apply-form";
 
 export const dynamic = "force-dynamic";
@@ -48,12 +49,25 @@ export default async function GenericApplyPage({
     );
   }
 
+  // The campaign's own landing page (same slug) carries the colors the
+  // applicant just came from. Absent for an application with no landing page.
+  const landing = await getLandingPage(slug);
+
   return (
     <GenericApplyForm
       slug={app.slug}
       title={app.title}
       description={app.description}
       questions={app.questions}
+      theme={
+        landing
+          ? {
+              accent: landing.accent,
+              eyebrow: landing.eyebrow,
+              heroImageUrl: landing.heroImageUrl,
+            }
+          : undefined
+      }
     />
   );
 }

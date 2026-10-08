@@ -2,7 +2,8 @@
 
 import { useState, useEffect, Suspense } from "react";
 import dynamic from "next/dynamic";
-import Link, { useLinkStatus } from "next/link";
+import Link from "next/link";
+import { LinkPending } from "@/components/link-pending";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
   House,
@@ -54,20 +55,6 @@ type NavItem = {
   label: string;
   icon: React.ComponentType<{ size?: number; weight?: "bold"; "aria-hidden"?: boolean }>;
 };
-
-// Renders a small spinner inside its parent Link only while the route
-// transition is pending. Removing the loading.tsx skeletons made nav clicks
-// feel unresponsive — this restores immediate per-link feedback.
-function LinkPending() {
-  const { pending } = useLinkStatus();
-  if (!pending) return null;
-  return (
-    <span
-      aria-hidden
-      className="ml-2 inline-block h-3 w-3 shrink-0 animate-spin rounded-full border border-ink/20 border-t-ink/70"
-    />
-  );
-}
 
 type ProgramOption = {
   slug: string;

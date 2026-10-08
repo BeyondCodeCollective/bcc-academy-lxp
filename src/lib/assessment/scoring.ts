@@ -5,24 +5,25 @@ import { MODULE_1_ITEMS, MODULE_2_SCENARIOS, MODULE_3_ITEMS } from "./content";
 
 // ─── Module 1 ─────────────────────────────────────────────────────────────────
 
+// Float guard: averages of three integers are multiples of 1/3, so the
+// 0.25 and 0.50 thresholds are compared with a tolerance, not exactly.
+const EPS = 1e-9;
+
+const ARCHETYPE_KEYS = [...new Set(MODULE_1_ITEMS.map((i) => i.archetype))];
+
 function scoreModule1(responses: RawResponses): Pick<ScoredOutput,
-  "archetype_primary" | "archetype_secondary" | "archetype_is_blended" |
+  "archetype_primary" | "archetype_secondary" | "archetype_is_blended" | "archetype_top_three" |
   "archetype_confidence" | "archetype_scores" | "facilitator_review"
 > {
-  const sums: Record<ArchetypeKey, { total: number; count: number }> = {
-    navigator: { total: 0, count: 0 },
-    developer: { total: 0, count: 0 },
-    systems_thinker: { total: 0, count: 0 },
-    designer: { total: 0, count: 0 },
-    connector: { total: 0, count: 0 },
-    support_specialist: { total: 0, count: 0 },
-    guardian: { total: 0, count: 0 },
-  };
+  const sums = Object.fromEntries(
+    ARCHETYPE_KEYS.map((k) => [k, { total: 0, count: 0 }])
+  ) as Record<ArchetypeKey, { total: number; count: number }>;
 
   for (const item of MODULE_1_ITEMS) {
     const raw = responses[item.id];
     if (typeof raw === "number") {
-      sums[item.archetype].total += raw;
+      // Reverse scoring is a per-item flag (M1-EXP-03), not a special case.
+      sums[item.archetype].total += item.reverse ? 6 - raw : raw;
       sums[item.archetype].count += 1;
     }
   }
@@ -38,24 +39,31 @@ function scoreModule1(responses: RawResponses): Pick<ScoredOutput,
   const [secondary, secondaryScore] = sorted[1];
   const gap = primaryScore - secondaryScore;
 
+  const aboveFour = sorted.filter(([, v]) => v >= 4.0 - EPS).length;
+  const allFlat = sorted.every(([, v]) => v >= 2.75 - EPS && v <= 3.50 + EPS);
+  const tieCount = sorted.filter(([, v]) => primaryScore - v <= EPS).length;
+
+  // v0.4 rule 5: the secondary is reported only when it is within 0.50.
+  const secondaryInRange = gap <= 0.50 + EPS;
+
   let facilitator_review = false;
   let confidence: ArchetypeConfidence;
-  let archetype_secondary: ArchetypeKey | null = null;
+  let archetype_secondary: ArchetypeKey | null = secondaryInRange ? secondary : null;
   let archetype_is_blended = false;
-
-  const aboveFour = sorted.filter(([, v]) => v >= 4.0).length;
-  const allFlat = sorted.every(([, v]) => v >= 2.75 && v <= 3.50);
-  const tieCount = sorted.filter(([, v]) => v === primaryScore).length;
+  let archetype_top_three: ArchetypeKey[] | null = null;
 
   if (tieCount >= 4) {
-    confidence = "flat";
+    // Four or more tied: do not output the tied archetypes.
+    confidence = "emerging";
+    archetype_secondary = null;
     facilitator_review = true;
   } else if (tieCount === 3) {
-    confidence = "flat";
+    confidence = "blended";
+    archetype_is_blended = true;
+    archetype_top_three = sorted.slice(0, 3).map(([k]) => k);
     facilitator_review = true;
   } else if (tieCount === 2) {
     confidence = "blended";
-    archetype_secondary = secondary;
     archetype_is_blended = true;
   } else if (aboveFour >= 5) {
     confidence = "broad_high";
@@ -63,30 +71,25 @@ function scoreModule1(responses: RawResponses): Pick<ScoredOutput,
   } else if (allFlat) {
     confidence = "flat";
     facilitator_review = true;
-  } else if (primaryScore < 3.25) {
+  } else if (primaryScore < 3.25 - EPS) {
     confidence = "low";
     facilitator_review = true;
-  } else if (gap <= 0.25) {
+  } else if (gap <= 0.25 + EPS) {
     confidence = "blended";
-    archetype_secondary = secondary;
     archetype_is_blended = true;
-  } else if (primaryScore >= 4.0 && gap >= 0.50) {
+  } else if (primaryScore >= 4.0 - EPS && gap >= 0.50 - EPS) {
     confidence = "high";
-    if (gap < 0.75) {
-      archetype_secondary = secondary;
-    }
-  } else if (primaryScore >= 3.50 && gap > 0.25 && gap < 0.50) {
-    confidence = "moderate";
-    archetype_secondary = secondary;
   } else {
+    // Moderate, including a primary of 3.25 to 3.49 with a gap above 0.25,
+    // which v0.4 leaves undefined.
     confidence = "moderate";
-    if (gap <= 0.50) archetype_secondary = secondary;
   }
 
   return {
     archetype_primary: primary,
     archetype_secondary,
     archetype_is_blended,
+    archetype_top_three,
     archetype_confidence: confidence,
     archetype_scores: averages,
     facilitator_review,

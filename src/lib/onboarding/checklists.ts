@@ -148,6 +148,54 @@ const CHECKLISTS: Record<string, TrackOnboarding> = {
       },
     ],
   },
+  // Cohort 2. The landing page moved to this track and 29 people signed up
+  // against it before a checklist existed, so they reached the course with
+  // nothing to sign. Same three items and the same instruments as Cohort 1,
+  // under their own survey_types so the cohorts' responses stay separable.
+  "mass-sept-2026": {
+    trackSlug: "mass-sept-2026",
+    cohort: "MASS Coaching Cohort — Cohort 2 (Sept 2026)",
+    agreement: {
+      version: "mass-sept-2026-v1",
+      timeCommitment:
+        "The program runs approximately 8 weeks, with an estimated 1–2 hours per week which includes instructor-led sessions, coursework, and coaching.",
+      requireReleases: true,
+    },
+    title: "Complete your pre-program materials",
+    eyebrow: "Welcome to MASS",
+    footnote:
+      "All three are due by 3pm ET on Friday, September 25. Anything you’ve already done is checked off automatically.",
+    completeTitle: "Thank you for completing your pre-program materials.",
+    intro:
+      "Welcome to the MASS coaching cohort. Finish these three steps before the first session on Saturday, September 26 so we can finalize your enrollment. Anything you’ve already completed is checked off for you.",
+    items: [
+      {
+        id: "intake",
+        label: "Learner Intake Form",
+        description: "A few quick questions so we know who we’re serving.",
+        surveyType: "bcc-learner-intake",
+        kind: "survey",
+        href: "/dashboard/survey/bcc-learner-intake",
+      },
+      {
+        id: "agreement",
+        label: "Participation Agreement",
+        description:
+          "Review and sign your commitment to the program expectations, including the liability and media releases.",
+        surveyType: "mass-sept-2026-agreement",
+        kind: "agreement",
+      },
+      {
+        id: "presurvey",
+        label: "Pre-Program Survey",
+        description:
+          "About 10 minutes on mindset and soft skills, so we know where you’re starting from.",
+        surveyType: "mass-sept-2026-pre",
+        kind: "survey",
+        href: "/dashboard/survey/mass-sept-2026-pre",
+      },
+    ],
+  },
 };
 
 /**

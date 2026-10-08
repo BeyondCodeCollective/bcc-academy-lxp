@@ -29,8 +29,20 @@
       "schedule": "0 4 * * *"
     },
     {
+      "path": "/api/cron/certificates",
+      "schedule": "0 8 * * *"
+    },
+    {
       "path": "/api/cron/zoom-recordings",
       "schedule": "30 * * * *"
+    },
+    {
+      "path": "/api/cron/events-waitlist",
+      "schedule": "15 * * * *"
+    },
+    {
+      "path": "/api/cron/events-comms",
+      "schedule": "0 14 * * *"
     }
   ]
 }

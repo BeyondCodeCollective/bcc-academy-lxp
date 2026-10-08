@@ -174,7 +174,8 @@ export async function createCourseFromDraftAction(params: {
   allowlistEmails?: string[];
 }): Promise<ImportResult> {
   const { svc, role, programId: actorProgramId } = await requireCourseCreator();
-  const { draft, programSlug } = params;
+  const { programSlug } = params;
+  let { draft } = params;
 
   if (!(COURSE_PROGRAM_SLUGS as readonly string[]).includes(programSlug)) {
     return { success: false, error: "Invalid program." };
@@ -182,8 +183,6 @@ export async function createCourseFromDraftAction(params: {
   if (!draft.name?.trim()) return { success: false, error: "Course name is required." };
   if (!draft.instructor?.trim())
     return { success: false, error: "Instructor is required." };
-  if (!draft.startDate) return { success: false, error: "Start date is required." };
-
   // The whole point of the review step: a course with no dated sessions looks
   // complete everywhere and never appears on the calendar.
   if (!draft.sessions?.length) {
@@ -194,6 +193,12 @@ export async function createCourseFromDraftAction(params: {
   }
   if (draft.sessions.some((s) => !s.date || !s.time)) {
     return { success: false, error: "Every session needs a date and a time." };
+  }
+  // The start date is the earliest session. Derive it here too, so a draft whose
+  // sessions were added by hand on the review screen never fails on a field the
+  // screen doesn't show.
+  if (!draft.startDate) {
+    draft = { ...draft, startDate: [...draft.sessions.map((s) => s.date)].sort()[0] };
   }
 
   const { data: programRow } = await svc
@@ -251,7 +256,14 @@ export async function createCourseFromDraftAction(params: {
     instructor: draft.instructor.trim(),
     start_date: first.date,
     kickoff_time_utc: easternToUtc(first.date, first.time),
-    total_weeks: draft.totalWeeks || draft.sessions.length,
+    // Session-modeled courses have one unit per session, so the unit count is
+    // the session count. The draft's totalWeeks can mean calendar weeks (2 for
+    // a twice-weekly, two-week course), which hid sessions 3-4 from the
+    // curriculum editor on Exam Prep: Network+ Study Group.
+    total_weeks:
+      (draft.unitLabel || "Session") === "Session"
+        ? orderedSessions.length
+        : draft.totalWeeks || orderedSessions.length,
     sessions_per_week: draft.sessionsPerWeek || 1,
     unit_label: draft.unitLabel || "Session",
     session_times: draft.sessionTimes ?? [],

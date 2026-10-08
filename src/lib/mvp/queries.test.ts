@@ -74,9 +74,12 @@ class Database {
 // Two completed, single-session courses share one learner across programs.
 const track = (slug: string) => ({ slug, name: slug, shortName: slug, startDate: "2026-09-01", totalWeeks: 1,
   sessionsPerWeek: 1, unitLabel: "Session", lastSessionDayOffset: 0, weekSummaries: [{ week: 1, date: "2026-09-01" }] });
-const enrollment = (id: string, student: string, course = "alpha"): Row => ({ id, student_id: student, track_slug: course,
+const courseProgram: Record<string, string> = { alpha: "p1", beta: "p2" };
+const enrollment = (id: string, student: string, course = "alpha", program = courseProgram[course] ?? "p1"): Row => ({
+  id, student_id: student, track_slug: course, program_id: program,
   students: { id: student, role: "student", is_staff: false, is_test: false } });
-const attendance = (id: string, student: string, course = "alpha"): Row => ({ id, student_id: student, track: course,
+const attendance = (id: string, student: string, course = "alpha", program = courseProgram[course] ?? "p1"): Row => ({
+  id, student_id: student, track: course, program_id: program,
   week_number: 1, session_number: 1, checked_in_at: "2026-09-01T18:00:00Z" });
 let db: Database;
 let configs: Array<{ slug: string; tracks: ReturnType<typeof track>[]; surveys?: import("@/lib/programs/types").SurveyConfig[] }>;
@@ -87,12 +90,12 @@ beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn(() => { throw new Error("Network calls are forbidden in query tests."); }));
   db = new Database();
   db.tables = {
-    survey_responses: [],
+    survey_responses: [], hidden_courses: [],
     students: [{ id: "actor", program_id: "p1" }], staff_program_access: [], track_overrides: [],
     programs: [{ id: "p1", slug: "one", name: "One" }, { id: "p2", slug: "two", name: "Two" }],
     student_tracks: [enrollment("e1", "u1"), enrollment("e2", "u2"), enrollment("e3", "u1", "beta")],
     attendance: [attendance("a1", "u1"), attendance("a2", "u1", "beta")],
-    session_content: ["alpha", "beta"].map((slug, index) => ({ id: `d${index}`, track: slug, week_number: 1,
+    session_content: ["alpha", "beta"].map((slug, index) => ({ id: `d${index}`, track: slug, program_id: courseProgram[slug], week_number: 1,
       status: "completed", status_2: "upcoming", status_3: "upcoming" })),
   };
   configs = [{ slug: "one", tracks: [track("alpha")] }, { slug: "two", tracks: [track("beta")] }];
@@ -261,6 +264,38 @@ describe("MVP query access", () => {
 });
 
 describe("MVP query totals and filters", () => {
+  it("scopes attendance and delivered-session reads to the course's program", async () => {
+    configs[0].tracks.push(track("twin"));
+    configs[1].tracks.push(track("twin"));
+    db.tables.student_tracks.push(enrollment("e5", "u1", "twin", "p1"), enrollment("e6", "u8", "twin", "p2"));
+    db.tables.attendance.push(attendance("a5", "u1", "twin", "p1"), attendance("a6", "u1", "twin", "p2"), attendance("a7", "u8", "twin", "p2"));
+    db.tables.session_content.push(
+      { id: "d5", track: "twin", program_id: "p1", week_number: 1, status: "completed", status_2: "upcoming", status_3: "upcoming" },
+      { id: "d6", track: "twin", program_id: "p2", week_number: 1, status: "upcoming", status_2: "upcoming", status_3: "upcoming" },
+    );
+    const p1 = await getMvpDashboardData({ programId: "p1", courseSlug: "twin" });
+    expect(p1.programs[0]).toMatchObject({ programId: "p1", courseSlug: "twin", totalParticipants: 1, attendanceRate: 100 });
+    const scoped = (table: string) => db.requests.filter((r) => r.table === table);
+    for (const table of ["attendance", "session_content"]) {
+      expect(scoped(table).length).toBeGreaterThan(0);
+      expect(scoped(table).every((r) => r.filters.some(([op, key]) => op === "eq" && key === "program_id"))).toBe(true);
+    }
+    // p2's delivery is still "upcoming", so it has no verified denominator;
+    // p1's completed session must not leak into it.
+    const p2 = await getMvpDashboardData({ programId: "p2", courseSlug: "twin" });
+    expect(p2.programs[0]).toMatchObject({ programId: "p2", courseSlug: "twin", totalParticipants: 1, attendanceRate: null });
+  });
+  it("keeps a course slug offered by two programs from mixing their rosters", async () => {
+    configs[0].tracks.push(track("twin"));
+    configs[1].tracks.push(track("twin"));
+    db.tables.student_tracks.push(enrollment("e5", "u1", "twin", "p1"), enrollment("e6", "u8", "twin", "p2"), enrollment("e7", "u9", "twin", "p2"));
+    const result = await getMvpDashboardData({ programId: "p1", courseSlug: "twin" });
+    expect(result.programs).toHaveLength(1);
+    expect(result.programs[0]).toMatchObject({ programId: "p1", courseSlug: "twin", totalParticipants: 1 });
+    const other = await getMvpDashboardData({ programId: "p2", courseSlug: "twin" });
+    expect(other.programs[0]).toMatchObject({ programId: "p2", courseSlug: "twin", totalParticipants: 2 });
+    expect(db.requests.filter((r) => r.table === "student_tracks").every((r) => r.filters.some(([op, key]) => op === "eq" && key === "program_id"))).toBe(true);
+  });
   it("combines real calculations and deduplicates organization summaries", async () => {
     const result = await getMvpDashboardData({});
     expect(result.programs[0]).toMatchObject({ totalParticipants: 2, started: 1, completed: 1, attendanceRate: 50, completionRate: 50 });
@@ -298,7 +333,7 @@ describe("MVP query totals and filters", () => {
       (row.students as Row).date_of_birth = "2000-01-01";
       (row.students as Row).location = row.student_id === "u1" ? "Boston" : "Oakland";
     }
-    const result = await getMvpDashboardData({ city: "Boston" });
+    const result = await getMvpDashboardData({ city: "Boston" }, { includeDemographics: true });
     expect(result.demographics?.[0]).toMatchObject({ respondentCount: 1, missingCount: 0 });
     expect(result.demographics?.[0].groups.find((group) => group.label === "25–34")?.count).toBe(1);
     expect(JSON.stringify(result.demographics)).not.toContain("2000-01-01");
@@ -311,16 +346,34 @@ describe("MVP query totals and filters", () => {
       survey_type: "bcc-learner-intake", completed_at: "2026-10-01T00:00:00Z", responses: { household_income: "Under $20,000" } }));
     db.tables.survey_responses.push({ id: "s4", student_id: "u1", program_id: "p2", survey_type: "bcc-learner-intake",
       completed_at: "2026-10-02T00:00:00Z", responses: { household_income: "$80,000 or more" } });
-    const result = await getMvpDashboardData({ programId: "p1", city: "Boston" });
+    const result = await getMvpDashboardData({ programId: "p1", city: "Boston" }, { includeDemographics: true });
     const income = result.demographics?.find((item) => item.id === "household-income");
     expect(income).toMatchObject({ respondentCount: 1, missingCount: 0 });
     expect(income?.groups[0].count).toBe(1);
     expect(income?.groups[4].count).toBe(0);
     expect(JSON.stringify(income)).not.toContain("student_id");
   });
+  it("reads no birth dates or income answers unless demographics are requested", async () => {
+    const result = await getMvpDashboardData({});
+    expect(result.demographics).toBeUndefined();
+    expect(db.requests.some((request) => request.columns.includes("date_of_birth"))).toBe(false);
+    expect(db.requests.some((request) => request.table === "survey_responses")).toBe(false);
+  });
+  it("leaves hidden courses out of rows, filters and records", async () => {
+    db.tables.hidden_courses = [{ track_slug: "beta" }];
+    const result = await getMvpDashboardData({});
+    expect(result.programs.map((row) => row.courseSlug)).toEqual(["alpha"]);
+    expect(result.filterOptions.courses.map((course) => course.slug)).toEqual(["alpha"]);
+    expect(db.requests.some((request) => request.filters.some(([, , value]) => value === "beta"))).toBe(false);
+    await expect(getMvpDashboardData({ programId: "p2", courseSlug: "beta" })).rejects.toThrow("selected course is unavailable");
+  });
+  it("fails visibly when hidden courses cannot be loaded", async () => {
+    db.fail = (request) => request.table === "hidden_courses";
+    await expect(getMvpDashboardData({})).rejects.toThrow("Unable to load hidden courses");
+  });
   it("fails visibly when income data cannot be loaded", async () => {
     db.fail = (request) => request.table === "survey_responses";
-    await expect(getMvpDashboardData({})).rejects.toThrow("Unable to load complete household-income data");
+    await expect(getMvpDashboardData({}, { includeDemographics: true })).rejects.toThrow("Unable to load complete household-income data");
   });
   it("keeps missing locations in all-location totals but not selected-location totals", async () => {
     (db.tables.student_tracks[0].students as Row).location = "Boston";
@@ -366,7 +419,7 @@ describe("MVP query pagination and failures", () => {
     db.serverCap = 2;
     db.tables.student_tracks = Array.from({ length: 7 }, (_, i) => enrollment(`e${i}`, `u${i}`));
     db.tables.attendance = Array.from({ length: 7 }, (_, i) => attendance(`a${i}`, `u${i}`));
-    db.tables.session_content = Array.from({ length: 5 }, (_, i) => ({ id: `d${i}`, track: "alpha", week_number: i + 1,
+    db.tables.session_content = Array.from({ length: 5 }, (_, i) => ({ id: `d${i}`, track: "alpha", program_id: "p1", week_number: i + 1,
       status: "completed", status_2: "upcoming", status_3: "upcoming" }));
     const result = await getMvpDashboardData({ programId: "p1" });
     expect(result.programs[0]).toMatchObject({ totalParticipants: 7, started: 7, completed: 7 });

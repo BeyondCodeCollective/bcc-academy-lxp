@@ -1,10 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
+import { ArrowRight, LockSimple } from "@phosphor-icons/react/dist/ssr";
 
 // A month-grid calendar for a track: sessions (dated from the syllabus) plus
-// any MASS / guest-speaker / event / office-hours items. Click a day to see
-// what's on it. Type drives the chip color; the title is the label.
+// any MASS / guest-speaker / event / office-hours items. Chips link straight
+// to their session; the focus session's cell is the page's one dark field.
 export type CalendarEvent = {
   /** ISO date, YYYY-MM-DD */
   date: string;
@@ -13,6 +15,21 @@ export type CalendarEvent = {
   /** Sessions link to their week page. */
   href?: string;
   time?: string;
+};
+
+/** The one session the page is about — rendered as the field, at cell size.
+ *  Live/today/next once the course runs; the first session, locked, before. */
+export type CalendarFocus = {
+  /** ISO date, YYYY-MM-DD */
+  date: string;
+  /** "Live now" | "Today" | "Up next" | "Starts" */
+  kicker: string;
+  title: string;
+  time?: string | null;
+  /** Session page. Absent = locked (pre-start). */
+  href?: string;
+  /** "Join now" | "Join session" */
+  cta: string;
 };
 
 const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -50,17 +67,18 @@ function ymd(y: number, m: number, d: number) {
 export function TrackCalendar({
   events,
   todayISO,
-  focusDate,
+  focus,
 }: {
   events: CalendarEvent[];
   /** Today as YYYY-MM-DD, passed from the server so SSR + client agree. */
   todayISO: string;
-  /** The date the page's "Up next" panel points at — THIS course's next
-   *  session. The calendar carries the whole program's schedule, so without
-   *  it the day panel opened on whichever course happened to meet soonest,
-   *  contradicting the card directly above it. */
-  focusDate?: string | null;
+  /** THIS course's live/next (or first, pre-start) session. Its cell becomes
+   *  the field — the page's one dark object — carrying the Join button. The
+   *  calendar carries the whole program's schedule, so without it the accent
+   *  would land on whichever course happened to meet soonest. */
+  focus?: CalendarFocus | null;
 }) {
+  const focusDate = focus?.date ?? null;
   // Contiguous list of months from the first event to the last, so empty
   // months in between are still reachable with the arrows.
   const months = useMemo(() => {
@@ -94,16 +112,6 @@ export function TrackCalendar({
   }, [months, todayISO, focusDate]);
 
   const [monthIdx, setMonthIdx] = useState(startIdx);
-  // Pre-select the next upcoming event so the day panel opens showing the
-  // session that matters instead of "Select a day" (nobody clicked it there).
-  const [selected, setSelected] = useState<string | null>(() => {
-    if (focusDate) return focusDate;
-    const next = events
-      .map((e) => e.date)
-      .filter((d) => d >= todayISO)
-      .sort()[0];
-    return next ?? null;
-  });
 
   if (months.length === 0) return null;
   const cur = months[Math.min(monthIdx, months.length - 1)];
@@ -114,13 +122,6 @@ export function TrackCalendar({
     ...Array.from({ length: firstDow }, () => null),
     ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
   ];
-
-  const selectedEvents = selected ? byDate[selected] ?? [] : [];
-  const selectedLabel = selected
-    ? new Date(`${selected}T12:00:00`).toLocaleDateString("en-US", {
-        weekday: "long", month: "long", day: "numeric",
-      })
-    : null;
 
   return (
     <div className="space-y-4">
@@ -134,7 +135,7 @@ export function TrackCalendar({
             type="button"
             aria-label="Previous month"
             disabled={monthIdx === 0}
-            onClick={() => { setMonthIdx((i) => Math.max(0, i - 1)); setSelected(null); }}
+            onClick={() => setMonthIdx((i) => Math.max(0, i - 1))}
             className="flex h-8 w-8 items-center justify-center rounded-lg border border-rule bg-paper-tint text-ink transition-colors hover:border-cobalt disabled:opacity-35 disabled:hover:border-rule"
           >
             ‹
@@ -143,44 +144,12 @@ export function TrackCalendar({
             type="button"
             aria-label="Next month"
             disabled={monthIdx >= months.length - 1}
-            onClick={() => { setMonthIdx((i) => Math.min(months.length - 1, i + 1)); setSelected(null); }}
+            onClick={() => setMonthIdx((i) => Math.min(months.length - 1, i + 1))}
             className="flex h-8 w-8 items-center justify-center rounded-lg border border-rule bg-paper-tint text-ink transition-colors hover:border-cobalt disabled:opacity-35 disabled:hover:border-rule"
           >
             ›
           </button>
         </div>
-      </div>
-
-      {/* Selected-day panel — ABOVE the grid, accent-marked. Below it, nobody
-         scrolled far enough to notice the next session was right there. */}
-      <div className="rounded-lg border border-primary/25 bg-primary/8 p-4">
-        <h4 className="text-sm font-semibold text-ink">{selectedLabel ?? "Select a day"}</h4>
-        {!selected ? (
-          <p className="mt-1 text-sm text-ink-faint">Click any date below to see what’s on.</p>
-        ) : selectedEvents.length === 0 ? (
-          <p className="mt-1 text-sm text-ink-faint">Nothing scheduled this day.</p>
-        ) : (
-          <ul className="mt-2 space-y-2">
-            {selectedEvents.map((e, i) => {
-              const inner = (
-                <span className="flex items-center gap-2">
-                  <span className={`h-2.5 w-2.5 shrink-0 rounded-[3px] ${DOT[e.type]}`} />
-                  <span className="text-sm font-medium text-ink">{e.title}</span>
-                  {e.time && <span className="text-xs text-ink-soft">{e.time}</span>}
-                </span>
-              );
-              return (
-                <li key={i}>
-                  {e.href ? (
-                    <a href={e.href} className="hover:underline">{inner}</a>
-                  ) : (
-                    inner
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        )}
       </div>
 
       {/* Grid */}
@@ -197,39 +166,91 @@ export function TrackCalendar({
             const date = ymd(cur.y, cur.m, day);
             const dayEvents = byDate[date] ?? [];
             const isToday = date === todayISO;
-            const isSelected = date === selected;
-            const shown = dayEvents.slice(0, 2);
-            const extra = dayEvents.length - shown.length;
+            const isPast = date < todayISO;
+
+            // The field, at cell size. One per page; nothing else on the
+            // course home is dark. Locked before day one — the date is
+            // visible and filled, it just can't be opened yet.
+            if (focus && date === focus.date) {
+              const inner = (
+                <>
+                  <span className="text-xs font-bold tabular-nums text-white">{day}</span>
+                  <span className="hidden text-[11px] font-bold uppercase tracking-[0.1em] text-white/60 sm:block">
+                    {focus.kicker}
+                  </span>
+                  <span className="hidden text-[12px] font-semibold leading-snug text-white sm:block">
+                    {focus.title}
+                  </span>
+                  {focus.time && (
+                    <span className="hidden text-[11px] text-white/70 sm:block">{focus.time}</span>
+                  )}
+                  <span className="mt-auto hidden sm:block">
+                    {focus.href ? (
+                      <span className="inline-flex items-center gap-1 rounded-lg bg-paper px-2.5 py-1.5 text-[11px] font-bold text-ink">
+                        {focus.cta}
+                        <ArrowRight size={11} weight="bold" aria-hidden />
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[11px] text-white/70">
+                        <LockSimple size={11} weight="bold" aria-hidden />
+                        Opens on the day
+                      </span>
+                    )}
+                  </span>
+                  {/* Phones: a bright dot so the filled cell still reads. */}
+                  <span className="mt-auto h-1.5 w-1.5 rounded-full bg-highlight sm:hidden" />
+                </>
+              );
+              const cls =
+                "stage-surface stage-grid relative isolate flex min-h-[64px] flex-col gap-1 overflow-hidden p-1.5 text-left sm:min-h-[92px]";
+              return focus.href ? (
+                <Link key={date} href={focus.href} className={`${cls} transition-opacity hover:opacity-95`}>
+                  <span className="relative flex flex-1 flex-col gap-1">{inner}</span>
+                </Link>
+              ) : (
+                <div key={date} className={cls} aria-label={`${focus.title} — opens on the day`}>
+                  <span className="relative flex flex-1 flex-col gap-1">{inner}</span>
+                </div>
+              );
+            }
+
             return (
-              <button
-                type="button"
+              <div
                 key={date}
-                onClick={() => setSelected(date)}
-                className={`flex min-h-[64px] flex-col gap-1 bg-surface-elevated p-1.5 text-left transition-colors hover:bg-paper-tint sm:min-h-[92px] ${
-                  isSelected ? "outline outline-2 -outline-offset-2 outline-cobalt" : ""
-                }`}
+                className="flex min-h-[64px] flex-col gap-1 bg-surface-elevated p-1.5 text-left sm:min-h-[92px]"
               >
                 <span
                   className={`text-xs font-semibold tabular-nums ${
                     isToday
                       ? "inline-flex h-5 w-5 items-center justify-center rounded-md bg-electric-green text-ink"
-                      : "text-ink-soft"
+                      : isPast
+                        ? "text-ink-faint"
+                        : "text-ink-soft"
                   }`}
                 >
                   {day}
                 </span>
-                {/* Chips on >=sm, dots on mobile */}
+                {/* Chips on >=sm, dots on mobile. A chip with a page is a link
+                    straight to it — no intermediate "selected day" step. */}
                 <div className="hidden flex-col gap-1 sm:flex">
-                  {shown.map((e, j) => (
-                    <span
-                      key={j}
-                      className={`truncate rounded px-1 py-0.5 text-[10px] font-medium leading-tight ${CHIP[e.type]}`}
-                    >
-                      {e.title}
+                  {dayEvents.slice(0, 2).map((e, j) => {
+                    const chip = `block truncate rounded px-1 py-0.5 text-[10px] font-medium leading-tight ${CHIP[e.type]} ${
+                      isPast ? "opacity-60" : ""
+                    }`;
+                    return e.href ? (
+                      <Link key={j} href={e.href} className={`${chip} hover:underline`} title={e.title}>
+                        {e.title}
+                      </Link>
+                    ) : (
+                      <span key={j} className={chip} title={e.title}>
+                        {e.title}
+                      </span>
+                    );
+                  })}
+                  {dayEvents.length > 2 && (
+                    <span className="px-1 text-[10px] font-semibold text-ink-faint">
+                      +{dayEvents.length - 2} more
                     </span>
-                  ))}
-                  {extra > 0 && (
-                    <span className="px-1 text-[10px] font-semibold text-ink-faint">+{extra} more</span>
                   )}
                 </div>
                 {dayEvents.length > 0 && (
@@ -239,7 +260,7 @@ export function TrackCalendar({
                     ))}
                   </div>
                 )}
-              </button>
+              </div>
             );
           })}
         </div>

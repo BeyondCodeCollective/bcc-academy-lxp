@@ -150,10 +150,44 @@ export function ImportCourseForm({
     setDraft((d) => (d ? { ...d, ...changes } : d));
   }
 
+  // The start date IS the first session's date. Keep it derived so editing or
+  // adding a session can never leave "Start date is required." with no field
+  // on screen to satisfy it (Mica hit exactly that on a source with no schedule).
+  function withStartDate(d: CourseDraft, sessions: CourseDraft["sessions"]): CourseDraft {
+    const dates = sessions.map((s) => s.date).filter(Boolean).sort();
+    return { ...d, sessions, startDate: dates[0] ?? "" };
+  }
+
   function patchSession(i: number, changes: Partial<CourseDraft["sessions"][number]>) {
     setDraft((d) =>
+      d ? withStartDate(d, d.sessions.map((s, n) => (n === i ? { ...s, ...changes } : s))) : d,
+    );
+  }
+
+  function addSession() {
+    setDraft((d) => {
+      if (!d) return d;
+      const last = d.sessions[d.sessions.length - 1];
+      return withStartDate(d, [
+        ...d.sessions,
+        {
+          week: d.sessions.length + 1,
+          date: "",
+          time: last?.time ?? "18:00",
+          topic: "",
+          durationMinutes: last?.durationMinutes ?? 60,
+        },
+      ]);
+    });
+  }
+
+  function removeSession(i: number) {
+    setDraft((d) =>
       d
-        ? { ...d, sessions: d.sessions.map((s, n) => (n === i ? { ...s, ...changes } : s)) }
+        ? withStartDate(
+            d,
+            d.sessions.filter((_, n) => n !== i).map((s, n) => ({ ...s, week: n + 1 })),
+          )
         : d,
     );
   }
@@ -638,9 +672,28 @@ export function ImportCourseForm({
                 className={`${fieldInput} flex-1`}
                 placeholder="Topic"
               />
+              <button
+                type="button"
+                onClick={() => removeSession(i)}
+                aria-label={`Remove session ${s.week}`}
+                className="shrink-0 rounded px-2 py-1 text-xs text-ink-soft hover:bg-ink/5 hover:text-ink"
+              >
+                Remove
+              </button>
             </div>
           ))}
-          <p className="text-xs text-ink-soft">All times Eastern.</p>
+          {draft.sessions.length === 0 && (
+            <p className="text-sm text-ink-soft">
+              The source didn&apos;t list any sessions. Add the first one — its date becomes the
+              course start date.
+            </p>
+          )}
+          <div className="flex items-center justify-between gap-3">
+            <button type="button" onClick={addSession} className={buttonClass("secondary", "sm")}>
+              + Add a session
+            </button>
+            <p className="text-xs text-ink-soft">All times Eastern.</p>
+          </div>
         </div>
       </Field>
 

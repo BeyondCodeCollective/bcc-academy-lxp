@@ -147,43 +147,46 @@ export type SurveyQuestion =
   | SelectQuestion
   | FileQuestion;
 
+/** Every required question on the page that doesn't have a valid answer yet. */
+export function unansweredRequired(
+  questions: SurveyQuestion[],
+  answers: Record<string, unknown>,
+): SurveyQuestion[] {
+  return questions.filter((q) => {
+    if (!q.required) return false;
+    const val = answers[q.id];
+    if (q.type === "consent") {
+      return val !== true;
+    } else if (q.type === "multi-select") {
+      return !Array.isArray(val) || val.length === 0;
+    } else if (q.type === "date") {
+      return !val || typeof val !== "string" || !val.trim();
+    } else if (q.type === "likert") {
+      const likertVal = val as Record<string, string> | undefined;
+      if (!likertVal) return true;
+      return q.statements.some((stmt) => !likertVal[stmt]);
+    } else if (q.type === "dual-likert") {
+      const dual = val as Record<string, { before?: string; now?: string }> | undefined;
+      if (!dual) return true;
+      return !q.statements.every((s) => !!(dual[s]?.before && dual[s]?.now));
+    } else if (q.type === "file") {
+      const file = val as { path?: string } | undefined;
+      return !file?.path;
+    } else if (q.type === "month-year") {
+      const my = val as { month: string; year: string } | undefined;
+      return !my || !my.month || !my.year;
+    } else if (q.type === "text" && q.zip) {
+      return typeof val !== "string" || !/^\d{5}$/.test(val.trim());
+    }
+    return !val || (typeof val === "string" && !val.trim());
+  });
+}
+
 export function isPageValid(
   questions: SurveyQuestion[],
   answers: Record<string, unknown>,
 ): boolean {
-  for (const q of questions) {
-    if (!q.required) continue;
-    const val = answers[q.id];
-    if (q.type === "consent") {
-      if (val !== true) return false;
-    } else if (q.type === "multi-select") {
-      if (!Array.isArray(val) || val.length === 0) return false;
-    } else if (q.type === "date") {
-      if (!val || typeof val !== "string" || !val.trim()) return false;
-    } else if (q.type === "likert") {
-      const likertVal = val as Record<string, string> | undefined;
-      if (!likertVal) return false;
-      for (const stmt of q.statements) {
-        if (!likertVal[stmt]) return false;
-      }
-    } else if (q.type === "dual-likert") {
-      if (!q.required) return true;
-      const val = answers[q.id] as Record<string, { before?: string; now?: string }> | undefined;
-      if (!val) return false;
-      if (!q.statements.every((s) => !!(val[s]?.before && val[s]?.now))) return false;
-    } else if (q.type === "file") {
-      const f = val as { path?: string } | undefined;
-      if (!f?.path) return false;
-    } else if (q.type === "month-year") {
-      const my = val as { month: string; year: string } | undefined;
-      if (!my || !my.month || !my.year) return false;
-    } else if (q.type === "text" && q.zip) {
-      if (typeof val !== "string" || !/^\d{5}$/.test(val.trim())) return false;
-    } else {
-      if (!val || (typeof val === "string" && !val.trim())) return false;
-    }
-  }
-  return true;
+  return unansweredRequired(questions, answers).length === 0;
 }
 
 export function QuestionRenderer({

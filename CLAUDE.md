@@ -80,6 +80,7 @@ New AI features follow the same pattern: gateway model string, structured output
 | `/api/cron/daily-snapshot` | 06:00 UTC | Analytics snapshots |
 | `/api/cron/sentinel` | 07:00 UTC | Nightly self-audit + brief |
 | `/api/cron/zoom-recordings` | :30 hourly | Import Zoom cloud recordings → private Blob |
+| `/api/cron/certificates` | 08:00 UTC | Auto-certificate tracks: issue any missed, file PDFs to `CERTIFICATES_DRIVE_FOLDER_ID` |
 
 Auth pattern: `Authorization: Bearer <CRON_SECRET>`; no secret set = accept all (preview/local).
 
@@ -128,7 +129,7 @@ Two-program staff use `staff_program_access` grants, not super_admin. "Preview a
 | `students` | All users — role, cohort, program, name, email, `is_staff`/`is_test` |
 | `track_overrides` | THE course record (DB-driven); keyed `(program_id, track_slug)` |
 | `session_content` | Per-session content; UNIQUE `(program_id, track, week_number)` |
-| `student_tracks` | Enrollments; UNIQUE `(student_id, track_slug)` — NO program_id, unlike its siblings |
+| `student_tracks` | Enrollments; UNIQUE `(student_id, track_slug)`; has a populated `program_id` (filter on it when scoping to a program, the unique key does not include it) |
 | `instructor_tracks` | Instructor assignments; UNIQUE `(student_id, track_slug, program_id)` |
 | `hidden_courses` | Reversible hide (hide, don't delete) |
 | `allowed_signup_emails` | Allowlist per track (invite list + self-signup gate) |

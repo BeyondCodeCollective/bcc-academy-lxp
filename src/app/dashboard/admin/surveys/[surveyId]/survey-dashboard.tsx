@@ -9,6 +9,7 @@ import { LikertDiverging, type LikertRow } from "@/components/stats/likert-diver
 import { PageHeader, Section } from "@/components/page-header";
 import { buttonClass, fieldInput } from "@/components/ui";
 import { getApplicationFileUrl } from "../../actions-misc";
+import { downloadCsv as saveCsv } from "@/lib/csv";
 
 interface Props {
   surveyId: string;
@@ -75,13 +76,7 @@ export function SurveyDashboard({
       r.completed_at ?? "",
       ...Array.from(allKeys).map((k) => formatCsvValue(r.responses[k])),
     ]);
-    const csv = [headers, ...rows]
-      .map((row) => row.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
-      .join("\n");
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-    a.download = `${surveyId}-${filter}.csv`;
-    a.click();
+    saveCsv(`${surveyId}-${filter}.csv`, headers, rows);
   }
 
   if (responses.length === 0) {

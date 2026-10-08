@@ -1,10 +1,12 @@
 "use server";
 
-import { createServiceClient } from "@/lib/supabase/server";
 import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { hasCapability } from "@/lib/roles";
+import {
+  requireManager,
+  resolveProgramForActor,
+  assertTrackInActorProgram,
+} from "../actions-shared";
 import { getProgramBySlug, getHomeProgramForTrack } from "@/lib/programs";
 import { toSlug } from "@/lib/programs/slug";
 import { easternToUtc } from "@/lib/utils";
@@ -23,23 +25,11 @@ function revalidateCourseSurfaces(trackSlug?: string) {
   }
 }
 
-async function requireSuperAdmin() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/");
-
-  const svc = createServiceClient();
-  const { data: student } = await svc
-    .from("students")
-    .select("role")
-    .eq("id", user.id)
-    .single<{ role: string }>();
-
-  if (!hasCapability(student?.role ?? "", "switch_programs")) {
-    throw new Error("Not authorized");
-  }
-  return svc;
-}
+// Course management is a program-admin job, not a platform one. requireManager
+// proves the actor is admin+ somewhere; the boundary helpers bind each action
+// to the actor's own program(s) so a BGC admin can't touch a Catalyst course.
+// super_admins and the master pass every boundary.
+const requireCourseManager = requireManager;
 
 export type CreateCourseResult =
   | {
@@ -68,10 +58,13 @@ export async function createCourseAction(formData: {
   /** Program the course is filed under. Defaults to Catalyst (the umbrella). */
   programSlug?: string;
 }): Promise<CreateCourseResult> {
-  const svc = await requireSuperAdmin();
+  const actor = await requireCourseManager();
+  const { svc } = actor;
 
   const { name, instructor, totalWeeks, sessionsPerWeek, phase } = formData;
   const programSlug = formData.programSlug ?? "catalyst";
+  // Binds the new course to a program the actor may act in (throws otherwise).
+  await resolveProgramForActor(actor, svc, programSlug);
 
   if (!name.trim()) return { success: false, error: "Course name is required." };
   if (!instructor.trim()) return { success: false, error: "Instructor name is required." };
@@ -163,7 +156,9 @@ export async function hideCourseAction(
   programSlug: string,
   trackSlug: string,
 ): Promise<{ success: boolean; error?: string }> {
-  const svc = await requireSuperAdmin();
+  const actor = await requireCourseManager();
+  const { svc } = actor;
+  await assertTrackInActorProgram(actor, svc, trackSlug);
   const {
     data: { user },
   } = await (await createClient()).auth.getUser();
@@ -190,7 +185,9 @@ export async function showCourseAction(
   _programSlug: string,
   trackSlug: string,
 ): Promise<{ success: boolean; error?: string }> {
-  const svc = await requireSuperAdmin();
+  const actor = await requireCourseManager();
+  const { svc } = actor;
+  await assertTrackInActorProgram(actor, svc, trackSlug);
 
   // Un-hide everywhere — clear any hidden row for this course regardless of
   // which program it was hidden under.
@@ -248,7 +245,9 @@ export async function deleteCourseAction(
   programSlug: string,
   trackSlug: string,
 ): Promise<DeleteCourseResult> {
-  const svc = await requireSuperAdmin();
+  const actor = await requireCourseManager();
+  const { svc } = actor;
+  await assertTrackInActorProgram(actor, svc, trackSlug);
 
   // A course defined in TypeScript would regenerate itself from config the
   // moment the page re-rendered, so "deleted" would be a lie.
@@ -317,7 +316,9 @@ export async function updateCourseAction(
     coverImageUrl?: string;
   },
 ): Promise<UpdateCourseResult> {
-  const svc = await requireSuperAdmin();
+  const actor = await requireCourseManager();
+  const { svc } = actor;
+  await resolveProgramForActor(actor, svc, programSlug);
   const { name, instructor, totalWeeks, sessionsPerWeek, phase } = formData;
 
   if (!name.trim()) return { success: false, error: "Course name is required." };
@@ -334,6 +335,24 @@ export async function updateCourseAction(
     .single<{ id: string }>();
   if (!programRow) return { success: false, error: "Could not find that program." };
 
+  // Raising the unit count has to extend the schedule too. Dates live only in
+  // week_summaries, and a unit with no entry there has no date, so learners
+  // never see it. Network+ went 24 → 26 this way and sessions 25-26 vanished
+  // from the student view. Twice-weekly courses can't use the weekly schedule
+  // stamp, so for them this was the only way the new units could get dates.
+  const { data: current } = await svc
+    .from("track_overrides")
+    .select("week_summaries, unit_label")
+    .eq("program_id", programRow.id)
+    .eq("track_slug", trackSlug)
+    .maybeSingle<{ week_summaries: ScheduleSummary[] | null; unit_label: string | null }>();
+  const extended = extendSchedule(
+    current?.week_summaries ?? [],
+    totalWeeks,
+    (current?.unit_label ?? "Week") === "Session" ? sessionsPerWeek : 1,
+    current?.unit_label ?? "Week",
+  );
+
   // Upsert (not update) so a hardcoded TS-config course with no override row yet
   // gets one created on first edit — making EVERY course editable from the DB
   // without a code deploy. Unset fields fall back to the TS config via mergeTrack.
@@ -347,6 +366,7 @@ export async function updateCourseAction(
         instructor: instructor.trim(),
         total_weeks: totalWeeks,
         sessions_per_week: sessionsPerWeek,
+        ...(extended ? { week_summaries: extended.summaries } : {}),
         ...(phase ? { phase } : {}),
         ...(formData.coverImageUrl !== undefined
           ? { cover_image_url: formData.coverImageUrl.trim() || null }
@@ -360,8 +380,81 @@ export async function updateCourseAction(
     return { success: false, error: "Failed to update course." };
   }
 
+  // Give the new units their content rows up front, titled from the schedule
+  // and carrying the course's Zoom link: the Join button and the recording
+  // import both read meeting_link per session. ignoreDuplicates leaves any
+  // row an admin already touched alone.
+  if (extended?.added.length) {
+    const { data: last } = await svc
+      .from("session_content")
+      .select("meeting_link")
+      .eq("program_id", programRow.id)
+      .eq("track", trackSlug)
+      .not("meeting_link", "is", null)
+      .neq("meeting_link", "")
+      .order("week_number", { ascending: false })
+      .limit(1)
+      .maybeSingle<{ meeting_link: string }>();
+    const { error: contentError } = await svc.from("session_content").upsert(
+      extended.added.map((e) => ({
+        program_id: programRow.id,
+        track: trackSlug,
+        week_number: e.week,
+        title: e.topic,
+        meeting_link: last?.meeting_link ?? null,
+        status: "upcoming",
+        status_2: "upcoming",
+      })),
+      { onConflict: "program_id,track,week_number", ignoreDuplicates: true },
+    );
+    if (contentError) console.error("[updateCourseAction] session rows failed:", contentError);
+  }
+
   revalidateCourseSurfaces(trackSlug);
   return { success: true };
+}
+
+type ScheduleSummary = {
+  week: number;
+  topic: string;
+  icon: string;
+  date?: string;
+  label?: string;
+  time?: string;
+  durationMinutes?: number;
+};
+
+/** Append schedule entries for units past the current last one. Each new unit
+ *  is dated one week after the unit `stride` places before it (stride = 2 for
+ *  a Wed/Fri course), so the course's own rhythm carries forward. Returns null
+ *  when nothing needs adding, or when the schedule is empty (TS-config courses
+ *  fall back to their config and must not get a partial override). */
+function extendSchedule(
+  summaries: ScheduleSummary[],
+  totalUnits: number,
+  stride: number,
+  unitLabel: string,
+): { summaries: ScheduleSummary[]; added: ScheduleSummary[] } | null {
+  const regular = summaries.filter((e) => !e.label).sort((a, b) => a.week - b.week);
+  const lastWeek = regular.at(-1)?.week ?? 0;
+  if (!regular.length || totalUnits <= lastWeek) return null;
+
+  const all = [...regular];
+  const added: ScheduleSummary[] = [];
+  for (let week = lastWeek + 1; week <= totalUnits; week++) {
+    const source = all[all.length - stride] ?? all[all.length - 1];
+    const entry: ScheduleSummary = { week, topic: `${unitLabel} ${week}`, icon: "📅" };
+    if (source.date) {
+      const d = new Date(`${source.date}T12:00:00Z`);
+      d.setUTCDate(d.getUTCDate() + 7);
+      entry.date = d.toISOString().slice(0, 10);
+      if (source.time) entry.time = source.time;
+      if (source.durationMinutes) entry.durationMinutes = source.durationMinutes;
+    }
+    all.push(entry);
+    added.push(entry);
+  }
+  return { summaries: [...summaries, ...added], added };
 }
 
 export type ApplyScheduleResult =
@@ -386,7 +479,9 @@ export async function applyWeeklyScheduleAction(
   trackSlug: string,
   formData: { firstDate: string; time: string; durationMinutes: number },
 ): Promise<ApplyScheduleResult> {
-  const svc = await requireSuperAdmin();
+  const actor = await requireCourseManager();
+  const { svc } = actor;
+  await resolveProgramForActor(actor, svc, programSlug);
   const { firstDate, time, durationMinutes } = formData;
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(firstDate))

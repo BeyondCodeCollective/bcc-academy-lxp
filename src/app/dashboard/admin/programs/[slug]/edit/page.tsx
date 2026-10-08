@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSessionContext } from "@/lib/auth/session";
-import { canSwitchPrograms, canManageRoles } from "@/lib/roles";
+import { canSwitchPrograms, canManageStudents, canManageRoles } from "@/lib/roles";
+import { requireManager, allowedProgramSlugsForActor } from "../../../actions-shared";
 import {
   getProgram,
   getProgramWithOverrides,
@@ -29,7 +30,8 @@ export default async function EditCoursePage({
 
   const ctx = await getSessionContext();
   if (!ctx) redirect("/");
-  if (!canSwitchPrograms(ctx.student?.role ?? "")) redirect("/dashboard/admin");
+  const role = ctx.student?.role ?? "";
+  if (!canManageStudents(role)) redirect("/dashboard/admin");
 
   // Every course is editable. Resolve the course's home program: TS-config
   // courses know their home; builder courses carry it on their track_overrides
@@ -41,6 +43,15 @@ export default async function EditCoursePage({
   // came to be edited inside Catalyst's shell.
   const programSlug = await resolveHomeProgramSlug(slug);
   if (!programSlug) redirect("/dashboard/admin/programs");
+
+  // A program admin edits only courses in their own program(s). The server
+  // actions enforce the same boundary; this keeps the page from rendering a
+  // form that would fail on save.
+  const actor = await requireManager();
+  const allowedSlugs = await allowedProgramSlugsForActor(actor, actor.svc);
+  if (allowedSlugs !== null && !allowedSlugs.includes(programSlug)) {
+    redirect("/dashboard/admin/programs");
+  }
 
   // The admin shell — sidebar, program name, Manage menu, every program-scoped
   // query behind it — follows the program-override cookie, not the course being
@@ -71,7 +82,7 @@ export default async function EditCoursePage({
   return (
     <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8 space-y-6">
       <div>
-        <PageHeader title="Edit Course" actions={<ManageMenu isMaster={canManageRoles(ctx.userEmail)} />} />
+        <PageHeader title="Edit Course" actions={<ManageMenu isMaster={canManageRoles(ctx.userEmail)} isSuper={canSwitchPrograms(role)} />} />
         <p className="mt-1 text-xs text-ink-faint font-mono">
           {track.name} · {programSlug}
         </p>

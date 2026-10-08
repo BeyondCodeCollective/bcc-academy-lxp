@@ -1,12 +1,13 @@
 import { redirect } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
+import { getProgram } from "@/lib/programs/server";
 import { canAccessAdminPanel } from "@/lib/roles";
 import type { ScoredOutput } from "@/lib/assessment/types";
 import {
   ARCHETYPE_CONTENT,
-  WORK_STYLE_CONTENT,
-  PATHWAY_CONTENT,
+  WORK_STYLE_FACILITATOR,
+  MODULE_3_FACILITATOR,
 } from "@/lib/assessment/content";
 import { PageHeader } from "@/components/page-header";
 
@@ -29,6 +30,14 @@ export default async function AssessmentDetailPage({
     .maybeSingle();
 
   if (!result) redirect("/dashboard/admin/assessments");
+
+  // Same scope as the list page: only admins working in the learner's program
+  // (and super admins) can open a result. Checked before the "viewed" write
+  // below so a blocked request leaves no trace on the row.
+  const program = await getProgram();
+  if (ctx.student?.role !== "super_admin" && result.program_slug !== program.slug) {
+    redirect("/dashboard/admin/assessments");
+  }
 
   // Mark as viewed
   if (!result.facilitator_viewed_at) {
@@ -72,6 +81,11 @@ export default async function AssessmentDetailPage({
           {scored.archetype_is_blended && secondary && (
             <p className="text-sm text-ink/60">Blended with: <strong>{secondary.name}</strong></p>
           )}
+          {scored.archetype_top_three && (
+            <p className="text-sm text-ink/60">
+              Three-way tie: <strong>{scored.archetype_top_three.map((k) => ARCHETYPE_CONTENT[k].name).join(", ")}</strong>
+            </p>
+          )}
           <p className="text-sm text-ink/70 leading-relaxed">{archetype.facilitator}</p>
           {secondary && scored.archetype_is_blended && (
             <p className="text-sm text-ink/70 leading-relaxed mt-2">{secondary.facilitator}</p>
@@ -106,12 +120,11 @@ export default async function AssessmentDetailPage({
       <FacilitatorSection title="Module 2 — Work Style">
         <div className="space-y-4">
           {[
-            { label: "Social energy", pole: scored.social_energy, signal: scored.social_energy_signal },
-            { label: "Structure", pole: scored.structure_preference, signal: scored.structure_preference_signal },
-            { label: "Contribution", pole: scored.contribution_mode, signal: scored.contribution_mode_signal },
-            { label: "Pace", pole: scored.pace, signal: scored.pace_signal },
-          ].map(({ label, pole, signal }) => {
-            const content = WORK_STYLE_CONTENT[pole];
+            { label: "Social energy", axis: "social_energy" as const, pole: scored.social_energy, signal: scored.social_energy_signal },
+            { label: "Structure", axis: "structure_preference" as const, pole: scored.structure_preference, signal: scored.structure_preference_signal },
+            { label: "Contribution", axis: "contribution_mode" as const, pole: scored.contribution_mode, signal: scored.contribution_mode_signal },
+            { label: "Pace", axis: "pace" as const, pole: scored.pace, signal: scored.pace_signal },
+          ].map(({ label, axis, pole, signal }) => {
             const poleName = pole.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
             return (
               <div key={label} className="space-y-1">
@@ -120,7 +133,7 @@ export default async function AssessmentDetailPage({
                   <span className="text-xs font-medium text-accent">{poleName}</span>
                   <span className="text-micro text-ink/30">{signal === "clear" ? "3–0" : "2–1"}</span>
                 </div>
-                <p className="text-sm text-ink/70 leading-relaxed">{content.facilitator}</p>
+                <p className="text-sm text-ink/70 leading-relaxed">{WORK_STYLE_FACILITATOR[axis]}</p>
               </div>
             );
           })}
@@ -136,22 +149,26 @@ export default async function AssessmentDetailPage({
       {/* Module 3 — Motivation */}
       <FacilitatorSection title="Module 3 — Motivation and Pathway">
         <div className="space-y-4">
-          <div className="grid grid-cols-3 gap-3">
+          <p className="text-sm text-ink/70 leading-relaxed">{MODULE_3_FACILITATOR.framing}</p>
+          <div className="space-y-3">
             {[
-              { label: "Self-direction", value: scored.self_direction_avg },
-              { label: "Stability-seeking", value: scored.stability_seeking_avg },
-              { label: "Risk comfort", value: scored.risk_comfort_avg },
-            ].map(({ label, value }) => (
-              <div key={label} className="rounded-lg border border-ink/10 px-3 py-3 text-center">
-                <p className="text-lg font-bold text-ink">{value.toFixed(2)}</p>
-                <p className="text-micro text-ink/40 mt-0.5">{label}</p>
+              { label: "Self-direction", value: scored.self_direction_avg, description: MODULE_3_FACILITATOR.self_direction },
+              { label: "Stability-seeking", value: scored.stability_seeking_avg, description: MODULE_3_FACILITATOR.stability_seeking },
+              { label: "Risk comfort", value: scored.risk_comfort_avg, description: MODULE_3_FACILITATOR.risk_comfort },
+            ].map(({ label, value, description }) => (
+              <div key={label} className="rounded-lg border border-ink/10 px-4 py-3">
+                <div className="flex items-baseline justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-ink/40">{label}</p>
+                  <p className="text-lg font-bold text-ink">{value.toFixed(2)}</p>
+                </div>
+                <p className="text-sm text-ink/70 leading-relaxed mt-1">{description}</p>
               </div>
             ))}
           </div>
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-ink/40 mb-1">Pathway orientation</p>
             <p className="font-medium text-ink capitalize mb-1">{scored.pathway_orientation}</p>
-            <p className="text-sm text-ink/70 leading-relaxed">{PATHWAY_CONTENT[scored.pathway_orientation].facilitator}</p>
+            <p className="text-sm text-ink/70 leading-relaxed">{MODULE_3_FACILITATOR.pathway_orientation}</p>
           </div>
           {scored.sustainability_note && (
             <div className="rounded-lg bg-ink/5 px-4 py-3">
@@ -183,6 +200,7 @@ function ConfidenceBadge({ confidence }: { confidence: ScoredOutput["archetype_c
     low: "Low confidence",
     broad_high: "Broad high",
     flat: "Flat pattern",
+    emerging: "Still emerging",
   };
   const colors: Record<string, string> = {
     high: "bg-green-100 text-green-800",
@@ -191,6 +209,7 @@ function ConfidenceBadge({ confidence }: { confidence: ScoredOutput["archetype_c
     low: "bg-amber-100 text-amber-800",
     broad_high: "bg-amber-100 text-amber-800",
     flat: "bg-ink/10 text-ink/60",
+    emerging: "bg-ink/10 text-ink/60",
   };
   return (
     <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${colors[confidence]}`}>

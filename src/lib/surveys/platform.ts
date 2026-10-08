@@ -17,6 +17,7 @@ export const BCC_INTAKE_SURVEY_ID = "bcc-learner-intake";
 const BCC_WORKSHOP_SURVEY_ID = "bcc-workshop";
 const CYBERDECK_PRE_SURVEY_ID = "cyberdeck-pre";
 const CYBERDECK_POST_SURVEY_ID = "cyberdeck-post";
+const BGC_PARTICIPANT_2026_SURVEY_ID = "bgc-participant-2026";
 
 /** A learner skips a program survey when EVERY course they're enrolled in opts
  *  out via the survey's skipForTracks. Empty enrollment never skips, so this
@@ -84,6 +85,40 @@ export function surveyAppliesToTracks(
   return appliesToTracks.some((t) => enrolled.has(t));
 }
 
+/**
+ * Both allowlists together, and the reason this exists: a survey that belongs
+ * to a PROGRAM can still owe itself to one course somewhere else. AI
+ * Fundamentals is Beyond Code Centers', but Catalyst Labs teaches it under
+ * Catalyst — so its learners need the same pre-survey.
+ *
+ * Checking the two lists separately ANDs them, which cannot express that: the
+ * track list would then have to name every Beyond Code Centers course too, and
+ * the day someone adds a course there its learners silently lose the survey.
+ * That is the enumeration failure appliesToPrograms was introduced to end.
+ *
+ * So when a survey names BOTH, they UNION: this learner's program qualifies, or
+ * this learner's course does. Naming only one is unchanged — every survey
+ * configured today names exactly one, so nothing else moves.
+ */
+export function surveyTargetsLearner(
+  survey: { appliesToPrograms?: string[]; appliesToTracks?: string[] },
+  enrolledHomeProgramSlugs: Iterable<string>,
+  enrolledTrackSlugs: Iterable<string>,
+): boolean {
+  const byProgram = survey.appliesToPrograms?.length;
+  const byTrack = survey.appliesToTracks?.length;
+  if (byProgram && byTrack) {
+    return (
+      surveyAppliesToPrograms(survey.appliesToPrograms, enrolledHomeProgramSlugs) ||
+      surveyAppliesToTracks(survey.appliesToTracks, enrolledTrackSlugs)
+    );
+  }
+  return (
+    surveyAppliesToPrograms(survey.appliesToPrograms, enrolledHomeProgramSlugs) &&
+    surveyAppliesToTracks(survey.appliesToTracks, enrolledTrackSlugs)
+  );
+}
+
 // The BCC Learner Intake is OPT-IN, toggled per program/track via
 // program_features/track_features.survey_enabled (admin Features page) — see
 // isSurveyEnabledForLearner in src/lib/surveys/features.ts. Off by default, so
@@ -143,6 +178,21 @@ export const PLATFORM_AUTH_SURVEYS: Record<string, SurveyConfig> = {
   // it, not a forced dashboard redirect.
   "mass-fall-2026-pre": {
     id: "mass-fall-2026-pre",
+    // One cohort's instrument, and only that cohort's. Without this the admin
+    // Surveys tab falls back to evidence — "somebody enrolled here answered it"
+    // — so a single cross-enrolled learner hung this row under Catalyst Labs.
+    appliesToTracks: ["mass-fall-2026"],
+    title: "MASS Coaching Cohort — Pre-Program Survey",
+    description:
+      "Mindset and soft skills, about 10 minutes. Not a test — where you're starting from, so we can support you from day one. Private; used only to improve the coaching and report impact.",
+    required: false,
+  },
+  "mass-sept-2026-pre": {
+    id: "mass-sept-2026-pre",
+    // One cohort's instrument, and only that cohort's. Without this the admin
+    // Surveys tab falls back to evidence — "somebody enrolled here answered it"
+    // — so a single cross-enrolled learner hung this row under Catalyst Labs.
+    appliesToTracks: ["mass-sept-2026"],
     title: "MASS Coaching Cohort — Pre-Program Survey",
     description:
       "Mindset and soft skills, about 10 minutes. Not a test — where you're starting from, so we can support you from day one. Private; used only to improve the coaching and report impact.",
@@ -181,6 +231,15 @@ export const PLATFORM_PUBLIC_SURVEYS: Record<string, SurveyConfig> = {
     title: "AI Fundamentals — Pre-Program Survey",
     description:
       "Help us understand your background and experience so we can better support you.",
+    required: false,
+  },
+  // Copy of ai-impact-survey-2026 for a program that isn't set up yet. Public
+  // link only: it isn't assigned to any program, so no learner is offered it.
+  "ai-fundamentals-post-2026": {
+    id: "ai-fundamentals-post-2026",
+    title: "AI Fundamentals — Post-Program Survey",
+    description:
+      "You made it — how far you've come, in your own words. One sitting, about 5 minutes.",
     required: false,
   },
   "network-plus-post": {
@@ -225,6 +284,17 @@ export const PLATFORM_PUBLIC_SURVEYS: Record<string, SurveyConfig> = {
       "3–4 min. The same questions from day one, plus how the series went.",
     required: false,
     appliesToTracks: ["build-your-world-cyberdeck-workshop-series"],
+  },
+  // Black Girls Code 2026 Participant Survey — anonymous (respondents are 7–18)
+  // and filed under BGC whatever host the link is opened on.
+  [BGC_PARTICIPANT_2026_SURVEY_ID]: {
+    id: BGC_PARTICIPANT_2026_SURVEY_ID,
+    title: "Black Girls Code 2026 Participant Survey",
+    description: "2 min. Tell us how your program went. We don't ask your name.",
+    required: false,
+    appliesToPrograms: ["bgc"],
+    organization: "Black Girls Code",
+    anonymous: true,
   },
   // Collected via /apply/sbft (custom form, not /survey/<id>).
   [SBFT_APPLICATION_SURVEY_ID]: {

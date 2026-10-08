@@ -2,10 +2,11 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
-import { canSwitchPrograms, canManageRoles } from "@/lib/roles";
+import { canManageStudents, canManageRoles } from "@/lib/roles";
 import { PageHeader } from "@/components/page-header";
 import { listApplications, isAccepting } from "@/lib/applications";
 import { ManageMenu } from "../manage-menu";
+import { requireManager, allowedProgramIdsForActor } from "../actions-shared";
 import { buttonClass, DataTable } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -13,15 +14,19 @@ export const dynamic = "force-dynamic";
 export default async function ApplicationsPage() {
   const ctx = await getSessionContext();
   if (!ctx) redirect("/");
-  if (!canSwitchPrograms(ctx.student?.role ?? "")) redirect("/dashboard/admin");
+  if (!canManageStudents(ctx.student?.role ?? "")) redirect("/dashboard/admin");
 
-  const apps = await listApplications();
+  // Program admins see their own program's applications only; super-admins see
+  // every program's.
+  const actor = await requireManager();
+  const apps = await listApplications(allowedProgramIdsForActor(actor));
 
   // One count query, grouped in memory — the table is small.
   const svc = createServiceClient();
   const { data: subs } = await svc
     .from("application_submissions")
-    .select("application_id, status");
+    .select("application_id, status")
+    .in("application_id", apps.map((a) => a.id));
   const counts = new Map<string, { total: number; fresh: number }>();
   for (const s of (subs ?? []) as { application_id: string; status: string }[]) {
     const c = counts.get(s.application_id) ?? { total: 0, fresh: 0 };
@@ -66,9 +71,9 @@ export default async function ApplicationsPage() {
                   >
                     {a.title}
                   </Link>
-                  <p className="font-mono text-micro text-ink-faint">/apply/{a.slug}</p>
+                  <p className="whitespace-nowrap font-mono text-micro text-ink-faint">/apply/{a.slug}</p>
                 </td>
-                <td className="px-4 py-3 text-sm text-ink-soft">{a.trackSlug ?? "—"}</td>
+                <td className="whitespace-nowrap px-4 py-3 text-sm text-ink-soft">{a.trackSlug ?? "—"}</td>
                 <td className="px-4 py-3 text-sm">
                   {isAccepting(a) ? (
                     <span className="text-green-700">Open</span>

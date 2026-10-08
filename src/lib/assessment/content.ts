@@ -11,52 +11,50 @@ export const LIKERT_LABELS = [
   "Strongly agree",
 ] as const;
 
-// ─── Module 1: Archetype identity (v2 — 28 items, 7 archetypes × 4) ──────────
-// Full rewrite, June 2026. Each archetype has 4 items in a fixed pattern:
-// (1) everyday action, (2) group/work action, (3) line divider vs. nearest
-// neighbor, (4) cost item — chosen despite a real tradeoff. Items display in
-// randomized order. Do not reword M1-GRD-04 ("I may speak up" hedge is
-// intentional).
+// ─── Module 1: Archetype identity (v0.4 — 27 items, 9 archetypes × 3) ──────────
+// Source: LPAT delivery package v0.4. Three items per archetype. Reverse scoring
+// is a per-item flag (M1-EXP-03), not a special case in the scoring function.
+// Items display in randomized order.
 
-export type M1Item = { id: string; text: string; archetype: ArchetypeKey };
+export type M1Item = { id: string; text: string; archetype: ArchetypeKey; reverse?: boolean };
 
 export const MODULE_1_ITEMS: M1Item[] = [
-  // Navigator — divider neighbor: Systems Thinker
-  { id: "M1-NAV-01", text: "When a group starts working on something together, I'm usually the one who says what we're actually trying to get done before we split up the work.", archetype: "navigator" },
-  { id: "M1-NAV-02", text: "When plans change, my first move is to get clear on the new goal before anyone decides what to do next.", archetype: "navigator" },
-  { id: "M1-NAV-03", text: `When something a group is working on isn't coming out right, my first question is usually "is this even what we're supposed to be making?" rather than "which part went wrong?"`, archetype: "navigator" },
-  { id: "M1-NAV-04", text: "When my friends are all hyped to do something but nobody's said what the plan actually is, I'll be the one to ask, even if it kills the vibe a little.", archetype: "navigator" },
-  // Developer — divider neighbor: Systems Thinker
-  { id: "M1-DEV-01", text: "At home or in my free time, I'm usually the one who builds things, sets things up, or makes something work the way I want it to.", archetype: "developer" },
-  { id: "M1-DEV-02", text: "When a group has an idea, I'm usually the one who starts making a rough version so everyone has something real to look at.", archetype: "developer" },
-  { id: "M1-DEV-03", text: "When something breaks, I care more about getting it working again than figuring out the full story of why it broke.", archetype: "developer" },
-  { id: "M1-DEV-04", text: "When something I made doesn't work, I'll take it apart and redo it, even if it means starting over after hours of work.", archetype: "developer" },
-  // Systems Thinker — divider neighbor: Developer
-  { id: "M1-SYS-01", text: "When I take on something new, like a game, a job, or a skill, I start by figuring out how the pieces connect instead of jumping straight in.", archetype: "systems_thinker" },
-  { id: "M1-SYS-02", text: "When my group is making a plan, I'm usually the one asking what happens to the other parts if we change this one.", archetype: "systems_thinker" },
-  { id: "M1-SYS-03", text: "I'd rather understand exactly why something broke than just get it running again.", archetype: "systems_thinker" },
-  { id: "M1-SYS-04", text: "When everyone wants the quick fix, I'm willing to slow the group down to find the real cause, even if people get impatient with me.", archetype: "systems_thinker" },
-  // Designer/Creator — divider neighbor: Connector
-  { id: "M1-DES-01", text: "When I care about something, I end up making something about it: a video, a playlist, a post, a drawing, or a story that shows people why it matters.", archetype: "designer" },
-  { id: "M1-DES-02", text: "When a group has a complicated idea, I'm the one who turns it into something people can actually understand, like an example, a visual, or a story.", archetype: "designer" },
-  { id: "M1-DES-03", text: "When something needs explaining, my instinct is to create the thing that explains it, not to find the right person to explain it.", archetype: "designer" },
-  { id: "M1-DES-04", text: "I share things I make even when I'm nervous about how people will react.", archetype: "designer" },
-  // Connector — divider neighbors: Support Specialist and Guardian
-  { id: "M1-CON-01", text: "When a friend needs something, I usually know someone who can help, and I actually make the introduction.", archetype: "connector" },
-  { id: "M1-CON-02", text: "When two people keep misunderstanding each other, I step in and put what each one means into words the other can hear.", archetype: "connector" },
-  { id: "M1-CON-03", text: "When someone's stuck, my first move is to connect them with the person or resource that can help, rather than walk them through it myself.", archetype: "connector" },
-  { id: "M1-CON-04", text: "At school, work, or in my community, I'll connect people from different groups even when it's awkward to be the one reaching across.", archetype: "connector" },
-  // Support Specialist — divider neighbor: Guardian
-  { id: "M1-SUP-01", text: "When someone in my family can't figure out something on their phone or computer, I sit with them and go through it step by step.", archetype: "support_specialist" },
-  { id: "M1-SUP-02", text: "When a teammate is stuck, I break the problem into smaller steps so they can get moving again.", archetype: "support_specialist" },
-  { id: "M1-SUP-03", text: "When things go wrong, I focus on the one person who's struggling more than on whether the whole group is holding together.", archetype: "support_specialist" },
-  { id: "M1-SUP-04", text: "I'll stay with someone who's struggling until they get it, even when it would be faster to just do it for them.", archetype: "support_specialist" },
-  // Guardian (formerly Culture Keeper) — divider neighbors: Support Specialist and Connector
-  { id: "M1-GRD-01", text: "When someone new joins my class, team, or friend group, I'm one of the people who catches them up and pulls them into what's happening.", archetype: "guardian" },
-  { id: "M1-GRD-02", text: "After a group argument or a rough moment, I'm usually the one who helps everyone reset so we can keep going.", archetype: "guardian" },
-  { id: "M1-GRD-03", text: "I pay more attention to whether the whole group is still okay together than to any one person's progress.", archetype: "guardian" },
-  // M1-GRD-04: preserved verbatim — the "I may speak up" hedge is intentional.
-  { id: "M1-GRD-04", text: "In my family, when someone is being left out or talked over, I may speak up even if it feels uncomfortable.", archetype: "guardian" },
+  // Navigator
+  { id: "M1-NAV-01", text: "I like understanding the bigger purpose before I start working on something.", archetype: "navigator" },
+  { id: "M1-NAV-02", text: "I often think about where a project or idea is headed.", archetype: "navigator" },
+  { id: "M1-NAV-03", text: "When a project gets complicated, I stay focused on the bigger goal instead of getting lost in the details.", archetype: "navigator" },
+  // Developer
+  { id: "M1-DEV-01", text: "I like turning ideas into something real that people can use, test, or improve.", archetype: "developer" },
+  { id: "M1-DEV-02", text: "I enjoy hands-on tasks, building something, fixing something, or putting the pieces together myself.", archetype: "developer" },
+  { id: "M1-DEV-03", text: "I feel motivated when I can see something I am building or fixing come together.", archetype: "developer" },
+  // Igniter
+  { id: "M1-IGN-01", text: "When something needs to get started, I am usually willing to take the first step.", archetype: "igniter" },
+  { id: "M1-IGN-02", text: "I like helping ideas move from talking into action.", archetype: "igniter" },
+  { id: "M1-IGN-03", text: "I don't wait to be asked before jumping in and getting something started.", archetype: "igniter" },
+  // Connector
+  { id: "M1-CON-01", text: "I tend to spot useful connections between people, ideas, or resources before anyone else points them out.", archetype: "connector" },
+  { id: "M1-CON-02", text: "When I see two people or ideas that should connect, I often help make that link happen.", archetype: "connector" },
+  { id: "M1-CON-03", text: "When people are describing the same idea in different words and missing each other, I can usually translate so it clicks for both sides.", archetype: "connector" },
+  // Systems Thinker
+  { id: "M1-SYS-01", text: "I often look for the patterns or causes behind a problem.", archetype: "systems_thinker" },
+  { id: "M1-SYS-02", text: "I like figuring out how the different parts of something fit together.", archetype: "systems_thinker" },
+  { id: "M1-SYS-03", text: "Before choosing a solution, I often want to understand what is really causing the issue.", archetype: "systems_thinker" },
+  // Culture Keeper
+  { id: "M1-CUL-01", text: "I notice when the mood or energy in a group changes.", archetype: "culture_keeper" },
+  { id: "M1-CUL-02", text: "I often do small things to help people feel included.", archetype: "culture_keeper" },
+  { id: "M1-CUL-03", text: "When a group feels tense, I often try to help things feel calmer.", archetype: "culture_keeper" },
+  // Designer
+  { id: "M1-DES-01", text: "I like making things easier and more pleasant to use.", archetype: "designer" },
+  { id: "M1-DES-02", text: "When something is confusing or hard to use, I want to fix it, not just work around it.", archetype: "designer" },
+  { id: "M1-DES-03", text: "I enjoy shaping how something looks, feels, sounds, or works for the person using it.", archetype: "designer" },
+  // Support Specialist
+  { id: "M1-SUP-01", text: "I usually stay patient when I am helping someone work through a problem.", archetype: "support_specialist" },
+  { id: "M1-SUP-02", text: "I like helping someone feel less stuck, confused, or overwhelmed.", archetype: "support_specialist" },
+  { id: "M1-SUP-03", text: "When I explain something, I often break it into small steps so it is easier to follow.", archetype: "support_specialist" },
+  // Explorer
+  { id: "M1-EXP-01", text: "I like trying different options before deciding what direction fits me best.", archetype: "explorer" },
+  { id: "M1-EXP-02", text: "I learn a lot by trying things out and asking questions.", archetype: "explorer" },
+  { id: "M1-EXP-03", text: "Sticking with one plan for a long time before trying something else feels comfortable to me.", archetype: "explorer", reverse: true },
 ];
 
 // ─── Module 2: Work style scenarios (12 forced-choice) ───────────────────────
@@ -111,7 +109,7 @@ export const MODULE_2_SCENARIOS: M2Scenario[] = [
   {
     id: "M2-CON-01",
     scenario: "A new project is kicking off. Which part would you rather take on?",
-    optionA: { label: "Being the face of it — the one who talks to people and represents the work.", pole: "front_facing", dimension: "contribution_mode" },
+    optionA: { label: "Being the face of it, the one who talks to people and represents the work.", pole: "front_facing", dimension: "contribution_mode" },
     optionB: { label: "Building the parts that make it work, out of the spotlight.", pole: "behind_the_scenes", dimension: "contribution_mode" },
   },
   {
@@ -124,7 +122,7 @@ export const MODULE_2_SCENARIOS: M2Scenario[] = [
     id: "M2-CON-03",
     scenario: "When a project is running, which role fits you better?",
     optionA: { label: "Being the person heads-down on the work itself.", pole: "behind_the_scenes", dimension: "contribution_mode" },
-    optionB: { label: "Being the person others come to with questions — the point of contact.", pole: "front_facing", dimension: "contribution_mode" },
+    optionB: { label: "Being the person others come to with questions, the point of contact.", pole: "front_facing", dimension: "contribution_mode" },
   },
   // Pace
   {
@@ -192,11 +190,11 @@ export type ArchetypeContent = {
   strengths: string;
   /** Career pathways by stage. Stages are NOT ages — a career changer can
       enter laterally. */
-  pathways: { entry: string; mid: string; established: string };
+  pathways?: { entry: string; mid: string; established: string };
   /** "Future thinking" — where the pattern is headed as AI reshapes work. */
-  future: string;
+  future?: string;
   /** "The honest part" — no-overclaiming note in learner voice. */
-  honest: string;
+  honest?: string;
   /** Facilitator/coaching note (admin view only). */
   facilitator: string;
 };
@@ -286,19 +284,26 @@ export const ARCHETYPE_CONTENT: Record<ArchetypeKey, ArchetypeContent> = {
     honest: `Support roles are sometimes talked about as "just" a starting point. Ignore that. They are where you learn how technology fails real people, and that knowledge powers every senior role on this pathway. Some of the best engineers, trainers, and leaders in tech started by answering the phone.`,
     facilitator: "Excels at one-on-one help, troubleshooting, and patient explanation, meeting a struggling person where they are. Strength: patience, breaking down complexity, steadying others. Growth edge: advancing their own goals, avoiding being typecast purely as helper. Cross-module: distinguish Support (helping one person) from Connector (linking many) and Guardian (tending the whole group). Coaching angle: value the helping, and actively create space for their own advancement so the strength does not cap their growth.",
   },
-  guardian: {
-    name: "Guardian",
-    emoji: "🛡️",
-    definition: "You protect the group's ability to participate, trust, and recover.",
-    strengths: "You notice when someone is being left out, talked over, or pushed to the edges, and you are willing to do something about it even when it costs you comfort. You help groups recover after rough moments so the work and the relationships survive. This is not about being nice. It is about protecting the conditions that let everyone do their best work, and you do it when it is hardest: when speaking up has a price. Companies lose people, money, and trust when nobody does this work. You do it instinctively.",
-    pathways: {
-      entry: "Peer leader roles, HR coordinator, onboarding assistant, community programs assistant, people operations assistant.",
-      mid: "Training and development specialist (a field the Bureau of Labor Statistics projects to keep growing), people operations specialist, employee experience roles, community health and outreach roles, learning program coordinator.",
-      established: "HR manager, learning and development leadership, organizational development roles, head of people.",
-    },
-    future: "Workplaces are about to go through years of change as AI reshapes how teams work, and change is exactly when groups fracture. The people who keep teams intact through transitions, who manage adoption, onboarding, and trust, are doing work that gets more critical as everything else speeds up. Change and adoption support is a real, paid, growing role, and it is this pattern professionalized.",
-    honest: "This strength is the most underestimated one in the room because it looks like personality instead of skill. It is a skill, it maps to real careers, and the cost you pay to use it, the discomfort of speaking up, is precisely what makes it valuable. Most people see what you see and stay silent.",
-    facilitator: "Protects the group's ability to participate, trust, and recover (formerly Culture Keeper — the construct is participation protection and group recovery, NOT mood or niceness). Acts when someone is left out, talked over, or pushed out, and helps the group reset after rough moments. Strength: inclusion, group recovery, willingness to speak up at a personal cost. Growth edge: not carrying the group's repair work alone. Cross-module: distinguish Guardian (protecting the collective's ability to function) from Support Specialist (helping one struggling person) and Connector (linking people). Coaching angle: name it as a skill that maps to people-ops, training, and change/adoption roles; protect them from absorbing every conflict.",
+  culture_keeper: {
+    name: "Culture Keeper",
+    emoji: "🤝",
+    definition: "You notice how a group is doing and help people feel included.",
+    strengths: "Your responses point to noticing how a group is doing, not only what the group is doing. That may look like inviting a quiet person into the conversation or easing tension so people can keep working. Both can help a team feel included. In your next group task, name one support you need as well as one support you offer. Which version of this pattern shows up most often for you?",
+    facilitator: "Attends to group climate, belonging, and morale, senses mood shifts early. Strength: emotional awareness, inclusion, group stability. Growth edge: boundaries and self-care, since they often carry the group's emotional load. Cross-module: distinguish Culture Keeper (tending the collective) from Support Specialist (helping an individual) and from Module 2 social energy (preferring group work). Coaching angle: name and value the emotional labor explicitly, help them set boundaries so they do not absorb everyone's stress.",
+  },
+  igniter: {
+    name: "Igniter",
+    emoji: "⚡",
+    definition: "You start things and move ideas into action.",
+    strengths: "You may start a task when a group has been waiting to begin. That can create useful momentum when a project needs a first move. What would help this start become a finished piece of work? Write the next checkpoint before you begin, then return to it after your first burst of work.",
+    facilitator: "Brings initiative and momentum, comfortable starting before conditions are perfect. Strength: activation, bias toward action. Growth edge: follow-through past the exciting start. Cross-module: keep Igniter (starting) separate from Module 2 pace (speed); an Igniter can be methodical once underway. High initiative with low Module 3 risk comfort can mean someone who starts boldly but strains under sustained uncertainty. Coaching angle: channel the starting energy, then build structure that supports finishing.",
+  },
+  explorer: {
+    name: "Explorer",
+    emoji: "🔭",
+    definition: "You learn by trying things and keeping your options open.",
+    strengths: "Your answers suggest that you often learn by testing ideas, asking questions, and comparing options. This can help when a team needs fresh information before choosing a direction. In your next project, pick one option to test for a set amount of time before you switch to another. Notice what you learn once you stay with it beyond the first try. Another archetype may show up elsewhere.",
+    facilitator: "Curious, keeps options open, learns through experimentation, resists premature commitment. Strength: adaptability, breadth, willingness to try. Growth edge: committing and going deep rather than staying at the surface across many things. Cross-module: a flat or blended Module 1 result is common and consistent with a genuine Explorer, so do not over-pathologize it; pair with Module 3 to see what they are reaching toward. Coaching angle: honor the exploration phase, help them set a project or time boundary to practice depth without feeling trapped.",
   },
 };
 
@@ -320,75 +325,65 @@ export const SPECIAL_CASE_LANGUAGE = {
 };
 
 // ─── Work style language ──────────────────────────────────────────────────────
+// Source: LPAT delivery package v0.4, Part 4. Learner text is per pole; the
+// facilitator text is per axis. The "balanced" blocks are kept as optional
+// future display language and are not rendered (v0.4: report the leaned pole).
 
-export type WorkStyleContent = { learner: string; facilitator: string };
+export type WorkStyleContent = { learner: string };
 
 export const WORK_STYLE_CONTENT: Record<string, WorkStyleContent> = {
-  // Social energy
-  solo: {
-    learner: "You tend to do your best work with some space to yourself. You like to think things through and make progress on your own before bringing others in. That focus is a real strength, and a lot of deep work needs exactly that. One thing to keep in view as you grow is staying connected enough that you do not miss what other people could add.",
-    facilitator: "Solo lean: learner does best work independently. Coaching angle: match early tasks to solo mode, build in deliberate group touchpoints so they do not disappear when stuck.",
-  },
-  collaborative: {
-    learner: "You tend to do your best work alongside other people. Talking things through and thinking out loud is where your ideas come alive. That energy is a real strength, and good teams run on it. One thing to keep in view as you grow is carving out some focused solo time too, since some work gets done best in quiet.",
-    facilitator: "Collaborative lean: learner energized by group work and talking through ideas. Coaching angle: support building solo focus time so progress does not depend entirely on others being available.",
-  },
-  // Structure preference
-  structured: {
-    learner: "You do your best work when you know what is expected and have a clear plan to follow. Structure is not a crutch for you — it is what lets you move efficiently and well. That is a real strength, especially in work that rewards precision. As you grow, the edge is staying steady when a plan changes, since not every situation hands you the full map up front.",
-    facilitator: "Structured lean: learner needs clear expectations and advance notice of change. Coaching angle: provide clear expectations, scaffold ambiguity, build practice tolerating incomplete plans.",
-  },
-  adaptive: {
-    learner: "You do your best work with room to figure things out as you go. Open-ended situations that might unsettle others are where you do well. That adaptability is a real strength, especially in work that changes fast. As you grow, the edge is bringing enough structure to your own process that good ideas actually get finished.",
-    facilitator: "Adaptive lean: learner works best with open-ended room. Coaching angle: add light structure to support follow-through and completion.",
-  },
-  // Contribution mode
-  front_facing: {
-    learner: "You gravitate toward visible roles — being the one who talks to people, presents the work, or is the point of contact. You are comfortable being seen, and that willingness is a real strength, since someone has to be the face and not everyone wants to. As you grow, the edge is making sure the work behind the visibility is as solid as the way you represent it.",
-    facilitator: "Front-facing lean: comfortable with visibility and representation. Coaching angle: check that visible contribution is backed by substance; create accountability for the work behind the presentation.",
-  },
-  behind_the_scenes: {
-    learner: "You gravitate toward building the work itself rather than being the face of it. You would rather make something solid and let it speak than stand in the spotlight. That is a real strength, and the visible stuff falls apart without it. As you grow, the edge is letting yourself be seen and credited for what you make, so your work does not go unnoticed.",
-    facilitator: "Behind-the-scenes lean: builds the work, avoids spotlight. Coaching angle: ensure credit and visibility so they are not overlooked for advancement.",
-  },
-  // Pace
-  quick_moving: {
-    learner: "You tend to move fast, get a version done, and improve from there. You would rather keep things moving than wait for perfect. That momentum is a real strength, especially in work that rewards iteration. As you grow, the edge is knowing which moments call for slowing down and getting it exactly right the first time.",
-    facilitator: "Quick-moving lean: iterates fast, comfortable with rough versions. Coaching angle: practice slowing down when accuracy or quality requires it; watch for sustainability strain in slow, heavily structured environments.",
-  },
-  methodical: {
-    learner: "You work carefully and thoroughly, getting it right rather than rushing. You would rather take the time than redo it later. That care is a real strength, especially in work where mistakes are costly. As you grow, the edge is knowing when a rough first pass is enough to get moving, since not everything needs to be perfect before it is useful.",
-    facilitator: "Methodical lean: careful, thorough, quality-focused. Coaching angle: practice first drafts and deadlines; watch for sustainability strain in fast, adaptive environments. This is the sustainability dimension — flag for coaching attention when pace and structure both oppose a track's profile.",
-  },
+  solo: { learner: "You lean toward having some space to work on your own. This may help you focus, think through a problem, and make progress without many interruptions. When a task needs shared context, add a brief update for the team. In your next project, tell a teammate what you are working on and the one question you have. That widens your options without changing your preference." },
+  collaborative: { learner: "At your best, you use conversation to shape ideas and keep work moving with other people. This can help when a group needs quick feedback or a shared plan. Under pressure, a full schedule of discussion can leave little room to sort your own thinking. After your next team meeting, spend ten quiet minutes writing your next step before you join another conversation." },
+  structured: { learner: "You lean toward clear plans, known expectations, and steps you can follow. This may help you organize work and catch details when a project has precise needs. When plans change, add one flexible step: identify what remains true and what needs a new plan. Use that check the next time a task shifts. It can help you keep your footing while the work changes." },
+  adaptive: { learner: "You may recognize yourself in making a path while the situation is still taking shape. In a team, that can contribute useful options when a plan changes or little is known at the start. You are more likely to use it well when the goal and deadline are visible. At the start of your next open task, write one sentence that names the outcome you are aiming for." },
+  front_facing: { learner: "At your best, you may speak with clients, present an idea, or serve as a point of contact for a project. This can help when work needs a clear voice and people need updates. Under pressure, the visible part of the work can take attention away from the details behind it. Before you present next time, check one piece of evidence that supports your message." },
+  behind_the_scenes: { learner: "You lean toward building, testing, or improving the work itself rather than being its public voice. This may help a project become solid and reliable. When teammates need to understand what you made, add a simple explanation of your process. In your next project, share one progress note that names what changed and why. That lets others use and recognize the work." },
+  quick_moving: { learner: "You lean toward getting a version moving, learning from it, and improving from there. This may help when a team needs momentum or early feedback. When mistakes would be costly, add a brief quality check before you share the work. For your next draft, pause to test one key detail against the project goal. You still get to move forward while protecting the important part." },
+  methodical: { learner: "At your best, you may take time to check details and make a careful version of the work. This can help when accuracy matters and a mistake would create more work later. Under pressure, careful review can delay useful feedback from others. Share one early draft before it feels complete, then use the response to guide your next check." },
+};
+
+export type WorkStyleAxis = "social_energy" | "structure_preference" | "contribution_mode" | "pace";
+
+export const WORK_STYLE_BALANCED: Record<WorkStyleAxis, string> = {
+  social_energy: "Your answers suggest that you can move between solo focus and shared work, depending on the task. This can help when a project needs both careful preparation and active teamwork. In your next project, choose the work mode before you begin: work alone to draft, or meet with others to decide. Notice which choice helps the task move forward. Both approaches remain useful.",
+  structure_preference: "You lean toward using a clear plan in some tasks and adjusting as you learn more in others. This may help you respond to what the work needs instead of using one approach each time. When the goal is unclear, add a short plan before you begin. List the first two steps, then revise them when new information appears. Both structure and flexibility can support good work.",
+  contribution_mode: "Your answers suggest that you can contribute in a visible role or through the work behind the scenes. This can help a project when its needs change from building to sharing. In your next project, choose one role on purpose before the work begins. Ask whether the team needs someone to explain the work or someone to develop it. Notice how that choice affects the group.",
+  pace: "You lean toward speeding up or slowing down based on what the work needs. This may help when a project has both quick tasks and careful tasks. When you start a new assignment, add one pace decision: decide which part needs a fast first version and which part needs a close check. Use that choice to plan your time. Both speed and care can be valuable.",
+};
+
+export const WORK_STYLE_FACILITATOR: Record<WorkStyleAxis, string> = {
+  social_energy: "Reports where the learner does their best work, solo, collaborative, or flexibly between. Not a measure of whether they are social. Coaching angle: match early tasks to their mode where possible, then stretch the other mode gently. A strong solo lean may need deliberate inclusion in group work; a strong collaborative lean may need support building solo focus. Keep separate from Module 1 Connector, which is about seeing links, not preferring company.",
+  structure_preference: "Reports preference for defined process versus open-ended room. Coaching angle: a structured learner needs clear expectations and advance notice of change, and benefits from practice tolerating ambiguity; an adaptive learner needs room and benefits from light structure to ensure follow-through. Pair with pace, since structured plus methodical especially wants clarity up front.",
+  contribution_mode: "Reports preference for visible roles versus behind-the-scenes building. Both essential. Coaching angle: give front-facing learners visible roles but check the substance underneath; make sure behind-the-scenes learners get credit and visibility so they are not overlooked for advancement. Will correlate with some Module 1 archetypes, which is expected. The useful thing to surface is a mismatch, such as a front-facing identity with a behind-the-scenes work style.",
+  pace: "Reports work tempo, quick and iterative versus careful and thorough. This is the sustainability dimension. Critical guardrail: a pace mismatch with a track informs support, never exclusion. A methodical learner in a fast track is supported with pacing strategies and early check-ins, not steered away, and a quick-moving learner in a slow, heavily-structured environment can strain too, through boredom and friction. When pace and structure both oppose a track's profile, flag it as higher sustainability risk needing coaching attention before placement, never as a reason to block placement.",
 };
 
 // ─── Pathway orientation language ────────────────────────────────────────────
+// Source: LPAT delivery package v0.4, Part 5.
 
-export type PathwayContent = { learner: string; facilitator: string };
+export type PathwayContent = { learner: string };
 
 export const PATHWAY_CONTENT: Record<PathwayOrientation, PathwayContent> = {
-  ownership: {
-    learner: "You are drawn to building and directing your own work. The idea of owning something and shaping how it turns out pulls at you more than slotting into something already built. That drive is a real strength, and it is where a lot of new things come from. A path that gives you room to build and lead, or to grow toward running your own thing, is worth taking seriously. Beyond Code Collective coaches and instructors can help you find the version of that which fits your life right now.",
-    facilitator: "Ownership lean: high self-direction, lower stability-seeking. Learner energized by autonomy and building. Explore ownership paths, project leadership, building toward running their own work. Watch: high self-direction with low risk comfort means the path needs scaffolding and staged risk, not redirection away from ownership.",
-  },
-  placement: {
-    learner: "You are drawn to doing strong work on solid ground. A reliable role where you can contribute and build a stable foundation matters to you more than the pull of running your own thing. That is a real strength, and it is wise, especially when you are building a foundation for the rest of your life. A path that offers a dependable role with room to grow is worth taking seriously, and Beyond Code Collective coaches and instructors can help you find one that fits.",
-    facilitator: "Placement lean: high stability-seeking, lower self-direction. Learner energized by reliable contribution inside a structure. Explore stable tracks with clear growth paths. Important: never treat stability-seeking as a ceiling on capacity or as permanent — it is often shaped by real material conditions.",
-  },
-  blended: {
-    learner: "You want two things at once — to build something of your own and to have solid ground under you. That is one of the most common and most human combinations there is, and it is not a contradiction. It often means the right path lets you build toward ownership in steps, with stability while you do, rather than leaping all at once. Beyond Code Collective coaches and instructors can help you map what that staged path could look like.",
-    facilitator: "Blended: high self-direction and high stability-seeking. Learner wants to build and also needs solid ground. Staged pathway — ownership through incremental steps with stability support. This is a common and workable pattern.",
-  },
-  exploring: {
-    learner: "Your answers do not point strongly toward one kind of path yet, and that is completely normal. It often means you are still figuring out what you want, which is exactly the right thing to be doing right now. There is no wrong result here. Beyond Code Collective coaches and instructors can help you try things on and notice what actually pulls at you as you go.",
-    facilitator: "Still exploring: low self-direction and low stability-seeking. Do not force a direction. Use coaching, exposure, and small experiments. Connect with Module 1 archetype and Module 2 work style to surface more specific starting points.",
-  },
+  ownership: { learner: "Right now, you lean toward having room to shape and direct work you care about. This is a direction to explore, not a decision you have to make. You may find that in building something of your own or in taking ownership inside a team. Compare options by asking, “Where could I make choices and learn from the results?” Look for real examples in projects, roles, and conversations." },
+  placement: { learner: "Your answers point to wanting a role where you can contribute, learn, and build a foundation right now. That may mean joining a team with clear work and feedback, or choosing a role with room to develop over time. Both are valid ways to explore a placement path. Ask, “What support and learning would this role give me?” Compare job details and stories from people doing similar work." },
+  blended: { learner: "Right now, you lean toward exploring both ownership and placement. This is a direction to explore, not a choice you have to settle today. A blended path may include building your own project while learning within a team, or taking a role that lets you lead parts of the work. Ask, “What mix gives me room to contribute and the support I need?” Look for examples you can test." },
+  exploring: { learner: "You may recognize yourself in keeping options open while you learn what matters to you right now. In your pathway search, that can contribute better information before you make a choice. You are more likely to learn from this stage when you can compare real work, not only titles. This week, talk with one person about an ownership path and one about a placement path. Which details matter most for your life now?" },
 };
 
-// ─── Sustainability note (conditional — append when SDR high + RSK low) ───────
+// Module 3 facilitator blocks: a framing paragraph, one description per
+// motivation driver, and the pathway orientation derivation.
+export const MODULE_3_FACILITATOR = {
+  framing: "Module 3 reports three motivation drivers and a derived pathway orientation. Read the drivers as what currently serves and energizes the learner, not as fixed traits, and never as a verdict on capacity.",
+  self_direction: "How much the learner wants to build, own, and direct their own work. High suggests roles with autonomy and ownership, or growth toward running their own thing. Low is not lack of ambition; it suggests the learner thrives contributing within a structure someone else holds. Both legitimate.",
+  stability_seeking: "How much the learner wants reliable footing. Read with the circumstance caution: high stability-seeking is often shaped by real material conditions, not temperament. A learner supporting family or carrying debt may have strong ownership drive and simply cannot afford risk. Never treat it as a ceiling on capacity or as permanent.",
+  risk_comfort: "How much uncertainty the learner can sit with. The sustainability modifier. High self-direction with low risk comfort signals a learner who wants to build but will strain under sustained uncertainty; the response is scaffolding and a staged path, not redirection away from ownership. Watch the split between wanting the chance (RSK-02) and being able to sit with uncertainty (RSK-01, RSK-03, and reverse-scored RSK-04). Someone who wants the chance but cannot sit with the uncertainty is usually risk-constrained or risk-strained, not low in drive. Coaching angle: build the safety net into the plan.",
+  pathway_orientation: "Derived from self-direction and stability-seeking as two independent axes. Ownership lean, placement lean, blended (high on both, the staged-path learner), still exploring (low on both, do not force a pathway). Use with Modules 1 and 2 for any placement recommendation, and confirm after a coaching conversation. Never use the orientation to gatekeep; it informs the shape of support, not eligibility.",
+} as const;
+
+// ─── Sustainability note (conditional: append when SDR high + RSK low) ───────
 
 export const SUSTAINABILITY_NOTE =
-  "One thing worth naming. You are drawn to building your own thing, and you also like knowing where you stand. That usually means the path that lasts for you is a steady, staged one — building toward what you want with support and solid ground along the way, rather than a sudden leap. That is not a smaller version of the goal. For most people it is the wiser route to it.";
+  "Right now, your answers suggest that you want room to direct work and a steady sense of what comes next. This is a direction to explore, not a rule about how you have to proceed. You might build toward more ownership in stages, with support and stable steps along the way. Ask, “What support would make this next step workable?” Look for options that fit your resources and responsibilities right now.";
 
 // ─── Module 2 universal framing ──────────────────────────────────────────────
 

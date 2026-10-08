@@ -449,6 +449,7 @@ Guidelines:
       title: "AI Fundamentals — Pre-Program Survey",
       description: "Help us understand your background and experience so we can better support you.",
       required: true,
+      afterFirstSession: true,
       organization: "Beyond Code Centers",
     },
     {

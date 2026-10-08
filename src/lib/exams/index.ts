@@ -5,11 +5,15 @@
 
 import "server-only";
 import { NETWORK_PLUS_POST, type ExamQuestion } from "./network-plus-post";
+import { NETWORK_PLUS_POST_V2 } from "./network-plus-post-v2";
+import { SECURITY_PLUS_PRACTICE } from "./security-plus-practice";
 
 export type Exam = typeof NETWORK_PLUS_POST;
 
 const EXAMS: Record<string, Exam> = {
   [NETWORK_PLUS_POST.id]: NETWORK_PLUS_POST,
+  [NETWORK_PLUS_POST_V2.id]: NETWORK_PLUS_POST_V2,
+  [SECURITY_PLUS_PRACTICE.id]: SECURITY_PLUS_PRACTICE,
 };
 
 export function getExam(id: string): Exam | null {

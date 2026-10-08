@@ -6,6 +6,10 @@ import { isSupabaseConfigured, createServiceClient } from "@/lib/supabase/server
 import { getSessionContent } from "@/app/dashboard/admin/actions";
 import { isStorageUrl, isUploadedVideo } from "@/lib/storage-utils";
 import { resolveTrackProgram } from "@/lib/programs/server";
+import { getTrackBySlug } from "@/lib/programs";
+import { DB_TRACK_PREREQUISITES } from "@/lib/programs/field-ready";
+import type { TrackGate } from "@/lib/programs/types";
+import { hasCompletedTrack } from "@/lib/tracks/completion";
 import { getSubmission, getReflection, getFeedback, getWeekProgress, getTrackProgressMap } from "@/app/dashboard/track/actions";
 import { isSequentialGated, highestUnlockedWeek } from "@/lib/track-gating";
 import { getEnforcedOnboardingChecklist, getOnboardingStatus } from "@/lib/onboarding/checklists";
@@ -15,6 +19,7 @@ import { PageHeader } from "@/components/page-header";
 import { RecordingCard } from "@/components/recording-card";
 import { ReflectionForm } from "@/components/reflection-form";
 import { IntakeForm } from "@/components/intake-form";
+import { LockedByPrerequisite } from "@/components/locked-by-prerequisite";
 import { WeekKeyboardNav } from "@/components/week-keyboard-nav";
 import { WeekNavPortal } from "@/components/week-nav-portal";
 import { trackUnitDisplay, unitText } from "@/lib/programs/unit-display";
@@ -35,6 +40,13 @@ import { SessionTabs } from "@/components/session-tabs";
  * only makes a learner wonder which one is the real session.
  */
 const STAGED_SESSIONS = new Set(["forward-deploy:1"]);
+
+/**
+ * A date typed onto the end of a session subtitle, e.g. "Domain 4 · Sep 3".
+ * Content authored that way carries a second, frozen copy of the schedule.
+ */
+const TYPED_TRAILING_DATE =
+  /\s*·\s*(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2}(?:,?\s*\d{4})?\s*$/i;
 
 export default async function TrackWeekPage({
   params,
@@ -134,14 +146,39 @@ export default async function TrackWeekPage({
 
   // Evaluate track gates. Each gate declares a condition that must be met
   // before the student can view content. We stop at the first unmet gate.
-  const gates = track.gates ?? (
+  const declaredGates = track.gates ?? (
     track.intakeRequired && track.intakeQuestions?.length
       ? [{ type: "intake" as const, surveyKey: trackSlug, questions: track.intakeQuestions }]
       : []
   );
 
+  // `prerequisiteTrackSlug` has been in TrackConfig since the Catalyst journey
+  // work and was read by nothing. This is where it starts meaning something.
+  // DB-built tracks have no config of their own, so they declare theirs in
+  // DB_TRACK_PREREQUISITES instead.
+  const requiredTrack =
+    track.prerequisiteTrackSlug ?? DB_TRACK_PREREQUISITES[trackSlug];
+  const gates: TrackGate[] = requiredTrack
+    ? [{ type: "prerequisite", trackSlug: requiredTrack }, ...declaredGates]
+    : declaredGates;
+
   if (gates.length > 0 && isSupabaseConfigured()) {
     for (const gate of gates) {
+      if (gate.type === "prerequisite") {
+        const done = await hasCompletedTrack(gate.trackSlug);
+        if (!done) {
+          const required = getTrackBySlug(program, gate.trackSlug);
+          return (
+            <LockedByPrerequisite
+              trackName={track.name}
+              requiredSlug={gate.trackSlug}
+              requiredName={required?.name ?? "the previous phase"}
+            />
+          );
+        }
+        continue;
+      }
+
       if (gate.type === "intake") {
         const intakeStatus = await getSurveyStatus(`intake-${gate.surveyKey}`);
         if (!intakeStatus.completed) {
@@ -296,6 +333,47 @@ export default async function TrackWeekPage({
 
   const sessionsLabel = weekContent.sessions.length === 1 ? "Session" : "Sessions";
 
+  // The unit's scheduled clock (date + time) as the course schedule holds it —
+  // the same row the live-join window and the unlock gate below read.
+  const weekClock = track.weekSummaries.find((ws) => ws.week === weekNum);
+
+  // Header data, hoisted so both the normal header and the merged staged-
+  // session stage below can use it — one subtitle line, computed once.
+  const isSingleSession = weekContent.sessions.length === 1;
+  const headerSession = isSingleSession ? weekContent.sessions[0] : null;
+  const headerAction =
+    isSingleSession
+      ? // A completed session already carries the "Session Ended" badge in
+        // the header — repeating it here said it twice on one card.
+        sessionStatuses[0] === "completed" ? null
+        : meetingLinks[0] && !isZoomLink(meetingLinks[0]) ? (
+          <a
+            href={meetingLinks[0]!}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2.5 min-h-[44px] transition-colors w-full sm:w-auto"
+          >
+            <Video size={14} />
+            Join Session
+          </a>
+        ) : null
+      : null;
+  // The date on this line comes from the schedule, never from the subtitle
+  // text. Sessions were authored with the day typed in ("Domain 4 · Sep 3"),
+  // which freezes on the day it was written: Security+ moved its back half two
+  // weeks and every header still announced the original date — session 16 read
+  // "Sep 3" on 2026-09-17, the evening it actually ran. Drop the typed date
+  // when the schedule has one, and print the scheduled day instead.
+  const scheduledDay = weekClock?.date
+    ? formatCohortDate(weekClock.date, { weekday: "short", month: "short", day: "numeric" })
+    : null;
+  const subtitleSansDate = scheduledDay
+    ? (displaySubtitle ?? "").replace(TYPED_TRAILING_DATE, "").trim()
+    : displaySubtitle;
+  const headerSubtitle = [track.instructor, subtitleSansDate, scheduledDay, headerSession?.time]
+    .filter(Boolean)
+    .join(" · ");
+
   // Zoom embed: resolve which sessions have active Zoom links.
   // `|| "Student"` matters: invite-created accounts start with EMPTY names and
   // the Zoom SDK hard-fails the join ("userName is empty") on a blank name.
@@ -324,7 +402,6 @@ export default async function TrackWeekPage({
   // unit. The welcome-day pages showed "LIVE NOW · Connecting…" all afternoon
   // after the session ended (2026-08-07), which read as broken and buried the
   // replay. Units without a clock keep the existing week-based behavior.
-  const weekClock = track.weekSummaries.find((ws) => ws.week === weekNum);
   const sessionWindowPassed = (() => {
     if (!weekClock?.date || !weekClock.time) return false;
     const [h, m] = weekClock.time.split(":").map(Number);
@@ -354,6 +431,14 @@ export default async function TrackWeekPage({
     const todayET = now.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
     return weekClock.date > todayET;
   })();
+  // A staged session folds the page header into its own pre-launch stage
+  // (below) instead of showing both — same title and byline stated once.
+  const mergedStageHeader =
+    hasStage &&
+    sessionDayFuture &&
+    !weekIsPast &&
+    (meetingLinks.some(Boolean) || hasInstructor) &&
+    !!weekClock?.date;
   // Mirror gate for a day that's fully over: a dated session must not offer a
   // live join AFTER its calendar day either, even when the schedule carries no
   // time. Security+'s Aug 27 study session (dated, untimed) kept a live Zoom
@@ -507,69 +592,50 @@ export default async function TrackWeekPage({
       {/* Compact header. For single-session weeks the session title equals
          the week title, so we fold session metadata (time + Join action)
          into the header instead of repeating the title below. Multi-session
-         weeks still render the dedicated Sessions list further down. */}
-      {(() => {
-        const isSingleSession = weekContent.sessions.length === 1;
-        const headerSession = isSingleSession ? weekContent.sessions[0] : null;
-        const headerAction =
-          isSingleSession
-            ? // A completed session already carries the "Session Ended" badge in
-              // the header — repeating it here said it twice on one card.
-              sessionStatuses[0] === "completed" ? null
-              : meetingLinks[0] && !isZoomLink(meetingLinks[0]) ? (
-                <a
-                  href={meetingLinks[0]!}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2.5 min-h-[44px] transition-colors w-full sm:w-auto"
+         weeks still render the dedicated Sessions list further down.
+
+         Skipped when the merged staged-session stage renders instead (below):
+         that stage carries this same title/subtitle on its own field, so
+         showing both stacked the session's name and byline twice. */}
+      {!mergedStageHeader && (
+        <div className="mb-6">
+          {/* The session's header sits on the field, always. It was a plain
+             ink PageHeader with the field appearing only in three gated
+             states (a future date, an idle AI instructor, a passed window),
+             so most sessions never showed it and the product read as half
+             redesigned. Same ground as the course page and the admin home. */}
+          <PageHeader
+            onField
+            // The STUDENT-FACING number, not the internal week number. On a
+            // course with a kickoff, internal week 2 is "Session 1" — the
+            // recording card, the prev/next nav and the breadcrumb all said
+            // Session 1 while this printed a big "02" beside them. An extra
+            // (kickoff, exam day) carries no number, so it shows none.
+            index={(() => {
+              const n = display.get(weekNum)?.number;
+              return n ? String(n).padStart(2, "0") : undefined;
+            })()}
+            badge={
+              isCompleted || isCurrent ? (
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                    isCompleted
+                      ? "bg-green-50 text-green-600"
+                      : "bg-primary/[0.08] text-primary"
+                  }`}
                 >
-                  <Video size={14} />
-                  Join Session
-                </a>
-              ) : null
-            : null;
-        return (
-          <div className="mb-6">
-            {/* The session's header sits on the field, always. It was a plain
-               ink PageHeader with the field appearing only in three gated
-               states (a future date, an idle AI instructor, a passed window),
-               so most sessions never showed it and the product read as half
-               redesigned. Same ground as the course page and the admin home. */}
-            <PageHeader
-              onField
-              // The STUDENT-FACING number, not the internal week number. On a
-              // course with a kickoff, internal week 2 is "Session 1" — the
-              // recording card, the prev/next nav and the breadcrumb all said
-              // Session 1 while this printed a big "02" beside them. An extra
-              // (kickoff, exam day) carries no number, so it shows none.
-              index={(() => {
-                const n = display.get(weekNum)?.number;
-                return n ? String(n).padStart(2, "0") : undefined;
-              })()}
-              badge={
-                isCompleted || isCurrent ? (
-                  <span
-                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                      isCompleted
-                        ? "bg-green-50 text-green-600"
-                        : "bg-primary/[0.08] text-primary"
-                    }`}
-                  >
-                    {isCompleted
-                      ? weekContent.sessions.length > 1 ? "Sessions Ended" : "Session Ended"
-                      : unit.toLowerCase() === "day" ? "Today" : `This ${unit}`}
-                  </span>
-                ) : undefined
-              }
-              title={displayTitle}
-              subtitle={[track.instructor, displaySubtitle, headerSession?.time]
-                .filter(Boolean)
-                .join(" · ")}
-            />
-            {headerAction && <div className="mt-4">{headerAction}</div>}
-          </div>
-        );
-      })()}
+                  {isCompleted
+                    ? weekContent.sessions.length > 1 ? "Sessions Ended" : "Session Ended"
+                    : unit.toLowerCase() === "day" ? "Today" : `This ${unit}`}
+                </span>
+              ) : undefined
+            }
+            title={displayTitle}
+            subtitle={headerSubtitle}
+          />
+          {headerAction && <div className="mt-4">{headerAction}</div>}
+        </div>
+      )}
 
       {/* Admin-only empty-state callout. Admins bypass the pre-start and
          coming-soon gates to prep future sessions, which means a contentless
@@ -597,8 +663,34 @@ export default async function TrackWeekPage({
          replaced a quiet white card that sat in the player's slot — same job
          (name the state, don't leave a blank page), but it holds the top of
          the page instead of being one more panel in a stack, and it offers a
-         countdown and a calendar link rather than nothing to do. */}
-      {sessionDayFuture &&
+         countdown and a calendar link rather than nothing to do.
+
+         A staged session (hasStage) folds the page header into this same
+         field instead of stacking a second one above it — same title, same
+         byline, same date, said once. Its own "Your session" card also skips
+         the pre-launch state now (below), so a staff preview gets one field
+         with a "Staff preview: start session" link, not three stacked blocks
+         all naming the same session. */}
+      {mergedStageHeader ? (
+        <SessionStage
+          state="before"
+          headline={displayTitle}
+          meta={headerSubtitle}
+          blurb={stageBlurb || undefined}
+          liveLabel={liveLabel}
+          countdown={countdown}
+          calendarHref={calendarHref}
+          secondaryAction={
+            isAdminViewer
+              ? {
+                  label: "Staff preview: start session",
+                  href: `/dashboard/track/${trackSlug}/${weekNum}/live`,
+                }
+              : undefined
+          }
+        />
+      ) : (
+        sessionDayFuture &&
         !weekIsPast &&
         (meetingLinks.some(Boolean) || hasInstructor) &&
         weekClock?.date && (
@@ -614,7 +706,8 @@ export default async function TrackWeekPage({
             countdown={countdown}
             calendarHref={calendarHref}
           />
-        )}
+        )
+      )}
 
       {/* Zoom embeds — rendered for any session with an active Zoom meeting link.
          The meeting ID never appears in the DOM; students join through the SDK. */}
@@ -801,9 +894,11 @@ export default async function TrackWeekPage({
          computed and then never read, so the only way in was typing the URL,
          which is not a way in at all.
 
-         Staff see it before session day too. A facilitator cannot rehearse a
-         path that only appears on the morning it has to work. */}
-      {hasStage && (!sessionDayFuture || isAdminViewer) && (
+         Staff preview before session day is now the merged stage's own
+         "Staff preview: start session" link (above), not this card — a
+         facilitator still gets in early to rehearse, just from one object
+         instead of two stacked ones naming the same session. */}
+      {hasStage && !sessionDayFuture && (
         <section className="mb-8 overflow-hidden rounded-2xl border border-rule bg-surface-elevated">
           <div className="border-b border-rule px-6 py-4">
             <p className="text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
@@ -825,11 +920,6 @@ export default async function TrackWeekPage({
                 Start {unitName}
                 <span aria-hidden>&rarr;</span>
               </Link>
-              {sessionDayFuture && isAdminViewer && (
-                <span className="text-xs text-ink-faint">
-                  Staff preview — learners see this on session day.
-                </span>
-              )}
             </div>
           </div>
         </section>

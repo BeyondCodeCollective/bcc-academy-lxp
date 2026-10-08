@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { SurveyQuestion } from "@/components/survey-fields";
 import type { ApplicationSubmission, SubmissionStatus } from "@/lib/applications";
 import { buttonClass } from "@/components/ui";
+import { DownloadCsvButton } from "@/components/download-csv-button";
 import { setSubmissionStatusAction, setApplicationOpenAction } from "../actions";
 
 const STATUS_STYLE: Record<SubmissionStatus, string> = {
@@ -22,6 +23,9 @@ function answerText(value: unknown): string {
   if (typeof value === "object") return JSON.stringify(value);
   return String(value);
 }
+
+const csvDate = (iso: string) =>
+  new Date(iso).toLocaleString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
 export function ReviewQueue({
   slug,
@@ -43,11 +47,11 @@ export function ReviewQueue({
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function decide(id: string, status: SubmissionStatus) {
+  async function decide(id: string, status: SubmissionStatus, notify = true) {
     setBusy(id);
     setError(null);
     try {
-      const res = await setSubmissionStatusAction(id, status);
+      const res = await setSubmissionStatusAction(id, status, { notify });
       if (!res.ok) setError(res.error ?? "Could not update the submission.");
     } catch {
       setError("Could not update the submission. Please try again.");
@@ -59,7 +63,7 @@ export function ReviewQueue({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between rounded-lg border border-ink/10 bg-surface-muted px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-ink/10 bg-surface-muted px-4 py-3">
         <p className="text-sm text-ink-soft">
           {accepting
             ? "The form is live and accepting submissions."
@@ -67,16 +71,36 @@ export function ReviewQueue({
               ? "The deadline has passed — the form no longer accepts submissions."
               : "The form is closed."}
         </p>
-        <button
-          type="button"
-          onClick={async () => {
-            await setApplicationOpenAction(slug, !open);
-            router.refresh();
-          }}
-          className={buttonClass("secondary", "sm")}
-        >
-          {open ? "Close applications" : "Reopen applications"}
-        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          {submissions.length > 0 && (
+            <DownloadCsvButton
+              fileName={`${slug}-applications.csv`}
+              header={["Name", "Email", "Status", "Submitted", "Reviewed", ...questions.map((q) => q.label)]}
+              rows={submissions.map((s) => [
+                s.fullName ?? "",
+                s.email,
+                s.status,
+                csvDate(s.createdAt),
+                s.reviewedAt ? csvDate(s.reviewedAt) : "",
+                ...questions.map((q) => {
+                  const a = answerText(s.answers[q.id]);
+                  return a === "—" ? "" : a;
+                }),
+              ])}
+              className={buttonClass("secondary", "sm")}
+            />
+          )}
+          <button
+            type="button"
+            onClick={async () => {
+              await setApplicationOpenAction(slug, !open);
+              router.refresh();
+            }}
+            className={buttonClass("secondary", "sm")}
+          >
+            {open ? "Close applications" : "Reopen applications"}
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -122,10 +146,26 @@ export function ReviewQueue({
                 <button
                   type="button"
                   disabled={busy === s.id || s.status === "accepted"}
-                  onClick={() => decide(s.id, "accepted")}
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        `Email ${s.fullName ?? s.email} their acceptance and give them access? The email goes out right away.`,
+                      )
+                    ) {
+                      decide(s.id, "accepted");
+                    }
+                  }}
                   className={buttonClass("primary", "sm")}
                 >
-                  Accept
+                  Accept and email
+                </button>
+                <button
+                  type="button"
+                  disabled={busy === s.id || s.status === "accepted"}
+                  onClick={() => decide(s.id, "accepted", false)}
+                  className={buttonClass("secondary", "sm")}
+                >
+                  Accept without email
                 </button>
                 <button
                   type="button"
@@ -149,6 +189,10 @@ export function ReviewQueue({
                   </span>
                 )}
               </div>
+              <p className="text-micro text-ink-faint">
+                Accept and email sends the acceptance email with the join link and gives access. Accept without
+                email gives access and sends nothing. Waitlist and Decline never email anyone.
+              </p>
             </div>
           </details>
         ))

@@ -157,9 +157,13 @@ export async function proxy(request: NextRequest) {
     }
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims verifies the ES256 access token against the project's JWKS,
+  // which auth-js caches in memory, so a warm instance authenticates the
+  // request without a round trip. getUser() asked Supabase Auth over the
+  // network on EVERY /dashboard request, serially, before any page code ran.
+  // An expired token still refreshes here exactly as before.
+  const { data: claims } = await supabase.auth.getClaims();
+  const user = claims?.claims.sub ? { id: claims.claims.sub } : null;
 
   // If not authenticated and trying to access dashboard, send them to log in
   // and carry the destination in ?next= so the auth callback lands them exactly

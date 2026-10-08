@@ -21,8 +21,11 @@ import { loadMvpSurveyOutcomes, type MvpSurveyOutcomeGroup } from "./survey-quer
 
 // This data slice accepts program/course/profile-location filters. Unsupported
 // filters are rejected instead of labeling unfiltered results as filtered.
+// Birth dates and household income are sensitive and nothing renders them yet,
+// so they are read only when a caller asks for the demographic summaries.
 export async function getMvpDashboardData(
   params: Record<string, string | string[] | undefined>,
+  { includeDemographics = false }: { includeDemographics?: boolean } = {},
 ): Promise<MvpDashboardData> {
   const context = await getSessionContext();
   const role = context?.student?.role ?? "student";
@@ -61,6 +64,7 @@ type MvpCourseRecords = {
 async function loadMvpLearnerIds(
   db: MvpDatabase,
   courseSlug: string,
+  courseProgramId: string,
 ): Promise<string[]> {
   const learnerIds = new Set<string>();
   let cursor: string | null = null;
@@ -68,8 +72,11 @@ async function loadMvpLearnerIds(
   while (true) {
     let query = db
       .from("student_tracks")
-      .select("id, student_id, students!inner(id, location, date_of_birth)")
+      .select(includeDemographics
+        ? "id, student_id, students!inner(id, location, date_of_birth)"
+        : "id, student_id, students!inner(id, location)")
       .eq("track_slug", courseSlug)
+      .eq("program_id", courseProgramId)
       .eq("students.role", "student")
       .or("is_test.is.null,is_test.eq.false", {
         referencedTable: "students",
@@ -99,7 +106,7 @@ async function loadMvpLearnerIds(
       if (learnerLocation) availableLocations.add(learnerLocation);
       if (!location || learnerLocation === location) {
         learnerIds.add(enrollment.student_id);
-        demographicLearners.set(enrollment.student_id, { id: enrollment.student_id,
+        if (includeDemographics) demographicLearners.set(enrollment.student_id, { id: enrollment.student_id,
           dateOfBirth: typeof profile?.date_of_birth === "string" ? profile.date_of_birth : null });
       }
     }
@@ -122,6 +129,7 @@ async function loadMvpLearnerIds(
 async function loadMvpAttendance(
   db: MvpDatabase,
   courseSlug: string,
+  courseProgramId: string,
   learnerIds: string[],
 ): Promise<MvpAttendanceRecord[]> {
   const records: MvpAttendanceRecord[] = [];
@@ -137,6 +145,7 @@ async function loadMvpAttendance(
           "id, student_id, track, week_number, session_number, checked_in_at",
         )
         .eq("track", courseSlug)
+        .eq("program_id", courseProgramId)
         .in("student_id", batch)
         .order("id", { ascending: true })
         .limit(500);
@@ -174,9 +183,10 @@ async function loadMvpAttendance(
 async function loadMvpCourseRecords(
   db: MvpDatabase,
   courseSlug: string,
+  courseProgramId: string,
 ): Promise<MvpCourseRecords> {
-  const learnerIds = await loadMvpLearnerIds(db, courseSlug);
-  const attendance = await loadMvpAttendance(db, courseSlug, learnerIds);
+  const learnerIds = await loadMvpLearnerIds(db, courseSlug, courseProgramId);
+  const attendance = await loadMvpAttendance(db, courseSlug, courseProgramId, learnerIds);
 
   return { learnerIds, attendance };
 }
@@ -223,6 +233,11 @@ async function loadMvpCourseRecords(
   // Rows are course aggregates; cohort metrics are not inferred from profiles.
   const rows: MvpProgramRow[] = [];
   const configs = getEveryProgramConfig();
+  // Hiding is global per course slug (see getHiddenTrackSlugs); read it here
+  // so a failed lookup errors instead of quietly showing retired courses.
+  const hidden = await db.from("hidden_courses").select("track_slug");
+  if (hidden.error) throw new Error("Unable to load hidden courses.");
+  const hiddenSlugs = new Set((hidden.data ?? []).map((row) => row.track_slug as string));
   for (const program of programs) {
     const overrides = await db.from("track_overrides")
       .select("track_slug, name, start_date").eq("program_id", program.id);
@@ -243,7 +258,7 @@ async function loadMvpCourseRecords(
     }
     const trackScope = role === "super_admin" ? null : allowedTrackSlugs(homeId, mvpGrants, program.id);
     for (const [slug, course] of courses) {
-      if (trackScope && !trackScope.includes(slug)) continue;
+      if (hiddenSlugs.has(slug) || (trackScope && !trackScope.includes(slug))) continue;
       rows.push({
         id: `${program.id}:${slug}`, programId: program.id, programName: program.name,
         courseSlug: slug, courseName: course.name, cohortId: null, cohortName: null,
@@ -280,11 +295,14 @@ for (const row of selectedRows) {
     continue;
   }
 
-  let records = courseRecords.get(row.courseSlug);
+  // student_tracks is program-scoped, and one slug can be offered by two
+  // programs, so the roster (and its cache entry) is per program and course.
+  const recordsKey = `${row.programId}:${row.courseSlug}`;
+  let records = courseRecords.get(recordsKey);
 
   if (!records) {
-    records = await loadMvpCourseRecords(db, row.courseSlug);
-    courseRecords.set(row.courseSlug, records);
+    records = await loadMvpCourseRecords(db, row.courseSlug, row.programId);
+    courseRecords.set(recordsKey, records);
   }
 
   row.totalParticipants = records.learnerIds.length;
@@ -337,7 +355,7 @@ for (const row of selectedRows) {
   while (true) {
     let request = db.from("session_content")
       .select("id, week_number, status, status_2, status_3")
-      .eq("track", row.courseSlug).order("id").limit(500);
+      .eq("track", row.courseSlug).eq("program_id", row.programId).order("id").limit(500);
     if (deliveryCursor) request = request.gt("id", deliveryCursor);
     const result = await request;
     if (result.error) throw new Error("Unable to verify delivered course sessions.");
@@ -373,7 +391,7 @@ for (const row of selectedRows) {
       const programRows = selectedRows.filter((row) => row.programId === program.id);
       if (!programRows.length) continue;
       const learnerIds = [...new Set(programRows.flatMap((row) =>
-        row.courseSlug ? courseRecords.get(row.courseSlug)?.learnerIds ?? [] : []))];
+        row.courseSlug ? courseRecords.get(`${row.programId}:${row.courseSlug}`)?.learnerIds ?? [] : []))];
       const surveys = configs.find((config) => config.slug === program.slug)?.surveys ?? [];
       if (!surveys.some((survey) => !survey.appliesToTracks?.length && !survey.skipForTracks?.length)) continue;
       surveyOutcomes.push(await loadMvpSurveyOutcomes(db, {
@@ -386,9 +404,9 @@ for (const row of selectedRows) {
   // Deduplicate across courses, but query each program with its own roster so
   // multi-program enrollment cannot broaden the response access boundary.
   const incomeResponses: MvpIncomeResponse[] = [];
-  for (const id of new Set(selectedRows.map((row) => row.programId))) {
+  for (const id of includeDemographics ? new Set(selectedRows.map((row) => row.programId)) : []) {
     const ids = [...new Set(selectedRows.filter((row) => row.programId === id).flatMap((row) =>
-      row.courseSlug ? courseRecords.get(row.courseSlug)?.learnerIds ?? [] : []))];
+      row.courseSlug ? courseRecords.get(`${row.programId}:${row.courseSlug}`)?.learnerIds ?? [] : []))];
     incomeResponses.push(...await loadMvpIncome(db, id, ids));
   }
   const upcomingEnrollments = countMvpUpcomingEnrollments(selectedRows);
@@ -406,8 +424,8 @@ for (const row of selectedRows) {
       ...startSummary, ...completionSummary, upcomingEnrollments,
     },
     programs: selectedRows, commitments: [], checkInEvaluations, surveyOutcomes,
-    demographics: [calculateMvpAges([...demographicLearners.values()], asOf),
-      calculateMvpIncome([...demographicLearners.keys()], incomeResponses)],
+    ...(includeDemographics && { demographics: [calculateMvpAges([...demographicLearners.values()], asOf),
+      calculateMvpIncome([...demographicLearners.keys()], incomeResponses)] }),
     freshness: { fetchedAt: new Date().toISOString(), sourceUpdatedAt: null, lastValidatedAt: null, lastValidatedBy: null },
     metricDefinitions: [
       { key: "uniqueLearnersCompleted", label: "Learners with a course completion", denominator: null,

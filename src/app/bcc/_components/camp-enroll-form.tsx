@@ -29,14 +29,18 @@ export function CampEnrollForm({
   sessions,
   accent,
   ctaLabel,
+  comingSoon = false,
 }: {
   ink?: string;
   slug: string;
   sessions: LandingSession[];
   accent: string;
   ctaLabel: string | null;
+  /** Interest capture only — nothing to enroll in yet. */
+  comingSoon?: boolean;
 }) {
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [zip, setZip] = useState("");
   const [heardAbout, setHeardAbout] = useState("");
@@ -53,7 +57,8 @@ export function CampEnrollForm({
 
     const result = await enrollInCourse({
       slug,
-      name,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
       email: email.trim(),
       zipCode: zip.trim(),
       heardAbout,
@@ -109,12 +114,27 @@ export function CampEnrollForm({
           ))}
         </select>
       )}
+      {/* Asked separately: one "Full name" box meant the surname was a guess at
+         the first space, which turned "Ana M Mendoza-Santiago" into a first
+         name of Ana and a surname of M Mendoza-Santiago. */}
       <input
         type="text"
         required
-        placeholder="Full name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
+        autoComplete="given-name"
+        placeholder="First name"
+        value={firstName}
+        onChange={(e) => setFirstName(e.target.value)}
+        disabled={status === "loading"}
+        className={inputStyle}
+        style={{ borderColor: `${ink}22`, color: `${ink}` }}
+      />
+      <input
+        type="text"
+        required
+        autoComplete="family-name"
+        placeholder="Last name"
+        value={lastName}
+        onChange={(e) => setLastName(e.target.value)}
         disabled={status === "loading"}
         className={inputStyle}
         style={{ borderColor: `${ink}22`, color: `${ink}` }}
@@ -171,7 +191,7 @@ export function CampEnrollForm({
         className="w-full rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-opacity disabled:opacity-60"
         style={{ background: accent }}
       >
-        {status === "loading" ? "Enrolling…" : (ctaLabel ?? "Enroll")}
+        {status === "loading" ? (comingSoon ? "Sending…" : "Enrolling…") : (ctaLabel ?? "Enroll")}
       </button>
     </form>
   );

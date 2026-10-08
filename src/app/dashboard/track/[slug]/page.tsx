@@ -1,4 +1,4 @@
-import { CourseHero } from "@/components/course-hero";
+import { CourseHeader } from "@/components/course-header";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import {
@@ -14,16 +14,22 @@ import {
   easternDayKey,
 } from "@/lib/utils";
 import { trackUnitDisplay, unitText } from "@/lib/programs/unit-display";
+import { countLabel } from "@/lib/count-label";
 import { resolveTrackProgram } from "@/lib/programs/server";
+import { getTrackBySlug } from "@/lib/programs";
+import { DB_TRACK_PREREQUISITES } from "@/lib/programs/field-ready";
+import { hasCompletedTrack } from "@/lib/tracks/completion";
+import { LockedByPrerequisite } from "@/components/locked-by-prerequisite";
 import { getSessionContext } from "@/lib/auth/session";
 import { canAccessAdminPanel } from "@/lib/roles";
 import { getPreviewTrackSlugs } from "@/lib/auth/preview-mode";
 import { createServiceClient } from "@/lib/supabase/server";
+import { isExitConfidencePending } from "@/lib/assessment/exit-confidence";
 import { buttonClass } from "@/components/ui";
 import { getTrackProgressMap } from "@/app/dashboard/track/actions";
 import { addDays } from "@/lib/ical";
 import { type AgendaRow } from "@/components/course-agenda";
-import { type CalendarEvent } from "@/components/track-calendar";
+import { type CalendarEvent, type CalendarFocus } from "@/components/track-calendar";
 import { ScheduleTabs } from "@/components/schedule-tabs";
 import type { TrackConfig } from "@/lib/programs/types";
 import { getAllSessionContent } from "@/app/dashboard/admin/actions-tracks";
@@ -32,11 +38,12 @@ import { MyProgressCard } from "@/components/my-progress-card";
 import { getLearnerProgress } from "@/lib/learner-progress";
 import { getWhatsNew, type FeedItem } from "@/lib/whats-new";
 import { HoldingView } from "@/components/holding-view";
-import { PreStartBanner } from "@/components/pre-start-banner";
-import { NextUpPanel } from "@/components/next-up-panel";
 import {
   touchpointCandidates,
   resolveTouchpoint,
+  touchpointCta,
+  touchpointHeadline,
+  touchpointKicker,
 } from "@/lib/course-touchpoint";
 import { getLandingHeroForTrack } from "@/lib/landing-pages";
 import {
@@ -82,6 +89,27 @@ export default async function TrackOverviewPage({
       .eq("track_slug", slug)
       .maybeSingle();
     if (!enr) redirect("/dashboard");
+  }
+
+  // Ladder gate: a phase stays shut until the one before it is finished.
+  //
+  // This lives here, not only on the week page, because the week page
+  // redirects an un-started track straight back to this overview — so a
+  // learner who has not earned the next phase would be bounced between the
+  // two and never told why. Admins and previewers walk through.
+  const requiredTrack = track.prerequisiteTrackSlug ?? DB_TRACK_PREREQUISITES[slug];
+  if (requiredTrack && !isAdminViewer && ctx?.userId) {
+    const earned = await hasCompletedTrack(requiredTrack, ctx.userId);
+    if (!earned) {
+      const required = getTrackBySlug(program, requiredTrack);
+      return (
+        <LockedByPrerequisite
+          trackName={track.name}
+          requiredSlug={requiredTrack}
+          requiredName={required?.name ?? "the previous phase"}
+        />
+      );
+    }
   }
 
   // Acceptance checklist gate: on a checklist-gated track (e.g. the Cybersecurity
@@ -178,6 +206,8 @@ export default async function TrackOverviewPage({
       .maybeSingle();
     certificateId = (completion?.certificate_id as string | null) ?? null;
   }
+  const exitConfidencePending =
+    !!certificateId && !!ctx?.userId && !isAdminViewer && (await isExitConfidencePending(ctx.userId));
 
   // Before day one a learner sees the real course with a banner on top, not a
   // countdown instead of it — the syllabus is what they're being asked to
@@ -226,7 +256,7 @@ export default async function TrackOverviewPage({
 
   // Header carries who + how long; every date lives in the panel or the
   // schedule below, never twice.
-  const metaLine = [track.instructor, `${numbered} ${unitLower}s`]
+  const metaLine = [track.instructor, countLabel(numbered, unitLower)]
     .filter(Boolean)
     .join(" · ");
 
@@ -263,7 +293,7 @@ export default async function TrackOverviewPage({
   // (kickoff) has no number, so it announces itself by name.
   const currentDisplay = display.get(currentWeek);
   const eyebrow = track.selfPaced
-    ? `Self-paced · ${numbered} ${unitLower}s`
+    ? `Self-paced · ${countLabel(numbered, unitLower)}`
     : currentDisplay?.number
       ? `${unit} ${currentDisplay.number} of ${numbered}`
       : currentDisplay
@@ -464,6 +494,32 @@ export default async function TrackOverviewPage({
     time: r.time,
   }));
 
+  // The field, at cell size. Running: the live/today/next session, with its
+  // Join. Before day one: the first dated session, filled but locked — the
+  // same cell the learner will click on the day, so the page doesn't change
+  // shape when the course starts.
+  const firstRow = agendaRows.find((r) => r.kind === "session");
+  const calendarFocus: CalendarFocus | null = preStart
+    ? firstRow
+      ? {
+          date: firstRow.date,
+          kicker: "Starts",
+          title: firstRow.label ? `${firstRow.label} · ${firstRow.title}` : firstRow.title,
+          time: firstRow.time ?? null,
+          cta: "",
+        }
+      : null
+    : touchpoint
+      ? {
+          date: touchpoint.date,
+          kicker: touchpointKicker(touchpoint),
+          title: touchpointHeadline(touchpoint),
+          time: touchpoint.timeLabel,
+          href: touchpoint.href,
+          cta: touchpointCta(touchpoint),
+        }
+      : null;
+
   // The feed is a line, not a card: one item, the most recent.
   const latestNews = whatsNew[0] ?? null;
 
@@ -497,49 +553,40 @@ export default async function TrackOverviewPage({
         </a>
       )}
 
-      {/* 0 — course cover, when the course has artwork. Full design, natural
-         aspect (the instructor's banner is a composed poster — cropping it
-         cuts its own text). Decorative: the header right below carries the
-         course identity for screen readers. */}
-      {/* 1 — what course is this.
+      {exitConfidencePending && (
+        <a
+          href="/dashboard/assessment/exit"
+          className="group flex items-center gap-4 panel p-4 sm:p-5 transition-colors hover:border-ink-faint"
+        >
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-bold text-ink">One last check-in</span>
+            <span className="block text-xs text-ink-soft">
+              Two quick questions, the same ones you answered when you started.
+            </span>
+          </span>
+          <ArrowRight
+            size={16}
+            className="shrink-0 text-ink-faint transition-transform group-hover:translate-x-0.5"
+            aria-hidden
+          />
+        </a>
+      )}
 
-         The field, always. It used to be conditional: cover art for some
-         courses, a bare ink header for the rest, the field only where neither
-         applied. That made the product look half-redesigned — one course opens
-         on a generated illustration, the next on a line of grey type, and
-         nothing tells a learner they are in the same place.
+      {/* 1 — which course this is. One line, no dark object: the field lives in
+         the calendar below, on the cell of the session that matters, so the
+         page says each date exactly once. Before day one the header also
+         carries seat-saved + Add to calendar (the old PreStartBanner). */}
+      <CourseHeader
+        eyebrow={eyebrow}
+        title={track.name}
+        meta={metaLine}
+        preStart={preStart}
+        track={track}
+      />
 
-         The generated cover art is MARKETING. It belongs on the landing page,
-         where someone is choosing a course, and it still goes there —
-         `heroImageUrl` above feeds HoldingView and the public page unchanged.
-         In-product, the course's own name is what identifies it, and the field
-         is the ground it sits on. Same ground as the session page and the
-         admin home, so the three read as one product. */}
-      <CourseHero eyebrow={eyebrow} title={track.name} meta={metaLine} />
-
-      {/* 2 — the one thing to do now. Before day one that's the start + a way to
-         calendar it; once running, the live / today / next session. */}
-      {preStart ? (
-        <PreStartBanner track={track} />
-      ) : touchpoint ? (
-        // Quiet here: the field above is this page's one dark object, and the
-        // course name is already its one display size.
-        <NextUpPanel
-          touchpoint={touchpoint}
-          variant="quiet"
-          notice={
-            latestNews
-              ? {
-                  title: latestNews.title,
-                  body: latestNews.body,
-                  whenLabel: latestNews.whenLabel.toLowerCase(),
-                  href: latestNews.href,
-                  external: latestNews.external,
-                }
-              : null
-          }
-        />
-      ) : (
+      {/* 2 — running with nothing dated (self-paced, no scheduled sessions):
+         the calendar has no cell to carry the CTA, so a plain open link does. */}
+      {!preStart && !touchpoint && (
         <Link
           href={`/dashboard/track/${slug}/${ctaWeek}`}
           className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-xl border border-rule border-l-[3px] border-l-primary bg-surface-elevated px-4 py-3.5 transition-colors hover:bg-paper-tint-soft"
@@ -555,11 +602,8 @@ export default async function TrackOverviewPage({
       )}
 
       {/* Announcements: track-scoped and time-sensitive, so they sit above the
-         syllabus — but a line, not a card. When there IS a next-up panel the
-         announcement rides inside it instead; two "something is happening
-         soon" blocks stacked back to back, usually about the same week, is
-         what made the top of this page read as clutter. */}
-      {latestNews && !touchpoint && (
+         syllabus — but a line, not a card. */}
+      {latestNews && (
         <Link
           href={latestNews.href}
           target={latestNews.external ? "_blank" : undefined}
@@ -598,7 +642,7 @@ export default async function TrackOverviewPage({
           rows={agendaRows}
           events={calendarEvents}
           todayISO={todayISO}
-          focusDate={touchpoint?.date ?? null}
+          focus={calendarFocus}
         />
       )}
 

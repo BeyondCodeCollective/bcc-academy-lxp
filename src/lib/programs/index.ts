@@ -4,6 +4,7 @@ import { forteConfig } from "./forte";
 import { beyondCodeCentersConfig } from "./beyond-code-centers";
 import { bgcConfig } from "./bgc";
 import { marketingConfig, MARKETING_SLUG } from "./marketing";
+import { fieldReadyConfig, FIELD_READY_SLUG } from "./field-ready";
 import type { ProgramConfig, TrackConfig } from "./types";
 
 const PROGRAMS: Record<string, ProgramConfig> = {
@@ -25,6 +26,10 @@ const SPECIAL_CONFIGS: Record<string, ProgramConfig> = {
   forte: forteConfig,
   "beyond-code-centers": beyondCodeCentersConfig,
   bgc: bgcConfig,
+  // Field Ready is standalone for the same reason Beyond the Game is: its
+  // learners are not Catalyst's learners. It has no domain of its own —
+  // resolveTrackProgram sends its tracks here by slug.
+  [FIELD_READY_SLUG]: fieldReadyConfig,
 };
 
 /**

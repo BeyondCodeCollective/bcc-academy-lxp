@@ -13,6 +13,7 @@ import { PublicPostSurvey } from "./public-post-survey";
 import { PublicImpactSurvey } from "./public-impact-survey";
 import { PublicCyberdeckPre } from "./public-cyberdeck-pre";
 import { PublicCyberdeckPost } from "./public-cyberdeck-post";
+import { PublicBgcParticipantSurvey } from "./public-bgc-participant-survey";
 
 // Public survey route. Outside /dashboard/* so the proxy/middleware does not
 // gate it — anyone who lands on catalyst.bccacademy.io/survey/network-plus-post
@@ -36,10 +37,12 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     "pre-survey-spring-2026": "Pre-Program Survey",
     "post-survey-spring-2026": "Post-Program Survey",
     "ai-impact-survey-2026": "Program Impact Survey",
+    "ai-fundamentals-post-2026": "Post-Program Survey",
     "cyberdeck-pre": "Cyberdeck Series — Pre-Program Survey",
     "cyberdeck-post": "Cyberdeck Series — Post-Program Survey",
+    "bgc-participant-2026": "Black Girls Code 2026 Participant Survey",
   };
-  const title = titles[id] ?? "Survey";
+  const title = titles[SURVEY_ALIASES[id] ?? id] ?? "Survey";
   return {
     title: `${title} — BCC Academy`,
     description: `Complete the ${title.toLowerCase()} for BCC Academy.`,
@@ -56,8 +59,10 @@ const SURVEY_COMPONENTS: Record<string, ComponentType<SurveyProps>> = {
   "pre-survey-spring-2026": PublicPreSurvey,
   "post-survey-spring-2026": PublicPostSurvey,
   "ai-impact-survey-2026": PublicImpactSurvey,
+  "ai-fundamentals-post-2026": PublicImpactSurvey,
   "cyberdeck-pre": PublicCyberdeckPre,
   "cyberdeck-post": PublicCyberdeckPost,
+  "bgc-participant-2026": PublicBgcParticipantSurvey,
 };
 
 // post-survey-spring-2026 is retired: it's no longer assigned to a program, so
@@ -74,6 +79,14 @@ const RETIRED_SURVEY_REDIRECTS: Record<string, string> = {
 // links copied in between now 404, which is what staff hit when they shared it.
 // Send them to the real page instead of a dead end; the login gate there
 // returns them to the survey afterwards.
+// Friendly URLs for surveys whose ID reads wrong in a shared link. The page
+// renders the canonical survey and saves under its ID, so responses stay in
+// one place. pre-survey-spring-2026 is still the live AI Fundamentals
+// pre-survey every cohort takes; "Spring" in the link confused Fall staff.
+const SURVEY_ALIASES: Record<string, string> = {
+  "ai-fundamentals": "pre-survey-spring-2026",
+};
+
 const MOVED_TO_AUTHENTICATED: Record<string, string> = {
   "security-plus-midpoint": "/dashboard/survey/security-plus-midpoint",
 };
@@ -83,7 +96,8 @@ export default async function PublicSurveyPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params;
+  const { id: rawId } = await params;
+  const id = SURVEY_ALIASES[rawId] ?? rawId;
   const replacement = RETIRED_SURVEY_REDIRECTS[id];
   if (replacement) redirect(`/survey/${replacement}`);
   const authRoute = MOVED_TO_AUTHENTICATED[id];

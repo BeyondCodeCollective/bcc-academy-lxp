@@ -2,13 +2,15 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
-import { canSwitchPrograms, canManageRoles } from "@/lib/roles";
+import { canManageStudents, canManageRoles } from "@/lib/roles";
+import { requireManager, allowedTrackSlugsForActor } from "../actions-shared";
 import { resolveTrackLengths } from "@/lib/programs/scope";
 import { humanizeSlug } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
 import { DataTable } from "@/components/ui";
 import { ManageMenu } from "../manage-menu";
 import { CopyLinkButton } from "./copy-link-button";
+import { DownloadCsvButton } from "@/components/download-csv-button";
 import { CourseSelect } from "./course-select";
 
 export const dynamic = "force-dynamic";
@@ -32,6 +34,8 @@ type Reg = {
   inviteToken: string | null;
   /** Only landing signups carry attribution; every other source is null. */
   heardAbout: string | null;
+  /** Session ids picked on a multi-date landing page (Catalyst Labs). */
+  sessions?: string[];
   at: string;
 };
 
@@ -44,23 +48,33 @@ const SOURCE_LABEL: Record<Source, string> = {
 };
 
 type StudentRow = { id: string; email: string; first_name: string | null; last_name: string | null; is_staff: boolean; is_test: boolean };
-type PageRow = { slug: string; track_slug: string | null; published: boolean };
+type PageRow = {
+  slug: string;
+  track_slug: string | null;
+  published: boolean;
+  sessions: { id: string; label: string }[] | null;
+};
 
 export default async function SignupsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ course?: string; page?: string }>;
+  searchParams: Promise<{ course?: string; page?: string; session?: string }>;
 }) {
   const ctx = await getSessionContext();
   if (!ctx) redirect("/");
-  if (!canSwitchPrograms(ctx.student?.role ?? "")) redirect("/dashboard/admin");
+  if (!canManageStudents(ctx.student?.role ?? "")) redirect("/dashboard/admin");
+
+  // Registrations key on track_slug, not program, so a program admin's view is
+  // "every course in my program". Super-admins see every course.
+  const actor = await requireManager();
+  const allowedTracks = await allowedTrackSlugsForActor(actor, actor.svc);
 
   const svc = createServiceClient();
   const [{ data: landing }, { data: invites }, { data: eventbrite }, { data: allowlist }, { data: pages }] =
     await Promise.all([
       svc
         .from("landing_signups")
-        .select("slug, track_slug, email, name, invite_token, heard_about, created_at")
+        .select("slug, track_slug, email, name, invite_token, heard_about, session_id, created_at")
         .order("created_at", { ascending: false })
         .limit(5000),
       svc
@@ -70,7 +84,7 @@ export default async function SignupsPage({
         .limit(5000),
       svc.from("eventbrite_orders").select("email, track_slug, invite_token, created_at").limit(5000),
       svc.from("allowed_signup_emails").select("email, track_slug, added_at").limit(5000),
-      svc.from("landing_pages").select("slug, track_slug, published"),
+      svc.from("landing_pages").select("slug, track_slug, published, sessions"),
     ]);
 
   // Merge every source into one registration per (course, email), keeping the
@@ -79,6 +93,7 @@ export default async function SignupsPage({
   const usedToken = new Set<string>();
   const add = (r: Reg) => {
     if (!r.track || !r.email) return;
+    if (allowedTracks && !allowedTracks.has(r.track)) return;
     const key = `${r.track} ${r.email}`;
     const prev = regs.get(key);
     if (!prev) {
@@ -95,6 +110,7 @@ export default async function SignupsPage({
       name: win.name || lose.name,
       inviteToken: win.inviteToken || lose.inviteToken,
       heardAbout: win.heardAbout || lose.heardAbout,
+      sessions: [...new Set([...(win.sessions ?? []), ...(lose.sessions ?? [])])],
       at: r.at < prev.at ? r.at : prev.at,
     });
   };
@@ -105,6 +121,7 @@ export default async function SignupsPage({
     name: string | null;
     invite_token: string | null;
     heard_about: string | null;
+    session_id: string | null;
     created_at: string;
   }[]) {
     add({
@@ -115,6 +132,7 @@ export default async function SignupsPage({
       landingSlug: r.slug,
       inviteToken: r.invite_token,
       heardAbout: r.heard_about,
+      sessions: r.session_id ? [r.session_id] : [],
       at: r.created_at,
     });
   }
@@ -172,14 +190,27 @@ export default async function SignupsPage({
 
   const sp = await searchParams;
   // Old ?page=<landing slug> links resolve to that page's course.
-  const pageRows = (pages ?? []) as PageRow[];
+  const pageRows = ((pages ?? []) as PageRow[]).filter(
+    (p) => !allowedTracks || (p.track_slug !== null && allowedTracks.has(p.track_slug)),
+  );
   const fromPage = sp.page ? (pageRows.find((p) => p.slug === sp.page)?.track_slug ?? null) : null;
   const requested = sp.course ?? fromPage ?? null;
   // No default: the page opens on the picker alone; nothing shows until a course is chosen.
   const course = requested && courses.includes(requested) ? requested : null;
-  const rows = course ? allRegs.filter((r) => r.track === course).sort((a, b) => (a.at < b.at ? 1 : -1)) : [];
+  const courseRows = course ? allRegs.filter((r) => r.track === course).sort((a, b) => (a.at < b.at ? 1 : -1)) : [];
   const courseName = course ? (names.get(course)?.name ?? humanizeSlug(course)) : null;
   const coursePages = course ? pageRows.filter((p) => p.track_slug === course) : [];
+  // Multi-date pages (Catalyst Labs) have each person pick a session. Without
+  // this, October and November signups were indistinguishable.
+  const sessionOptions = coursePages.flatMap((p) => p.sessions ?? []);
+  const sessionLabel = (id: string) =>
+    /^\d{4}-\d{2}-\d{2}$/.test(id)
+      ? new Date(`${id}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })
+      : (sessionOptions.find((o) => o.id === id)?.label ?? id).split("|")[0].trim();
+  const session = sp.session && sessionOptions.some((o) => o.id === sp.session) ? sp.session : null;
+  const rows = session ? courseRows.filter((r) => r.sessions?.includes(session)) : courseRows;
+  const sessionHref = (id: string | null) =>
+    `?course=${encodeURIComponent(course ?? "")}${id ? `&session=${encodeURIComponent(id)}` : ""}`;
 
   const emails = [...new Set(rows.map((r) => r.email))];
   const [{ data: students }, { data: enrollments }] = await Promise.all([
@@ -219,6 +250,18 @@ export default async function SignupsPage({
   const fmt = (iso: string) =>
     new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
   const origin = "https://bccacademy.io";
+  const STAGE_LABEL: Record<Stage, string> = { enrolled: "Enrolled", "signed-in": "Signed in", waiting: "Waiting" };
+  // The export is the people to contact: what the filters show, minus internal tests.
+  const csvHeader = ["Name", "Email", ...(sessionOptions.length > 0 ? ["Session"] : []), "Signed up", "Heard about", "Status"];
+  const csvRows = real.map(({ r, stage, name }) => [
+    name ?? "",
+    r.email,
+    ...(sessionOptions.length > 0 ? [(r.sessions ?? []).map(sessionLabel).join("; ")] : []),
+    fmt(r.at),
+    r.heardAbout ?? "",
+    STAGE_LABEL[stage],
+  ]);
+  const csvName = `${course ?? "signups"}${session ? `-${session}` : ""}-signups.csv`;
 
   return (
     <div className="mx-auto w-full max-w-4xl px-4 sm:px-5 py-8 space-y-6">
@@ -257,6 +300,12 @@ export default async function SignupsPage({
             >
               Open roster
             </Link>
+            {real.length > 0 && (
+              <>
+                {" · "}
+                <DownloadCsvButton fileName={csvName} header={csvHeader} rows={csvRows} />
+              </>
+            )}
             {coursePages.map((p) => (
               <span key={p.slug}>
                 {" · "}
@@ -279,7 +328,34 @@ export default async function SignupsPage({
             {internalCount > 0 && ` · ${internalCount} internal test${internalCount === 1 ? "" : "s"} shown but not counted`}
           </p>
 
-          <DataTable columns={["Name", "Email", "Signed up", "Via", "Heard about", "Status", ""]}>
+          {sessionOptions.length > 0 && (
+            <p className="text-xs text-ink-faint">
+              Session:{" "}
+              {[{ id: null as string | null, text: "All", n: courseRows.length }, ...sessionOptions.map((o) => ({
+                id: o.id as string | null,
+                text: sessionLabel(o.id),
+                n: courseRows.filter((r) => r.sessions?.includes(o.id)).length,
+              }))].map((o, i) => (
+                <span key={o.id ?? "all"}>
+                  {i > 0 && " · "}
+                  <Link
+                    href={sessionHref(o.id)}
+                    className={session === o.id ? "font-semibold text-ink" : "font-medium text-primary hover:underline"}
+                  >
+                    {o.text} ({o.n})
+                  </Link>
+                </span>
+              ))}
+            </p>
+          )}
+
+          <DataTable
+            columns={
+              sessionOptions.length > 0
+                ? ["Name", "Email", "Session", "Signed up", "Via", "Heard about", "Status", ""]
+                : ["Name", "Email", "Signed up", "Via", "Heard about", "Status", ""]
+            }
+          >
             {staged.map(({ r, stage, internal, name }) => (
               <tr key={r.email} className={internal ? "text-ink-faint" : "text-ink"}>
                 <td className="px-4 py-3 align-top font-medium">
@@ -291,6 +367,11 @@ export default async function SignupsPage({
                   )}
                 </td>
                 <td className="px-4 py-3 align-top text-sm">{r.email}</td>
+                {sessionOptions.length > 0 && (
+                  <td className="px-4 py-3 align-top text-xs text-ink-soft whitespace-nowrap">
+                    {r.sessions?.length ? r.sessions.map(sessionLabel).join(", ") : <span className="text-ink-faint">&mdash;</span>}
+                  </td>
+                )}
                 <td className="px-4 py-3 align-top text-xs text-ink-soft whitespace-nowrap">{fmt(r.at)}</td>
                 <td className="px-4 py-3 align-top text-xs text-ink-soft whitespace-nowrap">
                   {r.source === "landing" && r.landingSlug ? `/bcc/${r.landingSlug}` : SOURCE_LABEL[r.source]}

@@ -2,6 +2,7 @@ import { cache } from "react";
 import { after } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { determineRole } from "@/lib/auth/admins";
+import { seedNameForEmail } from "@/lib/auth/seed-name";
 import { resolveIsStaff } from "@/lib/auth/staff";
 import type { Cohort } from "@/lib/types";
 
@@ -45,13 +46,16 @@ const _PROFILE_TTL = 60_000;
 // student independently.
 export const getSessionContext = cache(async (): Promise<SessionContext | null> => {
   const supabase = await createClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  if (!session?.user) return null;
+  // getClaims verifies the ES256 token against the cached JWKS, so the
+  // identity is authentic without a round trip. getSession() handed back the
+  // unverified cookie payload and auth-js logged a warning on every request.
+  const { data: verified } = await supabase.auth.getClaims();
+  const claims = verified?.claims;
+  if (!claims?.sub) return null;
+  const userEmail = typeof claims.email === "string" ? claims.email : undefined;
 
   // Check cross-request cache before hitting the students table.
-  const userId = session.user.id;
+  const userId = claims.sub;
   const cached = _profileStore.get(userId);
   if (cached && Date.now() - cached.ts < _PROFILE_TTL) {
     return cached.data;
@@ -60,7 +64,7 @@ export const getSessionContext = cache(async (): Promise<SessionContext | null> 
   const { data: student } = await supabase
     .from("students")
     .select(STUDENT_SELECT)
-    .eq("id", session.user.id)
+    .eq("id", userId)
     .maybeSingle<SessionStudent>();
 
   // Self-heal: a valid session with no profile row is a "ghost" — the user is
@@ -69,11 +73,11 @@ export const getSessionContext = cache(async (): Promise<SessionContext | null> 
   // Guarantee the invariant "authenticated ⇒ profile exists" right here, the
   // chokepoint every dashboard surface flows through. deferred-setup refines
   // cohort/program/enrollment afterwards; role is the email-list truth.
-  const healed = !student ? await ensureProfile(session.user.id, session.user.email) : student;
+  const healed = !student ? await ensureProfile(userId, userEmail) : student;
 
   const result = {
-    userId: session.user.id,
-    userEmail: session.user.email ?? null,
+    userId,
+    userEmail: userEmail ?? null,
     student: healed ?? null,
   };
   _profileStore.set(userId, { data: result, ts: Date.now() });
@@ -131,12 +135,16 @@ async function ensureProfile(
     .maybeSingle();
   if (!hub?.id) return null;
 
+  // Someone who signed up on a landing page already told us their name; a
+  // healed profile that drops it is how a roster ends up showing bare emails.
+  const seed = await seedNameForEmail(admin, email);
+
   await admin.from("students").upsert(
     {
       id: userId,
       email: email ?? "",
-      first_name: "",
-      last_name: "",
+      first_name: seed.first_name,
+      last_name: seed.last_name,
       role: determineRole(email ?? ""),
       is_staff: await resolveIsStaff(email),
       program_id: hub.id,

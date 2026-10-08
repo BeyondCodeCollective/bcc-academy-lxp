@@ -23,12 +23,17 @@ export function ResultsProfile({ result }: { result: ScoredOutput }) {
   const showArchetypeNarrative =
     result.archetype_confidence !== "low" &&
     result.archetype_confidence !== "flat" &&
+    result.archetype_confidence !== "emerging" &&
     result.archetype_confidence !== "broad_high";
 
   const archetypeSummaryText = (() => {
     if (result.archetype_confidence === "low") return SPECIAL_CASE_LANGUAGE.low_confidence;
     if (result.archetype_confidence === "broad_high") return SPECIAL_CASE_LANGUAGE.broad_high;
-    if (result.archetype_confidence === "flat") return SPECIAL_CASE_LANGUAGE.flat;
+    if (result.archetype_confidence === "flat" || result.archetype_confidence === "emerging") return SPECIAL_CASE_LANGUAGE.flat;
+    if (result.archetype_top_three) {
+      const names = result.archetype_top_three.map((k) => ARCHETYPE_CONTENT[k].name);
+      return `Your profile shows three strong patterns: ${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}.`;
+    }
     if (result.archetype_is_blended && secondaryContent) {
       return `Your profile shows a blended pattern: ${archetypeContent.name} and ${secondaryContent.name}.`;
     }
@@ -77,42 +82,47 @@ export function ResultsProfile({ result }: { result: ScoredOutput }) {
           </Section>
 
           {/* Where this can take you — Module 1 career pathways */}
-          <Section
-            id="pathways"
-            title="🚀 Where this can take you"
-            isOpen={openSection === "pathways"}
-            onToggle={() => setOpenSection(openSection === "pathways" ? null : "pathways")}
-          >
-            <div className="space-y-5">
-              {[
-                { label: "Entry points", text: archetypeContent.pathways.entry },
-                { label: "Mid-career", text: archetypeContent.pathways.mid },
-                { label: "Established roles", text: archetypeContent.pathways.established },
-              ].map(({ label, text }) => (
-                <div key={label} className="space-y-1">
-                  <p className="text-xs font-semibold uppercase tracking-widest text-accent">{label}</p>
-                  <p className="text-sm text-ink/75 leading-relaxed">{text}</p>
-                </div>
-              ))}
-              <div className="rounded-lg bg-ink/5 px-4 py-4">
-                <p className="text-xs font-semibold uppercase tracking-widest text-ink/40 mb-1">Looking ahead</p>
-                <p className="text-sm text-ink/70 leading-relaxed">{archetypeContent.future}</p>
+          {archetypeContent.pathways && (
+            <Section
+              id="pathways"
+              title="🚀 Where this can take you"
+              isOpen={openSection === "pathways"}
+              onToggle={() => setOpenSection(openSection === "pathways" ? null : "pathways")}
+            >
+              <div className="space-y-5">
+                {[
+                  { label: "Entry points", text: archetypeContent.pathways.entry },
+                  { label: "Mid-career", text: archetypeContent.pathways.mid },
+                  { label: "Established roles", text: archetypeContent.pathways.established },
+                ].map(({ label, text }) => (
+                  <div key={label} className="space-y-1">
+                    <p className="text-xs font-semibold uppercase tracking-widest text-accent">{label}</p>
+                    <p className="text-sm text-ink/75 leading-relaxed">{text}</p>
+                  </div>
+                ))}
+                {archetypeContent.future && (
+                  <div className="rounded-lg bg-ink/5 px-4 py-4">
+                    <p className="text-xs font-semibold uppercase tracking-widest text-ink/40 mb-1">Looking ahead</p>
+                    <p className="text-sm text-ink/70 leading-relaxed">{archetypeContent.future}</p>
+                  </div>
+                )}
+                <p className="text-[11px] text-ink/40 italic leading-relaxed">
+                  Stages describe how the work grows, not your age — you can enter at any point.
+                </p>
               </div>
-              <p className="text-[11px] text-ink/40 italic leading-relaxed">
-                Stages describe how the work grows, not your age — you can enter at any point.
-              </p>
-            </div>
-          </Section>
+            </Section>
+          )}
 
-          {/* The honest part */}
-          <Section
-            id="honest"
-            title="💬 The honest part"
-            isOpen={openSection === "honest"}
-            onToggle={() => setOpenSection(openSection === "honest" ? null : "honest")}
-          >
-            <p className="text-ink/80 leading-relaxed">{archetypeContent.honest}</p>
-          </Section>
+          {archetypeContent.honest && (
+            <Section
+              id="honest"
+              title="💬 The honest part"
+              isOpen={openSection === "honest"}
+              onToggle={() => setOpenSection(openSection === "honest" ? null : "honest")}
+            >
+              <p className="text-ink/80 leading-relaxed">{archetypeContent.honest}</p>
+            </Section>
+          )}
         </>
       ) : (
         /* No single clear lean — show the opportunity-framed block only. */

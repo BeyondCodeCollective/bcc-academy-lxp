@@ -2,6 +2,7 @@ import Link from "next/link";
 import { type ComponentType } from "react";
 import { ArrowRight, ChatCircle, BookOpen } from "@phosphor-icons/react/dist/ssr";
 import { buttonClass } from "@/components/ui";
+import { countLabel } from "@/lib/count-label";
 
 
 type TrackTile = {
@@ -93,7 +94,7 @@ export function DashboardBento({
                   progress={{
                     label: t.started
                       ? `${done} of ${t.numberedUnits} complete`
-                      : `${t.numberedUnits} ${t.unitNoun}s · not started`,
+                      : `${countLabel(t.numberedUnits, t.unitNoun)} · not started`,
                     pct,
                   }}
                   action={t.started ? "Resume" : "Start"}

@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { MapPin } from "lucide-react";
 import { completeProfile } from "@/app/dashboard/actions";
 import { Field, fieldInput, buttonClass } from "@/components/ui";
+import { snoozeProfilePrompt } from "@/lib/onboarding/profile-snooze";
 
 /**
  * One-time learner profile capture for ZIP + birthday. These feed grant
@@ -14,8 +15,10 @@ import { Field, fieldInput, buttonClass } from "@/components/ui";
  * Forte Bahamas program, where a US ZIP doesn't apply.
  *
  * Unlike the name overlay this is dismissible — a learner mid-session shouldn't
- * be hard-blocked over a demographic field — but it re-appears next login until
- * filled, and the "why" is stated plainly.
+ * be hard-blocked over a demographic field. "Not now" snoozes it for a week
+ * (see profile-snooze), after which it returns until filled. A learner who also
+ * needs a name sees these fields inside the name step instead (see
+ * name-capture-overlay), so the two prompts never stack.
  */
 const emptySubscribe = () => () => {};
 
@@ -135,7 +138,10 @@ export function ProfileCaptureOverlay({
           </button>
           <button
             type="button"
-            onClick={() => setDismissed(true)}
+            onClick={() => {
+              snoozeProfilePrompt();
+              setDismissed(true);
+            }}
             className="mt-2 w-full py-1 text-center text-xs text-ink-soft transition-colors hover:text-ink"
           >
             Not now

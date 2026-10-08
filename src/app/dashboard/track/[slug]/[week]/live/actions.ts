@@ -13,23 +13,29 @@
  */
 
 import { submitReflection, markVideoWatched } from "@/app/dashboard/track/actions";
+import { recordOwnCompletion } from "@/lib/tracks/completion";
 
 /**
- * Save the four-second call.
+ * Save the workplace rulebook — up to three answers from Part 4.
  *
- * Keyed by the track's own reflection prompt, because `reflections.responses`
- * is a map of prompt text to answer — key it anything else and the answer is
- * stored but never rendered, which is worse than not saving it.
+ * Keyed by each prompt's own text, because `reflections.responses` is a map
+ * of prompt text to answer — key it anything else and the answer is stored
+ * but never rendered, which is worse than not saving it. One call, all
+ * answers together: the column is replaced wholesale on write, not merged,
+ * so saving one prompt at a time would let the last write erase the rest.
  */
-export async function saveFourSecondCall(
+export async function saveWorkplaceRules(
   trackSlug: string,
   weekNumber: number,
-  prompt: string,
-  sentence: string,
+  answers: Record<string, string>,
 ) {
-  const text = sentence.trim();
-  if (!text) return { success: false as const };
-  await submitReflection(trackSlug, weekNumber, { [prompt]: text });
+  const trimmed = Object.fromEntries(
+    Object.entries(answers)
+      .map(([prompt, text]) => [prompt, text.trim()])
+      .filter(([, text]) => text),
+  );
+  if (!Object.keys(trimmed).length) return { success: false as const };
+  await submitReflection(trackSlug, weekNumber, trimmed);
   return { success: true as const };
 }
 
@@ -43,5 +49,10 @@ export async function saveFourSecondCall(
  */
 export async function markSessionComplete(trackSlug: string, weekNumber: number) {
   await markVideoWatched(trackSlug, weekNumber);
-  return { success: true as const };
+  // A track that opts in to self-completion gets its completion row here —
+  // this is the last screen, and on an async phase nobody else is coming to
+  // press the button. Every other track is a no-op: `recordOwnCompletion`
+  // refuses any slug whose config doesn't say `selfCompletable`.
+  const completion = await recordOwnCompletion(trackSlug);
+  return { success: true as const, completed: completion.recorded };
 }
