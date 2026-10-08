@@ -25,7 +25,7 @@ export default async function CancelTicketPage({ params }: { params: Promise<{ t
     : { data: null };
 
   return (
-    <main className="min-h-screen bg-neutral-50">
+    <div className="min-h-screen bg-neutral-50">
       <div className="mx-auto w-full max-w-md px-5 py-16">
         <div className="rounded-lg border border-rule bg-white p-8">
           {!data || !data.events ? (
@@ -57,6 +57,6 @@ export default async function CancelTicketPage({ params }: { params: Promise<{ t
           )}
         </div>
       </div>
-    </main>
+    </div>
   );
 }

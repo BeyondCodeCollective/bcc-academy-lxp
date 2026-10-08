@@ -28,7 +28,7 @@ export default async function EventRegisterPage({
   const when = formatEventWhen(event.starts_at, event.ends_at, event.timezone);
 
   return (
-    <main className="min-h-screen bg-neutral-50">
+    <div className="min-h-screen bg-neutral-50">
       <div className="mx-auto w-full max-w-2xl px-5 pt-10 pb-6">
         <p className="text-xs font-medium tracking-wide text-primary uppercase">{program.organization}</p>
         <h1 className="mt-1 text-2xl font-bold text-ink sm:text-3xl">{event.title}</h1>
@@ -60,6 +60,6 @@ export default async function EventRegisterPage({
           maxAttendees={event.max_attendees_per_registration}
         />
       )}
-    </main>
+    </div>
   );
 }
