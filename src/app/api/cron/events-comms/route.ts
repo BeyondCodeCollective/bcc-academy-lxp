@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { sendDueReminders, sendDueSurveys } from "@/lib/events-comms";
+import { linkEventHistory } from "@/lib/events-bridge";
 
 export const dynamic = "force-dynamic";
 
@@ -19,5 +20,7 @@ export async function GET(request: Request) {
       : `${request.headers.get("x-forwarded-proto") ?? "https"}://${request.headers.get("host") ?? "bccacademy.io"}`;
   const reminders = await sendDueReminders(origin);
   const surveys = await sendDueSurveys(origin);
-  return NextResponse.json({ ok: true, reminders, surveys });
+  // Attendees whose family got learner accounts since they registered.
+  const linked = await linkEventHistory();
+  return NextResponse.json({ ok: true, reminders, surveys, linked });
 }
