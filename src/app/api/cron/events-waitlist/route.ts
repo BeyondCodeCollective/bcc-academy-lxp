@@ -29,7 +29,7 @@ export async function GET(request: Request) {
   const origin =
     process.env.VERCEL_ENV === "production"
       ? "https://bccacademy.io"
-      : `https://${request.headers.get("host") ?? "bccacademy.io"}`;
+      : `${request.headers.get("x-forwarded-proto") ?? "https"}://${request.headers.get("host") ?? "bccacademy.io"}`;
   const results: Record<string, number> = {};
   for (const id of eventIds) {
     results[id] = await promoteWaitlist(id, origin);

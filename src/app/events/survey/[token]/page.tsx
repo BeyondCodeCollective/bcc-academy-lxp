@@ -9,9 +9,11 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 type Row = {
   id: string;
   parent_first_name: string;
-  events: { title: string; starts_at: string; ends_at: string | null; timezone: string; programs: { organization: string | null; name: string } | null } | null;
-  event_survey_responses: { rating: number; would_recommend: boolean | null; enjoyed: string | null; improve: string | null }[];
+  events: { title: string; starts_at: string; ends_at: string | null; timezone: string; programs: { name: string } | null } | null;
+  // registration_id is unique, so PostgREST embeds this to-one: an object or null.
+  event_survey_responses: SurveyRow | SurveyRow[] | null;
 };
+type SurveyRow = { rating: number; would_recommend: boolean | null; enjoyed: string | null; improve: string | null };
 
 export default async function EventSurveyPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
@@ -20,7 +22,7 @@ export default async function EventSurveyPage({ params }: { params: Promise<{ to
     ? await svc
         .from("event_registrations")
         .select(
-          "id, parent_first_name, events(title, starts_at, ends_at, timezone, programs(organization, name)), event_survey_responses(rating, would_recommend, enjoyed, improve)",
+          "id, parent_first_name, events(title, starts_at, ends_at, timezone, programs(name)), event_survey_responses(rating, would_recommend, enjoyed, improve)",
         )
         .eq("survey_token", token)
         .maybeSingle()
@@ -40,8 +42,9 @@ export default async function EventSurveyPage({ params }: { params: Promise<{ to
     );
   }
 
-  const existing = reg.event_survey_responses[0] ?? null;
-  const org = reg.events.programs?.organization ?? reg.events.programs?.name ?? "";
+  const embedded = reg.event_survey_responses;
+  const existing = Array.isArray(embedded) ? (embedded[0] ?? null) : embedded;
+  const org = reg.events.programs?.name ?? "";
 
   return (
     <div className="min-h-screen bg-neutral-50">
