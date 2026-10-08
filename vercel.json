@@ -35,6 +35,10 @@
     {
       "path": "/api/cron/zoom-recordings",
       "schedule": "30 * * * *"
+    },
+    {
+      "path": "/api/cron/events-waitlist",
+      "schedule": "15 * * * *"
     }
   ]
 }
