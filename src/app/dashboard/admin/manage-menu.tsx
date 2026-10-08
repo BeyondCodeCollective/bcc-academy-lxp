@@ -40,6 +40,7 @@ const GROUPS: { label: string; items: Item[] }[] = [
     label: "People",
     items: [
       { href: "/dashboard/admin/applications", label: "Applications" },
+      { href: "/dashboard/admin/events", label: "Events" },
       { href: "/dashboard/admin/locations", label: "Participant locations", programs: ["catalyst", "atg", "beyond-code-centers"] },
       { href: "/dashboard/admin/agreements", label: "Participation agreements" },
       { href: "/dashboard/admin/instructor", label: "Instructor queue" },

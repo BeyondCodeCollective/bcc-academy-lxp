@@ -503,6 +503,98 @@ Beyond Code Collective brings families, working adults, and community leaders in
   }
 }
 
+/**
+ * Event registration confirmation (events / event_attendees, not Eventbrite).
+ * One email to the parent/guardian listing every attendee with their ticket
+ * code and their own cancel link, plus calendar links. No portal, no login.
+ */
+export async function sendEventRegistrationEmail({
+  to,
+  parentFirstName,
+  programName,
+  eventTitle,
+  eventStartUtc,
+  eventEndUtc,
+  eventTimezone,
+  location,
+  joinUrl,
+  attendees,
+  origin,
+}: {
+  to: string;
+  parentFirstName: string;
+  programName: string;
+  eventTitle: string;
+  eventStartUtc: string;
+  eventEndUtc: string | null;
+  eventTimezone: string;
+  location: string | null;
+  joinUrl: string | null;
+  attendees: { name: string; ticketCode: string; cancelUrl: string }[];
+  origin: string;
+}): Promise<void> {
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY not set, skipping event registration email");
+    return;
+  }
+  const esc = escapeHtml;
+  const when = formatEventWhen(eventStartUtc, eventTimezone);
+  const where = joinUrl ?? location;
+  const cal = eventCalendarLinks({
+    origin,
+    title: eventTitle,
+    startUtc: eventStartUtc,
+    endUtc: eventEndUtc,
+    details: `${eventTitle} (${programName}). Attendees: ${attendees.map((a) => a.name).join(", ")}`,
+    ...(where ? { location: where } : {}),
+  });
+
+  const attendeeRows = attendees
+    .map(
+      (a) => `<tr>
+        <td style="padding:10px 0;border-bottom:1px solid #ededed;font-size:14px;color:#1a1a1a;font-weight:600;">${esc(a.name)}</td>
+        <td style="padding:10px 0;border-bottom:1px solid #ededed;font-size:12px;color:#555;font-family:ui-monospace,Menlo,monospace;letter-spacing:0.08em;">${esc(a.ticketCode)}</td>
+        <td style="padding:10px 0;border-bottom:1px solid #ededed;text-align:right;"><a href="${a.cancelUrl}" style="font-size:12px;color:#555;text-decoration:underline;">Cancel ticket</a></td>
+      </tr>`,
+    )
+    .join("");
+
+  const calRow = cal
+    ? `<div style="margin:0 0 28px;">
+      <a href="${cal.google}" style="display:inline-block;margin:0 8px 8px 0;padding:9px 16px;border:1px solid #e0e0e0;border-radius:8px;color:#1a1a1a;text-decoration:none;font-weight:600;font-size:13px;">Google Calendar</a>
+      <a href="${cal.ics}" style="display:inline-block;margin:0 8px 8px 0;padding:9px 16px;border:1px solid #e0e0e0;border-radius:8px;color:#1a1a1a;text-decoration:none;font-weight:600;font-size:13px;">Apple / iCal</a>
+    </div>`
+    : "";
+
+  const body = `
+    <p style="margin:0 0 16px;font-size:16px;line-height:1.5;color:#1a1a1a;">Hi ${esc(parentFirstName)},</p>
+    <p style="margin:0 0 24px;font-size:16px;line-height:1.5;color:#1a1a1a;">You're registered for <strong>${esc(eventTitle)}</strong>.</p>
+    ${when ? `<p style="margin:0 0 6px;font-size:14px;color:#1a1a1a;"><strong>When:</strong> ${esc(when)}</p>` : ""}
+    ${location ? `<p style="margin:0 0 6px;font-size:14px;color:#1a1a1a;"><strong>Where:</strong> ${esc(location)}</p>` : ""}
+    ${joinUrl ? `<p style="margin:0 0 6px;font-size:14px;color:#1a1a1a;"><strong>Join:</strong> <a href="${esc(joinUrl)}" style="color:#1a1a1a;">${esc(joinUrl)}</a></p>` : ""}
+    <p style="margin:24px 0 8px;font-size:12px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#999;">Attendees</p>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin:0 0 28px;">${attendeeRows}</table>
+    ${calRow}
+    <p style="margin:0;font-size:13px;line-height:1.5;color:#888;">Need to cancel a spot? Use the cancel link next to that attendee's name. The others keep theirs.</p>`;
+
+  const text = `Hi ${parentFirstName},
+
+You're registered for ${eventTitle}.${when ? `\nWhen: ${when}` : ""}${location ? `\nWhere: ${location}` : ""}${joinUrl ? `\nJoin: ${joinUrl}` : ""}
+
+Attendees:
+${attendees.map((a) => `- ${a.name} (ticket ${a.ticketCode}). Cancel: ${a.cancelUrl}`).join("\n")}
+${cal ? `\nAdd to Google Calendar: ${cal.google}\nAdd to Apple / iCal: ${cal.ics}\n` : ""}`;
+
+  const { error } = await resend.emails.send({
+    from: FROM_ADDRESS,
+    to,
+    subject: `You're registered: ${eventTitle}`,
+    text,
+    html: inviteShell(programName, body),
+  });
+  if (error) console.error("[email] sendEventRegistrationEmail failed:", JSON.stringify(error));
+}
+
 /** Confirmation email for the public-survey withdrawal flow.
  *  The action that triggers this always returns success regardless of
  *  whether the address has any data on file, so this email also doubles
