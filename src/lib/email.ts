@@ -596,6 +596,120 @@ ${cal ? `\nAdd to Google Calendar: ${cal.google}\nAdd to Apple / iCal: ${cal.ics
 }
 
 /**
+ * Day-before reminder to a family with a seated attendee: when, where or the
+ * join link, who is coming, and a cancel link per attendee so a no-show frees
+ * the seat for the waitlist instead.
+ */
+export async function sendEventReminderEmail({
+  to,
+  parentFirstName,
+  programName,
+  eventTitle,
+  eventStartUtc,
+  eventEndUtc,
+  eventTimezone,
+  location,
+  joinUrl,
+  attendees,
+}: {
+  to: string;
+  parentFirstName: string;
+  programName: string;
+  eventTitle: string;
+  eventStartUtc: string;
+  eventEndUtc: string | null;
+  eventTimezone: string;
+  location: string | null;
+  joinUrl: string | null;
+  attendees: { name: string; cancelUrl: string }[];
+}): Promise<void> {
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY not set, skipping event reminder email");
+    return;
+  }
+  const esc = escapeHtml;
+  const when = formatEventWhen(eventStartUtc, eventTimezone);
+  const cal = eventCalendarLinks({
+    origin: PUBLIC_ORIGIN,
+    title: eventTitle,
+    startUtc: eventStartUtc,
+    endUtc: eventEndUtc,
+    details: `${eventTitle} (${programName})`,
+    ...(joinUrl ?? location ? { location: (joinUrl ?? location) as string } : {}),
+  });
+  const rows = attendees
+    .map(
+      (a) => `<tr>
+        <td style="padding:8px 0;border-bottom:1px solid #ededed;font-size:14px;color:#1a1a1a;font-weight:600;">${esc(a.name)}</td>
+        <td style="padding:8px 0;border-bottom:1px solid #ededed;text-align:right;"><a href="${a.cancelUrl}" style="font-size:12px;color:#555;text-decoration:underline;">Can't make it</a></td>
+      </tr>`,
+    )
+    .join("");
+  const body = `
+    <p style="margin:0 0 16px;font-size:16px;line-height:1.5;color:#1a1a1a;">Hi ${esc(parentFirstName)},</p>
+    <p style="margin:0 0 24px;font-size:16px;line-height:1.5;color:#1a1a1a;"><strong>${esc(eventTitle)}</strong> is tomorrow.</p>
+    ${when ? `<p style="margin:0 0 6px;font-size:14px;color:#1a1a1a;"><strong>When:</strong> ${esc(when)}</p>` : ""}
+    ${location ? `<p style="margin:0 0 6px;font-size:14px;color:#1a1a1a;"><strong>Where:</strong> ${esc(location)}</p>` : ""}
+    ${joinUrl ? ctaButton(joinUrl, "Join online") : ""}
+    <p style="margin:24px 0 8px;font-size:12px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#999;">Coming</p>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin:0 0 24px;">${rows}</table>
+    ${cal ? `<p style="margin:0 0 20px;font-size:13px;"><a href="${cal.google}" style="color:#1a1a1a;">Google Calendar</a> &nbsp;·&nbsp; <a href="${cal.ics}" style="color:#1a1a1a;">Apple / iCal</a></p>` : ""}
+    <p style="margin:0;font-size:13px;line-height:1.5;color:#888;">If someone can't make it, tap their link above so the seat goes to a family on the waitlist.</p>`;
+  const text = `Hi ${parentFirstName},
+
+${eventTitle} is tomorrow.${when ? `\nWhen: ${when}` : ""}${location ? `\nWhere: ${location}` : ""}${joinUrl ? `\nJoin: ${joinUrl}` : ""}
+
+Coming:
+${attendees.map((a) => `- ${a.name}. Can't make it: ${a.cancelUrl}`).join("\n")}`;
+  const { error } = await resend.emails.send({
+    from: FROM_ADDRESS,
+    to,
+    subject: `Tomorrow: ${eventTitle}`,
+    text,
+    html: inviteShell(programName, body),
+  });
+  if (error) console.error("[email] sendEventReminderEmail failed:", JSON.stringify(error));
+}
+
+/** Post-event survey invite: one link per family, no login. */
+export async function sendEventSurveyEmail({
+  to,
+  parentFirstName,
+  programName,
+  eventTitle,
+  surveyUrl,
+}: {
+  to: string;
+  parentFirstName: string;
+  programName: string;
+  eventTitle: string;
+  surveyUrl: string;
+}): Promise<void> {
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY not set, skipping event survey email");
+    return;
+  }
+  const esc = escapeHtml;
+  const body = `
+    <p style="margin:0 0 16px;font-size:16px;line-height:1.5;color:#1a1a1a;">Hi ${esc(parentFirstName)},</p>
+    <p style="margin:0 0 24px;font-size:16px;line-height:1.5;color:#1a1a1a;">Thanks for joining us at <strong>${esc(eventTitle)}</strong>. Four quick questions, about a minute, help us plan the next one.</p>
+    ${ctaButton(surveyUrl, "Share feedback")}
+    <p style="margin:0;font-size:13px;line-height:1.5;color:#888;">One response per family. You can come back and change your answers with the same link.</p>`;
+  const text = `Hi ${parentFirstName},
+
+Thanks for joining us at ${eventTitle}. Four quick questions help us plan the next one:
+${surveyUrl}`;
+  const { error } = await resend.emails.send({
+    from: FROM_ADDRESS,
+    to,
+    subject: `How was ${eventTitle}?`,
+    text,
+    html: inviteShell(programName, body),
+  });
+  if (error) console.error("[email] sendEventSurveyEmail failed:", JSON.stringify(error));
+}
+
+/**
  * Waitlist confirmation: the event was full, so the family's attendees are
  * queued. Promotion sends sendEventSeatOfferEmail when a seat opens.
  */
