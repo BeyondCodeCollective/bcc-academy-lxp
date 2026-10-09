@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
+import { listEventOptions } from "@/lib/events-server";
 import { getSessionContext } from "@/lib/auth/session";
 import { canManageStudents, canManageRoles } from "@/lib/roles";
 import { PageHeader } from "@/components/page-header";
@@ -70,12 +71,13 @@ export default async function NewLandingPage() {
   const scoped = allowedIds !== null;
   const initial = scoped ? { ...EMPTY, programSlug: programs[0]?.slug ?? "" } : EMPTY;
 
+  const events = await listEventOptions(allowedIds);
   return (
     <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8 space-y-6">
       <div>
         <PageHeader title="New landing page" subtitle="Starts unpublished — flip Published on when it's ready to go live." actions={<ManageMenu isMaster={canManageRoles(ctx.userEmail)} />} />
       </div>
-      <LandingForm initial={initial} programs={programs} allowPlatform={!scoped} />
+      <LandingForm initial={initial} programs={programs} events={events} allowPlatform={!scoped} />
     </div>
   );
 }

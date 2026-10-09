@@ -100,6 +100,8 @@ export type LandingPage = {
   /** No date yet: the form only collects interest — no enrollment, no login link. */
   comingSoon: boolean;
   enrollCtaLabel: string | null;
+  /** Phase 6: host this event's multi-attendee registration form in the signup slot. */
+  eventSlug: string | null;
   /** Application-based programs: primary CTA links here instead of a form. */
   applyUrl: string | null;
   applyCtaLabel: string | null;
@@ -156,6 +158,7 @@ export const getLandingPage = cache(async function getLandingPage(
     nativeEnroll: (data.native_enroll as boolean | null) ?? false,
     comingSoon: (data.coming_soon as boolean | null) ?? false,
     enrollCtaLabel: (data.enroll_cta_label as string | null) ?? null,
+    eventSlug: (data.event_slug as string | null) ?? null,
     applyUrl: (data.apply_url as string | null) ?? null,
     applyCtaLabel: (data.apply_cta_label as string | null) ?? null,
     ogImage: (data.og_image as string | null) ?? null,

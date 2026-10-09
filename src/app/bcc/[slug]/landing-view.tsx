@@ -9,6 +9,10 @@ import { CampEventbriteRegister } from "../_components/camp-eventbrite-register"
 import { HeroVideo } from "../_components/hero-video";
 import { CampHeaderCta } from "../_components/camp-header-cta";
 import { RichText } from "../_components/rich-text";
+import { RegisterForm } from "@/app/events/[slug]/register/register-form";
+import { formatEventWhen } from "@/lib/events";
+import { getEventForLanding } from "@/lib/events-server";
+import { seatsTaken } from "@/lib/events-waitlist";
 
 // The one implementation of a campaign landing page. Two routes render it:
 // /bcc/[slug] (platform pages, and the legacy path for everything) and
@@ -69,6 +73,12 @@ export async function LandingView({
   if (prefix !== canonical) redirect(landingPath(page));
 
   const accent = page.accent;
+
+  // Phase 6: a landing page that hosts an event renders the multi-attendee
+  // registration form in its signup slot instead of the cohort/email form.
+  const event = page.eventSlug ? await getEventForLanding(page.eventSlug, page.programSlug) : null;
+  const spotsLeft = event && event.capacity != null ? Math.max(0, event.capacity - (await seatsTaken(event.id))) : null;
+  const eventFull = spotsLeft === 0 && !!event && !event.waitlist_enabled;
 
   // Per-page theme: `dark` flips the page onto logo black with cream ink.
   // INK stays 6-digit hex so the 2-digit alpha suffixes below compose.
@@ -176,7 +186,45 @@ export async function LandingView({
                   {page.formLabel}
                 </p>
               )}
-              {page.comingSoon ? (
+              {event ? (
+                <div>
+                  <div className="mb-4 flex flex-wrap gap-2 text-xs font-semibold">
+                    <span className="rounded-full border px-2.5 py-1" style={{ borderColor: `${INK}26`, color: `${INK}b3` }}>
+                      {formatEventWhen(event.starts_at, event.ends_at, event.timezone)}
+                    </span>
+                    {(event.location || event.join_url) && (
+                      <span className="rounded-full border px-2.5 py-1" style={{ borderColor: `${INK}26`, color: `${INK}b3` }}>
+                        {event.location ?? "Online"}
+                      </span>
+                    )}
+                    {spotsLeft != null && (
+                      <span
+                        className="rounded-full px-2.5 py-1"
+                        style={spotsLeft > 0 ? { background: "rgba(31,211,122,.16)", color: "#0d6b3d" } : { background: `${INK}14`, color: `${INK}b3` }}
+                      >
+                        {spotsLeft > 0
+                          ? `${spotsLeft} of ${event.capacity} seat${event.capacity === 1 ? "" : "s"} left`
+                          : event.waitlist_enabled
+                            ? "Full · waitlist open"
+                            : "Full"}
+                      </span>
+                    )}
+                  </div>
+                  {event.status === "closed" || eventFull ? (
+                    <p className="rounded-lg border px-4 py-5 text-sm" style={{ borderColor: `${INK}26`, color: `${INK}b3` }}>
+                      {eventFull ? "This event is full." : "Registration for this event is closed."}
+                    </p>
+                  ) : (
+                    <RegisterForm
+                      embedded
+                      eventSlug={event.slug}
+                      eventTitle={event.title}
+                      maxAttendees={event.max_attendees_per_registration}
+                      spotsLeft={spotsLeft}
+                    />
+                  )}
+                </div>
+              ) : page.comingSoon ? (
                 <CampEnrollForm
                   ink={INK}
                   slug={page.slug}

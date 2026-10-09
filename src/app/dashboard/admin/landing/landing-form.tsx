@@ -36,8 +36,11 @@ export function LandingForm({
   originalSlug,
   programs,
   allowPlatform = true,
+  events = [],
 }: {
   initial: LandingFormInitial;
+  /** Events this admin can attach (slug, title, program). */
+  events?: { slug: string; title: string; programSlug: string | null }[];
   /** Present when editing — lets the action delete the old row on a slug rename. */
   originalSlug?: string;
   /** Programs the actor may file the page under, for the owner picker that
@@ -68,6 +71,7 @@ export function LandingForm({
     initial.schedule.length ? initial.schedule : [],
   );
   const [nativeEnroll, setNativeEnroll] = useState(initial.nativeEnroll);
+  const [eventSlug, setEventSlug] = useState(initial.eventSlug ?? "");
   const [comingSoon, setComingSoon] = useState(initial.comingSoon);
   const [sessions, setSessions] = useState<LandingSession[]>(initial.sessions);
   const [enrollCtaLabel, setEnrollCtaLabel] = useState(initial.enrollCtaLabel);
@@ -151,6 +155,7 @@ export function LandingForm({
           metaTitle,
           metaDescription,
           nativeEnroll,
+          eventSlug: eventSlug || null,
           comingSoon,
           sessions,
           enrollCtaLabel,
@@ -341,6 +346,29 @@ export function LandingForm({
               options below. Untick it once the cohort is scheduled.
             </span>
           </span>
+        </label>
+
+        <label className="block">
+          <span className="text-sm text-ink">
+            Event registration{" "}
+            <span className="text-ink-faint">
+              — host an event&apos;s sign-up here: one parent, up to five attendees, ticket per child, waitlist when
+              full. Overrides the cohort form and Eventbrite below.
+            </span>
+          </span>
+          <select
+            value={eventSlug}
+            onChange={(e) => setEventSlug(e.target.value)}
+            className="mt-2 w-full rounded-lg border border-rule bg-white px-3 py-2 text-sm text-ink"
+          >
+            <option value="">No event</option>
+            {events.map((ev) => (
+              <option key={ev.slug} value={ev.slug}>
+                {ev.title}
+                {ev.programSlug ? ` · ${ev.programSlug}` : ""}
+              </option>
+            ))}
+          </select>
         </label>
 
         <label className="flex items-center gap-3">
