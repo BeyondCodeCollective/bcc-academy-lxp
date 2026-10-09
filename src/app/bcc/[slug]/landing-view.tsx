@@ -9,6 +9,7 @@ import { CampEventbriteRegister } from "../_components/camp-eventbrite-register"
 import { HeroVideo } from "../_components/hero-video";
 import { CampHeaderCta } from "../_components/camp-header-cta";
 import { MobileRegisterBar } from "../_components/mobile-register-bar";
+import { EventSignupReveal } from "../_components/event-signup-reveal";
 import { RichText } from "../_components/rich-text";
 import { RegisterForm } from "@/app/events/[slug]/register/register-form";
 import { formatEventWhen } from "@/lib/events";
@@ -215,15 +216,27 @@ export async function LandingView({
               </div>
             )}
 
-            {/* Signup. From md it sits directly under the pitch, because
-               almost nobody reads to the bottom of a landing page before
-               deciding; the long explanation is below for those who want it.
-               On a phone the same form is a 2,000px wall between the headline
-               and everything that sells the event, so it moves to the end of
-               the column (flex order) and the sticky bar at the bottom of the
-               screen keeps it one tap away. Keeps id="signup" so older links
-               still land here. */}
-            <div id="signup" className="mt-8 max-md:order-1 max-md:mt-12">
+            {event && stickyCta && (
+              // Hero call to action. It sends the visitor to the signup slot
+              // at the end of the column, where the form unfolds on arrival.
+              // Hidden on a phone, where the sticky bar is the same button.
+              <a
+                href="#signup"
+                className="mt-7 hidden h-12 items-center justify-center self-start rounded-full px-7 text-[15px] font-semibold text-white md:inline-flex"
+                style={{ background: accent }}
+              >
+                {stickyCta.label}
+              </a>
+            )}
+
+            {/* Signup. For an event the page leads with the event itself, so
+               the slot comes after the details at every width and holds only
+               a Register button until it is pressed (EventSignupReveal); the
+               hero button and the phone's sticky bar reveal the same form.
+               Other signup variants keep the form directly under the pitch
+               from md and move it last on a phone. Keeps id="signup" so older
+               links still land here. */}
+            <div id="signup" className={event ? "order-1 mt-12 scroll-mt-8" : "mt-8 max-md:order-1 max-md:mt-12"}>
               {page.formLabel && (
                 <p
                   className="mb-2.5 text-[11px] font-medium uppercase tracking-[0.14em]"
@@ -239,13 +252,15 @@ export async function LandingView({
                       {eventFull ? "This event is full." : "Registration for this event is closed."}
                     </p>
                   ) : (
-                    <RegisterForm
-                      embedded
-                      eventSlug={event.slug}
-                      eventTitle={event.title}
-                      maxAttendees={event.max_attendees_per_registration}
-                      spotsLeft={spotsLeft}
-                    />
+                    <EventSignupReveal label={stickyCta?.label ?? "Register"} accent={accent}>
+                      <RegisterForm
+                        embedded
+                        eventSlug={event.slug}
+                        eventTitle={event.title}
+                        maxAttendees={event.max_attendees_per_registration}
+                        spotsLeft={spotsLeft}
+                      />
+                    </EventSignupReveal>
                   )}
                 </div>
               ) : page.comingSoon ? (
@@ -411,7 +426,7 @@ export async function LandingView({
 
             {/* Secondary CTA */}
             {page.secondaryCtaLabel && page.secondaryCtaUrl && (
-              <p className="mt-8 text-sm max-md:order-2" style={{ color: `${INK}a6` }}>
+              <p className={`mt-8 text-sm ${event ? "order-2" : "max-md:order-2"}`} style={{ color: `${INK}a6` }}>
                 <a
                   href={page.secondaryCtaUrl}
                   target="_blank"
