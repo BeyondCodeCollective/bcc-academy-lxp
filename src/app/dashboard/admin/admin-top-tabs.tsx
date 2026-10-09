@@ -46,8 +46,14 @@ export function AdminTopTabs({
       href: "/dashboard/admin?tab=attendance",
       Icon: ChartLineUpIcon,
     },
+    { id: "mvp", label: "MVP Dashboard", href: "/dashboard/admin/mvp", Icon: ChartLineUpIcon },
   ] as const;
-  const tabs = isManager ? allTabs : allTabs.filter((t) => t.id === "courses");
+  // Preview the unfinished MVP locally without exposing its navigation in
+  // production. The destination still enforces its server-side access checks.
+  const tabs = allTabs.filter((tab) =>
+    (!isManager ? tab.id === "courses" : true) &&
+    (tab.id !== "mvp" || process.env.NODE_ENV === "development"),
+  );
   const segments = [
     { id: "attendance", label: "Attendance", href: "/dashboard/admin?tab=attendance", show: true },
     // "Surveys" — it's the survey-response view. Calling it Insights collided

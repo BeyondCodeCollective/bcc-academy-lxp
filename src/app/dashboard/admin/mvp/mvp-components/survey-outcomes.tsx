@@ -25,12 +25,6 @@ export function SurveyOutcomes({ programs, surveyOutcomes }: SurveyOutcomesProps
           Both averages use the same paired respondents’ latest completed survey.
           These ratings do not establish that the program caused a change.
         </p>
-        <p className="mt-2 text-xs text-ink-soft">
-          Current eligible learners only. Results follow the applied program and course filters.
-          Different questions and scales are not combined. Positive change means a higher rating, not necessarily a better outcome.
-          Program-wide results appear only without a course filter and with whole-program access.
-          Responses filed under another program are excluded; coverage may be incomplete for cross-program learners.
-        </p>
       </header>
 
       {!visibleGroups.length && (

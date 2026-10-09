@@ -1,11 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getMvpDashboardData } from "./queries";
+import { getMvpProgramDetail, getMvpCheckInEvidence } from "./detail-queries";
+import { getMvpReportData } from "./report-queries";
 
 // Replace infrastructure only: the real query function, role/grant helpers,
 // schedules, milestones and summary calculations run together in these tests.
-const mocks = vi.hoisted(() => ({ session: vi.fn(), preview: vi.fn(), client: vi.fn(), configs: vi.fn(), owner: vi.fn() }));
+const mocks = vi.hoisted(() => ({ session: vi.fn(), preview: vi.fn(), client: vi.fn(), configs: vi.fn(), owner: vi.fn(), activeConfig: vi.fn(), signalPolicy: vi.fn() }));
+vi.mock("./check-in-signals", async original => ({
+  ...await original<typeof import("./check-in-signals")>(), getMvpSignalPolicy: mocks.signalPolicy,
+}));
+vi.mock("./active-config", async (original) => ({
+  ...await original<typeof import("./active-config")>(), getMvpOfferingActiveConfig: mocks.activeConfig,
+}));
 vi.mock("server-only", () => ({}));
-vi.mock("@/lib/surveys/schemas", () => ({ getSurveySchema: () => [{
+vi.mock("@/lib/surveys/schemas", () => ({ getSurveySchema: (id: string) => id === "feedback" ? [] : [{
   type: "dual-likert", id: "confidence", label: "Confidence", statements: ["Skills"],
   scale: ["1", "2", "3", "4", "5"], beforeLabel: "Before", nowLabel: "Now",
 }] }));
@@ -44,7 +52,7 @@ class Database {
     };
     return chain;
   }
-  execute(request: Request) {
+  execute(request: Request): { data: Row | Row[] | null; error: { message: string } | null } {
     this.requests.push(structuredClone(request));
     if (this.requests.length > 5000) throw new Error("Test query did not terminate.");
     if (this.fail(request)) return { data: null, error: { message: "Simulated database failure" } };
@@ -85,12 +93,14 @@ let db: Database;
 let configs: Array<{ slug: string; tracks: ReturnType<typeof track>[]; surveys?: import("@/lib/programs/types").SurveyConfig[] }>;
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.activeConfig.mockReturnValue(null);
+  mocks.signalPolicy.mockReturnValue(null);
   vi.useFakeTimers();
   vi.setSystemTime(new Date("2026-10-02T18:00:00Z"));
   vi.stubGlobal("fetch", vi.fn(() => { throw new Error("Network calls are forbidden in query tests."); }));
   db = new Database();
   db.tables = {
-    survey_responses: [], hidden_courses: [],
+    survey_responses: [], hidden_courses: [], submissions: [], mvp_attendance_reviews: [], exam_attempts: [], week_progress: [],
     students: [{ id: "actor", program_id: "p1" }], staff_program_access: [], track_overrides: [],
     programs: [{ id: "p1", slug: "one", name: "One" }, { id: "p2", slug: "two", name: "Two" }],
     student_tracks: [enrollment("e1", "u1"), enrollment("e2", "u2"), enrollment("e3", "u1", "beta")],
@@ -107,12 +117,446 @@ beforeEach(() => {
 });
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
 
+// Detail selectors cannot broaden the same authenticated dashboard boundary.
+describe("authorized details and evidence", () => {
+  it("returns one program's offerings without learner evidence in the detail payload", async () => {
+    const detail = await getMvpProgramDetail({ programId: "p1" });
+    expect(detail.offerings.map(row => row.courseSlug)).toEqual(["alpha"]);
+    expect(detail.summary?.programId).toBe("p1");
+    expect(detail).not.toHaveProperty("checkInEvaluations");
+    expect(detail).not.toHaveProperty("demographics");
+  });
+  it("returns only the selected learner/offering evidence", async () => {
+    const detail = await getMvpCheckInEvidence({ programId: "p1", courseSlug: "alpha" }, "u2");
+    expect(detail.evaluation.learnerId).toBe("u2");
+    expect(detail.evaluation.programRowId).toBe("p1:alpha");
+    await expect(getMvpCheckInEvidence({ programId: "p1", courseSlug: "alpha" }, "outsider")).rejects.toThrow("evidence is unavailable");
+  });
+  it("rejects missing selectors, unauthorized programs, and anonymous readers", async () => {
+    await expect(getMvpProgramDetail({})).rejects.toThrow("Choose one program");
+    await expect(getMvpCheckInEvidence({ programId: "p1" }, "u1")).rejects.toThrow("Choose a program");
+    mocks.session.mockResolvedValue({ userId: "actor", student: { role: "admin" } });
+    await expect(getMvpProgramDetail({ programId: "p2" })).rejects.toThrow("program is unavailable");
+    mocks.session.mockResolvedValue(null);
+    await expect(getMvpCheckInEvidence({ programId: "p1", courseSlug: "alpha" }, "u1")).rejects.toThrow("MVP access");
+  });
+  it("honors filters when selecting evidence instead of returning excluded learners", async () => {
+    await expect(getMvpCheckInEvidence({ programId: "p1", courseSlug: "alpha", city: "Nowhere" }, "u1")).rejects.toThrow("evidence is unavailable");
+  });
+  it("loads selected report events and omits learner evidence", async () => {
+    db.tables.events = []; db.tables.event_registrations = []; db.tables.event_attendees = [];
+    const report = await getMvpReportData({ programId: "p1" }, { metricKeys: ["active"], events: true, outcomes: true });
+    expect(db.requests.some(row => row.table === "events")).toBe(true);
+    expect(report.events?.rows).toEqual([]);
+    expect(report.outcomes).toBeDefined();
+    expect(report).not.toHaveProperty("checkInEvaluations");
+  });
+  it("maps only supported event metrics and preserves unknown rather than zero", async () => {
+    db.tables.events = [{ id: "event", program_id: "p1", title: "Workshop", starts_at: "2026-09-30T14:00:00Z",
+      ends_at: "2026-09-30T16:00:00Z", timezone: "America/New_York", status: "closed", capacity: 20 }];
+    db.tables.event_registrations = []; db.tables.event_attendees = [];
+    const report = await getMvpReportData({ programId: "p1" }, { metricKeys: ["active", "completed"], events: true });
+    expect(report.events?.rows[0].metrics).toMatchObject([
+      { key: "active", value: 0, unit: "Attendee tickets, not unique learners" },
+      { key: "completed", value: null, unavailableReason: "This course metric is not established for separate events." },
+    ]);
+    expect(report.outcomes).toBeUndefined();
+    expect(report.events?.rows[0].programName).toBe("One");
+  });
+});
+
+// Separate tickets never become learner totals; source access remains opt-in.
+describe("event and geography integration", () => {
+  function seedEvents() {
+    db.tables.events = ["p1", "p2"].map((p, i) => ({ id: `event${i}`, program_id: p, title: "Workshop",
+      starts_at: "2026-09-30T14:00:00Z", ends_at: "2026-09-30T16:00:00Z", timezone: "America/New_York", status: "open", capacity: 20 }));
+    db.tables.event_registrations = [{ id: "r1", program_id: "p1", event_id: "event0", status: "confirmed" }];
+    db.tables.event_attendees = ["a1", "a2"].map(id => ({ id, registration_id: "r1", event_id: "event0", status: "attended", checked_in_at: "2026-09-30T14:00:00Z" }));
+  }
+  it("does not read events or structured geography by default", async () => {
+    await getMvpDashboardData({});
+    expect(db.requests.some(r => r.table === "events" || /zip|state/.test(r.columns))).toBe(false);
+  });
+  it("paginates all event tickets within the selected program without changing learner totals", async () => {
+    seedEvents(); db.serverCap = 1;
+    const result = await getMvpDashboardData({ programId: "p1" }, { includeEvents: true });
+    expect(result.events?.rows).toHaveLength(1);
+    expect(result.events?.rows[0]).toMatchObject({ active: 2, enrolled: 2 });
+    expect(result.programs[0].totalParticipants).toBe(2);
+    expect(db.requests.filter(r => r.table === "event_attendees")).toHaveLength(3);
+    expect(db.requests.filter(r => r.table === "events").every(r => r.filters.some(f => f[1] === "program_id" && f[2] === "p1"))).toBe(true);
+    expect(db.requests.some(r => /parent_email|ticket_code|cancel_token|first_name/.test(r.columns))).toBe(false);
+  });
+  it("does not broaden course-only or instructor grants to event access", async () => {
+    seedEvents();
+    mocks.session.mockResolvedValue({ userId: "actor", student: { role: "admin" } });
+    db.tables.staff_program_access = [{ student_id: "actor", program_id: "p2", role: "admin", track_slug: "beta" },
+      { student_id: "actor", program_id: "p2", role: "instructor", track_slug: null }];
+    const result = await getMvpDashboardData({ programId: "p2" }, { includeEvents: true });
+    expect(result.events?.rows).toEqual([]);
+    expect(db.requests.some(r => r.table.startsWith("event"))).toBe(false);
+  });
+  it.each([{ courseSlug: "alpha" }, { learnerStatus: "active" }, { city: "Boston" }])("discloses unsupported event filters %s", async params => {
+    seedEvents();
+    const result = await getMvpDashboardData({ programId: "p1", ...params }, { includeEvents: true });
+    expect(result.events?.unavailableReason).toContain("excluded");
+    expect(db.requests.some(r => r.table.startsWith("event"))).toBe(false);
+  });
+  it("excludes drafts and out-of-window events before reading tickets", async () => {
+    seedEvents(); db.tables.events[0].status = "draft";
+    const result = await getMvpDashboardData({ startDate: "2026-10-01" }, { includeEvents: true });
+    expect(result.events?.rows).toEqual([]);
+    expect(db.requests.some(r => r.table === "event_attendees")).toBe(false);
+  });
+  it("fails closed on event query errors", async () => {
+    seedEvents(); db.fail = r => r.table === "event_attendees";
+    await expect(getMvpDashboardData({}, { includeEvents: true })).rejects.toThrow("complete event evidence");
+  });
+  it("only returns aggregate geography for the selected authorized learner roster", async () => {
+    for (const row of db.tables.student_tracks) Object.assign(row.students as Row, { zip: row.student_id === "u1" ? "02108" : "10001", state: "MA" });
+    const result = await getMvpDashboardData({ programId: "p2" }, { includeLocations: true });
+    expect(result.geography?.postalCodes.groups).toEqual([{ label: "02108", count: 1 }]);
+    expect(result.demographics).toBeUndefined();
+    expect(db.requests.some(r => r.columns.includes("date_of_birth"))).toBe(false);
+  });
+});
+
+// New sources are only read for configured rules within an authorized roster.
+describe("additional check-in query integration", () => {
+  it("connects overdue work to the learner-status filter", async () => {
+    mocks.activeConfig.mockReturnValue({ programSlug: "one", courseSlug: "alpha", kind: "cohort", attendanceThreshold: 80,
+      submissionGraceDays: 14, requiredAssignments: [{ id: "work", label: "Project", weekNumber: 1, dueAt: "2026-09-01T12:00:00Z" }] });
+    const data = await getMvpDashboardData({ programId: "p1", learnerStatus: "needs_check_in" });
+    expect(data.programs[0].learnersNeedingCheckIn).toBe(2);
+    expect(data.programs[0].totalParticipants).toBe(2);
+    expect(data.checkInEvaluations?.every(row => row.attentionFlags.some(flag => flag.reason === "missing_required_submission"))).toBe(true);
+  });
+  it("reads mapped assessment pages scoped to the roster and filters on low scores", async () => {
+    mocks.signalPolicy.mockReturnValue({ programSlug: "one", courseSlug: "alpha", assessment: { examId: "exam", minimumPercent: 70 } });
+    db.serverCap = 1;
+    db.tables.exam_attempts = [
+      { id: "e1", student_id: "u1", exam_id: "exam", submitted_at: "2026-09-10T12:00:00Z", score: 4, total: 10 },
+      { id: "e2", student_id: "u2", exam_id: "exam", submitted_at: "2026-09-10T12:00:00Z", score: 9, total: 10 },
+      { id: "e3", student_id: "outsider", exam_id: "exam", submitted_at: "2026-09-10T12:00:00Z", score: 0, total: 10 },
+    ];
+    const data = await getMvpDashboardData({ programId: "p1", learnerStatus: "needs_check_in" });
+    expect(data.programs[0].totalParticipants).toBe(1);
+    expect(data.checkInEvaluations?.[0].attentionFlags[0].reason).toBe("low_assessment");
+    const reads = db.requests.filter(r => r.table === "exam_attempts");
+    expect(reads).toHaveLength(3);
+    expect(reads[0].filters).toContainEqual(["in", "student_id", ["u1", "u2"]]);
+  });
+  it("loads video evidence only for explicitly self-paced courses", async () => {
+    mocks.signalPolicy.mockReturnValue({ programSlug: "one", courseSlug: "alpha", progress: {
+      source: "required_videos", dueAt: "2026-09-20T12:00:00Z", requiredWeeks: [1, 2], minimumPercent: 80 } });
+    await getMvpDashboardData({ programId: "p1" });
+    expect(db.requests.some(r => r.table === "week_progress")).toBe(false);
+    db.tables.track_overrides = [{ id: "o", program_id: "p1", track_slug: "alpha", self_paced: true }];
+    db.tables.week_progress = [{ id: "v1", user_id: "u1", track_slug: "alpha", week_number: 1, video_watched_at: "2026-09-10T12:00:00Z" }];
+    const data = await getMvpDashboardData({ programId: "p1", learnerStatus: "needs_check_in" });
+    expect(data.programs[0].learnersNeedingCheckIn).toBe(2);
+    expect(db.requests.some(r => r.table === "week_progress")).toBe(true);
+  });
+  it("does not read unconfigured sources and fails closed on configured read failures", async () => {
+    await getMvpDashboardData({ programId: "p1" });
+    expect(db.requests.some(r => ["exam_attempts", "week_progress"].includes(r.table))).toBe(false);
+    mocks.signalPolicy.mockReturnValue({ programSlug: "one", courseSlug: "alpha", assessment: { examId: "exam", minimumPercent: 70 } });
+    db.fail = r => r.table === "exam_attempts";
+    await expect(getMvpDashboardData({ programId: "p1" })).rejects.toThrow("complete check-in signal evidence");
+  });
+});
+
+// Program aggregates must never broaden the authorized or applied scope.
+describe("program summary integration", () => {
+  it("aggregates selected program records without claiming historical completeness", async () => {
+    const data = await getMvpDashboardData({ programId: "p1" });
+    expect(data.programSummaries).toHaveLength(1);
+    expect(data.programSummaries![0]).toMatchObject({ programId: "p1", uniqueEnrolledLearners: 2,
+      uniqueLearnersStarted: 1, scope: "selected_accessible_offerings", population: "current_eligible_roster" });
+    expect(data.historicalCoverage?.allTimeUniqueLearnersStarted).toBeNull();
+    expect(data.cohortCoverage?.status).toBe("unavailable");
+  });
+  it("does not include a course excluded by dates", async () => {
+    const data = await getMvpDashboardData({ startDate: "2027-01-01", endDate: "2027-01-31" });
+    expect(data.programSummaries).toEqual([]);
+  });
+  it("does not expose another program in an admin's rollup", async () => {
+    mocks.session.mockResolvedValue({ userId: "actor", student: { role: "admin" } });
+    const data = await getMvpDashboardData({});
+    expect(data.programSummaries?.map(row => row.programId)).toEqual(["p1"]);
+  });
+});
+
+// Dashboard integration reads complete, scoped revisions before status filtering.
+describe("finalized attendance integration", () => {
+  function setupReviews() {
+    configs[0].tracks[0] = { ...track("alpha"), totalWeeks: 2,
+      weekSummaries: [{ week: 1, date: "2026-09-01" }, { week: 2, date: "2026-09-08" }] };
+    db.tables.student_tracks = [enrollment("e1", "u1")];
+    db.tables.attendance = [];
+    db.tables.session_content.push({ id: "d2", track: "alpha", week_number: 2, status: "completed", status_2: "upcoming", status_3: "upcoming" });
+    db.tables.mvp_attendance_reviews = [1, 2].map(week => ({ id: `r${week}`, revision: 1, program_id: "p1", track_slug: "alpha", student_id: "u1",
+      week_number: week, session_number: 1, session_held_at: "2026-09-08T12:00:00Z", eligibility: "eligible",
+      eligibility_basis: "Reviewed roster", outcome: "absent", recorded_by: "staff", recorded_at: "2026-09-09T12:00:00Z" }));
+  }
+  it("feeds confirmed absences into dashboard counts and reads all short pages", async () => {
+    setupReviews(); db.serverCap = 1;
+    const result = await getMvpDashboardData({ programId: "p1" });
+    expect(result.programs[0].learnersNeedingCheckIn).toBe(1);
+    const reads = db.requests.filter(r => r.table === "mvp_attendance_reviews");
+    expect(reads.length).toBe(3);
+    expect(reads[0].filters).toEqual(expect.arrayContaining([["eq", "program_id", "p1"], ["eq", "track_slug", "alpha"], ["in", "student_id", ["u1"]]]));
+  });
+  it("uses corrections and ignores another program's review", async () => {
+    setupReviews();
+    db.tables.mvp_attendance_reviews.push({ ...db.tables.mvp_attendance_reviews[1], id: "r3", revision: 2, outcome: "present" },
+      { ...db.tables.mvp_attendance_reviews[1], id: "r4", program_id: "p2", revision: 3 });
+    expect((await getMvpDashboardData({ programId: "p1" })).programs[0].learnersNeedingCheckIn).toBe(0);
+  });
+  it("keeps conflicts and unresolved corrections unknown", async () => {
+    setupReviews(); db.tables.attendance = [attendance("a1", "u1")];
+    expect((await getMvpDashboardData({ programId: "p1" })).programs[0].learnersNeedingCheckIn).toBeNull();
+    db.tables.attendance = [];
+    db.tables.mvp_attendance_reviews.push({ ...db.tables.mvp_attendance_reviews[1], id: "r3", revision: 2, outcome: "unknown" });
+    expect((await getMvpDashboardData({ programId: "p1" })).programs[0].learnersNeedingCheckIn).toBeNull();
+  });
+  it("fails closed on review read errors", async () => {
+    setupReviews(); db.fail = r => r.table === "mvp_attendance_reviews";
+    await expect(getMvpDashboardData({ programId: "p1" })).rejects.toThrow("complete attendance review evidence");
+  });
+  it("uses finalized evidence for the needs-check-in learner filter", async () => {
+    setupReviews();
+    expect((await getMvpDashboardData({ programId: "p1", learnerStatus: "needs_check_in" })).programs[0].totalParticipants).toBe(1);
+    db.tables.mvp_attendance_reviews = [];
+    expect((await getMvpDashboardData({ programId: "p1", learnerStatus: "needs_check_in" })).programs[0].totalParticipants).toBe(0);
+  });
+  it("does not flag from conflicting session delivery rows", async () => {
+    setupReviews();
+    db.tables.session_content.push({ ...db.tables.session_content[0], id: "d3", status: "upcoming" });
+    expect((await getMvpDashboardData({ programId: "p1" })).programs[0].learnersNeedingCheckIn).toBeNull();
+  });
+});
+
+// Exercise policy selection, complete submission reads and attendance together.
+describe("configured active rules", () => {
+  const policy = { programSlug: "one", courseSlug: "alpha", kind: "cohort", attendanceThreshold: 80,
+    submissionGraceDays: 14, requiredAssignments: [{ id: "work", label: "Work", weekNumber: 1, dueAt: "2026-09-01T12:00:00Z" }] };
+  it("combines attendance and timely submissions without trusting activity program IDs", async () => {
+    mocks.activeConfig.mockImplementation((program: string) => program === "one" ? policy :
+      { programSlug: "two", courseSlug: "beta", kind: "single_event" });
+    db.tables.attendance.push(attendance("a3", "u2"));
+    db.tables.submissions = [
+      { id: "s1", student_id: "u1", track_slug: "alpha", program_id: "stale", week_number: 1, submitted_at: "2026-09-15T12:00:00Z" },
+      { id: "s2", student_id: "u2", track_slug: "alpha", week_number: 1, submitted_at: "2026-09-16T12:00:00Z" },
+      { id: "s3", student_id: "outsider", track_slug: "alpha", week_number: 1, submitted_at: "2026-09-01T12:00:00Z" },
+    ];
+    const result = await getMvpDashboardData({});
+    expect(result.programs.find((row) => row.courseSlug === "alpha")?.active).toBe(1);
+    expect(result.programs.find((row) => row.courseSlug === "beta")?.active).toBe(1);
+    const requests = db.requests.filter((request) => request.table === "submissions");
+    expect(requests).toHaveLength(2);
+    expect(requests.every((request) => request.filters.some(([op, key, value]) => op === "eq" && key === "track_slug" && value === "alpha"))).toBe(true);
+    expect(requests.every((request) => !request.filters.some(([, key]) => key === "program_id"))).toBe(true);
+    expect(requests[0].columns).toBe("id, student_id, track_slug, week_number, submitted_at");
+    const { loadMvpSubmissions } = await import("./submission-queries");
+    db.serverCap = 1;
+    const records = await loadMvpSubmissions(db as unknown as Parameters<typeof loadMvpSubmissions>[0], "alpha", ["u1", "u2"]);
+    expect(records.map((record) => record.id)).toEqual(["s1", "s2"]);
+  });
+  it("does not turn failed submission reads into inactive learners", async () => {
+    mocks.activeConfig.mockReturnValue(policy);
+    db.fail = (request) => request.table === "submissions";
+    await expect(getMvpDashboardData({ programId: "p1" })).rejects.toThrow("Unable to load complete required submission records");
+  });
+  it("keeps event attendance missing as unknown and skips submission reads", async () => {
+    mocks.activeConfig.mockReturnValue({ programSlug: "one", courseSlug: "alpha", kind: "single_event" });
+    const result = await getMvpDashboardData({ programId: "p1" });
+    expect(result.programs[0].active).toBeNull();
+    expect(db.requests.some((request) => request.table === "submissions")).toBe(false);
+  });
+});
+
 // Survey connections must preserve program, course and eligible-roster scope.
+describe("complete backend reads", () => {
+  it.each(["student_tracks", "attendance", "session_content"])("rejects missing %s responses instead of reporting zeros", async (table) => {
+    const execute = db.execute.bind(db);
+    vi.spyOn(db, "execute").mockImplementation((request) => request.table === table
+      ? { data: null, error: null } : execute(request));
+    await expect(getMvpDashboardData({ programId: "p1" })).rejects.toThrow();
+  });
+  it.each(["student_tracks", "attendance", "session_content"])("stops repeated %s pages", async (table) => {
+    const execute = db.execute.bind(db);
+    vi.spyOn(db, "execute").mockImplementation((request) => execute(request.table === table
+      ? { ...request, filters: request.filters.filter(([op]) => op !== "gt") } : request));
+    await expect(getMvpDashboardData({ programId: "p1" })).rejects.toThrow("pagination did not advance");
+    expect(db.requests.length).toBeLessThan(30);
+  });
+  it("batches and deduplicates submission rosters while keeping every batch scoped", async () => {
+    const { loadMvpSubmissions } = await import("./submission-queries");
+    const ids = Array.from({ length: 205 }, (_, index) => `u${index}`);
+    db.tables.submissions = ids.map((student_id, index) => ({ id: `s${String(index).padStart(4, "0")}`,
+      student_id, track_slug: "alpha", week_number: 1, submitted_at: null }));
+    db.serverCap = 17;
+    const result = await loadMvpSubmissions(db as unknown as Parameters<typeof loadMvpSubmissions>[0], "alpha", [...ids, ...ids]);
+    expect(result).toHaveLength(205);
+    expect(new Set(result.map((record) => record.id)).size).toBe(205);
+    const firstPages = db.requests.filter((request) => !request.filters.some(([op]) => op === "gt"));
+    expect(firstPages.map((request) => (request.filters.find(([op, key]) => op === "in" && key === "student_id")![2] as string[]).length)).toEqual([100, 100, 5]);
+    expect(db.requests.every((request) => request.filters.some(([op, key, value]) => op === "eq" && key === "track_slug" && value === "alpha"))).toBe(true);
+  });
+  it("makes no submission request for an empty authorized roster", async () => {
+    const { loadMvpSubmissions } = await import("./submission-queries");
+    expect(await loadMvpSubmissions(db as unknown as Parameters<typeof loadMvpSubmissions>[0], "alpha", [])).toEqual([]);
+    expect(db.requests).toEqual([]);
+  });
+  it.each(["missing", "repeated", "later_failure"])("rejects %s submission pages without returning partial results", async (mode) => {
+    const { loadMvpSubmissions } = await import("./submission-queries");
+    db.tables.submissions = [{ id: "s1", student_id: "u1", track_slug: "alpha", week_number: 1, submitted_at: null }];
+    const execute = db.execute.bind(db);
+    vi.spyOn(db, "execute").mockImplementation((request) => {
+      if (mode === "missing") return { data: null, error: null };
+      if (mode === "later_failure" && request.filters.some(([op]) => op === "gt")) return { data: null, error: { message: "Failed later page" } };
+      return execute(mode === "repeated" ? { ...request, filters: request.filters.filter(([op]) => op !== "gt") } : request);
+    });
+    await expect(loadMvpSubmissions(db as unknown as Parameters<typeof loadMvpSubmissions>[0], "alpha", ["u1"])).rejects.toThrow();
+    expect(db.requests.length).toBeLessThan(4);
+  });
+});
+
+// Reports reuse the real authorized loader, rather than trusting client totals.
+describe("report selection and new summaries", () => {
+  it("preserves checklist order, known zero, and explicit unavailable metrics", async () => {
+    const { getMvpReportData } = await import("./report-queries");
+    const report = await getMvpReportData({ programId: "p1" }, { metricKeys: ["sessionsRemaining", "active", "totalParticipants", "active"] });
+    expect(report.rows).toHaveLength(1);
+    expect(report.rows[0].metrics.map((metric) => metric.key)).toEqual(["sessionsRemaining", "active", "totalParticipants"]);
+    expect(report.rows[0].metrics[0]).toMatchObject({ value: 0, availability: "available" });
+    expect(report.rows[0].metrics[1]).toMatchObject({ value: null, availability: "unavailable" });
+    expect(report.rows[0].metrics[1].unavailableReason).toBeTruthy();
+    expect(report.rows[0].metrics[2].value).toBe(2);
+    expect(report).not.toHaveProperty("demographics");
+    expect(report).not.toHaveProperty("locations");
+    expect(JSON.stringify(report)).not.toContain("student_id");
+  });
+  it.each([{}, { metricKeys: [] }, { metricKeys: ["student_id"] }, { metricKeys: ["active"], locations: "yes" },
+    { metricKeys: ["active"], programId: "p2" }])("rejects invalid report selections before database reads: %j", async (selection) => {
+    const { getMvpReportData } = await import("./report-queries");
+    await expect(getMvpReportData({}, selection)).rejects.toThrow();
+    expect(mocks.client).not.toHaveBeenCalled();
+  });
+  it("uses status-filtered unique learners for location-only reports without sensitive demographic reads", async () => {
+    const { getMvpReportData } = await import("./report-queries");
+    for (const row of db.tables.student_tracks) (row.students as Row).location = row.student_id === "u1" ? "Boston" : "Oakland";
+    const report = await getMvpReportData({ learnerStatus: "started" }, { metricKeys: [], locations: true });
+    expect(report.locations).toMatchObject({ uniqueLearners: 1, citiesRepresented: null, groups: [{ label: "Boston", count: 1 }] });
+    expect(report).not.toHaveProperty("demographics");
+    expect(db.requests.some((request) => request.columns.includes("date_of_birth"))).toBe(false);
+    expect(db.requests.some((request) => request.filters.some(([, key, value]) => key === "survey_type" && value === "bcc-learner-intake"))).toBe(false);
+  });
+  it.each(["student", "instructor"])("rejects report access for %s", async (role) => {
+    const { getMvpReportData } = await import("./report-queries");
+    mocks.session.mockResolvedValue({ userId: "actor", student: { role } });
+    await expect(getMvpReportData({}, { metricKeys: ["active"] })).rejects.toThrow("MVP access");
+    expect(mocks.client).not.toHaveBeenCalled();
+  });
+  it("rejects preview mode and inaccessible programs", async () => {
+    const { getMvpReportData } = await import("./report-queries");
+    mocks.preview.mockResolvedValue(true);
+    await expect(getMvpReportData({}, { metricKeys: ["active"] })).rejects.toThrow("MVP access");
+    mocks.preview.mockResolvedValue(false);
+    mocks.session.mockResolvedValue({ userId: "actor", student: { role: "admin" } });
+    await expect(getMvpReportData({ programId: "p2" }, { metricKeys: ["active"] })).rejects.toThrow("selected program is unavailable");
+  });
+  it("does not invent sessions remaining for incomplete schedules", async () => {
+    configs[0].tracks[0].weekSummaries = [];
+    const result = await getMvpDashboardData({ programId: "p1" });
+    expect(result.programs[0].sessionsRemaining).toBeNull();
+    expect(result.programs[0].sessionsRemainingReason).toBeTruthy();
+  });
+});
+
+describe("learner status query integration", () => {
+  it.each(["started", "completed"])("recomputes %s totals, evidence, and demographics", async (learnerStatus) => {
+    for (const row of db.tables.student_tracks) (row.students as Row).date_of_birth = "2000-01-01";
+    const result = await getMvpDashboardData({ programId: "p1", learnerStatus }, { includeDemographics: true });
+    expect(result.appliedFilters.learnerStatus).toBe(learnerStatus);
+    expect(result.programs[0]).toMatchObject({ totalParticipants: 1, started: 1, completed: 1, attendanceRate: 100 });
+    expect(result.summary.uniqueLearnersStarted).toBe(1);
+    expect(result.demographics?.[0].respondentCount).toBe(1);
+    expect(result.checkInEvaluations?.map((item) => item.learnerId)).toEqual(["u1"]);
+    expect(db.requests.filter((request) => request.table === "survey_responses").every((request) =>
+      request.filters.some(([op, key, value]) => op === "in" && key === "student_id" && JSON.stringify(value) === '["u1"]'))).toBe(true);
+  });
+  it("includes verified active learners while disclosing unknown exclusions", async () => {
+    mocks.activeConfig.mockReturnValue({ programSlug: "one", courseSlug: "alpha", kind: "single_event" });
+    const result = await getMvpDashboardData({ programId: "p1", learnerStatus: "active" });
+    expect(result.programs[0]).toMatchObject({ totalParticipants: 1, active: 1 });
+    expect(result.metricDefinitions.find((metric) => metric.key === "learnerStatus")?.unavailableReason).toContain("1 learner/offering");
+  });
+  it("discloses missing policies rather than silently presenting zero active learners", async () => {
+    const result = await getMvpDashboardData({ programId: "p1", learnerStatus: "active" });
+    expect(result.programs[0]).toMatchObject({ totalParticipants: 0, active: null });
+    expect(result.metricDefinitions.find((metric) => metric.key === "learnerStatus")?.unavailableReason).toContain("2 learner/offering");
+  });
+  it("retains stale-stamped activity but excludes other courses and outside learners", async () => {
+    db.tables.attendance[0].program_id = "stale";
+    db.tables.session_content[0].program_id = "stale";
+    db.tables.attendance.push(attendance("outside", "u2", "beta"), attendance("foreign", "outsider"));
+    const result = await getMvpDashboardData({ programId: "p1", learnerStatus: "started" });
+    expect(result.programs[0]).toMatchObject({ totalParticipants: 1, started: 1, attendanceRate: 100 });
+    expect(db.requests.filter((request) => request.table === "student_tracks").every((request) =>
+      request.filters.some(([op, key, value]) => op === "eq" && key === "program_id" && value === "p1"))).toBe(true);
+  });
+  it("selects future enrollments and retains date-overlap semantics", async () => {
+    configs[0].tracks[0] = { ...track("alpha"), startDate: "2026-11-01", weekSummaries: [{ week: 1, date: "2026-11-01" }] };
+    const result = await getMvpDashboardData({ programId: "p1", learnerStatus: "enrolled", startDate: "2026-11-01", endDate: "2026-11-30" });
+    expect(result.programs[0]).toMatchObject({ totalParticipants: 2, enrolledBeforeStart: 2 });
+    expect(result.summary.upcomingEnrollments).toBe(2);
+  });
+});
+
 describe("MVP survey outcome connection", () => {
   const survey = { id: "impact", title: "Impact", description: "", required: false, appliesToTracks: ["alpha"] };
   const response = (id: string, student = "u1", program = "p1"): Row => ({
     id, student_id: student, program_id: program, survey_type: "impact",
     completed_at: "2026-10-01T12:00:00Z", responses: { confidence: { Skills: { before: 2, now: 4 } } },
+  });
+  it("counts unique completed respondents per survey and across mapped surveys", async () => {
+    configs[0].surveys = [survey, { ...survey, id: "feedback", title: "Feedback" }];
+    db.serverCap = 1;
+    db.tables.survey_responses = [response("s1"), response("s2"),
+      { ...response("s3", "u2"), survey_type: "feedback" },
+      { ...response("s4", "u2"), completed_at: null },
+      { ...response("s5", "u2"), completed_at: "2027-01-01T00:00:00Z" }, response("s6", "outside")];
+    const result = await getMvpDashboardData({ programId: "p1", courseSlug: "alpha" });
+    expect(result.programs[0].surveyResponseRate).toBe(100);
+    expect(result.programs[0].surveyParticipation?.map(row => [row.respondents, row.eligibleLearners, row.responseRate])).toEqual([[1, 2, 50], [1, 2, 50]]);
+    const feedbackReads = db.requests.filter(r => r.table === "survey_responses" && r.filters.some(([, key, value]) => key === "survey_type" && value === "feedback"));
+    expect(feedbackReads.every(r => !r.columns.includes("responses"))).toBe(true);
+  });
+  it("distinguishes no responses, no mapping, and an empty selected roster", async () => {
+    configs[0].surveys = [survey];
+    expect((await getMvpDashboardData({ programId: "p1", courseSlug: "alpha" })).programs[0].surveyResponseRate).toBe(0);
+    expect((await getMvpDashboardData({ programId: "p1", courseSlug: "alpha", city: "missing-location" })).programs[0].surveyResponseRate).toBeNull();
+    configs[0].surveys = [];
+    expect((await getMvpDashboardData({ programId: "p1", courseSlug: "alpha" })).programs[0].surveyResponseRate).toBeNull();
+  });
+  it("recomputes assessment and progress denominators after learner filtering and exports coverage", async () => {
+    const { buildMvpReport } = await import("./report-selection");
+    mocks.signalPolicy.mockReturnValue({ programSlug: "one", courseSlug: "alpha", assessment: { examId: "exam", minimumPercent: 70 },
+      progress: { source: "required_videos", dueAt: "2026-09-01T12:00:00Z", requiredWeeks: [1, 2], minimumPercent: 80 } });
+    db.tables.track_overrides = [{ id: "o", program_id: "p1", track_slug: "alpha", self_paced: true }];
+    db.tables.exam_attempts = [
+      { id: "e1", student_id: "u1", exam_id: "exam", submitted_at: "2026-09-10T00:00:00Z", score: 4, total: 10 },
+      { id: "e2", student_id: "u2", exam_id: "exam", submitted_at: "2026-09-10T00:00:00Z", score: 9, total: 10 }];
+    db.tables.week_progress = [1, 2].map(week => ({ id: `v${week}`, user_id: "u2", track_slug: "alpha", week_number: week, video_watched_at: "2026-09-10T00:00:00Z" }));
+    const data = await getMvpDashboardData({ programId: "p1", courseSlug: "alpha", learnerStatus: "needs_check_in" });
+    expect(data.programs[0]).toMatchObject({ totalParticipants: 1, assessmentAveragePercent: 40, progressRate: 0 });
+    expect(data.programs[0].assessmentSummary).toMatchObject({ assessedLearners: 1, eligibleLearners: 1 });
+    const report = buildMvpReport(data, { metricKeys: ["assessmentAveragePercent", "progressRate", "surveyResponseRate"], demographics: false, locations: false });
+    expect(report.rows[0].metrics[0].unit).toContain("1/1 learners assessed");
+    expect(report.rows[0].metrics[1].unit).toContain("0/2 learner-video opportunities");
+    expect(report.rows[0].metrics[2].availability).toBe("unavailable");
   });
   it("returns aggregate paired outcomes without leaking answers or identities", async () => {
     configs[0].surveys = [survey];
@@ -264,7 +708,67 @@ describe("MVP query access", () => {
 });
 
 describe("MVP query totals and filters", () => {
-  it("scopes attendance and delivered-session reads to the course's program", async () => {
+  // Exercise shared slugs within one request so a course-only cache key
+  // cannot pass by being recreated between separate filtered requests.
+  it("keeps same-slug roster caches separate in the organization view", async () => {
+    configs[0].tracks.push(track("twin"));
+    configs[1].tracks.push(track("twin"));
+    db.tables.student_tracks.push(
+      enrollment("e5", "u5", "twin", "p1"),
+      enrollment("e6", "u6", "twin", "p2"),
+      enrollment("e7", "u7", "twin", "p2"),
+    );
+    const result = await getMvpDashboardData({});
+    expect(result.programs.filter((row) => row.courseSlug === "twin")
+      .map((row) => [row.programId, row.totalParticipants])).toEqual([["p1", 1], ["p2", 2]]);
+  });
+
+  it("scopes every roster page and excludes other-program profile locations", async () => {
+    mocks.session.mockResolvedValue({ userId: "actor", student: { role: "admin" } });
+    db.serverCap = 1;
+    const outsider = enrollment("e0", "outsider", "alpha", "p2");
+    (outsider.students as Row).location = "Other program only";
+    db.tables.student_tracks.unshift(outsider);
+    const result = await getMvpDashboardData({ programId: "p1" });
+    expect(result.programs[0].totalParticipants).toBe(2);
+    expect(result.filterOptions.cities).not.toContain("Other program only");
+    const pages = db.requests.filter((request) => request.table === "student_tracks");
+    expect(pages.length).toBeGreaterThan(1);
+    expect(pages.every((request) => request.filters.some(([op, key, value]) =>
+      op === "eq" && key === "program_id" && value === "p1"))).toBe(true);
+    expect(pages.every((request) => request.filters.some(([op, key, value]) =>
+      op === "eq" && key === "track_slug" && value === "alpha"))).toBe(true);
+  });
+
+  it("selects an overlapping offering but retains its full-period results", async () => {
+    configs[0].tracks[0] = { ...track("alpha"), startDate: "2026-08-01", totalWeeks: 2,
+      weekSummaries: [{ week: 1, date: "2026-08-01" }, { week: 2, date: "2026-10-01" }] };
+    db.tables.attendance.push({ ...attendance("a3", "u1"), week_number: 2, checked_in_at: "2026-10-01T18:00:00Z" });
+    db.tables.session_content.push({ id: "d3", track: "alpha", program_id: "p1", week_number: 2,
+      status: "completed", status_2: "upcoming", status_3: "upcoming" });
+    const result = await getMvpDashboardData({ programId: "p1", startDate: "2026-09-01", endDate: "2026-09-30" });
+    expect(result.programs[0]).toMatchObject({ startDate: "2026-08-01", endDate: "2026-10-01", started: 1, completed: 1, attendanceQualified: 1, active: null });
+    expect(result.appliedFilters).toMatchObject({ startDate: "2026-09-01", endDate: "2026-09-30" });
+  });
+  it("does not read learner records for non-overlapping offerings", async () => {
+    const result = await getMvpDashboardData({ startDate: "2026-10-01" }, { includeDemographics: true });
+    expect(result.programs).toEqual([]);
+    expect(result.filterOptions.cities).toEqual([]);
+    expect(db.requests.some((r) => ["student_tracks", "attendance", "survey_responses"].includes(r.table))).toBe(false);
+    expect(result.summary.uniqueLearnersStarted).toBe(0);
+  });
+  it("discloses undated exclusions without reading their roster", async () => {
+    configs[0].tracks[0].weekSummaries = [];
+    const result = await getMvpDashboardData({ programId: "p1", startDate: "2026-09-01" });
+    expect(result.programs).toEqual([]);
+    expect(result.metricDefinitions.find((m) => m.key === "dateWindow")?.unavailableReason).toContain("1 offering(s)");
+    expect(db.requests.some((r) => r.table === "student_tracks")).toBe(false);
+  });
+  it("rejects invalid dates before database access", async () => {
+    await expect(getMvpDashboardData({ startDate: "2026-02-30" })).rejects.toThrow("valid reporting dates");
+    expect(mocks.client).not.toHaveBeenCalled();
+  });
+  it("uses resolved course slugs for activity while keeping program rosters isolated", async () => {
     configs[0].tracks.push(track("twin"));
     configs[1].tracks.push(track("twin"));
     db.tables.student_tracks.push(enrollment("e5", "u1", "twin", "p1"), enrollment("e6", "u8", "twin", "p2"));
@@ -278,12 +782,13 @@ describe("MVP query totals and filters", () => {
     const scoped = (table: string) => db.requests.filter((r) => r.table === table);
     for (const table of ["attendance", "session_content"]) {
       expect(scoped(table).length).toBeGreaterThan(0);
-      expect(scoped(table).every((r) => r.filters.some(([op, key]) => op === "eq" && key === "program_id"))).toBe(true);
+      expect(scoped(table).every((r) => !r.filters.some(([, key]) => key === "program_id"))).toBe(true);
+      expect(scoped(table).every((r) => r.filters.some(([op, key, value]) => op === "eq" && key === "track" && value === "twin"))).toBe(true);
     }
-    // p2's delivery is still "upcoming", so it has no verified denominator;
-    // p1's completed session must not leak into it.
+    // Shared slugs identify the same course activity, not a separate cohort.
+    // Only p2's eligible roster participates in its calculations.
     const p2 = await getMvpDashboardData({ programId: "p2", courseSlug: "twin" });
-    expect(p2.programs[0]).toMatchObject({ programId: "p2", courseSlug: "twin", totalParticipants: 1, attendanceRate: null });
+    expect(p2.programs[0]).toMatchObject({ programId: "p2", courseSlug: "twin", totalParticipants: 1, attendanceRate: 100 });
   });
   it("keeps a course slug offered by two programs from mixing their rosters", async () => {
     configs[0].tracks.push(track("twin"));
@@ -313,8 +818,8 @@ describe("MVP query totals and filters", () => {
   it.each([{ courseSlug: "alpha" }, { programId: "p1", courseSlug: "beta" }])("rejects inconsistent course filters %j", async (params) => {
     await expect(getMvpDashboardData(params)).rejects.toThrow("selected course is unavailable");
   });
-  it.each([{ startDate: "2026-01-01" }, { endDate: "2026-10-01" }, { learnerStatus: "active" }])("rejects unconnected filters %j", async (params) => {
-    await expect(getMvpDashboardData(params)).rejects.toThrow("Only program and course filters");
+  it.each([{ learnerStatus: "invalid" }, { learnerStatus: "inactive" }])("rejects invalid filters %j", async (params) => {
+    await expect(getMvpDashboardData(params)).rejects.toThrow("Invalid learner status");
     expect(mocks.client).not.toHaveBeenCalled();
   });
   it("filters locations before course totals, summary deduplication and evidence", async () => {

@@ -144,7 +144,6 @@ export function MvpFilters({
           id={`${id}-course`}
           value={filters.courseSlug ?? ""}
           disabled={!filters.programId || courses.length === 0}
-          aria-describedby={`${id}-course-help`}
           className={inputClass}
           onChange={(event) =>
             updateFilter("courseSlug", event.target.value || null)
@@ -168,12 +167,6 @@ export function MvpFilters({
           ))}
         </select>
 
-        <p
-          id={`${id}-course-help`}
-          className="mt-1 text-xs text-ink-soft"
-        >
-          Course choices depend on the selected program.
-        </p>
       </div>
 
       <div>
@@ -200,10 +193,6 @@ export function MvpFilters({
             </option>
           ))}
         </select>
-        <p className="mt-1 text-xs text-ink-soft">
-          Uses profile location text, not verified city boundaries. Exact matches after trimming spaces.
-          All locations includes learners with missing locations; a selected location excludes them.
-        </p>
       </div>
 
       <div>
@@ -248,7 +237,6 @@ export function MvpFilters({
 
           <input
             id={`${id}-start-date`}
-            disabled={programOnly}
             type="date"
             value={filters.startDate ?? ""}
             max={filters.endDate ?? undefined}
@@ -271,7 +259,6 @@ export function MvpFilters({
 
           <input
             id={`${id}-end-date`}
-            disabled={programOnly}
             type="date"
             value={filters.endDate ?? ""}
             min={filters.startDate ?? undefined}
