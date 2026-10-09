@@ -1,5 +1,6 @@
 import { redirect, notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
+import { listEventOptions } from "@/lib/events-server";
 import { getSessionContext } from "@/lib/auth/session";
 import { canManageStudents, canManageRoles } from "@/lib/roles";
 import { PageHeader } from "@/components/page-header";
@@ -76,6 +77,7 @@ export default async function EditLandingPage({
     metaTitle: (data.meta_title as string | null) ?? "",
     metaDescription: (data.meta_description as string | null) ?? "",
     nativeEnroll: (data.native_enroll as boolean | null) ?? false,
+    eventSlug: (data.event_slug as string | null) ?? null,
     comingSoon: (data.coming_soon as boolean | null) ?? false,
     sessions: ((data.sessions as LandingSession[] | null) ?? []).map((x) => ({ id: x.id, label: x.label })),
     enrollCtaLabel: (data.enroll_cta_label as string | null) ?? "",
@@ -86,6 +88,7 @@ export default async function EditLandingPage({
     })(),
   };
 
+  const events = await listEventOptions(allowedIds);
   return (
     <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8 space-y-6">
       <div>
@@ -100,7 +103,7 @@ export default async function EditLandingPage({
           }
         />
       </div>
-      <LandingForm initial={initial} originalSlug={initial.slug} programs={programs} allowPlatform={allowedIds === null} />
+      <LandingForm initial={initial} originalSlug={initial.slug} programs={programs} events={events} allowPlatform={allowedIds === null} />
     </div>
   );
 }

@@ -39,12 +39,15 @@ export function RegisterForm({
   eventTitle,
   maxAttendees,
   spotsLeft,
+  embedded = false,
 }: {
   eventSlug: string;
   eventTitle: string;
   maxAttendees: number;
   /** null when the event has no capacity limit. */
   spotsLeft: number | null;
+  /** Rendered inside another page's column (a landing page): no outer gutter or max width. */
+  embedded?: boolean;
 }) {
   const [parent, setParent] = useState<ParentInput>({
     firstName: "",
@@ -88,9 +91,11 @@ export function RegisterForm({
     }
   }
 
+  const wrap = embedded ? "w-full" : "mx-auto w-full max-w-2xl px-5 pb-20";
+
   if (done) {
     return (
-      <div className="mx-auto w-full max-w-2xl px-5 pb-20">
+      <div className={wrap}>
         <div className="rounded-lg border border-rule bg-white p-8 text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
             <Check className="h-6 w-6 text-primary" />
@@ -117,7 +122,7 @@ export function RegisterForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mx-auto w-full max-w-2xl px-5 pb-20" noValidate>
+    <form onSubmit={handleSubmit} className={wrap} noValidate>
       <section className="rounded-lg border border-rule bg-white p-6">
         <h2 className="text-base font-bold text-ink">Parent or guardian</h2>
         <p className="mt-1 text-sm text-ink-soft">

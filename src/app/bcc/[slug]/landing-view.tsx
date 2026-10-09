@@ -8,7 +8,12 @@ import { CampEnrollForm } from "../_components/camp-enroll-form";
 import { CampEventbriteRegister } from "../_components/camp-eventbrite-register";
 import { HeroVideo } from "../_components/hero-video";
 import { CampHeaderCta } from "../_components/camp-header-cta";
+import { MobileRegisterBar } from "../_components/mobile-register-bar";
 import { RichText } from "../_components/rich-text";
+import { RegisterForm } from "@/app/events/[slug]/register/register-form";
+import { formatEventWhen } from "@/lib/events";
+import { getEventForLanding } from "@/lib/events-server";
+import { seatsTaken } from "@/lib/events-waitlist";
 
 // The one implementation of a campaign landing page. Two routes render it:
 // /bcc/[slug] (platform pages, and the legacy path for everything) and
@@ -70,6 +75,12 @@ export async function LandingView({
 
   const accent = page.accent;
 
+  // Phase 6: a landing page that hosts an event renders the multi-attendee
+  // registration form in its signup slot instead of the cohort/email form.
+  const event = page.eventSlug ? await getEventForLanding(page.eventSlug, page.programSlug) : null;
+  const spotsLeft = event && event.capacity != null ? Math.max(0, event.capacity - (await seatsTaken(event.id))) : null;
+  const eventFull = spotsLeft === 0 && !!event && !event.waitlist_enabled;
+
   // Per-page theme: `dark` flips the page onto logo black with cream ink.
   // INK stays 6-digit hex so the 2-digit alpha suffixes below compose.
   const dark = page.pageTheme === "dark";
@@ -89,16 +100,32 @@ export async function LandingView({
     : undefined;
   const fieldBase = dark ? "#241645" : (programColors?.ground ?? accent);
   const onGround = "#fffdf7";
+  // Phone-only sticky bar that jumps to the signup form (or straight to an
+  // external apply link). Nothing to offer when the event is full or closed.
+  const stickyCta = ((): { label: string; href?: string } | null => {
+    if (event) {
+      if (event.status === "closed" || eventFull) return null;
+      return { label: spotsLeft === 0 ? "Join the waitlist" : "Register" };
+    }
+    if (page.applyUrl) return { label: page.applyCtaLabel ?? "Apply now", href: page.applyUrl };
+    if (page.comingSoon) return { label: "Notify me" };
+    if (page.eventbriteEventId) return { label: "Get tickets" };
+    if (page.nativeEnroll) return { label: page.enrollCtaLabel ?? "Enroll" };
+    return { label: "Sign up" };
+  })();
   return (
     <div
       className="min-h-[100dvh] flex flex-col md:flex-row"
       style={{ backgroundColor: BG, color: INK }}
     >
       {/* ── Left: content panel ── */}
-      <div className="flex flex-col flex-1 md:min-h-[100dvh]">
-        {/* Header */}
+      <div className={`flex flex-col flex-1 md:min-h-[100dvh] ${stickyCta ? "max-md:pb-24" : ""}`}>
+        {/* Header. On a phone the hero banner above already carries the
+           program lockup, so this label row would be a third identity line
+           between the art and the headline; it returns at md, where the
+           banner moves to the side. */}
         <header
-          className="flex items-center justify-between px-8 py-5 md:px-12"
+          className={`items-center justify-between px-6 py-5 md:flex md:px-12 ${page.heroImageUrl ? "hidden" : "flex"}`}
           style={{ borderBottom: `1px solid ${INK}0d` }}
         >
           <span
@@ -111,22 +138,21 @@ export async function LandingView({
         </header>
 
         {/* Main content */}
-        <main className="flex flex-1 flex-col justify-center px-8 py-12 md:px-12">
-          <div style={{ maxWidth: "460px" }}>
-            {page.logoUrl && (
-              // The program's own lockup. When there's a hero image it moves
-              // ONTO it (see below) where it has room to be read; this copy
-              // stays for narrow screens, where the hero is hidden, and for
-              // pages with no hero at all. Height-capped rather than
+        <main className="flex flex-1 flex-col justify-center px-6 py-10 md:px-12 md:py-12">
+          {/* A flex column so a phone can reorder it: pitch first, form last
+             (see the signup block). Desktop keeps source order. */}
+          <div className="flex flex-col" style={{ maxWidth: "460px" }}>
+            {page.logoUrl && !page.heroImageUrl && (
+              // The program's own lockup, for pages with no hero. When there
+              // is a hero it lives ON the art at every width (see below),
+              // where it has room to be read. Height-capped rather than
               // width-capped: these are usually stacked marks, and a width cap
               // makes a tall one swallow the fold.
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={page.logoUrl}
                 alt=""
-                className={`mb-6 h-auto w-auto max-h-28 max-w-[200px] object-contain object-left ${
-                  page.heroImageUrl ? "md:hidden" : ""
-                }`}
+                className="mb-6 h-auto w-auto max-h-28 max-w-[200px] object-contain object-left"
               />
             )}
             {page.eyebrow && (
@@ -161,13 +187,43 @@ export async function LandingView({
               />
             )}
 
-            {/* Signup — directly under the pitch, because almost nobody reads
-               to the bottom of a landing page before deciding. The long
-               explanation still exists below for the people who want it; it
-               just no longer stands between a decided visitor and the form.
-               Keeps id="signup" so older links still land here. */}
-            <div id="signup" className="mt-8">
+            {event && (
+              // The three facts a parent decides on: when, where, how many
+              // seats. They stay with the headline at every width; on a phone
+              // the form itself lands after the pitch.
+              <div className="mt-5 flex flex-wrap gap-2 text-xs font-semibold">
+                <span className="rounded-full border px-2.5 py-1" style={{ borderColor: `${INK}26`, color: `${INK}b3` }}>
+                  {formatEventWhen(event.starts_at, event.ends_at, event.timezone)}
+                </span>
+                {(event.location || event.join_url) && (
+                  <span className="rounded-full border px-2.5 py-1" style={{ borderColor: `${INK}26`, color: `${INK}b3` }}>
+                    {event.location ?? "Online"}
+                  </span>
+                )}
+                {spotsLeft != null && (
+                  <span
+                    className="rounded-full px-2.5 py-1"
+                    style={spotsLeft > 0 ? { background: "rgba(31,211,122,.16)", color: "#0d6b3d" } : { background: `${INK}14`, color: `${INK}b3` }}
+                  >
+                    {spotsLeft > 0
+                      ? `${spotsLeft} of ${event.capacity} seat${event.capacity === 1 ? "" : "s"} left`
+                      : event.waitlist_enabled
+                        ? "Full · waitlist open"
+                        : "Full"}
+                  </span>
+                )}
+              </div>
+            )}
 
+            {/* Signup. From md it sits directly under the pitch, because
+               almost nobody reads to the bottom of a landing page before
+               deciding; the long explanation is below for those who want it.
+               On a phone the same form is a 2,000px wall between the headline
+               and everything that sells the event, so it moves to the end of
+               the column (flex order) and the sticky bar at the bottom of the
+               screen keeps it one tap away. Keeps id="signup" so older links
+               still land here. */}
+            <div id="signup" className="mt-8 max-md:order-1 max-md:mt-12">
               {page.formLabel && (
                 <p
                   className="mb-2.5 text-[11px] font-medium uppercase tracking-[0.14em]"
@@ -176,7 +232,23 @@ export async function LandingView({
                   {page.formLabel}
                 </p>
               )}
-              {page.comingSoon ? (
+              {event ? (
+                <div>
+                  {event.status === "closed" || eventFull ? (
+                    <p className="rounded-lg border px-4 py-5 text-sm" style={{ borderColor: `${INK}26`, color: `${INK}b3` }}>
+                      {eventFull ? "This event is full." : "Registration for this event is closed."}
+                    </p>
+                  ) : (
+                    <RegisterForm
+                      embedded
+                      eventSlug={event.slug}
+                      eventTitle={event.title}
+                      maxAttendees={event.max_attendees_per_registration}
+                      spotsLeft={spotsLeft}
+                    />
+                  )}
+                </div>
+              ) : page.comingSoon ? (
                 <CampEnrollForm
                   ink={INK}
                   slug={page.slug}
@@ -339,7 +411,7 @@ export async function LandingView({
 
             {/* Secondary CTA */}
             {page.secondaryCtaLabel && page.secondaryCtaUrl && (
-              <p className="mt-8 text-sm" style={{ color: `${INK}a6` }}>
+              <p className="mt-8 text-sm max-md:order-2" style={{ color: `${INK}a6` }}>
                 <a
                   href={page.secondaryCtaUrl}
                   target="_blank"
@@ -356,7 +428,7 @@ export async function LandingView({
 
         {/* Partner logos */}
         {page.partners.length > 0 && (
-          <div className="px-8 py-6 md:px-12" style={{ borderTop: `1px solid ${INK}0d` }}>
+          <div className="px-6 py-6 md:px-12" style={{ borderTop: `1px solid ${INK}0d` }}>
             <p
               className="mb-4 text-[10px] font-medium uppercase tracking-[0.18em]"
               style={{ color: `${INK}99` }}
@@ -395,7 +467,7 @@ export async function LandingView({
 
         {/* Footer */}
         {page.footerText && (
-          <footer className="px-8 py-4 md:px-12" style={{ borderTop: `1px solid ${INK}0d` }}>
+          <footer className="px-6 py-4 md:px-12" style={{ borderTop: `1px solid ${INK}0d` }}>
             <p className="text-[11px]" style={{ color: `${INK}99` }}>
               {page.footerText}
             </p>
@@ -403,16 +475,14 @@ export async function LandingView({
         )}
       </div>
 
-      {/* ── Right: image panel ── */}
+      {/* ── Right: image panel. On a phone it is the first thing on the
+         page: a full-bleed 4:3 banner (wider on a tablet) above the headline,
+         carrying the lockup. From md it moves beside the copy at 52% and
+         sticks for the whole scroll. ── */}
       {page.heroImageUrl && (
         <div
-          className="hidden md:block md:sticky md:top-0 md:h-[100dvh] relative overflow-hidden"
-          style={{
-            width: "52%",
-            minWidth: "52%",
-            maxWidth: "52%",
-            background: page.heroBg ?? undefined,
-          }}
+          className="relative overflow-hidden max-md:order-first max-md:w-full max-md:aspect-[4/3] sm:max-md:aspect-[2/1] md:sticky md:top-0 md:h-[100dvh] md:w-[52%] md:min-w-[52%] md:max-w-[52%]"
+          style={{ background: page.heroBg ?? undefined }}
         >
           {/* Hero media: video formats get a silent looping player (muted +
              playsInline are required for mobile autoplay), everything else
@@ -438,18 +508,18 @@ export async function LandingView({
             // Knocked to white with brightness(0) invert(1): the source asset
             // is a solid dark mark, so this flattens it to pure white rather
             // than needing a second uploaded file that can drift from the first.
-            <div className="absolute left-6 top-6 md:left-10 md:top-10 w-[62%]">
+            <div className="absolute left-5 top-5 w-[46%] md:left-10 md:top-10 md:w-[62%]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={page.logoUrl}
                 alt=""
-                className="h-auto w-auto max-h-40 max-w-full object-contain object-left lg:max-h-52"
+                className="h-auto w-auto max-h-24 max-w-full object-contain object-left md:max-h-40 lg:max-h-52"
                 style={{ filter: "brightness(0) invert(1)" }}
               />
             </div>
           )}
           {page.sponsorLogoUrl && (
-            <div className="absolute top-6 right-6 md:top-8 md:right-8">
+            <div className="absolute top-5 right-5 md:top-8 md:right-8">
               <span
                 className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-white/80"
               >
@@ -459,11 +529,26 @@ export async function LandingView({
               <img
                 src={page.sponsorLogoUrl}
                 alt="Sponsor"
-                className="mt-2 h-10 w-auto md:h-12"
+                className="mt-1.5 h-8 w-auto md:mt-2 md:h-12"
               />
             </div>
           )}
+          {!page.logoUrl && (
+            // No lockup to put on the art, so on the phone banner the header
+            // label stands in for it (the header row itself is hidden there).
+            // From md the label is back in the header row.
+            <span
+              className="absolute left-5 top-5 text-[11px] font-bold uppercase tracking-[0.2em] text-white md:hidden"
+              style={{ textShadow: "0 1px 2px rgba(0,0,0,.35)" }}
+            >
+              {page.headerLabel}
+            </span>
+          )}
         </div>
+      )}
+
+      {stickyCta && (
+        <MobileRegisterBar label={stickyCta.label} href={stickyCta.href} accent={accent} ink={INK} bg={BG} />
       )}
     </div>
   );
