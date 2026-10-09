@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getProgram, getProgramId } from "@/lib/programs/server";
+import { MARKETING_SLUG } from "@/lib/programs/marketing";
 import { createServiceClient } from "@/lib/supabase/server";
 import { EVENT_COLUMNS, formatEventWhen, type EventRow } from "@/lib/events";
 import { buttonClass } from "@/components/ui";
@@ -22,21 +23,21 @@ export default async function EventsIndexPage() {
   const [program, programId] = await Promise.all([getProgram(), getProgramId()]);
   const svc = createServiceClient();
   const since = listedSince();
+  // The apex (marketing) context has no events of its own: show every program's.
+  const allPrograms = program.slug === MARKETING_SLUG;
+  let eventsQ = svc.from("events").select(EVENT_COLUMNS).eq("status", "open").gte("starts_at", since);
+  let seatsQ = svc
+    .from("event_attendees")
+    .select("event_id, events!inner(program_id, status)")
+    .eq("events.status", "open")
+    .in("status", ["confirmed", "offered", "attended"]);
+  if (!allPrograms) {
+    eventsQ = eventsQ.eq("program_id", programId);
+    seatsQ = seatsQ.eq("events.program_id", programId);
+  }
   const [{ data: events }, { data: seats }] = await Promise.all([
-    svc
-      .from("events")
-      .select(EVENT_COLUMNS)
-      .eq("program_id", programId)
-      .eq("status", "open")
-      .gte("starts_at", since)
-      .order("starts_at", { ascending: true })
-      .limit(50),
-    svc
-      .from("event_attendees")
-      .select("event_id, events!inner(program_id, status)")
-      .eq("events.program_id", programId)
-      .eq("events.status", "open")
-      .in("status", ["confirmed", "offered", "attended"]),
+    eventsQ.order("starts_at", { ascending: true }).limit(50),
+    seatsQ,
   ]);
   const taken = new Map<string, number>();
   for (const a of (seats ?? []) as { event_id: string }[]) taken.set(a.event_id, (taken.get(a.event_id) ?? 0) + 1);

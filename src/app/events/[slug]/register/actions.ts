@@ -3,7 +3,7 @@
 import { headers } from "next/headers";
 import { after } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
-import { getProgram, getProgramId } from "@/lib/programs/server";
+import { getProgramId } from "@/lib/programs/server";
 import { rateLimit } from "@/lib/rate-limit";
 import { sendEventRegistrationEmail, sendEventWaitlistEmail } from "@/lib/email";
 import { seatsTaken } from "@/lib/events-waitlist";
@@ -54,8 +54,7 @@ export async function registerForEvent(input: {
   }
   if (!EMAIL_RE.test(parent.email)) return { ok: false, error: "Enter a valid email address." };
 
-  const programId = await getProgramId();
-  const event = await getEventBySlug(programId, input.eventSlug);
+  const event = await getEventBySlug(input.eventSlug, await getProgramId());
   if (!event) return { ok: false, error: "This event could not be found." };
   if (event.status !== "open") return { ok: false, error: "Registration for this event is closed." };
 
@@ -110,7 +109,7 @@ export async function registerForEvent(input: {
     .from("event_registrations")
     .insert({
       event_id: event.id,
-      program_id: programId,
+      program_id: event.program_id,
       parent_first_name: parent.firstName,
       parent_last_name: parent.lastName,
       parent_email: parent.email,
@@ -157,7 +156,6 @@ export async function registerForEvent(input: {
 
   const proto = hdrs.get("x-forwarded-proto") ?? "https";
   const origin = `${proto}://${hdrs.get("host") ?? "bccacademy.io"}`;
-  const program = await getProgram();
   const result = saved.map((a) => ({
     name: `${a.first_name} ${a.last_name}`,
     ticketCode: a.ticket_code as string,
@@ -176,7 +174,7 @@ export async function registerForEvent(input: {
         await sendEventWaitlistEmail({
           to: parent.email,
           parentFirstName: parent.firstName,
-          programName: program.name,
+          programName: event.programName,
           eventTitle: event.title,
           eventStartUtc: event.starts_at,
           eventTimezone: event.timezone,
@@ -187,7 +185,7 @@ export async function registerForEvent(input: {
       await sendEventRegistrationEmail({
         to: parent.email,
         parentFirstName: parent.firstName,
-        programName: program.name,
+        programName: event.programName,
         eventTitle: event.title,
         eventStartUtc: event.starts_at,
         eventEndUtc: event.ends_at,
