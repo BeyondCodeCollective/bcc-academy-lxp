@@ -3,7 +3,6 @@
 import { headers } from "next/headers";
 import { after } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
-import { getProgramId } from "@/lib/programs/server";
 import { rateLimit } from "@/lib/rate-limit";
 import { sendEventRegistrationEmail, sendEventWaitlistEmail } from "@/lib/email";
 import { seatsTaken } from "@/lib/events-waitlist";
@@ -14,7 +13,7 @@ import {
   type AttendeeInput,
   type AttendeeSelectField,
 } from "@/lib/events";
-import { getEventBySlug } from "@/lib/events-server";
+import { currentProgramIdOrNull, getEventBySlug } from "@/lib/events-server";
 
 // Public (unauthenticated) event registration. One parent/guardian block, up
 // to the event's attendee limit. Writes event_registrations + event_attendees
@@ -54,7 +53,7 @@ export async function registerForEvent(input: {
   }
   if (!EMAIL_RE.test(parent.email)) return { ok: false, error: "Enter a valid email address." };
 
-  const event = await getEventBySlug(input.eventSlug, await getProgramId());
+  const event = await getEventBySlug(input.eventSlug, await currentProgramIdOrNull());
   if (!event) return { ok: false, error: "This event could not be found." };
   if (event.status !== "open") return { ok: false, error: "Registration for this event is closed." };
 

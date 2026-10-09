@@ -20,18 +20,19 @@ export async function generateMetadata() {
 const listedSince = () => new Date(Date.now() - 6 * 3_600_000).toISOString();
 
 export default async function EventsIndexPage() {
-  const [program, programId] = await Promise.all([getProgram(), getProgramId()]);
+  const program = await getProgram();
+  // The apex (marketing) context has no programs row and no events of its own: show every program's.
+  const allPrograms = program.slug === MARKETING_SLUG;
+  const programId = allPrograms ? null : await getProgramId();
   const svc = createServiceClient();
   const since = listedSince();
-  // The apex (marketing) context has no events of its own: show every program's.
-  const allPrograms = program.slug === MARKETING_SLUG;
   let eventsQ = svc.from("events").select(EVENT_COLUMNS).eq("status", "open").gte("starts_at", since);
   let seatsQ = svc
     .from("event_attendees")
     .select("event_id, events!inner(program_id, status)")
     .eq("events.status", "open")
     .in("status", ["confirmed", "offered", "attended"]);
-  if (!allPrograms) {
+  if (programId) {
     eventsQ = eventsQ.eq("program_id", programId);
     seatsQ = seatsQ.eq("events.program_id", programId);
   }
