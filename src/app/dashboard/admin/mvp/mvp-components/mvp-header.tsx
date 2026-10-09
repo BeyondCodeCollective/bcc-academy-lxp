@@ -2,12 +2,13 @@
 
 "use client";
 
-// The parent supplies the reporting period and verified refresh information.
-// Null means the data has not been refreshed or that information is unavailable.
+import type { MvpFreshness } from "@/lib/mvp/types";
+
+// Fetch time is not a source update or human validation timestamp.
+// Source metadata stays in the data contract, not the visible header.
 type MvpHeaderProps = {
   dateRangeLabel: string;
-  refreshedAt: string | null;
-  refreshedBy?: string | null;
+  freshness: MvpFreshness;
   onRefresh?: () => void;
   isRefreshing?: boolean;
 };
@@ -16,12 +17,11 @@ type MvpHeaderProps = {
 // The MVP Framework calls for a visible reporting period and refresh details.
 export function MvpHeader({
   dateRangeLabel,
-  refreshedAt,
-  refreshedBy,
+  freshness,
   onRefresh,
   isRefreshing = false,
 }: MvpHeaderProps) {
-  const refreshLabel = formatRefreshTime(refreshedAt);
+  const refreshLabel = formatRefreshTime(freshness.fetchedAt);
 
   return (
     <header className="mb-8 mt-8">
@@ -55,18 +55,17 @@ export function MvpHeader({
 
       <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm text-ink-soft">
         <p>
-          Reporting period:{" "}
+          Selected program dates:{" "}
           <span className="font-medium text-ink">{dateRangeLabel}</span>
         </p>
 
         <p role="status" aria-live="polite">
           {refreshLabel ? (
             <>
-              Last data refresh:{" "}
-              <time dateTime={refreshedAt ?? undefined}>
+              Last Refreshed:{" "}
+              <time dateTime={freshness.fetchedAt}>
                 {refreshLabel}
               </time>
-              {refreshedBy ? ` · Updated by ${refreshedBy}` : ""}
             </>
           ) : (
             "Data refresh information unavailable"

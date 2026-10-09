@@ -32,15 +32,6 @@ const EMPTY_OPTIONS: MvpFilterOptions = {
   cities: [],
 };
 
-const LEARNER_LABELS: Record<MvpFilterValues["learnerStatus"], string> = {
-  all: "All learner statuses",
-  enrolled: "Enrolled before start",
-  started: "Started",
-  active: "Active",
-  completed: "Completed",
-  needs_check_in: "Needs a check-in",
-};
-
 // Draft selections belong to the controls. Data.appliedFilters describes
 // the results currently displayed, so editing controls cannot mislabel results.
 export function MvpDashboard({
@@ -78,6 +69,9 @@ export function MvpDashboard({
     if (filters.programId) query.set("programId", filters.programId);
     if (filters.courseSlug) query.set("courseSlug", filters.courseSlug);
     if (filters.city) query.set("city", filters.city);
+    if (filters.learnerStatus !== "all") query.set("learnerStatus", filters.learnerStatus);
+    if (filters.startDate) query.set("startDate", filters.startDate);
+    if (filters.endDate) query.set("endDate", filters.endDate);
     startTransition(() => router.push(`/dashboard/admin/mvp?${query}`, { scroll: false }));
   }
 
@@ -89,14 +83,13 @@ export function MvpDashboard({
           options={options}
           onChange={setFilters}
           disabled={data === null || isLoading}
-          programOnly
         />
 
         <button
           type="button"
           onClick={applyFilters}
           disabled={!canApply}
-          aria-describedby="mvp-filter-help"
+          aria-describedby={invalidDateRange ? "mvp-filter-help" : undefined}
           className="w-full rounded-lg border border-rule bg-white px-4 py-2
                      text-sm font-medium text-ink hover:bg-gray-50
                      focus-visible:outline focus-visible:outline-2
@@ -106,27 +99,10 @@ export function MvpDashboard({
           {isLoading ? "Applying filters…" : "Apply filters"}
         </button>
 
-        <p id="mvp-filter-help" className="text-xs text-ink-soft">
-          {invalidDateRange
-            ? "Correct the date range before applying filters."
-            : !data
-              ? "Filtering will be available when dashboard data is connected."
-              : "Choose your filters, then apply them to update the results."}
-        </p>
-        <p className="text-xs text-ink-soft">Program, course, and learner location filters are connected. Learner status and reporting dates are coming next.</p>
+        {invalidDateRange && <p id="mvp-filter-help" className="text-xs text-ink-soft">Correct the date range before applying filters.</p>}
       </aside>
 
       <div className="min-w-0 space-y-6" aria-busy={isLoading}>
-        <section
-          aria-label="Selected filters"
-          className="rounded-xl border border-rule bg-white p-5"
-        >
-          <p className="text-sm font-semibold text-ink">Selected filters</p>
-
-          <p className="mt-2 text-sm text-ink-soft">
-            {describeFilters(filters, options)}
-          </p>
-        </section>
 
         {data === null ? (
           <section className="rounded-xl border border-rule bg-white p-6">
@@ -149,47 +125,31 @@ export function MvpDashboard({
                 {data.scopeLabel}
               </h2>
 
-              <p className="mt-2 text-sm text-ink-soft">
-                Showing: {describeFilters(data.appliedFilters, options)}
-              </p>
-
-              <p className="mt-2 text-xs text-ink-soft">
-                Started and completed totals overlap; do not add them
-                together.
-              </p>
             </header>
 
             <dl className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               <Metric
                 label="Unique learners started"
                 value={data.summary.uniqueLearnersStarted}
-                reason={reasonFor(data.metricDefinitions, "uniqueLearnersStarted")}
               />
               <Metric
                 label="Learners with a course completion"
                 value={data.summary.uniqueLearnersCompleted}
-                reason={reasonFor(data.metricDefinitions, "uniqueLearnersCompleted")}
               />
               <Metric
                 label="Program participations started"
                 value={data.summary.programParticipationsStarted}
-                reason={reasonFor(data.metricDefinitions, "programParticipationsStarted")}
               />
               <Metric
                 label="Learner/program pairs with a course completion"
                 value={data.summary.programParticipationsCompleted}
-                reason={reasonFor(data.metricDefinitions, "programParticipationsCompleted")}
               />
               <Metric
                 label="Upcoming enrollments"
                 value={data.summary.upcomingEnrollments}
-                reason={reasonFor(data.metricDefinitions, "upcomingEnrollments")}
               />
             </dl>
             <div className="mt-8 space-y-3">
-              {data.metricDefinitions.map((metric) => (
-                <p key={metric.key} className="text-sm text-ink-soft">{metric.definition}</p>
-              ))}
               <ProgramTable programs={data.programs} />
             </div>
             <SurveyOutcomes programs={data.programs} surveyOutcomes={data.surveyOutcomes} />
@@ -200,19 +160,13 @@ export function MvpDashboard({
   );
 }
 
-function reasonFor(definitions: MvpDashboardData["metricDefinitions"], key: string): string | null {
-  return definitions.find((definition) => definition.key === key)?.unavailableReason ?? null;
-}
-
 // Metric cards preserve the distinction between a real zero and unavailable data.
 function Metric({
   label,
   value,
-  reason,
 }: {
   label: string;
   value: number | null;
-  reason: string | null;
 }) {
   return (
     <div className="rounded-xl border border-rule bg-white p-5">
@@ -225,45 +179,6 @@ function Metric({
           new Intl.NumberFormat("en-US").format(value)
         )}
       </dd>
-      {value === null && reason && <p className="mt-2 text-xs text-ink-soft">{reason}</p>}
     </div>
   );
-}
-
-// Scope descriptions use readable labels instead of internal IDs.
-// Course lookup includes its program so repeated slugs remain unambiguous.
-function describeFilters(
-  filters: MvpFilterValues,
-  options: MvpFilterOptions,
-): string {
-  const program = filters.programId
-    ? options.programs.find((item) => item.id === filters.programId)?.name ??
-      "Selected program"
-    : "All accessible programs";
-
-  const course = filters.courseSlug
-    ? options.courses.find(
-        (item) =>
-          item.slug === filters.courseSlug &&
-          item.programId === filters.programId,
-      )?.name ?? "Selected course"
-    : "All courses";
-
-  let dates = "All available history";
-
-  if (filters.startDate && filters.endDate) {
-    dates = `${filters.startDate} through ${filters.endDate}`;
-  } else if (filters.startDate) {
-    dates = `From ${filters.startDate}`;
-  } else if (filters.endDate) {
-    dates = `Through ${filters.endDate}`;
-  }
-
-  return [
-    program,
-    course,
-    filters.city ? `Learner location: ${filters.city}` : "All learner locations (including missing)",
-    LEARNER_LABELS[filters.learnerStatus],
-    dates,
-  ].join(" · ");
 }

@@ -17,6 +17,32 @@ const track: NonNullable<MvpScheduleInput["track"]> = {
 const asOf = new Date("2026-10-03T18:00:00Z");
 
 describe("course performance integration", () => {
+  it("counts 80% of held sessions, excluding future sessions and duplicate evidence", () => {
+    const longTrack = { ...track, totalWeeks: 6, weekSummaries: Array.from({ length: 6 }, (_, index) =>
+      ({ week: index + 1, date: `2026-10-${String(index + 1).padStart(2, "0")}` })) };
+    const records = [1, 2, 3, 4, 4, 6].map((week, index) => ({ id: `r${index}`, student_id: "a", track: "course",
+      week_number: week, session_number: 1, checked_in_at: null }));
+    const delivery = [1, 2, 3, 4, 5, 6].map((week) => ({ week_number: week, status: "completed", status_2: "upcoming", status_3: "upcoming" }));
+    const result = calculateMvpCoursePerformance(longTrack, ["a", "a"], records, delivery,
+      new Date("2026-10-05T23:00:00Z"), "p:course", { kind: "cohort", attendanceThreshold: 80, submissionsRequired: false });
+    expect(result.attendanceQualified).toBe(1);
+    expect(result.active).toBe(1);
+  });
+  it("keeps required-work eligibility unknown even when attendance qualifies", () => {
+    const result = calculateMvpCoursePerformance(track, ["a"], [{ id: "r", student_id: "a", track: "course",
+      week_number: 1, session_number: 1, checked_in_at: null }],
+      [{ week_number: 1, status: "completed", status_2: "upcoming", status_3: "upcoming" }], asOf, "p:course",
+      { kind: "cohort", attendanceThreshold: 80, submissionsRequired: true });
+    expect(result.attendanceQualified).toBe(1);
+    expect(result.active).toBeNull();
+    expect(result.activeUnavailableReason).toContain("submission");
+  });
+  it("does not infer an active policy from attendance alone", () => {
+    const result = calculateMvpCoursePerformance(track, ["a"], [], [], asOf);
+    expect(result.attendanceQualified).toBeNull();
+    expect(result.active).toBeNull();
+    expect(result.activeUnavailableReason).toContain("not configured");
+  });
   it("maps kickoff and first teaching session but never the exam", () => {
     expect(getMvpStartSlots(track)?.map((slot) => slot.weekNumber)).toEqual([0, 1]);
   });

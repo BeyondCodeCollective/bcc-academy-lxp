@@ -1,4 +1,17 @@
 import "server-only";
+import { loadMvpEvents } from "./event-queries";
+import { calculateMvpGeography, type MvpGeographyProfile } from "./geography";
+import { calculateMvpAssessment, calculateMvpVideoProgress } from "./learning-metrics";
+import { buildMvpAdditionalSignals, getMvpSignalPolicy } from "./check-in-signals";
+import { loadMvpSignalEvidence } from "./check-in-signal-queries";
+import { calculateMvpProgramSummaries, type MvpProgramSummaryInput } from "./program-summary";
+import { loadMvpAttendanceReviews } from "./attendance-review-queries";
+import { calculateMvpSessionsRemaining } from "./sessions-remaining";
+import { calculateMvpLocations } from "./location-summary";
+import { getMvpOfferingActiveConfig, toMvpActiveRule } from "./active-config";
+import { loadMvpSubmissions } from "./submission-queries";
+import { evaluateMvpRequiredWork } from "./required-work";
+import { parseMvpDateWindow, matchesMvpDateWindow } from "./date-window";
 import { calculateMvpAges } from "./demographics";
 import { calculateMvpIncome, type MvpIncomeResponse } from "./household-income";
 import { loadMvpIncome } from "./income-queries";
@@ -9,6 +22,8 @@ import { allowedProgramIds, allowedTrackSlugs, effectiveRoleInProgram, type Prog
 import { canViewMvp } from "@/lib/roles";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getEveryProgramConfig, getHomeProgramForTrack } from "@/lib/programs";
+import { resolveScopeTrackSlugs } from "@/lib/programs/scope";
+import { parseMvpLearnerFilter, selectMvpLearners } from "./learner-filter";
 import type { MvpDashboardData, MvpProgramRow } from "./types";
 import type { MvpAttendanceRecord } from "./milestones";
 import type { MvpScheduleInput } from "./schedule";
@@ -19,13 +34,13 @@ import { calculateMvpCompletionSummary, type MvpOfferingCompletions } from "./co
 import { resolveMvpLifecycle, countMvpUpcomingEnrollments } from "./lifecycle";
 import { loadMvpSurveyOutcomes, type MvpSurveyOutcomeGroup } from "./survey-queries";
 
-// This data slice accepts program/course/profile-location filters. Unsupported
+// This data slice accepts program/course/profile-location/date filters. Unsupported
 // filters are rejected instead of labeling unfiltered results as filtered.
 // Birth dates and household income are sensitive and nothing renders them yet,
 // so they are read only when a caller asks for the demographic summaries.
 export async function getMvpDashboardData(
   params: Record<string, string | string[] | undefined>,
-  { includeDemographics = false }: { includeDemographics?: boolean } = {},
+  { includeDemographics = false, includeLocations = false, includeEvents = false }: { includeDemographics?: boolean; includeLocations?: boolean; includeEvents?: boolean } = {},
 ): Promise<MvpDashboardData> {
   const context = await getSessionContext();
   const role = context?.student?.role ?? "student";
@@ -43,11 +58,11 @@ export async function getMvpDashboardData(
   // not a verified city. Match trimmed text exactly, without geocoding guesses.
   const location = selection("city")?.trim() || null;
   const availableLocations = new Set<string>();
+  const learnerLocations: Array<{ id: string; location: string | null }> = [];
+  const geographyProfiles: MvpGeographyProfile[] = [];
   const demographicLearners = new Map<string, { id: string; dateOfBirth: string | null }>();
-  if (selection("startDate") || selection("endDate") ||
-      (selection("learnerStatus") && selection("learnerStatus") !== "all")) {
-    throw new Error("Only program and course filters are connected yet.");
-  }
+  const dateWindow = parseMvpDateWindow(selection("startDate"), selection("endDate"));
+  const learnerStatus = parseMvpLearnerFilter(selection("learnerStatus"));
 
 // These loaders are private to this module. Call them only after the
 // existing permission checks resolve the user's accessible course rows.
@@ -72,9 +87,7 @@ async function loadMvpLearnerIds(
   while (true) {
     let query = db
       .from("student_tracks")
-      .select(includeDemographics
-        ? "id, student_id, students!inner(id, location, date_of_birth)"
-        : "id, student_id, students!inner(id, location)")
+      .select(`id, student_id, students!inner(id, location${includeDemographics ? ", date_of_birth" : ""}${includeDemographics || includeLocations ? ", zip, state" : ""})`)
       .eq("track_slug", courseSlug)
       .eq("program_id", courseProgramId)
       .eq("students.role", "student")
@@ -93,18 +106,22 @@ async function loadMvpLearnerIds(
 
     const { data, error } = await query;
 
-    if (error) {
+    if (error || !Array.isArray(data)) {
       throw new Error("Unable to load the complete learner roster.");
     }
 
     if (!data || data.length === 0) break;
 
     for (const enrollment of data) {
-      const embedded = enrollment.students as unknown as { location?: unknown; date_of_birth?: unknown } | { location?: unknown; date_of_birth?: unknown }[];
+      type Profile = { location?: unknown; date_of_birth?: unknown; zip?: unknown; state?: unknown };
+      const embedded = enrollment.students as unknown as Profile | Profile[];
       const profile = Array.isArray(embedded) ? embedded[0] : embedded;
       const learnerLocation = typeof profile?.location === "string" ? profile.location.trim() : "";
       if (learnerLocation) availableLocations.add(learnerLocation);
       if (!location || learnerLocation === location) {
+        if (includeDemographics || includeLocations) learnerLocations.push({ id: enrollment.student_id, location: learnerLocation || null });
+        if (includeDemographics || includeLocations) geographyProfiles.push({ id: enrollment.student_id, location: learnerLocation || null,
+          zip: typeof profile?.zip === "string" ? profile.zip : null, state: typeof profile?.state === "string" ? profile.state : null });
         learnerIds.add(enrollment.student_id);
         if (includeDemographics) demographicLearners.set(enrollment.student_id, { id: enrollment.student_id,
           dateOfBirth: typeof profile?.date_of_birth === "string" ? profile.date_of_birth : null });
@@ -113,7 +130,7 @@ async function loadMvpLearnerIds(
 
     const nextCursor = data[data.length - 1].id;
 
-    if (nextCursor === cursor) {
+    if (!nextCursor || (cursor !== null && nextCursor <= cursor)) {
       throw new Error("Learner roster pagination did not advance.");
     }
 
@@ -123,13 +140,13 @@ async function loadMvpLearnerIds(
   return [...learnerIds];
 }
 
-// Attendance queries are restricted to the selected course and its
-// eligible learner IDs. Small ID batches avoid oversized request URLs.
+// Activity program stamps can be stale. The selected course is checked
+// against resolveScopeTrackSlugs, then attendance is limited to its program-
+// scoped roster. Small ID batches avoid oversized request URLs.
 // Database failures throw instead of being presented as zero attendance.
 async function loadMvpAttendance(
   db: MvpDatabase,
   courseSlug: string,
-  courseProgramId: string,
   learnerIds: string[],
 ): Promise<MvpAttendanceRecord[]> {
   const records: MvpAttendanceRecord[] = [];
@@ -145,7 +162,6 @@ async function loadMvpAttendance(
           "id, student_id, track, week_number, session_number, checked_in_at",
         )
         .eq("track", courseSlug)
-        .eq("program_id", courseProgramId)
         .in("student_id", batch)
         .order("id", { ascending: true })
         .limit(500);
@@ -157,7 +173,7 @@ async function loadMvpAttendance(
       const { data, error } =
         await query.returns<MvpAttendanceRecord[]>();
 
-      if (error) {
+      if (error || !Array.isArray(data)) {
         throw new Error("Unable to load complete attendance records.");
       }
 
@@ -167,7 +183,7 @@ async function loadMvpAttendance(
 
       const nextCursor = data[data.length - 1].id;
 
-      if (nextCursor === cursor) {
+      if (!nextCursor || (cursor !== null && nextCursor <= cursor)) {
         throw new Error("Attendance pagination did not advance.");
       }
 
@@ -186,7 +202,7 @@ async function loadMvpCourseRecords(
   courseProgramId: string,
 ): Promise<MvpCourseRecords> {
   const learnerIds = await loadMvpLearnerIds(db, courseSlug, courseProgramId);
-  const attendance = await loadMvpAttendance(db, courseSlug, courseProgramId, learnerIds);
+  const attendance = await loadMvpAttendance(db, courseSlug, learnerIds);
 
   return { learnerIds, attendance };
 }
@@ -273,45 +289,33 @@ async function loadMvpCourseRecords(
     throw new Error("The selected course is unavailable.");
   }
 
-  // Exact server counts avoid API row-limit truncation. Enrollment membership
-  // uses globally unique course slugs and the canonical learner exclusions.
-  const selectedRows = rows.filter((row) =>
+  // Select authorized offerings before applying date overlap. Rosters remain
+  // scoped by program/course pairs with canonical learner exclusions.
+  const candidateRows = rows.filter((row) =>
     (!programId || row.programId === programId) && (!courseSlug || row.courseSlug === courseSlug),
   );
 
-  // Load records only for authorized, selected offerings. Cache by course
-// so the same course does not trigger repeated database requests.
+  // Load records only for authorized, selected offerings. Cache by program
+// and course so separate program rosters never share an entry.
 const courseRecords = new Map<string, MvpCourseRecords>();
 const offeringStarts: MvpOfferingStarts[] = [];
 const offeringCompletions: MvpOfferingCompletions[] = [];
+const programSummaryInputs: MvpProgramSummaryInput[] = [];
 const completionReasons = new Set<string>();
+const activeReasons = new Set<string>();
 const checkInEvaluations: import("./check-ins").MvpCheckInEvaluation[] = [];
 const surveyOutcomes: MvpSurveyOutcomeGroup[] = [];
+const selectedRows: MvpProgramRow[] = [];
+let undatedExcluded = 0;
+let statusUnknownExcluded = 0;
+const activityScopes = new Map<string, string[]>();
 
-for (const row of selectedRows) {
+for (const row of candidateRows) {
   if (!row.courseSlug) {
     offeringStarts.push({ programId: row.programId, startedLearnerIds: null });
     offeringCompletions.push({ programId: row.programId, completedLearnerIds: null });
     continue;
   }
-
-  // student_tracks is program-scoped, and one slug can be offered by two
-  // programs, so the roster (and its cache entry) is per program and course.
-  const recordsKey = `${row.programId}:${row.courseSlug}`;
-  let records = courseRecords.get(recordsKey);
-
-  if (!records) {
-    records = await loadMvpCourseRecords(db, row.courseSlug, row.programId);
-    courseRecords.set(recordsKey, records);
-  }
-
-  row.totalParticipants = records.learnerIds.length;
-  const program = programs.find((item) => item.id === row.programId)!;
-  surveyOutcomes.push(await loadMvpSurveyOutcomes(db, {
-    programRowId: row.id, programId: row.programId, programSlug: program.slug,
-    courseSlug: row.courseSlug, learnerIds: records.learnerIds,
-    surveys: configs.find((config) => config.slug === program.slug)?.surveys ?? [],
-  }));
 
   // Resolve the canonical course owner's overrides, including shared courses.
   // Missing required builder settings remain unknown instead of using defaults.
@@ -348,6 +352,29 @@ for (const row of selectedRows) {
     selfPaced: o?.self_paced ?? base?.selfPaced,
   } : null;
 
+  // Apply the approved overlap rule before loading any learner evidence so
+  // every aggregate and location option describes the same selected offerings.
+  const overlap = matchesMvpDateWindow(resolveMvpLifecycle(track, asOf, false), dateWindow);
+  if (overlap !== true) {
+    if (overlap === null) undatedExcluded++;
+    continue;
+  }
+  selectedRows.push(row);
+  const program = programs.find((item) => item.id === row.programId)!;
+  let activitySlugs = activityScopes.get(program.id);
+  if (!activitySlugs) {
+    activitySlugs = await resolveScopeTrackSlugs({ ids: [program.id], slugs: [program.slug] });
+    activityScopes.set(program.id, activitySlugs);
+  }
+  if (!activitySlugs.includes(row.courseSlug)) throw new Error("Unable to establish the course activity scope.");
+  const recordsKey = `${row.programId}:${row.courseSlug}`;
+  let records = courseRecords.get(recordsKey);
+  if (!records) {
+    records = await loadMvpCourseRecords(db, row.courseSlug, row.programId);
+    courseRecords.set(recordsKey, records);
+  }
+  row.totalParticipants = records.learnerIds.length;
+
   // Session content is paginated as well as attendance. No delivery metadata
   // means no verified attendance denominator, rather than zero attendance.
   const delivery: MvpSessionDelivery[] = [];
@@ -355,15 +382,76 @@ for (const row of selectedRows) {
   while (true) {
     let request = db.from("session_content")
       .select("id, week_number, status, status_2, status_3")
-      .eq("track", row.courseSlug).eq("program_id", row.programId).order("id").limit(500);
+      .eq("track", row.courseSlug).order("id").limit(500);
     if (deliveryCursor) request = request.gt("id", deliveryCursor);
     const result = await request;
-    if (result.error) throw new Error("Unable to verify delivered course sessions.");
-    if (!result.data?.length) break;
+    if (result.error || !Array.isArray(result.data)) throw new Error("Unable to verify delivered course sessions.");
+    if (!result.data.length) break;
+    const nextCursor: string = result.data[result.data.length - 1].id;
+    if (!nextCursor || (deliveryCursor !== null && nextCursor <= deliveryCursor)) {
+      throw new Error("Delivered-session pagination did not advance.");
+    }
     delivery.push(...result.data);
-    deliveryCursor = result.data[result.data.length - 1].id;
+    deliveryCursor = nextCursor;
   }
-  const performance = calculateMvpCoursePerformance(track, records.learnerIds, records.attendance, delivery, asOf, row.id);
+  // Read submission metadata only for offerings with confirmed requirements.
+  // Date filters select offerings, never truncate their submission history.
+  const activeConfig = getMvpOfferingActiveConfig(program.slug, row.courseSlug);
+  const activeRule = toMvpActiveRule(activeConfig);
+  const requiredWork = new Map<string, boolean | null>();
+  let submissions: Awaited<ReturnType<typeof loadMvpSubmissions>> = [];
+  if (activeConfig?.kind === "cohort" && activeConfig.requiredAssignments !== null) {
+    submissions = activeConfig.requiredAssignments.length
+      ? await loadMvpSubmissions(db, row.courseSlug, records.learnerIds) : [];
+    for (const learnerId of records.learnerIds) {
+      requiredWork.set(learnerId, evaluateMvpRequiredWork(activeConfig, learnerId, submissions, asOf));
+    }
+  }
+  // Evaluate membership against the full scoped roster first, then recompute
+  // every learner-derived result using only matching learners in this offering.
+  const verification = { programId: row.programId,
+    reviews: await loadMvpAttendanceReviews(db, row.programId, row.courseSlug, records.learnerIds) };
+  const configuredSignals = getMvpSignalPolicy(program.slug, row.courseSlug);
+  // Video checkpoints are valid only for explicitly self-paced offerings.
+  const signalPolicy = configuredSignals && !track?.selfPaced ? { ...configuredSignals, progress: undefined } : configuredSignals;
+  const signalEvidence = await loadMvpSignalEvidence(db, row.courseSlug, records.learnerIds, signalPolicy, track?.selfPaced === true);
+  const additionalSignals = new Map(records.learnerIds.map(learnerId => [learnerId,
+    buildMvpAdditionalSignals({ learnerId, courseSlug: row.courseSlug!, asOf, activeConfig, submissions,
+      policy: signalPolicy, ...signalEvidence })]));
+  const fullPerformance = calculateMvpCoursePerformance(track, records.learnerIds, records.attendance, delivery, asOf, row.id, activeRule, requiredWork, verification, additionalSignals);
+  const fullCompletion = calculateMvpCompletion(track, records.learnerIds, records.attendance, delivery, asOf);
+  const fullLifecycle = resolveMvpLifecycle(track, asOf, fullCompletion.completed !== null);
+  const membership = selectMvpLearners(learnerStatus, records.learnerIds, {
+    active: fullPerformance.activeByLearner,
+    started: fullPerformance.startedLearnerIds,
+    completed: fullCompletion.completedLearnerIds,
+    upcoming: fullLifecycle.status === "unknown" ? null : fullLifecycle.status === "starting_soon",
+    checkIns: fullPerformance.checkIns.evaluations,
+  });
+  statusUnknownExcluded += membership.unknownCount;
+  records = { ...records, learnerIds: membership.ids };
+  courseRecords.set(recordsKey, records);
+  row.totalParticipants = records.learnerIds.length;
+  const courseSurveys = await loadMvpSurveyOutcomes(db, {
+    programRowId: row.id, programId: row.programId, programSlug: program.slug,
+    courseSlug: row.courseSlug, learnerIds: records.learnerIds,
+    surveys: configs.find((config) => config.slug === program.slug)?.surveys ?? [], asOf,
+  });
+  surveyOutcomes.push(courseSurveys);
+  row.surveyResponseRate = courseSurveys.anySurveyResponseRate ?? null;
+  row.surveyParticipation = courseSurveys.participation ?? [];
+  row.assessmentSummary = calculateMvpAssessment(records.learnerIds, signalPolicy?.assessment?.examId ?? null, signalEvidence.exams, asOf);
+  row.assessmentAveragePercent = row.assessmentSummary.averagePercent;
+  row.videoProgress = calculateMvpVideoProgress(records.learnerIds, row.courseSlug,
+    signalPolicy?.progress?.requiredWeeks ?? null, signalEvidence.videos, asOf);
+  row.progressRate = row.videoProgress.percent;
+  const performance = calculateMvpCoursePerformance(track, records.learnerIds, records.attendance, delivery, asOf, row.id, activeRule, requiredWork, verification, additionalSignals);
+  const remaining = calculateMvpSessionsRemaining(track, delivery, asOf);
+  row.sessionsRemaining = remaining.remaining;
+  row.sessionsRemainingReason = remaining.unavailableReason;
+  row.attendanceQualified = performance.attendanceQualified;
+  row.active = performance.active;
+  if (performance.activeUnavailableReason) activeReasons.add(performance.activeUnavailableReason);
   checkInEvaluations.push(...performance.checkIns.evaluations);
   row.learnersNeedingCheckIn = performance.checkIns.learnersNeedingCheckIn;
   row.started = performance.started;
@@ -379,13 +467,16 @@ for (const row of selectedRows) {
   row.enrolledBeforeStart = lifecycle.status === "starting_soon" ? records.learnerIds.length : null;
   if (completion.unavailableReason) completionReasons.add(completion.unavailableReason);
   offeringStarts.push({ programId: row.programId, startedLearnerIds: performance.startedLearnerIds });
+  programSummaryInputs.push({ programId: row.programId, programName: row.programName, offeringId: row.id,
+    enrolledLearnerIds: records.learnerIds, startedLearnerIds: performance.startedLearnerIds,
+    completedLearnerIds: completion.completedLearnerIds });
 }
 
   const startSummary = calculateMvpStartSummary(offeringStarts);
   // Program-wide answers are not course outcomes. Only whole-program admins
   // may see them, and course-filtered requests omit them rather than mislabeling
   // unfiltered totals. Keep the response program stamp as an access boundary.
-  if (!courseSlug) {
+  if (!courseSlug && !dateWindow.start && !dateWindow.end) {
     for (const program of programs.filter((item) => !programId || item.id === programId)) {
       if (role !== "super_admin" && allowedTrackSlugs(homeId, mvpGrants, program.id) !== null) continue;
       const programRows = selectedRows.filter((row) => row.programId === program.id);
@@ -396,7 +487,7 @@ for (const row of selectedRows) {
       if (!surveys.some((survey) => !survey.appliesToTracks?.length && !survey.skipForTracks?.length)) continue;
       surveyOutcomes.push(await loadMvpSurveyOutcomes(db, {
         programRowId: `program:${program.id}`, programId: program.id, programSlug: program.slug,
-        courseSlug: null, learnerIds, surveys,
+        courseSlug: null, learnerIds, surveys, asOf,
       }));
     }
   }
@@ -410,11 +501,19 @@ for (const row of selectedRows) {
     incomeResponses.push(...await loadMvpIncome(db, id, ids));
   }
   const upcomingEnrollments = countMvpUpcomingEnrollments(selectedRows);
+  const selectedLearnerIds = new Set([...courseRecords.values()].flatMap((records) => records.learnerIds));
+  for (const id of demographicLearners.keys()) if (!selectedLearnerIds.has(id)) demographicLearners.delete(id);
+
+  // Events remain a separate, opt-in source; course-only grants never expand
+  // to program-wide event access and ticket counts never alter learner KPIs.
+  const events = includeEvents ? await loadMvpEvents(db, programs.filter(program =>
+    (!programId || program.id === programId) && (role === "super_admin" || allowedTrackSlugs(homeId, mvpGrants, program.id) === null)
+  ).map(program => program.id), { programId, courseSlug, city: location, learnerStatus, startDate: dateWindow.start, endDate: dateWindow.end }, asOf) : undefined;
 
   return {
     scopeLabel: programId ? programs.find((program) => program.id === programId)!.name
       : role === "super_admin" ? "Organization overview" : "Your accessible programs",
-    appliedFilters: { programId, courseSlug, city: location, learnerStatus: "all", startDate: null, endDate: null },
+    appliedFilters: { programId, courseSlug, city: location, learnerStatus, startDate: dateWindow.start, endDate: dateWindow.end },
     filterOptions: {
       programs: programs.map(({ id, name }) => ({ id, name })),
       courses: rows.map((row) => ({ programId: row.programId, slug: row.courseSlug!, name: row.courseName! })),
@@ -424,10 +523,44 @@ for (const row of selectedRows) {
       ...startSummary, ...completionSummary, upcomingEnrollments,
     },
     programs: selectedRows, commitments: [], checkInEvaluations, surveyOutcomes,
+    ...(events && { events }),
+    ...((includeDemographics || includeLocations) && { geography: calculateMvpGeography(geographyProfiles.filter(profile => selectedLearnerIds.has(profile.id))) }),
+    programSummaries: calculateMvpProgramSummaries(programSummaryInputs),
+    historicalCoverage: {
+      status: "unavailable", allTimeUniqueLearnersStarted: null, allTimeUniqueLearnersCompleted: null,
+      reason: "Current rosters do not reconstruct removed enrollments. Alumni enrollments do not establish verified starts or completions.",
+    },
+    cohortCoverage: { status: "unavailable",
+      reason: "Course activity is not linked to historical cohort membership; profile cohort assignments cannot establish cohort-specific results." },
+    ...((includeDemographics || includeLocations) && { locations: calculateMvpLocations(learnerLocations.filter((learner) => selectedLearnerIds.has(learner.id))) }),
     ...(includeDemographics && { demographics: [calculateMvpAges([...demographicLearners.values()], asOf),
       calculateMvpIncome([...demographicLearners.keys()], incomeResponses)] }),
     freshness: { fetchedAt: new Date().toISOString(), sourceUpdatedAt: null, lastValidatedAt: null, lastValidatedBy: null },
     metricDefinitions: [
+      { key: "progressRate", label: "Configured required-video progress", denominator: "Selected learners × configured required video weeks",
+        definition: "Recorded watched learner/week pairs divided by configured required-video opportunities. This is not overall course completion or attendance.",
+        unavailableReason: selectedRows.some(row => row.progressRate === null) ? "A self-paced required-video mapping and valid progress records are needed." : null },
+      { key: "assessmentAveragePercent", label: "Latest mapped assessment average", denominator: "Learners with a valid latest completed mapped attempt",
+        definition: "Mean of learner percentages on the mapped assessment; one latest completed attempt per learner. Missing or invalid attempts are excluded; coverage counts accompany each offering.",
+        unavailableReason: selectedRows.some(row => row.assessmentAveragePercent == null) ? "A mapped assessment and valid completed attempts are needed." : null },
+      { key: "surveyResponseRate", label: "Responded to any mapped course survey", denominator: "Selected eligible current learners",
+        definition: "Distinct selected learners completing at least one explicitly course-mapped survey divided by the selected roster. This does not mean all surveys completed; per-survey rates are supplied separately.",
+        unavailableReason: selectedRows.some(row => row.surveyResponseRate === null) ? "No explicitly mapped survey or no eligible learners." : null },
+      { key: "sessionsRemaining", label: "Required sessions remaining", denominator: "Complete required teaching schedule",
+        definition: "Required sessions not yet verified as delivered, including overdue sessions. Optional extras and future completed flags do not reduce the count.",
+        unavailableReason: selectedRows.some((row) => row.sessionsRemaining == null) ? "Some offerings lack complete schedules or verified delivery status." : null },
+      { key: "learnerStatus", label: "Learner status selection", denominator: null,
+        definition: "Status is evaluated within each offering. Results include only verified matches and use their full-offering evidence. Enrolled before start means current enrollment in a future offering; it does not reconstruct historical enrollment dates. Statuses may overlap.",
+        unavailableReason: statusUnknownExcluded ? `${statusUnknownExcluded} learner/offering participation(s) excluded because the selected status cannot be verified. These learners are not classified as inactive; zero matches does not mean nobody qualifies.` : null },
+      { key: "attendanceQualified", label: "Meets 80% attendance", denominator: "Required sessions verified as held so far",
+        definition: "Current learners with recorded attendance at 80% or more of required sessions verified as held so far, across the selected offering—not only the filter dates. This is the attendance criterion only, not full active status. Future sessions, optional extras, and duplicate check-ins do not add credit.",
+        unavailableReason: selectedRows.some((row) => row.attendanceQualified == null) ? "Some offerings have no verified held-session denominator." : null },
+      { key: "active", label: "Active learners", denominator: null,
+        definition: "Uses the configured offering rule. Required submissions and incomplete attendance evidence must be resolved before reporting a complete active count; no partial totals are shown.",
+        unavailableReason: activeReasons.size ? [...activeReasons].join(" ") : null },
+      { key: "dateWindow", label: "Selected program dates", denominator: null,
+        definition: "Dates select overlapping course offerings. Results cover each selected offering in full, using evidence available now—not only activity during the selected dates. Program-wide surveys are omitted when dates are selected because they cannot be attributed to a dated offering.",
+        unavailableReason: undatedExcluded ? `${undatedExcluded} offering(s) excluded because their schedule cannot establish date overlap.` : null },
       { key: "uniqueLearnersCompleted", label: "Learners with a course completion", denominator: null,
         definition: "Distinct current learners with at least one verified attendance-based course completion across the selected accessible courses. This is not graduation from an entire program or an all-time historical count.",
         unavailableReason: completionSummary.uniqueLearnersCompleted === null ? "At least one selected course cannot yet be evaluated for completion; partial totals are not shown." : null },
@@ -440,8 +573,8 @@ for (const row of selectedRows) {
       { key: "upcomingEnrollments", label: "Upcoming enrollments", denominator: null,
         definition: "Current enrollment counts across selected future courses; repeat learners may count in multiple courses. No enrollment target comparison is implied.",
         unavailableReason: upcomingEnrollments === null ? "Some selected courses lack lifecycle or enrollment information; partial totals are not shown." : null },
-      { key: "learnersNeedingCheckIn", label: "Missed-session check-ins", denominator: null,
-        definition: "Evaluates the two-missed-sessions rule over explicitly completed required sessions for the current roster. Other check-in rules are not connected. Missing check-ins alone do not confirm absence.",
+      { key: "learnersNeedingCheckIn", label: "Learners needing a check-in", denominator: null,
+        definition: "Evaluates verified missed sessions and configured overdue mandatory work, assessment cutoffs and self-paced video checkpoints. Only mapped rules are evaluated; missing attendance alone does not confirm absence.",
         unavailableReason: checkInEvaluations.some((item) => item.checkInStatus === "not_evaluated")
           ? "Some learners require verified absence/eligibility information before this count can be calculated." : null },
       { key: "completed", label: "Course completions", denominator: null,

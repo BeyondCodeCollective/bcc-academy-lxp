@@ -17,6 +17,8 @@ type SortKey =
   | "endDate"
   | "totalParticipants"
   | "started"
+  | "attendanceQualified"
+  | "active"
   | "completed"
   | "attendanceRate"
   | "completionRate"
@@ -43,6 +45,8 @@ const COLUMNS: Array<{
   { key: "endDate", label: "End date" },
   { key: "totalParticipants", label: "Participants", numeric: true },
   { key: "started", label: "Started", numeric: true },
+  { key: "attendanceQualified", label: "Meets 80% attendance", numeric: true },
+  { key: "active", label: "Active learners", numeric: true },
   { key: "completed", label: "Completed", numeric: true },
   { key: "attendanceRate", label: "Attendance", numeric: true },
   { key: "completionRate", label: "Completion", numeric: true },
@@ -102,10 +106,6 @@ export function ProgramTable({
           Program performance
         </h2>
 
-        <p id={`${id}-description`} className="mt-2 text-sm text-ink-soft">
-          Each row represents a program offering. Select a column heading
-          to sort. A dash means the measurement is unavailable.
-        </p>
       </header>
 
       <div
@@ -117,7 +117,6 @@ export function ProgramTable({
                    focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
         <table
-          aria-describedby={`${id}-description`}
           className="w-full border-collapse text-left text-sm"
         >
           <caption className="sr-only">
@@ -223,6 +222,8 @@ export function ProgramTable({
 
                   <NumberCell value={program.totalParticipants} />
                   <NumberCell value={program.started} />
+                  <NumberCell value={program.attendanceQualified ?? null} />
+                  <NumberCell value={program.active} />
                   <NumberCell value={program.completed} />
                   <NumberCell value={program.attendanceRate} percentage />
                   <NumberCell value={program.completionRate} percentage />
@@ -272,7 +273,7 @@ function getSortValue(
       : STATUS_LABELS[program.status];
   }
 
-  return program[key];
+  return program[key] ?? null;
 }
 
 // Percentages use the shared 0–100 convention. Zero remains visible,

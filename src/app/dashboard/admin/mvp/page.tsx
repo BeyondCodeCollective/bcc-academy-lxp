@@ -3,6 +3,7 @@ import { getSessionContext } from "@/lib/auth/session";
 import { canViewMvp } from "@/lib/roles";
 import { AdminTopTabs } from "../admin-top-tabs";  
 import { MvpDashboard } from "./mvp-dashboard";
+import { MvpHeader } from "./mvp-components/mvp-header";
 import { getMvpDashboardData } from "@/lib/mvp/queries";
 
 export default async function MvpDashboardPage({ searchParams }: {
@@ -23,17 +24,14 @@ export default async function MvpDashboardPage({ searchParams }: {
         redirect("/dashboard");
     }
     const data = await getMvpDashboardData(await searchParams);
+    // Use applied dates, not unsaved filter selections, to describe the results.
+    const { startDate, endDate } = data.appliedFilters;
+    const dateRangeLabel = startDate && endDate ? `${startDate} through ${endDate}`
+        : startDate ? `From ${startDate}` : endDate ? `Through ${endDate}` : "All available history";
     return (
         <main className="mx-auto w-full max-w-7xl px-6 py-8">
             <AdminTopTabs current="mvp" showInsights isManager/>
-            <header className="mt-8 mb-8">
-                <h1 className="mt-2 text-3xl font-semibold text-ink">
-                    Program and Learner Performance
-                </h1>
-                <p className="mt-2 max-w-3xl font-semibold text-ink">
-                Track and analyze the performance of your programs and learners.
-                </p>
-            </header>
+            <MvpHeader dateRangeLabel={dateRangeLabel} freshness={data.freshness} />
             <MvpDashboard key={JSON.stringify(data.appliedFilters)} data={data} />
         </main>
     );
