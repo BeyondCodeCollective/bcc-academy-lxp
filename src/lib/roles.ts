@@ -30,7 +30,7 @@ const ROLE_CAPABILITIES: Record<Capability, Role[]> = {
   switch_programs:    ["super_admin"],
 
   // The MVP is the performance dashboard, which is a new feature.
-  mvp_performance:   ["admin", "super_admin"],
+  mvp_performance:   ["super_admin"],
 };
 
 export function hasCapability(role: string, capability: Capability): boolean {
@@ -56,7 +56,7 @@ export function canSwitchPrograms(role: string): boolean {
 }
 
 // Building MVP: the performance dashboard is a new feature, so we don't yet have a
-// role for it. For now, only admins and super-admins can see it, but we may
+// role for it. While it is being built only super-admins can see it, but we may
 // create a new role later (e.g. "performance_analyst") and add it to the list.
 export function canViewMvp(role: string): boolean {
   return hasCapability(role, "mvp_performance");

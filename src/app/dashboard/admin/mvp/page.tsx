@@ -17,7 +17,7 @@ export default async function MvpDashboardPage({ searchParams }: {
 
     const role = context?.student?.role ?? "student";
 
-    // Only admins and super-admins can view the MVP dashboard. 
+    // Only super-admins can view the MVP dashboard while it is being built. 
     // If the user doesn't have permission, redirect to the dashboard home page.
     if (!canViewMvp(role)) {
         redirect("/dashboard");
