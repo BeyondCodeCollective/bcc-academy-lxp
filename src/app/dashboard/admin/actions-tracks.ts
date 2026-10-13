@@ -267,9 +267,24 @@ export async function getSessionContent(
   // the program. getSessionContext() is the React-cached session — no extra
   // round-trip for the legit callers, who are already authenticated.
   if (!(await getSessionContext())) return null;
-  const { getProgramId } = await import("@/lib/programs/server");
-  const programId = await getProgramId();
+  const { getProgramId, resolveTrackProgram } = await import("@/lib/programs/server");
   const svc = createServiceClient();
+  // Read from the program that OWNS the course, not the one being browsed:
+  // content is saved under the course's own program, so reading by the
+  // browsing program returned nothing (empty Materials tab) whenever a
+  // learner or admin viewed a course from another program's host.
+  const ownerSlug = (await resolveTrackProgram(track))?.program.slug;
+  let programId: string;
+  if (ownerSlug) {
+    const { data: owner } = await svc
+      .from("programs")
+      .select("id")
+      .eq("slug", ownerSlug)
+      .maybeSingle();
+    programId = owner?.id ?? (await getProgramId());
+  } else {
+    programId = await getProgramId();
+  }
 
   const { data, error } = await svc
     .from("session_content")
