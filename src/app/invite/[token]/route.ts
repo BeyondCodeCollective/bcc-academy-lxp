@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { createServiceClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 
 /**
  * GET /invite/<token>
@@ -26,6 +26,20 @@ export async function GET(
     .maybeSingle();
 
   if (!invite) return fail;
+
+  // Someone already signed in as a different person must not be silently
+  // switched to the invitee (a staff member testing a forwarded link would
+  // end up in the learner's account). Show a notice instead, before anything
+  // below creates a user, mints a link, or marks the invite used.
+  const {
+    data: { user: current },
+  } = await (await createClient()).auth.getUser();
+  if (
+    current?.email &&
+    current.email.toLowerCase() !== invite.email.toLowerCase()
+  ) {
+    return NextResponse.redirect(new URL("/login?error=invite-mismatch", origin));
+  }
 
   const callbackUrl = new URL(`${origin}/auth/callback`);
   callbackUrl.searchParams.set("join", invite.program_slug);
