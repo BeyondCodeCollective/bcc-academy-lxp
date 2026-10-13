@@ -50,6 +50,21 @@ function Notice() {
     );
   }
 
+  // /invite/<token> belongs to a specific person and signs in as them. Someone
+  // already signed in as a different account is stopped here rather than
+  // switched, so a forwarded or test click can't land in the invitee's account.
+  if (error === "invite-mismatch") {
+    return (
+      <div role="alert" className="mb-6 rounded-lg border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
+        <p className="font-semibold mb-1">This link is for a different account.</p>
+        <p>
+          You&apos;re already signed in as someone else, so we didn&apos;t switch
+          you. To use this link, sign out first or open it in a private window.
+        </p>
+      </div>
+    );
+  }
+
   if (error !== "invite") return null;
   return (
     <div role="alert" className="mb-6 rounded-lg border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
