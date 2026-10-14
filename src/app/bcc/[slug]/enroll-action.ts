@@ -87,7 +87,10 @@ export async function enrollInCourse(input: {
     let inviteToken: string | null = null;
     const enrolls = !!page.trackSlug && !page.comingSoon;
     if (enrolls && page.trackSlug) {
-      const enrolled = await enrollEmailInTrack(email, page.trackSlug);
+      // Enroll into the chosen session's own course when it has one; the
+      // signup row below still records the page's track so the admin roster
+      // keeps grouping every date under one course.
+      const enrolled = await enrollEmailInTrack(email, session?.trackSlug || page.trackSlug);
       inviteToken = enrolled.inviteToken;
 
       if (!existing) {
