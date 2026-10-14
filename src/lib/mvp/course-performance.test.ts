@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { calculateMvpCoursePerformance, getMvpStartSlots } from "./course-performance";
 import type { MvpScheduleInput } from "./schedule";
+import type { MvpAttendanceReview } from "./attendance-verification";
 
 // A session-based course has a kickoff, two teaching sessions, and an exam.
 const track: NonNullable<MvpScheduleInput["track"]> = {
@@ -16,7 +17,70 @@ const track: NonNullable<MvpScheduleInput["track"]> = {
 };
 const asOf = new Date("2026-10-03T18:00:00Z");
 
+// Reviewed evidence is synthetic and never written to a database.
+const reviewed: MvpAttendanceReview = { id: "review", revision: 1, program_id: "p", track_slug: "course",
+  student_id: "a", week_number: 1, session_number: 1, session_held_at: "2026-10-02T12:00:00Z",
+  eligibility: "eligible", eligibility_basis: "Session roster", outcome: "absent", recorded_by: "staff",
+  recorded_at: "2026-10-02T15:00:00Z" };
+const delivered = [{ week_number: 1, status: "completed", status_2: "upcoming", status_3: "upcoming" }];
+const cohortRule = { kind: "cohort" as const, attendanceThreshold: 80, submissionsRequired: false };
+function withReviews(reviews: MvpAttendanceReview[]) {
+  return calculateMvpCoursePerformance(track, ["a"], [], delivered, asOf, "p:course", cohortRule,
+    new Map(), { programId: "p", reviews });
+}
+
 describe("course performance integration", () => {
+  it("keeps recorded attendance distinct from reviewed active eligibility", () => {
+    const present = withReviews([{ ...reviewed, outcome: "present" }]);
+    expect(present).toMatchObject({ active: 1, attendanceQualified: 0, attendanceRate: 0 });
+    const absent = withReviews([reviewed]);
+    expect(absent).toMatchObject({ active: 0, attendanceQualified: 0, attendanceRate: 0 });
+    expect(withReviews([])).toMatchObject({ active: null, attendanceQualified: 0, attendanceRate: 0 });
+  });
+  it("uses finalized absence to establish inactive rather than unknown", () => {
+    expect(withReviews([]).active).toBeNull();
+    expect(withReviews([reviewed]).activeByLearner.get("a")).toBe(false);
+    expect(withReviews([reviewed]).active).toBe(0);
+  });
+  it("uses reviewed presence and the latest correction without requiring a check-in", () => {
+    const correction = { ...reviewed, id: "correction", revision: 2, outcome: "present" as const };
+    expect(withReviews([reviewed, correction]).active).toBe(1);
+    expect(withReviews([correction, reviewed]).active).toBe(1);
+    expect(withReviews([reviewed, { ...correction, outcome: "unknown" }]).active).toBeNull();
+    expect(withReviews([reviewed, { ...correction, recorded_at: "2026-10-04T00:00:00Z" }]).active).toBe(0);
+  });
+  it.each([
+    { program_id: "other" }, { student_id: "other" }, { track_slug: "other" },
+    { recorded_by: "" }, { recorded_at: "invalid" }, { eligibility_basis: null },
+    { outcome: "excused" as const }, { eligibility: "not_eligible" as const, outcome: "unknown" as const },
+  ])("does not finalize active status from unrelated or unresolved evidence %j", overrides => {
+    expect(withReviews([{ ...reviewed, ...overrides }]).active).toBeNull();
+  });
+  it("rejects duplicate revisions, conflicting check-ins, and ambiguous delivery", () => {
+    expect(withReviews([reviewed, reviewed]).active).toBeNull();
+    const records = [{ id: "check-in", student_id: "a", track: "course", week_number: 1, session_number: 1, checked_in_at: null }];
+    expect(calculateMvpCoursePerformance(track, ["a"], records, delivered, asOf, "p:course", cohortRule,
+      new Map(), { programId: "p", reviews: [reviewed] }).active).toBeNull();
+    expect(calculateMvpCoursePerformance(track, ["a"], [], [...delivered, ...delivered], asOf, "p:course", cohortRule,
+      new Map(), { programId: "p", reviews: [reviewed] }).active).toBeNull();
+  });
+  it("requires complete review coverage and does not publish a partial roster count", () => {
+    expect(calculateMvpCoursePerformance(track, ["a", "b"], [], delivered, asOf, "p:course", cohortRule,
+      new Map(), { programId: "p", reviews: [reviewed] }).active).toBeNull();
+    const later = new Date("2026-10-07T18:00:00Z");
+    expect(calculateMvpCoursePerformance(track, ["a"], [], [...delivered, { ...delivered[0], week_number: 2 }], later,
+      "p:course", cohortRule, new Map(), { programId: "p", reviews: [reviewed] }).active).toBeNull();
+  });
+  it("keeps required work mandatory after reviewed presence and handles event attendance", () => {
+    const reviews = [{ ...reviewed, outcome: "present" as const }];
+    expect(calculateMvpCoursePerformance(track, ["a"], [], delivered, asOf, "p:course",
+      { ...cohortRule, submissionsRequired: true }, new Map(), { programId: "p", reviews }).active).toBeNull();
+    for (const outcome of ["present", "absent"] as const) {
+      expect(calculateMvpCoursePerformance(track, ["a"], [], delivered, asOf, "p:course",
+        { kind: "single_event" }, new Map(), { programId: "p", reviews: [{ ...reviewed, outcome }] }).active)
+        .toBe(outcome === "present" ? 1 : 0);
+    }
+  });
   it("counts 80% of held sessions, excluding future sessions and duplicate evidence", () => {
     const longTrack = { ...track, totalWeeks: 6, weekSummaries: Array.from({ length: 6 }, (_, index) =>
       ({ week: index + 1, date: `2026-10-${String(index + 1).padStart(2, "0")}` })) };

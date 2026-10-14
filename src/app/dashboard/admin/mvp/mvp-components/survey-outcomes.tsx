@@ -1,7 +1,7 @@
 import type { MvpDashboardData } from "@/lib/mvp/types";
 
 // Only aggregate outcomes cross into this component, never learner answers.
-type SurveyOutcomesProps = Pick<MvpDashboardData, "programs" | "surveyOutcomes">;
+type SurveyOutcomesProps = Pick<MvpDashboardData, "programs" | "surveyOutcomes"> & { heading?: string };
 
 // A fixed locale keeps server/client formatting consistent. Zero is a result;
 // unavailable values remain visibly distinct from no measured change.
@@ -12,14 +12,14 @@ function value(number: number | null, signed = false): string {
   }).format(number);
 }
 
-export function SurveyOutcomes({ programs, surveyOutcomes }: SurveyOutcomesProps) {
+export function SurveyOutcomes({ programs, surveyOutcomes, heading = "Survey outcomes" }: SurveyOutcomesProps) {
   const findRow = (group: NonNullable<MvpDashboardData["surveyOutcomes"]>[number]) =>
     programs.find((row) => group.scope === "program" ? row.programId === group.programId : row.id === group.programRowId);
   const visibleGroups = surveyOutcomes?.filter((group) => findRow(group)) ?? [];
   return (
     <section aria-labelledby="mvp-survey-outcomes" className="mt-8 space-y-4">
       <header>
-        <h2 id="mvp-survey-outcomes" className="text-xl font-semibold text-ink">Survey outcomes</h2>
+        <h2 id="mvp-survey-outcomes" className="text-xl font-semibold text-ink">{heading}</h2>
         <p className="mt-2 text-sm text-ink-soft">
           Learners’ self-reported before-and-now ratings, separated by program and course.
           Both averages use the same paired respondents’ latest completed survey.

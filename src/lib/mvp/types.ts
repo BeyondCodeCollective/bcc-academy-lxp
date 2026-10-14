@@ -58,6 +58,7 @@ export type MvpSummary = {
 // One performance row represents a specific program/course/cohort offering.
 // Stable row IDs keep separate cohorts from being combined accidentally.
 export type MvpProgramRow = {
+  linkedCohorts?: import("./cohort-queries").MvpLinkedCohort[];
   id: string;
   programId: string;
   programName: string;
@@ -217,6 +218,8 @@ export type MvpMetricDefinition = {
 // The overview receives scoped data and the applied filters together.
 // Program details can be loaded separately when a user opens a row.
 export type MvpDashboardData = {
+  staffReview?: ReturnType<typeof import("./staff-review").buildMvpStaffReview>;
+  overviewParticipation?: ReturnType<typeof import("./overview-participation").buildMvpOverviewParticipation>;
   events?: Awaited<ReturnType<typeof import("./event-queries").loadMvpEvents>>;
   geography?: ReturnType<typeof import("./geography").calculateMvpGeography>;
   programSummaries?: import("./program-summary").MvpProgramSummary[];

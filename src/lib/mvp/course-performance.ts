@@ -2,7 +2,7 @@ import { buildMvpSchedule, type MvpScheduleInput } from "./schedule";
 import { calculateAttendanceMilestone, type MvpAttendanceRecord, type MvpSessionSlot } from "./milestones";
 import { calculateMvpPercentage } from "./metrics";
 import { evaluateMvpCourseCheckIns } from "./check-ins";
-import type { MvpAttendanceReview } from "./attendance-verification";
+import { verifyMvpMissedSessions, type MvpAttendanceReview } from "./attendance-verification";
 import type { MvpAdditionalSignals } from "./check-in-signals";
 import { evaluateMvpActiveLearner, countMvpActiveLearners, type MvpActiveRule } from "./active-learners";
 
@@ -74,13 +74,28 @@ export function calculateMvpCoursePerformance(
   const attendanceQualified = schedule.heldRequiredSessions?.length
     ? milestones.filter((milestone) => (milestone.attendedRequiredSessions ?? 0) * 100 >=
       (milestone.heldRequiredSessions ?? 0) * 80).length : null;
-  const activeEvaluations = milestones.map((milestone, index) => evaluateMvpActiveLearner(activeRule, {
-    eventAttended: milestone.attendedRequiredSessions ? true : null,
-    attendedRequiredSessions: milestone.attendedRequiredSessions,
-    heldRequiredSessions: milestone.heldRequiredSessions,
-    attendanceFinalized: false,
-    requiredWorkOnTime: requiredWorkByLearner.get(distinctLearnerIds[index]) ?? null,
-  }));
+  // Finalization is per learner and required held session, using the latest
+  // scoped revision. Partial/conflicting reviews must not certify inactivity.
+  const activeEvaluations = milestones.map((milestone, index) => {
+    const learnerId = distinctLearnerIds[index];
+    const hasReview = verification?.reviews.some(row => row.program_id === verification.programId &&
+      row.track_slug === track?.slug && row.student_id === learnerId &&
+      !(Date.parse(row.recorded_at) > asOf.getTime()) && schedule.heldRequiredSessions?.some(slot =>
+        slot.weekNumber === row.week_number && slot.sessionNumber === row.session_number));
+    const finalized = verification && !ambiguousDelivery ? verifyMvpMissedSessions({
+      programId: verification.programId, courseSlug: track?.slug ?? "", learnerId,
+      heldRequiredSessions: schedule.heldRequiredSessions, reviews: verification.reviews, attendance, asOf,
+    }).finalizedAttendance : null;
+    const attended = ambiguousDelivery ? null : finalized?.attended ?? (hasReview ? null : milestone.attendedRequiredSessions);
+    const held = ambiguousDelivery ? null : finalized?.held ?? (hasReview ? null : milestone.heldRequiredSessions);
+    return evaluateMvpActiveLearner(activeRule, {
+      eventAttended: attended && attended > 0 ? true : finalized ? false : null,
+      attendedRequiredSessions: attended,
+      heldRequiredSessions: held,
+      attendanceFinalized: finalized !== null,
+      requiredWorkOnTime: requiredWorkByLearner.get(learnerId) ?? null,
+    });
+  });
   return {
     activeByLearner: new Map(distinctLearnerIds.map((id, index) => [id, activeEvaluations[index].active])),
     attendanceQualified,

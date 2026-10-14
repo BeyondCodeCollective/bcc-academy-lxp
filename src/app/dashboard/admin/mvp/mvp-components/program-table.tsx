@@ -6,6 +6,7 @@ import type { MvpProgramRow } from "@/lib/mvp/types";
 // The dashboard supplies already-filtered, authorized program rows.
 // Details buttons appear when a program-detail handler is connected.
 type ProgramTableProps = {
+  heading?: string;
   programs: MvpProgramRow[];
   onSelectProgram?: (program: MvpProgramRow) => void;
 };
@@ -61,6 +62,7 @@ const COLUMNS: Array<{
 // and missing values stay at the bottom in either sorting direction.
 export function ProgramTable({
   programs,
+  heading = "Program performance",
   onSelectProgram,
 }: ProgramTableProps) {
   const id = useId();
@@ -103,7 +105,7 @@ export function ProgramTable({
           id={`${id}-heading`}
           className="text-xl font-semibold text-ink"
         >
-          Program performance
+          {heading}
         </h2>
 
       </header>
@@ -205,6 +207,20 @@ export function ProgramTable({
                       <p className="mt-1 text-xs text-ink-soft">
                         {program.cohortName}
                       </p>
+                    )}
+                    {program.linkedCohorts !== undefined && (
+                      program.linkedCohorts.length ? <details className="mt-2 text-xs text-ink-soft">
+                        <summary className="cursor-pointer rounded py-2 font-medium text-[#1448CC] focus-visible:outline focus-visible:outline-2">
+                          Linked cohorts ({program.linkedCohorts.length})
+                        </summary>
+                        <ul className="mt-2 space-y-3">
+                          {program.linkedCohorts.map(cohort => <li key={cohort.id}>
+                            <p className="font-medium text-ink">{cohort.name}</p>
+                            <p>Start: {cohort.startDate ?? "Not set"} · End: {cohort.endDate ?? "Not set"}</p>
+                          </li>)}
+                        </ul>
+                        <p className="mt-2">Metrics remain course-level.</p>
+                      </details> : <p className="mt-2 text-xs text-ink-soft">No linked cohort</p>
                     )}
                   </th>
 

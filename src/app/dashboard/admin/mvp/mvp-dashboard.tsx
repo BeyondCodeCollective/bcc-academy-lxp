@@ -47,6 +47,10 @@ export function MvpDashboard({
   );
 
   const options = data?.filterOptions ?? EMPTY_OPTIONS;
+  // Headings and KPIs share the applied server response, never draft choices.
+  const programName = data?.appliedFilters.programId
+    ? options.programs.find(program => program.id === data.appliedFilters.programId)?.name ?? data.scopeLabel
+    : null;
 
   const invalidDateRange = Boolean(
     filters.startDate &&
@@ -65,7 +69,7 @@ export function MvpDashboard({
       onApplyFilters({ ...filters });
       return;
     }
-    const query = new URLSearchParams();
+    const query = new URLSearchParams({ view: "programs" });
     if (filters.programId) query.set("programId", filters.programId);
     if (filters.courseSlug) query.set("courseSlug", filters.courseSlug);
     if (filters.city) query.set("city", filters.city);
@@ -122,12 +126,12 @@ export function MvpDashboard({
                 id="mvp-overview-heading"
                 className="text-xl font-semibold text-ink"
               >
-                {data.scopeLabel}
+                {programName ? `${programName} KPIs` : "Program KPIs"}
               </h2>
 
             </header>
 
-            <dl className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <dl className="grid gap-4 rounded-2xl border border-primary/15 bg-primary/10 p-4 sm:grid-cols-2 sm:p-6 xl:grid-cols-3">
               <Metric
                 label="Unique learners started"
                 value={data.summary.uniqueLearnersStarted}
@@ -150,12 +154,15 @@ export function MvpDashboard({
               />
             </dl>
             <div className="mt-8 space-y-3">
-              <ProgramTable programs={data.programs} />
+              <ProgramTable programs={data.programs} heading={programName ? `${programName} performance` : "Program performance"} />
             </div>
-            <SurveyOutcomes programs={data.programs} surveyOutcomes={data.surveyOutcomes} />
           </section>
         )}
       </div>
+      {data && <div className="min-w-0 lg:col-span-2" aria-busy={isLoading}>
+        <SurveyOutcomes programs={data.programs} surveyOutcomes={data.surveyOutcomes}
+          heading={programName ? `${programName} survey outcomes` : "Program survey outcomes"} />
+      </div>}
     </div>
   );
 }

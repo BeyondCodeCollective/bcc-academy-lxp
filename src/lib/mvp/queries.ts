@@ -1,4 +1,7 @@
 import "server-only";
+import { loadMvpLinkedCohorts } from "./cohort-queries";
+import { buildMvpStaffReview } from "./staff-review";
+import { buildMvpOverviewParticipation } from "./overview-participation";
 import { loadMvpEvents } from "./event-queries";
 import { calculateMvpGeography, type MvpGeographyProfile } from "./geography";
 import { calculateMvpAssessment, calculateMvpVideoProgress } from "./learning-metrics";
@@ -40,7 +43,7 @@ import { loadMvpSurveyOutcomes, type MvpSurveyOutcomeGroup } from "./survey-quer
 // so they are read only when a caller asks for the demographic summaries.
 export async function getMvpDashboardData(
   params: Record<string, string | string[] | undefined>,
-  { includeDemographics = false, includeLocations = false, includeEvents = false }: { includeDemographics?: boolean; includeLocations?: boolean; includeEvents?: boolean } = {},
+  { includeDemographics = false, includeLocations = false, includeEvents = false, includeCohorts = false }: { includeDemographics?: boolean; includeLocations?: boolean; includeEvents?: boolean; includeCohorts?: boolean } = {},
 ): Promise<MvpDashboardData> {
   const context = await getSessionContext();
   const role = context?.student?.role ?? "student";
@@ -360,6 +363,7 @@ for (const row of candidateRows) {
     continue;
   }
   selectedRows.push(row);
+  if (includeCohorts) row.linkedCohorts = await loadMvpLinkedCohorts(db, row.programId, row.courseSlug);
   const program = programs.find((item) => item.id === row.programId)!;
   let activitySlugs = activityScopes.get(program.id);
   if (!activitySlugs) {
@@ -523,6 +527,8 @@ for (const row of candidateRows) {
       ...startSummary, ...completionSummary, upcomingEnrollments,
     },
     programs: selectedRows, commitments: [], checkInEvaluations, surveyOutcomes,
+    overviewParticipation: buildMvpOverviewParticipation(selectedRows, surveyOutcomes),
+    staffReview: buildMvpStaffReview(selectedRows, checkInEvaluations),
     ...(events && { events }),
     ...((includeDemographics || includeLocations) && { geography: calculateMvpGeography(geographyProfiles.filter(profile => selectedLearnerIds.has(profile.id))) }),
     programSummaries: calculateMvpProgramSummaries(programSummaryInputs),

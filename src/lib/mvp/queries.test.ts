@@ -119,6 +119,36 @@ afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
 
 // Detail selectors cannot broaden the same authenticated dashboard boundary.
 describe("authorized details and evidence", () => {
+  it("loads all linked cohorts by the exact authorized program/course pair without changing KPIs", async () => {
+    db.tables.cohorts = [
+      { id: "c1", program_id: "p1", track_slug: "alpha", name: "First", display_name: "Fall", start_date: "2026-09-01", end_date: null },
+      { id: "c2", program_id: "p1", track_slug: "alpha", name: "Second", display_name: null, start_date: null, end_date: null },
+      { id: "c3", program_id: "p2", track_slug: "alpha", name: "Other program" },
+      { id: "c4", program_id: "p1", track_slug: "beta", name: "Other course" },
+      { id: "c5", program_id: "p1", track_slug: null, name: "Unmapped" },
+    ];
+    db.serverCap = 1;
+    const baseline = await getMvpDashboardData({ programId: "p1" });
+    expect(db.requests.some(request => request.table === "cohorts")).toBe(false);
+    const result = await getMvpDashboardData({ programId: "p1" }, { includeCohorts: true });
+    expect(result.programs[0].linkedCohorts).toEqual([
+      { id: "c1", name: "Fall", startDate: "2026-09-01", endDate: null },
+      { id: "c2", name: "Second", startDate: null, endDate: null },
+    ]);
+    expect(result.summary).toEqual(baseline.summary);
+    expect(result.programs[0].cohortId).toBeNull();
+  });
+  it("returns an empty cohort list but does not hide cohort query errors", async () => {
+    db.tables.cohorts = [];
+    expect((await getMvpDashboardData({ programId: "p1" }, { includeCohorts: true })).programs[0].linkedCohorts).toEqual([]);
+    db.fail = request => request.table === "cohorts";
+    await expect(getMvpDashboardData({ programId: "p1" }, { includeCohorts: true })).rejects.toThrow("Unable to load linked cohorts");
+  });
+  it("does not query cohorts when the requested program is unauthorized", async () => {
+    mocks.session.mockResolvedValue({ userId: "actor", student: { role: "admin" } });
+    await expect(getMvpDashboardData({ programId: "p2" }, { includeCohorts: true })).rejects.toThrow();
+    expect(db.requests.some(request => request.table === "cohorts")).toBe(false);
+  });
   it("returns one program's offerings without learner evidence in the detail payload", async () => {
     const detail = await getMvpProgramDetail({ programId: "p1" });
     expect(detail.offerings.map(row => row.courseSlug)).toEqual(["alpha"]);

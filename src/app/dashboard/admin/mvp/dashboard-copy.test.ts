@@ -3,7 +3,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { MvpDashboard } from "./mvp-dashboard";
 import { MvpHeader } from "./mvp-components/mvp-header";
+import { MvpOverview } from "./mvp-components/mvp-overview";
 import type { MvpDashboardData } from "@/lib/mvp/types";
+import { buildMvpOverviewSnapshot } from "@/lib/mvp/overview-snapshot";
+vi.mock("./overview-actions", () => ({ refreshMvpOverview: vi.fn() }));
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
@@ -20,6 +23,58 @@ const data: MvpDashboardData = {
 };
 
 describe("simplified MVP dashboard copy", () => {
+  it("uses the all-program snapshot for top cards and places refresh beside exports", () => {
+    const initialSnapshot = buildMvpOverviewSnapshot({ ...data,
+      summary: { ...data.summary, uniqueLearnersStarted: 1234 } });
+    const filtered = { ...data, scopeLabel: "Catalyst", summary: { ...data.summary, uniqueLearnersStarted: 7 } };
+    const html = renderToStaticMarkup(createElement(MvpOverview, { data: filtered, initialSnapshot }));
+    const header = html.slice(0, html.indexOf("</header>"));
+    expect(header).toContain("Impact overview");
+    expect(header).toContain("Organization overview");
+    expect(header).toContain("Refresh now");
+    expect(header).toContain("Export CSV");
+    expect(header).toContain("PDF mini-report");
+    expect(html).toContain("1,234");
+    expect(html.match(/Refresh now/g)).toHaveLength(1);
+  });
+  it("uses the applied program for all headings and the filtered server KPIs even with no course rows", () => {
+    const selected: MvpDashboardData = { ...data, scopeLabel: "Catalyst",
+      appliedFilters: { ...data.appliedFilters, programId: "catalyst" },
+      filterOptions: { ...data.filterOptions, programs: [{ id: "catalyst", name: "Catalyst" }] },
+      summary: { ...data.summary, uniqueLearnersStarted: 17, upcomingEnrollments: 3 } };
+    const html = renderToStaticMarkup(createElement(MvpDashboard, { data: selected }));
+    for (const heading of ["Catalyst KPIs", "Catalyst performance", "Catalyst survey outcomes"]) expect(html).toContain(heading);
+    expect(html).toMatch(/<dd[^>]*>17<\/dd>/);
+    expect(html).toMatch(/<dd[^>]*>3<\/dd>/);
+    const cleared = renderToStaticMarkup(createElement(MvpDashboard, { data }));
+    expect(cleared).toContain("Program KPIs");
+    expect(cleared).not.toContain("Catalyst performance");
+    expect(cleared).toContain("Program performance");
+    expect(cleared).toContain("Program survey outcomes");
+  });
+  it("keeps mobile filters above performance and below the review cards", () => {
+    const html = renderToStaticMarkup(createElement(MvpOverview, { data, initialSnapshot: buildMvpOverviewSnapshot(data) }));
+    const sections = ["Unique learners started", "Courses with verified check-in flags", "Requires staff review",
+      "Participation &amp; learner outcomes", 'aria-label="Overview filters"', 'aria-label="Program performance"',
+      "Who we serve", "Reported learner locations"];
+    const positions = sections.map(section => html.indexOf(section));
+    positions.forEach(position => expect(position).toBeGreaterThan(-1));
+    expect(positions).toEqual([...positions].sort((a, b) => a - b));
+  });
+  it("keeps Survey outcomes in Programs only, while retaining Overview participation", () => {
+    const overview = renderToStaticMarkup(createElement(MvpOverview, { data, initialSnapshot: buildMvpOverviewSnapshot(data) }));
+    const programs = renderToStaticMarkup(createElement(MvpDashboard, { data }));
+    expect(overview).not.toContain('id="mvp-survey-outcomes"');
+    expect(overview).toContain("Participation &amp; learner outcomes");
+    expect(programs).toContain('id="mvp-survey-outcomes"');
+  });
+  it("renders the overview with supported labels and unavailable states, not demo claims", () => {
+    const html = renderToStaticMarkup(createElement(MvpOverview, { data, initialSnapshot: buildMvpOverviewSnapshot(data) }));
+    for (const label of ["Impact overview", "Unavailable", "Requires staff review", "Reported learner locations", "household income", "Export CSV", "PDF mini-report"]) expect(html).toContain(label);
+    for (const label of ["1,248", "salary", "Age at first start", "Funder", "Commitment status"]) expect(html).not.toContain(label);
+    expect(html).toContain("Demographic summaries unavailable");
+    expect(html).toContain("Location summary unavailable");
+  });
   it("keeps filters and metric cards without technical notes or the selected-filter box", () => {
     const html = renderToStaticMarkup(createElement(MvpDashboard, { data }));
     for (const text of ["Selected filters", "Showing:", "Internal metric explanation", "Internal unavailable explanation",
