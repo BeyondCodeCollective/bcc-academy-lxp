@@ -42,7 +42,7 @@ export async function promoteWaitlist(eventId: string, origin: string): Promise<
   if (!event || !event.waitlist_enabled || event.capacity == null) return 0;
 
   // Expiring stale offers and claiming the open seats is one locked database
-  // step, so overlapping runs (the cron and a cancellation) can't offer the
+  // step, so overlapping runs (the cron and a cancel) can't offer the
   // same seat twice.
   const { data: claimed } = await svc.rpc("offer_waitlist_seats", { p_event_id: eventId });
   const offers = (claimed ?? []) as OfferRow[];
