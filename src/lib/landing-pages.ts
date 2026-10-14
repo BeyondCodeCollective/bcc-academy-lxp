@@ -28,6 +28,10 @@ export type LandingSession = {
   startUtc?: string | null;
   endUtc?: string | null;
   timezone?: string | null;
+  /** The course this session enrolls into, when it differs from the page's
+   *  own trackSlug (e.g. one run of a repeating course per date). Unset means
+   *  the page's trackSlug. */
+  trackSlug?: string | null;
 };
 
 /** The URL segment a landing page with no program is served under — the

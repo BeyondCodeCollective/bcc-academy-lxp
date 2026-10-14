@@ -123,6 +123,7 @@ export async function saveLandingPageAction(
       startUtc: x.startUtc ?? null,
       endUtc: x.endUtc ?? null,
       timezone: x.timezone ?? null,
+      trackSlug: x.trackSlug?.trim() || null,
     }))
     .filter((x) => x.id && x.label);
 
