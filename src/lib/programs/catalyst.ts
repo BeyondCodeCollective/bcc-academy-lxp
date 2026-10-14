@@ -53,7 +53,7 @@ export const catalystConfig: ProgramConfig = {
       // all while a cross-enrolled learner's MASS answer hung a MASS row on
       // their Surveys tab. Named as a course rather than adding "catalyst" to
       // the program list, which would hand it to Security+, MASS and HFS too.
-      appliesToTracks: ["catalyst-labs", "catalyst-labs-oct14"],
+      appliesToTracks: ["catalyst-labs", "catalyst-labs-oct14", "catalyst-labs-nov19"],
       // comptia-security learners take the pre-survey as an item inside their
       // acceptance checklist, so it must not force-redirect them away from that
       // checklist on login. (Catalyst-home, so the allowlist already excludes
