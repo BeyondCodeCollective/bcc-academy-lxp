@@ -5,7 +5,6 @@ import { after } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/rate-limit";
 import { sendEventRegistrationEmail, sendEventWaitlistEmail } from "@/lib/email";
-import { seatsTaken } from "@/lib/events-waitlist";
 import { linkEventHistory } from "@/lib/events-bridge";
 import {
   ATTENDEE_FIELDS,
@@ -90,19 +89,6 @@ export async function registerForEvent(input: {
   const rl = rateLimit({ key: ip, scope: "event-register", max: 10, windowMs: 10 * 60_000 });
   if (!rl.ok) return { ok: false, error: "Too many registrations from this network. Try again in a few minutes." };
 
-  // Capacity is per attendee. A family that does not fully fit is waitlisted
-  // together rather than split across confirmed and waitlisted.
-  let waitlisted = false;
-  if (event.capacity != null) {
-    const open = event.capacity - (await seatsTaken(event.id));
-    if (attendees.length > open) {
-      if (!event.waitlist_enabled) {
-        return { ok: false, error: open <= 0 ? "This event is full." : `Only ${open} spot${open === 1 ? "" : "s"} left.` };
-      }
-      waitlisted = true;
-    }
-  }
-
   const svc = createServiceClient();
   const { data: reg, error: regError } = await svc
     .from("event_registrations")
@@ -123,35 +109,37 @@ export async function registerForEvent(input: {
     return { ok: false, error: "Could not save your registration. Please try again." };
   }
 
-  const { data: saved, error: attError } = await svc
-    .from("event_attendees")
-    .insert(
-      attendees.map((a) => ({
-        registration_id: reg.id,
-        event_id: event.id,
-        status: waitlisted ? "waitlisted" : "confirmed",
-        first_name: a.first_name,
-        last_name: a.last_name,
-        date_of_birth: a.date_of_birth,
-        grade: a.grade || null,
-        school_name: a.school_name || null,
-        school_type: a.school_type || null,
-        gender: a.gender || null,
-        race_ethnicity: a.race_ethnicity || null,
-        tshirt_size: a.tshirt_size || null,
-        allergies: a.allergies || null,
-        emergency_contact_name: a.emergency_contact_name || null,
-        emergency_contact_phone: a.emergency_contact_phone || null,
-        experience_level: a.experience_level || null,
-        eligibility: a.eligibility || null,
-      })),
-    )
-    .select("first_name, last_name, ticket_code, cancel_token");
-  if (attError || !saved) {
+  // Capacity is per attendee. A family that does not fully fit is waitlisted
+  // together rather than split across confirmed and waitlisted. The seat check
+  // and the insert happen in one database step that locks the event, so two
+  // families on the last seat can't both get it.
+  const { data: placed, error: attError } = await svc.rpc("register_event_attendees", {
+    p_registration_id: reg.id,
+    p_event_id: event.id,
+    p_attendees: attendees,
+  });
+  type Placed = {
+    outcome: "confirmed" | "waitlisted" | "full" | "not_found";
+    seats_open: number | null;
+    first_name: string | null;
+    last_name: string | null;
+    ticket_code: string | null;
+    cancel_token: string | null;
+  };
+  const rows = (placed ?? []) as Placed[];
+  const outcome = rows[0]?.outcome;
+  if (attError || !outcome || outcome === "not_found") {
     console.error("[registerForEvent] attendee insert failed:", attError);
     await svc.from("event_registrations").delete().eq("id", reg.id);
     return { ok: false, error: "Could not save your attendees. Please try again." };
   }
+  if (outcome === "full") {
+    await svc.from("event_registrations").delete().eq("id", reg.id);
+    const open = rows[0].seats_open ?? 0;
+    return { ok: false, error: open <= 0 ? "This event is full." : `Only ${open} spot${open === 1 ? "" : "s"} left.` };
+  }
+  const waitlisted = outcome === "waitlisted";
+  const saved = rows as { first_name: string; last_name: string; ticket_code: string; cancel_token: string }[];
 
   const proto = hdrs.get("x-forwarded-proto") ?? "https";
   const origin = `${proto}://${hdrs.get("host") ?? "bccacademy.io"}`;

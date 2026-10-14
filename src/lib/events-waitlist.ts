@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import { createServiceClient } from "@/lib/supabase/server";
 import { sendEventSeatOfferEmail } from "@/lib/email";
 import { EVENT_COLUMNS, type EventRow } from "@/lib/events";
@@ -19,12 +18,14 @@ export async function seatsTaken(eventId: string): Promise<number> {
   return count ?? 0;
 }
 
+// A row returned by the offer_waitlist_seats database function.
 type OfferRow = {
-  id: string;
+  attendee_id: string;
+  registration_id: string;
   first_name: string;
   last_name: string;
-  registration_id: string;
-  event_registrations: { parent_first_name: string; parent_email: string } | null;
+  confirm_token: string;
+  offer_expires_at: string;
 };
 
 /**
@@ -40,43 +41,30 @@ export async function promoteWaitlist(eventId: string, origin: string): Promise<
     .maybeSingle<EventRow & { waitlist_enabled: boolean; offer_window_hours: number; programs: { name: string } | null }>();
   if (!event || !event.waitlist_enabled || event.capacity == null) return 0;
 
-  const now = new Date();
-  await svc
-    .from("event_attendees")
-    .update({ status: "expired" })
-    .eq("event_id", eventId)
-    .eq("status", "offered")
-    .lt("offer_expires_at", now.toISOString());
-
-  const open = event.capacity - (await seatsTaken(eventId));
-  if (open <= 0) return 0;
-
-  const { data: queue } = await svc
-    .from("event_attendees")
-    .select("id, first_name, last_name, registration_id, event_registrations(parent_first_name, parent_email)")
-    .eq("event_id", eventId)
-    .eq("status", "waitlisted")
-    .order("created_at", { ascending: true })
-    .limit(open);
-  const offers = (queue ?? []) as unknown as OfferRow[];
+  // Expiring stale offers and claiming the open seats is one locked database
+  // step, so overlapping runs (the cron and a cancellation) can't offer the
+  // same seat twice.
+  const { data: claimed } = await svc.rpc("offer_waitlist_seats", { p_event_id: eventId });
+  const offers = (claimed ?? []) as OfferRow[];
   if (offers.length === 0) return 0;
 
-  const expiresAt = new Date(now.getTime() + event.offer_window_hours * 3_600_000).toISOString();
+  const { data: regs } = await svc
+    .from("event_registrations")
+    .select("id, parent_first_name, parent_email")
+    .in("id", [...new Set(offers.map((o) => o.registration_id))]);
+  const regById = new Map((regs ?? []).map((r) => [r.id as string, r]));
+
+  const expiresAt = offers[0].offer_expires_at;
   const byFamily = new Map<string, { parentFirstName: string; email: string; attendees: { name: string; confirmUrl: string }[] }>();
   for (const a of offers) {
-    const token = randomUUID();
-    const { error } = await svc
-      .from("event_attendees")
-      .update({ status: "offered", offered_at: now.toISOString(), offer_expires_at: expiresAt, confirm_token: token })
-      .eq("id", a.id)
-      .eq("status", "waitlisted");
-    if (error || !a.event_registrations) continue;
+    const reg = regById.get(a.registration_id);
+    if (!reg) continue;
     const fam = byFamily.get(a.registration_id) ?? {
-      parentFirstName: a.event_registrations.parent_first_name,
-      email: a.event_registrations.parent_email,
+      parentFirstName: reg.parent_first_name as string,
+      email: reg.parent_email as string,
       attendees: [],
     };
-    fam.attendees.push({ name: `${a.first_name} ${a.last_name}`, confirmUrl: `${origin}/events/confirm/${token}` });
+    fam.attendees.push({ name: `${a.first_name} ${a.last_name}`, confirmUrl: `${origin}/events/confirm/${a.confirm_token}` });
     byFamily.set(a.registration_id, fam);
   }
 
