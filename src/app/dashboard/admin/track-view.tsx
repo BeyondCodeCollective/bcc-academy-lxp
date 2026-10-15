@@ -31,6 +31,8 @@ type TrackViewProps = {
   activeWeeks: AdminWeek[];
   assignableRoles: string[];
   initialStudentSubView?: string;
+  /** Server-rendered Signups sub-view; set only while ?sub=signups is open. */
+  signupsPanel?: React.ReactNode;
   initialTab?: string;
   initialTrackView?: string;
   attendanceRates: { held: number; attended: Record<string, number>; } | null;
@@ -73,6 +75,7 @@ export function TrackView({
   activeWeeks,
   assignableRoles,
   initialStudentSubView,
+  signupsPanel,
   initialTab,
   initialTrackView,
   attendanceRates,
@@ -128,7 +131,7 @@ export function TrackView({
           "overview",
       );
     }, [initialTab, initialTrackView]); // eslint-disable-line react-hooks/exhaustive-deps
-    const SUB_VIEWS: StudentSubView[] = ["students", "attendance", "progress", "work", "certificates"];
+    const SUB_VIEWS: StudentSubView[] = ["students", "attendance", "progress", "work", "certificates", "signups"];
     const subViewFromUrl = SUB_VIEWS.includes(initialStudentSubView as StudentSubView)
       ? (initialStudentSubView as StudentSubView)
       : null;
@@ -554,21 +557,27 @@ export function TrackView({
         const showProgress = !!activeTrack.selfPaced;
         const subView =
           (studentSubView === "attendance" && !showAttendance) ||
-          (studentSubView === "progress" && !showProgress)
+          (studentSubView === "progress" && !showProgress) ||
+          (studentSubView === "signups" && !signupsPanel)
             ? "students"
             : studentSubView;
         const viewSwitcher = (
           <div className="relative">
             <select
               value={subView}
-              onChange={(e) =>
-                setStudentSubView(
-                  e.target.value as "students" | "attendance" | "progress" | "work" | "certificates",
-                )
-              }
+              onChange={(e) => {
+                // Signups load four registration sources on the server, so it
+                // is a URL view; the rest are client state.
+                if (e.target.value === "signups") {
+                  router.push(`/dashboard/admin?tab=${encodeURIComponent(activeTrack.slug)}&view=students&sub=signups`);
+                  return;
+                }
+                setStudentSubView(e.target.value as Exclude<StudentSubView, "signups">);
+              }}
               className="appearance-none panel pl-3 pr-8 py-2 text-sm font-medium text-ink focus:border-ink-faint"
             >
               <option value="students">Roster</option>
+              {isManager && <option value="signups">Signups</option>}
               {showAttendance && <option value="attendance">Attendance</option>}
               {showProgress && <option value="progress">Progress</option>}
               <option value="work">Submissions</option>
@@ -603,6 +612,13 @@ export function TrackView({
                 embedded
                 viewSwitcher={viewSwitcher}
               />
+            )}
+
+            {subView === "signups" && signupsPanel && (
+              <>
+                <div>{viewSwitcher}</div>
+                {signupsPanel}
+              </>
             )}
 
             {subView === "attendance" && (

@@ -4,6 +4,8 @@ import { resolveTrackLengths } from "@/lib/programs/scope";
 import { createServiceClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { AdminTabs } from "./admin-tabs";
+import { requireManager, allowedTrackSlugsForActor } from "./actions-shared";
+import { computeCourseSignups, loadSignups, SignupsPanel } from "./landing-signups/signups-panel";
 import type { Student } from "@/lib/types";
 import { getProgram, getProgramWithOverrides, listDynamicPrograms } from "@/lib/programs/server";
 import type { StudentTrackRow, SurveyStatsRow, InstructorTrackRow, PublicSurveyStatsRow, BCCSurveyResponse } from "./actions";
@@ -58,7 +60,7 @@ function eager<T>(p: Promise<T>): Promise<T> {
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; view?: string; sub?: string; course?: string }>;
+  searchParams: Promise<{ tab?: string; view?: string; sub?: string; course?: string; session?: string }>;
 }) {
   // `sub` makes the Students sub-view (roster / attendance / progress / work /
   // certificates) addressable, so an analytics number can link straight to the
@@ -67,6 +69,7 @@ export default async function AdminPage({
     tab: initialTab,
     view: initialTrackView,
     sub: initialStudentSubView,
+    session: signupsSession,
     // Shared Analytics course scope. The ?course= plumbing has been in place
     // since #824; the dimensions never read it, which is why the selector was
     // gated off in #825. The funnel reads it now.
@@ -927,6 +930,26 @@ export default async function AdminPage({
   const isCourseView = tracks.some((t) => t.slug === effectiveTab);
   if (isCourseView) courseNeeds[effectiveTab] = await getCourseSidebar(effectiveTab);
 
+  // Signups sub-view of the course Students dropdown: rendered here (server)
+  // because it reads four registration sources, then handed to the client view.
+  // Managers only, same gate as the standalone Signups page.
+  let signupsPanel: React.ReactNode = null;
+  if (isCourseView && initialStudentSubView === "signups" && canManageStudents(userRole)) {
+    const actor = await requireManager();
+    const allowedTracks = await allowedTrackSlugsForActor(actor, actor.svc);
+    const data = await loadSignups(allowedTracks, effectiveTab);
+    const model = await computeCourseSignups(data, effectiveTab, signupsSession);
+    signupsPanel = (
+      <SignupsPanel
+        model={model}
+        summary
+        sessionHref={(id) =>
+          `/dashboard/admin?tab=${encodeURIComponent(effectiveTab)}&view=students&sub=signups${id ? `&session=${encodeURIComponent(id)}` : ""}`
+        }
+      />
+    );
+  }
+
   return (
     <div className={`mx-auto w-full max-w-2xl ${isCourseView ? "md:max-w-5xl lg:max-w-6xl" : "md:max-w-5xl"} space-y-6 px-4 sm:px-8 md:px-5 py-8`}>
       <AdminTabs
@@ -952,6 +975,7 @@ export default async function AdminPage({
         initialTab={initialTab}
         initialTrackView={initialTrackView}
         initialStudentSubView={initialStudentSubView}
+        signupsPanel={signupsPanel}
         lunchLearnRecordings={lunchLearnRecordings}
         insightsData={insightsData}
         switchablePrograms={switchablePrograms}
