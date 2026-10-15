@@ -48,6 +48,7 @@ export function AdminTabs({
   initialTab,
   initialTrackView,
   initialStudentSubView,
+  signupsPanel,
   lunchLearnRecordings = [],
   insightsData = null,
   switchablePrograms = [],
@@ -95,6 +96,8 @@ export function AdminTabs({
   /** Which Students sub-view to open (roster / attendance / progress / work /
    *  certificates), so a linked-to number lands on the list behind it. */
   initialStudentSubView?: string;
+  /** Server-rendered Signups sub-view; set only while ?sub=signups is open. */
+  signupsPanel?: React.ReactNode;
   lunchLearnRecordings?:{ id: string; title: string; presenter: string; recording_url: string; description: string | null; recorded_at: string }[];
   insightsData?: InsightsData | null;
   analyticsData?: EngagementAnalytics | null;
@@ -640,6 +643,7 @@ export function AdminTabs({
         <TrackView
           activeTrack={activeTrack}
           initialStudentSubView={initialStudentSubView}
+          signupsPanel={signupsPanel}
           initialTab={initialTab}
           initialTrackView={initialTrackView}
           activeWeeks={activeWeeks}

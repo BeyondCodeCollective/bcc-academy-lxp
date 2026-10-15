@@ -177,4 +177,4 @@ export function getTrackIcon(index: number) {
   const icons = [GraduationCap, BookOpen, Video, FileText];
   return icons[index % icons.length];
 }
-export type StudentSubView = "students" | "attendance" | "progress" | "work" | "certificates";
+export type StudentSubView = "students" | "attendance" | "progress" | "work" | "certificates" | "signups";
