@@ -492,7 +492,7 @@ Beyond Code Collective brings families, working adults, and community leaders in
     <p style="margin:0 0 6px;font-size:22px;font-weight:700;color:#1a1a1a;">${esc(eventName)}</p>
     ${when ? `<p style="margin:0 0 20px;font-size:14px;color:#666;">${esc(when)}</p>` : ""}
     <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#444;">Hey${firstName ? ` ${esc(firstName)}` : ""}, your spot is saved and your portal is ready. Head in below — you'll see a countdown to kickoff. This link is your permanent door back in, so keep this email.</p>
-    ${ctaButton(inviteLink, "Enter your portal →")}
+    ${ctaButton(inviteLink, "Log In →")}
     ${calRow}
     <p style="margin:0;font-size:12px;color:#999;line-height:1.5;">Questions? Reply here or email <a href="mailto:info@bccacademy.io" style="color:#1a1a1a;">info@bccacademy.io</a>.</p>`,
     ),
