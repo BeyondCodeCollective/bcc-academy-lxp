@@ -16,7 +16,7 @@ export type EnrollActionResult =
  * Native course enrollment from a /bcc/[slug] page — the no-Eventbrite path.
  *
  * Signing up allowlists the email for the page's track, mints a durable invite,
- * and emails a magic access link. Idempotent on (slug, email): a repeat submit
+ * and emails a magic access link. Idempotent on (slug, email, session): a repeat submit
  * re-sends the same link rather than double-enrolling.
  */
 export async function enrollInCourse(input: {
@@ -72,14 +72,21 @@ export async function enrollInCourse(input: {
   try {
     const svc = createServiceClient();
 
-    // Idempotency: if this email already signed up for this page, don't
-    // re-enroll or re-email.
-    const { data: existing } = await svc
+    // Idempotency: if this email already signed up for this page AND this
+    // session, don't re-enroll or re-email. Keyed on the session too: someone
+    // who signed up for one date and later picks another is a new registration
+    // and needs its own confirmation (keyed on page + email alone, a returning
+    // attendee was enrolled but never emailed and left no signup row).
+    const sessionKey = session?.id ?? null;
+    const existingQuery = svc
       .from("landing_signups")
       .select("id")
       .eq("slug", input.slug)
-      .eq("email", email)
-      .maybeSingle();
+      .eq("email", email);
+    const { data: existing } = await (sessionKey
+      ? existingQuery.eq("session_id", sessionKey)
+      : existingQuery.is("session_id", null)
+    ).maybeSingle();
 
     // With a track → enroll (allowlist + invite + magic link). Without one
     // (a "notify me" page whose course isn't built yet), or on a "coming soon"
