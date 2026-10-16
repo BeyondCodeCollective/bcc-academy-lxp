@@ -503,10 +503,11 @@ Beyond Code Collective brings families, working adults, and community leaders in
   }
 }
 
-export type SessionReminderKind = "1w" | "24h" | "1h";
+export type SessionReminderKind = "1w" | "3d" | "24h" | "1h";
 
 const REMINDER_COPY: Record<SessionReminderKind, { subject: string; lead: string }> = {
   "1w": { subject: "One week to go", lead: "is one week away." },
+  "3d": { subject: "3 days to go", lead: "is 3 days away." },
   "24h": { subject: "Tomorrow", lead: "is tomorrow." },
   "1h": { subject: "Starting in 1 hour", lead: "starts in about an hour." },
 };

@@ -3,10 +3,11 @@ import { sendSessionReminderEmail, type SessionReminderKind } from "@/lib/email"
 
 // Scheduled reminders for landing-page signups (Catalyst Labs and any other
 // page whose sessions carry a start time). One email per (signup, kind), gated
-// by the signup_reminders primary key. Add a touch (e.g. 3 days) by adding a row
+// by the signup_reminders primary key. Add a touch by adding a row
 // here; touches must stay ordered from earliest to latest.
 export const REMINDER_TOUCHES: { kind: SessionReminderKind; hoursBefore: number }[] = [
   { kind: "1w", hoursBefore: 168 },
+  { kind: "3d", hoursBefore: 72 },
   { kind: "24h", hoursBefore: 24 },
   { kind: "1h", hoursBefore: 1 },
 ];
