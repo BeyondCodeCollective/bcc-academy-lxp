@@ -10,6 +10,7 @@ const nextConfig: NextConfig = {
   // serverless output and the route 500s only in production.
   outputFileTracingIncludes: {
     "/platform-atlas": ["./src/app/platform-atlas/atlas.html"],
+    "/api/mvp/export": ["./public/fonts/patika/Patika-Regular.otf", "./public/fonts/patika/Patika-Bold.otf"],
   },
   experimental: {
     serverActions: {

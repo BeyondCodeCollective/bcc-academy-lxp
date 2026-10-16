@@ -6,6 +6,7 @@ import type { MvpProgramRow } from "@/lib/mvp/types";
 // The dashboard supplies already-filtered, authorized program rows.
 // Details buttons appear when a program-detail handler is connected.
 type ProgramTableProps = {
+  heading?: string;
   programs: MvpProgramRow[];
   onSelectProgram?: (program: MvpProgramRow) => void;
 };
@@ -17,6 +18,8 @@ type SortKey =
   | "endDate"
   | "totalParticipants"
   | "started"
+  | "attendanceQualified"
+  | "active"
   | "completed"
   | "attendanceRate"
   | "completionRate"
@@ -43,6 +46,8 @@ const COLUMNS: Array<{
   { key: "endDate", label: "End date" },
   { key: "totalParticipants", label: "Participants", numeric: true },
   { key: "started", label: "Started", numeric: true },
+  { key: "attendanceQualified", label: "Meets 80% attendance", numeric: true },
+  { key: "active", label: "Active learners", numeric: true },
   { key: "completed", label: "Completed", numeric: true },
   { key: "attendanceRate", label: "Attendance", numeric: true },
   { key: "completionRate", label: "Completion", numeric: true },
@@ -57,6 +62,7 @@ const COLUMNS: Array<{
 // and missing values stay at the bottom in either sorting direction.
 export function ProgramTable({
   programs,
+  heading = "Program performance",
   onSelectProgram,
 }: ProgramTableProps) {
   const id = useId();
@@ -99,13 +105,9 @@ export function ProgramTable({
           id={`${id}-heading`}
           className="text-xl font-semibold text-ink"
         >
-          Program performance
+          {heading}
         </h2>
 
-        <p id={`${id}-description`} className="mt-2 text-sm text-ink-soft">
-          Each row represents a program offering. Select a column heading
-          to sort. A dash means the measurement is unavailable.
-        </p>
       </header>
 
       <div
@@ -117,7 +119,6 @@ export function ProgramTable({
                    focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
         <table
-          aria-describedby={`${id}-description`}
           className="w-full border-collapse text-left text-sm"
         >
           <caption className="sr-only">
@@ -207,6 +208,20 @@ export function ProgramTable({
                         {program.cohortName}
                       </p>
                     )}
+                    {program.linkedCohorts !== undefined && (
+                      program.linkedCohorts.length ? <details className="mt-2 text-xs text-ink-soft">
+                        <summary className="cursor-pointer rounded py-2 font-medium text-[#1448CC] focus-visible:outline focus-visible:outline-2">
+                          Linked cohorts ({program.linkedCohorts.length})
+                        </summary>
+                        <ul className="mt-2 space-y-3">
+                          {program.linkedCohorts.map(cohort => <li key={cohort.id}>
+                            <p className="font-medium text-ink">{cohort.name}</p>
+                            <p>Start: {cohort.startDate ?? "Not set"} · End: {cohort.endDate ?? "Not set"}</p>
+                          </li>)}
+                        </ul>
+                        <p className="mt-2">Metrics remain course-level.</p>
+                      </details> : <p className="mt-2 text-xs text-ink-soft">No linked cohort</p>
+                    )}
                   </th>
 
                   <td className="whitespace-nowrap px-4 py-4 text-ink">
@@ -223,6 +238,8 @@ export function ProgramTable({
 
                   <NumberCell value={program.totalParticipants} />
                   <NumberCell value={program.started} />
+                  <NumberCell value={program.attendanceQualified ?? null} />
+                  <NumberCell value={program.active} />
                   <NumberCell value={program.completed} />
                   <NumberCell value={program.attendanceRate} percentage />
                   <NumberCell value={program.completionRate} percentage />
@@ -272,7 +289,7 @@ function getSortValue(
       : STATUS_LABELS[program.status];
   }
 
-  return program[key];
+  return program[key] ?? null;
 }
 
 // Percentages use the shared 0–100 convention. Zero remains visible,

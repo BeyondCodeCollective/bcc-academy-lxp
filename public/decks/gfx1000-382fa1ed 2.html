@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>GFX1000: How It Works</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@500&family=Lato:wght@700;900&family=Plus+Jakarta+Sans:wght@400;600&display=swap">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;background:#000000;overflow:hidden;-webkit-text-size-adjust:100%}
+body{font-family:'Plus Jakarta Sans',sans-serif;color:#000000}
+#stage{position:absolute;left:50%;top:50%;width:1920px;height:1080px;transform-origin:0 0}
+.slide{position:absolute;inset:0;width:1920px;height:1080px;overflow:hidden;opacity:0;visibility:hidden;transition:opacity .45s ease,visibility 0s linear .45s}
+.slide.on{opacity:1;visibility:visible;transition:opacity .45s ease}
+.slide img,.slide video{display:block}
+.slide svg{flex:none}
+.slide.on [data-build-in^="pop"]{animation:pop .7s cubic-bezier(.16,1,.3,1) both .35s}
+.slide.on [data-build-in^="rise"]{animation:rise .7s cubic-bezier(.16,1,.3,1) both}
+@keyframes pop{from{opacity:0;scale:.6}to{opacity:1;scale:1}}
+@keyframes rise{from{opacity:0;translate:0 48px}to{opacity:1;translate:0 0}}
+@media (prefers-reduced-motion:reduce){.slide.on [data-build-in]{animation:none}}
+#bar{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:space-between;align-items:center;padding:10px 16px;font:500 13px/1 'Geist Mono',monospace;letter-spacing:1px;color:#FFFFFF;opacity:0;transition:opacity .3s;pointer-events:none}
+body.ui #bar{opacity:.85}
+#bar button{pointer-events:auto;background:#000000;color:#FFFFFF;border:1px solid #FFFFFF;font:inherit;padding:8px 12px;cursor:pointer}
+#notes{position:fixed;left:16px;right:16px;bottom:52px;max-width:760px;margin:0 auto;background:#FFFFFF;color:#000000;font:400 16px/1.5 'Plus Jakarta Sans',sans-serif;padding:16px 20px;border:2px solid #2A52FF;display:none}
+body.notes #notes{display:block}
+</style>
+</head>
+<body>
+<div id="stage">
+<section class="slide" data-notes="Let the machine run for a few seconds: a request drops in, GFX1000 spins, and a finished piece pops out onto the stack, a post, an email, a board deck, a video, a website. That is the whole idea. GFX1000 is the design tool behind a lot of what BGC and BCC have shipped this year. Today: what it makes, what you do, and one real job start to finish." id="cover" data-transition="fade" style="background:#000000">
+  <iframe class="embed" sandbox="allow-scripts" style="position:absolute; top:150px; left:1132px; width:660px; height:760px; border:0" srcdoc="&lt;!doctype html&gt;&lt;html&gt;&lt;head&gt;&lt;meta charset=&quot;utf-8&quot;&gt;&lt;style&gt;
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;background:#000;overflow:hidden;font-family:ui-monospace,&quot;SF Mono&quot;,Menlo,monospace}
+.m{position:absolute;left:150px;bottom:40px;width:360px;height:250px;background:#2A52FF}
+.m .logo{position:absolute;left:28px;top:30px;width:72px;height:82px}
+.m .name{position:absolute;left:28px;bottom:26px;color:#fff;font:900 44px/1 &quot;Helvetica Neue&quot;,Arial,sans-serif;letter-spacing:-2px}
+.m .slot{position:absolute;left:60px;top:-10px;width:240px;height:20px;background:#000;border:4px solid #fff}
+.m .out{position:absolute;right:-12px;top:60px;width:24px;height:120px;background:#000;border:4px solid #fff}
+.m .led{position:absolute;right:28px;bottom:32px;width:30px;height:30px;border-radius:50%;background:#000;transition:background .15s}
+.m .led.on{background:#4EC3FF}
+.m .gear{position:absolute;right:80px;bottom:30px;width:34px;height:34px;border:6px dashed #fff;border-radius:50%}
+.m.busy .gear{animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.m.busy{animation:shake .12s linear 6}
+@keyframes shake{50%{transform:translateX(3px)}}
+.t{position:absolute;left:215px;top:120px;width:230px;height:120px;background:#fff;color:#000;padding:14px 16px;transition:transform .7s cubic-bezier(.5,0,.75,0),opacity .2s .6s}
+.t b{display:block;font-size:14px;letter-spacing:2px;color:#2A52FF}
+.t i{display:block;height:10px;background:#000;margin-top:12px;font-style:normal}
+.t i+i{width:70%;opacity:.35}
+.t.drop{transform:translateY(270px) scale(.9);opacity:0}
+.c{position:absolute;width:220px;height:170px;left:540px;top:560px;padding:16px;opacity:0;transform:translate(0,0) rotate(0) scale(.4);transition:transform .9s cubic-bezier(.16,1,.3,1),opacity .3s}
+.c.fly{opacity:1}
+.c .k{font-size:15px;letter-spacing:2px;font-weight:700}
+.c .h{height:34px;margin-top:14px}
+.c .l{height:10px;margin-top:10px;opacity:.5}
+.c .l+.l{width:60%}
+.c .p{position:absolute;right:16px;bottom:16px;width:44px;height:44px;border-radius:50%}
+.stamp{position:absolute;left:150px;width:360px;text-align:center;bottom:6px;z-index:99;color:#4EC3FF;font-size:18px;letter-spacing:3px;opacity:0;transition:opacity .3s}
+.stamp.on{opacity:1}
+&lt;/style&gt;&lt;/head&gt;&lt;body&gt;
+&lt;div class=&quot;stamp&quot; id=&quot;st&quot;&gt;✓ APPROVED · DELIVERED&lt;/div&gt;
+&lt;div class=&quot;m&quot; id=&quot;m&quot;&gt;&lt;div class=&quot;slot&quot;&gt;&lt;/div&gt;&lt;div class=&quot;out&quot;&gt;&lt;/div&gt;&lt;div class=&quot;gear&quot;&gt;&lt;/div&gt;&lt;div class=&quot;led&quot; id=&quot;led&quot;&gt;&lt;/div&gt;&lt;img class=&quot;logo&quot; alt=&quot;&quot; src=&quot;data:image/webp;base64,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&quot;&gt;&lt;div class=&quot;name&quot;&gt;GFX1000&lt;/div&gt;&lt;/div&gt;
+&lt;script&gt;
+var kinds=[[&quot;IG POST&quot;,&quot;#FFFFFF&quot;,&quot;#000&quot;,&quot;#2A52FF&quot;],[&quot;EMAIL&quot;,&quot;#4EC3FF&quot;,&quot;#000&quot;,&quot;#000&quot;],[&quot;BOARD DECK&quot;,&quot;#2A52FF&quot;,&quot;#fff&quot;,&quot;#4EC3FF&quot;],[&quot;VIDEO&quot;,&quot;#FFFFFF&quot;,&quot;#000&quot;,&quot;#2A52FF&quot;],[&quot;WEBSITE&quot;,&quot;#4EC3FF&quot;,&quot;#000&quot;,&quot;#2A52FF&quot;],[&quot;EVENT PROMO&quot;,&quot;#2A52FF&quot;,&quot;#fff&quot;,&quot;#4EC3FF&quot;]];
+var slots=[[40,40,-9],[250,20,6],[430,60,-4],[70,230,5],[300,210,-7]];
+var n=0,stack=[],m=document.getElementById(&#x27;m&#x27;),led=document.getElementById(&#x27;led&#x27;),st=document.getElementById(&#x27;st&#x27;);
+function el(c,h){var d=document.createElement(&#x27;div&#x27;);d.className=c;if(h)d.innerHTML=h;document.body.appendChild(d);return d}
+function cycle(){
+ var t=el(&#x27;t&#x27;,&#x27;&lt;b&gt;NEW REQUEST&lt;/b&gt;&lt;i&gt;&lt;/i&gt;&lt;i&gt;&lt;/i&gt;&#x27;);
+ setTimeout(function(){t.classList.add(&#x27;drop&#x27;)},250);
+ setTimeout(function(){t.remove();m.classList.add(&#x27;busy&#x27;);led.classList.add(&#x27;on&#x27;)},1000);
+ setTimeout(function(){
+  m.classList.remove(&#x27;busy&#x27;);led.classList.remove(&#x27;on&#x27;);
+  var k=kinds[n%kinds.length],s=slots[n%slots.length];
+  var c=el(&#x27;c&#x27;,&#x27;&lt;div class=&quot;k&quot;&gt;&#x27;+k[0]+&#x27;&lt;/div&gt;&lt;div class=&quot;h&quot; style=&quot;background:&#x27;+k[3]+&#x27;&quot;&gt;&lt;/div&gt;&lt;div class=&quot;l&quot; style=&quot;background:&#x27;+k[2]+&#x27;&quot;&gt;&lt;/div&gt;&lt;div class=&quot;l&quot; style=&quot;background:&#x27;+k[2]+&#x27;&quot;&gt;&lt;/div&gt;&#x27;+(k[0]==&quot;VIDEO&quot;?&#x27;&lt;div class=&quot;p&quot; style=&quot;background:&#x27;+k[3]+&#x27;&quot;&gt;&lt;/div&gt;&#x27;:&#x27;&#x27;));
+  c.style.background=k[1];c.style.color=k[2];c.style.zIndex=10+n;
+  requestAnimationFrame(function(){requestAnimationFrame(function(){c.classList.add(&#x27;fly&#x27;);c.style.transform=&#x27;translate(&#x27;+(s[0]-540)+&#x27;px,&#x27;+(s[1]-560)+&#x27;px) rotate(&#x27;+s[2]+&#x27;deg) scale(1)&#x27;})});
+  st.classList.add(&#x27;on&#x27;);setTimeout(function(){st.classList.remove(&#x27;on&#x27;)},1100);
+  stack.push(c);if(stack.length&gt;5){var o=stack.shift();o.style.opacity=0;setTimeout(function(){o.remove()},400)}
+  n++;
+ },2100);
+}
+cycle();setInterval(cycle,2900);
+&lt;/script&gt;&lt;/body&gt;&lt;/html&gt;" title=""></iframe>
+  <p id="e2-1ftwghs" data-build-in="pop 1" style="position:absolute; top:560px; left:1040px; width:330px; padding:14px 22px; font-family:'Geist Mono', monospace; font-size:26px; font-weight:600; text-align:center; color:#000000; background:#4ec3ff; border-radius:40px; transform:rotate(-8deg)">NOW TAKING REQUESTS</p>
+  <p id="8aab7da6" style="position:absolute; top:128px; left:104.29px; width:1664px; font-family:'Geist Mono', monospace; font-size:28px; letter-spacing:4px; color:#4ec3ff">BGC + BCC MARKETING · TEAM WALKTHROUGH</p>
+  <h1 id="01af0f25" style="position:absolute; top:588.28px; left:104.29px; width:983.19px; height:180.88px; font-family:Lato, sans-serif; font-size:227px; font-weight:900; line-height:0.9; letter-spacing:-6px; color:#ffffff">GFX<span style="color:#2a52ff">1000</span></h1>
+  <p id="a74b0591" style="position:absolute; top:798.98px; left:115.88px; width:960px; font-family:'Plus Jakarta Sans', sans-serif; font-size:48px; line-height:1.3; color:#ffffff">Our design tool. You request it in Notion, and it comes back finished.</p>
+</section>
+
+<section class="slide" data-notes="A quick tour of range, not just social posts: the Code Along Beyond: Music page and the Code Club page (websites), the MASS email with Angel Aviles and the BGC Fall Workshops email, Beyond the Game, Feedback Is Fuel, Secret Signals, the BGC x KLA semiconductor event, and a Home for the Summer testimonial video, which plays on its own. All of it came out of the same tool." id="work" data-transition="fade" style="display:flex; flex-direction:column; gap:40px; padding:112px 128px 128px; background:#ffffff">
+  <div style="display:flex; flex-direction:row; align-items:end; justify-content:space-between">
+    <div style="display:flex; flex-direction:column; gap:14px">
+      <p style="font-family:'Geist Mono', monospace; font-size:26px; letter-spacing:4px; color:#2a52ff">WHAT IT MAKES</p>
+      <h2 style="font-family:Lato, sans-serif; font-size:80px; font-weight:900; line-height:1; color:#000000">Real work, all from GFX1000</h2>
+    </div>
+    <p style="width:420px; font-family:'Geist Mono', monospace; font-size:24px; text-align:right; color:#000000">BLACK GIRLS CODE + BEYOND CODE COLLECTIVE</p>
+  </div>
+  <div style="display:flex; flex-direction:row; gap:24px">
+    <div style="width:586px; display:flex; flex-direction:column; gap:24px">
+      <div style="position:relative; width:586px; height:330px; display:flex; flex-direction:column; align-self:stretch">
+        <img src="gfx1000-382fa1ed/6d25f1e9e4.jpg" alt="Code Along Beyond: Music page on wearebcc.org" style="object-fit:cover; object-position:50% 0%; width:586px; height:330px">
+        <p style="position:absolute; bottom:16px; left:16px; width:160px; padding:6px 12px; font-family:'Geist Mono', monospace; font-size:24px; color:#ffffff; background:#000000">WEBSITE</p>
+      </div>
+      <div style="position:relative; width:586px; height:330px; display:flex; flex-direction:column; align-self:stretch">
+        <img src="gfx1000-382fa1ed/cb0baeda03.jpg" alt="Angel Aviles in the Intro to M.A.S.S. video thumbnail from the BCC email" style="object-fit:cover; width:586px; height:330px">
+        <p style="position:absolute; bottom:16px; left:16px; width:120px; padding:6px 12px; font-family:'Geist Mono', monospace; font-size:24px; color:#ffffff; background:#000000">EMAIL</p>
+      </div>
+    </div>
+    <div style="width:330px; display:flex; flex-direction:column; gap:24px">
+      <div style="position:relative; width:330px; height:330px; display:flex; flex-direction:column; align-self:stretch">
+        <img src="gfx1000-382fa1ed/d9f32c1137.jpg" alt="Beyond the Game post with the athlete lineup" style="object-fit:cover; width:330px; height:330px">
+        <p style="position:absolute; bottom:16px; left:16px; width:130px; padding:6px 12px; font-family:'Geist Mono', monospace; font-size:24px; color:#ffffff; background:#000000">SOCIAL</p>
+      </div>
+      <div style="position:relative; width:330px; height:330px; display:flex; flex-direction:column; align-self:stretch">
+        <img src="gfx1000-382fa1ed/fb248d0db4.jpg" alt="Feedback Is Fuel workshop post" style="object-fit:cover; width:330px; height:330px">
+        <p style="position:absolute; bottom:16px; left:16px; width:130px; padding:6px 12px; font-family:'Geist Mono', monospace; font-size:24px; color:#ffffff; background:#000000">SOCIAL</p>
+      </div>
+    </div>
+    <div style="width:468px; display:flex; flex-direction:column; gap:24px">
+      <div style="position:relative; width:468px; height:263px; display:flex; flex-direction:column; align-self:stretch">
+        <img src="gfx1000-382fa1ed/bfe8ff9e6f.jpg" alt="Code Club page on the BGC site" style="object-fit:cover; width:468px; height:263px">
+        <p style="position:absolute; bottom:16px; left:16px; width:160px; padding:6px 12px; font-family:'Geist Mono', monospace; font-size:24px; color:#ffffff; background:#000000">WEBSITE</p>
+      </div>
+      <div style="display:flex; flex-direction:row; gap:24px">
+        <div style="position:relative; width:222px; height:397px; display:flex; flex-direction:column; align-self:stretch">
+          <video muted loop playsinline preload="auto" poster="gfx1000-382fa1ed/f42e3b1f46.jpg" src="gfx1000-382fa1ed/2817e6974f.mp4" aria-label="Home for the Summer testimonial video: Isaac, a program builder, speaking to camera with captions" style="object-fit:cover; width:222px; height:397px"></video>
+          <p style="position:absolute; bottom:12px; left:12px; width:110px; padding:6px 12px; font-family:'Geist Mono', monospace; font-size:24px; color:#ffffff; background:#000000">VIDEO</p>
+        </div>
+        <div style="width:222px; display:flex; flex-direction:column; gap:24px">
+          <div style="position:relative; width:222px; height:186px; display:flex; flex-direction:column; align-self:stretch">
+            <img src="gfx1000-382fa1ed/01c84b1af5.jpg" alt="Secret Signals cybersecurity workshop post" style="object-fit:cover; width:222px; height:186px">
+            <p style="position:absolute; bottom:12px; left:12px; width:130px; padding:6px 12px; font-family:'Geist Mono', monospace; font-size:24px; color:#ffffff; background:#000000">SOCIAL</p>
+          </div>
+          <div style="position:relative; width:222px; height:186px; display:flex; flex-direction:column; align-self:stretch">
+            <img src="gfx1000-382fa1ed/51e662bb5f.jpg" alt="BGC x KLA Detroit semiconductor event post with a circuit chip design" style="object-fit:cover; object-position:50% 30%; width:222px; height:186px">
+            <p style="position:absolute; bottom:12px; left:12px; width:130px; padding:6px 12px; font-family:'Geist Mono', monospace; font-size:24px; color:#ffffff; background:#000000">SOCIAL</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="position:relative; width:208px; height:684px; display:flex; flex-direction:column; align-self:stretch">
+        <img src="gfx1000-382fa1ed/4b703e7004.jpg" alt="BGC Fall Workshops email" style="object-fit:cover; object-position:50% 0%; width:208px; height:684px">
+        <p style="position:absolute; bottom:16px; left:16px; width:120px; padding:6px 12px; font-family:'Geist Mono', monospace; font-size:24px; color:#ffffff; background:#000000">EMAIL</p>
+      </div>
+  </div>
+</section>
+
+<section class="slide" data-notes="MCP stands for Model Context Protocol. The easiest way to think about it: it&#x27;s a universal plug. Each tool we use gets one, and once it&#x27;s plugged in, GFX1000 can read and act inside that tool the same way you would. That&#x27;s why you never email files around or re-upload anything. It reads your request in Notion, pulls copy from Google Docs and photos from Drive, posts drafts to the Slack thread and reads your replies, and can hand off to Canva for editable designs, CapCut for video, and the social platforms to publish. It also connects to the BCC Academy LXP, so reports and decks use real learner numbers instead of ones someone typed in. The tool is only as useful as what it can reach, and MCP is what lets it reach our stuff." id="mcp" data-transition="fade" style="background:#000000; color:#FFFFFF; font-family:'Plus Jakarta Sans', sans-serif; padding:112px 128px 128px; display:flex; flex-direction:column">
+<div style="display:flex; flex-direction:row; justify-content:space-between; align-items:flex-end; gap:96px">
+<div style="display:flex; flex-direction:column; gap:20px">
+<p style="font-family:'Geist Mono', monospace; font-size:26px; letter-spacing:4px; color:#4EC3FF">WHY IT WORKS · MCP</p>
+<h2 style="font-family:'Lato', sans-serif; font-weight:900; font-size:110px; line-height:0.95; letter-spacing:-2px; width:980px">A plug for every tool we use</h2>
+</div>
+<p style="font-size:34px; line-height:1.4; width:600px">MCP (Model Context Protocol) is a standard connector. It lets GFX1000 open the tools we already use and work in them directly.</p>
+</div>
+<div style="position:absolute; left:128px; top:520px; width:1664px; height:120px; background:#2A52FF; padding:0 40px; display:flex; justify-content:space-between; align-items:center">
+<p style="font-family:'Lato', sans-serif; font-weight:900; font-size:56px">GFX1000</p>
+<p style="font-family:'Geist Mono', monospace; font-size:26px; letter-spacing:3px">NO COPY AND PASTE · NO RE-UPLOADING</p>
+</div>
+<iframe class="embed" sandbox="allow-scripts" style="position:absolute; left:128px; top:640px; width:1664px; height:72px; border:0" srcdoc="&lt;!doctype html&gt;&lt;html&gt;&lt;head&gt;&lt;meta charset=&quot;utf-8&quot;&gt;&lt;style&gt;
+*{margin:0;padding:0;box-sizing:border-box}html,body{width:100%;height:100%;background:transparent;overflow:hidden}
+.l{position:absolute;top:0;width:4px;height:100%;background:#fff;margin-left:-2px}
+.d{position:absolute;width:16px;height:16px;border-radius:50%;margin-left:-8px;top:-16px}
+.dn{background:#4EC3FF;animation:dn 1.6s cubic-bezier(.45,0,.55,1) infinite}
+.up{background:#fff;animation:up 1.6s cubic-bezier(.45,0,.55,1) infinite}
+@keyframes dn{0%{transform:translateY(0);opacity:0}15%{opacity:1}85%{opacity:1}100%{transform:translateY(88px);opacity:0}}
+@keyframes up{0%{transform:translateY(88px);opacity:0}15%{opacity:1}85%{opacity:1}100%{transform:translateY(0);opacity:0}}
+&lt;/style&gt;&lt;/head&gt;&lt;body&gt;&lt;script&gt;
+var xs=[97, 307, 517, 727, 937, 1147, 1357, 1567];
+xs.forEach(function(x,i){
+ var l=document.createElement(&#x27;div&#x27;);l.className=&#x27;l&#x27;;l.style.left=x+&#x27;px&#x27;;document.body.appendChild(l);
+ [[&#x27;dn&#x27;,0],[&#x27;up&#x27;,.8]].forEach(function(k){var d=document.createElement(&#x27;div&#x27;);d.className=&#x27;d &#x27;+k[0];d.style.left=x+&#x27;px&#x27;;d.style.animationDelay=(i*.23+k[1])+&#x27;s&#x27;;document.body.appendChild(d)});
+});
+&lt;/script&gt;&lt;/body&gt;&lt;/html&gt;" title=""></iframe>
+<div data-build-in="rise" style="position:absolute; left:128px; top:712px; width:194px; height:240px; display:flex; flex-direction:column; gap:14px; padding:20px; border:3px solid #FFFFFF">
+<p style="font-family:'Geist Mono', monospace; font-size:20px; letter-spacing:2px; line-height:1.3; color:#4EC3FF">NOTION</p>
+<p style="font-family:'Plus Jakarta Sans', sans-serif; font-size:26px; line-height:1.3; color:#FFFFFF">Reads your request</p>
+</div>
+<div data-build-in="rise" style="position:absolute; left:338px; top:712px; width:194px; height:240px; display:flex; flex-direction:column; gap:14px; padding:20px; border:3px solid #FFFFFF">
+<p style="font-family:'Geist Mono', monospace; font-size:20px; letter-spacing:2px; line-height:1.3; color:#4EC3FF">SLACK</p>
+<p style="font-family:'Plus Jakarta Sans', sans-serif; font-size:26px; line-height:1.3; color:#FFFFFF">Posts drafts, reads your notes</p>
+</div>
+<div data-build-in="rise" style="position:absolute; left:548px; top:712px; width:194px; height:240px; display:flex; flex-direction:column; gap:14px; padding:20px; border:3px solid #FFFFFF">
+<p style="font-family:'Geist Mono', monospace; font-size:20px; letter-spacing:2px; line-height:1.3; color:#4EC3FF">GOOGLE DRIVE</p>
+<p style="font-family:'Plus Jakarta Sans', sans-serif; font-size:26px; line-height:1.3; color:#FFFFFF">Pulls photos, files finals</p>
+</div>
+<div data-build-in="rise" style="position:absolute; left:758px; top:712px; width:194px; height:240px; display:flex; flex-direction:column; gap:14px; padding:20px; border:3px solid #FFFFFF">
+<p style="font-family:'Geist Mono', monospace; font-size:20px; letter-spacing:2px; line-height:1.3; color:#4EC3FF">GOOGLE DOCS</p>
+<p style="font-family:'Plus Jakarta Sans', sans-serif; font-size:26px; line-height:1.3; color:#FFFFFF">Reads copy and briefs</p>
+</div>
+<div data-build-in="rise" style="position:absolute; left:968px; top:712px; width:194px; height:240px; display:flex; flex-direction:column; gap:14px; padding:20px; border:3px solid #FFFFFF">
+<p style="font-family:'Geist Mono', monospace; font-size:20px; letter-spacing:2px; line-height:1.3; color:#4EC3FF">CANVA</p>
+<p style="font-family:'Plus Jakarta Sans', sans-serif; font-size:26px; line-height:1.3; color:#FFFFFF">Editable designs</p>
+</div>
+<div data-build-in="rise" style="position:absolute; left:1178px; top:712px; width:194px; height:240px; display:flex; flex-direction:column; gap:14px; padding:20px; border:3px solid #FFFFFF">
+<p style="font-family:'Geist Mono', monospace; font-size:20px; letter-spacing:2px; line-height:1.3; color:#4EC3FF">CAPCUT</p>
+<p style="font-family:'Plus Jakarta Sans', sans-serif; font-size:26px; line-height:1.3; color:#FFFFFF">Video edits</p>
+</div>
+<div data-build-in="rise" style="position:absolute; left:1388px; top:712px; width:194px; height:240px; display:flex; flex-direction:column; gap:14px; padding:20px; border:3px solid #FFFFFF">
+<p style="font-family:'Geist Mono', monospace; font-size:20px; letter-spacing:2px; line-height:1.3; color:#4EC3FF">SOCIAL PLATFORMS</p>
+<p style="font-family:'Plus Jakarta Sans', sans-serif; font-size:26px; line-height:1.3; color:#FFFFFF">Posts go live</p>
+</div>
+<div data-build-in="rise" style="position:absolute; left:1598px; top:712px; width:194px; height:240px; display:flex; flex-direction:column; gap:14px; padding:20px; border:3px solid #4EC3FF; background:#2A52FF">
+<p style="font-family:'Geist Mono', monospace; font-size:20px; letter-spacing:2px; line-height:1.3; color:#FFFFFF">BCC LXP</p>
+<p style="font-family:'Plus Jakarta Sans', sans-serif; font-size:26px; line-height:1.3; color:#FFFFFF">Real learner numbers for reports</p>
+</div>
+</section>
+
+<section class="slide" data-notes="This is the whole ask. Left: the three things you do. Right: what a complete request looks like in the tracker. Everything else is the tool: it asks for anything missing, builds the drafts, makes each round, and delivers. Replies go in the Slack thread for that job, not in a DM, so the tool sees them. Anyone can scan the code to open the tracker on their phone right now." id="you" data-transition="fade" style="display:grid; gap:96px; align-items:center; grid-template-columns:1fr 700px; padding:128px; background:#2a52ff">
+  <div style="display:flex; flex-direction:column; gap:28px">
+    <p style="font-family:'Geist Mono', monospace; font-size:26px; letter-spacing:4px; color:#ffffff">YOUR PART</p>
+    <h2 style="font-family:Lato, sans-serif; font-size:110px; font-weight:900; line-height:0.92; color:#ffffff">Three things.</h2>
+    <div style="display:flex; flex-direction:column">
+      <div style="display:grid; gap:20px; grid-template-columns:84px 1fr; padding:22px 0; border-top:4px solid #ffffff">
+        <p style="font-family:Lato, sans-serif; font-size:64px; font-weight:900; line-height:0.9; color:#4ec3ff">1</p>
+        <div style="display:flex; flex-direction:column; gap:6px">
+          <h3 style="font-family:Lato, sans-serif; font-size:46px; font-weight:900; line-height:1; color:#ffffff">Fill out the form</h3>
+          <p style="font-family:'Plus Jakarta Sans', sans-serif; font-size:26px; line-height:1.35; color:#ffffff">Headline, date, audience, call to action.</p>
+        </div>
+      </div>
+      <div style="display:grid; gap:20px; grid-template-columns:84px 1fr; padding:22px 0; border-top:4px solid #ffffff">
+        <p style="font-family:Lato, sans-serif; font-size:64px; font-weight:900; line-height:0.9; color:#4ec3ff">2</p>
+        <div style="display:flex; flex-direction:column; gap:6px">
+          <h3 style="font-family:Lato, sans-serif; font-size:46px; font-weight:900; line-height:1; color:#ffffff">Add your photos</h3>
+          <p style="font-family:'Plus Jakarta Sans', sans-serif; font-size:26px; line-height:1.35; color:#ffffff">A Drive folder link or inspiration</p>
+        </div>
+      </div>
+      <div style="display:grid; gap:20px; grid-template-columns:84px 1fr; padding:22px 0; border-top:4px solid #ffffff; border-bottom:4px solid #ffffff">
+        <p style="font-family:Lato, sans-serif; font-size:64px; font-weight:900; line-height:0.9; color:#4ec3ff">3</p>
+        <div style="display:flex; flex-direction:column; gap:6px">
+          <div style="display:flex; flex-direction:row; gap:20px; align-items:center">
+            <h3 style="font-family:Lato, sans-serif; font-size:46px; font-weight:900; line-height:1; color:#ffffff">Reply in the thread</h3>
+            <svg xmlns="http://www.w3.org/2000/svg" aria-label="Green check mark, the approve reaction in Slack" viewBox="0 0 72 72" style="width:56px; height:56px"><rect x="0" y="0" width="72" height="72" rx="14" fill="#2EB67D"/><path d="M18 37 L31 50 L55 23" fill="none" stroke="#ffffff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <p style="font-family:'Plus Jakarta Sans', sans-serif; font-size:26px; line-height:1.35; color:#ffffff">Notes make a new round. A green check mark ships it.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex; flex-direction:column; background:#ffffff">
+    <div style="display:flex; flex-direction:row; align-items:center; justify-content:space-between; padding:26px 36px; background:#000000">
+      <p style="font-family:'Geist Mono', monospace; font-size:24px; letter-spacing:2px; color:#ffffff">NEW REQUEST</p>
+      <p style="font-family:'Geist Mono', monospace; font-size:24px; color:#4ec3ff">ASSET TRACKER</p>
+    </div>
+    <div style="display:flex; flex-direction:column; padding:4px 36px 0">
+      <div style="display:grid; gap:20px; grid-template-columns:180px 1fr; padding:22px 0; border-bottom:2px solid #000000">
+        <p style="font-family:'Geist Mono', monospace; font-size:24px; color:#2a52ff">ASSET</p>
+        <p style="font-family:'Plus Jakarta Sans', sans-serif; font-size:30px; font-weight:600; color:#000000">Fall workshop IG post</p>
+      </div>
+      <div style="display:grid; gap:20px; grid-template-columns:180px 1fr; padding:22px 0; border-bottom:2px solid #000000">
+        <p style="font-family:'Geist Mono', monospace; font-size:24px; color:#2a52ff">BRIEF</p>
+        <p style="font-family:'Plus Jakarta Sans', sans-serif; font-size:30px; line-height:1.3; color:#000000">Headline, date, who it's for, and the call to action</p>
+      </div>
+      <div style="display:grid; gap:20px; grid-template-columns:180px 1fr; padding:22px 0; border-bottom:2px solid #000000">
+        <p style="font-family:'Geist Mono', monospace; font-size:24px; color:#2a52ff">PHOTOS</p>
+        <p style="font-family:'Plus Jakarta Sans', sans-serif; font-size:30px; color:#000000">A Drive folder link</p>
+      </div>
+      <div style="display:grid; gap:20px; grid-template-columns:180px 1fr; padding:22px 0; border-bottom:2px solid #000000">
+        <p style="font-family:'Geist Mono', monospace; font-size:24px; color:#2a52ff">DUE</p>
+        <p style="font-family:'Plus Jakarta Sans', sans-serif; font-size:30px; color:#000000">A real date, not "ASAP"</p>
+      </div>
+      <div style="display:grid; gap:20px; grid-template-columns:180px 1fr; padding:22px 0">
+        <p style="font-family:'Geist Mono', monospace; font-size:24px; color:#2a52ff">APPROVER</p>
+        <p style="font-family:'Plus Jakarta Sans', sans-serif; font-size:30px; color:#000000">The person who says yes</p>
+      </div>
+    </div>
+    <div style="display:flex; flex-direction:row; align-items:center; justify-content:space-between; padding:28px 36px; background:#4ec3ff">
+      <p style="font-family:Lato, sans-serif; font-size:42px; font-weight:900; color:#000000">Submit</p>
+      <p style="font-family:'Geist Mono', monospace; font-size:24px; color:#000000">GFX1000 TAKES IT FROM HERE</p>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-notes="Walk left to right. This is a real job from last week. Joel filed the request and dropped two camp photos in the Slack thread; the first draft was posted 13 minutes after the job thread opened. He replied &quot;replace the two girls with the image I sent you,&quot; and round 2 came back about 5 minutes later. It kept going through a few more rounds of notes until it was approved, then the files went to Drive, Notion, Canva and his Slack. The point: you talk to it in plain words, in the thread." id="flow" data-transition="fade" style="display:flex; flex-direction:column; gap:48px; padding:112px 128px 96px; background:#ffffff">
+  <div style="display:flex; flex-direction:row; align-items:end; justify-content:space-between">
+    <div style="display:flex; flex-direction:column; gap:16px">
+      <p style="font-family:'Geist Mono', monospace; font-size:26px; letter-spacing:4px; color:#2a52ff">HOW IT WORKS · ONE REAL JOB</p>
+      <h2 style="font-family:Lato, sans-serif; font-size:88px; font-weight:900; line-height:1; color:#000000">Support Our Girls, start to finish</h2>
+    </div>
+    <p style="width:300px; font-family:'Geist Mono', monospace; font-size:26px; text-align:right; color:#000000">Requested by Joel</p>
+  </div>
+  <div style="display:grid; gap:24px; grid-template-columns:1fr 1fr 1fr 1fr; flex:1">
+    <div style="display:flex; flex-direction:column; gap:16px">
+      <div style="display:flex; flex-direction:row; align-items:center; justify-content:space-between; padding:16px 0 0; border-top:6px solid #2a52ff">
+        <p style="font-family:'Geist Mono', monospace; font-size:26px; color:#2a52ff">01</p>
+        <p style="font-family:'Geist Mono', monospace; font-size:24px; color:#000000">NOTION</p>
+      </div>
+      <h3 style="font-family:Lato, sans-serif; font-size:48px; font-weight:900; line-height:1; color:#000000">Request</h3>
+      <div style="display:flex; flex-direction:column; gap:20px; flex:1; padding:32px; background:#000000">
+        <p style="font-family:'Geist Mono', monospace; font-size:24px; color:#4ec3ff">ASSET · DONATE BANNER</p>
+        <p style="font-family:Lato, sans-serif; font-size:52px; font-weight:900; line-height:1; color:#ffffff">SUPPORT OUR GIRLS</p>
+        <p style="font-family:'Plus Jakarta Sans', sans-serif; font-size:26px; line-height:1.35; color:#ffffff">Built off his reference, plus two camp photos he dropped in the thread.</p>
+      </div>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:16px">
+      <div style="display:flex; flex-direction:row; align-items:center; justify-content:space-between; padding:16px 0 0; border-top:6px solid #2a52ff">
+        <p style="font-family:'Geist Mono', monospace; font-size:26px; color:#2a52ff">02</p>
+        <p style="font-family:'Geist Mono', monospace; font-size:24px; color:#000000">SLACK</p>
+      </div>
+      <h3 style="font-family:Lato, sans-serif; font-size:48px; font-weight:900; line-height:1; color:#000000">First draft</h3>
+      <img src="gfx1000-382fa1ed/d9d8540770.jpg" alt="Round 1 of the Support Our Girls graphic" style="object-fit:cover; width:398px; height:398px">
+      <p style="font-family:'Plus Jakarta Sans', sans-serif; font-size:26px; line-height:1.35; color:#000000">Posted in Slack, on brand.</p>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:16px">
+      <div style="display:flex; flex-direction:row; align-items:center; justify-content:space-between; padding:16px 0 0; border-top:6px solid #2a52ff">
+        <p style="font-family:'Geist Mono', monospace; font-size:26px; color:#2a52ff">03</p>
+        <p style="font-family:'Geist Mono', monospace; font-size:24px; color:#000000">SLACK</p>
+      </div>
+      <h3 style="font-family:Lato, sans-serif; font-size:48px; font-weight:900; line-height:1; color:#000000">Notes, new round</h3>
+      <img src="gfx1000-382fa1ed/2ae30726e0.jpg" alt="Round 2 with the real camp photos" style="object-fit:cover; width:398px; height:398px">
+      <p style="font-family:'Plus Jakarta Sans', sans-serif; font-size:26px; line-height:1.35; color:#000000">Joel: "Replace the two girls with the image I sent you."</p>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:16px">
+      <div style="display:flex; flex-direction:row; align-items:center; justify-content:space-between; padding:16px 0 0; border-top:6px solid #4ec3ff">
+        <p style="font-family:'Geist Mono', monospace; font-size:26px; color:#2a52ff">04</p>
+        <p style="font-family:'Geist Mono', monospace; font-size:24px; color:#000000">CANVA</p>
+      </div>
+      <h3 style="font-family:Lato, sans-serif; font-size:48px; font-weight:900; line-height:1; color:#000000">Delivered</h3>
+      <img src="gfx1000-382fa1ed/b14dc437e6.jpg" alt="Final round of the Support Our Girls graphic" style="object-fit:cover; width:398px; height:398px">
+      <p style="font-family:'Plus Jakarta Sans', sans-serif; font-size:26px; line-height:1.35; color:#000000">To Drive, Notion, Canva and Slack.</p>
+    </div>
+  </div>
+</section>
+
+</div>
+<div id="notes"></div>
+<div id="bar"><span id="count"></span><span><button id="nb" type="button">Notes (N)</button> <button id="fb" type="button">Full screen (F)</button></span></div>
+<script>
+(function(){
+  var stage=document.getElementById('stage'),slides=[].slice.call(document.querySelectorAll('.slide')),
+      count=document.getElementById('count'),notes=document.getElementById('notes'),cur=-1,hideT;
+  function fit(){var s=Math.min(innerWidth/1920,innerHeight/1080);stage.style.transform='scale('+s+') translate(-50%,-50%)';}
+  function go(i){
+    i=Math.max(0,Math.min(slides.length-1,i));if(i===cur)return;
+    if(cur>=0){slides[cur].classList.remove('on');slides[cur].querySelectorAll('video').forEach(function(v){v.pause()});}
+    cur=i;var s=slides[cur];s.classList.add('on');
+    s.querySelectorAll('video').forEach(function(v){v.currentTime=0;var p=v.play();if(p)p.catch(function(){})});
+    count.textContent=(cur+1)+' / '+slides.length;notes.textContent=s.getAttribute('data-notes')||'';
+    history.replaceState(null,'','#'+(cur+1));
+  }
+  function ui(){document.body.classList.add('ui');clearTimeout(hideT);hideT=setTimeout(function(){document.body.classList.remove('ui')},2200);}
+  function full(){if(document.fullscreenElement)document.exitFullscreen();else if(document.documentElement.requestFullscreen)document.documentElement.requestFullscreen();}
+  addEventListener('resize',fit);
+  addEventListener('keydown',function(e){
+    var k=e.key;
+    if(k==='ArrowRight'||k==='ArrowDown'||k===' '||k==='PageDown'){e.preventDefault();go(cur+1)}
+    else if(k==='ArrowLeft'||k==='ArrowUp'||k==='PageUp'){e.preventDefault();go(cur-1)}
+    else if(k==='Home')go(0);else if(k==='End')go(slides.length-1);
+    else if(k==='n'||k==='N')document.body.classList.toggle('notes');
+    else if(k==='f'||k==='F')full();
+  });
+  document.getElementById('nb').onclick=function(e){e.stopPropagation();document.body.classList.toggle('notes')};
+  document.getElementById('fb').onclick=function(e){e.stopPropagation();full()};
+  addEventListener('click',function(e){if(e.target.closest('#bar,#notes'))return;go(cur+(e.clientX<innerWidth/3?-1:1))});
+  var x0=null;addEventListener('touchstart',function(e){x0=e.touches[0].clientX},{passive:true});
+  addEventListener('touchend',function(e){if(x0===null)return;var dx=e.changedTouches[0].clientX-x0;if(Math.abs(dx)>40)go(cur+(dx<0?1:-1));x0=null},{passive:true});
+  addEventListener('mousemove',ui);addEventListener('touchstart',ui,{passive:true});
+  fit();go((parseInt(location.hash.slice(1),10)||1)-1);ui();
+})();
+</script>
+</body>
+</html>
