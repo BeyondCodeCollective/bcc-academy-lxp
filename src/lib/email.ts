@@ -477,10 +477,8 @@ export async function sendEventConfirmationEmail({
     subject: `You're registered — ${eventName}`,
     text: `You're registered for ${eventName}.${when ? `\n\nWhen: ${when}` : ""}
 
-Your portal is ready. Open it any time with this link (no password needed):
-${inviteLink}
-
-You'll see a countdown to kickoff — come back here when we start.${cal ? `\n\nAdd to Google Calendar: ${cal.google}\nAdd to Apple/iCal: ${cal.ics}` : ""}
+Hey${firstName ? ` ${firstName}` : ""}, your spot is saved. Before you can attend any sessions, you need to log in and set up your account. Click the link below to get started, and save this email: you can use this link to get back into the portal anytime.
+${inviteLink}${cal ? `\n\nAdd to Google Calendar: ${cal.google}\nAdd to Apple/iCal: ${cal.ics}` : ""}
 
 Questions? Reply to this email or contact info@bccacademy.io.
 
@@ -491,7 +489,7 @@ Beyond Code Collective brings families, working adults, and community leaders in
       `    <p style="margin:0 0 6px;font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#16a34a;">✓ You're registered</p>
     <p style="margin:0 0 6px;font-size:22px;font-weight:700;color:#1a1a1a;">${esc(eventName)}</p>
     ${when ? `<p style="margin:0 0 20px;font-size:14px;color:#666;">${esc(when)}</p>` : ""}
-    <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#444;">Hey${firstName ? ` ${esc(firstName)}` : ""}, your spot is saved and your portal is ready. Head in below — you'll see a countdown to kickoff. This link is your permanent door back in, so keep this email.</p>
+    <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#444;">Hey${firstName ? ` ${esc(firstName)}` : ""}, your spot is saved. <strong>Before you can attend any sessions, you need to log in and set up your account.</strong> Click below to get started, and save this email: you can use this link to get back into the portal anytime.</p>
     ${ctaButton(inviteLink, "Log In →")}
     ${calRow}
     <p style="margin:0;font-size:12px;color:#999;line-height:1.5;">Questions? Reply here or email <a href="mailto:info@bccacademy.io" style="color:#1a1a1a;">info@bccacademy.io</a>.</p>`,
