@@ -43,6 +43,10 @@
     {
       "path": "/api/cron/events-comms",
       "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron/signup-reminders",
+      "schedule": "5 * * * *"
     }
   ]
 }
