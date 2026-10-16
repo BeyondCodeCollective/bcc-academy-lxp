@@ -503,6 +503,97 @@ Beyond Code Collective brings families, working adults, and community leaders in
   }
 }
 
+export type SessionReminderKind = "1w" | "24h" | "1h";
+
+const REMINDER_COPY: Record<SessionReminderKind, { subject: string; lead: string }> = {
+  "1w": { subject: "One week to go", lead: "is one week away." },
+  "24h": { subject: "Tomorrow", lead: "is tomorrow." },
+  "1h": { subject: "Starting in 1 hour", lead: "starts in about an hour." },
+};
+
+/**
+ * Scheduled reminder for a landing-page signup (one week, 24 hours, 1 hour
+ * before the session). `loggedIn` false swaps in the "log in and set up your
+ * account first" line: not logging in is why people miss sessions.
+ */
+export async function sendSessionReminderEmail({
+  to,
+  firstName,
+  programName,
+  eventName,
+  kind,
+  loggedIn,
+  eventStartUtc,
+  eventEndUtc,
+  eventTimezone,
+  inviteLink,
+  origin,
+}: {
+  to: string;
+  firstName: string;
+  programName: string;
+  eventName: string;
+  kind: SessionReminderKind;
+  loggedIn: boolean;
+  eventStartUtc: string;
+  eventEndUtc: string | null;
+  eventTimezone: string | null;
+  inviteLink: string;
+  origin: string;
+}): Promise<void> {
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY not set, skipping session reminder");
+    return;
+  }
+  const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const copy = REMINDER_COPY[kind];
+  const when = formatEventWhen(eventStartUtc, eventTimezone);
+  const cal = eventCalendarLinks({
+    origin,
+    title: eventName,
+    startUtc: eventStartUtc,
+    endUtc: eventEndUtc,
+    details: `Your spot for ${eventName}. Log in: ${inviteLink}`,
+    location: inviteLink,
+  });
+  const calRow = cal
+    ? `<p style="margin:0 0 8px;font-size:12px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#999;">Add to your calendar</p>
+    <div style="margin:0 0 28px;">
+      <a href="${cal.google}" style="display:inline-block;margin:0 8px 8px 0;padding:9px 16px;border:1px solid #e0e0e0;border-radius:8px;color:#1a1a1a;text-decoration:none;font-weight:600;font-size:13px;">Google Calendar</a>
+      <a href="${cal.ics}" style="display:inline-block;margin:0 8px 8px 0;padding:9px 16px;border:1px solid #e0e0e0;border-radius:8px;color:#1a1a1a;text-decoration:none;font-weight:600;font-size:13px;">Apple / iCal</a>
+    </div>`
+    : "";
+  const hi = `Hey${firstName ? ` ${firstName}` : ""}`;
+  const action = loggedIn
+    ? "You're all set. Log in below when it's time."
+    : "Before you can attend, you need to log in and set up your account. It only takes a minute, so do it now.";
+
+  const { error } = await resend.emails.send({
+    from: FROM_ADDRESS,
+    to,
+    subject: `${copy.subject}: ${eventName}`,
+    text: `${hi}, ${eventName} ${copy.lead}${when ? `\n\nWhen: ${when}` : ""}
+
+${action}
+${inviteLink}${cal ? `\n\nAdd to Google Calendar: ${cal.google}\nAdd to Apple/iCal: ${cal.ics}` : ""}
+
+Questions? Reply to this email or contact info@bccacademy.io.`,
+    html: inviteShell(
+      programName,
+      `    <p style="margin:0 0 6px;font-size:22px;font-weight:700;color:#1a1a1a;">${esc(eventName)}</p>
+    ${when ? `<p style="margin:0 0 20px;font-size:14px;color:#666;">${esc(when)}</p>` : ""}
+    <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#444;">${esc(hi)}, this session ${copy.lead} ${esc(action)}</p>
+    ${ctaButton(inviteLink, "Log In →")}
+    ${calRow}
+    <p style="margin:0;font-size:12px;color:#999;line-height:1.5;">Questions? Reply here or email <a href="mailto:info@bccacademy.io" style="color:#1a1a1a;">info@bccacademy.io</a>.</p>`,
+    ),
+  });
+  if (error) {
+    console.error("[email] sendSessionReminderEmail failed:", JSON.stringify(error));
+    throw new Error("Failed to send session reminder email");
+  }
+}
+
 /**
  * Event registration confirmation (events / event_attendees, not Eventbrite).
  * One email to the parent/guardian listing every attendee with their ticket
