@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getMvpDashboardData } from "./queries";
-import { getMvpProgramDetail, getMvpCheckInEvidence } from "./detail-queries";
+import { getMvpProgramDetail, getMvpCheckInEvidence, getMvpProgramParticipants } from "./detail-queries";
 import { getMvpReportData } from "./report-queries";
 
 // Replace infrastructure only: the real query function, role/grant helpers,
@@ -118,6 +118,85 @@ beforeEach(() => {
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
 
 // Detail selectors cannot broaden the same authenticated dashboard boundary.
+describe("opt-in participant details", () => {
+  function seedParticipants() {
+    db.tables.students.push(...["u1", "u2", "outside"].map(id => ({ id, first_name: id, last_name: "Learner", email: `${id}@example.test` })));
+    db.tables.reflections = [{ id: "ref", student_id: "u1", track_slug: "alpha", week_number: 1, submitted_at: "2026-09-30T10:15:00Z" }];
+    db.tables.week_progress = [{ id: "video", user_id: "outside", track_slug: "alpha", week_number: 1, video_watched_at: "2026-10-01T12:00:00Z" }];
+  }
+  it("never reads contacts or exposes participants in default aggregate requests", async () => {
+    const result = await getMvpDashboardData({ programId: "p1" });
+    expect(result.participants).toBeUndefined();
+    expect(db.requests.some(r => /first_name|last_name|email/.test(r.columns))).toBe(false);
+  });
+  it("paginates selected roster contacts and activity without exposing other learners", async () => {
+    seedParticipants(); db.serverCap = 1;
+    const result = await getMvpProgramParticipants({ programId: "p1" });
+    expect(result.participants.map(p => p.learnerId)).toEqual(["u1", "u2"]);
+    expect(result.participants[0]).toMatchObject({ name: "u1 Learner", email: "u1@example.test",
+      caughtUp: { percent: null }, lastActivity: { at: "2026-09-30T10:15:00.000Z", status: "recorded" } });
+    expect(result.participants[1].lastActivity.status).toBe("none_recorded");
+    expect(JSON.stringify(result)).not.toContain("outside");
+    expect(db.requests.filter(r => /first_name/.test(r.columns))).toHaveLength(3);
+  });
+  it("applies learner-status and date filters before contact reads", async () => {
+    seedParticipants();
+    const result = await getMvpProgramParticipants({ programId: "p1", learnerStatus: "started" });
+    expect(result.participants.map(p => p.learnerId)).toEqual(["u1"]);
+    db.requests = [];
+    const empty = await getMvpProgramParticipants({ programId: "p1", startDate: "2027-01-01" });
+    expect(empty.participants).toEqual([]);
+    expect(db.requests.some(r => /first_name/.test(r.columns))).toBe(false);
+  });
+  it("replaces participant rows and activity when the applied program/course changes", async () => {
+    seedParticipants();
+    db.tables.reflections.push({ id: "ref-beta", student_id: "u1", track_slug: "beta", week_number: 1, submitted_at: "2026-10-01T11:30:00Z" });
+    const first = await getMvpProgramParticipants({ programId: "p1", courseSlug: "alpha" });
+    const second = await getMvpProgramParticipants({ programId: "p2", courseSlug: "beta" });
+    expect(first.participants.map(p => p.learnerId)).toEqual(["u1", "u2"]);
+    expect(second.participants).toHaveLength(1);
+    expect(second.participants[0]).toMatchObject({ learnerId: "u1", programId: "p2", courseSlug: "beta",
+      lastActivity: { at: "2026-10-01T11:30:00.000Z" } });
+    expect(first.participants[0].lastActivity.at).toBe("2026-09-30T10:15:00.000Z");
+  });
+  it("combines applied filters without truncating activity to the offering date window", async () => {
+    seedParticipants();
+    Object.assign(db.tables.student_tracks[0].students as Row, { location: "Boston" });
+    const params = { programId: "p1", courseSlug: "alpha", city: "Boston", learnerStatus: "started",
+      startDate: "2026-09-01", endDate: "2026-09-01" };
+    const result = await getMvpProgramParticipants(params);
+    expect(result.appliedFilters).toMatchObject(params);
+    expect(result.participants).toHaveLength(1);
+    expect(result.participants[0]).toMatchObject({ learnerId: "u1", lastActivity: { at: "2026-09-30T10:15:00.000Z" } });
+    const empty = await getMvpProgramParticipants({ ...params, city: "No matching location" });
+    expect(empty.participants).toEqual([]);
+  });
+  it("requires a selected authorized program and blocks preview mode", async () => {
+    await expect(getMvpProgramParticipants({})).rejects.toThrow("authorized program");
+    mocks.session.mockResolvedValue({ userId: "actor", student: { role: "admin" } });
+    await expect(getMvpProgramParticipants({ programId: "p2" })).rejects.toThrow("unavailable");
+    mocks.preview.mockResolvedValue(true);
+    await expect(getMvpProgramParticipants({ programId: "p1" })).rejects.toThrow("MVP access");
+    expect(db.requests.some(r => /first_name/.test(r.columns))).toBe(false);
+  });
+  it("rejects partial results when later activity pages fail", async () => {
+    seedParticipants(); db.serverCap = 1;
+    db.fail = r => r.table === "reflections" && r.filters.some(f => f[0] === "gt");
+    await expect(getMvpProgramParticipants({ programId: "p1" })).rejects.toThrow("complete participant evidence");
+  });
+  it("limits contacts to the selected location and rejects a course outside the admin grant", async () => {
+    seedParticipants();
+    Object.assign(db.tables.student_tracks[0].students as Row, { location: "Boston" });
+    const result = await getMvpProgramParticipants({ programId: "p1", city: "Boston" });
+    expect(result.participants.map(p => p.learnerId)).toEqual(["u1"]);
+    mocks.session.mockResolvedValue({ userId: "actor", student: { role: "admin" } });
+    db.tables.staff_program_access = [{ student_id: "actor", program_id: "p2", role: "admin", track_slug: "some-other-course" }];
+    db.requests = [];
+    await expect(getMvpProgramParticipants({ programId: "p2", courseSlug: "beta" })).rejects.toThrow("course is unavailable");
+    expect(db.requests.some(r => /first_name/.test(r.columns))).toBe(false);
+  });
+});
+
 describe("authorized details and evidence", () => {
   it("loads all linked cohorts by the exact authorized program/course pair without changing KPIs", async () => {
     db.tables.cohorts = [
@@ -455,6 +534,15 @@ describe("complete backend reads", () => {
 
 // Reports reuse the real authorized loader, rather than trusting client totals.
 describe("report selection and new summaries", () => {
+  it("exports filtered summary values from the authorized dashboard, not sums of course rows", async () => {
+    const params = { programId: "p1", courseSlug: "alpha" };
+    const dashboard = await getMvpDashboardData(params);
+    const report = await getMvpReportData(params, { metricKeys: ["started"], summary: true });
+    expect(report.summary).toEqual(dashboard.summary);
+    expect(report.appliedFilters).toEqual(dashboard.appliedFilters);
+    expect(report.filterLabels.program).toBe(dashboard.filterOptions.programs.find(p => p.id === "p1")?.name);
+    expect(report).not.toHaveProperty("participants");
+  });
   it("preserves checklist order, known zero, and explicit unavailable metrics", async () => {
     const { getMvpReportData } = await import("./report-queries");
     const report = await getMvpReportData({ programId: "p1" }, { metricKeys: ["sessionsRemaining", "active", "totalParticipants", "active"] });

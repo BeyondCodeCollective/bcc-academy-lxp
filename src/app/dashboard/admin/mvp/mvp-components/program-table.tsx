@@ -220,7 +220,7 @@ export function ProgramTable({
                           </li>)}
                         </ul>
                         <p className="mt-2">Metrics remain course-level.</p>
-                      </details> : <p className="mt-2 text-xs text-ink-soft">No linked cohort</p>
+                      </details> : null
                     )}
                   </th>
 

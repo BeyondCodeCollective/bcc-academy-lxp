@@ -9,6 +9,7 @@ import { OverviewParticipation } from "./overview-participation";
 import { OverviewStaffReview } from "./overview-staff-review";
 import type { MvpOverviewSnapshot } from "@/lib/mvp/overview-snapshot";
 import { refreshMvpOverview } from "../overview-actions";
+import { downloadMvpPageReport } from "@/lib/mvp/page-export";
 
 // Overview consumes authorized aggregates only. Unknown values are never zero
 // and course-level counts are never presented as distinct organization totals.
@@ -52,14 +53,7 @@ export function MvpOverview({ data, initialSnapshot }: { data: MvpDashboardData;
   async function download(format: "csv" | "pdf") {
     setExporting(format); setError(null);
     try {
-      const response = await fetch("/api/mvp/export", { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ format, filters: data.appliedFilters,
-          selection: { metricKeys: ["totalParticipants", "started", "completed", "active", "sessionsRemaining"], outcomes: true } }) });
-      if (!response.ok) throw new Error("The report could not be downloaded. Please try again.");
-      const url = URL.createObjectURL(await response.blob());
-      const link = document.createElement("a"); link.href = url; link.download = `mvp-overview.${format}`;
-      document.body.append(link); link.click(); link.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      await downloadMvpPageReport("overview", format, data.appliedFilters);
     } catch { setError("The report could not be downloaded. Please try again."); }
     finally { setExporting(null); }
   }

@@ -37,10 +37,10 @@ export async function POST(request: Request) {
     return Response.json({ error: "Use application/json." }, { status: 415, headers });
   }
   try {
-    const { format, filters, selection } = parseMvpExportRequest(await readBody(request));
+    const { format, filters, selection, view } = parseMvpExportRequest(await readBody(request));
     const report = await getMvpReportData(filters, selection);
     const content = format === "csv" ? renderMvpCsv(report)
-      : new Uint8Array(await (await import("@/lib/mvp/report-pdf")).renderMvpPdf(report));
+      : new Uint8Array(await (await import("@/lib/mvp/report-pdf")).renderMvpPdf(report, view));
     return new Response(content, { headers: { ...headers,
       "Content-Type": format === "csv" ? "text/csv; charset=utf-8" : "application/pdf",
       "Content-Disposition": `attachment; filename="mvp-report-${new Date().toISOString().slice(0, 10)}.${format}"`,

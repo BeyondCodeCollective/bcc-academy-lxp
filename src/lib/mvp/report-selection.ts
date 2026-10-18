@@ -17,23 +17,24 @@ export const MVP_REPORT_METRICS = [
   { key: "surveyResponseRate", label: "Responded to any mapped course survey", unit: "Percent" },
 ] as const;
 export type MvpReportMetricKey = typeof MVP_REPORT_METRICS[number]["key"];
-export type MvpReportSelection = { metricKeys: MvpReportMetricKey[]; demographics: boolean; locations: boolean; events?: boolean; outcomes?: boolean };
+export type MvpReportSelection = { metricKeys: MvpReportMetricKey[]; demographics: boolean; locations: boolean; events?: boolean; outcomes?: boolean; summary?: boolean };
 
 // Runtime validation handles untrusted future form/API input before any read.
 export function parseMvpReportSelection(input: unknown): MvpReportSelection {
   if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("Invalid report selection.");
   const value = input as Record<string, unknown>;
-  if (Object.keys(value).some((key) => !["metricKeys", "demographics", "locations", "events", "outcomes"].includes(key)) ||
+  if (Object.keys(value).some((key) => !["metricKeys", "demographics", "locations", "events", "outcomes", "summary"].includes(key)) ||
       !Array.isArray(value.metricKeys) || value.metricKeys.length > MVP_REPORT_METRICS.length ||
       value.metricKeys.some((key) => !MVP_REPORT_METRICS.some((metric) => metric.key === key)) ||
       (value.demographics !== undefined && typeof value.demographics !== "boolean") ||
       (value.locations !== undefined && typeof value.locations !== "boolean") ||
       (value.events !== undefined && typeof value.events !== "boolean") ||
-      (value.outcomes !== undefined && typeof value.outcomes !== "boolean")) throw new Error("Invalid report selection.");
+      (value.outcomes !== undefined && typeof value.outcomes !== "boolean") ||
+      (value.summary !== undefined && typeof value.summary !== "boolean")) throw new Error("Invalid report selection.");
   const metricKeys = [...new Set(value.metricKeys)] as MvpReportMetricKey[];
   if (!metricKeys.length && !value.demographics && !value.locations && !value.outcomes) throw new Error("Select at least one report metric or section.");
   return { metricKeys, demographics: value.demographics === true, locations: value.locations === true,
-    events: value.events === true, outcomes: value.outcomes === true };
+    events: value.events === true, outcomes: value.outcomes === true, ...(value.summary === true && { summary: true }) };
 }
 
 // Build from one authorized, filtered snapshot; never sum course counts into
@@ -60,6 +61,11 @@ export function buildMvpReport(data: MvpDashboardData, selection: MvpReportSelec
     }),
   }));
   return { scopeLabel: data.scopeLabel, appliedFilters: { ...data.appliedFilters }, freshness: { ...data.freshness },
+    filterLabels: {
+      program: data.appliedFilters.programId ? data.filterOptions.programs.find(p => p.id === data.appliedFilters.programId)?.name ?? data.scopeLabel : "All accessible programs",
+      course: data.appliedFilters.courseSlug ? data.filterOptions.courses.find(c => c.slug === data.appliedFilters.courseSlug && c.programId === data.appliedFilters.programId)?.name ?? "Selected course" : "All courses",
+    },
+    ...(validated.summary && { summary: { ...data.summary } }),
     warnings: data.metricDefinitions.filter((definition) => ["learnerStatus", "dateWindow"].includes(definition.key) && definition.unavailableReason)
       .map((definition) => ({ key: definition.key, reason: definition.unavailableReason! })),
     rows, definitions: data.metricDefinitions.filter((definition) => validated.metricKeys.includes(definition.key as MvpReportMetricKey)),

@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LXP Events &amp; Registration — BCC Academy</title>
+<meta name="description" content="How events, registration pages, communications and instructor access work in the BCC Academy LXP.">
+<meta name="robots" content="noindex">
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html { color-scheme: light dark; }
+  :root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  body { margin: 0; }
+  img { max-width: 100%; }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@700;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --ground: #FFFFFF;
+    --raised: #F6F7FB;
+    --ink: #000000;
+    --ink-soft: #3C4250;
+    --ink-faint: #6B7280;
+    --rule: #E2E5EF;
+    --blue: #2A52FF;
+    --sky: #4EC3FF;
+    --built-bg: #EEF2FF;
+    --built-ink: #1B34A8;
+    --gap-bg: #FFF1F0;
+    --gap-ink: #A11F17;
+    --shot-frame: #D8DDEA;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #000000;
+      --raised: #0D1017;
+      --ink: #FFFFFF;
+      --ink-soft: #C2C8D6;
+      --ink-faint: #8A91A3;
+      --rule: #1E2431;
+      --blue: #4EC3FF;
+      --sky: #2A52FF;
+      --built-bg: #0E1A3D;
+      --built-ink: #9DC0FF;
+      --gap-bg: #2A1210;
+      --gap-ink: #FF9E94;
+      --shot-frame: #222836;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #000000;
+    --raised: #0D1017;
+    --ink: #FFFFFF;
+    --ink-soft: #C2C8D6;
+    --ink-faint: #8A91A3;
+    --rule: #1E2431;
+    --blue: #4EC3FF;
+    --sky: #2A52FF;
+    --built-bg: #0E1A3D;
+    --built-ink: #9DC0FF;
+    --gap-bg: #2A1210;
+    --gap-ink: #FF9E94;
+    --shot-frame: #222836;
+  }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 780px;
+    margin: 0 auto;
+    padding-inline: 20px;
+    padding-block: 56px 96px;
+    display: flex;
+    flex-direction: column;
+    gap: 44px;
+  }
+  h1, h2, h3 { font-family: Lato, "Helvetica Neue", Arial, sans-serif; text-wrap: balance; margin: 0; }
+  h1 { font-weight: 900; font-size: clamp(32px, 6vw, 46px); line-height: 1.05; letter-spacing: -0.02em; }
+  h2 { font-weight: 900; font-size: 13px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--blue); }
+  h3 { font-weight: 700; font-size: clamp(20px, 3.6vw, 24px); line-height: 1.25; letter-spacing: -0.01em; }
+  p { margin: 0; }
+  a { color: var(--blue); }
+
+  .lede { color: var(--ink-soft); font-size: 17px; }
+  .meta {
+    font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+  }
+  header { display: flex; flex-direction: column; gap: 16px; }
+  header .rule { height: 4px; background: var(--blue); width: 72px; }
+
+  section { display: flex; flex-direction: column; gap: 28px; }
+  .qa { display: flex; flex-direction: column; gap: 12px; }
+  .qa p + p { margin-top: 4px; }
+  .qa ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; color: var(--ink-soft); }
+  .qa p { color: var(--ink-soft); }
+  strong { color: var(--ink); font-weight: 600; }
+  code {
+    font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.9em;
+    background: var(--raised);
+    padding: 1px 5px;
+    border: 1px solid var(--rule);
+  }
+
+  figure { margin: 8px 0 0; display: flex; flex-direction: column; gap: 8px; }
+  figure img {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    border: 1px solid var(--shot-frame);
+  }
+  figcaption {
+    font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11.5px;
+    color: var(--ink-faint);
+    letter-spacing: 0.02em;
+  }
+
+  .chip {
+    display: inline-block;
+    font-family: "Geist Mono", ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    white-space: nowrap;
+  }
+  .chip.built { background: var(--built-bg); color: var(--built-ink); }
+  .chip.gap { background: var(--gap-bg); color: var(--gap-ink); }
+
+  .tablewrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 15px; }
+  th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th {
+    font-family: "Geist Mono", ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    font-weight: 500;
+    border-bottom: 1px solid var(--ink);
+  }
+  td:last-child { color: var(--ink-soft); }
+  tr:last-child td { border-bottom: none; }
+
+  .gaps { background: var(--raised); border: 1px solid var(--rule); padding: 24px 24px 26px; display: flex; flex-direction: column; gap: 14px; }
+  .gaps ol { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 10px; color: var(--ink-soft); }
+
+  .note { border: 1px solid var(--rule); padding: 16px 18px; color: var(--ink-soft); font-size: 14.5px; }
+
+  @media (max-width: 480px) {
+    .wrap { padding-block: 36px 64px; gap: 36px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="rule"></div>
+    <p class="meta">BCC Academy · Internal reference · Sep 17, 2026</p>
+    <h1>Events, registration &amp; instructor access</h1>
+    <p class="lede">Answers to the team's questions, checked against the platform as it actually runs today. Screenshots are the live admin panel; learner names and email addresses are blurred.</p>
+    <p class="meta">Navigation below means Admin panel → Manage</p>
+  </header>
+
+  <section>
+    <h2>Events &amp; workshops</h2>
+
+    <div class="qa">
+      <h3>How do you add events &amp; workshops to the LXP?</h3>
+      <p>There is no separate "event" object — an event or workshop <strong>is a course</strong>. Manage → Manage courses → New course. Build it manually, paste a link to import it, or describe it and let the AI draft it. Each session holds a title, content, resources, a meeting link and a recording, and edits go live with no deploy.</p>
+      <figure>
+        <img src="/guides/01-new-course.jpg" alt="The New Course screen with three tabs: Generate with AI, From a link, Enter manually. A text box holds an example description of a six-week AI literacy course.">
+        <figcaption>Manage → Manage courses → New course</figcaption>
+      </figure>
+    </div>
+
+    <div class="qa">
+      <h3>How do you create registration pages?</h3>
+      <p>Manage → Landing pages → New. The page goes live at <code>bccacademy.io/bcc/&lt;your-slug&gt;</code> with an eyebrow line, headline, subhead, accent color, cohort dates, a session schedule and a signup form wired to a course. Eventbrite checkout can be embedded right on the page.</p>
+      <p>For apply-first or selective programs, use Manage → Applications → New instead — that gives you a form at <code>/apply/&lt;slug&gt;</code>.</p>
+      <figure>
+        <img src="/guides/02-landing-builder.jpg" alt="The landing page builder form, showing fields for program, slug, header label, eyebrow, headline, subhead and accent color.">
+        <figcaption>Manage → Landing pages → New</figcaption>
+      </figure>
+    </div>
+
+    <div class="qa">
+      <h3>What do you, as an admin, need to share to get sign-ups?</h3>
+      <p>One link, whichever fits:</p>
+      <ul>
+        <li><strong>bccacademy.io/bcc/&lt;slug&gt;</strong> — the landing page, for open registration</li>
+        <li><strong>/apply/&lt;slug&gt;</strong> — the application form, when you are selecting participants</li>
+        <li>A <strong>personal invite link</strong> from the Invites page — a magic link, no password</li>
+      </ul>
+    </div>
+
+    <div class="qa">
+      <h3>How do you create event communications?</h3>
+      <p>Manage → Announcements. Post to one course or the whole program; it lands on the learner dashboard, emails enrolled learners who haven't opted out, and fires a push notification. It expires on a timer you set. Confirmation, invite, acceptance, application-received and certificate emails all send on their own.</p>
+      <figure>
+        <img src="/guides/03-announcements.jpg" alt="The Announcements screen with a New announcement button and an empty state.">
+        <figcaption>Manage → Announcements</figcaption>
+      </figure>
+    </div>
+
+    <div class="qa">
+      <h3>Can you schedule reminders? <span class="chip gap">Not built</span></h3>
+      <p>Announcements send the moment you post them. Two things partly cover the gap: registration emails carry an "add to calendar" link, so the learner's own calendar does the reminding, and the Join button surfaces on the day of the session. A real scheduled reminder — "email everyone 24 hours before" — is new work.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Registration data</h2>
+
+    <div class="qa">
+      <h3>How do you track registration numbers?</h3>
+      <p>Manage → Signups. One row per person per course, pulled from every source at once — landing page form, Eventbrite, staff invite, allowlist — with a running count and a stage of <strong>Waiting → Signed in → Enrolled</strong>.</p>
+      <figure>
+        <img src="/guides/04-signups.jpg" alt="The Signups screen for a course, reading 211 signed up, 59 enrolled, 152 waiting, above a table of registrations with name and email blurred and columns for signed up, via, heard about and status.">
+        <figcaption>Manage → Signups — 211 signed up · 59 enrolled · 152 waiting</figcaption>
+      </figure>
+      <p>Applications shows total and new-since-you-looked counts per form, and Attendance shows who actually turned up.</p>
+      <figure>
+        <img src="/guides/05-applications.jpg" alt="The Applications screen listing application forms with submission counts.">
+        <figcaption>Manage → Applications</figcaption>
+      </figure>
+    </div>
+
+    <div class="qa">
+      <h3>How do you pull registration data?</h3>
+      <p>CSV export exists on <strong>Attendance</strong>, <strong>Insights/Surveys</strong> and <strong>Participant locations</strong>. Signups and Applications are on-screen tables only — no export button on them yet.</p>
+      <figure>
+        <img src="/guides/07-attendance.jpg" alt="The Attendance analytics tab showing average turnout across running courses and a per-learner grid of sessions attended, with learner names blurred.">
+        <figcaption>Analytics → Attendance — per course, then every learner against every session held</figcaption>
+      </figure>
+    </div>
+
+    <div class="qa">
+      <h3>If someone cancels their registration, how is that handled?</h3>
+      <p>There is no learner-facing cancel button. An admin removes them from the course in People, which also revokes their invite and allowlist row so they don't quietly re-enroll at next login. An Eventbrite refund does <strong>not</strong> remove them automatically — that stays manual. <code>/privacy/withdraw</code> is a data-deletion request, not a registration cancellation.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>In person, virtual, and the website</h2>
+
+    <div class="qa">
+      <h3>In-person registration versus virtual</h3>
+      <p>Same course object either way; what changes is the meeting link.</p>
+      <ul>
+        <li><strong>Virtual</strong> — put the Zoom link on the session. Learners join inside the LXP, attendance imports from Zoom nightly, recordings import hourly.</li>
+        <li><strong>In person</strong> — leave the meeting link empty, put the address in the session content and on the landing page, take attendance by hand.</li>
+      </ul>
+      <p>Participant ZIPs collected at signup roll up into Manage → Participant locations, which is what we use for geographic reporting.</p>
+      <figure>
+        <img src="/guides/08-courses.jpg" alt="The Manage courses screen listing the program's courses with their status.">
+        <figcaption>Manage → Manage courses — where sessions, links and addresses are edited</figcaption>
+      </figure>
+    </div>
+
+    <div class="qa">
+      <h3>How do we connect events to the website for recruitment?</h3>
+      <p>The landing page <strong>is</strong> the public web page — link it from the marketing site and from social. Its form captures a "how did you hear about us" field, which is how we see what is working. Eventbrite listings can embed checkout on the page and flow into the same funnel.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>What programs can manage today</h2>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Capability</th><th>Who has it</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Add / edit events, cancel (hide) a course</td><td><span class="chip built">Program admins</span></td></tr>
+          <tr><td>Communications and announcements</td><td><span class="chip built">Program admins</span></td></tr>
+          <tr><td>Upload course resources</td><td><span class="chip built">Program admins</span> program-wide and per session</td></tr>
+          <tr><td>Upload surveys, read survey data</td><td><span class="chip built">Program admins</span> scoped to their own program</td></tr>
+          <tr><td>Registration data — Signups, Applications, Landing pages</td><td><span class="chip gap">Super-admin only</span> program admins cannot see their own sign-ups; this needs a role change</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <figure>
+      <img src="/guides/06-resources.jpg" alt="The Resources editor, where an admin adds the links and files learners see on their Resources page.">
+      <figcaption>Manage → Resources — open to program admins</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>Instructor view</h2>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Capability</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Participant roster, take attendance</td><td><span class="chip built">Built</span> scoped to their assigned tracks, CSV export, automatic Zoom attendance</td></tr>
+          <tr><td>Join through the LXP</td><td><span class="chip built">Built</span> Zoom runs embedded in the page; the Join button opens on the day and retires 30 minutes after the session ends</td></tr>
+          <tr><td>Facilitator guides</td><td><span class="chip gap">Not built</span> no instructor-only field, so guides sit among the session resources learners can also see</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="gaps">
+      <h2>The three real gaps</h2>
+      <ol>
+        <li><strong>Scheduled reminders</strong> — no way to queue an email ahead of a session.</li>
+        <li><strong>Program-admin access to registration data</strong> — Signups and Applications are locked to super-admins.</li>
+        <li><strong>Instructor-only facilitator guides</strong> — no private field for them.</li>
+      </ol>
+    </div>
+    <p class="note">One question came through cut off — "How can we house the …". Send the rest and it gets an answer here.</p>
+  </section>
+</div>
+</body>
+</html>

@@ -29,6 +29,14 @@ describe("MVP export endpoint", () => {
     expect(response.headers.get("content-type")).toBe("application/pdf");
     expect(await response.text()).toBe("%PDF-test");
     expect(mocks.pdf).toHaveBeenCalledOnce();
+    expect(mocks.pdf.mock.calls[0][1]).toBe("overview");
+  });
+  it("passes Programs presentation without altering authorized filter scope", async () => {
+    const filters = { ...body.filters, courseSlug: "course-a", city: "Boston, MA", learnerStatus: "active", startDate: "2026-09-01", endDate: "2026-09-30" };
+    const response = await POST(request({ ...body, filters, format: "pdf", view: "programs" }));
+    expect(response.status).toBe(200);
+    expect(mocks.load.mock.calls[0][0]).toEqual(filters);
+    expect(mocks.pdf.mock.calls[0][1]).toBe("programs");
   });
   it.each(["MVP access is required.", "The selected program is unavailable.", "The selected course is unavailable."])("rejects unauthorized scope: %s", async message => {
     mocks.load.mockRejectedValue(new Error(message));

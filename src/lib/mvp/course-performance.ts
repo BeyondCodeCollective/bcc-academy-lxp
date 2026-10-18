@@ -97,6 +97,7 @@ export function calculateMvpCoursePerformance(
     });
   });
   return {
+    heldRequiredSessions: ambiguousDelivery ? null : schedule.heldRequiredSessions,
     activeByLearner: new Map(distinctLearnerIds.map((id, index) => [id, activeEvaluations[index].active])),
     attendanceQualified,
     active: !activeRule || !schedule.heldRequiredSessions?.length ? null : countMvpActiveLearners(activeEvaluations),

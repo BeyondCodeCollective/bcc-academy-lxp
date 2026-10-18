@@ -1,6 +1,18 @@
 import "server-only";
 import { getMvpDashboardData } from "./queries";
 
+// Server-only program-scoped roster snapshot, separate from aggregate pages
+// and exports. Every call reruns authentication, grants and applied filters.
+export async function getMvpProgramParticipants(params: Record<string, string | string[] | undefined>) {
+  const data = await getMvpDashboardData(params, { includeParticipants: true });
+  return { appliedFilters: data.appliedFilters, fetchedAt: data.freshness.fetchedAt,
+    participants: data.participants ?? [],
+    lastActivitySources: ["Submitted work", "Submitted reflections", "Recorded video watches"],
+    lastActivityLimitation: "Attendance entry and staff-review timestamps are excluded because they do not establish when the learner acted.",
+    progressUnit: "Fully satisfied sessions among verified held sessions with requirements due so far",
+  };
+}
+
 // Every drill-down reloads authorized data; a row/learner ID from the browser
 // is a selector, never permission. Sensitive summaries remain opt-in.
 export async function getMvpProgramDetail(

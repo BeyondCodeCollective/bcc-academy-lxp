@@ -1,4 +1,5 @@
 import "server-only";
+import { loadMvpParticipants } from "./participant-queries";
 import { loadMvpLinkedCohorts } from "./cohort-queries";
 import { buildMvpStaffReview } from "./staff-review";
 import { buildMvpOverviewParticipation } from "./overview-participation";
@@ -22,7 +23,7 @@ import { loadMvpIncome } from "./income-queries";
 import { getSessionContext } from "@/lib/auth/session";
 import { isPreviewingAsStudent } from "@/lib/auth/preview-mode";
 import { allowedProgramIds, allowedTrackSlugs, effectiveRoleInProgram, type ProgramGrant } from "@/lib/auth/program-access";
-import { canViewMvp } from "@/lib/roles";
+import { canViewMvp, canManageStudents } from "@/lib/roles";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getEveryProgramConfig, getHomeProgramForTrack } from "@/lib/programs";
 import { resolveScopeTrackSlugs } from "@/lib/programs/scope";
@@ -43,7 +44,7 @@ import { loadMvpSurveyOutcomes, type MvpSurveyOutcomeGroup } from "./survey-quer
 // so they are read only when a caller asks for the demographic summaries.
 export async function getMvpDashboardData(
   params: Record<string, string | string[] | undefined>,
-  { includeDemographics = false, includeLocations = false, includeEvents = false, includeCohorts = false }: { includeDemographics?: boolean; includeLocations?: boolean; includeEvents?: boolean; includeCohorts?: boolean } = {},
+  { includeDemographics = false, includeLocations = false, includeEvents = false, includeCohorts = false, includeParticipants = false }: { includeDemographics?: boolean; includeLocations?: boolean; includeEvents?: boolean; includeCohorts?: boolean; includeParticipants?: boolean } = {},
 ): Promise<MvpDashboardData> {
   const context = await getSessionContext();
   const role = context?.student?.role ?? "student";
@@ -57,6 +58,8 @@ export async function getMvpDashboardData(
   }
   const programId = selection("programId");
   const courseSlug = selection("courseSlug");
+  if (includeParticipants && (!programId || !canManageStudents(role))) throw new Error("Choose one authorized program for participant details.");
+  const participants: Awaited<ReturnType<typeof loadMvpParticipants>> = [];
   // Keep the existing URL contract; city now means the full profile location,
   // not a verified city. Match trimmed text exactly, without geocoding guesses.
   const location = selection("city")?.trim() || null;
@@ -365,6 +368,9 @@ for (const row of candidateRows) {
   selectedRows.push(row);
   if (includeCohorts) row.linkedCohorts = await loadMvpLinkedCohorts(db, row.programId, row.courseSlug);
   const program = programs.find((item) => item.id === row.programId)!;
+  if (includeParticipants && !canManageStudents(effectiveRoleInProgram(role, homeId, mvpGrants, program.id))) {
+    throw new Error("Participant roster access is required.");
+  }
   let activitySlugs = activityScopes.get(program.id);
   if (!activitySlugs) {
     activitySlugs = await resolveScopeTrackSlugs({ ids: [program.id], slugs: [program.slug] });
@@ -451,6 +457,11 @@ for (const row of candidateRows) {
   row.progressRate = row.videoProgress.percent;
   const performance = calculateMvpCoursePerformance(track, records.learnerIds, records.attendance, delivery, asOf, row.id, activeRule, requiredWork, verification, additionalSignals);
   const remaining = calculateMvpSessionsRemaining(track, delivery, asOf);
+  if (includeParticipants) participants.push(...await loadMvpParticipants(db, {
+    offering: row, programSlug: program.slug, learnerIds: records.learnerIds, asOf,
+    heldSessions: performance.heldRequiredSessions, attendance: records.attendance, reviews: verification.reviews,
+    activeByLearner: performance.activeByLearner,
+  }));
   row.sessionsRemaining = remaining.remaining;
   row.sessionsRemainingReason = remaining.unavailableReason;
   row.attendanceQualified = performance.attendanceQualified;
@@ -527,6 +538,7 @@ for (const row of candidateRows) {
       ...startSummary, ...completionSummary, upcomingEnrollments,
     },
     programs: selectedRows, commitments: [], checkInEvaluations, surveyOutcomes,
+    ...(includeParticipants && { participants }),
     overviewParticipation: buildMvpOverviewParticipation(selectedRows, surveyOutcomes),
     staffReview: buildMvpStaffReview(selectedRows, checkInEvaluations),
     ...(events && { events }),

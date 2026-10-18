@@ -46,6 +46,7 @@ describe("simplified MVP dashboard copy", () => {
     for (const heading of ["Catalyst KPIs", "Catalyst performance", "Catalyst survey outcomes"]) expect(html).toContain(heading);
     expect(html).toMatch(/<dd[^>]*>17<\/dd>/);
     expect(html).toMatch(/<dd[^>]*>3<\/dd>/);
+    expect(html).toContain("PDF mini-report");
     const cleared = renderToStaticMarkup(createElement(MvpDashboard, { data }));
     expect(cleared).toContain("Program KPIs");
     expect(cleared).not.toContain("Catalyst performance");
@@ -82,7 +83,17 @@ describe("simplified MVP dashboard copy", () => {
       "Choose your filters", "Each row represents", "Current eligible learners only"]) {
       expect(html).not.toContain(text);
     }
-    expect(html).toContain("Apply filters");
+    expect(html).toContain("Apply Filters");
+    expect(html.indexOf('aria-label="Program performance"')).toBeLessThan(html.indexOf('aria-label="Participant activity"'));
+    expect(html.indexOf('aria-label="Participant activity"')).toBeLessThan(html.indexOf("Program survey outcomes"));
+    expect(html).toContain("lg:grid-cols-[340px_minmax(0,1fr)]");
+    const filterCard = html.slice(html.indexOf("<fieldset"), html.indexOf("</fieldset>"));
+    expect(filterCard).toContain('text-xl font-semibold text-ink">Filter</h2>');
+    expect(filterCard).toContain("Apply Filters");
+    expect(filterCard.indexOf("Clear filters")).toBeLessThan(filterCard.indexOf("Apply Filters"));
+    expect(html.indexOf("Program KPIs")).toBeLessThan(html.indexOf('aria-label="Dashboard filters"'));
+    expect(html.indexOf('aria-label="Dashboard filters"')).toBeLessThan(html.indexOf('aria-label="Program performance"'));
+    expect(html).toContain('class="panel w-full min-w-0 p-5 sm:p-6" aria-label="Program performance"');
     expect(html).toContain("Unique learners started");
     expect(html).toContain('aria-label="Not available"');
   });

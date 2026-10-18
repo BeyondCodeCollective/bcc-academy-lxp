@@ -28,7 +28,8 @@ export default async function MvpDashboardPage({ searchParams }: {
     }
     const params = await searchParams;
     const isPrograms = params.view === "programs";
-    const loaded = await getMvpDashboardData(params, { includeDemographics: !isPrograms, includeLocations: !isPrograms, includeCohorts: isPrograms });
+    const loaded = await getMvpDashboardData(params, { includeDemographics: !isPrograms, includeLocations: !isPrograms, includeCohorts: isPrograms,
+        includeParticipants: isPrograms && typeof params.programId === "string" && Boolean(params.programId.trim()) });
     // The workspace needs aggregates, not learner-level check-in evidence.
     const data = { ...loaded, checkInEvaluations: undefined };
     const overviewSnapshot = isPrograms ? null : await refreshMvpOverview();

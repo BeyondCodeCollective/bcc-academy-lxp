@@ -4,13 +4,16 @@ import { parseMvpLearnerFilter } from "./learner-filter";
 import { parseMvpReportSelection, type buildMvpReport } from "./report-selection";
 
 // Both formats consume one authorized snapshot, never client-supplied totals.
-export type MvpReport = ReturnType<typeof buildMvpReport>;
+type BuiltMvpReport = ReturnType<typeof buildMvpReport>;
+// Older aggregate snapshots remain renderable without exposing their raw IDs.
+export type MvpReport = Omit<BuiltMvpReport, "filterLabels"> & { filterLabels?: BuiltMvpReport["filterLabels"] };
 export class MvpExportInputError extends Error {}
 export function parseMvpExportRequest(input: unknown) {
   try {
     if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error();
     const body = input as Record<string, unknown>;
-    if (Object.keys(body).some(key => !["format", "filters", "selection"].includes(key)) ||
+    if (Object.keys(body).some(key => !["format", "filters", "selection", "view"].includes(key)) ||
+        (body.view !== undefined && !["overview", "programs"].includes(body.view as string)) ||
         !["pdf", "csv"].includes(body.format as string)) throw new Error();
     const raw = body.filters ?? {};
     if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new Error();
@@ -26,7 +29,7 @@ export function parseMvpExportRequest(input: unknown) {
     if (selection.demographics) {
       throw new MvpExportInputError("Demographic exports await approved privacy and small-sample rules.");
     }
-    return { format: body.format as "pdf" | "csv", filters, selection };
+    return { format: body.format as "pdf" | "csv", filters, selection, view: (body.view ?? "overview") as "overview" | "programs" };
   } catch (error) {
     if (error instanceof MvpExportInputError) throw error;
     throw new MvpExportInputError("Choose a valid export format, filters, and report selection.");
@@ -48,6 +51,13 @@ export function mvpExportRecords(report: MvpReport): MvpExportRecord[] {
   add("Report", "Reporting basis", "Selected dates find overlapping offerings; results include full-offering evidence available so far.");
   for (const [key, value] of Object.entries(report.appliedFilters)) add("Filter", key, value ?? "All / not selected");
   for (const warning of report.warnings) add("Warning", warning.key, warning.reason);
+  if (report.summary) {
+    add("Current-roster summary", "Unique learners started", report.summary.uniqueLearnersStarted, "Learners");
+    add("Current-roster summary", "Program participations started", report.summary.programParticipationsStarted, "Learner/program pairs");
+    add("Current-roster summary", "Learners with a course completion", report.summary.uniqueLearnersCompleted, "Learners");
+    add("Current-roster summary", "Learner/program pairs with a completion", report.summary.programParticipationsCompleted, "Learner/program pairs");
+    add("Current-roster summary", "Upcoming enrollments", report.summary.upcomingEnrollments, "Enrollments");
+  }
   if (!report.rows.length) add("Report", "Offerings", "No offerings match the applied filters.");
   for (const row of report.rows) {
     const context = { program: row.programName, course: row.courseName ?? "Unavailable", start: row.startDate ?? "Unavailable",
