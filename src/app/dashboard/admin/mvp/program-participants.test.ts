@@ -14,7 +14,7 @@ function render(rows: MvpDashboardData["participants"], selected = true, loading
   return renderToStaticMarkup(createElement(ProgramParticipants, { participants: rows, programSelected: selected, loading }));
 }
 describe("program participant card", () => {
-  it("renders three columns with contacts, learner progress and timezone-labelled activity", () => {
+  it("renders three columns with contacts, learner progress and timezone-labeled activity", () => {
     const html = render([participant]);
     for (const text of ["Example Learner", "learner@example.test", "Course", "Active", "50%", "2:30 PM EDT"]) expect(html).toContain(text);
     expect(html.match(/scope="col"/g)).toHaveLength(3);
