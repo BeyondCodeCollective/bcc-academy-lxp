@@ -1,10 +1,10 @@
 import type { MvpAttendanceReview } from "./attendance-verification";
 
-// Client input cannot set reviewer identity, recorded time, or the new revision.
+// Client input cannot set reviewer identity, held/recorded time, or the new revision.
 export type MvpReviewDecision = {
   programId: string; courseSlug: string; learnerId: string;
   weekNumber: number; sessionNumber: number; expectedRevision: number;
-  heldAt: string; eligibility: MvpAttendanceReview["eligibility"];
+  eligibility: MvpAttendanceReview["eligibility"];
   eligibilityBasis: string | null; outcome: MvpAttendanceReview["outcome"]; reason: string;
 };
 export type MvpReviewScope = Pick<MvpReviewDecision, "programId" | "courseSlug" | "learnerId" | "weekNumber" | "sessionNumber">;
@@ -15,7 +15,7 @@ export function parseMvpReviewScope(input: unknown): MvpReviewScope {
       Object.keys(input).some(key => !["programId", "courseSlug", "learnerId", "weekNumber", "sessionNumber"].includes(key))) {
     throw new Error("Invalid attendance review scope.");
   }
-  const parsed = parseMvpReviewDecision({ ...input, expectedRevision: 0, heldAt: "2000-01-01T00:00:00Z",
+  const parsed = parseMvpReviewDecision({ ...input, expectedRevision: 0,
     eligibility: "unknown", eligibilityBasis: null, outcome: "unknown", reason: "History lookup" });
   return { programId: parsed.programId, courseSlug: parsed.courseSlug, learnerId: parsed.learnerId,
     weekNumber: parsed.weekNumber, sessionNumber: parsed.sessionNumber };
@@ -23,7 +23,7 @@ export function parseMvpReviewScope(input: unknown): MvpReviewScope {
 export function parseMvpReviewDecision(input: unknown): MvpReviewDecision {
   if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("Invalid attendance review.");
   const value = input as Record<string, unknown>;
-  const keys = ["programId", "courseSlug", "learnerId", "weekNumber", "sessionNumber", "expectedRevision", "heldAt", "eligibility", "eligibilityBasis", "outcome", "reason"];
+  const keys = ["programId", "courseSlug", "learnerId", "weekNumber", "sessionNumber", "expectedRevision", "eligibility", "eligibilityBasis", "outcome", "reason"];
   if (Object.keys(value).some(key => !keys.includes(key)) || keys.some(key => !(key in value))) throw new Error("Invalid attendance review fields.");
   const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (![value.programId, value.learnerId].every(id => typeof id === "string" && uuid.test(id)) ||
@@ -31,7 +31,6 @@ export function parseMvpReviewDecision(input: unknown): MvpReviewDecision {
       !Number.isSafeInteger(value.weekNumber) || (value.weekNumber as number) < 0 ||
       ![1, 2, 3].includes(value.sessionNumber as number) ||
       !Number.isSafeInteger(value.expectedRevision) || (value.expectedRevision as number) < 0 ||
-      typeof value.heldAt !== "string" || !/T.*(?:Z|[+-]\d{2}:\d{2})$/.test(value.heldAt) || !Number.isFinite(Date.parse(value.heldAt)) ||
       !["eligible", "not_eligible", "unknown"].includes(value.eligibility as string) ||
       !["present", "absent", "excused", "unknown"].includes(value.outcome as string) ||
       (value.eligibility !== "eligible" && value.outcome !== "unknown") ||

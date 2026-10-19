@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { parseMvpReviewDecision } from "./attendance-finalization";
 
 const mocks = vi.hoisted(() => ({ manager: vi.fn(), scope: vi.fn(), home: vi.fn(), rpc: vi.fn(), from: vi.fn() }));
@@ -13,13 +13,15 @@ import { finalizeMvpAttendanceReview, readMvpAttendanceReviewHistory } from "./a
 const programId = "11111111-1111-1111-1111-111111111111";
 const learnerId = "22222222-2222-2222-2222-222222222222";
 const decision = { programId, learnerId, courseSlug: "example", weekNumber: 1, sessionNumber: 1,
-  expectedRevision: 0, heldAt: "2026-01-01T18:00:00Z", eligibility: "eligible", eligibilityBasis: "Roster snapshot Jan 1",
+  expectedRevision: 0, eligibility: "eligible", eligibilityBasis: "Roster snapshot Jan 1",
   outcome: "absent", reason: "Finalized against facilitator's attendance sheet" };
 const scope = { programId, learnerId, courseSlug: "example", weekNumber: 1, sessionNumber: 1 };
 const responses: Record<string, unknown> = {};
 let actor: { role: string; userId: string; programId: string | null; grants: { programId: string; role: string; trackSlug: string | null }[]; svc: { from: typeof mocks.from; rpc: typeof mocks.rpc } };
 const conditions: Array<[string, string, unknown]> = [];
 beforeEach(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-10-19T18:00:00Z"));
   vi.clearAllMocks();
   conditions.length = 0;
   Object.assign(responses, {
@@ -45,22 +47,32 @@ beforeEach(() => {
   mocks.home.mockReturnValue(undefined);
   mocks.rpc.mockResolvedValue({ data: { id: "review", revision: 1, recorded_by: actor.userId }, error: null });
 });
+afterEach(() => vi.useRealTimers());
 describe("attendance staff finalization", () => {
   it("validates evidence, outcome combinations and forbids forged audit fields", () => {
     expect(parseMvpReviewDecision(decision).reason).toBe(decision.reason);
     for (const patch of [{ recorded_by: "forged" }, { reason: " " }, { eligibilityBasis: null },
       { eligibility: "not_eligible", outcome: "absent" }, { expectedRevision: -1 }, { sessionNumber: 4 },
-      { heldAt: "bad" }, { eligibility: "unknown", outcome: "present" }]) {
+      { heldAt: "bad" }, { heldAt: "2026-01-01T18:00:00Z" }, { eligibility: "unknown", outcome: "present" }]) {
       expect(() => parseMvpReviewDecision({ ...decision, ...patch })).toThrow();
     }
   });
   it("saves with session-derived reviewer and scoped enrollment", async () => {
     await finalizeMvpAttendanceReview(decision);
-    expect(mocks.rpc).toHaveBeenCalledWith("finalize_mvp_attendance_review", { p_decision: decision, p_actor: actor.userId });
+    expect(mocks.rpc).toHaveBeenCalledWith("finalize_mvp_attendance_review", {
+      p_decision: { ...decision, heldAt: "2026-10-19T18:00:00.000Z" }, p_actor: actor.userId,
+    });
     expect(conditions).toContainEqual(["student_tracks", "program_id", programId]);
     expect(conditions).toContainEqual(["student_tracks", "student_id", learnerId]);
     expect(conditions).toContainEqual(["attendance", "track", "example"]);
     expect(conditions).not.toContainEqual(["attendance", "program_id", programId]);
+  });
+  it("rejects caller-supplied held times before authorization or database access", async () => {
+    for (const heldAt of ["2000-01-01T00:00:00Z", "2099-01-01T00:00:00Z"]) {
+      await expect(finalizeMvpAttendanceReview({ ...decision, heldAt })).rejects.toThrow("fields");
+    }
+    expect(mocks.manager).not.toHaveBeenCalled();
+    expect(mocks.rpc).not.toHaveBeenCalled();
   });
   it("passes the reviewed revision for corrections and surfaces stale-save conflicts", async () => {
     mocks.rpc.mockResolvedValue({ data: null, error: { code: "40001" } });
@@ -104,7 +116,9 @@ describe("attendance staff finalization", () => {
     responses.session_content = { data: [{ status: "completed" }], error: null };
     responses.attendance = { data: [{ id: "check-in" }], error: null };
     await expect(finalizeMvpAttendanceReview(decision)).rejects.toThrow("conflicting");
-    await expect(finalizeMvpAttendanceReview({ ...decision, heldAt: "2099-01-01T00:00:00Z" })).rejects.toThrow("held");
+    responses.track_overrides = { data: { start_date: "2099-01-01", total_weeks: 1, sessions_per_week: 1,
+      last_session_day_offset: 0, unit_label: "Session", week_summaries: [{ week: 1, date: "2099-01-01" }], self_paced: false }, error: null };
+    await expect(finalizeMvpAttendanceReview(decision)).rejects.toThrow("held");
     expect(mocks.rpc).not.toHaveBeenCalled();
   });
   it("does not claim success when the migration/write is unavailable", async () => {

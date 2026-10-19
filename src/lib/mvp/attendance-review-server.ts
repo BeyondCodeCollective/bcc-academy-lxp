@@ -60,8 +60,9 @@ async function verifyHeldSession(actor: Awaited<ReturnType<typeof authorize>>, d
     weekSummaries: o?.week_summaries ?? base?.weekSummaries ?? [],
   } : null;
   const schedule = buildMvpSchedule({ track, asOf, verifiedStartSessions: null, confirmedHeldSessions: null });
-  if (!schedule.scheduledRequiredSessions?.some(slot => slot.weekNumber === decision.weekNumber && slot.sessionNumber === decision.sessionNumber) ||
-      Date.parse(decision.heldAt) > asOf.getTime()) throw new Error("Only required sessions already held can be reviewed.");
+  if (!schedule.scheduledRequiredSessions?.some(slot => slot.weekNumber === decision.weekNumber && slot.sessionNumber === decision.sessionNumber)) {
+    throw new Error("Only required sessions already held can be reviewed.");
+  }
   // Session content is keyed by course slug, not its potentially stale program stamp.
   const delivery = await actor.svc.from("session_content").select("status, status_2, status_3")
     .eq("track", decision.courseSlug).eq("week_number", decision.weekNumber).limit(2);
@@ -83,7 +84,10 @@ export async function finalizeMvpAttendanceReview(input: unknown): Promise<MvpSa
   const decision = parseMvpReviewDecision(input);
   const actor = await authorize(decision);
   await verifyHeldSession(actor, decision, new Date());
-  const result = await actor.svc.rpc("finalize_mvp_attendance_review", { p_decision: decision, p_actor: actor.userId });
+  // No exact delivery timestamp exists in session_content. Record when this
+  // server verified delivery, not a client-supplied historical session time.
+  const heldAt = new Date().toISOString();
+  const result = await actor.svc.rpc("finalize_mvp_attendance_review", { p_decision: { ...decision, heldAt }, p_actor: actor.userId });
   if (result.error?.code === "40001") throw new Error("Attendance review changed. Reload before saving your correction.");
   if (result.error || !result.data) throw new Error("Attendance review was not saved.");
   return result.data as MvpSavedReview;
