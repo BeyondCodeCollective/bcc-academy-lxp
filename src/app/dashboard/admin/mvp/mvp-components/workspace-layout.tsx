@@ -15,7 +15,7 @@ export function workspaceKeyboardWidth(width: number, key: string): number | nul
 }
 
 // Resizing is local presentation state: it never changes filters or reloads data.
-export function WorkspaceLayout({ navigation, children }: { navigation: ReactNode; children: ReactNode }) {
+export function WorkspaceLayout({ navigation, children }: { navigation: ReactNode; children?: ReactNode }) {
   const sidebarId = useId();
   const [width, setWidth] = useState(WORKSPACE_WIDTH.initial);
   const [dragging, setDragging] = useState(false);

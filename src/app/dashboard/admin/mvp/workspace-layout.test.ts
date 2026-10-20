@@ -19,7 +19,7 @@ describe("resizable MVP workspace", () => {
     expect(workspaceKeyboardWidth(260, "Tab")).toBeNull();
   });
   it("exposes an accessible separator and stacks content on small screens", () => {
-    const html = renderToStaticMarkup(createElement(WorkspaceLayout, { navigation: "Navigation", children: "Content" }));
+    const html = renderToStaticMarkup(createElement(WorkspaceLayout, { navigation: "Navigation" }, "Content"));
     for (const text of ['role="separator"', 'aria-orientation="vertical"', 'aria-valuenow="260"', 'tabindex="0"', "grid-cols-1", "lg:block", "--workspace-width:260px"]) expect(html).toContain(text);
     expect(html.indexOf("Navigation")).toBeLessThan(html.indexOf("Content"));
   });
