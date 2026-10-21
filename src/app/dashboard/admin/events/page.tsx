@@ -4,7 +4,7 @@ import { Plus } from "lucide-react";
 import { getSessionContext } from "@/lib/auth/session";
 import { canManageStudents, canManageRoles } from "@/lib/roles";
 import { createServiceClient } from "@/lib/supabase/server";
-import { getProgramId } from "@/lib/programs/server";
+import { requireManager, allowedProgramIdsForActor } from "@/app/dashboard/admin/actions-shared";
 import { formatEventWhen, type EventRow } from "@/lib/events";
 import { PageHeader } from "@/components/page-header";
 import { DataTable, buttonClass } from "@/components/ui";
@@ -12,27 +12,26 @@ import { ManageMenu } from "../manage-menu";
 
 export const dynamic = "force-dynamic";
 
-// Events for the current program, with live attendee counts. Each row opens
-// the roster. Scoped to the current program like every other admin surface.
+// Events across the programs the actor may manage, with live attendee counts.
+// Each row opens the roster.
 export default async function AdminEventsPage() {
   const ctx = await getSessionContext();
   if (!ctx) redirect("/");
   if (!canManageStudents(ctx.student?.role ?? "")) redirect("/dashboard/admin");
 
-  const programId = await getProgramId();
+  const allowedIds = allowedProgramIdsForActor(await requireManager());
   const svc = createServiceClient();
-  const [{ data: events }, { data: attendees }] = await Promise.all([
-    svc
-      .from("events")
-      .select("id, slug, title, starts_at, ends_at, timezone, location, capacity, status")
-      .eq("program_id", programId)
-      .order("starts_at", { ascending: false })
-      .limit(200),
-    svc
-      .from("event_attendees")
-      .select("event_id, status, events!inner(program_id)")
-      .eq("events.program_id", programId),
-  ]);
+  let eventsQ = svc
+    .from("events")
+    .select("id, slug, title, starts_at, ends_at, timezone, location, capacity, status")
+    .order("starts_at", { ascending: false })
+    .limit(200);
+  let attendeesQ = svc.from("event_attendees").select("event_id, status, events!inner(program_id)");
+  if (allowedIds) {
+    eventsQ = eventsQ.in("program_id", allowedIds);
+    attendeesQ = attendeesQ.in("events.program_id", allowedIds);
+  }
+  const [{ data: events }, { data: attendees }] = await Promise.all([eventsQ, attendeesQ]);
 
   const counts = new Map<string, { seated: number; waiting: number }>();
   for (const a of (attendees ?? []) as { event_id: string; status: string }[]) {

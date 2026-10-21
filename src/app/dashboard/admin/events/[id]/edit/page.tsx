@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { getSessionContext } from "@/lib/auth/session";
 import { canManageStudents, canManageRoles } from "@/lib/roles";
 import { createServiceClient } from "@/lib/supabase/server";
-import { getProgramId } from "@/lib/programs/server";
+import { requireManager, allowedProgramIdsForActor } from "@/app/dashboard/admin/actions-shared";
 import { EVENT_COLUMNS, type EventRow } from "@/lib/events";
 import { PageHeader } from "@/components/page-header";
 import { ManageMenu } from "../../../manage-menu";
@@ -35,15 +35,14 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
 
   const { id } = await params;
   if (!UUID_RE.test(id)) notFound();
-  const programId = await getProgramId();
+  const allowedIds = allowedProgramIdsForActor(await requireManager());
   const svc = createServiceClient();
   const { data: event } = await svc
     .from("events")
     .select(EVENT_COLUMNS)
     .eq("id", id)
-    .eq("program_id", programId)
     .maybeSingle<EventRow>();
-  if (!event) notFound();
+  if (!event || (allowedIds !== null && !allowedIds.includes(event.program_id))) notFound();
 
   const start = localParts(event.starts_at, event.timezone);
   const end = event.ends_at ? localParts(event.ends_at, event.timezone) : null;

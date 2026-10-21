@@ -1,6 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { requireCapability } from "@/app/dashboard/admin/actions-shared";
-import { getProgramId } from "@/lib/programs/server";
+import { requireCapability, allowedProgramIdsForActor } from "@/app/dashboard/admin/actions-shared";
 
 export const dynamic = "force-dynamic";
 
@@ -45,8 +44,11 @@ const PARENT_COLUMNS: [string, string][] = [
 // contact on each row. Same gate as the roster page (manage_students).
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   let svc;
+  let allowedIds: string[] | null;
   try {
-    ({ svc } = await requireCapability("manage_students"));
+    const actor = await requireCapability("manage_students");
+    svc = actor.svc;
+    allowedIds = allowedProgramIdsForActor(actor);
   } catch (e) {
     if (e && typeof e === "object" && "digest" in e && String((e as { digest?: unknown }).digest).startsWith("NEXT_REDIRECT")) {
       throw e;
@@ -55,14 +57,12 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
   }
 
   const { id } = await ctx.params;
-  const programId = await getProgramId();
   const { data: event } = await svc
     .from("events")
-    .select("id, slug")
+    .select("id, slug, program_id")
     .eq("id", id)
-    .eq("program_id", programId)
-    .maybeSingle<{ id: string; slug: string }>();
-  if (!event) return new NextResponse("Not found", { status: 404 });
+    .maybeSingle<{ id: string; slug: string; program_id: string }>();
+  if (!event || (allowedIds !== null && !allowedIds.includes(event.program_id))) return new NextResponse("Not found", { status: 404 });
 
   const { data: attendees } = await svc
     .from("event_attendees")

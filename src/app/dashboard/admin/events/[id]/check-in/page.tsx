@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { getSessionContext } from "@/lib/auth/session";
 import { canManageStudents } from "@/lib/roles";
 import { createServiceClient } from "@/lib/supabase/server";
-import { getProgramId } from "@/lib/programs/server";
+import { requireManager, allowedProgramIdsForActor } from "@/app/dashboard/admin/actions-shared";
 import { EVENT_COLUMNS, formatEventWhen, type EventRow } from "@/lib/events";
 import { CheckInList, type CheckInRow } from "./check-in-list";
 
@@ -30,15 +30,14 @@ export default async function CheckInPage({ params }: { params: Promise<{ id: st
 
   const { id } = await params;
   if (!UUID_RE.test(id)) notFound();
-  const programId = await getProgramId();
+  const allowedIds = allowedProgramIdsForActor(await requireManager());
   const svc = createServiceClient();
   const { data: event } = await svc
     .from("events")
     .select(EVENT_COLUMNS)
     .eq("id", id)
-    .eq("program_id", programId)
     .maybeSingle<EventRow>();
-  if (!event) notFound();
+  if (!event || (allowedIds !== null && !allowedIds.includes(event.program_id))) notFound();
 
   const { data } = await svc
     .from("event_attendees")

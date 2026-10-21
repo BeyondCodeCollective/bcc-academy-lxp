@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { getSessionContext } from "@/lib/auth/session";
 import { canManageStudents, canManageRoles } from "@/lib/roles";
 import { createServiceClient } from "@/lib/supabase/server";
-import { getProgramId } from "@/lib/programs/server";
+import { requireManager, allowedProgramIdsForActor } from "@/app/dashboard/admin/actions-shared";
 import { ATTENDEE_STATUS_LABEL, formatEventWhen } from "@/lib/events";
 import { eventHistoryForStudent } from "@/lib/events-bridge";
 import { PageHeader } from "@/components/page-header";
@@ -23,15 +23,14 @@ export default async function LearnerEventsPage({ params }: { params: Promise<{ 
 
   const { studentId } = await params;
   if (!UUID_RE.test(studentId)) notFound();
-  const programId = await getProgramId();
+  const allowedIds = allowedProgramIdsForActor(await requireManager());
   const svc = createServiceClient();
   const { data: student } = await svc
     .from("students")
-    .select("id, first_name, last_name, email")
+    .select("id, first_name, last_name, email, program_id")
     .eq("id", studentId)
-    .eq("program_id", programId)
-    .maybeSingle<{ id: string; first_name: string | null; last_name: string | null; email: string | null }>();
-  if (!student) notFound();
+    .maybeSingle<{ id: string; first_name: string | null; last_name: string | null; email: string | null; program_id: string | null }>();
+  if (!student || (allowedIds !== null && (!student.program_id || !allowedIds.includes(student.program_id)))) notFound();
 
   const history = await eventHistoryForStudent(student.id);
   const name = `${student.first_name ?? ""} ${student.last_name ?? ""}`.trim() || student.email || "Learner";
