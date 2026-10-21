@@ -39,12 +39,15 @@ export function RegisterForm({
   eventTitle,
   maxAttendees,
   spotsLeft,
+  showSeats,
 }: {
   eventSlug: string;
   eventTitle: string;
   maxAttendees: number;
   /** null when the event has no capacity limit. */
   spotsLeft: number | null;
+  /** false hides the remaining-seat count; capacity is still enforced. */
+  showSeats: boolean;
 }) {
   const [parent, setParent] = useState<ParentInput>({
     firstName: "",
@@ -359,14 +362,16 @@ export function RegisterForm({
         <p className="mt-6 rounded-lg bg-paper-tint px-4 py-3 text-sm text-ink">
           {spotsLeft === 0
             ? "This event is full. Registering adds your attendees to the waitlist, and we'll email you if a spot opens."
-            : `Only ${spotsLeft} spot${spotsLeft === 1 ? "" : "s"} left. Registering ${attendees.length} attendees puts all of them on the waitlist so siblings stay together.`}
+            : showSeats
+              ? `Only ${spotsLeft} spot${spotsLeft === 1 ? "" : "s"} left. Registering ${attendees.length} attendees puts all of them on the waitlist so siblings stay together.`
+              : `There aren't enough spots for ${attendees.length} attendees. Registering puts all of them on the waitlist so siblings stay together.`}
         </p>
       )}
 
       <div className="mt-8 flex items-center justify-between border-t border-rule pt-6">
         <p className="text-xs text-ink-soft">
           {attendees.length} of {maxAttendees} attendees
-          {spotsLeft != null && !willWaitlist && ` · ${spotsLeft} spot${spotsLeft === 1 ? "" : "s"} left`}
+          {showSeats && spotsLeft != null && !willWaitlist && ` · ${spotsLeft} spot${spotsLeft === 1 ? "" : "s"} left`}
         </p>
         <button type="submit" disabled={submitting} className={buttonClass("primary", "md")}>
           {submitting ? (

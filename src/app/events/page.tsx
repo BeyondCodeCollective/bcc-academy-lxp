@@ -66,7 +66,7 @@ export default async function EventsIndexPage() {
                     {(e.location || e.join_url) && (
                       <p className="text-sm text-ink-soft">{e.location ?? "Online"}</p>
                     )}
-                    {left != null && (
+                    {left != null && (e.show_remaining_seats || full) && (
                       <p className="mt-1 text-xs text-ink-soft">
                         {full ? (e.waitlist_enabled ? "Full · waitlist open" : "Full") : `${left} spot${left === 1 ? "" : "s"} left`}
                       </p>

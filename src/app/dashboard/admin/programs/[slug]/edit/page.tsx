@@ -1,9 +1,12 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { createServiceClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { canSwitchPrograms, canManageStudents, canManageRoles } from "@/lib/roles";
 import { requireManager, allowedProgramSlugsForActor } from "../../../actions-shared";
 import {
   getProgram,
+  getProgramId,
   getProgramWithOverrides,
   resolveHomeProgramSlug,
   fetchDynamicProgram,
@@ -79,6 +82,14 @@ export default async function EditCoursePage({
     .sort((a, b) => a.week - b.week)
     .find((ws) => !ws.label && ws.date);
 
+  // Landing pages built for this course, so the editor is one click from here.
+  const { data: landings } = await createServiceClient()
+    .from("landing_pages")
+    .select("slug, headline")
+    .eq("track_slug", slug)
+    .eq("program_id", await getProgramId())
+    .order("updated_at", { ascending: false });
+
   return (
     <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 py-8 space-y-6">
       <div>
@@ -86,6 +97,15 @@ export default async function EditCoursePage({
         <p className="mt-1 text-xs text-ink-faint font-mono">
           {track.name} · {programSlug}
         </p>
+        {(landings ?? []).map((l) => (
+          <Link
+            key={l.slug}
+            href={`/dashboard/admin/landing/${l.slug}`}
+            className="mt-2 block text-sm font-medium text-primary hover:underline"
+          >
+            Edit landing page: {l.headline || l.slug}
+          </Link>
+        ))}
       </div>
 
       <div className="rounded-lg border border-rule bg-white p-6">

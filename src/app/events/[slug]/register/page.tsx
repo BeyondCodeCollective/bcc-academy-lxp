@@ -61,6 +61,7 @@ export default async function EventRegisterPage({
           eventTitle={event.title}
           maxAttendees={event.max_attendees_per_registration}
           spotsLeft={spotsLeft}
+          showSeats={event.show_remaining_seats}
         />
       )}
     </div>
