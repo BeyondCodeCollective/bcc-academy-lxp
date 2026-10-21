@@ -18,7 +18,17 @@ const slugify = (s: string) =>
     .replace(/^-+|-+$/g, "")
     .slice(0, 64);
 
-export function NewEventForm({ eventId, initial }: { eventId?: string; initial?: NewEventInput }) {
+export function NewEventForm({
+  eventId,
+  initial,
+  programs = [],
+  defaultProgramSlug = "",
+}: {
+  eventId?: string;
+  initial?: NewEventInput;
+  programs?: { slug: string; name: string }[];
+  defaultProgramSlug?: string;
+}) {
   const editing = !!eventId;
   const [v, setV] = useState<NewEventInput>(
     initial ?? {
@@ -36,6 +46,7 @@ export function NewEventForm({ eventId, initial }: { eventId?: string; initial?:
       waitlistEnabled: true,
       showRemainingSeats: true,
       status: "open",
+      programSlug: defaultProgramSlug,
     },
   );
   const [slugTouched, setSlugTouched] = useState(editing);
@@ -64,6 +75,25 @@ export function NewEventForm({ eventId, initial }: { eventId?: string; initial?:
   return (
     <form onSubmit={onSubmit} className="rounded-lg border border-rule bg-white p-6" noValidate>
       <div className="grid gap-4 sm:grid-cols-2">
+        {!editing && programs.length > 0 && (
+          <div className="sm:col-span-2">
+            <label htmlFor="ev-program" className={LABEL_CLASS}>
+              Program
+            </label>
+            <select
+              id="ev-program"
+              className={INPUT_CLASS}
+              value={v.programSlug ?? ""}
+              onChange={(e) => set("programSlug", e.target.value)}
+            >
+              {programs.map((p) => (
+                <option key={p.slug} value={p.slug}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <div className="sm:col-span-2">
           <label htmlFor="ev-title" className={LABEL_CLASS}>
             Title

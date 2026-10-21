@@ -4,7 +4,7 @@ import { ClipboardCheck, Download } from "lucide-react";
 import { getSessionContext } from "@/lib/auth/session";
 import { canManageStudents, canManageRoles } from "@/lib/roles";
 import { createServiceClient } from "@/lib/supabase/server";
-import { getProgramId } from "@/lib/programs/server";
+import { requireManager, allowedProgramIdsForActor } from "../../actions-shared";
 import { ATTENDEE_STATUS_LABEL, EVENT_COLUMNS, formatEventWhen, type EventRow } from "@/lib/events";
 import { PageHeader } from "@/components/page-header";
 import { DataTable, buttonClass } from "@/components/ui";
@@ -43,15 +43,11 @@ export default async function EventRosterPage({ params }: { params: Promise<{ id
 
   const { id } = await params;
   if (!UUID_RE.test(id)) notFound();
-  const programId = await getProgramId();
+  const allowedIds = allowedProgramIdsForActor(await requireManager());
   const svc = createServiceClient();
-  const { data: event } = await svc
-    .from("events")
-    .select(EVENT_COLUMNS)
-    .eq("id", id)
-    .eq("program_id", programId)
-    .maybeSingle<EventRow>();
-  if (!event) notFound();
+  const { data: event } = await svc.from("events").select(EVENT_COLUMNS).eq("id", id).maybeSingle<EventRow>();
+  if (!event || (allowedIds !== null && !allowedIds.includes(event.program_id))) notFound();
+  const { data: program } = await svc.from("programs").select("name").eq("id", event.program_id).maybeSingle<{ name: string }>();
 
   const { data: attendees } = await svc
     .from("event_attendees")
@@ -78,7 +74,7 @@ export default async function EventRosterPage({ params }: { params: Promise<{ id
     <div className="mx-auto w-full max-w-4xl px-4 sm:px-5 py-8 space-y-6">
       <PageHeader
         title={event.title}
-        subtitle={`${formatEventWhen(event.starts_at, event.ends_at, event.timezone)} · ${active}${event.capacity ? ` of ${event.capacity}` : ""} seated${waiting ? `, ${waiting} waitlisted` : ""} · ${families} famil${families === 1 ? "y" : "ies"}`}
+        subtitle={`${program?.name ?? "Unknown program"} · ${formatEventWhen(event.starts_at, event.ends_at, event.timezone)} · ${active}${event.capacity ? ` of ${event.capacity}` : ""} seated${waiting ? `, ${waiting} waitlisted` : ""} · ${families} famil${families === 1 ? "y" : "ies"}`}
         noWrap
         actions={
           <div className="flex items-center gap-2">
