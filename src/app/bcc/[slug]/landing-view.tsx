@@ -201,7 +201,7 @@ export async function LandingView({
                     {event.location ?? "Online"}
                   </span>
                 )}
-                {spotsLeft != null && (
+                {spotsLeft != null && (event.show_remaining_seats || spotsLeft === 0) && (
                   <span
                     className="rounded-full px-2.5 py-1"
                     style={spotsLeft > 0 ? { background: "rgba(31,211,122,.16)", color: "#0d6b3d" } : { background: `${INK}14`, color: `${INK}b3` }}
@@ -259,6 +259,7 @@ export async function LandingView({
                         eventTitle={event.title}
                         maxAttendees={event.max_attendees_per_registration}
                         spotsLeft={spotsLeft}
+                        showSeats={event.show_remaining_seats}
                       />
                     </EventSignupReveal>
                   )}

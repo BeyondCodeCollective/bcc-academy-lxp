@@ -19,6 +19,7 @@ export type NewEventInput = {
   capacity: string; // "" = unlimited
   maxAttendees: string;
   waitlistEnabled: boolean;
+  showRemainingSeats: boolean;
   status: "draft" | "open" | "closed";
 };
 
@@ -56,6 +57,7 @@ function validate(input: NewEventInput): { ok: true; row: Record<string, unknown
       capacity,
       max_attendees_per_registration: maxAttendees,
       waitlist_enabled: input.waitlistEnabled,
+      show_remaining_seats: input.showRemainingSeats,
       status: input.status,
     },
   };

@@ -34,6 +34,7 @@ export function NewEventForm({ eventId, initial }: { eventId?: string; initial?:
       capacity: "",
       maxAttendees: "5",
       waitlistEnabled: true,
+      showRemainingSeats: true,
       status: "open",
     },
   );
@@ -185,6 +186,10 @@ export function NewEventForm({ eventId, initial }: { eventId?: string; initial?:
         <label className="flex items-center gap-3 text-sm text-ink">
           <input type="checkbox" checked={v.waitlistEnabled} onChange={(e) => set("waitlistEnabled", e.target.checked)} className="h-4 w-4 rounded border-rule" />
           Waitlist when full
+        </label>
+        <label className="flex items-center gap-3 text-sm text-ink">
+          <input type="checkbox" checked={v.showRemainingSeats} onChange={(e) => set("showRemainingSeats", e.target.checked)} className="h-4 w-4 rounded border-rule" />
+          Show remaining seats on the public page
         </label>
         <div>
           <label htmlFor="ev-status" className={LABEL_CLASS}>
