@@ -64,7 +64,8 @@ export default async function EventRosterPage({ params }: { params: Promise<{ id
   const attended = rows.filter((r) => r.status === "attended").length;
 
   const { data: surveyRows } = await svc.from("event_survey_responses").select("rating").eq("event_id", event.id);
-  const ratings = (surveyRows ?? []).map((r) => r.rating as number);
+  const surveyCount = (surveyRows ?? []).length;
+  const ratings = (surveyRows ?? []).map((r) => r.rating as number | null).filter((r): r is number => r !== null);
   const avgRating = ratings.length ? (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1) : null;
 
   const fmt = (iso: string) =>
@@ -92,6 +93,9 @@ export default async function EventRosterPage({ params }: { params: Promise<{ id
             <Link href={`/dashboard/admin/events/${event.id}/import`} className={buttonClass("secondary", "sm")}>
               Import
             </Link>
+            <Link href={`/dashboard/admin/events/${event.id}/survey`} className={buttonClass("secondary", "sm")}>
+              Survey
+            </Link>
             <ManageMenu isMaster={canManageRoles(ctx.userEmail)} />
           </div>
         }
@@ -110,11 +114,12 @@ export default async function EventRosterPage({ params }: { params: Promise<{ id
             <span className="text-ink-soft">{attended} checked in</span>
           </>
         )}
-        {ratings.length > 0 && (
+        {surveyCount > 0 && (
           <>
             <span className="text-ink-faint"> · </span>
             <span className="text-ink-soft">
-              Survey: {ratings.length} response{ratings.length === 1 ? "" : "s"}, avg {avgRating} of 5
+              Survey: {surveyCount} response{surveyCount === 1 ? "" : "s"}
+              {avgRating ? `, avg ${avgRating} of 5` : ""}
             </span>
             <span className="text-ink-faint"> · </span>
             <a href={`/api/events/${event.id}/survey-csv`} className="text-ink-soft underline hover:text-ink">
