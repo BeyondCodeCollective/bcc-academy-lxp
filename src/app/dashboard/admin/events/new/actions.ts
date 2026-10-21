@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireManager, resolveProgramForActor } from "@/app/dashboard/admin/actions-shared";
+import { requireManager, resolveProgramForActor, allowedProgramIdsForActor } from "@/app/dashboard/admin/actions-shared";
 import { getProgramId } from "@/lib/programs/server";
 import { EVENT_TIMEZONES } from "@/lib/events";
 
@@ -113,16 +113,18 @@ export async function createEvent(input: NewEventInput): Promise<{ ok: false; er
 }
 
 export async function updateEvent(eventId: string, input: NewEventInput): Promise<{ ok: false; error: string } | never> {
-  const { svc } = await requireManager();
-  const programId = await getProgramId();
+  const actor = await requireManager();
+  const { svc } = actor;
+  const allowedIds = allowedProgramIdsForActor(actor);
   const v = validate(input);
   if (!v.ok) return v;
 
-  const { data, error } = await svc
+  let update = svc
     .from("events")
     .update({ ...v.row, updated_at: new Date().toISOString() })
-    .eq("id", eventId)
-    .eq("program_id", programId)
+    .eq("id", eventId);
+  if (allowedIds) update = update.in("program_id", allowedIds);
+  const { data, error } = await update
     .select("id")
     .maybeSingle<{ id: string }>();
   if (error || !data) {

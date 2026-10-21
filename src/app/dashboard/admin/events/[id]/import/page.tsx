@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { getSessionContext } from "@/lib/auth/session";
 import { canManageStudents, canManageRoles } from "@/lib/roles";
 import { createServiceClient } from "@/lib/supabase/server";
-import { getProgramId } from "@/lib/programs/server";
+import { requireManager, allowedProgramIdsForActor } from "@/app/dashboard/admin/actions-shared";
 import { PageHeader } from "@/components/page-header";
 import { ManageMenu } from "../../../manage-menu";
 import { ImportForm } from "./import-form";
@@ -19,15 +19,14 @@ export default async function ImportRegistrationsPage({ params }: { params: Prom
 
   const { id } = await params;
   if (!UUID_RE.test(id)) notFound();
-  const programId = await getProgramId();
+  const allowedIds = allowedProgramIdsForActor(await requireManager());
   const svc = createServiceClient();
   const { data: event } = await svc
     .from("events")
-    .select("id, title")
+    .select("id, title, program_id")
     .eq("id", id)
-    .eq("program_id", programId)
-    .maybeSingle<{ id: string; title: string }>();
-  if (!event) notFound();
+    .maybeSingle<{ id: string; title: string; program_id: string }>();
+  if (!event || (allowedIds !== null && !allowedIds.includes(event.program_id))) notFound();
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 sm:px-5 py-8 space-y-6">
