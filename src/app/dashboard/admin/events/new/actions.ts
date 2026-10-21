@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireManager } from "@/app/dashboard/admin/actions-shared";
+import { requireManager, resolveProgramForActor } from "@/app/dashboard/admin/actions-shared";
 import { getProgramId } from "@/lib/programs/server";
 import { EVENT_TIMEZONES } from "@/lib/events";
 
@@ -20,6 +20,8 @@ export type NewEventInput = {
   maxAttendees: string;
   waitlistEnabled: boolean;
   status: "draft" | "open" | "closed";
+  // Create only: the owning program. Empty = the program being browsed.
+  programSlug?: string;
 };
 
 function validate(input: NewEventInput): { ok: true; row: Record<string, unknown> } | { ok: false; error: string } {
@@ -85,8 +87,11 @@ function zonedToUtc(date: string, time: string, timeZone: string): string {
 }
 
 export async function createEvent(input: NewEventInput): Promise<{ ok: false; error: string } | never> {
-  const { svc } = await requireManager();
-  const programId = await getProgramId();
+  const actor = await requireManager();
+  const { svc } = actor;
+  const programId = input.programSlug
+    ? await resolveProgramForActor(actor, svc, input.programSlug)
+    : await getProgramId();
   const v = validate(input);
   if (!v.ok) return v;
 
