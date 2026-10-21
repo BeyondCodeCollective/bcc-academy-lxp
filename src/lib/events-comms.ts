@@ -4,7 +4,7 @@ import { EVENT_COLUMNS, type EventRow } from "@/lib/events";
 
 // Run-day comms (phase 3), driven by the daily /api/cron/events-comms:
 //  - reminder the day before, to every family with a seated attendee
-//  - survey invite after the event ends, to every family that had a seat
+//  - survey invite the morning after the event, to every family that had a seat
 // Each is sent once per registration (reminder_sent_at / survey_sent_at).
 
 type EventWithProgram = EventRow & { programs: { name: string } | null };
@@ -88,7 +88,8 @@ export async function sendDueSurveys(origin: string, now = new Date()): Promise<
   let sent = 0;
   for (const event of (data ?? []) as unknown as EventWithProgram[]) {
     const endedAt = event.ends_at ? Date.parse(event.ends_at) : Date.parse(event.starts_at) + 2 * 3_600_000;
-    if (endedAt + 3_600_000 > now.getTime()) continue; // wait an hour after the end
+    // Next morning: the daily cron (14:00 UTC) picks the event up once its local end date has passed.
+    if (localDate(new Date(endedAt), event.timezone) >= localDate(now, event.timezone)) continue;
     for (const reg of await familiesFor(event.id, "survey_sent_at")) {
       try {
         await sendEventSurveyEmail({
