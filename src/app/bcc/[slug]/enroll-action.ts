@@ -7,6 +7,8 @@ import { getProgramWithOverrides } from "@/lib/programs/server";
 import { sendEventConfirmationEmail } from "@/lib/email";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+/** A repeat submit re-sends the confirmation at most this often. */
+const CONFIRMATION_RESEND_MS = 10 * 60 * 1000;
 
 export type EnrollActionResult =
   | { ok: true; enrolled: boolean }
@@ -16,7 +18,7 @@ export type EnrollActionResult =
  * Native course enrollment from a /bcc/[slug] page — the no-Eventbrite path.
  *
  * Signing up allowlists the email for the page's track, mints a durable invite,
- * and emails a magic access link. Idempotent on (slug, email): a repeat submit
+ * and emails a magic access link. Idempotent on (slug, email, session): a repeat submit
  * re-sends the same link rather than double-enrolling.
  */
 export async function enrollInCourse(input: {
@@ -71,15 +73,25 @@ export async function enrollInCourse(input: {
 
   try {
     const svc = createServiceClient();
+    const nowIso = new Date().toISOString();
 
-    // Idempotency: if this email already signed up for this page, don't
-    // re-enroll or re-email.
-    const { data: existing } = await svc
+    // Idempotency: if this email already signed up for this page AND this
+    // session, don't double-enroll or add a second row. Keyed on the session
+    // too: someone who signed up for one date and later picks another is a new
+    // registration and needs its own confirmation (keyed on page + email alone,
+    // a returning attendee was enrolled but never emailed and left no signup
+    // row). A repeat of the same date re-sends the confirmation, throttled
+    // below: staying silent after a "success" screen reads as a broken form.
+    const sessionKey = session?.id ?? null;
+    const existingQuery = svc
       .from("landing_signups")
-      .select("id")
+      .select("id, last_confirmation_at")
       .eq("slug", input.slug)
-      .eq("email", email)
-      .maybeSingle();
+      .eq("email", email);
+    const { data: existing } = await (sessionKey
+      ? existingQuery.eq("session_id", sessionKey)
+      : existingQuery.is("session_id", null)
+    ).maybeSingle();
 
     // With a track → enroll (allowlist + invite + magic link). Without one
     // (a "notify me" page whose course isn't built yet), or on a "coming soon"
@@ -87,23 +99,53 @@ export async function enrollInCourse(input: {
     let inviteToken: string | null = null;
     const enrolls = !!page.trackSlug && !page.comingSoon;
     if (enrolls && page.trackSlug) {
-      const enrolled = await enrollEmailInTrack(email, page.trackSlug);
+      // Enroll into the chosen session's own course when it has one; the
+      // signup row below still records the page's track so the admin roster
+      // keeps grouping every date under one course.
+      const enrolled = await enrollEmailInTrack(email, session?.trackSlug || page.trackSlug);
       inviteToken = enrolled.inviteToken;
 
-      if (!existing) {
+      // A new signup is always confirmed. A repeat is re-confirmed at most once
+      // per CONFIRMATION_RESEND_MS, claimed with a conditional update so two
+      // quick submits can't both send and the public form can't flood an inbox.
+      let confirm = !existing;
+      if (existing) {
+        const cutoff = new Date(Date.now() - CONFIRMATION_RESEND_MS).toISOString();
+        const { data: claimed } = await svc
+          .from("landing_signups")
+          .update({ last_confirmation_at: nowIso })
+          .eq("id", existing.id)
+          .or(`last_confirmation_at.is.null,last_confirmation_at.lt.${cutoff}`)
+          .select("id");
+        confirm = !!claimed?.length;
+      }
+      if (confirm) {
         const programName = (await getProgramWithOverrides(enrolled.programSlug)).name;
-        await sendEventConfirmationEmail({
-          to: email,
-          firstName: first,
-          programName,
-          eventName: session?.label ?? page.headline.replace(/\n/g, " "),
-          eventStartUtc: session?.startUtc ?? null,
-          eventEndUtc: session?.endUtc ?? null,
-          eventStartLocal: null,
-          eventTimezone: session?.timezone ?? null,
-          inviteLink: `${input.origin}/invite/${inviteToken}`,
-          origin: input.origin,
-        });
+        const { data: account } = await svc.from("students").select("id").ilike("email", email).limit(1);
+        try {
+          await sendEventConfirmationEmail({
+            to: email,
+            firstName: first,
+            programName,
+            eventName: session?.label ?? page.headline.replace(/\n/g, " "),
+            eventStartUtc: session?.startUtc ?? null,
+            eventEndUtc: session?.endUtc ?? null,
+            eventStartLocal: null,
+            eventTimezone: session?.timezone ?? null,
+            inviteLink: `${input.origin}/invite/${inviteToken}`,
+            origin: input.origin,
+            returning: !!account?.length,
+          });
+        } catch (err) {
+          // Release the claim so the next submit can retry.
+          if (existing) {
+            await svc
+              .from("landing_signups")
+              .update({ last_confirmation_at: existing.last_confirmation_at })
+              .eq("id", existing.id);
+          }
+          throw err;
+        }
       }
     }
 
@@ -119,6 +161,7 @@ export async function enrollInCourse(input: {
         session_id: session?.id ?? null,
         heard_about: heardAbout,
         invite_token: inviteToken,
+        last_confirmation_at: enrolls ? nowIso : null,
       });
     }
 

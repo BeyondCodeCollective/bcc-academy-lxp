@@ -283,7 +283,18 @@ export async function GET(request: Request) {
             .select("token")
             .ilike("email", email)
             .limit(1);
-          if (!invRows?.length) {
+          // A learner who is already enrolled in a course has been admitted
+          // by definition (enrolled by link, an admin, or a since-removed
+          // allowlist row). Without this they were signed out with
+          // not-invited the moment they logged in without a course link.
+          const { data: enrolledRows } = invRows?.length
+            ? { data: null }
+            : await admin
+                .from("student_tracks")
+                .select("track_slug")
+                .eq("student_id", user.id)
+                .limit(1);
+          if (!invRows?.length && !enrolledRows?.length) {
             await supabase.auth.signOut();
             // Distinct from error=invite (a dead/scanner-consumed token): this
             // link WORKED, the email just isn't allowlisted/invited for this
@@ -370,7 +381,27 @@ export async function GET(request: Request) {
           // cookie would stay "catalyst" and skip logic keyed on "forte"
           // (e.g. skipForPrograms: ["forte"]) would never fire.
           const joinOverride = (!isPrivilegedByEnv && joinSlug && joinSlug !== "marketing") ? joinSlug : null;
-          effectiveSlug = joinOverride ??
+
+          // A learner's home is where their course lives. A record stamped
+          // Catalyst (first sign-up came through Catalyst) but enrolled only
+          // in one other program's courses belongs in that program, or they
+          // sign in to a shell that doesn't contain their course.
+          let enrolledHome: string | null = null;
+          const storedSlug = (existing.programs as unknown as { slug: string } | null)?.slug;
+          if (!joinOverride && !isPrivilegedByEnv && storedSlug === "catalyst" &&
+              !["super_admin", "admin"].includes(existing.role ?? "")) {
+            const { data: tracks } = await admin
+              .from("student_tracks")
+              .select("track_slug")
+              .eq("student_id", user.id);
+            const homes = new Set(
+              (await Promise.all((tracks ?? []).map((t) => resolveHomeProgramSlug(t.track_slug as string)))).filter(
+                (s): s is string => !!s,
+              ),
+            );
+            if (homes.size === 1 && !homes.has("catalyst")) enrolledHome = [...homes][0];
+          }
+          effectiveSlug = joinOverride ?? enrolledHome ??
             (existing.programs as unknown as { slug: string } | null)?.slug ??
             (isPrivilegedByEnv || ["super_admin", "admin"].includes(existing.role ?? "") ? "catalyst" : null);
         }

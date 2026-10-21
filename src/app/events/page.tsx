@@ -4,6 +4,7 @@ import { MARKETING_SLUG } from "@/lib/programs/marketing";
 import { createServiceClient } from "@/lib/supabase/server";
 import { EVENT_COLUMNS, formatEventWhen, type EventRow } from "@/lib/events";
 import { buttonClass } from "@/components/ui";
+import { embeddedProgramSlug, landingPath } from "@/lib/landing-pages";
 
 // Public events listing for the current program: the page a program's
 // website points its "Events" link at once Hivebrite is retired.
@@ -20,18 +21,19 @@ export async function generateMetadata() {
 const listedSince = () => new Date(Date.now() - 6 * 3_600_000).toISOString();
 
 export default async function EventsIndexPage() {
-  const [program, programId] = await Promise.all([getProgram(), getProgramId()]);
+  const program = await getProgram();
+  // The apex (marketing) context has no programs row and no events of its own: show every program's.
+  const allPrograms = program.slug === MARKETING_SLUG;
+  const programId = allPrograms ? null : await getProgramId();
   const svc = createServiceClient();
   const since = listedSince();
-  // The apex (marketing) context has no events of its own: show every program's.
-  const allPrograms = program.slug === MARKETING_SLUG;
   let eventsQ = svc.from("events").select(EVENT_COLUMNS).eq("status", "open").gte("starts_at", since);
   let seatsQ = svc
     .from("event_attendees")
     .select("event_id, events!inner(program_id, status)")
     .eq("events.status", "open")
     .in("status", ["confirmed", "offered", "attended"]);
-  if (!allPrograms) {
+  if (programId) {
     eventsQ = eventsQ.eq("program_id", programId);
     seatsQ = seatsQ.eq("events.program_id", programId);
   }
@@ -42,6 +44,15 @@ export default async function EventsIndexPage() {
   const taken = new Map<string, number>();
   for (const a of (seats ?? []) as { event_id: string }[]) taken.set(a.event_id, (taken.get(a.event_id) ?? 0) + 1);
   const rows = (events ?? []) as EventRow[];
+  // A landing page that hosts the event is the page to send parents to.
+  const { data: landings } = rows.length
+    ? await svc.from("landing_pages").select("slug, event_slug, programs(slug)").eq("published", true).in("event_slug", rows.map((e) => e.slug))
+    : { data: [] };
+  const landingFor = new Map<string, string>();
+  for (const l of (landings ?? []) as unknown as { slug: string; event_slug: string; programs: unknown }[]) {
+    landingFor.set(l.event_slug, landingPath({ programSlug: embeddedProgramSlug(l.programs), slug: l.slug }));
+  }
+  const hrefFor = (e: EventRow) => landingFor.get(e.slug) ?? `/events/${e.slug}/register`;
 
   return (
     <div className="min-h-screen bg-neutral-50">
@@ -75,7 +86,7 @@ export default async function EventsIndexPage() {
                   {full && !e.waitlist_enabled ? (
                     <span className="text-sm text-ink-soft">Full</span>
                   ) : (
-                    <Link href={`/events/${e.slug}/register`} className={buttonClass(full ? "secondary" : "primary", "md")}>
+                    <Link href={hrefFor(e)} className={buttonClass(full ? "secondary" : "primary", "md")}>
                       {full ? "Join waitlist" : "Register"}
                     </Link>
                   )}

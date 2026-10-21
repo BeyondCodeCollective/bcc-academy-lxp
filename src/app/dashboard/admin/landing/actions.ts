@@ -52,6 +52,8 @@ export type LandingPageInput = {
   metaDescription: string;
   /** MASS-style native enrollment: pick-a-cohort form instead of the bare email box. */
   nativeEnroll: boolean;
+  /** Phase 6: host an event's registration form (events.slug). */
+  eventSlug?: string | null;
   /** Interest capture only — the signup form enrolls no one. */
   comingSoon: boolean;
   /** Cohort dates offered by the native form. */
@@ -121,6 +123,7 @@ export async function saveLandingPageAction(
       startUtc: x.startUtc ?? null,
       endUtc: x.endUtc ?? null,
       timezone: x.timezone ?? null,
+      trackSlug: x.trackSlug?.trim() || null,
     }))
     .filter((x) => x.id && x.label);
 
@@ -241,6 +244,7 @@ export async function saveLandingPageAction(
     coming_soon: input.comingSoon,
     sessions,
     enroll_cta_label: trimToNull(input.enrollCtaLabel),
+    event_slug: trimToNull(input.eventSlug ?? ""),
     body_sections: bodySections,
     instructor,
     updated_at: new Date().toISOString(),

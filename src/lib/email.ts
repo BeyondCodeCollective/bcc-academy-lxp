@@ -432,6 +432,7 @@ export async function sendEventConfirmationEmail({
   eventTimezone,
   inviteLink,
   origin,
+  returning = false,
 }: {
   to: string;
   firstName: string;
@@ -445,6 +446,8 @@ export async function sendEventConfirmationEmail({
   eventTimezone: string | null;
   inviteLink: string;
   origin: string;
+  /** Already has an account: skip the "set up your account" first-timer line. */
+  returning?: boolean;
 }): Promise<void> {
   if (!resend) {
     console.warn("[email] RESEND_API_KEY not set — skipping event confirmation email");
@@ -477,10 +480,8 @@ export async function sendEventConfirmationEmail({
     subject: `You're registered — ${eventName}`,
     text: `You're registered for ${eventName}.${when ? `\n\nWhen: ${when}` : ""}
 
-Your portal is ready. Open it any time with this link (no password needed):
-${inviteLink}
-
-You'll see a countdown to kickoff — come back here when we start.${cal ? `\n\nAdd to Google Calendar: ${cal.google}\nAdd to Apple/iCal: ${cal.ics}` : ""}
+Hey${firstName ? ` ${firstName}` : ""}, your spot is saved. ${returning ? "Log in below to get to your course and session details, and save this email: you can use this link to get back into the portal anytime." : "Before you can attend any sessions, you need to log in and set up your account. Click the link below to get started, and save this email: you can use this link to get back into the portal anytime."}
+${inviteLink}${cal ? `\n\nAdd to Google Calendar: ${cal.google}\nAdd to Apple/iCal: ${cal.ics}` : ""}
 
 Questions? Reply to this email or contact info@bccacademy.io.
 
@@ -491,8 +492,8 @@ Beyond Code Collective brings families, working adults, and community leaders in
       `    <p style="margin:0 0 6px;font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#16a34a;">✓ You're registered</p>
     <p style="margin:0 0 6px;font-size:22px;font-weight:700;color:#1a1a1a;">${esc(eventName)}</p>
     ${when ? `<p style="margin:0 0 20px;font-size:14px;color:#666;">${esc(when)}</p>` : ""}
-    <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#444;">Hey${firstName ? ` ${esc(firstName)}` : ""}, your spot is saved and your portal is ready. Head in below — you'll see a countdown to kickoff. This link is your permanent door back in, so keep this email.</p>
-    ${ctaButton(inviteLink, "Enter your portal →")}
+    <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#444;">Hey${firstName ? ` ${esc(firstName)}` : ""}, your spot is saved. ${returning ? "Log in below to get to your course and session details, and save this email: you can use this link to get back into the portal anytime." : "<strong>Before you can attend any sessions, you need to log in and set up your account.</strong> Click below to get started, and save this email: you can use this link to get back into the portal anytime."}</p>
+    ${ctaButton(inviteLink, "Log In →")}
     ${calRow}
     <p style="margin:0;font-size:12px;color:#999;line-height:1.5;">Questions? Reply here or email <a href="mailto:info@bccacademy.io" style="color:#1a1a1a;">info@bccacademy.io</a>.</p>`,
     ),
@@ -500,6 +501,98 @@ Beyond Code Collective brings families, working adults, and community leaders in
   if (error) {
     console.error("[email] sendEventConfirmationEmail failed:", JSON.stringify(error));
     throw new Error("Failed to send event confirmation email");
+  }
+}
+
+export type SessionReminderKind = "1w" | "3d" | "24h" | "1h";
+
+const REMINDER_COPY: Record<SessionReminderKind, { subject: string; lead: string }> = {
+  "1w": { subject: "One week to go", lead: "is one week away." },
+  "3d": { subject: "3 days to go", lead: "is 3 days away." },
+  "24h": { subject: "Tomorrow", lead: "is tomorrow." },
+  "1h": { subject: "Starting in 1 hour", lead: "starts in about an hour." },
+};
+
+/**
+ * Scheduled reminder for a landing-page signup (one week, 24 hours, 1 hour
+ * before the session). `loggedIn` false swaps in the "log in and set up your
+ * account first" line: not logging in is why people miss sessions.
+ */
+export async function sendSessionReminderEmail({
+  to,
+  firstName,
+  programName,
+  eventName,
+  kind,
+  loggedIn,
+  eventStartUtc,
+  eventEndUtc,
+  eventTimezone,
+  inviteLink,
+  origin,
+}: {
+  to: string;
+  firstName: string;
+  programName: string;
+  eventName: string;
+  kind: SessionReminderKind;
+  loggedIn: boolean;
+  eventStartUtc: string;
+  eventEndUtc: string | null;
+  eventTimezone: string | null;
+  inviteLink: string;
+  origin: string;
+}): Promise<void> {
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY not set, skipping session reminder");
+    return;
+  }
+  const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const copy = REMINDER_COPY[kind];
+  const when = formatEventWhen(eventStartUtc, eventTimezone);
+  const cal = eventCalendarLinks({
+    origin,
+    title: eventName,
+    startUtc: eventStartUtc,
+    endUtc: eventEndUtc,
+    details: `Your spot for ${eventName}. Log in: ${inviteLink}`,
+    location: inviteLink,
+  });
+  const calRow = cal
+    ? `<p style="margin:0 0 8px;font-size:12px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#999;">Add to your calendar</p>
+    <div style="margin:0 0 28px;">
+      <a href="${cal.google}" style="display:inline-block;margin:0 8px 8px 0;padding:9px 16px;border:1px solid #e0e0e0;border-radius:8px;color:#1a1a1a;text-decoration:none;font-weight:600;font-size:13px;">Google Calendar</a>
+      <a href="${cal.ics}" style="display:inline-block;margin:0 8px 8px 0;padding:9px 16px;border:1px solid #e0e0e0;border-radius:8px;color:#1a1a1a;text-decoration:none;font-weight:600;font-size:13px;">Apple / iCal</a>
+    </div>`
+    : "";
+  const hi = `Hey${firstName ? ` ${firstName}` : ""}`;
+  const action = loggedIn
+    ? "You're all set. Log in below when it's time."
+    : "Before you can attend, you need to log in and set up your account. It only takes a minute, so do it now.";
+
+  const { error } = await resend.emails.send({
+    from: FROM_ADDRESS,
+    to,
+    subject: `${copy.subject}: ${eventName}`,
+    text: `${hi}, ${eventName} ${copy.lead}${when ? `\n\nWhen: ${when}` : ""}
+
+${action}
+${inviteLink}${cal ? `\n\nAdd to Google Calendar: ${cal.google}\nAdd to Apple/iCal: ${cal.ics}` : ""}
+
+Questions? Reply to this email or contact info@bccacademy.io.`,
+    html: inviteShell(
+      programName,
+      `    <p style="margin:0 0 6px;font-size:22px;font-weight:700;color:#1a1a1a;">${esc(eventName)}</p>
+    ${when ? `<p style="margin:0 0 20px;font-size:14px;color:#666;">${esc(when)}</p>` : ""}
+    <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#444;">${esc(hi)}, this session ${copy.lead} ${esc(action)}</p>
+    ${ctaButton(inviteLink, "Log In →")}
+    ${calRow}
+    <p style="margin:0;font-size:12px;color:#999;line-height:1.5;">Questions? Reply here or email <a href="mailto:info@bccacademy.io" style="color:#1a1a1a;">info@bccacademy.io</a>.</p>`,
+    ),
+  });
+  if (error) {
+    console.error("[email] sendSessionReminderEmail failed:", JSON.stringify(error));
+    throw new Error("Failed to send session reminder email");
   }
 }
 

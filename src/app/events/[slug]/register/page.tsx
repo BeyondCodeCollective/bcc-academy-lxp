@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
-import { getProgramId } from "@/lib/programs/server";
 import { formatEventWhen } from "@/lib/events";
-import { getEventBySlug } from "@/lib/events-server";
+import { currentProgramIdOrNull, getEventBySlug } from "@/lib/events-server";
 import { seatsTaken } from "@/lib/events-waitlist";
 import { RegisterForm } from "./register-form";
 
@@ -12,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const event = await getEventBySlug(slug, await getProgramId());
+  const event = await getEventBySlug(slug, await currentProgramIdOrNull());
   return { title: event ? `Register: ${event.title}` : "Register" };
 }
 
@@ -22,7 +21,7 @@ export default async function EventRegisterPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const event = await getEventBySlug(slug, await getProgramId());
+  const event = await getEventBySlug(slug, await currentProgramIdOrNull());
   if (!event || event.status === "draft") notFound();
 
   const when = formatEventWhen(event.starts_at, event.ends_at, event.timezone);
