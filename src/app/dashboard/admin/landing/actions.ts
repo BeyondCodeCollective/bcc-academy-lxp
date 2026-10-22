@@ -6,6 +6,7 @@ import { toSlug } from "@/lib/programs/slug";
 import { getEveryProgramConfig } from "@/lib/programs";
 import { humanizeSlug } from "@/lib/utils";
 import { embeddedProgramSlug } from "@/lib/landing-pages";
+import { listLibraryPhotos } from "@/lib/media-library";
 import type { ScheduleDay, LandingPartner, LandingSession, LandingSection } from "@/lib/landing-pages";
 import {
   requireManager,
@@ -361,6 +362,16 @@ export async function deleteLandingPageAction(
   const programSlug = embeddedProgramSlug(existing?.programs);
   if (programSlug) revalidatePath(`/${programSlug}/${slug}`);
   return { success: true };
+}
+
+export type LibraryPickerPhoto = { id: string; url: string; description: string | null; tags: string[] };
+
+/** The media library, for the hero picker. Loaded when the picker opens, not
+ *  with the page. The photos are public images in the `landing` bucket. */
+export async function listLibraryPhotosAction(): Promise<LibraryPickerPhoto[]> {
+  const { svc } = await requireLandingManager();
+  const photos = await listLibraryPhotos(svc);
+  return photos.map(({ id, url, description, tags }) => ({ id, url, description, tags }));
 }
 
 /**
