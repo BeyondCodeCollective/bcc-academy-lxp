@@ -117,8 +117,30 @@ export type LandingPage = {
   logoUrl: string | null;
 };
 
+/** A session with no end time is treated as running this long past its start. */
+const SESSION_FALLBACK_MS = 24 * 3_600_000;
+
+/** True when the page has dated sessions and every one has finished. Pages
+ *  with no sessions, or sessions without dates, never expire: there's no date
+ *  to judge them by. */
+export function landingHasExpired(
+  sessions: LandingSession[],
+  now: number = Date.now(),
+): boolean {
+  const ends = sessions
+    .map((s) => {
+      const end = s.endUtc ? Date.parse(s.endUtc) : NaN;
+      if (!Number.isNaN(end)) return end;
+      const start = s.startUtc ? Date.parse(s.startUtc) : NaN;
+      return Number.isNaN(start) ? NaN : start + SESSION_FALLBACK_MS;
+    })
+    .filter((t) => !Number.isNaN(t));
+  return ends.length > 0 && ends.every((t) => t < now);
+}
+
 /** Loads a published marketing landing page by slug (the /bcc/[slug] template
- *  reads this). Returns null if the slug doesn't exist or isn't published. */
+ *  reads this). Returns null if the slug doesn't exist, isn't published, or
+ *  every dated session has already passed. */
 export const getLandingPage = cache(async function getLandingPage(
   slug: string,
 ): Promise<LandingPage | null> {
@@ -132,6 +154,7 @@ export const getLandingPage = cache(async function getLandingPage(
     .eq("published", true)
     .maybeSingle();
   if (!data) return null;
+  if (landingHasExpired((data.sessions as LandingSession[] | null) ?? [])) return null;
 
   return {
     slug: data.slug as string,
