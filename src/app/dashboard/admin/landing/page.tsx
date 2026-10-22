@@ -78,14 +78,15 @@ export default async function LandingPagesListPage() {
       ) : (
         <div className="space-y-7">
           {groups.map((group) => (
-            <section key={group.label}>
-              <div className="mb-2 flex items-baseline gap-2">
+            <details key={group.label} open={group.label === "Published"} className="group">
+              <summary className="mb-2 flex cursor-pointer list-none items-baseline gap-2 [&::-webkit-details-marker]:hidden">
+                <span className="text-xs text-ink-faint transition-transform group-open:rotate-90">▸</span>
                 <h2 className="font-display text-[15px] font-bold text-ink">{group.label}</h2>
                 <span className="text-micro font-semibold text-ink-faint">
                   {group.rows.length}
                 </span>
                 <span className="text-xs text-ink-faint">· {group.hint}</span>
-              </div>
+              </summary>
               <DataTable columns={["Slug", "Headline", "Status", ""]}>
                 {group.rows.map((r) => (
             <tr key={r.slug} className="text-ink">
@@ -127,7 +128,7 @@ export default async function LandingPagesListPage() {
             </tr>
                 ))}
               </DataTable>
-            </section>
+            </details>
           ))}
         </div>
       )}

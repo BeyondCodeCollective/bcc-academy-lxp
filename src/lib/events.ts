@@ -18,11 +18,12 @@ export type EventRow = {
   max_attendees_per_registration: number;
   status: "draft" | "open" | "closed";
   waitlist_enabled: boolean;
+  show_remaining_seats: boolean;
   offer_window_hours: number;
 };
 
 export const EVENT_COLUMNS =
-  "id, program_id, slug, title, description, starts_at, ends_at, timezone, location, join_url, capacity, max_attendees_per_registration, status, waitlist_enabled, offer_window_hours";
+  "id, program_id, slug, title, description, starts_at, ends_at, timezone, location, join_url, capacity, max_attendees_per_registration, status, waitlist_enabled, show_remaining_seats, offer_window_hours";
 
 export const EVENT_TIMEZONES = [
   "America/New_York",

@@ -37,6 +37,7 @@ export const SURVEY_COHORT_DEFAULTS: Record<string, string> = {
   "comptia-security-agreement": "CompTIA Security+",
   "comptia-security-pre": "CompTIA Security+",
   "security-plus-midpoint": "CompTIA Security+",
+  "security-plus-post": "CompTIA Security+",
   "network-plus-post": "CompTIA Network+",
   "home-for-summer-application": "Home for the Summer",
   "sbft-application": "She's Built for This",

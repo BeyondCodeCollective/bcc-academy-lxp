@@ -344,6 +344,7 @@ const SURVEY_TITLES: Record<string, string> = {
   "comptia-security-pre": "Security+ Pre-Program Survey",
   "comptia-security-post": "Security+ Post-Program Survey",
   "network-plus-post": "Network+ Post-Program Survey",
+  "security-plus-post": "Security+ End-of-Cohort Survey",
   "catalyst-participation-agreement": "Catalyst Participation Agreement",
 };
 function surveyTitle(type: string): string {

@@ -1,6 +1,8 @@
 import { cache } from "react";
 import { createServiceClient } from "@/lib/supabase/server";
 
+/** A multiple-choice question on a page's native signup form. */
+export type SignupQuestion = { id: string; label: string; options: string[] };
 export type ScheduleDay = { label: string; title: string };
 
 export type LandingPartner =
@@ -101,6 +103,8 @@ export type LandingPage = {
   sessions: LandingSession[];
   /** When true, render the native pick-a-date + enroll form (no Eventbrite). */
   nativeEnroll: boolean;
+  /** Extra required questions asked on that form. */
+  signupQuestions: SignupQuestion[];
   /** No date yet: the form only collects interest — no enrollment, no login link. */
   comingSoon: boolean;
   enrollCtaLabel: string | null;
@@ -117,8 +121,30 @@ export type LandingPage = {
   logoUrl: string | null;
 };
 
+/** A session with no end time is treated as running this long past its start. */
+const SESSION_FALLBACK_MS = 24 * 3_600_000;
+
+/** True when the page has dated sessions and every one has finished. Pages
+ *  with no sessions, or sessions without dates, never expire: there's no date
+ *  to judge them by. */
+export function landingHasExpired(
+  sessions: LandingSession[],
+  now: number = Date.now(),
+): boolean {
+  const ends = sessions
+    .map((s) => {
+      const end = s.endUtc ? Date.parse(s.endUtc) : NaN;
+      if (!Number.isNaN(end)) return end;
+      const start = s.startUtc ? Date.parse(s.startUtc) : NaN;
+      return Number.isNaN(start) ? NaN : start + SESSION_FALLBACK_MS;
+    })
+    .filter((t) => !Number.isNaN(t));
+  return ends.length > 0 && ends.every((t) => t < now);
+}
+
 /** Loads a published marketing landing page by slug (the /bcc/[slug] template
- *  reads this). Returns null if the slug doesn't exist or isn't published. */
+ *  reads this). Returns null if the slug doesn't exist, isn't published, or
+ *  every dated session has already passed. */
 export const getLandingPage = cache(async function getLandingPage(
   slug: string,
 ): Promise<LandingPage | null> {
@@ -132,6 +158,7 @@ export const getLandingPage = cache(async function getLandingPage(
     .eq("published", true)
     .maybeSingle();
   if (!data) return null;
+  if (landingHasExpired((data.sessions as LandingSession[] | null) ?? [])) return null;
 
   return {
     slug: data.slug as string,
@@ -160,6 +187,7 @@ export const getLandingPage = cache(async function getLandingPage(
     instructor: (data.instructor as LandingInstructor | null) ?? null,
     sessions: (data.sessions as LandingSession[] | null) ?? [],
     nativeEnroll: (data.native_enroll as boolean | null) ?? false,
+    signupQuestions: (data.signup_questions as SignupQuestion[] | null) ?? [],
     comingSoon: (data.coming_soon as boolean | null) ?? false,
     enrollCtaLabel: (data.enroll_cta_label as string | null) ?? null,
     eventSlug: (data.event_slug as string | null) ?? null,

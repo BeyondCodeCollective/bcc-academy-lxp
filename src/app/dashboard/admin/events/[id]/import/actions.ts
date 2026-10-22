@@ -1,8 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireManager } from "@/app/dashboard/admin/actions-shared";
-import { getProgramId } from "@/lib/programs/server";
+import { requireManager, allowedProgramIdsForActor } from "@/app/dashboard/admin/actions-shared";
 import { linkEventHistory } from "@/lib/events-bridge";
 import { buildImportPlan, type Field, type ImportPreview } from "@/lib/events-import";
 
@@ -28,15 +27,16 @@ export async function previewImport(eventId: string, csv: string): Promise<{ ok:
 }
 
 export async function runImport(eventId: string, csv: string): Promise<{ ok: true; families: number; attendees: number } | { ok: false; error: string }> {
-  const { svc } = await requireManager();
-  const programId = await getProgramId();
+  const actor = await requireManager();
+  const { svc } = actor;
+  const allowedIds = allowedProgramIdsForActor(actor);
   const { data: event } = await svc
     .from("events")
-    .select("id")
+    .select("id, program_id")
     .eq("id", eventId)
-    .eq("program_id", programId)
-    .maybeSingle<{ id: string }>();
-  if (!event) return { ok: false, error: "Event not found." };
+    .maybeSingle<{ id: string; program_id: string }>();
+  if (!event || (allowedIds !== null && !allowedIds.includes(event.program_id))) return { ok: false, error: "Event not found." };
+  const programId = event.program_id;
 
   const plan = buildImportPlan(csv);
   if (!plan.ok) return plan;

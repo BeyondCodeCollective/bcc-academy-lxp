@@ -97,7 +97,8 @@ export function GenericApplyForm({
           </p>
         )}
         <h1 className="text-[27px] font-bold leading-[1.08] tracking-[-0.02em] text-white sm:text-[30px]">
-          Apply for {title}
+          {/* A question title ("Interested in Joining X?") stands on its own. */}
+          {title.trim().endsWith("?") ? title : `Apply for ${title}`}
         </h1>
         {description && (
           <p className="mt-4 max-w-xl text-sm leading-relaxed text-white/70">

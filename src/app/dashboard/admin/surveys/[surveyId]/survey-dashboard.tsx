@@ -10,6 +10,7 @@ import { PageHeader, Section } from "@/components/page-header";
 import { buttonClass, fieldInput } from "@/components/ui";
 import { getApplicationFileUrl } from "../../actions-misc";
 import { downloadCsv as saveCsv } from "@/lib/csv";
+import { surveyColumnHeading } from "@/lib/survey-csv-headers";
 
 interface Props {
   surveyId: string;
@@ -67,7 +68,7 @@ export function SurveyDashboard({
     if (visible.length === 0) return;
     const allKeys = new Set<string>();
     visible.forEach((r) => Object.keys(r.responses).forEach((k) => allKeys.add(k)));
-    const headers = ["Name", "Email", "Program", "Source", "Completed At", ...Array.from(allKeys)];
+    const headers = ["Name", "Email", "Program", "Source", "Completed At", ...Array.from(allKeys).map((k) => surveyColumnHeading(k, schema))];
     const rows = visible.map((r) => [
       r.full_name,
       r.email,

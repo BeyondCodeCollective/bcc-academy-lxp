@@ -4,7 +4,7 @@ import { ClipboardCheck, Download } from "lucide-react";
 import { getSessionContext } from "@/lib/auth/session";
 import { canManageStudents, canManageRoles } from "@/lib/roles";
 import { createServiceClient } from "@/lib/supabase/server";
-import { getProgramId } from "@/lib/programs/server";
+import { requireManager, allowedProgramIdsForActor } from "../../actions-shared";
 import { ATTENDEE_STATUS_LABEL, EVENT_COLUMNS, formatEventWhen, type EventRow } from "@/lib/events";
 import { PageHeader } from "@/components/page-header";
 import { DataTable, buttonClass } from "@/components/ui";
@@ -43,15 +43,11 @@ export default async function EventRosterPage({ params }: { params: Promise<{ id
 
   const { id } = await params;
   if (!UUID_RE.test(id)) notFound();
-  const programId = await getProgramId();
+  const allowedIds = allowedProgramIdsForActor(await requireManager());
   const svc = createServiceClient();
-  const { data: event } = await svc
-    .from("events")
-    .select(EVENT_COLUMNS)
-    .eq("id", id)
-    .eq("program_id", programId)
-    .maybeSingle<EventRow>();
-  if (!event) notFound();
+  const { data: event } = await svc.from("events").select(EVENT_COLUMNS).eq("id", id).maybeSingle<EventRow>();
+  if (!event || (allowedIds !== null && !allowedIds.includes(event.program_id))) notFound();
+  const { data: program } = await svc.from("programs").select("name").eq("id", event.program_id).maybeSingle<{ name: string }>();
 
   const { data: attendees } = await svc
     .from("event_attendees")
@@ -68,7 +64,8 @@ export default async function EventRosterPage({ params }: { params: Promise<{ id
   const attended = rows.filter((r) => r.status === "attended").length;
 
   const { data: surveyRows } = await svc.from("event_survey_responses").select("rating").eq("event_id", event.id);
-  const ratings = (surveyRows ?? []).map((r) => r.rating as number);
+  const surveyCount = (surveyRows ?? []).length;
+  const ratings = (surveyRows ?? []).map((r) => r.rating as number | null).filter((r): r is number => r !== null);
   const avgRating = ratings.length ? (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1) : null;
 
   const fmt = (iso: string) =>
@@ -78,7 +75,7 @@ export default async function EventRosterPage({ params }: { params: Promise<{ id
     <div className="mx-auto w-full max-w-4xl px-4 sm:px-5 py-8 space-y-6">
       <PageHeader
         title={event.title}
-        subtitle={`${formatEventWhen(event.starts_at, event.ends_at, event.timezone)} · ${active}${event.capacity ? ` of ${event.capacity}` : ""} seated${waiting ? `, ${waiting} waitlisted` : ""} · ${families} famil${families === 1 ? "y" : "ies"}`}
+        subtitle={`${program?.name ?? "Unknown program"} · ${formatEventWhen(event.starts_at, event.ends_at, event.timezone)} · ${active}${event.capacity ? ` of ${event.capacity}` : ""} seated${waiting ? `, ${waiting} waitlisted` : ""} · ${families} famil${families === 1 ? "y" : "ies"}`}
         noWrap
         actions={
           <div className="flex items-center gap-2">
@@ -95,6 +92,9 @@ export default async function EventRosterPage({ params }: { params: Promise<{ id
             </Link>
             <Link href={`/dashboard/admin/events/${event.id}/import`} className={buttonClass("secondary", "sm")}>
               Import
+            </Link>
+            <Link href={`/dashboard/admin/events/${event.id}/survey`} className={buttonClass("secondary", "sm")}>
+              Survey
             </Link>
             <ManageMenu isMaster={canManageRoles(ctx.userEmail)} />
           </div>
@@ -114,11 +114,12 @@ export default async function EventRosterPage({ params }: { params: Promise<{ id
             <span className="text-ink-soft">{attended} checked in</span>
           </>
         )}
-        {ratings.length > 0 && (
+        {surveyCount > 0 && (
           <>
             <span className="text-ink-faint"> · </span>
             <span className="text-ink-soft">
-              Survey: {ratings.length} response{ratings.length === 1 ? "" : "s"}, avg {avgRating} of 5
+              Survey: {surveyCount} response{surveyCount === 1 ? "" : "s"}
+              {avgRating ? `, avg ${avgRating} of 5` : ""}
             </span>
             <span className="text-ink-faint"> · </span>
             <a href={`/api/events/${event.id}/survey-csv`} className="text-ink-soft underline hover:text-ink">

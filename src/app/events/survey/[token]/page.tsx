@@ -1,6 +1,8 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { formatEventWhen } from "@/lib/events";
+import type { SurveyAnswer, SurveyQuestion } from "@/lib/event-survey";
 import { SurveyForm } from "./survey-form";
+import { CustomSurveyForm } from "./custom-survey-form";
 
 export const dynamic = "force-dynamic";
 
@@ -9,11 +11,11 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 type Row = {
   id: string;
   parent_first_name: string;
-  events: { title: string; starts_at: string; ends_at: string | null; timezone: string; programs: { name: string } | null } | null;
+  events: { title: string; survey_questions: SurveyQuestion[] | null; starts_at: string; ends_at: string | null; timezone: string; programs: { name: string } | null } | null;
   // registration_id is unique, so PostgREST embeds this to-one: an object or null.
   event_survey_responses: SurveyRow | SurveyRow[] | null;
 };
-type SurveyRow = { rating: number; would_recommend: boolean | null; enjoyed: string | null; improve: string | null };
+type SurveyRow = { answers: SurveyAnswer[] | null; rating: number | null; would_recommend: boolean | null; enjoyed: string | null; improve: string | null };
 
 export default async function EventSurveyPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
@@ -22,7 +24,7 @@ export default async function EventSurveyPage({ params }: { params: Promise<{ to
     ? await svc
         .from("event_registrations")
         .select(
-          "id, parent_first_name, events(title, starts_at, ends_at, timezone, programs(name)), event_survey_responses(rating, would_recommend, enjoyed, improve)",
+          "id, parent_first_name, events(title, survey_questions, starts_at, ends_at, timezone, programs(name)), event_survey_responses(rating, answers, would_recommend, enjoyed, improve)",
         )
         .eq("survey_token", token)
         .maybeSingle()
@@ -44,6 +46,7 @@ export default async function EventSurveyPage({ params }: { params: Promise<{ to
 
   const embedded = reg.event_survey_responses;
   const existing = Array.isArray(embedded) ? (embedded[0] ?? null) : embedded;
+  const custom = reg.events.survey_questions;
   const org = reg.events.programs?.name ?? "";
 
   return (
@@ -52,16 +55,23 @@ export default async function EventSurveyPage({ params }: { params: Promise<{ to
         {org && <p className="text-xs font-medium tracking-wide text-primary uppercase">{org}</p>}
         <h1 className="mt-1 text-2xl font-bold text-ink sm:text-3xl">How was {reg.events.title}?</h1>
         <p className="mt-2 text-sm text-ink-soft">
-          {formatEventWhen(reg.events.starts_at, reg.events.ends_at, reg.events.timezone)} · Four quick questions, about a
+          {formatEventWhen(reg.events.starts_at, reg.events.ends_at, reg.events.timezone)} · {reg.events.survey_questions ? `${reg.events.survey_questions.length} quick questions` : "Four quick questions"}, about a
           minute.
         </p>
       </div>
+      {custom ? (
+        <CustomSurveyForm
+          token={token}
+          questions={custom}
+          initial={existing?.answers ? existing.answers.map((a) => a.value) : null}
+        />
+      ) : (
       <SurveyForm
         token={token}
         initial={
           existing
             ? {
-                rating: existing.rating,
+                rating: existing.rating ?? 0,
                 wouldRecommend: existing.would_recommend,
                 enjoyed: existing.enjoyed ?? "",
                 improve: existing.improve ?? "",
@@ -69,6 +79,7 @@ export default async function EventSurveyPage({ params }: { params: Promise<{ to
             : null
         }
       />
+      )}
     </div>
   );
 }

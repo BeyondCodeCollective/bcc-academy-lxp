@@ -5,13 +5,13 @@ import { Check, Loader2 } from "lucide-react";
 import { buttonClass } from "@/components/ui";
 import { submitEventSurvey, type SurveyInput } from "./actions";
 
-const INPUT_CLASS =
+export const INPUT_CLASS =
   "w-full rounded-lg border border-rule bg-white px-3.5 py-3 text-sm text-ink placeholder:text-ink-faint focus:border-ink focus:ring-1 focus:ring-ink-faint focus:outline-none transition-all";
-const LABEL_CLASS = "mb-2 block text-sm font-medium text-ink";
-const CHOICE_BASE =
+export const LABEL_CLASS = "mb-2 block text-sm font-medium text-ink";
+export const CHOICE_BASE =
   "flex h-12 min-w-12 items-center justify-center rounded-lg border px-4 text-sm font-semibold transition-colors";
-const CHOICE_ON = "border-ink bg-ink text-white";
-const CHOICE_OFF = "border-rule bg-white text-ink hover:border-ink-faint";
+export const CHOICE_ON = "border-ink bg-ink text-white";
+export const CHOICE_OFF = "border-rule bg-white text-ink hover:border-ink-faint";
 
 export function SurveyForm({ token, initial }: { token: string; initial: SurveyInput | null }) {
   const [v, setV] = useState<SurveyInput>(initial ?? { rating: 0, wouldRecommend: null, enjoyed: "", improve: "" });

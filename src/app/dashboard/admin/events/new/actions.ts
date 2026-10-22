@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireManager } from "@/app/dashboard/admin/actions-shared";
+import { requireManager, resolveProgramForActor, allowedProgramIdsForActor } from "@/app/dashboard/admin/actions-shared";
 import { getProgramId } from "@/lib/programs/server";
 import { EVENT_TIMEZONES } from "@/lib/events";
 
@@ -19,7 +19,10 @@ export type NewEventInput = {
   capacity: string; // "" = unlimited
   maxAttendees: string;
   waitlistEnabled: boolean;
+  showRemainingSeats: boolean;
   status: "draft" | "open" | "closed";
+  // Create only: the owning program. Empty = the program being browsed.
+  programSlug?: string;
 };
 
 function validate(input: NewEventInput): { ok: true; row: Record<string, unknown> } | { ok: false; error: string } {
@@ -56,6 +59,7 @@ function validate(input: NewEventInput): { ok: true; row: Record<string, unknown
       capacity,
       max_attendees_per_registration: maxAttendees,
       waitlist_enabled: input.waitlistEnabled,
+      show_remaining_seats: input.showRemainingSeats,
       status: input.status,
     },
   };
@@ -85,8 +89,11 @@ function zonedToUtc(date: string, time: string, timeZone: string): string {
 }
 
 export async function createEvent(input: NewEventInput): Promise<{ ok: false; error: string } | never> {
-  const { svc } = await requireManager();
-  const programId = await getProgramId();
+  const actor = await requireManager();
+  const { svc } = actor;
+  const programId = input.programSlug
+    ? await resolveProgramForActor(actor, svc, input.programSlug)
+    : await getProgramId();
   const v = validate(input);
   if (!v.ok) return v;
 
@@ -106,16 +113,18 @@ export async function createEvent(input: NewEventInput): Promise<{ ok: false; er
 }
 
 export async function updateEvent(eventId: string, input: NewEventInput): Promise<{ ok: false; error: string } | never> {
-  const { svc } = await requireManager();
-  const programId = await getProgramId();
+  const actor = await requireManager();
+  const { svc } = actor;
+  const allowedIds = allowedProgramIdsForActor(actor);
   const v = validate(input);
   if (!v.ok) return v;
 
-  const { data, error } = await svc
+  let update = svc
     .from("events")
     .update({ ...v.row, updated_at: new Date().toISOString() })
-    .eq("id", eventId)
-    .eq("program_id", programId)
+    .eq("id", eventId);
+  if (allowedIds) update = update.in("program_id", allowedIds);
+  const { data, error } = await update
     .select("id")
     .maybeSingle<{ id: string }>();
   if (error || !data) {

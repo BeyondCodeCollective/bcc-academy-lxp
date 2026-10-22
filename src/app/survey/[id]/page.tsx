@@ -89,6 +89,7 @@ const SURVEY_ALIASES: Record<string, string> = {
 
 const MOVED_TO_AUTHENTICATED: Record<string, string> = {
   "security-plus-midpoint": "/dashboard/survey/security-plus-midpoint",
+  "security-plus-post": "/dashboard/survey/security-plus-post",
 };
 
 export default async function PublicSurveyPage({
