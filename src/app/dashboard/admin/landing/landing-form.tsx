@@ -964,7 +964,7 @@ export function LandingForm({
                             setHeroImageUrl(ph.url);
                             setLibraryOpen(false);
                           }}
-                          className="overflow-hidden rounded-md border border-ink/10 bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                          className="overflow-hidden rounded-md border border-ink/10 bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary)]"
                         >
                           {/* Plain img: same reasoning as the Media page, a
                               grid of hundreds of admin-only thumbnails. */}
