@@ -1156,6 +1156,268 @@ const SECURITY_PLUS_MIDPOINT: SurveyQuestion[] = [
   },
 ];
 
+// ─── security-plus-post (Security+ end-of-cohort survey) ────────────────────
+// From the program team's doc (CompTIA Cybersecurity End of Cohort Survey).
+// Authenticated, like the midpoint: everyone answering is an enrolled learner
+// who is signed in, so name and email are omitted and the response binds to
+// their account. Single source of truth: the wizard imports these pages.
+export const SECURITY_PLUS_POST_PAGES: {
+  title: string;
+  subtitle?: string;
+  questions: SurveyQuestion[];
+}[] = [
+  {
+    title: "Before you start",
+    subtitle: "How we use what you share. About 15 to 18 minutes.",
+    questions: [
+      {
+        type: "consent",
+        id: "consent_participate",
+        label: "Why we ask",
+        text: "You made it. Before you wrap up this cohort, we want to hear how this program landed: what changed for you, what worked, what could be better, and where you're headed next. There are no right or wrong answers. Your answers help us make this program better and show our impact.",
+        bullets: [
+          "Your answers stay private. Only the Beyond Code team sees your name with your answers. When we share results with others, your name is removed.",
+          "You can mark \"Prefer not to say\" on any sensitive question.",
+          "You can ask us anytime to see your answers, change them, or delete them. Email info@beyondcodecollective.org.",
+          "We keep your answers for up to 5 years so we can see how the program helped over time.",
+        ],
+        confirmLabel: "Required — I want to take this survey.",
+        required: true,
+      },
+      {
+        type: "consent",
+        id: "consent_followup",
+        label: "Optional",
+        text: "It's okay if Beyond Code Collective contacts me later (in the next 1–2 years) to ask how I'm doing.",
+        confirmLabel: "Yes, you can contact me.",
+        required: false,
+      },
+      {
+        type: "consent",
+        id: "consent_quote",
+        label: "Optional",
+        text: "It's okay if Beyond Code Collective shares things I wrote, without my name, in reports or to show our impact.",
+        confirmLabel: "Yes, you can share my anonymous responses.",
+        required: false,
+      },
+    ],
+  },
+  {
+    title: "Looking back: where you are now",
+    subtitle: "Mark how much you agree right now. There are no right or wrong answers.",
+    questions: [
+      {
+        type: "likert",
+        id: "tech_confidence",
+        label: "Tech Confidence",
+        scale: LIKERT_1_5,
+        scaleAnchors: { low: "1 — Not at all confident", high: "5 — Very confident" },
+        statements: [
+          "I can talk about my technical skills with someone who works in tech.",
+          "I know how to keep learning tech skills on my own.",
+          "I belong in the tech industry.",
+          "When I face a hard challenge, I stay with it instead of giving up.",
+          "I feel confident in my ability to learn technical material.",
+          "I see myself succeeding in a tech career.",
+        ],
+        required: true,
+      },
+      {
+        type: "likert",
+        id: "securityplus_baseline",
+        label: "Security+ Knowledge Baseline (not graded)",
+        scale: LIKERT_1_5,
+        scaleAnchors: { low: "1 — Not at all confident", high: "5 — Very confident" },
+        statements: [
+          "Cryptography and PKI basics",
+          "Cloud security concepts",
+          "Risk management and compliance frameworks",
+          "Incident response and security operations",
+          "Network security fundamentals (firewalls, ports, protocols)",
+          "Threat types and attack vectors (phishing, malware, ransomware)",
+          "Identity and access management (authentication, authorization)",
+        ],
+        required: true,
+      },
+      {
+        type: "likert",
+        id: "career_direction",
+        label: "Career Direction",
+        scale: LIKERT_1_5,
+        scaleAnchors: { low: "1 — Not at all confident", high: "5 — Very confident" },
+        statements: [
+          "When I think about my next career steps, I know what to do first.",
+          "I feel confident reaching out to someone I do not know to ask for a conversation or opportunity.",
+          "I can clearly describe the career path or type of role I am working toward.",
+          "I can tell my professional story — who I am, what I have done, where I am headed.",
+          "I believe I belong in the career space I am working toward.",
+        ],
+        required: true,
+      },
+      {
+        type: "likert",
+        id: "mindset_identity",
+        label: "Mindset and Professional Identity",
+        scale: LIKERT_1_5,
+        scaleAnchors: { low: "1 — Not at all confident", high: "5 — Very confident" },
+        statements: [
+          "I can talk about my value and accomplishments without downplaying them.",
+          "When I hit a setback, I know how to reflect, adjust, and keep moving.",
+          "I feel comfortable asking for help or support when I need it.",
+          "I have a clear sense of my professional identity and what I bring to the table.",
+          "I see a version of myself thriving in a professional environment.",
+        ],
+        required: true,
+      },
+      {
+        type: "likert",
+        id: "community_connection",
+        label: "Community and Connection",
+        scale: LIKERT_1_5,
+        scaleAnchors: { low: "1 — Not at all confident", high: "5 — Very confident" },
+        statements: [
+          "I have a professional network I can draw on for advice or opportunities.",
+          "I know how to build professional relationships in spaces I am new to.",
+          "I am comfortable showing up in spaces — events, groups, platforms — where I do not yet know people.",
+          "I feel connected to a community of people working in or toward tech careers.",
+        ],
+        required: true,
+      },
+    ],
+  },
+  {
+    title: "Your experience in this program",
+    subtitle: "Please be honest. This is how we improve.",
+    questions: [
+      {
+        type: "likert",
+        id: "experience_agreement",
+        label: "How much do you agree with each statement?",
+        scale: LIKERT_1_5,
+        scaleAnchors: { low: "1 — Strongly disagree", high: "5 — Strongly agree" },
+        statements: [
+          "The pace of the program worked for my schedule and learning style.",
+          "I felt supported by the instructors and program team.",
+          "The material felt relevant to real-world work.",
+          "I felt a sense of belonging in this cohort.",
+          "The program content gave me a strong foundation for the Security+ exam.",
+          "I am likely to recommend Beyond Code Collective to someone I know",
+        ],
+        required: true,
+      },
+      { type: "text", id: "most_valuable", label: "What was the most valuable part of this program for you?", required: true },
+      { type: "text", id: "most_challenging", label: "What was the most challenging part, or what could have been better?", required: true },
+    ],
+  },
+  {
+    title: "Certification and what's next",
+    questions: [
+      {
+        type: "radio",
+        id: "securityplus_exam_status",
+        label: "Where are you with the Security+ certification exam?",
+        options: [
+          "I've already passed it.",
+          "I've scheduled my exam.",
+          "I plan to take it within the next 60 days.",
+          "I plan to take it eventually, but no date yet.",
+          "I don't plan to take it.",
+        ],
+        required: true,
+      },
+      { type: "text", id: "exam_not_planned_reason", label: "If you don't plan to take the exam (or aren't sure), what's the main reason? (Skip if not applicable.)", required: false },
+      {
+        type: "radio",
+        id: "employment_change",
+        label: "Has your employment situation changed since you started this program?",
+        options: [
+          "Yes — I got a new job or promotion.",
+          "Yes — but not directly related to this program.",
+          "No — but I'm in a stronger position to make a move.",
+          "No change yet.",
+        ],
+        required: true,
+      },
+      {
+        type: "radio",
+        id: "income_change",
+        label: "Has your household income changed since you started this program?",
+        options: [
+          "Yes, it increased",
+          "Yes, it decreased",
+          "No, it’s about the same",
+          "Prefer not to say",
+        ],
+        required: true,
+      },
+      {
+        type: "radio",
+        id: "income_increase_amount",
+        label: "If your income increased, by about how much per year?",
+        options: [
+          "Less than $5,000",
+          "$5,000 – $9,999",
+          "$10,000 – $19,999",
+          "$20,000 – $29,999",
+          "$30,000 or more",
+          "Not sure",
+          "Prefer not to say",
+        ],
+        required: false,
+      },
+      {
+        type: "radio",
+        id: "income_change_reason",
+        label: "What is the main reason for the change? (optional)",
+        options: [
+          "New job",
+          "Promotion or raise at current job",
+          "Additional job or freelance work",
+          "Other",
+        ],
+        required: false,
+      },
+      {
+        type: "multi-select",
+        id: "next_step_support",
+        label: "What would help you most as a next step? Select all that apply.",
+        options: [
+          "Job placement help / employer connections",
+          "Resume and interview prep",
+          "Continued mentorship or coaching",
+          "Continued learning (e.g., Security+, Cloud, etc.)",
+          "Networking events or community connections",
+          "Help with exam prep",
+          "Financial support information",
+          "Other",
+        ],
+        required: true,
+      },
+    ],
+  },
+  {
+    title: "Looking ahead",
+    questions: [
+      {
+        type: "radio",
+        id: "comptia_interest",
+        label: "What level of interest do you have in pursuing further CompTIA certifications?",
+        options: [
+          "Very interested — count me in",
+          "Somewhat interested — I'd want to know more first",
+          "Undecided — depends on timing",
+          "Probably not right now",
+          "Not interested",
+        ],
+        required: true,
+      },
+      { type: "text", id: "anything_else", label: "Anything else you'd like us to know about your experience, your goals, or what would help you succeed?", required: false },
+    ],
+  },
+];
+
+const SECURITY_PLUS_POST: SurveyQuestion[] = SECURITY_PLUS_POST_PAGES.flatMap((page) => page.questions);
+
 // ─── hfs-pre-survey (Home for the Summer auth pre-survey) ────────────────────
 // From the program team's doc (2026-08-07). Name/email are omitted — this is
 // an authenticated survey, identity comes from the account. The Likert
@@ -1916,6 +2178,7 @@ const SCHEMAS: Record<string, SurveyQuestion[]> = {
   "mid-program-spring-2026": MID_PROGRAM_SPRING_2026,
   "security-plus-application": SECURITY_PLUS_APPLICATION,
   "security-plus-midpoint": SECURITY_PLUS_MIDPOINT,
+  "security-plus-post": SECURITY_PLUS_POST,
   "home-for-summer-application": HOME_FOR_SUMMER_APPLICATION,
   // Never rendered — its wizard branch was missing, so its 22 "responses" are
   // intake answers. Kept registered so existing rows keep a schema until they're
