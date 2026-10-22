@@ -1300,7 +1300,7 @@ export const SECURITY_PLUS_POST_PAGES: {
           "I felt supported by the instructors and program team.",
           "The material felt relevant to real-world work.",
           "I felt a sense of belonging in this cohort.",
-          "The Network+ content gave me a strong foundation for Security+.",
+          "The program content gave me a strong foundation for the Security+ exam.",
           "I am likely to recommend Beyond Code Collective to someone I know",
         ],
         required: true,
