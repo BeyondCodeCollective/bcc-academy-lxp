@@ -23,6 +23,7 @@ import { BCC_INTAKE_SURVEY_ID } from "@/lib/surveys/platform";
 // same statements, word for word.
 import {
   SBFT_APPLICATION_PAGES,
+  SECURITY_PLUS_POST_PAGES,
   MASS_PRE_PAGES,
   DIGITAL_EXPERIENCE_STATEMENTS,
   AI_EXPERIENCE_STATEMENTS,
@@ -1845,6 +1846,9 @@ export const getSurveyPagesForTest = (surveyId: string, programSlug: string) =>
 function getSurveyPages(surveyId: string, programSlug: string): SurveyPage[] {
   if (surveyId === "security-plus-midpoint") {
     return SECURITY_PLUS_MIDPOINT_PAGES;
+  }
+  if (surveyId === "security-plus-post") {
+    return SECURITY_PLUS_POST_PAGES;
   }
   if (surveyId === "comptia-security-pre") {
     return SECURITY_PLUS_PRE_PAGES;

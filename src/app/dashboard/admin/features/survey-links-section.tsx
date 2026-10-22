@@ -40,7 +40,10 @@ export function SurveyLinksSection({
     // Platform-level auth survey: not in program.surveys, so surveyConfigs
     // below won't surface it.
     ...(programSlug === "catalyst"
-      ? [{ id: "security-plus-midpoint", label: "CompTIA Security+ — Midpoint Check-In", path: "/dashboard/survey/security-plus-midpoint", auth: true }]
+      ? [
+          { id: "security-plus-midpoint", label: "CompTIA Security+ — Midpoint Check-In", path: "/dashboard/survey/security-plus-midpoint", auth: true },
+          { id: "security-plus-post", label: "CompTIA Security+ — End-of-Cohort Survey", path: "/dashboard/survey/security-plus-post", auth: true },
+        ]
       : []),
     ...surveyConfigs.map((s) => ({
       id: s.id,

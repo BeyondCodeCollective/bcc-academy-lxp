@@ -205,6 +205,13 @@ export const PLATFORM_AUTH_SURVEYS: Record<string, SurveyConfig> = {
       "3 min. A quick pulse at the halfway mark: what's working, what to adjust, and how the exam is feeling.",
     required: false,
   },
+  "security-plus-post": {
+    id: "security-plus-post",
+    title: "CompTIA Security+ End-of-Cohort Survey",
+    description:
+      "15 to 18 min. How the program landed for you, what changed, and what you need next. Private; used only to improve the program and report impact.",
+    required: false,
+  },
 };
 
 // ─── Public (no login) ──────────────────────────────────────────────────────
