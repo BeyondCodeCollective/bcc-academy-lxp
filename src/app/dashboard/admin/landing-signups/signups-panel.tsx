@@ -26,6 +26,8 @@ export type Reg = {
   heardAbout: string | null;
   /** Session ids picked on a multi-date landing page (Catalyst Labs). */
   sessions?: string[];
+  /** Answers to the landing page's signup questions, by question text. */
+  answers?: Record<string, string>;
   at: string;
 };
 
@@ -56,7 +58,7 @@ export async function loadSignups(allowedTracks: Set<string> | null, course?: st
   const svc = createServiceClient();
   let landingQ = svc
     .from("landing_signups")
-    .select("slug, track_slug, email, name, invite_token, heard_about, session_id, created_at")
+    .select("slug, track_slug, email, name, invite_token, heard_about, session_id, answers, created_at")
     .order("created_at", { ascending: false })
     .limit(5000);
   let invitesQ = svc
@@ -101,6 +103,7 @@ export async function loadSignups(allowedTracks: Set<string> | null, course?: st
       inviteToken: win.inviteToken || lose.inviteToken,
       heardAbout: win.heardAbout || lose.heardAbout,
       sessions: [...new Set([...(win.sessions ?? []), ...(lose.sessions ?? [])])],
+      answers: { ...lose.answers, ...win.answers },
       at: r.at < prev.at ? r.at : prev.at,
     });
   };
@@ -112,6 +115,7 @@ export async function loadSignups(allowedTracks: Set<string> | null, course?: st
     invite_token: string | null;
     heard_about: string | null;
     session_id: string | null;
+    answers: Record<string, string> | null;
     created_at: string;
   }[]) {
     add({
@@ -123,6 +127,7 @@ export async function loadSignups(allowedTracks: Set<string> | null, course?: st
       inviteToken: r.invite_token,
       heardAbout: r.heard_about,
       sessions: r.session_id ? [r.session_id] : [],
+      answers: r.answers ?? {},
       at: r.created_at,
     });
   }
@@ -263,13 +268,15 @@ export function SignupsPanel({
   const origin = "https://bccacademy.io";
   const STAGE_LABEL: Record<Stage, string> = { enrolled: "Enrolled", "signed-in": "Signed in", waiting: "Waiting" };
   // The export is the people to contact: what the filters show, minus internal tests.
-  const csvHeader = ["Name", "Email", ...(sessionOptions.length > 0 ? ["Session"] : []), "Signed up", "Heard about", "Status"];
+  const answerKeys = [...new Set(real.flatMap(({ r }) => Object.keys(r.answers ?? {})))];
+  const csvHeader = ["Name", "Email", ...(sessionOptions.length > 0 ? ["Session"] : []), "Signed up", "Heard about", ...answerKeys, "Status"];
   const csvRows = real.map(({ r, stage, name }) => [
     name ?? "",
     r.email,
     ...(sessionOptions.length > 0 ? [(r.sessions ?? []).map(sessionLabel).join("; ")] : []),
     fmt(r.at),
     r.heardAbout ?? "",
+    ...answerKeys.map((k) => r.answers?.[k] ?? ""),
     STAGE_LABEL[stage],
   ]);
   const csvName = `${course}${session ? `-${session}` : ""}-signups.csv`;
