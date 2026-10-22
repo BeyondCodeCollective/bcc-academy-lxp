@@ -21,6 +21,11 @@ describe("staff-verified absence evidence", () => {
     expect(result.learnersNeedingCheckIn).toBe(1);
     expect(result.evaluations[0].attentionFlags[0].evidence.map((item) => item.sourceRecordId)).toEqual(["review-1", "review-2"]);
   });
+  it("returns two confirmed absences with review IDs as evidence", () => {
+    const result = verifyMvpMissedSessions({ ...base, reviews: [review(1), review(2)] });
+    expect(result.value).toBe(2);
+    expect(result.evidence.map((item) => item.sourceRecordId)).toEqual(["review-1", "review-2"]);
+  });
   it("does not infer absence from missing reviews or positive check-ins", () => {
     expect(verifyMvpMissedSessions({ ...base, reviews: [] })).toMatchObject({ value: null, unknownSessions: 2 });
     expect(verifyMvpMissedSessions({ ...base, reviews: [review(1)] }).value).toBeNull();
