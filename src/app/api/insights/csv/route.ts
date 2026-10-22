@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { requireCapability } from "@/app/dashboard/admin/actions-shared";
 import { getProgram } from "@/lib/programs/server";
 import { buildInsightsData } from "@/lib/analytics/insights-data";
+import { surveyColumnHeading } from "@/lib/survey-csv-headers";
 
 export const dynamic = "force-dynamic";
 
@@ -113,7 +114,7 @@ export async function GET(req: NextRequest) {
       ...Array.from(allKeys).filter((k) => !priorityKeys.includes(k)).sort(),
     ];
 
-    const header = ["Email", "Submitted At", "Cohort", ...sortedKeys.map(escapeCsvCell)].join(",");
+    const header = ["Email", "Submitted At", "Cohort", ...sortedKeys.map((k) => escapeCsvCell(surveyColumnHeading(k, section.schema)))].join(",");
     const rows = responses.map((r) => {
       const flat = flattenResponse(r.responses as Record<string, unknown>);
       const cohortLabel = String(r.responses?.program_variant ?? r.responses?._cohort_track ?? r.responses?.cohort ?? "");
@@ -186,7 +187,7 @@ export async function GET(req: NextRequest) {
         ...Array.from(allKeys).filter((k) => !priorityKeys.includes(k)).sort(),
       ];
 
-      const header = ["Email", "Submitted At", "Cohort", ...sortedKeys.map(escapeCsvCell)].join(",");
+      const header = ["Email", "Submitted At", "Cohort", ...sortedKeys.map((k) => escapeCsvCell(surveyColumnHeading(k, section.schema)))].join(",");
       const rows = section.responses.map((r) => {
         const flat = flattenResponse(r.responses as Record<string, unknown>);
         const cohortLabel = String(r.responses?.program_variant ?? r.responses?._cohort_track ?? r.responses?.cohort ?? "");
