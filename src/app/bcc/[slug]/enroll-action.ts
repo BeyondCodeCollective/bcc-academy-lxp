@@ -28,6 +28,8 @@ export async function enrollInCourse(input: {
   firstName?: string;
   lastName?: string;
   email: string;
+  /** Answers to the page's signup questions, keyed by question id. */
+  answers?: Record<string, string>;
   zipCode?: string;
   heardAbout?: string;
   sessionId?: string | null;
@@ -63,6 +65,20 @@ export async function enrollInCourse(input: {
   const page = await getLandingPage(input.slug);
   if (!page || !(page.nativeEnroll || page.comingSoon)) {
     return { ok: false, error: "This course isn't open for signup right now." };
+  }
+
+  // The page's own signup questions are all required, and each answer must be
+  // one of the offered choices. Stored under the question text so the export
+  // reads without a join.
+  const answers: Record<string, string> = {};
+  if (!page.comingSoon) {
+    for (const q of page.signupQuestions ?? []) {
+      const a = input.answers?.[q.id];
+      if (!a || !q.options.includes(a)) {
+        return { ok: false, error: `Please answer: ${q.label}` };
+      }
+      answers[q.label] = a;
+    }
   }
 
   // A page may require choosing one of its sessions.
@@ -160,6 +176,7 @@ export async function enrollInCourse(input: {
         zip_code: zipCode,
         session_id: session?.id ?? null,
         heard_about: heardAbout,
+        answers,
         invite_token: inviteToken,
         last_confirmation_at: enrolls ? nowIso : null,
       });

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { LandingSession } from "@/lib/landing-pages";
+import type { LandingSession, SignupQuestion } from "@/lib/landing-pages";
 import { enrollInCourse } from "@/app/bcc/[slug]/enroll-action";
 
 /** Kept in one place so the landing form, the action, and the admin column
@@ -27,6 +27,7 @@ export function CampEnrollForm({
   ink = "#1a1a1a",
   slug,
   sessions,
+  questions = [],
   accent,
   ctaLabel,
   comingSoon = false,
@@ -34,6 +35,8 @@ export function CampEnrollForm({
   ink?: string;
   slug: string;
   sessions: LandingSession[];
+  /** Extra required multiple-choice questions, asked after the basics. */
+  questions?: SignupQuestion[];
   accent: string;
   ctaLabel: string | null;
   /** Interest capture only — nothing to enroll in yet. */
@@ -44,6 +47,7 @@ export function CampEnrollForm({
   const [email, setEmail] = useState("");
   const [zip, setZip] = useState("");
   const [heardAbout, setHeardAbout] = useState("");
+  const [answers, setAnswers] = useState<Record<string, string>>({});
   const [sessionId, setSessionId] = useState(sessions[0]?.id ?? "");
   const [status, setStatus] = useState<"idle" | "loading" | "sent" | "error">("idle");
   const [enrolled, setEnrolled] = useState(true);
@@ -62,6 +66,7 @@ export function CampEnrollForm({
       email: email.trim(),
       zipCode: zip.trim(),
       heardAbout,
+      answers,
       sessionId: sessions.length > 0 ? sessionId : null,
       origin: window.location.origin,
     });
@@ -184,6 +189,28 @@ export function CampEnrollForm({
           </option>
         ))}
       </select>
+      {questions.map((q) => (
+        <fieldset key={q.id} className="space-y-1.5 pt-1" disabled={status === "loading"}>
+          <legend className="text-sm font-medium" style={{ color: ink }}>
+            {q.label}
+          </legend>
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+            {q.options.map((o) => (
+              <label key={o} className="flex items-center gap-2 text-sm" style={{ color: ink }}>
+                <input
+                  type="radio"
+                  name={q.id}
+                  value={o}
+                  required
+                  checked={answers[q.id] === o}
+                  onChange={() => setAnswers((a) => ({ ...a, [q.id]: o }))}
+                />
+                {o}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      ))}
       {error && <p className="text-sm text-red-600">{error}</p>}
       <button
         type="submit"

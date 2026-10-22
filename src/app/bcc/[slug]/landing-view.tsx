@@ -294,6 +294,7 @@ export async function LandingView({
                   ink={INK}
                   slug={page.slug}
                   sessions={page.sessions}
+                  questions={page.signupQuestions}
                   accent={accent}
                   ctaLabel={page.enrollCtaLabel}
                 />

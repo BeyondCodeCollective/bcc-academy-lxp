@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   account: [] as { id: string }[],
   updates: [] as Record<string, unknown>[],
   inserts: [] as Record<string, unknown>[],
+  questions: [] as { id: string; label: string; options: string[] }[],
 }));
 
 vi.mock("@/lib/email", () => ({ sendEventConfirmationEmail: mocks.send }));
@@ -20,6 +21,7 @@ vi.mock("@/lib/landing-pages", () => ({
     comingSoon: false,
     trackSlug: "catalyst-labs",
     headline: "Catalyst Labs",
+    signupQuestions: mocks.questions,
     sessions: [{ id: "2026-11-19", label: "Nov 19", startUtc: "2026-11-19T23:00:00Z", endUtc: null, timezone: "America/New_York" }],
   }),
 }));
@@ -71,6 +73,7 @@ beforeEach(() => {
   mocks.account = [];
   mocks.updates = [];
   mocks.inserts = [];
+  mocks.questions = [];
 });
 
 describe("enrollInCourse confirmation email", () => {
@@ -113,5 +116,30 @@ describe("enrollInCourse confirmation email", () => {
     const res = await enrollInCourse(input);
     expect(res.ok).toBe(false);
     expect(mocks.updates.at(-1)).toEqual({ last_confirmation_at: "2026-10-16T19:16:25Z" });
+  });
+});
+
+describe("signup questions", () => {
+  const resident = { id: "resident", label: "Are you a City of South Fulton resident?", options: ["Yes", "No", "Unsure"] };
+
+  it("rejects a signup that skips a required question", async () => {
+    mocks.questions = [resident];
+    const res = await enrollInCourse(input);
+    expect(res).toEqual({ ok: false, error: `Please answer: ${resident.label}` });
+    expect(mocks.inserts).toHaveLength(0);
+  });
+
+  it("rejects an answer that is not one of the choices", async () => {
+    mocks.questions = [resident];
+    const res = await enrollInCourse({ ...input, answers: { resident: "Maybe" } });
+    expect(res.ok).toBe(false);
+    expect(mocks.inserts).toHaveLength(0);
+  });
+
+  it("stores each answer under its question text", async () => {
+    mocks.questions = [resident];
+    const res = await enrollInCourse({ ...input, answers: { resident: "Yes" } });
+    expect(res.ok).toBe(true);
+    expect(mocks.inserts[0]?.answers).toEqual({ [resident.label]: "Yes" });
   });
 });
