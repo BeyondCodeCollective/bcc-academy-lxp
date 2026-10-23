@@ -260,6 +260,7 @@ export async function LandingView({
                         maxAttendees={event.max_attendees_per_registration}
                         spotsLeft={spotsLeft}
                         showSeats={event.show_remaining_seats}
+                        hiddenQuestions={event.hidden_questions ?? []}
                       />
                     </EventSignupReveal>
                   )}
