@@ -60,6 +60,7 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
     maxAttendees: String(event.max_attendees_per_registration),
     waitlistEnabled: event.waitlist_enabled,
     showRemainingSeats: event.show_remaining_seats,
+    hiddenQuestions: event.hidden_questions ?? [],
     status: event.status,
   };
 
