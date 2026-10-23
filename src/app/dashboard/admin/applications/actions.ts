@@ -116,6 +116,76 @@ export async function createApplicationAction(
   return { ok: true, slug };
 }
 
+export type ApplicationUpdateInput = ApplicationInput & {
+  /** Ids of questions switched off; kept in `questions` so past answers still read. */
+  hiddenQuestions: string[];
+};
+
+/** Edit an existing application. The slug (the public URL) never changes, and
+ *  every existing question must stay in the list: turn one off instead of
+ *  deleting it, or the answers already submitted lose their labels. */
+export async function updateApplicationAction(
+  slug: string,
+  input: ApplicationUpdateInput,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const actor = await requireReviewer();
+  const { svc } = actor;
+
+  const { data: app } = await svc
+    .from("applications")
+    .select("program_id, track_slug, questions")
+    .eq("slug", slug)
+    .maybeSingle<{ program_id: string | null; track_slug: string | null; questions: SurveyQuestion[] | null }>();
+  if (!app) return { ok: false, error: "Application not found." };
+  assertApplicationInActorProgram(actor, app.program_id);
+
+  if (!input.title.trim()) return { ok: false, error: "Title is required." };
+  if (!input.questions.length) return { ok: false, error: "An application needs at least one question." };
+  // likert / file / month-year questions carry no builder fields; they are
+  // kept as stored, so only the kinds the builder draws are checked here.
+  const builderKinds = new Set(["text", "radio", "multi-select", "select", "date", "consent"]);
+  const editable = input.questions.filter((q) => builderKinds.has(q.type));
+  const qError = editable.length ? questionErrors(editable) : null;
+  if (qError) return { ok: false, error: qError };
+
+  const kept = new Set(input.questions.map((q) => q.id));
+  if (kept.size !== input.questions.length) return { ok: false, error: "Duplicate question ids — reload and try again." };
+  if ((app.questions ?? []).some((q) => !kept.has(q.id))) {
+    return { ok: false, error: "Existing questions can't be deleted. Turn them off instead." };
+  }
+
+  const trackSlug = input.trackSlug.trim();
+  if (trackSlug && trackSlug !== app.track_slug) {
+    const allowedTracks = await allowedTrackSlugsForActor(actor, svc);
+    if (allowedTracks && !allowedTracks.has(trackSlug)) {
+      return { ok: false, error: "That course isn't in your program." };
+    }
+  }
+
+  const { error } = await svc
+    .from("applications")
+    .update({
+      title: input.title.trim(),
+      description: input.description.trim() || null,
+      track_slug: trackSlug || null,
+      notify_email: input.notifyEmail.trim() || null,
+      closes_at: input.closesAt ? easternToUtc(input.closesAt, "23:59") : null,
+      questions: input.questions,
+      hidden_questions: input.hiddenQuestions.filter((id) => kept.has(id)),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("slug", slug);
+  if (error) {
+    console.error("[updateApplicationAction] failed:", error);
+    return { ok: false, error: "Could not save the application. Please try again." };
+  }
+
+  revalidatePath("/dashboard/admin/applications");
+  revalidatePath(`/dashboard/admin/applications/${slug}`);
+  revalidatePath(`/apply/${slug}`);
+  return { ok: true };
+}
+
 export async function setApplicationOpenAction(
   slug: string,
   open: boolean,

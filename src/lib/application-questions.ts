@@ -66,3 +66,26 @@ export function newDraftQuestion(): DraftQuestion {
     required: true,
   };
 }
+
+/** Inverse of toSurveyQuestion for the kinds the builder can draw. Returns
+ *  null for anything richer (likert, file, month-year, zip text…): those are
+ *  kept untouched by the edit screen and can only be switched on or off. */
+export function toDraftQuestion(q: SurveyQuestion): DraftQuestion | null {
+  const base = { id: q.id, label: q.label, required: Boolean(q.required) };
+  switch (q.type) {
+    case "text":
+      return q.zip ? null : { ...base, kind: q.short ? "text-short" : "text", options: [] };
+    case "radio":
+      return { ...base, kind: "radio", options: q.options };
+    case "multi-select":
+      return { ...base, kind: "multi-select", options: q.options };
+    case "select":
+      return { ...base, kind: "select", options: q.options };
+    case "date":
+      return { ...base, kind: "date", options: [] };
+    case "consent":
+      return { ...base, kind: "consent", options: [], required: true };
+    default:
+      return null;
+  }
+}
