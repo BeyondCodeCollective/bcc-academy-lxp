@@ -26,3 +26,23 @@ record permissions or the separate export audit-log requirement.
 Bring this backend into #1243 before shipping. Its dashboard/PDF/CSV consumers
 must preserve null/omitted values (never coerce them to zero), handle the privacy
 message, and must not recompute hidden counts. Verify those outputs in #1243.
+
+## Reports/UI integration (#1243)
+
+The report projection carries the geography privacy warning into CSV and PDF.
+Suppressed survey values stay null and render as unavailable, never zero.
+A location-filter privacy rejection returns HTTP 422 from the export endpoint
+with no attachment, and the dashboard shows a privacy notice with a clear-filters link.
+
+Successful CSV/PDF generation calls the existing `logAdminAccess` helper with
+action `export`, resource `api/mvp/export`, the server-authenticated actor,
+authorized program scope, format, view, selected sections, and offering-row count.
+No learner data or raw location text is copied into audit metadata. Failed or
+denied requests are not recorded as successful exports. The shared helper is
+best-effort/fire-and-forget and logs insert failures; this change does not claim
+durable audit delivery or change that policy outside the MVP folders.
+
+Automated tests cover audit invocation for both formats, denial/render failures,
+privacy rejections, and suppression through the report loader, CSV records,
+PDF document content, and rendered survey table. These use synthetic data;
+they do not verify live database audit persistence.

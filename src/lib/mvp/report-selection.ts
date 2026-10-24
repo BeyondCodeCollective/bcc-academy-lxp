@@ -66,7 +66,7 @@ export function buildMvpReport(data: MvpDashboardData, selection: MvpReportSelec
       course: data.appliedFilters.courseSlug ? data.filterOptions.courses.find(c => c.slug === data.appliedFilters.courseSlug && c.programId === data.appliedFilters.programId)?.name ?? "Selected course" : "All courses",
     },
     ...(validated.summary && { summary: { ...data.summary } }),
-    warnings: data.metricDefinitions.filter((definition) => ["learnerStatus", "dateWindow"].includes(definition.key) && definition.unavailableReason)
+    warnings: data.metricDefinitions.filter((definition) => ["learnerStatus", "dateWindow", ...(validated.locations ? ["geographyPrivacy"] : [])].includes(definition.key) && definition.unavailableReason)
       .map((definition) => ({ key: definition.key, reason: definition.unavailableReason! })),
     rows, definitions: data.metricDefinitions.filter((definition) => validated.metricKeys.includes(definition.key as MvpReportMetricKey)),
     ...(validated.demographics && { demographics: data.demographics ?? null }),

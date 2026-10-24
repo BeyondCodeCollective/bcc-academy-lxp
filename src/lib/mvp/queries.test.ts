@@ -564,7 +564,9 @@ describe("report selection and new summaries", () => {
     const { getMvpReportData } = await import("./report-queries");
     for (const row of db.tables.student_tracks) (row.students as Row).location = row.student_id === "u1" ? "Boston" : "Oakland";
     const report = await getMvpReportData({ learnerStatus: "started" }, { metricKeys: [], locations: true });
-    expect(report.locations).toMatchObject({ uniqueLearners: 1, citiesRepresented: null, groups: [{ label: "Boston", count: 1 }] });
+    expect(report.locations).toBeNull();
+    expect(report.warnings.some(warning => warning.key === "geographyPrivacy")).toBe(true);
+    expect(JSON.stringify(report)).not.toContain("Boston");
     expect(report).not.toHaveProperty("demographics");
     expect(db.requests.some((request) => request.columns.includes("date_of_birth"))).toBe(false);
     expect(db.requests.some((request) => request.filters.some(([, key, value]) => key === "survey_type" && value === "bcc-learner-intake"))).toBe(false);

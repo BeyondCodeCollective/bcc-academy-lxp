@@ -104,7 +104,7 @@ export function MvpOverview({ data, initialSnapshot }: { data: MvpDashboardData;
         {!data.demographics?.length && <p className="mt-4 text-sm text-ink-soft">Demographic summaries unavailable.</p>}
       </section>
       <section className="panel p-6"><h2 className="text-xl font-semibold">Reported learner locations</h2><p className="mt-2 text-sm text-ink-soft">Self-reported profile locations, not verified cities.</p>
-        <div className="mt-6">{data.locations ? <Distribution label="Current learners" groups={[...data.locations.groups, { label: "Unknown / conflicting", count: data.locations.missingLocationLearners }]} /> : <p className="text-sm text-ink-soft">Location summary unavailable.</p>}</div>
+        <div className="mt-6">{data.locations ? <Distribution label="Current learners" groups={[...data.locations.groups, { label: "Unknown / conflicting", count: data.locations.missingLocationLearners }]} /> : <p className="text-sm text-ink-soft">{data.metricDefinitions.find(item => item.key === "geographyPrivacy")?.unavailableReason ?? "Location summary unavailable."}</p>}</div>
       </section>
     </div>
   </div>;

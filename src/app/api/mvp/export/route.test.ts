@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-const mocks = vi.hoisted(() => ({ load: vi.fn(), pdf: vi.fn() }));
+const mocks = vi.hoisted(() => ({ load: vi.fn(), pdf: vi.fn(), session: vi.fn(), audit: vi.fn(), client: vi.fn() }));
+vi.mock("@/lib/auth/session", () => ({ getSessionContext: mocks.session }));
+vi.mock("@/lib/supabase/server", () => ({ createServiceClient: mocks.client }));
+vi.mock("@/app/dashboard/admin/actions-shared", () => ({ logAdminAccess: mocks.audit }));
+import { MVP_SUPPRESSION_REASON } from "@/lib/mvp/privacy";
 vi.mock("@/lib/mvp/report-queries", () => ({ getMvpReportData: mocks.load }));
 vi.mock("@/lib/mvp/report-pdf", () => ({ renderMvpPdf: mocks.pdf }));
 import { POST } from "./route";
@@ -10,10 +14,47 @@ function request(value: unknown = body) {
 }
 beforeEach(() => {
   vi.resetAllMocks();
+  mocks.session.mockResolvedValue({ userId: "verified-actor" });
+  mocks.client.mockReturnValue({ auditClient: true });
   mocks.load.mockResolvedValue({ scopeLabel: "Authorized scope", appliedFilters: {}, freshness: { fetchedAt: "2026-10-08T20:00:00Z" }, rows: [], warnings: [], definitions: [] });
   mocks.pdf.mockResolvedValue(Buffer.from("%PDF-test"));
 });
 describe("MVP export endpoint", () => {
+  it.each(["csv", "pdf"])("logs each successful %s export once using server identity and scope", async format => {
+    const response = await POST(request({ ...body, format }));
+    expect(response.status).toBe(200);
+    expect(mocks.audit).toHaveBeenCalledExactlyOnceWith({ auditClient: true }, {
+      actorUserId: "verified-actor", programId: null, action: "export", resource: "api/mvp/export", rowCount: 0,
+      metadata: { format, view: "overview", selection: { metricKeys: ["started"], demographics: false,
+        locations: false, events: false, outcomes: false }, rowUnit: "offering_rows", locationFiltered: false },
+    });
+  });
+  it("does not generate or log a successful export without a signed-in actor", async () => {
+    mocks.session.mockResolvedValue(null);
+    expect((await POST(request())).status).toBe(403);
+    expect(mocks.load).not.toHaveBeenCalled();
+    expect(mocks.audit).not.toHaveBeenCalled();
+  });
+  it("logs the loaded program scope without copying private location text into metadata", async () => {
+    const report = await mocks.load();
+    mocks.load.mockResolvedValue({ ...report, appliedFilters: { programId: "verified-program", city: "Private location" }, rows: [] });
+    expect((await POST(request())).status).toBe(200);
+    expect(mocks.audit.mock.calls[0][1]).toMatchObject({ programId: "verified-program", metadata: { locationFiltered: true } });
+    expect(JSON.stringify(mocks.audit.mock.calls)).not.toContain("Private location");
+  });
+  it("returns a privacy explanation without a file or success audit for a small filtered group", async () => {
+    mocks.load.mockRejectedValue(new Error(MVP_SUPPRESSION_REASON));
+    const response = await POST(request());
+    expect(response.status).toBe(422);
+    expect(await response.json()).toEqual({ error: MVP_SUPPRESSION_REASON });
+    expect(response.headers.get("content-disposition")).toBeNull();
+    expect(mocks.audit).not.toHaveBeenCalled();
+  });
+  it("does not log a successful export when PDF rendering fails", async () => {
+    mocks.pdf.mockRejectedValue(new Error("render failed"));
+    expect((await POST(request({ ...body, format: "pdf" }))).status).toBe(500);
+    expect(mocks.audit).not.toHaveBeenCalled();
+  });
   it("loads authorized report data and returns an uncached download", async () => {
     const response = await POST(request());
     expect(response.status).toBe(200);
@@ -43,6 +84,7 @@ describe("MVP export endpoint", () => {
     const response = await POST(request());
     expect(response.status).toBe(403);
     expect(response.headers.get("content-disposition")).toBeNull();
+    expect(mocks.audit).not.toHaveBeenCalled();
     expect(mocks.pdf).not.toHaveBeenCalled();
   });
   it("does not expose database details or return a partial report", async () => {
@@ -63,5 +105,6 @@ describe("MVP export endpoint", () => {
     const response = await POST(new Request("http://localhost/api/mvp/export", { method: "POST", body: "text" }));
     expect(response.status).toBe(415);
     expect(mocks.load).not.toHaveBeenCalled();
+    expect(mocks.audit).not.toHaveBeenCalled();
   });
 });

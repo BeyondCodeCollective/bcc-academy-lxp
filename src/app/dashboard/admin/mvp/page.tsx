@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { MVP_SUPPRESSION_REASON } from "@/lib/mvp/privacy";
 import Link from "next/link";
 import { getSessionContext } from "@/lib/auth/session";
 import { canViewMvp } from "@/lib/roles";
@@ -29,8 +30,21 @@ export default async function MvpDashboardPage({ searchParams }: {
     }
     const params = await searchParams;
     const isPrograms = params.view === "programs";
-    const loaded = await getMvpDashboardData(params, { includeDemographics: !isPrograms, includeLocations: !isPrograms, includeCohorts: isPrograms,
-        includeParticipants: isPrograms && typeof params.programId === "string" && Boolean(params.programId.trim()) });
+    let loaded: Awaited<ReturnType<typeof getMvpDashboardData>>;
+    try {
+        loaded = await getMvpDashboardData(params, { includeDemographics: !isPrograms, includeLocations: !isPrograms, includeCohorts: isPrograms,
+            includeParticipants: isPrograms && typeof params.programId === "string" && Boolean(params.programId.trim()) });
+    } catch (error) {
+        if (!(error instanceof Error) || error.message !== MVP_SUPPRESSION_REASON) throw error;
+        return <main className="mx-auto max-w-7xl px-6 py-8">
+            <AdminTopTabs current="mvp" showInsights isManager />
+            <section className="panel mt-6 p-6" role="status">
+                <h1 className="text-xl font-semibold">Results withheld for privacy</h1>
+                <p className="my-3">{MVP_SUPPRESSION_REASON} Clear the location filter to broaden the selection.</p>
+                <Link className="underline" href={isPrograms ? "/dashboard/admin/mvp?view=programs" : "/dashboard/admin/mvp"}>Clear filters</Link>
+            </section>
+        </main>;
+    }
     // The workspace needs aggregates, not learner-level check-in evidence.
     const data = { ...loaded, checkInEvaluations: undefined };
     const overviewSnapshot = isPrograms ? null : await refreshMvpOverview();
