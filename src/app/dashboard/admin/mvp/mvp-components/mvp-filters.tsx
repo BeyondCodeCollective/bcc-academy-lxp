@@ -1,6 +1,6 @@
 "use client";
 
-import { useId } from "react";
+import { useId, type ReactNode } from "react";
 import type {
   MvpFilters as MvpFilterValues,
   MvpFilterOptions,
@@ -15,6 +15,9 @@ type MvpFiltersProps = {
   onChange: (filters: MvpFilterValues) => void;
   disabled?: boolean;
   programOnly?: boolean;
+  horizontal?: boolean;
+  actions?: ReactNode;
+  panelHeading?: boolean;
 };
 
 // Learner choices match the framework's participation and check-in views.
@@ -39,6 +42,9 @@ export function MvpFilters({
   onChange,
   disabled = false,
   programOnly = false,
+  horizontal = false,
+  actions,
+  panelHeading = false,
 }: MvpFiltersProps) {
   const id = useId();
 
@@ -67,7 +73,7 @@ export function MvpFilters({
     filters.endDate !== null;
 
   const inputClass =
-    "mt-1 block w-full rounded-lg border border-rule bg-white " +
+    "mt-1 block min-h-11 min-w-0 w-full max-w-full rounded-lg border border-rule bg-white " +
     "px-3 py-2 text-sm text-ink " +
     "focus-visible:outline focus-visible:outline-2 " +
     "focus-visible:outline-offset-2 focus-visible:outline-primary " +
@@ -96,11 +102,12 @@ export function MvpFilters({
   return (
     <fieldset
       disabled={disabled}
-      className="min-w-0 space-y-5 rounded-xl border border-rule bg-white p-5"
+      className={panelHeading ? "panel min-w-0 w-full space-y-5 p-5 sm:p-6" : horizontal ? "panel grid min-w-0 w-full grid-cols-[repeat(auto-fit,minmax(min(100%,14rem),1fr))] items-start gap-4 p-4 sm:p-5 [&>div]:min-w-0" : "min-w-0 space-y-5 rounded-xl border border-rule bg-white p-5"}
     >
-      <legend className="px-1 text-sm font-semibold text-ink">
+      <legend className={panelHeading ? "sr-only" : `px-2 font-bold text-ink ${horizontal ? "text-xl" : "text-sm"}`}>
         Filters
       </legend>
+      {panelHeading && <h2 className="!mt-0 text-xl font-semibold text-ink">Filter</h2>}
 
       <div>
         <label
@@ -144,7 +151,6 @@ export function MvpFilters({
           id={`${id}-course`}
           value={filters.courseSlug ?? ""}
           disabled={!filters.programId || courses.length === 0}
-          aria-describedby={`${id}-course-help`}
           className={inputClass}
           onChange={(event) =>
             updateFilter("courseSlug", event.target.value || null)
@@ -168,12 +174,6 @@ export function MvpFilters({
           ))}
         </select>
 
-        <p
-          id={`${id}-course-help`}
-          className="mt-1 text-xs text-ink-soft"
-        >
-          Course choices depend on the selected program.
-        </p>
       </div>
 
       <div>
@@ -200,10 +200,6 @@ export function MvpFilters({
             </option>
           ))}
         </select>
-        <p className="mt-1 text-xs text-ink-soft">
-          Uses profile location text, not verified city boundaries. Exact matches after trimming spaces.
-          All locations includes learners with missing locations; a selected location excludes them.
-        </p>
       </div>
 
       <div>
@@ -237,8 +233,8 @@ export function MvpFilters({
         </select>
       </div>
 
-      <div className="space-y-3">
-        <div>
+      <div className={horizontal ? "contents" : "space-y-3"}>
+        <div className="min-w-0">
           <label
             htmlFor={`${id}-start-date`}
             className="text-sm font-medium text-ink"
@@ -248,7 +244,6 @@ export function MvpFilters({
 
           <input
             id={`${id}-start-date`}
-            disabled={programOnly}
             type="date"
             value={filters.startDate ?? ""}
             max={filters.endDate ?? undefined}
@@ -261,7 +256,7 @@ export function MvpFilters({
           />
         </div>
 
-        <div>
+        <div className="min-w-0">
           <label
             htmlFor={`${id}-end-date`}
             className="text-sm font-medium text-ink"
@@ -271,7 +266,6 @@ export function MvpFilters({
 
           <input
             id={`${id}-end-date`}
-            disabled={programOnly}
             type="date"
             value={filters.endDate ?? ""}
             min={filters.startDate ?? undefined}
@@ -287,7 +281,7 @@ export function MvpFilters({
         <p
           id={`${id}-date-help`}
           aria-live="polite"
-          className={`text-xs ${
+          className={`${horizontal ? "col-span-full " : ""}text-xs ${
             invalidDateRange ? "text-red-700" : "text-ink-soft"
           }`}
         >
@@ -301,7 +295,7 @@ export function MvpFilters({
         type="button"
         disabled={!hasFilters}
         onClick={clearFilters}
-        className="w-full rounded-lg border border-rule px-3 py-2
+        className="min-h-11 w-full self-start rounded-lg border border-rule px-3 py-2
                    text-sm font-medium text-ink hover:bg-gray-50
                    focus-visible:outline focus-visible:outline-2
                    focus-visible:outline-offset-2 focus-visible:outline-primary
@@ -309,6 +303,7 @@ export function MvpFilters({
       >
         Clear filters
       </button>
+      {actions}
     </fieldset>
   );
 }
