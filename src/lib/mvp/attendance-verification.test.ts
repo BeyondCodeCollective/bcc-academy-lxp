@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { verifyMvpMissedSessions, type MvpAttendanceReview } from "./attendance-verification";
+import { evaluateMvpCourseCheckIns } from "./check-ins";
 
 // Synthetic review history only. No database connection or migration execution.
 const asOf = new Date("2026-10-08T22:00:00Z");
@@ -14,6 +15,12 @@ const base = { programId: "program", courseSlug: "course", learnerId: "learner",
   attendance: [], asOf };
 
 describe("staff-verified absence evidence", () => {
+  it("flags two confirmed absences with review IDs as evidence", () => {
+    const result = evaluateMvpCourseCheckIns("program:course", "course", ["learner"], [], slots, asOf,
+      { programId: "program", reviews: [review(1), review(2)] });
+    expect(result.learnersNeedingCheckIn).toBe(1);
+    expect(result.evaluations[0].attentionFlags[0].evidence.map((item) => item.sourceRecordId)).toEqual(["review-1", "review-2"]);
+  });
   it("returns two confirmed absences with review IDs as evidence", () => {
     const result = verifyMvpMissedSessions({ ...base, reviews: [review(1), review(2)] });
     expect(result.value).toBe(2);
