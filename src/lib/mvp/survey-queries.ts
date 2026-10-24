@@ -1,4 +1,5 @@
 import "server-only";
+import { protectMvpSurvey } from "./privacy";
 import type { createServiceClient } from "@/lib/supabase/server";
 import type { SurveyConfig } from "@/lib/programs/types";
 import { getSurveySchema } from "@/lib/surveys/schemas";
@@ -73,7 +74,7 @@ export async function loadMvpSurveyOutcomes(
     participation.push({ surveyId: survey.id, label: survey.title, respondents: respondents.size, eligibleLearners: ids.length,
       responseRate: ids.length ? respondents.size / ids.length * 100 : null });
   }
-  return { programRowId: scope.programRowId, programId: scope.programId,
+  return protectMvpSurvey({ programRowId: scope.programRowId, programId: scope.programId,
     scope: scope.courseSlug === null ? "program" : "course", measures, participation,
     anySurveyResponseRate: participation.length && ids.length ? anyRespondents.size / ids.length * 100 : null,
     unavailableReason: !measures.length
@@ -81,5 +82,5 @@ export async function loadMvpSurveyOutcomes(
         ? "No supported program-wide retrospective survey is configured. Surveys restricted to particular courses are excluded."
         : "No explicitly course-mapped retrospective survey with a supported numeric scale. General program, anonymous public, and separate pre/post surveys are not attributed to this course."
       : measures.every((measure) => measure.pairedRespondentCount === 0)
-        ? "No valid paired responses from eligible current learners in this program/course scope." : null };
+        ? "No valid paired responses from eligible current learners in this program/course scope." : null });
 }

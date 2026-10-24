@@ -1,4 +1,5 @@
 import "server-only";
+import { protectMvpGeography, isSmallMvpCount, MVP_SUPPRESSION_REASON } from "./privacy";
 import { loadMvpParticipants } from "./participant-queries";
 import { loadMvpLinkedCohorts } from "./cohort-queries";
 import { buildMvpStaffReview } from "./staff-review";
@@ -517,6 +518,10 @@ for (const row of candidateRows) {
   }
   const upcomingEnrollments = countMvpUpcomingEnrollments(selectedRows);
   const selectedLearnerIds = new Set([...courseRecords.values()].flatMap((records) => records.learnerIds));
+  // A selected location's roster total would reveal its suppressed cell even
+  // if the geographic chart itself were omitted. Do not return that payload.
+  if (location && (isSmallMvpCount(selectedLearnerIds.size) || [...courseRecords.values()].some(
+    records => isSmallMvpCount(new Set(records.learnerIds).size)))) throw new Error(MVP_SUPPRESSION_REASON);
   for (const id of demographicLearners.keys()) if (!selectedLearnerIds.has(id)) demographicLearners.delete(id);
 
   // Events remain a separate, opt-in source; course-only grants never expand
@@ -525,7 +530,7 @@ for (const row of candidateRows) {
     (!programId || program.id === programId) && (role === "super_admin" || allowedTrackSlugs(homeId, mvpGrants, program.id) === null)
   ).map(program => program.id), { programId, courseSlug, city: location, learnerStatus, startDate: dateWindow.start, endDate: dateWindow.end }, asOf) : undefined;
 
-  return {
+  return protectMvpGeography({
     scopeLabel: programId ? programs.find((program) => program.id === programId)!.name
       : role === "super_admin" ? "Organization overview" : "Your accessible programs",
     appliedFilters: { programId, courseSlug, city: location, learnerStatus, startDate: dateWindow.start, endDate: dateWindow.end },
@@ -615,5 +620,5 @@ for (const row of candidateRows) {
       { key: "attendanceRate", label: "Recorded session attendance", denominator: "Current learners multiplied by eligible sessions explicitly marked completed",
         definition: "Attendance across required sessions explicitly marked completed in the course editor. This may cover only part of the delivered program and uses the current roster, not historical eligibility.",
         unavailableReason: selectedRows.some((row) => row.attendanceRate === null) ? "Some courses lack a verified schedule, completed sessions, or a nonempty roster." : null }],
-  };
+  });
 }

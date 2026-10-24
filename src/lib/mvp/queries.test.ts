@@ -164,10 +164,7 @@ describe("opt-in participant details", () => {
     Object.assign(db.tables.student_tracks[0].students as Row, { location: "Boston" });
     const params = { programId: "p1", courseSlug: "alpha", city: "Boston", learnerStatus: "started",
       startDate: "2026-09-01", endDate: "2026-09-01" };
-    const result = await getMvpProgramParticipants(params);
-    expect(result.appliedFilters).toMatchObject(params);
-    expect(result.participants).toHaveLength(1);
-    expect(result.participants[0]).toMatchObject({ learnerId: "u1", lastActivity: { at: "2026-09-30T10:15:00.000Z" } });
+    await expect(getMvpProgramParticipants(params)).rejects.toThrow("fewer than 5");
     const empty = await getMvpProgramParticipants({ ...params, city: "No matching location" });
     expect(empty.participants).toEqual([]);
   });
@@ -187,8 +184,7 @@ describe("opt-in participant details", () => {
   it("limits contacts to the selected location and rejects a course outside the admin grant", async () => {
     seedParticipants();
     Object.assign(db.tables.student_tracks[0].students as Row, { location: "Boston" });
-    const result = await getMvpProgramParticipants({ programId: "p1", city: "Boston" });
-    expect(result.participants.map(p => p.learnerId)).toEqual(["u1"]);
+    await expect(getMvpProgramParticipants({ programId: "p1", city: "Boston" })).rejects.toThrow("fewer than 5");
     mocks.session.mockResolvedValue({ userId: "actor", student: { role: "admin" } });
     db.tables.staff_program_access = [{ student_id: "actor", program_id: "p2", role: "admin", track_slug: "some-other-course" }];
     db.requests = [];
@@ -324,7 +320,9 @@ describe("event and geography integration", () => {
   it("only returns aggregate geography for the selected authorized learner roster", async () => {
     for (const row of db.tables.student_tracks) Object.assign(row.students as Row, { zip: row.student_id === "u1" ? "02108" : "10001", state: "MA" });
     const result = await getMvpDashboardData({ programId: "p2" }, { includeLocations: true });
-    expect(result.geography?.postalCodes.groups).toEqual([{ label: "02108", count: 1 }]);
+    expect(result.geography).toBeUndefined();
+    expect(result.locations).toBeUndefined();
+    expect(JSON.stringify(result)).not.toContain("02108");
     expect(result.demographics).toBeUndefined();
     expect(db.requests.some(r => r.columns.includes("date_of_birth"))).toBe(false);
   });
@@ -639,6 +637,22 @@ describe("MVP survey outcome connection", () => {
     id, student_id: student, program_id: program, survey_type: "impact",
     completed_at: "2026-10-01T12:00:00Z", responses: { confidence: { Skills: { before: 2, now: 4 } } },
   });
+  it.each([5, 6])("publishes safe paired outcomes and geography for %i distinct filtered learners", async count => {
+    configs[0].surveys = [survey];
+    db.tables.student_tracks = Array.from({ length: count }, (_, i) => {
+      const row = enrollment(`e${i}`, `safe${i}`, "alpha");
+      Object.assign(row.students as Row, { location: "Boston", zip: "02108", state: "MA" });
+      return row;
+    });
+    db.tables.survey_responses = Array.from({ length: count }, (_, i) => response(`s${i}`, `safe${i}`));
+    db.serverCap = 2;
+    const result = await getMvpDashboardData({ programId: "p1", courseSlug: "alpha", city: "Boston" }, { includeLocations: true });
+    expect(result.programs[0].totalParticipants).toBe(count);
+    expect(result.surveyOutcomes?.[0].measures[0]).toMatchObject({ pairedRespondentCount: count, change: 2 });
+    expect(result.programs[0].surveyResponseRate).toBe(100);
+    expect(result.locations?.groups).toEqual([{ label: "Boston", count }]);
+    expect(result.geography?.postalCodes.groups).toEqual([{ label: "02108", count }]);
+  });
   it("counts unique completed respondents per survey and across mapped surveys", async () => {
     configs[0].surveys = [survey, { ...survey, id: "feedback", title: "Feedback" }];
     db.serverCap = 1;
@@ -647,8 +661,8 @@ describe("MVP survey outcome connection", () => {
       { ...response("s4", "u2"), completed_at: null },
       { ...response("s5", "u2"), completed_at: "2027-01-01T00:00:00Z" }, response("s6", "outside")];
     const result = await getMvpDashboardData({ programId: "p1", courseSlug: "alpha" });
-    expect(result.programs[0].surveyResponseRate).toBe(100);
-    expect(result.programs[0].surveyParticipation?.map(row => [row.respondents, row.eligibleLearners, row.responseRate])).toEqual([[1, 2, 50], [1, 2, 50]]);
+    expect(result.programs[0].surveyResponseRate).toBeNull();
+    expect(result.programs[0].surveyParticipation).toEqual([]);
     const feedbackReads = db.requests.filter(r => r.table === "survey_responses" && r.filters.some(([, key, value]) => key === "survey_type" && value === "feedback"));
     expect(feedbackReads.every(r => !r.columns.includes("responses"))).toBe(true);
   });
@@ -681,7 +695,7 @@ describe("MVP survey outcome connection", () => {
     configs[0].surveys = [survey];
     db.tables.survey_responses = [response("s1"), response("s2", "outsider"), response("s3", "u2", "p2")];
     const result = await getMvpDashboardData({ programId: "p1", courseSlug: "alpha" });
-    expect(result.surveyOutcomes?.[0].measures[0]).toMatchObject({ change: 2, pairedRespondentCount: 1 });
+    expect(result.surveyOutcomes?.[0].measures[0]).toMatchObject({ change: null, pairedRespondentCount: null, respondentCount: null });
     expect(JSON.stringify(result.surveyOutcomes)).not.toContain("student_id");
   });
   it("does not infer course attribution from general surveys", async () => {
@@ -698,7 +712,7 @@ describe("MVP survey outcome connection", () => {
     const result = await getMvpDashboardData({ programId: "p1" });
     const groups = result.surveyOutcomes?.filter((group) => group.scope === "program");
     expect(groups).toHaveLength(1);
-    expect(groups?.[0].measures[0].pairedRespondentCount).toBe(1);
+    expect(groups?.[0].measures[0].pairedRespondentCount).toBeNull();
     expect(groups?.[0].programId).toBe("p1");
   });
   it("denies program outcomes to course-scoped admins", async () => {
@@ -720,16 +734,15 @@ describe("MVP survey outcome connection", () => {
     (db.tables.student_tracks[0].students as Row).location = "Boston";
     (db.tables.student_tracks[1].students as Row).location = "Oakland";
     db.tables.survey_responses = [response("s1"), response("s2", "u2")];
-    const result = await getMvpDashboardData({ programId: "p1", city: "Boston" });
-    expect(result.programs[0].totalParticipants).toBe(1);
-    expect(result.surveyOutcomes?.find((group) => group.scope === "program")?.measures[0].pairedRespondentCount).toBe(1);
+    await expect(getMvpDashboardData({ programId: "p1", city: "Boston" })).rejects.toThrow("fewer than 5");
   });
   it("paginates through reduced database caps and deduplicates respondents", async () => {
     configs[0].surveys = [survey];
     db.serverCap = 2;
     db.tables.survey_responses = [response("s1"), response("s2"), response("s3", "u2")];
     const result = await getMvpDashboardData({ programId: "p1" });
-    expect(result.surveyOutcomes?.[0].measures[0].pairedRespondentCount).toBe(2);
+    expect(result.surveyOutcomes?.[0].measures[0].pairedRespondentCount).toBeNull();
+    expect(db.requests.filter(r => r.table === "survey_responses").length).toBeGreaterThan(1);
   });
   it("does not turn database failure into zero responses", async () => {
     configs[0].surveys = [survey];
@@ -945,22 +958,15 @@ describe("MVP query totals and filters", () => {
     for (const row of db.tables.student_tracks) {
       (row.students as Row).location = row.student_id === "u1" ? " Boston, MA " : "Oakland, CA";
     }
-    const result = await getMvpDashboardData({ city: "Boston, MA" });
-    expect(result.programs.map((row) => row.totalParticipants)).toEqual([1, 1]);
-    expect(result.summary).toMatchObject({ uniqueLearnersStarted: 1, programParticipationsStarted: 2,
-      uniqueLearnersCompleted: 1, programParticipationsCompleted: 2 });
-    expect(result.filterOptions.cities).toEqual(["Boston, MA", "Oakland, CA"]);
-    expect(result.appliedFilters.city).toBe("Boston, MA");
+    // The same learner in two courses is still a one-person location group.
+    await expect(getMvpDashboardData({ city: "Boston, MA" })).rejects.toThrow("fewer than 5");
   });
   it("scopes age aggregates to the filtered roster without returning birth dates", async () => {
     for (const row of db.tables.student_tracks) {
       (row.students as Row).date_of_birth = "2000-01-01";
       (row.students as Row).location = row.student_id === "u1" ? "Boston" : "Oakland";
     }
-    const result = await getMvpDashboardData({ city: "Boston" }, { includeDemographics: true });
-    expect(result.demographics?.[0]).toMatchObject({ respondentCount: 1, missingCount: 0 });
-    expect(result.demographics?.[0].groups.find((group) => group.label === "25–34")?.count).toBe(1);
-    expect(JSON.stringify(result.demographics)).not.toContain("2000-01-01");
+    await expect(getMvpDashboardData({ city: "Boston" }, { includeDemographics: true })).rejects.toThrow("fewer than 5");
   });
   it("paginates income and limits it to the selected program and location", async () => {
     (db.tables.student_tracks[0].students as Row).location = "Boston";
@@ -970,12 +976,8 @@ describe("MVP query totals and filters", () => {
       survey_type: "bcc-learner-intake", completed_at: "2026-10-01T00:00:00Z", responses: { household_income: "Under $20,000" } }));
     db.tables.survey_responses.push({ id: "s4", student_id: "u1", program_id: "p2", survey_type: "bcc-learner-intake",
       completed_at: "2026-10-02T00:00:00Z", responses: { household_income: "$80,000 or more" } });
-    const result = await getMvpDashboardData({ programId: "p1", city: "Boston" }, { includeDemographics: true });
-    const income = result.demographics?.find((item) => item.id === "household-income");
-    expect(income).toMatchObject({ respondentCount: 1, missingCount: 0 });
-    expect(income?.groups[0].count).toBe(1);
-    expect(income?.groups[4].count).toBe(0);
-    expect(JSON.stringify(income)).not.toContain("student_id");
+    await expect(getMvpDashboardData({ programId: "p1", city: "Boston" }, { includeDemographics: true })).rejects.toThrow("fewer than 5");
+    expect(db.requests.filter(r => r.table === "survey_responses").length).toBeGreaterThan(1);
   });
   it("reads no birth dates or income answers unless demographics are requested", async () => {
     const result = await getMvpDashboardData({});
@@ -1002,8 +1004,7 @@ describe("MVP query totals and filters", () => {
   it("keeps missing locations in all-location totals but not selected-location totals", async () => {
     (db.tables.student_tracks[0].students as Row).location = "Boston";
     expect((await getMvpDashboardData({ programId: "p1" })).programs[0].totalParticipants).toBe(2);
-    const filtered = await getMvpDashboardData({ programId: "p1", city: "Boston" });
-    expect(filtered.programs[0].totalParticipants).toBe(1);
+    await expect(getMvpDashboardData({ programId: "p1", city: "Boston" })).rejects.toThrow("fewer than 5");
   });
   it("does not leak inaccessible location options", async () => {
     (db.tables.student_tracks[0].students as Row).location = "Boston";
