@@ -58,6 +58,7 @@ export type MvpSummary = {
 // One performance row represents a specific program/course/cohort offering.
 // Stable row IDs keep separate cohorts from being combined accidentally.
 export type MvpProgramRow = {
+  linkedCohorts?: import("./cohort-queries").MvpLinkedCohort[];
   id: string;
   programId: string;
   programName: string;
@@ -74,12 +75,20 @@ export type MvpProgramRow = {
   enrolledBeforeStart: MvpCount;
   started: MvpCount;
   active: MvpCount;
+  // Attendance criterion only; not a substitute for full active status.
+  attendanceQualified?: MvpCount;
+  sessionsRemaining?: MvpCount;
+  sessionsRemainingReason?: string | null;
   completed: MvpCount;
 
   attendanceRate: MvpPercentage;
   progressRate: MvpPercentage;
   completionRate: MvpPercentage;
   surveyResponseRate: MvpPercentage;
+  surveyParticipation?: NonNullable<import("./survey-queries").MvpSurveyOutcomeGroup["participation"]>;
+  assessmentAveragePercent?: MvpPercentage;
+  assessmentSummary?: ReturnType<typeof import("./learning-metrics").calculateMvpAssessment>;
+  videoProgress?: ReturnType<typeof import("./learning-metrics").calculateMvpVideoProgress>;
   learnersNeedingCheckIn: MvpCount;
 };
 
@@ -147,8 +156,8 @@ export type MvpOutcomeMeasure = {
   pairedRespondentCount: MvpCount;
 };
 
-// Aggregate demographic distributions support the requested age/salary
-// reporting. Categories and units come from the actual source data.
+// Aggregate demographics use current age and reported household income,
+// not salary. Categories and units come from the actual source data.
 export type MvpDemographicSummary = {
   id: string;
   label: string;
@@ -209,6 +218,20 @@ export type MvpMetricDefinition = {
 // The overview receives scoped data and the applied filters together.
 // Program details can be loaded separately when a user opens a row.
 export type MvpDashboardData = {
+  participants?: Awaited<ReturnType<typeof import("./participant-queries").loadMvpParticipants>>;
+  staffReview?: ReturnType<typeof import("./staff-review").buildMvpStaffReview>;
+  overviewParticipation?: ReturnType<typeof import("./overview-participation").buildMvpOverviewParticipation>;
+  events?: Awaited<ReturnType<typeof import("./event-queries").loadMvpEvents>>;
+  geography?: ReturnType<typeof import("./geography").calculateMvpGeography>;
+  programSummaries?: import("./program-summary").MvpProgramSummary[];
+  historicalCoverage?: {
+    status: "unavailable";
+    allTimeUniqueLearnersStarted: null;
+    allTimeUniqueLearnersCompleted: null;
+    reason: string;
+  };
+  cohortCoverage?: { status: "unavailable"; reason: string };
+  locations?: import("./location-summary").MvpLocationSummary;
   demographics?: MvpDemographicSummary[];
   surveyOutcomes?: import("./survey-queries").MvpSurveyOutcomeGroup[];
   checkInEvaluations?: import("./check-ins").MvpCheckInEvaluation[];
