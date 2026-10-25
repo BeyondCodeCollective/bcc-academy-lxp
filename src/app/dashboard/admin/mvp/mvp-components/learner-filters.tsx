@@ -3,6 +3,7 @@
 import { useEffect, useId, useReducer, useState } from "react";
 import { Search } from "lucide-react";
 import { LearnerSummary } from "./learner-summary";
+import { LearnerCharts } from "./learner-charts";
 
 export type LearnerFilters = {
   search: string;
@@ -111,5 +112,6 @@ export function LearnerFilterBar({ options }: { options?: LearnerFilterOptions }
         ? "All learner statuses selected. Learner results are not connected yet."
         : "Needs Check-in selected. Learner results are not connected yet.");
     }} />
+    <LearnerCharts />
   </>;
 }
