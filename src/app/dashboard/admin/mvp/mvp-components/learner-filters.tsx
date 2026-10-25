@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useReducer, useState } from "react";
 import { Search } from "lucide-react";
+import { LearnerSummary } from "./learner-summary";
 
 export type LearnerFilters = {
   search: string;
@@ -18,9 +19,10 @@ export type LearnerFilterOptions = {
 export const EMPTY_LEARNER_FILTERS: LearnerFilters = {
   search: "", programId: "", courseSlug: "", cohortId: "", status: "all",
 };
-type Change = { type: "clear" } | { type: "change"; field: keyof LearnerFilters; value: string };
+type Change = { type: "clear" } | { type: "toggle_check_in" } | { type: "change"; field: keyof LearnerFilters; value: string };
 export function changeLearnerFilters(state: LearnerFilters, action: Change): LearnerFilters {
   if (action.type === "clear") return { ...EMPTY_LEARNER_FILTERS };
+  if (action.type === "toggle_check_in") return { ...state, status: state.status === "needs_check_in" ? "all" : "needs_check_in" };
   if (action.field === "programId") return { ...state, programId: action.value, courseSlug: "", cohortId: "" };
   if (action.field === "courseSlug") return { ...state, courseSlug: action.value, cohortId: "" };
   if (action.field === "status" && !["all", "on_track", "needs_check_in", "not_evaluated"].includes(action.value)) return state;
@@ -48,7 +50,7 @@ export function LearnerFilterBar({ options }: { options?: LearnerFilterOptions }
   const inputClass = "mt-2 min-h-11 w-full min-w-0 rounded-lg border border-rule bg-white px-3 py-2 text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50";
   const labelClass = "min-w-0 flex-1 basis-44 text-sm font-medium text-ink";
   const hasFilters = Object.entries(draft).some(([key, value]) => key === "status" ? value !== "all" : Boolean(value));
-  return <section className="panel min-w-0 p-5 sm:p-6" aria-labelledby={`${id}-heading`}>
+  return <><section className="panel min-w-0 p-5 sm:p-6" aria-labelledby={`${id}-heading`}>
     <h2 id={`${id}-heading`} className="text-xl font-semibold text-ink">Search and filters</h2>
     <p id={`${id}-help`} className="mt-2 text-sm text-ink-soft">Search by name or email. These selections stay on the Learners page.</p>
     <form className="mt-5" aria-label="Learner filters" aria-describedby={`${id}-availability`} onSubmit={event => {
@@ -102,5 +104,12 @@ export function LearnerFilterBar({ options }: { options?: LearnerFilterOptions }
       </div>
       <p role="status" className="mt-3 text-xs text-ink-soft">{notice || (search ? "Search text ready. Results will be available when the directory is connected." : "")}</p>
     </form>
-  </section>;
+  </section>
+    <LearnerSummary needsCheckInSelected={draft.status === "needs_check_in"} onNeedsCheckIn={() => {
+      dispatch({ type: "toggle_check_in" });
+      setNotice(draft.status === "needs_check_in"
+        ? "All learner statuses selected. Learner results are not connected yet."
+        : "Needs Check-in selected. Learner results are not connected yet.");
+    }} />
+  </>;
 }
