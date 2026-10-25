@@ -2,6 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { directoryPage, LearnerDirectory, selectDirectoryLearners, type DirectoryLearner, type DirectoryEnrollment } from "./learner-directory";
+import { EMPTY_LEARNER_FILTERS as filters } from "./learner-filters";
 
 const enrollment: DirectoryEnrollment = {
   programId: "p1", programName: "Program One", courseSlug: "course-a", courseName: "Course A",
@@ -65,7 +66,8 @@ describe("Learner directory", () => {
     expect(html).toContain("Not evaluated");
     expect(html).not.toContain("Cohort One");
     expect(html).not.toContain("On Track");
-    expect(html).toMatch(/disabled=""[^>]*aria-label="View evidence/);
+    expect(html).toContain('aria-haspopup="dialog"');
+    expect(html).not.toMatch(/disabled=""[^>]*aria-label="View evidence/);
   });
   it("shows recorded activity with a date, time and zone, not last login", () => {
     const html = render([learner]);

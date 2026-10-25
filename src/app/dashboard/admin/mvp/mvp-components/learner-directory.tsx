@@ -2,6 +2,7 @@
 
 import { useId, useState } from "react";
 import type { LearnerFilters } from "./learner-filters";
+import { LearnerEvidenceDrawer, type CourseEvidence } from "./learner-evidence";
 
 export type DirectoryEnrollment = {
   programId: string; programName: string; courseSlug: string; courseName: string;
@@ -9,6 +10,7 @@ export type DirectoryEnrollment = {
   attendance: { present: number; eligibleHeld: number } | null;
   lastActivity: { at: string | null; state: "recorded" | "none_recorded" | "unavailable" };
   status: "on_track" | "needs_check_in" | "not_evaluated";
+  evidence?: CourseEvidence;
 };
 export type DirectoryLearner = {
   id: string; firstName: string | null; lastName: string | null; email: string | null;
@@ -68,6 +70,7 @@ export function LearnerDirectory({ filters, learners, onViewEvidence }: {
 }) {
   const id = useId();
   const [paging, setPaging] = useState({ scope: "", page: 1, size: 25 });
+  const [selection, setSelection] = useState<{ id: string; scope: string } | null>(null);
   let matching: DirectoryLearner[] = [];
   let invalid = false;
   try { matching = selectDirectoryLearners(learners ?? [], filters); } catch { invalid = true; }
@@ -75,6 +78,7 @@ export function LearnerDirectory({ filters, learners, onViewEvidence }: {
   const scope = JSON.stringify([filters, matching.map(row => row.id)]);
   const page = directoryPage(matching, paging.scope === scope ? paging.page : 1, paging.size);
   const ready = learners !== undefined && !invalid;
+  const selected = ready && selection?.scope === scope ? matching.find(row => row.id === selection.id) : undefined;
   const buttonClass = "min-h-11 rounded-lg border border-rule px-3 py-2 text-sm font-medium text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50";
   return <section className="panel mt-6 min-w-0 p-5 sm:p-6" aria-labelledby={`${id}-heading`}>
     <div className="flex flex-wrap items-start justify-between gap-3">
@@ -96,7 +100,7 @@ export function LearnerDirectory({ filters, learners, onViewEvidence }: {
             <td className="px-4 py-5"><ul className="space-y-4">{learner.enrollments.map(e => <li key={`${e.programId}:${e.courseSlug}`}><span className="block text-xs text-ink-soft">{e.courseName}</span>{attendanceLabel(e.attendance)}</li>)}</ul></td>
             <td className="px-4 py-5"><ul className="space-y-4">{learner.enrollments.map(e => <li key={`${e.programId}:${e.courseSlug}`}><span className="block text-xs text-ink-soft">{e.courseName}</span><Activity activity={e.lastActivity} /></li>)}</ul></td>
             <td className="px-4 py-5"><ul className="space-y-4">{learner.enrollments.map(e => <li key={`${e.programId}:${e.courseSlug}`}><span className="mb-1 block text-xs text-ink-soft">{e.courseName}</span><span className={`inline-block rounded-full px-2 py-1 text-xs font-medium ${e.status === "needs_check_in" ? "bg-amber-50 text-amber-800" : e.status === "on_track" ? "bg-emerald-50 text-emerald-800" : "bg-slate-100 text-ink-soft"}`}>{statusLabels[e.status] ?? "Not evaluated"}</span></li>)}</ul></td>
-            <td className="px-4 py-5"><button type="button" className={`${buttonClass} whitespace-nowrap text-primary`} disabled={!onViewEvidence} onClick={() => onViewEvidence?.(learner)} aria-label={`View evidence for ${[learner.firstName, learner.lastName].filter(Boolean).join(" ") || "learner"}`}>View Evidence</button></td>
+            <td className="px-4 py-5"><button type="button" className={`${buttonClass} whitespace-nowrap text-primary`} onClick={() => { setSelection({ id: learner.id, scope }); onViewEvidence?.(learner); }} aria-haspopup="dialog" aria-label={`View evidence for ${[learner.firstName, learner.lastName].filter(Boolean).join(" ") || "learner"}`}>View Evidence</button></td>
           </tr>)}</tbody>
       </table>
     </div>
@@ -108,6 +112,6 @@ export function LearnerDirectory({ filters, learners, onViewEvidence }: {
         <button type="button" className={buttonClass} disabled={!ready || page.page === page.pages} onClick={() => setPaging({ ...paging, scope, page: page.page + 1 })}>Next</button>
       </div>
     </div>
-    {!onViewEvidence && <p className="mt-3 text-xs text-ink-soft">View Evidence will be available when the evidence drawer is connected.</p>}
+    {selected && <LearnerEvidenceDrawer key={`${scope}:${selected.id}`} learner={selected} onClose={() => setSelection(null)} />}
   </section>;
 }
