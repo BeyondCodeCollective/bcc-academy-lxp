@@ -9,7 +9,7 @@ describe("Learners-only filter bar", () => {
     for (const label of ["Search learners", "Program", "Course / Track", "Current cohort", "Status", "On Track", "Needs Check-in", "Not evaluated", "Clear filters", "Apply Filters"]) expect(html).toContain(label);
     expect(html).toContain('type="search"');
     expect(html).toContain("flex flex-wrap gap-4");
-    expect(html.match(/<select/g)).toHaveLength(4);
+    expect(html.split('</form>')[0].match(/<select/g)).toHaveLength(4);
     expect(html.match(/<select[^>]*\sdisabled=""/g)).toHaveLength(3);
     expect(html).toContain("not connected yet");
     for (const field of ["Location", "ZIP", "State", "City"]) expect(html).not.toContain(field);

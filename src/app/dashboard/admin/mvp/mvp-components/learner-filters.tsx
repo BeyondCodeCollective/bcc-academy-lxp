@@ -4,6 +4,7 @@ import { useEffect, useId, useReducer, useState } from "react";
 import { Search } from "lucide-react";
 import { LearnerSummary } from "./learner-summary";
 import { LearnerCharts } from "./learner-charts";
+import { LearnerDirectory } from "./learner-directory";
 
 export type LearnerFilters = {
   search: string;
@@ -38,6 +39,7 @@ export function LearnerFilterBar({ options }: { options?: LearnerFilterOptions }
   const [draft, dispatch] = useReducer(changeLearnerFilters, EMPTY_LEARNER_FILTERS);
   const [search, setSearch] = useState("");
   const [notice, setNotice] = useState("");
+  const [applied, setApplied] = useState(EMPTY_LEARNER_FILTERS);
   useEffect(() => {
     const timer = setTimeout(() => setSearch(draft.search.trim()), 300);
     return () => clearTimeout(timer);
@@ -57,6 +59,7 @@ export function LearnerFilterBar({ options }: { options?: LearnerFilterOptions }
     <form className="mt-5" aria-label="Learner filters" aria-describedby={`${id}-availability`} onSubmit={event => {
       event.preventDefault();
       setSearch(draft.search.trim());
+      setApplied({ ...draft, search: draft.search.trim() });
       setNotice("Filter preview updated. Learner results are not connected yet.");
     }}>
       <label htmlFor={`${id}-search`} className="block text-sm font-medium text-ink">Search learners</label>
@@ -98,7 +101,7 @@ export function LearnerFilterBar({ options }: { options?: LearnerFilterOptions }
         <p id={`${id}-availability`} className="max-w-xl text-xs text-ink-soft">Layout preview: authorized program, course, and cohort options and learner results are not connected yet.</p>
         <div className="flex shrink-0 flex-wrap gap-3">
           <button type="button" disabled={!hasFilters} className="min-h-11 rounded-lg border border-rule px-4 py-2 text-sm font-semibold text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-50" onClick={() => {
-            dispatch({ type: "clear" }); setSearch(""); setNotice("Learner selections cleared.");
+            dispatch({ type: "clear" }); setApplied(EMPTY_LEARNER_FILTERS); setSearch(""); setNotice("Learner selections cleared.");
           }}>Clear filters</button>
           <button type="submit" className="min-h-11 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Apply Filters</button>
         </div>
@@ -108,10 +111,12 @@ export function LearnerFilterBar({ options }: { options?: LearnerFilterOptions }
   </section>
     <LearnerSummary needsCheckInSelected={draft.status === "needs_check_in"} onNeedsCheckIn={() => {
       dispatch({ type: "toggle_check_in" });
+      setApplied(current => ({ ...current, status: draft.status === "needs_check_in" ? "all" : "needs_check_in" }));
       setNotice(draft.status === "needs_check_in"
         ? "All learner statuses selected. Learner results are not connected yet."
         : "Needs Check-in selected. Learner results are not connected yet.");
     }} />
     <LearnerCharts />
+    <LearnerDirectory filters={{ ...applied, search }} />
   </>;
 }
