@@ -5,6 +5,7 @@ import { enrollEmailInTrack } from "@/lib/enroll";
 import { getLandingPage } from "@/lib/landing-pages";
 import { getProgramWithOverrides } from "@/lib/programs/server";
 import { sendEventConfirmationEmail } from "@/lib/email";
+import { AGE_RANGES, AGE_ANSWER_KEY } from "@/lib/age-ranges";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 /** A repeat submit re-sends the confirmation at most this often. */
@@ -30,6 +31,10 @@ export async function enrollInCourse(input: {
   email: string;
   /** Answers to the page's signup questions, keyed by question id. */
   answers?: Record<string, string>;
+  /** Text for a question answered "Other", keyed by question id. */
+  otherDetails?: Record<string, string>;
+  /** Optional here so a cached page that predates the field still submits; the form requires it. */
+  ageRange?: string;
   zipCode?: string;
   heardAbout?: string;
   sessionId?: string | null;
@@ -77,8 +82,20 @@ export async function enrollInCourse(input: {
       if (!a || !q.options.includes(a)) {
         return { ok: false, error: `Please answer: ${q.label}` };
       }
-      answers[q.label] = a;
+      if (a === "Other") {
+        const detail = (input.otherDetails?.[q.id] ?? "").trim().slice(0, 200);
+        if (!detail) return { ok: false, error: `Please tell us more: ${q.label}` };
+        answers[q.label] = `Other: ${detail}`;
+      } else {
+        answers[q.label] = a;
+      }
     }
+  }
+  // Age is asked everywhere, including interest-only pages.
+  const ageRange = (input.ageRange ?? "").trim();
+  if (ageRange) {
+    if (!(AGE_RANGES as readonly string[]).includes(ageRange)) return { ok: false, error: "Please choose your age range." };
+    answers[AGE_ANSWER_KEY] = ageRange;
   }
 
   // A page may require choosing one of its sessions.
