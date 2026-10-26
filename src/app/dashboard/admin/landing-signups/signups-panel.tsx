@@ -191,19 +191,26 @@ export async function computeCourseSignups(data: SignupsData, course: string, se
   const rows = session ? courseRows.filter((r) => r.sessions?.includes(session)) : courseRows;
 
   const emails = [...new Set(rows.map((r) => r.email))];
-  const [{ data: students }, { data: enrollments }] = await Promise.all([
+  const [{ data: students }, { data: enrollments }, { data: signupNames }] = await Promise.all([
     emails.length
       ? svc.from("students").select("id, email, first_name, last_name, is_staff, is_test").in("email", emails)
       : Promise.resolve({ data: [] as StudentRow[] }),
     svc.from("student_tracks").select("student_id").eq("track_slug", course),
+    // A per-date course (catalyst-labs-nov19) only has allowlist rows; the form signup lives under the landing page's track.
+    emails.length
+      ? svc.from("landing_signups").select("email, name").in("email", emails).not("name", "is", null)
+      : Promise.resolve({ data: [] as { email: string; name: string }[] }),
   ]);
+  const nameByEmail = new Map(
+    ((signupNames ?? []) as { email: string; name: string }[]).filter((n) => n.name.trim()).map((n) => [n.email.toLowerCase(), n.name.trim()]),
+  );
   const studentByEmail = new Map(((students ?? []) as StudentRow[]).map((s) => [s.email.toLowerCase(), s]));
   const enrolledIds = new Set(((enrollments ?? []) as { student_id: string }[]).map((e) => e.student_id));
 
   const stageOf = (r: Reg): { stage: Stage; internal: boolean; name: string | null } => {
     const s = studentByEmail.get(r.email);
     const internal = !!(s && (s.is_staff || s.is_test));
-    const name = r.name?.trim() || [s?.first_name, s?.last_name].filter(Boolean).join(" ").trim() || null;
+    const name = r.name?.trim() || nameByEmail.get(r.email) || [s?.first_name, s?.last_name].filter(Boolean).join(" ").trim() || null;
     if (s && enrolledIds.has(s.id)) return { stage: "enrolled", internal, name };
     if (s || (r.inviteToken && data.usedToken.has(r.inviteToken))) return { stage: "signed-in", internal, name };
     return { stage: "waiting", internal, name };
