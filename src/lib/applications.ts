@@ -13,6 +13,8 @@ export type Application = {
   title: string;
   description: string | null;
   questions: SurveyQuestion[];
+  /** Ids of questions switched off: kept in `questions` so past answers still read. */
+  hiddenQuestions: string[];
   open: boolean;
   closesAt: string | null;
   notifyEmail: string | null;
@@ -42,6 +44,7 @@ function rowToApplication(row: Record<string, unknown>): Application {
     title: row.title as string,
     description: (row.description as string | null) ?? null,
     questions: (row.questions as SurveyQuestion[] | null) ?? [],
+    hiddenQuestions: (row.hidden_questions as string[] | null) ?? [],
     open: Boolean(row.open),
     closesAt: (row.closes_at as string | null) ?? null,
     notifyEmail: (row.notify_email as string | null) ?? null,
@@ -111,6 +114,11 @@ export function answersSatisfyRequired(
     }
   }
   return true;
+}
+
+/** The questions the public form actually asks: everything not switched off. */
+export function activeQuestions(app: Application): SurveyQuestion[] {
+  return app.questions.filter((q) => !app.hiddenQuestions.includes(q.id));
 }
 
 /** An application is accepting submissions when it's open and (if a deadline
