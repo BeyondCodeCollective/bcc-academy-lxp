@@ -4,6 +4,7 @@ import { isPreviewingAsStudent } from "@/lib/auth/preview-mode";
 import { allowedProgramIds, allowedTrackSlugs, type ProgramGrant } from "@/lib/auth/program-access";
 import { canViewMvp, canManageStudents } from "@/lib/roles";
 import { createServiceClient } from "@/lib/supabase/server";
+import { loadLearnerOptions } from "./learner-options";
 
 export type LearnerProgramScope = {
   id: string; name: string; slug: string;
@@ -70,5 +71,6 @@ export async function getMvpLearnersData(params: { programId?: string | string[]
     cursor = next;
   }
   if (requested && !programs.some(program => program.id === requested)) throw new Error("The selected program is unavailable.");
-  return { state: "scope_ready" as const, programs, selectedProgramId: requested, directory: null };
+  const options = await loadLearnerOptions(db, programs);
+  return { state: "scope_ready" as const, programs, options, selectedProgramId: requested, directory: null };
 }
