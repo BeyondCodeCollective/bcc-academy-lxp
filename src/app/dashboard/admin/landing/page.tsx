@@ -48,7 +48,7 @@ export default async function LandingPagesListPage() {
   ].filter((g) => g.rows.length > 0);
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 sm:px-5 py-8 space-y-6">
+    <div className="mx-auto w-full max-w-7xl px-4 sm:px-5 py-8 space-y-6">
       <div>
         <PageHeader
           title="Landing pages"
