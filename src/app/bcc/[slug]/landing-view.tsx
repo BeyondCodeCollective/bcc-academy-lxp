@@ -81,6 +81,12 @@ export async function LandingView({
   const event = page.eventSlug ? await getEventForLanding(page.eventSlug, page.programSlug) : null;
   const spotsLeft = event && event.capacity != null ? Math.max(0, event.capacity - (await seatsTaken(event.id))) : null;
   const eventFull = spotsLeft === 0 && !!event && !event.waitlist_enabled;
+  // Pages that ask signup questions are long enough that the form reads best
+  // after all the program info, at every width. An internal secondary link
+  // (info sessions) becomes a choice on that form instead of a second page.
+  const formLast = !event && page.nativeEnroll && page.signupQuestions.length > 0;
+  const companionSlug = formLast ? page.secondaryCtaUrl?.match(/^\/bcc\/([a-z0-9-]+)\/?$/)?.[1] : undefined;
+  const companion = companionSlug && page.secondaryCtaLabel ? { slug: companionSlug, label: page.secondaryCtaLabel } : undefined;
 
   // Per-page theme: `dark` flips the page onto logo black with cream ink.
   // INK stays 6-digit hex so the 2-digit alpha suffixes below compose.
@@ -236,7 +242,7 @@ export async function LandingView({
                Other signup variants keep the form directly under the pitch
                from md and move it last on a phone. Keeps id="signup" so older
                links still land here. */}
-            <div id="signup" className={event ? "order-1 mt-12 scroll-mt-8" : "mt-8 max-md:order-1 max-md:mt-12"}>
+            <div id="signup" className={event || formLast ? "order-1 mt-12 scroll-mt-8" : "mt-8 max-md:order-1 max-md:mt-12"}>
               {page.formLabel && (
                 <p
                   className="mb-2.5 text-[11px] font-medium uppercase tracking-[0.14em]"
@@ -298,6 +304,7 @@ export async function LandingView({
                   questions={page.signupQuestions}
                   accent={accent}
                   ctaLabel={page.enrollCtaLabel}
+                  companion={companion}
                 />
               ) : (
                 <CampEmailForm ink={INK} accent={accent} trackSlug={page.trackSlug} />
@@ -428,8 +435,8 @@ export async function LandingView({
             )}
 
             {/* Secondary CTA */}
-            {page.secondaryCtaLabel && page.secondaryCtaUrl && (
-              <p className={`mt-8 text-sm ${event ? "order-2" : "max-md:order-2"}`} style={{ color: `${INK}a6` }}>
+            {page.secondaryCtaLabel && page.secondaryCtaUrl && !companion && (
+              <p className={`mt-8 text-sm ${event || formLast ? "order-2" : "max-md:order-2"}`} style={{ color: `${INK}a6` }}>
                 <a
                   href={page.secondaryCtaUrl}
                   target="_blank"
