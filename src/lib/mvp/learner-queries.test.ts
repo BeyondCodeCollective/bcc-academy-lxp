@@ -18,13 +18,14 @@ beforeEach(() => {
   mocks.configs.mockReturnValue([]);
   requests = []; failure = "";
   tables = { students: [{ id: "actor", program_id: "p1" }], staff_program_access: [], programs: [{ id: "p1", name: "One", slug: "one" }, { id: "p2", name: "Two", slug: "two" }] };
-  Object.assign(tables, { track_overrides: [], hidden_courses: [], cohorts: [] });
+  Object.assign(tables, { track_overrides: [], hidden_courses: [], cohorts: [], student_tracks: [] });
   mocks.client.mockReturnValue({ from(table: string) {
     const predicates: ((row: Row) => boolean)[] = [];
     let single = false;
     const chain = {
       select: () => chain, order: () => chain, limit: () => chain,
-      eq: (key: string, value: unknown) => { predicates.push(row => row[key] === value); return chain; },
+      eq: (key: string, value: unknown) => { predicates.push(row => key.split(".").reduce<unknown>((current, part) => (current as Row)?.[part], row) === value); return chain; },
+      or: (expression: string) => { const key = expression.split(".")[0]; predicates.push(row => { const value = (row.students as Row)[key]; return value === null || value === false; }); return chain; },
       in: (key: string, values: unknown[]) => { predicates.push(row => values.includes(row[key])); return chain; },
       gt: (key: string, value: string) => { predicates.push(row => String(row[key]) > value); return chain; },
       single: () => { single = true; return chain; },
@@ -38,6 +39,42 @@ beforeEach(() => {
   } });
 });
 describe("Learners loader access boundary", () => {
+  it("searches authorized names/emails literally and returns only matching enrollments", async () => {
+    mocks.configs.mockReturnValue([{ slug: "one", tracks: [{ slug: "a", name: "A" }, { slug: "b", name: "B" }] }]);
+    const profile = { id: "s1", first_name: "Ada", last_name: "Example", email: "ada@example.test", cohort_id: "c1", role: "student", is_test: false, is_staff: false };
+    tables.cohorts = [{ id: "c1", program_id: "p1", track_slug: "a", name: "One", display_name: null }];
+    tables.student_tracks = [
+      { id: "e1", student_id: "s1", program_id: "p1", track_slug: "a", students: profile },
+      { id: "e2", student_id: "s1", program_id: "p1", track_slug: "b", students: profile },
+      { id: "e3", student_id: "s2", program_id: "p2", track_slug: "a", students: { ...profile, id: "s2", first_name: "Secret" } },
+      { id: "e4", student_id: "s3", program_id: "p1", track_slug: "a", students: { ...profile, id: "s3", is_test: true } },
+      { id: "e5", student_id: "s4", program_id: "p1", track_slug: "a", students: { ...profile, id: "s4", is_staff: true } },
+    ];
+    const run = async (params: Parameters<typeof getMvpLearnersData>[0]) => { requests = []; return getMvpLearnersData(params); };
+    const result = await run({ search: " ADA EXAMPLE " });
+    expect(result.directory).toHaveLength(1);
+    expect(result.directory[0].enrollments).toHaveLength(2);
+    expect(result.directory[0].enrollments[1].cohort).toBeNull();
+    expect((await run({ search: "ADA@EXAMPLE" })).directory).toHaveLength(1);
+    expect((await run({ search: "%" })).directory).toEqual([]);
+    expect((await run({ search: "Secret" })).directory).toEqual([]);
+    const filtered = await run({ programId: "p1", courseSlug: "a", cohortId: "c1", status: "not_evaluated" });
+    expect(filtered.directory[0].enrollments).toHaveLength(1);
+    expect(filtered.directory[0].enrollments[0].status).toBe("not_evaluated");
+    await expect(run({ programId: "p1", courseSlug: "b", cohortId: "c1" })).rejects.toThrow("cohort is unavailable");
+    await expect(run({ programId: "p1", courseSlug: "secret" })).rejects.toThrow("course is unavailable");
+  });
+  it("rejects malformed filters and unsupported status evaluation without reading learners", async () => {
+    for (const params of [{ search: ["a", "b"] }, { search: "a".repeat(201) }, { courseSlug: "a" }, { cohortId: "c1" }, { status: "invalid" }, { status: "on_track" }, { status: "needs_check_in" }]) {
+      await expect(getMvpLearnersData(params)).rejects.toThrow();
+    }
+    expect(requests).not.toContain("student_tracks");
+  });
+  it("fails closed when the roster cannot be read", async () => {
+    mocks.configs.mockReturnValue([{ slug: "one", tracks: [{ slug: "a", name: "A" }] }]);
+    failure = "student_tracks";
+    await expect(getMvpLearnersData()).rejects.toThrow("complete learner directory");
+  });
   it("returns only granted courses and explicitly linked cohorts, including later pages", async () => {
     tables.students[0].program_id = null;
     tables.staff_program_access = [{ id: "g1", student_id: "actor", program_id: "p2", role: "admin", track_slug: "a" }, { id: "g2", student_id: "actor", program_id: "p2", role: "instructor", track_slug: null }];
@@ -92,7 +129,7 @@ describe("Learners loader access boundary", () => {
     ];
     const result = await getMvpLearnersData();
     expect(result.programs.map(p => [p.id, p.courseSlugs])).toEqual([["p1", null], ["p2", ["course-a"]]]);
-    expect(result.directory).toBeNull();
+    expect(result.directory).toEqual([]);
     expect(requests.every(table => ["students", "staff_program_access", "programs", "track_overrides"].includes(table))).toBe(true);
   });
   it("rejects unauthorized and repeated program selections", async () => {
