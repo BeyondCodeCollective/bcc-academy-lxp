@@ -11,12 +11,16 @@ type Row = Record<string, unknown>;
 let tables: Record<string, Row[]>;
 let requests: string[];
 let failure: string;
+let serverCap: number;
+let ignoreRosterCursor: boolean;
+let failRosterAfter: number;
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.session.mockResolvedValue({ userId: "actor", student: { role: "admin" } });
   mocks.preview.mockResolvedValue(false);
   mocks.configs.mockReturnValue([]);
   requests = []; failure = "";
+  serverCap = 1; ignoreRosterCursor = false; failRosterAfter = Infinity;
   tables = { students: [{ id: "actor", program_id: "p1" }], staff_program_access: [], programs: [{ id: "p1", name: "One", slug: "one" }, { id: "p2", name: "Two", slug: "two" }] };
   Object.assign(tables, { track_overrides: [], hidden_courses: [], cohorts: [], student_tracks: [] });
   mocks.client.mockReturnValue({ from(table: string) {
@@ -27,18 +31,42 @@ beforeEach(() => {
       eq: (key: string, value: unknown) => { predicates.push(row => key.split(".").reduce<unknown>((current, part) => (current as Row)?.[part], row) === value); return chain; },
       or: (expression: string) => { const key = expression.split(".")[0]; predicates.push(row => { const value = (row.students as Row)[key]; return value === null || value === false; }); return chain; },
       in: (key: string, values: unknown[]) => { predicates.push(row => values.includes(row[key])); return chain; },
-      gt: (key: string, value: string) => { predicates.push(row => String(row[key]) > value); return chain; },
+      gt: (key: string, value: string) => { if (!(table === "student_tracks" && ignoreRosterCursor)) predicates.push(row => String(row[key]) > value); return chain; },
       single: () => { single = true; return chain; },
       then: (resolve: (value: unknown) => unknown) => {
         requests.push(table);
-        if (requests.length > 100) throw new Error("Pagination loop");
-        const rows = tables[table].filter(row => predicates.every(p => p(row))).slice(0, 1);
-        return Promise.resolve({ data: single ? rows[0] ?? null : rows, error: failure === table ? new Error("DB error") : null }).then(resolve);
+        if (requests.length > 1000) throw new Error("Pagination loop");
+        const rows = tables[table].filter(row => predicates.every(p => p(row))).slice(0, serverCap);
+        const laterFailure = table === "student_tracks" && requests.filter(t => t === table).length > failRosterAfter;
+        return Promise.resolve({ data: single ? rows[0] ?? null : rows, error: failure === table || laterFailure ? new Error("DB error") : null }).then(resolve);
       },
     }; return chain;
   } });
 });
 describe("Learners loader access boundary", () => {
+  it("batches over 100 courses without dropping enrollments or cohorts", async () => {
+    serverCap = 500;
+    const tracks = Array.from({ length: 101 }, (_, i) => ({ slug: `course-${String(i).padStart(3, "0")}`, name: `Course ${i}` }));
+    mocks.configs.mockReturnValue([{ slug: "one", tracks }]);
+    const students = { id: "s1", first_name: "Test", last_name: "Learner", email: "test@example.test", cohort_id: null, role: "student", is_test: false, is_staff: false };
+    tables.student_tracks = tracks.map((track, i) => ({ id: `e${String(i).padStart(3, "0")}`, program_id: "p1", track_slug: track.slug, student_id: "s1", students }));
+    tables.cohorts = tracks.map((track, i) => ({ id: `c${String(i).padStart(3, "0")}`, program_id: "p1", track_slug: track.slug, name: `Cohort ${i}`, display_name: null }));
+    const result = await getMvpLearnersData();
+    expect(result.directory[0].enrollments).toHaveLength(101);
+    expect(result.pagination.totalMatching).toBe(1);
+    expect(result.options.cohorts).toHaveLength(101);
+    // Two bounded batches, each followed by an empty-page completeness check.
+    expect(requests.filter(t => t === "student_tracks")).toHaveLength(4);
+    expect(requests.filter(t => t === "cohorts")).toHaveLength(4);
+  });
+  it("rejects stuck cursors and late-page failures instead of returning partial rosters", async () => {
+    mocks.configs.mockReturnValue([{ slug: "one", tracks: [{ slug: "a", name: "A" }] }]);
+    tables.student_tracks = [{ id: "e1", program_id: "p1", track_slug: "a", student_id: "s1", students: { id: "s1", first_name: "Test", last_name: "Learner", email: null, cohort_id: null, role: "student", is_test: false, is_staff: false } }];
+    ignoreRosterCursor = true;
+    await expect(getMvpLearnersData()).rejects.toThrow("pagination did not advance");
+    requests = []; ignoreRosterCursor = false; failRosterAfter = 1;
+    await expect(getMvpLearnersData()).rejects.toThrow("complete learner directory");
+  });
   it("keeps all matching cross-program enrollments without borrowing access from one course", async () => {
     mocks.configs.mockReturnValue([
       { slug: "one", tracks: [{ slug: "a", name: "A" }, { slug: "hidden", name: "Hidden" }] },

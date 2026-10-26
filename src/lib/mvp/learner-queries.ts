@@ -7,6 +7,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { loadLearnerOptions } from "./learner-options";
 import { loadLearnerRoster, parseLearnerQuery, type LearnerQueryParams } from "./learner-roster";
 import { paginateLearners, parseLearnerPagination } from "./learner-pagination";
+import { parseLearnerSort, sortLearners } from "./learner-sort";
 
 export type LearnerProgramScope = {
   id: string; name: string; slug: string;
@@ -28,6 +29,7 @@ export async function getMvpLearnersData(params: LearnerQueryParams = {}) {
   const requested = params.programId?.trim() || null;
   const filters = parseLearnerQuery(params);
   const requestedPage = parseLearnerPagination(params);
+  const sorting = parseLearnerSort(params);
   const db = createServiceClient();
   let homeId: string | null = null;
   const grants: ProgramGrant[] = [];
@@ -76,6 +78,6 @@ export async function getMvpLearnersData(params: LearnerQueryParams = {}) {
   if (requested && !programs.some(program => program.id === requested)) throw new Error("The selected program is unavailable.");
   const options = await loadLearnerOptions(db, programs);
   const matching = await loadLearnerRoster(db, options, filters);
-  const { directory, pagination } = paginateLearners(matching, requestedPage);
-  return { state: "directory_ready" as const, programs, options, filters, selectedProgramId: requested, directory, pagination };
+  const { directory, pagination } = paginateLearners(sortLearners(matching, sorting), requestedPage);
+  return { state: "directory_ready" as const, programs, options, filters, sorting, selectedProgramId: requested, directory, pagination };
 }
