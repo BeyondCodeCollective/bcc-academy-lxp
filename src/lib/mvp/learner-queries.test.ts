@@ -39,6 +39,46 @@ beforeEach(() => {
   } });
 });
 describe("Learners loader access boundary", () => {
+  it("keeps all matching cross-program enrollments without borrowing access from one course", async () => {
+    mocks.configs.mockReturnValue([
+      { slug: "one", tracks: [{ slug: "a", name: "A" }, { slug: "hidden", name: "Hidden" }] },
+      { slug: "two", tracks: [{ slug: "b", name: "B" }, { slug: "private", name: "Private" }] },
+    ]);
+    tables.staff_program_access = [{ id: "g1", student_id: "actor", program_id: "p2", role: "admin", track_slug: "b" }];
+    tables.hidden_courses = [{ track_slug: "hidden" }];
+    tables.cohorts = [{ id: "c1", program_id: "p2", track_slug: "b", name: "Current", display_name: null }];
+    const students = { id: "s1", first_name: "Test", last_name: "Learner", email: "test@example.test", cohort_id: "c1", role: "student", is_test: false, is_staff: false };
+    tables.student_tracks = [
+      { id: "e1", program_id: "p1", track_slug: "a", student_id: "s1", students },
+      { id: "e2", program_id: "p2", track_slug: "b", student_id: "s1", students },
+      { id: "e3", program_id: "p2", track_slug: "b", student_id: "s1", students },
+      { id: "e4", program_id: "p2", track_slug: "private", student_id: "s1", students },
+      { id: "e5", program_id: "p1", track_slug: "hidden", student_id: "s1", students },
+    ];
+    const run = async (params: Parameters<typeof getMvpLearnersData>[0] = {}) => { requests = []; return getMvpLearnersData(params); };
+    const all = await run();
+    expect(all.pagination.totalMatching).toBe(1);
+    expect(all.directory[0].enrollments).toEqual([
+      { programId: "p1", programName: "One", courseSlug: "a", courseName: "A", cohort: null, attendance: null, lastActivity: { at: null, state: "unavailable" }, status: "not_evaluated" },
+      { programId: "p2", programName: "Two", courseSlug: "b", courseName: "B", cohort: { id: "c1", name: "Current" }, attendance: null, lastActivity: { at: null, state: "unavailable" }, status: "not_evaluated" },
+    ]);
+    expect((await run({ search: "TEST@EXAMPLE" })).directory[0].enrollments).toHaveLength(2);
+    expect((await run({ programId: "p1" })).directory[0].enrollments.map(e => e.courseSlug)).toEqual(["a"]);
+    expect((await run({ programId: "p2", courseSlug: "b", cohortId: "c1" })).directory[0].enrollments.map(e => e.courseSlug)).toEqual(["b"]);
+    await expect(run({ programId: "p2", courseSlug: "private" })).rejects.toThrow("course is unavailable");
+    // Revoking the cross-program grant removes that enrollment on the next call.
+    tables.staff_program_access = [];
+    expect((await run()).directory[0].enrollments.map(e => e.programId)).toEqual(["p1"]);
+  });
+  it("does not return a partial enrollment list when later course data fails", async () => {
+    mocks.configs.mockReturnValue([{ slug: "one", tracks: [{ slug: "a", name: "A" }, { slug: "b", name: "B" }] }]);
+    const students = { id: "s1", first_name: "Test", last_name: "Learner", email: "test@example.test", cohort_id: null, role: "student", is_test: false, is_staff: false };
+    tables.student_tracks = [
+      { id: "e1", program_id: "p1", track_slug: "a", student_id: "s1", students },
+      { id: "e2", program_id: "p1", track_slug: "b", student_id: "s1", students: { ...students, email: "conflict@example.test" } },
+    ];
+    await expect(getMvpLearnersData()).rejects.toThrow("Conflicting learner profile records");
+  });
   it("deduplicates before pagination, retaining every matching course and accurate counts", async () => {
     mocks.configs.mockReturnValue([{ slug: "one", tracks: [{ slug: "a", name: "A" }, { slug: "b", name: "B" }] }]);
     tables.student_tracks = Array.from({ length: 26 }, (_, index) => {
