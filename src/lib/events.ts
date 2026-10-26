@@ -19,11 +19,30 @@ export type EventRow = {
   status: "draft" | "open" | "closed";
   waitlist_enabled: boolean;
   show_remaining_seats: boolean;
+  hidden_questions: string[];
   offer_window_hours: number;
 };
 
 export const EVENT_COLUMNS =
-  "id, program_id, slug, title, description, starts_at, ends_at, timezone, location, join_url, capacity, max_attendees_per_registration, status, waitlist_enabled, show_remaining_seats, offer_window_hours";
+  "id, program_id, slug, title, description, starts_at, ends_at, timezone, location, join_url, capacity, max_attendees_per_registration, status, waitlist_enabled, show_remaining_seats, hidden_questions, offer_window_hours";
+
+/** Optional registration questions an admin can switch off per event. Names,
+ *  email and date of birth are not listed: they are always asked. */
+export const EVENT_OPTIONAL_QUESTIONS = [
+  { key: "phone", label: "Parent cell phone" },
+  { key: "city_state", label: "City, state" },
+  { key: "zip", label: "Zip code" },
+  { key: "grade", label: "Current grade" },
+  { key: "school_name", label: "School name" },
+  { key: "school_type", label: "School type" },
+  { key: "gender", label: "Gender" },
+  { key: "race_ethnicity", label: "Race / ethnicity" },
+  { key: "tshirt_size", label: "T-shirt size" },
+  { key: "experience_level", label: "Coding experience" },
+  { key: "emergency_contact", label: "Emergency contact (name and phone)" },
+  { key: "allergies", label: "Food allergies or restrictions" },
+  { key: "eligibility", label: "Support eligibility (BGC)" },
+] as const;
 
 export const EVENT_TIMEZONES = [
   "America/New_York",
