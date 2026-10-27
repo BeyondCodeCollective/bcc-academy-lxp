@@ -142,4 +142,21 @@ describe("signup questions", () => {
     expect(res.ok).toBe(true);
     expect(mocks.inserts[0]?.answers).toEqual({ [resident.label]: "Yes" });
   });
+  it("requires text when an answer is Other and stores it", async () => {
+    const employment = { id: "employment", label: "Employed?", options: ["Employed", "Other"] };
+    mocks.questions = [employment];
+    const bare = await enrollInCourse({ ...input, answers: { employment: "Other" } });
+    expect(bare).toEqual({ ok: false, error: `Please tell us more: ${employment.label}` });
+    const res = await enrollInCourse({ ...input, answers: { employment: "Other" }, otherDetails: { employment: " Student " } });
+    expect(res.ok).toBe(true);
+    expect(mocks.inserts[0]?.answers).toEqual({ [employment.label]: "Other: Student" });
+  });
+
+  it("stores the age range and rejects an unknown one", async () => {
+    mocks.questions = [];
+    expect((await enrollInCourse({ ...input, ageRange: "12-17" })).ok).toBe(false);
+    const res = await enrollInCourse({ ...input, ageRange: "25-34" });
+    expect(res.ok).toBe(true);
+    expect(mocks.inserts[0]?.answers).toEqual({ "Age range": "25-34" });
+  });
 });

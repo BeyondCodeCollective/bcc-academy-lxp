@@ -52,7 +52,7 @@ export default async function SignupsPage({
     `?course=${encodeURIComponent(course ?? "")}${id ? `&session=${encodeURIComponent(id)}` : ""}`;
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 sm:px-5 py-8 space-y-6">
+    <div className="mx-auto w-full max-w-7xl px-4 sm:px-5 py-8 space-y-6">
       <PageHeader
         title={courseName ? `${courseName} signups` : "Signups"}
         subtitle={
