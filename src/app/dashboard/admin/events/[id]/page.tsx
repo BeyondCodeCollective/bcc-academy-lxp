@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CopyEventLink } from "./copy-event-link";
 import { notFound, redirect } from "next/navigation";
 import { ClipboardCheck, Download } from "lucide-react";
 import { getSessionContext } from "@/lib/auth/session";
@@ -107,6 +108,7 @@ export default async function EventRosterPage({ params }: { params: Promise<{ id
         <span className="text-ink-faint"> · </span>
         <span className="text-ink-soft">
           Public link: <span className="font-mono text-xs">/events/{event.slug}/register</span>
+          <CopyEventLink path={`/events/${event.slug}/register`} />
         </span>
         {attended > 0 && (
           <>

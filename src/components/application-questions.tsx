@@ -16,9 +16,17 @@ import { fieldInput } from "@/components/ui";
 export function QuestionRowsEditor({
   questions,
   onChange,
+  hidden,
+  onToggleHidden,
+  lockedIds,
 }: {
   questions: DraftQuestion[];
   onChange: (questions: DraftQuestion[]) => void;
+  /** Edit screen only: ids switched off, and the toggle that flips one. */
+  hidden?: string[];
+  onToggleHidden?: (id: string) => void;
+  /** Edit screen only: rows that can be switched off but not deleted. */
+  lockedIds?: string[];
 }) {
   function patch(i: number, changes: Partial<DraftQuestion>) {
     onChange(questions.map((q, n) => (n === i ? { ...q, ...changes } : q)));
@@ -27,7 +35,10 @@ export function QuestionRowsEditor({
   return (
     <div className="space-y-3">
       {questions.map((q, i) => (
-        <div key={q.id} className="rounded-lg border border-ink/10 p-4 space-y-3">
+        <div
+          key={q.id}
+          className={`rounded-lg border border-ink/10 p-4 space-y-3 ${hidden?.includes(q.id) ? "opacity-60" : ""}`}
+        >
           <div className="flex items-center gap-2">
             <select
               value={q.kind}
@@ -47,13 +58,25 @@ export function QuestionRowsEditor({
               />
               Required
             </label>
-            <button
-              type="button"
-              onClick={() => onChange(questions.filter((_, n) => n !== i))}
-              className="ml-auto text-xs text-ink-soft transition-colors hover:text-red-600"
-            >
-              Remove
-            </button>
+            {onToggleHidden && (
+              <label className="ml-auto flex items-center gap-1.5 text-xs text-ink-soft">
+                <input
+                  type="checkbox"
+                  checked={!hidden?.includes(q.id)}
+                  onChange={() => onToggleHidden(q.id)}
+                />
+                Shown on form
+              </label>
+            )}
+            {!lockedIds?.includes(q.id) && (
+              <button
+                type="button"
+                onClick={() => onChange(questions.filter((_, n) => n !== i))}
+                className={`${onToggleHidden ? "" : "ml-auto "}text-xs text-ink-soft transition-colors hover:text-red-600`}
+              >
+                Remove
+              </button>
+            )}
           </div>
           <input
             type="text"
