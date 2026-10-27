@@ -90,7 +90,8 @@ export function LandingForm({
   const [uploadingHero, setUploadingHero] = useState(false);
   const [heroUploadError, setHeroUploadError] = useState<string | null>(null);
   // Library picker: photos load the first time the panel opens.
-  const [libraryOpen, setLibraryOpen] = useState(false);
+  // Which field's picker is open (one at a time); photos are shared across fields.
+  const [libraryFor, setLibraryFor] = useState<string | null>(null);
   const [libraryPhotos, setLibraryPhotos] = useState<LibraryPickerPhoto[] | null>(null);
   const [libraryQuery, setLibraryQuery] = useState("");
   const [libraryError, setLibraryError] = useState<string | null>(null);
@@ -187,6 +188,94 @@ export function LandingForm({
       setError("Something went wrong. Please try again.");
       setPending(false);
     }
+  }
+
+  async function toggleLibrary(key: string) {
+    const open = libraryFor !== key;
+    setLibraryFor(open ? key : null);
+    if (!open || libraryPhotos) return;
+    setLibraryError(null);
+    try {
+      setLibraryPhotos(await listLibraryPhotosAction());
+    } catch {
+      setLibraryError("Could not load the library. Please try again.");
+    }
+  }
+
+  function libraryButton(key: string) {
+    return (
+      <button
+        type="button"
+        aria-expanded={libraryFor === key}
+        className={`${buttonClass("secondary", "sm")} shrink-0`}
+        onClick={() => toggleLibrary(key)}
+      >
+        Choose from library
+      </button>
+    );
+  }
+
+  function libraryPanel(key: string, onPick: (url: string) => void) {
+    return (
+      <>
+        {libraryFor === key && (
+      <div className="mt-3 space-y-3 rounded-lg border border-ink/10 p-3">
+        <input
+          type="search"
+          aria-label="Search the library"
+          placeholder="Search by description or tag"
+          value={libraryQuery}
+          onChange={(e) => setLibraryQuery(e.target.value)}
+          className={fieldInput}
+        />
+        {libraryError ? (
+          <p className="text-xs text-red-600">{libraryError}</p>
+        ) : !libraryPhotos ? (
+          <p className="text-xs text-ink-soft">Loading photos…</p>
+        ) : (
+          (() => {
+            const q = libraryQuery.trim().toLowerCase();
+            const shown = q
+              ? libraryPhotos.filter((ph) =>
+                  `${ph.description ?? ""} ${ph.tags.join(" ")}`.toLowerCase().includes(q),
+                )
+              : libraryPhotos;
+            if (shown.length === 0) {
+              return <p className="text-xs text-ink-soft">No photos match that search.</p>;
+            }
+            return (
+              <div className="grid max-h-80 grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-3 lg:grid-cols-4">
+                {shown.map((ph) => (
+                  <button
+                    key={ph.id}
+                    type="button"
+                    title={ph.description ?? undefined}
+                    aria-label={ph.description ?? "Library photo"}
+                    onClick={() => {
+                      onPick(ph.url);
+                      setLibraryFor(null);
+                    }}
+                    className="overflow-hidden rounded-md border border-ink/10 bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary)]"
+                  >
+                    {/* Plain img: same reasoning as the Media page, a
+                        grid of hundreds of admin-only thumbnails. */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={ph.url}
+                      alt=""
+                      loading="lazy"
+                      className="aspect-[4/3] w-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            );
+          })()
+        )}
+      </div>
+    )}
+      </>
+    );
   }
 
   return (
@@ -667,7 +756,9 @@ export function LandingForm({
                 }}
               />
             </label>
+            {libraryButton("instructor")}
           </div>
+          {libraryPanel("instructor", (url) => setInstructor((p) => ({ ...p, photoUrl: url })))}
         </Field>
       </Panel>
 
@@ -782,7 +873,9 @@ export function LandingForm({
                           }}
                         />
                       </label>
+                      {libraryButton(`partner-${i}`)}
                     </div>
+                    {libraryPanel(`partner-${i}`, (url) => updatePartner(i, { src: url }))}
                   </Field>
                   <Field label="Alt text">
                     <input
@@ -863,10 +956,12 @@ export function LandingForm({
                 }}
               />
             </label>
+            {libraryButton("logo")}
           </div>
           {logoUploadError && (
             <p className="mt-1.5 text-xs text-red-600">{logoUploadError}</p>
           )}
+          {libraryPanel("logo", setLogoUrl)}
         </Field>
 
         <Field label="Hero image" hint="optional — fills the right panel">
@@ -905,84 +1000,12 @@ export function LandingForm({
                 }}
               />
             </label>
-            <button
-              type="button"
-              aria-expanded={libraryOpen}
-              className={`${buttonClass("secondary", "sm")} shrink-0`}
-              onClick={async () => {
-                const open = !libraryOpen;
-                setLibraryOpen(open);
-                if (!open || libraryPhotos) return;
-                setLibraryError(null);
-                try {
-                  setLibraryPhotos(await listLibraryPhotosAction());
-                } catch {
-                  setLibraryError("Could not load the library. Please try again.");
-                }
-              }}
-            >
-              Choose from library
-            </button>
+            {libraryButton("hero")}
           </div>
           {heroUploadError && (
             <p className="mt-1.5 text-xs text-red-600">{heroUploadError}</p>
           )}
-          {libraryOpen && (
-            <div className="mt-3 space-y-3 rounded-lg border border-ink/10 p-3">
-              <input
-                type="search"
-                aria-label="Search the library"
-                placeholder="Search by description or tag"
-                value={libraryQuery}
-                onChange={(e) => setLibraryQuery(e.target.value)}
-                className={fieldInput}
-              />
-              {libraryError ? (
-                <p className="text-xs text-red-600">{libraryError}</p>
-              ) : !libraryPhotos ? (
-                <p className="text-xs text-ink-soft">Loading photos…</p>
-              ) : (
-                (() => {
-                  const q = libraryQuery.trim().toLowerCase();
-                  const shown = q
-                    ? libraryPhotos.filter((ph) =>
-                        `${ph.description ?? ""} ${ph.tags.join(" ")}`.toLowerCase().includes(q),
-                      )
-                    : libraryPhotos;
-                  if (shown.length === 0) {
-                    return <p className="text-xs text-ink-soft">No photos match that search.</p>;
-                  }
-                  return (
-                    <div className="grid max-h-80 grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-3 lg:grid-cols-4">
-                      {shown.map((ph) => (
-                        <button
-                          key={ph.id}
-                          type="button"
-                          title={ph.description ?? undefined}
-                          aria-label={ph.description ?? "Library photo"}
-                          onClick={() => {
-                            setHeroImageUrl(ph.url);
-                            setLibraryOpen(false);
-                          }}
-                          className="overflow-hidden rounded-md border border-ink/10 bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary)]"
-                        >
-                          {/* Plain img: same reasoning as the Media page, a
-                              grid of hundreds of admin-only thumbnails. */}
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={ph.url}
-                            alt=""
-                            loading="lazy"
-                            className="aspect-[4/3] w-full object-cover"
-                          />
-                        </button>
-                      ))}
-                    </div>
-                  );
-                })()
-              )}
-            </div>
-          )}
+          {libraryPanel("hero", setHeroImageUrl)}
         </Field>
 
         <Field label="Footer text">

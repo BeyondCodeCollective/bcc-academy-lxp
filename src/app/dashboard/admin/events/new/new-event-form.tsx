@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { buttonClass } from "@/components/ui";
-import { EVENT_TIMEZONES } from "@/lib/events";
+import { EVENT_OPTIONAL_QUESTIONS, EVENT_TIMEZONES } from "@/lib/events";
 import { createEvent, updateEvent, type NewEventInput } from "./actions";
 
 const INPUT_CLASS =
@@ -45,6 +45,7 @@ export function NewEventForm({
       maxAttendees: "5",
       waitlistEnabled: true,
       showRemainingSeats: true,
+      hiddenQuestions: [],
       status: "open",
       programSlug: defaultProgramSlug,
     },
@@ -221,6 +222,32 @@ export function NewEventForm({
           <input type="checkbox" checked={v.showRemainingSeats} onChange={(e) => set("showRemainingSeats", e.target.checked)} className="h-4 w-4 rounded border-rule" />
           Show remaining seats on the public page
         </label>
+        <fieldset>
+          <legend className={LABEL_CLASS}>Questions on the registration form</legend>
+          <p className="mb-3 text-xs text-ink-soft">
+            Untick a question to leave it off. Names, email and date of birth are always asked.
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {EVENT_OPTIONAL_QUESTIONS.map((q) => (
+              <label key={q.key} className="flex items-center gap-3 text-sm text-ink">
+                <input
+                  type="checkbox"
+                  checked={!v.hiddenQuestions.includes(q.key)}
+                  onChange={(e) =>
+                    set(
+                      "hiddenQuestions",
+                      e.target.checked
+                        ? v.hiddenQuestions.filter((k) => k !== q.key)
+                        : [...v.hiddenQuestions, q.key],
+                    )
+                  }
+                  className="h-4 w-4 rounded border-rule"
+                />
+                {q.label}
+              </label>
+            ))}
+          </div>
+        </fieldset>
         <div>
           <label htmlFor="ev-status" className={LABEL_CLASS}>
             Status

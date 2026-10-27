@@ -40,6 +40,7 @@ export function RegisterForm({
   maxAttendees,
   spotsLeft,
   showSeats,
+  hiddenQuestions,
   embedded = false,
 }: {
   eventSlug: string;
@@ -49,9 +50,12 @@ export function RegisterForm({
   spotsLeft: number | null;
   /** false hides the remaining-seat count; capacity is still enforced. */
   showSeats: boolean;
+  /** Optional question keys the admin turned off for this event. */
+  hiddenQuestions: string[];
   /** Rendered inside another page's column (a landing page): no outer gutter or max width. */
   embedded?: boolean;
 }) {
+  const show = (key: string) => !hiddenQuestions.includes(key);
   const [parent, setParent] = useState<ParentInput>({
     firstName: "",
     lastName: "",
@@ -178,48 +182,54 @@ export function RegisterForm({
               className={INPUT_CLASS}
             />
           </div>
-          <div>
-            <label htmlFor="parent-phone" className={LABEL_CLASS}>
-              Cell phone
-            </label>
-            <input
-              id="parent-phone"
-              type="tel"
-              autoComplete="tel"
-              value={parent.phone}
-              onChange={(e) => setParentField("phone", e.target.value)}
-              placeholder="123-456-7890"
-              className={INPUT_CLASS}
-            />
-          </div>
-          <div>
-            <label htmlFor="parent-city" className={LABEL_CLASS}>
-              City, state
-            </label>
-            <input
-              id="parent-city"
-              type="text"
-              autoComplete="address-level2"
-              value={parent.cityState}
-              onChange={(e) => setParentField("cityState", e.target.value)}
-              placeholder="Detroit, MI"
-              className={INPUT_CLASS}
-            />
-          </div>
-          <div>
-            <label htmlFor="parent-zip" className={LABEL_CLASS}>
-              Zip code
-            </label>
-            <input
-              id="parent-zip"
-              type="text"
-              inputMode="numeric"
-              autoComplete="postal-code"
-              value={parent.zip}
-              onChange={(e) => setParentField("zip", e.target.value)}
-              className={INPUT_CLASS}
-            />
-          </div>
+          {show("phone") && (
+            <div>
+              <label htmlFor="parent-phone" className={LABEL_CLASS}>
+                Cell phone
+              </label>
+              <input
+                id="parent-phone"
+                type="tel"
+                autoComplete="tel"
+                value={parent.phone}
+                onChange={(e) => setParentField("phone", e.target.value)}
+                placeholder="123-456-7890"
+                className={INPUT_CLASS}
+              />
+            </div>
+          )}
+          {show("city_state") && (
+            <div>
+              <label htmlFor="parent-city" className={LABEL_CLASS}>
+                City, state
+              </label>
+              <input
+                id="parent-city"
+                type="text"
+                autoComplete="address-level2"
+                value={parent.cityState}
+                onChange={(e) => setParentField("cityState", e.target.value)}
+                placeholder="Detroit, MI"
+                className={INPUT_CLASS}
+              />
+            </div>
+          )}
+          {show("zip") && (
+            <div>
+              <label htmlFor="parent-zip" className={LABEL_CLASS}>
+                Zip code
+              </label>
+              <input
+                id="parent-zip"
+                type="text"
+                inputMode="numeric"
+                autoComplete="postal-code"
+                value={parent.zip}
+                onChange={(e) => setParentField("zip", e.target.value)}
+                className={INPUT_CLASS}
+              />
+            </div>
+          )}
         </div>
       </section>
 
@@ -287,65 +297,75 @@ export function RegisterForm({
                 className={INPUT_CLASS}
               />
             </div>
-            <SelectField i={i} field="grade" value={a.grade} onChange={setAttendeeField} />
-            <div>
-              <label htmlFor={`a${i}-school`} className={LABEL_CLASS}>
-                School name
-              </label>
-              <input
-                id={`a${i}-school`}
-                type="text"
-                value={a.school_name}
-                onChange={(e) => setAttendeeField(i, "school_name", e.target.value)}
-                className={INPUT_CLASS}
-              />
-            </div>
-            <SelectField i={i} field="school_type" value={a.school_type} onChange={setAttendeeField} />
-            <SelectField i={i} field="gender" value={a.gender} onChange={setAttendeeField} />
-            <SelectField i={i} field="race_ethnicity" value={a.race_ethnicity} onChange={setAttendeeField} />
-            <SelectField i={i} field="tshirt_size" value={a.tshirt_size} onChange={setAttendeeField} />
-            <SelectField i={i} field="experience_level" value={a.experience_level} onChange={setAttendeeField} />
-            <div>
-              <label htmlFor={`a${i}-ec-name`} className={LABEL_CLASS}>
-                Emergency contact name
-              </label>
-              <input
-                id={`a${i}-ec-name`}
-                type="text"
-                value={a.emergency_contact_name}
-                onChange={(e) => setAttendeeField(i, "emergency_contact_name", e.target.value)}
-                className={INPUT_CLASS}
-              />
-            </div>
-            <div>
-              <label htmlFor={`a${i}-ec-phone`} className={LABEL_CLASS}>
-                Emergency contact phone
-              </label>
-              <input
-                id={`a${i}-ec-phone`}
-                type="tel"
-                value={a.emergency_contact_phone}
-                onChange={(e) => setAttendeeField(i, "emergency_contact_phone", e.target.value)}
-                placeholder="123-456-7890"
-                className={INPUT_CLASS}
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <label htmlFor={`a${i}-allergies`} className={LABEL_CLASS}>
-                Food allergies or restrictions
-              </label>
-              <input
-                id={`a${i}-allergies`}
-                type="text"
-                value={a.allergies}
-                onChange={(e) => setAttendeeField(i, "allergies", e.target.value)}
-                placeholder="None"
-                className={INPUT_CLASS}
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <SelectField i={i} field="eligibility" value={a.eligibility} onChange={setAttendeeField} />
-            </div>
+            {show("grade") && <SelectField i={i} field="grade" value={a.grade} onChange={setAttendeeField} />}
+            {show("school_name") && (
+              <div>
+                <label htmlFor={`a${i}-school`} className={LABEL_CLASS}>
+                  School name
+                </label>
+                <input
+                  id={`a${i}-school`}
+                  type="text"
+                  value={a.school_name}
+                  onChange={(e) => setAttendeeField(i, "school_name", e.target.value)}
+                  className={INPUT_CLASS}
+                />
+              </div>
+            )}
+            {show("school_type") && <SelectField i={i} field="school_type" value={a.school_type} onChange={setAttendeeField} />}
+            {show("gender") && <SelectField i={i} field="gender" value={a.gender} onChange={setAttendeeField} />}
+            {show("race_ethnicity") && <SelectField i={i} field="race_ethnicity" value={a.race_ethnicity} onChange={setAttendeeField} />}
+            {show("tshirt_size") && <SelectField i={i} field="tshirt_size" value={a.tshirt_size} onChange={setAttendeeField} />}
+            {show("experience_level") && <SelectField i={i} field="experience_level" value={a.experience_level} onChange={setAttendeeField} />}
+            {show("emergency_contact") && (
+              <div>
+                <label htmlFor={`a${i}-ec-name`} className={LABEL_CLASS}>
+                  Emergency contact name
+                </label>
+                <input
+                  id={`a${i}-ec-name`}
+                  type="text"
+                  value={a.emergency_contact_name}
+                  onChange={(e) => setAttendeeField(i, "emergency_contact_name", e.target.value)}
+                  className={INPUT_CLASS}
+                />
+              </div>
+            )}
+            {show("emergency_contact") && (
+              <div>
+                <label htmlFor={`a${i}-ec-phone`} className={LABEL_CLASS}>
+                  Emergency contact phone
+                </label>
+                <input
+                  id={`a${i}-ec-phone`}
+                  type="tel"
+                  value={a.emergency_contact_phone}
+                  onChange={(e) => setAttendeeField(i, "emergency_contact_phone", e.target.value)}
+                  placeholder="123-456-7890"
+                  className={INPUT_CLASS}
+                />
+              </div>
+            )}
+            {show("allergies") && (
+              <div className="sm:col-span-2">
+                <label htmlFor={`a${i}-allergies`} className={LABEL_CLASS}>
+                  Food allergies or restrictions
+                </label>
+                <input
+                  id={`a${i}-allergies`}
+                  type="text"
+                  value={a.allergies}
+                  onChange={(e) => setAttendeeField(i, "allergies", e.target.value)}
+                  placeholder="None"
+                  className={INPUT_CLASS}
+                />
+              </div>
+            )}
+            {show("eligibility") && (
+              <div className="sm:col-span-2">
+                <SelectField i={i} field="eligibility" value={a.eligibility} onChange={setAttendeeField} />
+              </div>
+            )}
           </div>
         </section>
       ))}
