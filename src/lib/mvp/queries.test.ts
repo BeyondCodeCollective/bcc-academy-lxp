@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getMvpDashboardData } from "./queries";
 import { getMvpProgramDetail, getMvpCheckInEvidence, getMvpProgramParticipants } from "./detail-queries";
+import { getMvpReportData } from "./report-queries";
 
 // Replace infrastructure only: the real query function, role/grant helpers,
 // schedules, milestones and summary calculations run together in these tests.
@@ -246,6 +247,26 @@ describe("authorized details and evidence", () => {
   });
   it("honors filters when selecting evidence instead of returning excluded learners", async () => {
     await expect(getMvpCheckInEvidence({ programId: "p1", courseSlug: "alpha", city: "Nowhere" }, "u1")).rejects.toThrow("evidence is unavailable");
+  });
+  it("loads selected report events and omits learner evidence", async () => {
+    db.tables.events = []; db.tables.event_registrations = []; db.tables.event_attendees = [];
+    const report = await getMvpReportData({ programId: "p1" }, { metricKeys: ["active"], events: true, outcomes: true });
+    expect(db.requests.some(row => row.table === "events")).toBe(true);
+    expect(report.events?.rows).toEqual([]);
+    expect(report.outcomes).toBeDefined();
+    expect(report).not.toHaveProperty("checkInEvaluations");
+  });
+  it("maps only supported event metrics and preserves unknown rather than zero", async () => {
+    db.tables.events = [{ id: "event", program_id: "p1", title: "Workshop", starts_at: "2026-09-30T14:00:00Z",
+      ends_at: "2026-09-30T16:00:00Z", timezone: "America/New_York", status: "closed", capacity: 20 }];
+    db.tables.event_registrations = []; db.tables.event_attendees = [];
+    const report = await getMvpReportData({ programId: "p1" }, { metricKeys: ["active", "completed"], events: true });
+    expect(report.events?.rows[0].metrics).toMatchObject([
+      { key: "active", value: 0, unit: "Attendee tickets, not unique learners" },
+      { key: "completed", value: null, unavailableReason: "This course metric is not established for separate events." },
+    ]);
+    expect(report.outcomes).toBeUndefined();
+    expect(report.events?.rows[0].programName).toBe("One");
   });
 });
 
@@ -509,7 +530,63 @@ describe("complete backend reads", () => {
   });
 });
 
-// Report-specific integration tests remain in the saved source for PR 4.
+// Reports reuse the real authorized loader, rather than trusting client totals.
+describe("report selection and new summaries", () => {
+  it("exports filtered summary values from the authorized dashboard, not sums of course rows", async () => {
+    const params = { programId: "p1", courseSlug: "alpha" };
+    const dashboard = await getMvpDashboardData(params);
+    const report = await getMvpReportData(params, { metricKeys: ["started"], summary: true });
+    expect(report.summary).toEqual(dashboard.summary);
+    expect(report.appliedFilters).toEqual(dashboard.appliedFilters);
+    expect(report.filterLabels.program).toBe(dashboard.filterOptions.programs.find(p => p.id === "p1")?.name);
+    expect(report).not.toHaveProperty("participants");
+  });
+  it("preserves checklist order, known zero, and explicit unavailable metrics", async () => {
+    const { getMvpReportData } = await import("./report-queries");
+    const report = await getMvpReportData({ programId: "p1" }, { metricKeys: ["sessionsRemaining", "active", "totalParticipants", "active"] });
+    expect(report.rows).toHaveLength(1);
+    expect(report.rows[0].metrics.map((metric) => metric.key)).toEqual(["sessionsRemaining", "active", "totalParticipants"]);
+    expect(report.rows[0].metrics[0]).toMatchObject({ value: 0, availability: "available" });
+    expect(report.rows[0].metrics[1]).toMatchObject({ value: null, availability: "unavailable" });
+    expect(report.rows[0].metrics[1].unavailableReason).toBeTruthy();
+    expect(report.rows[0].metrics[2].value).toBe(2);
+    expect(report).not.toHaveProperty("demographics");
+    expect(report).not.toHaveProperty("locations");
+    expect(JSON.stringify(report)).not.toContain("student_id");
+  });
+  it.each([{}, { metricKeys: [] }, { metricKeys: ["student_id"] }, { metricKeys: ["active"], locations: "yes" },
+    { metricKeys: ["active"], programId: "p2" }])("rejects invalid report selections before database reads: %j", async (selection) => {
+    const { getMvpReportData } = await import("./report-queries");
+    await expect(getMvpReportData({}, selection)).rejects.toThrow();
+    expect(mocks.client).not.toHaveBeenCalled();
+  });
+  it("uses status-filtered unique learners for location-only reports without sensitive demographic reads", async () => {
+    const { getMvpReportData } = await import("./report-queries");
+    for (const row of db.tables.student_tracks) (row.students as Row).location = row.student_id === "u1" ? "Boston" : "Oakland";
+    const report = await getMvpReportData({ learnerStatus: "started" }, { metricKeys: [], locations: true });
+    expect(report.locations).toBeNull();
+    expect(report.warnings.some(warning => warning.key === "geographyPrivacy")).toBe(true);
+    expect(JSON.stringify(report)).not.toContain("Boston");
+    expect(report).not.toHaveProperty("demographics");
+    expect(db.requests.some((request) => request.columns.includes("date_of_birth"))).toBe(false);
+    expect(db.requests.some((request) => request.filters.some(([, key, value]) => key === "survey_type" && value === "bcc-learner-intake"))).toBe(false);
+  });
+  it.each(["student", "instructor"])("rejects report access for %s", async (role) => {
+    const { getMvpReportData } = await import("./report-queries");
+    mocks.session.mockResolvedValue({ userId: "actor", student: { role } });
+    await expect(getMvpReportData({}, { metricKeys: ["active"] })).rejects.toThrow("MVP access");
+    expect(mocks.client).not.toHaveBeenCalled();
+  });
+  it("rejects preview mode and inaccessible programs", async () => {
+    const { getMvpReportData } = await import("./report-queries");
+    mocks.preview.mockResolvedValue(true);
+    await expect(getMvpReportData({}, { metricKeys: ["active"] })).rejects.toThrow("MVP access");
+    mocks.preview.mockResolvedValue(false);
+    mocks.session.mockResolvedValue({ userId: "actor", student: { role: "admin" } });
+    await expect(getMvpReportData({ programId: "p2" }, { metricKeys: ["active"] })).rejects.toThrow("selected program is unavailable");
+  });
+});
+
 describe("dashboard sessions remaining", () => {
   it("does not invent sessions remaining for incomplete schedules", async () => {
     configs[0].tracks[0].weekSummaries = [];
@@ -601,7 +678,8 @@ describe("MVP survey outcome connection", () => {
     configs[0].surveys = [];
     expect((await getMvpDashboardData({ programId: "p1", courseSlug: "alpha" })).programs[0].surveyResponseRate).toBeNull();
   });
-  it("recomputes assessment and progress denominators after learner filtering", async () => {
+  it("recomputes assessment and progress denominators after learner filtering and exports coverage", async () => {
+    const { buildMvpReport } = await import("./report-selection");
     mocks.signalPolicy.mockReturnValue({ programSlug: "one", courseSlug: "alpha", assessment: { examId: "exam", minimumPercent: 70 },
       progress: { source: "required_videos", dueAt: "2026-09-01T12:00:00Z", requiredWeeks: [1, 2], minimumPercent: 80 } });
     db.tables.track_overrides = [{ id: "o", program_id: "p1", track_slug: "alpha", self_paced: true }];
@@ -612,8 +690,11 @@ describe("MVP survey outcome connection", () => {
     const data = await getMvpDashboardData({ programId: "p1", courseSlug: "alpha", learnerStatus: "needs_check_in" });
     expect(data.programs[0]).toMatchObject({ totalParticipants: 1, assessmentAveragePercent: 40, progressRate: 0 });
     expect(data.programs[0].assessmentSummary).toMatchObject({ assessedLearners: 1, eligibleLearners: 1 });
-    // Export formatting assertions belong to the reports/UI PR.
     expect(data.programs[0].surveyResponseRate).toBeNull();
+    const report = buildMvpReport(data, { metricKeys: ["assessmentAveragePercent", "progressRate", "surveyResponseRate"], demographics: false, locations: false });
+    expect(report.rows[0].metrics[0].unit).toContain("1/1 learners assessed");
+    expect(report.rows[0].metrics[1].unit).toContain("0/2 learner-video opportunities");
+    expect(report.rows[0].metrics[2].availability).toBe("unavailable");
   });
   it("returns aggregate paired outcomes without leaking answers or identities", async () => {
     configs[0].surveys = [survey];
