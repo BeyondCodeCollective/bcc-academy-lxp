@@ -86,10 +86,11 @@ describe("Learners loader access boundary", () => {
     const run = async (params: Parameters<typeof getMvpLearnersData>[0] = {}) => { requests = []; return getMvpLearnersData(params); };
     const all = await run();
     expect(all.pagination.totalMatching).toBe(1);
-    expect(all.directory[0].enrollments).toEqual([
+    expect(all.directory[0].enrollments).toMatchObject([
       { programId: "p1", programName: "One", courseSlug: "a", courseName: "A", cohort: null, attendance: null, lastActivity: { at: null, state: "unavailable" }, status: "not_evaluated" },
       { programId: "p2", programName: "Two", courseSlug: "b", courseName: "B", cohort: { id: "c1", name: "Current" }, attendance: null, lastActivity: { at: null, state: "unavailable" }, status: "not_evaluated" },
     ]);
+    expect(all.directory[0].enrollments.every(row => row.caughtUp.percent === null && !!row.caughtUp.unavailableReason)).toBe(true);
     expect((await run({ search: "TEST@EXAMPLE" })).directory[0].enrollments).toHaveLength(2);
     expect((await run({ programId: "p1" })).directory[0].enrollments.map(e => e.courseSlug)).toEqual(["a"]);
     expect((await run({ programId: "p2", courseSlug: "b", cohortId: "c1" })).directory[0].enrollments.map(e => e.courseSlug)).toEqual(["b"]);
