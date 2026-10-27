@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireManager, resolveProgramForActor, allowedProgramIdsForActor } from "@/app/dashboard/admin/actions-shared";
 import { getProgramId } from "@/lib/programs/server";
-import { EVENT_TIMEZONES } from "@/lib/events";
+import { EVENT_OPTIONAL_QUESTIONS, EVENT_TIMEZONES } from "@/lib/events";
 
 export type NewEventInput = {
   title: string;
@@ -20,6 +20,7 @@ export type NewEventInput = {
   maxAttendees: string;
   waitlistEnabled: boolean;
   showRemainingSeats: boolean;
+  hiddenQuestions: string[];
   status: "draft" | "open" | "closed";
   // Create only: the owning program. Empty = the program being browsed.
   programSlug?: string;
@@ -60,6 +61,7 @@ function validate(input: NewEventInput): { ok: true; row: Record<string, unknown
       max_attendees_per_registration: maxAttendees,
       waitlist_enabled: input.waitlistEnabled,
       show_remaining_seats: input.showRemainingSeats,
+      hidden_questions: input.hiddenQuestions.filter((k) => EVENT_OPTIONAL_QUESTIONS.some((q) => q.key === k)),
       status: input.status,
     },
   };

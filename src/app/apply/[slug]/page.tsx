@@ -4,7 +4,7 @@
 // dynamic segment and keep working unchanged.
 
 import { notFound } from "next/navigation";
-import { getApplicationBySlug, isAccepting } from "@/lib/applications";
+import { getApplicationBySlug, isAccepting, activeQuestions } from "@/lib/applications";
 import { getLandingPage } from "@/lib/landing-pages";
 import { GenericApplyForm } from "./apply-form";
 
@@ -58,7 +58,7 @@ export default async function GenericApplyPage({
       slug={app.slug}
       title={app.title}
       description={app.description}
-      questions={app.questions}
+      questions={activeQuestions(app)}
       theme={
         landing
           ? {

@@ -356,11 +356,23 @@ export function HomeTab({
               </Section>
             )}
             {completed.length > 0 && (
-              <Section label="Completed" count={completed.length}>
+              // Closed by default: finished courses are reference, not
+              // something to act on, so they stay out of the way until asked for.
+              <details className="group space-y-4">
+                <summary className="flex cursor-pointer list-none items-baseline justify-between border-b border-rule pb-2.5 [&::-webkit-details-marker]:hidden">
+                  <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
+                    Completed
+                  </h2>
+                  <span className="text-xs tabular-nums text-ink-faint">
+                    {completed.length}
+                    <span className="ml-2 group-open:hidden">Show</span>
+                    <span className="ml-2 hidden group-open:inline">Hide</span>
+                  </span>
+                </summary>
                 <div className="divide-y divide-rule overflow-hidden panel">
                   {completed.map(renderRow)}
                 </div>
-              </Section>
+              </details>
             )}
           </div>
         );
