@@ -14,6 +14,38 @@ const second = { ...enrollment, programId: "p2", courseSlug: "course-b", courseN
 const render = (learners?: DirectoryLearner[]) => renderToStaticMarkup(createElement(LearnerDirectory, { filters, learners }));
 
 describe("Learner directory", () => {
+  it("shows progress separately for each course, never averaging or pooling it", () => {
+    const html = render([{ ...learner, enrollments: [
+      { ...enrollment, caughtUp: { percent: 50, completedSessions: 1, applicableSessions: 2, unavailableReason: null } },
+      { ...second, caughtUp: { percent: 100, completedSessions: 4, applicableSessions: 4, unavailableReason: null } },
+    ] }]);
+    expect(html).toContain("Course progress");
+    expect(html).toContain("50% caught up");
+    expect(html).toContain("100% caught up");
+    expect(html).toContain("1/2 applicable held sessions fully satisfied");
+    expect(html).toContain("4/4 applicable held sessions fully satisfied");
+    expect(html).not.toContain("75%");
+    expect(html).not.toContain("83.3%");
+    expect(html).not.toContain("5/6 applicable");
+  });
+  it("keeps unavailable progress distinct from known zero and never infers status", () => {
+    const html = render([{ ...learner, enrollments: [
+      { ...enrollment, caughtUp: { percent: 0, completedSessions: 0, applicableSessions: 2, unavailableReason: null } },
+      { ...second, caughtUp: { percent: null, completedSessions: null, applicableSessions: null, unavailableReason: "Requirements are not configured." } },
+    ] }]);
+    expect(html.match(/0% caught up/g)).toHaveLength(1);
+    expect(html).toContain("Requirements are not configured.");
+    expect(html).toContain("Not evaluated");
+    expect(html).not.toContain("On Track");
+    expect(render([learner])).not.toContain("% caught up");
+  });
+  it.each([NaN, -1, 101, 75])("does not render malformed or inconsistent progress: %s", percent => {
+    const html = render([{ ...learner, enrollments: [{ ...enrollment,
+      caughtUp: { percent, completedSessions: 1, applicableSessions: 2, unavailableReason: null },
+    }] }]);
+    expect(html).toContain("Unavailable");
+    expect(html).not.toContain("% caught up");
+  });
   it("deduplicates learner IDs and enrollment rows without pooling attendance", () => {
     const rows = selectDirectoryLearners([learner, learner, { ...learner, enrollments: [second] }], filters);
     expect(rows).toHaveLength(1);

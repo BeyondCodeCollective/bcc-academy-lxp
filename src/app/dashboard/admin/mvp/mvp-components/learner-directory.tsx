@@ -8,6 +8,7 @@ export type DirectoryEnrollment = {
   programId: string; programName: string; courseSlug: string; courseName: string;
   cohort: { id: string; name: string } | null;
   attendance: { present: number; eligibleHeld: number } | null;
+  caughtUp?: { percent: number | null; completedSessions: number | null; applicableSessions: number | null; unavailableReason: string | null };
   lastActivity: { at: string | null; state: "recorded" | "none_recorded" | "unavailable" };
   status: "on_track" | "needs_check_in" | "not_evaluated";
   evidence?: CourseEvidence;
@@ -56,6 +57,18 @@ function attendanceLabel(value: DirectoryEnrollment["attendance"]) {
   if (!value || !Number.isSafeInteger(value.present) || !Number.isSafeInteger(value.eligibleHeld) || value.present < 0 || value.eligibleHeld < value.present) return "Unavailable";
   return value.eligibleHeld === 0 ? "No eligible held sessions" : `${value.present}/${value.eligibleHeld} eligible held sessions`;
 }
+function CourseProgress({ progress }: { progress: DirectoryEnrollment["caughtUp"] }) {
+  if (!progress || progress.unavailableReason || progress.percent === null || progress.completedSessions === null || progress.applicableSessions === null) {
+    return <><span className="block">Unavailable</span><span className="text-xs text-ink-soft">{progress?.unavailableReason || "Course progress evidence is unavailable."}</span></>;
+  }
+  const { percent, completedSessions, applicableSessions } = progress;
+  if (!Number.isFinite(percent) || percent < 0 || percent > 100 ||
+      !Number.isSafeInteger(completedSessions) || !Number.isSafeInteger(applicableSessions) ||
+      applicableSessions <= 0 || completedSessions < 0 || completedSessions > applicableSessions ||
+      Math.abs(percent - completedSessions / applicableSessions * 100) > 0.000001) return <>Unavailable</>;
+  return <><span className="block">{new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 }).format(percent)}% caught up</span>
+    <span className="text-xs text-ink-soft">{completedSessions}/{applicableSessions} applicable held sessions fully satisfied</span></>;
+}
 function Activity({ activity }: { activity: DirectoryEnrollment["lastActivity"] }) {
   if (activity.state === "none_recorded") return <>No recorded activity</>;
   if (activity.state !== "recorded" || !activity.at || !Number.isFinite(Date.parse(activity.at))) return <>Unavailable</>;
@@ -83,21 +96,23 @@ export function LearnerDirectory({ filters, learners, onViewEvidence }: {
   return <section className="panel mt-6 min-w-0 p-5 sm:p-6" aria-labelledby={`${id}-heading`}>
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div><h2 id={`${id}-heading`} className="text-xl font-semibold text-ink">Learner directory</h2>
-        <p className="mt-2 text-sm text-ink-soft">One row per learner · matching current enrollments only</p></div>
+        <p className="mt-2 text-sm text-ink-soft">One row per learner · matching current enrollments only</p>
+        <p className="mt-1 text-xs text-ink-soft">Progress is per course, based on verified held sessions and requirements due so far—not an overall completion score.</p></div>
       <p role="status" className="text-sm text-ink-soft">{ready ? `${matching.length} matching ${matching.length === 1 ? "learner" : "learners"}` : "Learner count unavailable"}</p>
     </div>
     <div className="mt-5 overflow-x-auto rounded-lg border border-rule" tabIndex={0} role="region" aria-label="Scrollable learner directory">
       <table className="w-full min-w-[1000px] text-left text-sm">
         <caption className="sr-only">Learners and their matching course-specific evidence. Activity times use Eastern Time.</caption>
         <thead className="bg-slate-50 text-xs uppercase tracking-wide text-ink-soft"><tr>
-          {["Name & Email", "Matching enrollments", "Current cohort", "Verified attendance", "Last recorded course activity", "Status", "Action"].map(label => <th key={label} scope="col" className="px-4 py-4 font-semibold">{label}</th>)}
+          {["Name & Email", "Matching enrollments", "Current cohort", "Verified attendance", "Course progress", "Last recorded course activity", "Status", "Action"].map(label => <th key={label} scope="col" className="px-4 py-4 font-semibold">{label}</th>)}
         </tr></thead>
-        <tbody>{!ready || !matching.length ? <tr><td colSpan={7} className="px-4 py-12 text-center text-ink-soft">{invalid ? "Learner records are inconsistent. Results are unavailable." : learners === undefined ? "The learner directory is not connected yet. No sample learners are displayed." : "No learners match the applied filters."}</td></tr>
+        <tbody>{!ready || !matching.length ? <tr><td colSpan={8} className="px-4 py-12 text-center text-ink-soft">{invalid ? "Learner records are inconsistent. Results are unavailable." : learners === undefined ? "The learner directory is not connected yet. No sample learners are displayed." : "No learners match the applied filters."}</td></tr>
           : page.rows.map(learner => <tr key={learner.id} className="border-t border-rule align-top">
             <th scope="row" className="px-4 py-5 font-medium text-ink"><span className="block">{[learner.firstName, learner.lastName].filter(Boolean).join(" ") || "Name unavailable"}</span><span className="mt-1 block break-all text-xs font-normal text-ink-soft">{learner.email || "Email unavailable"}</span></th>
             <td className="px-4 py-5"><ul className="space-y-4">{learner.enrollments.map(e => <li key={`${e.programId}:${e.courseSlug}`}><span className="block font-medium">{e.courseName}</span><span className="text-xs text-ink-soft">{e.programName}</span></li>)}</ul></td>
             <td className="px-4 py-5"><ul className="space-y-4">{learner.enrollments.filter(e => e.cohort).map(e => <li key={`${e.programId}:${e.courseSlug}`}><span className="block text-xs text-ink-soft">{e.courseName}</span>{e.cohort!.name}</li>)}</ul></td>
             <td className="px-4 py-5"><ul className="space-y-4">{learner.enrollments.map(e => <li key={`${e.programId}:${e.courseSlug}`}><span className="block text-xs text-ink-soft">{e.courseName}</span>{attendanceLabel(e.attendance)}</li>)}</ul></td>
+            <td className="px-4 py-5"><ul className="space-y-4">{learner.enrollments.map(e => <li key={`${e.programId}:${e.courseSlug}`}><span className="block text-xs text-ink-soft">{e.courseName} · {e.programName}</span><CourseProgress progress={e.caughtUp} /></li>)}</ul></td>
             <td className="px-4 py-5"><ul className="space-y-4">{learner.enrollments.map(e => <li key={`${e.programId}:${e.courseSlug}`}><span className="block text-xs text-ink-soft">{e.courseName}</span><Activity activity={e.lastActivity} /></li>)}</ul></td>
             <td className="px-4 py-5"><ul className="space-y-4">{learner.enrollments.map(e => <li key={`${e.programId}:${e.courseSlug}`}><span className="mb-1 block text-xs text-ink-soft">{e.courseName}</span><span className={`inline-block rounded-full px-2 py-1 text-xs font-medium ${e.status === "needs_check_in" ? "bg-amber-50 text-amber-800" : e.status === "on_track" ? "bg-emerald-50 text-emerald-800" : "bg-slate-100 text-ink-soft"}`}>{statusLabels[e.status] ?? "Not evaluated"}</span></li>)}</ul></td>
             <td className="px-4 py-5"><button type="button" className={`${buttonClass} whitespace-nowrap text-primary`} onClick={() => { setSelection({ id: learner.id, scope }); onViewEvidence?.(learner); }} aria-haspopup="dialog" aria-label={`View evidence for ${[learner.firstName, learner.lastName].filter(Boolean).join(" ") || "learner"}`}>View Evidence</button></td>
