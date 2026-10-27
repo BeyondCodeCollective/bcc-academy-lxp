@@ -263,8 +263,27 @@ the page, with its existing batched, complete reads and permission checks. Only
 the selected learners' progress fields are returned. Missing, duplicate, or
 out-of-scope progress records fail the request rather than inventing a result.
 This reuse reads the configured course's roster internally; it is not a new
-database-level page-only evidence query. UI wiring and last-activity enrichment
-remain separate tasks. Tests use synthetic records, not live learner data.
+database-level page-only evidence query. UI wiring remains a separate task.
+Tests use synthetic records, not live learner data.
+
+### Last recorded course activity
+
+The learner loader separately reads `submitted_at` from submissions/reflections
+and `video_watched_at` from week progress for the selected page's authorized
+learner/course pairs. Reads use batches of at most 100 IDs and cursor pages until
+empty. Only identity, course, and timestamp columns are requested; no private
+submission/reflection contents, login times, attendance entry times, or staff
+edit timestamps are included. It reuses `participantLastActivity` and returns
+UTC ISO timestamps with `recorded`, `none_recorded`, or `unavailable` state.
+Invalid, future, and timezone-free timestamps are unavailable, not guessed.
+Source errors fail the request rather than silently producing partial activity.
+The existing directory renderer formats timestamps in America/New_York with a
+timezone label; the backend is still not wired to the page.
+
+Activity tables identify learner + course slug, not program/cohort/attempt.
+The same learner/course action can therefore apply to matching enrollments in
+more than one program; these values must not be labeled historical cohort or
+program-specific activity. Overwritten timestamps cannot reconstruct history.
 
 - `src/lib/mvp/queries.ts`: authorized offerings, current roster, attendance.
 - `src/lib/mvp/participant-queries.ts`: scoped contact and activity reads.

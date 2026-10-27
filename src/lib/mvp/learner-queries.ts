@@ -9,6 +9,7 @@ import { loadLearnerRoster, parseLearnerQuery, type LearnerQueryParams } from ".
 import { paginateLearners, parseLearnerPagination } from "./learner-pagination";
 import { parseLearnerSort, sortLearners } from "./learner-sort";
 import { loadLearnerProgress } from "./learner-progress";
+import { loadLearnerActivity } from "./learner-activity";
 
 export type LearnerProgramScope = {
   id: string; name: string; slug: string;
@@ -81,5 +82,6 @@ export async function getMvpLearnersData(params: LearnerQueryParams = {}) {
   const matching = await loadLearnerRoster(db, options, filters);
   const { directory, pagination } = paginateLearners(sortLearners(matching, sorting), requestedPage);
   const enrichedDirectory = await loadLearnerProgress(directory, programs);
-  return { state: "directory_ready" as const, programs, options, filters, sorting, selectedProgramId: requested, directory: enrichedDirectory, pagination };
+  const directoryWithActivity = await loadLearnerActivity(db, enrichedDirectory);
+  return { state: "directory_ready" as const, programs, options, filters, sorting, selectedProgramId: requested, directory: directoryWithActivity, pagination };
 }
