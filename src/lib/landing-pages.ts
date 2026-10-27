@@ -2,7 +2,8 @@ import { cache } from "react";
 import { createServiceClient } from "@/lib/supabase/server";
 
 /** A multiple-choice question on a page's native signup form. */
-export type SignupQuestion = { id: string; label: string; options: string[] };
+/** `hint` renders as an info icon beside the question. An option named "Other" asks for text. */
+export type SignupQuestion = { id: string; label: string; options: string[]; hint?: string };
 export type ScheduleDay = { label: string; title: string };
 
 export type LandingPartner =

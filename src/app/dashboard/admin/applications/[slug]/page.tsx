@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getSessionContext } from "@/lib/auth/session";
@@ -7,6 +8,7 @@ import { getApplicationBySlug, isAccepting, rowToSubmission } from "@/lib/applic
 import { ManageMenu } from "../../manage-menu";
 import { requireManager, allowedProgramIdsForActor } from "../../actions-shared";
 import { ReviewQueue } from "./review-queue";
+import { buttonClass } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +45,14 @@ export default async function ApplicationReviewPage({
           isAccepting(app) ? "accepting applications" : "closed"
         } · /apply/${app.slug}${app.trackSlug ? ` · accepting allowlists for ${app.trackSlug} and emails the join link` : " · no course linked — accepting emails the applicant but can't allowlist"}`}
         noWrap
-        actions={<ManageMenu isMaster={canManageRoles(ctx.userEmail)} />}
+        actions={
+          <div className="flex items-center gap-2">
+            <Link href={`/dashboard/admin/applications/${app.slug}/edit`} className={buttonClass("secondary", "sm")}>
+              Edit
+            </Link>
+            <ManageMenu isMaster={canManageRoles(ctx.userEmail)} />
+          </div>
+        }
       />
       <ReviewQueue
         slug={app.slug}

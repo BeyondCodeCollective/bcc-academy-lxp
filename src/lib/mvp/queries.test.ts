@@ -585,6 +585,9 @@ describe("report selection and new summaries", () => {
     mocks.session.mockResolvedValue({ userId: "actor", student: { role: "admin" } });
     await expect(getMvpReportData({ programId: "p2" }, { metricKeys: ["active"] })).rejects.toThrow("selected program is unavailable");
   });
+});
+
+describe("dashboard sessions remaining", () => {
   it("does not invent sessions remaining for incomplete schedules", async () => {
     configs[0].tracks[0].weekSummaries = [];
     const result = await getMvpDashboardData({ programId: "p1" });
