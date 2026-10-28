@@ -2,7 +2,7 @@ import "server-only";
 import type { createServiceClient } from "@/lib/supabase/server";
 import type { loadLearnerOptions } from "./learner-options";
 
-export type LearnerQueryParams = Partial<Record<"programId" | "courseSlug" | "cohortId" | "search" | "status", string | string[]>>;
+export type LearnerQueryParams = Partial<Record<"programId" | "courseSlug" | "cohortId" | "search" | "status" | "page" | "pageSize", string | string[]>>;
 export function parseLearnerQuery(params: LearnerQueryParams) {
   const value = (key: keyof LearnerQueryParams) => {
     const raw = params[key];
