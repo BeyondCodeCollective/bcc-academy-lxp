@@ -48,6 +48,13 @@ export type TrackOnboarding = {
    * intake. See getEnforcedOnboardingChecklist.
    */
   paused?: boolean;
+  /**
+   * Don't hold a learner who is also enrolled in a course that has already
+   * started. The hold confines the whole dashboard, so without this a learner
+   * mid-way through one cohort would lose it while a later cohort's checklist
+   * waits on its start date. See heldChecklistTrackSlug.
+   */
+  exemptIfInStartedCourse?: boolean;
 };
 
 // Reusable per-track acceptance checklists. Add a track slug here to gate it
@@ -193,6 +200,45 @@ const CHECKLISTS: Record<string, TrackOnboarding> = {
         surveyType: "mass-sept-2026-pre",
         kind: "survey",
         href: "/dashboard/survey/mass-sept-2026-pre",
+      },
+    ],
+  },
+  // Catalyst Labs: AI Fundamentals, Nov 19 session. Intake and pre-survey only:
+  // the course is a single 90-minute session, so there is no weekly commitment
+  // to sign. The agreement config is required by the type; it has no item.
+  // Earlier Labs cohorts (catalyst-labs, -oct14) are already running and are
+  // deliberately not gated. Several Nov 19 learners are in those, hence the
+  // started-course exemption.
+  "catalyst-labs-nov19": {
+    trackSlug: "catalyst-labs-nov19",
+    cohort: "Catalyst Labs — AI Fundamentals (Nov 19)",
+    exemptIfInStartedCourse: true,
+    agreement: {
+      version: "catalyst-labs-nov19-v1",
+      timeCommitment: "The course is a single 90-minute live session.",
+    },
+    title: "Complete your pre-session materials",
+    eyebrow: "Welcome to Catalyst Labs",
+    footnote: "Anything you’ve already done is checked off automatically.",
+    completeTitle: "Thank you for completing your pre-session materials.",
+    intro:
+      "Welcome to Catalyst Labs. Finish these two steps before AI Fundamentals on Thursday, November 19. Anything you’ve already completed is checked off automatically.",
+    items: [
+      {
+        id: "intake",
+        label: "Learner Intake Form",
+        description: "A few quick questions so we know who we’re serving.",
+        surveyType: "bcc-learner-intake",
+        kind: "survey",
+        href: "/dashboard/survey/bcc-learner-intake",
+      },
+      {
+        id: "presurvey",
+        label: "Pre-Program Survey",
+        description: "A few minutes on your background with AI, so we can meet you where you are.",
+        surveyType: "pre-survey-spring-2026",
+        kind: "survey",
+        href: "/dashboard/survey/pre-survey-spring-2026",
       },
     ],
   },

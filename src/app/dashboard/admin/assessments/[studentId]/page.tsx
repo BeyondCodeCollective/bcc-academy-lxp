@@ -72,6 +72,16 @@ export default async function AssessmentDetailPage({
           <div className="flex items-center gap-3 flex-wrap">
             <span className="font-semibold text-ink">{archetype.name}</span>
             <ConfidenceBadge confidence={scored.archetype_confidence} />
+            {scored.flag_broad_high && (
+              <span className="rounded-full bg-amber-100 text-amber-800 px-2 py-0.5 text-xs font-medium">
+                Broad high
+              </span>
+            )}
+            {scored.flag_flat && (
+              <span className="rounded-full bg-ink/10 text-ink/60 px-2 py-0.5 text-xs font-medium">
+                Flat pattern
+              </span>
+            )}
             {scored.facilitator_review && (
               <span className="rounded-full bg-amber-100 text-amber-800 px-2 py-0.5 text-xs font-medium">
                 Review recommended
