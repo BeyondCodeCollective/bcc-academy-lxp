@@ -81,37 +81,55 @@ export function ResultsProfile({ result }: { result: ScoredOutput }) {
             </div>
           </Section>
 
-          {/* Where this can take you — Module 1 career pathways */}
-          {archetypeContent.pathways && (
-            <Section
-              id="pathways"
-              title="🚀 Where this can take you"
-              isOpen={openSection === "pathways"}
-              onToggle={() => setOpenSection(openSection === "pathways" ? null : "pathways")}
-            >
-              <div className="space-y-5">
-                {[
-                  { label: "Entry points", text: archetypeContent.pathways.entry },
-                  { label: "Mid-career", text: archetypeContent.pathways.mid },
-                  { label: "Established roles", text: archetypeContent.pathways.established },
-                ].map(({ label, text }) => (
-                  <div key={label} className="space-y-1">
-                    <p className="text-xs font-semibold uppercase tracking-widest text-accent">{label}</p>
-                    <p className="text-sm text-ink/75 leading-relaxed">{text}</p>
-                  </div>
-                ))}
-                {archetypeContent.future && (
-                  <div className="rounded-lg bg-ink/5 px-4 py-4">
-                    <p className="text-xs font-semibold uppercase tracking-widest text-ink/40 mb-1">Looking ahead</p>
-                    <p className="text-sm text-ink/70 leading-relaxed">{archetypeContent.future}</p>
-                  </div>
-                )}
-                <p className="text-[11px] text-ink/40 italic leading-relaxed">
-                  Stages describe how the work grows, not your age — you can enter at any point.
-                </p>
-              </div>
-            </Section>
-          )}
+          {/* Where this can take you — Module 1 career pathways. A blended result
+              gets the pathway copy for both archetypes. */}
+          {[archetypeContent, ...(result.archetype_is_blended && secondaryContent ? [secondaryContent] : [])]
+            .filter((c) => c.pathways)
+            .map((content, idx) => (
+              <Section
+                key={content.name}
+                id={idx === 0 ? "pathways" : "pathways-secondary"}
+                title={idx === 0 ? "🚀 Where this can take you" : `🚀 Where ${content.name} can take you`}
+                isOpen={openSection === (idx === 0 ? "pathways" : "pathways-secondary")}
+                onToggle={() => {
+                  const id = idx === 0 ? "pathways" : "pathways-secondary";
+                  setOpenSection(openSection === id ? null : id);
+                }}
+              >
+                <div className="space-y-5">
+                  {content.pathwaysIntro && (
+                    <p className="text-sm text-ink/75 leading-relaxed">{content.pathwaysIntro}</p>
+                  )}
+                  {[
+                    { label: "Entry points", text: content.pathways!.entry },
+                    { label: "Mid-career", text: content.pathways!.mid },
+                    { label: "Established roles", text: content.pathways!.established },
+                  ].map(({ label, text }) => (
+                    <div key={label} className="space-y-1">
+                      <p className="text-xs font-semibold uppercase tracking-widest text-accent">{label}</p>
+                      <p className="text-sm text-ink/75 leading-relaxed">{text}</p>
+                    </div>
+                  ))}
+                  {content.verticals && (
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold uppercase tracking-widest text-accent">
+                        Catalyst verticals to explore first
+                      </p>
+                      <p className="text-sm text-ink/75 leading-relaxed">{content.verticals.join(", ")}</p>
+                    </div>
+                  )}
+                  {content.future && (
+                    <div className="rounded-lg bg-ink/5 px-4 py-4">
+                      <p className="text-xs font-semibold uppercase tracking-widest text-ink/40 mb-1">Looking ahead</p>
+                      <p className="text-sm text-ink/70 leading-relaxed">{content.future}</p>
+                    </div>
+                  )}
+                  <p className="text-[11px] text-ink/40 italic leading-relaxed">
+                    Stages describe how the work grows, not your age — you can enter at any point.
+                  </p>
+                </div>
+              </Section>
+            ))}
 
           {archetypeContent.honest && (
             <Section

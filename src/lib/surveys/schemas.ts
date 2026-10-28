@@ -1982,6 +1982,137 @@ export const MASS_PRE_PAGES: {
 
 const MASS_FALL_2026_PRE: SurveyQuestion[] = MASS_PRE_PAGES.flatMap((page) => page.questions);
 
+// ─── mass-fall-2026-post (MASS Coaching Cohort — Post-Program Survey) ───────
+// Angel Aviles's final post-program survey (MASS Pre + Post Survey, Oct 27
+// 2026), taken by the cohort while logged in (/dashboard/survey/mass-fall-2026-post;
+// /survey/<id> redirects there). Single source of truth: the wizard imports MASS_POST_PAGES and MASS_FALL_2026_POST is
+// derived from it. The eight rating items keep Angel's wording, which differs
+// from the plain-language wording the in-app pre-survey uses, so they are not
+// pre→post paired by statement text.
+export const MASS_POST_PAGES: {
+  title: string;
+  subtitle?: string;
+  questions: SurveyQuestion[];
+}[] = [
+  {
+    title: "Where you are now",
+    subtitle: "Answer as honestly as you can. There are no right or wrong answers.",
+    questions: [
+      {
+        type: "likert",
+        id: "mass_post_agree",
+        label: "How much do you agree with each statement?",
+        scale: ["1", "2", "3", "4", "5"],
+        scaleAnchors: { low: "1 — Strongly disagree", high: "5 — Strongly agree" },
+        statements: [
+          "I can clearly describe the career path or type of role I am working toward.",
+          "I can tell my professional story clearly — who I am, what I have done, and where I am headed.",
+          "When I think about my next career steps, I know exactly what to do first.",
+          "I can communicate my value and accomplishments without downplaying them.",
+          "I believe I belong in the career space I am working toward.",
+          "When I face a professional setback, I know how to reflect, adjust, and keep moving forward.",
+        ],
+        required: true,
+      },
+      {
+        type: "likert",
+        id: "mass_post_confidence",
+        label: "How confident are you?",
+        scale: ["1", "2", "3", "4", "5"],
+        scaleAnchors: { low: "1 — Not at all confident", high: "5 — Very confident" },
+        statements: [
+          "I feel confident reaching out to someone I don\u2019t know to ask for a conversation or a professional opportunity.",
+          "I feel prepared to negotiate my salary or ask for what I deserve in a professional setting.",
+        ],
+        required: true,
+      },
+    ],
+  },
+  {
+    title: "What changed for you",
+    questions: [
+      {
+        type: "text",
+        id: "mass_post_shift",
+        label: "Looking back, what was the biggest mindset or confidence shift you experienced during the program?",
+        required: true,
+      },
+      {
+        type: "text",
+        id: "mass_post_success_shift",
+        label: "Has your vision of success shifted since you started the program?",
+        required: true,
+      },
+      {
+        type: "radio",
+        id: "mass_post_career_stage",
+        label: "Which best describes your current career stage?",
+        options: [
+          "Employed full-time",
+          "Employed part-time",
+          "Self-employed / freelance",
+          "Unemployed and looking for work",
+          "Student",
+          "Other",
+        ],
+        required: true,
+      },
+      {
+        type: "text",
+        id: "mass_post_career_stage_other",
+        label: "If you chose Other, please specify.",
+        short: true,
+        required: false,
+      },
+      {
+        type: "text",
+        id: "mass_post_describe_self",
+        label: "How do you typically describe yourself professionally to someone who does not know your background?",
+        required: true,
+      },
+      {
+        type: "text",
+        id: "mass_post_do_differently",
+        label: "What is one specific thing you will do differently because of this program?",
+        required: true,
+      },
+    ],
+  },
+  {
+    title: "About the program",
+    questions: [
+      {
+        type: "radio",
+        id: "mass_post_satisfaction",
+        label: "Overall, how satisfied are you with this program?",
+        options: ["1 — Very dissatisfied", "2", "3", "4", "5 — Very satisfied"],
+        required: true,
+      },
+      {
+        type: "radio",
+        id: "mass_post_recommend",
+        label: "How likely are you to recommend this Mindset Coaching program to others?",
+        options: ["1 — Not at all likely", "2", "3", "4", "5 — Extremely likely"],
+        required: true,
+      },
+      {
+        type: "text",
+        id: "mass_post_most_valuable",
+        label: "What part of the program was most valuable to you, and why?",
+        required: true,
+      },
+      {
+        type: "text",
+        id: "mass_post_change",
+        label: "What, if anything, should we change or add to make the program more useful for future participants?",
+        required: false,
+      },
+    ],
+  },
+];
+
+const MASS_FALL_2026_POST: SurveyQuestion[] = MASS_POST_PAGES.flatMap((page) => page.questions);
+
 // ─── cyberdeck-pre / cyberdeck-post (BUILD YOUR WORLD: Cyberdeck Series) ────
 //
 // A matched pair, given in-session: the pre 10 minutes into session 1, the post
@@ -2192,6 +2323,7 @@ const SCHEMAS: Record<string, SurveyQuestion[]> = {
   "hfs-impact-survey": HFS_IMPACT_SURVEY,
   "sbft-application": SBFT_APPLICATION,
   "mass-fall-2026-pre": MASS_FALL_2026_PRE,
+  "mass-fall-2026-post": MASS_FALL_2026_POST,
   // Cohort 2 answers the SAME instrument under its own survey_type, so the two
   // cohorts stay comparable while their responses stay separable.
   "mass-sept-2026-pre": MASS_FALL_2026_PRE,

@@ -25,6 +25,7 @@ import {
   SBFT_APPLICATION_PAGES,
   SECURITY_PLUS_POST_PAGES,
   MASS_PRE_PAGES,
+  MASS_POST_PAGES,
   DIGITAL_EXPERIENCE_STATEMENTS,
   AI_EXPERIENCE_STATEMENTS,
   HFS_WORK_READINESS_STATEMENTS,
@@ -1887,6 +1888,9 @@ function getSurveyPages(surveyId: string, programSlug: string): SurveyPage[] {
   // agreement link is shareable, so the survey must render wherever it's opened.
   if (surveyId === "mass-fall-2026-pre" || surveyId === "mass-sept-2026-pre") {
     return MASS_PRE_PAGES;
+  }
+  if (surveyId === "mass-fall-2026-post") {
+    return MASS_POST_PAGES;
   }
   // The generic pre-survey is only for the surveys that were built on it.
   // Anything else reaching here is unwired — hfs-pre-survey fell through to
