@@ -10,6 +10,7 @@ import { getMvpDashboardData } from "@/lib/mvp/queries";
 import { MvpOverview } from "./mvp-components/mvp-overview";
 import { refreshMvpOverview } from "./overview-actions";
 import { WorkspaceLayout } from "./mvp-components/workspace-layout";
+import { LearnerFilterBar } from "./mvp-components/learner-filters";
 
 export default async function MvpDashboardPage({ searchParams }: {
     searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -29,6 +30,28 @@ export default async function MvpDashboardPage({ searchParams }: {
         redirect("/dashboard");
     }
     const params = await searchParams;
+    // The initial Learners workspace intentionally loads no learner records.
+    // Future loaders must enforce program/course scope before reading PII.
+    if (params.view === "learners") {
+        return <main className="mx-auto w-full max-w-7xl px-6 py-8">
+            <AdminTopTabs current="mvp" showInsights isManager />
+            <WorkspaceLayout navigation={
+                <nav aria-label="MVP workspace" className="space-y-2">
+                    <p className="px-3 pb-3 text-xs font-medium uppercase tracking-widest text-ink-soft">Impact workspace</p>
+                    <Link href="/dashboard/admin/mvp" className="flex min-h-11 items-center rounded-lg px-3 text-sm text-ink-soft">Overview</Link>
+                    <Link href="/dashboard/admin/mvp?view=programs" className="flex min-h-11 items-center rounded-lg px-3 text-sm text-ink-soft">Programs</Link>
+                    <Link href="/dashboard/admin/mvp?view=learners" aria-current="page" className="flex min-h-11 items-center rounded-lg bg-primary/10 px-3 text-sm font-semibold text-primary">Learners</Link>
+                    <span aria-disabled="true" className="flex min-h-11 flex-wrap items-center justify-between gap-x-4 gap-y-1 px-3 py-2 text-sm text-ink-soft">Commitments<span className="shrink-0 whitespace-nowrap text-xs">Coming later</span></span>
+                </nav>
+            }>
+                <header className="mb-6">
+                    <h1 className="text-2xl font-semibold text-ink">Learners</h1>
+                    <p className="mt-2 text-sm text-ink-soft">Find learners and explore recorded course activity across your accessible programs.</p>
+                </header>
+                <LearnerFilterBar />
+            </WorkspaceLayout>
+        </main>;
+    }
     const isPrograms = params.view === "programs";
     let loaded: Awaited<ReturnType<typeof getMvpDashboardData>>;
     try {
@@ -67,7 +90,8 @@ export default async function MvpDashboardPage({ searchParams }: {
                     <p className="px-3 pb-3 text-xs font-medium uppercase tracking-widest text-ink-soft">Impact workspace</p>
                     <Link href={overviewHref} aria-current={!isPrograms ? "page" : undefined} className={`flex min-h-11 items-center rounded-lg px-3 text-sm ${!isPrograms ? "bg-primary/10 font-semibold text-primary" : "text-ink-soft"}`}>Overview</Link>
                     <Link href={programsHref} aria-current={isPrograms ? "page" : undefined} className={`flex min-h-11 items-center rounded-lg px-3 text-sm ${isPrograms ? "bg-primary/10 font-semibold text-primary" : "text-ink-soft"}`}>Programs</Link>
-                    {["Learners", "Commitments"].map(label => <span key={label} aria-disabled="true" className="flex min-h-11 flex-wrap items-center justify-between gap-x-4 gap-y-1 px-3 py-2 text-sm text-ink-soft">{label}<span className="shrink-0 whitespace-nowrap text-xs">Coming later</span></span>)}
+                    <Link href="/dashboard/admin/mvp?view=learners" className="flex min-h-11 items-center rounded-lg px-3 text-sm text-ink-soft">Learners</Link>
+                    <span aria-disabled="true" className="flex min-h-11 flex-wrap items-center justify-between gap-x-4 gap-y-1 px-3 py-2 text-sm text-ink-soft">Commitments<span className="shrink-0 whitespace-nowrap text-xs">Coming later</span></span>
                 </nav>
             }>
                     {isPrograms ? <><MvpHeader dateRangeLabel={dateRangeLabel} freshness={data.freshness} /><MvpDashboard key={JSON.stringify(data.appliedFilters)} data={data} /></>
