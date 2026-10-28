@@ -10,6 +10,7 @@ import { getMvpDashboardData } from "@/lib/mvp/queries";
 import { MvpOverview } from "./mvp-components/mvp-overview";
 import { refreshMvpOverview } from "./overview-actions";
 import { WorkspaceLayout } from "./mvp-components/workspace-layout";
+import { LearnerFilterBar } from "./mvp-components/learner-filters";
 
 export default async function MvpDashboardPage({ searchParams }: {
     searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -45,12 +46,9 @@ export default async function MvpDashboardPage({ searchParams }: {
             }>
                 <header className="mb-6">
                     <h1 className="text-2xl font-semibold text-ink">Learners</h1>
-                    <p className="mt-2 text-sm text-ink-soft">Understand who our programs serve and where learners connect from.</p>
+                    <p className="mt-2 text-sm text-ink-soft">Find learners and explore recorded course activity across your accessible programs.</p>
                 </header>
-                <section className="panel p-6" aria-labelledby="learner-workspace-status">
-                    <h2 id="learner-workspace-status" className="text-xl font-semibold text-ink">Learner workspace in development</h2>
-                    <p className="mt-3 text-sm text-ink-soft">Learner data, filters, and geographic summaries are not connected yet. No learner counts or locations are shown in this view.</p>
-                </section>
+                <LearnerFilterBar />
             </WorkspaceLayout>
         </main>;
     }

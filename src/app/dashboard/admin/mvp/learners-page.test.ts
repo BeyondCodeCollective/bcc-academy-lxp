@@ -19,7 +19,8 @@ describe("Learners workspace", () => {
   it("opens a selected Learners shell without fetching records or carrying other page filters", async () => {
     const html = renderToStaticMarkup(await Page({ searchParams: Promise.resolve({ view: "learners", programId: "private-program", city: "private-location" }) }));
     expect(html).toContain('aria-current="page"');
-    expect(html).toContain("Learner workspace in development");
+    expect(html).not.toContain("Learner workspace in development");
+    expect(html).toContain("Search and filters");
     expect(html).toContain("Commitments");
     expect(html).not.toContain("private-program");
     expect(html).not.toContain("private-location");
