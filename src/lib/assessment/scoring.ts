@@ -5,15 +5,20 @@ import { MODULE_1_ITEMS, MODULE_2_SCENARIOS, MODULE_3_ITEMS } from "./content";
 
 // ─── Module 1 ─────────────────────────────────────────────────────────────────
 
-// Float guard: averages of three integers are multiples of 1/3, so the
-// 0.25 and 0.50 thresholds are compared with a tolerance, not exactly.
+// Float guard: averages of three integers are multiples of 1/3, so every
+// threshold is compared with a tolerance, not exactly.
 const EPS = 1e-9;
+
+// One answer step on a three-item archetype is 1/3 of a point. Angel's v4 rules
+// are written in these steps: 0.33 ("blended") and 0.67 ("clear", and the
+// widest gap at which a secondary is still shown).
+const STEP = 1 / 3;
 
 const ARCHETYPE_KEYS = [...new Set(MODULE_1_ITEMS.map((i) => i.archetype))];
 
 function scoreModule1(responses: RawResponses): Pick<ScoredOutput,
   "archetype_primary" | "archetype_secondary" | "archetype_is_blended" | "archetype_top_three" |
-  "archetype_confidence" | "archetype_scores" | "facilitator_review"
+  "archetype_confidence" | "archetype_scores" | "facilitator_review" | "flag_broad_high" | "flag_flat"
 > {
   const sums = Object.fromEntries(
     ARCHETYPE_KEYS.map((k) => [k, { total: 0, count: 0 }])
@@ -43,8 +48,8 @@ function scoreModule1(responses: RawResponses): Pick<ScoredOutput,
   const allFlat = sorted.every(([, v]) => v >= 2.75 - EPS && v <= 3.50 + EPS);
   const tieCount = sorted.filter(([, v]) => primaryScore - v <= EPS).length;
 
-  // v0.4 rule 5: the secondary is reported only when it is within 0.50.
-  const secondaryInRange = gap <= 0.50 + EPS;
+  // v4: the secondary is shown when the gap is 0.67 or less.
+  const secondaryInRange = gap <= 2 * STEP + EPS;
 
   let facilitator_review = false;
   let confidence: ArchetypeConfidence;
@@ -52,6 +57,13 @@ function scoreModule1(responses: RawResponses): Pick<ScoredOutput,
   let archetype_is_blended = false;
   let archetype_top_three: ArchetypeKey[] | null = null;
 
+  // v4 rules 2 and 3 are flags only: they never decide the result, they sit
+  // alongside whatever rules 4 to 7 return and ask a facilitator to look.
+  const flag_broad_high = aboveFour >= 5;
+  const flag_flat = allFlat;
+  if (flag_broad_high || flag_flat) facilitator_review = true;
+
+  // Rule 1: ties keep the existing tie rules.
   if (tieCount >= 4) {
     // Four or more tied: do not output the tied archetypes.
     confidence = "emerging";
@@ -65,23 +77,19 @@ function scoreModule1(responses: RawResponses): Pick<ScoredOutput,
   } else if (tieCount === 2) {
     confidence = "blended";
     archetype_is_blended = true;
-  } else if (aboveFour >= 5) {
-    confidence = "broad_high";
-    facilitator_review = true;
-  } else if (allFlat) {
-    confidence = "flat";
-    facilitator_review = true;
-  } else if (primaryScore < 3.25 - EPS) {
+  } else if (primaryScore <= 3.0 + EPS) {
+    // Rule 4: still taking shape.
     confidence = "low";
     facilitator_review = true;
-  } else if (gap <= 0.25 + EPS) {
+  } else if (gap <= STEP + EPS) {
+    // Rule 5: blended. One answer step apart is not a real difference.
     confidence = "blended";
     archetype_is_blended = true;
-  } else if (primaryScore >= 4.0 - EPS && gap >= 0.50 - EPS) {
+  } else if (primaryScore >= 4.0 - EPS && gap >= 2 * STEP - EPS) {
+    // Rule 6: clear primary.
     confidence = "high";
   } else {
-    // Moderate, including a primary of 3.25 to 3.49 with a gap above 0.25,
-    // which v0.4 leaves undefined.
+    // Rule 7: moderate primary.
     confidence = "moderate";
   }
 
@@ -93,6 +101,8 @@ function scoreModule1(responses: RawResponses): Pick<ScoredOutput,
     archetype_confidence: confidence,
     archetype_scores: averages,
     facilitator_review,
+    flag_broad_high,
+    flag_flat,
   };
 }
 
