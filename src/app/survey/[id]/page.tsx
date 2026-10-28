@@ -14,7 +14,6 @@ import { PublicImpactSurvey } from "./public-impact-survey";
 import { PublicCyberdeckPre } from "./public-cyberdeck-pre";
 import { PublicCyberdeckPost } from "./public-cyberdeck-post";
 import { PublicBgcParticipantSurvey } from "./public-bgc-participant-survey";
-import { PublicMassPost } from "./public-mass-post";
 
 // Public survey route. Outside /dashboard/* so the proxy/middleware does not
 // gate it — anyone who lands on catalyst.bccacademy.io/survey/network-plus-post
@@ -42,7 +41,6 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     "cyberdeck-pre": "Cyberdeck Series — Pre-Program Survey",
     "cyberdeck-post": "Cyberdeck Series — Post-Program Survey",
     "bgc-participant-2026": "Black Girls Code 2026 Participant Survey",
-    "mass-fall-2026-post": "MASS Coaching Cohort — Post-Program Survey",
   };
   const title = titles[SURVEY_ALIASES[id] ?? id] ?? "Survey";
   return {
@@ -65,7 +63,6 @@ const SURVEY_COMPONENTS: Record<string, ComponentType<SurveyProps>> = {
   "cyberdeck-pre": PublicCyberdeckPre,
   "cyberdeck-post": PublicCyberdeckPost,
   "bgc-participant-2026": PublicBgcParticipantSurvey,
-  "mass-fall-2026-post": PublicMassPost,
 };
 
 // post-survey-spring-2026 is retired: it's no longer assigned to a program, so
@@ -93,6 +90,8 @@ const SURVEY_ALIASES: Record<string, string> = {
 const MOVED_TO_AUTHENTICATED: Record<string, string> = {
   "security-plus-midpoint": "/dashboard/survey/security-plus-midpoint",
   "security-plus-post": "/dashboard/survey/security-plus-post",
+  // MASS answers are tied to the learner's account; the login gate returns them here.
+  "mass-fall-2026-post": "/dashboard/survey/mass-fall-2026-post",
 };
 
 export default async function PublicSurveyPage({

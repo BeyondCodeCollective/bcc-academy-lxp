@@ -1984,8 +1984,8 @@ const MASS_FALL_2026_PRE: SurveyQuestion[] = MASS_PRE_PAGES.flatMap((page) => pa
 
 // ─── mass-fall-2026-post (MASS Coaching Cohort — Post-Program Survey) ───────
 // Angel Aviles's final post-program survey (MASS Pre + Post Survey, Oct 27
-// 2026), taken by the cohort through the public /survey link. Single source of
-// truth: the public page imports MASS_POST_PAGES and MASS_FALL_2026_POST is
+// 2026), taken by the cohort while logged in (/dashboard/survey/mass-fall-2026-post;
+// /survey/<id> redirects there). Single source of truth: the wizard imports MASS_POST_PAGES and MASS_FALL_2026_POST is
 // derived from it. The eight rating items keep Angel's wording, which differs
 // from the plain-language wording the in-app pre-survey uses, so they are not
 // pre→post paired by statement text.
