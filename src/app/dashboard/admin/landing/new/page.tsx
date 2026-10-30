@@ -50,6 +50,7 @@ const EMPTY: LandingFormInitial = {
   nativeEnroll: true,
   comingSoon: false,
   hideAgeZip: false,
+  enrollOnSignup: false,
   sessions: [{ id: "", label: "" }],
   enrollCtaLabel: "Enroll",
   bodySections: [

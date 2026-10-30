@@ -80,6 +80,7 @@ export default async function EditLandingPage({
     eventSlug: (data.event_slug as string | null) ?? null,
     comingSoon: (data.coming_soon as boolean | null) ?? false,
     hideAgeZip: (data.hide_age_zip as boolean | null) ?? false,
+    enrollOnSignup: (data.enroll_on_signup as boolean | null) ?? false,
     sessions: ((data.sessions as LandingSession[] | null) ?? []).map((x) => ({ id: x.id, label: x.label, trackSlug: x.trackSlug ?? null })),
     enrollCtaLabel: (data.enroll_cta_label as string | null) ?? "",
     bodySections: (data.body_sections as LandingSection[] | null) ?? [],

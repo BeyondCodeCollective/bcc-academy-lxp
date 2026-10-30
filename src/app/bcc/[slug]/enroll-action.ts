@@ -152,9 +152,26 @@ export async function enrollInCourse(input: {
           .select("id");
         confirm = !!claimed?.length;
       }
+      const { data: account } = await svc.from("students").select("id").ilike("email", email).limit(1);
+
+      // Opt-in per page: an email that already has an account is enrolled now.
+      // Everyone else gets their enrollment when the emailed link creates the
+      // account. Admins are included on purpose: the sign-in callback never
+      // enrolls them, so without this they land on an empty dashboard.
+      if (page.enrollOnSignup && account?.length) {
+        const { data: prog } = await svc.from("programs").select("id").eq("slug", enrolled.programSlug).limit(1);
+        if (prog?.length) {
+          await svc
+            .from("student_tracks")
+            .upsert(
+              { student_id: account[0].id, track_slug: session?.trackSlug || page.trackSlug, program_id: prog[0].id },
+              { onConflict: "student_id,track_slug", ignoreDuplicates: true },
+            );
+        }
+      }
+
       if (confirm) {
         const programName = (await getProgramWithOverrides(enrolled.programSlug)).name;
-        const { data: account } = await svc.from("students").select("id").ilike("email", email).limit(1);
         try {
           await sendEventConfirmationEmail({
             to: email,
