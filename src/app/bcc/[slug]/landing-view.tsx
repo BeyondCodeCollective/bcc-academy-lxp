@@ -279,6 +279,7 @@ export async function LandingView({
                   accent={accent}
                   ctaLabel="Notify me"
                   comingSoon
+                  hideAgeZip={page.hideAgeZip}
                 />
               ) : page.applyUrl ? (
                 <a
@@ -305,6 +306,7 @@ export async function LandingView({
                   accent={accent}
                   ctaLabel={page.enrollCtaLabel}
                   companion={companion}
+                  hideAgeZip={page.hideAgeZip}
                 />
               ) : (
                 <CampEmailForm ink={INK} accent={accent} trackSlug={page.trackSlug} />
