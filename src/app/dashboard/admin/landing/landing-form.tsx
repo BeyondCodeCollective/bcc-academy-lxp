@@ -74,6 +74,7 @@ export function LandingForm({
   const [eventSlug, setEventSlug] = useState(initial.eventSlug ?? "");
   const [comingSoon, setComingSoon] = useState(initial.comingSoon);
   const [hideAgeZip, setHideAgeZip] = useState(initial.hideAgeZip);
+  const [enrollOnSignup, setEnrollOnSignup] = useState(initial.enrollOnSignup);
   const [sessions, setSessions] = useState<LandingSession[]>(initial.sessions);
   const [enrollCtaLabel, setEnrollCtaLabel] = useState(initial.enrollCtaLabel);
   const [bodySections, setBodySections] = useState<LandingSection[]>(initial.bodySections);
@@ -165,6 +166,7 @@ export function LandingForm({
           eventSlug: eventSlug || null,
           comingSoon,
           hideAgeZip,
+          enrollOnSignup,
           sessions,
           enrollCtaLabel,
           bodySections,
@@ -1060,6 +1062,23 @@ export function LandingForm({
             <span className="text-ink-faint">
               — drops those two questions from this page&apos;s signup form. Use it when they
               don&apos;t apply, such as an internal staff cohort.
+            </span>
+          </span>
+        </label>
+
+        <label className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            checked={enrollOnSignup}
+            onChange={(e) => setEnrollOnSignup(e.target.checked)}
+            className="h-4 w-4 accent-[var(--primary)]"
+          />
+          <span className="text-sm text-ink">
+            Enroll on signup{" "}
+            <span className="text-ink-faint">
+              — someone who already has an account is enrolled the moment they sign up, so the
+              course is on their dashboard without opening the emailed link. New people are
+              still enrolled when they open it.
             </span>
           </span>
         </label>
