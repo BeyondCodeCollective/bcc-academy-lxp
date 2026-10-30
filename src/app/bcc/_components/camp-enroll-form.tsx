@@ -33,6 +33,7 @@ export function CampEnrollForm({
   ctaLabel,
   comingSoon = false,
   companion,
+  hideAgeZip = false,
 }: {
   ink?: string;
   slug: string;
@@ -45,6 +46,8 @@ export function CampEnrollForm({
   comingSoon?: boolean;
   /** A sibling interest-capture page (info sessions) offered as a second choice on the same form. */
   companion?: { slug: string; label: string };
+  /** Leave the age-range and ZIP questions off this form. */
+  hideAgeZip?: boolean;
 }) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -76,9 +79,9 @@ export function CampEnrollForm({
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       email: email.trim(),
-      zipCode: zip.trim(),
+      zipCode: hideAgeZip ? "" : zip.trim(),
       heardAbout,
-      ageRange,
+      ageRange: hideAgeZip ? "" : ageRange,
       origin: window.location.origin,
     };
     const programWanted = !companion || wantProgram;
@@ -197,20 +200,22 @@ export function CampEnrollForm({
         className={inputStyle}
         style={{ borderColor: `${ink}22`, color: `${ink}` }}
       />
-      <input
-        type="text"
-        required
-        inputMode="numeric"
-        autoComplete="postal-code"
-        pattern="\d{5}(-\d{4})?"
-        title="5-digit ZIP code"
-        placeholder="ZIP code"
-        value={zip}
-        onChange={(e) => setZip(e.target.value)}
-        disabled={status === "loading"}
-        className={inputStyle}
-        style={{ borderColor: `${ink}22`, color: `${ink}` }}
-      />
+      {!hideAgeZip && (
+        <input
+          type="text"
+          required
+          inputMode="numeric"
+          autoComplete="postal-code"
+          pattern="\d{5}(-\d{4})?"
+          title="5-digit ZIP code"
+          placeholder="ZIP code"
+          value={zip}
+          onChange={(e) => setZip(e.target.value)}
+          disabled={status === "loading"}
+          className={inputStyle}
+          style={{ borderColor: `${ink}22`, color: `${ink}` }}
+        />
+      )}
       {/* Attribution, asked at the moment of intent rather than in a survey
          later. Required with an explicit opt-out so the answer means something
          instead of skewing to whoever bothered. */}
@@ -232,24 +237,26 @@ export function CampEnrollForm({
           </option>
         ))}
       </select>
-      <select
-        required
-        aria-label="Age range"
-        value={ageRange}
-        onChange={(e) => setAgeRange(e.target.value)}
-        disabled={status === "loading"}
-        className={inputStyle}
-        style={{ borderColor: `${ink}22`, color: ageRange ? ink : `${ink}80` }}
-      >
-        <option value="" disabled>
-          Age range
-        </option>
-        {AGE_RANGES.map((o) => (
-          <option key={o} value={o}>
-            {o}
+      {!hideAgeZip && (
+        <select
+          required
+          aria-label="Age range"
+          value={ageRange}
+          onChange={(e) => setAgeRange(e.target.value)}
+          disabled={status === "loading"}
+          className={inputStyle}
+          style={{ borderColor: `${ink}22`, color: ageRange ? ink : `${ink}80` }}
+        >
+          <option value="" disabled>
+            Age range
           </option>
-        ))}
-      </select>
+          {AGE_RANGES.map((o) => (
+            <option key={o} value={o}>
+              {o}
+            </option>
+          ))}
+        </select>
+      )}
       {(!companion || wantProgram) &&
         questions.map((q) => (
         <fieldset key={q.id} className="space-y-1.5 pt-1" disabled={status === "loading"}>

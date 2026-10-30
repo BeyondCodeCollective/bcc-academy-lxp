@@ -49,6 +49,7 @@ const EMPTY: LandingFormInitial = {
   // sections under it, and an instructor card. Delete what a page doesn't need.
   nativeEnroll: true,
   comingSoon: false,
+  hideAgeZip: false,
   sessions: [{ id: "", label: "" }],
   enrollCtaLabel: "Enroll",
   bodySections: [

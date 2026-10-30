@@ -73,6 +73,7 @@ export function LandingForm({
   const [nativeEnroll, setNativeEnroll] = useState(initial.nativeEnroll);
   const [eventSlug, setEventSlug] = useState(initial.eventSlug ?? "");
   const [comingSoon, setComingSoon] = useState(initial.comingSoon);
+  const [hideAgeZip, setHideAgeZip] = useState(initial.hideAgeZip);
   const [sessions, setSessions] = useState<LandingSession[]>(initial.sessions);
   const [enrollCtaLabel, setEnrollCtaLabel] = useState(initial.enrollCtaLabel);
   const [bodySections, setBodySections] = useState<LandingSection[]>(initial.bodySections);
@@ -163,6 +164,7 @@ export function LandingForm({
           nativeEnroll,
           eventSlug: eventSlug || null,
           comingSoon,
+          hideAgeZip,
           sessions,
           enrollCtaLabel,
           bodySections,
@@ -1040,6 +1042,27 @@ export function LandingForm({
             className={`${fieldInput} resize-y`}
           />
         </Field>
+      </Panel>
+
+      {/* ── Signup form ── */}
+      <Panel className="space-y-5 p-5">
+        <h2 className="text-sm font-semibold text-ink">Signup form</h2>
+
+        <label className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            checked={hideAgeZip}
+            onChange={(e) => setHideAgeZip(e.target.checked)}
+            className="h-4 w-4 accent-[var(--primary)]"
+          />
+          <span className="text-sm text-ink">
+            Hide age and ZIP{" "}
+            <span className="text-ink-faint">
+              — drops those two questions from this page&apos;s signup form. Use it when they
+              don&apos;t apply, such as an internal staff cohort.
+            </span>
+          </span>
+        </label>
       </Panel>
 
       {error && (
