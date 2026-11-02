@@ -308,6 +308,30 @@ export async function markVideoWatched(trackSlug: string, weekNumber: number) {
   return { success: true };
 }
 
+// ─── Resource opens ──────────────────────────────────────────────────────────
+
+/** Record that the signed-in learner opened a week resource. Fire-and-forget
+ *  from the client; a failure must never block opening the resource. */
+export async function logResourceOpen(
+  trackSlug: string,
+  weekNumber: number,
+  url: string,
+  name: string
+) {
+  try {
+    const [userId, programId] = await Promise.all([requireAuth(), getProgramId()]);
+    await logActivityEvent({
+      userId,
+      eventType: "resource_open",
+      programId,
+      trackSlug,
+      metadata: { week: weekNumber, url: url.slice(0, 2000), name: name.slice(0, 200) },
+    });
+  } catch {
+    // Not signed in (admin preview, logged-out) or logging failed: ignore.
+  }
+}
+
 // ─── Feedback (read-only for students) ───────────────────────────────────────
 
 export async function getFeedback(

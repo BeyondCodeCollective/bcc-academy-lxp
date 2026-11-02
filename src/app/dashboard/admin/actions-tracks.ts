@@ -137,6 +137,10 @@ export type SessionResource = {
   name: string;
   url: string;
   type: string;
+  /** Instructions shown under the name, e.g. "Watch 1:09 to 2:55". */
+  note?: string;
+  /** Show a YouTube link inline (click to load) instead of only linking out. */
+  embed?: boolean;
 };
 
 export type SessionContentData = {
@@ -522,4 +526,51 @@ export async function getMyInstructorTracks(): Promise<string[]> {
     return [];
   }
   return (data ?? []).map((r: { track_slug: string }) => r.track_slug);
+}
+
+export type ResourceOpens = Record<string, { opens: number; learners: string[] }>;
+
+/**
+ * Who opened each resource in a week, keyed by resource URL. Built from the
+ * "resource_open" activity events (one per click), reported as distinct
+ * learners. Admin only: it lists learner names.
+ */
+export async function getResourceOpens(track: string, weekNumber: number): Promise<ResourceOpens> {
+  const { svc } = await requireAdmin();
+  const { data: events } = await svc
+    .from("activity_events")
+    .select("user_id, metadata")
+    .eq("event_type", "resource_open")
+    .eq("track_slug", track)
+    .eq("metadata->>week", String(weekNumber))
+    .limit(5000);
+  const rows = events ?? [];
+  const userIds = [...new Set(rows.map((r) => r.user_id as string))];
+  const names = new Map<string, string>();
+  if (userIds.length > 0) {
+    const { data: students } = await svc
+      .from("students")
+      .select("id, first_name, last_name, email")
+      .in("id", userIds);
+    for (const s of students ?? []) {
+      const full = [s.first_name, s.last_name].filter(Boolean).join(" ").trim();
+      names.set(s.id as string, full || (s.email as string) || "Unknown");
+    }
+  }
+  const out: ResourceOpens = {};
+  const seen = new Map<string, Set<string>>();
+  for (const r of rows) {
+    const url = (r.metadata as { url?: string } | null)?.url;
+    if (!url) continue;
+    const entry = (out[url] ??= { opens: 0, learners: [] });
+    entry.opens += 1;
+    const set = seen.get(url) ?? new Set<string>();
+    seen.set(url, set);
+    const uid = r.user_id as string;
+    if (!set.has(uid)) {
+      set.add(uid);
+      entry.learners.push(names.get(uid) ?? "Unknown");
+    }
+  }
+  return out;
 }
