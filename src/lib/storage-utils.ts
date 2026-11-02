@@ -64,6 +64,32 @@ export function getYouTubeEmbedUrl(url: string): string | null {
   return null;
 }
 
+/** Start offset in seconds from a YouTube URL's t= or start= param ("69",
+ *  "69s", "1m9s", "1h2m3s"). 0 when absent or unparseable. */
+export function getYouTubeStartSeconds(url: string): number {
+  try {
+    const u = new URL(url);
+    const raw = u.searchParams.get("t") ?? u.searchParams.get("start");
+    if (!raw) return 0;
+    const m = /^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s?)?$/.exec(raw);
+    if (!m) return 0;
+    return Number(m[1] ?? 0) * 3600 + Number(m[2] ?? 0) * 60 + Number(m[3] ?? 0);
+  } catch {
+    return 0;
+  }
+}
+
+/** Inline-embed URL for a resource link, or null when it is not a YouTube
+ *  video. Uses the privacy-enhanced host and honors the link's start time. */
+export function getResourceEmbedUrl(url: string): string | null {
+  const base = getYouTubeEmbedUrl(url);
+  if (!base) return null;
+  const start = getYouTubeStartSeconds(url);
+  const qs = new URLSearchParams({ rel: "0" });
+  if (start > 0) qs.set("start", String(start));
+  return `${base.replace("www.youtube.com", "www.youtube-nocookie.com")}?${qs}`;
+}
+
 /** Returns a YouTube thumbnail URL for any supported YouTube URL format, or
  *  null if the URL isn't recognized. `hqdefault` always exists; `maxresdefault`
  *  may 404 on older or unavailable videos, so we default to hqdefault. */
