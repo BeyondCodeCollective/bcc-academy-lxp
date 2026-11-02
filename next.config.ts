@@ -94,9 +94,9 @@ const nextConfig: NextConfig = {
       // campaign landing pages loads eb_widgets.js and mounts the checkout
       // iframe from there. img.evbuc.com below was allowlisted all along —
       // these three were missed when CSP went enforced, killing the embed.
-      `script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: https://va.vercel-scripts.com https://www.googletagmanager.com https://*.zoom.us https://www.eventbrite.com${__impeccableLiveDev}`,
+      `script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: https://va.vercel-scripts.com https://www.googletagmanager.com https://connect.facebook.net https://*.zoom.us https://www.eventbrite.com${__impeccableLiveDev}`,
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.zoom.us",
-      "img-src 'self' data: blob: https://*.supabase.co https://images.pexels.com https://img.evbuc.com https://*.google-analytics.com https://*.googletagmanager.com https://*.zoom.us",
+      "img-src 'self' data: blob: https://*.supabase.co https://images.pexels.com https://img.evbuc.com https://*.google-analytics.com https://*.googletagmanager.com https://www.facebook.com https://*.zoom.us",
       // The Zoom Meeting SDK spawns its audio/video pipeline as blob: workers.
       // Without an explicit worker-src the browser falls back to script-src
       // (no blob:) and silently kills them — join() then never calls back and
@@ -113,7 +113,7 @@ const nextConfig: NextConfig = {
       // google.com/g/collect (consent-mode pings) alongside
       // *.google-analytics.com — the sweep's CSP tripwire caught these
       // being dropped on most dashboard pages.
-      `connect-src 'self' https://*.supabase.co https://*.resend.com https://va.vercel-scripts.com https://*.google-analytics.com https://o4506503091847168.ingest.us.sentry.io https://zoom.us https://*.zoom.us wss://*.zoom.us https://www.eventbrite.com https://www.google.com${__impeccableLiveDev}`,
+      `connect-src 'self' https://*.supabase.co https://*.resend.com https://va.vercel-scripts.com https://*.google-analytics.com https://o4506503091847168.ingest.us.sentry.io https://zoom.us https://*.zoom.us wss://*.zoom.us https://www.eventbrite.com https://www.google.com https://www.facebook.com https://connect.facebook.net${__impeccableLiveDev}`,
       "report-uri /api/csp-report",
     ].join("; ");
 

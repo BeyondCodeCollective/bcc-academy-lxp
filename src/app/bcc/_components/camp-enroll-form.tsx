@@ -9,6 +9,7 @@ import { AGE_RANGES } from "@/lib/age-ranges";
  *  all speak the same vocabulary. Free text would make this unreportable. */
 export const HEARD_ABOUT_OPTIONS = [
   "Instagram or social media",
+  "Instagram or Facebook ad",
   "Email from Beyond Code Collective",
   "Friend or family",
   "Community organization",
@@ -102,6 +103,15 @@ export function CampEnrollForm({
     }
 
     if (result.ok) {
+      // Meta Pixel: count Catalyst Labs registrations for the ad campaign.
+      // The form confirms inline (no thank-you page), so fire here on success.
+      if (programWanted && slug.startsWith("catalyst-labs")) {
+        (window as unknown as { fbq?: (...a: unknown[]) => void }).fbq?.(
+          "track",
+          "CompleteRegistration",
+          { content_name: "Catalyst Labs Nov 19" },
+        );
+      }
       setEnrolled(result.enrolled);
       setInfoOnly(!programWanted);
       setStatus("sent");
