@@ -888,16 +888,21 @@ async function Overlays({ isSurveyPage }: { isSurveyPage: boolean }) {
     program.slug !== "forte";
   let needsZip = false;
   let needsDob = false;
+  // The first-run welcome (OnboardingForm, on /dashboard) is a full-screen
+  // overlay at the same z-index, so the standalone prompt waits until it is
+  // dismissed instead of stacking under it and being unreachable.
+  let welcomePending = false;
   if (profileEligible) {
     const { data: prof } = await createServiceClient()
       .from("students")
-      .select("zip, date_of_birth")
+      .select("zip, date_of_birth, welcome_seen_at")
       .eq("id", ctx.userId)
-      .maybeSingle<{ zip: string | null; date_of_birth: string | null }>();
+      .maybeSingle<{ zip: string | null; date_of_birth: string | null; welcome_seen_at: string | null }>();
     needsZip = !((prof?.zip ?? "").trim());
     needsDob = !prof?.date_of_birth;
+    welcomePending = !prof?.welcome_seen_at;
   }
-  const needsProfile = needsZip || needsDob;
+  const needsProfile = (needsZip || needsDob) && !welcomePending;
 
   // Validate against ALL programs' tracks (the menu lists every program), not
   // just the current one — the L&L sentinel passes through as-is.
