@@ -17,7 +17,7 @@ import type { PendingPerson } from "@/lib/people-hub";
 import type { InsightsData } from "./page";
 import type { Student } from "@/lib/types";
 import { isStorageUrl, isUploadedVideo } from "@/lib/storage-utils";
-import { type CohortRow, type StudentRow, type AdminTrackConfig, type AdminSession, type AdminWeek, type SessionContentMap, buildInitialWeeks, applyContentMap, getTrackIcon } from "./admin-shared";
+import { type CohortRow, type StudentRow, type AdminTrackConfig, type AdminSession, type AdminWeek, type SessionContentMap, buildInitialWeeks, applyContentMap, tagSessionResources, getTrackIcon } from "./admin-shared";
 import { AdminTopTabs } from "./admin-top-tabs";
 import { StudentWorkTab } from "./student-work-tab";
 import { PeopleTab } from "./people-tab";
@@ -294,6 +294,8 @@ export function AdminTabs({
           description: string | null;
           objectives: string[] | null;
           homework_instructions: string | null;
+          homework_instructions_2: string | null;
+          homework_instructions_3: string | null;
         }> };
         const map: SessionContentMap = {};
         for (const row of json.rows) {
@@ -313,6 +315,8 @@ export function AdminTabs({
             description: row.description ?? null,
             objectives: row.objectives ?? null,
             homework_instructions: row.homework_instructions ?? null,
+            homework_instructions_2: row.homework_instructions_2 ?? null,
+            homework_instructions_3: row.homework_instructions_3 ?? null,
           };
         }
         setTrackData((prev) => {
@@ -350,7 +354,7 @@ export function AdminTabs({
 
     saveTimers.current[trackSlug][weekNum] = setTimeout(async () => {
       try {
-        const allResources = weekData.sessions.flatMap((s) => s.resources);
+        const allResources = tagSessionResources(weekData.sessions);
         const objectivesArr = weekData.overrideObjectives.trim()
           ? weekData.overrideObjectives.split("\n").map((s) => s.trim()).filter(Boolean)
           : null;
@@ -368,7 +372,9 @@ export function AdminTabs({
           subtitle: weekData.overrideSubtitle || null,
           description: weekData.overrideDescription || null,
           objectives: objectivesArr,
-          homework_instructions: weekData.overrideHomework || null,
+          homework_instructions: weekData.sessions[0]?.homework || null,
+          homework_instructions_2: weekData.sessions[1]?.homework || null,
+          homework_instructions_3: weekData.sessions[2]?.homework || null,
           resources: allResources,
         }, programSlug);
         setSaveStates((s) => ({ ...s, [trackSlug]: { ...s[trackSlug], [weekNum]: "saved" } }));
@@ -399,7 +405,7 @@ export function AdminTabs({
     });
   }
 
-  function updateWeekOverride(trackSlug: string, weekNum: number, patch: Partial<Pick<AdminWeek, "overrideTitle" | "overrideSubtitle" | "overrideDescription" | "overrideObjectives" | "overrideHomework">>) {
+  function updateWeekOverride(trackSlug: string, weekNum: number, patch: Partial<Pick<AdminWeek, "overrideTitle" | "overrideSubtitle" | "overrideDescription" | "overrideObjectives">>) {
     setTrackData((prev) => {
       const weeks = prev[trackSlug] ?? [];
       const updated = weeks.map((w) =>

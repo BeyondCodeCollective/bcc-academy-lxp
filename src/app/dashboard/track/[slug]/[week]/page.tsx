@@ -1077,7 +1077,7 @@ async function SubmissionsReflectionsSection({
   trackSlug: string;
   weekNum: number;
   weekContent: WeekConfig;
-  homeworkInstructions: string;
+  homeworkInstructions: string[];
   showSubmissions: boolean;
   showReflections: boolean;
   defaultReflectionPrompts?: string[];
@@ -1107,11 +1107,22 @@ async function SubmissionsReflectionsSection({
 
   return (
     <div className="mt-6 space-y-4">
-      {showSubmissions && homeworkInstructions && (
-        <p className="whitespace-pre-line rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-ink">
-          {homeworkInstructions}
-        </p>
-      )}
+      {showSubmissions &&
+        homeworkInstructions.map((text, i) =>
+          text ? (
+            <p
+              key={`hw-${i}`}
+              className="whitespace-pre-line rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-ink"
+            >
+              {homeworkInstructions.length > 1 && (
+                <span className="mb-1 block text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
+                  Session {i + 1} homework
+                </span>
+              )}
+              {text}
+            </p>
+          ) : null,
+        )}
       {showSubmissions && (
         <SubmissionForm
           trackSlug={trackSlug}

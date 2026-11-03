@@ -6,7 +6,8 @@ export type ResolvedSession = {
   subtitle: string;
   description: string;
   objectives: string[];
-  homeworkInstructions: string;
+  /** One entry per session (empty string = none). */
+  homeworkInstructions: string[];
   meetingLinks: (string | null)[];
   sessionStatuses: string[];
   recordingUrls: (string | null)[];
@@ -48,7 +49,9 @@ export function resolveSessionContent(
     subtitle: dbRow?.subtitle || weekConfig.subtitle,
     description: dbRow?.description || weekConfig.description,
     objectives: dbRow?.objectives?.length ? dbRow.objectives : weekConfig.objectives,
-    homeworkInstructions: dbRow?.homework_instructions ?? "",
+    homeworkInstructions: weekConfig.sessions.map((_, i) =>
+      (i === 0 ? dbRow?.homework_instructions : i === 1 ? dbRow?.homework_instructions_2 : i === 2 ? dbRow?.homework_instructions_3 : null) ?? "",
+    ),
     meetingLinks,
     sessionStatuses,
     recordingUrls,

@@ -90,6 +90,8 @@ export type AdminSession = {
   meetingLink: string;
   recordingUrl: string;
   resources: SessionResource[];
+  /** Homework instructions for this session (empty = none). */
+  homework: string;
   status: "upcoming" | "completed";
 };
 // Unified per-week state
@@ -103,7 +105,6 @@ export type AdminWeek = {
   overrideSubtitle: string;
   overrideDescription: string;
   overrideObjectives: string; // newline-separated for editing
-  overrideHomework: string;
 };
 // DB content map
 export type SessionContentMap = Record<number, {
@@ -122,7 +123,17 @@ export type SessionContentMap = Record<number, {
   description: string | null;
   objectives: string[] | null;
   homework_instructions: string | null;
+  homework_instructions_2: string | null;
+  homework_instructions_3: string | null;
 }>;
+/** Resources saved under one session. Untagged (older) resources belong to session 1. */
+export function resourcesForSession(resources: SessionResource[], sessionNum: number): SessionResource[] {
+  return resources.filter((r) => (r.session ?? 1) === sessionNum);
+}
+/** Flatten every session's resources for saving, remembering which session each came from. */
+export function tagSessionResources(sessions: AdminSession[]): SessionResource[] {
+  return sessions.flatMap((s) => s.resources.map((r) => ({ ...r, session: s.num })));
+}
 export function buildInitialWeeks(track: AdminTrackConfig): AdminWeek[] {
   return track.weeks.map((w) => ({
     week: w.week,
@@ -132,13 +143,13 @@ export function buildInitialWeeks(track: AdminTrackConfig): AdminWeek[] {
     overrideSubtitle: "",
     overrideDescription: "",
     overrideObjectives: "",
-    overrideHomework: "",
     sessions: w.sessions.map((s, i) => ({
       num: i + 1,
       title: s.title,
       meetingLink: "",
       recordingUrl: "",
       resources: [],
+      homework: "",
       status: "upcoming" as const,
     })),
   }));
@@ -153,13 +164,22 @@ export function applyContentMap(weeks: AdminWeek[], map: SessionContentMap): Adm
       overrideSubtitle: content.subtitle ?? "",
       overrideDescription: content.description ?? "",
       overrideObjectives: content.objectives?.join("\n") ?? "",
-      overrideHomework: content.homework_instructions ?? "",
       sessions: w.sessions.map((s, i) => ({
         ...s,
         meetingLink: i === 0 ? content.meeting_link : i === 1 ? content.meeting_link_2 : i === 2 ? content.meeting_link_3 : s.meetingLink,
         recordingUrl: i === 0 ? content.recording_url : i === 1 ? content.recording_url_2 : i === 2 ? content.recording_url_3 : s.recordingUrl,
         status: (i === 0 ? content.status : i === 1 ? content.status_2 : i === 2 ? content.status_3 : s.status) as "upcoming" | "completed",
-        resources: i === 0 ? content.resources : s.resources,
+        resources: content.resources.length
+          ? resourcesForSession(content.resources, i + 1)
+          : s.resources,
+        homework:
+          (i === 0
+            ? content.homework_instructions
+            : i === 1
+              ? content.homework_instructions_2
+              : i === 2
+                ? content.homework_instructions_3
+                : null) ?? "",
       })),
     };
   });
