@@ -248,6 +248,37 @@ do not alter them under this documentation task.
   historical membership/attempts or identity reconciliation are required, discuss
   those shared-LXP changes with Fonz first.
 
+## Learners summary calculations
+
+`getMvpLearnersData` returns `summary.totalEnrolled`, `sessionsHeld`,
+`sessionsHeldUnavailableReason`, and a UTC `asOf` timestamp. These describe the
+complete authorized, filtered roster before sorting or pagination, not the
+visible page. Total Enrolled counts distinct learner IDs, never enrollment rows.
+An empty matching roster returns zero for both counts without delivery reads.
+
+Sessions Held counts required sessions once per matching program/course pair,
+not once per learner. It uses the existing canonical course owner and override
+precedence, plus `calculateMvpSessionsRemaining().delivered`: only explicitly
+completed, already-arrived required sessions count. Future flags and labeled
+extras do not count; matching duplicate delivery rows do not inflate counts.
+Missing/conflicting delivery, incomplete schedules, or self-paced courses make
+the entire Sessions Held total unavailable with a reason, never a partial total
+or an invented zero. Verified upcoming/in-progress sessions contribute zero.
+
+Search and current-cohort filters select learners and their matching offerings;
+they do not establish historical cohort-specific schedules. Shared course
+delivery is stored by course slug; counting the same delivered course under two
+matching programs represents two offering opportunities, not two distinct live
+meetings. This is not yet an individual attendance denominator or a Needs
+Check-In calculation. The UI remains unwired.
+
+Only schedule and delivery metadata are read, sequentially per distinct offering
+with delivery cached by course slug and cursor-paginated until empty. Read errors,
+duplicate schedule overrides, and stalled cursors fail the request. Synthetic
+integration tests cover filtering, deduplication, pagination independence,
+canonical ownership, known zero, unavailable evidence, and later-page failures;
+they do not validate live database permissions or production data quality.
+
 ## Code references
 
 ### Learner directory progress integration

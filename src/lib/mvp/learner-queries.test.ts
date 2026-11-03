@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-const mocks = vi.hoisted(() => ({ session: vi.fn(), preview: vi.fn(), client: vi.fn(), configs: vi.fn() }));
-vi.mock("@/lib/programs", () => ({ getEveryProgramConfig: mocks.configs }));
+const mocks = vi.hoisted(() => ({ session: vi.fn(), preview: vi.fn(), client: vi.fn(), configs: vi.fn(), home: vi.fn() }));
+vi.mock("@/lib/programs", () => ({ getEveryProgramConfig: mocks.configs, getHomeProgramForTrack: mocks.home }));
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/auth/session", () => ({ getSessionContext: mocks.session }));
 vi.mock("@/lib/auth/preview-mode", () => ({ isPreviewingAsStudent: mocks.preview }));
@@ -14,16 +14,20 @@ let failure: string;
 let serverCap: number;
 let ignoreRosterCursor: boolean;
 let failRosterAfter: number;
+let ignoreDeliveryCursor: boolean;
+let failDeliveryAfter: number;
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.session.mockResolvedValue({ userId: "actor", student: { role: "admin" } });
   mocks.preview.mockResolvedValue(false);
   mocks.configs.mockReturnValue([]);
+  mocks.home.mockReturnValue(undefined);
   requests = []; failure = "";
   serverCap = 1; ignoreRosterCursor = false; failRosterAfter = Infinity;
+  ignoreDeliveryCursor = false; failDeliveryAfter = Infinity;
   tables = { students: [{ id: "actor", program_id: "p1" }], staff_program_access: [], programs: [{ id: "p1", name: "One", slug: "one" }, { id: "p2", name: "Two", slug: "two" }] };
   Object.assign(tables, { track_overrides: [], hidden_courses: [], cohorts: [], student_tracks: [] });
-  Object.assign(tables, { submissions: [], reflections: [], week_progress: [] });
+  Object.assign(tables, { submissions: [], reflections: [], week_progress: [], session_content: [] });
   mocks.client.mockReturnValue({ from(table: string) {
     const predicates: ((row: Row) => boolean)[] = [];
     let single = false;
@@ -32,19 +36,102 @@ beforeEach(() => {
       eq: (key: string, value: unknown) => { predicates.push(row => key.split(".").reduce<unknown>((current, part) => (current as Row)?.[part], row) === value); return chain; },
       or: (expression: string) => { const key = expression.split(".")[0]; predicates.push(row => { const value = (row.students as Row)[key]; return value === null || value === false; }); return chain; },
       in: (key: string, values: unknown[]) => { predicates.push(row => values.includes(row[key])); return chain; },
-      gt: (key: string, value: string) => { if (!(table === "student_tracks" && ignoreRosterCursor)) predicates.push(row => String(row[key]) > value); return chain; },
+      gt: (key: string, value: string) => { if (!(table === "student_tracks" && ignoreRosterCursor) && !(table === "session_content" && ignoreDeliveryCursor)) predicates.push(row => String(row[key]) > value); return chain; },
       single: () => { single = true; return chain; },
       then: (resolve: (value: unknown) => unknown) => {
         requests.push(table);
         if (requests.length > 1000) throw new Error("Pagination loop");
         const rows = tables[table].filter(row => predicates.every(p => p(row))).slice(0, serverCap);
-        const laterFailure = table === "student_tracks" && requests.filter(t => t === table).length > failRosterAfter;
+        const laterFailure = (table === "student_tracks" && requests.filter(t => t === table).length > failRosterAfter) ||
+          (table === "session_content" && requests.filter(t => t === table).length > failDeliveryAfter);
         return Promise.resolve({ data: single ? rows[0] ?? null : rows, error: failure === table || laterFailure ? new Error("DB error") : null }).then(resolve);
       },
     }; return chain;
   } });
 });
 describe("Learners loader access boundary", () => {
+  const seedSummary = () => {
+    mocks.configs.mockReturnValue([{ slug: "one", tracks: [{ slug: "a", name: "A" }, { slug: "b", name: "B" }] }]);
+    tables.track_overrides = ["a", "b"].map(track_slug => ({ id: `o${track_slug}`, program_id: "p1", track_slug, name: track_slug,
+      start_date: "2000-01-01", total_weeks: 3, sessions_per_week: 1, unit_label: "Session", last_session_day_offset: 0,
+      week_summaries: [{ week: 1, date: "2000-01-01" }, { week: 2, date: "2000-01-02" },
+        { week: 3, date: "2999-01-01" }, { week: 4, date: "2000-01-03", label: "Exam" }], self_paced: false }));
+    tables.cohorts = [{ id: "c1", program_id: "p1", track_slug: "a", name: "Cohort", display_name: null }];
+    tables.student_tracks = Array.from({ length: 26 }, (_, index) => ["a", "b"].map(track_slug => {
+      const id = String(index).padStart(2, "0");
+      return { id: `e${id}${track_slug}`, student_id: `s${id}`, program_id: "p1", track_slug,
+        students: { id: `s${id}`, first_name: `Learner${id}`, last_name: "Test", email: null, cohort_id: index === 0 ? "c1" : null,
+          role: "student", is_test: false, is_staff: false } };
+    })).flat();
+    tables.student_tracks.push({ ...tables.student_tracks[0], id: "zzduplicate" });
+    tables.session_content = ["a", "b"].flatMap(track => [1, 2, 3, 4].map(week_number => ({ id: `${track}${week_number}`, track,
+      week_number, status: track === "b" && week_number === 2 ? "upcoming" : "completed", status_2: "upcoming", status_3: "upcoming" })));
+  };
+  it("summarizes the full matching population before pagination without multiplying sessions by learners", async () => {
+    seedSummary();
+    const first = await getMvpLearnersData({ pageSize: "10" });
+    requests = [];
+    const last = await getMvpLearnersData({ page: "3", pageSize: "10", sortOrder: "desc" });
+    for (const result of [first, last]) expect(result.summary).toMatchObject({ totalEnrolled: 26, sessionsHeld: 3, sessionsHeldUnavailableReason: null });
+    expect(first.directory).toHaveLength(10);
+    expect(last.directory).toHaveLength(6);
+    expect(Number.isFinite(Date.parse(first.summary.asOf))).toBe(true);
+  });
+  it("scopes summary counts to search, course, and reliably linked cohort and returns zero for no matches", async () => {
+    seedSummary();
+    expect((await getMvpLearnersData({ search: "Learner00" })).summary).toMatchObject({ totalEnrolled: 1, sessionsHeld: 3 });
+    requests = [];
+    expect((await getMvpLearnersData({ programId: "p1", courseSlug: "a", cohortId: "c1" })).summary).toMatchObject({ totalEnrolled: 1, sessionsHeld: 2 });
+    requests = [];
+    expect((await getMvpLearnersData({ search: "No match" })).summary).toMatchObject({ totalEnrolled: 0, sessionsHeld: 0 });
+    expect(requests).not.toContain("session_content");
+  });
+  it("does not read unauthorized programs or unmatched course delivery for the summary", async () => {
+    seedSummary();
+    tables.track_overrides.push({ ...tables.track_overrides[0], id: "secret", program_id: "p2", track_slug: "secret" });
+    tables.session_content.push({ id: "secret", track: "secret", week_number: 1, status: "completed" });
+    expect((await getMvpLearnersData({ programId: "p1", courseSlug: "b" })).summary).toMatchObject({ totalEnrolled: 26, sessionsHeld: 1 });
+  });
+  it.each(["missing", "conflicting", "incomplete", "self-paced"])("returns unavailable, not a partial total, for %s evidence", async kind => {
+    seedSummary();
+    if (kind === "missing") tables.session_content = tables.session_content.filter(row => row.id !== "a1");
+    if (kind === "conflicting") tables.session_content.push({ ...tables.session_content[0], id: "z1", status: "upcoming" });
+    if (kind === "incomplete") tables.track_overrides[0].week_summaries = [];
+    if (kind === "self-paced") tables.track_overrides[0].self_paced = true;
+    const { summary } = await getMvpLearnersData();
+    expect(summary.totalEnrolled).toBe(26);
+    expect(summary.sessionsHeld).toBeNull();
+    expect(summary.sessionsHeldUnavailableReason).toBeTruthy();
+  });
+  it("accepts known zero and matching duplicate delivery, excluding future sessions and optional extras", async () => {
+    seedSummary();
+    tables.session_content.push({ ...tables.session_content[0], id: "z1" });
+    expect((await getMvpLearnersData()).summary.sessionsHeld).toBe(3);
+    requests = [];
+    tables.session_content.forEach(row => { row.status = "upcoming"; });
+    expect((await getMvpLearnersData()).summary).toMatchObject({ sessionsHeld: 0, sessionsHeldUnavailableReason: null });
+  });
+  it("uses canonical owner schedule overrides for shared courses", async () => {
+    seedSummary();
+    mocks.home.mockReturnValue({ slug: "two", tracks: [{ slug: "a" }] });
+    tables.track_overrides.push({ ...tables.track_overrides[0], id: "owner", program_id: "p2", self_paced: true });
+    expect((await getMvpLearnersData({ programId: "p1", courseSlug: "a" })).summary.sessionsHeld).toBeNull();
+  });
+  it("fails closed on duplicate schedule overrides and delivery read errors", async () => {
+    seedSummary();
+    tables.track_overrides.push({ ...tables.track_overrides[0], id: "zoverride" });
+    await expect(getMvpLearnersData()).rejects.toThrow("Ambiguous learner session schedule");
+    tables.track_overrides.pop();
+    requests = []; failure = "session_content";
+    await expect(getMvpLearnersData()).rejects.toThrow("Unable to verify delivered learner sessions");
+  });
+  it("fails closed on later delivery pages and non-advancing delivery cursors", async () => {
+    seedSummary();
+    failDeliveryAfter = 1;
+    await expect(getMvpLearnersData()).rejects.toThrow("Unable to verify delivered learner sessions");
+    requests = []; failDeliveryAfter = Infinity; ignoreDeliveryCursor = true;
+    await expect(getMvpLearnersData()).rejects.toThrow("Learner session pagination did not advance");
+  });
   const seedActivityLearner = () => {
     mocks.configs.mockReturnValue([{ slug: "one", tracks: [{ slug: "a", name: "A" }, { slug: "b", name: "B" }] }]);
     const students = { id: "s1", first_name: "Test", last_name: "Learner", email: null, cohort_id: null, role: "student", is_test: false, is_staff: false };
