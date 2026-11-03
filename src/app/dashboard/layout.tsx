@@ -180,6 +180,7 @@ export default async function DashboardLayout({
       {/* Set the collapsed-rail attribute before paint so the sidebar width
           doesn't flash on navigation. */}
       <script
+        nonce={headersList.get("x-nonce") ?? undefined}
         dangerouslySetInnerHTML={{
           __html: `try{if(localStorage.getItem('nav-collapsed')==='true')document.documentElement.dataset.navCollapsed='true'}catch(e){}`,
         }}

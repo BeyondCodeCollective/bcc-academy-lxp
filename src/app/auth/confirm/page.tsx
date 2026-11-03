@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { SignIn } from "@phosphor-icons/react/dist/ssr";
 
 export const metadata = {
@@ -20,6 +21,7 @@ export default async function ConfirmSignInPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   if (!params.token_hash) redirect("/login");
 
   const fields = Object.entries(params).filter(
@@ -50,6 +52,7 @@ export default async function ConfirmSignInPage({
           If nothing happens, tap the button above.
         </p>
         <script
+          nonce={nonce}
           // Real browsers run this and continue instantly; link scanners
           // fetch the HTML and stop, so the one-time token survives.
           dangerouslySetInnerHTML={{

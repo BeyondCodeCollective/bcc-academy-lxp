@@ -38,6 +38,10 @@ export async function GET(req: NextRequest) {
   const wk = (searchParams.get("wk") ?? "").replace(/\D/g, "").slice(0, 4);
   const sn = (searchParams.get("sn") ?? "").replace(/\D/g, "").slice(0, 4);
 
+  // Set by src/proxy.ts for the report-only strict CSP. Hex/base64 only, so it
+  // is safe to interpolate into an attribute.
+  const nonce = (req.headers.get("x-nonce") ?? "").replace(/[^A-Za-z0-9+/=]/g, "");
+
   const headers = {
     "Content-Type": "text/html; charset=utf-8",
     // Allow this page to be framed by same origin only
@@ -100,16 +104,16 @@ export async function GET(req: NextRequest) {
   </div>
 
   <!-- Vendor globals — the SDK bundle declares these as webpack externals -->
-  <script src="/zoom/lib/vendor/react.min.js"></script>
-  <script src="/zoom/lib/vendor/react-dom.min.js"></script>
-  <script src="/zoom/lib/vendor/redux.min.js"></script>
-  <script src="/zoom/lib/vendor/redux-thunk.min.js"></script>
-  <script src="/zoom/lib/vendor/lodash.min.js"></script>
+  <script nonce="${nonce}" src="/zoom/lib/vendor/react.min.js"></script>
+  <script nonce="${nonce}" src="/zoom/lib/vendor/react-dom.min.js"></script>
+  <script nonce="${nonce}" src="/zoom/lib/vendor/redux.min.js"></script>
+  <script nonce="${nonce}" src="/zoom/lib/vendor/redux-thunk.min.js"></script>
+  <script nonce="${nonce}" src="/zoom/lib/vendor/lodash.min.js"></script>
 
   <!-- Zoom Meeting SDK Client View — sets window.ZoomMtg -->
-  <script src="/zoom/zoom-meeting.min.js"></script>
+  <script nonce="${nonce}" src="/zoom/zoom-meeting.min.js"></script>
 
-  <script>
+  <script nonce="${nonce}">
     (async function () {
       const statusEl = document.getElementById("status");
 
@@ -208,7 +212,7 @@ export async function GET(req: NextRequest) {
     })();
   </script>
 
-  <script>
+  <script nonce="${nonce}">
     // Settings-dialog escape hatch. Zoom's Settings/Statistics modal
     // (.settings-dialog) opens with a native close (.settings-dialog__close),
     // but in this embedded frame — shorter than the standalone web client it
