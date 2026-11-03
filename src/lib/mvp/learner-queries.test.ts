@@ -23,6 +23,7 @@ beforeEach(() => {
   serverCap = 1; ignoreRosterCursor = false; failRosterAfter = Infinity;
   tables = { students: [{ id: "actor", program_id: "p1" }], staff_program_access: [], programs: [{ id: "p1", name: "One", slug: "one" }, { id: "p2", name: "Two", slug: "two" }] };
   Object.assign(tables, { track_overrides: [], hidden_courses: [], cohorts: [], student_tracks: [] });
+  Object.assign(tables, { submissions: [], reflections: [], week_progress: [] });
   mocks.client.mockReturnValue({ from(table: string) {
     const predicates: ((row: Row) => boolean)[] = [];
     let single = false;
@@ -44,6 +45,52 @@ beforeEach(() => {
   } });
 });
 describe("Learners loader access boundary", () => {
+  const seedActivityLearner = () => {
+    mocks.configs.mockReturnValue([{ slug: "one", tracks: [{ slug: "a", name: "A" }, { slug: "b", name: "B" }] }]);
+    const students = { id: "s1", first_name: "Test", last_name: "Learner", email: null, cohort_id: null, role: "student", is_test: false, is_staff: false };
+    tables.student_tracks = ["a", "b"].map(track_slug => ({ id: `e${track_slug}`, student_id: "s1", program_id: "p1", track_slug, students }));
+  };
+  it("returns the latest course action in UTC across complete timestamp-only source pages", async () => {
+    seedActivityLearner();
+    tables.submissions = [
+      { id: "a1", student_id: "s1", track_slug: "a", submitted_at: "2026-01-01T09:00:00-05:00" },
+      { id: "a2", student_id: "s1", track_slug: "a", submitted_at: "2026-01-02T09:00:00-05:00", content: "PRIVATE" },
+      { id: "a3", student_id: "other", track_slug: "a", submitted_at: "2026-01-09T00:00:00Z" },
+      { id: "a4", student_id: "s1", track_slug: "private", submitted_at: "2026-01-09T00:00:00Z" },
+    ];
+    tables.reflections = [{ id: "r1", student_id: "s1", track_slug: "a", submitted_at: "2026-01-03T09:00:00-05:00", answers: "PRIVATE" }];
+    tables.week_progress = [
+      { id: "v1", user_id: "s1", track_slug: "a", video_watched_at: "2026-01-03T16:00:00+01:00" },
+      { id: "v2", user_id: "s1", track_slug: "b", video_watched_at: "2026-01-01T12:00:00Z" },
+    ];
+    const result = await getMvpLearnersData();
+    expect(result.directory[0].enrollments.map(e => e.lastActivity)).toEqual([
+      { at: "2026-01-03T15:00:00.000Z", state: "recorded" },
+      { at: "2026-01-01T12:00:00.000Z", state: "recorded" },
+    ]);
+    expect(JSON.stringify(result.directory)).not.toContain("PRIVATE");
+    expect(requests).not.toContain("attendance");
+  });
+  it.each(["bad", "2999-01-01T00:00:00Z", "2026-01-01T12:00:00"])("marks invalid activity unavailable without contaminating other courses: %s", async submitted_at => {
+    seedActivityLearner();
+    tables.submissions = [{ id: "a1", student_id: "s1", track_slug: "a", submitted_at }];
+    const result = await getMvpLearnersData();
+    expect(result.directory[0].enrollments.map(e => e.lastActivity.state)).toEqual(["unavailable", "none_recorded"]);
+  });
+  it("does not treat draft timestamps or staff changes as learner activity", async () => {
+    seedActivityLearner();
+    tables.submissions = [{ id: "a1", student_id: "s1", track_slug: "a", submitted_at: null, updated_at: "2026-01-01T12:00:00Z" }];
+    expect((await getMvpLearnersData()).directory[0].enrollments[0].lastActivity).toEqual({ at: null, state: "none_recorded" });
+  });
+  it.each(["submissions", "reflections", "week_progress"])("fails rather than reporting no activity when %s cannot be read", async source => {
+    seedActivityLearner(); failure = source;
+    await expect(getMvpLearnersData()).rejects.toThrow("complete learner activity");
+  });
+  it("does not read activity when the authorized search has no matching learners", async () => {
+    seedActivityLearner();
+    expect((await getMvpLearnersData({ search: "no match" })).directory).toEqual([]);
+    expect(requests.some(source => ["submissions", "reflections", "week_progress"].includes(source))).toBe(false);
+  });
   it("batches over 100 courses without dropping enrollments or cohorts", async () => {
     serverCap = 500;
     const tracks = Array.from({ length: 101 }, (_, i) => ({ slug: `course-${String(i).padStart(3, "0")}`, name: `Course ${i}` }));
@@ -87,8 +134,8 @@ describe("Learners loader access boundary", () => {
     const all = await run();
     expect(all.pagination.totalMatching).toBe(1);
     expect(all.directory[0].enrollments).toMatchObject([
-      { programId: "p1", programName: "One", courseSlug: "a", courseName: "A", cohort: null, attendance: null, lastActivity: { at: null, state: "unavailable" }, status: "not_evaluated" },
-      { programId: "p2", programName: "Two", courseSlug: "b", courseName: "B", cohort: { id: "c1", name: "Current" }, attendance: null, lastActivity: { at: null, state: "unavailable" }, status: "not_evaluated" },
+      { programId: "p1", programName: "One", courseSlug: "a", courseName: "A", cohort: null, attendance: null, lastActivity: { at: null, state: "none_recorded" }, status: "not_evaluated" },
+      { programId: "p2", programName: "Two", courseSlug: "b", courseName: "B", cohort: { id: "c1", name: "Current" }, attendance: null, lastActivity: { at: null, state: "none_recorded" }, status: "not_evaluated" },
     ]);
     expect(all.directory[0].enrollments.every(row => row.caughtUp.percent === null && !!row.caughtUp.unavailableReason)).toBe(true);
     expect((await run({ search: "TEST@EXAMPLE" })).directory[0].enrollments).toHaveLength(2);
