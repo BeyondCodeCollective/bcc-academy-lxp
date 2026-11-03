@@ -6,6 +6,7 @@ export type ResolvedSession = {
   subtitle: string;
   description: string;
   objectives: string[];
+  homeworkInstructions: string;
   meetingLinks: (string | null)[];
   sessionStatuses: string[];
   recordingUrls: (string | null)[];
@@ -47,6 +48,7 @@ export function resolveSessionContent(
     subtitle: dbRow?.subtitle || weekConfig.subtitle,
     description: dbRow?.description || weekConfig.description,
     objectives: dbRow?.objectives?.length ? dbRow.objectives : weekConfig.objectives,
+    homeworkInstructions: dbRow?.homework_instructions ?? "",
     meetingLinks,
     sessionStatuses,
     recordingUrls,

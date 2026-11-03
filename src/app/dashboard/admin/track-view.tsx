@@ -66,7 +66,7 @@ type TrackViewProps = {
   tracks: AdminTrackConfig[];
   updateSession: (trackSlug: string, weekNum: number, sessionNum: number, patch: Partial<AdminSession>) => void;
   updateStudent: (id: string, field: "role" | "cohort_id" | "first_name" | "last_name", value: string) => Promise<void>;
-  updateWeekOverride: (trackSlug: string, weekNum: number, patch: Partial<Pick<AdminWeek, "overrideTitle" | "overrideSubtitle" | "overrideDescription" | "overrideObjectives">>) => void;
+  updateWeekOverride: (trackSlug: string, weekNum: number, patch: Partial<Pick<AdminWeek, "overrideTitle" | "overrideSubtitle" | "overrideDescription" | "overrideObjectives" | "overrideHomework">>) => void;
   userRole: string;
 };
 
@@ -459,6 +459,18 @@ export function TrackView({
                       placeholder="Leave blank to use defaults"
                       rows={4}
                       className={`${fieldInput} mt-1 resize-none`}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-ink-soft">
+                      Homework instructions <span className="font-normal text-ink-faint">(shown above the submission form)</span>
+                    </label>
+                    <textarea
+                      value={aw.overrideHomework}
+                      onChange={(e) => updateWeekOverride(activeTrack.slug, aw.week, { overrideHomework: e.target.value })}
+                      placeholder="e.g. Upload your three hand-written lines here"
+                      rows={3}
+                      className={`${fieldInput} mt-1 resize-y`}
                     />
                   </div>
                 </div>

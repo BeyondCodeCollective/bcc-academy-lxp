@@ -293,6 +293,7 @@ export function AdminTabs({
           subtitle: string | null;
           description: string | null;
           objectives: string[] | null;
+          homework_instructions: string | null;
         }> };
         const map: SessionContentMap = {};
         for (const row of json.rows) {
@@ -311,6 +312,7 @@ export function AdminTabs({
             subtitle: row.subtitle ?? null,
             description: row.description ?? null,
             objectives: row.objectives ?? null,
+            homework_instructions: row.homework_instructions ?? null,
           };
         }
         setTrackData((prev) => {
@@ -366,6 +368,7 @@ export function AdminTabs({
           subtitle: weekData.overrideSubtitle || null,
           description: weekData.overrideDescription || null,
           objectives: objectivesArr,
+          homework_instructions: weekData.overrideHomework || null,
           resources: allResources,
         }, programSlug);
         setSaveStates((s) => ({ ...s, [trackSlug]: { ...s[trackSlug], [weekNum]: "saved" } }));
@@ -396,7 +399,7 @@ export function AdminTabs({
     });
   }
 
-  function updateWeekOverride(trackSlug: string, weekNum: number, patch: Partial<Pick<AdminWeek, "overrideTitle" | "overrideSubtitle" | "overrideDescription" | "overrideObjectives">>) {
+  function updateWeekOverride(trackSlug: string, weekNum: number, patch: Partial<Pick<AdminWeek, "overrideTitle" | "overrideSubtitle" | "overrideDescription" | "overrideObjectives" | "overrideHomework">>) {
     setTrackData((prev) => {
       const weeks = prev[trackSlug] ?? [];
       const updated = weeks.map((w) =>

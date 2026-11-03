@@ -260,6 +260,7 @@ export default async function TrackWeekPage({
     subtitle: displaySubtitle,
     description: displayDescription,
     objectives: displayObjectives,
+    homeworkInstructions,
     meetingLinks,
     sessionStatuses,
     recordingUrls,
@@ -1016,6 +1017,7 @@ export default async function TrackWeekPage({
                   trackSlug={trackSlug}
                   weekNum={weekNum}
                   weekContent={weekContent}
+                  homeworkInstructions={homeworkInstructions}
                   showSubmissions={weekSubmissionsEnabled}
                   showReflections={track.reflectionsEnabled !== false}
                   defaultReflectionPrompts={track.defaultReflectionPrompts}
@@ -1032,6 +1034,7 @@ async function SubmissionsReflectionsSection({
   trackSlug,
   weekNum,
   weekContent,
+  homeworkInstructions,
   showSubmissions,
   showReflections,
   defaultReflectionPrompts,
@@ -1039,6 +1042,7 @@ async function SubmissionsReflectionsSection({
   trackSlug: string;
   weekNum: number;
   weekContent: WeekConfig;
+  homeworkInstructions: string;
   showSubmissions: boolean;
   showReflections: boolean;
   defaultReflectionPrompts?: string[];
@@ -1068,6 +1072,11 @@ async function SubmissionsReflectionsSection({
 
   return (
     <div className="mt-6 space-y-4">
+      {showSubmissions && homeworkInstructions && (
+        <p className="whitespace-pre-line rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-ink">
+          {homeworkInstructions}
+        </p>
+      )}
       {showSubmissions && (
         <SubmissionForm
           trackSlug={trackSlug}

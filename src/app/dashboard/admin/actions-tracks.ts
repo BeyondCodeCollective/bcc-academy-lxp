@@ -159,6 +159,7 @@ export type SessionContentData = {
   subtitle?: string | null;
   description?: string | null;
   objectives?: string[] | null;
+  homework_instructions?: string | null;
 };
 
 export type SessionContentRow = {
@@ -181,6 +182,7 @@ export type SessionContentRow = {
   subtitle: string | null;
   description: string | null;
   objectives: string[] | null;
+  homework_instructions: string | null;
 };
 
 /**
@@ -234,6 +236,10 @@ export async function saveSessionContent(
   if (data.description !== undefined) row.description = data.description || null;
   if (data.objectives !== undefined) {
     row.objectives = data.objectives && data.objectives.length > 0 ? data.objectives : null;
+  }
+
+  if (data.homework_instructions !== undefined) {
+    row.homework_instructions = data.homework_instructions?.trim() || null;
   }
 
   const { error } = await svc.from("session_content").upsert(
