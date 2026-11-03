@@ -102,6 +102,7 @@ export type AdminWeek = {
   overrideSubtitle: string;
   overrideDescription: string;
   overrideObjectives: string; // newline-separated for editing
+  overrideHomework: string;
 };
 // DB content map
 export type SessionContentMap = Record<number, {
@@ -119,6 +120,7 @@ export type SessionContentMap = Record<number, {
   subtitle: string | null;
   description: string | null;
   objectives: string[] | null;
+  homework_instructions: string | null;
 }>;
 export function buildInitialWeeks(track: AdminTrackConfig): AdminWeek[] {
   return track.weeks.map((w) => ({
@@ -129,6 +131,7 @@ export function buildInitialWeeks(track: AdminTrackConfig): AdminWeek[] {
     overrideSubtitle: "",
     overrideDescription: "",
     overrideObjectives: "",
+    overrideHomework: "",
     sessions: w.sessions.map((s, i) => ({
       num: i + 1,
       title: s.title,
@@ -149,6 +152,7 @@ export function applyContentMap(weeks: AdminWeek[], map: SessionContentMap): Adm
       overrideSubtitle: content.subtitle ?? "",
       overrideDescription: content.description ?? "",
       overrideObjectives: content.objectives?.join("\n") ?? "",
+      overrideHomework: content.homework_instructions ?? "",
       sessions: w.sessions.map((s, i) => ({
         ...s,
         meetingLink: i === 0 ? content.meeting_link : i === 1 ? content.meeting_link_2 : i === 2 ? content.meeting_link_3 : s.meetingLink,
