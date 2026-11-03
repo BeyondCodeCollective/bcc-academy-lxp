@@ -53,6 +53,7 @@ next-env.d.ts
 
 # Playwright
 /test-results/
+/qa-results.json
 /playwright-report/
 /blob-report/
 /.playwright/
