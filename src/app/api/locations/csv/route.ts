@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireCapability } from "@/app/dashboard/admin/actions-shared";
 import { resolveTrackLengths } from "@/lib/programs/scope";
-import { stateFromZip } from "@/lib/zip-to-state";
+import { lookupZips, placeFor } from "@/lib/zip-to-city";
 
 // Participant locations as a CSV: one row per hub learner with name, email,
 // city, state, ZIP, program, and courses. City/state come from the ZIP the
@@ -15,28 +15,6 @@ import { stateFromZip } from "@/lib/zip-to-state";
 export const dynamic = "force-dynamic";
 
 const HUB_SLUGS = ["catalyst", "atg", "beyond-code-centers"];
-
-const cityCache = new Map<string, { city: string; state: string } | null>();
-
-async function lookupZip(zip: string): Promise<{ city: string; state: string } | null> {
-  if (cityCache.has(zip)) return cityCache.get(zip) ?? null;
-  let result: { city: string; state: string } | null = null;
-  try {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 2500);
-    const r = await fetch(`https://api.zippopotam.us/us/${zip}`, { signal: ctrl.signal });
-    clearTimeout(timer);
-    if (r.ok) {
-      const j = (await r.json()) as { places?: { "place name": string; "state abbreviation": string }[] };
-      const p = j.places?.[0];
-      if (p) result = { city: p["place name"], state: p["state abbreviation"] };
-    }
-  } catch {
-    // Offline or slow: state still comes from the prefix table, city stays blank.
-  }
-  cityCache.set(zip, result);
-  return result;
-}
 
 function csvCell(value: unknown): string {
   if (value == null) return "";
@@ -89,17 +67,11 @@ export async function GET() {
     coursesBy.set(e.student_id, [...(coursesBy.get(e.student_id) ?? []), names.get(e.track_slug)?.name ?? e.track_slug]);
   }
 
-  // Resolve every distinct ZIP once, a few at a time.
-  const zips = [...new Set(students.map((s) => (s.zip ?? "").trim().slice(0, 5)).filter((z) => /^\d{5}$/.test(z)))];
-  for (let i = 0; i < zips.length; i += 8) {
-    await Promise.all(zips.slice(i, i + 8).map((z) => lookupZip(z)));
-  }
+  const places = await lookupZips(students.map((s) => s.zip));
 
   const rows = students.map((s) => {
-    const zip = (s.zip ?? "").trim().slice(0, 5);
-    const hit = /^\d{5}$/.test(zip) ? cityCache.get(zip) : null;
-    const state = hit?.state ?? stateFromZip(zip) ?? "";
-    const city = hit?.city ?? (state ? "" : (s.location ?? "").trim());
+    const { city: zipCity, state } = placeFor(places, s.zip);
+    const city = zipCity || (state ? "" : (s.location ?? "").trim());
     return {
       name: [s.first_name, s.last_name].filter(Boolean).join(" ").trim() || s.email,
       email: s.email,
