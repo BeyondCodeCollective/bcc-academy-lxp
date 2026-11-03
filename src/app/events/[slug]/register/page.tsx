@@ -45,7 +45,7 @@ export default async function EventRegisterPage({
             </div>
           )}
         </dl>
-        {event.description && <p className="mt-4 text-sm text-ink-soft">{event.description}</p>}
+        {event.description && <p className="mt-4 text-sm text-ink-soft whitespace-pre-line">{event.description}</p>}
       </div>
 
       {event.status === "closed" || full ? (

@@ -1,10 +1,9 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { resolveCurrentUnit, trackHasStarted, formatCohortDate } from "@/lib/utils";
-import { ArrowLeft, Video, CheckCircle, Link as LinkIcon, FileText } from "lucide-react";
+import { ArrowLeft, Video, CheckCircle } from "lucide-react";
 import { isSupabaseConfigured, createServiceClient } from "@/lib/supabase/server";
 import { getSessionContent } from "@/app/dashboard/admin/actions";
-import { isStorageUrl, isUploadedVideo } from "@/lib/storage-utils";
 import { resolveTrackProgram } from "@/lib/programs/server";
 import { getTrackBySlug } from "@/lib/programs";
 import { DB_TRACK_PREREQUISITES } from "@/lib/programs/field-ready";
@@ -27,6 +26,7 @@ import { getSurveyStatus } from "@/app/dashboard/actions";
 import type { WeekConfig } from "@/lib/programs/types";
 import { resolveSessionContent } from "@/lib/session-content";
 import { ZoomEmbed } from "@/components/zoom-embed";
+import { ResourceLink } from "@/components/resource-link";
 import { parseZoomLink, isZoomLink } from "@/lib/zoom";
 import { getSessionContext } from "@/lib/auth/session";
 import { signRecordingUrl } from "@/lib/blob-recordings";
@@ -997,33 +997,11 @@ export default async function TrackWeekPage({
             content:
               resources.length > 0 ? (
                 <ul className="grid max-w-4xl gap-3 sm:grid-cols-2">
-                  {resources.map((r, i) => {
-                    const isFile = r.type === "file" || isStorageUrl(r.url);
-                    const isVid = isUploadedVideo(r);
-                    const Icon = isVid ? Video : isFile ? FileText : LinkIcon;
-                    const action = isFile ? "Download" : "Open";
-                    return (
-                      <li key={i}>
-                        <a
-                          href={r.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          download={isFile ? (r.name || true) : undefined}
-                          className="group flex min-h-[60px] items-center gap-4 panel px-4 py-4 text-sm font-semibold text-ink transition-colors hover:border-primary hover:bg-paper-tint-soft"
-                        >
-                          <Icon
-                            size={22}
-                            aria-hidden
-                            className="shrink-0 text-ink-faint transition-colors group-hover:text-ink-soft"
-                          />
-                          <span className="flex-1 leading-snug">{r.name || r.url}</span>
-                          <span className="shrink-0 text-xs font-bold uppercase tracking-wide text-primary opacity-0 transition-opacity group-hover:opacity-100">
-                            {action}
-                          </span>
-                        </a>
-                      </li>
-                    );
-                  })}
+                  {resources.map((r, i) => (
+                    <li key={i} className={r.embed ? "sm:col-span-2" : undefined}>
+                      <ResourceLink resource={r} trackSlug={trackSlug} weekNum={weekNum} />
+                    </li>
+                  ))}
                 </ul>
               ) : null,
           },

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { CopyEventLink } from "./copy-event-link";
 import { notFound, redirect } from "next/navigation";
-import { ClipboardCheck, Download } from "lucide-react";
+import { ClipboardCheck, Download, QrCode } from "lucide-react";
 import { getSessionContext } from "@/lib/auth/session";
 import { canManageStudents, canManageRoles } from "@/lib/roles";
 import { createServiceClient } from "@/lib/supabase/server";
@@ -83,6 +83,10 @@ export default async function EventRosterPage({ params }: { params: Promise<{ id
             <Link href={`/dashboard/admin/events/${event.id}/check-in`} className={buttonClass("primary", "sm")}>
               <ClipboardCheck size={14} />
               Check in
+            </Link>
+            <Link href={`/dashboard/admin/events/${event.id}/qr`} className={buttonClass("secondary", "sm")}>
+              <QrCode size={14} />
+              QR code
             </Link>
             <a href={`/api/events/${event.id}/csv`} className={buttonClass("secondary", "sm")}>
               <Download size={14} />

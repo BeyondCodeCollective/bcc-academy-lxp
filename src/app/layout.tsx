@@ -4,6 +4,7 @@ import { Geist, Geist_Mono, Archivo } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { TextScaleProvider } from "@/components/text-scale-provider";
 import { GoogleAnalyticsProvider } from "@/components/google-analytics-provider";
+import { MetaPixelProvider } from "@/components/meta-pixel-provider";
 import "./globals.css";
 
 const AuthErrorBanner = dynamic(
@@ -69,6 +70,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col font-sans">
         <TextScaleProvider />
         <GoogleAnalyticsProvider />
+        <MetaPixelProvider />
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-neutral-900 focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#1D59FF]"

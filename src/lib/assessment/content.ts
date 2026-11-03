@@ -191,6 +191,10 @@ export type ArchetypeContent = {
   /** Career pathways by stage. Stages are NOT ages — a career changer can
       enter laterally. */
   pathways?: { entry: string; mid: string; established: string };
+  /** One learner-facing line above the pathways ("Your strength for ... shows up in roles where ..."). */
+  pathwaysIntro?: string;
+  /** Catalyst verticals to explore first. */
+  verticals?: string[];
   /** "Future thinking" — where the pattern is headed as AI reshapes work. */
   future?: string;
   /** "The honest part" — no-overclaiming note in learner voice. */
@@ -287,21 +291,42 @@ export const ARCHETYPE_CONTENT: Record<ArchetypeKey, ArchetypeContent> = {
   culture_keeper: {
     name: "Culture Keeper",
     emoji: "🤝",
-    definition: "You notice how a group is doing and help people feel included.",
+    definition: "You tend to notice how a group is doing and help people feel included.",
+    pathwaysIntro: "Your attention to how a group is doing matters in every workplace that runs on teams. Many people with this pattern build careers where people, learning, and community are the work.",
+    pathways: {
+      entry: "Community coordinator, HR coordinator, training or enablement coordinator.",
+      mid: "Community manager, people operations or HR systems specialist, learning and development specialist, customer success manager.",
+      established: "Head of people or culture, director of community, learning and development director.",
+    },
+    verticals: ["AI Fundamentals", "IT + Help Desk"],
     strengths: "Your responses point to noticing how a group is doing, not only what the group is doing. That may look like inviting a quiet person into the conversation or easing tension so people can keep working. Both can help a team feel included. In your next group task, name one support you need as well as one support you offer. Which version of this pattern shows up most often for you?",
     facilitator: "Attends to group climate, belonging, and morale, senses mood shifts early. Strength: emotional awareness, inclusion, group stability. Growth edge: boundaries and self-care, since they often carry the group's emotional load. Cross-module: distinguish Culture Keeper (tending the collective) from Support Specialist (helping an individual) and from Module 2 social energy (preferring group work). Coaching angle: name and value the emotional labor explicitly, help them set boundaries so they do not absorb everyone's stress.",
   },
   igniter: {
     name: "Igniter",
     emoji: "⚡",
-    definition: "You start things and move ideas into action.",
+    definition: "You tend to get things started and move ideas into action.",
+    pathwaysIntro: "Your strength for getting things started shows up in roles where someone has to make the first move. Many people with this pattern find a home launching projects, opening new business, or turning ideas into real offers.",
+    pathways: {
+      entry: "AI implementation associate, sales development representative at a tech company, launch or events coordinator.",
+      mid: "Solutions consultant, partnerships or growth manager, product marketing manager.",
+      established: "Founder, head of business development, product lead.",
+    },
+    verticals: ["Prototyping", "AI Automations"],
     strengths: "You may start a task when a group has been waiting to begin. That can create useful momentum when a project needs a first move. What would help this start become a finished piece of work? Write the next checkpoint before you begin, then return to it after your first burst of work.",
     facilitator: "Brings initiative and momentum, comfortable starting before conditions are perfect. Strength: activation, bias toward action. Growth edge: follow-through past the exciting start. Cross-module: keep Igniter (starting) separate from Module 2 pace (speed); an Igniter can be methodical once underway. High initiative with low Module 3 risk comfort can mean someone who starts boldly but strains under sustained uncertainty. Coaching angle: channel the starting energy, then build structure that supports finishing.",
   },
   explorer: {
     name: "Explorer",
     emoji: "🔭",
-    definition: "You learn by trying things and keeping your options open.",
+    definition: "You tend to learn by trying things and keeping your options open.",
+    pathwaysIntro: "Your curiosity and willingness to test ideas are useful wherever teams need fresh information before they decide. Many people with this pattern grow in roles that reward trying, testing, and learning fast.",
+    pathways: {
+      entry: "QA tester, AI tools specialist, research assistant.",
+      mid: "UX researcher, product analyst, innovation or emerging tech specialist.",
+      established: "Research lead, product manager, innovation director.",
+    },
+    verticals: ["AI Fundamentals", "Virtual Labs"],
     strengths: "Your answers suggest that you often learn by testing ideas, asking questions, and comparing options. This can help when a team needs fresh information before choosing a direction. In your next project, pick one option to test for a set amount of time before you switch to another. Notice what you learn once you stay with it beyond the first try. Another archetype may show up elsewhere.",
     facilitator: "Curious, keeps options open, learns through experimentation, resists premature commitment. Strength: adaptability, breadth, willingness to try. Growth edge: committing and going deep rather than staying at the surface across many things. Cross-module: a flat or blended Module 1 result is common and consistent with a genuine Explorer, so do not over-pathologize it; pair with Module 3 to see what they are reaching toward. Coaching angle: honor the exploration phase, help them set a project or time boundary to practice depth without feeling trapped.",
   },

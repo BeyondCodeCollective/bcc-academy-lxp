@@ -24,9 +24,9 @@ export default async function MvpDashboardPage({ searchParams }: {
 
     const role = context?.student?.role ?? "student";
 
-    // Access follows the shared MVP role policy.
-    // If the user doesn't have permission, redirect to the dashboard home page.
-    if (!canViewMvp(role)) {
+    // Access follows the shared MVP role policy, narrowed to super-admins while
+    // the dashboard is being built. Everyone else goes to the dashboard home.
+    if (!canViewMvp(role) || role !== "super_admin") {
         redirect("/dashboard");
     }
     const params = await searchParams;

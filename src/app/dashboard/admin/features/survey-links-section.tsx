@@ -43,6 +43,11 @@ export function SurveyLinksSection({
       ? [
           { id: "security-plus-midpoint", label: "CompTIA Security+ — Midpoint Check-In", path: "/dashboard/survey/security-plus-midpoint", auth: true },
           { id: "security-plus-post", label: "CompTIA Security+ — End-of-Cohort Survey", path: "/dashboard/survey/security-plus-post", auth: true },
+          // MASS cohorts all live in Catalyst. Each has its own instrument, so the
+          // label names the cohort (two share the same title in platform.ts).
+          { id: "mass-sept-2026-pre", label: "MASS Sept 2026 Pre-Program Survey", path: "/dashboard/survey/mass-sept-2026-pre", auth: true },
+          { id: "mass-fall-2026-pre", label: "MASS Fall 2026 Pre-Program Survey", path: "/dashboard/survey/mass-fall-2026-pre", auth: true },
+          { id: "mass-fall-2026-post", label: "MASS Fall 2026 Post-Program Survey", path: "/dashboard/survey/mass-fall-2026-post", auth: true },
         ]
       : []),
     ...surveyConfigs.map((s) => ({

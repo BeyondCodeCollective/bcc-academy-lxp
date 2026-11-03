@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import type { SessionResource } from "./actions";
+import { getResourceOpens, type ResourceOpens } from "./actions-tracks";
 import { Plus, X, Link as LinkIcon, UploadSimple as Upload, CircleNotch as Loader2, FileText } from "@phosphor-icons/react";
 import { buttonClass, fieldInput } from "@/components/ui";
-import { isStorageUrl } from "@/lib/storage-utils";
+import { isStorageUrl, getResourceEmbedUrl } from "@/lib/storage-utils";
 import { createClient as createBrowserClient } from "@/lib/supabase/client";
 
 // ─── Upload Button (generic) ────────────────────────────────────────────────
@@ -112,7 +113,16 @@ export function ResourceEditor({
     onChange([...resources, { name: "", url: "", type: "link" }]);
   }
 
-  function updateResource(index: number, field: keyof SessionResource, value: string) {
+  const [opens, setOpens] = useState<ResourceOpens>({});
+  useEffect(() => {
+    let live = true;
+    getResourceOpens(track, week).then((o) => live && setOpens(o)).catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [track, week]);
+
+  function updateResource(index: number, field: keyof SessionResource, value: string | boolean) {
     onChange(resources.map((r, i) => (i === index ? { ...r, [field]: value } : r)));
   }
 
@@ -175,6 +185,30 @@ export function ResourceEditor({
                 placeholder="https://..."
                 className={fieldInput}
               />
+            )}
+            <input
+              type="text"
+              value={r.note ?? ""}
+              onChange={(e) => updateResource(i, "note", e.target.value)}
+              placeholder="Instructions, e.g. Watch 1:09 to 2:55"
+              className={`${fieldInput} sm:col-span-2`}
+            />
+            {getResourceEmbedUrl(r.url) && (
+              <label className="flex items-center gap-2 text-xs text-ink-soft sm:col-span-2">
+                <input
+                  type="checkbox"
+                  checked={!!r.embed}
+                  onChange={(e) => updateResource(i, "embed", e.target.checked)}
+                />
+                Show the video on the page (click to play). A start time in the link, like ?t=69, is used.
+              </label>
+            )}
+            {opens[r.url] && (
+              <p className="text-micro text-ink-faint sm:col-span-2" title={opens[r.url].learners.join(", ")}>
+                Opened by {opens[r.url].learners.length}{" "}
+                {opens[r.url].learners.length === 1 ? "learner" : "learners"}
+                {opens[r.url].learners.length > 0 && `: ${opens[r.url].learners.slice(0, 8).join(", ")}${opens[r.url].learners.length > 8 ? ", and more" : ""}`}
+              </p>
             )}
           </div>
 

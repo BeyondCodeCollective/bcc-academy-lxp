@@ -2,6 +2,7 @@
 
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 // Shown on /login when an invite link couldn't be redeemed
 // (/invite/<token> redirects here with ?error=invite — dead token, or the
@@ -54,6 +55,12 @@ function Notice() {
   // already signed in as a different account is stopped here rather than
   // switched, so a forwarded or test click can't land in the invitee's account.
   if (error === "invite-mismatch") {
+    const invite = params.get("invite");
+    // Sign out, then reopen the same link: it now signs in as the invitee.
+    const signOutAndContinue = async () => {
+      await createClient().auth.signOut();
+      window.location.href = `/invite/${encodeURIComponent(invite ?? "")}`;
+    };
     return (
       <div role="alert" className="mb-6 rounded-lg border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
         <p className="font-semibold mb-1">This link is for a different account.</p>
@@ -61,6 +68,15 @@ function Notice() {
           You&apos;re already signed in as someone else, so we didn&apos;t switch
           you. To use this link, sign out first or open it in a private window.
         </p>
+        {invite && (
+          <button
+            type="button"
+            onClick={signOutAndContinue}
+            className="mt-3 rounded-md bg-amber-100 px-3 py-1.5 text-sm font-semibold text-black"
+          >
+            Sign out and continue
+          </button>
+        )}
       </div>
     );
   }
