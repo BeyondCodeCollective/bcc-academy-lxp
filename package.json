@@ -10,6 +10,7 @@
     "lint": "eslint && node scripts/check-us-english.mjs",
     "test:smoke": "playwright test",
     "test:smoke:install": "playwright install --with-deps chromium",
+    "test:qa": "playwright test -c playwright.qa.config.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "eval": "vitest run --config vitest.evals.config.ts",
