@@ -137,6 +137,8 @@ export type SessionResource = {
   name: string;
   url: string;
   type: string;
+  /** Which session (1-based) the resource was added under. Missing means session 1. */
+  session?: number;
   /** Instructions shown under the name, e.g. "Watch 1:09 to 2:55". */
   note?: string;
   /** Show a YouTube link inline (click to load) instead of only linking out. */
@@ -160,6 +162,8 @@ export type SessionContentData = {
   description?: string | null;
   objectives?: string[] | null;
   homework_instructions?: string | null;
+  homework_instructions_2?: string | null;
+  homework_instructions_3?: string | null;
 };
 
 export type SessionContentRow = {
@@ -183,6 +187,8 @@ export type SessionContentRow = {
   description: string | null;
   objectives: string[] | null;
   homework_instructions: string | null;
+  homework_instructions_2: string | null;
+  homework_instructions_3: string | null;
 };
 
 /**
@@ -238,8 +244,10 @@ export async function saveSessionContent(
     row.objectives = data.objectives && data.objectives.length > 0 ? data.objectives : null;
   }
 
-  if (data.homework_instructions !== undefined) {
-    row.homework_instructions = data.homework_instructions?.trim() || null;
+  // Written only when the caller sends them, so a deploy that lands before the
+  // migration can't break saves for the fields it doesn't touch.
+  for (const key of ["homework_instructions", "homework_instructions_2", "homework_instructions_3"] as const) {
+    if (data[key] !== undefined) row[key] = data[key]?.trim() || null;
   }
 
   const { error } = await svc.from("session_content").upsert(

@@ -13,20 +13,29 @@ const week = {
   sessions: [{ title: "Live" }],
 } as unknown as WeekConfig;
 
+const twoSessions = {
+  ...week,
+  sessions: [{ title: "Mon" }, { title: "Thu" }],
+} as unknown as WeekConfig;
+
 describe("resolveSessionContent homework instructions", () => {
-  it("is empty when there is no DB row", () => {
-    expect(resolveSessionContent(week, null).homeworkInstructions).toBe("");
+  it("is empty per session when there is no DB row", () => {
+    expect(resolveSessionContent(twoSessions, null).homeworkInstructions).toEqual(["", ""]);
   });
 
-  it("passes the instructor-written text through", () => {
-    const row = { homework_instructions: "Upload your three hand-written lines here" } as SessionContentRow;
-    expect(resolveSessionContent(week, row).homeworkInstructions).toBe(
+  it("returns each session's own text", () => {
+    const row = {
+      homework_instructions: "Upload your three hand-written lines here",
+      homework_instructions_2: "Bring a draft Thursday",
+    } as SessionContentRow;
+    expect(resolveSessionContent(twoSessions, row).homeworkInstructions).toEqual([
       "Upload your three hand-written lines here",
-    );
+      "Bring a draft Thursday",
+    ]);
   });
 
-  it("is empty when the column is null", () => {
-    const row = { homework_instructions: null } as SessionContentRow;
-    expect(resolveSessionContent(week, row).homeworkInstructions).toBe("");
+  it("treats null columns as empty", () => {
+    const row = { homework_instructions: null, homework_instructions_2: null } as SessionContentRow;
+    expect(resolveSessionContent(twoSessions, row).homeworkInstructions).toEqual(["", ""]);
   });
 });
