@@ -228,6 +228,8 @@ export type TrackConfig = {
   defaultReflectionPrompts?: string[];
   /** Whether project submissions are enabled for this track (defaults to true) */
   submissionsEnabled?: boolean;
+  /** Per-session exit survey under each session's video. Off unless an admin enables it. */
+  exitSurveyEnabled?: boolean;
   /**
    * Public survey IDs that belong to this track. Public surveys are
    * non-authenticated and live in `public_survey_responses` keyed by

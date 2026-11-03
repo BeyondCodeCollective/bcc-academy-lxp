@@ -91,6 +91,7 @@ const override = (track_slug: string, program: string, extra: Row = {}): Row => 
   default_reflection_prompts: null,
   submissions_enabled: null,
   reflections_enabled: null,
+  exit_survey_enabled: null,
   sequential_gating: null,
   phase: null,
   office_hours: null,
