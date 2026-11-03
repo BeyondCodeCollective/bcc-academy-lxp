@@ -16,6 +16,10 @@ import { canAccessAdminPanel } from "@/lib/roles";
 import { SubmissionForm } from "@/components/submission-form";
 import { PageHeader } from "@/components/page-header";
 import { RecordingCard } from "@/components/recording-card";
+import { ExitSurveyForm } from "@/components/exit-survey-form";
+import { ExitHoursPopup } from "@/components/exit-hours-popup";
+import { getMyExitSurveys } from "@/app/dashboard/track/exit-survey-actions";
+import { asksHours } from "@/lib/exit-survey";
 import { ReflectionForm } from "@/components/reflection-form";
 import { IntakeForm } from "@/components/intake-form";
 import { LockedByPrerequisite } from "@/components/locked-by-prerequisite";
@@ -333,6 +337,13 @@ export default async function TrackWeekPage({
     track.selfPaced || isCurrent || isCompleted || weekNum < currentWeek || comingSoonPassed;
 
   const sessionsLabel = weekContent.sessions.length === 1 ? "Session" : "Sessions";
+
+  // Exit survey: only for courses that turned it on, only for an enrolled
+  // learner on an unlocked week. null = show nothing.
+  const exitSurvey =
+    track.exitSurveyEnabled && isSupabaseConfigured() && unlocked
+      ? await getMyExitSurveys(trackSlug, weekNum).catch(() => null)
+      : null;
 
   // The unit's scheduled clock (date + time) as the course schedule holds it —
   // the same row the live-join window and the unlock gate below read.
@@ -710,6 +721,12 @@ export default async function TrackWeekPage({
         )
       )}
 
+      {/* Monday hours question: before the first session of a week after week 1,
+         once, until answered. */}
+      {exitSurvey && asksHours(weekNum, 1) && weekNum === currentWeek && !exitSurvey[1]?.hours_text && (
+        <ExitHoursPopup trackSlug={trackSlug} weekNumber={weekNum} />
+      )}
+
       {/* Zoom embeds — rendered for any session with an active Zoom meeting link.
          The meeting ID never appears in the DOM; students join through the SDK. */}
       {zoomSessions.length > 0 && (
@@ -880,6 +897,24 @@ export default async function TrackWeekPage({
           />
         );
       })}
+
+      {/* Exit survey, under each session's video (live or replay). */}
+      {exitSurvey &&
+        weekContent.sessions.map((_, i) => {
+          if (!liveNow.has(i) && !playbackUrls[i]) return null;
+          const row = exitSurvey[i + 1];
+          return (
+            <ExitSurveyForm
+              key={`exit-${i}`}
+              trackSlug={trackSlug}
+              weekNumber={weekNum}
+              sessionNumber={i + 1}
+              title={weekContent.sessions.length > 1 ? `Session ${i + 1} exit survey` : "Exit survey"}
+              initialRating={row?.understanding ?? null}
+              initialUnclear={row?.unclear_text ?? null}
+            />
+          );
+        })}
 
       {/* The lab itself. Idle, this renders AS the stage (the dark slab that
          anchors the page); once the learner starts, it becomes the live

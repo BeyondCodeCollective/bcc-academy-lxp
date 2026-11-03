@@ -17,6 +17,7 @@ import { CertificatesPanel } from "./certificates-panel";
 import { TrackInsightsSection } from "@/components/track-insights-section";
 import { CourseEngagement, type CourseEngagementProps } from "@/components/stats/course-engagement";
 import { TrackOverviewForm } from "./track-overview-form";
+import { ExitSurveyPanel } from "./exit-survey-panel";
 import { OfficeHoursEditor } from "./office-hours-editor";
 import { sendCohortInvites } from "./invites/actions";
 import { isStorageUrl } from "@/lib/storage-utils";
@@ -351,6 +352,12 @@ export function TrackView({
             onLiveChange={(patch) =>
               setLiveTrackNames((prev) => ({ ...prev, [activeTrack.slug]: patch }))
             }
+          />
+          <ExitSurveyPanel
+            key={`exit-${activeTrack.slug}`}
+            trackSlug={activeTrack.slug}
+            programSlug={programSlug}
+            initialEnabled={!!activeTrack.exitSurveyEnabled}
           />
           <OfficeHoursEditor
             key={`oh-${activeTrack.slug}`}

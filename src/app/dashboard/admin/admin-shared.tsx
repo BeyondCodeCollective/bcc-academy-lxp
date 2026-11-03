@@ -72,6 +72,7 @@ export type AdminTrackConfig = {
   defaultReflectionPrompts?: string[];
   submissionsEnabled?: boolean;
   reflectionsEnabled?: boolean;
+  exitSurveyEnabled?: boolean;
   sequentialGating?: boolean;
   officeHours?: OfficeHour[];
   weeks: {

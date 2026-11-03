@@ -363,6 +363,7 @@ export type TrackOverviewPatch = {
   default_reflection_prompts?: string[] | null;
   submissions_enabled?: boolean | null;
   reflections_enabled?: boolean | null;
+  exit_survey_enabled?: boolean | null;
   sequential_gating?: boolean | null;
   office_hours?: OfficeHour[] | null;
 };
@@ -412,6 +413,8 @@ export async function saveTrackOverview(
     row.submissions_enabled = patch.submissions_enabled;
   if ("reflections_enabled" in patch)
     row.reflections_enabled = patch.reflections_enabled;
+  if ("exit_survey_enabled" in patch)
+    row.exit_survey_enabled = patch.exit_survey_enabled;
   if ("sequential_gating" in patch)
     row.sequential_gating = patch.sequential_gating;
   if ("office_hours" in patch) row.office_hours = patch.office_hours;

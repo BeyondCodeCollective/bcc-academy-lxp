@@ -812,6 +812,7 @@ export default async function AdminPage({
       defaultReflectionPrompts: t.defaultReflectionPrompts,
       submissionsEnabled: t.submissionsEnabled,
       reflectionsEnabled: t.reflectionsEnabled,
+      exitSurveyEnabled: t.exitSurveyEnabled,
       sequentialGating: t.sequentialGating,
       officeHours: t.officeHours ?? [],
     };
