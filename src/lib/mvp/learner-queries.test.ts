@@ -39,6 +39,33 @@ beforeEach(() => {
   } });
 });
 describe("Learners loader access boundary", () => {
+  it("deduplicates before pagination, retaining every matching course and accurate counts", async () => {
+    mocks.configs.mockReturnValue([{ slug: "one", tracks: [{ slug: "a", name: "A" }, { slug: "b", name: "B" }] }]);
+    tables.student_tracks = Array.from({ length: 26 }, (_, index) => {
+      const id = String(index).padStart(2, "0");
+      const students = { id: `s${id}`, first_name: "Same", last_name: "Name", email: `learner${id}@example.test`, cohort_id: null, role: "student", is_test: false, is_staff: false };
+      return ["a", "b"].map(track_slug => ({ id: `e${id}${track_slug}`, student_id: students.id, program_id: "p1", track_slug, students }));
+    }).flat();
+    // Duplicate enrollment must not create another learner or course entry.
+    tables.student_tracks.push({ ...tables.student_tracks[0], id: "zzduplicate" });
+    const first = await getMvpLearnersData();
+    requests = [];
+    const second = await getMvpLearnersData({ page: "2" });
+    expect(first.directory).toHaveLength(25);
+    expect(second.directory).toHaveLength(1);
+    expect(first.pagination).toMatchObject({ totalMatching: 26, page: 1, totalPages: 2, start: 1, end: 25, hasNext: true });
+    expect(second.pagination).toMatchObject({ totalMatching: 26, start: 26, end: 26, hasPrevious: true, hasNext: false });
+    const all = [...first.directory, ...second.directory];
+    expect(new Set(all.map(row => row.id)).size).toBe(26);
+    expect(all.every(row => row.enrollments.length === 2)).toBe(true);
+    expect(all.map(row => row.id)).toEqual(Array.from({ length: 26 }, (_, i) => `s${String(i).padStart(2, "0")}`));
+    requests = [];
+    const filtered = await getMvpLearnersData({ search: "learner00@", page: "999" });
+    expect(filtered.pagination).toMatchObject({ page: 1, totalMatching: 1, totalPages: 1 });
+    requests = [];
+    const empty = await getMvpLearnersData({ search: "no match", page: "2" });
+    expect(empty.pagination).toMatchObject({ page: 1, totalMatching: 0, start: 0, end: 0 });
+  });
   it("searches authorized names/emails literally and returns only matching enrollments", async () => {
     mocks.configs.mockReturnValue([{ slug: "one", tracks: [{ slug: "a", name: "A" }, { slug: "b", name: "B" }] }]);
     const profile = { id: "s1", first_name: "Ada", last_name: "Example", email: "ada@example.test", cohort_id: "c1", role: "student", is_test: false, is_staff: false };
