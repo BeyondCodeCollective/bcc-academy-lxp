@@ -2,6 +2,7 @@ import "server-only";
 import type { createServiceClient } from "@/lib/supabase/server";
 import { getEveryProgramConfig } from "@/lib/programs";
 import type { LearnerProgramScope } from "./learner-queries";
+import { learnerCourseBatches } from "./learner-batches";
 
 // Internal helper: scope must come from getMvpLearnersData, never request input.
 export async function loadLearnerOptions(db: ReturnType<typeof createServiceClient>, scope: LearnerProgramScope[]) {
@@ -42,16 +43,19 @@ export async function loadLearnerOptions(db: ReturnType<typeof createServiceClie
       if (hidden.error || !Array.isArray(hidden.data)) throw new Error("Unable to verify hidden courses.");
       if (hidden.data.length) continue;
       options.courses.push({ programId: program.id, slug, name });
+    }
+    for (const batch of learnerCourseBatches(options.courses.filter(course => course.programId === program.id))) {
+      const slugs = batch.map(course => course.slug);
       cursor = null;
       while (true) {
-        let query = db.from("cohorts").select("id, name, display_name").eq("program_id", program.id).eq("track_slug", slug).order("id").limit(500);
+        let query = db.from("cohorts").select("id, name, display_name, program_id, track_slug").eq("program_id", program.id).in("track_slug", slugs).order("id").limit(500);
         if (cursor) query = query.gt("id", cursor);
         const { data, error } = await query;
         if (error || !Array.isArray(data)) throw new Error("Unable to load learner cohort options.");
         if (!data.length) break;
         for (const row of data) {
-          if (typeof row.id !== "string" || !row.id || typeof row.name !== "string" || (row.display_name !== null && typeof row.display_name !== "string")) throw new Error("Invalid learner cohort options.");
-          options.cohorts.push({ programId: program.id, courseSlug: slug, id: row.id, name: row.display_name?.trim() || row.name });
+          if (typeof row.id !== "string" || !row.id || typeof row.name !== "string" || row.program_id !== program.id || !slugs.includes(row.track_slug) || (row.display_name !== null && typeof row.display_name !== "string")) throw new Error("Invalid learner cohort options.");
+          options.cohorts.push({ programId: program.id, courseSlug: row.track_slug, id: row.id, name: row.display_name?.trim() || row.name });
         }
         const next: string = data[data.length - 1].id;
         if (!next || (cursor !== null && next <= cursor)) throw new Error("Cohort pagination did not advance.");

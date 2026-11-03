@@ -250,6 +250,22 @@ do not alter them under this documentation task.
 
 ## Code references
 
+### Learner directory progress integration
+
+The authorized Learners loader now enriches each paginated enrollment with
+`caughtUp` from the existing participant-progress calculation. It never combines
+percentages across courses or substitutes aggregate video progress. Missing
+policies return null values and the existing unconfigured-requirements reason,
+without making extra activity queries. The policy registry remains empty.
+
+Configured offerings reuse the authorized participant loader once per course on
+the page, with its existing batched, complete reads and permission checks. Only
+the selected learners' progress fields are returned. Missing, duplicate, or
+out-of-scope progress records fail the request rather than inventing a result.
+This reuse reads the configured course's roster internally; it is not a new
+database-level page-only evidence query. UI wiring and last-activity enrichment
+remain separate tasks. Tests use synthetic records, not live learner data.
+
 - `src/lib/mvp/queries.ts`: authorized offerings, current roster, attendance.
 - `src/lib/mvp/participant-queries.ts`: scoped contact and activity reads.
 - `src/lib/mvp/participant-progress.ts`: progress policies and activity dates.
