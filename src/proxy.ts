@@ -8,6 +8,10 @@ import {
   getProgramByDomain,
   getProgramBySlug,
 } from "@/lib/programs";
+import {
+  buildStrictScriptPolicy,
+  CSP_REPORT_ONLY_HEADER,
+} from "@/lib/csp-report-only";
 
 // Preview override: lets a reviewer flip into a specific program experience
 // on a non-production host (Vercel preview URL, vercel.app alias, localhost)
@@ -62,7 +66,18 @@ export async function proxy(request: NextRequest) {
   requestHeaders.set("x-program-slug", program.slug);
   requestHeaders.set("x-pathname", request.nextUrl.pathname);
 
+  // Report-only strict CSP (see src/lib/csp-report-only.ts). Next reads the
+  // nonce from the REQUEST's CSP header (report-only counts) and stamps it on
+  // framework scripts and <Script>; x-nonce is for hand-written <script> tags.
+  // Per the Next docs a nonce forces dynamic rendering, so this makes matched
+  // pages render per request. The enforced policy is untouched.
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+  const strictPolicy = buildStrictScriptPolicy(nonce);
+  requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set(CSP_REPORT_ONLY_HEADER, strictPolicy);
+
   const applyProgramCookies = (res: NextResponse) => {
+    res.headers.set(CSP_REPORT_ONLY_HEADER, strictPolicy);
     res.cookies.set("program-slug", program.slug, {
       path: "/",
       httpOnly: false,

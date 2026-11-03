@@ -9,6 +9,8 @@ import { getLearnerAccess } from "@/lib/auth/active-enrollment";
 import { isStaffEmail } from "@/lib/auth/admins";
 import { logActivityEvent } from "@/lib/analytics/log-event";
 import { resolveCurrentUnit } from "@/lib/utils";
+import { isMeetingBoundToLearnerTrack } from "@/lib/zoom-binding";
+import { canAccessAdminPanel } from "@/lib/roles";
 
 /**
  * POST /api/zoom-signature
@@ -39,7 +41,7 @@ export async function POST(request: NextRequest) {
   const svc = createServiceClient();
   const { data: student } = await svc
     .from("students")
-    .select("id, first_name, last_name")
+    .select("id, first_name, last_name, role")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -89,6 +91,19 @@ export async function POST(request: NextRequest) {
       { error: "meetingNumber required" },
       { status: 400 }
     );
+  }
+
+  // ── Meeting binding ───────────────────────────────────────────────────────
+  // A learner may only get a signature for a meeting configured on a track they
+  // are enrolled in. Staff and admins (the same exemption as above) may join any.
+  const isPrivileged =
+    isStaffEmail(user.email) ||
+    canAccessAdminPanel((student as { role?: string }).role ?? "");
+  if (
+    !isPrivileged &&
+    !(await isMeetingBoundToLearnerTrack(svc, user.id, trackSlug, meetingNumber))
+  ) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   // ── Auto-attendance ───────────────────────────────────────────────────────

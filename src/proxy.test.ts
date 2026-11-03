@@ -142,4 +142,17 @@ describe("proxy: signed-in visitors", () => {
     expect(from).not.toHaveBeenCalled();
     expect(location(res)).toBeNull();
   });
+
+  it("adds a report-only strict CSP with a per-request nonce and leaves enforcement alone", async () => {
+    signedOut();
+    const a = await proxy(req("https://bccacademy.io/about"));
+    const b = await proxy(req("https://bccacademy.io/about"));
+    const ro = a.headers.get("content-security-policy-report-only") ?? "";
+    expect(ro).toMatch(/script-src [^;]*'nonce-[^']+'[^;]*'strict-dynamic'/);
+    expect(ro).not.toContain("'unsafe-inline'");
+    expect(ro).not.toContain("'unsafe-eval'");
+    expect(ro).toContain("report-uri /api/csp-report?ro=1");
+    expect(a.headers.get("content-security-policy")).toBeNull();
+    expect(ro).not.toBe(b.headers.get("content-security-policy-report-only"));
+  });
 });
