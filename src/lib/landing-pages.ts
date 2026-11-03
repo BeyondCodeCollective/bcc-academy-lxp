@@ -108,6 +108,10 @@ export type LandingPage = {
   signupQuestions: SignupQuestion[];
   /** No date yet: the form only collects interest — no enrollment, no login link. */
   comingSoon: boolean;
+  /** Leave the age-range and ZIP questions off the signup form. */
+  hideAgeZip: boolean;
+  /** Enroll an existing account at signup rather than when the emailed link is opened. */
+  enrollOnSignup: boolean;
   enrollCtaLabel: string | null;
   /** Phase 6: host this event's multi-attendee registration form in the signup slot. */
   eventSlug: string | null;
@@ -190,6 +194,8 @@ export const getLandingPage = cache(async function getLandingPage(
     nativeEnroll: (data.native_enroll as boolean | null) ?? false,
     signupQuestions: (data.signup_questions as SignupQuestion[] | null) ?? [],
     comingSoon: (data.coming_soon as boolean | null) ?? false,
+    hideAgeZip: (data.hide_age_zip as boolean | null) ?? false,
+    enrollOnSignup: (data.enroll_on_signup as boolean | null) ?? false,
     enrollCtaLabel: (data.enroll_cta_label as string | null) ?? null,
     eventSlug: (data.event_slug as string | null) ?? null,
     applyUrl: (data.apply_url as string | null) ?? null,

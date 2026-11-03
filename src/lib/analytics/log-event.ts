@@ -15,6 +15,8 @@ export type ActivityEventType =
   | "survey_complete"
   // Learner joined the live Zoom through the platform embed.
   | "session_join"
+  // Learner opened a week resource (link, file, or inline embed).
+  | "resource_open"
   | "certificate_issued";
 
 export async function logActivityEvent(e: {

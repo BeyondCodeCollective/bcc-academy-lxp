@@ -42,6 +42,9 @@ export type ScoredOutput = {
   archetype_top_three: ArchetypeKey[] | null;
   archetype_confidence: ArchetypeConfidence;
   archetype_scores: Record<ArchetypeKey, number>; // averages — facilitator only
+  /** v4 flags: shown alongside the result, never in place of it. Absent on results saved before v4. */
+  flag_broad_high?: boolean;
+  flag_flat?: boolean;
   facilitator_review: boolean;
 
   // Module 2

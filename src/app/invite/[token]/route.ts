@@ -38,7 +38,9 @@ export async function GET(
     current?.email &&
     current.email.toLowerCase() !== invite.email.toLowerCase()
   ) {
-    return NextResponse.redirect(new URL("/login?error=invite-mismatch", origin));
+    return NextResponse.redirect(
+      new URL(`/login?error=invite-mismatch&invite=${encodeURIComponent(token)}`, origin),
+    );
   }
 
   const callbackUrl = new URL(`${origin}/auth/callback`);

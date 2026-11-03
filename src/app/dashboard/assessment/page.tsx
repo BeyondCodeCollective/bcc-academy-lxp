@@ -14,22 +14,38 @@ export default async function AssessmentPage() {
 
   const svc = createServiceClient();
 
-  const program = await getProgram();
+  const hostProgram = await getProgram();
 
-  // Resolve enrolled track slugs scoped to this program only.
-  // A learner enrolled in a Catalyst track (e.g. entrepreneurship-101) must not
-  // be able to access the assessment from the Upskill Bahamas context just
-  // because that track happens to have assessment_enabled = true.
+  // The browsing host is not the learner's program: the apex always resolves to
+  // marketing, which has no tracks, so keying on it bounced enrolled learners.
+  // Resolve the program from their enrollments instead, and prefer the host
+  // program when they are enrolled in it so a multi-program learner stays put.
   const { data: enrollmentRows } = await svc
     .from("student_tracks")
-    .select("track_slug")
+    .select("track_slug, program_id")
     .eq("student_id", ctx.userId);
-  const allEnrolledSlugs = (enrollmentRows ?? []).map((r) => r.track_slug as string);
-  const programTrackSlugs = new Set(program.tracks.map((t) => t.slug));
-  const enrolledTrackSlugs = allEnrolledSlugs.filter((s) => programTrackSlugs.has(s));
-
-  // Feature gate — redirect to dashboard if assessment isn't on for this learner
-  const enabled = await isAssessmentEnabledForLearner(program.slug, enrolledTrackSlugs);
+  const enrollments = (enrollmentRows ?? []) as { track_slug: string; program_id: string | null }[];
+  const programIds = [...new Set(enrollments.map((r) => r.program_id).filter((id): id is string => !!id))];
+  const { data: programRows } = programIds.length
+    ? await svc.from("programs").select("id, slug").in("id", programIds)
+    : { data: [] as { id: string; slug: string }[] };
+  const slugById = new Map((programRows ?? []).map((r) => [r.id as string, r.slug as string]));
+  const tracksByProgram = new Map<string, string[]>();
+  for (const r of enrollments) {
+    const slug = r.program_id ? slugById.get(r.program_id) : undefined;
+    if (slug) tracksByProgram.set(slug, [...(tracksByProgram.get(slug) ?? []), r.track_slug]);
+  }
+  const candidates = [...tracksByProgram.keys()].sort((x) => (x === hostProgram.slug ? -1 : 0));
+  let programSlug = hostProgram.slug;
+  let enabled = false;
+  for (const slug of candidates) {
+    if (await isAssessmentEnabledForLearner(slug, tracksByProgram.get(slug) ?? [])) {
+      programSlug = slug;
+      enabled = true;
+      break;
+    }
+  }
+  // Feature gate: redirect to dashboard if assessment isn't on for this learner
   if (!enabled) redirect("/dashboard");
 
   // Already completed → go to results
@@ -44,7 +60,7 @@ export default async function AssessmentPage() {
   if (!(await hasCompletedEntryFlow(ctx.userId))) {
     return (
       <div className="min-h-screen bg-paper">
-        <EntryFlow programSlug={program.slug} />
+        <EntryFlow programSlug={programSlug} />
       </div>
     );
   }
@@ -57,7 +73,7 @@ export default async function AssessmentPage() {
       <AssessmentWizard
         initialModule={progress?.current_module ?? 0}
         initialResponses={(progress?.responses_so_far as Record<string, number | string>) ?? {}}
-        programSlug={program.slug}
+        programSlug={programSlug}
       />
     </div>
   );

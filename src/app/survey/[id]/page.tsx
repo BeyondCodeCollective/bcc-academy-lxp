@@ -90,6 +90,8 @@ const SURVEY_ALIASES: Record<string, string> = {
 const MOVED_TO_AUTHENTICATED: Record<string, string> = {
   "security-plus-midpoint": "/dashboard/survey/security-plus-midpoint",
   "security-plus-post": "/dashboard/survey/security-plus-post",
+  // MASS answers are tied to the learner's account; the login gate returns them here.
+  "mass-fall-2026-post": "/dashboard/survey/mass-fall-2026-post",
 };
 
 export default async function PublicSurveyPage({

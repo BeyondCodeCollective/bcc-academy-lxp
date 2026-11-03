@@ -57,6 +57,8 @@ export type LandingPageInput = {
   eventSlug?: string | null;
   /** Interest capture only — the signup form enrolls no one. */
   comingSoon: boolean;
+  hideAgeZip: boolean;
+  enrollOnSignup: boolean;
   /** Cohort dates offered by the native form. */
   sessions: LandingSession[];
   enrollCtaLabel: string;
@@ -243,6 +245,8 @@ export async function saveLandingPageAction(
     meta_description: trimToNull(input.metaDescription),
     native_enroll: input.nativeEnroll && sessions.length > 0,
     coming_soon: input.comingSoon,
+    hide_age_zip: input.hideAgeZip,
+    enroll_on_signup: input.enrollOnSignup,
     sessions,
     enroll_cta_label: trimToNull(input.enrollCtaLabel),
     event_slug: trimToNull(input.eventSlug ?? ""),

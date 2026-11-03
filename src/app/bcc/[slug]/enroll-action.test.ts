@@ -8,6 +8,8 @@ const mocks = vi.hoisted(() => ({
   updates: [] as Record<string, unknown>[],
   inserts: [] as Record<string, unknown>[],
   questions: [] as { id: string; label: string; options: string[] }[],
+  enrollOnSignup: false,
+  upserts: [] as Record<string, unknown>[],
 }));
 
 vi.mock("@/lib/email", () => ({ sendEventConfirmationEmail: mocks.send }));
@@ -19,6 +21,7 @@ vi.mock("@/lib/landing-pages", () => ({
   getLandingPage: async () => ({
     nativeEnroll: true,
     comingSoon: false,
+    enrollOnSignup: mocks.enrollOnSignup,
     trackSlug: "catalyst-labs",
     headline: "Catalyst Labs",
     signupQuestions: mocks.questions,
@@ -45,9 +48,14 @@ vi.mock("@/lib/supabase/server", () => ({
         mocks.inserts.push(values);
         return { error: null };
       };
+      q.upsert = async (values: Record<string, unknown>) => {
+        mocks.upserts.push(values);
+        return { error: null };
+      };
       q.maybeSingle = async () => ({ data: mocks.existing });
       q.then = (resolve: (v: unknown) => void) => {
         if (table === "students") return resolve({ data: mocks.account });
+        if (table === "programs") return resolve({ data: [{ id: "prog-1" }] });
         return resolve({ data: op === "update" ? mocks.claimed : [] });
       };
       return q;
@@ -74,6 +82,8 @@ beforeEach(() => {
   mocks.updates = [];
   mocks.inserts = [];
   mocks.questions = [];
+  mocks.enrollOnSignup = false;
+  mocks.upserts = [];
 });
 
 describe("enrollInCourse confirmation email", () => {
@@ -158,5 +168,27 @@ describe("signup questions", () => {
     const res = await enrollInCourse({ ...input, ageRange: "25-34" });
     expect(res.ok).toBe(true);
     expect(mocks.inserts[0]?.answers).toEqual({ "Age range": "25-34" });
+  });
+});
+
+describe("enrollInCourse enroll on signup", () => {
+  it("enrolls an existing account right away when the page opts in", async () => {
+    mocks.enrollOnSignup = true;
+    mocks.account = [{ id: "s1" }];
+    await enrollInCourse(input);
+    expect(mocks.upserts).toEqual([{ student_id: "s1", track_slug: "catalyst-labs", program_id: "prog-1" }]);
+  });
+
+  it("does nothing for a new email, which is enrolled when the link is opened", async () => {
+    mocks.enrollOnSignup = true;
+    mocks.account = [];
+    await enrollInCourse(input);
+    expect(mocks.upserts).toHaveLength(0);
+  });
+
+  it("does nothing when the page has not opted in", async () => {
+    mocks.account = [{ id: "s1" }];
+    await enrollInCourse(input);
+    expect(mocks.upserts).toHaveLength(0);
   });
 });

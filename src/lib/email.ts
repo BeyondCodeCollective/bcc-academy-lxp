@@ -75,7 +75,7 @@ function inviteShell(brand: string, bodyHtml: string): string {
   return `
 <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:520px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;">
   <div style="background:#1a1a1a;padding:24px;text-align:center;" bgcolor="#1a1a1a">
-    <img src="${PUBLIC_ORIGIN}/images/bcc/bcc-logo-email.png" alt="" width="40" height="40" style="display:block;margin:0 auto 12px;border:0;outline:none;text-decoration:none;" />
+    <img src="${PUBLIC_ORIGIN}/images/bcc/bcc-logo-email.png" alt="Beyond Code Collective" width="120" height="63" style="display:block;margin:0 auto 20px;border:0;outline:none;text-decoration:none;" />
     <p style="margin:0;font-size:24px;font-weight:700;letter-spacing:-0.02em;text-transform:uppercase;color:#ffffff;">${brand}</p>
   </div>
   <div style="padding:32px 24px;">
