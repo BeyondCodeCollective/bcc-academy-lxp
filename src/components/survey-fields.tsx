@@ -527,6 +527,10 @@ function LikertField({
         {question.statements.map((stmt, idx) => {
           const groupId = `${question.id}-stmt-${idx}`;
           const selected = responses[stmt];
+          // Word options ("Free", "Did not use", "Keep / Shorten / Cut") don't
+          // fit a 36px numeric dot: render them as full-width pills that wrap
+          // to two per row on phones.
+          const wordScale = question.scale.some((v) => !/^\d+$/.test(v));
           return (
             <div
               key={stmt}
@@ -539,20 +543,35 @@ function LikertField({
                 role="radiogroup"
                 aria-labelledby={groupId}
                 aria-required={question.required || undefined}
-                className="flex justify-between gap-1"
+                className={wordScale ? "flex flex-wrap gap-2" : "flex justify-between gap-1"}
               >
                 {question.scale.map((s, i) => {
                   const isSelected = selected === s;
                   const ptLabel = pointLabels?.[i];
                   return (
-                    <div key={s} className="flex flex-1 flex-col items-center gap-1">
+                    <div
+                      key={s}
+                      className={
+                        wordScale
+                          ? "flex min-w-0 flex-1 basis-[calc(50%-0.25rem)] sm:basis-0"
+                          : "flex flex-1 flex-col items-center gap-1"
+                      }
+                    >
                       <button
                         type="button"
                         role="radio"
                         aria-checked={isSelected}
-                        aria-label={`${s} of ${question.scale.length}${ptLabel ? `: ${ptLabel}` : ""}${scaleHint ? `. ${scaleHint}` : ""}`}
+                        aria-label={
+                          wordScale
+                            ? s
+                            : `${s} of ${question.scale.length}${ptLabel ? `: ${ptLabel}` : ""}${scaleHint ? `. ${scaleHint}` : ""}`
+                        }
                         onClick={() => setResponse(stmt, s)}
-                        className={`h-9 w-9 shrink-0 rounded-full text-sm font-medium transition-colors ${
+                        className={`${
+                          wordScale
+                            ? "min-h-11 w-full rounded-full px-3 py-2 text-center leading-tight"
+                            : "h-9 w-9 shrink-0 rounded-full"
+                        } text-sm font-medium transition-colors ${
                           isSelected
                             ? "bg-ink text-white"
                             : "bg-paper-tint text-ink hover:bg-paper-tint"
