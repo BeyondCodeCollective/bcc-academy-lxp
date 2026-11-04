@@ -81,6 +81,7 @@ New AI features follow the same pattern: gateway model string, structured output
 | `/api/cron/sentinel` | 07:00 UTC | Nightly self-audit + brief |
 | `/api/cron/zoom-recordings` | :30 hourly | Import Zoom cloud recordings → private Blob |
 | `/api/cron/certificates` | 08:00 UTC | Auto-certificate tracks: issue any missed, file PDFs to `CERTIFICATES_DRIVE_FOLDER_ID` |
+| `/api/cron/ta-digest` | 12:00 UTC | Daily recap of teaching-assistant edits to each course's lead (email, plus Slack DM when `SLACK_BOT_TOKEN` is set) |
 
 Auth pattern: `Authorization: Bearer <CRON_SECRET>`; no secret set = accept all (preview/local).
 

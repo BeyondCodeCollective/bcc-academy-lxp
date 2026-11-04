@@ -8,6 +8,7 @@ import { logActivityEvent } from "@/lib/analytics/log-event";
 import { notifyAnnouncement, notifyFeedback } from "@/lib/notifications";
 import { sendCertificateEmail } from "@/lib/email";
 import { getProgramBySlug, getTrackBySlug } from "@/lib/programs";
+import { learnerName, recordIfAssistant, truncate } from "@/lib/ta-changes";
 
 // ─── Submissions & Reflections (Admin) ──────────────────────────────────────
 
@@ -154,6 +155,15 @@ export async function createAnnouncement(data: {
 
   if (error) throw new Error(error.message);
 
+  if (data.trackSlug) {
+    await recordIfAssistant(svc, actor, {
+      trackSlug: data.trackSlug,
+      programId,
+      action: "announcement",
+      summary: `Posted an announcement: "${truncate(data.message)}"`,
+    });
+  }
+
   // Fire-and-forget: email enrolled students (who haven't opted out). Never
   // let a delivery hiccup fail the instructor's post.
   after(() => notifyAnnouncement({
@@ -241,6 +251,13 @@ export async function grantCompletion(
     .single();
 
   if (error) throw new Error(error.message);
+
+  await recordIfAssistant(svc, actor, {
+    trackSlug,
+    programId,
+    action: "completion",
+    summary: `Marked ${await learnerName(svc, studentId)} complete`,
+  });
 
   revalidatePath("/dashboard");
   return { success: true, certificateId: completion?.certificate_id };
@@ -417,6 +434,12 @@ export async function issueCertificate(
   }
 
   revalidatePath("/dashboard");
+  await recordIfAssistant(svc, actor, {
+    trackSlug,
+    programId,
+    action: "certificate",
+    summary: `Issued a certificate to ${await learnerName(svc, studentId)}${emailed ? " and emailed it" : ""}`,
+  });
   return { success: true, certificateId: created.certificate_id, alreadyIssued: false, emailed };
 }
 
@@ -543,6 +566,13 @@ export async function revokeCompletion(
     .eq("program_id", programId);
 
   if (error) throw new Error(error.message);
+
+  await recordIfAssistant(svc, actor, {
+    trackSlug,
+    programId,
+    action: "completion",
+    summary: `Revoked the completion and certificate for ${await learnerName(svc, studentId)}`,
+  });
 
   revalidatePath("/dashboard");
   return { success: true };
