@@ -40,6 +40,8 @@ export type TrackOnboarding = {
   footnote?: string;
   /** Headline on the all-done screen. Defaults to the acceptance framing. */
   completeTitle?: string;
+  /** What happens next, under the complete title. Defaults to "we will reach out". */
+  completeBody?: string;
   items: ChecklistItem[];
   /**
    * Paused: the checklist still EXISTS — admin Agreements reads it to know
@@ -254,7 +256,9 @@ const CHECKLISTS: Record<string, TrackOnboarding> = {
     title: "Complete your pre-program survey",
     eyebrow: "Welcome to Field Ready",
     footnote: "Anything you\u2019ve already done is checked off automatically.",
-    completeTitle: "Thank you for completing your pre-program survey.",
+    completeTitle: "You're all set for Field Ready.",
+    completeBody:
+      "The pilot opens Monday, November 9. Log in that day and Week 1 will be right here, with the Join button for the live session. Live sessions are Mondays 12 to 1pm ET and Thursdays 1 to 2pm ET.",
     intro:
       "Welcome to Field Ready. Finish this one step before the pilot starts on Monday, November 9. It takes about 6 minutes.",
     items: [

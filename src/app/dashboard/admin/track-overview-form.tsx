@@ -148,27 +148,26 @@ export function TrackOverviewForm({ track, programSlug, onLiveChange }: Props) {
         </Field>
       </div>
 
-      {track.selfPaced && (
-        <div className="panel-form p-4 sm:p-5">
-          <label className="flex cursor-pointer items-start gap-3">
-            <input
-              type="checkbox"
-              checked={sequentialGating}
-              onChange={(e) => toggleGating(e.target.checked)}
-              className="mt-0.5 h-4 w-4 shrink-0"
-            />
-            <span>
-              <span className="block text-sm font-medium text-ink">
-                Require weeks in order
-              </span>
-              <span className="mt-0.5 block text-xs text-ink-faint">
-                Students must finish each week before the next unlocks. Applies to
-                self-paced courses only.
-              </span>
+      <div className="panel-form p-4 sm:p-5">
+        <label className="flex cursor-pointer items-start gap-3">
+          <input
+            type="checkbox"
+            checked={sequentialGating}
+            onChange={(e) => toggleGating(e.target.checked)}
+            className="mt-0.5 h-4 w-4 shrink-0"
+          />
+          <span>
+            <span className="block text-sm font-medium text-ink">
+              {track.selfPaced ? "Require weeks in order" : "Open one week at a time"}
             </span>
-          </label>
-        </div>
-      )}
+            <span className="mt-0.5 block text-xs text-ink-faint">
+              {track.selfPaced
+                ? "Students must finish each week before the next unlocks."
+                : "Future weeks stay closed, content and resources included, until the week begins. Earlier weeks stay open."}
+            </span>
+          </span>
+        </label>
+      </div>
 
       {weekSummaries.length > 0 && (
         <div className="panel-form p-4 sm:p-5 space-y-4">

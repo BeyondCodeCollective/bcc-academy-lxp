@@ -33,7 +33,7 @@ import { type CalendarEvent, type CalendarFocus } from "@/components/track-calen
 import { ScheduleTabs } from "@/components/schedule-tabs";
 import type { TrackConfig } from "@/lib/programs/types";
 import { getAllSessionContent } from "@/app/dashboard/admin/actions-tracks";
-import { isSequentialGated, highestUnlockedWeek } from "@/lib/track-gating";
+import { isSequentialGated, isDateGated, highestUnlockedWeek } from "@/lib/track-gating";
 import { MyProgressCard } from "@/components/my-progress-card";
 import { getLearnerProgress } from "@/lib/learner-progress";
 import { getWhatsNew, type FeedItem } from "@/lib/whats-new";
@@ -152,6 +152,7 @@ export default async function TrackOverviewPage({
           eyebrow={checklist.eyebrow}
           footnote={checklist.footnote}
           completeTitle={checklist.completeTitle}
+          completeBody={checklist.completeBody}
           defaultName={studentName || undefined}
         />
       );
@@ -466,6 +467,7 @@ export default async function TrackOverviewPage({
     )
       return true;
     if (gated && week > unlockedThrough) return true;
+    if (!isAdminViewer && isDateGated(track) && week > currentWeek) return true;
     return false;
   };
 

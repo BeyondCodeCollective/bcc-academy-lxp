@@ -14,8 +14,8 @@ import { resolveTrackProgram } from "@/lib/programs/server";
 import { getSessionContext } from "@/lib/auth/session";
 import { createServiceClient } from "@/lib/supabase/server";
 import { canAccessAdminPanel } from "@/lib/roles";
-import { trackHasStarted } from "@/lib/utils";
-import { isSequentialGated, highestUnlockedWeek } from "@/lib/track-gating";
+import { resolveCurrentUnit, trackHasStarted } from "@/lib/utils";
+import { isSequentialGated, isDateGated, highestUnlockedWeek } from "@/lib/track-gating";
 import { getTrackProgressMap } from "@/app/dashboard/track/actions";
 import { SessionStage } from "@/components/fde/session-stage";
 import { RULEBOOK_PROMPT_TEXTS } from "@/components/fde/rulebook-prompts";
@@ -57,6 +57,10 @@ export default async function LiveSessionPage({
     const weekContent = track.weeks.find((w) => w.week === weekNum);
     if (weekContent?.comingSoonUntil && new Date() < new Date(weekContent.comingSoonUntil)) {
       redirect(`/dashboard/track/${trackSlug}/${weekNum}`);
+    }
+
+    if (isDateGated(track) && weekNum > resolveCurrentUnit(track, new Date())) {
+      redirect(`/dashboard/track/${trackSlug}`);
     }
 
     if (isSequentialGated(track) && ctx?.userId) {

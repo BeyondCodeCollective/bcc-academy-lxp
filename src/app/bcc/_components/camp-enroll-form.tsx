@@ -125,12 +125,15 @@ export function CampEnrollForm({
     return (
       <div className="rounded-xl p-4" style={{ background: `${accent}0f` }}>
         <p className="text-sm font-semibold" style={{ color: `${ink}` }}>
-          {enrolled && !infoOnly ? "You're in — check your email." : "You're on the list."}
+          {enrolled && !infoOnly ? "You're in. Check your email." : "You're on the list."}
         </p>
         <p className="mt-1 text-sm" style={{ color: `${ink}99` }}>
           {enrolled && !infoOnly ? (
             <>
-              We sent a link to <strong>{email.trim()}</strong> to open your course.
+              We sent a link to <strong>{email.trim()}</strong> to open your course. It comes
+              from BCC Academy (noreply@mail.bccacademy.io) with the subject &ldquo;You&apos;re
+              registered&rdquo;. Not there in a few minutes? Check spam or other folders, and
+              make sure that&apos;s the inbox you use.
             </>
           ) : (
             <>We&apos;ll email <strong>{email.trim()}</strong> the moment sessions open.</>

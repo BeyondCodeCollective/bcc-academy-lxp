@@ -26,6 +26,7 @@ export function OnboardingChecklist({
   eyebrow,
   footnote,
   completeTitle,
+  completeBody,
   defaultName,
 }: {
   title: string;
@@ -39,6 +40,7 @@ export function OnboardingChecklist({
   eyebrow?: string;
   footnote?: string;
   completeTitle?: string;
+  completeBody?: string;
   defaultName?: string;
 }) {
   const [agreementOpen, setAgreementOpen] = useState(false);
@@ -59,8 +61,12 @@ export function OnboardingChecklist({
             {completeTitle ?? "Thank you for completing your application materials."}
           </h1>
           <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-ink-soft">
-            We will reach out with more details shortly! Keep an eye on your inbox — welcome to the{" "}
-            {cohort}.
+            {completeBody ?? (
+              <>
+                We will reach out with more details shortly! Keep an eye on your inbox — welcome to the{" "}
+                {cohort}.
+              </>
+            )}
           </p>
         </div>
       </div>
