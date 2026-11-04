@@ -4,6 +4,13 @@ import { describe, expect, it } from "vitest";
 import { changeLearnerFilters, EMPTY_LEARNER_FILTERS, LearnerFilterBar } from "./learner-filters";
 
 describe("Learners-only filter bar", () => {
+  it("renders connected loading state without claiming results are still a preview", () => {
+    const html = renderToStaticMarkup(createElement(LearnerFilterBar, { options: { programs: [], courses: [], cohorts: [] },
+      searchAction: async () => ({ ok: false as const, message: "Unavailable" }) }));
+    expect(html).toContain("Loading learners");
+    expect(html).toContain("Search updates automatically");
+    expect(html).not.toContain("Learner results are not connected yet");
+  });
   it("renders accessible search and the four requested controls without geography", () => {
     const html = renderToStaticMarkup(createElement(LearnerFilterBar));
     for (const label of ["Search learners", "Program", "Course / Track", "Current cohort", "Status", "On Track", "Needs Check-in", "Not evaluated", "Clear filters", "Apply Filters"]) expect(html).toContain(label);

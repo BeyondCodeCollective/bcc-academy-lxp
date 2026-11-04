@@ -14,6 +14,13 @@ const second = { ...enrollment, programId: "p2", courseSlug: "course-b", courseN
 const render = (learners?: DirectoryLearner[]) => renderToStaticMarkup(createElement(LearnerDirectory, { filters, learners }));
 
 describe("Learner directory", () => {
+  it("uses server totals and does not paginate or filter an already scoped page again", () => {
+    const html = renderToStaticMarkup(createElement(LearnerDirectory, { filters: { ...filters, search: "server-normalized" }, learners: [learner],
+      serverPagination: { page: 2, pageSize: 25, totalMatching: 26, totalPages: 2, start: 26, end: 26 }, onPageChange: () => {} }));
+    expect(html).toContain("26 matching learners");
+    expect(html).toContain("Showing 26–26 of 26");
+    expect(html).toContain("test@example.test");
+  });
   it("shows progress separately for each course, never averaging or pooling it", () => {
     const html = render([{ ...learner, enrollments: [
       { ...enrollment, caughtUp: { percent: 50, completedSessions: 1, applicableSessions: 2, unavailableReason: null } },

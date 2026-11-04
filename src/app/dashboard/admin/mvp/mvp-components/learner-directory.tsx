@@ -76,20 +76,24 @@ function Activity({ activity }: { activity: DirectoryEnrollment["lastActivity"] 
   return <time dateTime={date.toISOString()}>{date.toLocaleString("en-US", { timeZone: "America/New_York", year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" })}</time>;
 }
 
-export function LearnerDirectory({ filters, learners, onViewEvidence }: {
+export function LearnerDirectory({ filters, learners, onViewEvidence, serverPagination, onPageChange }: {
   filters: LearnerFilters;
   learners?: DirectoryLearner[];
   onViewEvidence?: (learner: DirectoryLearner) => void;
+  serverPagination?: { page: number; pageSize: number; totalMatching: number; totalPages: number; start: number; end: number };
+  onPageChange?: (page: number, pageSize: number) => void;
 }) {
   const id = useId();
   const [paging, setPaging] = useState({ scope: "", page: 1, size: 25 });
   const [selection, setSelection] = useState<{ id: string; scope: string } | null>(null);
   let matching: DirectoryLearner[] = [];
   let invalid = false;
-  try { matching = selectDirectoryLearners(learners ?? [], filters); } catch { invalid = true; }
+  try { matching = serverPagination ? learners ?? [] : selectDirectoryLearners(learners ?? [], filters); } catch { invalid = true; }
   // Never retain a later page when the filters or authorized result set changes.
   const scope = JSON.stringify([filters, matching.map(row => row.id)]);
-  const page = directoryPage(matching, paging.scope === scope ? paging.page : 1, paging.size);
+  const page = serverPagination ? { rows: matching, page: serverPagination.page, pages: serverPagination.totalPages,
+    start: serverPagination.start, end: serverPagination.end } : directoryPage(matching, paging.scope === scope ? paging.page : 1, paging.size);
+  const total = serverPagination?.totalMatching ?? matching.length;
   const ready = learners !== undefined && !invalid;
   const selected = ready && selection?.scope === scope ? matching.find(row => row.id === selection.id) : undefined;
   const buttonClass = "min-h-11 rounded-lg border border-rule px-3 py-2 text-sm font-medium text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50";
@@ -98,7 +102,7 @@ export function LearnerDirectory({ filters, learners, onViewEvidence }: {
       <div><h2 id={`${id}-heading`} className="text-xl font-semibold text-ink">Learner directory</h2>
         <p className="mt-2 text-sm text-ink-soft">One row per learner · matching current enrollments only</p>
         <p className="mt-1 text-xs text-ink-soft">Progress is per course, based on verified held sessions and requirements due so far—not an overall completion score.</p></div>
-      <p role="status" className="text-sm text-ink-soft">{ready ? `${matching.length} matching ${matching.length === 1 ? "learner" : "learners"}` : "Learner count unavailable"}</p>
+      <p role="status" className="text-sm text-ink-soft">{ready ? `${total} matching ${total === 1 ? "learner" : "learners"}` : "Learner count unavailable"}</p>
     </div>
     <div className="mt-5 overflow-x-auto rounded-lg border border-rule" tabIndex={0} role="region" aria-label="Scrollable learner directory">
       <table className="w-full min-w-[1000px] text-left text-sm">
@@ -120,11 +124,11 @@ export function LearnerDirectory({ filters, learners, onViewEvidence }: {
       </table>
     </div>
     <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
-      <label className="flex items-center gap-2 text-sm text-ink-soft" htmlFor={`${id}-size`}>Rows per page<select id={`${id}-size`} className={`${buttonClass} bg-white`} value={paging.size} onChange={event => setPaging({ scope, page: 1, size: Number(event.target.value) })}>{[10, 25, 50].map(size => <option key={size} value={size}>{size}</option>)}</select></label>
-      <div className="flex flex-wrap items-center gap-3"><span className="text-xs text-ink-soft">{ready ? `Showing ${page.start}–${page.end} of ${matching.length}` : "Results unavailable"}</span>
-        <button type="button" className={buttonClass} disabled={!ready || page.page === 1} onClick={() => setPaging({ ...paging, scope, page: page.page - 1 })}>Previous</button>
+      <label className="flex items-center gap-2 text-sm text-ink-soft" htmlFor={`${id}-size`}>Rows per page<select id={`${id}-size`} className={`${buttonClass} bg-white`} value={serverPagination?.pageSize ?? paging.size} onChange={event => serverPagination ? onPageChange?.(1, Number(event.target.value)) : setPaging({ scope, page: 1, size: Number(event.target.value) })}>{[10, 25, 50].map(size => <option key={size} value={size}>{size}</option>)}</select></label>
+      <div className="flex flex-wrap items-center gap-3"><span className="text-xs text-ink-soft">{ready ? `Showing ${page.start}–${page.end} of ${total}` : "Results unavailable"}</span>
+        <button type="button" className={buttonClass} disabled={!ready || page.page === 1} onClick={() => serverPagination ? onPageChange?.(page.page - 1, serverPagination.pageSize) : setPaging({ ...paging, scope, page: page.page - 1 })}>Previous</button>
         <span className="text-xs text-ink-soft">Page {page.page} of {page.pages}</span>
-        <button type="button" className={buttonClass} disabled={!ready || page.page === page.pages} onClick={() => setPaging({ ...paging, scope, page: page.page + 1 })}>Next</button>
+        <button type="button" className={buttonClass} disabled={!ready || page.page === page.pages} onClick={() => serverPagination ? onPageChange?.(page.page + 1, serverPagination.pageSize) : setPaging({ ...paging, scope, page: page.page + 1 })}>Next</button>
       </div>
     </div>
     {selected && <LearnerEvidenceDrawer key={`${scope}:${selected.id}`} learner={selected} onClose={() => setSelection(null)} />}

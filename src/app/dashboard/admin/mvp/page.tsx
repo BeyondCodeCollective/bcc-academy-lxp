@@ -12,6 +12,7 @@ import { refreshMvpOverview } from "./overview-actions";
 import { WorkspaceLayout } from "./mvp-components/workspace-layout";
 import { LearnerFilterBar } from "./mvp-components/learner-filters";
 import { getMvpLearnerFilterOptions } from "@/lib/mvp/learner-queries";
+import { searchMvpLearners } from "./learner-actions";
 
 export default async function MvpDashboardPage({ searchParams }: {
     searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -57,7 +58,7 @@ export default async function MvpDashboardPage({ searchParams }: {
                     <p className="mt-2 text-sm text-ink-soft">Find learners and explore recorded course activity across your accessible programs.</p>
                 </header>
                 {!options && <p role="alert" className="mb-4 text-sm text-ink">Unable to load authorized learner filters. Check your access and <Link href="/dashboard/admin/mvp?view=learners" className="underline">reload Learners</Link>.</p>}
-                <LearnerFilterBar options={options} />
+                <LearnerFilterBar options={options} searchAction={options ? searchMvpLearners : undefined} />
             </WorkspaceLayout>
         </main>;
     }

@@ -7,6 +7,7 @@ vi.mock("@/lib/mvp/learner-queries", () => ({ getMvpLearnerFilterOptions: mocks.
 vi.mock("@/lib/auth/session", () => ({ getSessionContext: mocks.session }));
 vi.mock("@/lib/mvp/queries", () => ({ getMvpDashboardData: mocks.load }));
 vi.mock("./overview-actions", () => ({ refreshMvpOverview: mocks.refresh }));
+vi.mock("./learner-actions", () => ({ searchMvpLearners: vi.fn() }));
 vi.mock("next/navigation", () => ({ redirect: (path: string) => { throw new Error(`redirect:${path}`); } }));
 vi.mock("../admin-top-tabs", () => ({ AdminTopTabs: () => null }));
 vi.mock("./mvp-components/workspace-layout", () => ({ WorkspaceLayout: ({ navigation, children }: { navigation: ReactNode; children: ReactNode }) => [navigation, children] }));
