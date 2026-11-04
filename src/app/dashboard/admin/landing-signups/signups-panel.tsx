@@ -3,6 +3,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { DataTable } from "@/components/ui";
 import { DownloadCsvButton } from "@/components/download-csv-button";
 import { CopyLinkButton } from "./copy-link-button";
+import { lookupZips, placeFor, zip5 } from "@/lib/zip-to-city";
 
 // Signups, one course at a time, from EVERY way someone registers: a landing
 // page form (landing_signups), a staff invite (invites), an Eventbrite order
@@ -39,7 +40,31 @@ export const SOURCE_LABEL: Record<Source, string> = {
   allowlist: "Allowlisted",
 };
 
-type StudentRow = { id: string; email: string; first_name: string | null; last_name: string | null; is_staff: boolean; is_test: boolean };
+type StudentRow = {
+  id: string;
+  email: string;
+  first_name: string | null;
+  last_name: string | null;
+  is_staff: boolean;
+  is_test: boolean;
+  zip: string | null;
+  date_of_birth: string | null;
+};
+type SignupFormRow = { email: string; name: string | null; zip_code: string | null };
+
+/** The landing form question whose answer is the age column. */
+const AGE_RANGE = "Age range";
+
+/** Whole years since an ISO date, as text; "" when unknown. */
+function yearsSince(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const born = new Date(`${iso.slice(0, 10)}T12:00:00Z`);
+  if (Number.isNaN(born.getTime())) return "";
+  const now = new Date();
+  let years = now.getUTCFullYear() - born.getUTCFullYear();
+  if (now.getUTCMonth() < born.getUTCMonth() || (now.getUTCMonth() === born.getUTCMonth() && now.getUTCDate() < born.getUTCDate())) years--;
+  return years >= 0 && years < 120 ? String(years) : "";
+}
 export type PageRow = {
   slug: string;
   track_slug: string | null;
@@ -191,20 +216,28 @@ export async function computeCourseSignups(data: SignupsData, course: string, se
   const rows = session ? courseRows.filter((r) => r.sessions?.includes(session)) : courseRows;
 
   const emails = [...new Set(rows.map((r) => r.email))];
-  const [{ data: students }, { data: enrollments }, { data: signupNames }] = await Promise.all([
+  const [{ data: students }, { data: enrollments }, { data: signupForms }] = await Promise.all([
     emails.length
-      ? svc.from("students").select("id, email, first_name, last_name, is_staff, is_test").in("email", emails)
+      ? svc.from("students").select("id, email, first_name, last_name, is_staff, is_test, zip, date_of_birth").in("email", emails)
       : Promise.resolve({ data: [] as StudentRow[] }),
     svc.from("student_tracks").select("student_id").eq("track_slug", course),
     // A per-date course (catalyst-labs-nov19) only has allowlist rows; the form signup lives under the landing page's track.
     emails.length
-      ? svc.from("landing_signups").select("email, name").in("email", emails).not("name", "is", null)
-      : Promise.resolve({ data: [] as { email: string; name: string }[] }),
+      ? svc.from("landing_signups").select("email, name, zip_code").in("email", emails)
+      : Promise.resolve({ data: [] as SignupFormRow[] }),
   ]);
+  const forms = (signupForms ?? []) as SignupFormRow[];
   const nameByEmail = new Map(
-    ((signupNames ?? []) as { email: string; name: string }[]).filter((n) => n.name.trim()).map((n) => [n.email.toLowerCase(), n.name.trim()]),
+    forms.filter((n) => n.name?.trim()).map((n) => [n.email.toLowerCase(), n.name!.trim()]),
   );
   const studentByEmail = new Map(((students ?? []) as StudentRow[]).map((s) => [s.email.toLowerCase(), s]));
+  // Location and age for the export. The form ZIP wins over the profile ZIP;
+  // age is the form's "Age range" answer, else years from the profile birthday.
+  const zipByEmail = new Map(forms.filter((f) => zip5(f.zip_code)).map((f) => [f.email.toLowerCase(), zip5(f.zip_code)!]));
+  const zipOf = (email: string) => zipByEmail.get(email) ?? zip5(studentByEmail.get(email)?.zip) ?? "";
+  const places = await lookupZips(rows.map((r) => zipOf(r.email)));
+  const locationOf = (email: string) => ({ zip: zipOf(email), ...placeFor(places, zipOf(email)) });
+  const ageOf = (r: Reg) => r.answers?.[AGE_RANGE]?.trim() || yearsSince(studentByEmail.get(r.email)?.date_of_birth);
   const enrolledIds = new Set(((enrollments ?? []) as { student_id: string }[]).map((e) => e.student_id));
 
   const stageOf = (r: Reg): { stage: Stage; internal: boolean; name: string | null } => {
@@ -233,6 +266,8 @@ export async function computeCourseSignups(data: SignupsData, course: string, se
     enrolled,
     signedIn,
     waiting,
+    locationOf,
+    ageOf,
     internalCount: staged.length - real.length,
     pct: real.length ? Math.round((enrolled / real.length) * 100) : 0,
   };
@@ -275,17 +310,28 @@ export function SignupsPanel({
   const origin = "https://bccacademy.io";
   const STAGE_LABEL: Record<Stage, string> = { enrolled: "Enrolled", "signed-in": "Signed in", waiting: "Waiting" };
   // The export is the people to contact: what the filters show, minus internal tests.
-  const answerKeys = [...new Set(real.flatMap(({ r }) => Object.keys(r.answers ?? {})))];
-  const csvHeader = ["Name", "Email", ...(sessionOptions.length > 0 ? ["Session"] : []), "Signed up", "Heard about", ...answerKeys, "Status"];
-  const csvRows = real.map(({ r, stage, name }) => [
-    name ?? "",
-    r.email,
-    ...(sessionOptions.length > 0 ? [(r.sessions ?? []).map(sessionLabel).join("; ")] : []),
-    fmt(r.at),
-    r.heardAbout ?? "",
-    ...answerKeys.map((k) => r.answers?.[k] ?? ""),
-    STAGE_LABEL[stage],
-  ]);
+  // "Age range" has its own Age column (backfilled from the profile birthday).
+  const answerKeys = [...new Set(real.flatMap(({ r }) => Object.keys(r.answers ?? {})))].filter((k) => k !== AGE_RANGE);
+  const csvHeader = [
+    "Name", "Email", ...(sessionOptions.length > 0 ? ["Session"] : []), "Signed up", "Heard about",
+    "City", "State", "ZIP", "Age", ...answerKeys, "Status",
+  ];
+  const csvRows = real.map(({ r, stage, name }) => {
+    const loc = m.locationOf(r.email);
+    return [
+      name ?? "",
+      r.email,
+      ...(sessionOptions.length > 0 ? [(r.sessions ?? []).map(sessionLabel).join("; ")] : []),
+      fmt(r.at),
+      r.heardAbout ?? "",
+      loc.city,
+      loc.state,
+      loc.zip,
+      m.ageOf(r),
+      ...answerKeys.map((k) => r.answers?.[k] ?? ""),
+      STAGE_LABEL[stage],
+    ];
+  });
   const csvName = `${course}${session ? `-${session}` : ""}-signups.csv`;
 
   return (

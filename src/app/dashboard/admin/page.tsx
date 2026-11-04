@@ -359,7 +359,7 @@ export default async function AdminPage({
         needsInstructorTracks
           ? svc
               .from("instructor_tracks")
-              .select("id, student_id, track_slug, program_id, created_at")
+              .select("id, student_id, track_slug, program_id, created_at, role")
               // Deliberately NOT filtered by program. The staff roster above
               // already spans programs (it ORs in every super_admin), so
               // scoping assignments to the active program made cross-program

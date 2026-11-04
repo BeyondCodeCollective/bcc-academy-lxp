@@ -33,6 +33,10 @@
       "schedule": "0 8 * * *"
     },
     {
+      "path": "/api/cron/ta-digest",
+      "schedule": "0 12 * * *"
+    },
+    {
       "path": "/api/cron/zoom-recordings",
       "schedule": "30 * * * *"
     },

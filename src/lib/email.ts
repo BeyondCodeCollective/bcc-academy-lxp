@@ -3,6 +3,7 @@ import type { ProgramConfig, TrackConfig } from "@/lib/programs/types";
 import { isTutorAvailable } from "@/lib/programs";
 import { buildGoogleCalendarUrl } from "@/lib/gcal";
 import { subscribeToNewsletter } from "@/lib/mailchimp";
+import { digestText, type Digest } from "@/lib/ta-changes";
 
 const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
@@ -1439,5 +1440,56 @@ export async function sendSentinelReportEmail(input: {
       "[email] sendSentinelReportEmail failed:",
       e instanceof Error ? e.message : String(e),
     );
+  }
+}
+
+/**
+ * Daily recap to a lead instructor of the edits their teaching assistants
+ * made (see src/lib/ta-changes.ts). Returns false when the send fails or email
+ * isn't configured, so the caller can leave those changes for tomorrow's run.
+ */
+export async function sendTaDigestEmail(input: {
+  to: string;
+  digest: Digest;
+  adminUrl: string;
+}): Promise<boolean> {
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY not set, skipping TA digest email");
+    return false;
+  }
+  const { digest, adminUrl } = input;
+  const total = digest.changeIds.length;
+  const courses = digest.courses
+    .map(
+      (c) => `
+    <p style="margin:24px 0 8px;font-size:15px;font-weight:700;color:#000000;">${escapeHtml(c.courseName)}</p>
+    <ul style="margin:0;padding-left:18px;font-size:14px;line-height:1.6;color:#000000;">
+      ${c.items.map((i) => `<li><strong>${escapeHtml(i.actor_name)}</strong>: ${escapeHtml(i.summary)}</li>`).join("\n      ")}
+    </ul>`,
+    )
+    .join("");
+  const first = escapeHtml(digest.recipient.name.split(" ")[0] || "there");
+  const body = `
+    <p style="margin:0 0 12px;font-size:15px;line-height:1.6;color:#000000;">Hi ${first},</p>
+    <p style="margin:0;font-size:15px;line-height:1.6;color:#000000;">Here's what changed in your courses since the last recap. Take a look and make sure it's what you wanted.</p>
+    ${courses}
+    <p style="margin:28px 0 0;"><a href="${adminUrl}" style="display:inline-block;background:#2A52FF;color:#ffffff;padding:12px 24px;text-decoration:none;border-radius:8px;font-weight:600;">Review in the admin panel</a></p>`;
+
+  try {
+    const { error } = await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: input.to,
+      subject: `Course recap: ${total} change${total === 1 ? "" : "s"} by teaching assistants`,
+      text: digestText(digest, adminUrl),
+      html: inviteShell("Course recap", body),
+    });
+    if (error) {
+      console.error("[email] sendTaDigestEmail failed:", JSON.stringify(error));
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error("[email] sendTaDigestEmail failed:", e instanceof Error ? e.message : String(e));
+    return false;
   }
 }

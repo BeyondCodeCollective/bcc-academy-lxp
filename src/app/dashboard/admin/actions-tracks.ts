@@ -3,9 +3,17 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { requireAdmin, requireManager, resolveProgramForActor } from "./actions-shared";
+import { assertTrackInActorProgram, requireAdmin, requireManager, resolveProgramForActor } from "./actions-shared";
 import { getSessionContext } from "@/lib/auth/session";
 import type { OfficeHour } from "@/lib/programs/types";
+import {
+  changedFields,
+  isAssistantOn,
+  listPhrase,
+  OVERVIEW_FIELD_LABELS,
+  recordTaChange,
+  SESSION_FIELD_LABELS,
+} from "@/lib/ta-changes";
 
 // ─── Track Enrollment ─────────────────────────────────────────────────────────
 
@@ -250,6 +258,21 @@ export async function saveSessionContent(
     if (data[key] !== undefined) row[key] = data[key]?.trim() || null;
   }
 
+  // Teaching assistant? Snapshot the row first so the lead's recap can say
+  // exactly what changed. Skipped for everyone else: no extra read.
+  const asAssistant = await isAssistantOn(svc, actor, track);
+  const before = asAssistant
+    ? (
+        await svc
+          .from("session_content")
+          .select("*")
+          .eq("program_id", programId)
+          .eq("track", track)
+          .eq("week_number", weekNumber)
+          .maybeSingle()
+      ).data
+    : null;
+
   const { error } = await svc.from("session_content").upsert(
     row,
     { onConflict: "program_id,track,week_number" }
@@ -258,6 +281,19 @@ export async function saveSessionContent(
   if (error) {
     console.error(`[saveSessionContent] ${track} week ${weekNumber}:`, error.message);
     throw new Error(error.message);
+  }
+
+  if (asAssistant) {
+    const changed = changedFields(before, row, SESSION_FIELD_LABELS);
+    if (changed.length > 0) {
+      await recordTaChange(svc, {
+        actorId: userId,
+        trackSlug: track,
+        programId,
+        action: "session_content",
+        summary: `Week ${weekNumber}: changed the ${listPhrase(changed)}`,
+      });
+    }
   }
 
   // Bust cached pages so students see the new meeting link / recording / title
@@ -427,12 +463,37 @@ export async function saveTrackOverview(
     row.sequential_gating = patch.sequential_gating;
   if ("office_hours" in patch) row.office_hours = patch.office_hours;
 
+  const asAssistant = await isAssistantOn(svc, actor, trackSlug);
+  const before = asAssistant
+    ? (
+        await svc
+          .from("track_overrides")
+          .select("*")
+          .eq("program_id", programId)
+          .eq("track_slug", trackSlug)
+          .maybeSingle()
+      ).data
+    : null;
+
   const { error } = await svc.from("track_overrides").upsert(row, {
     onConflict: "program_id,track_slug",
   });
   if (error) {
     console.error(`[saveTrackOverview] ${trackSlug}:`, error.message);
     throw new Error(error.message);
+  }
+
+  if (asAssistant) {
+    const changed = changedFields(before, row, OVERVIEW_FIELD_LABELS);
+    if (changed.length > 0) {
+      await recordTaChange(svc, {
+        actorId: userId,
+        trackSlug,
+        programId,
+        action: "course_settings",
+        summary: `Course settings: changed the ${listPhrase(changed)}`,
+      });
+    }
   }
 
   // Bust every page that renders track metadata so the edit propagates
@@ -454,6 +515,8 @@ export type InstructorTrackRow = {
   track_slug: string;
   program_id: string;
   created_at: string;
+  /** "assistant" = teaching assistant: same edits, recapped daily to the lead. */
+  role?: "lead" | "assistant";
 };
 
 export async function getInstructorTracks(programSlug: string): Promise<InstructorTrackRow[]> {
@@ -521,6 +584,32 @@ export async function removeInstructorTrack(
     .eq("student_id", studentId)
     .eq("track_slug", trackSlug);
 
+  if (error) throw new Error(error.message);
+  revalidatePath("/dashboard/admin");
+  return { success: true };
+}
+
+/**
+ * Mark an instructor as the course's lead or as a teaching assistant. A TA can
+ * make every edit a lead can; each edit is recapped to the lead daily.
+ */
+export async function setInstructorRole(
+  studentId: string,
+  trackSlug: string,
+  role: "lead" | "assistant",
+) {
+  const actor = await requireManager();
+  const { svc } = actor;
+  if (role !== "lead" && role !== "assistant") throw new Error("Invalid role");
+  await assertTrackInActorProgram(actor, svc, trackSlug);
+
+  // Not program-scoped, same as removeInstructorTrack: an assignment can be
+  // filed under another program and must still be editable from the roster.
+  const { error } = await svc
+    .from("instructor_tracks")
+    .update({ role })
+    .eq("student_id", studentId)
+    .eq("track_slug", trackSlug);
   if (error) throw new Error(error.message);
   revalidatePath("/dashboard/admin");
   return { success: true };

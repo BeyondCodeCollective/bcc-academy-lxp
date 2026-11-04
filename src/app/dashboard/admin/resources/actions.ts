@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin, resolveProgramForActor } from "../actions-shared";
+import { recordIfAssistant } from "@/lib/ta-changes";
 
 export type ResourceInput = {
   title: string;
@@ -54,6 +55,15 @@ export async function saveResources(
   if (rows.length > 0) {
     const { error: insError } = await svc.from("resources").insert(rows);
     if (insError) throw new Error(insError.message);
+  }
+
+  if (trackSlug) {
+    await recordIfAssistant(svc, actor, {
+      trackSlug,
+      programId,
+      action: "resources",
+      summary: `Updated the course resources (${rows.length} item${rows.length === 1 ? "" : "s"})`,
+    });
   }
 
   revalidatePath("/dashboard/resources", "page");

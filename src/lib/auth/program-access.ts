@@ -1,5 +1,7 @@
 import { cache } from "react";
 import { createServiceClient } from "@/lib/supabase/server";
+import { canAccessAdminPanel, canSwitchPrograms } from "@/lib/roles";
+import { isMasterEmail } from "@/lib/auth/admins";
 
 // Cross-program access grants (staff_program_access). See the migration for
 // why these exist: without them, the only way to work across two programs was
@@ -116,4 +118,33 @@ export function effectiveRoleInProgram(
   const forProgram = grants.filter((g) => g.programId === programId);
   if (forProgram.length === 0) return baseRole;
   return forProgram.some((g) => g.role === "admin") ? "admin" : "instructor";
+}
+
+/**
+ * Whether this account may use the admin panel in the given program. Same
+ * boundary as the admin page: roles that switch programs and master emails
+ * pass everywhere; everyone else only in their home program or a granted one.
+ * /dashboard uses it so a staffer enrolled as a learner in ANOTHER program's
+ * course (e.g. a Catalyst instructor in the Field Ready staff cohort) gets the
+ * learner view there, instead of being sent to an admin panel that bounces
+ * them straight back to /dashboard in a loop.
+ */
+export async function administersProgram(opts: {
+  userId: string;
+  role: string;
+  email: string | null;
+  programSlug: string;
+}): Promise<boolean> {
+  if (!canAccessAdminPanel(opts.role)) return false;
+  if (canSwitchPrograms(opts.role) || isMasterEmail(opts.email)) return true;
+  const svc = createServiceClient();
+  const [grants, home, prog] = await Promise.all([
+    getProgramGrants(opts.userId),
+    svc.from("students").select("program_id").eq("id", opts.userId).maybeSingle<{ program_id: string | null }>(),
+    svc.from("programs").select("id").eq("slug", opts.programSlug).maybeSingle<{ id: string }>(),
+  ]);
+  const programId = prog.data?.id;
+  if (!programId) return true;
+  const allowed = allowedProgramIds(home.data?.program_id ?? null, grants);
+  return allowed.length === 0 || allowed.includes(programId);
 }
