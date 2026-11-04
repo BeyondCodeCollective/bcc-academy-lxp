@@ -30,6 +30,7 @@ export function PeopleTab({
   onDeleteStudent,
   onToggleStudentTrack,
   onToggleInstructorTrack,
+  onSetInstructorRole,
   onStudentAdded,
   initialTrackFilter,
   attendanceRates = null,
@@ -54,6 +55,8 @@ export function PeopleTab({
   onDeleteStudent: (id: string) => Promise<void>;
   onToggleStudentTrack: (studentId: string, trackSlug: string) => Promise<void>;
   onToggleInstructorTrack: (instructorId: string, trackSlug: string) => Promise<void>;
+  /** Lead vs teaching assistant per course. Omitted where roles can't be managed. */
+  onSetInstructorRole?: (instructorId: string, trackSlug: string, role: "lead" | "assistant") => Promise<void>;
   onStudentAdded: (student: StudentRow) => void;
   initialTrackFilter?: string;
   /** Sessions held + each learner's attended count, for the open course. */
@@ -507,6 +510,45 @@ export function PeopleTab({
                           );
                         })}
                       </div>
+                      {s.role === "instructor" && onSetInstructorRole && instructorSlugs.length > 0 && (
+                        <div className="mt-3 space-y-1.5">
+                          <p className="text-micro text-ink-faint">
+                            Assistants can make any edit. The lead gets a daily recap of their changes.
+                          </p>
+                          {tracks
+                            .filter((t) => instructorSlugs.includes(t.slug))
+                            .map((t) => {
+                              const role =
+                                instrTracks.find((e) => e.student_id === s.id && e.track_slug === t.slug)?.role ?? "lead";
+                              const saving = instrTrackSaving === `${s.id}-${t.slug}-role`;
+                              return (
+                                <div key={t.slug} className="flex items-center justify-between gap-3">
+                                  <span className="truncate text-xs text-ink">{t.shortName}</span>
+                                  <div
+                                    role="group"
+                                    aria-label={`Role on ${t.shortName}`}
+                                    className="inline-flex shrink-0 rounded-full border border-rule p-0.5"
+                                  >
+                                    {(["lead", "assistant"] as const).map((r) => (
+                                      <button
+                                        key={r}
+                                        type="button"
+                                        aria-pressed={role === r}
+                                        disabled={saving || role === r}
+                                        onClick={() => onSetInstructorRole(s.id, t.slug, r)}
+                                        className={`rounded-full px-2.5 py-0.5 text-micro font-medium transition-colors disabled:cursor-default ${
+                                          role === r ? "bg-ink text-white" : "text-ink-soft hover:text-ink"
+                                        }`}
+                                      >
+                                        {r === "lead" ? "Lead" : "Assistant"}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                        </div>
+                      )}
                     </div>
                   )}
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { deleteStudentAction, updateStudentAction, saveSessionContent, assignStudentTrack, removeStudentTrack, bulkAssignTrack, assignInstructorTrack, removeInstructorTrack } from "./actions";
+import { deleteStudentAction, updateStudentAction, saveSessionContent, assignStudentTrack, removeStudentTrack, bulkAssignTrack, assignInstructorTrack, removeInstructorTrack, setInstructorRole } from "./actions";
 import type { SessionResource, StudentTrackRow, InstructorTrackRow } from "./actions";
 import { canManageStudents, canSwitchPrograms, canViewInsights } from "@/lib/roles";
 import { UserCheck, ClipboardText as ClipboardList, Coffee } from "@phosphor-icons/react";
@@ -539,6 +539,19 @@ export function AdminTabs({
       .map((e) => e.track_slug);
   }
 
+  async function setInstructorTrackRole(instructorId: string, trackSlug: string, role: "lead" | "assistant") {
+    setInstrTrackSaving(`${instructorId}-${trackSlug}-role`);
+    try {
+      await setInstructorRole(instructorId, trackSlug, role);
+      setInstrTracks((prev) =>
+        prev.map((e) => (e.student_id === instructorId && e.track_slug === trackSlug ? { ...e, role } : e)),
+      );
+    } catch (e) {
+      console.error("Failed to set instructor role:", e);
+    }
+    setInstrTrackSaving(null);
+  }
+
   async function toggleInstructorTrack(instructorId: string, trackSlug: string) {
     setInstrTrackSaving(`${instructorId}-${trackSlug}`);
     try {
@@ -679,6 +692,7 @@ export function AdminTabs({
           students={students}
           surveyConfigs={surveyConfigs}
           toggleInstructorTrack={toggleInstructorTrack}
+          setInstructorTrackRole={setInstructorTrackRole}
           toggleTrackEnrollment={toggleTrackEnrollment}
           trackAnsweredSurveyIds={trackAnsweredSurveyIds}
           trackEnrolledCount={trackEnrolledCount}
@@ -714,6 +728,7 @@ export function AdminTabs({
           onDeleteStudent={deleteStudent}
           onToggleStudentTrack={toggleTrackEnrollment}
           onToggleInstructorTrack={toggleInstructorTrack}
+          onSetInstructorRole={setInstructorTrackRole}
           onStudentAdded={(s) => setStudents((prev) => [...prev, s])}
           pendingPeople={pendingPeople}
         />

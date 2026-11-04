@@ -58,6 +58,7 @@ type TrackViewProps = {
   students: StudentRow[];
   surveyConfigs: { id: string; title: string; skipForTracks?: string[]; appliesToTracks?: string[]; appliesToPrograms?: string[]; }[];
   toggleInstructorTrack: (instructorId: string, trackSlug: string) => Promise<void>;
+  setInstructorTrackRole: (instructorId: string, trackSlug: string, role: "lead" | "assistant") => Promise<void>;
   toggleTrackEnrollment: (studentId: string, trackSlug: string) => Promise<void>;
   trackAnsweredSurveyIds: string[] | null;
   trackEnrolledCount: number;
@@ -101,6 +102,7 @@ export function TrackView({
   students,
   surveyConfigs,
   toggleInstructorTrack,
+  setInstructorTrackRole,
   toggleTrackEnrollment,
   trackAnsweredSurveyIds,
   trackEnrolledCount,
@@ -627,6 +629,7 @@ export function TrackView({
                 onDeleteStudent={deleteStudent}
                 onToggleStudentTrack={toggleTrackEnrollment}
                 onToggleInstructorTrack={toggleInstructorTrack}
+                onSetInstructorRole={setInstructorTrackRole}
                 onStudentAdded={(s) => setStudents((prev) => [...prev, s])}
                 initialTrackFilter={activeTrack.slug}
                 attendanceRates={attendanceRates}
