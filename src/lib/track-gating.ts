@@ -11,6 +11,16 @@ export function isSequentialGated(track: TrackConfig): boolean {
   return !!track.selfPaced && !!track.sequentialGating;
 }
 
+/**
+ * The same "one week at a time" switch on a cohort (weekly) track: a future
+ * week stays fully closed (description, resources, video, homework) until its
+ * own week begins, instead of only hiding the video and homework. Unlocks by
+ * date, never by progress, so a learner who misses an assignment isn't stuck.
+ */
+export function isDateGated(track: TrackConfig): boolean {
+  return !track.selfPaced && !!track.sequentialGating;
+}
+
 function weekSubmissionsEnabled(track: TrackConfig, weekNum: number): boolean {
   const wc = track.weeks.find((w) => w.week === weekNum);
   return track.submissionsEnabled !== false && wc?.submissionsEnabled !== false;

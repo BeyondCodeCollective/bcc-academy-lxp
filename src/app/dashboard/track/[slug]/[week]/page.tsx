@@ -10,7 +10,7 @@ import { DB_TRACK_PREREQUISITES } from "@/lib/programs/field-ready";
 import type { TrackGate } from "@/lib/programs/types";
 import { hasCompletedTrack } from "@/lib/tracks/completion";
 import { getSubmission, getReflection, getFeedback, getWeekProgress, getTrackProgressMap } from "@/app/dashboard/track/actions";
-import { isSequentialGated, highestUnlockedWeek } from "@/lib/track-gating";
+import { isSequentialGated, isDateGated, highestUnlockedWeek } from "@/lib/track-gating";
 import { getEnforcedOnboardingChecklist, getOnboardingStatus } from "@/lib/onboarding/checklists";
 import { canAccessAdminPanel } from "@/lib/roles";
 import { SubmissionForm } from "@/components/submission-form";
@@ -213,6 +213,12 @@ export default async function TrackWeekPage({
   // Shared with the redirect + overview: advances to the current Day on a
   // day-gated camp instead of pinning at Day 1 all week.
   const currentWeek = resolveCurrentUnit(track, now);
+
+  // One week at a time on a cohort track: a future week bounces to the course
+  // page, whose schedule shows it locked with its date (same as pre-start).
+  if (!gateIsAdmin && isDateGated(track) && weekNum > currentWeek) {
+    redirect(`/dashboard/track/${trackSlug}`);
+  }
 
   // Fetch session content, student progress, and current user in parallel
   const [sessionContent, weekProgress, sessionCtx, progressMap] = await Promise.all([
