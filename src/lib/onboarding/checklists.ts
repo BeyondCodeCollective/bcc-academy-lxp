@@ -242,6 +242,32 @@ const CHECKLISTS: Record<string, TrackOnboarding> = {
       },
     ],
   },
+  // Field Ready staff pilot, starts Nov 9. Pre-survey only: no intake, and no
+  // started-course exemption (staff are not in other cohorts).
+  "field-ready-staff-cohort": {
+    trackSlug: "field-ready-staff-cohort",
+    cohort: "Field Ready Staff Pilot",
+    agreement: {
+      version: "field-ready-staff-cohort-v1",
+      timeCommitment: "The pilot runs 5 weeks.",
+    },
+    title: "Complete your pre-program survey",
+    eyebrow: "Welcome to Field Ready",
+    footnote: "Anything you\u2019ve already done is checked off automatically.",
+    completeTitle: "Thank you for completing your pre-program survey.",
+    intro:
+      "Welcome to Field Ready. Finish this one step before the pilot starts on Monday, November 9. It takes about 6 minutes.",
+    items: [
+      {
+        id: "presurvey",
+        label: "Pre-Program Survey",
+        description: "Where you are starting with AI, so we can see what the pilot changes.",
+        surveyType: "field-ready-staff-pre",
+        kind: "survey",
+        href: "/dashboard/survey/field-ready-staff-pre",
+      },
+    ],
+  },
 };
 
 /**

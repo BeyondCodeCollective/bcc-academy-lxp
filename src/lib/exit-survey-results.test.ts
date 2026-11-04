@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { summarizeBySession, type ExitSurveyResult } from "./exit-survey-results";
+import { completionBySession, summarizeBySession, type ExitSurveyResult } from "./exit-survey-results";
 
 const row = (week: number, session: number, understanding: number | null): ExitSurveyResult => ({
   week_number: week,
@@ -23,5 +23,35 @@ describe("summarizeBySession", () => {
 
   it("ignores hours-only rows with no rating", () => {
     expect(summarizeBySession([row(2, 1, null)])).toEqual([]);
+  });
+});
+
+describe("completionBySession", () => {
+  const enrolled = [
+    { id: "a", name: "Zoe" },
+    { id: "b", name: "Amir" },
+    { id: "c", name: "Bea" },
+  ];
+
+  it("lists who hasn't rated each session, sorted by name", () => {
+    const out = completionBySession(enrolled, [
+      { student_id: "a", week_number: 1, session_number: 1 },
+      { student_id: "a", week_number: 1, session_number: 2 },
+      { student_id: "b", week_number: 1, session_number: 2 },
+    ]);
+    expect(out).toEqual([
+      { week: 1, session: 1, answered: 1, enrolled: 3, missing: ["Amir", "Bea"] },
+      { week: 1, session: 2, answered: 2, enrolled: 3, missing: ["Bea"] },
+    ]);
+  });
+
+  it("ignores ratings from people no longer enrolled", () => {
+    const [s] = completionBySession(enrolled, [{ student_id: "gone", week_number: 2, session_number: 1 }]);
+    expect(s.answered).toBe(0);
+    expect(s.missing).toHaveLength(3);
+  });
+
+  it("returns nothing before anyone has rated", () => {
+    expect(completionBySession(enrolled, [])).toEqual([]);
   });
 });

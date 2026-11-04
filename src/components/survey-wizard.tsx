@@ -19,6 +19,7 @@ type SurveyPage = {
 };
 
 import { BCC_INTAKE_SURVEY_ID } from "@/lib/surveys/platform";
+import { FIELD_READY_PRE_PAGES, FIELD_READY_POST_PAGES } from "@/lib/surveys/field-ready-staff";
 // Shared with the analytics schema so the form and the dashboard measure the
 // same statements, word for word.
 import {
@@ -1892,6 +1893,8 @@ function getSurveyPages(surveyId: string, programSlug: string): SurveyPage[] {
   if (surveyId === "mass-fall-2026-post") {
     return MASS_POST_PAGES;
   }
+  if (surveyId === "field-ready-staff-pre") return FIELD_READY_PRE_PAGES;
+  if (surveyId === "field-ready-staff-post") return FIELD_READY_POST_PAGES;
   // The generic pre-survey is only for the surveys that were built on it.
   // Anything else reaching here is unwired — hfs-pre-survey fell through to
   // this exact line and 22 learners answered the intake questions under the

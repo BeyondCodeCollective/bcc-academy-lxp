@@ -60,6 +60,24 @@ describe("onboarding checklist: catalyst-labs-nov19", () => {
   });
 });
 
+// Field Ready staff pilot: pre-survey only, no agreement item, no exemption.
+describe("onboarding checklist: field-ready-staff-cohort", () => {
+  const checklist = getOnboardingChecklist("field-ready-staff-cohort")!;
+
+  it("is the pre-survey alone", () => {
+    expect(checklist.items.map((i) => i.surveyType)).toEqual(["field-ready-staff-pre"]);
+    expect(checklist.items.some((i) => i.kind === "agreement")).toBe(false);
+    expect(checklist.exemptIfInStartedCourse).toBeFalsy();
+    expect(checklist.paused).toBeFalsy();
+  });
+
+  it.each(checklist.items)("survey item %o resolves to a registered survey and schema", (item) => {
+    expect(item.href).toBe(`/dashboard/survey/${item.surveyType}`);
+    expect(surveyConfigExists(item.surveyType)).toBe(true);
+    expect(getSurveySchema(item.surveyType)?.length ?? 0).toBeGreaterThan(0);
+  });
+});
+
 describe("anyCourseStarted", () => {
   const at = new Date("2026-11-01T15:00:00Z");
   it("is true when any start date has arrived", async () => {

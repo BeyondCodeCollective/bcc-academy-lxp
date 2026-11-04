@@ -1,4 +1,5 @@
 import { US_STATES, type SurveyQuestion } from "@/components/survey-fields";
+import { FIELD_READY_PRE_PAGES, FIELD_READY_POST_PAGES } from "./field-ready-staff";
 
 // Flat question schemas per survey id, used by the admin Survey Insights
 // dashboard to introspect what kind of aggregation/visualization to render
@@ -2327,6 +2328,8 @@ const SCHEMAS: Record<string, SurveyQuestion[]> = {
   // Cohort 2 answers the SAME instrument under its own survey_type, so the two
   // cohorts stay comparable while their responses stay separable.
   "mass-sept-2026-pre": MASS_FALL_2026_PRE,
+  "field-ready-staff-pre": FIELD_READY_PRE_PAGES.flatMap((p) => p.questions),
+  "field-ready-staff-post": FIELD_READY_POST_PAGES.flatMap((p) => p.questions),
   "cyberdeck-pre": CYBERDECK_PRE,
   "cyberdeck-post": CYBERDECK_POST,
   "bgc-participant-2026": BGC_PARTICIPANT_2026,
