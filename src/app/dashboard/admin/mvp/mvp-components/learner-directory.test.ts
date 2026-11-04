@@ -14,6 +14,30 @@ const second = { ...enrollment, programId: "p2", courseSlug: "course-b", courseN
 const render = (learners?: DirectoryLearner[]) => renderToStaticMarkup(createElement(LearnerDirectory, { filters, learners }));
 
 describe("Learner directory", () => {
+  it("preserves server order and renders selected sorting with server page boundaries", () => {
+    const html = renderToStaticMarkup(createElement(LearnerDirectory, { filters, learners: [
+      { ...learner, id: "z", email: "z@example.test" }, { ...learner, id: "a", email: "a@example.test" },
+    ], serverPagination: { page: 2, pageSize: 10, totalMatching: 12, totalPages: 2, start: 11, end: 12 },
+    sorting: { sortBy: "email", sortOrder: "desc" }, onSortChange: () => {}, onPageChange: () => {} }));
+    expect(html.indexOf("z@example.test")).toBeLessThan(html.indexOf("a@example.test"));
+    expect(html).toContain('value="email" selected=""');
+    expect(html).toContain('value="desc" selected=""');
+    expect(html).toContain('value="10" selected=""');
+    expect(html).toContain("12 matching learners");
+    expect(html).toContain("Showing 11–12 of 12");
+    expect(html).toContain("Page 2 of 2");
+    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>Next<\/button>/);
+    expect(html).not.toMatch(/<button[^>]*disabled=""[^>]*>Previous<\/button>/);
+  });
+  it("renders authoritative empty counts and disables both page directions", () => {
+    const html = renderToStaticMarkup(createElement(LearnerDirectory, { filters, learners: [],
+      serverPagination: { page: 1, pageSize: 50, totalMatching: 0, totalPages: 1, start: 0, end: 0 }, onPageChange: () => {} }));
+    expect(html).toContain("0 matching learners");
+    expect(html).toContain("Showing 0–0 of 0");
+    expect(html).toContain("No learners match");
+    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>Next<\/button>/);
+    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>Previous<\/button>/);
+  });
   it("uses server totals and does not paginate or filter an already scoped page again", () => {
     const html = renderToStaticMarkup(createElement(LearnerDirectory, { filters: { ...filters, search: "server-normalized" }, learners: [learner],
       serverPagination: { page: 2, pageSize: 25, totalMatching: 26, totalPages: 2, start: 26, end: 26 }, onPageChange: () => {} }));

@@ -14,7 +14,7 @@ describe("Learners search action", () => {
     expect(mocks.load).not.toHaveBeenCalled();
   });
   it("delegates search, status, scope and pagination to the authorized loader with an explicit response projection", async () => {
-    const params = { search: "Ada@example.test", status: "needs_check_in", programId: "p1", courseSlug: "a", page: "2", pageSize: "10" };
+    const params = { search: "Ada@example.test", status: "needs_check_in", programId: "p1", courseSlug: "a", page: "2", pageSize: "10", sortBy: "email", sortOrder: "desc" };
     const pagination = { page: 2, pageSize: 10, totalMatching: 11, totalPages: 2, start: 11, end: 11 };
     mocks.load.mockResolvedValue({ pagination, options: { private: "PRIVATE" }, directory: [{ id: "s1", firstName: "Ada", lastName: "Test", email: "Ada@example.test", private: "PRIVATE",
       enrollments: [{ programId: "p1", programName: "One", courseSlug: "a", courseName: "A", cohort: null, attendance: null,

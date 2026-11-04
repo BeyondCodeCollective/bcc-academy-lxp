@@ -3,6 +3,9 @@
 import { useId, useState } from "react";
 import type { LearnerFilters } from "./learner-filters";
 import { LearnerEvidenceDrawer, type CourseEvidence } from "./learner-evidence";
+import type { parseLearnerSort } from "@/lib/mvp/learner-sort";
+
+export type DirectorySorting = ReturnType<typeof parseLearnerSort>;
 
 export type DirectoryEnrollment = {
   programId: string; programName: string; courseSlug: string; courseName: string;
@@ -76,12 +79,14 @@ function Activity({ activity }: { activity: DirectoryEnrollment["lastActivity"] 
   return <time dateTime={date.toISOString()}>{date.toLocaleString("en-US", { timeZone: "America/New_York", year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" })}</time>;
 }
 
-export function LearnerDirectory({ filters, learners, onViewEvidence, serverPagination, onPageChange }: {
+export function LearnerDirectory({ filters, learners, onViewEvidence, serverPagination, onPageChange, sorting, onSortChange }: {
   filters: LearnerFilters;
   learners?: DirectoryLearner[];
   onViewEvidence?: (learner: DirectoryLearner) => void;
   serverPagination?: { page: number; pageSize: number; totalMatching: number; totalPages: number; start: number; end: number };
   onPageChange?: (page: number, pageSize: number) => void;
+  sorting?: DirectorySorting;
+  onSortChange?: (sorting: DirectorySorting) => void;
 }) {
   const id = useId();
   const [paging, setPaging] = useState({ scope: "", page: 1, size: 25 });
@@ -104,6 +109,20 @@ export function LearnerDirectory({ filters, learners, onViewEvidence, serverPagi
         <p className="mt-1 text-xs text-ink-soft">Progress is per course, based on verified held sessions and requirements due so far—not an overall completion score.</p></div>
       <p role="status" className="text-sm text-ink-soft">{ready ? `${total} matching ${total === 1 ? "learner" : "learners"}` : "Learner count unavailable"}</p>
     </div>
+    {serverPagination && sorting && onSortChange && <div className="mt-4 flex flex-wrap gap-4">
+      <label className="flex items-center gap-2 text-sm text-ink-soft" htmlFor={`${id}-sort`}>Sort by
+        <select id={`${id}-sort`} className={`${buttonClass} bg-white`} value={sorting.sortBy}
+          onChange={event => onSortChange({ ...sorting, sortBy: event.target.value as DirectorySorting["sortBy"] })}>
+          <option value="name">Name (last, first)</option><option value="email">Email</option>
+        </select>
+      </label>
+      <label className="flex items-center gap-2 text-sm text-ink-soft" htmlFor={`${id}-order`}>Sort order
+        <select id={`${id}-order`} className={`${buttonClass} bg-white`} value={sorting.sortOrder}
+          onChange={event => onSortChange({ ...sorting, sortOrder: event.target.value as DirectorySorting["sortOrder"] })}>
+          <option value="asc">A–Z</option><option value="desc">Z–A</option>
+        </select>
+      </label>
+    </div>}
     <div className="mt-5 overflow-x-auto rounded-lg border border-rule" tabIndex={0} role="region" aria-label="Scrollable learner directory">
       <table className="w-full min-w-[1000px] text-left text-sm">
         <caption className="sr-only">Learners and their matching course-specific evidence. Activity times use Eastern Time.</caption>
