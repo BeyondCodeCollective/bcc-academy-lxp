@@ -5,7 +5,7 @@ vi.mock("server-only", () => ({}));
 vi.mock("@/lib/auth/session", () => ({ getSessionContext: mocks.session }));
 vi.mock("@/lib/auth/preview-mode", () => ({ isPreviewingAsStudent: mocks.preview }));
 vi.mock("@/lib/supabase/server", () => ({ createServiceClient: mocks.client }));
-import { getMvpLearnersData } from "./learner-queries";
+import { getMvpLearnersData, getMvpLearnerFilterOptions } from "./learner-queries";
 
 type Row = Record<string, unknown>;
 let tables: Record<string, Row[]>;
@@ -235,18 +235,37 @@ describe("Learners loader access boundary", () => {
     expect(options.courses).toEqual([{ programId: "p2", slug: "a", name: "Updated" }]);
     expect(options.cohorts.map(c => c.id)).toEqual(["c1", "c2"]);
     expect(JSON.stringify(options)).not.toMatch(/Secret|Wrong program|Unlinked/);
+    requests = [];
+    expect(await getMvpLearnerFilterOptions()).toEqual(options);
+    for (const table of ["student_tracks", "attendance", "submissions", "reflections", "week_progress"]) expect(requests).not.toContain(table);
+  });
+  it.each(["signed-out", "student", "preview"])("denies options before database reads for %s", async mode => {
+    if (mode === "signed-out") mocks.session.mockResolvedValue(null);
+    if (mode === "student") mocks.session.mockResolvedValue({ userId: "actor", student: { role: "student" } });
+    if (mode === "preview") mocks.preview.mockResolvedValue(true);
+    await expect(getMvpLearnerFilterOptions()).rejects.toThrow("Learner access is required");
+    expect(mocks.client).not.toHaveBeenCalled();
+  });
+  it("returns empty options for an authorized staff member without program access", async () => {
+    tables.students[0].program_id = null;
+    expect(await getMvpLearnerFilterOptions()).toEqual({ programs: [], courses: [], cohorts: [] });
+    expect(requests).not.toContain("student_tracks");
   });
   it("includes builder courses, excludes hidden courses and paginates definitions", async () => {
     mocks.configs.mockReturnValue([{ slug: "one", tracks: [{ slug: "hidden", name: "Hidden" }] }]);
     tables.track_overrides = [{ id: "o1", program_id: "p1", track_slug: "a", name: "Builder A" }, { id: "o2", program_id: "p1", track_slug: "b", name: "Builder B" }];
     tables.hidden_courses = [{ track_slug: "hidden" }];
     expect((await getMvpLearnersData()).options.courses.map(c => c.slug)).toEqual(["a", "b"]);
+    requests = [];
+    expect((await getMvpLearnerFilterOptions()).courses.map(c => c.slug)).toEqual(["a", "b"]);
+    expect(requests).not.toContain("student_tracks");
   });
   it("fails closed on option lookup errors", async () => {
     mocks.configs.mockReturnValue([{ slug: "one", tracks: [{ slug: "a", name: "A" }] }]);
     for (const table of ["track_overrides", "hidden_courses", "cohorts"]) {
       requests = []; failure = table;
       await expect(getMvpLearnersData()).rejects.toThrow();
+      await expect(getMvpLearnerFilterOptions()).rejects.toThrow();
     }
   });
   it("rejects signed-out, missing-profile, student and instructor access before creating a service client", async () => {

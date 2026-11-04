@@ -31,7 +31,7 @@ export function changeLearnerFilters(state: LearnerFilters, action: Change): Lea
   return { ...state, [action.field]: action.value };
 }
 
-// Options must come from a future authorized server loader, never a global
+// Options come from the authorized server loader, never a global
 // course registry. Client-side narrowing is UX, not a permission boundary.
 // This frontend preview deliberately does not write URLs or shared storage.
 export function LearnerFilterBar({ options }: { options?: LearnerFilterOptions }) {
@@ -72,19 +72,19 @@ export function LearnerFilterBar({ options }: { options?: LearnerFilterOptions }
       <div className="mt-5 flex flex-wrap gap-4">
         <label className={labelClass} htmlFor={`${id}-program`}>Program
           <select id={`${id}-program`} className={inputClass} value={draft.programId} disabled={!options?.programs.length} onChange={event => change("programId", event.target.value)}>
-            <option value="">{options ? "All authorized programs" : "Program options not connected"}</option>
+            <option value="">{options ? options.programs.length ? "All authorized programs" : "No authorized programs available" : "Program options unavailable"}</option>
             {options?.programs.map(program => <option key={program.id} value={program.id}>{program.name}</option>)}
           </select>
         </label>
         <label className={labelClass} htmlFor={`${id}-course`}>Course / Track
           <select id={`${id}-course`} className={inputClass} value={draft.courseSlug} disabled={!draft.programId || !courses.length} onChange={event => change("courseSlug", event.target.value)}>
-            <option value="">{draft.programId ? "All courses in this program" : "Choose a program first"}</option>
+            <option value="">{draft.programId ? courses.length ? "All courses in this program" : "No authorized courses available" : "Choose a program first"}</option>
             {courses.map(course => <option key={course.slug} value={course.slug}>{course.name}</option>)}
           </select>
         </label>
         <label className={labelClass} htmlFor={`${id}-cohort`}>Current cohort
           <select id={`${id}-cohort`} className={inputClass} value={draft.cohortId} disabled={!draft.courseSlug || !cohorts.length} onChange={event => change("cohortId", event.target.value)}>
-            <option value="">{draft.courseSlug ? "All current cohorts" : "Choose a course first"}</option>
+            <option value="">{draft.courseSlug ? cohorts.length ? "All current cohorts" : "No linked current cohorts available" : "Choose a course first"}</option>
             {cohorts.map(cohort => <option key={cohort.id} value={cohort.id}>{cohort.name}</option>)}
           </select>
         </label>
@@ -98,7 +98,7 @@ export function LearnerFilterBar({ options }: { options?: LearnerFilterOptions }
         </label>
       </div>
       <div className="mt-5 flex flex-col gap-4 border-t border-rule pt-4 sm:flex-row sm:items-center sm:justify-between">
-        <p id={`${id}-availability`} className="max-w-xl text-xs text-ink-soft">Layout preview: authorized program, course, and cohort options and learner results are not connected yet.</p>
+        <p id={`${id}-availability`} className="max-w-xl text-xs text-ink-soft">{options ? "Program, course, and current cohort options are limited to your authorized access. Learner results are not connected yet." : "Authorized filter options are unavailable. Learner results are not connected yet."}</p>
         <div className="flex shrink-0 flex-wrap gap-3">
           <button type="button" disabled={!hasFilters} className="min-h-11 rounded-lg border border-rule px-4 py-2 text-sm font-semibold text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary disabled:opacity-50" onClick={() => {
             dispatch({ type: "clear" }); setApplied(EMPTY_LEARNER_FILTERS); setSearch(""); setNotice("Learner selections cleared.");

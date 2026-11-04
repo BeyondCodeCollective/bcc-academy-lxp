@@ -11,6 +11,7 @@ import { MvpOverview } from "./mvp-components/mvp-overview";
 import { refreshMvpOverview } from "./overview-actions";
 import { WorkspaceLayout } from "./mvp-components/workspace-layout";
 import { LearnerFilterBar } from "./mvp-components/learner-filters";
+import { getMvpLearnerFilterOptions } from "@/lib/mvp/learner-queries";
 
 export default async function MvpDashboardPage({ searchParams }: {
     searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -30,9 +31,16 @@ export default async function MvpDashboardPage({ searchParams }: {
         redirect("/dashboard");
     }
     const params = await searchParams;
-    // The initial Learners workspace intentionally loads no learner records.
-    // Future loaders must enforce program/course scope before reading PII.
+    // Options are authorized independently; other pages' URL filters are not
+    // inherited. Connecting learner records is a separate integration step.
     if (params.view === "learners") {
+        let options: Awaited<ReturnType<typeof getMvpLearnerFilterOptions>> | undefined;
+        try {
+            options = await getMvpLearnerFilterOptions();
+        } catch {
+            // Do not serialize database errors or inaccessible option details.
+            options = undefined;
+        }
         return <main className="mx-auto w-full max-w-7xl px-6 py-8">
             <AdminTopTabs current="mvp" showInsights isManager />
             <WorkspaceLayout navigation={
@@ -48,7 +56,8 @@ export default async function MvpDashboardPage({ searchParams }: {
                     <h1 className="text-2xl font-semibold text-ink">Learners</h1>
                     <p className="mt-2 text-sm text-ink-soft">Find learners and explore recorded course activity across your accessible programs.</p>
                 </header>
-                <LearnerFilterBar />
+                {!options && <p role="alert" className="mb-4 text-sm text-ink">Unable to load authorized learner filters. Check your access and <Link href="/dashboard/admin/mvp?view=learners" className="underline">reload Learners</Link>.</p>}
+                <LearnerFilterBar options={options} />
             </WorkspaceLayout>
         </main>;
     }

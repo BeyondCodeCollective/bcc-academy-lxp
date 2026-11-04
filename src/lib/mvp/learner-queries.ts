@@ -19,7 +19,7 @@ export type LearnerProgramScope = {
 
 // Server-only entry point. Every roster request rechecks access; no caller can
 // supply a trusted scope or bypass student-preview restrictions.
-export async function getMvpLearnersData(params: LearnerQueryParams = {}) {
+async function loadAuthorizedLearnerContext(params: LearnerQueryParams = {}) {
   const context = await getSessionContext();
   const role = context?.student?.role ?? "student";
   if (!context?.userId || !canViewMvp(role) || !canManageStudents(role) || await isPreviewingAsStudent(role)) {
@@ -79,6 +79,17 @@ export async function getMvpLearnersData(params: LearnerQueryParams = {}) {
   }
   if (requested && !programs.some(program => program.id === requested)) throw new Error("The selected program is unavailable.");
   const options = await loadLearnerOptions(db, programs);
+  return { db, programs, options, filters, requestedPage, sorting, requested };
+}
+
+// Options-only page entry point: rechecks access/preview mode, but never reads
+// the learner roster or activity. No caller-supplied permission scope is trusted.
+export async function getMvpLearnerFilterOptions() {
+  return (await loadAuthorizedLearnerContext()).options;
+}
+
+export async function getMvpLearnersData(params: LearnerQueryParams = {}) {
+  const { db, programs, options, filters, requestedPage, sorting, requested } = await loadAuthorizedLearnerContext(params);
   const matching = await loadLearnerRoster(db, options, filters);
   const { directory, pagination } = paginateLearners(sortLearners(matching, sorting), requestedPage);
   const enrichedDirectory = await loadLearnerProgress(directory, programs);

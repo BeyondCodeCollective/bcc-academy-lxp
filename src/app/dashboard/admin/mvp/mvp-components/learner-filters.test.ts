@@ -33,5 +33,12 @@ describe("Learners-only filter bar", () => {
     expect(html).toContain("Authorized program");
     expect(html).not.toContain("Scoped course");
     expect(html).not.toContain("Scoped cohort");
+    expect(html).toContain("limited to your authorized access");
+    expect(html.match(/<select[^>]*\sdisabled=""/g)).toHaveLength(2);
+  });
+  it("distinguishes no authorized programs from unavailable options", () => {
+    const html = renderToStaticMarkup(createElement(LearnerFilterBar, { options: { programs: [], courses: [], cohorts: [] } }));
+    expect(html).toContain("No authorized programs available");
+    expect(html.match(/<select[^>]*\sdisabled=""/g)).toHaveLength(3);
   });
 });

@@ -266,6 +266,22 @@ This reuse reads the configured course's roster internally; it is not a new
 database-level page-only evidence query. UI wiring remains a separate task.
 Tests use synthetic records, not live learner data.
 
+### Connected filter options
+
+The Learners page now calls the server-only `getMvpLearnerFilterOptions` entry
+point and passes only authorized Program, Course, and linked Current Cohort
+metadata into the filter bar. It shares the directory loader's role, program,
+course-grant, and student-preview checks without reading learner roster/activity
+records. The page's existing super-admin-only restriction remains unchanged.
+
+Courses narrow to the selected program; cohorts narrow to the selected program
+and course. Changing a parent clears dependent selections. Hidden courses and
+unlinked cohorts are excluded by the existing options loader. Empty authorized
+options and load failures have separate UI messages; failures do not expose raw
+database errors. Overview/Programs URL filters are not inherited, and no location,
+ZIP, or state controls are introduced. Search and directory results remain a
+separate connection task; Apply still updates the local preview only.
+
 ### Last recorded course activity
 
 The learner loader separately reads `submitted_at` from submissions/reflections
