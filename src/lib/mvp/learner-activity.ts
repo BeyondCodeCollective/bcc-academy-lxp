@@ -5,21 +5,33 @@ import { participantLastActivity, type ParticipantActivity } from "./participant
 type Enrollment = { programId: string; courseSlug: string };
 type Learner = { id: string; enrollments: Enrollment[] };
 type Activity = { at: string | null; state: "recorded" | "none_recorded" | "unavailable" };
+export type LearnerWeeklyMilestones = {
+  weekNumber: number | null;
+  submission: Activity;
+  reflection: Activity;
+  markedWatched: Activity;
+};
+type Result = { lastActivity: Activity; weeklyMilestones: LearnerWeeklyMilestones[] };
+
+function projectActivity(activities: ParticipantActivity[], learnerId: string, courseSlug: string, asOf: Date): Activity {
+  const result = participantLastActivity(activities, learnerId, courseSlug, asOf);
+  return { at: result.at, state: result.status };
+}
 
 // Internal only: directory must come from the authorized loader, after pagination.
 // Sources identify actions by learner + course, not historical enrollment attempt.
 export async function loadLearnerActivity<T extends Learner>(
   db: ReturnType<typeof createServiceClient>, directory: T[], asOf = new Date(),
-): Promise<Array<Omit<T, "enrollments"> & { enrollments: Array<Omit<T["enrollments"][number], "lastActivity"> & { lastActivity: Activity }> }>> {
+): Promise<Array<Omit<T, "enrollments"> & { enrollments: Array<Omit<T["enrollments"][number], keyof Result> & Result> }>> {
   const courses = new Map<string, Set<string>>();
   for (const learner of directory) for (const enrollment of learner.enrollments) {
     const ids = courses.get(enrollment.courseSlug) ?? new Set<string>();
     ids.add(learner.id); courses.set(enrollment.courseSlug, ids);
   }
-  const results = new Map<string, Map<string, Activity>>();
+  const results = new Map<string, Map<string, Result>>();
   for (const [courseSlug, selected] of courses) {
     const ids = [...selected];
-    const byLearner = new Map<string, Activity>();
+    const byLearner = new Map<string, Result>();
     for (let offset = 0; offset < ids.length; offset += 100) {
       const batch = ids.slice(offset, offset + 100);
       const activities: ParticipantActivity[] = [];
@@ -28,7 +40,7 @@ export async function loadLearnerActivity<T extends Learner>(
         let cursor: string | null = null;
         while (true) {
           let query = db.from(source)
-            .select(video ? "id,user_id,track_slug,video_watched_at" : "id,student_id,track_slug,submitted_at")
+            .select(video ? "id,user_id,track_slug,week_number,video_watched_at" : "id,student_id,track_slug,week_number,submitted_at")
             .eq("track_slug", courseSlug).in(video ? "user_id" : "student_id", batch).order("id").limit(500);
           if (cursor !== null) query = query.gt("id", cursor);
           const { data, error } = await query;
@@ -41,7 +53,10 @@ export async function loadLearnerActivity<T extends Learner>(
             const timestamp = record[video ? "video_watched_at" : "submitted_at"];
             // Never interpret timezone-free values using the server's local zone.
             const at = timestamp === null ? null : typeof timestamp === "string" && /(Z|[+-]\d{2}:\d{2})$/.test(timestamp) ? timestamp : "invalid";
-            activities.push({ learnerId, courseSlug, kind: video ? "video" : source === "submissions" ? "submission" : "reflection", weekNumber: 0, at });
+            const week = record.week_number;
+            // Preserve unmapped historical activity without inventing a week.
+            const weekNumber = typeof week === "number" && Number.isSafeInteger(week) && week > 0 ? week : 0;
+            activities.push({ learnerId, courseSlug, kind: video ? "video" : source === "submissions" ? "submission" : "reflection", weekNumber, at });
           }
           const next: unknown = data[data.length - 1].id;
           if (typeof next !== "string" || !next || (cursor !== null && next <= cursor)) throw new Error("Learner activity pagination did not advance.");
@@ -49,13 +64,20 @@ export async function loadLearnerActivity<T extends Learner>(
         }
       }
       for (const learnerId of batch) {
-        const activity = participantLastActivity(activities, learnerId, courseSlug, asOf);
-        byLearner.set(learnerId, { at: activity.at, state: activity.status });
+        const scoped = activities.filter(activity => activity.learnerId === learnerId);
+        const weeks = [...new Set(scoped.map(activity => activity.weekNumber))].sort((a, b) =>
+          a === 0 ? 1 : b === 0 ? -1 : a - b);
+        const weeklyMilestones = weeks.map(week => {
+          const records = scoped.filter(activity => activity.weekNumber === week);
+          const milestone = (kind: ParticipantActivity["kind"]) => projectActivity(records.filter(activity => activity.kind === kind), learnerId, courseSlug, asOf);
+          return { weekNumber: week || null, submission: milestone("submission"), reflection: milestone("reflection"), markedWatched: milestone("video") };
+        });
+        byLearner.set(learnerId, { lastActivity: projectActivity(scoped, learnerId, courseSlug, asOf), weeklyMilestones });
       }
     }
     results.set(courseSlug, byLearner);
   }
   return directory.map(learner => ({ ...learner, enrollments: learner.enrollments.map(enrollment => ({
-    ...(enrollment as T["enrollments"][number]), lastActivity: results.get(enrollment.courseSlug)!.get(learner.id)!,
+    ...(enrollment as T["enrollments"][number]), ...results.get(enrollment.courseSlug)!.get(learner.id)!,
   })) }));
 }

@@ -347,6 +347,30 @@ review fields are not returned. These states remain available even when the
 course ratio is unavailable; existing ratio and flag policies are unchanged.
 Frontend state rendering remains a separate integration task.
 
+### Weekly milestone timestamps
+
+Each authorized enrollment returns `weeklyMilestones`, sorted by week, containing
+`weekNumber`, `submission`, `reflection`, and `markedWatched`. Each milestone has
+`at` (UTC ISO timestamp or null) and `state` (`recorded`, `none_recorded`, or
+`unavailable`). The existing page-scoped activity reads now also select
+`week_number`; no additional content reads are needed.
+
+The timestamp is the latest recorded action for that learner/course/week/type,
+not a full event history. Duplicate records collapse into the same milestone;
+invalid, future, or timezone-free timestamps make that milestone unavailable
+rather than silently falling back to an older timestamp. Other weeks and types
+remain independent. Missing/invalid week mappings use `weekNumber: null`, placed
+last, rather than guessing a week or dropping activity. Only weeks represented
+in source records are returned; no records produce an empty list. Null or absent
+marks mean none recorded, not overdue, required, or failed.
+
+Video timestamps represent a marked-watched action, not verified viewing.
+Private submissions, reflection answers, file links, staff edits, and login
+timestamps are neither selected nor returned. Sources identify learner/course,
+not historical program/cohort/attempt; shared-course enrollments may therefore
+show the same milestones. Source failures still reject the whole request.
+Frontend wiring remains separate.
+
 ### Last recorded course activity
 
 The learner loader separately reads `submitted_at` from submissions/reflections

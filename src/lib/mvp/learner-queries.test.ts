@@ -221,6 +221,52 @@ describe("Learners loader access boundary", () => {
     const students = { id: "s1", first_name: "Test", last_name: "Learner", email: null, cohort_id: null, role: "student", is_test: false, is_staff: false };
     tables.student_tracks = ["a", "b"].map(track_slug => ({ id: `e${track_slug}`, student_id: "s1", program_id: "p1", track_slug, students }));
   };
+  it("returns weekly timestamp-only milestones across all source pages without mixing learners or courses", async () => {
+    seedActivityLearner();
+    tables.submissions = [
+      { id: "s1", student_id: "s1", track_slug: "a", week_number: 2, submitted_at: "2026-01-02T09:00:00-05:00", content: "PRIVATE" },
+      { id: "s2", student_id: "s1", track_slug: "a", week_number: 1, submitted_at: "2026-01-01T12:00:00Z" },
+      { id: "s3", student_id: "s1", track_slug: "a", week_number: 2, submitted_at: "2026-01-03T12:00:00Z" },
+      { id: "s4", student_id: "other", track_slug: "a", week_number: 9, submitted_at: "2026-01-03T12:00:00Z" },
+      { id: "s5", student_id: "s1", track_slug: "private", week_number: 9, submitted_at: "2026-01-03T12:00:00Z" },
+    ];
+    tables.reflections = [{ id: "r1", student_id: "s1", track_slug: "a", week_number: 2, submitted_at: "2026-01-03T16:00:00+01:00", answers: "PRIVATE" }];
+    tables.week_progress = [
+      { id: "v1", user_id: "s1", track_slug: "a", week_number: 2, video_watched_at: "2026-01-04T12:00:00Z" },
+      { id: "v2", user_id: "s1", track_slug: "b", week_number: 1, video_watched_at: "2026-01-05T12:00:00Z" },
+    ];
+    const [a, b] = (await getMvpLearnersData()).directory[0].enrollments;
+    const none = { at: null, state: "none_recorded" };
+    expect(a.weeklyMilestones).toEqual([
+      { weekNumber: 1, submission: { at: "2026-01-01T12:00:00.000Z", state: "recorded" }, reflection: none, markedWatched: none },
+      { weekNumber: 2, submission: { at: "2026-01-03T12:00:00.000Z", state: "recorded" },
+        reflection: { at: "2026-01-03T15:00:00.000Z", state: "recorded" }, markedWatched: { at: "2026-01-04T12:00:00.000Z", state: "recorded" } },
+    ]);
+    expect(b.weeklyMilestones).toEqual([{ weekNumber: 1, submission: none, reflection: none, markedWatched: { at: "2026-01-05T12:00:00.000Z", state: "recorded" } }]);
+    expect(JSON.stringify([a, b])).not.toContain("PRIVATE");
+  });
+  it.each(["bad", "2999-01-01T00:00:00Z", "2026-01-01T12:00:00"])("isolates invalid milestone timestamps to their week and source: %s", async submitted_at => {
+    seedActivityLearner();
+    tables.submissions = [
+      { id: "s1", student_id: "s1", track_slug: "a", week_number: 1, submitted_at },
+      { id: "s2", student_id: "s1", track_slug: "a", week_number: 2, submitted_at: "2026-01-02T12:00:00Z" },
+    ];
+    tables.reflections = [{ id: "r1", student_id: "s1", track_slug: "a", week_number: 1, submitted_at: "2026-01-01T12:00:00Z" }];
+    const [a, b] = (await getMvpLearnersData()).directory[0].enrollments;
+    expect(a.weeklyMilestones[0].submission).toEqual({ at: null, state: "unavailable" });
+    expect(a.weeklyMilestones[0].reflection.state).toBe("recorded");
+    expect(a.weeklyMilestones[1].submission.state).toBe("recorded");
+    expect(b.weeklyMilestones).toEqual([]);
+  });
+  it("preserves unmapped activity and null marks without inferring completion or deadlines", async () => {
+    seedActivityLearner();
+    tables.submissions = [{ id: "s1", student_id: "s1", track_slug: "a", week_number: null, submitted_at: "2026-01-01T12:00:00Z" }];
+    tables.week_progress = [{ id: "v1", user_id: "s1", track_slug: "a", week_number: 1, video_watched_at: null, updated_at: "2026-01-01T12:00:00Z" }];
+    const a = (await getMvpLearnersData()).directory[0].enrollments[0];
+    expect(a.weeklyMilestones.map(row => row.weekNumber)).toEqual([1, null]);
+    expect(a.weeklyMilestones[0].markedWatched).toEqual({ at: null, state: "none_recorded" });
+    expect(a.weeklyMilestones[1].submission.state).toBe("recorded");
+  });
   it("returns the latest course action in UTC across complete timestamp-only source pages", async () => {
     seedActivityLearner();
     tables.submissions = [
