@@ -89,6 +89,21 @@ describe("Learners loader access boundary", () => {
       outcome: track_slug === "a" && week_number === 2 ? "absent" : "present", recorded_by: "PRIVATE ACTOR", recorded_at: "2000-01-03T12:00:00Z",
     })));
   };
+  it("filters supported check-in statuses before pagination with accurate learner and summary counts", async () => {
+    seedAttendance();
+    tables.mvp_attendance_reviews[0].outcome = "absent";
+    const result = await getMvpLearnersData({ status: "needs_check_in", page: "2", pageSize: "10" });
+    expect(result.pagination).toMatchObject({ totalMatching: 1, page: 1 });
+    expect(result.summary.totalEnrolled).toBe(1);
+    expect(result.directory[0].enrollments.map(row => row.courseSlug)).toEqual(["a"]);
+    expect(result.directory[0].enrollments[0].checkIn.attentionFlags[0].reason).toBe("missed_sessions");
+    requests = [];
+    expect((await getMvpLearnersData({ status: "on_track" })).pagination.totalMatching).toBe(0);
+    requests = [];
+    const unknown = await getMvpLearnersData({ status: "not_evaluated", page: "3", pageSize: "10" });
+    expect(unknown.pagination.totalMatching).toBe(26);
+    expect(unknown.directory).toHaveLength(6);
+  });
   it("returns privacy-safe attendance states per enrollment even when its ratio is unavailable", async () => {
     seedAttendance();
     tables.mvp_attendance_reviews[1].outcome = "excused";
@@ -425,7 +440,7 @@ describe("Learners loader access boundary", () => {
     await expect(run({ programId: "p1", courseSlug: "secret" })).rejects.toThrow("course is unavailable");
   });
   it("rejects malformed filters and unsupported status evaluation without reading learners", async () => {
-    for (const params of [{ search: ["a", "b"] }, { search: "a".repeat(201) }, { courseSlug: "a" }, { cohortId: "c1" }, { status: "invalid" }, { status: "on_track" }, { status: "needs_check_in" }]) {
+    for (const params of [{ search: ["a", "b"] }, { search: "a".repeat(201) }, { courseSlug: "a" }, { cohortId: "c1" }, { status: "invalid" }]) {
       await expect(getMvpLearnersData(params)).rejects.toThrow();
     }
     expect(requests).not.toContain("student_tracks");

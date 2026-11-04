@@ -347,6 +347,38 @@ review fields are not returned. These states remain available even when the
 course ratio is unavailable; existing ratio and flag policies are unchanged.
 Frontend state rendering remains a separate integration task.
 
+### Evidence-backed Needs Check-In
+
+The authorized loader now evaluates each matching enrollment using the existing
+attention evaluator. Two verified required-session absences trigger the existing
+`framework-missed-sessions-v1` rule (not a consecutive-absence rule). Excused,
+unrecorded, unresolved, and ineligible sessions never count as verified absences.
+Two proven absences may flag even if other sessions remain unresolved.
+
+Mandatory-work flags require an exact program/course active configuration with
+explicit assignments, deadlines, and elapsed grace periods. Marked-watched
+checkpoint flags require an exact configured video policy. Existing shared
+signal helpers are reused; no live configuration entries or deadlines are added.
+Invalid or unmapped milestone evidence cannot establish missing work/progress.
+Assessment rules remain unevaluated because assessment evidence is not connected
+to this loader; no scores or cutoffs are inferred.
+
+Enrollments return `status` and `checkIn` (flags, unevaluated rule IDs, evaluation
+time, and a generic unavailable reason). Any supported flag produces
+`needs_check_in`; absent flags do not imply `on_track` when offering requirements
+or evidence are unknown. `on_track` means no flags under the configured evaluated
+rules, not course completion. Unconfigured offerings remain `not_evaluated` unless
+the approved absence rule has positive evidence. Session evidence references
+identify verified program/course/learner/week/session tuples, not raw review IDs;
+no private review fields or learner work are returned.
+
+Status filters evaluate the full authorized search/course/cohort-matching roster
+before deduplication-preserving pagination, retaining only matching enrollments.
+Counts and summary cards use that filtered population. A learner can match
+different statuses in different courses; those filter counts are not additive.
+Unfiltered requests retain page-scoped evidence reads. Frontend wiring and the
+Needs Check-In summary card are separate tasks.
+
 ### Weekly milestone timestamps
 
 Each authorized enrollment returns `weeklyMilestones`, sorted by week, containing
