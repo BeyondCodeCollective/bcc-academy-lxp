@@ -24,10 +24,9 @@ export async function GET(req: NextRequest) {
 
   const rows = await loadExitSurveyResults(actor.svc, track);
   const csv = toCsv(
-    ["Name", "Email", "Week", "Session", UNDERSTANDING_PROMPT, UNCLEAR_PROMPT, HOURS_PROMPT, "Updated"],
+    ["Participant code", "Week", "Session", UNDERSTANDING_PROMPT, UNCLEAR_PROMPT, HOURS_PROMPT, "Updated"],
     rows.map((r) => [
-      r.name,
-      r.email,
+      r.participant_code,
       r.week_number,
       r.session_number,
       r.understanding,

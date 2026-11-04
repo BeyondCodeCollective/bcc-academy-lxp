@@ -6,6 +6,7 @@ import { canSwitchPrograms } from "@/lib/roles";
 import { getProgram } from "@/lib/programs/server";
 import { resolveProgramScope } from "@/lib/programs/scope";
 import { deriveCohortLabel, SURVEY_COHORT_DEFAULTS } from "@/lib/surveys/cohort-labels";
+import { isParticipantCodedSurvey, withParticipantCode } from "@/lib/surveys/participant-code";
 
 // Resolves the program_id scope for an insights query. Super-admins get the
 // BCC-wide view (no scope — undefined) unless they pass an explicit one;
@@ -62,7 +63,7 @@ export async function exportSurveyResponses(
 
   const { data, error } = await svc
     .from("survey_responses")
-    .select("student_id, responses, completed_at, students(first_name, last_name, email)")
+    .select("student_id, responses, completed_at, participant_code, students(first_name, last_name, email)")
     .eq("program_id", programId)
     .eq("survey_type", surveyType)
     .not("completed_at", "is", null);
@@ -72,13 +73,22 @@ export async function exportSurveyResponses(
     return [];
   }
 
+  const coded = isParticipantCodedSurvey(surveyType);
   return (data ?? []).map((row: Record<string, unknown>) => {
     const student = row.students as { first_name: string; last_name: string; email: string } | null;
+    const completed_at = row.completed_at as string | null;
+    if (coded) {
+      const c = withParticipantCode(
+        { full_name: "", email: "", responses: row.responses as Record<string, unknown> },
+        row.participant_code as string | null,
+      );
+      return { student_name: c.full_name, email: "", responses: c.responses, completed_at };
+    }
     return {
       student_name: student ? `${student.first_name} ${student.last_name}` : "Unknown",
       email: student?.email ?? "",
       responses: row.responses as Record<string, unknown>,
-      completed_at: row.completed_at as string | null,
+      completed_at,
     };
   });
 }
@@ -459,6 +469,8 @@ export type BCCSurveyResponse = {
   completed_at: string | null;
   responses: Record<string, unknown>;
   source: "public" | "authenticated";
+  /** Set only on participant-coded surveys, where it replaces the name. */
+  participant_code?: string;
 };
 
 export type BCCSurveyStat = {
@@ -758,7 +770,7 @@ export async function getDashboardSurveyResponses(
   let authQuery = svc
     .from("survey_responses")
     .select(
-      "responses, completed_at, program_id, programs(slug, name), students(first_name, last_name, email, zip, date_of_birth)",
+      "responses, completed_at, program_id, participant_code, programs(slug, name), students(first_name, last_name, email, zip, date_of_birth)",
     )
     .eq("survey_type", surveyType)
     .not("completed_at", "is", null);
@@ -803,16 +815,18 @@ export async function getDashboardSurveyResponses(
         responses: Record<string, unknown>;
         completed_at: string | null;
         programs: { slug: string; name: string } | { slug: string; name: string }[] | null;
+        participant_code: string | null;
         students: { first_name: string; last_name: string; email: string; zip: string | null; date_of_birth: string | null } | null;
       }[]
     | null;
 
+  const coded = isParticipantCodedSurvey(surveyType);
   const authRows: BCCSurveyResponse[] = (authData ?? []).map((row) => {
     const p = (Array.isArray(row.programs) ? row.programs[0] : row.programs) as {
       slug: string;
       name: string;
     } | null;
-    return {
+    const out: BCCSurveyResponse = {
       survey_type: surveyType,
       full_name: row.students
         ? `${row.students.first_name} ${row.students.last_name}`
@@ -824,6 +838,7 @@ export async function getDashboardSurveyResponses(
       responses: backfillFromStudent(surveyType, row.responses, row.students),
       source: "authenticated",
     };
+    return coded ? withParticipantCode(out, row.participant_code) : out;
   });
 
   return dedupeClaimedResponses([...publicRows, ...authRows]).sort((a, b) => {
@@ -857,7 +872,7 @@ export async function getDashboardAllSurveyResponses(
   let authQuery = svc
     .from("survey_responses")
     .select(
-      "survey_type, student_id, responses, completed_at, program_id, programs(slug, name), students(first_name, last_name, email, zip, date_of_birth)",
+      "survey_type, student_id, responses, completed_at, program_id, participant_code, programs(slug, name), students(first_name, last_name, email, zip, date_of_birth)",
     )
     .in("survey_type", surveyTypes)
     .not("completed_at", "is", null);
@@ -910,6 +925,7 @@ export async function getDashboardAllSurveyResponses(
     responses: Record<string, unknown>;
     completed_at: string | null;
     programs: { slug: string; name: string } | { slug: string; name: string }[] | null;
+    participant_code: string | null;
     students: { first_name: string; last_name: string; email: string; zip: string | null; date_of_birth: string | null } | null;
   }[] | null;
 
@@ -989,7 +1005,7 @@ export async function getDashboardAllSurveyResponses(
     // Backfill blank name/zip/DOB from the student record so grant/demographic
     // exports aren't empty for legacy imported submissions.
     responses = backfillFromStudent(row.survey_type, responses, row.students);
-    (byType[row.survey_type] ??= []).push({
+    const out: BCCSurveyResponse = {
       survey_type: row.survey_type,
       full_name: row.students ? `${row.students.first_name} ${row.students.last_name}` : "Unknown",
       email: row.students?.email ?? "",
@@ -998,7 +1014,10 @@ export async function getDashboardAllSurveyResponses(
       completed_at: row.completed_at,
       responses,
       source: "authenticated",
-    });
+    };
+    (byType[row.survey_type] ??= []).push(
+      isParticipantCodedSurvey(row.survey_type) ? withParticipantCode(out, row.participant_code) : out,
+    );
   }
 
   for (const t of surveyTypes) {
@@ -1035,7 +1054,7 @@ export async function getTrackSurveyResponses(
   let query = svc
     .from("survey_responses")
     .select(
-      "responses, completed_at, program_id, programs(slug, name), students(first_name, last_name, email, zip, date_of_birth)",
+      "responses, completed_at, program_id, participant_code, programs(slug, name), students(first_name, last_name, email, zip, date_of_birth)",
     )
     .eq("survey_type", surveyType)
     .in("student_id", enrolledIds)
@@ -1064,16 +1083,18 @@ export async function getTrackSurveyResponses(
         responses: Record<string, unknown>;
         completed_at: string | null;
         programs: { slug: string; name: string } | { slug: string; name: string }[] | null;
+        participant_code: string | null;
         students: { first_name: string; last_name: string; email: string; zip: string | null; date_of_birth: string | null } | null;
       }[]
     | null;
 
+  const coded = isParticipantCodedSurvey(surveyType);
   return (rows ?? []).map((row) => {
     const p = (Array.isArray(row.programs) ? row.programs[0] : row.programs) as {
       slug: string;
       name: string;
     } | null;
-    return {
+    const out: BCCSurveyResponse = {
       survey_type: surveyType,
       full_name: row.students
         ? `${row.students.first_name} ${row.students.last_name}`
@@ -1085,5 +1106,6 @@ export async function getTrackSurveyResponses(
       responses: backfillFromStudent(surveyType, row.responses, row.students),
       source: "authenticated",
     };
+    return coded ? withParticipantCode(out, row.participant_code) : out;
   });
 }

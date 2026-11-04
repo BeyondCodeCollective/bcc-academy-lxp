@@ -163,17 +163,20 @@ async function scopeSectionsToTrack(
   const svc = createServiceClient();
   const { data: enrollRows } = await svc
     .from("student_tracks")
-    .select("students(email, role, is_staff)")
+    .select("students(email, participant_code, role, is_staff)")
     .eq("track_slug", trackSlug);
 
-  type Learner = { email: string; role: string; is_staff: boolean | null };
+  type Learner = { email: string; participant_code: string | null; role: string; is_staff: boolean | null };
   const emails = new Set<string>();
+  // Participant-coded responses carry no email, so they match on the code.
+  const codes = new Set<string>();
   for (const row of (enrollRows ?? []) as unknown as {
     students: Learner | Learner[] | null;
   }[]) {
     const s = Array.isArray(row.students) ? row.students[0] : row.students;
     if (!s?.email || s.role !== "student" || s.is_staff) continue;
     emails.add(s.email.toLowerCase());
+    if (s.participant_code) codes.add(s.participant_code);
   }
 
   const declaredPublic = new Set(
@@ -189,7 +192,9 @@ async function scopeSectionsToTrack(
       const responses = section.responses.filter((r) =>
         r.source === "public"
           ? isDeclaredPublic
-          : emails.has((r.email ?? "").toLowerCase()),
+          : r.participant_code
+            ? codes.has(r.participant_code)
+            : emails.has((r.email ?? "").toLowerCase()),
       );
       return {
         ...section,

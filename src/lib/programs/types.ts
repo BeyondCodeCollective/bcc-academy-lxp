@@ -364,6 +364,10 @@ export type SurveyConfig = {
   /** Public surveys only: ask no name or email (e.g. respondents under 13).
    *  Every submission is its own row, filed under appliesToPrograms[0]. */
   anonymous?: boolean;
+  /** Authenticated surveys only: staff see the learner's participant code,
+   *  never their name, email, ZIP or birthday. The response stays tied to the
+   *  account (student_id) so it can be traced later if ever needed. */
+  participantCoded?: boolean;
 };
 
 export type ProgramConfig = {

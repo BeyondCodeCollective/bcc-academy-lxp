@@ -35,7 +35,7 @@ export default async function ExitSurveyResultsPage({
         }
       />
       <p className="text-sm text-ink-soft">
-        Answers are tied to each learner&apos;s name. Back to the{" "}
+        Learners appear by participant code, not name, so they can be candid. Back to the{" "}
         <Link href="/dashboard/admin" className="text-ink underline">
           admin panel
         </Link>
@@ -78,7 +78,7 @@ export default async function ExitSurveyResultsPage({
               {rows.map((r, i) => (
                 <li key={i} className="py-3 text-sm">
                   <p className="font-medium text-ink">
-                    {r.name || r.email || "Unknown"}{" "}
+                    <span className="font-mono">{r.participant_code}</span>{" "}
                     <span className="font-normal text-ink-faint">
                       · Week {r.week_number}, session {r.session_number}
                       {r.understanding !== null ? ` · rated ${r.understanding}` : ""}

@@ -1,4 +1,8 @@
 // Admin results: load a course's exit survey rows and summarize them.
+// Rows are identified by participant code only, never name or email, so
+// learners can be candid about a session without the facilitator knowing who.
+
+import { NO_PARTICIPANT_CODE } from "@/lib/surveys/participant-code";
 
 import type { createServiceClient } from "@/lib/supabase/server";
 
@@ -9,8 +13,7 @@ export type ExitSurveyResult = {
   unclear_text: string | null;
   hours_text: string | null;
   updated_at: string;
-  name: string;
-  email: string;
+  participant_code: string;
 };
 
 export type SessionSummary = {
@@ -27,19 +30,16 @@ export async function loadExitSurveyResults(
   const { data } = await svc
     .from("session_exit_surveys")
     .select(
-      "week_number, session_number, understanding, unclear_text, hours_text, updated_at, students(first_name, last_name, email)",
+      "week_number, session_number, understanding, unclear_text, hours_text, updated_at, participant_code",
     )
     .eq("track_slug", trackSlug)
     .order("week_number")
     .order("session_number")
     .order("updated_at");
-  type Row = Omit<ExitSurveyResult, "name" | "email"> & {
-    students: { first_name: string | null; last_name: string | null; email: string | null } | null;
-  };
-  return ((data ?? []) as unknown as Row[]).map(({ students, ...r }) => ({
+  type Row = Omit<ExitSurveyResult, "participant_code"> & { participant_code: string | null };
+  return ((data ?? []) as unknown as Row[]).map((r) => ({
     ...r,
-    name: `${students?.first_name ?? ""} ${students?.last_name ?? ""}`.trim(),
-    email: students?.email ?? "",
+    participant_code: r.participant_code || NO_PARTICIPANT_CODE,
   }));
 }
 
