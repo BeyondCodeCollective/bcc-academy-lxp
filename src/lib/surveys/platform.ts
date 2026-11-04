@@ -195,6 +195,24 @@ export const PLATFORM_AUTH_SURVEYS: Record<string, SurveyConfig> = {
       "Mindset and soft skills, about 10 to 12 minutes. You made it through 8 weeks, now let's reflect. Private; only combined results are shared.",
     required: false,
   },
+  "field-ready-staff-pre": {
+    id: "field-ready-staff-pre",
+    appliesToTracks: ["field-ready-staff-cohort"],
+    title: "Field Ready Staff Pilot: Pre-Program Survey",
+    description:
+      "About 6 minutes. Where you are starting with AI, so we can see what the pilot changes. Not a test. Your answers are shown to staff under a participant code, never your name.",
+    required: false,
+    participantCoded: true,
+  },
+  "field-ready-staff-post": {
+    id: "field-ready-staff-post",
+    appliesToTracks: ["field-ready-staff-cohort"],
+    title: "Field Ready Staff Pilot: Post-Program Survey",
+    description:
+      "How the pilot went and what changed for you. Your answers are shown to staff under a participant code, never your name.",
+    required: false,
+    participantCoded: true,
+  },
   "mass-sept-2026-pre": {
     id: "mass-sept-2026-pre",
     // One cohort's instrument, and only that cohort's. Without this the admin

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAdmin, allowedTrackSlugsForActor } from "@/app/dashboard/admin/actions-shared";
 import { PageHeader } from "@/components/page-header";
-import { loadExitSurveyResults, summarizeBySession } from "@/lib/exit-survey-results";
+import { loadExitSurveyCompletion, loadExitSurveyResults, summarizeBySession } from "@/lib/exit-survey-results";
 import { UNCLEAR_PROMPT } from "@/lib/exit-survey";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +18,10 @@ export default async function ExitSurveyResultsPage({
   const allowed = await allowedTrackSlugsForActor(actor, actor.svc);
   if (allowed && !allowed.has(track)) notFound();
 
-  const rows = await loadExitSurveyResults(actor.svc, track);
+  const [rows, completion] = await Promise.all([
+    loadExitSurveyResults(actor.svc, track),
+    loadExitSurveyCompletion(actor.svc, track),
+  ]);
   const summary = summarizeBySession(rows);
   const csvHref = `/api/admin/exit-surveys/csv?track=${encodeURIComponent(track)}`;
 
@@ -70,6 +73,33 @@ export default async function ExitSurveyResultsPage({
                 ))}
               </tbody>
             </table>
+          </section>
+
+          <section>
+            <h2 className="text-xs font-medium uppercase tracking-[0.14em] text-ink-faint">
+              Who hasn&apos;t answered yet
+            </h2>
+            <p className="mt-1 text-xs text-ink-faint">
+              Names only, never linked to answers, so you can check completion without knowing who said what.
+            </p>
+            <ul className="mt-2 divide-y divide-neutral-100">
+              {completion.map((c) => (
+                <li key={`${c.week}:${c.session}`} className="py-2 text-sm">
+                  <span className="font-medium text-ink">
+                    Week {c.week}, session {c.session}
+                  </span>
+                  <span className="text-ink-faint">
+                    {" "}
+                    · {c.answered} of {c.enrolled} answered
+                  </span>
+                  {c.missing.length > 0 ? (
+                    <p className="mt-0.5 text-ink-soft">{c.missing.join(", ")}</p>
+                  ) : (
+                    <p className="mt-0.5 text-ink-soft">Everyone has answered.</p>
+                  )}
+                </li>
+              ))}
+            </ul>
           </section>
 
           <section>

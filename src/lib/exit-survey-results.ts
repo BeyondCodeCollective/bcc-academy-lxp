@@ -62,3 +62,72 @@ export function summarizeBySession(rows: ExitSurveyResult[]): SessionSummary[] {
       average: Math.round((g.ratings.reduce((s, n) => s + n, 0) / g.ratings.length) * 10) / 10,
     }));
 }
+
+// ─── Completion check ──────────────────────────────────────────────────────
+// Who hasn't rated a session yet, by name. Kept apart from the answers on
+// purpose: staff can chase completion without seeing who wrote what, because
+// the answers above carry only participant codes.
+
+export type SessionCompletion = {
+  week: number;
+  session: number;
+  answered: number;
+  enrolled: number;
+  missing: string[];
+};
+
+export function completionBySession(
+  enrolled: { id: string; name: string }[],
+  rated: { student_id: string; week_number: number; session_number: number }[],
+): SessionCompletion[] {
+  const bySession = new Map<string, { week: number; session: number; ids: Set<string> }>();
+  for (const r of rated) {
+    const key = `${r.week_number}:${r.session_number}`;
+    const g = bySession.get(key) ?? { week: r.week_number, session: r.session_number, ids: new Set<string>() };
+    g.ids.add(r.student_id);
+    bySession.set(key, g);
+  }
+  const enrolledIds = new Set(enrolled.map((e) => e.id));
+  return [...bySession.values()]
+    .sort((a, b) => a.week - b.week || a.session - b.session)
+    .map((g) => ({
+      week: g.week,
+      session: g.session,
+      answered: [...g.ids].filter((id) => enrolledIds.has(id)).length,
+      enrolled: enrolled.length,
+      missing: enrolled
+        .filter((e) => !g.ids.has(e.id))
+        .map((e) => e.name)
+        .sort((a, b) => a.localeCompare(b)),
+    }));
+}
+
+/** Sessions that have at least one rating, with the enrolled learners missing from each. */
+export async function loadExitSurveyCompletion(
+  svc: ReturnType<typeof createServiceClient>,
+  trackSlug: string,
+): Promise<SessionCompletion[]> {
+  const [{ data: rated }, { data: enrollRows }] = await Promise.all([
+    svc
+      .from("session_exit_surveys")
+      .select("student_id, week_number, session_number")
+      .eq("track_slug", trackSlug)
+      .not("understanding", "is", null),
+    svc
+      .from("student_tracks")
+      .select("student_id, students(first_name, last_name, email, is_test)")
+      .eq("track_slug", trackSlug),
+  ]);
+  type Person = { first_name: string | null; last_name: string | null; email: string | null; is_test: boolean | null };
+  const enrolled = ((enrollRows ?? []) as unknown as { student_id: string; students: Person | Person[] | null }[])
+    .map((r) => ({ id: r.student_id, s: Array.isArray(r.students) ? r.students[0] : r.students }))
+    .filter((r) => r.s && !r.s.is_test)
+    .map((r) => ({
+      id: r.id,
+      name: [r.s?.first_name, r.s?.last_name].filter(Boolean).join(" ").trim() || r.s?.email || "Unknown",
+    }));
+  return completionBySession(
+    enrolled,
+    (rated ?? []) as { student_id: string; week_number: number; session_number: number }[],
+  );
+}
