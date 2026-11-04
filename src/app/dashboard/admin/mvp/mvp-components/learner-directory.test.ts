@@ -14,6 +14,33 @@ const second = { ...enrollment, programId: "p2", courseSlug: "course-b", courseN
 const render = (learners?: DirectoryLearner[]) => renderToStaticMarkup(createElement(LearnerDirectory, { filters, learners }));
 
 describe("Learner directory", () => {
+  it("shows course-specific milestone timestamps without implying missing work is overdue", () => {
+    const html = render([{ ...learner, enrollments: [
+      { ...enrollment, weeklyMilestones: [{ weekNumber: 2,
+        submission: { at: "2026-10-20T15:30:00Z", state: "recorded" },
+        reflection: { at: null, state: "none_recorded" }, markedWatched: { at: null, state: "unavailable" } },
+      { weekNumber: null, submission: { at: null, state: "unavailable" },
+        reflection: { at: "2026-10-21T16:00:00Z", state: "recorded" }, markedWatched: { at: null, state: "none_recorded" } }] },
+      { ...second, attendance: null, attendanceUnavailableReason: "Review incomplete.", weeklyMilestones: [] },
+    ] }]);
+    expect(html).toContain("Weekly timestamps for Course A");
+    expect(html).not.toContain("Weekly timestamps for Course B");
+    expect(html).toContain("Week 2");
+    expect(html).toContain("Week not linked");
+    expect(html).toContain('dateTime="2026-10-21T16:00:00.000Z"');
+    expect(html).toContain("EDT");
+    expect(html).toContain("Reflection");
+    expect(html).toContain("Marked watched");
+    expect(html).toContain("No recorded activity");
+    expect(html).toContain("No recorded milestone activity");
+    expect(html).toContain("Review incomplete.");
+    expect(html).toContain("Unlinked");
+    expect(html).toContain("Not evaluated");
+    expect(html).toContain("Needs Check-in");
+    expect(html).not.toContain("overdue");
+    expect(html.match(/scope="row"/g)).toHaveLength(1);
+    expect(render([learner])).toContain("Milestone timestamps unavailable");
+  });
   it("preserves server order and renders selected sorting with server page boundaries", () => {
     const html = renderToStaticMarkup(createElement(LearnerDirectory, { filters, learners: [
       { ...learner, id: "z", email: "z@example.test" }, { ...learner, id: "a", email: "a@example.test" },

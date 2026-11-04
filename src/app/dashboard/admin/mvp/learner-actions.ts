@@ -15,6 +15,12 @@ export async function searchMvpLearners(params: LearnerQueryParams) {
       id: learner.id, firstName: learner.firstName, lastName: learner.lastName, email: learner.email,
       enrollments: learner.enrollments.map(e => ({ programId: e.programId, programName: e.programName,
         courseSlug: e.courseSlug, courseName: e.courseName, cohort: e.cohort, attendance: e.attendance,
+        attendanceUnavailableReason: e.attendanceUnavailableReason,
+        weeklyMilestones: e.weeklyMilestones?.map(week => ({ weekNumber: week.weekNumber,
+          submission: { at: week.submission.at, state: week.submission.state },
+          reflection: { at: week.reflection.at, state: week.reflection.state },
+          markedWatched: { at: week.markedWatched.at, state: week.markedWatched.state },
+        })),
         caughtUp: e.caughtUp, lastActivity: e.lastActivity, status: e.status })),
     })) };
   } catch {

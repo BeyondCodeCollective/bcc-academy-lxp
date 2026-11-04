@@ -18,11 +18,20 @@ describe("Learners search action", () => {
     const pagination = { page: 2, pageSize: 10, totalMatching: 11, totalPages: 2, start: 11, end: 11 };
     mocks.load.mockResolvedValue({ pagination, options: { private: "PRIVATE" }, directory: [{ id: "s1", firstName: "Ada", lastName: "Test", email: "Ada@example.test", private: "PRIVATE",
       enrollments: [{ programId: "p1", programName: "One", courseSlug: "a", courseName: "A", cohort: null, attendance: null,
+        attendanceUnavailableReason: "Review incomplete.",
+        weeklyMilestones: [{ weekNumber: 1, private: "PRIVATE",
+          submission: { at: "2026-10-20T15:30:00Z", state: "recorded", text: "PRIVATE" },
+          reflection: { at: null, state: "none_recorded", text: "PRIVATE" },
+          markedWatched: { at: null, state: "unavailable", fileUrl: "PRIVATE" } }],
         lastActivity: { at: null, state: "none_recorded" }, status: "needs_check_in", checkIn: { private: "PRIVATE" } }] }] });
     const result = await searchMvpLearners(params);
     expect(mocks.load).toHaveBeenCalledWith(params);
     expect(result).toMatchObject({ ok: true, pagination, directory: [{ id: "s1", enrollments: [{ status: "needs_check_in" }] }] });
     expect(JSON.stringify(result)).not.toContain("PRIVATE");
+    expect(result).toMatchObject({ directory: [{ enrollments: [{ attendanceUnavailableReason: "Review incomplete.",
+      weeklyMilestones: [{ weekNumber: 1, submission: { at: "2026-10-20T15:30:00Z", state: "recorded" },
+        reflection: { at: null, state: "none_recorded" }, markedWatched: { at: null, state: "unavailable" } }],
+    }] }] });
   });
   it("fails safely for preview denial, altered scopes, and database errors", async () => {
     mocks.load.mockRejectedValue(new Error("PRIVATE source failure"));

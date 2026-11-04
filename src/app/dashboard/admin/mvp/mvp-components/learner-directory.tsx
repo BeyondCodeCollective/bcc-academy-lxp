@@ -4,6 +4,7 @@ import { useId, useState } from "react";
 import type { LearnerFilters } from "./learner-filters";
 import { LearnerEvidenceDrawer, type CourseEvidence } from "./learner-evidence";
 import type { parseLearnerSort } from "@/lib/mvp/learner-sort";
+import type { LearnerWeeklyMilestones } from "@/lib/mvp/learner-activity";
 
 export type DirectorySorting = ReturnType<typeof parseLearnerSort>;
 
@@ -11,6 +12,8 @@ export type DirectoryEnrollment = {
   programId: string; programName: string; courseSlug: string; courseName: string;
   cohort: { id: string; name: string } | null;
   attendance: { present: number; eligibleHeld: number } | null;
+  attendanceUnavailableReason?: string | null;
+  weeklyMilestones?: LearnerWeeklyMilestones[];
   caughtUp?: { percent: number | null; completedSessions: number | null; applicableSessions: number | null; unavailableReason: string | null };
   lastActivity: { at: string | null; state: "recorded" | "none_recorded" | "unavailable" };
   status: "on_track" | "needs_check_in" | "not_evaluated";
@@ -79,6 +82,21 @@ function Activity({ activity }: { activity: DirectoryEnrollment["lastActivity"] 
   return <time dateTime={date.toISOString()}>{date.toLocaleString("en-US", { timeZone: "America/New_York", year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" })}</time>;
 }
 
+function Milestones({ enrollment }: { enrollment: DirectoryEnrollment }) {
+  if (!enrollment.weeklyMilestones) return <span>Milestone timestamps unavailable</span>;
+  if (!enrollment.weeklyMilestones.length) return <span>No recorded milestone activity</span>;
+  return <details>
+    <summary className="cursor-pointer py-2 text-primary focus-visible:outline focus-visible:outline-2">Weekly timestamps for {enrollment.courseName}</summary>
+    <p className="text-xs text-ink-soft">Eastern Time. Video marks are learner-recorded, not verified viewing.</p>
+    <ul className="mt-2 space-y-3">{enrollment.weeklyMilestones.map(week => <li key={week.weekNumber ?? "unmapped"}>
+      <span className="font-medium">{week.weekNumber === null ? "Week not linked" : `Week ${week.weekNumber}`}</span>
+      <dl className="mt-1 space-y-1 text-xs">{([
+        ["Submission", week.submission], ["Reflection", week.reflection], ["Marked watched", week.markedWatched],
+      ] as const).map(([label, activity]) => <div key={label}><dt className="text-ink-soft">{label}</dt><dd><Activity activity={activity} /></dd></div>)}</dl>
+    </li>)}</ul>
+  </details>;
+}
+
 export function LearnerDirectory({ filters, learners, onViewEvidence, serverPagination, onPageChange, sorting, onSortChange }: {
   filters: LearnerFilters;
   learners?: DirectoryLearner[];
@@ -127,15 +145,16 @@ export function LearnerDirectory({ filters, learners, onViewEvidence, serverPagi
       <table className="w-full min-w-[1000px] text-left text-sm">
         <caption className="sr-only">Learners and their matching course-specific evidence. Activity times use Eastern Time.</caption>
         <thead className="bg-slate-50 text-xs uppercase tracking-wide text-ink-soft"><tr>
-          {["Name & Email", "Matching enrollments", "Current cohort", "Verified attendance", "Course progress", "Last recorded course activity", "Status", "Action"].map(label => <th key={label} scope="col" className="px-4 py-4 font-semibold">{label}</th>)}
+          {["Name & Email", "Matching enrollments", "Current cohort", "Verified attendance", "Course progress", "Weekly milestone timestamps", "Last recorded course activity", "Status", "Action"].map(label => <th key={label} scope="col" className="px-4 py-4 font-semibold">{label}</th>)}
         </tr></thead>
-        <tbody>{!ready || !matching.length ? <tr><td colSpan={8} className="px-4 py-12 text-center text-ink-soft">{invalid ? "Learner records are inconsistent. Results are unavailable." : learners === undefined ? "The learner directory is not connected yet. No sample learners are displayed." : "No learners match the applied filters."}</td></tr>
+        <tbody>{!ready || !matching.length ? <tr><td colSpan={9} className="px-4 py-12 text-center text-ink-soft">{invalid ? "Learner records are inconsistent. Results are unavailable." : learners === undefined ? "The learner directory is not connected yet. No sample learners are displayed." : "No learners match the applied filters."}</td></tr>
           : page.rows.map(learner => <tr key={learner.id} className="border-t border-rule align-top">
             <th scope="row" className="px-4 py-5 font-medium text-ink"><span className="block">{[learner.firstName, learner.lastName].filter(Boolean).join(" ") || "Name unavailable"}</span><span className="mt-1 block break-all text-xs font-normal text-ink-soft">{learner.email || "Email unavailable"}</span></th>
             <td className="px-4 py-5"><ul className="space-y-4">{learner.enrollments.map(e => <li key={`${e.programId}:${e.courseSlug}`}><span className="block font-medium">{e.courseName}</span><span className="text-xs text-ink-soft">{e.programName}</span></li>)}</ul></td>
-            <td className="px-4 py-5"><ul className="space-y-4">{learner.enrollments.filter(e => e.cohort).map(e => <li key={`${e.programId}:${e.courseSlug}`}><span className="block text-xs text-ink-soft">{e.courseName}</span>{e.cohort!.name}</li>)}</ul></td>
-            <td className="px-4 py-5"><ul className="space-y-4">{learner.enrollments.map(e => <li key={`${e.programId}:${e.courseSlug}`}><span className="block text-xs text-ink-soft">{e.courseName}</span>{attendanceLabel(e.attendance)}</li>)}</ul></td>
+            <td className="px-4 py-5"><ul className="space-y-4">{learner.enrollments.map(e => <li key={`${e.programId}:${e.courseSlug}`}><span className="block text-xs text-ink-soft">{e.courseName}</span>{e.cohort?.name ?? "Unlinked"}</li>)}</ul></td>
+            <td className="px-4 py-5"><ul className="space-y-4">{learner.enrollments.map(e => <li key={`${e.programId}:${e.courseSlug}`}><span className="block text-xs text-ink-soft">{e.courseName}</span>{attendanceLabel(e.attendance)}{!e.attendance && e.attendanceUnavailableReason && <span className="block text-xs text-ink-soft">{e.attendanceUnavailableReason}</span>}</li>)}</ul></td>
             <td className="px-4 py-5"><ul className="space-y-4">{learner.enrollments.map(e => <li key={`${e.programId}:${e.courseSlug}`}><span className="block text-xs text-ink-soft">{e.courseName} · {e.programName}</span><CourseProgress progress={e.caughtUp} /></li>)}</ul></td>
+            <td className="px-4 py-5"><ul className="space-y-4">{learner.enrollments.map(e => <li key={`${e.programId}:${e.courseSlug}`}><span className="block text-xs text-ink-soft">{e.courseName} · {e.programName}</span><Milestones enrollment={e} /></li>)}</ul></td>
             <td className="px-4 py-5"><ul className="space-y-4">{learner.enrollments.map(e => <li key={`${e.programId}:${e.courseSlug}`}><span className="block text-xs text-ink-soft">{e.courseName}</span><Activity activity={e.lastActivity} /></li>)}</ul></td>
             <td className="px-4 py-5"><ul className="space-y-4">{learner.enrollments.map(e => <li key={`${e.programId}:${e.courseSlug}`}><span className="mb-1 block text-xs text-ink-soft">{e.courseName}</span><span className={`inline-block rounded-full px-2 py-1 text-xs font-medium ${e.status === "needs_check_in" ? "bg-amber-50 text-amber-800" : e.status === "on_track" ? "bg-emerald-50 text-emerald-800" : "bg-slate-100 text-ink-soft"}`}>{statusLabels[e.status] ?? "Not evaluated"}</span></li>)}</ul></td>
             <td className="px-4 py-5"><button type="button" className={`${buttonClass} whitespace-nowrap text-primary`} onClick={() => { setSelection({ id: learner.id, scope }); onViewEvidence?.(learner); }} aria-haspopup="dialog" aria-label={`View evidence for ${[learner.firstName, learner.lastName].filter(Boolean).join(" ") || "learner"}`}>View Evidence</button></td>
