@@ -33,6 +33,7 @@ import { scheduledSessions, nextSession, weekRail, bandSentence } from "@/lib/ho
 import { BCC_INTAKE_SURVEY_ID, surveySkippedForTracks, surveyTargetsLearner } from "@/lib/surveys/platform";
 import { isSurveyEnabledForLearner } from "@/lib/surveys/features";
 import { isStaffEmail } from "@/lib/auth/admins";
+import { administersProgram } from "@/lib/auth/program-access";
 import { completePendingSetup } from "@/lib/auth/deferred-setup";
 import { heldChecklistTrackSlug } from "@/lib/onboarding/held";
 import { surveyWaitsForFirstSession, hasAttendedAnySession } from "@/lib/onboarding/survey-timing";
@@ -54,7 +55,15 @@ export default async function DashboardPage({
   const ctx = isSupabaseConfigured() ? await getSessionContext() : null;
   const role = ctx?.student?.role ?? "";
   const email = ctx?.student?.email ?? ctx?.userEmail ?? null;
-  const isAdmin = canAccessAdminPanel(role);
+  // Admin-panel roles count as admins only in a program they actually run.
+  // In another program's course (a Catalyst instructor in the Field Ready
+  // staff cohort) they are a learner; sending them to /dashboard/admin there
+  // bounced back here forever (the "blinking" login page).
+  const adminHere =
+    canAccessAdminPanel(role) &&
+    (!ctx?.userId ||
+      (await administersProgram({ userId: ctx.userId, role, email, programSlug: program.slug })));
+  const isAdmin = adminHere;
   // Staff flag: prefer the resolved students.is_staff (covers DB-listed staff on
   // mixed domains), falling back to the email check.
   const isStaff = ctx?.student?.is_staff ?? isStaffEmail(email);
@@ -117,7 +126,7 @@ export default async function DashboardPage({
 
   return (
     <div className="mx-auto w-full max-w-2xl md:max-w-5xl px-4 sm:px-8 md:px-5 py-8">
-      <DashboardContent program={program} setup={setup} joinTrack={joinTrack} />
+      <DashboardContent program={program} setup={setup} joinTrack={joinTrack} adminHere={adminHere} />
     </div>
   );
 }
@@ -126,10 +135,12 @@ async function DashboardContent({
   program,
   setup,
   joinTrack,
+  adminHere,
 }: {
   program: ProgramConfig;
   setup?: string;
   joinTrack?: string;
+  adminHere: boolean;
 }) {
   const cookieStore = await cookies();
   const currentUser = await resolveCurrentUser(cookieStore);
@@ -446,7 +457,7 @@ async function DashboardContent({
   // First previewed slug — existing single-course consumers (the "Previewing
   // as" label, engagement guard) key off it; null when preview is off.
   const previewSlugOuter = previewSlugsOuter[0] ?? null;
-  const isAdmin = canAccessAdminPanel(userRole) && !previewSlugOuter;
+  const isAdmin = canAccessAdminPanel(userRole) && adminHere && !previewSlugOuter;
   // Companions collapse into their course: a Security+ learner is enrolled in
   // comptia-security AND its MASS wraparound, but that's ONE course — the
   // course page already folds MASS into the Security+ schedule. Without the
