@@ -15,6 +15,47 @@ const base = { programId: "program", courseSlug: "course", learnerId: "learner",
   attendance: [], asOf };
 
 describe("staff-verified absence evidence", () => {
+  it("keeps absence, excused, unrecorded, present, and ineligible sessions distinct", () => {
+    const heldRequiredSessions = [5, 3, 2, 1, 4, 1].map(weekNumber => ({ weekNumber, sessionNumber: 1, label: "Session" }));
+    const result = verifyMvpMissedSessions({ ...base, heldRequiredSessions, reviews: [review(1),
+      review(2, { outcome: "excused" }), review(4, { outcome: "present" }),
+      review(5, { eligibility: "not_eligible", outcome: "unknown" })] });
+    expect(result.sessionStates).toEqual(["verified_absent", "excused", "unrecorded", "verified_present", "not_eligible"].map((state, index) =>
+      ({ weekNumber: index + 1, sessionNumber: 1, state })));
+    expect(result.evidence).toHaveLength(1);
+    expect(result.finalizedAttendance).toBeNull();
+    expect(JSON.stringify(result.sessionStates)).not.toContain("staff");
+  });
+  it.each([
+    { outcome: "unknown" as const }, { eligibility: "unknown" as const }, { eligibility_basis: null },
+    { recorded_at: "invalid" }, { revision: 0 },
+  ])("keeps incomplete evidence unresolved, not unrecorded or absent: %j", overrides => {
+    const result = verifyMvpMissedSessions({ ...base, reviews: [review(1, overrides)] });
+    expect(result.sessionStates?.map(row => row.state)).toEqual(["unresolved", "unrecorded"]);
+  });
+  it("does not call an unverified check-in unrecorded or a verified absence", () => {
+    const attendance = [{ id: "c", student_id: "learner", track: "course", week_number: 1, session_number: 1, checked_in_at: null }];
+    for (const reviews of [[], [review(1)]]) {
+      expect(verifyMvpMissedSessions({ ...base, reviews, attendance }).sessionStates?.[0].state).toBe("unresolved");
+    }
+  });
+  it("uses corrections as of the snapshot, not stale or ambiguous outcomes", () => {
+    const correction = review(1, { id: "new", revision: 3, outcome: "excused" });
+    expect(verifyMvpMissedSessions({ ...base, reviews: [review(1), correction] }).sessionStates?.[0].state).toBe("excused");
+    expect(verifyMvpMissedSessions({ ...base, reviews: [review(1), correction, correction] }).sessionStates?.[0].state).toBe("unresolved");
+    expect(verifyMvpMissedSessions({ ...base, reviews: [review(1), { ...correction, recorded_at: "2027-01-01T00:00:00Z" }] }).sessionStates?.[0].state).toBe("verified_absent");
+  });
+  it("ignores other scopes and future-only evidence when identifying unrecorded sessions", () => {
+    const result = verifyMvpMissedSessions({ ...base, reviews: [review(1, { program_id: "other" }),
+      review(1, { student_id: "other" }), review(1, { track_slug: "other" }),
+      review(1, { recorded_at: "2027-01-01T00:00:00Z" })],
+    attendance: [{ id: "future", student_id: "learner", track: "course", week_number: 1, session_number: 1, checked_in_at: "2027-01-01T00:00:00Z" }] });
+    expect(result.sessionStates?.map(row => row.state)).toEqual(["unrecorded", "unrecorded"]);
+  });
+  it("distinguishes an unavailable schedule from a known empty one", () => {
+    expect(verifyMvpMissedSessions({ ...base, heldRequiredSessions: null, reviews: [] }).sessionStates).toBeNull();
+    expect(verifyMvpMissedSessions({ ...base, heldRequiredSessions: [], reviews: [] }).sessionStates).toEqual([]);
+  });
   it("flags two confirmed absences with review IDs as evidence", () => {
     const result = evaluateMvpCourseCheckIns("program:course", "course", ["learner"], [], slots, asOf,
       { programId: "program", reviews: [review(1), review(2)] });
