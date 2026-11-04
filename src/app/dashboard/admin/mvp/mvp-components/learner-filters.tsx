@@ -5,7 +5,7 @@ import { Search } from "lucide-react";
 import { LearnerSummary } from "./learner-summary";
 import { LearnerCharts } from "./learner-charts";
 import { LearnerDirectory } from "./learner-directory";
-import { ConnectedLearnerDirectory } from "./connected-learner-directory";
+import { ConnectedLearnerDirectory, LearnerRequestState } from "./connected-learner-directory";
 import type { searchMvpLearners } from "../learner-actions";
 
 export type LearnerFilters = {
@@ -121,7 +121,8 @@ export function LearnerFilterBar({ options, searchAction }: { options?: LearnerF
         : "Needs Check-in selected. Learner results are not connected yet.");
     }} />
     <LearnerCharts />
-    {searchAction ? <ConnectedLearnerDirectory key={JSON.stringify({ ...applied, search })} filters={{ ...applied, search }} searchAction={searchAction} />
+    {searchAction && draft.search.trim() !== search ? <LearnerRequestState state="loading" onRetry={() => {}} />
+      : searchAction ? <ConnectedLearnerDirectory key={JSON.stringify({ ...applied, search })} filters={{ ...applied, search }} searchAction={searchAction} />
       : <LearnerDirectory filters={{ ...applied, search }} />}
   </>;
 }

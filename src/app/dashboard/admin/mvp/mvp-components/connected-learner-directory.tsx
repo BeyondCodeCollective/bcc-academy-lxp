@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { searchMvpLearners } from "../learner-actions";
 import { LearnerDirectory, type DirectorySorting } from "./learner-directory";
 import type { LearnerFilters } from "./learner-filters";
+import { startLearnerRequest } from "./learner-request";
 
 export function LearnerRequestState({ state, onRetry }: { state: "loading" | "error"; onRetry: () => void }) {
   return <section className="panel mt-6 p-6" aria-label="Learner directory" aria-busy={state === "loading"}>
@@ -29,12 +30,12 @@ export function ConnectedLearnerDirectory({ filters, searchAction }: { filters: 
   const requestKey = JSON.stringify([filters, paging, sorting, retry]);
   const [response, setResponse] = useState<{ key: string; result: Awaited<ReturnType<typeof searchMvpLearners>> } | null>(null);
   useEffect(() => {
-    let active = true;
     const [query, page, sort] = JSON.parse(requestKey) as [LearnerFilters, typeof paging, DirectorySorting, number];
-    void searchAction({ ...query, ...sort, page: String(page.page), pageSize: String(page.pageSize) })
-      .then(result => { if (active) setResponse({ key: requestKey, result }); })
-      .catch(() => { if (active) setResponse({ key: requestKey, result: { ok: false, message: "Unable to load learners. Please try again." } }); });
-    return () => { active = false; };
+    return startLearnerRequest(
+      () => searchAction({ ...query, ...sort, page: String(page.page), pageSize: String(page.pageSize) }),
+      result => setResponse({ key: requestKey, result }),
+      () => setResponse({ key: requestKey, result: { ok: false, message: "Unable to load learners. Please try again." } }),
+    );
   }, [requestKey, searchAction]);
   const result = response?.key === requestKey ? response.result : null;
   // Do not display error payloads or stale rows/counts. Retry preserves the
