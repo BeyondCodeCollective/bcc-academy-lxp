@@ -16,6 +16,8 @@ let ignoreRosterCursor: boolean;
 let failRosterAfter: number;
 let ignoreDeliveryCursor: boolean;
 let failDeliveryAfter: number;
+let ignoreAttendanceCursor: boolean;
+let failAttendanceAfter: number;
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.session.mockResolvedValue({ userId: "actor", student: { role: "admin" } });
@@ -25,9 +27,10 @@ beforeEach(() => {
   requests = []; failure = "";
   serverCap = 1; ignoreRosterCursor = false; failRosterAfter = Infinity;
   ignoreDeliveryCursor = false; failDeliveryAfter = Infinity;
+  ignoreAttendanceCursor = false; failAttendanceAfter = Infinity;
   tables = { students: [{ id: "actor", program_id: "p1" }], staff_program_access: [], programs: [{ id: "p1", name: "One", slug: "one" }, { id: "p2", name: "Two", slug: "two" }] };
   Object.assign(tables, { track_overrides: [], hidden_courses: [], cohorts: [], student_tracks: [] });
-  Object.assign(tables, { submissions: [], reflections: [], week_progress: [], session_content: [] });
+  Object.assign(tables, { submissions: [], reflections: [], week_progress: [], session_content: [], attendance: [], mvp_attendance_reviews: [] });
   mocks.client.mockReturnValue({ from(table: string) {
     const predicates: ((row: Row) => boolean)[] = [];
     let single = false;
@@ -36,14 +39,15 @@ beforeEach(() => {
       eq: (key: string, value: unknown) => { predicates.push(row => key.split(".").reduce<unknown>((current, part) => (current as Row)?.[part], row) === value); return chain; },
       or: (expression: string) => { const key = expression.split(".")[0]; predicates.push(row => { const value = (row.students as Row)[key]; return value === null || value === false; }); return chain; },
       in: (key: string, values: unknown[]) => { predicates.push(row => values.includes(row[key])); return chain; },
-      gt: (key: string, value: string) => { if (!(table === "student_tracks" && ignoreRosterCursor) && !(table === "session_content" && ignoreDeliveryCursor)) predicates.push(row => String(row[key]) > value); return chain; },
+      gt: (key: string, value: string) => { if (!(table === "student_tracks" && ignoreRosterCursor) && !(table === "session_content" && ignoreDeliveryCursor) && !(table === "attendance" && ignoreAttendanceCursor)) predicates.push(row => String(row[key]) > value); return chain; },
       single: () => { single = true; return chain; },
       then: (resolve: (value: unknown) => unknown) => {
         requests.push(table);
         if (requests.length > 1000) throw new Error("Pagination loop");
         const rows = tables[table].filter(row => predicates.every(p => p(row))).slice(0, serverCap);
         const laterFailure = (table === "student_tracks" && requests.filter(t => t === table).length > failRosterAfter) ||
-          (table === "session_content" && requests.filter(t => t === table).length > failDeliveryAfter);
+          (table === "session_content" && requests.filter(t => t === table).length > failDeliveryAfter) ||
+          (table === "attendance" && requests.filter(t => t === table).length > failAttendanceAfter);
         return Promise.resolve({ data: single ? rows[0] ?? null : rows, error: failure === table || laterFailure ? new Error("DB error") : null }).then(resolve);
       },
     }; return chain;
@@ -76,6 +80,70 @@ describe("Learners loader access boundary", () => {
     expect(first.directory).toHaveLength(10);
     expect(last.directory).toHaveLength(6);
     expect(Number.isFinite(Date.parse(first.summary.asOf))).toBe(true);
+  });
+  const seedAttendance = () => {
+    seedSummary();
+    tables.mvp_attendance_reviews = ["a", "b"].flatMap(track_slug => [1, 2, 3, 4].map(week_number => ({
+      id: `${track_slug}${week_number}`, revision: 1, program_id: "p1", student_id: "s00", track_slug, week_number, session_number: 1,
+      session_held_at: "2000-01-02T12:00:00Z", eligibility: "eligible", eligibility_basis: "PRIVATE BASIS",
+      outcome: track_slug === "a" && week_number === 2 ? "absent" : "present", recorded_by: "PRIVATE ACTOR", recorded_at: "2000-01-03T12:00:00Z",
+    })));
+  };
+  it("returns separate verified course ratios using complete reviews, excluding future, optional, and upcoming sessions", async () => {
+    seedAttendance();
+    const result = await getMvpLearnersData({ search: "Learner00" });
+    expect(result.directory[0].enrollments.map(row => row.attendance)).toEqual([{ present: 1, eligibleHeld: 2 }, { present: 1, eligibleHeld: 1 }]);
+    expect(JSON.stringify(result)).not.toContain("PRIVATE");
+    expect(result.directory[0].enrollments.every(row => row.attendanceUnavailableReason === null)).toBe(true);
+  });
+  it.each(["missing", "conflict", "excused", "ineligible", "unknown", "duplicate", "future-review"])("does not invent attendance for %s evidence", async kind => {
+    seedAttendance();
+    const review = tables.mvp_attendance_reviews[1];
+    if (kind === "missing") tables.mvp_attendance_reviews.splice(1, 1);
+    if (kind === "conflict") tables.attendance = [{ id: "checkin", student_id: "s00", track: "a", week_number: 2, session_number: 1, checked_in_at: null }];
+    if (kind === "excused") review.outcome = "excused";
+    if (kind === "ineligible") { review.eligibility = "not_eligible"; review.outcome = "unknown"; }
+    if (kind === "unknown") review.eligibility = "unknown";
+    if (kind === "duplicate") tables.mvp_attendance_reviews.push({ ...review, id: "zduplicate" });
+    if (kind === "future-review") review.recorded_at = "2999-01-01T00:00:00Z";
+    const result = await getMvpLearnersData({ search: "Learner00" });
+    expect(result.directory[0].enrollments[0].attendance).toBeNull();
+    expect(result.directory[0].enrollments[0].attendanceUnavailableReason).toBeTruthy();
+    expect(result.directory[0].enrollments[1].attendance).toEqual({ present: 1, eligibleHeld: 1 });
+  });
+  it("uses latest review revisions and ignores other programs, courses, and learners", async () => {
+    seedAttendance();
+    const review = tables.mvp_attendance_reviews[1];
+    tables.mvp_attendance_reviews.push({ ...review, id: "zcorrection", revision: 2, outcome: "present" });
+    tables.mvp_attendance_reviews.push({ ...review, id: "zzprivate", program_id: "p2", revision: 99 });
+    tables.attendance = [{ id: "other", student_id: "other", track: "a", week_number: 2, session_number: 1, checked_in_at: null }];
+    const result = await getMvpLearnersData({ search: "Learner00" });
+    expect(result.directory[0].enrollments[0].attendance).toEqual({ present: 2, eligibleHeld: 2 });
+    requests = [];
+    const page = await getMvpLearnersData({ page: "3", pageSize: "10" });
+    expect(page.directory.every(learner => learner.enrollments.every(row => row.attendance === null))).toBe(true);
+  });
+  it("returns known zero without claiming an attendance percentage and skips evidence reads", async () => {
+    seedAttendance();
+    tables.session_content.forEach(row => { row.status = "upcoming"; });
+    const result = await getMvpLearnersData({ search: "Learner00" });
+    expect(result.directory[0].enrollments[0].attendance).toEqual({ present: 0, eligibleHeld: 0 });
+    expect(requests).not.toContain("attendance");
+    expect(requests).not.toContain("mvp_attendance_reviews");
+  });
+  it.each(["attendance", "mvp_attendance_reviews"])("fails closed on %s read errors", async source => {
+    seedAttendance(); failure = source;
+    await expect(getMvpLearnersData({ search: "Learner00" })).rejects.toThrow("Unable to load complete");
+  });
+  it("finds conflicting check-ins on later pages and rejects partial or stalled attendance reads", async () => {
+    seedAttendance();
+    tables.attendance = [1, 2].map(week_number => ({ id: `check${week_number}`, student_id: "s00", track: "a", week_number, session_number: 1, checked_in_at: null }));
+    const result = await getMvpLearnersData({ search: "Learner00" });
+    expect(result.directory[0].enrollments[0].attendance).toBeNull();
+    requests = []; failAttendanceAfter = 1;
+    await expect(getMvpLearnersData({ search: "Learner00" })).rejects.toThrow("Unable to load complete learner attendance");
+    requests = []; failAttendanceAfter = Infinity; ignoreAttendanceCursor = true;
+    await expect(getMvpLearnersData({ search: "Learner00" })).rejects.toThrow("Learner attendance pagination did not advance");
   });
   it("scopes summary counts to search, course, and reliably linked cohort and returns zero for no matches", async () => {
     seedSummary();

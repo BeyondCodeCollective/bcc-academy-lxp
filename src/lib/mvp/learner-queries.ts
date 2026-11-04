@@ -10,7 +10,8 @@ import { paginateLearners, parseLearnerPagination } from "./learner-pagination";
 import { parseLearnerSort, sortLearners } from "./learner-sort";
 import { loadLearnerProgress } from "./learner-progress";
 import { loadLearnerActivity } from "./learner-activity";
-import { loadLearnerSummary } from "./learner-summary";
+import { loadLearnerSessionContext } from "./learner-summary";
+import { loadLearnerAttendance } from "./learner-attendance";
 
 export type LearnerProgramScope = {
   id: string; name: string; slug: string;
@@ -81,9 +82,11 @@ export async function getMvpLearnersData(params: LearnerQueryParams = {}) {
   if (requested && !programs.some(program => program.id === requested)) throw new Error("The selected program is unavailable.");
   const options = await loadLearnerOptions(db, programs);
   const matching = await loadLearnerRoster(db, options, filters);
-  const summary = await loadLearnerSummary(db, matching);
+  const asOf = new Date();
+  const { summary, heldByOffering } = await loadLearnerSessionContext(db, matching, asOf);
   const { directory, pagination } = paginateLearners(sortLearners(matching, sorting), requestedPage);
   const enrichedDirectory = await loadLearnerProgress(directory, programs);
-  const directoryWithActivity = await loadLearnerActivity(db, enrichedDirectory);
-  return { state: "directory_ready" as const, programs, options, filters, sorting, selectedProgramId: requested, directory: directoryWithActivity, pagination, summary };
+  const directoryWithActivity = await loadLearnerActivity(db, enrichedDirectory, asOf);
+  const directoryWithAttendance = await loadLearnerAttendance(db, directoryWithActivity, heldByOffering, asOf);
+  return { state: "directory_ready" as const, programs, options, filters, sorting, selectedProgramId: requested, directory: directoryWithAttendance, pagination, summary };
 }

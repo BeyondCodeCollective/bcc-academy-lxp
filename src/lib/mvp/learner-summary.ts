@@ -2,7 +2,8 @@ import "server-only";
 import type { createServiceClient } from "@/lib/supabase/server";
 import { getHomeProgramForTrack } from "@/lib/programs";
 import { calculateMvpSessionsRemaining } from "./sessions-remaining";
-import type { MvpScheduleInput } from "./schedule";
+import { buildMvpSchedule, type MvpScheduleInput } from "./schedule";
+import type { MvpSessionSlot } from "./milestones";
 import type { MvpSessionDelivery } from "./course-performance";
 
 type Learner = { id: string; enrollments: { programId: string; courseSlug: string }[] };
@@ -27,7 +28,8 @@ async function loadOverride(db: Db, programId: string, courseSlug: string) {
 // Internal only: matching must be the complete authorized and filtered roster,
 // before sorting/pagination. Count session opportunities once per program/course,
 // never once per learner. Current cohort links do not establish a cohort schedule.
-export async function loadLearnerSummary(db: Db, matching: readonly Learner[], asOf = new Date()) {
+export async function loadLearnerSessionContext(db: Db, matching: readonly Learner[], asOf = new Date()) {
+  const heldByOffering = new Map<string, { slots: MvpSessionSlot[] | null; reason: string | null }>();
   const totalEnrolled = new Set(matching.map(learner => learner.id)).size;
   const offerings = new Map(matching.flatMap(learner => learner.enrollments.map(enrollment =>
     [JSON.stringify([enrollment.programId, enrollment.courseSlug]), enrollment] as const)));
@@ -77,13 +79,21 @@ export async function loadLearnerSummary(db: Db, matching: readonly Learner[], a
       deliveryByCourse.set(courseSlug, delivery);
     }
     const result = calculateMvpSessionsRemaining(track, delivery, asOf);
+    const confirmed = delivery.flatMap(row => [row.status, row.status_2, row.status_3].flatMap((status, index) =>
+      status === "completed" ? [{ weekNumber: row.week_number, sessionNumber: index + 1, label: `Session ${row.week_number}.${index + 1}` }] : []));
+    const slots = result.delivered === null ? null : buildMvpSchedule({ track, asOf, verifiedStartSessions: null, confirmedHeldSessions: confirmed }).heldRequiredSessions;
+    heldByOffering.set(JSON.stringify([programId, courseSlug]), { slots, reason: result.unavailableReason });
     if (result.delivered === null) reasons.add(result.unavailableReason ?? "Verified session delivery is unavailable.");
     else sessionsHeld += result.delivered;
   }
-  return {
+  return { heldByOffering, summary: {
     totalEnrolled,
     sessionsHeld: reasons.size ? null : sessionsHeld,
     sessionsHeldUnavailableReason: reasons.size ? [...reasons].join(" ") : null,
     asOf: asOf.toISOString(),
-  };
+  } };
+}
+
+export async function loadLearnerSummary(db: Db, matching: readonly Learner[], asOf = new Date()) {
+  return (await loadLearnerSessionContext(db, matching, asOf)).summary;
 }

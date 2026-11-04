@@ -297,6 +297,35 @@ This reuse reads the configured course's roster internally; it is not a new
 database-level page-only evidence query. UI wiring remains a separate task.
 Tests use synthetic records, not live learner data.
 
+### Course-specific verified attendance
+
+Each returned enrollment now has `attendance: { present, eligibleHeld } | null`
+and `attendanceUnavailableReason`. The loader shares the summary's resolved
+schedule and delivery snapshot, then reads reviews and check-ins only for the
+authorized directory page in batches of 100 IDs, paging until empty. No combined
+cross-course attendance percentage is produced.
+
+The denominator includes only required sessions verified as delivered by the
+request's `asOf` time, using existing Eastern-time schedule rules. Future,
+upcoming, and optional sessions are excluded. A known schedule with no held
+required sessions returns 0/0 (not a percentage); unavailable schedules return
+null. The existing `verifyMvpMissedSessions` verifier requires finalized historical
+eligibility and outcome evidence for every included session. Current enrollment
+or cohort membership alone does not establish historical eligibility.
+
+Missing, unresolved, duplicate-latest, or conflicting reviews return null, never
+guessed absences or zero attendance. The current shared verifier also withholds
+the ratio for excused or explicitly ineligible sessions until a denominator
+policy is configured; exclusion/credit rules remain a policy dependency, not an
+implemented guess. Latest revisions apply only as of the request snapshot.
+
+Reviews are program/course/learner-scoped. Check-ins have only learner/course
+identity and are used to detect conflicting absence evidence, not infer activity
+or historical program membership. Only the ratio and a generic unavailable
+reason leave this layer: no staff identities, eligibility basis, or review notes.
+Read failures reject the request rather than returning partial attendance. The
+frontend connection and detailed attendance-state display remain separate tasks.
+
 ### Last recorded course activity
 
 The learner loader separately reads `submitted_at` from submissions/reflections
