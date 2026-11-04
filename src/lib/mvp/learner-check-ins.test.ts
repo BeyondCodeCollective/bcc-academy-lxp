@@ -18,6 +18,49 @@ function run(states: MvpAttendanceSessionState["state"][] | null, weeklyMileston
 }
 beforeEach(() => { vi.clearAllMocks(); mocks.config.mockReturnValue(null); mocks.policy.mockReturnValue(null); });
 describe("evidence-backed learner check-ins", () => {
+  it("returns scoped session evidence without calling nonconsecutive absences consecutive", () => {
+    const result = run(["verified_absent", "excused", "verified_absent", "unrecorded"]);
+    expect(result.checkIn.attentionFlags[0]).toMatchObject({ learnerId: "s1", programId: "p1", courseSlug: "a",
+      ruleId: "framework-missed-sessions-v1", detectedAt: asOf.toISOString(), supportingEvidence: {
+        kind: "verified_absences", count: 2, threshold: 2,
+        sessions: [{ weekNumber: 1, sessionNumber: 1, state: "verified_absent" }, { weekNumber: 3, sessionNumber: 1, state: "verified_absent" }],
+      } });
+    expect(result.checkIn.attentionFlags[0].explanation).not.toContain("consecutive");
+  });
+  it("returns only overdue missing assignments with their deadline and grace evidence", () => {
+    mocks.config.mockReturnValue({ ...config, requiredAssignments: [
+      ...config.requiredAssignments!,
+      { id: "submitted", label: "Already submitted", weekNumber: 2, dueAt: "2026-10-01T00:00:00Z" },
+      { id: "future", label: "Future work", weekNumber: 3, dueAt: "2026-11-01T00:00:00Z" },
+    ] });
+    const result = run(null, [{ weekNumber: 2, submission: { at: "2026-10-02T00:00:00Z", state: "recorded" }, reflection: none, markedWatched: none }]);
+    expect(result.checkIn.attentionFlags[0].supportingEvidence).toEqual({ kind: "overdue_required_submissions", count: 1, threshold: 1,
+      assignments: [{ assignmentId: "work", label: "Week 1 work", weekNumber: 1, dueAt: "2026-10-01T00:00:00Z", graceDays: 14,
+        graceEndsAt: "2026-10-15T00:00:00.000Z", submittedAt: null, state: "none_recorded" }] });
+    expect(result.checkIn.attentionFlags[0].evidence[0].sourceRecordId).toBe(JSON.stringify(["one", "a", "work"]));
+  });
+  it("returns required video weeks, recorded marks, and the configured checkpoint", () => {
+    mocks.policy.mockReturnValue({ programSlug: "one", courseSlug: "a", progress: {
+      source: "required_videos", dueAt: "2026-10-01T00:00:00Z", requiredWeeks: [2, 1], minimumPercent: 80,
+    } });
+    const result = run(null, [{ weekNumber: 1, submission: none, reflection: none, markedWatched: { at: "2026-10-02T00:00:00Z", state: "recorded" } }]);
+    expect(result.checkIn.attentionFlags[0].supportingEvidence).toEqual({ kind: "required_video_checkpoint",
+      dueAt: "2026-10-01T00:00:00Z", minimumPercent: 80, recordedPercent: 50, requiredCount: 2, markedCount: 1,
+      weeks: [{ weekNumber: 1, markedWatchedAt: "2026-10-02T00:00:00Z", state: "recorded" },
+        { weekNumber: 2, markedWatchedAt: null, state: "none_recorded" }] });
+  });
+  it("keeps evidence scoped and projects no private source fields", () => {
+    const sessions = [1, 2].map(weekNumber => ({ weekNumber, sessionNumber: 1, state: "verified_absent" as const, reviewNotes: "PRIVATE", recorded_by: "PRIVATE" }));
+    const results = evaluateLearnerCheckIns([{ id: "s1", enrollments: [
+      { programId: "p1", courseSlug: "a", attendanceSessions: sessions, weeklyMilestones: [] },
+      { programId: "p2", courseSlug: "b", attendanceSessions: null, weeklyMilestones: [] },
+    ] }, { id: "s2", enrollments: [{ programId: "p1", courseSlug: "a", attendanceSessions: null, weeklyMilestones: [] }] }],
+    [{ id: "p1", slug: "one" }, { id: "p2", slug: "two" }], asOf);
+    const checkIns = results.flatMap(row => row.enrollments.map(enrollment => enrollment.checkIn));
+    expect(checkIns.map(row => row.attentionFlags.length)).toEqual([1, 0, 0]);
+    expect(JSON.stringify(checkIns)).not.toContain("PRIVATE");
+    expect(Object.keys(checkIns[0].attentionFlags[0].supportingEvidence)).toEqual(["kind", "count", "threshold", "sessions"]);
+  });
   it("requires two verified absences, not missing or excused records", () => {
     expect(run(["verified_absent", "verified_absent", "unrecorded"]).status).toBe("needs_check_in");
     for (const states of [["verified_absent", "excused"], ["unrecorded", "unrecorded"], ["verified_absent", "unresolved"], ["verified_present"]] as MvpAttendanceSessionState["state"][][]) {

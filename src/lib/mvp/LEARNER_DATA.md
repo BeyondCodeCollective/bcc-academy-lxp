@@ -379,6 +379,31 @@ different statuses in different courses; those filter counts are not additive.
 Unfiltered requests retain page-scoped evidence reads. Frontend wiring and the
 Needs Check-In summary card are separate tasks.
 
+### Supporting evidence for each learner flag
+
+Every returned check-in flag now includes explicit `learnerId`, `programId`,
+`courseSlug`, and typed `supportingEvidence`, alongside the existing rule ID,
+explanation, detection timestamp, and reference labels:
+
+- `verified_absences`: confirmed count, threshold, and only the verified absent
+  week/session pairs. The rule does not claim consecutive absences.
+- `overdue_required_submissions`: missing count and threshold, plus each flagged
+  assignment's configured ID, label, week, deadline, grace days, and grace-end
+  timestamp. `submittedAt: null` describes no recorded submission, not a fabricated
+  submission row. Completed, future, and within-grace requirements are excluded.
+- `required_video_checkpoint`: configured checkpoint time and minimum percentage,
+  recorded percentage, required/marked counts, and required weeks with their
+  marked-watched timestamps or none-recorded state. These are marks, not proof of
+  video viewing. Counts reflect recorded marks at evaluation time; late marks may
+  clear a flag under the existing signal rules.
+
+Evidence is projected from the same authorized snapshot and configured rules
+that produced the flag, not inferred by parsing display text. Private submission
+or reflection content, review notes, staff identities, and file links are never
+added to flag evidence. Missing/unsupported evidence cannot produce a new flag
+type silently; assessment flags remain unavailable until evidence is connected.
+No new reads, rules, live policy entries, or frontend drawer changes are added.
+
 ### Weekly milestone timestamps
 
 Each authorized enrollment returns `weeklyMilestones`, sorted by week, containing

@@ -97,6 +97,11 @@ describe("Learners loader access boundary", () => {
     expect(result.summary.totalEnrolled).toBe(1);
     expect(result.directory[0].enrollments.map(row => row.courseSlug)).toEqual(["a"]);
     expect(result.directory[0].enrollments[0].checkIn.attentionFlags[0].reason).toBe("missed_sessions");
+    expect(result.directory[0].enrollments[0].checkIn.attentionFlags[0]).toMatchObject({ learnerId: "s00", programId: "p1", courseSlug: "a",
+      supportingEvidence: { kind: "verified_absences", count: 2, threshold: 2, sessions: [
+        { weekNumber: 1, sessionNumber: 1, state: "verified_absent" }, { weekNumber: 2, sessionNumber: 1, state: "verified_absent" },
+      ] } });
+    expect(JSON.stringify(result)).not.toContain("PRIVATE");
     requests = [];
     expect((await getMvpLearnersData({ status: "on_track" })).pagination.totalMatching).toBe(0);
     requests = [];
