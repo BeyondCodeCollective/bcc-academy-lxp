@@ -35,7 +35,8 @@ export function changeLearnerFilters(state: LearnerFilters, action: Change): Lea
 
 // Options come from the authorized server loader, never a global
 // course registry. Client-side narrowing is UX, not a permission boundary.
-// This frontend preview deliberately does not write URLs or shared storage.
+// Draft/applied selections belong to this component instance only. Do not seed
+// them from dashboard URL filters or write them to shared storage/context.
 export function LearnerFilterBar({ options, searchAction }: { options?: LearnerFilterOptions; searchAction?: typeof searchMvpLearners }) {
   const connected = !!searchAction;
   const id = useId();

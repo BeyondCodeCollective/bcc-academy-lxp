@@ -33,7 +33,7 @@ export default async function MvpDashboardPage({ searchParams }: {
     }
     const params = await searchParams;
     // Options are authorized independently; other pages' URL filters are not
-    // inherited. Connecting learner records is a separate integration step.
+    // inherited. Learners owns its local search/filter state and server requests.
     if (params.view === "learners") {
         let options: Awaited<ReturnType<typeof getMvpLearnerFilterOptions>> | undefined;
         try {
