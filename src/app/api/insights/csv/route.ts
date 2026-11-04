@@ -3,6 +3,7 @@ import { requireCapability } from "@/app/dashboard/admin/actions-shared";
 import { getProgram } from "@/lib/programs/server";
 import { buildInsightsData } from "@/lib/analytics/insights-data";
 import { surveyColumnHeading } from "@/lib/survey-csv-headers";
+import { isParticipantCodedSurvey } from "@/lib/surveys/participant-code";
 
 export const dynamic = "force-dynamic";
 
@@ -114,12 +115,12 @@ export async function GET(req: NextRequest) {
       ...Array.from(allKeys).filter((k) => !priorityKeys.includes(k)).sort(),
     ];
 
-    const header = ["Email", "Submitted At", "Cohort", ...sortedKeys.map((k) => escapeCsvCell(surveyColumnHeading(k, section.schema)))].join(",");
+    const header = [isParticipantCodedSurvey(section.survey.id) ? "Participant code" : "Email", "Submitted At", "Cohort", ...sortedKeys.map((k) => escapeCsvCell(surveyColumnHeading(k, section.schema)))].join(",");
     const rows = responses.map((r) => {
       const flat = flattenResponse(r.responses as Record<string, unknown>);
       const cohortLabel = String(r.responses?.program_variant ?? r.responses?._cohort_track ?? r.responses?.cohort ?? "");
       return [
-        escapeCsvCell(r.email),
+        escapeCsvCell(r.participant_code ?? r.email),
         escapeCsvCell(r.completed_at),
         escapeCsvCell(cohortLabel),
         ...sortedKeys.map((k) => escapeCsvCell(flat[k])),
@@ -143,7 +144,7 @@ export async function GET(req: NextRequest) {
     s.responses.map((r) => ({
       surveyId: s.survey.id,
       surveyTitle: s.survey.title,
-      email: r.email,
+      email: r.participant_code ?? r.email,
       completedAt: r.completed_at,
       cohort: r.responses?.program_variant ?? r.responses?._cohort_track ?? r.responses?.cohort ?? "",
     }))
@@ -187,12 +188,12 @@ export async function GET(req: NextRequest) {
         ...Array.from(allKeys).filter((k) => !priorityKeys.includes(k)).sort(),
       ];
 
-      const header = ["Email", "Submitted At", "Cohort", ...sortedKeys.map((k) => escapeCsvCell(surveyColumnHeading(k, section.schema)))].join(",");
+      const header = [isParticipantCodedSurvey(section.survey.id) ? "Participant code" : "Email", "Submitted At", "Cohort", ...sortedKeys.map((k) => escapeCsvCell(surveyColumnHeading(k, section.schema)))].join(",");
       const rows = section.responses.map((r) => {
         const flat = flattenResponse(r.responses as Record<string, unknown>);
         const cohortLabel = String(r.responses?.program_variant ?? r.responses?._cohort_track ?? r.responses?.cohort ?? "");
         return [
-          escapeCsvCell(r.email),
+          escapeCsvCell(r.participant_code ?? r.email),
           escapeCsvCell(r.completed_at),
           escapeCsvCell(cohortLabel),
           ...sortedKeys.map((k) => escapeCsvCell(flat[k])),
@@ -214,7 +215,7 @@ export async function GET(req: NextRequest) {
   }
 
   // All cohorts, all surveys — summary view
-  const header = ["Survey", "Email", "Submitted At", "Cohort"].join(",");
+  const header = ["Survey", "Email or participant code", "Submitted At", "Cohort"].join(",");
   const rows = allResponses.map((r) =>
     [escapeCsvCell(r.surveyTitle), escapeCsvCell(r.email), escapeCsvCell(r.completedAt), escapeCsvCell(r.cohort)].join(",")
   );

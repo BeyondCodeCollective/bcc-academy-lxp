@@ -8,8 +8,7 @@ const row = (week: number, session: number, understanding: number | null): ExitS
   unclear_text: null,
   hours_text: null,
   updated_at: "2026-11-09T00:00:00Z",
-  name: "",
-  email: "",
+  participant_code: "P-TEST01",
 });
 
 describe("summarizeBySession", () => {
