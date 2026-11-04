@@ -89,6 +89,22 @@ describe("Learners loader access boundary", () => {
       outcome: track_slug === "a" && week_number === 2 ? "absent" : "present", recorded_by: "PRIVATE ACTOR", recorded_at: "2000-01-03T12:00:00Z",
     })));
   };
+  it("returns privacy-safe attendance states per enrollment even when its ratio is unavailable", async () => {
+    seedAttendance();
+    tables.mvp_attendance_reviews[1].outcome = "excused";
+    tables.mvp_attendance_reviews = tables.mvp_attendance_reviews.filter(row => row.track_slug !== "b");
+    const result = await getMvpLearnersData({ search: "Learner00" });
+    const [a, b] = result.directory[0].enrollments;
+    expect(a.attendanceSessions).toEqual([
+      { weekNumber: 1, sessionNumber: 1, state: "verified_present" },
+      { weekNumber: 2, sessionNumber: 1, state: "excused" },
+    ]);
+    expect(b.attendanceSessions).toEqual([{ weekNumber: 1, sessionNumber: 1, state: "unrecorded" }]);
+    expect(a.attendance).toBeNull();
+    expect(b.attendance).toBeNull();
+    expect(JSON.stringify(result)).not.toContain("PRIVATE");
+    expect(JSON.stringify(result)).not.toContain("recorded_by");
+  });
   it("returns separate verified course ratios using complete reviews, excluding future, optional, and upcoming sessions", async () => {
     seedAttendance();
     const result = await getMvpLearnersData({ search: "Learner00" });

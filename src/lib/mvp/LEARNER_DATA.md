@@ -321,10 +321,31 @@ implemented guess. Latest revisions apply only as of the request snapshot.
 
 Reviews are program/course/learner-scoped. Check-ins have only learner/course
 identity and are used to detect conflicting absence evidence, not infer activity
-or historical program membership. Only the ratio and a generic unavailable
-reason leave this layer: no staff identities, eligibility basis, or review notes.
+or historical program membership. Only the ratio, safe session states described
+below, and a generic unavailable reason leave this layer: no staff identities,
+eligibility basis, or review notes.
 Read failures reject the request rather than returning partial attendance. The
 frontend connection and detailed attendance-state display remain separate tasks.
+
+### Distinct attendance session states
+
+Each authorized enrollment returns `attendanceSessions`, sorted by week/session,
+with only `weekNumber`, `sessionNumber`, and `state`. States are:
+
+- `verified_present`: finalized eligible present review.
+- `verified_absent`: finalized eligible absence with no conflicting check-in.
+- `excused`: finalized eligible excused review; never counted as absence.
+- `unrecorded`: no review or check-in available as of the request snapshot.
+- `unresolved`: incomplete, invalid, or conflicting review evidence, including a
+  check-in without a finalized review. This is not a verified absence.
+- `not_eligible`: finalized ineligibility with unknown outcome.
+
+Only verified held required sessions are listed. Unknown schedules return null;
+known schedules without held sessions return an empty list. Latest valid review
+revisions determine states; duplicate latest revisions stay unresolved. Private
+review fields are not returned. These states remain available even when the
+course ratio is unavailable; existing ratio and flag policies are unchanged.
+Frontend state rendering remains a separate integration task.
 
 ### Last recorded course activity
 

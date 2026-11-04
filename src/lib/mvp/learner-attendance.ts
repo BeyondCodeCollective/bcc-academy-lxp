@@ -1,11 +1,12 @@
 import "server-only";
 import type { createServiceClient } from "@/lib/supabase/server";
 import { loadMvpAttendanceReviews } from "./attendance-review-queries";
-import { verifyMvpMissedSessions } from "./attendance-verification";
+import { verifyMvpMissedSessions, type MvpAttendanceSessionState } from "./attendance-verification";
 import type { MvpAttendanceRecord, MvpSessionSlot } from "./milestones";
 
 type Learner = { id: string; enrollments: { programId: string; courseSlug: string }[] };
-type Result = { attendance: { present: number; eligibleHeld: number } | null; attendanceUnavailableReason: string | null };
+type Result = { attendance: { present: number; eligibleHeld: number } | null; attendanceUnavailableReason: string | null;
+  attendanceSessions: MvpAttendanceSessionState[] | null };
 
 // Internal only. Both directory and schedules must come from the authorized loader.
 // Raw reviews (including eligibility basis and staff identity) never leave this layer.
@@ -26,6 +27,7 @@ export async function loadLearnerAttendance<T extends Learner>(
     results.set(key, byLearner);
     if (!schedule?.slots?.length) {
       for (const id of ids) byLearner.set(id, { attendance: schedule?.slots ? { present: 0, eligibleHeld: 0 } : null,
+        attendanceSessions: schedule?.slots ? [] : null,
         attendanceUnavailableReason: schedule?.slots ? null : schedule?.reason ?? "Verified course schedule is unavailable." });
       continue;
     }
@@ -49,7 +51,7 @@ export async function loadLearnerAttendance<T extends Learner>(
       }
       for (const learnerId of batch) {
         const verified = verifyMvpMissedSessions({ programId, courseSlug, learnerId, heldRequiredSessions: schedule.slots, reviews, attendance, asOf });
-        byLearner.set(learnerId, { attendance: verified.finalizedAttendance
+        byLearner.set(learnerId, { attendanceSessions: verified.sessionStates, attendance: verified.finalizedAttendance
           ? { present: verified.finalizedAttendance.attended, eligibleHeld: verified.finalizedAttendance.held } : null,
         attendanceUnavailableReason: verified.finalizedAttendance ? null : verified.unavailableReason ?? "Excused or ineligible sessions require a configured denominator policy." });
       }
