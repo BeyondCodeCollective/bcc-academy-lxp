@@ -10,7 +10,7 @@ import { paginateLearners, parseLearnerPagination } from "./learner-pagination";
 import { parseLearnerSort, sortLearners } from "./learner-sort";
 import { loadLearnerProgress } from "./learner-progress";
 import { loadLearnerActivity } from "./learner-activity";
-import { loadLearnerSessionContext } from "./learner-summary";
+import { loadLearnerSessionContext, summarizeLearnerSessionContext } from "./learner-summary";
 import { loadLearnerAttendance } from "./learner-attendance";
 import { evaluateLearnerCheckIns } from "./learner-check-ins";
 
@@ -98,6 +98,6 @@ export async function getMvpLearnersData(params: LearnerQueryParams = {}) {
   const page = filters.status === "all" ? { directory: filtered, pagination: initialPage.pagination }
     : paginateLearners(sortLearners(filtered, sorting), requestedPage);
   const directory = await loadLearnerProgress(page.directory, programs);
-  const summary = filters.status === "all" ? sessionContext.summary : (await loadLearnerSessionContext(db, filtered, asOf)).summary;
+  const summary = filters.status === "all" ? sessionContext.summary : summarizeLearnerSessionContext(filtered, sessionContext.heldByOffering, asOf);
   return { state: "directory_ready" as const, programs, options, filters, sorting, selectedProgramId: requested, directory, pagination: page.pagination, summary };
 }
