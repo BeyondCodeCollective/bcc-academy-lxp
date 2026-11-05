@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import type { searchMvpLearners } from "../learner-actions";
 import { LearnerDirectory, type DirectorySorting } from "./learner-directory";
 import type { LearnerFilters } from "./learner-filters";
 import { startLearnerRequest } from "./learner-request";
+import type { LearnerSummaryData } from "./learner-summary";
 
 export function LearnerRequestState({ state, onRetry }: { state: "loading" | "error"; onRetry: () => void }) {
   return <section className="panel mt-6 p-6" aria-label="Learner directory" aria-busy={state === "loading"}>
@@ -23,7 +24,8 @@ export function LearnerRequestState({ state, onRetry }: { state: "loading" | "er
 
 // Parent keys this component by applied filters, clearing rows and drawer state
 // immediately. Cleanup prevents a late response from replacing a newer request.
-export function ConnectedLearnerDirectory({ filters, searchAction }: { filters: LearnerFilters; searchAction: typeof searchMvpLearners }) {
+export function ConnectedLearnerDirectory({ filters, searchAction, beforeDirectory }: { filters: LearnerFilters; searchAction: typeof searchMvpLearners;
+  beforeDirectory?: (summary: LearnerSummaryData | undefined, state: "loading" | "error" | "ready") => ReactNode }) {
   const [paging, setPaging] = useState({ page: 1, pageSize: 25 });
   const [sorting, setSorting] = useState<DirectorySorting>({ sortBy: "name", sortOrder: "asc" });
   const [retry, setRetry] = useState(0);
@@ -40,8 +42,8 @@ export function ConnectedLearnerDirectory({ filters, searchAction }: { filters: 
   const result = response?.key === requestKey ? response.result : null;
   // Do not display error payloads or stale rows/counts. Retry preserves the
   // current request and changes its key, immediately returning to loading.
-  if (!result || !result.ok) return <LearnerRequestState state={result ? "error" : "loading"} onRetry={() => setRetry(value => value + 1)} />;
-  return <LearnerDirectory key={requestKey} filters={filters} learners={result.directory}
+  if (!result || !result.ok) return <>{beforeDirectory?.(undefined, result ? "error" : "loading")}<LearnerRequestState state={result ? "error" : "loading"} onRetry={() => setRetry(value => value + 1)} /></>;
+  return <>{beforeDirectory?.(result.summary, "ready")}<LearnerDirectory key={requestKey} filters={filters} learners={result.directory}
     sorting={sorting} onSortChange={value => { setSorting(value); setPaging(current => ({ ...current, page: 1 })); }}
-    serverPagination={result.pagination} onPageChange={(page, pageSize) => setPaging({ page, pageSize })} />;
+    serverPagination={result.pagination} onPageChange={(page, pageSize) => setPaging({ page, pageSize })} /></>;
 }

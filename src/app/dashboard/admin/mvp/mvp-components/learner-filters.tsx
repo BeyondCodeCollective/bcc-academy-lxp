@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useReducer, useState } from "react";
 import { Search } from "lucide-react";
-import { LearnerSummary } from "./learner-summary";
+import { LearnerSummary, type LearnerSummaryData } from "./learner-summary";
 import { LearnerCharts } from "./learner-charts";
 import { LearnerDirectory } from "./learner-directory";
 import { ConnectedLearnerDirectory, LearnerRequestState } from "./connected-learner-directory";
@@ -57,6 +57,15 @@ export function LearnerFilterBar({ options, searchAction }: { options?: LearnerF
   const inputClass = "mt-2 min-h-11 w-full min-w-0 rounded-lg border border-rule bg-white px-3 py-2 text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50";
   const labelClass = "min-w-0 flex-1 basis-44 text-sm font-medium text-ink";
   const hasFilters = Object.entries(draft).some(([key, value]) => key === "status" ? value !== "all" : Boolean(value));
+  const beforeDirectory = (summary?: LearnerSummaryData, state: "disconnected" | "loading" | "error" | "ready" = "disconnected") => <>
+    <LearnerSummary summary={summary} state={state} needsCheckInSelected={applied.status === "needs_check_in"} onNeedsCheckIn={() => {
+      const status = applied.status === "needs_check_in" ? "all" : "needs_check_in";
+      dispatch({ type: "change", field: "status", value: status });
+      setApplied(current => ({ ...current, status }));
+      setNotice(connected ? "Learner status filter updated." : "Status preview updated. Learner results are not connected yet.");
+    }} />
+    <LearnerCharts />
+  </>;
   return <><section className="panel min-w-0 p-5 sm:p-6" aria-labelledby={`${id}-heading`}>
     <h2 id={`${id}-heading`} className="text-xl font-semibold text-ink">Search and filters</h2>
     <p id={`${id}-help`} className="mt-2 text-sm text-ink-soft">Search by name or email. These selections stay on the Learners page.</p>
@@ -113,16 +122,8 @@ export function LearnerFilterBar({ options, searchAction }: { options?: LearnerF
       <p role="status" className="mt-3 text-xs text-ink-soft">{notice || (!connected && search ? "Search text ready. Results will be available when the directory is connected." : "")}</p>
     </form>
   </section>
-    <LearnerSummary needsCheckInSelected={draft.status === "needs_check_in"} onNeedsCheckIn={() => {
-      dispatch({ type: "toggle_check_in" });
-      setApplied(current => ({ ...current, status: draft.status === "needs_check_in" ? "all" : "needs_check_in" }));
-      setNotice(connected ? "Learner status filter updated." : draft.status === "needs_check_in"
-        ? "All learner statuses selected. Learner results are not connected yet."
-        : "Needs Check-in selected. Learner results are not connected yet.");
-    }} />
-    <LearnerCharts />
-    {searchAction && draft.search.trim() !== search ? <LearnerRequestState state="loading" onRetry={() => {}} />
-      : searchAction ? <ConnectedLearnerDirectory key={JSON.stringify({ ...applied, search })} filters={{ ...applied, search }} searchAction={searchAction} />
-      : <LearnerDirectory filters={{ ...applied, search }} />}
+    {searchAction && draft.search.trim() !== search ? <>{beforeDirectory(undefined, "loading")}<LearnerRequestState state="loading" onRetry={() => {}} /></>
+      : searchAction ? <ConnectedLearnerDirectory key={JSON.stringify({ ...applied, search })} filters={{ ...applied, search }} searchAction={searchAction} beforeDirectory={beforeDirectory} />
+      : <>{beforeDirectory()}<LearnerDirectory filters={{ ...applied, search }} /></>}
   </>;
 }
