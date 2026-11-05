@@ -23,3 +23,8 @@ export const hasAttendedAnySession = cache(async (userId: string): Promise<boole
     .eq("student_id", userId);
   return (count ?? 0) > 0;
 });
+
+/** True until a survey flagged `opensAt` has opened. */
+export function surveyNotOpenYet(survey: Pick<SurveyConfig, "opensAt">, now: number = Date.now()): boolean {
+  return !!survey.opensAt && now < Date.parse(survey.opensAt);
+}
