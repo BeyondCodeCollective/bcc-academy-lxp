@@ -1,5 +1,6 @@
 import { US_STATES, type SurveyQuestion } from "@/components/survey-fields";
 import { FIELD_READY_PRE_PAGES, FIELD_READY_POST_PAGES } from "./field-ready-staff";
+import { CATALYST_LABS_POST_PAGES, CATALYST_LABS_POST_SURVEY_ID } from "./catalyst-labs-post";
 
 // Flat question schemas per survey id, used by the admin Survey Insights
 // dashboard to introspect what kind of aggregation/visualization to render
@@ -2330,6 +2331,7 @@ const SCHEMAS: Record<string, SurveyQuestion[]> = {
   "mass-sept-2026-pre": MASS_FALL_2026_PRE,
   "field-ready-staff-pre": FIELD_READY_PRE_PAGES.flatMap((p) => p.questions),
   "field-ready-staff-post": FIELD_READY_POST_PAGES.flatMap((p) => p.questions),
+  [CATALYST_LABS_POST_SURVEY_ID]: CATALYST_LABS_POST_PAGES.flatMap((p) => p.questions),
   "cyberdeck-pre": CYBERDECK_PRE,
   "cyberdeck-post": CYBERDECK_POST,
   "bgc-participant-2026": BGC_PARTICIPANT_2026,
