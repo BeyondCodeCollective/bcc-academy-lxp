@@ -5,6 +5,13 @@ import { LearnerSummary } from "./learner-summary";
 import { changeLearnerFilters, EMPTY_LEARNER_FILTERS, LearnerFilterBar } from "./learner-filters";
 
 describe("Learner summary cards", () => {
+  it.each([0, 12])("renders the full-population check-in count %s", needsCheckIn => {
+    const html = renderToStaticMarkup(createElement(LearnerSummary, { needsCheckInSelected: false, onNeedsCheckIn: () => {},
+      summary: { totalEnrolled: 100, sessionsHeld: 7, needsCheckIn, sessionsHeldUnavailableReason: null, asOf: "2026-11-05T12:00:00Z" }, state: "ready" }));
+    expect(html).toContain(`>${needsCheckIn}</span>`);
+    expect(html).not.toContain('aria-label="Count unavailable"');
+    expect(html).toContain("Not evaluated is not a flag");
+  });
   const summary = { totalEnrolled: 1234, sessionsHeld: 7, sessionsHeldUnavailableReason: null, asOf: "2026-11-05T12:00:00Z" };
   it("renders backend totals and leaves the unconnected check-in count unavailable", () => {
     const html = renderToStaticMarkup(createElement(LearnerSummary, { needsCheckInSelected: false, onNeedsCheckIn: () => {}, summary, state: "ready" }));
@@ -50,16 +57,23 @@ describe("Learner summary cards", () => {
     expect(changeLearnerFilters(selected, { type: "clear" })).toEqual(EMPTY_LEARNER_FILTERS);
     expect(scoped.status).toBe("all");
   });
-  it("exposes a native button and forwards its click to the owner", () => {
+  it.each([false, true])("exposes a native toggle button with selected state %s", selected => {
     const onNeedsCheckIn = vi.fn();
-    const element = LearnerSummary({ needsCheckInSelected: true, onNeedsCheckIn });
+    const element = LearnerSummary({ needsCheckInSelected: selected, onNeedsCheckIn });
     const button = element.props.children[0].props.children[2];
     expect(button.type).toBe("button");
     expect(button.props.type).toBe("button");
-    expect(button.props["aria-pressed"]).toBe(true);
+    expect(button.props["aria-pressed"]).toBe(selected);
     button.props.onClick();
     expect(onNeedsCheckIn).toHaveBeenCalledOnce();
     const html = renderToStaticMarkup(element);
-    expect(html).toContain("Selected · click to show all statuses");
+    expect(html).toContain(selected ? "Selected · click to show all statuses" : "Select Needs Check-in status");
+  });
+  it.each(["all", "on_track", "not_evaluated"] as const)("selects Needs Check-In from %s without changing scope", status => {
+    const applied = { ...EMPTY_LEARNER_FILTERS, search: "Ada", programId: "p1", courseSlug: "a", cohortId: "c1", status };
+    const flagged = changeLearnerFilters(applied, { type: "toggle_check_in" });
+    expect(flagged).toEqual({ ...applied, status: "needs_check_in" });
+    expect(changeLearnerFilters(flagged, { type: "toggle_check_in" })).toEqual({ ...applied, status: "all" });
+    expect(JSON.stringify(flagged)).not.toBe(JSON.stringify(applied));
   });
 });

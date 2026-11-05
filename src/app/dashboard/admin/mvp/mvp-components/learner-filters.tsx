@@ -59,10 +59,15 @@ export function LearnerFilterBar({ options, searchAction }: { options?: LearnerF
   const hasFilters = Object.entries(draft).some(([key, value]) => key === "status" ? value !== "all" : Boolean(value));
   const beforeDirectory = (summary?: LearnerSummaryData, state: "disconnected" | "loading" | "error" | "ready" = "disconnected") => <>
     <LearnerSummary summary={summary} state={state} needsCheckInSelected={applied.status === "needs_check_in"} onNeedsCheckIn={() => {
-      const status = applied.status === "needs_check_in" ? "all" : "needs_check_in";
+      // Use applied status, not an unsaved dropdown edit. This quick filter
+      // applies immediately; the changed directory key resets page and evidence.
+      const status = changeLearnerFilters(applied, { type: "toggle_check_in" }).status;
       dispatch({ type: "change", field: "status", value: status });
       setApplied(current => ({ ...current, status }));
-      setNotice(connected ? "Learner status filter updated." : "Status preview updated. Learner results are not connected yet.");
+      setNotice(connected ? status === "needs_check_in"
+        ? "Needs Check-In filter applied. Showing matching flagged learners from page 1."
+        : "All learner statuses selected. Other filters are unchanged."
+        : "Status preview updated. Learner results are not connected yet.");
     }} />
     <LearnerCharts />
   </>;

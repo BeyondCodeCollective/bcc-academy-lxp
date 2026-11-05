@@ -1,5 +1,21 @@
 # Learner record relationships
 
+## Connected Needs Check-In count (November 5, 2026)
+
+`summary.needsCheckIn` counts distinct learner IDs with at least one matching
+enrollment carrying a supported check-in flag. Search, Program, Course, Current
+Cohort, and applied Status filters all apply. Multiple flags or enrollments do
+not multiply the count; page size, page number, and sorting do not change it.
+Not evaluated is not a flag; zero means no supported flags in the matching set,
+not that every learner is On Track.
+
+Activity and attendance batch loaders now evaluate the complete matching roster
+for every directory request, including Status All, before pagination. Only the
+requested directory page and scalar summary counts are sent to the frontend.
+Read failures reject the request rather than publishing partial counts. Loading
+and errors clear old card totals; Retry uses the same filters. This requires more
+evidence reads than the earlier page-only path and is not a database aggregate.
+
 Code/schema audit, updated October 24, 2026. This describes repository contracts, not
 verified production data coverage. The Learners view is currently an authorized
 workspace shell: it does not query records or offer exports.

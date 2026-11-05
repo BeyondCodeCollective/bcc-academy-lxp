@@ -96,19 +96,18 @@ export async function getMvpLearnersData(params: LearnerQueryParams = {}) {
   const matching = await loadLearnerRoster(db, options, filters);
   const asOf = new Date();
   const sessionContext = await loadLearnerSessionContext(db, matching, asOf);
-  const initialPage = paginateLearners(sortLearners(matching, sorting), requestedPage);
-  // Status filtering needs evidence for the whole matching population, not just
-  // the current page. Ordinary requests keep their existing page-scoped reads.
-  const selected = filters.status === "all" ? initialPage.directory : matching;
-  const activity = await loadLearnerActivity(db, selected, asOf);
+  // The check-in count and status filters require complete scoped evidence.
+  // Batch loaders must finish before counting; only the returned directory is paginated.
+  const activity = await loadLearnerActivity(db, matching, asOf);
   const attendance = await loadLearnerAttendance(db, activity, sessionContext.heldByOffering, asOf);
   const evaluated = evaluateLearnerCheckIns(attendance, programs, asOf);
   const filtered = filters.status === "all" ? evaluated : evaluated.map(learner => ({ ...learner,
     enrollments: learner.enrollments.filter(enrollment => enrollment.status === filters.status),
   })).filter(learner => learner.enrollments.length > 0);
-  const page = filters.status === "all" ? { directory: filtered, pagination: initialPage.pagination }
-    : paginateLearners(sortLearners(filtered, sorting), requestedPage);
+  const needsCheckIn = new Set(filtered.filter(learner => learner.enrollments.some(enrollment =>
+    enrollment.status === "needs_check_in" && enrollment.checkIn.attentionFlags.length > 0)).map(learner => learner.id)).size;
+  const page = paginateLearners(sortLearners(filtered, sorting), requestedPage);
   const directory = await loadLearnerProgress(page.directory, programs);
-  const summary = filters.status === "all" ? sessionContext.summary : (await loadLearnerSessionContext(db, filtered, asOf)).summary;
+  const summary = { ...(filters.status === "all" ? sessionContext.summary : (await loadLearnerSessionContext(db, filtered, asOf)).summary), needsCheckIn };
   return { state: "directory_ready" as const, programs, options, filters, sorting, selectedProgramId: requested, directory, pagination: page.pagination, summary };
 }

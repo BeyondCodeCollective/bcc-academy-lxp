@@ -16,7 +16,7 @@ describe("Learners search action", () => {
   it("delegates search, status, scope and pagination to the authorized loader with an explicit response projection", async () => {
     const params = { search: "Ada@example.test", status: "needs_check_in", programId: "p1", courseSlug: "a", page: "2", pageSize: "10", sortBy: "email", sortOrder: "desc" };
     const pagination = { page: 2, pageSize: 10, totalMatching: 11, totalPages: 2, start: 11, end: 11 };
-    const summary = { totalEnrolled: 11, sessionsHeld: 7, sessionsHeldUnavailableReason: null, asOf: "2026-11-05T12:00:00Z" };
+    const summary = { totalEnrolled: 11, sessionsHeld: 7, needsCheckIn: 11, sessionsHeldUnavailableReason: null, asOf: "2026-11-05T12:00:00Z" };
     mocks.load.mockResolvedValue({ pagination, summary: { ...summary, private: "PRIVATE" }, options: { private: "PRIVATE" }, directory: [{ id: "s1", firstName: "Ada", lastName: "Test", email: "Ada@example.test", private: "PRIVATE",
       enrollments: [{ programId: "p1", programName: "One", courseSlug: "a", courseName: "A", cohort: null, attendance: null,
         attendanceUnavailableReason: "Review incomplete.",

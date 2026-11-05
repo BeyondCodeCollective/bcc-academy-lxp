@@ -1,6 +1,6 @@
 import { CalendarCheck, CircleAlert, Users } from "lucide-react";
 
-export type LearnerSummaryData = { totalEnrolled: number; sessionsHeld: number | null; sessionsHeldUnavailableReason: string | null; asOf: string };
+export type LearnerSummaryData = { totalEnrolled: number; sessionsHeld: number | null; needsCheckIn?: number; sessionsHeldUnavailableReason: string | null; asOf: string };
 
 // Counts come from the full authorized matching roster, never the visible page.
 // The containing client component owns the Learners-only status selection.
@@ -12,6 +12,7 @@ export function LearnerSummary({ needsCheckInSelected, onNeedsCheckIn, summary, 
 }) {
   const count = (value: number | null | undefined) => state === "ready" && typeof value === "number" && Number.isSafeInteger(value) && value >= 0 ? value.toLocaleString("en-US") : null;
   const enrolled = count(summary?.totalEnrolled);
+  const checkIns = count(summary?.needsCheckIn);
   const sessions = count(summary?.sessionsHeldUnavailableReason ? null : summary?.sessionsHeld);
   return <section aria-label="Learner summary" className="mt-6">
     <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -38,11 +39,11 @@ export function LearnerSummary({ needsCheckInSelected, onNeedsCheckIn, summary, 
           <span className="text-sm font-semibold text-ink">Needs Check-In</span>
           <CircleAlert aria-hidden="true" size={20} className="shrink-0 text-amber-700" />
         </span>
-        <span className="mt-4 block text-3xl font-semibold text-ink" aria-label="Count unavailable">—</span>
-        <span className="mt-3 block text-sm text-ink-soft">Learners with verified follow-up flags.</span>
+        <span className="mt-4 block text-3xl font-semibold text-ink" aria-label={checkIns === null ? "Count unavailable" : undefined}>{checkIns ?? "—"}</span>
+        <span className="mt-3 block text-sm text-ink-soft">Distinct matching learners with supported follow-up flags. Not evaluated is not a flag.</span>
         <span className="mt-3 block text-xs font-semibold text-primary">{needsCheckInSelected ? "Selected · click to show all statuses" : "Select Needs Check-in status"}</span>
       </button>
     </div>
-    <p role="status" className="mt-3 text-xs text-ink-soft">{state === "loading" ? "Updating summary counts…" : state === "error" ? "Summary counts are unavailable. Retry loading learners below." : state === "ready" ? "Totals reflect all matching learners and courses, not just this page. Needs Check-In count is not connected yet." : "Summary counts are not connected yet."} A dash means unavailable, not zero.</p>
+    <p role="status" className="mt-3 text-xs text-ink-soft">{state === "loading" ? "Updating summary counts…" : state === "error" ? "Summary counts are unavailable. Retry loading learners below." : state === "ready" ? "Totals reflect all matching learners and courses, including the applied Status filter, not just this page." : "Summary counts are not connected yet."} A dash means unavailable, not zero.</p>
   </section>;
 }

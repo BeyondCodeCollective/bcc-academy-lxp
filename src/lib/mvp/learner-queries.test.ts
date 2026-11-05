@@ -95,6 +95,7 @@ describe("Learners loader access boundary", () => {
     const result = await getMvpLearnersData({ status: "needs_check_in", page: "2", pageSize: "10" });
     expect(result.pagination).toMatchObject({ totalMatching: 1, page: 1 });
     expect(result.summary.totalEnrolled).toBe(1);
+    expect(result.summary.needsCheckIn).toBe(1);
     expect(result.directory[0].enrollments.map(row => row.courseSlug)).toEqual(["a"]);
     expect(result.directory[0].enrollments[0].checkIn.attentionFlags[0].reason).toBe("missed_sessions");
     expect(result.directory[0].enrollments[0].checkIn.attentionFlags[0]).toMatchObject({ learnerId: "s00", programId: "p1", courseSlug: "a",
@@ -108,6 +109,31 @@ describe("Learners loader access boundary", () => {
     const unknown = await getMvpLearnersData({ status: "not_evaluated", page: "3", pageSize: "10" });
     expect(unknown.pagination.totalMatching).toBe(26);
     expect(unknown.directory).toHaveLength(6);
+  });
+  it("counts flagged learners across all pages once, even with multiple flagged enrollments", async () => {
+    seedAttendance();
+    tables.session_content.find(row => row.id === "b2")!.status = "completed";
+    const reviews = tables.mvp_attendance_reviews;
+    tables.mvp_attendance_reviews = ["s00", "s25"].flatMap(student_id => reviews.map(row => ({
+      ...row, id: `${student_id}${row.id}`, student_id, outcome: "absent",
+    })));
+    for (const params of [{ page: "1", pageSize: "10" }, { page: "3", pageSize: "10" }, { sortOrder: "desc", pageSize: "25" }]) {
+      requests = [];
+      const result = await getMvpLearnersData(params);
+      expect(result.summary).toMatchObject({ totalEnrolled: 26, needsCheckIn: 2 });
+      expect(result.directory.length).toBeLessThanOrEqual(Number(params.pageSize));
+    }
+    requests = [];
+    expect((await getMvpLearnersData({ search: "Learner25" })).summary.needsCheckIn).toBe(1);
+    requests = [];
+    expect((await getMvpLearnersData({ search: "Learner01" })).summary.needsCheckIn).toBe(0);
+    requests = [];
+    expect((await getMvpLearnersData({ status: "not_evaluated" })).summary.needsCheckIn).toBe(0);
+    requests = [];
+    const flagged = await getMvpLearnersData({ status: "needs_check_in" });
+    expect(flagged.summary.needsCheckIn).toBe(flagged.pagination.totalMatching);
+    requests = [];
+    expect((await getMvpLearnersData({ search: "No match" })).summary.needsCheckIn).toBe(0);
   });
   it("returns privacy-safe attendance states per enrollment even when its ratio is unavailable", async () => {
     seedAttendance();

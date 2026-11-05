@@ -13,6 +13,7 @@ export async function searchMvpLearners(params: LearnerQueryParams) {
     const result = await getMvpLearnersData(params);
     return { ok: true as const, pagination: result.pagination,
       summary: { totalEnrolled: result.summary.totalEnrolled, sessionsHeld: result.summary.sessionsHeld,
+        needsCheckIn: result.summary.needsCheckIn,
         sessionsHeldUnavailableReason: result.summary.sessionsHeldUnavailableReason, asOf: result.summary.asOf },
       directory: result.directory.map(learner => ({
       id: learner.id, firstName: learner.firstName, lastName: learner.lastName, email: learner.email,
