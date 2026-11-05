@@ -684,7 +684,7 @@ export function Nav({
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={logo} alt={programName} className="h-6 w-auto" />
               </Link>
-              <UserMenu variant="topbar" {...userMenuProps} />
+              <UserMenu variant="topbar" align="left" {...userMenuProps} />
             </div>
           </div>
         </aside>
