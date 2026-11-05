@@ -1,6 +1,5 @@
 import type { SurveyConfig } from "@/lib/programs/types";
 import { getEveryProgramConfig } from "@/lib/programs";
-import { CATALYST_LABS_POST_SURVEY_ID, CATALYST_LABS_TRACKS } from "./catalyst-labs-post";
 
 // ─── Platform-level surveys ─────────────────────────────────────────────────
 //
@@ -213,13 +212,6 @@ export const PLATFORM_AUTH_SURVEYS: Record<string, SurveyConfig> = {
       "How the pilot went and what changed for you. Your answers are shown to staff under a participant code, never your name.",
     required: false,
     participantCoded: true,
-  },
-  [CATALYST_LABS_POST_SURVEY_ID]: {
-    id: CATALYST_LABS_POST_SURVEY_ID,
-    appliesToTracks: CATALYST_LABS_TRACKS,
-    title: "Catalyst Labs: Post-Session Survey",
-    description: "Three quick questions before you go.",
-    required: false,
   },
   "mass-sept-2026-pre": {
     id: "mass-sept-2026-pre",

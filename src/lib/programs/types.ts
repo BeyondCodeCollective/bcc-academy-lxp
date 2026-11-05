@@ -329,6 +329,9 @@ export type SurveyConfig = {
    *  has attended a session, so new learners meet the course before the
    *  questionnaire. Only meaningful with `required`. */
   afterFirstSession?: boolean;
+  /** ISO timestamp. Before it, the survey is not offered at all (no card, no
+   *  redirect). Used to hand out an end-of-session survey as the session wraps. */
+  opensAt?: string;
   /** Program slugs whose students should skip this survey even when they
    *  resolve to this program's dashboard (e.g. forte students on Catalyst) */
   skipForPrograms?: string[];

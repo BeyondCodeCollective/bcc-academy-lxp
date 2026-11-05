@@ -1,5 +1,6 @@
 import type { ProgramConfig } from "./types";
 import { additionalTracks } from "./additional-tracks";
+import { CATALYST_LABS_POST_SURVEY } from "@/lib/surveys/catalyst-labs-post";
 
 // Catalyst is its own program. Beyond the Game (slug `atg`), Beyond Code
 // Centers, and Upskill Bahamas (Forte) are their OWN programs — their courses
@@ -33,6 +34,7 @@ export const catalystConfig: ProgramConfig = {
     ...additionalTracks,
   ],
   surveys: [
+    CATALYST_LABS_POST_SURVEY,
     {
       id: "pre-survey-spring-2026",
       title: "AI Fundamentals — Pre-Program Survey",

@@ -36,7 +36,7 @@ import { isStaffEmail } from "@/lib/auth/admins";
 import { administersProgram } from "@/lib/auth/program-access";
 import { completePendingSetup } from "@/lib/auth/deferred-setup";
 import { heldChecklistTrackSlug } from "@/lib/onboarding/held";
-import { surveyWaitsForFirstSession, hasAttendedAnySession } from "@/lib/onboarding/survey-timing";
+import { surveyWaitsForFirstSession, surveyNotOpenYet, hasAttendedAnySession } from "@/lib/onboarding/survey-timing";
 import { isAssessmentEnabledForLearner } from "@/lib/assessment/features";
 
 export const dynamic = "force-dynamic";
@@ -395,6 +395,7 @@ async function DashboardContent({
 
           const applicableRequired = (isStaff ? [] : candidateSurveys).filter((s) => {
             if (!s.required) return false;
+            if (surveyNotOpenYet(s)) return false;
             // Allowlist first: a survey that names its programs is only ever
             // for those learners, whatever the skip lists say.
             if (!surveyTargetsLearner(s, enrolledHomePrograms, surveyTrackSlugs)) return false;
