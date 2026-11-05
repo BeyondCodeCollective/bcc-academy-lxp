@@ -677,10 +677,15 @@ export function Nav({
           aria-label="Main navigation"
         >
           <div className="flex h-full flex-col gap-6 p-4">
-            <Link href={homeHref} className="flex items-center px-2 py-2">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={logo} alt={programName} className="h-6 w-auto" />
-            </Link>
+            {/* The account menu stays even here: a learner held on a
+                pre-start checklist sees only this shell and needs Sign out. */}
+            <div className="flex items-center justify-between gap-2">
+              <Link href={homeHref} className="flex items-center px-2 py-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={logo} alt={programName} className="h-6 w-auto" />
+              </Link>
+              <UserMenu variant="topbar" {...userMenuProps} />
+            </div>
           </div>
         </aside>
         <div className="md:hidden sticky top-0 z-30 flex items-center justify-between shell-topbar px-4 py-2">
@@ -688,6 +693,7 @@ export function Nav({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={logo} alt={programName} className="h-7 w-auto" />
           </Link>
+          <UserMenu variant="topbar" {...userMenuProps} />
         </div>
       </>
     );
