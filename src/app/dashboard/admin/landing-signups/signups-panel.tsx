@@ -242,7 +242,9 @@ export async function computeCourseSignups(data: SignupsData, course: string, se
 
   const stageOf = (r: Reg): { stage: Stage; internal: boolean; name: string | null } => {
     const s = studentByEmail.get(r.email);
-    const internal = !!(s && (s.is_staff || s.is_test));
+    // Only test accounts are internal. Staff are real participants (the Field
+    // Ready staff cohort is all staff), so they count and export.
+    const internal = !!s?.is_test;
     const name = r.name?.trim() || nameByEmail.get(r.email) || [s?.first_name, s?.last_name].filter(Boolean).join(" ").trim() || null;
     if (s && enrolledIds.has(s.id)) return { stage: "enrolled", internal, name };
     if (s || (r.inviteToken && data.usedToken.has(r.inviteToken))) return { stage: "signed-in", internal, name };
