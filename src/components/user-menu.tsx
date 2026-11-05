@@ -23,6 +23,7 @@ export function UserMenu({
   programs,
   currentProgramSlug,
   variant = "sidebar",
+  align = "right",
 }: {
   firstName: string;
   lastName: string;
@@ -32,6 +33,9 @@ export function UserMenu({
   programs: ProgramOption[];
   currentProgramSlug: string;
   variant?: Variant;
+  /** Topbar popover edge. "left" when the trigger sits near the screen's left
+   *  edge (the minimal checklist shell), or the menu opens off-screen. */
+  align?: "left" | "right";
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -79,11 +83,14 @@ export function UserMenu({
   const handleSignOut = async () => {
     document.cookie = "atg-demo-user=; path=/; max-age=0";
     document.cookie = "program-override=; path=/; max-age=0";
-    if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
-      const supabase = createClient();
-      await supabase.auth.signOut();
+    try {
+      if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
+        await createClient().auth.signOut();
+      }
+    } finally {
+      // Leave even if the sign-out call fails, so the button never looks dead.
+      window.location.href = "/";
     }
-    window.location.href = "/";
   };
 
   const avatarNode = (size: "sm" | "md" | "lg") => {
@@ -115,7 +122,9 @@ export function UserMenu({
   const popoverPosition =
     variant === "sidebar"
       ? "bottom-full mb-2 left-0 origin-bottom-left"
-      : "top-full mt-2 right-0 origin-top-right";
+      : align === "left"
+        ? "top-full mt-2 left-0 origin-top-left"
+        : "top-full mt-2 right-0 origin-top-right";
 
   const trigger =
     variant === "sidebar" ? (
