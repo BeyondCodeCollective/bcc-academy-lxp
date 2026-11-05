@@ -8,6 +8,11 @@ const roster = () => states.flatMap(state => Array.from({ length: 5 }, (_, i) =>
     attendanceSessions: [{ weekNumber: 1, sessionNumber: 1, state }] as MvpAttendanceSessionState[] | null }],
 })));
 describe("attendance-by-session aggregates", () => {
+  it.each(states)("suppresses small %s cells and all related row totals", state => {
+    const learners = roster().filter(l => l.enrollments[0].attendanceSessions![0].state !== state);
+    const small = roster().find(l => l.enrollments[0].attendanceSessions![0].state === state)!;
+    expect(aggregateLearnerAttendance([...learners, small])).toEqual({ state: "suppressed" });
+  });
   it("keeps all six states distinct and deduplicates learners and enrollments", () => {
     const learners = roster();
     learners[0].enrollments.push(learners[0].enrollments[0]);

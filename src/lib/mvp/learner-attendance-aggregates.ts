@@ -1,7 +1,7 @@
 import "server-only";
 import type { MvpAttendanceSessionState } from "./attendance-verification";
 import type { LearnerChartData } from "./learner-chart-data";
-import { MVP_MINIMUM_GROUP_SIZE } from "./privacy";
+import { isSmallMvpCount } from "./privacy";
 
 type State = MvpAttendanceSessionState["state"];
 export type AttendanceSessionAggregate = {
@@ -56,6 +56,7 @@ export function aggregateLearnerAttendance(learners: Learner[]): LearnerChartDat
   if (!rows.length) return { state: "empty" };
   // Suppress the whole chart, including labels/totals, so complementary cells
   // cannot reconstruct a withheld count. No learner identifiers leave here.
-  if (rows.some(row => [row.total, ...Object.values(row.counts)].some(n => n > 0 && n < MVP_MINIMUM_GROUP_SIZE))) return { state: "suppressed" };
+  if (rows.some(row => isSmallMvpCount(row.total) || Object.values(row.counts)
+    .some(n => isSmallMvpCount(n) || isSmallMvpCount(row.total - n)))) return { state: "suppressed" };
   return { state: "ready", rows };
 }

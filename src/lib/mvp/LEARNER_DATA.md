@@ -1,5 +1,22 @@
 # Learner record relationships
 
+## Chart cell and tooltip suppression
+
+All chart guards use the shared minimum-five policy. A positive count below five,
+or a positive complement (`population - count`) below five, withholds the whole
+chart dataset. Related rows, labels, totals, and scales are removed rather than
+releasing enough cells to reconstruct a hidden value. Zero and exactly five
+remain valid when all other cells and complements are safe. Attendance applies
+this to all six states; milestones check each overlapping activity separately.
+
+The chart renderer defensively revalidates ready datasets before building any
+bars, SVG titles, native tooltips, accessible tables/labels, or selection targets.
+Changed or suppressed datasets invalidate the displayed selection. Server-side
+guards remain mandatory before serialization; hiding in the browser is not a
+privacy boundary. Legacy chart guards explicitly project approved fields rather
+than copying arbitrary source metadata. Repeated-query differencing protection
+and chart data wiring remain separate work.
+
 ## Weekly milestone aggregates (November 5, 2026)
 
 The authorized loader's `weeklyMilestones` aggregate uses the entire matching
