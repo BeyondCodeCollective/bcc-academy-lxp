@@ -1,5 +1,26 @@
 # Learner record relationships
 
+## Attendance-by-session aggregates (November 5, 2026)
+
+The authorized loader returns `attendanceBySession` for the complete matching
+population, including applied Status, before directory pagination. Each row is
+one program/course/week/session, counting each learner once. Only verified held
+required sessions from the attendance loader participate; future and optional
+sessions are excluded upstream. Counts distinguish `verified_present`,
+`verified_absent`, `excused`, `unrecorded`, `unresolved`, and `not_eligible`.
+`total` includes all six categories and is NOT an attendance-rate denominator.
+
+Missing schedules, incomplete session coverage, or conflicting duplicate evidence
+return `unavailable`; a known empty schedule/population returns `empty`. Any
+nonzero cell below five suppresses the entire dataset, including session labels
+and totals, preventing complementary-cell reconstruction within that dataset.
+This does not guarantee protection against differencing across repeated filters.
+Raw learner IDs and review details never appear in the aggregate rows.
+
+This is a server-side data contract only; chart/action wiring is not enabled by
+this step. The outstanding PR #1295 program-scoped attendance and delivery fixes
+must land before release. No additional database reads are introduced here.
+
 ## Connected Needs Check-In count (November 5, 2026)
 
 `summary.needsCheckIn` counts distinct learner IDs with at least one matching

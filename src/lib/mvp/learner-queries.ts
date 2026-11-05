@@ -13,6 +13,7 @@ import { loadLearnerActivity } from "./learner-activity";
 import { loadLearnerSessionContext } from "./learner-summary";
 import { loadLearnerAttendance } from "./learner-attendance";
 import { evaluateLearnerCheckIns } from "./learner-check-ins";
+import { aggregateLearnerAttendance } from "./learner-attendance-aggregates";
 
 export type LearnerProgramScope = {
   id: string; name: string; slug: string;
@@ -109,5 +110,6 @@ export async function getMvpLearnersData(params: LearnerQueryParams = {}) {
   const page = paginateLearners(sortLearners(filtered, sorting), requestedPage);
   const directory = await loadLearnerProgress(page.directory, programs);
   const summary = { ...(filters.status === "all" ? sessionContext.summary : (await loadLearnerSessionContext(db, filtered, asOf)).summary), needsCheckIn };
-  return { state: "directory_ready" as const, programs, options, filters, sorting, selectedProgramId: requested, directory, pagination: page.pagination, summary };
+  const attendanceBySession = aggregateLearnerAttendance(filtered);
+  return { state: "directory_ready" as const, programs, options, filters, sorting, selectedProgramId: requested, directory, pagination: page.pagination, summary, attendanceBySession };
 }

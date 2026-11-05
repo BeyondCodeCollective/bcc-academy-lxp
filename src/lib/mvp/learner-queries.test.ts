@@ -79,6 +79,15 @@ describe("Learners loader access boundary", () => {
     for (const result of [first, last]) expect(result.summary).toMatchObject({ totalEnrolled: 26, sessionsHeld: 3, sessionsHeldUnavailableReason: null });
     expect(first.directory).toHaveLength(10);
     expect(last.directory).toHaveLength(6);
+    expect(first.attendanceBySession).toEqual(last.attendanceBySession);
+    expect(first.attendanceBySession.state).toBe("ready");
+    if (first.attendanceBySession.state === "ready") {
+      expect(first.attendanceBySession.rows).toHaveLength(3);
+      for (const row of first.attendanceBySession.rows) {
+        expect(row.total).toBe(26);
+        expect(row.counts).toEqual({ verified_present: 0, verified_absent: 0, excused: 0, unrecorded: 26, unresolved: 0, not_eligible: 0 });
+      }
+    }
     expect(Number.isFinite(Date.parse(first.summary.asOf))).toBe(true);
   });
   const seedAttendance = () => {
